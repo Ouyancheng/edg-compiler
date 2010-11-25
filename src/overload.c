@@ -16414,16 +16414,21 @@ Deduce the "auto" type specifier and store the resulting type in dps->type.
 Deduction failures are diagnosed as errors.
 */
 {
-  an_operand            *arg = &dps->prescanned_auto_initializer->operand;
+  an_arg_operand_ptr    auto_arg_operand;
+  an_operand            *arg;
   a_template_param_ptr  templ_param;
   a_template_arg_ptr    templ_arg = NULL;
   a_type_ptr            type = dps->declared_type, orig_type = type;
-  a_type_ptr            arg_type = arg->type;
+  a_type_ptr            arg_type;
   a_type_ptr            qc_param_type = NULL;
   a_type_ptr            qc_arg_type = NULL;
   a_boolean             subst_error = FALSE;
 
   check_assertion(dps->auto_type_specifier_seen && dps->auto_type != NULL);
+  auto_arg_operand = dps->prescanned_auto_initializer_cache.first_expression;
+  check_assertion(auto_arg_operand != NULL && auto_arg_operand->next == NULL);
+  arg = &auto_arg_operand->operand;
+  arg_type = arg->type;
   dps->type = NULL;
   templ_param = alloc_template_param(symbol_for(dps->auto_type));
   /* Adjust the argument and parameter types for deduction.  Some types can

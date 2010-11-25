@@ -3742,7 +3742,8 @@ returned set to TRUE.
                                   decl_pos_block);
   }  /* if */
   /* Verify that any prescanned operand was consumed. */
-  check_assertion(dps->prescanned_auto_initializer == NULL ||
+  check_assertion(dps->prescanned_auto_initializer_cache.
+                                                    first_expression == NULL ||
                   is_error_type(dps->type));
   if (!var_err) {
     /* There was no error that precludes initialization, so update the

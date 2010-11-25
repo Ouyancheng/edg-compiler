@@ -463,8 +463,8 @@ typedef struct an_operand {
 
 
 /*
-Entry describing an actual argument to a function call.  This is basically
-an_operand that can be dynamically allocated and linked into a list.
+Entry describing an expression, in a form that can be dynamically allocated
+and linked onto a list.
 */
 /* The typedef an_arg_operand_ptr is defined in il_def.h. */
 typedef struct an_arg_operand {
@@ -617,6 +617,9 @@ typedef struct a_dynamic_init_dtor_fixup {
 			/* The source position for errors. */
 } a_dynamic_init_dtor_fixup;
 
+
+/* an_expression_cache is in decls.h because of header ordering reasons. */
+typedef struct an_expression_cache an_expression_cache_dummy_typedef;
 
 /*
 Entry in a stack used during expression processing to record transitions
@@ -826,6 +829,12 @@ typedef struct an_expr_stack_entry {
 			   otherwise.  This is used to provide default rescan
 			   information (e.g., source positions) for expressions
 			   that don't have any. */
+  struct an_expression_cache
+		*expression_cache;
+			/* If non-NULL, points to an expression cache that
+			   may contain queued up expressions that should be
+			   taken before new ones are scanned from source or
+			   rescanned. */
 } an_expr_stack_entry;
 
 EXTERN an_expr_stack_entry_ptr
@@ -943,6 +952,16 @@ i.e., it's an unevaluated operand or the operand of typeid.
 */
 #define curr_expr_is_potentially_unevaluated() \
   ((a_boolean)expr_stack->potentially_unevaluated)
+
+
+/*
+Macro that returns TRUE if there is at least one expression cached for the
+current context (as indicated by the expression stack).  Any such expression(s)
+should be consumed before taking more expressions from source or a rescan.
+*/
+#define cached_expression_present() \
+  (expr_stack->expression_cache != NULL && \
+   expr_stack->expression_cache->first_expression != NULL)
 
 
 /* Copy an operand.  Note that this does not copy the subtree of the
@@ -1063,6 +1082,15 @@ extern void change_some_ref_kinds(a_ref_entry_ptr         ref_list,
 extern void record_operand_modification_refs(an_operand *operand);
 
 extern an_arg_operand_ptr alloc_arg_operand(void);
+
+extern void clear_expression_cache(struct an_expression_cache *cache);
+
+extern void add_operand_to_expression_cache(
+                                           an_operand                 *operand,
+                                           struct an_expression_cache *cache);
+
+extern
+a_boolean fetch_operand_from_expression_cache(an_operand *operand);
 
 extern void free_arg_operand_list(an_arg_operand_ptr aop);
 

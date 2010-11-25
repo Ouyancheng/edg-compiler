@@ -27,6 +27,8 @@ decls.c -- Scanning of declarations.
 /* Additional header files. */
 #include "folding.h"
 #include "statements.h"
+/* To get clear_expression_cache: */
+#include "exprutil.h"
 #if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -159,7 +161,7 @@ reflected in start_secondary_declarator.
   ps->prev_type = NULL;
   ps->auto_type = NULL;
   ps->deduced_auto_type = NULL;
-  ps->prescanned_auto_initializer = NULL;
+  clear_expression_cache(&ps->prescanned_auto_initializer_cache);
   ps->prescanned_lifetime = NULL;
   ps->source_sequence_entry = NULL;
   ps->param_id = NULL;
@@ -14980,7 +14982,7 @@ related-fields of *ps prior to scanning the next declarator.
   ps->storage_class = ps->declared_storage_class;
   ps->declared_type = ps->specifiers_type;
   ps->type = ps->specifiers_type;
-  ps->prescanned_auto_initializer = NULL;
+  clear_expression_cache(&ps->prescanned_auto_initializer_cache);
   ps->prescanned_lifetime = NULL;
   ps->source_sequence_entry = NULL;
   ps->alignment = 0;

@@ -130,11 +130,13 @@ because of the "auto", since we won't be able to get a result in those
 cases.
 */
 {
-  a_boolean do_deduction = TRUE;
+  a_boolean          do_deduction = TRUE;
+  an_arg_operand_ptr auto_arg_operand = dps->prescanned_auto_initializer_cache.
+                                                              first_expression;
 
+  check_assertion(auto_arg_operand != NULL && auto_arg_operand->next == NULL);
   if (is_template_dependent_context()) {
-    if (is_template_dependent_type(
-                            dps->prescanned_auto_initializer->operand.type)) {
+    if (is_template_dependent_type(auto_arg_operand->operand.type)) {
       /* The initializer is dependent. */
       do_deduction = FALSE;
     } else {
@@ -161,12 +163,13 @@ deduce the type of the variable.  The operand resulting from the scan is
 recorded in *dps for later consumption.  On return, dps->deduced_auto_type is
 the type to which the "auto" was deduced, and dps->type is the type of the
 entity to initialize.  The prescanned operand can later be accessed using
-get_prescanned_auto_initializer.
+set_up_auto_initializer_rescan.
 */
 {
   an_expr_stack_entry expr_stack_entry;
   an_expr_stack_entry *saved_expr_stack;
   an_expression_kind  expr_kind = (an_expression_kind)ek_normal;
+  an_operand          operand;
 
   /* Usually an initializer is a full expression and we must push an entry
      on the expression stack.  However, the initializer for a new-expression
@@ -191,18 +194,18 @@ get_prescanned_auto_initializer.
       expr_stack_entry.favor_constant_result = TRUE;
     }  /* if */
   }  /* if */
-  /* Scan the expression into a dynamically allocated operand entry (it will
-     be passed back into the initializer scanning routines later on) and
-     deduce the "auto" type it implies. */
-  dps->prescanned_auto_initializer = alloc_arg_operand();
-  scan_expr(&dps->prescanned_auto_initializer->operand, PREC_LOWEST,
-            EOPT_DISALLOW_COMMA_OPERATOR);
+  /* Scan the expression and save it in an expression cache so it can be
+     scanned as the initializer later, and deduce the "auto" type it
+     implies. */
+  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  add_operand_to_expression_cache(&operand,
+                                  &dps->prescanned_auto_initializer_cache);
   deduce_auto_type_if_necessary(dps);
   /* Pop the expression stack if needed. */
   if (!dps->is_new_expr_type) {
     if (!dps->in_class_scope) {
       /* Save the associated object lifetime entry for later restoration by
-         get_prescanned_auto_initializer. */
+         set_up_auto_initializer_rescan. */
       dps->prescanned_lifetime = expr_stack->lifetime;
       curr_object_lifetime = curr_object_lifetime->parent_lifetime;
       expr_stack->lifetime = NULL;
@@ -213,46 +216,32 @@ get_prescanned_auto_initializer.
 }  /* prescan_initializer_for_auto_type_deduction */
 
 
-static an_arg_operand_ptr get_prescanned_auto_initializer(
-                                                 a_decl_parse_state  *dps,
-                                                 an_operand          *result)
+static void set_up_auto_initializer_rescan(a_decl_parse_state *dps)
 /*
-Return the prescanned initializer (recorded in *dps) for an entity typed using
-the "auto" type specifier.  This is done in one of two ways.  If result is
-non-NULL, *result is set to the operand proper and NULL is returned (and the
-recorded an_arg_operand is freed).  Otherwise, the recorded an_arg_operand is 
-returned directly (and the caller is responsible for freeing it later).
-For all initializers except new-initializers, the call must have pushed a new
-entry on the expression stack.  If needed, this routine will restore in the
-newly pushed expression stack entry the object lifetime produced during the
-prescan process.  On return, *dps no longer holds the prescanned operand and
-associated object lifetime (i.e., this routine should be called exactly once
-for each call to prescan_initializer_for_auto_type_deduction).
+If the initializer for an entity typed using the "auto" type specifier
+was previously scanned and saved in dps->prescanned_auto_initializer_cache,
+activate that expression cache so that the expression will be consumed
+next before any more expressions are scanned.  Otherwise, do nothing.
+If needed, this routine will also restore in the newly pushed
+expression stack entry the object lifetime produced during the prescan
+process (and therefore this routine should not be called before that
+expression stack entry has been pushed).
 */
 {
-  an_arg_operand_ptr  return_value = NULL;
-
-  if (!dps->is_new_expr_type && !curr_expr_kind_is_const()) {
-    /* The call to push_expr_stack will have pushed an object lifetime entry:
-       Remove it (to deallocate it) before restoring the entry associated with
-       the prescan. */
-    check_assertion(curr_expr_kind_is_const() ==
-                                          (dps->prescanned_lifetime == NULL));
-    (void)pop_object_lifetime();
-    curr_object_lifetime = expr_stack->lifetime = dps->prescanned_lifetime;
+  if (dps != NULL &&
+      dps->prescanned_auto_initializer_cache.first_expression != NULL) {
+    if (!dps->is_new_expr_type && dps->prescanned_lifetime != NULL) {
+      /* The call to push_expr_stack will have pushed an object lifetime entry.
+         Remove it (to deallocate it) before restoring the entry associated
+         with the prescan. */
+      (void)pop_object_lifetime();
+      curr_object_lifetime = expr_stack->lifetime = dps->prescanned_lifetime;
+    }  /* if */
+    check_assertion(expr_stack != NULL &&
+                    expr_stack->expression_cache == NULL);
+    expr_stack->expression_cache = &dps->prescanned_auto_initializer_cache;
   }  /* if */
-  /* Return the prescanned operand in one of two ways. */
-  if (result != NULL) {
-    copy_operand(&dps->prescanned_auto_initializer->operand, result);
-    free_arg_operand_list(dps->prescanned_auto_initializer);
-  } else {
-    return_value = dps->prescanned_auto_initializer;
-  }  /* if */
-  /* The prescan phase is now over: Clear the associated fields in *dps. */
-  dps->prescanned_lifetime = NULL;
-  dps->prescanned_auto_initializer = NULL;
-  return return_value;
-}  /* get_prescanned_auto_initializer */
+}  /* set_up_auto_initializer_rescan */
 
 
 void scan_and_discard_initializer_expression(a_decl_parse_state  *dps)
@@ -263,26 +252,16 @@ the initializer).  This may amount to simply discarding a prescanned
 initializer.  This routine is called for error recovery purposes.
 */
 {
+  an_expr_stack_entry expr_stack_entry;
+  an_operand          result;
+
   if (expr_error_should_be_issued()) expect_error();
-  if (dps != NULL && dps->prescanned_auto_initializer != NULL) {
-    /* The initializer was already scanned.  Discard the record of the
-       prescan. */
-    if (dps->prescanned_lifetime != NULL) {
-      free_object_lifetime(dps->prescanned_lifetime);
-      dps->prescanned_lifetime = NULL;
-    }  /* if */
-    free_arg_operand_list(dps->prescanned_auto_initializer);
-    dps->prescanned_auto_initializer = NULL;
-  } else {
-    /* Scan a general expression. */
-    an_expr_stack_entry  expr_stack_entry;
-    an_operand           result;
-    push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                    /*force_object_lifetime=*/FALSE,
-                    /*suppress_object_lifetime=*/TRUE);
-    scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-    pop_expr_stack();
-  }  /* if */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  set_up_auto_initializer_rescan(dps);
+  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  pop_expr_stack();
 }  /* scan_and_discard_initializer_expression */
 
 
@@ -916,15 +895,32 @@ TRUE, the last expression may be followed by a comma (which is consumed here).
 A pointer to the resulting operand list is returned.
 */
 {
+  a_boolean           after_cached_expr = FALSE;
   an_arg_operand_ptr  result = NULL, *p_arg = &result;
 
-  /* Check for an empty argument list. */
+  if (cached_expression_present()) {
+    /* Pick up any cached expressions first. */
+    result = expr_stack->expression_cache->first_expression;
+    p_arg = &expr_stack->expression_cache->last_expression->next;
+    clear_expression_cache(expr_stack->expression_cache);
+    expr_stack->expression_cache = NULL;
+    after_cached_expr = TRUE;
+  }  /* if */
+  /* Check for an empty argument list (or the end, if we picked up some
+     cached expressions). */
   if (curr_token != tok_rparen) {
     add_stop_token(tok_comma);
     /* Scan a comma-separated list of arguments. */
     do {
       a_pack_expansion_stack_entry_ptr pesep;
       a_boolean                        any_more;
+      if (after_cached_expr) {
+        /* If we took one or more cached expressions above, we're already
+           after the expression, so go to where we process the comma for the
+           next iteration. */
+        after_cached_expr = FALSE;
+        continue;
+      }  /* if */
       if (trailing_comma_okay) {
         /* Allow an extra comma at the end of the argument list. */
         if (curr_token == tok_rparen) break;
@@ -1020,25 +1016,41 @@ template pack expansions into multiple expressions as necessary.
   an_expr_node_ptr   arg_expr;
   an_arg_operand_ptr arg_operand_list = NULL, end_arg_operand_list = NULL;
 
-  for (arg_expr = expr_list;
-       arg_expr != NULL && !arg_expr->generated_default_arg;
-       arg_expr = arg_expr->next) {
-    if (arg_expr->is_pack_expansion) {
-      /* A variadic template pack expansion. */
-      rescan_pack_expansion(arg_expr, &arg_operand_list, &end_arg_operand_list,
-                            rcblock);
-    } else {
-      /* Normal case, not a pack expansion. */
-      an_arg_operand_ptr arg_op = alloc_arg_operand();
-      make_rescan_operand(arg_expr, rcblock, &arg_op->operand);
-      if (arg_operand_list == NULL) {
-        arg_operand_list = arg_op;
+  if (cached_expression_present()) {
+    /* Pick up any cached expressions instead of rescanning them.  It's
+       assumed that the cached expressions are replacing all the expressions
+       on the rescan list.  That works because rescanned expressions are
+       used during the rescan only for "auto" expressions, and those
+       appear alone on a list.  If we couldn't count on that, we'd
+       have to figure out how many expressions on the rescan list
+       correspond to cached expressions so we could throw away just
+       the number. */
+    arg_operand_list = expr_stack->expression_cache->first_expression;
+    end_arg_operand_list = expr_stack->expression_cache->last_expression;
+    clear_expression_cache(expr_stack->expression_cache);
+    expr_stack->expression_cache = NULL;
+  } else {
+    for (arg_expr = expr_list;
+         arg_expr != NULL && !arg_expr->generated_default_arg;
+         arg_expr = arg_expr->next) {
+      if (arg_expr->is_pack_expansion) {
+        /* A variadic template pack expansion. */
+        rescan_pack_expansion(arg_expr,
+                              &arg_operand_list, &end_arg_operand_list,
+                              rcblock);
       } else {
-        end_arg_operand_list->next = arg_op;
+        /* Normal case, not a pack expansion. */
+        an_arg_operand_ptr arg_op = alloc_arg_operand();
+        make_rescan_operand(arg_expr, rcblock, &arg_op->operand);
+        if (arg_operand_list == NULL) {
+          arg_operand_list = arg_op;
+        } else {
+          end_arg_operand_list->next = arg_op;
+        }  /* if */
+        end_arg_operand_list = arg_op;
       }  /* if */
-      end_arg_operand_list = arg_op;
-    }  /* if */
-  }  /* while */
+    }  /* while */
+  }  /* if */
   return arg_operand_list;
 }  /* rescan_expr_list */
 
@@ -1059,38 +1071,33 @@ static void scan_call_arguments(
 Scan the arguments of a function call and return a list of argument
 expressions in *p_argument_list.  The type of the function being
 called is given by function_type; function_type is NULL if the type is
-not known, or for an overloaded function case.
+not known, or for an overloaded function case.  routine points to the
+routine being called; it's NULL if the specific function being called
+is not known, e.g., when calling through a pointer.
 unknown_dependent_function is TRUE if the function to be called is not
 known because it is specified by a template-dependent expression.  The
 current token is the "(" of the argument list if
 already_after_left_paren is FALSE, or the token following the left
 parenthesis if already_after_left_paren is TRUE.  (The add_stop_token
-call has not been done in either of those cases.)  On return, the current
-token is the token following the closing ")".  If return_raw_arguments
-is TRUE, just scan and return the arguments as an argument operand
-list in *p_arg_operand_list; do not check the arguments against any
-specific parameter list and do not set *p_argument_list (this is used,
-for example, when scanning the arguments for an overloaded function).
-routine points to the routine being called; it's NULL if the specific
-function being called is not known, e.g., when return_raw_arguments is
-TRUE or when calling through a pointer.  If closing_paren_position is
+call has not been done in either of those cases.)  On return, the
+current token is the token following the closing ")".  If
+return_raw_arguments is TRUE, just scan and return the arguments as an
+argument operand list in *p_arg_operand_list; do not check the
+arguments against any specific parameter list and do not set
+*p_argument_list (this is used, for example, when scanning the
+arguments for an overloaded function).  If closing_paren_position is
 non-NULL, *closing_paren_position is set to the source position of the
 closing parenthesis of the call (but it's not set on a rescan).
-
-On entry, if p_arg_operand_list is non-NULL and *p_arg_operand_list is
-non-NULL, it points to a pre-scanned argument list, which is then checked
-and processed as if it were scanned here.  The closing parenthesis is
-the current token in that case, and that token is bypassed here.
-already_after_left_paren is ignored.  On return, *p_arg_operand_list will
-have been set to NULL.
 
 If rcblock is non-NULL, redo semantic analysis on a previously-scanned
 argument list, given by rcblock->argument_list.  The arguments are
 returned in either *p_argument_list or *p_arg_operand_list, as specified
 by return_raw_arguments.  already_after_left_paren is ignored.
-*closing_paren_position is not set or altered.  *p_arg_operand_list
-can still be non-NULL on input to indicate a prescanned argument list
-for a rescan case, which preempts rcblock->argument_list.
+*closing_paren_position is not set or altered.
+
+If the expression stack indicates that one or more expressions have
+been cached, those are consumed before any more expressions are read
+from source or created by rescanning.
 
 If single_operand is non-NULL, then if the argument list contains
 exactly one expression, return it in *single_operand instead of any
@@ -1100,10 +1107,10 @@ to TRUE.
 {
   an_arg_operand_ptr arg_operand_list;
   an_arg_check_block arg_block;
-  a_boolean          arg_list_was_prescanned = (p_arg_operand_list != NULL &&
-                                                *p_arg_operand_list != NULL);
+  a_boolean          stop_token_removal_needed = FALSE;
 
   db_enter(4, "scan_call_arguments");
+  if (p_arg_operand_list != NULL) *p_arg_operand_list = NULL;
   if (single_operand_returned != NULL) *single_operand_returned = FALSE;
   if (return_raw_arguments) {
     /* When asked to scan raw arguments, we don't know anything about the
@@ -1127,17 +1134,15 @@ to TRUE.
        rescan we only know about the arguments, and not about the surrounding
        parentheses.  It's not set to NULL because the caller is likely to
        have set it correctly already. */
-  } else if (arg_list_was_prescanned) {
-    /* *p_arg_operand points to a prescanned argument list. */
-    arg_operand_list = *p_arg_operand_list;
   } else {
-    /* The argument list needs to be scanned. */
+    /* The argument list needs to be scanned from source. */
     if (!already_after_left_paren) {
       /* Get past the opening parenthesis. */
       (void)get_token();
     }  /* if */
     /* Add ")" as a stop token. */
     add_matching_stop_token(tok_rparen);
+    stop_token_removal_needed = TRUE;
     /* Scan the argument list. */  
     arg_operand_list =
                     scan_expr_list(/*trailing_comma_okay=*/any_cfront_mode());
@@ -1152,7 +1157,6 @@ to TRUE.
     /* Return a single operand through *single_operand. */
     copy_operand(&arg_operand_list->operand, single_operand);
     free_arg_operand_list(arg_operand_list);
-    if (p_arg_operand_list != NULL) *p_arg_operand_list = NULL;
     check_assertion(single_operand_returned != NULL);
     *single_operand_returned = TRUE;
   } else if (return_raw_arguments) {
@@ -1165,7 +1169,6 @@ to TRUE.
     /* Return argument list pointer to caller. */
     *p_argument_list = arg_block.argument_head;
     /* process_call_argument_list frees the arg operand list. */
-    if (p_arg_operand_list != NULL) *p_arg_operand_list = NULL;
   }  /* if */
   if (rcblock == NULL) {
     /* Check for the closing parenthesis. */
@@ -1173,7 +1176,7 @@ to TRUE.
     curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)required_token(tok_rparen, ec_exp_rparen);
-    if (!arg_list_was_prescanned) remove_matching_stop_token(tok_rparen);
+    if (stop_token_removal_needed) remove_matching_stop_token(tok_rparen);
   }  /* if */
   db_exit();
 }  /* scan_call_arguments */
@@ -1181,28 +1184,21 @@ to TRUE.
 
 static void scan_dependent_parenthesized_initializer(
                                        a_rescan_control_block *rcblock,
-                                       an_arg_operand_ptr     *prescanned_args,
                                        an_operand             *single_operand,
                                        a_dynamic_init_ptr     *dip)
 /*
 Scan and process a parenthesized list of expressions that is the
-initializer of an entity of a template-dependent type.  If
-prescanned_args is non-NULL and *prescanned_args is non-NULL, the
-expression list has been prescanned and *prescanned_args points to its
-first expression.  Build a dynamic initialization entry for the
-initialization and return a pointer to it in *dip.  On entry, the
-current token is the one following the opening parenthesis (unless the
-argument was prescanned, in which case the current token is the one
-following the prescanned argument).  On return, the current token is
-the one following the closing parenthesis, and in the prescanned case
-*prescanned_args will have been set to NULL.  If rcblock is non-NULL,
-redo semantic analysis on a previously-scanned initializer list (given
-by rcblock->argument_list) and return the result as usual (or an error
-indication in *rcblock).  *prescanned_arg_list can still be non-NULL
-in that case and preempts the rcblock->argument_list expression.
-If single_operand is non-NULL, then if the argument list contains
-exactly one expression, return it in *single_operand instead of any
-other processing specified, and return *dip set to NULL.
+initializer of an entity of a template-dependent type.  Build a
+dynamic initialization entry for the initialization and return a
+pointer to it in *dip.  On entry, the current token is the one
+following the opening parenthesis.  On return, the current token is the
+one following the closing parenthesis.  If rcblock is non-NULL, redo
+semantic analysis on a previously-scanned initializer list (given by
+rcblock->argument_list) and return the result as usual (or an error
+indication in *rcblock).  If single_operand is non-NULL, then if the
+argument list contains exactly one expression, return it in
+*single_operand instead of any other processing specified, and return
+*dip set to NULL.
 */
 {
   an_expr_node_ptr  arg_list;
@@ -1216,8 +1212,7 @@ other processing specified, and return *dip set to NULL.
                       /*already_after_left_paren=*/TRUE,
                       &arg_list, /*return_raw_arguments=*/FALSE,
                       /*unknown_dependent_function=*/TRUE,
-                      rcblock,
-                      prescanned_args,
+                      rcblock, (an_arg_operand_ptr *)NULL,
                       single_operand, &single_operand_returned,
                       (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -1262,24 +1257,19 @@ unexpected expressions more gracefully.
 
 
 static an_expr_node_ptr scan_parenthesized_initializer_expression(
-                                       a_rescan_control_block *rcblock,
-                                       an_operand             *prescanned_expr,
-                                       a_type_ptr             dest_type,
-                                       an_error_code          err_code)
+                                              a_rescan_control_block *rcblock,
+                                              a_type_ptr             dest_type,
+                                              an_error_code          err_code)
 /*
 Scan a single expression in parentheses as an initializer value, and
-convert it to dest_type if necessary.  If prescanned_expr is non-NULL,
-the expression has already been prescanned, and *prescanned_expr holds
-the associated operand.  Otherwise, the current token is the token
+convert it to dest_type if necessary.  The current token is the token
 after the opening left parenthesis.  On return, the current token is
 the token following the closing parenthesis.  If the conversion cannot
 be done, issue the error err_code.  The entity being initialized is
 assumed not to be a variable.  If rcblock is non-NULL, redo semantic
 analysis on a previously-scanned initializer expression given by
 rcblock->argument_list, and return the result as usual (or an error
-indication in *rcblock).  prescanned_expr can still be non-NULL in
-that case, to indicate a prescanned expression that preempts
-rcblock->argument_list.
+indication in *rcblock).
 */
 {
   an_expr_node_ptr  expr;
@@ -1289,9 +1279,7 @@ rcblock->argument_list.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   if (rcblock == NULL) add_matching_stop_token(tok_rparen);
-  if (prescanned_expr != NULL) {
-    result_ptr = prescanned_expr;
-  } else if (rcblock != NULL) {
+  if (rcblock != NULL && !cached_expression_present()) {
     make_rescan_operand(rcblock->argument_list, rcblock, &result);
   } else {
     /* Since the syntax has an expression-list even in the single-expression
@@ -1327,7 +1315,6 @@ static void scan_ctor_arguments(a_symbol_ptr           constructor_sym,
                                 a_source_position      *source_pos,
                                 a_type_ptr             object_class_type,
                                 a_type_ptr             dest_type,
-                                an_arg_operand_ptr     *prescanned_args,
                                 a_boolean              fill_in_dtor,
                                 a_boolean              elision_allowed,
                                 a_rescan_control_block *rcblock,
@@ -1336,15 +1323,9 @@ static void scan_ctor_arguments(a_symbol_ptr           constructor_sym,
                                 an_expr_node_ptr       *p_temp_init_node,
                                 a_source_position      *closing_paren_position)
 /*
-Scan and process the argument list for a C++ constructor call.
-Normally, the current token is the one right after the opening
-parenthesis of the argument list, and the argument list is scanned.
-However, if prescanned_args is non-NULL and *prescanned_args is
-non-NULL, the argument list has been prescanned and is given by
-*prescanned_args.  In that case, the current token is the one
-following the prescanned arguments.  The argument list will be
-extracted from *prescanned_args, and *prescanned_args will be set to
-NULL on return.  The constructor symbol (possibly overloaded) is
+Scan and process the argument list for a C++ constructor call.  The
+current token is the one right after the opening parenthesis of the
+argument list.  The constructor symbol (possibly overloaded) is
 constructor_sym.  Scan the arguments and the closing parenthesis, and
 return a pointer to a dynamic initialization entry for the constructor
 call in *p_dip (*p_dip is set to NULL for an error).  If
@@ -1378,13 +1359,11 @@ enclosed initializers for classes that have constructors, as in
   A x(1, 2, 3);
 
 The caller need not add the right parenthesis to the stop tokens set, or
-remove it later, as this routine takes care of that.  On return, the
-source position is after the closing parenthesis of the argument list.
+remove it later, as this routine takes care of that.
 
 If rcblock is non-NULL, redo semantic analysis on a previously-scanned
 expression, and return the result as usual (or an error indication in
-*rcblock).  *prescanned_args can still be non-NULL to indicate a
-prescanned argument list, which preempts the list in rcblock.
+*rcblock).
 */
 {
   a_boolean           overloaded_function_case = FALSE;
@@ -1439,23 +1418,15 @@ prescanned argument list, which preempts the list in rcblock.
     routine = NULL;
   }  /* if */
   if (value_initialization_enabled &&
-      !(prescanned_args != NULL && *prescanned_args != NULL) &&
+      !cached_expression_present() &&
       (rcblock != NULL ?
         (rcblock->argument_list == NULL) :
         (curr_token == tok_rparen))) {
-    /* Empty parentheses ("()") indicate value-initialization.  (If an
-       argument was prescanned, the parentheses weren't empty even if the
-       current token is ")".) */
+    /* Empty parentheses ("()") indicate value-initialization. */
     value_initialization = TRUE;
   }  /* if */
 
   /* Scan the arguments. */
-  if (prescanned_args != NULL) {
-    arg_operand_list = *prescanned_args;
-    *prescanned_args = NULL;
-  } else {
-    arg_operand_list = NULL;
-  }  /* if */
   scan_call_arguments(routine_type, routine,
                       /*already_after_left_paren=*/TRUE,
                       &arg_expr_list, overloaded_function_case,
@@ -11718,6 +11689,7 @@ in *rcblock).
       }  /* if */
     }  /* if */
   }  /* if */
+  /* Use a declaration parse state block to manage the "auto" case. */
   init_decl_parse_state(&dps);
   /* Next, get the type of entity to be allocated (new_type). */
   if (rcblock != NULL) {
@@ -11731,14 +11703,17 @@ in *rcblock).
         new_type = error_type();
         rcblock->error_detected = TRUE;
       } else {
+        an_operand auto_operand;
         check_assertion(is_auto_type(tp));
         /* Deduce the type from the initializer.  The initializer expression
            is "prescanned" by putting it in dps. */
         dps.is_new_expr_type = TRUE;
         dps.declared_type = new_type;
-        dps.prescanned_auto_initializer = alloc_arg_operand();
         make_rescan_operand(rcblock->argument_list, rcblock,
-                            &dps.prescanned_auto_initializer->operand);
+                            &auto_operand);
+        add_operand_to_expression_cache(
+                                       &auto_operand,
+                                       &dps.prescanned_auto_initializer_cache);
         dps.declarator_pos = dps.auto_pos = type_position;
         dps.auto_type_specifier_seen = TRUE;
         /* Do the deduction. */
@@ -11794,6 +11769,9 @@ in *rcblock).
          from the new_type. */
       new_type_involves_auto = FALSE;
     }  /* if */
+    /* Activate the prescanned expression cache so the expression will be
+       considered pre-scanned for the code below. */
+    set_up_auto_initializer_rescan(&dps);
   }  /* if */
   unqual_new_type = skip_typerefs(new_type);
   /* Instantiate the type if it is a template class. */
@@ -12053,7 +12031,7 @@ in *rcblock).
   }  /* if */
   /* Determine whether the initializer is an empty set of parentheses, "()". */
   empty_parens = (has_new_initializer &&
-                  dps.prescanned_auto_initializer == NULL &&
+                  !cached_expression_present() &&
                   ((rcblock != NULL) ?
                      (rcblock->argument_list == NULL) :
                      (curr_token == tok_rparen)));
@@ -12279,7 +12257,6 @@ in *rcblock).
          entry. */
       scan_ctor_arguments(ctor_sym, &init_position,
                           (a_type_ptr)NULL, (a_type_ptr)NULL,
-                          &dps.prescanned_auto_initializer,
                           /*fill_in_dtor=*/FALSE,
                           /* The constructor call cannot be eliminated or
                              turned into a bitwise move if it's doing the
@@ -12309,7 +12286,6 @@ in *rcblock).
       /* A "new" of a template-dependent type, in a prototype instantiation. */
       scan_dependent_parenthesized_initializer(
                                               rcblock,
-                                              &dps.prescanned_auto_initializer,
                                               (an_operand *)NULL,
                                               &dip);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -12319,13 +12295,7 @@ in *rcblock).
     } else {
       /* Not a class with a constructor. */
       if (!empty_parens) {
-        /* The new-initializer is not empty.  Scan it unless it has been
-           prescanned. */
-        an_operand  prescanned_expr, *prescanned_expr_ptr = NULL;
-        if (dps.prescanned_auto_initializer != NULL) {
-          (void)get_prescanned_auto_initializer(&dps, &prescanned_expr);
-          prescanned_expr_ptr = &prescanned_expr;
-        }  /* if */
+        /* The new-initializer is not empty.  Scan it. */
         /* Develop the dynamic init entry, if any, used to free storage
            if an exception is thrown before the initialization is finished.
            This must be done after it has been determined that initialization
@@ -12333,7 +12303,6 @@ in *rcblock).
         make_dyn_init_for_deletion_for_throw();
         init_val_node = scan_parenthesized_initializer_expression(
                                                 rcblock,
-                                                prescanned_expr_ptr,
                                                 err ? error_type() : new_type,
                                                 ec_bad_initializer_type);
         warn_about_missing_delete_if(node_has_side_effects(init_val_node,
@@ -15909,7 +15878,6 @@ as the cast in place of rcblock->expr.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     scan_ctor_arguments(ctor_sym, start_position,
                         (a_type_ptr)NULL, type_cast_to,
-                        (an_arg_operand_ptr *)NULL,
                         /*fill_in_dtor=*/TRUE,
                         /*elision_allowed=*/TRUE,
                         rcblock,
@@ -15936,10 +15904,7 @@ as the cast in place of rcblock->expr.
     /* A cast to a template parameter type (which might be a class) or a
        nonreal class in a prototype instantiation.  This is handled specially
        because it may have more than one argument or zero arguments. */
-    scan_dependent_parenthesized_initializer(rcblock,
-                                             (an_arg_operand_ptr *)NULL,
-                                             result,
-                                             &dip);
+    scan_dependent_parenthesized_initializer(rcblock, result, &dip);
     if (dip == NULL) {
       /* The argument list turned out to have a single expression,
          so treat it like a simple cast. */
@@ -22572,7 +22537,12 @@ see expr.h).
     fprintf(f_debug, "precedence level = %d\n", prec_level);
   }  /* if */
 #endif /* DEBUG */
-
+  if (cached_expression_present() &&
+      fetch_operand_from_expression_cache(result)) {
+    /* Return a cached expression rather than scanning a new one from
+       source. */
+    goto end_of_routine;
+  }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (curr_token == tok_extension && !marked_as_gnu_extension) {
     /* Ignore the GNU __extension__ annotation. */
@@ -23514,6 +23484,7 @@ bad_start_of_primary:
     last_rep->next = curr_expr_ref_entries;
     curr_expr_ref_entries = saved_ref_list;
   }  /* if */
+end_of_routine:
   db_exit();
 }  /* scan_expr_full */
 
@@ -25732,12 +25703,9 @@ standard form).  Assumes copy-initialization ("="-form).
                     &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
+    set_up_auto_initializer_rescan(dps);
     /* Scan the constant expression. */
-    if (dps->prescanned_auto_initializer != NULL) {
-      (void)get_prescanned_auto_initializer(dps, &result);
-    } else {
-      scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-    }  /* if */
+    scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
     /* Convert to the required type. */
     prep_initializer_operand(&result, dps->type, (a_boolean *)NULL,
                              (a_conv_descr_ptr)NULL,
@@ -25947,16 +25915,10 @@ scan_aggregate_initializer_expression.
                       dps->sym->is_error ||
                       dps->sym->kind == (a_symbol_kind)sk_parameter);
     }  /* if */
+    set_up_auto_initializer_rescan(dps);
   }  /* if */
   /* Scan the expression. */
-  if (dps != NULL && dps->prescanned_auto_initializer != NULL) {
-    /* The current initializer is for a variable declared with the "auto" type
-       specifier.  The expression was prescanned to deduce the actual type of
-       the variable: Retrieve the prescanned operand. */
-    (void)get_prescanned_auto_initializer(dps, &result);
-  } else {
-    scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  }  /* if */
+  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Check for a bug related to null pointer constants in Microsoft C mode. */
   process_microsoft_null_pointer_constant_bug(&result, required_type);
@@ -26202,12 +26164,9 @@ As indicated, this is initialization with the "=" semantics
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   transfer_expr_context_if_applicable(saved_expr_stack);
+  set_up_auto_initializer_rescan(dps);
   /* Scan the expression. */
-  if (dps->prescanned_auto_initializer != NULL) {
-    (void)get_prescanned_auto_initializer(dps, &result);
-  } else {
-    scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  }  /* if */
+  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Find out whether or not the conversion is possible, and
      build a dynamic initialization entry to describe the initialization. */
   prep_elision_initializer_operand(&result, dps->type,
@@ -26507,7 +26466,6 @@ overall errors.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position             end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  an_arg_operand_ptr            prescanned_args = NULL;
 
   db_enter(4, "scan_class_parenthesized_initializer");
   save_expr_stack(&saved_expr_stack);
@@ -26521,15 +26479,10 @@ overall errors.
                   is_class_struct_union_type(class_type));
   cssp = symbol_supplement_for_class(class_type);
   check_assertion(cssp->constructor != NULL);
-  if (dps != NULL && dps->prescanned_auto_initializer != NULL) {
-    /* The current initializer is for a variable declared with the "auto" type
-       specifier.  The expression was prescanned to deduce the actual type of
-       the variable: Retrieve the prescanned operand. */
-    prescanned_args = get_prescanned_auto_initializer(dps, (an_operand*)NULL);
-  }  /* if */
+  set_up_auto_initializer_rescan(dps);
   /* Scan the constructor argument list. */
   scan_ctor_arguments(cssp->constructor, source_pos,
-                      object_class_type, (a_type_ptr)NULL, &prescanned_args,
+                      object_class_type, (a_type_ptr)NULL,
                       fill_in_dtor, /*elision_allowed=*/TRUE,
                       (a_rescan_control_block *)NULL,
                       /*trivial_ctor=*/(a_boolean *)NULL, p_dip,
@@ -26569,7 +26522,6 @@ current token is the one following the closing parenthesis.
 {
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
-  an_arg_operand_ptr  prescanned_args = NULL;
 
   db_enter(4, "scan_dependent_type_parenthesized_initializer");
   save_expr_stack(&saved_expr_stack);
@@ -26580,11 +26532,8 @@ current token is the one following the closing parenthesis.
                   /*suppress_object_lifetime=*/FALSE);
   transfer_expr_context_if_applicable(saved_expr_stack);
   check_assertion(!C_mode());
-  if (dps != NULL && dps->prescanned_auto_initializer != NULL) {
-    prescanned_args = get_prescanned_auto_initializer(dps, (an_operand*)NULL);
-  }  /* if */
+  set_up_auto_initializer_rescan(dps);
   scan_dependent_parenthesized_initializer((a_rescan_control_block *)NULL,
-                                           &prescanned_args,
                                            (an_operand *)NULL,
                                            dip);
   /* If there's an object lifetime around the initialization, transfer it

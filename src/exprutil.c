@@ -584,6 +584,66 @@ entries are used to hold arguments of function calls.
 }  /* alloc_arg_operand */
 
 
+void clear_expression_cache(an_expression_cache *cache)
+/*
+Set the fields of an expression cache to default values.
+*/
+{
+  cache->first_expression = NULL;
+  cache->last_expression  = NULL;
+}  /* clear_expression_cache */
+
+
+void add_operand_to_expression_cache(an_operand          *operand,
+                                     an_expression_cache *cache)
+/*
+Add the indicated operand to the end of the queue of expressions in the
+indicated expression cache.
+*/
+{
+  an_arg_operand_ptr arg_op = alloc_arg_operand();
+
+  copy_operand(operand, &arg_op->operand);
+  if (cache->first_expression == NULL) {
+    cache->first_expression = arg_op;
+  } else {
+    cache->last_expression->next = arg_op;
+  }  /* if */
+  cache->last_expression = arg_op;
+}  /* add_operand_to_expression_cache */
+
+
+a_boolean fetch_operand_from_expression_cache(an_operand *operand)
+/*
+Remove the first expression from the active expression cache associated
+with the current expression stack, return it in *operand, and return TRUE.
+If there is no cache or the cache is empty, return FALSE.
+*/
+{
+  a_boolean           result = FALSE;
+  an_expression_cache *cache = expr_stack->expression_cache;
+
+  if (cache != NULL) {
+    an_arg_operand_ptr arg_op = cache->first_expression;
+    if (arg_op != NULL) {
+      result = TRUE;
+      copy_operand(&arg_op->operand, operand);
+      cache->first_expression = arg_op->next;
+      if (cache->first_expression == NULL) {
+        cache->last_expression = NULL;
+      }  /* if */
+      arg_op->next = NULL;
+      free_arg_operand_list(arg_op);
+      if (cache->first_expression == NULL) {
+        /* The cache is empty, so disconnect it. */
+        expr_stack->expression_cache = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* fetch_operand_from_expression_cache */
+
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /* ARGSUSED */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
@@ -907,6 +967,7 @@ is pushed regardless of any of the other factors.
   new_entry->current_lambda_in_header = NULL;
   new_entry->p_end_of_entities_defined_in_expression = NULL;
   new_entry->default_rescan_info = NULL;
+  new_entry->expression_cache = NULL;
   if (expr_stack != NULL) {
     /* There is a previous stack entry; set any of the flags that are affected
        by the enclosing stack entry. */
