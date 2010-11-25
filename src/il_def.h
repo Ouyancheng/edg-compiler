@@ -4428,11 +4428,11 @@ typedef struct a_param_type {
   a_bit_field	nonnull:1;
 			/* TRUE if this represents a parameter of pointer type
 			   that must be passed a non-NULL argument. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   a_bit_field	duplicate_name:1;
 			/* TRUE if the name of this parameter is the same as
 			   that of an earlier parameter, which is allowed in
-			   some GNU modes. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+			   some GNU modes and for variadic parameters. */
   bitfield_to_avoid_codecenter_warnings()
   uint32_t	param_num;
 			/* The ordinal position of the parameter (0, 1,
@@ -4480,6 +4480,11 @@ typedef struct a_param_type {
 			   position information about the parameter
 			   declaration.  May be NULL. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  struct a_pack_expansion_descr
+		*pack_expansion_descr;
+			/* If non-NULL, this parameter is a pack expansion
+			   (it contains a "..." somewhere in the type), and
+			   this points to the expansion description. */
 } a_param_type;
 
 

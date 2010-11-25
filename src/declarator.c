@@ -2040,7 +2040,8 @@ function declarator in a friend function declaration.
     func_info->scope_number = scope_stack[depth_scope_stack].number;
     if (any_params) {
       unsigned long	param_number = 0;
-      a_boolean         any_variadic_params;
+      a_boolean         any_variadic_params = FALSE;
+      a_boolean		is_new_param = TRUE;
       last_param_type = NULL;
       do {
         a_decl_parse_state   param_state;
@@ -2052,11 +2053,19 @@ function declarator in a friend function declaration.
         a_type_qualifier_set param_qualifiers = TQ_NONE;
         a_pack_expansion_stack_entry_ptr
                              pesep;
+        a_boolean            is_pack_element;
+        a_boolean	     is_non_initial_pack_element;
         /* Mark the start of the parameter declaration as the start of a
            potential variadic pack expansion. */
-        any_variadic_params = begin_potential_pack_expansion_context(&pesep);
-        /* Count the number of parameters encountered. */
-        if (!is_non_initial_variadic_param()) param_number++;
+        if (is_new_param) {
+          any_variadic_params = begin_potential_pack_expansion_context(&pesep);
+          is_new_param = FALSE;
+        }  /* if */
+        is_pack_element = pesep != NULL && !is_template_dependent_context();
+        is_non_initial_pack_element = is_non_initial_variadic_param();
+        /* Count the number of parameters encountered.  All elements of a given
+           parameter pack are given the same parameter number. */
+        if (!is_non_initial_pack_element) param_number++;
         /* In a real instantiation, the tokens of the parameter will have been
            skipped. */
         if (!any_variadic_params) continue;
@@ -2270,6 +2279,9 @@ function declarator in a friend function declaration.
             pos_error(ec_function_parameter_pack_requires_pattern,
                       &param_state.declarator_pos);
           }  /* if */
+        } else {
+          ptp->is_pack_element = is_pack_element;
+          ptp->duplicate_name = is_non_initial_pack_element;
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (param_state.ms_attributes != NULL) {
@@ -2324,6 +2336,7 @@ function declarator in a friend function declaration.
                               local_decl_pos_block.identifier_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           last_param_id->param_num = param_number;
+          ptp->param_num = param_number;
 #if GNU_EXTENSIONS_ALLOWED
           if (last_param_id->symbol != NULL) {
             /* Record whether the name of this parameter is a duplicate of
@@ -2639,9 +2652,13 @@ function declarator in a friend function declaration.
           }  /* if */
         }  /* if */
         remove_stop_token(tok_comma);
-        (void)end_potential_pack_expansion_context(pesep,
-                                                   /*is_declarator=*/TRUE);
+        /* If this was actually a pack declaration in a template definition
+           context, a pack expansion descriptor will be returned that can be
+           used to create a substituted function type. */
+        ptp->pack_expansion_descr =
+           end_potential_pack_expansion_context(pesep, /*is_declarator=*/TRUE);
         any_variadic_params = advance_to_next_pack_element(pesep);
+        if (!any_variadic_params) is_new_param = TRUE;
       } while (!done || any_variadic_params);
     }  /* if */
     /* Save the list of symbols for the prototype scope (usually NULL, but

@@ -918,8 +918,8 @@ at file scope.
 #if GNU_EXTENSIONS_ALLOWED
   ptp->is_transparent = FALSE;
   ptp->nonnull = FALSE;
-  ptp->duplicate_name = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  ptp->duplicate_name = FALSE;
 #if CENTERLINE_CHECKING
   ptp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -934,7 +934,7 @@ at file scope.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   ptp->decl_pos_info = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-
+  ptp->pack_expansion_descr = NULL;
   db_exit();
   return ptp;
 }  /* alloc_param_type */

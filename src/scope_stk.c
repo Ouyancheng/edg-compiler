@@ -8768,11 +8768,16 @@ Return a pointer to the copy.
 
 
 static a_pack_instantiation_descr_ptr create_pack_instantiation_descr(
-				a_pack_expansion_descr_ptr	pedp)
+		a_pack_expansion_descr_ptr		pedp,
+		a_template_param_ptr			templ_param_list,
+		a_template_arg_ptr			templ_arg_list)
 /*
 We are beginning a real instantiation of the pack expansion specified
 by "pedp".  Determine whether this is a non-empty expansion context and
 whether all of the packs being expanded have the same number of elements.
+
+templ_param_list and templ_arg_list are the template parameters and
+arguments for the instantiation.
 
 If this is a valid non-empty expansion, establish the initial values of
 the parameter pack symbols and return a pack expansion instantiation
@@ -8785,16 +8790,11 @@ following the pack expansion and return NULL.
 {
   a_pack_reference_ptr			prp;
   a_pack_reference_ptr			new_pack_list = NULL;
-  a_template_param_ptr			templ_param_list;
-  a_template_arg_ptr			templ_arg_list;
-  uint32_t				elements;
+    uint32_t				elements;
   a_boolean				is_first_pack = TRUE;
   a_boolean				any_errors = FALSE;
   a_pack_instantiation_descr_ptr	result_pidp = NULL;
 
-  /* Get the template parameter list and template argument associated with
-     the current instantiation. */
-  get_curr_template_params_and_args(&templ_param_list, &templ_arg_list);
   /* Go through the pack expansion references and determine the number
      of arguments for each.  Create a copy of the list to record information
      about the instantiation. */
@@ -8887,13 +8887,46 @@ pack expansion stack entry for which the symbols are to be updated.
 }  /* update_parameter_pack_symbol_values */
 
 
+a_template_arg_ptr get_curr_variadic_arg_for_param(a_template_param_ptr	tpp)
+/*
+This routine is called during rescan contexts.  We need the current template
+argument value for the pack specified by tpp.  Go through the pack references
+for the current expansion and look for one that matches tpp.  Return
+the current template argument value for that parameter.
+*/
+{
+  a_pack_reference_ptr			param_prp;
+  a_pack_reference_ptr			arg_prp;
+  a_pack_expansion_stack_entry_ptr	pesep = pack_expansion_stack;
+  a_symbol_ptr				tpp_sym = tpp->param_symbol;
+  a_template_arg_ptr			result_tap = NULL;
+
+  for (param_prp = pesep->expansion_descr->packs_referenced,
+         arg_prp = pesep->instantiation_descr->pack_status;
+       param_prp != NULL;
+       param_prp = param_prp->next, arg_prp = arg_prp->next) {
+    a_symbol_ptr	sym = param_prp->symbol;
+    if (sym == tpp_sym) {
+      check_assertion(sym->kind != (a_symbol_kind)sk_variable);
+      result_tap = arg_prp->curr_argument.template_arg;
+    }  /* if */
+  }  /* for */
+  check_assertion(result_tap != NULL);
+  return result_tap;
+}  /* get_curr_variadic_arg_for_param */
+
+
 static a_pack_expansion_stack_entry_ptr push_pack_instantiation(
-					a_pack_expansion_descr_ptr	pedp)
+		a_pack_expansion_descr_ptr		pedp,
+		a_template_param_ptr			templ_param_list,
+		a_template_arg_ptr			templ_arg_list)
 /*
 Create a pack instantiation description entry based on the expansion described
-by pedp and push it on the pack expansion stack.  Return a pointer to the
-pack expansion stack entry.  If this is an invalid expansion or there are
-no arguments to be expanded, return NULL.
+by pedp and push it on the pack expansion stack.  templ_param_list and
+templ_arg_list are the template parameters and arguments for the
+instantiation. Return a pointer to the pack expansion stack entry.  If
+this is an invalid expansion or there are no arguments to be expanded,
+return NULL.
 */
 {
   a_pack_expansion_stack_entry_ptr	pesep = NULL;
@@ -8903,7 +8936,8 @@ no arguments to be expanded, return NULL.
      expansion information and the current context.  If the instantiation
      is invalid, or if there are no pack elements, a NULL instantiation
      entry will be returned. */
-  pidp = create_pack_instantiation_descr(pedp);
+  pidp = create_pack_instantiation_descr(pedp, templ_param_list,
+                                         templ_arg_list);
   if (pidp != NULL) {
     pesep = push_pack_expansion_stack();
     pesep->expansion_descr = pedp;
@@ -8989,7 +9023,12 @@ will be set to NULL.
     a_pack_expansion_descr_ptr	pedp;
     pedp = get_pack_expansion_for_curr_context();
     if (pedp != NULL) {
-      pesep = push_pack_instantiation(pedp);
+      /* Get the template parameter list and template argument associated with
+         the current instantiation. */
+      a_template_param_ptr	templ_param_list;
+      a_template_arg_ptr	templ_arg_list;
+      get_curr_template_params_and_args(&templ_param_list, &templ_arg_list);
+      pesep = push_pack_instantiation(pedp, templ_param_list, templ_arg_list);
       if (pesep != NULL) {
         pesep->first_token_handle = curr_cached_token_handle;
         check_assertion(curr_token_sequence_number == pedp->first_token);
@@ -9011,8 +9050,10 @@ will be set to NULL.
 
 
 a_boolean begin_rescan_pack_expansion_context(
-			a_pack_expansion_descr_ptr		pedp,
-			a_pack_expansion_stack_entry_ptr	*p_pesep)
+		a_pack_expansion_descr_ptr		pedp,
+		a_template_param_ptr			templ_param_list,
+		a_template_arg_ptr			templ_arg_list,
+		a_pack_expansion_stack_entry_ptr	*p_pesep)
 
 /*
 This routine is similar to begin_potential_pack_expansion_context (see
@@ -9021,21 +9062,26 @@ in general), but is called in expression rescan contexts to do pack
 expansions during actual instantiations rescans.  This is known to
 be an actual pack expansion (unlike begin_potential_pack_expansion_context).
 pedp is the pack expansion descriptor created when the pack expansion
-was initially scanned.
+was initially scanned, and can be NULL in which case this routine simply
+returns a NULL value in *p_pesep.  templ_param_list and templ_arg_list are the
+template parameters and arguments for the instantiation.
 
 See begin_potential_pack_expansion_context for a description of the
 return value and the setting of *p_pese (note that this routine is
-never called in prototype instantiation contexts).
+never called in prototype instantiation contexts).  This routine
+returns TRUE if pedp was passed in as NULL.
 */
 {
-  a_pack_expansion_stack_entry_ptr	pesep;
+  a_pack_expansion_stack_entry_ptr	pesep = NULL;
 
-  pesep = push_pack_instantiation(pedp);
-  if (pesep != NULL) {
-    pesep->is_rescan = TRUE;
+  if (pedp != NULL) {
+    pesep = push_pack_instantiation(pedp, templ_param_list, templ_arg_list);
+    if (pesep != NULL) {
+      pesep->is_rescan = TRUE;
+    }  /* if */
   }  /* if */
   *p_pesep = pesep;
-  return pesep != NULL;
+  return pesep != NULL || pedp == NULL;
 }  /* begin_rescan_pack_expansion_context */
 
 
@@ -9198,9 +9244,11 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
       pesep->instantiation_descr->after_first_element = TRUE;
     }  /* for */
   }  /* if */
-  if (!done && !pesep->is_rescan) {
-    /* Reset the token position to the start of the pack expansion. */
-    update_reusable_cache_rescan_location(pesep->first_token_handle);
+  if (!done) {
+    if (!pesep->is_rescan) {
+      /* Reset the token position to the start of the pack expansion. */
+      update_reusable_cache_rescan_location(pesep->first_token_handle);
+    }  /* if */
   } else {
     /* If we have advanced past the last element, pop the pack expansion
        stack. */

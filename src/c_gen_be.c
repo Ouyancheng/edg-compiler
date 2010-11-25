@@ -190,6 +190,10 @@ static unsigned long
 			/* The number of characters written to the current
 			   line of output.  Zero means nothing has been
 			   written so far. */
+static unsigned long
+		pack_element_counter;
+			/* A counter used to distinguish pack element variables
+			   that would otherwise have the same name. */
 #if ONE_INSTANTIATION_PER_OBJECT
 static a_text_buffer_ptr
 		C_output_file_name_buffer;
@@ -1444,6 +1448,11 @@ Print the name of the indicated variable.
     if (needed_flag_bit_number != 0) write_str(buffer);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
+  } else if (variable->assoc_param_type != NULL &&
+             variable->assoc_param_type->is_pack_element) {
+    dump_name(&variable->source_corresp);
+    /* FIXME: Should we have a per-function counter? */
+    write_unsigned_num((a_host_large_unsigned)pack_element_counter++);
   } else {
     /* Nothing special about this case. */
     dump_name(&variable->source_corresp);
@@ -9720,6 +9729,7 @@ The IL is already available when this routine is called.
 #if ONE_INSTANTIATION_PER_OBJECT
   C_output_file_name_buffer = NULL;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  pack_element_counter = 0;
   /* Set out the output control block used for interface with the il_to_str
      routines. */
   clear_il_to_str_output_control_block(&octl);

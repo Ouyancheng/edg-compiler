@@ -227,6 +227,9 @@ typedef int an_equiv_templ_arg_options_set;
 			   match exactly (e.g., point to the same type or
 			   constant).  FALSE if only equivalence is
 			   required. */
+#define ETA_IS_VARIADIC			0x20
+			/* TRUE if the template is variadic (so the number
+			   of arguments is not expected to be uniform). */
 
 /*
 Flags used to specify options to equiv_template_param_lists.

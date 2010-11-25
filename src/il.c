@@ -14282,7 +14282,7 @@ name lookup options.
         if (is_template_param_from_list(coordinates,
                                         template_param_list)) {
           a_template_arg_ptr tap = get_template_arg_by_list_pos(
-                                            (a_template_param_ptr)NULL,
+                                            template_param_list,
                                             &template_arg_list,
                                             con->variant.template_param.
                                                  variant.coordinates.position);

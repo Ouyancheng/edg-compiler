@@ -1623,6 +1623,9 @@ void wrapup_scope(a_scope_ptr			scope_ptr,
 
 extern a_template_decl_info_ptr get_current_template_decl_info(void);
 
+extern
+a_template_arg_ptr get_curr_variadic_arg_for_param(a_template_param_ptr	tpp);
+
 extern void begin_template_arg_list_traversal(
 				a_template_param_ptr	templ_param_list,
 				a_template_arg_ptr	templ_arg_list,
@@ -1634,8 +1637,10 @@ extern void advance_to_next_template_arg(
 				a_template_arg_ptr	*tap);
 
 extern a_boolean begin_rescan_pack_expansion_context(
-			a_pack_expansion_descr_ptr		pedp,
-			a_pack_expansion_stack_entry_ptr	*p_pesep);
+		a_pack_expansion_descr_ptr		pedp,
+		a_template_param_ptr			templ_param_list,
+		a_template_arg_ptr			templ_arg_list,
+		a_pack_expansion_stack_entry_ptr	*p_pesep);
 
 extern a_boolean begin_potential_pack_expansion_context(
 			a_pack_expansion_stack_entry_ptr	*p_pesep);

@@ -4999,7 +4999,8 @@ the same constant.
     arg2 = arg2->next;
     /* For a given function argument lists should always be exactly the same
        length. */
-    check_assertion_str(is_nonreal_member || (arg1 == NULL) == (arg2 == NULL),
+    check_assertion_str((options & ETA_IS_VARIADIC) != 0 ||
+                        is_nonreal_member || (arg1 == NULL) == (arg2 == NULL),
                         "equiv_template_arg_lists: unequal arg list lengths");
   }  /* while */
   if (equiv) {
@@ -6205,6 +6206,7 @@ are deduced.
 */
 {
   a_template_arg_ptr	tap;
+  a_template_param_ptr	tpp;
 
   if (*templ_arg_list == NULL) {
     /* The template argument list does not exist yet.  Create an
@@ -6213,13 +6215,15 @@ are deduced.
 				templ_param_list, (a_template_arg_ptr)NULL,
                                 (a_source_position*)NULL);
   }  /* if */
+  begin_template_arg_list_traversal(templ_param_list, *templ_arg_list,
+                                    &tpp, &tap);
   /* For the nth template parameter find the nth template argument. */
-  tap = *templ_arg_list;
-  for (; pos > 1; pos--) tap = tap->next;
+  for (; pos > 1; pos--) advance_to_next_template_arg(&tpp, &tap);
+  if (tpp->is_pack) {
+    tap = get_curr_variadic_arg_for_param(tpp);
+  }  /* if */
   return tap;
 }  /* get_template_arg_by_list_pos */
-
-
 
 
 static a_template_param_ptr get_template_param_by_list_pos(
@@ -7646,7 +7650,7 @@ Otherwise, return the original template.
          unsubstituted. */
     } else {
       a_template_arg_ptr	tap;
-      tap = get_template_arg_by_list_pos((a_template_param_ptr)NULL,
+      tap = get_template_arg_by_list_pos(templ_param_list,
                                          &templ_arg_list,
                                          coordinates->position);
       if (tap->variant.templ.ptr == NULL) {
@@ -8392,7 +8396,7 @@ a pointer over a reference type or creating an array of references.
                unsubstituted. */
             new_type = type;
           } else {
-            tap = get_template_arg_by_list_pos((a_template_param_ptr)NULL,
+            tap = get_template_arg_by_list_pos(templ_param_list,
                                                &templ_arg_list,
                                                coordinates->position);
             if (!is_type_templ_arg(tap) || tap->variant.type == NULL) {
@@ -8587,11 +8591,18 @@ a pointer over a reference type or creating an array of references.
         for (ptp = type->variant.routine.extra_info->param_type_list;
              ptp != NULL;
              ptp = ptp->next) {
-          a_type_ptr ptype = param_type_restoring_orig_templ_array(ptp);
-          tp = copy_type_with_substitution(ptype, templ_arg_list,
-                                           templ_param_list, source_pos,
-                                           options, copy_error);
-          if (tp != ptype) {
+          a_type_ptr ptype;
+          if (ptp->pack_expansion_descr != NULL) {
+            /* A function parameter pack.  A new type is needed.
+               Clear tp and ptype to force the loop to terminate below. */
+            tp = ptype = NULL;
+          } else {
+            ptype = param_type_restoring_orig_templ_array(ptp);
+            tp = copy_type_with_substitution(ptype, templ_arg_list,
+                                             templ_param_list, source_pos,
+                                             options, copy_error);
+          }  /* if */
+          if (tp != ptype || tp == NULL) {
             /* A substitution was made, so a new routine type will be required.
                Remember tp so we can avoid calling copy_type_with_substitution
                again for this param type entry. */
@@ -8625,66 +8636,80 @@ make_new_type:
         for (ptp = type->variant.routine.extra_info->param_type_list;
              ptp != NULL;
              ptp = ptp->next) {
-          a_type_ptr ptype = param_type_restoring_orig_templ_array(ptp);
-          a_type_ptr declared_type;
-          if (reusable_param_types > 0) {
-            /* We have already called copy_type_with_substitution for this
-               parameter and we know we can reuse the existing type. */
-            tp = ptype;
-            --reusable_param_types;
-          } else if (first_new_type_for_param_types_list != NULL) {
-            /* We have already called copy_type_with_substitution for this
-               parameter and the type returned contained a substitution; we can
-               use that type. */
-            tp = first_new_type_for_param_types_list;
-            first_new_type_for_param_types_list = NULL;
-          } else {
-            /* copy_type_with_substitution has not been called yet. */
-            tp = copy_type_with_substitution(ptype, templ_arg_list,
-                                             templ_param_list, source_pos,
-                                             options, copy_error);
-          }  /* if */
-          declared_type = tp;
-          if (tp != ptype) {
-            /* The type is not the one originally pointed to.  Adjust
-               the parameter type, if needed. */
-            adjust_parameter_type(&tp);
-            if (remove_qualifiers_from_param_types) { /* Strip off
-                 top-level type qualifiers.  They are not part of the
-                 type signature of a C++ function -- see 8.3.5 para 3.
-                 However, because they do belong to the type of the
-                 parameter variable, they were not removed before
-                 add_to_param_id_list was called. */
-               tp = make_unqualified_type(tp);
+          a_pack_expansion_stack_entry_ptr	pesep;
+          a_boolean				any_more;
+          any_more = begin_rescan_pack_expansion_context(
+                                                     ptp->pack_expansion_descr,
+                                                     templ_param_list,
+                                                     templ_arg_list,
+                                                     &pesep);
+          while (any_more) {
+            a_type_ptr ptype = param_type_restoring_orig_templ_array(ptp);
+            a_type_ptr declared_type;
+            if (reusable_param_types > 0) {
+              /* We have already called copy_type_with_substitution for this
+                 parameter and we know we can reuse the existing type. */
+              tp = ptype;
+              --reusable_param_types;
+            } else if (first_new_type_for_param_types_list != NULL) {
+              /* We have already called copy_type_with_substitution for this
+                 parameter and the type returned contained a substitution;
+                 we can use that type. */
+              tp = first_new_type_for_param_types_list;
+              first_new_type_for_param_types_list = NULL;
+            } else {
+              /* copy_type_with_substitution has not been called yet. */
+              tp = copy_type_with_substitution(ptype, templ_arg_list,
+                                               templ_param_list, source_pos,
+                                               options, copy_error);
             }  /* if */
-            if (is_void_type(tp) ||
-                (!microsoft_mode && !gpp_mode &&
-                 is_abstract_class_type(tp))) {
-              /* The result of the substitution is a void type or abstract
-                 class type.  This is not allowed. */
-              *copy_error = TRUE;
+            declared_type = tp;
+            if (tp != ptype) {
+              /* The type is not the one originally pointed to.  Adjust
+                 the parameter type, if needed. */
+              adjust_parameter_type(&tp);
+              if (remove_qualifiers_from_param_types) {
+                /* Strip off top-level type qualifiers.  They are not
+                   part of the type signature of a C++ function -- see
+                   8.3.5 para 3.  However, because they do belong to
+                   the type of the parameter variable, they were not
+                   removed before add_to_param_id_list was called. */
+                 tp = make_unqualified_type(tp);
+              }  /* if */
+              if (is_void_type(tp) ||
+                  (!microsoft_mode && !gpp_mode &&
+                   is_abstract_class_type(tp))) {
+                /* The result of the substitution is a void type or abstract
+                   class type.  This is not allowed. */
+                *copy_error = TRUE;
+              }  /* if */
             }  /* if */
-          }  /* if */
-          /* Allocate the param type entry and copy default arg info. */
-          new_ptp = make_param_type(tp, &null_source_position);
-          new_ptp->declared_type = declared_type;
-          if (ptp->has_default_arg) {
-            new_ptp->has_default_arg = TRUE;
-            new_ptp->default_arg_appeared_in_class_definition =
+            /* Allocate the param type entry and copy default arg info. */
+            new_ptp = make_param_type(tp, &null_source_position);
+            new_ptp->declared_type = declared_type;
+            new_ptp->param_num = ptp->param_num;
+            new_ptp->is_pack_element = ptp->is_parameter_pack;
+            if (ptp->has_default_arg) {
+              new_ptp->has_default_arg = TRUE;
+              new_ptp->default_arg_appeared_in_class_definition =
                                  ptp->default_arg_appeared_in_class_definition;
-          }  /* if */
-          if (ptp->has_unevaluated_template_default) {
-            new_ptp->has_unevaluated_template_default = TRUE;
-            new_ptp->orig_param_type_for_unevaluated_default_arg_expr =
+            }  /* if */
+            if (ptp->has_unevaluated_template_default) {
+              new_ptp->has_unevaluated_template_default = TRUE;
+              new_ptp->orig_param_type_for_unevaluated_default_arg_expr =
                          ptp->orig_param_type_for_unevaluated_default_arg_expr;
-          }  /* if */
-          /* Add the new param type entry to the param types list. */
-          if (prev_ptp == NULL) {
-            new_type->variant.routine.extra_info->param_type_list = new_ptp;
-          } else {
-            prev_ptp->next = new_ptp;
-          }  /* if */
-          prev_ptp = new_ptp;
+            }  /* if */
+            /* Add the new param type entry to the param types list. */
+            if (prev_ptp == NULL) {
+              new_type->variant.routine.extra_info->param_type_list = new_ptp;
+            } else {
+              prev_ptp->next = new_ptp;
+            }  /* if */
+            prev_ptp = new_ptp;
+            (void)end_potential_pack_expansion_context(
+                                               pesep, /*is_declarator=*/FALSE);
+            any_more = advance_to_next_pack_element(pesep);
+          }  /* while */
         }  /* for */
         set_routine_calling_method_flag(new_type, &null_source_position);
         break;
@@ -8911,11 +8936,13 @@ supplement associated with the function template being used.
 {
   a_substituted_type_list_entry_ptr	stlep;
   a_type_ptr				result_type = NULL;
+  an_equiv_templ_arg_options_set	eta_options;
 
+  eta_options = tssp->is_variadic ? ETA_IS_VARIADIC : ETA_NO_OPTIONS;
   for (stlep = tssp->variant.function.substituted_types;
        stlep != NULL; stlep = stlep->next) {
     if (equiv_template_arg_lists(templ_arg_list, stlep->templ_arg_list,
-                                 ETA_NO_OPTIONS)) {
+                                 eta_options)) {
       result_type = stlep->type;
       break;
     }  /* if */
@@ -11362,9 +11389,11 @@ structure.
   tip = tssp->variant.function.instantiations;
   prev_tip = NULL;
   for (; tip != NULL; tip = tip->next) {
-    a_template_arg_ptr	arg_list;
+    a_template_arg_ptr			arg_list;
+    an_equiv_templ_arg_options_set	eta_options;
     arg_list = tip->instance_sym->variant.routine.ptr->template_arg_list;
-    if (equiv_template_arg_lists(arg_list, *new_list, ETA_NO_OPTIONS)) {
+    eta_options = tssp->is_variadic ? ETA_IS_VARIADIC : ETA_NO_OPTIONS;
+    if (equiv_template_arg_lists(arg_list, *new_list, eta_options)) {
       /* We've found a match.  Remove the found function instantiation entry
          from its current position in the instantiation list and add it to
          the front. */

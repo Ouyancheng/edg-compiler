@@ -985,7 +985,10 @@ to be done.
   eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
   pedep = eriep->saved_operand.pack_expansion_descr;
   check_assertion(expr->is_pack_expansion && pedep != NULL);
-  any_more = begin_rescan_pack_expansion_context(pedep, &pesep);
+  any_more = begin_rescan_pack_expansion_context(pedep,
+                                                 rcblock->template_param_list,
+                                                 rcblock->template_arg_list,
+                                                 &pesep);
   while (any_more) {
     /* Rescan one iteration of the pack expansion and add the resulting
        expression to the argument operand list. */

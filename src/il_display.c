@@ -1278,10 +1278,10 @@ Display a_param_type entry.
   if (ptr->nonnull) {
     disp_boolean("nonnull", TRUE);
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (ptr->duplicate_name) {
     disp_boolean("duplicate_name", TRUE);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   if (ptr->attributes != NULL) {
     disp_ptr("attributes", (char *)ptr->attributes, iek_attribute);
   }  /* if */
