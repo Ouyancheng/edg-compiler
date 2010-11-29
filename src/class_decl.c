@@ -16090,9 +16090,9 @@ flag if error recovery should be performed as if the specifier didn't occur.
      declarations, the setting of the flag depends on the context; if
      appropriate, it will be set to TRUE later. */
   dps->first_decl = !friend_specified;
-done:
   remove_stop_token(tok_colon);
   remove_stop_token(tok_try);
+done:
   return okay;
 }  /* member_declarator */
 
