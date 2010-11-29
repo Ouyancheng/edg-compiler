@@ -4275,6 +4275,13 @@ that has the same value as the original constant.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   sc->microsoft_identifier_used = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEED_NAME_MANGLING
+  sc->unmangled_name_or_mangled_encoding = NULL;
+  sc->name_has_been_mangled = FALSE;
+  sc->mangled_name_cannot_be_included_in_other_name = FALSE;
+  sc->final_name_mangling_pending = FALSE;
+  sc->unnamed_entity_given_fabricated_name = FALSE;
+#endif /* NEED_NAME_MANGLING */
   break_instance_source_corresp(sc);
 }  /* break_source_corresp */
 

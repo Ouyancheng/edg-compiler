@@ -1,5 +1,25 @@
 Version 4.3
 
+11/29/10 [EDGcpfe/11187]
+Clear mangling information when "breaking" source correspondence
+
+The mangling related fields in a_source_correspondence were not previously
+cleared in break_source_corresp, leading, in one case, to an assertion
+failure in set_source_corresp_name when creating a pre-compiled header
+file where a (previously mangled) qualified enumerator is used to initialize
+an enumerator.  For example (with --create_pch):
+
+  $ cat ex.h
+  struct A {
+    enum { e };
+  };
+  $ cat ex.c
+  #include "ex.h"
+  enum {
+    e1 = A::e
+  };
+
+
 11/22/10 [EDGcpfe/11169]
 Microsoft compatibility: incorrect locale used for current directory name
 
