@@ -5498,6 +5498,7 @@ is returned.
       clear_extended_decl_info_block(extended_decl_info);
       prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+      ctsp->cli_class_type_kind = prototype_ctsp->cli_class_type_kind;
       extended_decl_info.decl_modifiers.flags =
                                   prototype_ctsp->decl_modifiers;
       extended_decl_info.decl_modifiers.uuid_string =
