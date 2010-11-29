@@ -9123,12 +9123,14 @@ instantiated.
     /* This default argument (for this instance) is already being instantiated.
        Don't attempt another instantiation. */
     error(ec_recursive_def_arg_instantiation);
+    param->default_arg_expr = error_node();
     goto done;
   } else if (num_pending_default_arg_instantiations ==
                                                   max_pending_instantiations) {
     /* There are too many total recursive default argument instantiations.
        Don't attempt another instantiation. */
     error(ec_recursive_def_arg_instantiation);
+    param->default_arg_expr = error_node();
     goto done;
   }  /* if */
   /* Indicate that an instantiation of this default argument is pending. */
@@ -9155,11 +9157,12 @@ instantiated.
   /* We should always find the corresponding parameter of the template,
      unless some error occurred earlier. */
   check_assertion(daefp != NULL || total_errors != 0);
-  if (daefp->param_type->default_being_instantiated) {
+  if (daefp != NULL && daefp->param_type->default_being_instantiated) {
     /* This default argument instantiation of the prototype instantiation is
        still in progress.  Don't attempt another instantiation. */
     error(ec_recursive_def_arg_instantiation);
-    daefp = NULL;
+    param->default_arg_expr = error_node();
+    goto done;
   }  /* if */
   /* Now that we've found the corresponding parameter of the template,
      instantiate that default argument value. */
@@ -9188,9 +9191,6 @@ instantiated.
     if (tip->prototype_scope_symbols != NULL) {
       reactivate_prototype_scope_symbols(tip->prototype_scope_symbols);
     }  /* if */
-    /* Update the default argument expression entry to point to the
-       current param type entry. */
-    daefp->param_type = ptp;
     begin_deferral_of_access_checks();
     /* Rescan the default argument tokens from the cache. */
     rescan_reusable_cache(&daefp->cache.tokens);
@@ -9198,7 +9198,7 @@ instantiated.
     saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     num_pending_default_arg_instantiations++;
-    delayed_scan_of_default_arg_expr(daefp->param_type, rout_sym,
+    delayed_scan_of_default_arg_expr(ptp, rout_sym,
                                      /*check_for_errors=*/FALSE);
     num_pending_default_arg_instantiations--;
     record_default_arg_instantiation(rout_ptr, ptp);

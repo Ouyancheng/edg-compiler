@@ -1,5 +1,23 @@
 Version 4.3
 
+11/29/10 [EDGcpfe/11186]
+Spurious "recursive instantiation of default argument" error
+
+Version 4.2 introduced a regression that could result in a spurious
+"recursive instantiation of default argument" message in some cases.
+Now fixed.
+
+  template <class K1, class K2> struct A {
+    A(const K1& k1 = K1(), const K2& k2 = K2() ) : m1(k1), m2(k2) { }
+    template <class A> bool operator()(A& a) const { return true; }
+    K1 m1;
+    K2 m2;
+  };
+  int main() {
+    A< A<int, int>, int > aii;
+  }
+
+
 11/29/10 [EDGcpfe/11118]
 Values of type trait helpers applied to non-class types in non-Microsoft modes
 
