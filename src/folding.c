@@ -6498,20 +6498,52 @@ constant will be set as well.
     a_class_symbol_supplement_ptr
                               cssp = NULL;
     type = skip_typerefs(type);
-    if (complete_class_property) {
-      /* An incomplete class type is invalid, and nonclass types always
-         evaluate to FALSE. */
-      complete_type_is_needed(type);
-      if (is_immediate_class_type(type)) {
-        if (is_incomplete_type(type)) {
-          incomplete_class_error = TRUE;
-          goto result_known;
-        } else {
-          arg->variant.type_operand.definition_needed = TRUE;
-          cssp = symbol_supplement_for_class(type);
-        }  /* if */
-      } else {
+    if (!is_immediate_class_type(type)) {
+      /* Non-class types. */
+      if (microsoft_mode) {
+        /* MSVC returns FALSE for all of these (which is, at least in
+           some cases, weird, but there you have it). */
+        result = FALSE;
         goto result_known;
+      }  /* if */
+      /* Note that g++ (checked in 4.5) treats scoped enums the same as
+         unscoped enums. */
+      switch (kind) {
+        case bok_has_assign:
+        case bok_has_copy:
+        case bok_has_nothrow_assign:
+        case bok_has_nothrow_constructor:
+        case bok_has_nothrow_copy:
+        case bok_has_trivial_assign:
+        case bok_has_trivial_constructor:
+        case bok_has_trivial_copy:
+        case bok_has_trivial_destructor:
+        case bok_is_pod:
+          result = TRUE;
+          break;
+        case bok_has_user_destructor:
+        case bok_has_virtual_destructor:
+        case bok_is_abstract:
+        case bok_is_class:
+        case bok_is_empty:
+        case bok_is_polymorphic:
+        case bok_is_union:
+          result = FALSE;
+          break;
+        case bok_is_enum:
+          result = is_immediate_enum_type(type);
+          break;
+      }  /* switch */
+      goto result_known;
+    } else if (complete_class_property) {
+      /* An incomplete class type is invalid. */
+      complete_type_is_needed(type);
+      if (is_incomplete_type(type)) {
+        incomplete_class_error = TRUE;
+        goto result_known;
+      } else {
+        arg->variant.type_operand.definition_needed = TRUE;
+        cssp = symbol_supplement_for_class(type);
       }  /* if */
     }  /* if */
     switch (kind) {
@@ -6699,7 +6731,7 @@ constant will be set as well.
         result = is_empty_class_type(type);
         break;
       case bok_is_enum:
-        result = is_immediate_enum_type(type);
+        result = FALSE;
         break;
       case bok_is_pod:
         /* Note that only class types are considered by Microsoft compilers. */

@@ -1,5 +1,24 @@
 Version 4.3
 
+11/29/10 [EDGcpfe/11118]
+Values of type trait helpers applied to non-class types in non-Microsoft modes
+
+The type trait helper builtins, e.g., __has_assign, were originally
+implemented for Microsoft mode, and, in accordance with the behavior of
+MSVC, all returned false when applied to a non-class type.  However,
+g++ (sensibly) returns true for many of those cases.  For example,
+it's reasonable that __has_assign(int) should return TRUE, since indeed
+one can assign ints.  Now, in all non-Microsoft modes, the type traits
+return these improved values.
+
+  extern "C" int printf(const char*, ...);
+  enum E { e0 };
+  bool b = __has_assign(E);
+  int main() {
+    printf("%d\n", b);  // Prints "1" now except in Microsoft mode
+  }
+
+
 11/29/10 [EDGcpfe/11187]
 Clear mangling information when "breaking" source correspondence
 
