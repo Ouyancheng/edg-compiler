@@ -4234,9 +4234,6 @@ next_named_override:
             if (rout->overridden_functions != NULL &&
                 !may_selectively_override(rout, rp, bcp)) {
               /* rout is an explicit overrider that doesn't override rp. */
-              /* FIXME: Something is fishy with the logic here in the C++/CLI
-                 case.  The base class associated with named_override should
-                 matter somehow. */
               continue;
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -9195,7 +9192,7 @@ If a specific override was specified using a qualified member declarator
   a_routine_ptr  rp = decl_info->decl_state.sym->variant.routine.ptr;
 
   if (overridden_sym != NULL) {
-    check_assertion(decl_info->named_overrides == NULL);  /* FIXME:ensure! */
+    check_assertion(decl_info->named_overrides == NULL);
     rp->is_virtual = TRUE;
     rp->overridden_functions = make_overridden_functions_entry(overridden_sym);
   } else if (decl_info->named_overrides != NULL) {
@@ -9306,8 +9303,16 @@ implicitly declared member functions.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode && locator->is_qualified_name &&
         !is_error_locator(*locator)) {
-      overridden_function = find_explicitly_overridden_member(
+      /* In non-managed class types, a qualified member function declarator
+         indicates selective overriding in Microsoft mode, but in managed
+         classes the construct is not allowed. */
+      if (!is_managed_class_type_entry(class_type)) {
+        overridden_function = find_explicitly_overridden_member(
                                            locator, class_state, member_type);
+      } else {
+        pos_error(ec_qualified_name_not_allowed, &locator->source_position);
+        set_to_error_locator(*locator);
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     sym = symbol_for_member_function(locator, class_type, overridden_function,
