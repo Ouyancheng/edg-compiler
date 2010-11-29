@@ -2034,6 +2034,9 @@ ec_property_requires_managed_class;;"properties can only be members of managed t
 ec_qualifier_not_allowed_on_managed_member_function;;"a type qualifier is not allowed on a member function of a managed class"
 ec_pointer_to_managed_type;;"an ordinary pointer to a managed type is not allowed"
 ec_reference_to_managed_type;;"an ordinary reference to a managed type is not allowed"
+ec_override_name_must_be_a_base_class_member_function;;"override specifier does not name a base class member function"
+ec_override_name_nonvirtual;;"override specifier designates a nonvirtual member function %nd"
+ec_multiple_overrides;;"member function overrides %nd1 which is already overridden by %nd2"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

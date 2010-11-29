@@ -874,6 +874,10 @@ typedef struct a_member_decl_info {
                         /* TRUE if the current declaration is a C++/CLI static
                            constructor.  If this is TRUE, is_constructor must
                            be FALSE. */
+  a_bit_field	multiple_overrides_diagnostic_issued:1;
+			/* TRUE if the ec_multiple_overrides error has been
+			   issued (used to avoid multiple diagnostics that
+			   look identical). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	is_trivial_default_constructor:1;
 			/* TRUE for an implicit declaration of a trivial
@@ -916,6 +920,12 @@ typedef struct a_member_decl_info {
 			/* Constant that represents the bit field size.  This
 			   field must only be used when is_bit_field is
 			   TRUE. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_symbol_list_entry_ptr
+		named_overrides;
+			/* A list of symbols representing named override
+			   specifiers in C++/CLI mode. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_member_decl_info;
 
 
@@ -937,6 +947,7 @@ a class member declaration as it appears.
   mdip->is_constructor = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   mdip->is_static_constructor = FALSE;
+  mdip->multiple_overrides_diagnostic_issued = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   mdip->is_trivial_default_constructor = FALSE;
   mdip->is_destructor = FALSE;
@@ -951,6 +962,9 @@ a class member declaration as it appears.
   mdip->bit_field_size_pos = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* bit_field_size is only set when is_bit_field is TRUE. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  mdip->named_overrides = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* initialize_member_decl_info */
 
 
@@ -3061,18 +3075,21 @@ next_entry_from_old_list:;
 
 
 static void record_virtual_function_override(
-                                      a_base_class_ptr  base_class,
-                                      a_routine_ptr     primary_func,
-                                      a_routine_ptr     overriding_func,
-                                      a_base_class_ptr  return_adjustment_bcp)
+                                a_member_decl_info_ptr  decl_info,
+                                a_base_class_ptr        base_class,
+                                a_routine_ptr           primary_func,
+                                a_base_class_ptr        return_adjustment_bcp)
 /*
-Record the overriding of virtual function "primary_func", which was
-declared in a base class ("base_class") of the current class, by function
-"overriding_func", which was declared in the current class.  The override
-entry appears on a linked list pointed to from base_class.
+Record the overriding of virtual function "primary_func", which was declared
+in a base class ("base_class") of the current class, by the function described
+by "decl_info", which was declared in the current class.  The override entry
+appears on a linked list pointed to from base_class.
 */
 {
-  an_overriding_virtual_function_ptr  ovfp;
+  a_decl_parse_state_ptr  dps = &decl_info->decl_state;
+  a_routine_ptr           overriding_func = dps->sym->variant.routine.ptr;
+  an_overriding_virtual_function_ptr
+                          ovfp;
 
   db_enter(4, "record_virtual_function_override");
   /* If there is already an override entry, created when the primary routine
@@ -3082,7 +3099,31 @@ entry appears on a linked list pointed to from base_class.
   ovfp = base_class->overriding_virtual_functions;
   for (; ovfp != NULL; ovfp = ovfp->next) {
     if (ovfp->primary_function == primary_func) {
-      /* There is an entry that can be reused.  Modify it as required. */
+      /* Usually, this is an entry copied when base classes are added (by
+         copy_virtual_function_override_list) that can now be reused to
+         represent the new overrider in the most-derived class.  However, in
+         Microsoft mode, this may also occur because the base was selected
+         multiple times for selective overriding in the same derived class.
+         Check for the latter case first. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (parent_scope_of(ovfp->overriding_function) ==
+                                           parent_scope_of(overriding_func) &&
+          (ovfp->overriding_function->overridden_functions != NULL ||
+           overriding_func->overridden_functions != NULL)) {
+        check_assertion(microsoft_mode);
+        if (!decl_info->multiple_overrides_diagnostic_issued &&
+            !scope_stack_top().in_prototype_instantiation) {
+          /* During prototype instantiations, no diagnostic is issued since
+             the overridden base cannot always be identified reliably. */
+          pos_sy2_error(ec_multiple_overrides, &dps->declarator_pos,
+                        symbol_for(primary_func),
+                        symbol_for(ovfp->overriding_function));
+          decl_info->multiple_overrides_diagnostic_issued = TRUE;
+        }  /* if */
+        ovfp = NULL;
+        break;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DEBUG
       if (debug_level >= 4) {
         fputs("existing entry: ", f_debug);
@@ -3446,15 +3487,27 @@ overridden, the corresponding entry is removed from the registry.
      if nonoverriding_sym is NULL, then this is a successful override, in
      which case the override count should be bumped. */
   if (nonoverriding_sym != NULL) {
-    a_symbol_list_entry_ptr  new_slep, slep;
-    new_slep = alloc_symbol_list_entry();
-    new_slep->symbol = nonoverriding_sym;
-    if (orep->override_failures == NULL) {
-      orep->override_failures = new_slep;
-    } else {
-      slep = orep->override_failures;
-      while (slep->next != NULL) slep = slep->next;
-      slep->next = new_slep;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled &&
+        nonoverriding_sym->variant.routine.ptr->overridden_functions != NULL) {
+      /* The non-overriding derived class declaration selectively overrides
+         specific functions.  It is therefore likely that it intentionally
+         does not override its base-class homonym and no "failure" should be
+         recorded. */
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      a_symbol_list_entry_ptr  new_slep, slep;
+      new_slep = alloc_symbol_list_entry();
+      new_slep->symbol = nonoverriding_sym;
+      if (orep->override_failures == NULL) {
+        orep->override_failures = new_slep;
+      } else {
+        slep = orep->override_failures;
+        while (slep->next != NULL) slep = slep->next;
+        slep->next = new_slep;
+      }  /* if */
     }  /* if */
   } else {
     /* Increment the override count. */
@@ -3744,6 +3797,9 @@ extension.  For example:
     int B1::f() { return 1; }  // Selectively overrides B1::f (not B2::f).
     int B2::f() { return 2; }  // Selectively overrides B2::f (not B1::f).
   };
+
+Note: This function is only for use with non-C++/CLI-style selective
+overriding.
 */
 {
   a_boolean      result = FALSE;
@@ -3789,30 +3845,27 @@ extension.  For example:
     int B1::f() { return 1; }  // Selectively overrides B1::f (not B2::f).
     int B2::f() { return 2; }  // Selectively overrides B2::f (not B1::f).
   };
+
+In C++/CLI, a different (less ambiguous) syntax is used, and a single
+derived-class member can override multiple base class members:
+  interface struct I1 { virtual void f(); };
+  interface struct I2 { virtual void g(); };
+  ref struct S: I1, I2 {
+    virtual void f() = I1::f, I2::g;
+  };
+
+In C++/CLI, a derived member can override a base member with a different name
+(e.g., S::f overrides I2::g in the last example above), but two partial
+overriders cannot have the same unqualified name (unlike the first example
+above with two members f in class D).
 */
 {
   a_boolean         result = FALSE;
-  a_routine_ptr     ofp = selectively_overridden_function(overrider);
 
   check_assertion(overrider->overridden_functions != NULL);
-  if (ofp == NULL) {
-    /* overrider selectively overrides an unknown (i.e., template dependent)
-       function.  So it "may" selectively override the given candidate. */
-    result = TRUE;
-  } else if (!is_interface_like(base_class->type)) {
-    /* For non-interface base classes, the overrider must directly indicate
-       the overridden function, and all the base subobjects are overridden.
-       For example:
-         struct B { virtual void f() = 0; };
-         struct C1: B {};
-         struct C2: B {};
-         struct D: C1, C2 {
-           void C1::f(); // Overides f in both base subobjects.
-           void C2::f(); // Error: Redeclaration.
-         }; */
-    result = (ofp == candidate);
-  } else {
-    /* For interface base classes, the overridden function is only the one
+  if (is_interface_like(base_class->type)) {
+    /* For __interface-like base classes (which does not include C++/CLI
+       interface class/struct types), the overridden function is only the one
        in the indicated base subobject.
          __interface B {
            virtual void f() = 0;
@@ -3823,27 +3876,55 @@ extension.  For example:
            void C1::f() {}  // Overrides B::f (only) in the C1::B subobject.
            void C2::f() {}  // Overrides B::f (only) in the C2::B subobject.
          }; */
-    a_base_class_ptr  of_bcp = find_base_class_of(base_class->derived_class,
-                                                  parent_class_of(ofp));
-    /* Check that the given base is a subobject of the explicitly designated
-       base (of_bcp). */
-    check_assertion(!of_bcp->ambiguous);
-    if (is_on_any_derivation_of(base_class, of_bcp)) {
-      if (ofp == candidate) {
-        /* Direct overrider. */
-        result = TRUE;
-      } else {
-        /* Check for indirect overriding (via an interface slot). */
-        ofp = selectively_overridden_function(ofp);
-        while (ofp != NULL) {
-          if (ofp == candidate) {
-            result = TRUE;
-            break;
-          }  /* if */
+    a_routine_ptr  ofp = selectively_overridden_function(overrider);
+    if (ofp == NULL) {
+      /* overrider selectively overrides an unknown (i.e., template dependent)
+         function.  So it "may" selectively override the given candidate. */
+      result = TRUE;
+    } else {
+      a_base_class_ptr  of_bcp = find_base_class_of(base_class->derived_class,
+                                                    parent_class_of(ofp));
+      /* Check that the given base is a subobject of the explicitly designated
+         base (of_bcp). */
+      check_assertion(!of_bcp->ambiguous);
+      if (is_on_any_derivation_of(base_class, of_bcp)) {
+        if (ofp == candidate) {
+          /* Direct overrider. */
+          result = TRUE;
+        } else {
+          /* Check for indirect overriding (via an interface slot). */
           ofp = selectively_overridden_function(ofp);
-        }  /* while */
+          while (ofp != NULL) {
+            if (ofp == candidate) {
+              result = TRUE;
+              break;
+            }  /* if */
+            ofp = selectively_overridden_function(ofp);
+          }  /* while */
+        }  /* if */
       }  /* if */
     }  /* if */
+  } else {
+    /* For non-__interface base classes, the overrider must directly indicate
+       the overridden function, and all the base subobjects are overridden.
+       For example:
+         struct B { virtual void f() = 0; };
+         struct C1: B {};
+         struct C2: B {};
+         struct D: C1, C2 {
+           void C1::f(); // Overides f in both base subobjects.
+           void C2::f(); // Error: Redeclaration.
+         };
+       This also applies in C++/CLI classes. */
+    an_il_entity_list_entry_ptr  ofep = overrider->overridden_functions;
+    for (; ofep != NULL; ofep = ofep->next) {
+      a_tagged_pointer  ep = ofep->entity;
+      if ((an_il_entry_kind)ep.kind == iek_routine &&
+          (a_routine_ptr)ep.ptr == candidate) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
   }  /* if */
   return result;
 }  /* may_selectively_override */
@@ -3908,12 +3989,11 @@ done:
 }  /* base_is_final */
 
 static void check_virtual_function_override(
-                                  a_class_def_state_ptr  class_state,
-                                  a_symbol_ptr           overrider_sym,
-                                  a_symbol_ptr           overridden_sym,
-                                  a_base_class_ptr       bcp,
-                                  a_base_class_ptr       return_adjustment_bcp,
-                                  a_source_position_ptr  source_pos)
+                                 a_class_def_state_ptr   class_state,
+                                 a_member_decl_info_ptr  decl_info,
+                                 a_symbol_ptr            overridden_sym,
+                                 a_base_class_ptr        bcp,
+                                 a_base_class_ptr        return_adjustment_bcp)
 /*
 A member function declaration (overrider_sym) was found to match a virtual
 member function (overridden_sym) in a base class (bcp) of the class currently
@@ -3924,10 +4004,16 @@ types, return_adjustment_bcp is the base class entry that was determined by
 return_types_are_override_compatible.
 */
 {
-  a_type_ptr     class_type = class_state->class_type;
-  a_routine_ptr  rout = overrider_sym->variant.routine.ptr;
-  a_routine_ptr  rp = overridden_sym->variant.routine.ptr;
+  a_decl_parse_state_ptr  dps = &decl_info->decl_state;
+  a_symbol_ptr            overrider_sym = dps->sym;
+  a_source_position       *source_pos = &dps->declarator_pos;
+  a_type_ptr              class_type = class_state->class_type;
+  a_routine_ptr           rout = overrider_sym->variant.routine.ptr;
+  a_routine_ptr           rp = overridden_sym->variant.routine.ptr;
 
+  /* Compiler-generated members have no declarator.  Use the associated
+     symbol's "decl_position" for diagnostics. */
+  if (rout->compiler_generated) source_pos = &overrider_sym->decl_position;
   rout->is_virtual = TRUE;
   if (exception_spec_is_less_restrictive(rout->type, rp->type)) {
     /* The exception specification for the overriding virtual
@@ -3950,7 +4036,7 @@ return_types_are_override_compatible.
     /* Record the virtual function override in the base class entry.
        It can be used later, e.g., for building a virtual function
        table. */
-    record_virtual_function_override(bcp, rp, rout,
+    record_virtual_function_override(decl_info, bcp, rp,
                                      return_adjustment_bcp);
     if (return_adjustment_bcp != NULL) {
       /* The overriding function has a covariant return type.
@@ -3985,54 +4071,68 @@ return_types_are_override_compatible.
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean check_for_virtual_function(
                                      a_boolean               virtual_specified,
-                                     a_symbol_ptr            rout_sym,
-                                     a_decl_parse_state_ptr  dps,
+                                     a_member_decl_info_ptr  decl_info,
                                      a_class_def_state_ptr   class_state,
-                                     a_func_info_block_ptr   func_info,
-                                     a_source_position       *source_pos)
+                                     a_func_info_block_ptr   func_info)
 /*
-A nonstatic member function, represented by rout_sym, has been declared
-and, depending on the value of virtual_specified, may have been explicitly
-declared to be a virtual function.  Even if it has not, it will need to be
-marked as virtual if it overrides a virtual function (i.e., if a function
-with the same name and type signature was declared virtual in a base class
-of the current class).  In addition, information about base class virtual
-functions that are overridden by the current declaration is recorded to
-allow for appropriate processing later (e.g., the construction of virtual
-function tables).  If the current routine is a virtual function either
-from explicit specification or from "inheriting" its virtualness, mark the
-routine entry and return TRUE; otherwise return FALSE.  class_state describes
-the parent class of the member function (which is being defined), and dps and
-func_info point to some additional information about the function declaration.
-Any diagnostics are issued at the given position.
+A nonstatic member function, represented by decl_info, has been declared and,
+depending on the value of virtual_specified, may have been explicitly declared
+to be a virtual function.  Even if it has not, it will need to be marked as
+virtual if it overrides a virtual function (i.e., if a function with the same
+name and type signature was declared virtual in a base class of the current
+class).  In addition, information about base class virtual functions that are
+overridden by the current declaration is recorded to allow for appropriate
+processing later (e.g., the construction of virtual function tables).  If the
+current routine is a virtual function either from explicit specification or
+from "inheriting" its virtualness, mark the routine entry and return TRUE;
+otherwise return FALSE.  class_state describes the parent class of the member
+function (which is being defined), and func_info points to some additional
+information about the function declarator.
 */
 {
+  a_decl_parse_state_ptr          dps = &decl_info->decl_state;
   a_type_ptr                      class_type = class_state->class_type;
   a_boolean                       overloaded;
   a_base_class_ptr                bcp, return_adjustment_bcp;
+  a_symbol_ptr                    rout_sym = dps->sym;
   a_symbol_ptr                    symbol_list, sym, sym_next;
   a_symbol_ptr                    sym_for_override_registry;
+  a_symbol_header_ptr             sym_header_to_search;
   a_routine_ptr                   rout, rp;
   a_scope_ptr                     base_class_scope;
   a_boolean                       any_override_candidates = FALSE;
   a_boolean                       real_override = FALSE;
   an_override_registry_entry_ptr  *registry_ptr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_symbol_list_entry_ptr         named_override = decl_info->named_overrides;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_source_position               *source_pos = &dps->declarator_pos;
 
   db_enter(4, "check_for_virtual_function");
   check_assertion(rout_sym->kind == (a_symbol_kind)sk_member_function);
+  sym_header_to_search = rout_sym->header;
   rout = rout_sym->variant.routine.ptr;
   rout->is_virtual = virtual_specified;
+  /* Compiler-generated members have no declarator.  Use the associated
+     symbol's "decl_position" for diagnostics. */
+  if (rout->compiler_generated) source_pos = &rout_sym->decl_position;
   registry_ptr = &class_state->override_registry;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && func_info->new_member) {
-    /* Don't establish overriding of a base class member if the member
-       function was declared "new". */
-    goto done;
+next_named_override:
+  if (cppcli_enabled) {
+    if (named_override != NULL) {
+      sym_header_to_search = named_override->symbol->header;
+    } else if (func_info->new_member) {
+      /* Don't establish overriding of a base class member if the member
+         function was declared "new" (unless it also included a named
+         override specifier; e.g. "virtual void f() new = X::g;"). */
+      goto done;
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* We scan symbols on the inactive list, since we are only interested in
      functions declared in base classes. */
-  symbol_list = rout_sym->header->inactive_symbols;
+  symbol_list = sym_header_to_search->inactive_symbols;
   /* Outer loop:  go through the base classes of the current class. */
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     if (rout->special_kind == (a_special_function_kind)sfk_destructor) {
@@ -4045,8 +4145,8 @@ Any diagnostics are issued at the given position.
         rp = sym->variant.routine.ptr;
         if (rp->is_virtual) {
           /* Base class destructor is virtual. */
-          check_virtual_function_override(class_state, rout_sym, sym, bcp,
-                                          (a_base_class_ptr)NULL, source_pos);
+          check_virtual_function_override(class_state, decl_info, sym, bcp,
+                                          (a_base_class_ptr)NULL);
           dps->override_okay = real_override = TRUE;
         }  /* if */
       }  /* if */
@@ -4134,6 +4234,9 @@ Any diagnostics are issued at the given position.
             if (rout->overridden_functions != NULL &&
                 !may_selectively_override(rout, rp, bcp)) {
               /* rout is an explicit overrider that doesn't override rp. */
+              /* FIXME: Something is fishy with the logic here in the C++/CLI
+                 case.  The base class associated with named_override should
+                 matter somehow. */
               continue;
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4175,8 +4278,8 @@ Any diagnostics are issued at the given position.
               goto next_base_class;                                       
             }  /* if */
             /* Match */
-            check_virtual_function_override(class_state, rout_sym, sym, bcp,
-                                            return_adjustment_bcp, source_pos);
+            check_virtual_function_override(class_state, decl_info, sym, bcp,
+                                            return_adjustment_bcp);
             dps->override_okay = real_override = TRUE;
             /* If this declaration amounts to an override of a member of an
                overload set, record some information about it in the
@@ -4200,6 +4303,20 @@ Any diagnostics are issued at the given position.
     }  /* if */
 next_base_class:;
   }  /* for */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (named_override != NULL) {
+    if (named_override->next != NULL) {
+      /* More than one named override was specified explicitly.  Process the
+         next one. */
+      named_override = named_override->next;
+      goto next_named_override;
+    } else {
+      /* We've reached the last of the named override entries: The list can
+         now be recycled. */
+      free_list_of_symbol_list_entries(decl_info->named_overrides);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 done:
   if (real_override) {
     rout->overrides_base_member = TRUE;
@@ -7443,10 +7560,12 @@ was used).
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (microsoft_mode &&
                  new_sym->kind == (a_symbol_kind)sk_member_function &&
+                 !is_managed_class_type_entry(class_type) &&
                  !is_selectively_overridden_by(overridden_function, new_sym)) {
         /* Although a declaration with a matching type was found, it overrides
            a different base member.  Treat the new declaration as a distinct
-           member. */
+           member.  (Note: This applies only to the non-C++/CLI syntax for
+           denoting selective overriding.) */
         new_sym = NULL;
         multiple_selective_overriders = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -8248,10 +8367,11 @@ current class is not an interface, state->potentially_interface_like may be
 set to FALSE (and FALSE is always returned).
 */
 {
-  a_boolean   is_implicitly_pure_virtual = FALSE;
+  a_boolean   is_implicitly_pure_virtual = FALSE, in_interface;
   a_type_ptr  type = state->class_type;
-  a_boolean   in_interface = type->variant.class_struct_union.is_interface;
 
+  in_interface = (type->variant.class_struct_union.is_interface ||
+                  cli_class_type_kind_is(type, cctk_interface));
   if (in_interface || state->potentially_interface_like) {
     switch (rtn->special_kind) {
       case sfk_none:
@@ -8304,6 +8424,7 @@ described by base_sym.
 Return (and, if needed, create) a special member function (an "interface slot")
 in the interface class that the function entry in the derived class can refer
 to (with its overridden_functions field).
+(Note: There is no counterpart for this in C++/CLI interface classes.)
 */
 {
   a_symbol_ptr      result = NULL;
@@ -9032,6 +9153,62 @@ the member function is an accessor for the property (if the accessor is valid).
   }  /* if */
 }  /* check_property_accessor */
 
+
+static an_il_entity_list_entry_ptr make_overridden_functions_entry(
+                                                            a_symbol_ptr  sym)
+/*
+Create an entry corresponding to the given symbol for the overridden_functions
+list of an IL entry of type a_routine.
+*/
+{
+  an_il_entity_list_entry_ptr  entry;
+
+  check_assertion(curr_il_region_number == file_scope_region_number);
+  entry = alloc_il_entity_list_entry();
+  if (sym->kind == (a_symbol_kind)sk_member_function) {
+    entry->entity.kind = (a_byte_il_entry_kind)iek_routine;
+    entry->entity.ptr = (char*)sym->variant.routine.ptr;
+  } else {
+    check_assertion(is_nontype_template_param_symbol(sym) &&
+                    sym->variant.constant->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_member);
+    entry->entity.kind = (a_byte_il_entry_kind)iek_constant;
+    entry->entity.ptr = (char*)sym->variant.constant;
+  }  /* if */
+  return entry;
+}  /* make_overridden_functions_entry */
+
+
+static void record_selective_overriding(a_member_decl_info_ptr  decl_info,
+                                        a_symbol_ptr            overridden_sym)
+/*
+decl_info describes a (presumably virtual) member function declaration.  If
+that declaration selectively overrides specific base class members, record
+that in the derived-class routine entry.  If the overrides were specified
+using C++/CLI syntax like "virtual int f() = I::f, K::g;", overridden_sym is
+NULL, and decl_info->named_overrides will describe the overridden members.
+If a specific override was specified using a qualified member declarator
+(e.g., "virtual int B::f();"), overridden_sym describes the overridden member
+(there cannot be more than one in that case).
+*/
+{
+  a_routine_ptr  rp = decl_info->decl_state.sym->variant.routine.ptr;
+
+  if (overridden_sym != NULL) {
+    check_assertion(decl_info->named_overrides == NULL);  /* FIXME:ensure! */
+    rp->is_virtual = TRUE;
+    rp->overridden_functions = make_overridden_functions_entry(overridden_sym);
+  } else if (decl_info->named_overrides != NULL) {
+    an_il_entity_list_entry_ptr  *p_entry = &rp->overridden_functions;
+    a_symbol_list_entry_ptr      sym_entry = decl_info->named_overrides;
+    check_assertion(cppcli_enabled && *p_entry == NULL);
+    for (; sym_entry != NULL; sym_entry = sym_entry->next) {
+      *p_entry = make_overridden_functions_entry(sym_entry->symbol);
+      p_entry = &(*p_entry)->next;
+    }  /* for */
+  }  /* if */
+}  /* record_selective_overriding */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void decl_member_function(a_symbol_locator        *locator,
@@ -9249,29 +9426,10 @@ implicitly declared member functions.
   if (!is_error_locator(*locator)) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
-      /* If this function explicitly overrides a virtual function in a base
-         class, record that fact. */
-      if (overridden_function != NULL) {
-        rtn->is_virtual = TRUE;
-        check_assertion(curr_il_region_number == file_scope_region_number);
-        rtn->overridden_functions = alloc_il_entity_list_entry();
-        if (overridden_function->kind == (a_symbol_kind)sk_member_function) {
-          rtn->overridden_functions->entity.kind =
-                                            (a_byte_il_entry_kind)iek_routine;
-          rtn->overridden_functions->entity.ptr =
-                              (char*)overridden_function->variant.routine.ptr;
-        } else {
-          check_assertion(
-             is_nontype_template_param_symbol(overridden_function) &&
-             overridden_function->variant.constant
-                                ->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_member);
-          rtn->overridden_functions->entity.kind =
-                                           (a_byte_il_entry_kind)iek_constant;
-          rtn->overridden_functions->entity.ptr =
-                                 (char*)overridden_function->variant.constant;
-        }  /* if */
-      }  /* if */
+      /* If this function declaration specifies selective overrides, record
+         that fact.  (Managed and non-managed classes use different syntax to
+         select the overridden base class member.) */
+      record_selective_overriding(decl_info, overridden_function);
       if (decl_state->ms_attributes != NULL) {
         apply_microsoft_attributes(&decl_state->ms_attributes, (char*)rtn,
                                    (an_il_entry_kind)iek_routine, MSAT_METHOD);
@@ -9613,9 +9771,8 @@ implicitly declared member functions.
            because of insufficient type information.  To avoid spurious
            errors, we do not call check_for_virtual_function in such
            cases. */
-      } else if (check_for_virtual_function(is_virtual, sym, decl_state,
-                                            class_state, func_info,
-                                            &locator->source_position)) {
+      } else if (check_for_virtual_function(is_virtual, decl_info,
+                                            class_state, func_info)) {
         /* Classes with virtual functions require nontrivial default
            constructors. */
         class_state->default_ctor_is_nontrivial = TRUE;
@@ -13708,13 +13865,8 @@ Return TRUE if the given class has a dependent base class.
 
   class_type = skip_typerefs(class_type);
   if (class_type->variant.class_struct_union.is_prototype_instantiation) {
-    a_base_class_ptr  bcp;
-    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-      if (bcp->direct && could_be_dependent_class_type(bcp->type)) {
-        result = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
+    result = symbol_supplement_for_class(class_type)
+                                                 ->any_dependent_base_classes;
   }  /* if */
   return result;
 }  /* has_dependent_base_class */
@@ -15646,7 +15798,298 @@ done:
   remove_stop_token(tok_semicolon);
 }  /* scan_cli_property_head */
 
+
+static void scan_named_overrides_if_any(a_class_def_state_ptr   class_state,
+                                        a_member_decl_info_ptr  decl_info)
+/*
+class_state and decl_info describe a member function declaration in a class
+definition.  The top-level function declarator has just been scanned.  It may
+be followed by "= X, Y, Z, ..." (with X, Y, Z, ... qualified or unqualified
+names), to name specific virtual base class members that are overridden by the
+newly declared member.  If so, scan and validate the "= X, Y, Z, ..." construct
+and record the overridden base class members in decl_info->named_overrides.
+*/
+{
+  if (curr_token == tok_assign) {
+    a_token_cache            cache;
+    a_symbol_list_entry_ptr  *p_list_entry;
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    cache_curr_token(&cache);
+    (void)get_token();
+    if (!is_generalized_identifier_start(GID_NO_OPTIONS)) {
+      rescan_cached_tokens(&cache);
+      goto done;
+    }  /* if */
+    discard_token_cache(&cache);
+    p_list_entry = &decl_info->named_overrides;
+    do {
+      a_symbol_ptr  sym;
+      a_boolean     err;
+      if (!is_generalized_identifier_start(GID_NO_OPTIONS)) goto done;
+      add_stop_token(tok_comma);
+      sym = coalesce_and_lookup_generalized_identifier(
+                                            GID_NO_OPTIONS, ilm_normal, &err);
+      remove_stop_token(tok_comma);
+      if (err) {
+        expect_error();
+        sym = NULL;
+      } else if (sym == NULL) {
+        /* The symbol was not found: Issue an error. */
+        pos_error(ec_override_name_must_be_a_base_class_member_function,
+                    &pos_curr_token);
+      } else if (is_nontype_template_param_symbol(sym)) {
+        /* A template-dependent symbol (possibly due to the presence of a
+           dependent base class).  Further checks are not possible at this
+           time. */
+      } else if (sym->ambiguous) {
+        pos_sy_error(ec_ambiguous_name, &pos_curr_token, sym);
+        sym = NULL;
+      } else if (!is_member_function_symbol(sym)) {
+        pos_error(ec_override_name_must_be_a_base_class_member_function,
+                  &pos_curr_token);
+        sym = NULL;
+      } else {
+        sym = member_function_redecl_sym_with_template_flag(
+                                              sym, decl_info->decl_state.type,
+                                              (a_template_param_ptr)NULL,
+                                              /*templates_only=*/FALSE,
+                                              (a_symbol_ptr*)NULL);
+        if (sym != NULL) {
+          a_routine_ptr  rp;
+          check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
+          rp = sym->variant.routine.ptr;
+          if (!rp->is_virtual) {
+            pos_sy_error(ec_override_name_nonvirtual, &pos_curr_token, sym);
+            sym = NULL;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (sym != NULL) {
+        *p_list_entry = alloc_symbol_list_entry();
+        (*p_list_entry)->symbol = sym;
+        p_list_entry = &(*p_list_entry)->next;
+      }  /* if */
+      (void)get_token();
+    } while (loop_token(tok_comma));
+done:;
+  }  /* if */
+}  /* scan_named_overrides_if_any */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+static a_boolean member_declarator(a_class_def_state_ptr    class_state,
+                                   a_member_decl_info_ptr   decl_info,
+                                   a_symbol_locator         *locator,
+                                   a_func_info_block        *func_info,
+                                   a_boolean                *is_function,
+                                   a_boolean                *is_typedef)
+/*
+Parse a declarator for an in-class declaration (which might be a friend
+declarator, and therefore not actually the declaration of a class member).
+class_state describes the class in which the declarator appears and decl_info
+describes the current member declaration as a whole.  Return through *locator
+a description of the declarator-id and through *is_function if this declarator
+is for a function (in which case *func_info will contain a description of the
+top-level function declarator).  The caller should set *is_typedef to TRUE if
+the declaration contained a typedef specifier, but this routine may clear that
+flag if error recovery should be performed as if the specifier didn't occur.
+*/
+{
+  a_boolean           okay = TRUE;
+  a_decl_parse_state  *dps = &decl_info->decl_state;
+  a_type_ptr          class_type = class_state->class_type;
+  a_boolean           no_decl_specifiers, is_member_template_rescan;
+  a_boolean           friend_specified;
+
+  add_stop_token(tok_colon);
+  add_stop_token(tok_try);
+  clear_func_info(func_info);
+  no_decl_specifiers = (dps->dso_flags & DSO_NO_DECL_SPECIFIERS) != 0;
+  friend_specified = (dps->dso_flags & DSO_FRIEND) != 0;
+  is_member_template_rescan = (scope_stack[depth_scope_stack].kind ==
+                                 (a_scope_kind)sck_template_instantiation);
+  /* Initialize certain decl_info fields for each declarator. */
+  decl_info->is_unnamed_field = FALSE;
+  dps->sym = NULL;
+  if (!decl_info->is_first_in_declarator_list) {
+    /* Check if a secondary declarator declares a constructor or destructor.
+       (In C++/CLI mode, also consider static constructors.) */
+    decl_info->is_destructor = decl_info->is_constructor = FALSE;
+    dps->dso_flags &= ~(DSO_CONSTRUCTOR | DSO_DESTRUCTOR);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    decl_info->is_static_constructor = FALSE;
+    dps->dso_flags &= ~DSO_STATIC_CONSTRUCTOR;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (curr_token == tok_compl ||
+        (is_generalized_identifier_start(GID_NO_OPTIONS) &&
+         locator_for_curr_id.is_destructor_name)) {
+      decl_info->is_destructor = TRUE;
+      dps->type = dps->declared_type = unknown_type();
+    } else if (curr_token == tok_identifier &&
+               is_constructor_decl(class_type, dps)) {
+      if (dps->declared_storage_class != (a_storage_class)sc_static) {
+        decl_info->is_constructor = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else {
+        check_assertion(cppcli_enabled);
+        decl_info->is_static_constructor = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
+      dps->type = dps->declared_type = unknown_type();
+    } else if (no_decl_specifiers) {
+      dps->start_pos = pos_curr_token;
+      dps->type = dps->declared_type = integer_type((an_integer_kind)ik_int);
+    }  /* if */
+  }  /* if */
+  if (curr_token == tok_colon && !no_decl_specifiers) {
+    decl_info->is_unnamed_field = TRUE;
+  }  /* if */
+  /* The declarator can be omitted in some cases. */
+  set_err_pos_to_curr_token();
+  if (decl_info->is_unnamed_field || decl_info->is_anonymous_union) {
+    set_to_error_locator(*locator);
+    check_pending_qualifiers_used(dps);
+  } else if (no_decl_specifiers && !decl_info->is_constructor &&
+             !decl_info->is_destructor && !is_declarator_start()) {
+    remove_stop_token(tok_comma);
+    remove_stop_token(tok_colon);
+    remove_stop_token(tok_try);
+    syntax_error(ec_exp_declaration);
+    if (curr_token == tok_semicolon) {
+      /* Advance past the semicolon. */
+      (void)get_token();
+    }  /* if */
+    discard_curr_construct_pragmas();
+    okay = FALSE;
+    goto done;
+  } else {
+    /* Named member -- we need to call declarator. */
+    a_decl_flag_set  di_flags = DI_REAL_DECLARATOR_ALLOWED;
+    if (C_mode()) {
+      /* Must be a field (= nonstatic data member) in C mode. */
+      di_flags |= DI_NONSTATIC_MEMBER;
+    } else {
+      /* C++ mode */
+      if (curr_routine_fixup != NULL) {
+        /* We must be in a declarator list and this must be at least the
+           second item in the list. */
+        /* This should not be a cached function body. */
+        check_assertion(curr_routine_fixup->
+                        function_body_token_cache.first_token == NULL);
+        if (curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
+           /* The previous one must have been a routine declaration with
+              default arguments, so we have to save the routine fixup entry
+              onto the fixup list. */
+          add_to_routine_fixup_list(curr_routine_fixup);
+          /* Make a new one fixup entry for the current declarator. */
+          curr_routine_fixup = alloc_routine_fixup(class_type);
+        } else {
+          /* The other one can be reused. */
+          check_assertion(same_entities(curr_routine_fixup->class_type,
+                                        class_type));
+        }  /* if */
+      } else if (!is_member_template_rescan) {
+        /* Normal case.  Allocate a new routine fixup entry. */
+        curr_routine_fixup = alloc_routine_fixup(class_type);
+      }  /* if */
+      add_stop_token(tok_lbrace);
+      /* Set the various flags for declarator processing (C++ only). */
+      di_flags |= DI_OPERATOR_NAME_ALLOWED;
+      if ((dps->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) == 0 &&
+          dps->qualifiers == TQ_NONE) {
+        di_flags |= DI_NO_TYPE_SPECIFIERS;
+      }  /* if */
+      if (decl_info->is_constructor) di_flags |= DI_IS_CONSTRUCTOR;
+      if (friend_specified) {
+        di_flags |= DI_QUALIFIED_NAME_ALLOWED;
+      }  /* if */
+      if (decl_info->is_member_template) {
+        di_flags |= DI_IS_TEMPLATE_DECLARATION;
+      }  /* if */
+    }  /* if */
+    /* Microsoft compilers allow redundant qualifiers when declaring
+       members.  In g++ mode, allow additional qualifiers when rescanning
+       a member template declaration to generate a partial instantiation.
+       The initial declaration is accepted in g++ mode as a result of
+       processing in simplify_curr_class_qualified_name. */
+    if (microsoft_mode ||
+        (gpp_mode && scope_stack[depth_scope_stack].kind ==
+                                 (a_scope_kind)sck_template_instantiation)) {
+      di_flags |= DI_QUALIFIED_NAME_ALLOWED;
+    }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+    if (gnu_attributes_enabled) {
+      /* Scan prefix declarator attributes.  Note that those can only
+         appear after a comma separating two declarators.  Any attributes
+         prefixing a leading declarator will have been parsed as part of
+         the specifier attributes.  The GNU documentation says that such
+         attributes apply to the entity associated with the subsequent
+         declarator only.  However, in reality, the GNU compiler appears
+         to ignore these prefix declarator attributes altogether when they
+         appear on class members.  We implement the documented behavior. */
+      scan_gnu_declarator_attributes(dps);
+    }  /* if */
+    if (gnu_mode) {
+      if (gcc_mode && depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+        /* GNU C allows VLA fields in local classes.  We will scan such
+           fields in GNU C mode, but issue a warning that the field will
+           be treated as an array of length zero. */
+        di_flags |= DI_VLA_ALLOWED;
+      }  /* if */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    /* Pass the class's type pointer to declarator if this might be a
+       nonstatic member function, in which case its presence will cause an
+       implicit "this" parameter type to be created. (Static member
+       functions do not have an implicit "this" pointer. The class pointer
+       will be ignored for data members.) */
+    declarator(di_flags, dps, class_type, locator, func_info,
+               &decl_info->decl_pos_block);
+    if (!C_mode()) {
+      remove_stop_token(tok_lbrace);
+      check_completed_member_type(locator, class_state, decl_info);
+      if (is_member_template_rescan) {
+        if (dps->storage_class != (a_storage_class)sc_unspecified &&
+            dps->storage_class != (a_storage_class)sc_static) {
+          /* An error will already have been issued on, e.g.,
+               struct A { template <class T> typedef A (T) { } };
+          */
+          dps->storage_class = (a_storage_class)sc_unspecified;
+          *is_typedef = FALSE;
+        }  /* if */
+      }  /* if */
+      decl_info->is_constructor = (dps->do_flags & DO_IS_CONSTRUCTOR) != 0;
+      decl_info->is_destructor = locator->is_destructor_name ||
+                                 (dps->do_flags & DO_IS_DESTRUCTOR) != 0;
+    }  /* if */
+    *is_function = (!*is_typedef && is_function_type(dps->type));
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && *is_function) {
+      if ((dps->do_flags & DO_IS_STATIC_CONSTRUCTOR) != 0) {
+        decl_info->is_static_constructor = TRUE;
+        check_assertion(dps->type->kind == (a_type_kind)tk_routine);
+        if (function_type_params(dps->type) != NULL) {
+          /* C++/CLI static constructors cannot have parameters. */
+          pos_error(ec_static_constructor_with_params, &dps->start_pos);
+        }  /* if */
+      }  /* if */
+      scan_named_overrides_if_any(class_state, decl_info);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    scan_gnu_asm_name(dps);
+    scan_gnu_declarator_attributes(dps);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  }  /* if */
+  /* In-class member declarations are never "redeclarations".  For friend
+     declarations, the setting of the flag depends on the context; if
+     appropriate, it will be set to TRUE later. */
+  dps->first_decl = !friend_specified;
+done:
+  remove_stop_token(tok_colon);
+  remove_stop_token(tok_try);
+  return okay;
+}  /* member_declarator */
 
 #if !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* instance and template_decl is not used unless source
@@ -15678,7 +16121,6 @@ passed via template_decl.
 */
 {
   a_boolean            missing_declarator = FALSE;
-  a_source_position    decl_start_pos;
   a_decl_flag_set      dsi_flags;
   a_decl_flag_set      dso_flags = DSO_NO_OUTPUT_FLAGS;
   a_type_ptr           specifiers_type;
@@ -15696,8 +16138,7 @@ passed via template_decl.
 
   db_enter(3, "class_member_declaration");
   *skip_semicolon_check = FALSE;
-  decl_start_pos = pos_curr_token;
-  initialize_member_decl_info(&decl_info, &decl_start_pos);
+  initialize_member_decl_info(&decl_info, &pos_curr_token);
   is_member_template_rescan = (scope_stack[depth_scope_stack].kind ==
                                  (a_scope_kind)sck_template_instantiation);
   /* Scan prefix attributes. */
@@ -15860,11 +16301,12 @@ passed via template_decl.
           !typeref_is_typedef(decl_state->type)) {
         if (gnu_mode && gnu_version < 30400) {
           pos_warning(ec_nonstandard_anonymous_union_qualifier,
-                      &decl_start_pos);
+                      &decl_state->start_pos);
         } else {
           decl_state->type = skip_typerefs(decl_state->type);
           decl_state->specifiers_type = decl_state->type;
-          pos_warning(ec_anonymous_union_qualifier_ignored, &decl_start_pos);
+          pos_warning(ec_anonymous_union_qualifier_ignored,
+                      &decl_state->start_pos);
         }  /* if */
       }  /* if */
     } else {
@@ -15885,7 +16327,6 @@ passed via template_decl.
   specifiers_type = decl_state->type;
   /* A declarator list should be present.  Scan it. */
   do {
-    a_decl_flag_set                   do_flags;
     a_symbol_locator                  locator;
     a_func_info_block                 func_info;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -15896,187 +16337,13 @@ passed via template_decl.
     a_boolean                         is_function = FALSE;
     declarator_start_pos = pos_curr_token;
     add_stop_token(tok_comma);
-    add_stop_token(tok_colon);
-    add_stop_token(tok_try);
-    clear_func_info(&func_info);
-    /* Initialize certain decl_info fields each time through the loop. */
-    decl_info.is_unnamed_field = FALSE;
-    decl_info.decl_state.sym = NULL;
-    if (!decl_info.is_first_in_declarator_list) {
-      /* Check if a secondary declarator declares a constructor or destructor.
-         (In C++/CLI mode, also consider static constructors.) */
-      decl_info.is_destructor = decl_info.is_constructor = FALSE;
-      decl_state->dso_flags &= ~(DSO_CONSTRUCTOR | DSO_DESTRUCTOR);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      decl_info.is_static_constructor = FALSE;
-      decl_state->dso_flags &= ~DSO_STATIC_CONSTRUCTOR;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      if (curr_token == tok_compl ||
-          (is_generalized_identifier_start(GID_NO_OPTIONS) &&
-           locator_for_curr_id.is_destructor_name)) {
-        decl_info.is_destructor = TRUE;
-        decl_state->type = decl_state->declared_type = unknown_type();
-      } else if (curr_token == tok_identifier &&
-                 is_constructor_decl(class_type, decl_state)) {
-        if (decl_state->declared_storage_class != (a_storage_class)sc_static) {
-          decl_info.is_constructor = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        } else {
-          check_assertion(cppcli_enabled);
-          decl_info.is_static_constructor = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        }  /* if */
-        decl_state->type = decl_state->declared_type = unknown_type();
-      } else if (no_decl_specifiers) {
-        decl_start_pos = pos_curr_token;
-        decl_state->type = decl_state->declared_type =
-                                        integer_type((an_integer_kind)ik_int);
-      }  /* if */
-    }  /* if */
-    if (curr_token == tok_colon && !no_decl_specifiers) {
-      decl_info.is_unnamed_field = TRUE;
-    }  /* if */
-    /* The declarator can be omitted in some cases. */
-    set_err_pos_to_curr_token();
-    if (decl_info.is_unnamed_field || decl_info.is_anonymous_union) {
-      set_to_error_locator(locator);
-      check_pending_qualifiers_used(decl_state);
-    } else if (no_decl_specifiers && !decl_info.is_constructor &&
-               !decl_info.is_destructor && !is_declarator_start()) {
-      remove_stop_token(tok_comma);
-      remove_stop_token(tok_colon);
-      remove_stop_token(tok_try);
-      syntax_error(ec_exp_declaration);
-      if (curr_token == tok_semicolon) {
-        /* Advance past the semicolon. */
-        (void)get_token();
-      }  /* if */
-      discard_curr_construct_pragmas();
+    if (!member_declarator(class_state, &decl_info, &locator, &func_info,
+                           &is_function, &is_typedef)) {
+      /* A syntax error occurred: Proceed with the next declaration. */
+      expect_error();
       *skip_semicolon_check = TRUE;
       goto next_declaration;
-    } else {
-      /* Named member -- we need to call declarator. */
-      a_decl_flag_set  di_flags = DI_REAL_DECLARATOR_ALLOWED;
-
-      if (C_mode()) {
-        /* Must be a field (= nonstatic data member) in C mode. */
-        di_flags |= DI_NONSTATIC_MEMBER;
-      } else {
-        /* C++ mode */
-        if (curr_routine_fixup != NULL) {
-          /* We must be in a declarator list and this must be at least the
-             second item in the list. */
-          /* This should not be a cached function body. */
-          check_assertion(curr_routine_fixup->
-                          function_body_token_cache.first_token == NULL);
-          if (curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
-             /* The previous one must have been a routine declaration with
-                default arguments, so we have to save the routine fixup entry
-                onto the fixup list. */
-            add_to_routine_fixup_list(curr_routine_fixup);
-            /* Make a new one fixup entry for the current declarator. */
-            curr_routine_fixup = alloc_routine_fixup(class_type);
-          } else {
-            /* The other one can be reused. */
-            check_assertion(same_entities(curr_routine_fixup->class_type,
-                                          class_type));
-          }  /* if */
-        } else if (!is_member_template_rescan) {
-          /* Normal case.  Allocate a new routine fixup entry. */
-          curr_routine_fixup = alloc_routine_fixup(class_type);
-        }  /* if */
-        add_stop_token(tok_lbrace);
-        /* Set the various flags for declarator processing (C++ only). */
-        di_flags |= DI_OPERATOR_NAME_ALLOWED;
-        if (!type_explicitly_specified && decl_state->qualifiers == TQ_NONE) {
-          di_flags |= DI_NO_TYPE_SPECIFIERS;
-        }  /* if */
-        if (decl_info.is_constructor) di_flags |= DI_IS_CONSTRUCTOR;
-        if (friend_specified) {
-          di_flags |= DI_QUALIFIED_NAME_ALLOWED;
-        }  /* if */
-        if (is_member_template) {
-          di_flags |= DI_IS_TEMPLATE_DECLARATION;
-        }  /* if */
-      }  /* if */
-      /* Microsoft compilers allow redundant qualifiers when declaring
-         members.  In g++ mode, allow additional qualifiers when rescanning
-         a member template declaration to generate a partial instantiation.
-         The initial declaration is accepted in g++ mode as a result of
-         processing in simplify_curr_class_qualified_name. */
-      if (microsoft_mode ||
-          (gpp_mode && scope_stack[depth_scope_stack].kind ==
-                                   (a_scope_kind)sck_template_instantiation)) {
-        di_flags |= DI_QUALIFIED_NAME_ALLOWED;
-      }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-      if (gnu_attributes_enabled) {
-        /* Scan prefix declarator attributes.  Note that those can only
-           appear after a comma separating two declarators.  Any attributes
-           prefixing a leading declarator will have been parsed as part of
-           the specifier attributes.  The GNU documentation says that such
-           attributes apply to the entity associated with the subsequent
-           declarator only.  However, in reality, the GNU compiler appears
-           to ignore these prefix declarator attributes altogether when they
-           appear on class members.  We implement the documented behavior. */
-        scan_gnu_declarator_attributes(decl_state);
-      }  /* if */
-      if (gnu_mode) {
-        if (gcc_mode && depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-          /* GNU C allows VLA fields in local classes.  We will scan such
-             fields in GNU C mode, but issue a warning that the field will
-             be treated as an array of length zero. */
-          di_flags |= DI_VLA_ALLOWED;
-        }  /* if */
-      }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-      /* Pass the class's type pointer to declarator if this might be a
-         nonstatic member function, in which case its presence will cause an
-         implicit "this" parameter type to be created. (Static member
-         functions do not have an implicit "this" pointer. The class pointer
-         will be ignored for data members.) */
-      declarator(di_flags, decl_state, class_type, &locator, &func_info,
-                 &decl_info.decl_pos_block);
-      do_flags = decl_state->do_flags;
-      if (!C_mode()) {
-        remove_stop_token(tok_lbrace);
-        check_completed_member_type(&locator, class_state, &decl_info);
-        if (is_member_template_rescan) {
-          if (decl_state->storage_class != (a_storage_class)sc_unspecified &&
-              decl_state->storage_class != (a_storage_class)sc_static) {
-            /* An error will already have been issued on, e.g.,
-                 struct A { template <class T> typedef A (T) { } };
-            */
-            decl_state->storage_class = (a_storage_class)sc_unspecified;
-            is_typedef = FALSE;
-          }  /* if */
-        }  /* if */
-        decl_info.is_constructor = (do_flags & DO_IS_CONSTRUCTOR) != 0;
-        decl_info.is_destructor = locator.is_destructor_name ||
-                                  (do_flags & DO_IS_DESTRUCTOR) != 0;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (cppcli_enabled && (do_flags & DO_IS_STATIC_CONSTRUCTOR) != 0) {
-          decl_info.is_static_constructor = TRUE;
-          check_assertion(decl_state->type->kind == (a_type_kind)tk_routine);
-          if (function_type_params(decl_state->type) != NULL) {
-            /* C++/CLI static constructors cannot have parameters. */
-            pos_error(ec_static_constructor_with_params, &decl_start_pos);
-          }  /* if */
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      }  /* if */
-      is_function = (!is_typedef && is_function_type(decl_state->type));
-#if GNU_EXTENSIONS_ALLOWED
-      scan_gnu_asm_name(decl_state);
-      scan_gnu_declarator_attributes(decl_state);
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    }  /* if */
-    /* In-class member declarations are never "redeclarations".  For friend
-       declarations, the setting of the flag depends on the context; if
-       appropriate, it will be set to TRUE later. */
-    decl_info.decl_state.first_decl = !friend_specified;
-    remove_stop_token(tok_colon);
-    remove_stop_token(tok_try);
+    }
     if (!C_mode() && is_function) {
       /* Member or friend function. */
       a_boolean  function_def_present;
@@ -16088,7 +16355,7 @@ passed via template_decl.
       function_def_present = func_info.is_definition;
       if (mutable_specified) {
         /* "mutable" is only allowed on nonstatic data member decls. */
-        pos_error(ec_mutable_not_allowed, &decl_start_pos);
+        pos_error(ec_mutable_not_allowed, &decl_state->start_pos);
       }  /* if */
       if (!type_explicitly_specified) {
         /* No type specifier. */
@@ -16143,7 +16410,7 @@ passed via template_decl.
             decl_state->storage_class == (a_storage_class)sc_static) {
           /* Constructors and destructors may not be declared "static"
              (ARM 12.1, 12.4). */
-          pos_error(ec_static_not_allowed, &decl_start_pos);
+          pos_error(ec_static_not_allowed, &decl_state->start_pos);
           decl_state->storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
         if ((decl_info.is_constructor && !func_info.is_defaulted) ||
@@ -16372,19 +16639,19 @@ passed via template_decl.
       }  /* if */
     } else if (is_member_template) {
       /* Invalid declaration of a member template. */
-      pos_error(ec_bad_member_template_decl, &decl_start_pos);
+      pos_error(ec_bad_member_template_decl, &decl_state->start_pos);
       remove_stop_token(tok_comma);
       discard_curr_construct_pragmas();
       break;
     } else if (dso_flags & (DSO_FRIEND | DSO_VIRTUAL | DSO_INLINE)) {
       if (dso_flags & DSO_FRIEND) {
-        pos_error(ec_bad_friend_decl, &decl_start_pos);
+        pos_error(ec_bad_friend_decl, &decl_state->start_pos);
       }  /* if */            
       if (dso_flags & DSO_VIRTUAL) {
-        pos_error(ec_virtual_not_allowed, &decl_start_pos);
+        pos_error(ec_virtual_not_allowed, &decl_state->start_pos);
       }  /* if */            
       if (dso_flags & DSO_INLINE) {
-        pos_error(ec_inline_and_nonfunction, &decl_start_pos);
+        pos_error(ec_inline_and_nonfunction, &decl_state->start_pos);
       }  /* if */            
       remove_stop_token(tok_comma);
       discard_curr_construct_pragmas();
@@ -16395,7 +16662,7 @@ passed via template_decl.
       discard_curr_construct_pragmas();
     } else if (is_typedef) {
       check_assertion(C_dialect == C_dialect_cplusplus);
-      if (do_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF) {
+      if (decl_state->do_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF) {
         /* This looked like a cfront-style member function typedef.  Be sure
            the type was a function type. */
         if (is_function_type(decl_state->type)) {
@@ -16462,7 +16729,7 @@ passed via template_decl.
       /* A static or nonstatic data member. */
       if (mutable_specified && is_const_qualified_type(decl_state->type)) {
         /* "mutable" and top-level "const" are not allowed together. */
-        pos_error(ec_mutable_not_allowed, &decl_start_pos);
+        pos_error(ec_mutable_not_allowed, &decl_state->start_pos);
       }  /* if */
       if (!type_explicitly_specified) {
         report_missing_type_specifier(&declarator_start_pos,
@@ -16480,14 +16747,14 @@ passed via template_decl.
           /* "const" is useless on a C++/CLI initonly declaration. */
           a_source_position  *diag_pos = &decl_state->qualifiers_pos;
           if (!(decl_state->qualifiers & TQ_CONST)) {
-            diag_pos = &decl_start_pos;
+            diag_pos = &decl_state->start_pos;
           }  /* if */
           pos_warning(ec_initonly_const_has_no_effect, diag_pos);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       if (!(missing_declarator || decl_info.is_unnamed_field) &&
-          !(do_flags & DO_REAL_DECLARATOR_SCANNED) &&
+          !(decl_state->do_flags & DO_REAL_DECLARATOR_SCANNED) &&
           is_error_locator(locator)) {
         /* Some problem occurred while parsing the declarator.  To avoid
            strange error recovery problems, we do not add a member to the
@@ -16553,7 +16820,7 @@ next_declaration:;
        that this check must occur after any declarator processing since we
        cannot know for sure whether the declaration was a constructor until
        then. */
-    pos_error(ec_explicit_not_allowed, &decl_start_pos);
+    pos_error(ec_explicit_not_allowed, &decl_state->start_pos);
   }  /* if */
   check_use_of_auto_type(decl_state);
   run_end_of_parse_actions(decl_state);
@@ -17619,7 +17886,11 @@ classes.
         add_error_field(class_type, &class_state.end_of_field_list);
       }  /* if */
     } else {
-      if (class_type->kind == (a_type_kind)tk_class) {
+      if (class_type->kind == (a_type_kind)tk_class
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          && !cli_class_type_kind_is(class_type, cctk_interface)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                ) {
         /* Members of a C++ class have private access by default. */
         class_state.access = (an_access_specifier)as_private;
       } else {
