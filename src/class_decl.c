@@ -15804,15 +15804,14 @@ done:
 }  /* scan_cli_property_head */
 
 
-static void scan_named_overrides_if_any(a_class_def_state_ptr   class_state,
-                                        a_member_decl_info_ptr  decl_info)
+static void scan_named_overrides_if_any(a_member_decl_info_ptr  decl_info)
 /*
-class_state and decl_info describe a member function declaration in a class
-definition.  The top-level function declarator has just been scanned.  It may
-be followed by "= X, Y, Z, ..." (with X, Y, Z, ... qualified or unqualified
-names), to name specific virtual base class members that are overridden by the
-newly declared member.  If so, scan and validate the "= X, Y, Z, ..." construct
-and record the overridden base class members in decl_info->named_overrides.
+decl_info describes a member function declaration in a class definition.  The
+top-level function declarator has just been scanned.  It may be followed by
+"= X, Y, Z, ..." (with X, Y, Z, ... qualified or unqualified names), to name
+specific virtual base class members that are overridden by the newly declared
+member.  If so, scan and validate the "= X, Y, Z, ..." construct and record
+the overridden base class members in decl_info->named_overrides.
 */
 {
   if (curr_token == tok_assign) {
@@ -16078,7 +16077,7 @@ flag if error recovery should be performed as if the specifier didn't occur.
           pos_error(ec_static_constructor_with_params, &dps->start_pos);
         }  /* if */
       }  /* if */
-      scan_named_overrides_if_any(class_state, decl_info);
+      scan_named_overrides_if_any(decl_info);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
