@@ -1,5 +1,23 @@
 Version 4.3
 
+11/30/10 [EDGcpfe/11150]
+C++-generating back end: incorrect cast in dynamic initialization
+
+When generating a dynamic initialization of a variable with a qualified
+class type in which the initializer is a constructor call with a single
+argument, the C++-generating back end represented the constructor call as a
+cast to the qualified type.  This resulted in incorrect code when the
+copy constructor of the class does not accept an argument of the qualified
+type.  This has now been fixed to use the unqualified class type in the
+generated cast.  For example:
+
+  struct S {
+    S(int);
+    S(const S&);
+  };
+  volatile S s = S(0);  // Previously generated as ((volatile S)(0))
+
+
 11/29/10 [EDGcpfe/11186]
 Spurious "recursive instantiation of default argument" error
 

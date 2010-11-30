@@ -11869,7 +11869,18 @@ source and the expression is generated in that form.
       } else {
         /* Put out an old-style cast, e.g., ((X)y). */
         write_tok_ch('(');
-        gen_cast(init_entity_type);
+        if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+          /* If the cast is, in fact, a constructor call, we should use
+             the unqualified class name and rely on implicit conversion to
+             the entity type.  This avoids problems in cases like
+                 volatile X x = X(0);
+             where the copy constructor won't accept a volatile-qualified
+             argument if we generate it as
+                 volatile X x = (volatile X)0; */
+          gen_cast(skip_typerefs(init_entity_type));
+        } else {
+          gen_cast(init_entity_type);
+        }  /* if */
       }  /* if */
       if (!has_one_argument && !unnamed_type_case && !is_static_cast) {
         /* If the initialization doesn't have exactly one argument, use
