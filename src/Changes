@@ -56,19 +56,21 @@ return these improved values.
 
 
 11/29/10 [EDGcpfe/11187]
-Clear mangling information when "breaking" source correspondence
+Assertion failure in set_source_corresp_name when creating pre-compiled header
 
-The mangling related fields in a_source_correspondence were not previously
-cleared in break_source_corresp, leading, in one case, to an assertion
-failure in set_source_corresp_name when creating a pre-compiled header
-file where a (previously mangled) qualified enumerator is used to initialize
-an enumerator.  For example (with --create_pch):
+In cases where a mangling pre-pass is run prior to creating a pre-compiled
+header (see EDGcpfe/10231), an enumerator initializer that referred to a
+previously mangled qualified enumerator would cause an assertion failure in
+set_source_corresp_name.  This type of assertion failure might also occur
+in other similar situations (i.e., referring to previously mangled entities
+after creating a pre-compiled header).  For example (with --create_pch):
 
-  $ cat ex.h
+  // File ex.h:
   struct A {
     enum { e };
   };
-  $ cat ex.c
+
+  // File ex.c:
   #include "ex.h"
   enum {
     e1 = A::e
