@@ -5463,8 +5463,8 @@ group in the given cache.
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* dps is not used in some configurations. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static a_symbol_ptr lookup_class_member_decl(a_type_ptr          class_type,
-                                             a_decl_parse_state  *dps)
+static a_symbol_ptr look_up_class_member_decl(a_type_ptr          class_type,
+                                              a_decl_parse_state  *dps)
 /*
 Look up the current identifier in the given class and return the symbol found.
 *dps describes the declaration for which this look-up is done: If its declared
@@ -5484,7 +5484,7 @@ overload set).
   (void)class_qualified_id_lookup(&locator_for_curr_id, class_type,
                                   idl_options);
   return locator_for_curr_id.specific_symbol;
-}  /* lookup_class_member_decl */
+}  /* look_up_class_member_decl */
 
 
 a_boolean is_constructor_decl(a_type_ptr          class_type,
@@ -5652,7 +5652,7 @@ constructor).
       a_boolean  is_cli_static_ctor = FALSE;
       clear_specific_symbol(locator_for_curr_id);
       locator_for_curr_id.specific_symbol = NULL;
-      sym = lookup_class_member_decl(class_type, dps);
+      sym = look_up_class_member_decl(class_type, dps);
       if (sym != tag_sym) {
         /* The symbol one gets by looking up the class name is not the same as
            the class symbol.  This might be okay, but it has to be checked
@@ -6888,7 +6888,7 @@ cases are handled by the caller.  If the name is not a type name, the work
 is mostly done in this routine.  This includes named memory regions (part of
 the specifiers; an Embedded C/TR 18037 extension) and constructors (part of
 the declarator).
-dps describes the declaration being parse.  decl_specifiers_seen records some
+dps describes the declaration being parsed.  decl_specifiers_seen records some
 of the specifiers (virtual, inline, ...) that may have been seen already.
 input_flags is the flag set passed to decl_specifiers.  *basic_type represents
 the basic type specifier that was seen (if any) and may be set to bt_no_type
@@ -8900,7 +8900,7 @@ process_enum_specifier:
             if (is_enum_type(qual_tp)) {
               sym = enum_qualified_id_lookup(&locator_for_curr_id, qual_tp);
             } else {
-              sym = lookup_class_member_decl(qual_tp, state);
+              sym = look_up_class_member_decl(qual_tp, state);
             }  /* if */
             if (sym != NULL) {
               if (is_constructor_symbol(sym)) {
@@ -8909,6 +8909,11 @@ process_enum_specifier:
               } else if (is_destructor_symbol(sym)) {
                 *output_flags |= DSO_DESTRUCTOR;
                 basic_type = bt_no_type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              } else if (is_static_constructor_symbol(sym)) {
+                *output_flags |= DSO_STATIC_CONSTRUCTOR;
+                basic_type = bt_no_type;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               } else {
                 clear_specific_symbol(locator_for_curr_id);
               }  /* if */

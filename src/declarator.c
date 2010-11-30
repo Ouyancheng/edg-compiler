@@ -4479,7 +4479,7 @@ the set of flags that will be returned to declarator's caller.  *locator is
 returned with the locator for the name.  *p_member_parent_type is the class
 type when this is a qualified name.  *is_constructor, *is_static_constructor,
 or *is_destructor is set to TRUE if the name is for a constructor, a C++/CLI
-static constructor, or a destructor name  respectively.
+static constructor, or a destructor name respectively.
 *parenthesized_initializer_allowed is set to FALSE if the entity being
 declared is not initializable, and *not_a_function_declarator is set if the
 declared entity is known to not be a function.
