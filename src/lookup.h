@@ -184,10 +184,14 @@ represented as a bit set:
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define IDL_IS_STATIC_DECL 0x10000000
 				/* Flag indicating that the keyword "static"
-				   was seen prior to the declarator, and that
-				   therefore static constructors (a C++/CLI
-				   feature) should be considered instead of
-				   ordinary constructors. */
+				   was seen prior to the declarator.  This
+				   currently only affects the result of a
+				   lookup when constructors are found in
+				   C++/CLI mode: If this flag is selected,
+				   ordinary (non-static) constructors are not
+				   considered and static constructors (if any)
+				   are found; otherwise, static constructors
+				   are not considered. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
