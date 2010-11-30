@@ -1803,6 +1803,8 @@ Macros used to determine the kind of a template argument.
   ((arg)->kind == (a_templ_arg_kind)tak_nontype)
 #define is_template_templ_arg(arg) \
   ((arg)->kind == (a_templ_arg_kind)tak_template)
+#define is_start_of_pack_expansion_templ_arg(arg) \
+  ((arg)->kind == (a_templ_arg_kind)tak_start_of_pack_expansion)
 
 
 extern a_boolean con_is_exact_addr_of_variable(

@@ -8629,8 +8629,7 @@ parameter and so should not be advanced.
 */
 {
   check_assertion(tap != NULL);
-  for (; *tap != NULL &&
-         (*tap)->kind == (a_templ_arg_kind)tak_start_of_pack_expansion;) {
+  for (; *tap != NULL && is_start_of_pack_expansion_templ_arg(*tap);) {
     *tap = (*tap)->next;
     if (!is_first_arg && *tpp != NULL) *tpp = (*tpp)->next;
     is_first_arg = FALSE;
