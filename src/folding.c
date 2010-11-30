@@ -6500,12 +6500,6 @@ constant will be set as well.
     type = skip_typerefs(type);
     if (!is_immediate_class_type(type)) {
       /* Non-class types. */
-      if (microsoft_mode) {
-        /* MSVC returns FALSE for all of these (which is, at least in
-           some cases, weird, but there you have it). */
-        result = FALSE;
-        goto result_known;
-      }  /* if */
       /* Note that g++ (checked in 4.5) treats scoped enums the same as
          unscoped enums. */
       switch (kind) {
@@ -6519,7 +6513,13 @@ constant will be set as well.
         case bok_has_trivial_copy:
         case bok_has_trivial_destructor:
         case bok_is_pod:
-          result = TRUE;
+          if (microsoft_mode) {
+            /* MSVC returns FALSE for all of these (which is, at least in
+               some cases, weird, but there you have it). */
+            result = FALSE;
+          } else {
+            result = TRUE;
+          }  /* if */
           break;
         case bok_has_user_destructor:
         case bok_has_virtual_destructor:
