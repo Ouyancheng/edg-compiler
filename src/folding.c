@@ -6533,6 +6533,8 @@ constant will be set as well.
         case bok_is_enum:
           result = is_immediate_enum_type(type);
           break;
+        default:
+          unexpected_condition();
       }  /* switch */
       goto result_known;
     } else if (complete_class_property) {
