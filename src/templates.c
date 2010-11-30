@@ -9166,7 +9166,7 @@ instantiated.
   }  /* if */
   /* Now that we've found the corresponding parameter of the template,
      instantiate that default argument value. */
-  if (daefp != NULL && !daefp->param_type->default_being_instantiated) {
+  if (daefp != NULL) {
     a_boolean         trans_unit_pushed;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     a_source_position saved_curr_construct_end_position;
@@ -9217,9 +9217,9 @@ instantiated.
       if (ptp->default_arg_expr == NULL) {
         ptp->has_default_arg = TRUE;
         ptp->default_arg_appeared_in_class_definition =
-                  daefp->param_type->default_arg_appeared_in_class_definition;
+                               param->default_arg_appeared_in_class_definition;
         ptp->default_arg_expr =
-              duplicate_default_arg_expr(daefp->param_type->default_arg_expr);
+              duplicate_default_arg_expr(param->default_arg_expr);
       }  /* if */
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
