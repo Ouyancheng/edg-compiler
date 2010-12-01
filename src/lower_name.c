@@ -6255,9 +6255,9 @@ Generate an encoding for the specified unnamed (class or enum) type.
     } else {
       /* Unnamed class or enum type (where a discriminator is available).
          These are mangled as: Ut [<nonnegative number>] _ */
-      check_assertion(symbol_supplement_for_class(type) != NULL);
       add_str_to_mangled_name("Ut", mctl);
       if (is_immediate_class_type(type)) {
+        check_assertion(symbol_supplement_for_class(type) != NULL);
         add_discriminator(symbol_supplement_for_class(type)->discriminator,
                           /*emit_underscore=*/FALSE, mctl);
       } else {

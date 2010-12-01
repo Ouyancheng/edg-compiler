@@ -1,5 +1,15 @@
 Version 4.3
 
+12/1/10  [EDGcpfe/11198]
+Assertion failure in mangled_unnamed_type_encoding
+
+In some configurations (mainly used for internal front end testing), mangling
+of an unnamed enumerator type could cause an assertion failure in
+mangled_unnamed_type_encoding.  Now fixed.  For example:
+
+  enum { e };
+
+
 11/30/10 [EDGcpfe/11150]
 C++-generating back end: incorrect cast in dynamic initialization
 
