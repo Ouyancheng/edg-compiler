@@ -2037,6 +2037,11 @@ ec_reference_to_managed_type;;"an ordinary reference to a managed type is not al
 ec_override_name_must_be_a_base_class_member_function;;"override specifier does not name a base class member function"
 ec_override_name_nonvirtual;;"override specifier designates a nonvirtual member function %nd"
 ec_multiple_overrides;;"member function overrides %nd1 which is already overridden by %nd2"
+ec_multiple_visibility_specifiers;;"at most one visibility specifier is allowed"
+ec_invalid_delegate_type;;"type %t used for delegate definition is not a function type"
+ec_delegate_requires_managed_class;;"delegate member types can only be members of managed types"
+ec_tracking_reference_to_delegate;;"a tracking reference to a delegate type is not allowed"
+ec_bad_use_of_delegate_type;;"a delegate type is not allowed here"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

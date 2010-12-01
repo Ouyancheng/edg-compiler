@@ -1827,6 +1827,9 @@ Display the indicated type entry.
       if (ptr->variant.class_struct_union.is_interface_like) {
         disp_boolean("is_interface_like", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.is_delegate_class) {
+        disp_boolean("delegate_class", TRUE);
+      }  /* if */
 #if BACK_END_IS_CP_GEN_BE
       if (ptr->variant.class_struct_union
                                       .defined_with_abstract_class_modifier) {

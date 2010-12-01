@@ -4141,7 +4141,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
           /* A handle ("^") or tracking-reference ("%") type. */
           /* Make sure this was not preceded by __based. */
           based_not_allowed_here(ptr_mods.based_var, ptr_mods.based_pos);
-          if (curr_token == tok_excl_or) { 
+          if (curr_token == tok_excl_or) {
             /* "^" for handle. */
             if (temp_type->kind == (a_type_kind)tk_pointer) {
               /* A handle cannot point to any kind of pointer/handle or
@@ -4162,6 +4162,9 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
             if (is_void_type(temp_type)) {
               /* Type "reference to void" is invalid. */
               pos_error(ec_reference_to_void, &pos_curr_token);
+              err = TRUE;
+            } else if (is_delegate_type(temp_type)) {
+              pos_error(ec_tracking_reference_to_delegate, &pos_curr_token);
               err = TRUE;
             }  /* if */
             if (err) {
@@ -6304,6 +6307,18 @@ the parameters.
      whole declarator if it is an abstract declarator. */
   state->declarator_pos = error_position;
   state->type = state->declared_type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && is_delegate_type(state->type)) {
+    /* In C++/CLI mode, delegate types can be used only for a few things:
+         - to create typedefs of those types
+         - for gcnew construction (FIXME: not yet implemented)
+         - to form a handle type (checked elsewhere).
+       Issue an error for other cases. */
+    if (state->declared_storage_class != (a_storage_class)sc_typedef) {
+      pos_error(ec_bad_use_of_delegate_type, &state->specifiers_pos);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* declarator */
 
 

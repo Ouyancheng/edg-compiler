@@ -2226,6 +2226,13 @@ av_none and leave *pos unchanged.  (Called in C++/CLI mode only.)
     *pos = pos_curr_token;
     /* Scan past the visibility specifier token. */
     (void)get_token();
+    if (curr_token == tok_public || curr_token == tok_private) {
+      /* Multiple specifiers are an error. */
+      pos_error(ec_multiple_visibility_specifiers, &pos_curr_token);
+      do {
+        (void)get_token();
+      } while (curr_token == tok_public || curr_token == tok_private);
+    }  /* if */
   }  /* if */
   return result;
 }  /* scan_cli_visibility_specifier_if_any */

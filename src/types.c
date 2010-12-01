@@ -858,6 +858,34 @@ Return TRUE if the given type is a C++/CLI managed type.
   return result;
 }  /* is_cli_managed_type */
 
+
+a_boolean is_delegate_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++/CLI delegate type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_delegate_type_entry(tp);
+}  /* is_delegate_type */
+
+
+a_type_ptr delegate_invocation_type(a_type_ptr delegate_type)
+/*
+Given a delegate class type, return the associated function type.
+*/
+{
+  a_routine_ptr  rp;
+
+  check_assertion(is_delegate_type_entry(delegate_type));
+  rp = class_type_supp(delegate_type)->assoc_scope->routines;
+#if CHECKING
+  { char  *name = unmangled_name_of(&rp->source_corresp);
+    check_assertion(strcmp(name, "Invoke") == 0);
+  }
+#endif /* CHECKING */
+  return rp->type;
+}  /* delegate_invocation_type */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean is_scalar_type(a_type_ptr tp)

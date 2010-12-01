@@ -7136,6 +7136,10 @@ typedef struct a_type {
 			   the IUnknown and IDispatch types, as well as certain
 			   classes (directly or indirectly) derived from any of
 			   those two types. */
+      a_bit_field
+		is_delegate_class:1;
+			/* TRUE for a ref class created by a C++/CLI delegate
+			   definition. */
 #if BACK_END_IS_CP_GEN_BE
       a_bit_field
 		defined_with_abstract_class_modifier:1;

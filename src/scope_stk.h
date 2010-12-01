@@ -1112,7 +1112,7 @@ typedef struct a_scope_stack_entry {
 			   a discriminator appended to their mangled name.
 			   (Non-NULL only for function scopes.) The union type
 			   a_collision_table is defined in scope_stk.c. */
-    /* When kind == sck_file, sck_namespace, sck_namespace_extensions, or
+    /* When kind == sck_file, sck_namespace, sck_namespace_extension, or
        sck_class_struct_union: */
     a_discriminator
 		last_unnamed_type_number;

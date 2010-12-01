@@ -8451,7 +8451,12 @@ a pointer over a reference type or creating an array of references.
             new_type = make_rvalue_reference_type(tp);
 #if MICROSOFT_EXTENSIONS_ALLOWED
           } else if (type->variant.pointer.is_handle) {
-            new_type = make_tracking_reference_type(tp);
+            if (is_delegate_type(tp)) {
+              /* A tracking reference to a delegate is not allowed. */
+              *copy_error = TRUE;
+            } else {
+              new_type = make_tracking_reference_type(tp);
+            }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             new_type = make_reference_type(tp);

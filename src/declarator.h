@@ -136,9 +136,9 @@ abstract or real declarator.
 			/* If this bit is set the entity may be scanned as an
 			   abstract declarator. */
 #define DI_QUALIFIED_NAME_ALLOWED ((a_decl_flag_set)0x4)
-			/* If this bit is set it a qualified name is not
-			   in the declarator (e.g., for a formal parameter or
-			   a typedef declaration). */
+			/* If this bit is set, a qualified name is allowed
+			   in the declarator (e.g., the flag is not set for a
+			   formal parameter or a typedef declaration). */
 #define DI_PARENTHESIZED_INITIALIZER_ALLOWED ((a_decl_flag_set)0x8)
 			/* If this bit is set a declarator may be followed
 			   by an initializer using the "(expr-list)"

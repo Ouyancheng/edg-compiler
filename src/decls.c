@@ -14704,9 +14704,18 @@ indicates how processing should proceed after the call.
          declaration. */
       cannot_bind_to_curr_construct();
       end_of_decl_action = eoda_check_semicolon;
-    }  else if (curr_token == tok_static_assert) {
+    } else if (curr_token == tok_static_assert) {
       static_assert_declaration(/*leave_semicolon=*/TRUE);
       end_of_decl_action = eoda_check_semicolon;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled &&
+               is_file_or_namespace_scope(&scope_stack_top()) &&
+               check_for_cli_delegate_definition()) {
+      /* Scan a C++/CLI delegate definition. */
+      scan_cli_delegate_definition(state);
+      cannot_bind_to_curr_construct();
+      end_of_decl_action = eoda_check_semicolon;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
   if (end_of_decl_action != eoda_not_at_end) {

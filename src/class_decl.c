@@ -35,7 +35,6 @@ class_decl.c -- Scanning of class declarations.
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-
 /*
 Structure for keeping track of fixup information for a particular member
 function, including both the cached tokens comprising default argument
@@ -766,6 +765,12 @@ class being defined.
   cdsp->property_descr = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* initialize_class_def_state */
+
+/* Forward declaration. */
+static void complete_class_definition(a_type_ptr         class_type,
+                                      a_scope_depth      effective_decl_level,
+                                      a_class_def_state  *class_state);
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define treat_declaration_as_okay_in_property(cdsp)                  \
@@ -15485,6 +15490,257 @@ Call this function through the macro consume_any_stray_microsoft_rparen.
 }  /* f_consume_any_stray_microsoft_rparen */
 
 
+static a_boolean type_specifiers_next(a_token_cache  *cache)
+/*
+Look ahead in the token stream (saving tokens in the given cache) to see if a
+sequence of type specifiers followed by a declarator comes next.  If so,
+return TRUE; otherwise, return FALSE.
+This is used in C++/CLI mode to determine if the identifiers "delegate",
+"event", "initonly", "literal", and "property" should be treated as context-
+sensitive keywords.
+*/
+{
+  a_boolean  result = FALSE;
+
+  for (;;) {
+    if (is_type_qualifier()) {
+      /* A type qualifier is always part of the sequence. */
+    } else if (is_type_specifier() || curr_token == tok_colon_colon) {
+      /* A keyword introducing a type specifier always denotes a type, which
+         implies that the previously-encountered identifier was indeed a
+         context-sensitive keyword.  Similarly, since a "::" cannot start a
+         member declarator or a delegate declarator, it must introduce a type
+         name. */
+      result = TRUE;
+      goto done;
+    } else if (curr_token == tok_identifier) {
+      /* An identifier naming a type, on the other hand, could be
+         a declarator-id. */
+      if (curr_type_symbol(/*is_new_type_name=*/FALSE,
+                           /*in_prescan=*/TRUE,
+                           /*in_type_check=*/FALSE) == NULL) {
+        /* The current identifier is not a type.  So it must be a declarator-id
+           and the potential context-sensitive keyword must be a type name. */
+        break;
+      } else {
+        /* The current identifier can be resolved as a type.  It is not a type
+           but a declarator-id if it is followed by: a semicolon (end of
+           declaration), a left bracket (array field or indexed property), a
+           left brace (property definition), an equal sign (in-class
+           initializer), or a colon (bit field).  It may also not be a type
+           name if it is followed by a left parenthesis (it could be a
+           function or delegate declarator).  */
+        cache_curr_token(cache);
+        (void)get_token();
+        if (curr_token == tok_semicolon || curr_token == tok_lbracket ||
+            curr_token == tok_lbrace || curr_token == tok_assign ||
+            curr_token == tok_colon) {
+          break;
+        } else if (curr_token == tok_lparen) {
+          cache_curr_token(cache);
+          (void)get_token();
+          if (curr_token == tok_rparen ||
+              is_decl_start(IDS_REAL_DECLARATOR_ALLOWED |
+                            IDS_MS_ATTRIB_NOT_ALLOWED) ||
+              curr_token == tok_ellipsis) {
+            /* Function declarator rather than a nested declarator. */
+            break;
+          }  /* if */
+        }  /* if */
+        result = TRUE;
+        goto done;
+      }  /* if */
+    } else if (is_declarator_start()) {
+      /* The start of a declarator.  Since we haven't seen a type name yet,
+         the potential context-sensitive keyword is presumably a type. */
+      break;
+    } else if (curr_token == tok_end_of_source ||
+               curr_token == tok_semicolon ||
+               curr_token == tok_lbrace || curr_token == tok_rbrace) {
+      /* We've scanned too far: The code contains a syntax error.  Assume a
+         context-sensitive keyword since collisions with user-declared
+         identifiers are presumably rare. */
+      expect_error();
+      result = TRUE;
+      goto done;
+    } else if ((!is_file_or_namespace_scope(&scope_stack_top()) &&
+                (curr_token == tok_typedef || curr_token == tok_extern)) ||
+               curr_token == tok_friend || curr_token == tok_asm ||
+               curr_token == tok_explicit) {
+      /* These specifiers cannot appear in a declaration involving a
+         context-sensitive specifier and they are unlikely to accidentally
+         appear in a malformed declaration involving such a specifier: Don't
+         attempt to parse this assuming the identifier is a keyword. */
+      break;
+    } else {
+      /* Presumably another specifier token. */
+    }  /* if */
+    cache_curr_token(cache);
+    (void)get_token();
+  }  /* for */
+done:
+  return result;
+}  /* type_specifiers_next */
+
+
+a_boolean check_for_cli_delegate_definition(void)
+/*
+We're in a scope that allows a C++/CLI delegate definition and any prefix
+Microsoft attributes have been scanned.  Check if what follows looks like a
+delegate definition.  If it is, return TRUE; otherwise, return FALSE.
+*/
+{
+  a_boolean      result = FALSE;
+  a_token_cache  cache;
+
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  while (curr_token == tok_public || curr_token == tok_private) {
+    cache_curr_token(&cache);
+    (void)get_token();
+  }  /* if */
+  if (curr_token_is_identifier_string("delegate")) {
+    a_boolean  starts_type_name = curr_id_is_type_name();
+    if (locator_for_curr_id.is_qualified_name) {
+      /* "delegate" is part of qualified name and therefore not a keyword. */
+    } else if (!starts_type_name) {
+      /* "delegate" is not part of qualified name and is not a type name:
+         It must be a context-sensitive specifier keyword. */
+      result = TRUE;
+    } else {
+      /* "delegate" is a type name, but perhaps another type name follows. */
+      cache_curr_token(&cache);
+      (void)get_token();
+      result = type_specifiers_next(&cache);
+    }  /* if */
+  }  /* if */
+  rescan_cached_tokens(&cache);
+  return result;
+}  /* check_for_cli_delegate_definition */
+
+
+void scan_cli_delegate_definition(a_decl_parse_state  *dps)
+/*
+The caller has determined that the upcoming tokens look like a C++/CLI
+delegate definition (by calling check_for_cli_delegate_definition).  Scan the
+definition and record it in the IL (as a special-purpose class type).
+*/
+{
+  an_assembly_visibility       visibility;
+  a_source_position            visibility_pos;
+  a_decl_pos_block             decl_pos_block;
+  a_decl_flag_set              dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
+                                           DSI_NO_TAG_DEFINITION |
+                                           DSI_VACUOUS_TAG_DECL_ALLOWED;
+  a_decl_flag_set              di_flags = DI_REAL_DECLARATOR_ALLOWED;
+  a_symbol_locator             loc, member_loc;
+  a_func_info_block            func_info;
+  a_type_ptr                   parent_type = NULL, class_type;
+  a_class_type_supplement_ptr  ctsp;
+  a_scope_depth                decl_level = depth_scope_stack;
+  a_class_def_state            class_state;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean                    saved_source_sequence_entries_disallowed =
+                                           source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_member_decl_info           member_info;
+
+  clear_decl_pos_block(&decl_pos_block);
+  visibility = scan_cli_visibility_specifier_if_any(&visibility_pos);
+  check_assertion(curr_token_is_identifier_string("delegate"));
+  if (scope_stack_top().kind == (a_scope_kind)sck_class_struct_union) {
+    parent_type = scope_stack_top().assoc_type;
+    if (!is_managed_class_type_entry(parent_type)) {
+      pos_error(ec_delegate_requires_managed_class, &pos_curr_token);
+    }  /* if */
+  }  /* if */
+  (void)get_token();
+  if (scope_stack_top().kind == (a_scope_kind)sck_class_struct_union) {
+    dsi_flags |= DSI_IS_MEMBER_DECLARATION;
+  }  /* if */
+  decl_specifiers(dsi_flags, dps, &decl_pos_block);
+  clear_func_info(&func_info);
+  declarator(di_flags, dps, /*member_parent_type=*/(a_type_ptr)NULL, &loc,
+             &func_info, &decl_pos_block);
+  if (is_template_context()) {
+    /* Type checks are unreliable: Delay them until a real instantiation.
+       E.g. "template<class T> ref struct S { delegate T D; };". */
+    /* FIXME: test. */
+  } else if (!is_function_type(dps->type)) {
+    if (is_error_type(dps->type)) {
+      expect_error();
+    } else {
+      pos_ty_error(ec_invalid_delegate_type, &dps->declarator_pos, dps->type);
+      dps->type = error_type();
+    }  /* if */
+  }  /* if */
+  /* Create the delegate class type (a sealed ref class). */
+  /* FIXME: Derive from System::Delegate. */
+  class_type = alloc_type((a_type_kind)tk_struct);
+  ctsp = class_type_supp(class_type);
+  ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
+  class_type->variant.class_struct_union.is_delegate_class = TRUE;
+  class_type->variant.class_struct_union.final = TRUE;
+  dps->sym = enter_local_symbol((a_symbol_kind)sk_class_or_struct_tag, &loc,
+                                decl_level, /*suppress_redecl_error=*/FALSE);
+  dps->sym->variant.class_struct_union.type = class_type;
+  set_source_corresp(&(class_type->source_corresp), dps->sym);
+  update_membership_of_class(dps->sym, /*def_or_vacuous_decl=*/TRUE,
+                             decl_level, &dps->start_pos);
+  record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, dps->sym,
+                            &loc.source_position, dps->source_sequence_entry);
+  add_to_types_list(class_type, decl_level);
+  if (cppcli_enabled) {
+    set_cli_visibility(class_type, visibility, &visibility_pos,
+                       /*is_definition=*/TRUE);
+  }  /* if */
+  /* Start the class definition (and associated class scope). */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  class_type->autonomous_primary_tag_decl = TRUE;
+  /* Don't issue source sequence entries for generated entities. */
+  source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  initialize_class_def_state(class_type, &class_state);
+  class_state.access = (an_access_specifier)as_public;
+  ctsp->assoc_scope =
+             push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
+                        class_type, (a_routine_ptr)NULL);
+  scope_stack_top().class_def_state = &class_state;
+  /* Add the Invoke member (declaration only). */
+  /* FIXME: Also add BeginInvoke and EndInvoke members (depends on additional
+     System::types). */
+  clear_locator(&member_loc, &dps->declarator_pos);
+  (void)find_symbol("Invoke", sizeof("Invoke")-1, &member_loc);
+  initialize_member_decl_info(&member_info, &dps->specifiers_pos);
+  member_info.decl_state.declared_type = dps->declared_type;
+  member_info.decl_state.type = dps->type;
+  decl_member_function(&member_loc, &func_info, &class_state, &member_info,
+                       /*compiler_generated=*/TRUE);
+  /* Add the one-argument constructor (declaration only). */
+  member_loc = loc;
+  change_class_locator_into_constructor_locator(&member_loc,
+                                                &dps->declarator_pos,
+                                                /*is_static_ctor=*/FALSE);
+  initialize_member_decl_info(&member_info, &dps->specifiers_pos);
+  member_info.is_constructor = TRUE;
+  member_info.decl_state.declared_type = member_info.decl_state.type =
+                  make_routine_type(void_type(), make_pointer_type(dps->type),
+                                    /*param2_type=*/(a_type_ptr)NULL,
+                                    /*param3_type=*/(a_type_ptr)NULL,
+                                    /*param4_type=*/(a_type_ptr)NULL);
+  decl_member_function(&member_loc, &func_info, &class_state, &member_info,
+                       /*compiler_generated=*/TRUE);
+  /* FIXME: Also add the two-argument constructor. */
+  /* Wrap up the definition. */
+  complete_class_definition(class_type, decl_level, &class_state);
+  pop_scope();
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Restore the previous state wrt. generating source sequence entries. */
+  source_sequence_entries_disallowed =
+                                     saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+}  /* scan_cli_delegate_definition */
+
+
 static a_boolean check_for_cli_field_modifier(a_decl_parse_state  *dps)
 /*
 This function must be called at the beginning of a class member declaration
@@ -15538,83 +15794,15 @@ encountered (i.e., which kind of context-sensitive keyword appeared:
   }  /* if */
   /* For this to be a field-like declaration preceded by a context-sensitive
      keyword, a sequence of decl-specifiers including a type must follow. */
-  for (;;) {
-    if (is_type_qualifier()) {
-      /* A type qualifier is always part of the sequence. */
-    } else if (is_type_specifier() || curr_token == tok_colon_colon) {
-      /* A keyword introducing a type specifier always denotes a type, which
-         implies that the previously-encountered identifier was indeed a
-         context-sensitive keyword.  Similarly, since a "::" cannot start a
-         member declarator, it must introduce a type name. */
-      result = TRUE;
-      goto done;
-    } else if (curr_token == tok_identifier) {
-      /* An identifier naming a type, on the other hand, could be
-         a declarator-id. */
-      if (curr_type_symbol(/*is_new_type_name=*/FALSE,
-                           /*in_prescan=*/TRUE,
-                           /*in_type_check=*/FALSE) == NULL) {
-        /* The current identifier is not a type.  So it must be a declarator-id
-           and the potential context-sensitive keyword must be a type name. */
-        break;
-      } else {
-        /* The current identifier can be resolved as a type.  It is not a type
-           but a declarator-id if it is followed by: a semicolon (end of member
-           declaration), a left bracket (array field or indexed property), a
-           left brace (property definition), an equal sign (in-class
-           initializer), or a colon (bit field).  It may also not be a type
-           name if it is followed by a left parenthesis (it could be a
-           function declarator).  */
-        cache_curr_token(&cache);
-        (void)get_token();
-        if (curr_token == tok_semicolon || curr_token == tok_lbracket ||
-            curr_token == tok_lbrace || curr_token == tok_assign ||
-            curr_token == tok_colon) {
-          break;
-        } else if (curr_token == tok_lparen) {
-          cache_curr_token(&cache);
-          (void)get_token();
-          if (curr_token == tok_rparen ||
-              is_decl_start(IDS_REAL_DECLARATOR_ALLOWED |
-                            IDS_MS_ATTRIB_NOT_ALLOWED) ||
-              curr_token == tok_ellipsis) {
-            /* Function declarator rather than a nested declarator. */
-            break;
-          }  /* if */
-        }  /* if */
-        result = TRUE;
-        goto done;
-      }  /* if */
-    } else if (is_declarator_start()) {
-      /* The start of a declarator.  Since we haven't seen a type name yet,
-         the potential context-sensitive keyword is presumably a type. */
-      break;
-    } else if (curr_token == tok_end_of_source ||
-               curr_token == tok_semicolon ||
-               curr_token == tok_lbrace || curr_token == tok_rbrace) {
-      /* We've scanned too far: The code contains a syntax error.  Assume a
-         context-sensitive keyword since collisions with user-declared
-         identifiers are presumably rare. */
-      result = TRUE;
-      goto done;
-    } else if (curr_token == tok_typedef || curr_token == tok_extern ||
-               curr_token == tok_friend || curr_token == tok_asm ||
-               curr_token == tok_explicit) {
-      /* These specifiers cannot appear in a property declaration and are
-         unlikely to accidentally appear in a malformed field declaration:
-         Don't attempt to parse this as a field-like declaration. */
-      break;
-    } else {
-      /* Presumably another specifier token. */
-    }  /* if */
-    cache_curr_token(&cache);
-    (void)get_token();
-  }  /* for */
-  dps->has_cli_property_keyword = FALSE;
-  dps->has_cli_initonly_keyword = FALSE;
-  dps->has_cli_literal_keyword = FALSE;
+  if (type_specifiers_next(&cache)) {
+    result = TRUE;
+    dps->has_cli_context_sensitive_keyword = TRUE;
+  } else {
+    dps->has_cli_property_keyword = FALSE;
+    dps->has_cli_initonly_keyword = FALSE;
+    dps->has_cli_literal_keyword = FALSE;
+  }  /* if */
 done:
-  dps->has_cli_context_sensitive_keyword = result;
   rescan_cached_tokens(&cache);
   return result;
 }  /* check_for_cli_field_modifier */
@@ -16197,6 +16385,10 @@ passed via template_decl.
           /* Just skip the "literal" or "initonly" token that is next. */
           (void)get_token();
         }  /* if */
+      } else if (check_for_cli_delegate_definition()) {
+        scan_cli_delegate_definition(decl_state);
+        cannot_bind_to_curr_construct();
+        goto next_declaration;
       }  /* if */
     }  /* if */
   }  /* if */

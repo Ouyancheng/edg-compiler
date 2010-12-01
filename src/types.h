@@ -115,6 +115,11 @@ extern a_boolean is_cli_managed_type(a_type_ptr tp);
   (class_type_supp(tp)->cli_class_type_kind == (a_cli_class_type_kind)(cctk))
 #define is_managed_class_type_entry(tp)                                      \
   (cppcli_enabled && !cli_class_type_kind_is((tp), cctk_standard))
+#define is_delegate_type_entry(tp)                                           \
+  (is_immediate_class_type(tp) &&                                            \
+   (tp)->variant.class_struct_union.is_delegate_class)
+extern a_boolean is_delegate_type(a_type_ptr tp);
+extern a_type_ptr delegate_invocation_type(a_type_ptr delegate_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern a_boolean is_scalar_type(a_type_ptr tp);
 extern a_boolean is_array_type(a_type_ptr tp);

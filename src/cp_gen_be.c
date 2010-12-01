@@ -5980,6 +5980,29 @@ of flags.  Only generate the keyword if we target a Sun compiler.
 #define gen_sun_link_scope_specifiers(flags) /* Nothing */
 
 #endif /* SUN_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void gen_cli_delegate_definition(a_type_ptr  type)
+/*
+*/
+{
+  /* Advance past the source sequence entry for the class itself. */
+  check_and_take_source_seq_entry_for_type(type);
+  /* Position the output file to the definition position. */
+  set_output_position(&type->source_corresp.decl_position);
+  if (!type->source_corresp.is_class_member) {
+    gen_assembly_visibility_for_type(type);
+  }  /* if */
+  write_tok_str("delegate ");
+  gen_general_declaration_using_type(delegate_invocation_type(type),
+                                     &type->source_corresp, iek_type,
+                                     (a_src_seq_secondary_decl_ptr)NULL,
+                                     TQ_NONE, /*suppress_specifiers=*/FALSE,
+                                     GDO_NO_OPTIONS,
+                                     (a_name_reference_ptr)NULL);
+}  /* gen_cli_delegate_definition */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_class_definition(a_type_ptr type)
 /*
@@ -6725,7 +6748,15 @@ this one is such a continuation.
         /* Force matching "}" to be output later */
         need_extern_C_closing_brace = TRUE;
       }  /* if */
-      gen_class_definition(type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (is_delegate_type_entry(type)) {
+        gen_cli_delegate_definition(type);
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        gen_class_definition(type);
+      }  /* if */
     }  /* if */
     if (!suppress_closing_punct) {
       write_end_of_declaration_punctuation(*another_decl_in_comma_list);
