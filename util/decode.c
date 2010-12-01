@@ -4305,14 +4305,16 @@ Macro to determine if the character string pointed to by "p" is a
 <builtin-type>.  <builtin-type>s are a single lower-case letter or two
 characters starting with the character "D".  Exceptions to this rule are
 the mangling for decltype (i.e., "DT" and "Dt") as well as the EDG extension
-for typeof (i.e., "DY" and "Dy").  The lower case letter "r" is used in
-<CV-qualifiers> for "restrict" and is not a <builtin-type>.
+for typeof (i.e., "DY" and "Dy") and pack expansions (i.e., "Dp").  The lower
+case letter "r" is used in <CV-qualifiers> for "restrict" and is not a
+<builtin-type>.
 */
 #define is_builtin_type(p)                                                \
   ((islower((unsigned char)*(p)) &&                                       \
     *(p) != 'r') ||                                                       \
    (*(p) == 'D' &&                                                        \
-    !((p)[1] == 'T' || (p)[1] == 't' ||                                   \
+    !((p)[1] == 'p' ||                                                    \
+      (p)[1] == 'T' || (p)[1] == 't' ||                                   \
       (p)[1] == 'Y' || (p)[1] == 'y')))
 
 /*
@@ -4334,6 +4336,12 @@ to the character position following what was demangled.  The syntax is:
          ::= <class-enum-type>
          ::= <template-param>
          ::= <template-template-param> <template-args>
+         ::= Dp <type>          # pack expansion of (C++0x)
+         ::= Dt <expression> E  # decltype of an id-expression or class member
+                                # access (C++0x)
+         ::= DT <expression> E  # decltype of an expression (C++0x)
+         ::= Dy <type> E        # typeof(type) (EDG extension)
+         ::= DY <expression> E  # typeof(expression) (EDG extension)
 
 Other parts of <type> are handled in demangle_type_first_part and
 demangle_type_second_part.  In particular, substitutions are handled
@@ -4361,6 +4369,10 @@ demangled as part of the template function instead).
                                     dctl);
         p = demangle_template_args(p, dctl);
       }  /* if */
+    } else if (*p == 'D' && p[1] == 'p') {
+      /* A pack expansion. */
+      p = demangle_type(p+2, dctl);
+      write_id_str("...", dctl);
     } else if (*p == 'D' && 
                (p[1] == 't' || p[1] == 'T')) {
       /* decltype:
@@ -5774,6 +5786,8 @@ The syntax is:
                               # f(p), N::f(p), ::f(p),
                               # freestanding dependent name (e.g., T::x),
                               # objectless nonstatic member reference
+               ::= sZ <template-param>
+                              # size of a parameter pack
                ::= <expr-primary>
 
 */
@@ -5883,6 +5897,27 @@ The syntax is:
       ptr = demangle_unresolved_name(ptr, dctl);
       write_id_ch(')', dctl);
     }  /* if */
+  } else if (*ptr == 's' && ptr[1] == 'Z') {
+    /* Size of a parameter pack. */
+    write_id_str("sizeof...(", dctl);
+    ptr+=2;
+    if (*ptr == 'T') {
+      /* sizeof...(<template-param>) */
+      ptr = demangle_template_param(ptr, dctl);
+    } else if (*ptr == 'f' ) {
+      /* FIXME: add comments in header if this proposal is accepted. */
+      /* sizeof...(<function-param>) */
+      ptr = demangle_parameter_reference(ptr, dctl);
+    } else {
+      bad_mangled_name(dctl);
+    }  /* if */
+    write_id_ch(')', dctl);
+  } else if (*ptr == 's' && ptr[1] == 'p') {
+    /* FIXME: add comments in header if this proposal is accepted. */
+    /* Pack expansion. */
+    ptr+=2;
+    ptr = demangle_expression(ptr, dctl);
+    write_id_str("...", dctl);
   } else if ((op_str = get_operator_name(ptr, &num_operands, &length,
                                          &close_str, dctl)) != NULL) {
     /* An expression beginning with an operator name. */
@@ -5992,11 +6027,12 @@ Demangle an IA-64 <template-args> and output the demangled form.
 Return a pointer to the character position following what was demangled.
 A <template-args> encodes a template argument list.  The syntax is:
 
-  <template-args> ::= I <template-arg>* E
+  <template-args> ::= I <template-arg>+ E
   <template-arg> ::= <type>                     # type or template
-                 ::= L <type> <value number> E  # literal
-                 ::= L_Z <encoding> E           # external name
                  ::= X <expression> E           # expression
+                 ::= <expr-primary>             # simple expressions
+                 ::= I <template-arg>* E        # argument pack
+                 ::= sp <expression>            # pack expansion of (C++0x)
 
 */
 {
@@ -6011,6 +6047,14 @@ A <template-args> encodes a template argument list.  The syntax is:
     } else if (*ptr == 'L') {
       /* Literal or external name. */
       ptr = demangle_expr_primary(ptr, dctl);
+    } else if (*ptr == 'I') {
+      /* Template argument pack. */
+      ptr = demangle_template_args(ptr, dctl);
+    } else if (*ptr == 's' && ptr[1] == 'p') {
+      /* FIXME: proposed getting rid of this (change comments above). */
+      /* Pack expansion. */
+      ptr = demangle_expression(ptr+2, dctl);
+      write_id_str("...", dctl);
     } else if (*ptr == 'E') {
       /* No template arguments. */
       break;

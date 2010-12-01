@@ -8291,7 +8291,8 @@ Do IL lowering of the indicated template argument and everything under it.
       lower_constant(template_arg->variant.constant);
       break;
     case tak_template:
-      /* Template template argument.  No lowering required. */
+    case tak_start_of_pack_expansion:
+      /* No lowering required. */
       break;
     default: unexpected_condition(); break;
   }  /* switch */

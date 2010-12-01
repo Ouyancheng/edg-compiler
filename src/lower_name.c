@@ -1808,11 +1808,13 @@ With old_form FALSE, the representation is "_dd_" regardless of the length.
 static void mangled_encoding_for_template_parameter(
                                        a_template_param_coordinate *coordinate,
                                        a_template_arg_ptr          args,
+                                       a_boolean                   is_pack,
                                        a_mangling_control_block    *mctl)
 /*
 Add to the mangled name the encoding for a template parameter with the
 given coordinates.  args points to the template argument list (for a
-template template parameter), if any.
+template template parameter), if any.  is_pack is TRUE if the template
+parameter is a template pack parameter.
 */
 {
   check_assertion(distinct_template_signatures);
@@ -1823,6 +1825,10 @@ template template parameter), if any.
      when this construct is followed by something that begins with a
      number, e.g., when a template parameter in a function parameter
      list is followed by a class name. */
+  if (is_pack) {
+    /* This is a template parameter pack; mangle it as such. */
+    add_str_to_mangled_name("FIXME", mctl); /* FIXME */
+  }  /* if */
   add_to_mangled_name('Z', mctl);
   /* Put out the parameter position number. */
   add_number_to_mangled_name((unsigned long)coordinate->position, mctl);
@@ -1832,6 +1838,10 @@ template template parameter), if any.
     add_number_to_mangled_name((unsigned long)coordinate->depth, mctl);
   }  /* if */
 #else /* IA64_ABI */
+  if (is_pack) {
+    /* This is a template parameter pack; mangle it as such. */
+    add_str_to_mangled_name("Dp", mctl);
+  }  /* if */
   /* The IA-64 encoding is "Tnnn_".  The first parameter is "T_". */
   add_to_mangled_name('T', mctl);
   /* Put out the parameter position number. */
@@ -3499,6 +3509,7 @@ operator on some template constants when suppress_address_of is TRUE
           mangled_encoding_for_template_parameter(
                               &con->variant.template_param.variant.coordinates,
                               (a_template_arg *)NULL,
+                              /*is_pack=*/FALSE /* FIXME */,
                               mctl);
           break;
         case tpck_expression:
@@ -3928,6 +3939,7 @@ explicitly dealt with later in expression mangling.
       }  /* if */
     }  /* if */
   }  /* while */
+  check_assertion(prev_expr == NULL || !prev_expr->is_pack_expansion);
   return skip_parens(expr);
 }  /* skip_compiler_generated_expressions */
 
@@ -4951,6 +4963,15 @@ is TRUE.
 #endif /* IA64_ABI */
 
   expr = skip_compiler_generated_expressions(expr, &suppress_address_of);
+  if (expr->is_pack_expansion) {
+    /* This expression represents a pack expansion; add the appropriate
+       mangling to indicate such. */
+#if IA64_ABI
+    add_str_to_mangled_name("sp", mctl);
+#else /* !IA64_ABI */
+    add_str_to_mangled_name("FIXME", mctl); /* FIXME */
+#endif /* IA64_ABI */
+  }  /* if */
   switch (expr->kind) {
     case enk_error:
       check_assertion(total_errors != 0);
@@ -5890,6 +5911,7 @@ given by tap.
     mangled_encoding_for_template_parameter(
                                      &temp->coordinates,
                                      (a_template_arg *)NULL,
+                                     /*is_pack=*/FALSE /* FIXME */,
                                      mctl);
   } else {
     /* The value of the argument is a template. */
@@ -5937,22 +5959,27 @@ given by tap.
 #if IA64_ABI
 /*ARGSUSED*/ /* <-- partial_spec is unused in that case. */
 #endif /* IA64_ABI */
-static void mangled_template_arguments(
-                                    a_template_arg_ptr       template_arg_list,
-                                    a_boolean                partial_spec,
-                                    a_boolean                old_form,
-                                    a_name_reference_ptr     name_reference,
-                                    a_mangling_control_block *mctl)
+static void mangled_template_arguments_or_parameter_pack(
+                                   a_template_arg_ptr       *template_arg,
+                                   a_boolean                partial_spec,
+                                   a_boolean                old_form,
+                                   a_name_reference_ptr     name_reference,
+                                   a_boolean                is_pack,
+                                   a_mangling_control_block *mctl)
 /*
-Add to the mangled name the encoding for the template arguments given
-by template_arg_list.  If partial_spec is TRUE, this argument list is
-the first one on a partial specialization.  If old_form is TRUE, use
-the old form of length specification in the mangling for lengths of
-literals.  name_reference (when non-NULL) is used to ensure that the
-mangled list of template arguments accurately represents those that
-appeared in the source form (this is used when mangling template arguments
-for function templates that appear in a <simple-id>).  If name_reference
-is NULL, all of the arguments pointed to by template_arg_list are mangled.
+Add to the mangled name the encoding for the template arguments or parameter
+pack given by *template_arg.  If partial_spec is TRUE, this argument list is
+the first one on a partial specialization.  If old_form is TRUE, use the old
+form of length specification in the mangling for lengths of literals.
+name_reference (when non-NULL) is used to ensure that the mangled list of
+template arguments accurately represents those that appeared in the source form
+(this is used when mangling template arguments for function templates that
+appear in a <simple-id>).  If name_reference is NULL, all of the arguments
+pointed to by template_arg are mangled.  If is_pack is TRUE, *template_arg
+(which may be NULL) is the beginning of a parameter pack (which is mangled as a
+nested template argument list).  In this case, *template_arg is set on return
+to the argument that follows the parameter pack (and may be NULL if it was the
+last argument in the list).
 */
 {
   a_template_arg_ptr   tap;
@@ -5993,9 +6020,9 @@ is NULL, all of the arguments pointed to by template_arg_list are mangled.
 #endif /* IA64_ABI */
   /* Run through the template argument list, determining the representation
      for each argument. */
-  for (tap = template_arg_list, tap_no = 0;
+  for (tap = *template_arg, tap_no = 0;
        tap != NULL;
-       tap = tap->next, tap_no++) {
+       tap_no++) {
     if (name_reference != NULL &&
         tap_no >= (name_reference->is_template_id ? 
                                        name_reference->num_template_arguments :
@@ -6005,6 +6032,12 @@ is NULL, all of the arguments pointed to by template_arg_list are mangled.
          name reference is not a template-id, no arguments are emitted. */
       break;
     }  /* if */
+    if (is_pack && !tap->is_pack_element) {
+      /* We've reached the end of a pack; end this parameter pack and process
+         any remaining arguments in the caller. */
+      break;
+    }  /* if */
+    check_assertion(is_pack || !tap->is_pack_element);
     if (is_type_templ_arg(tap)) {
       /* Type argument. */
       /* Avoid problems on weird case of missing type in Microsoft mode
@@ -6015,14 +6048,30 @@ is NULL, all of the arguments pointed to by template_arg_list are mangled.
     } else if (is_template_templ_arg(tap)) {
       /* A template template argument. */
       mangled_encoding_for_template_template_argument(tap, mctl);
-    } else {
+    } else if (is_start_of_pack_expansion_templ_arg(tap)) {
+      check_assertion(!is_pack);
+      /* The beginning of a pack expansion.  A parameter pack is mangled as
+         a nested set of template arguments.  Skip the start-of-arguments
+         marker and recurse with an indication that we're in a pack.  Set the
+         name reference to NULL (so only top-level arguments are counted). */
+      tap = tap->next;
+      mangled_template_arguments_or_parameter_pack(&tap,
+                                                   /*partial_spec=*/FALSE,
+                                                   old_form,
+                                                   (a_name_reference_ptr)NULL,
+                                                   /*is_pack=*/TRUE,
+                                                   mctl);
+      /* On return, tap is set to the next argument to process (or NULL), so
+         process that argument now. */
+      continue;
+    } else if (is_nontype_templ_arg(tap)) {
       a_constant_ptr con = tap->variant.constant;
 #if IA64_ABI
       a_boolean      is_expression = FALSE;
       sizeof_t       save_location;
 #endif /* IA64_ABI */
       check_assertion_str2(!tap->is_array_bound_of_unknown_type,
-                           "mangled_template_arguments:",
+                           "mangled_template_arguments_or_parameter_pack:",
                            "is_array_bound_of_unknown_type set");
 #if !IA64_ABI
       /* Constant argument.  The encoding for the constant begins with
@@ -6090,7 +6139,10 @@ is NULL, all of the arguments pointed to by template_arg_list are mangled.
         }  /* if */
       }  /* if */
 #endif /* IA64_ABI */
+    } else {
+      unexpected_condition();
     }  /* if */
+    tap = tap->next;
   }  /* for */
 #if !IA64_ABI
   /* Go back and fill in the length. */
@@ -6100,6 +6152,38 @@ is NULL, all of the arguments pointed to by template_arg_list are mangled.
   /* Mark the end of the template arguments. */
   add_to_mangled_name('E', mctl);
 #endif /* IA64_ABI */
+  if (is_pack) {
+    /* Return to the caller the next argument to process
+       (which may be NULL).  */
+    *template_arg = tap;
+  }  /* if */
+}  /* mangled_template_arguments_or_parameter_pack */
+
+
+static void mangled_template_arguments(
+                                    a_template_arg_ptr       template_arg_list,
+                                    a_boolean                partial_spec,
+                                    a_boolean                old_form,
+                                    a_name_reference_ptr     name_reference,
+                                    a_mangling_control_block *mctl)
+/*
+Add to the mangled name the encoding for the template arguments given
+by template_arg_list.  If partial_spec is TRUE, this argument list is
+the first one on a partial specialization.  If old_form is TRUE, use
+the old form of length specification in the mangling for lengths of
+literals.  name_reference (when non-NULL) is used to ensure that the
+mangled list of template arguments accurately represents those that
+appeared in the source form (this is used when mangling template arguments
+for function templates that appear in a <simple-id>).  If name_reference
+is NULL, all of the arguments pointed to by template_arg_list are mangled.
+*/
+{
+  mangled_template_arguments_or_parameter_pack(&template_arg_list,
+                                               partial_spec,
+                                               old_form,
+                                               name_reference,
+                                               /*in_pack=*/FALSE,
+                                               mctl);
 }  /* mangled_template_arguments */
 
 #if IA64_ABI
@@ -6480,6 +6564,7 @@ that fact should be put out.
           mangled_encoding_for_template_parameter(
                &template_param->variant.template_param.extra_info->coordinates,
                (a_template_arg *)NULL,
+               template_param->variant.template_param.is_pack,
                mctl);
           break;
         case tptk_member:
@@ -6524,6 +6609,7 @@ that fact should be put out.
                                      &tssp->il_template_entry->coordinates,
                                      type->variant.class_struct_union.
                                                  extra_info->template_arg_list,
+                                     /*is_pack=*/FALSE /* FIXME */,
                                      mctl);
       }  /* if */
     }  /* if */
@@ -8149,14 +8235,19 @@ top_of_loop:
         /* This comes up when mangling the names for template entities using
            the modern mangling approach. */
         if (is_auto_type(type)) {
+          check_assertion(!type->variant.template_param.is_pack);
           /* This occurs, for example, when mangling decltype(new auto(p1)). */
           s = MANGLING_STRING_FOR_AUTO;
         } else {
+          check_assertion(!type->variant.template_param.is_pack ||
+                          type->variant.template_param.kind ==
+                                   (a_template_param_constant_kind)tptk_param);
           switch (type->variant.template_param.kind) {
             case tptk_param:
               mangled_encoding_for_template_parameter(
                          &type->variant.template_param.extra_info->coordinates,
                          (a_template_arg *)NULL,
+                         type->variant.template_param.is_pack,
                          mctl);
               break;
             case tptk_member:
