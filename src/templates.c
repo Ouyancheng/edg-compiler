@@ -4979,7 +4979,7 @@ the same constant.
         }  /* if */
       }  /* if */
       if (!equiv) break;
-    } else {
+    } else if (is_template_templ_arg(arg1)) {
       /* A template template argument. */
       an_equiv_templates_options_set	et_options;
       et_options = exact_match_required ? ET_EXACT_MATCH_REQUIRED
@@ -4993,6 +4993,10 @@ the same constant.
       } else {
         equiv = FALSE;
       }  /* if */
+    } else {
+      /* A start of pack expansion placeholder. */
+      check_assertion(is_start_of_pack_expansion_templ_arg(arg1));
+      equiv = TRUE;
     }  /* if */
     /* Advance to the next arguments in step. */
     arg1 = arg1->next;
@@ -5116,7 +5120,7 @@ an error entity.
       check_assertion(cp != NULL);
       result = constant_contains_error(cp);
     }  /* if */
-  } else {
+  } else if (is_template_templ_arg(tap)) {
     /* A template template parameter. */
     a_template_symbol_supplement_ptr	tssp;
     a_template_ptr			templ_ptr;
@@ -5128,6 +5132,8 @@ an error entity.
     templ_sym = symbol_for(templ_ptr);
     tssp = templ_sym->variant.template_info;
     result = tssp->is_error;
+  } else {
+    check_assertion(is_start_of_pack_expansion_templ_arg(tap));
   }  /* if */
   return result;
 }  /* template_arg_involves_error_entity */
@@ -6088,7 +6094,7 @@ another template parameter.
                                                             : tpp->next) {
       a_symbol_kind		sym_kind = tpp->param_symbol->kind;
       a_templ_arg_kind		arg_kind;
-      if (tpp->is_pack) {
+      if (tpp->is_pack && !is_parameter_pack) {
         /* There was no parameter list available when the specified template
            argument list was created.  As a result, we need to add the
            pack expansion placeholder here. */
@@ -6101,6 +6107,7 @@ another template parameter.
           /* Add to the end of the list. */
           prev_tap->next = tap;
         }  /* if */
+        prev_tap = tap;
       }  /* if */
       is_parameter_pack = tpp->is_pack;
       arg_kind = templ_arg_kind_for_symbol_kind(sym_kind);
@@ -7441,6 +7448,14 @@ points to the template parameter list.
                    match only if they're both done. */
                 match = (ptp == tptp);
                 break;
+              }  /* if */
+              /* If the parameter from the template is a pack, enter a rescan
+                 context.  The actual type will be compared against the
+                 template type for each of the remaining actual parameter
+                 types, but a new argument value will be deduced for each
+                 one. */
+              if (tptp->is_parameter_pack) {
+                /* FIXME */
               }  /* if */
               tp = ptp->type;
               ttp = tptp->type;
