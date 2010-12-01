@@ -15599,15 +15599,23 @@ delegate definition.  If it is, return TRUE; otherwise, return FALSE.
     (void)get_token();
   }  /* if */
   if (curr_token_is_identifier_string("delegate")) {
-    a_boolean  starts_type_name = curr_id_is_type_name();
-    if (locator_for_curr_id.is_qualified_name) {
+    a_boolean     is_qualified_name = FALSE;
+    if (next_token() == tok_colon_colon) {
+      /* Determine if this is a "delegate::" starts a qualified name.  We
+         cannot call is_generalized_identifier_start here because that would
+         trigger errors if "delegate" doesn't name a tag or namespace.
+         Copy locator_for_curr_id before performing the lookup to avoid
+         biasing future lookups. */
+      a_symbol_locator  loc;
+      loc = locator_for_curr_id;
+      is_qualified_name =
+               normal_id_lookup(&loc, IDL_MUST_BE_CLASS_OR_NAMESPACE) != NULL;
+    }  /* if */
+    if (is_qualified_name) {
       /* "delegate" is part of qualified name and therefore not a keyword. */
-    } else if (!starts_type_name) {
-      /* "delegate" is not part of qualified name and is not a type name:
-         It must be a context-sensitive specifier keyword. */
-      result = TRUE;
     } else {
-      /* "delegate" is a type name, but perhaps another type name follows. */
+      /* "delegate" is an unqualified name: Treat it as a keyword if a type
+         specifier follows. */
       cache_curr_token(&cache);
       (void)get_token();
       result = type_specifiers_next(&cache);
