@@ -19772,6 +19772,11 @@ entry into one representing a nondefining declaration.
   class_type->variant.class_struct_union.
                                nested_class_defined_outside_of_parent = FALSE;
   class_type->variant.class_struct_union.is_empty_class = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* A delegate must be a defined ref class.  If the body is discarded, it
+       should be treated as an ordinary ref class. */
+    class_type->variant.class_struct_union.is_delegate_class = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* The type is now incomplete. */
   class_type->incomplete = TRUE;
   db_exit();
