@@ -8401,13 +8401,11 @@ set to FALSE (and FALSE is always returned).
           }  /* if */
         }  /* if */
         break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
       case sfk_static_constructor:
         /* Static constructors are allowed on C++/CLI managed interface types
            (e.g. "interface class"), but not on non-CLI "__interface" types. */
-        unexpected_condition();
+        check_assertion(!type->variant.class_struct_union.is_interface);
         break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition();
     }  /* switch */
