@@ -9236,7 +9236,7 @@ mangle_template:
     /* If this function explicitly overrides a function, add the class of
        the overridden function (unless it's in a managed class). */
     if (routine->overridden_functions != NULL &&
-        (is_member &&
+        (is_class_or_namespace_member(routine) &&
          !is_managed_class_type_entry(parent_class_of(routine)))) {
       a_routine_ptr  overridden_function =
                                      selectively_overridden_function(routine);
@@ -9261,7 +9261,7 @@ mangle_template:
   /* If this function explicitly overrides a function, add the class of
      the overridden function (unless it's in a managed class). */
   if (routine->overridden_functions != NULL &&
-      (is_member &&
+      (is_class_or_namespace_member(routine) &&
        !is_managed_class_type_entry(parent_class_of(routine)))) {
     a_routine_ptr  overridden_function =
                                      selectively_overridden_function(routine);
