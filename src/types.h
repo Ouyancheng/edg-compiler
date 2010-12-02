@@ -119,7 +119,9 @@ extern a_boolean is_cli_managed_type(a_type_ptr tp);
   (is_immediate_class_type(tp) &&                                            \
    (tp)->variant.class_struct_union.is_delegate_class)
 extern a_boolean is_delegate_type(a_type_ptr tp);
+#if BACK_END_IS_CP_GEN_BE
 extern a_type_ptr delegate_invocation_type(a_type_ptr delegate_type);
+#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern a_boolean is_scalar_type(a_type_ptr tp);
 extern a_boolean is_array_type(a_type_ptr tp);
