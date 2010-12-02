@@ -5673,6 +5673,28 @@ One-time initialization for il_to_str static variables.
 }  /* il_to_str_one_time_init */
 
 
+void il_to_str_init(void)
+/*
+Initialization for il_to_str that must be performed before each source
+file is processed.
+*/
+{
+  if (template_param_map != NULL) {
+    /* Make sure there are no leftover mappings from previous processing. */
+    a_template_param_map_level_ptr level;
+    a_template_nesting_depth       depth;
+    a_template_param_list_pos      pos;
+
+    for (depth = 0; depth < template_param_map_max_level; ++depth) {
+      level = &template_param_map[depth];
+      for (pos = 0; pos < level->max_position; ++pos) {
+        level->source_corresp[pos] = NULL;
+      }  /* for */
+    }  /* for */
+  }  /* if */
+}  /* il_to_str_init */
+
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *

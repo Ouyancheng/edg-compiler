@@ -462,6 +462,7 @@ extern void form_sun_link_scope_specifiers(
 #endif /* SUN_EXTENSIONS_ALLOWED */
 
 extern void il_to_str_one_time_init(void);
+extern void il_to_str_init(void);
 
 #endif /* ifndef IL_TO_STR_H */
 

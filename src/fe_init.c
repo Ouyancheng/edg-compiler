@@ -1007,6 +1007,7 @@ source file's compilation.
   mem_manage_init();
   host_envir_init();
   host_init();
+  il_to_str_init();
   il_init();
 #if IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS
   il_walk_init();
