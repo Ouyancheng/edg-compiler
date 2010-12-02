@@ -9233,15 +9233,18 @@ mangle_template:
                                (a_source_correspondence **)NULL, mctl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* If this function explicitly overrides a function, add the class of
-       the overridden function. */
-    { a_routine_ptr  overridden_function =
+       the overridden function (unless it's in a managed class). */
+    if (routine->overridden_functions != NULL &&
+        (is_member &&
+         !is_managed_class_type_entry(parent_class_of(routine)))) {
+      a_routine_ptr  overridden_function =
                                      selectively_overridden_function(routine);
       if (overridden_function != NULL) {
         /* The encoding is O <type>. */
         add_to_mangled_name('O', mctl);
         mangled_type_name(parent_class_of(overridden_function), mctl);
       }  /* if */
-    }
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (!suppress_parent_encoding && needs_to_be_individuated) {
     /* Add individuation. */
@@ -9254,9 +9257,12 @@ mangle_template:
 #if IA64_ABI
   close_ia64_nested_name(need_nested_name_close, discriminator_scp, mctl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* If this function explicitly overrides a function, add the name of
-     the overridden function. */
-  { a_routine_ptr  overridden_function =
+  /* If this function explicitly overrides a function, add the class of
+     the overridden function (unless it's in a managed class). */
+  if (routine->overridden_functions != NULL &&
+      (is_member &&
+       !is_managed_class_type_entry(parent_class_of(routine)))) {
+    a_routine_ptr  overridden_function =
                                      selectively_overridden_function(routine);
     if (overridden_function != NULL) {
       /* The encoding is Q <nested-name>.  This is an extension to the IA-64
