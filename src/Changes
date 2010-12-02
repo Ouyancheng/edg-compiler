@@ -1,5 +1,14 @@
 Version 4.3
 
+12/2/10  [EDGcpfe/11180]
+C++-generating back end: abort with COMPILE_MULTIPLE_SOURCE_FILES
+
+In configurations with BACK_END_IS_CP_GEN_BE and COMPILE_MULTIPLE_SOURCE_FILES
+set to TRUE, the front end could abort while processing files after the
+first because a data structure used in mapping template parameter names was
+not reinitialized between source files.  This is now fixed.
+
+
 12/1/10  [EDGcpfe/11198]
 Assertion failure in mangled_unnamed_type_encoding
 
