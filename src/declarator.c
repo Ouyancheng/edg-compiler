@@ -2010,6 +2010,8 @@ function declarator in a friend function declaration.
          int f(int, char *)
 
     */
+    a_pack_expansion_stack_entry_ptr	pesep = NULL;
+    a_boolean			        any_variadic_params = FALSE;
     if (any_params && !disallow_default_args) {
       /* In C++ mode a default argument may be declared with the parameter
          unless the function is a user-defined overloaded operator (except
@@ -2039,8 +2041,13 @@ function declarator in a friend function declaration.
     /* Remember the scope number for later use if and when a body appears. */
     func_info->scope_number = scope_stack[depth_scope_stack].number;
     if (any_params) {
+      /* If there appear to be parameters, check for the presence of an
+         empty function parameter pack. */
+      any_params = begin_potential_pack_expansion_context(&pesep);
+      any_variadic_params = any_params;
+    }  /* if */
+    if (any_params) {
       unsigned long	param_number = 0;
-      a_boolean         any_variadic_params = FALSE;
       a_boolean		is_new_param = TRUE;
       last_param_type = NULL;
       do {
@@ -2051,14 +2058,11 @@ function declarator in a friend function declaration.
                                          DSI_IS_PARAMETER |
                                          DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
         a_type_qualifier_set param_qualifiers = TQ_NONE;
-        a_pack_expansion_stack_entry_ptr
-                             pesep;
         a_boolean            is_pack_element;
         a_boolean	     is_non_initial_pack_element;
         /* Mark the start of the parameter declaration as the start of a
            potential variadic pack expansion. */
         if (is_new_param) {
-          any_variadic_params = begin_potential_pack_expansion_context(&pesep);
           is_new_param = FALSE;
         }  /* if */
         is_pack_element = pesep != NULL && !is_template_dependent_context();
@@ -2068,7 +2072,7 @@ function declarator in a friend function declaration.
         if (!is_non_initial_pack_element) param_number++;
         /* In a real instantiation, the tokens of the parameter will have been
            skipped. */
-        if (!any_variadic_params) continue;
+        if (pesep && !any_variadic_params) continue;
         if (std_attributes_enabled)  dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
         if (gnu_attributes_enabled) dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
         if (microsoft_mode) dsi_flags |= DSI_MICROSOFT_ATTRIBUTES_ALLOWED;
@@ -2658,7 +2662,11 @@ function declarator in a friend function declaration.
         ptp->pack_expansion_descr =
            end_potential_pack_expansion_context(pesep, /*is_declarator=*/TRUE);
         any_variadic_params = advance_to_next_pack_element(pesep);
-        if (!any_variadic_params) is_new_param = TRUE;
+        if (!any_variadic_params && !done) {
+          is_new_param = TRUE;
+          any_variadic_params = begin_potential_pack_expansion_context(&pesep);
+          if (!any_variadic_params) done = TRUE;
+        }  /* if */
       } while (!done || any_variadic_params);
     }  /* if */
     /* Save the list of symbols for the prototype scope (usually NULL, but

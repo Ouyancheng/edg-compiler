@@ -8394,6 +8394,7 @@ controls the initialization of fields used only in such cases.
   } else {
     prp->curr_argument.template_arg = NULL;
   }  /* if */
+  prp->prev_template_arg = NULL;
   return prp;
 }  /* alloc_pack_reference */
 
@@ -8519,6 +8520,7 @@ to it.
   pesep->instantiation_descr = NULL;
   pesep->first_token_handle = NO_CACHED_TOKEN_HANDLE;
   pesep->is_rescan = FALSE;
+  pesep->is_deduction = FALSE;
   return pesep;
 }  /* alloc_pack_expansion_stack_entry */
 
@@ -8742,10 +8744,84 @@ return NULL.  Return the number of actual arguments in *elements.
       break;
     }  /* if */
   }  /* for */
-  check_assertion_str2(tap != NULL, "find_template_arg_for_pack:",
-                       "symbol not found");
   return result_tap;
 }  /* find_template_arg_for_pack */
+
+
+static void begin_special_variadic_template_arg_list_traversal(
+				a_template_param_ptr	templ_param_list,
+				a_template_arg_ptr	templ_arg_list,
+				a_template_param_ptr	*tpp,
+				a_template_arg_ptr	*tap)
+/*
+This routine is used to traverse a template argument list and associated
+template parameter list.  This differs from begin_template_arg_list_traversal
+in that for a variadic parameter, the start of expansion placeholder is
+returned.  When we advance to the next template argument, any pack elements
+will be skipped.
+
+This routine is used as follows:
+
+  begin_special_variadic_template_arg_list_traversal(templ_param_list,
+                                                    templ_arg_list,
+                                                    &tpp, &tap);
+  for (; tap != NULL;
+         special_variadic_advance_to_next_template_arg(&tpp, &tap)) {
+    ...
+  } 
+*/
+{
+  *tpp = templ_param_list;
+  *tap = templ_arg_list;
+}  /* begin_special_variadic_template_arg_list_traversal */
+
+
+static void special_variadic_advance_to_next_template_arg(
+				a_template_param_ptr	*tpp,
+				a_template_arg_ptr	*tap)
+/*
+Advance the template parameter and template argument pointers specified by
+*tpp and *tap to the next element in the list.  Set them to NULL when the
+last argument is encountered.  This is the "advance" routine for
+begin_special_variadic_template_arg_list_traversal.  See the comments in
+that routine for how this routine differs from advance_to_next_template_arg.
+*/
+{
+  check_assertion(tap != NULL);
+  *tap = (*tap)->next;
+  /* Skip over any pack elements. */
+  while ((*tap) != NULL && (*tap)->is_pack_element) *tap = (*tap)->next;
+  *tpp = (*tpp)->next;
+}  /* special_variadic_advance_to_next_template_arg */
+
+
+static a_template_arg_ptr find_placeholder_arg_for_pack(
+				a_template_param_ptr	templ_param_list,
+				a_template_arg_ptr	templ_arg_list,
+				a_symbol_ptr		sym)
+/*
+Find the placeholder template argument (from templ_arg_list) associated
+with the pack specified by sym, which is a template parameter symbol
+from templ_param_list.
+*/
+{
+  a_template_arg_ptr	result_tap = NULL;
+  a_template_arg_ptr	tap;
+  a_template_param_ptr	tpp;
+
+  begin_special_variadic_template_arg_list_traversal(
+                                 templ_param_list, templ_arg_list, &tpp, &tap);
+  for (; tap != NULL;
+         special_variadic_advance_to_next_template_arg(&tpp, &tap)) {
+    if (tpp->param_symbol == sym) {
+      result_tap = tap;
+      break;
+    }  /* if */
+  }  /* for */
+  check_assertion_str2(tap != NULL, "find_placeholder_arg_for_pack:",
+                       "symbol not found");
+  return result_tap;
+}  /* find_placeholder_arg_for_pack */
 
 
 static a_pack_reference_ptr copy_pack_reference(a_pack_reference_ptr	prp)
@@ -8769,27 +8845,27 @@ Return a pointer to the copy.
 static a_pack_instantiation_descr_ptr create_pack_instantiation_descr(
 		a_pack_expansion_descr_ptr		pedp,
 		a_template_param_ptr			templ_param_list,
-		a_template_arg_ptr			templ_arg_list)
+		a_template_arg_ptr			templ_arg_list,
+		a_boolean				is_deduction)
 /*
 We are beginning a real instantiation of the pack expansion specified
 by "pedp".  Determine whether this is a non-empty expansion context and
 whether all of the packs being expanded have the same number of elements.
 
 templ_param_list and templ_arg_list are the template parameters and
-arguments for the instantiation.
+arguments for the instantiation.  is_deduction is TRUE if the pack
+instantiation is being created as part of the deduction of the pack
+argument values.
 
-If this is a valid non-empty expansion, establish the initial values of
-the parameter pack symbols and return a pack expansion instantiation
-descriptor that can be used later to advance to the next pack element
-for each symbol.
-
-If this is an invalid expansion or an empty expansion, skip to the token
-following the pack expansion and return NULL.
+For non-deduction contexts, if this is a valid non-empty expansion,
+establish the initial values of the parameter pack symbols and return
+a pack expansion instantiation descriptor that can be used later to
+advance to the next pack element for each symbol.
 */
 {
   a_pack_reference_ptr			prp;
   a_pack_reference_ptr			new_pack_list = NULL;
-    uint32_t				elements;
+  uint32_t				elements;
   a_boolean				is_first_pack = TRUE;
   a_boolean				any_errors = FALSE;
   a_pack_instantiation_descr_ptr	result_pidp = NULL;
@@ -8807,28 +8883,43 @@ following the pack expansion and return NULL.
       new_pack_list->next = new_prp;
     }  /* if */
     new_pack_list = new_prp;
-    if (prp->symbol->kind == (a_symbol_kind)sk_variable) {
-      /* FIXME: variables not implemented yet. */
-      elements_for_pack = 0;
-    } else {
+    if (is_deduction) {
       a_template_arg_ptr	tap;
-      tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
-                                       prp->symbol, &elements_for_pack);
-      new_prp->curr_argument.template_arg = tap;
-    }  /* if */
-    /* Make sure the number of pack elements is consistent. */
-    if (is_first_pack) {
-      elements = elements_for_pack;
-      is_first_pack = FALSE;
-    } else if (elements != elements_for_pack) {
-      pos_sy2_error(ec_pack_length_mismatch, &prp->position, prp->symbol,
-                    pedp->packs_referenced->symbol);
-      any_errors = TRUE;
+      /* In a deduction context, we will deduce zero or more template
+         argument values.  The curr_argument field of the pack element will
+         be NULL until a value is deduced.   It is then cleared when
+         the deduction of a given function argument has been completed. */
+      check_assertion(prp->symbol->kind != (a_symbol_kind)sk_variable);
+      tap = find_placeholder_arg_for_pack(templ_param_list, templ_arg_list,
+                                          prp->symbol);
+      new_prp->prev_template_arg = tap;
+    } else {
+      /* In non-deduction contexts, find the current pack element to
+         be used. */
+      if (prp->symbol->kind == (a_symbol_kind)sk_variable) {
+        /* FIXME: variables not implemented yet. */
+        elements_for_pack = 0;
+      } else {
+        a_template_arg_ptr	tap;
+        tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
+                                         prp->symbol, &elements_for_pack);
+        new_prp->curr_argument.template_arg = tap;
+      }  /* if */
+      /* Make sure the number of pack elements is consistent. */
+      if (is_first_pack) {
+        elements = elements_for_pack;
+        is_first_pack = FALSE;
+      } else if (elements != elements_for_pack) {
+        pos_sy2_error(ec_pack_length_mismatch, &prp->position, prp->symbol,
+                      pedp->packs_referenced->symbol);
+        any_errors = TRUE;
+      }  /* if */
     }  /* if */
   }  /* for */
-  if (!any_errors && elements > 0) {
-    /* There were no errors and there are pack elements to be expanded.
-       Create an instantiation entry to be returned. */
+  if (is_deduction || (!any_errors && elements > 0)) {
+    /* There were no errors and there are pack elements to be expanded,
+       or this is a deduction context.  Create an instantiation entry to
+       be returned. */
     result_pidp = alloc_pack_instantiation_descr();
     result_pidp->pack_status = new_pack_list;
   } else {
@@ -8888,10 +8979,11 @@ pack expansion stack entry for which the symbols are to be updated.
 
 a_template_arg_ptr get_curr_variadic_arg_for_param(a_template_param_ptr	tpp)
 /*
-This routine is called during rescan contexts.  We need the current template
-argument value for the pack specified by tpp.  Go through the pack references
-for the current expansion and look for one that matches tpp.  Return
-the current template argument value for that parameter.
+This routine is called during rescan and deduction contexts.  We need the
+current template argument value for the pack specified by tpp.  Go through
+the pack references for the current expansion and look for one that
+matches tpp.  Return the current template argument value for that parameter.
+In deduction contexts, if there is no current argument, create one.
 */
 {
   a_pack_reference_ptr			param_prp;
@@ -8909,6 +9001,17 @@ the current template argument value for that parameter.
       check_assertion(sym->kind != (a_symbol_kind)sk_variable);
       result_tap = arg_prp->curr_argument.template_arg;
     }  /* if */
+    if (result_tap == NULL && pesep->is_deduction) {
+      /* We are deducing the value for a new pack element.  Create the
+         argument now and link it into the argument list. */
+      result_tap = alloc_template_arg(
+                                templ_arg_kind_for_symbol_kind(tpp_sym->kind));
+      result_tap->is_pack_element = TRUE;
+      result_tap->next = arg_prp->prev_template_arg->next;
+      arg_prp->prev_template_arg->next = result_tap;
+      arg_prp->prev_template_arg = result_tap;
+      arg_prp->curr_argument.template_arg = result_tap;
+    }  /* if */
   }  /* for */
   check_assertion(result_tap != NULL);
   return result_tap;
@@ -8918,14 +9021,18 @@ the current template argument value for that parameter.
 static a_pack_expansion_stack_entry_ptr push_pack_instantiation(
 		a_pack_expansion_descr_ptr		pedp,
 		a_template_param_ptr			templ_param_list,
-		a_template_arg_ptr			templ_arg_list)
+		a_template_arg_ptr			templ_arg_list,
+		a_boolean				is_rescan,
+		a_boolean				is_deduction)
 /*
 Create a pack instantiation description entry based on the expansion described
 by pedp and push it on the pack expansion stack.  templ_param_list and
 templ_arg_list are the template parameters and arguments for the
 instantiation. Return a pointer to the pack expansion stack entry.  If
 this is an invalid expansion or there are no arguments to be expanded,
-return NULL.
+return NULL.  is_rescan is TRUE if the pack instantiation is being pushed
+as part of processing a rescan context.   is_deduction is TRUE if the pack
+instantiation is being pushed as part of template argument deduction
 */
 {
   a_pack_expansion_stack_entry_ptr	pesep = NULL;
@@ -8936,14 +9043,18 @@ return NULL.
      is invalid, or if there are no pack elements, a NULL instantiation
      entry will be returned. */
   pidp = create_pack_instantiation_descr(pedp, templ_param_list,
-                                         templ_arg_list);
+                                         templ_arg_list, is_deduction);
   if (pidp != NULL) {
     pesep = push_pack_expansion_stack();
+    pesep->is_rescan = is_rescan;
+    pesep->is_deduction = is_deduction;
     pesep->expansion_descr = pedp;
     pesep->instantiation_descr = pidp;
-    /* Set the parameter pack symbols to the first element of each
-       pack. */
-    update_parameter_pack_symbol_values(pesep);
+    if (!is_rescan && !is_deduction) {
+      /* Set the parameter pack symbols to the first element of each
+         pack. */
+      update_parameter_pack_symbol_values(pesep);
+    }  /* if */
   }  /* if */
   return pesep;
 }  /* push_pack_instantiation */
@@ -9027,7 +9138,9 @@ will be set to NULL.
       a_template_param_ptr	templ_param_list;
       a_template_arg_ptr	templ_arg_list;
       get_curr_template_params_and_args(&templ_param_list, &templ_arg_list);
-      pesep = push_pack_instantiation(pedp, templ_param_list, templ_arg_list);
+      pesep = push_pack_instantiation(pedp, templ_param_list, templ_arg_list,
+                                      /*is_rescan=*/FALSE,
+                                      /*is_deduction=*/FALSE);
       if (pesep != NULL) {
         pesep->first_token_handle = curr_cached_token_handle;
         check_assertion(curr_token_sequence_number == pedp->first_token);
@@ -9066,7 +9179,7 @@ returns a NULL value in *p_pesep.  templ_param_list and templ_arg_list are the
 template parameters and arguments for the instantiation.
 
 See begin_potential_pack_expansion_context for a description of the
-return value and the setting of *p_pese (note that this routine is
+return value and the setting of *p_pesep (note that this routine is
 never called in prototype instantiation contexts).  This routine
 returns TRUE if pedp was passed in as NULL.
 */
@@ -9074,14 +9187,85 @@ returns TRUE if pedp was passed in as NULL.
   a_pack_expansion_stack_entry_ptr	pesep = NULL;
 
   if (pedp != NULL) {
-    pesep = push_pack_instantiation(pedp, templ_param_list, templ_arg_list);
-    if (pesep != NULL) {
-      pesep->is_rescan = TRUE;
-    }  /* if */
+    pesep = push_pack_instantiation(pedp, templ_param_list, templ_arg_list,
+                                    /*is_rescan=*/TRUE,
+                                    /*is_deduction=*/FALSE);
   }  /* if */
   *p_pesep = pesep;
   return pesep != NULL || pedp == NULL;
 }  /* begin_rescan_pack_expansion_context */
+
+
+void begin_pack_deduction_context(
+		a_pack_expansion_descr_ptr		pedp,
+		a_template_param_ptr			templ_param_list,
+		a_template_arg_ptr			*templ_arg_list,
+		a_pack_expansion_stack_entry_ptr	*p_pesep)
+/*
+This routine is called in template argument deduction contexts to do
+deduction of the elements of a template argument pack.  templ_param_list
+is the template parameter list for the template whose arguments are
+being deduced.  *templ_arg_list is the list of arguments that have
+been deduced so far.  If it is NULL, a new argument list will be
+created here.  For variadic parameters, it will have the start of pack
+expansion placeholder.  This routine pushes a pack expansion stack
+entry and returns a pointer to that entry in *p_pesep.
+*/
+{
+  a_pack_expansion_stack_entry_ptr	pesep;
+
+  check_assertion(pedp != NULL);
+  if (*templ_arg_list == NULL) {
+    /* The template argument list does not exist yet.  Create an argument
+       list with out any values filled in. */
+    *templ_arg_list = create_initial_template_arg_list(
+				templ_param_list, (a_template_arg_ptr)NULL,
+                                (a_source_position*)NULL);
+  }  /* if */
+  pesep = push_pack_instantiation(pedp, templ_param_list, *templ_arg_list,
+                                  /*is_rescan=*/FALSE,
+                                  /*is_deduction=*/TRUE);
+  *p_pesep = pesep;
+}  /* begin_pack_deduction_context */
+
+
+void advance_to_next_deduced_element(
+				a_pack_expansion_stack_entry_ptr	pesep)
+/*
+Unlike other pack contexts, this "advance" routine is called before
+the end-of-context routine (end_pack_deduction_context in this case).
+It clears the current template argument information so that any
+subsequent deductions will result in the creation of a new deduced
+argument.  pesep describes the current pack deduction context.
+*/
+{
+   a_pack_reference_ptr	param_prp;
+   a_pack_reference_ptr	arg_prp;
+
+  /* The pack expansion descriptor passed in should be on top of the
+     stack. */
+  check_assertion(pesep == pack_expansion_stack);
+  for (param_prp = pesep->expansion_descr->packs_referenced,
+         arg_prp = pesep->instantiation_descr->pack_status;
+       param_prp != NULL;
+       param_prp = param_prp->next, arg_prp = arg_prp->next) {
+    a_symbol_ptr	sym = param_prp->symbol;
+    check_assertion(sym->kind != (a_symbol_kind)sk_variable);
+    /* Clear the current argument value. */
+    arg_prp->curr_argument.template_arg = NULL;
+  }  /* for */
+}  /* advance_to_next_pack_element */
+
+
+void end_pack_deduction_context(
+			a_pack_expansion_stack_entry_ptr	pesep)
+/*
+This is called at the end of a variadic deduction context and pops the
+pack expansion stack.
+*/
+{
+  if (pesep != NULL) pop_pack_expansion_stack();
+}  /* end_pack_deduction_context */
 
 
 static void record_pack_expansion(a_pack_expansion_descr_ptr	pedp)
@@ -9237,7 +9421,11 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
         if (tap == NULL || !tap->is_pack_element) {
           done = TRUE;
         } else {
-          update_template_param_symbol(sym, tap);
+          if (!pesep->is_rescan && !pesep->is_deduction) {
+            /* The symbols only need to be updated in actual instantiation
+               contexts. */
+            update_template_param_symbol(sym, tap);
+          }  /* if */
         }  /* if */
       }  /* if */
       pesep->instantiation_descr->after_first_element = TRUE;

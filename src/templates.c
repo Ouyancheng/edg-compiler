@@ -1490,11 +1490,6 @@ is a parameter.
 
 
 /* Forward declarations. */
-static a_template_arg_ptr create_initial_template_arg_list(
-			a_template_param_ptr		templ_param_list,
-			a_template_arg_ptr		partial_arg_list,
-			a_source_position		*source_pos);
-
 static void substitute_template_argument(
 			a_template_arg_ptr	templ_arg,
 			a_template_param_ptr	templ_param,
@@ -1537,9 +1532,9 @@ symbol supplement.
     rout_type = skip_typerefs(tssp->variant.function.routine->type);
     is_conversion_operator = is_conversion_function_symbol(template_sym);
   }  /* if */
-  tpp = templ_param_list;
-  tap = templ_arg_list;
-  for (; tpp != NULL; tpp = tpp->next, tap = tap->next) {
+  begin_template_arg_list_traversal(templ_param_list, templ_arg_list,
+                                    &tpp, &tap);
+  for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
     a_boolean	has_value = template_arg_has_value(tap);
     if (function_template_default_args_allowed && !has_value &&
         !is_partial_order_check) {
@@ -1647,9 +1642,9 @@ during wrapup processing by compare_function_templates.
                                          tssp);
   }  /* if */
   if (match) {
-    tpp = templ_param_list;
-    tap = templ_arg_list;
-    for (; tpp != NULL && match; tpp = tpp->next, tap = tap->next) {
+    begin_template_arg_list_traversal(templ_param_list, templ_arg_list,
+                                      &tpp, &tap);
+    for (; tap != NULL && match; advance_to_next_template_arg(&tpp, &tap)) {
       a_type_ptr	constant_type;
       /* Some template arguments may not have values when
          is_partial_order_check is TRUE.  Skip such arguments. */
@@ -6032,7 +6027,7 @@ parameters are not checked at this point.
 }  /* tentatively_matching_template_param_lists */
 
 
-static a_template_arg_ptr create_initial_template_arg_list(
+a_template_arg_ptr create_initial_template_arg_list(
 			a_template_param_ptr		templ_param_list,
 			a_template_arg_ptr		partial_arg_list,
 			a_source_position		*source_pos)
@@ -6109,6 +6104,9 @@ another template parameter.
         }  /* if */
         prev_tap = tap;
       }  /* if */
+      /* Don't create a template an empty argument for a parameter pack with
+         no specified arguments. */
+      if (tpp->is_pack && specified_tap == NULL) continue;
       is_parameter_pack = tpp->is_pack;
       arg_kind = templ_arg_kind_for_symbol_kind(sym_kind);
       tap = alloc_template_arg(arg_kind);
@@ -7439,6 +7437,7 @@ points to the template parameter list.
                                     new_flags) &&
               (type->variant.routine.extra_info->has_ellipsis ==
                   templ_type->variant.routine.extra_info->has_ellipsis)) {
+            a_pack_expansion_stack_entry_ptr	pesep = NULL;
             /* Return type and ellipsis are okay.  Check the param types. */
             ptp = type->variant.routine.extra_info->param_type_list;
             tptp = templ_type->variant.routine.extra_info->param_type_list;
@@ -7446,16 +7445,20 @@ points to the template parameter list.
               if (ptp == NULL || tptp == NULL) {
                 /* One or both of the param type lists is exhausted.  It's a
                    match only if they're both done. */
-                match = (ptp == tptp);
+                match = ptp == tptp ||
+                        (tptp != NULL && tptp->is_parameter_pack);
                 break;
               }  /* if */
-              /* If the parameter from the template is a pack, enter a rescan
-                 context.  The actual type will be compared against the
-                 template type for each of the remaining actual parameter
+              /* If the parameter from the template is a pack, enter a pack
+                 deduction context.  The actual type will be compared against
+		 the template type for each of the remaining actual parameter
                  types, but a new argument value will be deduced for each
                  one. */
-              if (tptp->is_parameter_pack) {
-                /* FIXME */
+              if (tptp->is_parameter_pack && pesep == NULL) {
+                begin_pack_deduction_context(tptp->pack_expansion_descr,
+                                             templ_param_list,
+                                             templ_arg_list,
+                                             &pesep);
               }  /* if */
               tp = ptp->type;
               ttp = tptp->type;
@@ -7487,8 +7490,21 @@ points to the template parameter list.
                 break;
               }  /* if */
               ptp = ptp->next;
-              tptp = tptp->next;
+              if (pesep != NULL) {
+                /* If this is a pack deduction, indicate we are starting
+                   the deduction of a (potential) new element. */ 
+                advance_to_next_deduced_element(pesep);
+              } else {
+                /* For non-pack contexts, advance to the next function
+                   parameter from the template. */
+                tptp = tptp->next;
+              }  /* if */
             }  /* for */
+            if (pesep != NULL) {
+              /* If this is a pack deduction, indicate we have reached the
+                 end of the deduction this parameter. */
+              end_pack_deduction_context(pesep);
+            }  /* if */
             if (match) {
               /* The routine types match so far.  Make sure the implicit
                  this classes, if present, match. */
@@ -10526,9 +10542,9 @@ matching process.
       /* Too many params to match this template. */
       goto done;
     }  /* if */
-    other_ptp = other_ptp->next;
+    if (!other_ptp->is_parameter_pack) other_ptp = other_ptp->next;
   }  /* if */
-  if (other_ptp != NULL) {
+  if (other_ptp != NULL && !other_ptp->is_parameter_pack) {
     /* Too many args in function template (and therefore in each of its
        instantiations) to justify looking any further. */
     goto done;
@@ -10603,8 +10619,9 @@ matching process.
     for (tip = tssp->variant.function.instantiations;
          tip != NULL;
          tip = tip->next) {
-      a_routine_ptr	rout;
-      /* We used to skip entries that represent specific declarations.
+      a_routine_ptr			rout;
+      an_equiv_templ_arg_options_set	eta_options;
+    /* We used to skip entries that represent specific declarations.
          This is no longer done because these entries must be examined this
          routine is called during instantiation pragma processing. */
       sym = tip->instance_sym;
@@ -10612,8 +10629,9 @@ matching process.
          happens when verify_routine_type_matches_template is called. */
       if (sym == NULL) continue;
       rout = sym->variant.routine.ptr;
+      eta_options = tssp->is_variadic ? ETA_IS_VARIADIC : ETA_NO_OPTIONS;
       if (equiv_template_arg_lists(*templ_arg_list, rout->template_arg_list,
-                                   ETA_NO_OPTIONS)) {
+                                   eta_options)) {
         /* The template argument lists match.  Return the symbol for this
            template. */
         *instance_sym = sym;

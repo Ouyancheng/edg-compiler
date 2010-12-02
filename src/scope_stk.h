@@ -267,6 +267,13 @@ typedef struct a_pack_reference {
 			   template argument entry to be used for the current
 			   expansion. */
   } curr_argument;
+  a_template_arg_ptr
+		prev_template_arg;
+			/* This is used during deduction to point to the
+			   previous template argument of a template
+			   parameter pack.  Initially, this points to the
+			   placeholder.  Later it points to the last of the
+			   arguments deduced so far. */
 } a_pack_reference;
 
 
@@ -364,7 +371,15 @@ typedef struct a_pack_expansion_stack_entry {
 			/* TRUE when the expansion is being done in an
 			   expression rescan context.  In such contexts the
 			   current values of the packs are maintained, but
-			   not token manipulation or checking is done. */
+			   no token manipulation or checking is done. */
+  a_byte_boolean
+		is_deduction;
+			/* TRUE when the expansion is being done in an
+			   template argument deduction context.  In such
+			   contexts a new template argument is created for
+			   each pack element produced by the deduction
+			   process, but no token manipulation or checking
+			   is done. */
 } a_pack_expansion_stack_entry;
 
 
@@ -1642,8 +1657,20 @@ extern a_boolean begin_rescan_pack_expansion_context(
 		a_template_arg_ptr			templ_arg_list,
 		a_pack_expansion_stack_entry_ptr	*p_pesep);
 
+extern void begin_pack_deduction_context(
+		a_pack_expansion_descr_ptr		pedp,
+		a_template_param_ptr			templ_param_list,
+		a_template_arg_ptr			*templ_arg_list,
+		a_pack_expansion_stack_entry_ptr	*p_pesep);
+
 extern a_boolean begin_potential_pack_expansion_context(
 			a_pack_expansion_stack_entry_ptr	*p_pesep);
+
+extern void advance_to_next_deduced_element(
+				a_pack_expansion_stack_entry_ptr	pesep);
+
+extern void end_pack_deduction_context(
+			a_pack_expansion_stack_entry_ptr	pesep);
 
 extern a_pack_expansion_descr_ptr end_potential_pack_expansion_context(
 			a_pack_expansion_stack_entry_ptr	pesep,
