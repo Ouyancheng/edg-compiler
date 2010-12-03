@@ -580,6 +580,7 @@ entries are used to hold arguments of function calls.
   }  /* if */
   aop->next = NULL;
   clear_operand((an_operand_kind)ok_error, &aop->operand);
+  aop->lifetime = NULL;
   return aop;
 }  /* alloc_arg_operand */
 
@@ -595,15 +596,25 @@ Set the fields of an expression cache to default values.
 
 
 void add_operand_to_expression_cache(an_operand          *operand,
+                                     a_boolean           preserve_lifetime,
                                      an_expression_cache *cache)
 /*
 Add the indicated operand to the end of the queue of expressions in the
-indicated expression cache.
+indicated expression cache.  If preserve_lifetime is TRUE, save the
+current expression stack lifetime for later restoration when the operand
+is removed from the cache.
 */
 {
   an_arg_operand_ptr arg_op = alloc_arg_operand();
 
   copy_operand(operand, &arg_op->operand);
+  if (preserve_lifetime && expr_stack->lifetime != NULL) {
+    /* Preserve the lifetime associated with the expression. */
+    check_assertion(curr_object_lifetime == expr_stack->lifetime);
+    arg_op->lifetime = expr_stack->lifetime;
+    curr_object_lifetime = curr_object_lifetime->parent_lifetime;
+    expr_stack->lifetime = NULL;
+  }  /* if */
   if (cache->first_expression == NULL) {
     cache->first_expression = arg_op;
   } else {
@@ -617,7 +628,10 @@ a_boolean fetch_operand_from_expression_cache(an_operand *operand)
 /*
 Remove the first expression from the active expression cache associated
 with the current expression stack, return it in *operand, and return TRUE.
-If there is no cache or the cache is empty, return FALSE.
+If there is no cache or the cache is empty, return FALSE.  Also restore
+the lifetime associated with the expression, if any.  The current lifetime
+on the expression stack is discarded in that case.  That implies that this
+routine must be called after the expression stack has been pushed.
 */
 {
   a_boolean           result = FALSE;
@@ -628,6 +642,14 @@ If there is no cache or the cache is empty, return FALSE.
     if (arg_op != NULL) {
       result = TRUE;
       copy_operand(&arg_op->operand, operand);
+      if (arg_op->lifetime != NULL) {
+        /* Restore the object lifetime associated with the cached
+           expression. */
+        check_assertion(curr_object_lifetime != NULL &&
+                        is_useless_object_lifetime(curr_object_lifetime));
+        (void)pop_object_lifetime();
+        curr_object_lifetime = expr_stack->lifetime = arg_op->lifetime;
+      }  /* if */
       cache->first_expression = arg_op->next;
       if (cache->first_expression == NULL) {
         cache->last_expression = NULL;

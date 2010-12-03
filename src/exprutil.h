@@ -473,6 +473,11 @@ typedef struct an_arg_operand {
 			   last argument. */
   an_operand	operand;
 			/* The argument value. */
+  an_object_lifetime_ptr
+		lifetime;
+			/* When this entry is in an expression cache, non-NULL
+			   to preserve a full-expression lifetime until the
+			   point when the expression is rescanned. */
 } an_arg_operand;
 
 
@@ -961,7 +966,7 @@ should be consumed before taking more expressions from source or a rescan.
 */
 #define cached_expression_present() \
   (expr_stack->expression_cache != NULL && \
-   expr_stack->expression_cache->first_expression != NULL)
+   anything_cached(expr_stack->expression_cache))
 
 
 /* Copy an operand.  Note that this does not copy the subtree of the
@@ -1085,9 +1090,10 @@ extern an_arg_operand_ptr alloc_arg_operand(void);
 
 extern void clear_expression_cache(struct an_expression_cache *cache);
 
-extern void add_operand_to_expression_cache(
-                                           an_operand                 *operand,
-                                           struct an_expression_cache *cache);
+extern
+void add_operand_to_expression_cache(an_operand          *operand,
+                                     a_boolean           preserve_lifetime,
+                                     an_expression_cache *cache);
 
 extern
 a_boolean fetch_operand_from_expression_cache(an_operand *operand);

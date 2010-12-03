@@ -161,8 +161,8 @@ reflected in start_secondary_declarator.
   ps->prev_type = NULL;
   ps->auto_type = NULL;
   ps->deduced_auto_type = NULL;
-  clear_expression_cache(&ps->prescanned_auto_initializer_cache);
-  ps->prescanned_lifetime = NULL;
+  clear_expression_cache(&ps->prescanned_initializer_cache);
+  ps->prescanned_initializer_levels_down = 0;
   ps->source_sequence_entry = NULL;
   ps->param_id = NULL;
   ps->alignment = 0;
@@ -14991,8 +14991,8 @@ related-fields of *ps prior to scanning the next declarator.
   ps->storage_class = ps->declared_storage_class;
   ps->declared_type = ps->specifiers_type;
   ps->type = ps->specifiers_type;
-  clear_expression_cache(&ps->prescanned_auto_initializer_cache);
-  ps->prescanned_lifetime = NULL;
+  clear_expression_cache(&ps->prescanned_initializer_cache);
+  ps->prescanned_initializer_levels_down = 0;
   ps->source_sequence_entry = NULL;
   ps->alignment = 0;
 }  /* start_secondary_declarator */

@@ -16425,7 +16425,7 @@ Deduction failures are diagnosed as errors.
   a_boolean             subst_error = FALSE;
 
   check_assertion(dps->auto_type_specifier_seen && dps->auto_type != NULL);
-  auto_arg_operand = dps->prescanned_auto_initializer_cache.first_expression;
+  auto_arg_operand = dps->prescanned_initializer_cache.first_expression;
   check_assertion(auto_arg_operand != NULL && auto_arg_operand->next == NULL);
   arg = &auto_arg_operand->operand;
   arg_type = arg->type;

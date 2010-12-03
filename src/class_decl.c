@@ -10346,7 +10346,9 @@ respectively.
   (void)get_token();
   /* Scan the constant expression. */
   cp = alloc_constant((a_constant_repr_kind)ck_error);
-  scan_constant_initializer_expression(member_type, cp);
+  scan_constant_initializer_expression(member_type,
+                                       &decl_info->decl_state,
+                                       cp);
   /* Enter the constant name in the symbol table.  Do this after scanning
      the expression to avoid problems with a recursive reference, though
      it may mean the order in which errors are issued is a little strange. */

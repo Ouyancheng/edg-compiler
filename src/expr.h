@@ -237,7 +237,8 @@ extern a_boolean scan_aggregate_initializer_expression(
                                    a_type_ptr         required_type,
                                    a_boolean          static_lifetime,
                                    a_boolean          suppress_object_lifetime,
-                                   unsigned long      *levels_down,
+                                   a_decl_parse_state *dps,
+                                   a_boolean          *whole_string_init,
                                    a_boolean          *is_constant,
                                    a_dynamic_init_ptr *dip,
                                    a_constant         *constant);
@@ -294,8 +295,10 @@ extern void scan_member_constant_initializer_expression(
                                                  a_constant         *constant);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-extern void scan_constant_initializer_expression(a_type_ptr required_type,
-                                                 a_constant *constant);
+extern
+void scan_constant_initializer_expression(a_type_ptr         required_type,
+                                          a_decl_parse_state *dps,
+                                          a_constant         *constant);
 
 #if !STANDALONE_UTILITY_PROGRAM
 extern void scan_dependent_type_parenthesized_initializer(

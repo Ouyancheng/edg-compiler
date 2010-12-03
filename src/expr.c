@@ -131,7 +131,7 @@ cases.
 */
 {
   a_boolean          do_deduction = TRUE;
-  an_arg_operand_ptr auto_arg_operand = dps->prescanned_auto_initializer_cache.
+  an_arg_operand_ptr auto_arg_operand = dps->prescanned_initializer_cache.
                                                               first_expression;
 
   check_assertion(auto_arg_operand != NULL && auto_arg_operand->next == NULL);
@@ -163,7 +163,7 @@ deduce the type of the variable.  The operand resulting from the scan is
 recorded in *dps for later consumption.  On return, dps->deduced_auto_type is
 the type to which the "auto" was deduced, and dps->type is the type of the
 entity to initialize.  The prescanned operand can later be accessed using
-set_up_auto_initializer_rescan.
+set_up_initializer_rescan.
 */
 {
   an_expr_stack_entry expr_stack_entry;
@@ -199,49 +199,33 @@ set_up_auto_initializer_rescan.
      implies. */
   scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   add_operand_to_expression_cache(&operand,
-                                  &dps->prescanned_auto_initializer_cache);
+                                  /*preserve_lifetime=*/!dps->is_new_expr_type,
+                                  &dps->prescanned_initializer_cache);
   deduce_auto_type_if_necessary(dps);
   /* Pop the expression stack if needed. */
   if (!dps->is_new_expr_type) {
-    if (!dps->in_class_scope) {
-      /* Save the associated object lifetime entry for later restoration by
-         set_up_auto_initializer_rescan. */
-      dps->prescanned_lifetime = expr_stack->lifetime;
-      curr_object_lifetime = curr_object_lifetime->parent_lifetime;
-      expr_stack->lifetime = NULL;
-    }  /* if */
     pop_expr_stack();
     restore_expr_stack(saved_expr_stack);
   }  /* if */
 }  /* prescan_initializer_for_auto_type_deduction */
 
 
-static void set_up_auto_initializer_rescan(a_decl_parse_state *dps)
+static void set_up_initializer_rescan(a_decl_parse_state *dps)
 /*
-If the initializer for an entity typed using the "auto" type specifier
-was previously scanned and saved in dps->prescanned_auto_initializer_cache,
-activate that expression cache so that the expression will be consumed
-next before any more expressions are scanned.  Otherwise, do nothing.
-If needed, this routine will also restore in the newly pushed
-expression stack entry the object lifetime produced during the prescan
-process (and therefore this routine should not be called before that
-expression stack entry has been pushed).
+If the initializer for an entity was previously scanned and saved in
+dps->prescanned_initializer_cache, activate that expression cache so
+that the expression will be consumed next before any more expressions
+are scanned.  Otherwise, do nothing.  Also do nothing if dps is NULL
+on entry.
 */
 {
   if (dps != NULL &&
-      dps->prescanned_auto_initializer_cache.first_expression != NULL) {
-    if (!dps->is_new_expr_type && dps->prescanned_lifetime != NULL) {
-      /* The call to push_expr_stack will have pushed an object lifetime entry.
-         Remove it (to deallocate it) before restoring the entry associated
-         with the prescan. */
-      (void)pop_object_lifetime();
-      curr_object_lifetime = expr_stack->lifetime = dps->prescanned_lifetime;
-    }  /* if */
+      anything_cached(&dps->prescanned_initializer_cache)) {
     check_assertion(expr_stack != NULL &&
                     expr_stack->expression_cache == NULL);
-    expr_stack->expression_cache = &dps->prescanned_auto_initializer_cache;
+    expr_stack->expression_cache = &dps->prescanned_initializer_cache;
   }  /* if */
-}  /* set_up_auto_initializer_rescan */
+}  /* set_up_initializer_rescan */
 
 
 void scan_and_discard_initializer_expression(a_decl_parse_state  *dps)
@@ -259,7 +243,7 @@ initializer.  This routine is called for error recovery purposes.
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
-  set_up_auto_initializer_rescan(dps);
+  set_up_initializer_rescan(dps);
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   pop_expr_stack();
 }  /* scan_and_discard_initializer_expression */
@@ -896,16 +880,23 @@ A pointer to the resulting operand list is returned.
 */
 {
   a_boolean           after_cached_expr = FALSE;
-  an_arg_operand_ptr  result = NULL, *p_arg = &result;
+  an_operand_ptr      operand;
+  an_arg_operand_ptr  arg_op;
+  an_arg_operand_ptr  arg_operand_list = NULL, end_arg_operand_list = NULL;
 
-  if (cached_expression_present()) {
-    /* Pick up any cached expressions first. */
-    result = expr_stack->expression_cache->first_expression;
-    p_arg = &expr_stack->expression_cache->last_expression->next;
-    clear_expression_cache(expr_stack->expression_cache);
-    expr_stack->expression_cache = NULL;
+  /* Pick up any cached expressions first. */
+  while (cached_expression_present()) {
+    arg_op = alloc_arg_operand();
+    operand = &arg_op->operand;
+    scan_expr(operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    if (arg_operand_list == NULL) {
+      arg_operand_list = arg_op;
+    } else {
+      end_arg_operand_list->next = arg_op;
+    }  /* if */
+    end_arg_operand_list = arg_op;
     after_cached_expr = TRUE;
-  }  /* if */
+  }  /* while */
   /* Check for an empty argument list (or the end, if we picked up some
      cached expressions). */
   if (curr_token != tok_rparen) {
@@ -931,13 +922,17 @@ A pointer to the resulting operand list is returned.
       while (any_more) {
         /* Add an entry to the argument operand list. */
         a_pack_expansion_descr_ptr pedep;
-        an_operand_ptr             operand;
-        *p_arg = alloc_arg_operand();
-        operand = &(*p_arg)->operand;
+        arg_op = alloc_arg_operand();
+        operand = &arg_op->operand;
         /* Scan an argument expression.  Note that it is not converted to an
            rvalue yet. */
         scan_expr(operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-        p_arg = &(*p_arg)->next;
+        if (arg_operand_list == NULL) {
+          arg_operand_list = arg_op;
+        } else {
+          end_arg_operand_list->next = arg_op;
+        }  /* if */
+        end_arg_operand_list = arg_op;
         /* If this is a pack expansion, swallow the trailing "..." and
            loop for the next iteration of the expansion. */
         pedep = end_potential_pack_expansion_context(pesep,
@@ -957,7 +952,7 @@ A pointer to the resulting operand list is returned.
     } while (loop_token(tok_comma));
     remove_stop_token(tok_comma);
   }  /* if */
-  return result;
+  return arg_operand_list;
 }  /* scan_expr_list */
 
 
@@ -1017,6 +1012,7 @@ template pack expansions into multiple expressions as necessary.
 */
 {
   an_expr_node_ptr   arg_expr;
+  an_arg_operand_ptr arg_op;
   an_arg_operand_ptr arg_operand_list = NULL, end_arg_operand_list = NULL;
 
   if (cached_expression_present()) {
@@ -1027,12 +1023,19 @@ template pack expansions into multiple expressions as necessary.
        appear alone on a list.  If we couldn't count on that, we'd
        have to figure out how many expressions on the rescan list
        correspond to cached expressions so we could throw away just
-       the number. */
-    arg_operand_list = expr_stack->expression_cache->first_expression;
-    end_arg_operand_list = expr_stack->expression_cache->last_expression;
-    clear_expression_cache(expr_stack->expression_cache);
-    expr_stack->expression_cache = NULL;
+       that number. */
+    do {
+      arg_op = alloc_arg_operand();
+      scan_expr(&arg_op->operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+      if (arg_operand_list == NULL) {
+        arg_operand_list = arg_op;
+      } else {
+        end_arg_operand_list->next = arg_op;
+      }  /* if */
+      end_arg_operand_list = arg_op;
+    } while (cached_expression_present());
   } else {
+    /* No cached expressions; rescan the expression list. */
     for (arg_expr = expr_list;
          arg_expr != NULL && !arg_expr->generated_default_arg;
          arg_expr = arg_expr->next) {
@@ -1043,7 +1046,7 @@ template pack expansions into multiple expressions as necessary.
                               rcblock);
       } else {
         /* Normal case, not a pack expansion. */
-        an_arg_operand_ptr arg_op = alloc_arg_operand();
+        arg_op = alloc_arg_operand();
         make_rescan_operand(arg_expr, rcblock, &arg_op->operand);
         if (arg_operand_list == NULL) {
           arg_operand_list = arg_op;
@@ -11714,9 +11717,9 @@ in *rcblock).
         dps.declared_type = new_type;
         make_rescan_operand(rcblock->argument_list, rcblock,
                             &auto_operand);
-        add_operand_to_expression_cache(
-                                       &auto_operand,
-                                       &dps.prescanned_auto_initializer_cache);
+        add_operand_to_expression_cache(&auto_operand,
+                                        /*preserve_lifetime=*/FALSE,
+                                        &dps.prescanned_initializer_cache);
         dps.declarator_pos = dps.auto_pos = type_position;
         dps.auto_type_specifier_seen = TRUE;
         /* Do the deduction. */
@@ -11774,7 +11777,7 @@ in *rcblock).
     }  /* if */
     /* Activate the prescanned expression cache so the expression will be
        considered pre-scanned for the code below. */
-    set_up_auto_initializer_rescan(&dps);
+    set_up_initializer_rescan(&dps);
   }  /* if */
   unqual_new_type = skip_typerefs(new_type);
   /* Instantiate the type if it is a template class. */
@@ -22544,6 +22547,7 @@ see expr.h).
       fetch_operand_from_expression_cache(result)) {
     /* Return a cached expression rather than scanning a new one from
        source. */
+    error_position = result->position;
     goto end_of_routine;
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
@@ -25697,7 +25701,7 @@ standard form).  Assumes copy-initialization ("="-form).
     /* Note than g++ did start disallowing some extensions in version 3.4,
        but it continues to allow float constants, so we continue to
        use the slightly-too-broad extended version. */
-    scan_constant_initializer_expression(dps->type, constant);
+    scan_constant_initializer_expression(dps->type, dps, constant);
   } else {
     /* The kind of expression stack entry pushed here must match that pushed
        by prescan_initializer_for_auto_type_deduction. */
@@ -25706,7 +25710,7 @@ standard form).  Assumes copy-initialization ("="-form).
                     &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
-    set_up_auto_initializer_rescan(dps);
+    set_up_initializer_rescan(dps);
     /* Scan the constant expression. */
     scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
     /* Convert to the required type. */
@@ -25737,14 +25741,16 @@ standard form).  Assumes copy-initialization ("="-form).
 }  /* scan_member_constant_initializer_expression */
 
 
-void scan_constant_initializer_expression(a_type_ptr required_type,
-                                          a_constant *constant)
+void scan_constant_initializer_expression(a_type_ptr         required_type,
+                                          a_decl_parse_state *dps,
+                                          a_constant         *constant)
 /*
 Scan a constant initializer expression.  Convert the constant to
 required_type; issue an error if it is incompatible with that type.
-See section 3.4 in the ANSI C standard.  Used in C++ for scanning
-nonstandard class member constants.  Assumes copy-initialization
-("="-form).
+dps describes the current declaration, or is NULL if there isn't one.
+Used in C for scanning initializers for static variables.
+Used in C++ for scanning nonstandard class member constants; assumes
+copy-initialization ("="-form).
 */
 {
   an_operand          result;
@@ -25760,6 +25766,7 @@ nonstandard class member constants.  Assumes copy-initialization
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   transfer_expr_context_if_applicable(saved_expr_stack);
+  set_up_initializer_rescan(dps);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   if (gnu_mode && is_array_type(required_type) && is_array_type(result.type)) {
@@ -25901,24 +25908,27 @@ scan_aggregate_initializer_expression.
     expr_stack->favor_constant_result = TRUE;
   }  /* if */
   if (dps != NULL) {
-    check_assertion(dps->sym != NULL);
-    if (dps->sym->kind == (a_symbol_kind)sk_static_data_member) {
-      /* Record entities defined in the initializer expression (needed for
-         correspondence checking and name mangling when the static data member
-         is a template instance).  In the case of aggregate initializers, this
-         routine may be called multiple times for the same initializer: Ensure
-         that additional entries are appended to any existing entries. */
-      an_il_entity_list_entry_ptr  *ep;
-      sdm_var = dps->sym->variant.static_data_member.variable;
-      ep = &sdm_var->entities_defined_in_initializer;
-      while (*ep != NULL) ep = &(*ep)->next;
-      expr_stack_entry.p_end_of_entities_defined_in_expression = ep;
-    } else {
-      check_assertion(dps->sym->kind == (a_symbol_kind)sk_variable ||
-                      dps->sym->is_error ||
-                      dps->sym->kind == (a_symbol_kind)sk_parameter);
+    /* dps->sym is NULL for compound literals. */
+    if (dps->sym != NULL) {
+      if (dps->sym->kind == (a_symbol_kind)sk_static_data_member) {
+        /* Record entities defined in the initializer expression (needed for
+           correspondence checking and name mangling when the static data
+           member is a template instance).  In the case of aggregate
+           initializers, this routine may be called multiple times for
+           the same initializer: Ensure that additional entries are
+           appended to any existing entries. */
+        an_il_entity_list_entry_ptr  *ep;
+        sdm_var = dps->sym->variant.static_data_member.variable;
+        ep = &sdm_var->entities_defined_in_initializer;
+        while (*ep != NULL) ep = &(*ep)->next;
+        expr_stack_entry.p_end_of_entities_defined_in_expression = ep;
+      } else {
+        check_assertion(dps->sym->kind == (a_symbol_kind)sk_variable ||
+                        dps->sym->is_error ||
+                        dps->sym->kind == (a_symbol_kind)sk_parameter);
+      }  /* if */
     }  /* if */
-    set_up_auto_initializer_rescan(dps);
+    set_up_initializer_rescan(dps);
   }  /* if */
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
@@ -26167,7 +26177,7 @@ As indicated, this is initialization with the "=" semantics
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   transfer_expr_context_if_applicable(saved_expr_stack);
-  set_up_auto_initializer_rescan(dps);
+  set_up_initializer_rescan(dps);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Find out whether or not the conversion is possible, and
@@ -26194,7 +26204,8 @@ a_boolean scan_aggregate_initializer_expression(
                                    a_type_ptr         required_type,
                                    a_boolean          static_lifetime,
                                    a_boolean          suppress_object_lifetime,
-                                   unsigned long      *levels_down,
+                                   a_decl_parse_state *dps,
+                                   a_boolean          *whole_string_init,
                                    a_boolean          *is_constant,
                                    a_dynamic_init_ptr *dip,
                                    a_constant         *constant)
@@ -26210,25 +26221,33 @@ with initialization of aggregate class types, but it can be called for
 non-aggregate class types as well.  It also handles certain array
 initialization cases, and compound literals (suppress_object_lifetime
 is TRUE in that case to suppress the pushing of a new object lifetime).
+The initializer expression undergoes appropriate conversions to make
+it match up with the entity being initialized.  If the conversion
+cannot be done, an error is issued and FALSE is returned.
 
 The initializer for an aggregate can initialize either the whole
 aggregate or the first member of the aggregate (or its first member, etc.).
 This routine compares the type of the initializer expression to the type
 of the aggregate, then its first member, etc. to determine which entity
-should be initialized.  *levels_down is set to indicate the number of
-levels down at which the expression was matched up (zero indicates the
-aggregate itself).  The initializer expression undergoes appropriate
-conversions to make it match up with the entity being initialized.
-If the conversion cannot be done, an error is issued and FALSE is returned.
+should be initialized.  dps->prescanned_initializer_levels_down is set
+to indicate the number of levels down at which the expression was
+matched up (zero indicates the aggregate itself).  When the
+levels-down count is returned > 0, the initializer expression in put
+into dps->prescanned_initializer_cache rather than returned as a
+constant or dynamic initialization.  The expression can then be picked
+up on a subsequent call of this routine or on one of another
+initializer-expression scan routine.  Note that until we get to the
+right level, subsequent calls of this routine will just decrement the
+levels-down counter and return.
+
+If whole_string_init is non-NULL, in the case of the initialization of
+an array with a string literal the string is put back into the cache
+for later scanning, and *whole_string_init is returned TRUE.
 
 This routine is called to initialize a sub-aggregate, so the destructor
 pointer in the dynamic initialization is not set.  The caller must set
 it to indicate destruction for a partially-constructed aggregate (on
 a thrown exception) if that is appropriate.
-
-This routine is called in C++, C99, and GNU C modes for whole object
-initialization.  It is called in any C or C++ mode for certain character
-string initializers.
 */
 {
   an_operand          result;
@@ -26239,8 +26258,13 @@ string initializers.
   a_constant_ptr      string_con;
   a_conv_descr        conversion;
   an_expression_kind  expr_kind;
+  unsigned long       levels_down;
 
   db_enter(3, "scan_aggregate_initializer_expression");
+  check_assertion(dps != NULL);
+  if (whole_string_init != NULL) *whole_string_init = FALSE;
+  *is_constant = FALSE;
+  *dip = NULL;
   save_expr_stack(&saved_expr_stack);
   expr_kind = (an_expression_kind)ek_normal;
   if (C_mode() && (static_lifetime || !(c99_mode || gcc_mode))) {
@@ -26260,10 +26284,26 @@ string initializers.
        auto initialization, as well. */
     expr_stack->favor_constant_result = TRUE;
   }  /* if */
+  if (anything_cached(&dps->prescanned_initializer_cache)) {
+    /* There is a cached expression. */
+    levels_down = dps->prescanned_initializer_levels_down;
+    if (levels_down > 0) {
+      /* We previously decided this expression applies at a lower level.
+         See if we have reached that level yet. */
+      if (levels_down > 0) {
+        /* We still haven't reached that level, so leave the expression
+           in the cache.  Return nothing to the caller. */
+        goto wrap_up;
+      }  /* if */
+    }  /* if */
+    /* Set up to pick up the cached expression this time around. */
+    set_up_initializer_rescan(dps);
+  } else {
+    /* No cached expression. */
+    levels_down = 0;
+  }  /* if */
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  *is_constant = FALSE;
-  *levels_down = 0;
   /* See whether the expression can initialize the aggregate class.  If not,
      go down to the first member of the class and try again.  Loop until the
      right level is found or until we can go no further. */
@@ -26271,16 +26311,8 @@ string initializers.
     if (is_class_struct_union_type(required_type) &&
         (C_mode() ||
          symbol_supplement_for_class(required_type)->is_class_aggregate)) {
-      a_field_ptr first_field = next_initializable_field(
-                                    skip_typerefs(required_type)->
-                                        variant.class_struct_union.field_list);
-      if (first_field == NULL) {
-        /* Stop looping if the aggregate class has no members.  This is
-           normally an error, but GNU C treats it as an "excess initializer"
-           (which only elicits a warning). */
-        empty_aggregate = TRUE;
-        goto required_type_determined;
-      }  /* if */
+      /* required_type is an aggregate class type. */
+      a_field_ptr first_field;
       /* See whether the expression can be converted to the aggregate class
          type. */
       if (C_mode() ?
@@ -26298,9 +26330,19 @@ string initializers.
                                           &ambiguous,
                                           (a_candidate_function_ptr *)NULL) ||
              ambiguous)) goto required_type_determined;
+      first_field = next_initializable_field(
+                                    skip_typerefs(required_type)->
+                                        variant.class_struct_union.field_list);
+      if (first_field == NULL) {
+        /* Stop looping if the aggregate class has no members.  This is
+           normally an error, but GNU C treats it as an "excess initializer"
+           (which only elicits a warning). */
+        empty_aggregate = TRUE;
+        goto required_type_determined;
+      }  /* if */
       /* Go down to the first member. */
       required_type = first_field->type;
-      (*levels_down)++;
+      levels_down++;
     } else if (is_array_type(required_type)) {
       do {
         /* An array is also an aggregate.  However, generally the whole
@@ -26309,8 +26351,12 @@ string initializers.
           /* char array initialized by string literal, either one possibly
              wide.  Don't go down to the member type. */
           string_case = TRUE;
-          check_assertion(is_constant_operand(&result));
-          string_con = &result.variant.constant;
+          if (is_error_operand(&result)) {
+            string_con = NULL;
+          } else {
+            check_assertion(is_constant_operand(&result));
+            string_con = &result.variant.constant;
+          } /* if */
           goto required_type_determined;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_mode && is_string_type(required_type) &&
@@ -26329,7 +26375,7 @@ string initializers.
         } else {
           /* Normal case: initialize the first member of the array. */
           required_type = array_element_type(required_type);
-          (*levels_down)++;
+          levels_down++;
         }  /* if */
       } while (is_array_type(required_type));
     } else {
@@ -26337,23 +26383,48 @@ string initializers.
     }  /* if */
   }  /* for */
 required_type_determined:
-  if (is_aggregate_or_union_type(required_type)) {
+  /* Here, we've determined the level at which we're going to initialize the
+     aggregate, indicated by levels_down (0 is the top level).  We did that
+     either by finding a match (possibly via a conversion) at a given level,
+     or by reaching a non-aggregate member within the aggregate.  There
+     is no guarantee that the initializer expression can initialize the
+     member we've chosen; there may yet be an error later. */
+  if (levels_down > 0) {
+    /* We're not going to use the expression at this level, so put it into
+       the expression cache for use at some later point. */
+    add_operand_to_expression_cache(&result,
+                                    /*preserve_lifetime=*/TRUE,
+                                    &dps->prescanned_initializer_cache);
+  } else if (string_case && whole_string_init != NULL) {
+    /* The caller has asked that a whole-string initialization not be
+       handled in this routine. */
+    *whole_string_init = TRUE;
+    add_operand_to_expression_cache(&result,
+                                    /*preserve_lifetime=*/TRUE,
+                                    &dps->prescanned_initializer_cache);
+  } else if (is_aggregate_or_union_type(required_type)) {
     /* The entity being initialized has a class or array type. */
     if (string_case) {
-      a_type_ptr  orig_string_type = string_con->type;
-      a_boolean   excess = FALSE, *p_excess = gcc_mode ? &excess : NULL;
-      if (!check_string_constant_initializer_full(&required_type, string_con,
-                                                  p_excess)) {
-        if (expr_error_should_be_issued()) {
-          pos_ty2_error(ec_bad_initializer_type, &error_position,
-                        orig_string_type, required_type);
+      if (string_con == NULL) {
+        /* Previous error. */
+        *is_constant = TRUE;
+        set_error_constant(constant);
+      } else {
+        a_type_ptr  orig_string_type = string_con->type;
+        a_boolean   excess = FALSE, *p_excess = gcc_mode ? &excess : NULL;
+        if (!check_string_constant_initializer_full(&required_type, string_con,
+                                                    p_excess)) {
+          if (expr_error_should_be_issued()) {
+            pos_ty2_error(ec_bad_initializer_type, &error_position,
+                          orig_string_type, required_type);
+          }  /* if */
+        } else if (excess) {
+          expr_pos_warning(ec_excess_characters_in_literal_ignored,
+                           &error_position);
         }  /* if */
-      } else if (excess) {
-        expr_pos_warning(ec_excess_characters_in_literal_ignored,
-                         &error_position);
+        copy_constant(string_con, constant);
+        *is_constant = TRUE;
       }  /* if */
-      copy_constant(string_con, constant);
-      *is_constant = TRUE;
     } else if (gcc_mode && is_an_rvalue(&result) &&
                result.kind == (an_operand_kind)ok_constant &&
                (types_are_compatible_ignoring_qualifiers(result.type,
@@ -26423,11 +26494,13 @@ required_type_determined:
                    "scan_aggregate_initializer_expression: bad operand kind");
     }  /* switch */
   }  /* if */
-  pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+wrap_up:
+  dps->prescanned_initializer_levels_down = levels_down;
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
   db_exit();
   return okay;
 }  /* scan_aggregate_initializer_expression */
@@ -26482,7 +26555,7 @@ overall errors.
                   is_class_struct_union_type(class_type));
   cssp = symbol_supplement_for_class(class_type);
   check_assertion(cssp->constructor != NULL);
-  set_up_auto_initializer_rescan(dps);
+  set_up_initializer_rescan(dps);
   /* Scan the constructor argument list. */
   scan_ctor_arguments(cssp->constructor, source_pos,
                       object_class_type, (a_type_ptr)NULL,
@@ -26527,6 +26600,7 @@ current token is the one following the closing parenthesis.
   an_expr_stack_entry expr_stack_entry;
 
   db_enter(4, "scan_dependent_type_parenthesized_initializer");
+  check_assertion(!C_mode());
   save_expr_stack(&saved_expr_stack);
   /* Force an object lifetime around the initialization if this routine is
      called for a ctor-initializer. */
@@ -26534,8 +26608,7 @@ current token is the one following the closing parenthesis.
                   /*force_object_lifetime=*/(dps == NULL),
                   /*suppress_object_lifetime=*/FALSE);
   transfer_expr_context_if_applicable(saved_expr_stack);
-  check_assertion(!C_mode());
-  set_up_auto_initializer_rescan(dps);
+  set_up_initializer_rescan(dps);
   scan_dependent_parenthesized_initializer((a_rescan_control_block *)NULL,
                                            (an_operand *)NULL,
                                            dip);
