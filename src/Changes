@@ -1,5 +1,22 @@
 Version 4.3
 
+12/3/10  [EDGcpfe/11165]
+C++-generating back end: prototype instantiation name with unnamed parameters
+
+In configurations in which PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, a
+reference to the name of a class template prototype instantiation was
+generated as a qualified name, i.e., referring to the class template
+instead of to its injected-class-name, followed by a template argument list
+composed of the template parameters.  If one or more of the parameters is
+unnamed, the resulting output referred to an undeclared temporary name and
+consequently was uncompilable.  This has now been fixed so that the bare
+injected-class-name is used in such cases.  For example:
+
+  template<int> struct S {
+    S* next;  // Previously generated as ::S<__T29299888> *next
+  };
+
+
 12/2/10  [EDGcpfe/11180]
 C++-generating back end: abort with COMPILE_MULTIPLE_SOURCE_FILES
 

@@ -4548,6 +4548,43 @@ A reference is not the definition.
       /* A template instance is not declared, per se, but it should never be
          referred to by an elaborated-type-specifier. */
       type->has_been_declared = TRUE;
+      if (type->variant.class_struct_union.is_prototype_instantiation) {
+        /* Normally a reference to the name of a prototype instantiation
+           (which can only occur within the scope of the prototype
+           instantiation) will be generated as the qualified name of the
+           template followed by the template arguments, because the
+           injected-class-name hides the template name.  That's not usually
+           necessary because the injected-class-name will ordinarily be
+           visible, and the reference can't be generated in that form if
+           one of the parameters is unnamed.  In that case we need to
+           suppress the qualification and template argument list. */
+        a_template_arg_ptr arg;
+        for (arg = type->variant.class_struct_union.extra_info->
+                                                             template_arg_list;
+             arg != NULL; arg = arg->next) {
+          a_boolean has_name;
+          switch(arg->kind) {
+            case tak_type:
+              has_name = has_name_before_mangling(arg->variant.type);
+              break;
+            case tak_nontype:
+              has_name = has_name_before_mangling(arg->variant.constant);
+              break;
+            case tak_template:
+              has_name = has_name_before_mangling(arg->variant.templ.ptr);
+            case tak_start_of_pack_expansion:
+              has_name = FALSE;
+            default:
+              unexpected_condition();
+          }  /* switch */
+          if (!has_name) {
+            /* Suppress the qualification and template argument list. */
+            type->source_corresp.qualification_needed = FALSE;
+            options |= GN_NO_TEMPLATE_ARGS;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
     } else if (type->source_corresp.is_class_member) {
       /* You can't use an elaborated-type-specifier for the first use of a
          member type, either (this can happen with a member of a template
