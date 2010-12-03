@@ -231,7 +231,6 @@ extern an_expr_node_ptr prep_generated_arg_expr(an_expr_node_ptr  expr,
 #if !STANDALONE_UTILITY_PROGRAM
 extern a_boolean scan_class_initializer_expression(a_decl_parse_state  *dps,
                                                    a_dynamic_init_ptr  *dip);
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern a_boolean scan_aggregate_initializer_expression(
                                    a_type_ptr         required_type,
@@ -245,7 +244,6 @@ extern a_boolean scan_aggregate_initializer_expression(
 
 extern a_boolean token_ends_initializer(a_token_kind  token);
 
-#if !STANDALONE_UTILITY_PROGRAM
 extern void scan_class_parenthesized_initializer(
                                    a_type_ptr         class_type,
                                    a_type_ptr         object_class_type,
@@ -293,14 +291,11 @@ void rescan_dynamic_init_with_substitution(a_dynamic_init_ptr     dip,
 extern void scan_member_constant_initializer_expression(
                                                  a_decl_parse_state *dps,
                                                  a_constant         *constant);
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-
 extern
 void scan_constant_initializer_expression(a_type_ptr         required_type,
                                           a_decl_parse_state *dps,
                                           a_constant         *constant);
 
-#if !STANDALONE_UTILITY_PROGRAM
 extern void scan_dependent_type_parenthesized_initializer(
                                                      a_decl_parse_state *dps,
                                                      a_dynamic_init_ptr *dip);
