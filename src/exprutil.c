@@ -624,18 +624,19 @@ is removed from the cache.
 }  /* add_operand_to_expression_cache */
 
 
-a_boolean fetch_operand_from_expression_cache(an_operand *operand)
+a_boolean fetch_operand_from_expression_cache(an_operand          *operand,
+                                              an_expression_cache *cache)
 /*
-Remove the first expression from the active expression cache associated
-with the current expression stack, return it in *operand, and return TRUE.
-If there is no cache or the cache is empty, return FALSE.  Also restore
-the lifetime associated with the expression, if any.  The current lifetime
-on the expression stack is discarded in that case.  That implies that this
-routine must be called after the expression stack has been pushed.
+Remove the first expression from the indicated expression cache,
+return it in *operand, and return TRUE.  If there is no cache
+(cache == NULL) or the cache is empty, return FALSE.  Also restore the
+lifetime associated with the expression, if any.  The current lifetime
+on the expression stack is discarded in that case.  That implies that
+this routine must be called after the expression stack has been
+pushed.
 */
 {
-  a_boolean           result = FALSE;
-  an_expression_cache *cache = expr_stack->expression_cache;
+  a_boolean result = FALSE;
 
   if (cache != NULL) {
     an_arg_operand_ptr arg_op = cache->first_expression;
@@ -646,7 +647,8 @@ routine must be called after the expression stack has been pushed.
         /* Restore the object lifetime associated with the cached
            expression. */
         check_assertion(curr_object_lifetime != NULL &&
-                        is_useless_object_lifetime(curr_object_lifetime));
+                        is_useless_object_lifetime(curr_object_lifetime) &&
+                        curr_object_lifetime == expr_stack->lifetime);
         (void)pop_object_lifetime();
         curr_object_lifetime = expr_stack->lifetime = arg_op->lifetime;
       }  /* if */
@@ -656,10 +658,6 @@ routine must be called after the expression stack has been pushed.
       }  /* if */
       arg_op->next = NULL;
       free_arg_operand_list(arg_op);
-      if (cache->first_expression == NULL) {
-        /* The cache is empty, so disconnect it. */
-        expr_stack->expression_cache = NULL;
-      }  /* if */
     }  /* if */
   }  /* if */
   return result;

@@ -2204,6 +2204,7 @@ this function points to a tree that includes a dynamic-init entry.
   a_boolean                      top_level = (prev_init_context == NULL);
   a_source_position              initializer_pos;
   a_decl_parse_state             *dps;
+  a_boolean                      saved_initializer_is_expr_list;
 
   db_enter(4, "get_initializer");
   check_assertion(init_info != NULL);
@@ -2262,6 +2263,10 @@ this function points to a tree that includes a dynamic-init entry.
          our way down to the right level. */
       dps->prescanned_initializer_levels_down--;
     }  /* if */
+    /* Record that we're now processing a comma-separated expression list,
+       which enables variadic template pack expansions. */
+    saved_initializer_is_expr_list = dps->initializer_is_expr_list;
+    dps->initializer_is_expr_list = TRUE;
     if (!(brace_flag && is_template_dependent_type(*type)) &&
         process_string_constant_initializer(type, &init_con,
                                             (a_decl_parse_state *)NULL,
@@ -2765,6 +2770,7 @@ this function points to a tree that includes a dynamic-init entry.
         }  /* if */
       }  /* if */
     }  /* if */  
+    dps->initializer_is_expr_list = saved_initializer_is_expr_list;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (brace_flag && curr_token == tok_rbrace) {
       init_info->init_end_position = pos_curr_token;
@@ -3556,7 +3562,8 @@ returned set to TRUE.
       error(ec_auto_brace_initialization_not_allowed);
       vp->type = vp_type = error_type();
     } else {
-      prescan_initializer_for_auto_type_deduction(dps);
+      prescan_initializer_for_auto_type_deduction(dps,
+                                                  parenthesized_initializer);
       vp_type = dps->type;
     }  /* if */
     if (is_error_type(vp_type)) {

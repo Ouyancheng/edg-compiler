@@ -557,6 +557,11 @@ typedef struct a_decl_parse_state {
 			/* TRUE if this is a member function on which the
 			   "override" attribute (C++0x) attribute or modifier
 			   (Microsoft) can be specified. */
+  a_bit_field	initializer_is_expr_list:1;
+			/* TRUE if the part of the entity's initializer being
+			   scanned now is an element on an expression list.
+			   If so, variadic template pack expansions are
+			   allowed. */
   an_attribute_ptr
 		prefix_attributes;
 			/* A list of non-type-transforming attributes scanned

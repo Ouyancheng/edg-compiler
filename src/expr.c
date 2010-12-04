@@ -64,6 +64,9 @@ static void scan_expr_full(an_operand              *result,
                            an_operand              *bound_function_selector,
                            int                      prec_level,
                            a_local_expr_options_set local_options);
+static void scan_initializer_expr_with_potential_pack_expansion(
+                                                  a_decl_parse_state *dps,
+                                                  an_operand         *operand);
 /* Interface to scan_expr_full for the simple case where a bound function
    cannot be returned. */
 #define scan_expr(result, prec_level, local_options)                  \
@@ -156,14 +159,17 @@ cases.
 }  /* deduce_auto_type_if_necessary */
 
 
-void prescan_initializer_for_auto_type_deduction(a_decl_parse_state  *dps)
+void prescan_initializer_for_auto_type_deduction(
+                                         a_decl_parse_state *dps,
+                                         a_boolean          parenthesized_init)
 /*
 Prescan an initializer expression for an "auto" type variable declaration and
 deduce the type of the variable.  The operand resulting from the scan is
 recorded in *dps for later consumption.  On return, dps->deduced_auto_type is
 the type to which the "auto" was deduced, and dps->type is the type of the
 entity to initialize.  The prescanned operand can later be accessed using
-set_up_initializer_rescan.
+set_up_initializer_rescan.  The initializer is parenthesized if
+parenthesized_init is TRUE; otherwise, it's "="-form.
 */
 {
   an_expr_stack_entry expr_stack_entry;
@@ -197,7 +203,16 @@ set_up_initializer_rescan.
   /* Scan the expression and save it in an expression cache so it can be
      scanned as the initializer later, and deduce the "auto" type it
      implies. */
-  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  if (parenthesized_init) {
+    /* In the parenthesized case, the expression is syntactically part
+       of an expression-list, even though there must be a single expression,
+       which means potentially it is a pack expansion. */
+    dps->initializer_is_expr_list = TRUE;
+    scan_initializer_expr_with_potential_pack_expansion(dps, &operand);
+  } else {
+    /* In the non-parenthesized case, it's just a simple expression. */
+    scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  }  /* if */
   add_operand_to_expression_cache(&operand,
                                   /*preserve_lifetime=*/!dps->is_new_expr_type,
                                   &dps->prescanned_initializer_cache);
@@ -871,6 +886,22 @@ This routine is also used when scanning __builtin_offsetof constructs.
 }  /* scan_subscript_operator */
 
 
+static void mark_operand_as_pack_expansion(an_operand                 *operand,
+                                           a_pack_expansion_descr_ptr pedep)
+/*
+operand is a variadic template pack expansion scanned in a prototype
+instantiation.  Mark it as such.  pedep points to the pack expansion
+description block.
+*/
+{
+  an_expr_node_ptr expr;
+
+  operand->pack_expansion_descr = pedep;
+  expr = expr_node_from_operand(operand);
+  if (expr != NULL) expr->is_pack_expansion = TRUE;
+}  /* mark_operand_as_pack_expansion */
+
+
 static an_arg_operand_ptr scan_expr_list(a_boolean  trailing_comma_okay)
 /*
 Scan a comma-separated list of expressions.  The list must be terminated by a
@@ -918,14 +949,15 @@ A pointer to the resulting operand list is returned.
       }  /* if */
       /* Each expression on the list is potentially a pack expansion
          ended by "...". */
+      /* Note that the code here is very similar to
+         scan_potential_pack_expansion_initializer_expr. */
       any_more = begin_potential_pack_expansion_context(&pesep);
       while (any_more) {
         /* Add an entry to the argument operand list. */
         a_pack_expansion_descr_ptr pedep;
         arg_op = alloc_arg_operand();
         operand = &arg_op->operand;
-        /* Scan an argument expression.  Note that it is not converted to an
-           rvalue yet. */
+        /* Scan an argument expression. */
         scan_expr(operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
         if (arg_operand_list == NULL) {
           arg_operand_list = arg_op;
@@ -942,10 +974,7 @@ A pointer to the resulting operand list is returned.
              it's followed by "...".  Furthermore, we're in the prototype
              instantiation, so we record the expansion information on the
              expression. */
-          an_expr_node_ptr expr;
-          operand->pack_expansion_descr = pedep;
-          expr = expr_node_from_operand(operand);
-          if (expr != NULL) expr->is_pack_expansion = TRUE;
+          mark_operand_as_pack_expansion(operand, pedep);
         }  /* if */
         any_more = advance_to_next_pack_element(pesep);
       }  /* while */
@@ -1248,21 +1277,28 @@ does some special error-recovery processing to handle additional
 unexpected expressions more gracefully.
 */
 {
-  a_token_set_array_element save_comma_stop_token_count;
-  a_token_set_array_element *comma_entry_ptr;
+  if (cached_expression_present()) {
+    /* There's a cached expression, so the closing paren is not "next". */
+    an_arg_operand_ptr arg_op = expr_stack->expression_cache->first_expression;
+    expr_pos_error(ec_exp_rparen, &arg_op->operand.position);
+  } else {
+    a_token_set_array_element save_comma_stop_token_count;
+    a_token_set_array_element *comma_entry_ptr;
 
-  /* Remove comma from the stop tokens set. */
-  comma_entry_ptr = &(curr_stop_token_stack_entry->
+    /* Remove comma from the stop tokens set. */
+    comma_entry_ptr = &(curr_stop_token_stack_entry->
                                                 stop_tokens[(int)tok_comma]);
-  save_comma_stop_token_count = *comma_entry_ptr;
-  *comma_entry_ptr = 0;
-  (void)required_token(tok_rparen, ec_exp_rparen);
-  /* Restore comma as a stop token (if it was one). */
-  *comma_entry_ptr = save_comma_stop_token_count;
+    save_comma_stop_token_count = *comma_entry_ptr;
+    *comma_entry_ptr = 0;
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    /* Restore comma as a stop token (if it was one). */
+    *comma_entry_ptr = save_comma_stop_token_count;
+  }  /* if */
 }  /* check_closing_paren_after_expr_list */
 
 
 static an_expr_node_ptr scan_parenthesized_initializer_expression(
+                                              a_decl_parse_state     *dps,
                                               a_rescan_control_block *rcblock,
                                               a_type_ptr             dest_type,
                                               an_error_code          err_code)
@@ -1272,8 +1308,10 @@ convert it to dest_type if necessary.  The current token is the token
 after the opening left parenthesis.  On return, the current token is
 the token following the closing parenthesis.  If the conversion cannot
 be done, issue the error err_code.  The entity being initialized is
-assumed not to be a variable.  If rcblock is non-NULL, redo semantic
-analysis on a previously-scanned initializer expression given by
+assumed not to be a variable.  dps provides information about the
+declaration context, but it's fabricated and not indicative of a real
+declaration.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned initializer expression given by
 rcblock->argument_list, and return the result as usual (or an error
 indication in *rcblock).
 */
@@ -1285,12 +1323,12 @@ indication in *rcblock).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   if (rcblock == NULL) add_matching_stop_token(tok_rparen);
+  /* Note that if there is a cached expression we take it in preference to
+     rescanning from rcblock. */
   if (rcblock != NULL && !cached_expression_present()) {
     make_rescan_operand(rcblock->argument_list, rcblock, &result);
   } else {
-    /* Since the syntax has an expression-list even in the single-expression
-       case, a top-level comma is not allowed. */
-    scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    scan_initializer_expr_with_potential_pack_expansion(dps, &result);
   }  /* if */
   /* Convert to the required type. */
   prep_initializer_operand(result_ptr, dest_type, (a_boolean *)NULL,
@@ -11749,7 +11787,8 @@ in *rcblock).
       (void)get_token();
       if (new_type_involves_auto) {
         /* Prescan the initializer to deduce the type to allocate. */
-        prescan_initializer_for_auto_type_deduction(&dps);
+        prescan_initializer_for_auto_type_deduction(&dps,
+                                                  /*parenthesized_init=*/TRUE);
         auto_deduction_attempted = TRUE;
       }  /* if */
     } else if (new_type_involves_auto) {
@@ -12308,6 +12347,7 @@ in *rcblock).
            is required, but before the initialization is actually processed. */
         make_dyn_init_for_deletion_for_throw();
         init_val_node = scan_parenthesized_initializer_expression(
+                                                &dps,
                                                 rcblock,
                                                 err ? error_type() : new_type,
                                                 ec_bad_initializer_type);
@@ -12345,6 +12385,12 @@ in *rcblock).
   }  /* if */
   expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
+  if (auto_deduction_attempted) {
+    /* Deactivate the expression cache used for "auto". */
+    check_assertion(expr_stack->expression_cache ==
+                                            &dps.prescanned_initializer_cache);
+    expr_stack->expression_cache = NULL;
+  }  /* if */
   /* Now build the IL for the operation. */
   if (err || (function_symbol == NULL && !unknown_dependent_new)) {
     /* Some error. */
@@ -22544,7 +22590,8 @@ see expr.h).
   }  /* if */
 #endif /* DEBUG */
   if (cached_expression_present() &&
-      fetch_operand_from_expression_cache(result)) {
+      fetch_operand_from_expression_cache(result,
+                                          expr_stack->expression_cache)) {
     /* Return a cached expression rather than scanning a new one from
        source. */
     error_position = result->position;
@@ -25680,6 +25727,131 @@ dynamic initialization after substitution.
 }  /* rescan_dynamic_init_with_substitution */
 
 
+static void scan_potential_pack_expansion_initializer_expr(
+                                                    a_decl_parse_state *dps)
+/*
+Scan a single initializer expression in a context where, potentially,
+variadic template pack expansion might apply.  The context is assumed
+to be a comma-separated initializer expression list.  Push the
+expressions that result from the pack expansion into
+dps->prescanned_initializer_cache.  If the expression scanned is not a
+pack expansion, just push the one expression into the cache.  Note
+that, with zero-length parameter packs, it is possible that the pack
+expansion will produce no expressions.  That just results in no
+expressions being pushed into the cache.
+*/
+{
+  a_pack_expansion_stack_entry_ptr pesep;
+  a_boolean                        any_more;
+  a_boolean                        has_assoc_lifetime = FALSE;
+  a_boolean                        preserve_lifetime = TRUE;
+
+  check_assertion(dps != NULL);
+  if (dps->is_new_expr_type) {
+    /* In a "new auto(x)" context, the full lifetime is further up and we
+       shouldn't mess around with lifetimes at this level. */
+    preserve_lifetime = FALSE;
+  } else if (expr_stack->lifetime != NULL) {
+    /* The expression has its own full-expression lifetime, so we'll need
+       to put a new lifetime around each expression from the pack expansion. */
+    check_assertion(expr_stack->lifetime == curr_object_lifetime &&
+                    expr_stack->lifetime->kind ==
+                                  (an_object_lifetime_kind)olk_expr_temporary);
+    has_assoc_lifetime = TRUE;
+  }  /* if */
+  if (cached_expression_present()) {
+    /* If there's already a cached expression, just return.  A cached
+       expression is already on the other side of pack expansion and the
+       loop below is not required. */
+  } else {    
+    /* Note that the code here is very similar to scan_expr_list. */
+    any_more = begin_potential_pack_expansion_context(&pesep);
+    while (any_more) {
+      an_operand                 operand;
+      a_pack_expansion_descr_ptr pedep;
+
+      /* Scan the initializer expression and put it into the cache. */
+      scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+      add_operand_to_expression_cache(&operand,
+                                      preserve_lifetime,
+                                      &dps->prescanned_initializer_cache);
+      if (has_assoc_lifetime) {
+        /* The object lifetime was saved with the expression in the cache,
+           and cleared, so create a new lifetime.  This is needed for the
+           next iteration, and also so the caller gets back a state consistent
+           with what was in effect when this routine started. */
+        check_assertion(expr_stack->lifetime == NULL);
+        push_object_lifetime(iek_none, (char *)NULL,
+                             (an_object_lifetime_kind)olk_expr_temporary);
+        expr_stack->lifetime = curr_object_lifetime;
+      }  /* if */
+      /* If this is a pack expansion, swallow the trailing "..." and
+         loop for the next iteration of the expansion. */
+      pedep = end_potential_pack_expansion_context(pesep,
+                                                   /*is_declarator=*/FALSE);
+      if (pedep != NULL) {
+        /* This expression is a variadic template pack expansion, i.e.,
+           it's followed by "...".  Furthermore, we're in the prototype
+           instantiation, so we record the expansion information on the
+           expression. */
+        mark_operand_as_pack_expansion(
+                   &dps->prescanned_initializer_cache.last_expression->operand,
+                  pedep);
+      }  /* if */
+      any_more = advance_to_next_pack_element(pesep);
+    }  /* while */
+  }  /* if */
+}  /* scan_potential_pack_expansion_initializer_expr */
+
+
+static void scan_initializer_expr_with_potential_pack_expansion(
+                                                   a_decl_parse_state *dps,
+                                                   an_operand         *operand)
+/*
+Scan a single initializer expression and return it in *operand.  If we're
+in a context that allows variadic template pack expansions (i.e., a
+comma-separated list of initializer expressions), as indicated by dps,
+process the expression as a potential pack expansion.  If it is one,
+the first expression from the expansion is returned in *operand, and
+any additional expressions are pushed into dps->prescanned_initializer_cache.
+If the pack expansion produces zero expressions, issue an error and
+return an error operand in *operand.  This routine is also called
+to prescan the initializer for an "auto", including for "new auto(x)",
+which is not a conventional initializer context.
+*/
+{
+  if (dps == NULL ||
+      !dps->initializer_is_expr_list ||
+      !is_variadic_template_context()) {
+    /* This is not a context that allows a pack expansion, so just scan
+       a single normal expression. */
+    scan_expr(operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  } else {
+    /* Scan a potential pack expansion. */
+    a_source_position start_pos;
+    /* Get the start position of the first expression. */
+    if (anything_cached(&dps->prescanned_initializer_cache)) {
+      start_pos =
+          dps->prescanned_initializer_cache.first_expression->operand.position;
+    } else {
+      start_pos = pos_curr_token;
+    }  /* if */
+    /* Do the scan.  The whole list of expressions goes into the expression
+       cache, and then we fetch the first one and return it. */
+    scan_potential_pack_expansion_initializer_expr(dps);
+    if (!fetch_operand_from_expression_cache(
+                                         operand,
+                                         &dps->prescanned_initializer_cache)) {
+      /* The expression is missing, presumably because of a zero-trip
+         pack expansion. */
+      pos_error(ec_empty_pack_expansion, &start_pos);
+      make_error_operand(operand);
+      operand->position = start_pos;
+    }  /* if */
+  }  /* if */
+}  /* scan_initializer_expr_with_potential_pack_expansion */
+
+
 void scan_member_constant_initializer_expression(a_decl_parse_state  *dps,
                                                  a_constant          *constant)
 /*
@@ -25768,7 +25940,7 @@ copy-initialization ("="-form).
   transfer_expr_context_if_applicable(saved_expr_stack);
   set_up_initializer_rescan(dps);
   /* Scan the constant expression. */
-  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  scan_initializer_expr_with_potential_pack_expansion(dps, &result);
   if (gnu_mode && is_array_type(required_type) && is_array_type(result.type)) {
     /* In GNU modes, an array can be initialized by a compound literal of
        array type.  The normal string literal initialization case comes here
@@ -25931,7 +26103,7 @@ scan_aggregate_initializer_expression.
     set_up_initializer_rescan(dps);
   }  /* if */
   /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  scan_initializer_expr_with_potential_pack_expansion(dps, &result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Check for a bug related to null pointer constants in Microsoft C mode. */
   process_microsoft_null_pointer_constant_bug(&result, required_type);
@@ -26172,6 +26344,7 @@ As indicated, this is initialization with the "=" semantics
   a_boolean           okay = TRUE;
 
   db_enter(3, "scan_class_initializer_expression");
+  check_assertion(dps != NULL);
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
@@ -26179,7 +26352,7 @@ As indicated, this is initialization with the "=" semantics
   transfer_expr_context_if_applicable(saved_expr_stack);
   set_up_initializer_rescan(dps);
   /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  scan_initializer_expr_with_potential_pack_expansion(dps, &result);
   /* Find out whether or not the conversion is possible, and
      build a dynamic initialization entry to describe the initialization. */
   prep_elision_initializer_operand(&result, dps->type,
@@ -26303,7 +26476,7 @@ a thrown exception) if that is appropriate.
     levels_down = 0;
   }  /* if */
   /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  scan_initializer_expr_with_potential_pack_expansion(dps, &result);
   /* See whether the expression can initialize the aggregate class.  If not,
      go down to the first member of the class and try again.  Loop until the
      right level is found or until we can go no further. */

@@ -114,7 +114,8 @@ typedef struct a_rescan_control_block {
 
 #if !STANDALONE_UTILITY_PROGRAM
 extern void prescan_initializer_for_auto_type_deduction(
-                                                    a_decl_parse_state  *dps);
+                                        a_decl_parse_state *dps,
+                                        a_boolean          parenthesized_init);
 
 extern void scan_and_discard_initializer_expression(a_decl_parse_state  *dps);
 #endif /* !STANDALONE_UTILITY_PROGRAM */

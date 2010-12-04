@@ -965,7 +965,8 @@ current context (as indicated by the expression stack).  Any such expression(s)
 should be consumed before taking more expressions from source or a rescan.
 */
 #define cached_expression_present() \
-  (expr_stack->expression_cache != NULL && \
+  (expr_stack != NULL && \
+   expr_stack->expression_cache != NULL && \
    anything_cached(expr_stack->expression_cache))
 
 
@@ -1096,7 +1097,8 @@ extern void add_operand_to_expression_cache(
                                   struct an_expression_cache *cache);
 
 extern
-a_boolean fetch_operand_from_expression_cache(an_operand *operand);
+a_boolean fetch_operand_from_expression_cache(an_operand          *operand,
+                                              an_expression_cache *cache);
 
 extern void free_arg_operand_list(an_arg_operand_ptr aop);
 

@@ -2042,6 +2042,7 @@ ec_invalid_delegate_type;;"type %t used for delegate definition is not a functio
 ec_delegate_requires_managed_class;;"delegate member types can only be members of managed types"
 ec_tracking_reference_to_delegate;;"a tracking reference to a delegate type is not allowed"
 ec_bad_use_of_delegate_type;;"a delegate type is not allowed here"
+ec_empty_pack_expansion;;"this pack expansion produces an empty list of expressions, and an expression is needed here"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

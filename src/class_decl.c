@@ -10402,7 +10402,8 @@ constant and entering the name in the symbol table.
     /* Advance past the "=". */
     (void)get_token();
     if (dps->auto_type_specifier_seen && !is_error_type(member_type)) {
-      prescan_initializer_for_auto_type_deduction(dps);
+      prescan_initializer_for_auto_type_deduction(dps,
+                                                 /*parenthesized_init=*/FALSE);
       member_type = dps->type;
     }  /* if */
     if (is_scalar_type(member_type) || is_template_param_type(member_type)) {
@@ -10605,7 +10606,8 @@ specific information about the member declaration, respectively.
     (void)get_token();
     decl_state->has_initializer = TRUE;
     if (decl_state->auto_type_specifier_seen && !is_error_type(member_type)) {
-      prescan_initializer_for_auto_type_deduction(decl_state);
+      prescan_initializer_for_auto_type_deduction(decl_state,
+                                                 /*parenthesized_init=*/FALSE);
       member_type = decl_state->type;
     }  /* if */
     if ((microsoft_bugs || gpp_mode) && decl_state->sym != NULL) {
