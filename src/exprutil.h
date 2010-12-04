@@ -1097,8 +1097,9 @@ extern void add_operand_to_expression_cache(
                                   struct an_expression_cache *cache);
 
 extern
-a_boolean fetch_operand_from_expression_cache(an_operand          *operand,
-                                              an_expression_cache *cache);
+a_boolean fetch_operand_from_expression_cache(
+                                            an_operand          *operand,
+                                            struct an_expression_cache *cache);
 
 extern void free_arg_operand_list(an_arg_operand_ptr aop);
 
