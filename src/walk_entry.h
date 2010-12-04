@@ -2844,9 +2844,13 @@ after_entry_from_class:
           if (!ptr->is_array_bound_of_unknown_type) {
             walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
           }  /* if */
-        } else {
+        } else if (is_template_templ_arg(ptr)) {
           /* A template template argument. */
           walk_ptr(ptr->variant.templ.ptr, a_template_ptr, iek_template);
+        } else if (is_start_of_pack_expansion_templ_arg(ptr)) {
+          /* A start of pack expansion argument. */
+        } else {
+          unexpected_condition();
         }  /* if */
         conditionally_clear_fe_pointer(ptr->arg_operand);
       }
