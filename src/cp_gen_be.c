@@ -4562,22 +4562,24 @@ A reference is not the definition.
         for (arg = type->variant.class_struct_union.extra_info->
                                                              template_arg_list;
              arg != NULL; arg = arg->next) {
-          a_boolean has_name;
+          a_boolean unnamed;
           switch(arg->kind) {
             case tak_type:
-              has_name = has_name_before_mangling(arg->variant.type);
+              unnamed = !has_name_before_mangling(arg->variant.type);
               break;
             case tak_nontype:
-              has_name = has_name_before_mangling(arg->variant.constant);
+              unnamed = !has_name_before_mangling(arg->variant.constant);
               break;
             case tak_template:
-              has_name = has_name_before_mangling(arg->variant.templ.ptr);
+              unnamed = !has_name_before_mangling(arg->variant.templ.ptr);
+              break;
             case tak_start_of_pack_expansion:
-              has_name = FALSE;
+              unnamed = TRUE;
+              break;
             default:
               unexpected_condition();
           }  /* switch */
-          if (!has_name) {
+          if (unnamed) {
             /* Suppress the qualification and template argument list. */
             type->source_corresp.qualification_needed = FALSE;
             options |= GN_NO_TEMPLATE_ARGS;
