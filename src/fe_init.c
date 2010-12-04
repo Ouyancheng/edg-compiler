@@ -52,8 +52,10 @@ Initialize global variables that may be used by standalone utility programs.
   target_early_init();
   error_early_init();
   target_one_time_init();
+  il_to_str_one_time_init();
   error_one_time_init();
   target_init();
+  il_to_str_init();
   error_init();
 }  /* standalone_utility_init */
 
