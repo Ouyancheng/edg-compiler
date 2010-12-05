@@ -9813,6 +9813,10 @@ done_with_operation_after_parens:
   /* If an extra set of parentheses was added because of the reference
      indirection trick above. close the set now. */
   if (need_reference_close_paren) write_tok_ch(')');
+  if (expr->is_pack_expansion) {
+    /* A variadic template pack expansion. */
+    write_tok_str("...");
+  }  /* if */
 }  /* gen_expr */
 
 
