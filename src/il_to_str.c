@@ -4342,6 +4342,13 @@ precedence confusion.  Do the output in the way described by octl.
         need_cast = TRUE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+      if (con_type->definition_delayed) {
+        /* The type of the constant was defined inside the cast (a GNU
+           extension), so we can't suppress it. */
+        need_cast = TRUE;
+      }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
       if (need_cast) {
         /* Prefix the constant with an explicit cast. */
         output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
@@ -4791,9 +4798,20 @@ do_sizeof_cases:
     case ck_designator:
       if (constant->variant.designator.field != NULL) {
         a_field_ptr field = constant->variant.designator.field;
-        octl->output_str(".", octl);
-        form_unqualified_name(&field->source_corresp, iek_field, octl);
-        octl->output_str(" = ", octl);
+        if (!octl->c_generating_back_end &&
+            il_header.source_language == sl_Cplusplus &&
+            gcc_is_generated_code_target) {
+          /* g++ does not accept the C99 syntax for designated initializers
+             but does accept a nonstandard variant:
+                 struct S s = { m: 0 }; */
+          form_unqualified_name(&field->source_corresp, iek_field, octl);
+          octl->output_str(": ", octl);
+        } else {
+          /* Use the C99 designated initializer syntax. */
+          octl->output_str(".", octl);
+          form_unqualified_name(&field->source_corresp, iek_field, octl);
+          octl->output_str(" = ", octl);
+        }  /* if */
       } else {
         octl->output_str("[", octl);
         form_unsigned_num(constant->variant.designator.array_element, octl);
