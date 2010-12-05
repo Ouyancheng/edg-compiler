@@ -385,7 +385,8 @@ caller handle it.
 
   if (init_info != NULL) dps = init_info->dps;
   if (is_string_type(*type_ptr) ||
-      (is_template_dependent_type(*type_ptr) && is_array_type(*type_ptr))) {
+      (is_array_type(*type_ptr) &&
+       is_template_param_type(array_element_type(*type_ptr)))) {
     /* The entity has or might have a string type, so check for a string
        initializer. */
     if (dps != NULL &&
@@ -2258,11 +2259,6 @@ this function points to a tree that includes a dynamic-init entry.
     } else {
       brace_flag = FALSE;
     }  /* if */
-    if (dps->prescanned_initializer_levels_down > 0) {
-      /* We prescanned an expression that applies at a lower level.  Count
-         our way down to the right level. */
-      dps->prescanned_initializer_levels_down--;
-    }  /* if */
     /* Record that we're now processing a comma-separated expression list,
        which enables variadic template pack expansions. */
     saved_initializer_is_expr_list = dps->initializer_is_expr_list;
@@ -2298,6 +2294,12 @@ this function points to a tree that includes a dynamic-init entry.
         /* If a hard error is decided, context.type will become an error
            type. */
         handle_missing_brace(init_info, &context);
+      }  /* if */
+      if (dps->prescanned_initializer_levels_down > 0) {
+        /* We prescanned an expression that applies at a lower level.  Count
+           our way down to the right level.  Note that we do this after we
+           do the string check above, which is still at the higher level. */
+        dps->prescanned_initializer_levels_down--;
       }  /* if */
       /* Get information on the first member of the aggregate to be
          initialized (if any). */
