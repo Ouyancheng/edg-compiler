@@ -1,18 +1,17 @@
 Version 4.3
 
 12/5/10  [EDGcpfe/11166]
-C++-generating back end, GNU compatibility: compound literal with type
-definition, designated initializer
+C++-generating back end, GNU compatibility: compound literals and designated
+initializers
 
-As extensions to C++, g++ accepts compound literals as in C99, including
-ones in which a type is defined in the compound literal's cast.  It also
-accepts a non-standard form of C99 designated initializers.  The front end
-also accepts these constructs in --g++ mode, but the C++-generating back
-end was formerly unable to generate code containing them.  This is now
-fixed.  For example:
+As extensions to C++, g++ accepts compound literals as in C99, as well as a
+non-standard form of C99 designated initializers.  The front end also
+accepts these constructs in --g++ mode, but the C++-generating back end was
+formerly unable to generate code containing them.  This is now fixed.  For
+example:
 
-  double s_positiveInfinity =
-  (__extension__ ((union { unsigned char __c; double __d; }){ __c: 12 }).__d);
+  union dbl { unsigned char __c; double __d; };
+  double s_positiveInfinity = (__extension__ ((dbl){ __c: 12 }).__d);
 
 
 12/3/10  [EDGcpfe/11165]

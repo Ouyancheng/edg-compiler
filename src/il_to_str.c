@@ -4342,13 +4342,6 @@ precedence confusion.  Do the output in the way described by octl.
         need_cast = TRUE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       }  /* if */
-#if BACK_END_IS_CP_GEN_BE
-      if (con_type->definition_delayed) {
-        /* The type of the constant was defined inside the cast (a GNU
-           extension), so we can't suppress it. */
-        need_cast = TRUE;
-      }  /* if */
-#endif /* BACK_END_IS_CP_GEN_BE */
       if (need_cast) {
         /* Prefix the constant with an explicit cast. */
         output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);

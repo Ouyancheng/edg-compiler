@@ -2844,6 +2844,7 @@ function get_initializer does all the hard work.
                                       (an_aggregate_init_context_ptr)NULL,
                                       &no_token_consumed,
                                       &any_dynamic_init);
+  compound_constant->explicit_cast_applied = TRUE;
   if (is_error_type(*type)) {
     /* The literal has an invalid type.  Don't build a dynamic init entry. */
     err = TRUE;

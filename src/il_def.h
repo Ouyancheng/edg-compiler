@@ -3311,7 +3311,8 @@ typedef struct a_constant {
 			   template_param variant below) when an explicit
 			   cast was used in the source to convert the value
 			   indicated by the representation to the type
-			   indicated above. */
+			   indicated above.  Also TRUE for the constant in
+			   a compound literal. */
   a_bit_field	is_reinterpret_cast:1;
 			/* If this is TRUE, implicit_cast will also be
 			   TRUE, and the cast was a reinterpret_cast in
