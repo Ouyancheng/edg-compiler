@@ -1254,52 +1254,63 @@ specification is handled later (see check_exception_specification).
   }  /* if */
   /* Loop through the types. */
   do {
+    a_pack_expansion_stack_entry_ptr	pesep;
+    a_boolean				any_types;
     add_stop_token(tok_comma);
-    /* Allocate the throw spec type entry. */
-    estp = alloc_exception_specification_type();
+    /* An exception specification is a potential variadic pack expansion
+       context. */
+    any_types = begin_potential_pack_expansion_context(&pesep);
+    while (any_types) {
+      /* Allocate the throw spec type entry. */
+      estp = alloc_exception_specification_type();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    estp->source_position = pos_curr_token;
+      estp->source_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    type_pos = pos_curr_token;
-    scan_eh_spec_type(estp, func_info, ignoring_exception_spec,
-                      is_top_level_declarator, &type_pos);
-    if (esp != NULL) {
-      /* Add estp to the list. */
-      if (end_of_list == NULL) {
-        esp->exception_specification_type_list = estp;
-      } else {
-        if (!is_error_type(estp->type)) {
-          /* Examine other entries already on the list to see if the current
-             one is redundant. */
-          other_estp = esp->exception_specification_type_list;
-          for (; other_estp != NULL; other_estp = other_estp->next) {
-            if (!other_estp->redundant &&
-                identical_types(estp->type, other_estp->type)) {
-              pos_remark(ec_redundant_exception_specification_type, &type_pos);
-              estp->redundant = TRUE;
-              break;
-            }  /* if */
-          }  /* for */
+      type_pos = pos_curr_token;
+      scan_eh_spec_type(estp, func_info, ignoring_exception_spec,
+                        is_top_level_declarator, &type_pos);
+      if (esp != NULL) {
+        /* Add estp to the list. */
+        if (end_of_list == NULL) {
+          esp->exception_specification_type_list = estp;
+        } else {
+          if (!is_error_type(estp->type)) {
+            /* Examine other entries already on the list to see if the current
+               one is redundant. */
+            other_estp = esp->exception_specification_type_list;
+            for (; other_estp != NULL; other_estp = other_estp->next) {
+              if (!other_estp->redundant &&
+                  identical_types(estp->type, other_estp->type)) {
+                pos_remark(ec_redundant_exception_specification_type,
+                           &type_pos);
+                estp->redundant = TRUE;
+                break;
+              }  /* if */
+            }  /* for */
+          }  /* if */
+          /* Add it to the end of the list. */
+          end_of_list->next = estp;
         }  /* if */
-        /* Add it to the end of the list. */
-        end_of_list->next = estp;
+        end_of_list = estp;
+        if (!estp->redundant && !is_error_type(estp->type)) {
+          /* Mark the type as having been used in an exception.  (Also, if it
+             "contains" any classes, they are marked as requiring external
+             linkage.) */
+          set_used_in_exception_or_rtti_flag(estp->type);
+        }  /* if */
       }  /* if */
-      end_of_list = estp;
-      if (!estp->redundant && !is_error_type(estp->type)) {
-        /* Mark the type as having been used in an exception.  (Also, if it
-           "contains" any classes, they are marked as requiring external
-           linkage.) */
-        set_used_in_exception_or_rtti_flag(estp->type);
+      remove_stop_token(tok_comma);
+      /* If the next token is not a comma, it should be a right paren -- but
+         check for a few other tokens that (in error cases) should also force
+         the loop to terminate. */
+      if (curr_token == tok_rparen || curr_token == tok_end_of_source ||
+          curr_token == tok_semicolon || curr_token == tok_lbrace) {
+        break;
       }  /* if */
-    }  /* if */
-    remove_stop_token(tok_comma);
-    /* If the next token is not a comma, it should be a right paren -- but
-       check for a few other tokens that (in error cases) should also force
-       the loop to terminate. */
-    if (curr_token == tok_rparen || curr_token == tok_end_of_source ||
-        curr_token == tok_semicolon || curr_token == tok_lbrace) {
-      break;
-    }  /* if */
+      (void)end_potential_pack_expansion_context(pesep,
+                                                 /*is_declarator=*/FALSE);
+      any_types = advance_to_next_pack_element(pesep);
+    }  /* while */
   } while (loop_token(tok_comma));
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && microsoft_version >= 1300 && esp != NULL) {
