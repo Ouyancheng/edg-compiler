@@ -5959,8 +5959,8 @@ stream.
     /* The raw token sequence should correspond to one of the following forms:
        "get = <id>", "put = <id>", "get = <id> , put = <id>", or
        "put = <id> , get = <id>". */
-    check_assertion(fp->property_descr == NULL ||
-                    fp->property_descr->is_declspec_property);
+    check_assertion(!field_is_property_or_event(fp) ||
+                    property_or_event_kind_is(fp, pek_declspec_property));
     for (;;) {
       a_boolean  is_get = FALSE, is_put = FALSE;
       /* Check for "get" or "put". */
@@ -5968,15 +5968,15 @@ stream.
       if (aap->kind != (an_attribute_arg_kind)aak_raw_token) {
         break;
       } else if (strcmp(aap->variant.token, "get") == 0) {
-        if (fp->property_descr != NULL &&
-            fp->property_descr->get_routine.name != NULL) {
+        if (field_is_property_or_event(fp) &&
+            fp->property_or_event_descr->get_routine.name != NULL) {
           errcode = ec_dupl_get_or_put;
           break;
         }  /* if */
         is_get = TRUE;
       } else if (strcmp(aap->variant.token, "put") == 0) {
-        if (fp->property_descr != NULL &&
-            fp->property_descr->set_routine.name != NULL) {
+        if (field_is_property_or_event(fp) &&
+            fp->property_or_event_descr->set_routine.name != NULL) {
           errcode = ec_dupl_get_or_put;
           break;
         }  /* if */
@@ -6001,15 +6001,16 @@ stream.
       } else if (!is_get && !is_put) {
         unexpected_condition();
       } else {
-        if (fp->property_descr == NULL) {
-          fp->property_descr = alloc_property_descr();
-          fp->property_descr->is_declspec_property = TRUE;
-          fp->property_descr->variant.field = fp;
+        if (fp->property_or_event_descr == NULL) {
+          fp->property_or_event_descr = alloc_property_or_event_descr();
+          fp->property_or_event_descr->kind =
+                              (a_property_or_event_kind)pek_declspec_property;
+          fp->property_or_event_descr->variant.field = fp;
         }  /* if */
         if (is_get) {
-          fp->property_descr->get_routine.name = aap->variant.token;
+          fp->property_or_event_descr->get_routine.name = aap->variant.token;
         } else {
-          fp->property_descr->set_routine.name = aap->variant.token;
+          fp->property_or_event_descr->set_routine.name = aap->variant.token;
         }  /* if */
       }  /* if */
       aap = aap->next;
@@ -6033,13 +6034,14 @@ stream.
     }  /* for */
     if (aap != NULL) {
       pos_error(errcode, &aap->position);
-      if (fp->property_descr == NULL) {
+      if (!field_is_property_or_event(fp)) {
         a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
         /* The field isn't a property field after all, but the field type was
            checked assuming this would be a property field.  Avoid error
            recovery issues by proceeding with an error type. */
         dps->type = fp->type = error_type();
-        dps->is_property_field = FALSE;
+        dps->is_property_or_event_field = FALSE;
+        dps->is_declspec_property_field = FALSE;
         make_attr_unrecognized(ap);
       }  /* if */
     } else if (fp->is_bit_field) {

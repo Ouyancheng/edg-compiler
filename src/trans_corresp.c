@@ -2388,33 +2388,73 @@ verify_attr_corresp_one_way should be made instead).
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_boolean equivalent_property_descr(a_field_ptr  fp1,
-                                           a_field_ptr  fp2)
+static a_boolean equivalent_properties_or_events(
+                                          a_property_or_event_descr_ptr  pdp1,
+                                          a_property_or_event_descr_ptr  pdp2)
 /*
-Return whether fp1 and fp2 are either both not properties, or both equivalent
-properties.
+Return whether the given properties/events (or NULL pointers) are equivalent.
 */
 {
-  a_boolean             result;
-  a_property_descr_ptr  pdp1 = fp1->property_descr, pdp2 = fp2->property_descr;
+  a_boolean  result;
 
   if (pdp1 == NULL && pdp2 == NULL) {
     result = TRUE;
   } else if (pdp1 != NULL && pdp2 != NULL) {
-    if (pdp1->is_declspec_property != pdp2->is_declspec_property) {
+    if (pdp1->kind != pdp2->kind) {
       result = FALSE;
-    } else if (pdp2->is_declspec_property) {
-      result = same_str(pdp1->get_routine.name, pdp2->get_routine.name) &&
-               same_str(pdp1->set_routine.name, pdp2->set_routine.name);
     } else {
-      /* FIXME: C++/CLI properties */
-      unexpected_condition();
+      switch (pdp1->kind) {
+        case pek_declspec_property:
+          /* __declspec(property(...)) fields. */
+          result = same_str(pdp1->get_routine.name, pdp2->get_routine.name) &&
+                   same_str(pdp1->set_routine.name, pdp2->set_routine.name);
+          break;
+        case pek_cli_property:
+          /* C++/CLI property fields. */
+          result = same_entities(pdp1->get_routine.ptr,
+                                 pdp2->get_routine.ptr) &&
+                   same_entities(pdp1->set_routine.ptr,
+                                 pdp2->set_routine.ptr);
+          break;
+        case pek_cli_event:
+          /* C++/CLI event fields. */
+          result = same_entities(pdp1->add_routine, pdp2->add_routine) &&
+                   same_entities(pdp1->remove_routine, pdp2->remove_routine) &&
+                   same_entities(pdp1->raise_routine, pdp2->raise_routine);
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
     }  /* if */
   } else {
     result = FALSE;
   }  /* if */
   return result;
-}  /* equivalent_property_descr */
+}  /* equivalent_properties_or_events */
+
+
+static a_boolean equivalent_property_or_event_fields(a_field_ptr  fp1,
+                                                     a_field_ptr  fp2)
+/*
+Return whether fp1 and fp2 are either both not properties/events, or both
+equivalent properties/events.
+*/
+{
+  return equivalent_properties_or_events(fp1->property_or_event_descr,
+                                         fp2->property_or_event_descr);
+}  /* equivalent_property_or_event_fields */
+
+
+static a_boolean equivalent_property_or_event_vars(a_variable_ptr  var1,
+                                                   a_variable_ptr  var2)
+/*
+Return whether var1 and var2 are either both not properties/events, or both
+equivalent properties/events.
+*/
+{
+  return equivalent_properties_or_events(var1->property_or_event_descr,
+                                         var2->property_or_event_descr);
+}  /* equivalent_property_or_event_vars */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -2458,7 +2498,7 @@ is in fact valid.
                                    corresp_field->is_anonymous_parent_object ||
          field->is_mutable != corresp_field->is_mutable ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
-         !equivalent_property_descr(field, corresp_field) ||
+         !equivalent_property_or_event_fields(field, corresp_field) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
          scp->access != corresp_scp->access ||
          scp->name_linkage != corresp_scp->name_linkage)) {
@@ -2944,6 +2984,9 @@ is in fact valid.
 #if DECL_MODIFIERS_IN_USE
          incompatible_variable_decl_modifiers(var, corresp_var) ||
 #endif /* DECL_MODIFIERS_IN_USE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+         !equivalent_property_or_event_vars(var, corresp_var) ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
          scp->access != corresp_scp->access ||
          scp->name_linkage != corresp_scp->name_linkage)) {
       match = FALSE;

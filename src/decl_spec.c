@@ -7414,9 +7414,9 @@ static void preapply_declspec_attributes(a_decl_parse_state  *dps)
 Check for the presence of certain __declspec attributes (which at this point
 haven't yet been applied to the entity that will presumably be declared), and
 adjust *dps accordingly.
-Set dps->is_property_field if a __declspec(property(...)) attribute was seen
-and the current scope is a class scope (issue a diagnostic and disable the
-"property" attribute if the current scope is not a class scope).
+Set dps->is_declspec_property_field if a __declspec(property(...)) attribute
+was seen and the current scope is a class scope (issue a diagnostic and
+disable the "property" attribute if the current scope is not a class scope).
 If the __declspec(dllimport) or __declspec(dllexport) were seen, perform some
 early check and adjustments:
   - Check that both are not present simultaneously.
@@ -7436,7 +7436,7 @@ the DLL flags.  That is done elsewhere using dps->decl_modifiers.flags.)
                    ap->name);
       make_attr_unrecognized(ap);
     } else {
-      dps->is_property_field = TRUE;
+      dps->is_declspec_property_field = TRUE;
     }  /* if */
   }  /* if */
   add_flags_from_dll_attributes(&dps->decl_modifiers.flags,

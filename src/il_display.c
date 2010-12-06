@@ -2384,7 +2384,8 @@ Display the indicated variable.
                      ptr->entities_defined_in_initializer);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  disp_ptr("property_descr", (char*)ptr->property_descr, iek_property_descr);
+  disp_ptr("property_or_event_descr", (char*)ptr->property_or_event_descr,
+           iek_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->assoc_template != NULL) {
     disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
@@ -2560,7 +2561,8 @@ Display the indicated field.
   }  /* if */
 #endif /* DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  disp_ptr("property_descr", (char*)ptr->property_descr, iek_property_descr);
+  disp_ptr("property_or_event_descr", (char*)ptr->property_or_event_descr,
+           iek_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* disp_field */
 
@@ -2582,6 +2584,9 @@ Print the name of a special function kind.
     case sfk_static_constructor: s = "sfk_static_constructor"; break;
     case sfk_property_get:       s = "sfk_property_get";       break;
     case sfk_property_set:       s = "sfk_property_set";       break;
+    case sfk_event_add:          s = "sfk_event_add";          break;
+    case sfk_event_remove:       s = "sfk_event_remove";       break;
+    case sfk_event_raise:        s = "sfk_event_raise";        break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:                     s = "**BAD SPECIAL FUNCTION KIND**";
   }  /* switch */
@@ -2802,9 +2807,13 @@ Display the indicated routine.
 #endif /* IA64_ABI && DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (ptr->special_kind == (a_special_function_kind)sfk_property_get ||
-             ptr->special_kind == (a_special_function_kind)sfk_property_set) {
-    disp_ptr("property_descr", (char*)ptr->variant.property_descr,
-             iek_property_descr);
+             ptr->special_kind == (a_special_function_kind)sfk_property_set ||
+             ptr->special_kind == (a_special_function_kind)sfk_event_add ||
+             ptr->special_kind == (a_special_function_kind)sfk_event_remove ||
+             ptr->special_kind == (a_special_function_kind)sfk_event_raise) {
+    disp_ptr("property_or_event_descr",
+             (char*)ptr->variant.property_or_event_descr,
+             iek_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   } else if (ptr->special_kind == (a_special_function_kind)sfk_none &&
@@ -4739,14 +4748,11 @@ Display the indicated property index type entry.
 }  /* disp_property_index_type */
 
 
-static void disp_property_descr(a_property_descr_ptr  ptr)
+static void disp_property_or_event_descr(a_property_or_event_descr_ptr  ptr)
 /*
 Display the indicated property description.
 */
 {
-  if (ptr->is_declspec_property) {
-    disp_boolean("is_declspec_property", TRUE);
-  }  /* if */
   if (ptr->is_trivial) {
     disp_boolean("is_trivial", TRUE);
   }  /* if */
@@ -4765,21 +4771,33 @@ Display the indicated property description.
   } else {
     disp_ptr("field", (char*)ptr->variant.field, iek_field);
   }  /* if */
-  if (ptr->is_declspec_property) {
-    disp_string_ptr("get_routine.name", ptr->get_routine.name,
-                    iek_other_text, (sizeof_t)0);
-    disp_string_ptr("set_routine.name", ptr->set_routine.name,
-                    iek_other_text, (sizeof_t)0);
-  } else {
-    disp_ptr("get_routine.ptr", (char*)ptr->get_routine.ptr, iek_routine);
-    disp_ptr("set_routine.ptr", (char*)ptr->set_routine.ptr, iek_routine);
-  }  /* if */
+  switch (ptr->kind) {
+    case pek_declspec_property:
+      disp_string_ptr("get_routine.name", ptr->get_routine.name,
+                      iek_other_text, (sizeof_t)0);
+      disp_string_ptr("set_routine.name", ptr->set_routine.name,
+                      iek_other_text, (sizeof_t)0);
+      break;
+    case pek_cli_property:
+      disp_ptr("get_routine.ptr", (char*)ptr->get_routine.ptr, iek_routine);
+      disp_ptr("set_routine.ptr", (char*)ptr->set_routine.ptr, iek_routine);
+      break;
+    case pek_cli_event:
+      disp_ptr("add_routine", (char*)ptr->add_routine, iek_routine);
+      disp_ptr("remove_routine", (char*)ptr->remove_routine, iek_routine);
+      disp_ptr("raise_routine", (char*)ptr->raise_routine, iek_routine);
+      break;
+    default:
+      unexpected_condition();
+      break;
+  }  /* switch */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  disp_source_position("property_position", &ptr->property_position);
+  disp_source_position("property_or_event_position",
+                       &ptr->property_or_event_position);
   disp_source_range("indices_range", &ptr->indices_range);
   disp_source_range("definition_range", &ptr->definition_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-}  /* disp_property_descr */
+}  /* disp_property_or_event_descr */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -5539,8 +5557,8 @@ Display the indicated class type supplement entry.
     disp_boolean("inheritance_kind_is_explicit",
                  (a_boolean)ptr->inheritance_kind_is_explicit);
   }  /* if */
-  if (ptr->has_direct_property_member) {
-    disp_boolean("has_direct_property_member", TRUE);
+  if (ptr->has_direct_property_or_event) {
+    disp_boolean("has_direct_property_or_event", TRUE);
   }  /* if */
   disp_assembly_visibility("assembly_visibility", ptr->assembly_visibility);
   disp_cli_class_type_kind("cli_class_type_kind", ptr->cli_class_type_kind);
@@ -6066,8 +6084,9 @@ This routine is called during IL walking.
         case iek_property_index_type:
           disp_property_index_type((a_property_index_type_ptr)entry_ptr);
           break;
-        case iek_property_descr:
-          disp_property_descr((a_property_descr_ptr)entry_ptr);
+        case iek_property_or_event_descr:
+          disp_property_or_event_descr(
+                                    (a_property_or_event_descr_ptr)entry_ptr);
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES

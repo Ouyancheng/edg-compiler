@@ -651,12 +651,12 @@ typedef struct a_class_def_state {
 			   an "interface-like" type (Microsoft mode only).
 			   Not set until after the opening brace of the
 			   definition is seen. */
-  a_bit_field   current_declaration_valid_in_property:1;
+  a_bit_field   current_decl_valid_in_property_or_event_def:1;
 			/* TRUE if a member declaration that was just processed
-			   is allowed within the braces of a C++/CLI property.
-			   (Currently, this is true only for member function
-			   declarations, empty declarations, and some error
-			   cases.  The latter only to inhibit additional
+			   is allowed within the braces of a C++/CLI property
+			   or event.  (Currently, this is true only for member
+			   function declarations, empty declarations, and some
+			   error cases.  The latter only to inhibit additional
 			   diagnostics.) */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	any_fields_other_than_unnamed_bitfields:1;
@@ -718,11 +718,11 @@ typedef struct a_class_def_state {
 			   overrides that involve a covariant return type. */
 #endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_property_descr_ptr
-		property_descr;
-			/* While parsing C++/CLI property accessor functions,
-			   this points to the associated IL descriptor.
-			   Otherwise, NULL. */
+  a_property_or_event_descr_ptr
+		property_or_event_descr;
+			/* While parsing C++/CLI property or event accessor
+			   functions, this points to the associated IL
+			   descriptor.  Otherwise, NULL. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_class_def_state;
 
@@ -740,7 +740,7 @@ class being defined.
   cdsp->POD_ruled_out = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->potentially_interface_like = FALSE;
-  cdsp->current_declaration_valid_in_property = FALSE;
+  cdsp->current_decl_valid_in_property_or_event_def = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cdsp->any_fields_other_than_unnamed_bitfields = FALSE;
   cdsp->any_friend_decls = FALSE;
@@ -762,7 +762,7 @@ class being defined.
   cdsp->last_covariant_override = NULL;
 #endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  cdsp->property_descr = NULL;
+  cdsp->property_or_event_descr = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* initialize_class_def_state */
 
@@ -773,10 +773,10 @@ static void complete_class_definition(a_type_ptr         class_type,
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define treat_declaration_as_okay_in_property(cdsp)                  \
-  ((cdsp)->current_declaration_valid_in_property = TRUE)
+#define treat_declaration_as_okay_in_property_event(cdsp)                  \
+  ((cdsp)->current_decl_valid_in_property_or_event_def = TRUE)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define treat_declaration_as_okay_in_property(cdsp)  /* Nothing */
+#define treat_declaration_as_okay_in_property_or_event(cdsp)  /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if IA64_ABI
@@ -3935,22 +3935,23 @@ above with two members f in class D).
 }  /* may_selectively_override */
 
 
-static a_boolean matching_property_accessors(a_routine_ptr  overrider,
-                                             a_routine_ptr  candidate)
+static a_boolean matching_cli_accessors(a_routine_ptr  overrider,
+                                        a_routine_ptr  candidate)
 /*
 Overrider is a function that might override virtual function "candidate".
-If either function is a property accessor return FALSE if the properties do
-not match for overriding purposes.  Otherwise, return TRUE.
+If either function is a C++/CLI property or event accessor return FALSE if
+the properties or events do not match for overriding purposes.  Otherwise,
+return TRUE.
 */
 {
-  a_boolean             mismatch = FALSE;
-  a_property_descr_ptr  pdp1 = NULL, pdp2 = NULL;
+  a_boolean                      mismatch = FALSE;
+  a_property_or_event_descr_ptr  pdp1 = NULL, pdp2 = NULL;
 
-  if (rout_is_property_accessor(overrider)) {
-    pdp1 = overrider->variant.property_descr;
+  if (rout_is_cli_accessor(overrider)) {
+    pdp1 = overrider->variant.property_or_event_descr;
   }  /* if */
-  if (rout_is_property_accessor(candidate)) {
-    pdp2 = candidate->variant.property_descr;
+  if (rout_is_cli_accessor(candidate)) {
+    pdp2 = candidate->variant.property_or_event_descr;
   }  /* if */
   if (pdp1 == NULL && pdp2 == NULL) {
     /* No accessors involved.  Return TRUE. */
@@ -3968,7 +3969,7 @@ not match for overriding purposes.  Otherwise, return TRUE.
     }  /* if */
   }  /* if */
   return !mismatch;
-}  /* matching_property_accessors */
+}  /* matching_cli_accessors */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -4206,7 +4207,7 @@ next_named_override:
               continue;
             }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (cppcli_enabled && !matching_property_accessors(rout, rp)) {
+            if (cppcli_enabled && !matching_cli_accessors(rout, rp)) {
               /* One or both routines is a property accessor and the other one
                  doesn't match (either because it is not an accessor, or
                  because it is an accessor for a non-matching property). */
@@ -8984,15 +8985,15 @@ functions.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-a_boolean in_cli_property_definition(void)
+a_boolean in_cli_property_or_event_definition(void)
 /*
 Return TRUE if we currently parsing the brace-enclosed definition of a
 non-trivial C++/CLI property.
 */
 {
   return (scope_stack_top().class_def_state != NULL &&
-          scope_stack_top().class_def_state->property_descr != NULL);
-}  /* in_cli_property_definition */
+          scope_stack_top().class_def_state->property_or_event_descr != NULL);
+}  /* in_cli_property_or_event_definition */
 
 
 static void check_property_accessor_type(a_routine_ptr       rp,
@@ -9007,7 +9008,8 @@ with and issue diagnostics as needed.
   a_routine_type_supplement_ptr
                         rtsp = rtp->variant.routine.extra_info;
   a_param_type_ptr      ptp = function_type_params(rtp);
-  a_property_descr_ptr  pdp = rp->variant.property_descr;
+  a_property_or_event_descr_ptr
+                        pdp = rp->variant.property_or_event_descr;
   a_boolean             is_setter, err = FALSE;
 
   if (pdp->is_static) {
@@ -9087,10 +9089,10 @@ with and issue diagnostics as needed.
   }  /* if */
   if (!err) {
     if (rtsp->qualifiers != TQ_NONE) {
-      pos_error(ec_qualified_property_accessor, &dps->declarator_pos);
+      pos_error(ec_qualified_cli_accessor, &dps->declarator_pos);
       err = TRUE;
     } else if (rtsp->has_ellipsis) {
-      pos_error(ec_ellipsis_property_accessor, &dps->declarator_pos);
+      pos_error(ec_ellipsis_cli_accessor, &dps->declarator_pos);
       err = TRUE;
     }  /* if */
   }  /* if */
@@ -9108,10 +9110,11 @@ the member function is an accessor for the property (if the accessor is valid).
 */
 {
   a_routine_ptr         rp = sym->variant.routine.ptr;
-  a_property_descr_ptr  pdp = class_state->property_descr;
+  a_property_or_event_descr_ptr
+                        pdp = class_state->property_or_event_descr;
   a_decl_parse_state    *dps = &decl_info->decl_state;
 
-  check_assertion(!pdp->is_declspec_property);
+  check_assertion(pdp->kind == (a_property_or_event_kind)pek_cli_property);
   if (rp->special_kind != (a_special_function_kind)sfk_none) {
     /* A special member (like a constructor) declared in a property definition.
        Issue an error. */
@@ -9136,8 +9139,8 @@ the member function is an accessor for the property (if the accessor is valid).
     /* Neither "get" nor "set": Issue an error. */
     pos_error(ec_invalid_property_accessor_decl, &dps->declarator_pos);
   }  /* if */
-  if (rout_is_property_accessor(rp)) {
-    rp->variant.property_descr = pdp;
+  if (rout_is_cli_accessor(rp)) {
+    rp->variant.property_or_event_descr = pdp;
     if (rp->special_kind == (a_special_function_kind)sfk_property_get) {
       pdp->get_routine.ptr = rp;
     } else {
@@ -9152,6 +9155,148 @@ the member function is an accessor for the property (if the accessor is valid).
     }  /* if */
   }  /* if */
 }  /* check_property_accessor */
+
+
+static void check_event_accessor_type(a_routine_ptr       rp,
+                                      a_decl_parse_state  *dps)
+/*
+rp points to the entry of an event accessor function.  Check that its type
+is compatible with the declaration of the C++/CLI event it is associated
+with and issue diagnostics as needed.
+*/
+{
+  a_type_ptr            rtp = skip_typerefs(rp->type), prop_type;
+  a_routine_type_supplement_ptr
+                        rtsp = rtp->variant.routine.extra_info;
+  a_param_type_ptr      ptp = function_type_params(rtp);
+  a_property_or_event_descr_ptr
+                        pdp = rp->variant.property_or_event_descr;
+  a_boolean             err;
+
+  if (pdp->is_static) {
+    prop_type = pdp->variant.variable->type;
+  } else {
+    prop_type = pdp->variant.field->type;
+  }  /* if */
+  err = is_error_type(prop_type);
+  if (err) {
+    /* Further error checks are unlikely to be helpful. */
+    expect_error();
+  } else if (rp->special_kind == (a_special_function_kind)sfk_event_add ||
+             rp->special_kind == (a_special_function_kind)sfk_event_remove) {
+    /* First check the return type. */
+    if (!is_void_type(rtp->variant.routine.return_type) ||
+        is_qualified_type(rtp->variant.routine.return_type)) {
+      /* The return type of an event "add" or "remove" accessor must be void;
+         "void const" is not acceptable. */
+      pos_error(ec_bad_event_add_or_remove_return, &dps->start_pos);
+      err = TRUE;
+    } else {
+      /* Check that the "add" or "remove" accessor has exactly one parameter
+         that corresponds to the property type. */
+      if (ptp == NULL) {
+        pos_error(ec_event_accessor_missing_value_parameter,
+                  &dps->declarator_pos);
+        err = TRUE;
+      } else if (ptp->next != NULL) {
+        pos_error(ec_extra_event_accessor_parameters, &dps->declarator_pos);
+        err = TRUE;
+      } else if (!types_are_compatible(ptp->type, prop_type)) {
+        pos_ty2_diagnostic(es_error,
+                           ec_event_accessor_value_parameter_mismatch,
+                           &dps->declarator_pos, ptp->type, prop_type);
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  } else {
+    a_type_ptr  invocation_type;
+    check_assertion(rp->special_kind ==
+                                   (a_special_function_kind)sfk_event_raise);
+    invocation_type = delegate_invocation_type(type_pointed_to(prop_type));
+    if (!f_types_are_compatible(rtp, invocation_type,
+                                TCF_IGNORE_THIS_CLASS_TYPE)) {
+      pos_error(ec_event_raise_type_mismatch, &dps->start_pos);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    if (rtsp->qualifiers != TQ_NONE) {
+      pos_error(ec_qualified_cli_accessor, &dps->declarator_pos);
+      err = TRUE;
+    } else if (rtsp->has_ellipsis) {
+      pos_error(ec_ellipsis_cli_accessor, &dps->declarator_pos);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* check_event_accessor_type */
+
+
+static void check_event_accessor(a_symbol_ptr            sym,
+                                 a_member_decl_info_ptr  decl_info,
+                                 a_class_def_state_ptr   class_state)
+/*
+sym represents a member function declared in an event definition.  Check that
+it is a valid "add", "remove", or "raise" accessor for the event and issue
+diagnostics as appropriate.  Update the associated IL entries to reflect that
+the member function is an accessor for the event (if the accessor is valid).
+*/
+{
+  a_routine_ptr         rp = sym->variant.routine.ptr;
+  a_property_or_event_descr_ptr
+                        pdp = class_state->property_or_event_descr;
+  a_decl_parse_state    *dps = &decl_info->decl_state;
+
+  check_assertion(pdp->kind == (a_property_or_event_kind)pek_cli_event);
+  if (rp->special_kind != (a_special_function_kind)sfk_none) {
+    /* A special member (like a constructor) declared in a property definition.
+       Issue an error. */
+    pos_error(ec_invalid_event_accessor_decl, &dps->declarator_pos);
+  } else if (strcmp(rp->source_corresp.name, "add") == 0) {
+    if (pdp->get_routine.ptr != NULL) {
+      pos2_diagnostic(es_error, ec_event_add_already_declared,
+                      &dps->declarator_pos,
+                      &pdp->add_routine->source_corresp.decl_position);
+    } else {
+      rp->special_kind = (a_special_function_kind)sfk_event_add;
+    }  /* if */
+  } else if (strcmp(rp->source_corresp.name, "remove") == 0) {
+    if (pdp->set_routine.ptr != NULL) {
+      pos2_diagnostic(es_error, ec_event_remove_already_declared,
+                      &dps->declarator_pos,
+                      &pdp->remove_routine->source_corresp.decl_position);
+    } else {
+      rp->special_kind = (a_special_function_kind)sfk_event_remove;
+    }  /* if */
+  } else if (strcmp(rp->source_corresp.name, "raise") == 0) {
+    if (pdp->set_routine.ptr != NULL) {
+      pos2_diagnostic(es_error, ec_event_raise_already_declared,
+                      &dps->declarator_pos,
+                      &pdp->raise_routine->source_corresp.decl_position);
+    } else {
+      rp->special_kind = (a_special_function_kind)sfk_event_raise;
+    }  /* if */
+  } else {
+    /* Not "add", "remove", or "raise": Issue an error. */
+    pos_error(ec_invalid_event_accessor_decl, &dps->declarator_pos);
+  }  /* if */
+  if (rout_is_cli_accessor(rp)) {
+    rp->variant.property_or_event_descr = pdp;
+    if (rp->special_kind == (a_special_function_kind)sfk_event_add) {
+      pdp->add_routine = rp;
+    } else if (rp->special_kind == (a_special_function_kind)sfk_event_remove) {
+      pdp->remove_routine = rp;
+    } else {
+      pdp->raise_routine = rp;
+    }  /* if */
+    check_event_accessor_type(rp, dps);
+    if ((pdp->is_virtual &&
+         dps->declared_storage_class == (a_storage_class)sc_static) ||
+        (pdp->is_static && (dps->dso_flags & DSO_VIRTUAL))) {
+      pos_error(ec_virtual_static_event_accessor, &dps->specifiers_pos);
+      decl_info->invalid_virtual_specifier = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* check_event_accessor */
 
 
 static an_il_entity_list_entry_ptr make_overridden_functions_entry(
@@ -9239,7 +9384,7 @@ implicitly declared member functions.
   a_routine_type_supplement_ptr rtsp;
   a_symbol_ptr                  overridden_function = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_property_descr_ptr          pdp = class_state->property_descr;
+  a_property_or_event_descr_ptr pdp = class_state->property_or_event_descr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "decl_member_function");
@@ -9293,8 +9438,8 @@ implicitly declared member functions.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (pdp != NULL) {
     /* Do not check for redeclarations or overloading here since any errors
-       would likely be spurious.  Instead, check_property_accessor will report
-       duplicates. */
+       would likely be spurious.  Instead, check_property_accessor or
+       check_even_accessor will report duplicates. */
     sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
                              decl_scope_level, /*suppress_redecl_error=*/TRUE);
     /* Property accessors cannot be called directly: Make them invisible. */
@@ -9369,7 +9514,13 @@ implicitly declared member functions.
                         rtn, (a_special_function_kind)sfk_static_constructor);
     } else if (pdp != NULL) {
       /* A C++/CLI property accessor. */
-      check_property_accessor(sym, decl_info, class_state);
+      if (pdp->kind == (a_property_or_event_kind)pek_cli_property) {
+        check_property_accessor(sym, decl_info, class_state);
+      } else if (pdp->kind == (a_property_or_event_kind)pek_cli_event) {
+        check_event_accessor(sym, decl_info, class_state);
+      } else {
+        unexpected_condition();
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -9883,7 +10034,7 @@ implicitly declared member functions.
 #if DEBUG
   if (debug_level >= 3) db_symbol(sym, "", 4);
 #endif /* DEBUG */
-  treat_declaration_as_okay_in_property(class_state);
+  treat_declaration_as_okay_in_property_event(class_state);
   db_exit();
 }  /* decl_member_function */
 
@@ -10557,9 +10708,10 @@ specific information about the member declaration, respectively.
   if (cppcli_enabled) {
     if (decl_state->has_cli_initonly_keyword) {
       var->is_initonly = TRUE;
-    } else if (decl_state->has_cli_property_keyword) {
-      /* A static property is represented via a static data member. */
-      var->property_descr = class_state->property_descr;
+    } else if (decl_state->has_cli_property_keyword ||
+               decl_state->has_cli_event_keyword) {
+      /* A static property or event is represented via a static data member. */
+      var->property_or_event_descr = class_state->property_or_event_descr;
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12115,8 +12267,8 @@ declarations.
             incomplete_okay = TRUE;
             class_state->last_field_is_incomplete_array = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (decl_state->is_property_field) {
-              /* This is a property field: no need to guard against
+            if (decl_state->is_property_or_event_field) {
+              /* This is a property or event field: no need to guard against
                  additionally appended fields. */
               class_state->last_field_is_incomplete_array = FALSE;
             }  /* if */
@@ -12133,8 +12285,8 @@ declarations.
                                    (a_template_param_type_kind)tptk_member);
       /* Okay. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (decl_state->is_property_field) {
-      /* A property field doesn't need to have a complete type. */
+    } else if (decl_state->is_property_or_event_field) {
+      /* A property or event field doesn't need to have a complete type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       a_type_ptr  el_type = skip_array_types(field_type);
@@ -12361,9 +12513,11 @@ be entered.
          copied. */
       field->is_initonly = TRUE;
       cssp->assignment_by_bitwise_copy_allowed = FALSE;
-    } else if (decl_state->has_cli_property_keyword) {
-      /* A nonstatic property is represented via a nonstatic data member. */
-      field->property_descr = class_state->property_descr;
+    } else if (decl_state->has_cli_property_keyword ||
+               decl_state->has_cli_event_keyword) {
+      /* A nonstatic property or event is represented via a nonstatic data
+         member. */
+      field->property_or_event_descr = class_state->property_or_event_descr;
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12458,9 +12612,9 @@ be entered.
                  member_sym);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (decl_state->is_property_field) {
-    /* The field for a property doesn't really exist, so pragmas cannot be
-       bound to it. */
+  if (decl_state->is_property_or_event_field) {
+    /* The field for a property or event doesn't really exist, so pragmas
+       cannot be bound to it. */
     cannot_bind_to_curr_construct();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12537,9 +12691,10 @@ be entered.
       cssp->any_template_dependent_fields = TRUE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && !decl_state->is_property_field) {
-      /* Disallow real data members in interface types (property fields are
-         fine). */
+    if (microsoft_mode && !decl_state->is_property_or_event_field) {
+      /* Disallow real data members in interface types (declspec property
+         fields are fine; C++/CLI properties and events will already have
+         triggered an error). */
       if (class_type->variant.class_struct_union.is_interface) {
         pos_error(ec_interface_cannot_have_data_member,
                   &locator->source_position);
@@ -13178,8 +13333,9 @@ behavior of the MSVC++ version indicated by microsoft_version.
      picked up. */
   for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
     if (sym->kind == (a_symbol_kind)sk_field &&
-        /* Property fields do not affect the special member functions. */
-        !field_is_property(sym->variant.field.ptr)) {
+        /* Property fields and events do not affect the special member
+           functions. */
+        !field_is_property_or_event(sym->variant.field.ptr)) {
       tp = sym->variant.field.ptr->type;
       if (is_array_type(tp)) {
         tp = underlying_array_element_type(tp);
@@ -15199,9 +15355,9 @@ member.  Determine whether a diagnostic is actually required and put it out.
         an_error_code  error_code;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode && field_is_property(field)) {
-          /* A property field in Microsoft C++ mode.  This is not a real field
-             and therefore the check does not apply. */
+        if (microsoft_mode && field_is_property_or_event(field)) {
+          /* A property or event field in Microsoft C++ mode.  This is not a
+             real field and therefore the check does not apply. */
           continue;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -15818,7 +15974,7 @@ done:
 }  /* check_for_cli_field_modifier */
 
 
-static void scan_cli_property_indices(a_property_descr_ptr  pdp)
+static void scan_cli_property_indices(a_property_or_event_descr_ptr  pdp)
 /*
 Scan a list of C++/CLI property index types and record them in the pdp->indices
 list.
@@ -15857,18 +16013,22 @@ list.
 }  /* scan_cli_property_indices */
 
 
-static void scan_cli_property_head(a_class_def_state   *class_state,
-                                   a_member_decl_info  *decl_info,
-                                   a_decl_pos_block    *decl_pos_block)
+static void scan_cli_property_or_event_head(
+                                          a_class_def_state   *class_state,
+                                          a_member_decl_info  *decl_info,
+                                          a_decl_pos_block    *decl_pos_block)
 /*
-A C++/CLI property declaration is next.  Scan its "head" and update the IL
-and symbol table accordingly.  The "head" of a property declaration has the
-following syntax:
-   property-modifier(opt) property type-specifier-seq declarator
+A C++/CLI property or event declaration is next.  Scan its "head" and update
+the IL and symbol table accordingly.  The "head" of a property declaration has
+the following syntax:
+   property-or-event-modifier(opt) property type-specifier-seq declarator
      property-indices(opt) {-or-;
-where the optional property-modifier is either the "static" or "virtual"
-keyword, and the final token is a left brace (introducing accessor member
-declarations) or a semicolon (in the case of a trivial scalar property).
+where the optional property-or-event-modifier is either the "static" or
+"virtual" keyword, and the final token is a left brace (introducing accessor
+member declarations) or a semicolon (in the case of a trivial scalar property).
+The "head" of an event declaration is similar:
+   property-or-event-modifier(opt) event type-specifier-seq ^(opt)
+     identifier {-or-;
 *class_state holds information of the enclosing class (whose definition is
 being parsed), *decl_info describes the current member declaration, and
 *decl_pos_block tracks extended position information.
@@ -15880,15 +16040,23 @@ being parsed), *decl_info describes the current member declaration, and
                                     DSI_NO_TAG_DEFINITION |
                                     DSI_VACUOUS_TAG_DECL_ALLOWED |
                                     DSI_IS_MEMBER_DECLARATION;
-  a_property_descr_ptr  pdp = alloc_property_descr();
+  a_property_or_event_descr_ptr
+                        pdp = alloc_property_or_event_descr();
   a_boolean             ptr_to_member_scanned;
   a_source_position     decl_pos, type_pos;
+  a_boolean             is_property = dps->has_cli_property_keyword;
 
   add_stop_token(tok_semicolon);
   add_stop_token(tok_lbrace);
   decl_pos = pos_curr_token;
+  if (is_property) {
+    pdp->kind = (a_property_or_event_kind)pek_cli_property;
+  } else {
+    check_assertion(dps->has_cli_event_keyword);
+    pdp->kind = (a_property_or_event_kind)pek_cli_event;
+  }  /* if */
   /* First scan leading static/virtual keywords, and skip over the "property"
-     token. */
+     or "event" token. */
   while (curr_token == tok_static || curr_token == tok_virtual) {
     if (curr_token == tok_static) {
       if (pdp->is_static) pos_error(ec_dupl_decl_specifier, &pos_curr_token);
@@ -15902,22 +16070,27 @@ being parsed), *decl_info describes the current member declaration, and
     (void)get_token();
   }  /* while */
   if (pdp->is_static && pdp->is_virtual) {
-    pos_error(ec_virtual_static_property, &decl_pos);
+    pos_error(is_property ? ec_virtual_static_property
+                          : ec_virtual_static_event,
+              &decl_pos);
     pdp->is_static = FALSE;
   }  /* if */
-  check_assertion(curr_token_is_identifier_string("property"));
+  check_assertion(is_property ? curr_token_is_identifier_string("property")
+                              : curr_token_is_identifier_string("event"));
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  pdp->property_position = pos_curr_token;
+  pdp->property_or_event_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (!is_managed_class_type_entry(class_type)) {
-    pos_error(ec_property_requires_managed_class, &pos_curr_token);
+    pos_error(is_property ? ec_property_requires_managed_class
+                          : ec_event_requires_managed_class,
+              &pos_curr_token);
   }  /* if */
   (void)get_token();
   type_pos = pos_curr_token;
   decl_specifiers(dsi_flags, dps, decl_pos_block);
-  /* Most nontype specifiers will have been diagnosed by decl_specifiers
-     (or caused check_for_cli_field_modifier not to treat "property" as a
-     keyword): */
+  /* Most nontype specifiers will have been diagnosed by decl_specifiers (or
+     caused check_for_cli_field_modifier not to treat "property" or "event" as
+     a keyword): */
   if (dps->dso_flags & DSO_VIRTUAL) {
     pos_error(ec_virtual_not_allowed, &dps->virtual_pos);
     if (!pdp->is_static) pdp->is_virtual = TRUE;
@@ -15928,13 +16101,29 @@ being parsed), *decl_info describes the current member declaration, and
                                  (a_type_qualifier_set *)NULL,
                                  (a_type_qualifier_set *)NULL,
                                  &ptr_to_member_scanned, decl_pos_block);
-  if (is_array_type(dps->type) || is_function_type(dps->type)) {
-    pos_error(is_array_type(dps->type) ? ec_array_type_not_allowed
-                                       : ec_function_type_not_allowed,
-              &type_pos);
-    dps->type = error_type();
+  /* The type constraints for properties and events differ. */
+  if (is_property) {
+    if (is_array_type(dps->type) || is_function_type(dps->type)) {
+      pos_error(is_array_type(dps->type) ? ec_array_type_not_allowed
+                                         : ec_function_type_not_allowed,
+                &type_pos);
+      dps->type = error_type();
+    }  /* if */
+  } else {
+    /* An event's type must be handle-to-delegate. */
+    if (is_handle_type(dps->type)) {
+      a_type_ptr  underlying_tp = type_pointed_to(dps->type);
+      if (!is_delegate_type(underlying_tp) &&
+         !is_template_param_type(underlying_tp)) {
+        pos_error(ec_invalid_event_type, &type_pos);
+        dps->type = error_type();
+      }  /* if */
+    } else if (!is_template_param_type(dps->type)) {
+      pos_error(ec_invalid_event_type, &type_pos);
+      dps->type = error_type();
+    }  /* if */
   }  /* if */
-  /* An identifier or "default" should be next. */
+  /* An identifier should be next. */
   if (!required_token_no_advance(tok_identifier, ec_exp_identifier)) {
     discard_curr_construct_pragmas();
     goto done;
@@ -15943,15 +16132,17 @@ being parsed), *decl_info describes the current member declaration, and
        can only be a pointer-to-member. */
     check_assertion(curr_token == tok_ptr_to_member);
     syntax_error(ec_exp_identifier);
-  } else if (curr_token_is_identifier_string("default")) {
+  } else if (is_property && curr_token_is_identifier_string("default")) {
+    /* "default" (which is an identifier and not a keyword in Microsoft
+       modes) has a special meaning for properties but not for events. */
     if (pdp->is_static) {
       pos_error(ec_static_default_indexed_property, &pos_curr_token);
     } else {
       pdp->is_default_indexed = TRUE;
     }  /* if */
   }  /* if */
-  class_state->property_descr = pdp;
-  dps->is_property_field = TRUE;
+  class_state->property_or_event_descr = pdp;
+  dps->is_property_or_event_field = TRUE;
   if (pdp->is_static) {
     decl_static_data_member(&locator_for_curr_id, class_state, decl_info);
     check_assertion(dps->sym != NULL &&
@@ -15962,44 +16153,87 @@ being parsed), *decl_info describes the current member declaration, and
                                                     class_state, decl_info,
                                                     depth_scope_stack);
   }  /* if */
-  class_type_supp(class_type)->has_direct_property_member = TRUE;
+  class_type_supp(class_type)->has_direct_property_or_event = TRUE;
   (void)get_token();
-  if (curr_token == tok_lbracket) {
-    scan_cli_property_indices(pdp);
-  } else if (pdp->is_default_indexed) {
-    pos_error(ec_exp_lbracket, &pos_curr_token);
+  if (is_property) {
+    /* Check for index types. */
+    if (curr_token == tok_lbracket) {
+      scan_cli_property_indices(pdp);
+    } else if (pdp->is_default_indexed) {
+      pos_error(ec_exp_lbracket, &pos_curr_token);
+    }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   pdp->definition_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (curr_token == tok_semicolon) {
-    /* A trivial scalar property. */
+    /* A trivial scalar property or event. */
     pdp->is_trivial = TRUE;
-    if (pdp->indices != NULL) {
-      /* A trivial property cannot be an indexed property. */
-      pos_error(ec_trivial_indexed_property, &pos_curr_token);
-    } else if (is_any_reference_type(dps->type)) {
-      /* A trivial property cannot have a reference type. */
-      pos_error(ec_trivial_reference_property, &type_pos);
-    } else if (get_type_qualifiers(dps->type) & (TQ_CONST | TQ_VOLATILE)) {
-      /* A trivial property cannot have a const or volatile type. */
-      pos_error(ec_trivial_const_or_volatile_property, &type_pos);
+    if (is_property) {
+      if (pdp->indices != NULL) {
+        /* A trivial property cannot be an indexed property. */
+        pos_error(ec_trivial_indexed_property, &pos_curr_token);
+      } else if (is_any_reference_type(dps->type)) {
+        /* A trivial property cannot have a reference type. */
+        pos_error(ec_trivial_reference_property, &type_pos);
+      } else if (get_type_qualifiers(dps->type) & (TQ_CONST | TQ_VOLATILE)) {
+        /* A trivial property cannot have a const or volatile type. */
+        pos_error(ec_trivial_const_or_volatile_property, &type_pos);
+      }  /* if */
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     pdp->definition_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
-    class_state->property_descr = NULL;
+    class_state->property_or_event_descr = NULL;
   } else {
-    /* A nontrivial property. */
+    /* A nontrivial property or event. */
     (void)required_token(tok_lbrace, ec_exp_lbrace);
-    class_state->property_descr = pdp;
-    treat_declaration_as_okay_in_property(class_state);
+    class_state->property_or_event_descr = pdp;
+    treat_declaration_as_okay_in_property_event(class_state);
   }  /* if */
 done:
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
-}  /* scan_cli_property_head */
+}  /* scan_cli_property_or_event_head */
+
+
+static void check_cli_accessor_decl(a_class_def_state   *class_state,
+                                    a_source_position   *diag_pos)
+/*
+A member declaration was just completed within the braces of a C++/CLI
+property or event definition.  Check that the declaration is valid and issue
+a diagnostic at the given position if it is not so.  If the closing brace of
+the property or event declaration is next, scan it and update the IL 
+accordingly.  class_state represents the innermost function being defined.
+*/
+{
+  a_property_or_event_descr_ptr  pedp = class_state->property_or_event_descr;
+
+  if (!class_state->current_decl_valid_in_property_or_event_def) {
+    an_error_code  ec;
+    if (pedp->kind == (a_property_or_event_kind)pek_cli_property) {
+      ec = ec_invalid_property_accessor_decl;
+    } else {
+      check_assertion(pedp->kind == (a_property_or_event_kind)pek_cli_event);
+      ec = ec_invalid_event_accessor_decl;
+    }  /* if */
+    pos_error(ec, diag_pos);
+  } else {
+    /* Reset the flag for a possible subsequent declaration. */
+    class_state->current_decl_valid_in_property_or_event_def = FALSE;
+  }  /* if */
+  if (curr_token == tok_rbrace) {
+    /* The closing brace of a nontrivial property or event definition.  Skip
+       over the token and update class_state to indicate we're no longer in a
+       property or event definition. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    pedp->definition_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    (void)get_token();
+    class_state->property_or_event_descr = NULL;
+  }  /* if */
+}  /* check_cli_accessor_decl */
 
 
 static void scan_named_overrides_if_any(a_member_decl_info_ptr  decl_info)
@@ -16384,13 +16618,12 @@ passed via template_decl.
          property using a C++/CLI context-sensitive keyword "property",
          "event", "initonly", or "literal". */
       if (check_for_cli_field_modifier(decl_state)) {
-        if (decl_state->has_cli_property_keyword) {
-          scan_cli_property_head(class_state, &decl_info,
-                                 &decl_info.decl_pos_block);
+        if (decl_state->has_cli_property_keyword ||
+            decl_state->has_cli_event_keyword) {
+          scan_cli_property_or_event_head(class_state, &decl_info,
+                                          &decl_info.decl_pos_block);
           *skip_semicolon_check = TRUE;
           goto next_declaration;
-        } else if (decl_state->has_cli_event_keyword) {
-          /* FIXME: Not yet implemented. */
         } else {
           /* Just skip the "literal" or "initonly" token that is next. */
           (void)get_token();
@@ -17504,14 +17737,17 @@ not actually hide a base class member.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_boolean check_conflict_with_direct_property(
-                                                a_symbol_locator  *ploc,
-                                                a_type_ptr        class_type,
-                                                a_symbol_ptr      diag_sym)
+static a_boolean check_conflict_with_direct_property_or_event(
+                                              a_symbol_locator  *ploc,
+                                              a_type_ptr        class_type,
+                                              a_symbol_ptr      diag_sym,
+                                              a_boolean         property_case)
 /*
-A member set_X or get_X (represented by diag_sym) is declared in class_type or
-a type derived from class_type.  ploc is a locator for X.  Issue a diagnostic
-if class_type contains a direct (i.e., not inherited) property named X.
+diag_sym represents a member declared in class_type or a type derived from
+class_type.  If property_case is TRUE, its name is of the form set_X or get_X;
+otherwise, it's of the form add_X, remove_X, or raise_X.  ploc is a locator
+for X.  Issue a diagnostic if class_type contains a conflicting direct (i.e.,
+not inherited) property or event named X.
 */
 {
   a_boolean     result = FALSE;
@@ -17519,31 +17755,55 @@ if class_type contains a direct (i.e., not inherited) property named X.
 
   sym = class_qualified_id_lookup(ploc, class_type,
                                   IDL_DIRECT_CLASS_MEMBERS_ONLY);
-  if (sym != NULL &&
-      ((symbol_is(sym, sk_field) &&
-        field_is_property(sym->variant.field.ptr)) ||
-       (symbol_is(sym, sk_static_data_member) &&
-        var_is_property(sym->variant.static_data_member.variable)))) {
-    pos_stsy_error(ec_member_name_reserved_by_property,
-                   &diag_sym->decl_position, diag_sym->header->identifier,
-                   sym);
-    result = TRUE;
+  if (sym != NULL) {
+    a_property_or_event_descr_ptr  pdp = NULL;
+    a_boolean                      true_conflict;
+    if (symbol_is(sym, sk_field)) {
+      pdp = sym->variant.field.ptr->property_or_event_descr;
+    } else if (symbol_is(sym, sk_static_data_member)) {
+      pdp = sym->variant.static_data_member.variable->property_or_event_descr;
+    }  /* if */
+    if (pdp != NULL) {
+      switch (pdp->kind) {
+        case pek_declspec_property:
+          /* declspec properties don't have associated reserved names. */
+          true_conflict = FALSE;
+          break;
+        case pek_cli_property:
+          true_conflict = property_case;
+          break;
+        case pek_cli_event:
+          true_conflict = !property_case;
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+      if (!true_conflict) {
+        pos_stsy_error(ec_member_name_reserved_by_property,
+                       &diag_sym->decl_position, diag_sym->header->identifier,
+                       sym);
+        result = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   return result;
-}  /* check_conflict_with_direct_property */
+}  /* check_conflict_with_direct_property_or_event */
 
                                     
-static void check_names_reserved_by_cli_properties(a_type_ptr  class_type)
+static void check_names_reserved_by_cli_properties_and_events(
+                                                       a_type_ptr  class_type)
 /*
-Check every direct member of class_type to see if it is of the form get_XYZ
-or set_XYZ.  If it is, issue an error if class_type also contains a (possibly
-inherited) property named XYZ.
+Check every direct member of class_type to see if it is of the form get_XYZ,
+set_XYZ, add_XYZ, remove_XYZ, or raise_XYZ.  If it is, issue an error if
+class_type also contains a (possibly inherited) conflicting property or event
+named XYZ.
 */
 {
   a_symbol_ptr  sym = symbol_supplement_for_class(class_type)->symbols;
 
   for (; sym != NULL; sym = sym->next_in_scope) {
-    char  *mem_id = sym->header->identifier;
+    char       *mem_id = sym->header->identifier, *pname = NULL;
+    a_boolean  property_case;
     if (symbol_is(sym, sk_type) && sym->variant.type.is_injected_class_name) {
       /* The injected class name is not considered. */
       continue;
@@ -17554,20 +17814,43 @@ inherited) property named XYZ.
     if ((mem_id[0] == 'g' || mem_id[0] == 's') &&
         mem_id[1] == 'e' && mem_id[2] == 't' && mem_id[3] == '_' &&
         mem_id[4] != '\0') {
-      char              *pname = mem_id+4;
+      /* "get_..." or "set_...". */
+      pname = mem_id+4;
+      property_case = TRUE;
+    } else if (mem_id[0] == 'a' && mem_id[1] == 'd' && mem_id[2] == 'd' &&
+               mem_id[3] == '_' && mem_id[4] != '\0') {
+      /* "add_...". */
+      pname = mem_id+4;
+      property_case = FALSE;
+    } else if (mem_id[0] == 'r' && mem_id[1] == 'e' && mem_id[2] == 'm' &&
+               mem_id[3] == 'o' && mem_id[4] == 'v' && mem_id[5] == 'e' &&
+               mem_id[6] == '_' && mem_id[7] != '\0') {
+      /* "remove_...". */
+      pname = mem_id+7;
+      property_case = FALSE;
+    } else if (mem_id[0] == 'r' && mem_id[1] == 'a' && mem_id[2] == 'i' &&
+               mem_id[3] == 's' && mem_id[4] == 'e' && mem_id[5] == '_' &&
+               mem_id[6] != '\0') {
+      /* "raise_...". */
+      pname = mem_id+6;
+      property_case = FALSE;
+    }  /* if */
+    if (pname != NULL) {
       a_symbol_locator  ploc;
       a_base_class_ptr  bcp;
       clear_locator(&ploc, &null_source_position);
       (void)find_symbol(pname, strlen(pname), &ploc);
-      if (class_type_supp(class_type)->has_direct_property_member &&
-          check_conflict_with_direct_property(&ploc, class_type, sym)) {
+      if (class_type_supp(class_type)->has_direct_property_or_event &&
+          check_conflict_with_direct_property_or_event(&ploc, class_type, sym,
+                                                       property_case)) {
         /* A diagnostic has been issued: Additional ones for this symbol
            would not be helpful. */
         continue;
       }  /* if */
       for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-        if (class_type_supp(bcp->type)->has_direct_property_member &&
-            check_conflict_with_direct_property(&ploc, bcp->type, sym)) {
+        if (class_type_supp(bcp->type)->has_direct_property_or_event &&
+            check_conflict_with_direct_property_or_event(&ploc, bcp->type, sym,
+                                                         property_case)) {
           /* A diagnostic has been issued: Additional ones for this symbol
              would not be helpful. */
           continue;
@@ -17575,7 +17858,7 @@ inherited) property named XYZ.
       }  /* for */
     }  /* if */
   }  /* for */
-}  /* check_names_reserved_by_cli_properties */
+}  /* check_names_reserved_by_cli_properties_and_events */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -17724,7 +18007,7 @@ bits of information that were acquired while parsing.
     class_type->variant.class_struct_union.is_interface_like =
                                       class_state->potentially_interface_like;
     if (cppcli_enabled) {
-      check_names_reserved_by_cli_properties(class_type);
+      check_names_reserved_by_cli_properties_and_events(class_type);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Check for missing or erroneous uses of the "hiding" attribute and
@@ -18156,7 +18439,7 @@ classes.
           cannot_bind_to_curr_construct();
           /* Bypass the superfluous semicolon and continue looping. */
           (void)get_token();
-          treat_declaration_as_okay_in_property(&class_state);
+          treat_declaration_as_okay_in_property_event(&class_state);
           goto next_declaration;
         }  /* if */
 #if !ASM_FUNCTION_ALLOWED
@@ -18170,7 +18453,7 @@ classes.
                                 &attributes);
           /* The semicolon will have been consumed by the subroutine.
              Continue looping through the members. */
-          treat_declaration_as_okay_in_property(&class_state);
+          treat_declaration_as_okay_in_property_event(&class_state);
           goto next_declaration;
         }  /* if */
 #endif /* !ASM_FUNCTION_ALLOWED */
@@ -18281,24 +18564,8 @@ next_declaration:
         if (curr_routine_fixup != NULL) dispose_of_curr_routine_fixup();
         remove_stop_token(tok_semicolon);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (class_state.property_descr != NULL) {
-          if (!class_state.current_declaration_valid_in_property) {
-            pos_error(ec_invalid_property_accessor_decl, &decl_start_pos);
-          } else {
-            /* Reset the flag for a possible subsequent declaration. */
-            class_state.current_declaration_valid_in_property = FALSE;
-          }  /* if */
-          if (curr_token == tok_rbrace) {
-            /* The closing brace of a nontrivial property definition.  Skip
-               over the token and update class_state to indicate we're no
-               longer in a property definition. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-            class_state.property_descr->definition_range.end =
-                                                           end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-            (void)get_token();
-            class_state.property_descr = NULL;
-          }  /* if */
+        if (class_state.property_or_event_descr != NULL) {
+          check_cli_accessor_decl(&class_state, &decl_start_pos);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Keep processing member declarations until the closing brace or

@@ -14460,13 +14460,13 @@ by pos.
 {
   a_symbol_ptr getput_sym = NULL;
 
-  check_assertion(field_is_property(field));
-  if (field->property_descr->is_declspec_property) {
+  check_assertion(field_is_property_or_event(field));
+  if (property_or_event_kind_is(field, pek_declspec_property)) {
     char *getput_property_name;
     if (put) {
-      getput_property_name = field->property_descr->set_routine.name;
+      getput_property_name = field->property_or_event_descr->set_routine.name;
     } else {
-      getput_property_name = field->property_descr->get_routine.name;
+      getput_property_name = field->property_or_event_descr->get_routine.name;
     }  /* if */
     if (getput_property_name == NULL) {
       if (must_be_present) {
@@ -14499,13 +14499,13 @@ by pos.
         getput_sym = locator.specific_symbol;
       }  /* if */
     }  /* if */
-  } else {
+  } else if (property_or_event_kind_is(field, pek_cli_property)) {
     /* C++/CLI property. */
     a_routine_ptr getput_routine;
     if (put) {
-      getput_routine = field->property_descr->set_routine.ptr;
+      getput_routine = field->property_or_event_descr->set_routine.ptr;
     } else {
-      getput_routine = field->property_descr->get_routine.ptr;
+      getput_routine = field->property_or_event_descr->get_routine.ptr;
     }  /* if */
     if (getput_routine == NULL) {
       if (must_be_present &&
@@ -14520,6 +14520,8 @@ by pos.
       check_assertion(getput_sym != NULL &&
                       is_member_function_symbol(getput_sym));
     }  /* if */
+  } else {
+    unexpected_condition();
   }  /* if */
   return getput_sym;
 }  /* get_property_accessor_symbol */

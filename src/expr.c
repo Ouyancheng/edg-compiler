@@ -3589,8 +3589,9 @@ positions).
     make_error_operand(result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode && field_is_nontrivial_property(field)) {
-    /* A property field in Microsoft C++ mode.  Render as an ok_property_ref
-       operand, which will be rewritten later as a function call. */
+    /* A property or event field in Microsoft C++ mode.  Render as an
+       ok_property_ref operand, which will be rewritten later as a function
+       call. */
     clear_operand((an_operand_kind)ok_property_ref, result);
     result->type = unknown_type();
     result->variant.property_ref.field = field;
@@ -21083,7 +21084,7 @@ normal_function:
               /* Normal case: "x" is interpreted as "this->x". */
               an_expr_node_ptr node;
               if (curr_expr_is_potentially_unevaluated() &&
-                  !field_is_property(sym_ptr->variant.field.ptr) &&
+                  !field_is_property_or_event(sym_ptr->variant.field.ptr) &&
                   !variable_this_exists(&var_ptr)) {
                 /* Some modes allow a use of a nonstatic data member
                    without an available "this" inside a sizeof and other

@@ -1121,8 +1121,8 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_list(ptr->entities_defined_in_initializer,
                   an_il_entity_list_entry_ptr, iek_il_entity_list_entry);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        walk_ptr(ptr->property_descr, a_property_descr_ptr,
-                 iek_property_descr);
+        walk_ptr(ptr->property_or_event_descr, a_property_or_event_descr_ptr,
+                 iek_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -1164,8 +1164,8 @@ the file scope, do not process it (but record an orphan in the latter case).
         definition_needed_if_class(ptr->type);
         walk_ptr(ptr->bit_size_constant, a_constant_ptr, iek_constant);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        walk_ptr(ptr->property_descr, a_property_descr_ptr,
-                 iek_property_descr);
+        walk_ptr(ptr->property_or_event_descr, a_property_or_event_descr_ptr,
+                 iek_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if BACK_END_IS_C_GEN_BE
         walk_ptr(ptr->bit_field_alignment_type, a_type_ptr, iek_type);
@@ -1277,9 +1277,13 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* IA64_ABI && DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (ptr->special_kind == (a_special_function_kind)sfk_property_get ||
-            ptr->special_kind == (a_special_function_kind)sfk_property_set) {
-          remap_ptr(ptr->variant.property_descr, a_property_descr_ptr,
-                    iek_property_descr);
+            ptr->special_kind == (a_special_function_kind)sfk_property_set ||
+            ptr->special_kind == (a_special_function_kind)sfk_event_add ||
+            ptr->special_kind == (a_special_function_kind)sfk_event_remove ||
+            ptr->special_kind == (a_special_function_kind)sfk_event_raise) {
+          remap_ptr(ptr->variant.property_or_event_descr,
+                    a_property_or_event_descr_ptr,
+                    iek_property_or_event_descr);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2107,22 +2111,33 @@ do_set_proper_definition_needed_flag:
         walk_ptr(ptr->type, a_type_ptr, iek_type);
       }
       break;
-    case iek_property_descr:
-      { a_property_descr_ptr  ptr = (a_property_descr_ptr)entry_ptr;
-        walk_list(ptr->indices, a_property_index_type_ptr,
-                  iek_property_index_type);
+    case iek_property_or_event_descr:
+      { a_property_or_event_descr_ptr
+                               ptr = (a_property_or_event_descr_ptr)entry_ptr;
         if (ptr->is_static) {
           remap_ptr(ptr->variant.variable, a_variable_ptr, iek_variable);
         } else {
           remap_ptr(ptr->variant.field, a_field_ptr, iek_field);
         }  /* if */
-        if (ptr->is_declspec_property) {
-          walk_string_ptr(ptr->get_routine.name, iek_other_text, 0);
-          walk_string_ptr(ptr->set_routine.name, iek_other_text, 0);
-        } else {
-          remap_ptr(ptr->get_routine.ptr, a_routine_ptr, iek_routine);
-          remap_ptr(ptr->set_routine.ptr, a_routine_ptr, iek_routine);
-        }  /* if */
+        switch (ptr->kind) {
+          case pek_declspec_property:
+            walk_string_ptr(ptr->get_routine.name, iek_other_text, 0);
+            walk_string_ptr(ptr->set_routine.name, iek_other_text, 0);
+            break;
+          case pek_cli_property:
+            walk_list(ptr->indices, a_property_index_type_ptr,
+                      iek_property_index_type);
+            remap_ptr(ptr->get_routine.ptr, a_routine_ptr, iek_routine);
+            remap_ptr(ptr->set_routine.ptr, a_routine_ptr, iek_routine);
+            break;
+          case pek_cli_event:
+            remap_ptr(ptr->add_routine, a_routine_ptr, iek_routine);
+            remap_ptr(ptr->remove_routine, a_routine_ptr, iek_routine);
+            remap_ptr(ptr->raise_routine, a_routine_ptr, iek_routine);
+            break;
+          default:
+            unexpected_condition();
+        }  /* switch */
       }
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

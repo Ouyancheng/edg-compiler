@@ -580,7 +580,8 @@ typedef enum /*an_il_entry_kind*/ {
   iek_ms_attribute_arg,	/* an_ms_attribute_arg */
   iek_property_index_type,
 			/* a_property_index_type */
-  iek_property_descr,	/* a_property_descr */
+  iek_property_or_event_descr,
+			/* a_property_or_event_descr */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   iek_seq_number_lookup_entry,
 			/* a_seq_number_lookup_entry */
@@ -6176,9 +6177,9 @@ typedef struct a_class_type_supplement {
 			/* TRUE if the inheritance_kind field was set as the
 			   result of an explicit specification on the class
 			   declaration. */
-  a_bit_field	has_direct_property_member:1;
+  a_bit_field	has_direct_property_or_event:1;
 			/* TRUE if this class contains a direct (i.e., not
-			   inherited) C++/CLI property member. */
+			   inherited) C++/CLI property or event. */
   a_bit_field   assembly_visibility:2;
                         /* Visibility of this type at the assembly level.
 			   (C++/CLI only.) */
@@ -7760,41 +7761,66 @@ typedef struct a_property_index_type {
 } a_property_index_type;
 
 
-typedef struct a_property_descr *a_property_descr_ptr;
-typedef struct a_property_descr {
-  /* Description of a Microsoft property.  Microsoft compilers support two
-     kinds of property constructs.  One kind is obtained by modifying an
-     ordinary field declaration with a __declspec(property(...)) attribute: The
-     modified field will point to an entry of type a_property_descr (recording
-     the names of the names of the "get" and "put" functions).  The other kind
-     is obtained using C++/CLI syntax involving a context-sensitive keyword
-     "property".  For example:
+enum a_property_or_event_kind_tag {
+  /* Kinds of properties and events. */
+  pek_declspec_property,
+  pek_cli_property,
+  pek_cli_event
+};
+
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_property_or_event_kind;
+
+
+typedef struct a_property_or_event_descr *a_property_or_event_descr_ptr;
+typedef struct a_property_or_event_descr {
+  /* Description of a Microsoft property or event member.  Microsoft compilers
+     support two kinds of property constructs.  One kind is obtained by
+     modifying an ordinary field declaration with a __declspec(property(...))
+     attribute: The modified field will point to an entry of type
+     a_property_or_event_descr (recording the names of the names of the "get"
+     and "put" functions).  The other kind is obtained using C++/CLI syntax
+     involving a context-sensitive keyword "property".  For example:
          ref struct S {
            property int p1 { int get(); };
            static property char p2 { void set(char); };
          };
      The property's a_field or a_variable entry (the latter is used for static
-     properties) will point to an entry of type a_property_descr that in turn
-     points to the accessor functions (get and/or set).  These accessor
+     properties) will point to an entry of type a_property_or_event_descr that
+     in turn points to the accessor functions (get and/or set).  These accessor
      functions (which have special_kind sfk_property_get or sfk_property_set)
-     also point to the associated a_property_descr. */
-
-  a_bit_field	is_declspec_property:1;
-			/* TRUE if the property is declared with __declspec
-			   syntax ("old-style").  FALSE if the property is
-			   declared with the C++/CLI syntax. */
+     also point to the associated a_property_or_event_descr.
+     There is only one kind of event syntax and it is valid only in C++/CLI
+     mode.  Its syntax is similar to that of C++/CLI property constructs but
+     involves the context-sensitive keyword "event".  For example:
+         ref struct S {
+           delegate bool A(void*);
+           event A^ actions {
+             void add(A^);
+             void remove(A^);
+             bool raise(void*);
+           }
+         };
+     The accessor functions are "add", "remove", and (optionally) "raise" in
+     this case; each with its own special_kind value.
+   */
+  a_property_or_event_kind
+		kind;
+			/* Indication of whether this is a C++/CLI event, a
+			   C++/CLI property, or a property declared using a
+			   __declspec(property(...)) attribute. */
   a_bit_field	is_trivial:1;
-			/* TRUE if the property is declared with the C++/CLI
-			   syntax but without explicit accessor functions. */
+			/* TRUE if this is a C++/CLI property or event declared
+			   without explicit accessor functions. */
   a_bit_field	is_default_indexed:1;
 			/* TRUE if this entry is for a default-indexed
 			   property (C++/CLI syntax only). */
   a_bit_field	is_virtual:1;
-			/* TRUE if the property is declared with the "virtual"
-			   specifier (C++/CLI syntax only). */
+			/* TRUE if this is a C++/CLI property or event declared
+			   with the "virtual" specifier. */
   a_bit_field	is_static:1;
-			/* TRUE if the property is declared with the "static"
-			   specifier (C++/CLI syntax only). */
+			/* TRUE if this is a C++/CLI property or event declared
+			   with the "static" specifier. */
   a_property_index_type_ptr
 		indices;
 			/* Non-NULL only for an indexed property.  Points to a
@@ -7803,35 +7829,48 @@ typedef struct a_property_descr {
   union {
     /* When is_static is FALSE: */
     a_field_ptr
-		field;	/* Associated property field. */
+		field;	/* Field associated with an event or property. */
     /* When is_static is TRUE: */
     a_variable_ptr
 		variable;
-			/* Associated property static data member.  (C++/CLI
-			   syntax only.) */
+			/* Static data member associated with a C++/CLI event
+			   or property. */
   } variant;
   union {
-    /* When is_declspec_property is TRUE: */
+    /* When kind == pek_declspec_property: */
     char	*name;	/* Name (null-terminated) specified by a Microsoft
 			   __declspec(property(get=...)) attribute.  NULL if
 			   the "get" name was not specified.  */
-    /* When is_declspec_property is FALSE: */
+    /* When kind == pek_cli_property: */
     a_routine_ptr
 		ptr;	/* Accessor "get" routine. */
   } get_routine;
   union {
-    /* When is_declspec_property is TRUE: */
+    /* When kind == pek_declspec_property: */
     char	*name;	/* Name (null-terminated) specified by a Microsoft
 			   __declspec(property(put=...)) attribute.  NULL if
 			   the "put" name was not specified.  */
-    /* When is_declspec_property is FALSE: */
+    /* When kind == pek_cli_property: */
     a_routine_ptr
 		ptr;	/* Accessor "set" routine. */
   } set_routine;
+  a_routine_ptr
+		add_routine;
+			/* Accessor "add" routine for an event; NULL if this
+			   entry is for a property. */
+  a_routine_ptr
+		remove_routine;
+			/* Accessor "remove" routine for an event; NULL if this
+			   entry is for a property. */
+  a_routine_ptr
+		raise_routine;
+			/* Accessor "raise" routine for an event; NULL if this
+			   entry is for a property. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
-		property_position;
-			/* The position of the "property" keyword. */
+		property_or_event_position;
+			/* The position of the "property" or "event"
+			   keyword. */
   a_source_range
 		indices_range;
 			/* The source position range delimited by the "["
@@ -7845,7 +7884,7 @@ typedef struct a_property_descr {
 			   property, the range consisting solely of the ";"
 			   token. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-} a_property_descr;
+} a_property_or_event_descr;
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -8257,11 +8296,11 @@ typedef struct a_variable {
 			   data member.  Currently, this list only has C++0x
 			   closure types. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_property_descr_ptr
-		property_descr;
-			/* Pointer to the description of the associated
-			   property (only non-NULL for static C++/CLI
-			   properties). */
+  a_property_or_event_descr_ptr
+		property_or_event_descr;
+			/* Pointer to the description of the associated event
+			   or property (only non-NULL for static C++/CLI events
+			   and properties). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_template_ptr
 		assoc_template;
@@ -8426,12 +8465,13 @@ typedef struct a_field {
 			/* An IL constant representing the size of the bit
 			   field.  (NULL if this is not a bit field.) */ 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_property_descr_ptr
-		property_descr;
+  a_property_or_event_descr_ptr
+		property_or_event_descr;
 			/* Non-NULL only if this field represents a Microsoft
-			   property.  Such a property may have been declared
-			   using the __declspec(property(...)) attribute
-			   syntax or using C++/CLI syntax. */
+			   property or event.  In the case of a property, it
+			   may have been declared using an attribute (i.e.,
+			   __declspec(property(...))) or using C++/CLI
+			   syntax. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   unsigned long	declared_bit_size;
 			/* If is_bit_field is TRUE, the declared size of the
@@ -8469,6 +8509,9 @@ enum a_special_function_kind_tag {
 			/* A C++/CLI static constructor. */
   sfk_property_get,	/* A "get" accessor function of a C++/CLI property. */
   sfk_property_set,	/* A "set" accessor function of a C++/CLI property. */
+  sfk_event_add,	/* An "add" accessor function of a C++/CLI event. */
+  sfk_event_remove,	/* A "remove" accessor function of a C++/CLI event. */
+  sfk_event_raise,	/* A "raise" accessor function of a C++/CLI event. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sfk_last		/* Must be last. */
 };
@@ -8485,6 +8528,7 @@ EXTERN char     *db_special_function_kinds[(int)sfk_last + 1]
    "none", "constructor", "destructor", "conversion", "operator",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "static constructor", "property getter", "property setter",
+   "event add", "event remove", "event raise",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "last" /* used to check that initialization is right. */
 }
@@ -11190,11 +11234,12 @@ typedef struct a_routine {
     } ctor_dtor;
 #endif /* IA64_ABI && DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* When special_kind == sfk_property_get or sfk_property_set. */
-    a_property_descr_ptr
-		property_descr;
+    /* When special_kind == sfk_property_get, sfk_property_set, sfk_event_add,
+       sfk_event_remove, or sfk_event_raise. */
+    a_property_or_event_descr_ptr
+		property_or_event_descr;
 			/* Pointer to the description of the associated
-			   property. */
+			   property or event. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } variant;
   a_bit_field	address_taken:1;
@@ -15550,7 +15595,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(an_ms_attribute),
   sizeof(an_ms_attribute_arg),
   sizeof(a_property_index_type),
-  sizeof(a_property_descr),
+  sizeof(a_property_or_event_descr),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sizeof(a_seq_number_lookup_entry),
 #if MACRO_INVOCATION_TREE_IN_IL

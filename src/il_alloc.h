@@ -135,7 +135,7 @@ an_ms_attribute_arg_ptr alloc_ms_attribute_arg(an_ms_attribute_arg_kind	kind);
 
 extern a_property_index_type_ptr alloc_property_index_type(void);
 
-extern a_property_descr_ptr alloc_property_descr(void);
+extern a_property_or_event_descr_ptr alloc_property_or_event_descr(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 extern an_ms_if_exists_ptr alloc_ms_if_exists(void);

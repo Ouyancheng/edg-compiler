@@ -5831,12 +5831,18 @@ declaration following this one is such a continuation.
     gen_member_access_specifier_for_decl_of(&field->source_corresp);
     gen_attributes(attributes, al_prefix, /*primary_only=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (field_is_property(field) &&
-        !field->property_descr->is_declspec_property) {
-      /* The field represents a C++/CLI property declaration.  Render any
-         appropriate prefix specifiers. */
-      if (field->property_descr->is_virtual) write_tok_str("virtual ");
-      write_tok_str("property ");
+    if (field_is_property_or_event(field) &&
+        !property_or_event_kind_is(field, pek_declspec_property)) {
+      /* The field represents a C++/CLI property or event declaration.  Render
+         any appropriate prefix specifiers. */
+      if (field->property_or_event_descr->is_virtual) {
+        write_tok_str("virtual ");
+      }  /* if */
+      if (property_or_event_kind_is(field, pek_cli_property)) {
+        write_tok_str("property ");
+      } else {
+        write_tok_str("event ");
+      }  /* if */
     } else if (field->is_initonly) {
       write_tok_str("initonly ");
     }  /* if */
@@ -5874,20 +5880,34 @@ declaration following this one is such a continuation.
   *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
                                                (a_name_linkage_kind)nlk_none);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (field_is_nontrivial_property(field) &&
-      !field->property_descr->is_declspec_property) {
-    /* The property field declaration is followed by the accessor declarations
-       enclosed in braces. */
+  if (field_is_nontrivial_property_or_event(field) &&
+      !property_or_event_kind_is(field, pek_declspec_property)) {
+    /* The property/event field declaration is followed by the accessor
+       declarations enclosed in braces. */
     write_tok_str(" {");
-    /* Render one or two accessor declarations.  If there are two, the one
-       rendered by the call to gen_declaration may not correspond to the
-       pointer (get_routine.ptr or set_routine.ptr) that was just tested,
+    /* Render one, two, or three accessor declarations.  If there are more
+       than one, the one rendered by the call to gen_declaration may not
+       correspond to the pointer (get_routine.ptr, etc.) that was just tested,
        but that is not a problem. */
-    if (field->property_descr->get_routine.ptr != NULL) {
-      gen_declaration(/*for_init=*/FALSE);
-    }  /* if */
-    if (field->property_descr->set_routine.ptr != NULL) {
-      gen_declaration(/*for_init=*/FALSE);
+    if (property_or_event_kind_is(field, pek_cli_property)) {
+      /* C++/CLI property field. */
+      if (field->property_or_event_descr->get_routine.ptr != NULL) {
+        gen_declaration(/*for_init=*/FALSE);
+      }  /* if */
+      if (field->property_or_event_descr->set_routine.ptr != NULL) {
+        gen_declaration(/*for_init=*/FALSE);
+      }  /* if */
+    } else {
+      /* C++/CLI event field. */
+      if (field->property_or_event_descr->add_routine != NULL) {
+        gen_declaration(/*for_init=*/FALSE);
+      }  /* if */
+      if (field->property_or_event_descr->remove_routine != NULL) {
+        gen_declaration(/*for_init=*/FALSE);
+      }  /* if */
+      if (field->property_or_event_descr->raise_routine != NULL) {
+        gen_declaration(/*for_init=*/FALSE);
+      }  /* if */
     }  /* if */
     write_tok_str("}");
   } else
@@ -12465,8 +12485,12 @@ declaration following this one is such a continuation.
       /* Put out the storage class determined above. */
       gen_storage_class(storage_class);
     }  /* if */
-    if (var_is_property(var)) {
-      write_tok_str("property ");
+    if (var_is_property_or_event(var)) {
+      if (property_or_event_kind_is(var, pek_cli_property)) {
+        write_tok_str("property ");
+      } else {
+        write_tok_str("event ");
+      }  /* if */
     }  /* if */
 #if NAMED_REGISTERS_ALLOWED
     if (var->has_named_register_storage_class) {

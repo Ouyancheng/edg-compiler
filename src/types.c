@@ -868,7 +868,6 @@ Return TRUE if the given type is a C++/CLI delegate type.
   return is_delegate_type_entry(tp);
 }  /* is_delegate_type */
 
-#if BACK_END_IS_CP_GEN_BE
 
 a_type_ptr delegate_invocation_type(a_type_ptr delegate_type)
 /*
@@ -887,7 +886,6 @@ Given a delegate class type, return the associated function type.
   return rp->type;
 }  /* delegate_invocation_type */
 
-#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean is_scalar_type(a_type_ptr tp)

@@ -79,7 +79,7 @@ static unsigned long
 		num_ms_attributes_allocated,
 		num_ms_attribute_args_allocated,
 		num_property_index_types_allocated,
-		num_property_descriptions_allocated,
+		num_property_or_event_descriptions_allocated,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 		num_ms_if_exists_allocated,
@@ -1358,7 +1358,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->orig_type_kind                    = (a_type_kind)tk_error;
   ctsp->inheritance_kind                  = (an_inheritance_kind)ihk_none;
   ctsp->inheritance_kind_is_explicit      = FALSE;
-  ctsp->has_direct_property_member        = FALSE;
+  ctsp->has_direct_property_or_event      = FALSE;
   ctsp->assembly_visibility               = (an_assembly_visibility)av_none;
   ctsp->cli_class_type_kind               =
                                          (a_cli_class_type_kind)cctk_standard;
@@ -2037,7 +2037,7 @@ Clear the fields of the given variable to default values.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   vp->entities_defined_in_initializer = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  vp->property_descr              = NULL;
+  vp->property_or_event_descr     = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   vp->assoc_template              = NULL;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -2183,7 +2183,7 @@ to it.
 #endif /* CENTERLINE_CHECKING */
   fp->bit_size_constant    = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  fp->property_descr       = NULL;
+  fp->property_or_event_descr = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   fp->declared_bit_size        = 0;
 #if BACK_END_IS_C_GEN_BE
@@ -2279,7 +2279,7 @@ value.  Also clear related variant fields to default values.
       break;
     case sfk_property_get:
     case sfk_property_set:
-      rp->variant.property_descr = NULL;
+      rp->variant.property_or_event_descr = NULL;
       check_assertion(cppcli_enabled);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4290,18 +4290,19 @@ pointer to it.
 }  /* alloc_property_index_type */
 
 
-a_property_descr_ptr alloc_property_descr(void)
+a_property_or_event_descr_ptr alloc_property_or_event_descr(void)
 /*
-Allocate a property description, clear it to default values, and return a
-pointer to it.
+Allocate a property/event description, clear it to default values, and return
+a pointer to it.
 */
 {
-  a_property_descr_ptr  pdp = (a_property_descr_ptr)
-                                           alloc_il(sizeof(a_property_descr));
+  a_property_or_event_descr_ptr  pdp;
+
+  pdp = alloc_il_of_type(a_property_or_event_descr);
 #if DEBUG
-  num_property_descriptions_allocated++;
+  num_property_or_event_descriptions_allocated++;
 #endif /* DEBUG */
-  pdp->is_declspec_property = FALSE;
+  pdp->kind = (a_property_or_event_kind)pek_cli_property;
   pdp->is_trivial = FALSE;
   pdp->is_default_indexed = FALSE;
   pdp->is_virtual = FALSE;
@@ -4310,13 +4311,16 @@ pointer to it.
   pdp->variant.field = NULL;
   pdp->get_routine.ptr = NULL;
   pdp->set_routine.ptr = NULL;
+  pdp->add_routine = NULL;
+  pdp->remove_routine = NULL;
+  pdp->raise_routine = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  pdp->property_position = null_source_position;
+  pdp->property_or_event_position = null_source_position;
   pdp->indices_range = null_source_range;
   pdp->definition_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   return pdp;
-}  /* alloc_property_descr */
+}  /* alloc_property_or_event_descr */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -4564,9 +4568,10 @@ Display and return the amount of space used for various IL tables.
                 num_ms_attribute_args_allocated,
                 an_ms_attribute_arg);
   db_space_used("property index types", num_property_index_types_allocated,
-                a_property_descr);
-  db_space_used("property descriptions", num_property_descriptions_allocated,
-                a_property_descr);
+                a_property_index_type);
+  db_space_used("property/event descriptions",
+                num_property_or_event_descriptions_allocated,
+                a_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   db_space_used("Microsoft __if_exists",
@@ -4854,7 +4859,7 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_ms_attributes_allocated),
       pch_saved_var_array_elem(num_ms_attribute_args_allocated),
       pch_saved_var_array_elem(num_property_index_types_allocated),
-      pch_saved_var_array_elem(num_property_descriptions_allocated),
+      pch_saved_var_array_elem(num_property_or_event_descriptions_allocated),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
       pch_saved_var_array_elem(num_ms_if_exists_allocated),
@@ -5047,7 +5052,8 @@ initializations that are done for each compilation.
   num_ms_attributes_allocated            = 0;
   num_ms_attribute_args_allocated        = 0;
   num_property_index_types_allocated     = 0;
-  num_property_descriptions_allocated    = 0;
+  num_property_or_event_descriptions_allocated
+                                         = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   num_ms_if_exists_allocated             = 0;

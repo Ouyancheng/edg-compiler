@@ -535,7 +535,12 @@ typedef struct a_decl_parse_state {
 			/* TRUE if this is the first declaration of a variable
 			   or function that was predeclared by the front
 			   end. */
-  a_bit_field	is_property_field:1;
+  a_bit_field	is_property_or_event_field:1;
+			/* TRUE if this is a field declaration with the
+			   Microsoft __declspec(property(...)) specifier or
+			   a non-static C++/CLI property or event
+			   declaration. */
+  a_bit_field	is_declspec_property_field:1;
 			/* TRUE if this is a field declaration with the
 			   Microsoft __declspec(property(...)) specifier. */
   a_bit_field	has_cli_context_sensitive_keyword:1;

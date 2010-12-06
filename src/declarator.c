@@ -559,7 +559,7 @@ by *diag_pos or at a position recorded in *dps (depending on the diagnostic).
       severity = es_remark;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled && dps->in_class_scope &&
-               in_cli_property_definition() && is_void_type(type)) {
+               in_cli_property_or_event_definition() && is_void_type(type)) {
       /* Presumably a property accessor: Any diagnostics will be issued by the
          code that checks the accessor type. */
       severity = es_none;
@@ -828,8 +828,9 @@ the specifiers and declarator that formed the new type.
             err = TRUE;
           } else if (temp_type->kind == (a_type_kind)tk_error) {
             /* Error already put out. */
+            expect_error();
             err = TRUE;
-          } else if (!dps->is_property_field) {
+          } else if (!dps->is_declspec_property_field) {
             error(ec_bad_array_element_type);
             err = TRUE;
           }  /* if */
@@ -1012,7 +1013,7 @@ the specifiers and declarator that formed the new type.
       /* Note that the size of a pointer pointing to an incomplete type
          can be determined, so do that even if the new type is incomplete. */
       if (tkind != (a_type_kind)tk_routine /* For speed. */ &&
-          !dps->is_property_field &&
+          !dps->is_declspec_property_field &&
           (tkind == (a_type_kind)tk_pointer ||
            tkind == (a_type_kind)tk_ptr_to_member ||
            array_of_incomp_class_or_enum ||

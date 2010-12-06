@@ -1287,18 +1287,33 @@ extern a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type,
 extern a_field_ptr next_initializable_field(a_field_ptr field);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define field_is_property(fp)  ((fp)->property_descr != NULL)
+/*
+Macros to examine property and event members (and their accessor functions).
+*/
+#define field_is_property_or_event(fp)  ((fp)->property_or_event_descr != NULL)
+#define property_or_event_kind_is(ep, pek)                                   \
+   ((ep)->property_or_event_descr->kind == (a_property_or_event_kind)pek)
+#define field_is_nontrivial_property_or_event(fp)                            \
+  (field_is_property_or_event(fp) &&                                         \
+   !(fp)->property_or_event_descr->is_trivial)
 #define field_is_nontrivial_property(fp)                                     \
-  ((fp)->property_descr != NULL && !(fp)->property_descr->is_trivial)
-#define var_is_property(vp)  ((vp)->property_descr != NULL)
-#define rout_is_property_accessor(rp)                                        \
+  (field_is_property_or_event(fp) &&                                         \
+   !(fp)->property_or_event_descr->is_trivial &&                             \
+   (property_or_event_kind_is(fp, pek_declspec_property) ||                  \
+    property_or_event_kind_is(fp, pek_cli_property)))
+#define var_is_property_or_event(vp)  ((vp)->property_or_event_descr != NULL)
+#define rout_is_cli_accessor(rp)                                             \
   ((rp)->special_kind == (a_special_function_kind)sfk_property_get ||        \
-   (rp)->special_kind == (a_special_function_kind)sfk_property_set)
+   (rp)->special_kind == (a_special_function_kind)sfk_property_set ||        \
+   (rp)->special_kind == (a_special_function_kind)sfk_event_add ||           \
+   (rp)->special_kind == (a_special_function_kind)sfk_event_remove ||        \
+   (rp)->special_kind == (a_special_function_kind)sfk_event_raise)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define field_is_property(fp)  (FALSE)
+#define field_is_property_or_event(fp)  (FALSE)
+#define field_is_nontrivial_property_or_event(fp)  (FALSE)
 #define field_is_nontrivial_property(fp)  (FALSE)
-#define var_is_property(vp)  (FALSE)
-#define rout_is_property_accessor(rp)  (FALSE)
+#define var_is_property_or_event(vp)  (FALSE)
+#define rout_is_cli_accessor(rp)  (FALSE)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean is_compound_assignment_operator(an_expr_operator_kind op);
