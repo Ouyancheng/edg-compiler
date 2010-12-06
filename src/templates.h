@@ -618,6 +618,9 @@ extern void default_arg_prototype_instantiation(
 extern a_template_arg_ptr create_prototype_arg_list(
 			a_template_param_ptr	templ_param_list);
 
+extern a_boolean prototype_instantiation_should_be_done_for_function(
+					a_symbol_ptr		template_sym);
+
 extern void function_prototype_instantiation(
 			a_symbol_ptr		template_sym);
 

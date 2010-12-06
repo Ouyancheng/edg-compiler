@@ -3658,6 +3658,25 @@ A pointer to the head of the list is returned in tcsp.
 }  /* instantiate_class_template */
 
 
+a_boolean prototype_instantiation_should_be_done_for_function(
+					a_symbol_ptr		template_sym)
+/*
+Return TRUE if a prototype instantiation should be done for the function
+template specified by template_sym.
+*/
+{
+  a_boolean		result = nonclass_prototype_instantiations;
+
+  if (!result) {
+    a_template_symbol_supplement_ptr	tssp;
+    tssp = template_supplement_for_symbol(template_sym);
+    /* Variadic function templates require prototype instantiations. */
+    if (tssp->is_variadic) result = TRUE;
+  }  /* if */
+  return result;
+}  /* prototype_instantiation_should_be_done_for_function */
+
+
 void function_prototype_instantiation(
 			a_symbol_ptr		template_sym)
 /*
@@ -4308,9 +4327,9 @@ Instantiate the body of the template function associated with tip.
      is lowered. */
   rout_ptr->defined_outside_of_parent =
                                      proto_rout_ptr->defined_outside_of_parent;
-  if (nonclass_prototype_instantiations &&
-      defer_function_prototype_instantiations &&
-      !proto_tssp->variant.function.has_prototype_instantiation) {
+  if (defer_function_prototype_instantiations &&
+      !proto_tssp->variant.function.has_prototype_instantiation &&
+      prototype_instantiation_should_be_done_for_function(template_sym)) {
     /* We are deferring the prototype instantiation of functions and this
        function has not had a prototype instantiation done yet.  Do it now. */
     function_prototype_instantiation(proto_sym);
@@ -18141,8 +18160,9 @@ any non-empty template parameter lists that were scanned.
       /* Do the prototype instantiation evaluation of the alias type. */
       alias_prototype_instantiation(sym);
     }  /* if */
-  } else if (nonclass_prototype_instantiations && sym != NULL) {
-    if (is_function_or_template_symbol(sym)) {
+  } else if (sym != NULL) {
+    if (is_function_or_template_symbol(sym) &&
+        prototype_instantiation_should_be_done_for_function(sym)) {
       /* Do the prototype instantiation of the function. */
       if (!decl_state->decl_scope_err && decl_state->defines_something &&
           !defer_function_prototype_instantiations) {
@@ -18152,7 +18172,7 @@ any non-empty template parameter lists that were scanned.
           function_prototype_instantiation(sym);
         }  /* if */
       }  /* if */
-    } else {
+    } else if (nonclass_prototype_instantiations) {
       check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
       static_data_member_prototype_instantiation(decl_state, sym);
     }  /* if */

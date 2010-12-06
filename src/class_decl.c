@@ -2168,7 +2168,7 @@ nested class.
              The friend from the prototype instantiation will be used. */
         } else if (rfp->is_template) {
           /* A function template declared in a class scope. */
-          if (nonclass_prototype_instantiations &&
+          if (prototype_instantiation_should_be_done_for_function(sym) &&
               !defer_function_prototype_instantiations) {
             if (rfp->is_definition) {
               /* Do the prototype instantiation of the function body. */
