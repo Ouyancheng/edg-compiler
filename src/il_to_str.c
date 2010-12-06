@@ -4482,70 +4482,81 @@ precedence confusion.  Do the output in the way described by octl.
         } else
 #endif /* BACK_END_IS_C_GEN_BE */
         /* Do not insert code here.  This is the "else" of an "if". */
-        if (!is_normal_character_kind(character_kind)) {
-          /* A string literal with a prefix, e.g., L"abc" or U"xyz". */
-          /* The processing here must invert the processing done in
-             conv_single_wide_char.  Do something that's right for the default
-             (simple-minded) implementation, which maps one input character
-             to one wide character. */
-          a_targ_size_t char_size = character_size[character_kind];
-          switch (character_kind) {
-            case chk_wchar_t:   prefix = "L\"";     break;
-            case chk_char16_t:  prefix = "u\"";     break;
-            case chk_char32_t:  prefix = "U\"";     break;
-            default:            unexpected_condition();
-          }  /* switch */
-          output_partial_token_str(prefix, octl);
-          for (a = 0; a < len; a += char_size) {
-            /* When generating output for humans to read, abbreviate
-               long strings. */
-            if (!octl->gen_compilable_code && a > 20*char_size &&
-                len > 25*char_size) {
-              output_partial_token_str("...", octl);
-              break;
-            } else if (out_len >= 128 && octl->gen_compilable_code &&
-                       !octl->gen_pcc_code && !octl->suppress_line_breaking) {
-              /* Break long string constants by using concatenation.  This
-                 allows the output routine to begin a new line. */
-              output_partial_token_str("\"", octl);
-              octl->output_str(" ", octl);
-              output_partial_token_str(prefix, octl);
-              out_len = 0;
-            }  /* if */
-            wc = extract_character_from_string(str+a, (unsigned int)char_size);
-            /* Suppress the last character if it is a null. */
-            if (a != (len - char_size) || wc != '\0') {
-              out_len += form_wide_char(wc, octl);
-            }  /* if */
-          }  /* for */
-          output_partial_token_str("\"", octl);
-        } else {
-          /* Normal (non-wide) string. */
-          output_partial_token_str("\"", octl);
-          for (a = 0; a < len; a++) {
-            /* When generating output for humans to read, abbreviate
-               long strings. */
-            if (!octl->gen_compilable_code && a > 20 && len > 25) {
-              output_partial_token_str("...", octl);
-              break;
-            }  /* if */
-            if (out_len >= 128 && octl->gen_compilable_code &&
-                !octl->gen_pcc_code && !octl->suppress_line_breaking) {
-              /* Break long string constants by using concatenation.  This
-                 allows the output routine to begin a new line. */
-              output_partial_token_str("\"", octl);
-              octl->output_str(" ", octl);
-              output_partial_token_str("\"", octl);
-              out_len = 0;
-            }  /* if */
-            ch = str[a];
-            /* Suppress the last character if it is a null. */
-            if (a != (len - 1) || ch != '\0') {
-              out_len += form_char(ch, octl);
-            }  /* if */
-          }  /* for */
-          output_partial_token_str("\"", octl);
-        }  /* if */
+        { if (constant->explicit_cast_applied) {
+            /* The string was originally a compound literal. */
+            octl->output_str("{", octl);
+          }  /* if */
+          if (!is_normal_character_kind(character_kind)) {
+            /* A string literal with a prefix, e.g., L"abc" or U"xyz". */
+            /* The processing here must invert the processing done in
+               conv_single_wide_char.  Do something that's right for the
+               default (simple-minded) implementation, which maps one input
+               character to one wide character. */
+            a_targ_size_t char_size = character_size[character_kind];
+            switch (character_kind) {
+              case chk_wchar_t:   prefix = "L\"";     break;
+              case chk_char16_t:  prefix = "u\"";     break;
+              case chk_char32_t:  prefix = "U\"";     break;
+              default:            unexpected_condition();
+            }  /* switch */
+            output_partial_token_str(prefix, octl);
+            for (a = 0; a < len; a += char_size) {
+              /* When generating output for humans to read, abbreviate
+                 long strings. */
+              if (!octl->gen_compilable_code && a > 20*char_size &&
+                  len > 25*char_size) {
+                output_partial_token_str("...", octl);
+                break;
+              } else if (out_len >= 128 && octl->gen_compilable_code &&
+                         !octl->gen_pcc_code &&
+                         !octl->suppress_line_breaking) {
+                /* Break long string constants by using concatenation.  This
+                   allows the output routine to begin a new line. */
+                output_partial_token_str("\"", octl);
+                octl->output_str(" ", octl);
+                output_partial_token_str(prefix, octl);
+                out_len = 0;
+              }  /* if */
+              wc = extract_character_from_string(str+a,
+                                                 (unsigned int)char_size);
+              /* Suppress the last character if it is a null. */
+              if (a != (len - char_size) || wc != '\0') {
+                out_len += form_wide_char(wc, octl);
+              }  /* if */
+            }  /* for */
+            output_partial_token_str("\"", octl);
+          } else {
+            /* Normal (non-wide) string. */
+            output_partial_token_str("\"", octl);
+            for (a = 0; a < len; a++) {
+              /* When generating output for humans to read, abbreviate
+                 long strings. */
+              if (!octl->gen_compilable_code && a > 20 && len > 25) {
+                output_partial_token_str("...", octl);
+                break;
+              }  /* if */
+              if (out_len >= 128 && octl->gen_compilable_code &&
+                  !octl->gen_pcc_code && !octl->suppress_line_breaking) {
+                /* Break long string constants by using concatenation.  This
+                   allows the output routine to begin a new line. */
+                output_partial_token_str("\"", octl);
+                octl->output_str(" ", octl);
+                output_partial_token_str("\"", octl);
+                out_len = 0;
+              }  /* if */
+              ch = str[a];
+              /* Suppress the last character if it is a null. */
+              if (a != (len - 1) || ch != '\0') {
+                out_len += form_char(ch, octl);
+              }  /* if */
+            }  /* for */
+            output_partial_token_str("\"", octl);
+          }  /* if */
+          if (constant->explicit_cast_applied) {
+            /* The string was originally a compound literal. */
+            octl->output_str("}", octl);
+          }  /* if */
+        }
       }
       break;
     case ck_float:
