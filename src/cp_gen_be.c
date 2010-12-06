@@ -12485,6 +12485,7 @@ declaration following this one is such a continuation.
       /* Put out the storage class determined above. */
       gen_storage_class(storage_class);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (var_is_property_or_event(var)) {
       if (property_or_event_kind_is(var, pek_cli_property)) {
         write_tok_str("property ");
@@ -12492,6 +12493,7 @@ declaration following this one is such a continuation.
         write_tok_str("event ");
       }  /* if */
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NAMED_REGISTERS_ALLOWED
     if (var->has_named_register_storage_class) {
       write_tok_str(

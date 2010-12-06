@@ -773,7 +773,7 @@ static void complete_class_definition(a_type_ptr         class_type,
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define treat_declaration_as_okay_in_property_event(cdsp)                  \
+#define treat_declaration_as_okay_in_property_or_event(cdsp)                 \
   ((cdsp)->current_decl_valid_in_property_or_event_def = TRUE)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define treat_declaration_as_okay_in_property_or_event(cdsp)  /* Nothing */
@@ -10034,7 +10034,7 @@ implicitly declared member functions.
 #if DEBUG
   if (debug_level >= 3) db_symbol(sym, "", 4);
 #endif /* DEBUG */
-  treat_declaration_as_okay_in_property_event(class_state);
+  treat_declaration_as_okay_in_property_or_event(class_state);
   db_exit();
 }  /* decl_member_function */
 
@@ -16190,7 +16190,7 @@ being parsed), *decl_info describes the current member declaration, and
     /* A nontrivial property or event. */
     (void)required_token(tok_lbrace, ec_exp_lbrace);
     class_state->property_or_event_descr = pdp;
-    treat_declaration_as_okay_in_property_event(class_state);
+    treat_declaration_as_okay_in_property_or_event(class_state);
   }  /* if */
 done:
   remove_stop_token(tok_lbrace);
@@ -18439,7 +18439,7 @@ classes.
           cannot_bind_to_curr_construct();
           /* Bypass the superfluous semicolon and continue looping. */
           (void)get_token();
-          treat_declaration_as_okay_in_property_event(&class_state);
+          treat_declaration_as_okay_in_property_or_event(&class_state);
           goto next_declaration;
         }  /* if */
 #if !ASM_FUNCTION_ALLOWED
@@ -18453,7 +18453,7 @@ classes.
                                 &attributes);
           /* The semicolon will have been consumed by the subroutine.
              Continue looping through the members. */
-          treat_declaration_as_okay_in_property_event(&class_state);
+          treat_declaration_as_okay_in_property_or_event(&class_state);
           goto next_declaration;
         }  /* if */
 #endif /* !ASM_FUNCTION_ALLOWED */
