@@ -24656,7 +24656,7 @@ static void skip_start_of_pack_placeholders(
 				a_boolean		is_first_arg)
 /*
 If *tap points to a start of pack expansion placeholder, advance to the
-first real argument.  Note that there may be no actual arguments for
+next real argument.  Note that there may be no actual arguments for
 a pack, and there may be several pack expansion placeholders in a row.
 Because of this, even if *tap points to a pack expansion placeholder, the
 argument returned may not be associated with a pack.  *tpp is advanced to
@@ -24666,6 +24666,10 @@ parameter list available and only *tap is manipulated.  is_first_arg is
 TRUE if this is called to skip any pack expansions at the very start of
 the parameter list.  In this case, *tpp already points to the correct
 parameter and so should not be advanced.
+
+See skip_start_of_pack_placeholders_simple in il.c for a version of
+this routine that handles just the argument list and not the parameter
+list.
 */
 {
   check_assertion(tap != NULL);
@@ -24703,6 +24707,10 @@ can be zero, one, or multiple template arguments for any given parameter.
 When this routine is called, the first "real" template argument (i.e.,
 not a variadic placeholder) is returned in *tap, along with the corresponding
 template parameter in *tpp (when templ_param_list is not NULL).
+
+See begin_template_arg_list_traversal_simple in il.c for a version of
+this routine that handles just the argument list and not the parameter
+list.
 */
 {
   if (tpp != NULL) *tpp = templ_param_list;
@@ -24717,14 +24725,18 @@ void advance_to_next_template_arg(
 				a_template_arg_ptr	*tap)
 /*
 Advance the template parameter and template argument pointers specified by
-*tpp and *tap to the next element in the list.  Set them to NULL when the
+*tpp and *tap to the next element in the list.  Set them to NULL after the
 last argument is encountered.  If *tpp is NULL, there is no parameter list
 available and only *tap is manipulated.
+
+See advance_to_next_template_arg_simple in il.c for a version of
+this routine that handles just the argument list and not the parameter
+list.
 */
 {
   check_assertion(tap != NULL);
   *tap = (*tap)->next;
-  /* If *tap points to a placeholder, skip to the first real argument. */
+  /* If *tap points to a placeholder, skip to the next real argument. */
   skip_start_of_pack_placeholders(tpp, tap, /*is_first=*/FALSE);
   if (*tap == NULL || !(*tap)->is_pack_element) {
     if (tpp != NULL) {

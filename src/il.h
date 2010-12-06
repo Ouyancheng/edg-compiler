@@ -1036,6 +1036,12 @@ extern a_boolean class_type_can_be_named_in_namespace_scope(a_type_ptr  type);
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+extern void begin_template_arg_list_traversal_simple(
+                                             a_template_arg_ptr templ_arg_list,
+                                             a_template_arg_ptr *tap);
+
+extern void advance_to_next_template_arg_simple(a_template_arg_ptr *tap);
+
 extern a_template_arg_ptr copy_template_arg_list(a_template_arg_ptr orig_list);
 
 extern a_boolean is_default_constructor(a_routine_ptr  ctor_rout,

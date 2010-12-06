@@ -2390,7 +2390,10 @@ that the remaining arguments will be defaulted.
          argument to be used (prev_argp) and the first argument to be
          omitted (argp). */
       long i;
-      for (argp = tap, i = 0; argp != NULL; argp = argp->next, ++i) {
+      begin_template_arg_list_traversal_simple(tap, &argp);
+      for (i = 0;
+           argp != NULL;
+           advance_to_next_template_arg_simple(&argp), ++i) {
         if (i == num_arguments) {
           /* We have reached the first argument to be omitted. */
           break;

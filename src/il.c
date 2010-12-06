@@ -10514,6 +10514,76 @@ name.
 #endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+
+static void skip_start_of_pack_placeholders_simple(a_template_arg_ptr *tap)
+/*
+If *tap points to a start of pack expansion placeholder, advance to the
+next real argument.  Note that there may be no actual arguments for
+a pack, and there may be several pack expansion placeholders in a row.
+Because of this, even if *tap points to a pack expansion placeholder, the
+argument returned may not be associated with a pack.  *tap will be set
+to NULL when the end of the argument list is reached.
+
+See skip_start_of_pack_placeholders in templates.c for a version of
+this routine that handles the parameter list as well as the argument
+list.
+*/
+{
+  check_assertion(tap != NULL);
+  for (; *tap != NULL && is_start_of_pack_expansion_templ_arg(*tap);) {
+    *tap = (*tap)->next;
+  }  /* for */
+}  /* skip_start_of_pack_placeholders_simple */
+
+
+void begin_template_arg_list_traversal_simple(
+                                             a_template_arg_ptr templ_arg_list,
+                                             a_template_arg_ptr *tap)
+/*
+This routine is used to traverse a template argument list.  It is used as
+follows:
+
+  begin_template_arg_list_traversal_simple(templ_arg_list, &tap);
+  for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
+    ...
+  } 
+
+This exists to skip over the placeholder entries that indicate the
+start of variadic template pack expansions.  When this routine is
+called, the first "real" template argument (i.e., not a variadic
+placeholder) is returned in *tap.
+
+See begin_template_arg_list_traversal in templates.c for a version of
+this routine that handles the parameter list as well as the argument
+list.
+*/
+{
+  *tap = templ_arg_list;
+  /* Skip to the first real argument. */
+  skip_start_of_pack_placeholders_simple(tap);
+}  /* begin_template_arg_list_traversal_simple */
+
+
+void advance_to_next_template_arg_simple(a_template_arg_ptr *tap)
+/*
+Advance the template argument pointer specified by *tap to the next element
+in the list, skipping the placeholders for the start of variadic template
+pack expansions.  Set *tap to NULL if there are no more arguments.
+
+See advance_to_next_template_arg in templates.c for a version of
+this routine that handles the parameter list as well as the argument
+list.
+*/
+{
+  check_assertion(tap != NULL);
+  *tap = (*tap)->next;
+  /* If *tap points to a placeholder, skip to the next real argument. */
+  skip_start_of_pack_placeholders_simple(tap);
+}  /* advance_to_next_template_arg_simple */
+
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_template_arg_ptr copy_template_arg_list(a_template_arg_ptr orig_list)
 /*

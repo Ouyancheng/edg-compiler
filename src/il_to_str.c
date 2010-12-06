@@ -387,9 +387,10 @@ is put out.
          argument begins with a "::" global qualifier. */
       octl->output_str(" ", octl);
     }  /* if */
+    begin_template_arg_list_traversal_simple(tap, &tap);
     for (;;) {
       form_a_template_arg(tap, octl);
-      tap = tap->next;
+      advance_to_next_template_arg_simple(&tap);
       /* Stop after the last argument. */
       if (tap == NULL) break;
       /* Put a comma between arguments. */
