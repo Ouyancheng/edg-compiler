@@ -2670,6 +2670,10 @@ function declarator in a friend function declaration.
           any_variadic_params = begin_potential_pack_expansion_context(&pesep);
           if (!any_variadic_params) done = TRUE;
         }  /* if */
+        /* A parameter pack must be the last parameter. */
+        if (ptp->is_parameter_pack && !done) {
+          pos_error(ec_pack_not_at_end, &param_type_pos);
+        }  /* if */
       } while (!done || any_variadic_params);
     }  /* if */
     /* Save the list of symbols for the prototype scope (usually NULL, but
