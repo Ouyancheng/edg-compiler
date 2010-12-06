@@ -1293,15 +1293,14 @@ Macros to examine property and event members (and their accessor functions).
 #define field_is_property_or_event(fp)  ((fp)->property_or_event_descr != NULL)
 #define property_or_event_kind_is(ep, pek)                                   \
    ((ep)->property_or_event_descr->kind == (a_property_or_event_kind)pek)
-#define field_is_nontrivial_property_or_event(fp)                            \
-  (field_is_property_or_event(fp) &&                                         \
-   !(fp)->property_or_event_descr->is_trivial)
 #define field_is_nontrivial_property(fp)                                     \
   (field_is_property_or_event(fp) &&                                         \
    !(fp)->property_or_event_descr->is_trivial &&                             \
    (property_or_event_kind_is(fp, pek_declspec_property) ||                  \
     property_or_event_kind_is(fp, pek_cli_property)))
+#if BACK_END_IS_CP_GEN_BE
 #define var_is_property_or_event(vp)  ((vp)->property_or_event_descr != NULL)
+#endif /* BACK_END_IS_CP_GEN_BE */
 #define rout_is_cli_accessor(rp)                                             \
   ((rp)->special_kind == (a_special_function_kind)sfk_property_get ||        \
    (rp)->special_kind == (a_special_function_kind)sfk_property_set ||        \
@@ -1310,9 +1309,7 @@ Macros to examine property and event members (and their accessor functions).
    (rp)->special_kind == (a_special_function_kind)sfk_event_raise)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define field_is_property_or_event(fp)  (FALSE)
-#define field_is_nontrivial_property_or_event(fp)  (FALSE)
 #define field_is_nontrivial_property(fp)  (FALSE)
-#define var_is_property_or_event(vp)  (FALSE)
 #define rout_is_cli_accessor(rp)  (FALSE)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

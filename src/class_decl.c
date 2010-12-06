@@ -9214,7 +9214,8 @@ with and issue diagnostics as needed.
                                    (a_special_function_kind)sfk_event_raise);
     invocation_type = delegate_invocation_type(type_pointed_to(prop_type));
     if (!f_types_are_compatible(rtp, invocation_type,
-                                TCF_IGNORE_THIS_CLASS_TYPE)) {
+                                TCF_IGNORE_THIS_CLASS_TYPE |
+                                TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
       pos_error(ec_event_raise_type_mismatch, &dps->start_pos);
       err = TRUE;
     }  /* if */

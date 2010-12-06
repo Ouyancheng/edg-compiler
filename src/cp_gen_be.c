@@ -5880,7 +5880,8 @@ declaration following this one is such a continuation.
   *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
                                                (a_name_linkage_kind)nlk_none);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (field_is_nontrivial_property_or_event(field) &&
+  if (field_is_property_or_event(field) &&
+      !field->property_or_event_descr->is_trivial &&
       !property_or_event_kind_is(field, pek_declspec_property)) {
     /* The property/event field declaration is followed by the accessor
        declarations enclosed in braces. */
