@@ -8390,7 +8390,7 @@ controls the initialization of fields used only in such cases.
   prp->symbol = NULL;
   prp->position = null_source_position;
   if (is_variable) {
-    prp->curr_argument.param_type = NULL;
+    prp->curr_argument.variable = NULL;
   } else {
     prp->curr_argument.template_arg = NULL;
   }  /* if */
@@ -8612,89 +8612,6 @@ the current pack.
 }  /* is_non_initial_variadic_param */
 
 
-static void skip_start_of_pack_placeholders(
-				a_template_param_ptr	*tpp,
-				a_template_arg_ptr	*tap,
-				a_boolean		is_first_arg)
-/*
-If *tap points to a start of pack expansion placeholder, advance to the
-first real argument.  Note that there may be no actual arguments for
-a pack, and there may be several pack expansion placeholders in a row.
-Because of this, even if *tap points to a pack expansion placeholder, the
-argument returned may not be associated with a pack.  *tpp is advanced to
-the corresponding template parameter.  *tap will be set to NULL when the
-end of the argument list is reached.  If *tpp is NULL, there is no
-parameter list available and only *tap is manipulated.  is_first_arg is
-TRUE if this is called to skip any pack expansions at the very start of
-the parameter list.  In this case, *tpp already points to the correct
-parameter and so should not be advanced.
-*/
-{
-  check_assertion(tap != NULL);
-  for (; *tap != NULL && is_start_of_pack_expansion_templ_arg(*tap);) {
-    *tap = (*tap)->next;
-    if (!is_first_arg && *tpp != NULL) *tpp = (*tpp)->next;
-    is_first_arg = FALSE;
-  }  /* for */
-}  /* skip_start_of_pack_placeholders */
-
-void begin_template_arg_list_traversal(
-				a_template_param_ptr	templ_param_list,
-				a_template_arg_ptr	templ_arg_list,
-				a_template_param_ptr	*tpp,
-				a_template_arg_ptr	*tap)
-/*
-This routine is used to traverse a template argument list and optionally
-an associated template parameter list.  If there is only an argument list
-and no parameter list, then templ_param_list must be NULL and tpp will not
-be modified by this routine.
-
-This routine is used as follows:
-
-  begin_template_arg_list_traversal(templ_param_list, templ_arg_list,
-                                    &tpp, &tap);
-  for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
-    ...
-  } 
-
-Normally there is a one-to-one correspondence between template parameters
-and template arguments, but in the presence of variadic templates there
-can be zero, one, or multiple template arguments for any given parameter.
-
-When this routine is called, the first "real" template argument (i.e.,
-not a variadic placeholder) is returned in *tap, along with the corresponding
-template parameter in *tpp (when templ_param_list is not NULL).
-*/
-{
-  *tpp = templ_param_list;
-  *tap = templ_arg_list;
-  /* Skip to the first real argument. */
-  skip_start_of_pack_placeholders(tpp, tap, /*is_first=*/TRUE);
-}  /* begin_template_arg_list_traversal */
-
-
-void advance_to_next_template_arg(
-				a_template_param_ptr	*tpp,
-				a_template_arg_ptr	*tap)
-/*
-Advance the template parameter and template argument pointers specified by
-*tpp and *tap to the next element in the list.  Set them to NULL when the
-last argument is encountered.  If *tpp is NULL, there is no parameter list
-available and only *tap is manipulated.
-*/
-{
-  check_assertion(tap != NULL);
-  *tap = (*tap)->next;
-  /* If *tap points to a placeholder, skip to the first real argument. */
-  skip_start_of_pack_placeholders(tpp, tap, /*is_first=*/FALSE);
-  if (*tap == NULL || !(*tap)->is_pack_element) {
-    if (*tpp != NULL) {
-      *tpp = (*tpp)->next;
-    }  /* if */
-  }  /* if */
-}  /* advance_to_next_template_arg */
-
-
 static void get_curr_template_params_and_args(
 				a_template_param_ptr	*templ_param_list,
 				a_template_arg_ptr	*templ_arg_list)
@@ -8746,6 +8663,45 @@ return NULL.  Return the number of actual arguments in *elements.
   }  /* for */
   return result_tap;
 }  /* find_template_arg_for_pack */
+
+
+static a_variable_ptr find_variable_for_pack(
+				a_symbol_ptr		sym,
+				uint32_t		*elements)
+/*
+Return the initial function parameter associated with the variadic
+function template currently being instantiated.  sym is variable symbol
+from the prototype instantiation.  If there are no actual arguments for
+the pack, return NULL.  Return the number of actual arguments in *elements.
+
+This routine is only expected to be called in the context of a function
+template instantiation of a variadic template or some other context considered
+to be part of the function template such as a lambda nested therein.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  uint32_t			param_num;
+  a_variable_ptr		vp;
+  a_variable_ptr		result_vp = NULL;
+
+  check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
+  ssep = scope_stack_entry_for(depth_innermost_function_scope);
+  param_num = sym->variant.variable.ptr->assoc_param_type->param_num;
+  for (vp = ssep->il_scope->variant.routine.parameters;
+       vp != NULL; vp = vp->next) {
+    if (vp->assoc_param_type->param_num == param_num) {
+      result_vp = vp;
+      break;
+    }  /* if */
+  }  /* for */
+  *elements = 0;
+  /* Count the number of pack elements. */
+  for (; vp != NULL; vp = vp->next) {
+    check_assertion(vp->assoc_param_type->is_pack_element);
+    (*elements)++;
+  }  /* for */
+  return result_vp;
+}  /* find_variable_for_pack */
 
 
 static void begin_special_variadic_template_arg_list_traversal(
@@ -8897,6 +8853,9 @@ advance to the next pack element for each symbol.
       /* In non-deduction contexts, find the current pack element to
          be used. */
       if (prp->symbol->kind == (a_symbol_kind)sk_variable) {
+        a_variable_ptr	vp;
+        vp = find_variable_for_pack(prp->symbol, &elements_for_pack);
+        new_prp->curr_argument.variable = vp;
         /* FIXME: variables not implemented yet. */
         elements_for_pack = 0;
       } else {

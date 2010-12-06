@@ -24650,6 +24650,90 @@ are treated as extern inlines.
 }  /* is_nontemplate_routine_from_exported_trans_unit */
 
 
+static void skip_start_of_pack_placeholders(
+				a_template_param_ptr	*tpp,
+				a_template_arg_ptr	*tap,
+				a_boolean		is_first_arg)
+/*
+If *tap points to a start of pack expansion placeholder, advance to the
+first real argument.  Note that there may be no actual arguments for
+a pack, and there may be several pack expansion placeholders in a row.
+Because of this, even if *tap points to a pack expansion placeholder, the
+argument returned may not be associated with a pack.  *tpp is advanced to
+the corresponding template parameter.  *tap will be set to NULL when the
+end of the argument list is reached.  If *tpp is NULL, there is no
+parameter list available and only *tap is manipulated.  is_first_arg is
+TRUE if this is called to skip any pack expansions at the very start of
+the parameter list.  In this case, *tpp already points to the correct
+parameter and so should not be advanced.
+*/
+{
+  check_assertion(tap != NULL);
+  for (; *tap != NULL && is_start_of_pack_expansion_templ_arg(*tap);) {
+    *tap = (*tap)->next;
+    if (!is_first_arg && tpp != NULL) *tpp = (*tpp)->next;
+    is_first_arg = FALSE;
+  }  /* for */
+}  /* skip_start_of_pack_placeholders */
+
+
+void begin_template_arg_list_traversal(
+				a_template_param_ptr	templ_param_list,
+				a_template_arg_ptr	templ_arg_list,
+				a_template_param_ptr	*tpp,
+				a_template_arg_ptr	*tap)
+/*
+This routine is used to traverse a template argument list and optionally
+an associated template parameter list.  If there is only an argument list
+and no parameter list, then templ_param_list must be NULL and tpp will not
+be modified by this routine.
+
+This routine is used as follows:
+
+  begin_template_arg_list_traversal(templ_param_list, templ_arg_list,
+                                    &tpp, &tap);
+  for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
+    ...
+  } 
+
+Normally there is a one-to-one correspondence between template parameters
+and template arguments, but in the presence of variadic templates there
+can be zero, one, or multiple template arguments for any given parameter.
+
+When this routine is called, the first "real" template argument (i.e.,
+not a variadic placeholder) is returned in *tap, along with the corresponding
+template parameter in *tpp (when templ_param_list is not NULL).
+*/
+{
+  if (tpp != NULL) *tpp = templ_param_list;
+  *tap = templ_arg_list;
+  /* Skip to the first real argument. */
+  skip_start_of_pack_placeholders(tpp, tap, /*is_first=*/TRUE);
+}  /* begin_template_arg_list_traversal */
+
+
+void advance_to_next_template_arg(
+				a_template_param_ptr	*tpp,
+				a_template_arg_ptr	*tap)
+/*
+Advance the template parameter and template argument pointers specified by
+*tpp and *tap to the next element in the list.  Set them to NULL when the
+last argument is encountered.  If *tpp is NULL, there is no parameter list
+available and only *tap is manipulated.
+*/
+{
+  check_assertion(tap != NULL);
+  *tap = (*tap)->next;
+  /* If *tap points to a placeholder, skip to the first real argument. */
+  skip_start_of_pack_placeholders(tpp, tap, /*is_first=*/FALSE);
+  if (*tap == NULL || !(*tap)->is_pack_element) {
+    if (tpp != NULL) {
+      *tpp = (*tpp)->next;
+    }  /* if */
+  }  /* if */
+}  /* advance_to_next_template_arg */
+
+
 #if DEBUG
 unsigned long db_show_template_space_used(unsigned long grand_total)
 /*

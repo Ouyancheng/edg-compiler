@@ -256,11 +256,10 @@ typedef struct a_pack_reference {
 			/* The source position of the pack reference. */
   /* This field is only used for real instantiations. */
   union {
-    a_param_type_ptr
-		param_type;
+    a_variable_ptr
+		variable;
 			/* When symbol is a variable, this points to the
-			   param type entry for the variable to be used for
-			   the current expansion. */
+			   variable to be used for the current expansion. */
     a_template_arg_ptr
 		template_arg;
 			/* When symbol is not a variable, this points to the
@@ -1640,16 +1639,6 @@ extern a_template_decl_info_ptr get_current_template_decl_info(void);
 
 extern
 a_template_arg_ptr get_curr_variadic_arg_for_param(a_template_param_ptr	tpp);
-
-extern void begin_template_arg_list_traversal(
-				a_template_param_ptr	templ_param_list,
-				a_template_arg_ptr	templ_arg_list,
-				a_template_param_ptr	*tpp,
-				a_template_arg_ptr	*tap);
-
-extern void advance_to_next_template_arg(
-				a_template_param_ptr	*tpp,
-				a_template_arg_ptr	*tap);
 
 extern a_boolean begin_rescan_pack_expansion_context(
 		a_pack_expansion_descr_ptr		pedp,
