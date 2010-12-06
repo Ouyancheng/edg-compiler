@@ -2278,12 +2278,14 @@ function declarator in a friend function declaration.
         if (param_state.has_pack_ellipsis && is_template_dependent_context()) {
           /* This looks like the declaration of a function parameter pack.
              Verify that the parameter type is a "pattern type". */
+          /* FIXME: Is this test still needed? */
           if (is_variadic_pattern_type(param_state.declared_type)) {
             ptp->is_parameter_pack = TRUE;
           } else {
             pos_error(ec_function_parameter_pack_requires_pattern,
                       &param_state.declarator_pos);
           }  /* if */
+          default_arg_allowed_on_curr_param = FALSE;
         } else {
           ptp->is_pack_element = is_pack_element;
           ptp->duplicate_name = is_non_initial_pack_element;
