@@ -250,11 +250,30 @@ typedef struct a_pack_reference {
 			/* The next entry on the list or NULL for the last
 			   entry. */
   a_symbol_ptr	symbol;
-			/* The symbol of the pack that was referenced. */
+			/* The symbol of the pack that was referenced.  For
+			   references to function parameter packs (i.e., when
+			   the symbol points to a variable, this variable
+			   pointer is cleared when the end of the prototype
+			   instantiation of the function is reached
+			   because the variable pointed to will be in the
+			   function memory region. */
+  uint32_t	param_num;
+			/* This is used for function parameter packs to
+			   record the parameter number of the parameter
+			   pack. */
   a_source_position
 		position;
 			/* The source position of the pack reference. */
-  /* This field is only used for real instantiations. */
+  a_byte_boolean
+		is_variable;
+			/* TRUE if this entry is for a reference to a
+			   function parameter pack (i.e., the symbol
+			   on which the entry was created was an
+			   sk_variable symbol). */
+  a_symbol_ptr	primary_var_symbol;
+			/* When is_variable is TRUE in an actual
+			   instantiation, this points to the primary variable
+			   symbol that is found by name lookup. */
   union {
     a_variable_ptr
 		variable;

@@ -559,6 +559,7 @@ associated with a variadic parameter, but not the initial one.
   /* Create the parameter variable. */
   vp = make_param_variable(tp, param_id->storage_class);
   vp->is_parameter_pack = ptp->is_parameter_pack;
+  vp->is_pack_element = ptp->is_pack_element;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Record the type exactly as it was declared (before array-to-pointer
      decay, etc.). */
@@ -614,6 +615,8 @@ associated with a variadic parameter, but not the initial one.
                                decl_scope_level,
                                /*suppress_redecl_error=*/
                                                    non_initial_variadic_param);
+      /* Mark all but the first pack element symbol as invisible. */
+      sym->is_invisible = non_initial_variadic_param;
     } else {
       set_symbol_kind(sym, (a_symbol_kind)sk_variable);
       /* In some modes, the parameter symbols (in the prototype scopes) are

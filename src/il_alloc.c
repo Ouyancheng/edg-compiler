@@ -2026,6 +2026,7 @@ Clear the fields of the given variable to default values.
   vp->declared_using_type_without_linkage
                                   = FALSE;
   vp->is_parameter_pack           = FALSE;
+  vp->is_pack_element             = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   vp->is_initonly                 = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

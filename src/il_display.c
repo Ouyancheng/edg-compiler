@@ -2365,6 +2365,9 @@ Display the indicated variable.
   if (ptr->is_parameter_pack) {
     disp_boolean("is_parameter_pack", TRUE);
   }  /* if */
+  if (ptr->is_pack_element) {
+    disp_boolean("is_pack_element", TRUE);
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->is_initonly) {
     disp_boolean("is_initonly", TRUE);

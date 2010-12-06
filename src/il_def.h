@@ -8262,6 +8262,11 @@ typedef struct a_variable {
   a_bit_field	is_parameter_pack:1;
 			/* TRUE for the parameter variable for a function
 			   parameter pack of a variadic template. */
+  a_bit_field	is_pack_element:1;
+			/* TRUE for parameters of an actual instantiation of
+			   a variadic template for those parameters that are
+			   associated with a parameter pack of the original
+			   variadic template. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	is_initonly:1;
 			/* TRUE if the "initonly" context-sensitive keyword

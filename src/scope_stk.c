@@ -7182,6 +7182,24 @@ set correctly.
 
 #endif /* EXPENSIVE_CHECKING */
 
+static void clear_pack_expansion_variables(a_template_decl_info_ptr tdip)
+/*
+Go through the pack expansion entries pointed to by tdip and clear the
+variable pointers of any variable symbols to prevent references to freed
+memory regions.
+*/
+{
+  a_pack_expansion_descr_ptr	pedp = tdip->pack_expansions;
+  a_pack_reference_ptr		prp;
+
+  for (prp = pedp->packs_referenced; prp != NULL; prp = prp->next) {
+    if (prp->is_variable) {
+      prp->symbol->variant.variable.ptr = NULL;
+    }  /* if */
+  }  /* for */
+}  /* clear_pack_expansion_variables */
+
+
 void pop_scope(void)
 /*
 End a name scope by popping an entry off the scope stack.
@@ -7621,6 +7639,12 @@ End a name scope by popping an entry off the scope stack.
       update_template_param_symbols(template_decl_info->parameters,
                                     scope_stack[prev_depth].template_arg_list);
     }  /* if */
+  }  /* if */
+  if (ssep->template_decl_info != NULL &&
+      ssep->template_decl_info->pack_expansions != NULL) {
+    /* The variable entries for in pack expansions are cleared to prevent
+       references to freed memory regions. */
+    clear_pack_expansion_variables(ssep->template_decl_info);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ssep->source_sequence_list != NULL) {
@@ -8388,7 +8412,10 @@ controls the initialization of fields used only in such cases.
   }  /* if */
   prp->next = NULL;
   prp->symbol = NULL;
+  prp->is_variable = is_variable;
+  prp->param_num = 0;
   prp->position = null_source_position;
+  prp->primary_var_symbol = NULL;
   if (is_variable) {
     prp->curr_argument.variable = NULL;
   } else {
@@ -8666,13 +8693,14 @@ return NULL.  Return the number of actual arguments in *elements.
 
 
 static a_variable_ptr find_variable_for_pack(
-				a_symbol_ptr		sym,
-				uint32_t		*elements)
+				uint32_t	param_num,
+				uint32_t	*elements)
 /*
 Return the initial function parameter associated with the variadic
-function template currently being instantiated.  sym is variable symbol
-from the prototype instantiation.  If there are no actual arguments for
-the pack, return NULL.  Return the number of actual arguments in *elements.
+function template currently being instantiated.  param_num indicates
+the parameter number from the prototype instantiation.  If there are no 
+actual arguments for the pack, return NULL.  Return the number of actual
+arguments in *elements.
 
 This routine is only expected to be called in the context of a function
 template instantiation of a variadic template or some other context considered
@@ -8680,13 +8708,11 @@ to be part of the function template such as a lambda nested therein.
 */
 {
   a_scope_stack_entry_ptr	ssep;
-  uint32_t			param_num;
   a_variable_ptr		vp;
   a_variable_ptr		result_vp = NULL;
 
   check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
   ssep = scope_stack_entry_for(depth_innermost_function_scope);
-  param_num = sym->variant.variable.ptr->assoc_param_type->param_num;
   for (vp = ssep->il_scope->variant.routine.parameters;
        vp != NULL; vp = vp->next) {
     if (vp->assoc_param_type->param_num == param_num) {
@@ -8788,8 +8814,7 @@ Return a pointer to the copy.
 {
   a_pack_reference_ptr	new_prp;
 
-   new_prp = alloc_pack_reference(prp->symbol->kind ==
-                                                   (a_symbol_kind)sk_variable);
+   new_prp = alloc_pack_reference(prp->is_variable);
    /* Copy the entire entry then clear the fields that should not be
       inherited. */
    *new_prp = *prp;
@@ -8845,19 +8870,18 @@ advance to the next pack element for each symbol.
          argument values.  The curr_argument field of the pack element will
          be NULL until a value is deduced.   It is then cleared when
          the deduction of a given function argument has been completed. */
-      check_assertion(prp->symbol->kind != (a_symbol_kind)sk_variable);
+      check_assertion(!prp->is_variable);
       tap = find_placeholder_arg_for_pack(templ_param_list, templ_arg_list,
                                           prp->symbol);
       new_prp->prev_template_arg = tap;
     } else {
       /* In non-deduction contexts, find the current pack element to
          be used. */
-      if (prp->symbol->kind == (a_symbol_kind)sk_variable) {
+      if (prp->is_variable) {
         a_variable_ptr	vp;
-        vp = find_variable_for_pack(prp->symbol, &elements_for_pack);
+        vp = find_variable_for_pack(prp->param_num, &elements_for_pack);
         new_prp->curr_argument.variable = vp;
-        /* FIXME: variables not implemented yet. */
-        elements_for_pack = 0;
+        new_prp->primary_var_symbol = symbol_for(vp);
       } else {
         a_template_arg_ptr	tap;
         tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
@@ -8926,9 +8950,7 @@ pack expansion stack entry for which the symbols are to be updated.
        param_prp != NULL;
        param_prp = param_prp->next, arg_prp = arg_prp->next) {
     a_symbol_ptr	sym = param_prp->symbol;
-    if (sym->kind == (a_symbol_kind)sk_variable) {
-      /* FIXME: variable case not implemented yet. */
-    } else {
+    if (!param_prp->is_variable) {
       /* A template argument. */
       update_template_param_symbol(sym, arg_prp->curr_argument.template_arg);
     }  /* if */
@@ -9208,12 +9230,11 @@ argument.  pesep describes the current pack deduction context.
          arg_prp = pesep->instantiation_descr->pack_status;
        param_prp != NULL;
        param_prp = param_prp->next, arg_prp = arg_prp->next) {
-    a_symbol_ptr	sym = param_prp->symbol;
-    check_assertion(sym->kind != (a_symbol_kind)sk_variable);
+    check_assertion(!param_prp->is_variable);
     /* Clear the current argument value. */
     arg_prp->curr_argument.template_arg = NULL;
   }  /* for */
-}  /* advance_to_next_pack_element */
+}  /* advance_to_next_deduced_element */
 
 
 void end_pack_deduction_context(
@@ -9326,7 +9347,7 @@ effect and returns NULL.
     }  /* if */
   }  /* if */
   if (pesep != NULL) {
-    /* Except in the declarator case, the current token must be "...". */
+    /* If a "..." was not encountered, issue an error. */
     a_pack_expansion_descr_ptr	pedp = pesep->expansion_descr;
     if (!pedp->ellipsis_seen) {
       a_pack_reference_ptr	prp;
@@ -9368,8 +9389,18 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
          param_prp != NULL;
          param_prp = param_prp->next, arg_prp = arg_prp->next) {
       a_symbol_ptr	sym = param_prp->symbol;
-      if (sym->kind == (a_symbol_kind)sk_variable) {
-        /* FIXME: variable case not implemented yet. */
+      if (param_prp->is_variable) {
+        /* The symbol for the first pack element is found by lookup.  Update
+           that symbol (pointed to by primary_var_symbol) o point to the
+           current variable to be used. */
+        a_variable_ptr	vp = arg_prp->curr_argument.variable;
+        vp = vp->next;
+        arg_prp->curr_argument.variable = vp;
+        if (vp == NULL) {
+          done = TRUE;
+        } else {
+          arg_prp->primary_var_symbol->variant.variable.ptr = vp;
+        }  /* if */
       } else {
         /* A template argument. */
         a_template_arg_ptr	tap = arg_prp->curr_argument.template_arg;
@@ -9432,9 +9463,14 @@ source position of the use of the symbols is indicated by position.
        }  /* for */
       if (prp == NULL) {
         /* An existing entry was not found.  Create a new one. */
-        prp = alloc_pack_reference(pack_symbol->kind ==
-                                                   (a_symbol_kind)sk_variable);
+        a_boolean	is_variable;
+        is_variable = pack_symbol->kind == (a_symbol_kind)sk_variable;
+        prp = alloc_pack_reference(is_variable);
         prp->symbol = pack_symbol;
+        if (is_variable) {
+          prp->param_num = pack_symbol->
+                            variant.variable.ptr->assoc_param_type->param_num;
+        }  /* if */
         prp->position = *position;
         prp->next = pedp->packs_referenced;
         pedp->packs_referenced = prp;
