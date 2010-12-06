@@ -2082,7 +2082,7 @@ function declarator in a friend function declaration.
         param_state.assoc_func_decl_state = state;
         param_state.trailing_return_type_allowed =
                                                 trailing_return_types_enabled;
-        param_state.pack_ellipsis_allowed = variadic_templates_enabled;
+        param_state.pack_ellipsis_allowed = is_variadic_template_context();
         copy_source_position(pos_curr_token, param_type_pos);
         clear_decl_pos_block(&local_decl_pos_block);
         /* Scan prefix attributes. */
