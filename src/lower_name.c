@@ -8976,6 +8976,9 @@ constructors and conversion functions.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       || special_kind == (a_special_function_kind)sfk_property_get
       || special_kind == (a_special_function_kind)sfk_property_set
+      || special_kind == (a_special_function_kind)sfk_event_add
+      || special_kind == (a_special_function_kind)sfk_event_remove
+      || special_kind == (a_special_function_kind)sfk_event_raise
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                                   ) {
     /* Normal name. */
