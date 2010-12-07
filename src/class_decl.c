@@ -17779,7 +17779,7 @@ not inherited) property or event named X.
         default:
           unexpected_condition();
       }  /* switch */
-      if (!true_conflict) {
+      if (true_conflict) {
         pos_stsy_error(ec_member_name_reserved_by_property,
                        &diag_sym->decl_position, diag_sym->header->identifier,
                        sym);
