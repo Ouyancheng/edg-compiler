@@ -5051,7 +5051,9 @@ declared entity is known to not be a function.
     if (*p_member_parent_type == NULL ||
         (locator->specific_symbol == NULL &&
          !(input_flags & DI_NONSTATIC_MEMBER) &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
          !(cppcli_enabled && is_cli_managed_type(*p_member_parent_type)) &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
          !is_in_class_specialization)) {
       pos_error(ec_bad_conversion_function_decl,
                 &locator->source_position);
