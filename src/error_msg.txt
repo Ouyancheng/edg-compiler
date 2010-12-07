@@ -2057,6 +2057,7 @@ ec_event_accessor_missing_value_parameter;;"event accessor is missing its value 
 ec_extra_event_accessor_parameters;;"accessor function has too many parameters"
 ec_event_accessor_value_parameter_mismatch;;"the type %t1 of the parameter of the event accessor does not match the event type (%t2)"
 ec_event_raise_type_mismatch;;"the type of the \"raise\" accessor does not match the event's delegate invocation type"
+ec_missing_add_or_remove_accessor;;"an event definition must include both \"add\" and \"remove\" accessors"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

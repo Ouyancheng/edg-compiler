@@ -16205,8 +16205,9 @@ static void check_cli_accessor_decl(a_class_def_state   *class_state,
 A member declaration was just completed within the braces of a C++/CLI
 property or event definition.  Check that the declaration is valid and issue
 a diagnostic at the given position if it is not so.  If the closing brace of
-the property or event declaration is next, scan it and update the IL 
-accordingly.  class_state represents the innermost function being defined.
+the property or event declaration is next, scan it, diagnose any missing
+accessor functions, and update the IL accordingly.  class_state represents the
+innermost function being defined.
 */
 {
   a_property_or_event_descr_ptr  pedp = class_state->property_or_event_descr;
@@ -16231,6 +16232,19 @@ accordingly.  class_state represents the innermost function being defined.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     pedp->definition_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (pedp->kind == (a_property_or_event_kind)pek_cli_event) {
+      /* Check that both "add" and "remove" have been declared. */
+      if (pedp->add_routine == NULL || pedp->remove_routine == NULL) {
+        a_source_position_ptr  event_decl_pos;
+        if (pedp->is_static) {
+          event_decl_pos =
+                        &pedp->variant.variable->source_corresp.decl_position;
+        } else {
+          event_decl_pos = &pedp->variant.field->source_corresp.decl_position;
+        }  /* if */
+        pos_error(ec_missing_add_or_remove_accessor, event_decl_pos);
+      }  /* if */
+    }  /* if */
     (void)get_token();
     class_state->property_or_event_descr = NULL;
   }  /* if */
