@@ -2803,49 +2803,92 @@ specifier) for which bindings are sought.
 }  /* deduce_from_one_pair */
 
 
-static a_boolean deduce_one_parameter(a_type_ptr         param_type,
-                                      an_operand         *arg_operand,
+static a_boolean deduce_one_parameter(a_param_type_ptr   ptp,
+                                      an_arg_operand     **p_arg_operand,
                                       a_type_ptr         arg_type,
                                       a_symbol_ptr       template_sym,
                                       a_template_arg_ptr *template_arg_list)
 /*
-Do template argument deduction on one parameter of a function template.
-param_type is the type of the parameter (and requires deduction).
-arg_operand is the argument; it can be NULL, in which case arg_type gives
-the argument type.  template_sym is the symbol for the function_template
-(not a projection symbol).  *template_arg_list points to the template
-argument list so far; anything deduced is added to that.  Return TRUE
-if the deduction succeeds, FALSE if it fails.
+Do template argument deduction on one parameter of a function
+template.  ptp identifies the parameter (which requires deduction).
+**p_arg_operand gives the argument; p_arg_operand can be NULL, in
+which case arg_type gives the argument type.  If it isn't NULL,
+*p_arg_operand is advanced past the right number of arguments on
+return (usually one, more than one for a parameter pack; note that
+the zero-length parameter pack case won't get here because this routine
+gets called only when there's an argument to match to the parameter).
+template_sym is the symbol for the function_template (not a projection
+symbol).  *template_arg_list points to the template argument list so
+far; anything deduced is added to that.  Return TRUE if the deduction
+succeeds, FALSE if it fails.
 */
 {
-  a_boolean            deduction_okay = FALSE;
+  a_boolean            deduction_okay = TRUE;
+  a_type_ptr           param_type = ptp->type;
+  an_arg_operand       *arg_operand = NULL;
+  an_operand           *operand = NULL;
   a_template_param_ptr templ_params;
   a_boolean            consider_nondeduced;
   a_type_ptr           qc_param_type;
   a_type_ptr           qc_arg_type;
+  a_pack_expansion_stack_entry_ptr
+                       pesep = NULL;
 
-  if (arg_operand != NULL) arg_type = arg_operand->type;
+  if (p_arg_operand != NULL) arg_operand = *p_arg_operand;
   templ_params = template_supplement_for_symbol(template_sym)
                           ->variant.function.decl_cache.decl_info->parameters;
-  if (!adjust_deduction_pair(&param_type, &arg_type, arg_operand,
-                             templ_params, *template_arg_list,
-                             &qc_param_type, &qc_arg_type,
-                             &consider_nondeduced)) {
-    if (consider_nondeduced) {
-      /* The argument is an indefinite function that can match in more than
-         one way.  Keep going without adding anything to the template argument
-         list and see if we can resolve this later as a nondeduced context. */
-      deduction_okay = TRUE;
-    }  /* if */
-    goto done;
+  if (ptp->is_parameter_pack) {
+    /* For a parameter pack, we'll be iterating over several arguments
+       that match the same parameter. */
+    begin_pack_deduction_context(ptp->pack_expansion_descr,
+                                 templ_params,
+                                 template_arg_list,
+                                 &pesep);
   }  /* if */
-  deduction_okay = deduce_from_one_pair(
+  /* Loop through the arguments that match a parameter pack, or just once
+     through in other cases. */
+  for (;;) {
+    if (arg_operand != NULL) {
+      operand = &arg_operand->operand;
+      arg_type = operand->type;
+    }  /* if */
+    /* Adjust the types (e.g., for references) to prepare for the
+       deduction. */
+    if (!adjust_deduction_pair(&param_type, &arg_type, operand,
+                               templ_params, *template_arg_list,
+                               &qc_param_type, &qc_arg_type,
+                               &consider_nondeduced)) {
+      if (consider_nondeduced) {
+        /* The argument is an indefinite function that can match in more than
+           one way.  Keep going without adding anything to the template
+           argument list and see if we can resolve this later as a nondeduced
+           context. */
+        goto next_iteration;
+      }  /* if */
+      /* Other cases are outright deduction failures. */
+      deduction_okay = FALSE;
+      break;
+    }  /* if */
+    /* Do the deduction. */
+    deduction_okay = deduce_from_one_pair(
                          param_type, arg_type, qc_param_type, qc_arg_type,
                          template_arg_list,
                          template_sym->variant.template_info
                                      ->variant.function.decl_cache.decl_info
                                      ->parameters);
-done:
+    if (!deduction_okay) break;
+next_iteration:
+    if (arg_operand != NULL) arg_operand = arg_operand->next;
+    /* Only once through the loop for non-parameter-pack cases. */
+    if (pesep == NULL) break;
+    /* Parameter pack cases. */
+    if (arg_operand == NULL) break;
+    advance_to_next_deduced_element(pesep);
+  }  /* for */
+  if (pesep != NULL) {
+    end_pack_deduction_context(pesep);
+  }  /* if */
+  if (p_arg_operand != NULL) *p_arg_operand = arg_operand;
   return deduction_okay;
 }  /* deduce_one_parameter */
 
@@ -2892,15 +2935,18 @@ template arguments, or NULL if deduction failed.
      deduction. */
   for (ptp = rtsp->param_type_list, arg_operand = arg_operand_list;
        ptp != NULL && arg_operand != NULL;
-       ptp = ptp->next, arg_operand = arg_operand->next) {
+       ptp = ptp->next) {
     if (ptp->type_involves_deduced_template_param) {
       /* A parameter that requires type deduction.  Do the deduction. */
-      if (!deduce_one_parameter(ptp->type, &arg_operand->operand,
+      if (!deduce_one_parameter(ptp, &arg_operand,
                                 (a_type_ptr)NULL,
                                 template_sym, template_arg_list)) {
         /* Deduction failed. */
         goto done;
       }  /* if */
+    } else {
+      /* Not a deduced parameter, so just advance to the next one. */
+      arg_operand = arg_operand->next;
     }  /* if */
   }  /* for */
 #if CHECKING
@@ -3294,6 +3340,11 @@ the point of call.
          ellipsis. */
       if (rtsp->has_ellipsis) break;
       goto reject_function;
+    } else if (param->is_parameter_pack) {
+      /* A parameter pack can match all the remaining arguments. */
+      param = NULL;
+      arg_operand = NULL;
+      break;
     }  /* if */
     param = param->next;
   }  /* for */
@@ -3373,6 +3424,14 @@ the point of call.
           fprintf(f_debug, "determine_function_viability: ellipsis match\n");
         }  /* if */
 #endif /* DEBUG */
+      } else if (param->is_parameter_pack) {
+        /* For a parameter pack in the first pass, continue advancing through
+           the arguments, keeping the parameter the same, so the match entry
+           for each argument gets added.  On the second pass, we should no
+           longer see the parameter pack; the deduction should get rid of
+           it. */
+        check_assertion(first_pass);
+        goto next_argument;
       } else {
         a_boolean param_type_is_deduced = FALSE;
         /* Both the actual argument and formal parameter are available.
@@ -3413,10 +3472,13 @@ next_parameter:
         param = param->next;
         if (function_template_case) {
           check_assertion(param_before_deduction != NULL);
-          param_before_deduction = param_before_deduction->next;
+          if (!param_before_deduction->is_parameter_pack) {
+            param_before_deduction = param_before_deduction->next;
+          }  /* if */
           if (!first_pass) arg_match = arg_match->next;
         }  /* if */
       }  /* if */
+next_argument:;
     }  /* for */
     if (!first_pass || !function_template_case) break;
     /* For a template, do a second pass to match the dependent parameters. */
@@ -16149,7 +16211,7 @@ constructor.
         rtsp = routine_type->variant.routine.extra_info;
         ptp = rtsp->param_type_list;
         if (ptp == NULL /* Error recovery */ ||
-            !deduce_one_parameter(ptp->type, (an_operand *)NULL, arg_type,
+            !deduce_one_parameter(ptp, (an_arg_operand **)NULL, arg_type,
                                   sym, &template_arg_list)) {
           /* Deduction failed. */
           goto reject_function;
