@@ -2433,26 +2433,6 @@ that the remaining arguments will be defaulted.
         prev_argp->next = argp;
       }  /* if */
     }  /* if */
-  } else if (in_friend_declaration && entry_kind == iek_routine &&
-             ((a_routine_ptr)scp)->is_prototype_instantiation) {
-    /* This is the name of a function template that appears in a friend
-       declaration inside a class template whose definition is being
-       generated from the prototype instantiation, e.g.,
-           template<typename T> void f(T);
-           template<typename T> struct S {
-             friend void f<>(T);
-           };
-       The routine is not marked as having an explicit template argument
-       list, but the <> is necessary to associate the friend declaration
-       with the function template instead of declaring a new, non-template
-       function. */
-    if (((a_routine_ptr)scp)->special_kind ==
-                                       (a_special_function_kind)sfk_operator) {
-      /* We need to add a space before the <> in order to avoid tokenization
-         problems with operator< and operator<<. */
-      write_space();
-    }  /* if */
-    write_tok_str("<>");
   }  /* if */
 }  /* gen_template_arguments */
 
@@ -12919,9 +12899,7 @@ declarator (or NULL if it wasn't recorded).
     } else if (friend_decl) {
       /* Friend declaration.  The rules for using qualified names are
          different than for ordinary declarations. */
-      gen_friend_function_decl_name(scp,
-                is_definition ||
-                (sec_decl != NULL && ss_entry_kind(sec_decl) == iek_template));
+      gen_friend_function_decl_name(scp, is_definition);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (rout->overridden_functions != NULL && decl_within_class) {
       /* This is a selectively overriding virtual function declaration in
