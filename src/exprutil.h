@@ -201,6 +201,15 @@ typedef struct a_ref_entry {
 			   the address of the entity is taken for a reference
 			   parameter to an overloaded operator function. */
   a_symbol_ptr	symbol;	/* Pointer to the referenced symbol. */
+  a_source_correspondence
+		*specific_il_entry;
+			/* If non-NULL, a pointer to a specific IL entry
+			   to be used in place of the one pointed to by the
+			   symbol.  Used for variadic template pack elements,
+			   where the symbol may be changed to point to a
+			   different IL entry between the time the ref entry
+			   is created and when the symbol reference is
+			   recorded. */
   a_source_position
 		position;
 			/* Source location of the reference. */

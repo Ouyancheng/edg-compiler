@@ -110,9 +110,14 @@ the current expression, headed by curr_expr_ref_entries.
   }  /* if */
   rep->already_recorded = FALSE;
   rep->symbol = sym_ptr;
+  rep->specific_il_entry = NULL;
   copy_source_position(*pos, rep->position);
   rep->next = NULL;
   rep->next_operand_ref = NULL;
+  if (sym_ptr->is_pack_element) {
+    /* Remember the current associated IL entry for a pack element. */
+    rep->specific_il_entry = source_corresp_entry_for_symbol(sym_ptr);
+  }  /* if */
   /* Put the entry on the list of entries for the current expression.
      The list is dumped when flush_ref_entries_list is called.
      The entry is put at the end of the list to preserve source order. */
@@ -175,8 +180,9 @@ Record the symbol reference described by the reference entry rep.
 {
   /* Do not record the reference if it has already been recorded. */
   if (!rep->already_recorded) {
-    record_symbol_reference(rep->kind, rep->symbol, &rep->position,
-                            /*update_il_entry=*/TRUE);
+    record_symbol_reference_full(rep->kind, rep->symbol, &rep->position,
+                                 /*update_il_entry=*/TRUE,
+                                 rep->specific_il_entry);
     rep->already_recorded = TRUE;
   }  /* if */
 }  /* record_reference */

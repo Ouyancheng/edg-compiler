@@ -1933,16 +1933,18 @@ the position of the first reference is recorded.
 }  /* record_first_use_if_template */
 
 
-void record_symbol_reference(a_symbol_reference_kind kind,
-                             a_symbol_ptr            sym_ptr,
-                             a_source_position       *source_position,
-                             a_boolean               update_il_entry)
+void record_symbol_reference_full(a_symbol_reference_kind kind,
+                                  a_symbol_ptr            sym_ptr,
+                                  a_source_position       *source_position,
+                                  a_boolean               update_il_entry,
+                                  a_source_correspondence *specific_il_entry)
 /*
 Record a reference of the indicated kind to the indicated symbol.  Set the
 referenced flag in the symbol entry.  If update_il_entry is TRUE, also
 set the referenced flag in the associated IL entry, if any.  Mark the
 symbol "used" or "set", if appropriate.  sym_ptr should not point to a
-projection symbol.
+projection symbol.  If specific_il_entry is non-NULL, use the associated
+IL entry in place of whatever is pointed to by the symbol.
 */
 {
   a_source_correspondence *scptr;
@@ -1950,7 +1952,7 @@ projection symbol.
  
   check_assertion_str(sym_ptr->kind != (a_symbol_kind)sk_projection &&
                       sym_ptr->kind != (a_symbol_kind)sk_namespace_projection,
-                      "record_symbol_reference: projection symbol");
+                      "record_symbol_reference_full: projection symbol");
   /* If writing cross-reference information, write an entry for this
      declaration. */
   if (f_xref_info != NULL) {
@@ -2010,7 +2012,11 @@ projection symbol.
   }  /* if */
   /* Set the referenced flag in the symbol. */
   sym_ptr->referenced = TRUE;
-  scptr = source_corresp_entry_for_symbol(sym_ptr);
+  if (specific_il_entry != NULL) {
+    scptr = specific_il_entry;
+  } else {
+    scptr = source_corresp_entry_for_symbol(sym_ptr);
+  }  /* if */
   if (update_il_entry && scptr != NULL) {
     /* Set the referenced flag in the associated intermediate language entry,
        if there is one.  Note that more than one symbol can point to the same
@@ -2238,7 +2244,7 @@ check_label_decl_seq:
               /* Advance up the scope stack. */
               --ssep;
               check_assertion_str2(ssep->within_try_block,
-                                   "record_symbol_reference:",
+                                   "record_symbol_reference_full:",
                                    "within_try_block not set properly");
             }  /* for */
           } /* if */
@@ -2256,6 +2262,21 @@ check_label_decl_seq:
     check_use_of_deleted_function(sym_ptr, /*elided_ref=*/FALSE,
                                   source_position);
   }  /* if */
+}  /* record_symbol_reference_full */
+
+
+void record_symbol_reference(a_symbol_reference_kind kind,
+                             a_symbol_ptr            sym_ptr,
+                             a_source_position       *source_position,
+                             a_boolean               update_il_entry)
+/*
+Interface routine for record_symbol_reference_full for the usual case
+where specific_il_entry is NULL.
+*/
+{
+  record_symbol_reference_full(kind, sym_ptr, source_position,
+                               update_il_entry,
+                               (a_source_correspondence *)NULL);
 }  /* record_symbol_reference */
 
 
