@@ -12651,6 +12651,7 @@ are handled in symbol_tbl_init.)
 #if GNU_EXTENSIONS_ALLOWED
   cleared_symbol.is_alias                          = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  cleared_symbol.is_pack_element                   = FALSE;
 #if CENTERLINE_CHECKING
   /* Not needed right now -- at byte boundary.
   cleared_symbol.avoid_codecenter_warnings         = FALSE;

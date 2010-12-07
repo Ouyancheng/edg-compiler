@@ -2711,6 +2711,11 @@ typedef struct a_symbol {
 			/* Used in GNU mode for routines and variables declared
 			   with attribute "alias" or attribute "weakref". */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  a_bit_field	is_pack_element:1;
+			/* TRUE for variable symbols created as elements of
+			   a function parameter pack and also TRUE for
+			   template parameter symbols for template parameters
+			   that were declared as packs. */
   /* bitfield_to_avoid_codecenter_warnings() -- at byte boundary right now. */
   union {
     /* When kind == sk_undefined, no variant fields. */

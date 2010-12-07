@@ -617,6 +617,7 @@ associated with a variadic parameter, but not the initial one.
                                                    non_initial_variadic_param);
       /* Mark all but the first pack element symbol as invisible. */
       sym->is_invisible = non_initial_variadic_param;
+      if (ptp->is_pack_element) sym->is_pack_element = TRUE;
     } else {
       set_symbol_kind(sym, (a_symbol_kind)sk_variable);
       /* In some modes, the parameter symbols (in the prototype scopes) are
