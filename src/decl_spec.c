@@ -7437,6 +7437,7 @@ the DLL flags.  That is done elsewhere using dps->decl_modifiers.flags.)
       make_attr_unrecognized(ap);
     } else {
       dps->is_declspec_property_field = TRUE;
+      dps->is_property_or_event_field = TRUE;
     }  /* if */
   }  /* if */
   add_flags_from_dll_attributes(&dps->decl_modifiers.flags,
