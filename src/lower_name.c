@@ -1819,17 +1819,18 @@ parameter is a template pack parameter.
 {
   check_assertion(distinct_template_signatures);
 #if !IA64_ABI
-  /* The encoding is "ZnZ" for a first-level parameter, and "Zn_mZ" for
-     a non-first-level parameter, with "n" the parameter number, and
-     "m" the depth number.  The "Z" on the end is to avoid ambiguities
+  /* The encoding is "Z[p]nZ" for a first-level parameter, and "Z[p]n_mZ" for
+     a non-first-level parameter, with "n" the parameter number,
+     "m" the depth number, and the character "p" if the template parameter
+     is a template parameter pack.  The "Z" on the end is to avoid ambiguities
      when this construct is followed by something that begins with a
      number, e.g., when a template parameter in a function parameter
      list is followed by a class name. */
+  add_to_mangled_name('Z', mctl);
   if (is_pack) {
     /* This is a template parameter pack; mangle it as such. */
-    add_str_to_mangled_name("FIXME", mctl); /* FIXME */
+    add_to_mangled_name('p', mctl);
   }  /* if */
-  add_to_mangled_name('Z', mctl);
   /* Put out the parameter position number. */
   add_number_to_mangled_name((unsigned long)coordinate->position, mctl);
   if (coordinate->depth != 1) {
@@ -4960,6 +4961,7 @@ is TRUE.
   a_boolean        add_address_of;
 #else /* !IA64_ABI */
   unsigned long    num_operands;
+  a_boolean        need_close = FALSE;
 #endif /* IA64_ABI */
 
   expr = skip_compiler_generated_expressions(expr, &suppress_address_of);
@@ -4969,7 +4971,20 @@ is TRUE.
 #if IA64_ABI
     add_str_to_mangled_name("sp", mctl);
 #else /* !IA64_ABI */
-    add_str_to_mangled_name("FIXME", mctl); /* FIXME */
+    /* Pack expansion operation.  Output has the form
+         Osp_1_Z1O <-- "Z1..."
+                 ^---- "O" to end the operation encoding.
+               ^^----- First (and only) operand.
+            ^^^------- Count of operands (always one).
+          ^^---------- Pack expansion operation.
+         ^------------ "O" for operation.
+    */
+    /* Put out the initial "O". */
+    add_to_mangled_name('O', mctl);
+    add_str_to_mangled_name("sp", mctl);
+    store_digits_and_underscore((unsigned long)1, /*old_form=*/FALSE, mctl);
+    /* Close the operation after the operand is emitted. */
+    need_close = TRUE;
 #endif /* IA64_ABI */
   }  /* if */
   switch (expr->kind) {
@@ -5380,6 +5395,11 @@ is TRUE.
       internal_error("mangled_encoding_for_expression_full: bad kind");
 #endif /* CHECKING */
   }  /* switch */
+#if !IA64_ABI
+  if (need_close) {
+    add_to_mangled_name('O', mctl);
+  }  /* if */
+#endif /* !IA64_ABI */
 }  /* mangled_encoding_for_expression_full */
 
 
@@ -5997,9 +6017,12 @@ last argument in the list).
          ^^--------- Fixed string, indicates "parameterized type".
      When distinct_template_signatures is FALSE, "__pt__" is used instead
      of "__tm__".  For the first argument list of a partial specialization,
-     "__ps__" is used.
+     "__ps__" is used.  The same encoding is used for template argument packs
+     with the string "__pk__" being used to introduce the pack.
   */
-  if (!distinct_template_signatures) {
+  if (is_pack) {
+    str = "__pk__";
+  } else if (!distinct_template_signatures) {
     str = "__pt__";
   } else if (partial_spec) {
     str = "__ps__";

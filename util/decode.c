@@ -791,11 +791,17 @@ position following what was demangled.
 {
   char          *p = ptr;
   unsigned long position, depth = 1;
+  a_boolean     is_pack = FALSE;
 
   /* This comes up with the modern mangling for template functions.
-     Form is "ZnZ" or "Zn_mZ", where n is the parameter number and m
-     is the depth number (1 if not specified). */
+     Form is "Z[p]nZ" or "Z[p]n_mZ", where n is the parameter number, m is the
+     depth number (1 if not specified), and the optional "p" character
+     indicates that the template parameter is a parameter pack. */
   p++;  /* Advance past the "Z". */
+  if (get_char(p, dctl) == 'p') {
+    p++;
+    is_pack = TRUE;
+  }  /* if */
   /* Get the position number. */
   p = get_number(p, &position, dctl);
   if (get_char(p, dctl) == '_' && get_char(p+1, dctl) != '_') {
@@ -824,6 +830,7 @@ position following what was demangled.
   } else {
     p++;
   }  /* if */
+  if (is_pack) write_id_str("...", dctl);
   return p;
 }  /* demangle_template_parameter_name */
 
@@ -1482,7 +1489,7 @@ block that controls output of extra information on template parameters.
 {
   char          *p = ptr, *arg_base, ch, *prev_end;
   unsigned long nchars, position;
-  a_boolean     nontype, skipped, unskipped;
+  a_boolean     nontype, skipped, unskipped, is_pack;
 
   if (temp_par_info != NULL && !partial_spec) temp_par_info->nesting_level++;
   /* A template argument list looks like
@@ -1492,7 +1499,9 @@ block that controls output of extra information on template parameters.
              ^------- ptr points here.
      For the first argument list of a partial specialization, "__tm__" is
      replaced by "__ps__".  For old-form mangling of templates, "__tm__"
-     is replaced by "__pt__".
+     is replaced by "__pt__".  Template arguments can be either nontype
+     (as identified by an "X"), a template argument pack (as identified
+     by "__pk__"), or types (otherwise).
   */
   write_id_ch('<', dctl);
   /* Scan the size. */
@@ -1504,8 +1513,19 @@ block that controls output of extra information on template parameters.
     /* Check for zero arguments case. */
     if ((unsigned long)(p - arg_base) >= nchars) break;
     if (dctl->err_in_id) break;  /* Avoid infinite loops on errors. */
+    if (start_of_id_is("__pk__", p, dctl)) {
+      /* Template argument packs are encoded much like a template argument
+         list, except "__pk__" is used to introduce them:
+            __pk__3_sc
+                    ^^---- Argument types.
+                  ^------- Size of argument types, including the underscore.
+      */
+      is_pack = TRUE;
+    } else {
+      is_pack = FALSE;
+    }  /* if */
     ch = get_char(p, dctl);
-    if (ch == '\0' || ch == '_') {
+    if (ch == '\0' || (ch == '_' && !is_pack)) {
       /* We ran off the end of the string. */
       bad_mangled_name(dctl);
       break;
@@ -1538,6 +1558,10 @@ block that controls output of extra information on template parameters.
       if (temp_par_info->output_only_correspondences) {
         /* This is the second pass, to write out correspondences, so put the
            argument value out after the parameter name. */
+        if (is_pack) {
+          /* Indicate this is a pack (only in the correspondences). */
+          write_id_str("...", dctl);
+        }  /* if */
         write_id_ch('=', dctl);
       } else {
         /* This is the first pass.  The argument value is skipped.  In
@@ -1554,6 +1578,34 @@ block that controls output of extra information on template parameters.
       p++;  /* Advance past the "X". */
       p = demangle_constant(p, /*suppress_address_of=*/FALSE,
                             /*need_parens=*/FALSE, dctl);
+    } else if (is_pack) {
+      /* A template argument pack. */
+      char          *pack_arg_base, *pack_prev_end;
+      unsigned long pack_nchars;
+      a_boolean     need_comma = FALSE;
+      p+=6; /* Advance past the "__pk__". */
+      write_id_ch('<', dctl);
+      /* Scan the size. */
+      p = get_length(p, &pack_nchars, &pack_prev_end, dctl);
+      pack_arg_base = p;
+      p = advance_past_underscore(p, dctl);
+      /* Loop to process the types in the pack. */
+      while ((unsigned long)(p - pack_arg_base) < pack_nchars) {
+        if (dctl->err_in_id) break;  /* Avoid infinite loops on errors. */
+        if (get_char(p, dctl) == '\0' || (get_char(p, dctl) == '_')) {
+          /* We ran off the end of the string. */
+          bad_mangled_name(dctl);
+          break;
+        }  /* if */
+        /* Put out a comma between pack types. */
+        if (need_comma) {
+          write_id_str(", ", dctl);
+        } else {
+          need_comma = TRUE;
+        }  /* if */
+        p = demangle_type(p, dctl);
+      }  /* while */
+      write_id_ch('>', dctl);
     } else {
       /* Type argument. */
       p = demangle_type(p, dctl);
@@ -1757,6 +1809,9 @@ not an operator encoding, return NULL.
     *takes_type = TRUE;
   } else if (start_of_id_is("bi", ptr, dctl)) {
     s = "builtin-operation";
+  } else if (start_of_id_is("sp", ptr, dctl)) {
+    s = "...";
+    *is_postfix = TRUE;
   } else {
     s = NULL;
   }  /* if */
