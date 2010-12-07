@@ -896,7 +896,7 @@ description block.
 {
   operand->pack_expansion_descr = pedep;
   /* We can't set the is_pack_expansion flag on the expression yet because
-     there might be implicit conversions added on top of it. */
+     there might be implicit conversions added on top of it later. */
 }  /* mark_operand_as_pack_expansion */
 
 
