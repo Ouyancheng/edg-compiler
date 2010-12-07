@@ -2058,6 +2058,8 @@ ec_extra_event_accessor_parameters;;"accessor function has too many parameters"
 ec_event_accessor_value_parameter_mismatch;;"the type %t1 of the parameter of the event accessor does not match the event type (%t2)"
 ec_event_raise_type_mismatch;;"the type of the \"raise\" accessor does not match the event's delegate invocation type"
 ec_missing_add_or_remove_accessor;;"an event definition must include both \"add\" and \"remove\" accessors"
+ec_static_conversion_function_must_have_one_parameter;;"a static conversion function must accept exactly one argument"
+ec_bad_parameter_type_for_static_member_operator;;"static operator must have a parameter type T, T&, T%%, or T^ with T = %t"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

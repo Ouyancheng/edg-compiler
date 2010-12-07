@@ -969,9 +969,14 @@ void check_operator_function_params(a_type_ptr        rout_type,
                                     a_symbol_locator  *locator)
 /*
 Check the argument list on the declaration of a user-defined conversion
-or overloaded operator function.  For conversion functions, no arguments
-are allowed.  For operators there are different requirements for different
-operator kinds.  Issue a diagnostic if an error is found.
+or overloaded operator function.  For member function (and member function
+template) declarations, class_type indicates the enclosing class.
+The rules for standard C++ are as follows.  For conversion functions, no
+arguments are allowed.  For operators there are different requirements for
+different operator kinds.  Issue a diagnostic if an error is found.
+In C++/CLI mode, additional possibilities exist: Member operators can be
+static member functions, and parameter types can be handles or tracking
+references.
 If this routine is modified to use additional fields from the locator
 make_template_function needs to be updated to make sure that the
 new fields are set properly.
@@ -995,17 +1000,38 @@ new fields are set properly.
     /* Nothing to do. */
   } else if (locator->is_conversion_name) {
     check_assertion(class_type != NULL);
-    /* Any parameter is too many for a conversion function. */
-    if (rtsp->param_type_list != NULL || rtsp->has_ellipsis) {
+    if (cppcli_enabled && rtsp->this_class == NULL) {
+      /* A C++/CLI static conversion function. */
+      if (rtsp->param_type_list == NULL ||
+          rtsp->param_type_list->next != NULL ||
+          rtsp->has_ellipsis) {
+        pos_error(ec_static_conversion_function_must_have_one_parameter,
+                  &locator->source_position);
+        err = TRUE;
+      } else {
+        /* Ensure the argument type is T, T&, T&&, T%, or T^, with T the
+           type indicated by class_type. */
+        a_type_ptr  param_type = skip_typerefs(rtsp->param_type_list->type);
+        if (is_handle_type_or_any_ref_type(param_type)) {
+          param_type = skip_typerefs(type_pointed_to(param_type));
+        }  /* if */
+        if (!identical_types(param_type, class_type)) {
+          pos_ty_error(ec_bad_parameter_type_for_static_member_operator,
+                  &locator->source_position, class_type);
+          err = TRUE;
+        }  /* if */
+      }  /* if */
+    } else if (rtsp->param_type_list != NULL || rtsp->has_ellipsis) {
+      /* Any parameter is too many for a (standard) conversion function. */
       pos_error(ec_too_many_args_for_conversion, &locator->source_position);
       err = TRUE;
     }  /* if */
   } else if (locator->is_operator_name) {
     /* It's an operator. */
+    a_boolean  this_equivalent_seen = FALSE;
     opname = locator->variant.opname;
     check_assertion(opname != (an_opname_kind)onk_none);
-    is_nonstatic_member_function =
-                routine_type_is_nonstatic_member_function(rout_type);
+    is_nonstatic_member_function = (rtsp->this_class != NULL);
 #if CHECKING
     if (is_new_operator(opname) || is_delete_operator(opname)) {
       /* Operator new/delete cannot be a nonstatic member function. */
@@ -1025,10 +1051,21 @@ new fields are set properly.
     for (; ptp != NULL; ptp = ptp->next) {
       param_count++;
       tp = ptp->type;
-      if (is_any_reference_type(tp)) tp = type_pointed_to(tp);
+      if (is_handle_type_or_any_ref_type(tp)) {
+        tp = type_pointed_to(tp);
+      }  /* if */
       if (is_class_struct_union_type(tp) ||
           (operator_overloading_on_enums_enabled && is_enum_type(tp))) {
         any_class_or_enum_type_params = TRUE;
+        if (cppcli_enabled &&
+            identical_types_ignoring_qualifiers(tp, class_type)) {
+          /* For static C++/CLI member operators, at least one parameter must
+             T, T&, T&&, T%, or T^, with T the type indicated by class_type
+             (a template parameter is not sufficient); i.e., a parameter
+             similar to "this" in a nonstatic member version of the operator.
+             We record here that such a parameter was seen. */
+          this_equivalent_seen = TRUE;
+        }  /* if */
       } else if (is_template_param_type(tp)) {
         any_template_param_type_params = TRUE;
       }  /* if */
@@ -1039,9 +1076,8 @@ new fields are set properly.
       /* Function call and new must have one or more arguments. */
       if (param_count == 0) {
         if (rtsp->has_ellipsis) {
-          /* operator()(...) and operator new(...) are errors, but we do,
-             with some trepidation, allow operator()(T, ...) and
-             operator new(size_t, ...). */
+          /* operator()(...) and operator new(...) are errors, but we do
+             allow operator()(T, ...) and operator new(size_t, ...). */
           error_code = ec_ellipsis_on_operator_function;
         } else {
           error_code = ec_too_few_args_for_operator;
@@ -1079,11 +1115,6 @@ new fields are set properly.
                              ec_bad_first_arg_type_for_operator_delete,
                              &locator->source_position);
             }  /* if */
-            /* Note: In the ARM and until late 1995 in the Working Paper,
-               global delete was allowed exactly one parameter and class
-               member delete was allowed exactly two (and the second had to
-               be size_t).  This restriction is no longer imposed, given the
-               rules on matching delete to new in WP 5.3.4 para 18-19. */
             /* Actually using placement delete only occurs when exception
                handling is enabled, and only with newer ABIs.  If EH support
                is disabled or an old ABI is used, issue a diagnostic if this
@@ -1140,20 +1171,25 @@ new fields are set properly.
     } else if (param_count == 2 &&
                (opname == (an_opname_kind)onk_plus_plus ||
                 opname == (an_opname_kind)onk_minus_minus)) {
-      /* Extra argument on postfix operator must be of type "int"
-         (ARM 13.4.7). */
-      ptp = rout_type->variant.routine.extra_info->param_type_list;
-      if (!is_nonstatic_member_function) ptp = ptp->next;
-      tp = skip_typerefs(ptp->type);
-      if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
-        if (!is_integral_type(tp) ||
-            tp->variant.integer.int_kind != (an_integer_kind)ik_int) {
-          pos_st_error(ec_bad_extra_arg_for_postfix_operator,
-                       &locator->source_position,
-                       (char *)(opname == (an_opname_kind)onk_plus_plus
-                                                               ? "++" : "--"));
-          ptp->type = error_type();
-          err = TRUE;
+      /* Extra argument on postfix operator must be of type "int".  (This
+         variant is not allowed as a C++/CLI static member operator.) */
+      if (cppcli_enabled && class_type != NULL &&
+          !is_nonstatic_member_function) {
+        error_code = ec_too_many_args_for_operator;
+      } else {
+        ptp = rout_type->variant.routine.extra_info->param_type_list;
+        if (!is_nonstatic_member_function) ptp = ptp->next;
+        tp = skip_typerefs(ptp->type);
+        if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
+          if (!is_integral_type(tp) ||
+              tp->variant.integer.int_kind != (an_integer_kind)ik_int) {
+            pos_st_error(ec_bad_extra_arg_for_postfix_operator,
+                         &locator->source_position,
+                         (char *)(opname == (an_opname_kind)onk_plus_plus
+                                                              ? "++" : "--"));
+            ptp->type = error_type();
+            err = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else {
@@ -1200,6 +1236,11 @@ new fields are set properly.
                         ec_no_params_with_class_or_enum_type :
                         ec_no_params_with_class_type,
                   &locator->source_position);
+        err = TRUE;
+      } else if (cppcli_enabled && class_type != NULL &&
+                 !is_nonstatic_member_function && !this_equivalent_seen) {
+        pos_ty_error(ec_bad_parameter_type_for_static_member_operator,
+                     &locator->source_position, class_type);
         err = TRUE;
       }  /* if */
     }  /* if */

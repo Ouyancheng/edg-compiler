@@ -4416,17 +4416,33 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
 }  /* pointer_declarator */
 
 
-static a_boolean is_microsoft_static_operator(an_opname_kind opname)
+static a_boolean is_microsoft_static_operator(an_opname_kind  opname,
+                                              a_type_ptr      parent_type)
 /*
 Microsoft compilers allowed most operators to be declared as to be declared
-static.  This function returns FALSE if and only if the operator kind opname
-is an exception to that rule, or if microsoft bugs mode is disabled.
+static.  In C++/CLI mode, this is true only if parent_type (the class type of
+which the operator is a member) is a managed type.  This function returns
+FALSE if and only if the operator kind opname is an exception to that rule (or
+if microsoft bugs mode and C++/CLI modes are disabled).
 */
 {
-  return microsoft_bugs && opname != (an_opname_kind)onk_assign &&
-                           opname != (an_opname_kind)onk_function_call &&
-                           opname != (an_opname_kind)onk_subscript &&
-                           opname != (an_opname_kind)onk_arrow;
+  a_boolean  result = FALSE;
+
+  if (microsoft_bugs || cppcli_enabled) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && !is_cli_managed_type(parent_type)) {
+      result = FALSE;
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      result = opname != (an_opname_kind)onk_assign &&
+               opname != (an_opname_kind)onk_function_call &&
+               opname != (an_opname_kind)onk_subscript &&
+               opname != (an_opname_kind)onk_arrow;
+    }  /* if */
+  }  /* if */
+  return result;
 }  /* is_microsoft_static_operator */
 
 
@@ -4998,10 +5014,11 @@ declared entity is known to not be a function.
       } else if (!(input_flags & DI_NONSTATIC_MEMBER) &&
                  !is_new_operator(locator->variant.opname) &&
                  !is_delete_operator(locator->variant.opname) &&
-                 !is_microsoft_static_operator(locator->variant.opname)) {
+                 !is_microsoft_static_operator(locator->variant.opname,
+                                               *p_member_parent_type)) {
         /* Most operators cannot be declared to be static members (except in
            Microsoft mode, but except for new and delete those static member
-           operators can only be invoked with qualified notation. */
+           operators can only be invoked with qualified notation). */
         pos_error(ec_static_member_operator_not_allowed,
                   &locator->source_position);
         set_to_error_locator(*locator);
@@ -5034,6 +5051,7 @@ declared entity is known to not be a function.
     if (*p_member_parent_type == NULL ||
         (locator->specific_symbol == NULL &&
          !(input_flags & DI_NONSTATIC_MEMBER) &&
+         !(cppcli_enabled && is_cli_managed_type(*p_member_parent_type)) &&
          !is_in_class_specialization)) {
       pos_error(ec_bad_conversion_function_decl,
                 &locator->source_position);

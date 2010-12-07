@@ -141,12 +141,12 @@ predicates.
 #define is_pointer_or_handle(tp) ((tp)->kind == (a_type_kind)tk_pointer && \
                                   !(tp)->variant.pointer.is_reference)
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define is_pointer(tp) (is_pointer_or_handle_type(tp) && \
+#define is_pointer(tp) (is_pointer_or_handle(tp) &&                   \
                         !(tp)->variant.pointer.is_handle)
 /* This is called is_handle_ptr because there is a field called
    is_handle in il_def.h and old preprocessors have problems with
    that. */
-#define is_handle_ptr(tp) (is_pointer_or_handle_type(tp) && \
+#define is_handle_ptr(tp) (is_pointer_or_handle(tp) &&                \
                            (tp)->variant.pointer.is_handle)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_pointer(tp) (is_pointer_or_handle_type(tp))
@@ -812,6 +812,23 @@ reference), including C++/CLI handles and tracking references.
   tp = skip_typerefs(tp);
   return (tp->kind == (a_type_kind)tk_pointer);
 }  /* is_any_ptr_or_ref_type */
+
+
+a_boolean is_handle_type_or_any_ref_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++/CLI handle type, an ordinary reference
+type, or a tracking reference type (i.e., any tk_pointer variant except an
+ordinary pointer).
+*/
+{
+  tp = skip_typerefs(tp);
+  return tp->kind == (a_type_kind)tk_pointer &&
+         (tp->variant.pointer.is_reference
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                           || tp->variant.pointer.is_handle
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                           );
+}  /* is_handle_type_or_any_ref_type */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 

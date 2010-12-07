@@ -107,6 +107,7 @@ extern a_boolean types_are_references_of_the_same_kind(a_type_ptr tp1,
 extern a_boolean is_ptr_or_ref_type(a_type_ptr tp);
 extern a_boolean is_any_reference_type(a_type_ptr tp);
 extern a_boolean is_any_ptr_or_ref_type(a_type_ptr tp);
+extern a_boolean is_handle_type_or_any_ref_type(a_type_ptr tp);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean is_handle_type(a_type_ptr tp);
 extern a_boolean is_tracking_reference_type(a_type_ptr tp);
