@@ -2858,11 +2858,14 @@ Display the indicated routine.
   }  /* if */
   disp_boolean("defined", ptr->defined);
   disp_boolean("called", ptr->called);
-  if (ptr->special_kind == (a_special_function_kind)sfk_constructor) {
-    disp_boolean("is_explicit_constructor", ptr->is_explicit_constructor);
-    if (ptr->is_trivial_default_constructor) {
-      disp_boolean("is_trivial_default_constructor", TRUE);
-    }  /* if */
+  if (ptr->is_explicit_constructor) {
+    disp_boolean("is_explicit_constructor", TRUE);
+  }  /* if */
+  if (ptr->is_explicit_conversion_function) {
+    disp_boolean("is_explicit_conversion_function", TRUE);
+  }  /* if */
+  if (ptr->is_trivial_default_constructor) {
+    disp_boolean("is_trivial_default_constructor", TRUE);
   }  /* if */
   if (ptr->is_trivial_copy_function) {
     disp_boolean("is_trivial_copy_function", TRUE);

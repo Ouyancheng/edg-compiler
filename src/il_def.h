@@ -11323,6 +11323,10 @@ typedef struct a_routine {
 			/* TRUE if this routine is a constructor (i.e., its
 			   special_kind is sfk_constructor) and the "explicit"
 			   keyword appeared in its declaration.  C++ only. */
+  a_bit_field	is_explicit_conversion_function:1;
+			/* TRUE if this routine is a conversion function in
+			   C++/CLI mode and the "explicit" keyword appeared in
+			   its declaration. */
   a_bit_field	is_trivial_default_constructor:1;
 			/* TRUE if this routine is a trivial default
 			   constructor (implicitly generated or defaulted).

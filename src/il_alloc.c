@@ -2325,6 +2325,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->defined                     = FALSE;
   rp->called                      = FALSE;
   rp->is_explicit_constructor     = FALSE;
+  rp->is_explicit_conversion_function = FALSE;
   rp->is_trivial_default_constructor = FALSE;
   rp->is_trivial_copy_function    = FALSE;
 #if ASSIGNMENT_TO_THIS_ALLOWED

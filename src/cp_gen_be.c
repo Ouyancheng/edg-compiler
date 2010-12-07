@@ -13550,7 +13550,9 @@ handle_as_definition:
       }  /* if */
     }  /* if */
     if (rout->is_virtual && decl_within_class) write_tok_str("virtual ");
-    if (rout->is_explicit_constructor && decl_within_class) {
+    if ((rout->is_explicit_constructor ||
+         rout->is_explicit_conversion_function) &&
+        decl_within_class) {
       write_tok_str("explicit ");
     }  /* if */
     gen_microsoft_routine_decl_modifiers(rout);
