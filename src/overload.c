@@ -2911,8 +2911,8 @@ template arguments, or NULL if deduction failed.
                 "function_template_call_argument_deduction: missing ellipsis");
   } else if (ptp != NULL) {
     /* We ran out of arguments, but we still have parameters.  The parameter
-       should have a default argument expression. */
-    check_assertion_str(ptp->has_default_arg,
+       should have a default argument expression or a parameter pack. */
+    check_assertion_str(ptp->has_default_arg || ptp->is_parameter_pack,
         "function_template_call_argument_deduction: missing default arg expr");
   }  /* if */
 #endif /* CHECKING */
@@ -3306,8 +3306,11 @@ the point of call.
        default_arg_expr is accepted if it has an unevaluated template
        value, because we know this value can be produced when the call
        is generated. */
+    /* A parameter pack can also make the call okay, because it can be
+       matched with zero arguments. */
     if (!param->has_unevaluated_template_default &&
-        param->default_arg_expr == NULL) goto reject_function;
+        param->default_arg_expr == NULL &&
+        !param->is_parameter_pack) goto reject_function;
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("overload")) {
       db_display_overload_level();
