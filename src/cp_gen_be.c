@@ -12919,7 +12919,9 @@ declarator (or NULL if it wasn't recorded).
     } else if (friend_decl) {
       /* Friend declaration.  The rules for using qualified names are
          different than for ordinary declarations. */
-      gen_friend_function_decl_name(scp, is_definition);
+      gen_friend_function_decl_name(scp,
+                is_definition ||
+                (sec_decl != NULL && ss_entry_kind(sec_decl) == iek_template));
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (rout->overridden_functions != NULL && decl_within_class) {
       /* This is a selectively overriding virtual function declaration in
