@@ -4293,7 +4293,14 @@ precedence confusion.  Do the output in the way described by octl.
         need_reinterpret_cast = TRUE;
       } else if (constant->explicit_cast_applied) {
         /* The source form involved an explicit cast. */
-        need_cast = TRUE;
+        if (kind == (a_constant_repr_kind)ck_string) {
+          /* This was a compound literal in the source, but the generated
+             C code should just have the string form. */
+          need_cast = (!octl->gen_compilable_code ||
+                       !octl->c_generating_back_end);
+        } else {
+          need_cast = TRUE;
+        }  /* if */
       } else if (constant->implicit_cast) {
         if (
 #if DEBUG
@@ -4483,8 +4490,10 @@ precedence confusion.  Do the output in the way described by octl.
         } else
 #endif /* BACK_END_IS_C_GEN_BE */
         /* Do not insert code here.  This is the "else" of an "if". */
-        { if (constant->explicit_cast_applied) {
-            /* The string was originally a compound literal. */
+        { if (constant->explicit_cast_applied &&
+              (!octl->gen_compilable_code || !octl->c_generating_back_end)) {
+            /* The string was originally a compound literal and, except in
+               generated C code, should be put out that way. */
             octl->output_str("{", octl);
           }  /* if */
           if (!is_normal_character_kind(character_kind)) {
@@ -4553,8 +4562,10 @@ precedence confusion.  Do the output in the way described by octl.
             }  /* for */
             output_partial_token_str("\"", octl);
           }  /* if */
-          if (constant->explicit_cast_applied) {
-            /* The string was originally a compound literal. */
+          if (constant->explicit_cast_applied &&
+              (!octl->gen_compilable_code || !octl->c_generating_back_end)) {
+            /* The string was originally a compound literal and, except in
+               generated C code, should be put out that way. */
             octl->output_str("}", octl);
           }  /* if */
         }
