@@ -1740,6 +1740,9 @@ extern void make_call_rescan_operands(
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 
 extern
+void mark_expr_of_operand_as_pack_expansion_if_necessary(an_operand *operand);
+
+extern
 void set_operand_name_reference_from_locator(an_operand       *operand,
                                              a_symbol_locator *locator);
 

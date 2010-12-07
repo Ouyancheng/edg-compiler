@@ -3386,7 +3386,6 @@ instead.
 	("extract_node_from_operand: converting unexpected operand kind");
 #endif /* CHECKING */
   }  /* switch */
-  if (operand->pack_expansion_descr != NULL) node->is_pack_expansion = TRUE;
   return node;
 }  /* extract_node_from_operand */
 
@@ -3464,6 +3463,21 @@ that extra work.
   }  /* if */
   return node;
 }  /* make_node_from_operand */
+
+
+void mark_expr_of_operand_as_pack_expansion_if_necessary(an_operand *operand)
+/*
+If the given operand is a variadic template pack expansion, mark its
+underlying expression (if any) as a pack expansion.  This is called
+just before the expression is put on an expression list so that any implicit
+conversions have already been added to the operand.
+*/
+{
+  if (operand->pack_expansion_descr != NULL) {
+    an_expr_node_ptr expr = expr_node_from_operand(operand);
+    if (expr != NULL) expr->is_pack_expansion = TRUE;
+  }  /* if */
+}  /* mark_expr_of_operand_as_pack_expansion_if_necessary */
 
 
 void set_operand_name_reference_from_locator(an_operand       *operand,
@@ -9462,6 +9476,7 @@ Return a list of argument expressions.
        arg_operand != NULL;
        arg_operand = arg_operand->next) {
     prep_generic_operand(&arg_operand->operand);
+    mark_expr_of_operand_as_pack_expansion_if_necessary(&arg_operand->operand);
     arg = make_node_from_operand(&arg_operand->operand);
     /* Add this argument to the end of the expression-form argument list
        being built up. */

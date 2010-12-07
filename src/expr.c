@@ -894,11 +894,9 @@ instantiation.  Mark it as such.  pedep points to the pack expansion
 description block.
 */
 {
-  an_expr_node_ptr expr;
-
   operand->pack_expansion_descr = pedep;
-  expr = expr_node_from_operand(operand);
-  if (expr != NULL) expr->is_pack_expansion = TRUE;
+  /* We can't set the is_pack_expansion flag on the expression yet because
+     there might be implicit conversions added on top of it. */
 }  /* mark_operand_as_pack_expansion */
 
 
@@ -1317,7 +1315,7 @@ indication in *rcblock).
 */
 {
   an_expr_node_ptr  expr;
-  an_operand        result, *result_ptr = &result;
+  an_operand        result;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -1331,7 +1329,7 @@ indication in *rcblock).
     scan_initializer_expr_with_potential_pack_expansion(dps, &result);
   }  /* if */
   /* Convert to the required type. */
-  prep_initializer_operand(result_ptr, dest_type, (a_boolean *)NULL,
+  prep_initializer_operand(&result, dest_type, (a_boolean *)NULL,
                            (a_conv_descr_ptr)NULL,
                            /*initializing_return_value=*/FALSE,
                            /*initializing_variable=*/FALSE,
@@ -1350,7 +1348,8 @@ indication in *rcblock).
     curr_construct_end_position = end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
-  expr = make_node_from_operand(result_ptr);
+  mark_expr_of_operand_as_pack_expansion_if_necessary(&result);
+  expr = make_node_from_operand(&result);
   return expr;
 }  /* scan_parenthesized_initializer_expression */
 
@@ -2728,6 +2727,7 @@ that the final call needs to be cast to the indicated type.
           prep_argument_operand(&ap->operand, ptp, (a_conv_descr *)NULL,
                                 ec_incompatible_param);
         }  /* if */
+        mark_expr_of_operand_as_pack_expansion_if_necessary(&ap->operand);
         expr_arg = make_node_from_operand(&ap->operand);
         if (*arg_list == NULL) {
           *arg_list = expr_arg;
@@ -25940,8 +25940,9 @@ copy-initialization ("="-form).
                   /*suppress_object_lifetime=*/FALSE);
   transfer_expr_context_if_applicable(saved_expr_stack);
   set_up_initializer_rescan(dps);
+  check_assertion(C_mode() || !dps->initializer_is_expr_list);
   /* Scan the constant expression. */
-  scan_initializer_expr_with_potential_pack_expansion(dps, &result);
+  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   if (gnu_mode && is_array_type(required_type) && is_array_type(result.type)) {
     /* In GNU modes, an array can be initialized by a compound literal of
        array type.  The normal string literal initialization case comes here
@@ -26118,6 +26119,7 @@ scan_aggregate_initializer_expression.
                            is_copy_initialization,
                            /*nontype_template_arg=*/FALSE,
                            ec_bad_initializer_type);
+  mark_expr_of_operand_as_pack_expansion_if_necessary(&result);
   /* Return a constant or expression depending on what was scanned. */
   *is_constant = TRUE;
   switch (result.kind) {
@@ -26127,7 +26129,7 @@ scan_aggregate_initializer_expression.
       discard_curr_expr_object_lifetime();
       break;
     case ok_expression:
-      *expression = result.variant.expression;
+      *expression = make_node_from_operand(&result);
       *expression = wrap_up_full_expression(*expression);
       *is_constant = FALSE;
       break;
@@ -26352,8 +26354,9 @@ As indicated, this is initialization with the "=" semantics
                   /*suppress_object_lifetime=*/FALSE);
   transfer_expr_context_if_applicable(saved_expr_stack);
   set_up_initializer_rescan(dps);
+  check_assertion(C_mode() || !dps->initializer_is_expr_list);
   /* Scan the expression. */
-  scan_initializer_expr_with_potential_pack_expansion(dps, &result);
+  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Find out whether or not the conversion is possible, and
      build a dynamic initialization entry to describe the initialization. */
   prep_elision_initializer_operand(&result, dps->type,
@@ -26645,6 +26648,7 @@ required_type_determined:
                              /*is_copy_initialization=*/TRUE,
                              /*nontype_template_arg=*/FALSE,
                              ec_bad_initializer_type);
+    mark_expr_of_operand_as_pack_expansion_if_necessary(&result);
     switch (result.kind) {
       case ok_error:
         /* Some sort of error; message was already issued. */
@@ -26652,7 +26656,7 @@ required_type_determined:
         discard_curr_expr_object_lifetime();
         break;
       case ok_expression:
-        { an_expr_node_ptr expr = result.variant.expression;
+        { an_expr_node_ptr expr= make_node_from_operand(&result);
           expr = wrap_up_full_expression(expr);
           *dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
           (*dip)->variant.expression = expr;
