@@ -13095,8 +13095,6 @@ all arguments were explicit.
       if (last_arg != NULL) last_arg->next = arg_ptr;
       last_arg = arg_ptr;
       in_pack = TRUE;
-    } else {
-      in_pack = FALSE;
     }  /* if */
     if (curr_token == tok_shift_right && right_shift_can_be_angle_brackets) {
       /* Check for the case where a "right shift" could be interpreted as two
@@ -13105,7 +13103,10 @@ all arguments were explicit.
     }  /* if */
     /* If the current token is a ">", and this is the first argument,
        then exit the loop (an empty argument list). */
-    if (curr_token == tok_gt && arg_list == NULL) break;
+    if (curr_token == tok_gt &&
+        (arg_list == NULL || (in_pack && arg_ptr == last_arg))) {
+      break;
+    }  /* if */
     arg_pos = pos_curr_token;
     /* If the template parameter list is empty, exit the loop.  This only
        occurs in error cases. */

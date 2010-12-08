@@ -14773,13 +14773,15 @@ when prototype instantiations are included in the IL.
 
 
 static void template_param_is_variadic(
+				a_symbol_ptr		sym,
 				a_template_param_ptr	tpp,
 				a_tmpl_decl_state_ptr	decl_state)
 /*
-Record that we have encountered a variadic template parameter in a
-template parameter list.
+Record that we have encountered a variadic template parameter (tpp) in a
+template parameter list.  sym is the template parameter symbol.
 */
 {
+  sym->is_pack_element = TRUE;
   tpp->is_pack = TRUE;
   decl_state->is_variadic = TRUE;
   scope_stack[depth_scope_stack].in_variadic_template = TRUE;
@@ -14858,7 +14860,7 @@ parameter entry for the parameter.
   record_template_param_symbol(sym);
   /* Allocate a template parameter and set its fields based on sym. */
   template_param = alloc_template_param(sym);
-  if (is_pack) template_param_is_variadic(template_param, decl_state);
+  if (is_pack) template_param_is_variadic(sym, template_param, decl_state);
   if (curr_token == tok_assign) {
     a_token_cache  def_arg_cache;
     a_boolean	   def_arg_involves_template_param = FALSE;

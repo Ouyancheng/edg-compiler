@@ -1294,10 +1294,13 @@ is reconstructed here.
 }  /* dump_bare_name */
 
 
-static void dump_name(a_source_correspondence *scp)
+static void dump_name_full(a_source_correspondence *scp,
+                           uint32_t                counter)
 /*
 Print the name of an entity.  scp is the source correspondence.  If the
-entity is unnamed, generate a name.
+entity is unnamed, generate a name.  If counter is non-zero and we are not
+outputting just a bare name, counter is used in addition to the declaration
+position to ensure that the name is unique.
 */
 {
   char *name = scp->name;
@@ -1351,16 +1354,26 @@ entity is unnamed, generate a name.
   } else {
     /* Name has no linkage; add the declaration position as a prefix to
        the original name, e.g., "i" becomes "__16_12_i". */
-    ensure_enough_room_on_line(strlen(name)+14);
+    ensure_enough_room_on_line(strlen(name)+14+(counter != 0 ? 3 : 0));
     m_write_ch('_');
     m_write_ch('_');
+    if (counter != 0) {
+      write_unsigned_num((a_host_large_unsigned)counter);
+      m_write_ch('_');
+    }  /* if */
     write_unsigned_num((a_host_large_unsigned)scp->decl_position.seq);
     m_write_ch('_');
     write_unsigned_num((a_host_large_unsigned)scp->decl_position.column);
     m_write_ch('_');
     m_write_str(name);
   }  /* if */
-}  /* dump_name */
+}  /* dump_name_full */
+
+/*
+Interface macro to dump_name_full that supplies a default value for
+the counter parameter.
+*/
+#define dump_name(scp) dump_name_full((scp), 0)
 
 
 /*
@@ -1450,8 +1463,7 @@ Print the name of the indicated variable.
     /* Compute a counter that can be used to distinguish the variadic
        parameter names based on the number of remaining pack elements. */
     for (; vp != NULL && vp->is_pack_element; vp = vp->next, counter++) {}
-    dump_name(&variable->source_corresp);
-    write_unsigned_num((a_host_large_unsigned)counter);
+    dump_name_full(&variable->source_corresp, counter);
   } else {
     /* Nothing special about this case. */
     dump_name(&variable->source_corresp);

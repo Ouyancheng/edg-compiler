@@ -1299,18 +1299,18 @@ specification is handled later (see check_exception_specification).
           set_used_in_exception_or_rtti_flag(estp->type);
         }  /* if */
       }  /* if */
-      remove_stop_token(tok_comma);
-      /* If the next token is not a comma, it should be a right paren -- but
-         check for a few other tokens that (in error cases) should also force
-         the loop to terminate. */
-      if (curr_token == tok_rparen || curr_token == tok_end_of_source ||
-          curr_token == tok_semicolon || curr_token == tok_lbrace) {
-        break;
-      }  /* if */
       (void)end_potential_pack_expansion_context(pesep,
                                                  /*is_declarator=*/FALSE);
       any_types = advance_to_next_pack_element(pesep);
     }  /* while */
+    remove_stop_token(tok_comma);
+    /* If the next token is not a comma, it should be a right paren -- but
+       check for a few other tokens that (in error cases) should also force
+       the loop to terminate. */
+    if (curr_token == tok_rparen || curr_token == tok_end_of_source ||
+        curr_token == tok_semicolon || curr_token == tok_lbrace) {
+      break;
+    }  /* if */
   } while (loop_token(tok_comma));
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && microsoft_version >= 1300 && esp != NULL) {
@@ -2354,6 +2354,7 @@ function declarator in a friend function declaration.
                               local_decl_pos_block.identifier_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           last_param_id->param_num = param_number;
+          last_param_id->is_parameter_pack = ptp->is_parameter_pack;
           ptp->param_num = param_number;
 #if GNU_EXTENSIONS_ALLOWED
           if (last_param_id->symbol != NULL) {

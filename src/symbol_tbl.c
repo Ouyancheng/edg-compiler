@@ -10838,6 +10838,7 @@ locator_for_curr_id.
   pip->type_pos = null_source_position;
   pip->storage_class = (a_storage_class)sc_unspecified;
   pip->implicitly_declared = FALSE;
+  pip->is_parameter_pack = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   pip->is_decl_after_first_in_comma_list = FALSE;
   pip->source_sequence_entry = NULL;

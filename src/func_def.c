@@ -1083,7 +1083,7 @@ and for the instantiation of template functions.
       param_id = NULL;
       ptp = NULL;
     }  /* if */
-    for (; param_id != NULL;
+    for (; param_id != NULL && ptp != NULL;
          advance_param_id_and_param_type(&param_id, &ptp)) {
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
@@ -1104,22 +1104,13 @@ and for the instantiation of template functions.
                      /*non_initial_variadic_param=*/param_id == prev_param_id);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       prev_param_id = param_id;
-      if (is_nonspecialized_instantiation_context() &&
-          (((param_id->next == NULL) != (ptp->next == NULL)) &&
-           (ptp->next == NULL || !ptp->next->is_pack_element))) {
-        /* Something went wrong while parsing the template, which caused us to
-           miscount the number of parameters.  Discard the extra parameter
-           names (which were identified during the first template scan without
-           knowledge of actual template arguments) or extra parameter type
-           entries. */
-        check_assertion(total_errors != 0);
-        param_id->next = NULL;
-        ptp->next = NULL;
-      }  /* if */
-      /* Be sure param-id and param-type lists are in sync. */
-      check_assertion((param_id->next == NULL) == (ptp->next == NULL) ||
-                      (ptp->next != NULL && ptp->next->is_pack_element));
     }  /* for */
+    if ((param_id == NULL) != (ptp == NULL) &&
+        param_id != NULL && !param_id->is_parameter_pack) {
+        /* Something went wrong while parsing the template, which caused us to
+           miscount the number of parameters. */
+        check_assertion(total_errors != 0);
+      }  /* if */
     if (vla_enabled && C_mode()) {
       /* Some additional transformations and checks may be needed for
          parameters with variably-modified types.  (In C++ mode, such

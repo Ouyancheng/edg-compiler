@@ -1147,6 +1147,11 @@ typedef struct a_param_id {
 		implicitly_declared;
 			/* TRUE for an old-style parameter for which
 			   an explicit declaration is omitted. */
+  a_byte_boolean
+		is_parameter_pack;
+			/* TRUE for the parameter of a template definition of
+			   a variadic template for the function parameter
+			   pack. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_byte_boolean
 		is_decl_after_first_in_comma_list;

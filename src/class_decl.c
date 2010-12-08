@@ -5954,7 +5954,7 @@ static void scan_base_specifier_list(a_type_ptr             type_ptr,
 Scan a list of base class specifiers, which may appear only on a class
 or struct definition.  The syntax is
 
-10
+
         base-spec:
                 : base-list
 
@@ -6022,462 +6022,481 @@ or struct definition.  The syntax is
   (void)get_token();
   cssp = symbol_supplement_for_class(type_ptr);
   do {
-    an_attribute_ptr  attributes;
+    a_pack_expansion_stack_entry_ptr	pesep;
+    a_boolean				any_types;
     add_stop_token(tok_comma);
-    attributes = scan_attributes(al_base_specifier);
-    if (attributes != NULL) mark_primary_decl_attributes(attributes);
-    /* Set the defaults. */
-    if (type_ptr->kind == (a_type_kind)tk_class) {
-      access = (an_access_specifier)as_private;
-      default_access_str = "private";
-    } else {
-      access = (an_access_specifier)as_public;
-      default_access_str = "public";
-    }  /* if */
-    base_specifier_start_pos = pos_curr_token;
-    direct_base_number++;
-    /* Scan a single base specification, first looping through the specifying
-       keywords virtual, public, private, and protected. */
-    scan_inheritance_kind(type_ptr, &is_virtual, &access,
-                          &explicit_access_specifier);
+    /* A base-specifier is a potential variadic pack expansion context. */
+    any_types = begin_potential_pack_expansion_context(&pesep);
+    if (any_types) direct_base_number++;
+    while (any_types) {
+      an_attribute_ptr			attributes;
+      attributes = scan_attributes(al_base_specifier);
+      if (attributes != NULL) mark_primary_decl_attributes(attributes);
+      /* Set the defaults. */
+      if (type_ptr->kind == (a_type_kind)tk_class) {
+        access = (an_access_specifier)as_private;
+        default_access_str = "private";
+      } else {
+        access = (an_access_specifier)as_public;
+        default_access_str = "public";
+      }  /* if */
+      base_specifier_start_pos = pos_curr_token;
+      /* Scan a single base specification, first looping through the specifying
+         keywords virtual, public, private, and protected. */
+      scan_inheritance_kind(type_ptr, &is_virtual, &access,
+                            &explicit_access_specifier);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    {
-    a_source_sequence_entry_ptr  saved_insert_point = NULL;
+      {
+      a_source_sequence_entry_ptr  saved_insert_point = NULL;
 
-    if (depth_innermost_function_scope == NO_SCOPE_DEPTH &&
-        cssp->class_template == NULL) {
-      /* Clear the instantiation insert point to assure that any
-         instantiations triggered by the base specifier will appear right
-         after the entry for the current class.  The order will be fixed up
-         later. */
-      saved_insert_point = scope_stack[depth_scope_stack].
-                                         ss_list_instantiation_insert_point;
-      reset_ss_list_instantiation_insert_point();
-    }  /* if */
+      if (depth_innermost_function_scope == NO_SCOPE_DEPTH &&
+          cssp->class_template == NULL) {
+        /* Clear the instantiation insert point to assure that any
+           instantiations triggered by the base specifier will appear right
+           after the entry for the current class.  The order will be fixed up
+           later. */
+        saved_insert_point = scope_stack[depth_scope_stack].
+                                           ss_list_instantiation_insert_point;
+        reset_ss_list_instantiation_insert_point();
+      }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    /* Test for identifier or "::" next. */
-    if (!is_decl_qualified_name_start()) {
-      syntax_error(ec_exp_identifier);
-    } else {
-      /* Scan the base class name. */
-      a_boolean err = FALSE;
-      base_class_decl_pos = pos_curr_token;
-      base_class_type = NULL;
-      if (!first_base_class || is_virtual) {
-        /* Multiple inheritance and virtual inheritance are outside the
-           "Embedded C++" subset. */
-        feature_is_not_part_of_embedded_cplusplus_subset(
+      /* Test for identifier or "::" next. */
+      if (!is_decl_qualified_name_start()) {
+        syntax_error(ec_exp_identifier);
+      } else {
+        /* Scan the base class name. */
+        a_boolean err = FALSE;
+        base_class_decl_pos = pos_curr_token;
+        base_class_type = NULL;
+        if (!first_base_class || is_virtual) {
+          /* Multiple inheritance and virtual inheritance are outside the
+             "Embedded C++" subset. */
+          feature_is_not_part_of_embedded_cplusplus_subset(
                                 &base_specifier_start_pos,
                                 ec_multiple_inheritance_in_embedded_cplusplus);
-      }  /* if */
-      /* Look up the identifier for the base class.  Only identifiers
-         that could be classes (including typedefs to classes and template
-         parameters) are considered in the lookup. */
-      sym = coalesce_and_lookup_generalized_identifier(
+        }  /* if */
+        /* Look up the identifier for the base class.  Only identifiers
+           that could be classes (including typedefs to classes and template
+           parameters) are considered in the lookup. */
+        sym = coalesce_and_lookup_generalized_identifier(
                                    GID_IMPLICIT_TYPE_CONTEXT, ilm_class, &err);
-      /* Be sure a type symbol was found and that it identifies a class. */
-      if (sym == NULL || !is_class_symbol(sym)) {
-        /* Not a class symbol.  In most cases, issue an error and skip it.
-           When a template param is involved, just skip it. */
-        if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
-          a_type_ptr  tp = skip_typedefs(type_symbol_type(sym));
-          if (tp->kind == (a_type_kind)tk_template_param) {
-            if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
-              /* No diagnostic on template parameters, which will only show
-                 up during prototype instantiations.  Set the flag that
-                 indicates that this prototype instantiation has a nonreal
-                 base class.  ctsp will be NULL if an error was issued for
-                 an attempt to put a base class on a union.  Don't set
-                 any_nonreal_base_classes as the base class will not be
-                 on the base class list. */
-              cssp->any_nonreal_base_classes = ctsp != NULL;
-              base_class_type = proxy_class_for_template_param(tp);
-              orig_base_class_type = base_class_type;
-              bcp_cssp = symbol_supplement_for_class(base_class_type);
-            } else {
-              /* Error case.  Ignore the specifier. */
-              error(ec_bad_base_class);
-              goto skip_base_class;
+        if (sym != NULL) {
+          record_potential_pack_reference(
+                                    sym, &locator_for_curr_id.source_position);
+        }  /* if */
+        /* Be sure a type symbol was found and that it identifies a class. */
+        if (sym == NULL || !is_class_symbol(sym)) {
+          /* Not a class symbol.  In most cases, issue an error and skip it.
+             When a template param is involved, just skip it. */
+          if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
+            a_type_ptr  tp = skip_typedefs(type_symbol_type(sym));
+            if (tp->kind == (a_type_kind)tk_template_param) {
+              if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+                /* No diagnostic on template parameters, which will only show
+                   up during prototype instantiations.  Set the flag that
+                   indicates that this prototype instantiation has a nonreal
+                   base class.  ctsp will be NULL if an error was issued for
+                   an attempt to put a base class on a union.  Don't set
+                   any_nonreal_base_classes as the base class will not be
+                   on the base class list. */
+                cssp->any_nonreal_base_classes = ctsp != NULL;
+                base_class_type = proxy_class_for_template_param(tp);
+                orig_base_class_type = base_class_type;
+                bcp_cssp = symbol_supplement_for_class(base_class_type);
+              } else {
+                /* Error case.  Ignore the specifier. */
+                error(ec_bad_base_class);
+                goto skip_base_class;
+              }  /* if */
             }  /* if */
+          } /* if */
+          if (base_class_type == NULL) {
+            error(ec_not_a_class_or_struct_name);
+            reference_to_invalid_name(&locator_for_curr_id);
+            goto skip_base_class;
           }  /* if */
-        } /* if */
+        } else if (locator_for_curr_id.is_semivisible_nested_type) {
+          /* The symbol in the locator is a nested class that is not visible
+             according to the ARM lookup rules but is returned in support of
+             the nested class anachronism (ARM 18.3.5). Issue an anachronism
+             diagnostic. */
+          sym_diagnostic(anachronism_error_severity,
+                         ec_nested_class_anachronism,
+                         locator_for_curr_id.specific_symbol);
+        }  /* if */
+        if (type_ptr->kind == (a_type_kind)tk_union) {
+          /* We just ignore the base classes declared for a union.  The error
+             has already been issued. */
+          goto skip_base_class;
+        }  /* if */
+        /* Record the symbol as referenced. */
+        mark_referenced(sym, &pos_curr_token);
+        /* Do ambiguity and access control checking for the symbol. */
+        check_ambiguity_and_verify_access(&locator_for_curr_id);
         if (base_class_type == NULL) {
-          error(ec_not_a_class_or_struct_name);
-          reference_to_invalid_name(&locator_for_curr_id);
-          goto skip_base_class;
-        }  /* if */
-      } else if (locator_for_curr_id.is_semivisible_nested_type) {
-        /* The symbol in the locator is a nested class that is not visible
-           according to the ARM lookup rules but is returned in support of
-           the nested class anachronism (ARM 18.3.5). Issue an anachronism
-           diagnostic. */
-        sym_diagnostic(anachronism_error_severity, ec_nested_class_anachronism,
-                       locator_for_curr_id.specific_symbol);
-      }  /* if */
-      if (type_ptr->kind == (a_type_kind)tk_union) {
-        /* We just ignore the base classes declared for a union.  The error
-           has already been issued. */
-        goto skip_base_class;
-      }  /* if */
-      /* Record the symbol as referenced. */
-      mark_referenced(sym, &pos_curr_token);
-      /* Do ambiguity and access control checking for the symbol. */
-      check_ambiguity_and_verify_access(&locator_for_curr_id);
-      if (base_class_type == NULL) {
-        /* Get the type entry for the base class name. */
-        base_class_type = type_symbol_type(sym);
-        bcp_cssp = symbol_supplement_for_class(base_class_type);
-        base_class_type->source_corresp.referenced = TRUE;
-        if (!check_base_class_type(type_ptr, base_class_type)) {
-          /* The type of the base class is invalid (e.g., incomplete). */
-          goto skip_base_class;
-        }  /* if */
-        orig_base_class_type = base_class_type;
-        base_class_type = skip_typerefs(base_class_type);
+          /* Get the type entry for the base class name. */
+          base_class_type = type_symbol_type(sym);
+          bcp_cssp = symbol_supplement_for_class(base_class_type);
+          base_class_type->source_corresp.referenced = TRUE;
+          if (!check_base_class_type(type_ptr, base_class_type)) {
+            /* The type of the base class is invalid (e.g., incomplete). */
+            goto skip_base_class;
+          }  /* if */
+          orig_base_class_type = base_class_type;
+          base_class_type = skip_typerefs(base_class_type);
 #if BACK_END_IS_CP_GEN_BE && \
     CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-        if (scope_stack[depth_scope_stack].kind ==
+          if (scope_stack[depth_scope_stack].kind ==
                                    (a_scope_kind)sck_template_instantiation &&
-            orig_base_class_type->source_corresp.is_class_member &&
-            type_is_typedef(orig_base_class_type)) {
-          /* The C++-generating back end will generate an explicit
-             specialization for this class definition.  This can cause
-             problems for examples like the following:
+              orig_base_class_type->source_corresp.is_class_member &&
+              type_is_typedef(orig_base_class_type)) {
+            /* The C++-generating back end will generate an explicit
+               specialization for this class definition.  This can cause
+               problems for examples like the following:
+  
+                 template <typename T> struct X: T { };
+                 struct A { };
+                 struct Y {
+                   typedef A x;
+                   X<x> xx;
+                 };
+  
+               The explicit specialization of X<A> will appear before the
+               definition of Y, so we must take care not to use the typedef
+               Y::x as the base specifier for X<A>.  We do that by scanning
+               the scope stack to see if the parent class of the typedef is
+               on the stack; if it is, we use the underlying type instead of
+               the typedef as the "original" type. */
+            a_scope_depth depth;
 
-               template <typename T> struct X: T { };
-               struct A { };
-               struct Y {
-                 typedef A x;
-                 X<x> xx;
-               };
-
-             The explicit specialization of X<A> will appear before the
-             definition of Y, so we must take care not to use the typedef
-             Y::x as the base specifier for X<A>.  We do that by scanning
-             the scope stack to see if the parent class of the typedef is
-             on the stack; if it is, we use the underlying type instead of
-             the typedef as the "original" type. */
-          a_scope_depth depth;
-
-          for (depth = depth_scope_stack - 1; depth != DEPTH_OF_FILE_SCOPE;
-               --depth) {
-            a_scope_stack_entry_ptr ssep = scope_stack_entry_for(depth);
-            if ((ssep->kind == (a_scope_kind)sck_class_struct_union ||
-                 ssep->kind == (a_scope_kind)sck_class_reactivation) &&
-                same_entities(ssep->assoc_type,
-                              parent_class_of(orig_base_class_type))) {
-              /* Use the underlying type. */
-              orig_base_class_type = base_class_type;
-              break;
-            }  /* if */
-          }  /* for */
-        }  /* if */
+            for (depth = depth_scope_stack - 1; depth != DEPTH_OF_FILE_SCOPE;
+                 --depth) {
+              a_scope_stack_entry_ptr ssep = scope_stack_entry_for(depth);
+              if ((ssep->kind == (a_scope_kind)sck_class_struct_union ||
+                   ssep->kind == (a_scope_kind)sck_class_reactivation) &&
+                  same_entities(ssep->assoc_type,
+                                parent_class_of(orig_base_class_type))) {
+                /* Use the underlying type. */
+                orig_base_class_type = base_class_type;
+                break;
+              }  /* if */
+            }  /* for */
+          }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE && ... */
-        if (base_class_type
+          if (base_class_type
                        ->variant.class_struct_union.has_zero_init_component) {
-          /* At least a part of this base class must be zero initialized when
-             value-initializing object of the type being parsed. */
-          type_ptr->variant.class_struct_union.has_zero_init_component = TRUE;
-        }  /* if */
-      }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (interface_definition && !is_interface_like(base_class_type)) {
-        error(ec_interface_must_derive_from_interface);
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Issue a diagnostic if an explicit access specifier was not provided
-         (as per the recommendation on p. 243 of the ARM). */
-      if (!explicit_access_specifier) {
-        pos_st_remark(ec_missing_access_specifier, &error_position,
-                      default_access_str);
-      }  /* if */
-      check_assertion(ctsp != NULL);
-      /* Before creating the base class entry and adding it to the list of
-         base classes, go through the list looking for conflicts. */
-      ambiguous = FALSE;
-      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-        if (same_entities(bcp->type, base_class_type)) {
-          /* There is already a base class entry in the list that represents
-             the same class. */
-          if (bcp->direct) {
-            /* It too is a directly derived base class.  This is an error. */
-            error(ec_dupl_base_class_name);
-            goto skip_base_class;
-          } else if (bcp->is_virtual && is_virtual) {
-            /* This virtual base class is already on the list.  Record this
-               derivation as an alternate path; it may turn out to be the
-               preferred path. */
-            (void)update_base_class_derivation(bcp,
-                                               (a_derivation_step_ptr)NULL,
-                                               access);
-            bcp->orig_type = orig_base_class_type;
-            bcp->direct = TRUE;
-            bcp->direct_base_number = direct_base_number;
-            bcp->decl_position = base_class_decl_pos;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-            bcp->base_specifier_range.start = base_specifier_start_pos;
-            bcp->base_specifier_range.end = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-            if (attributes != NULL) {
-              attach_attributes(attributes, (char*)bcp, iek_base_class);
-            }  /* if */
-            goto skip_base_class;
-          } else {
-            /* At least one is non-virtual, so there is an ambiguity.  Mark
-               both as ambiguous.  */
-            bcp->ambiguous = ambiguous = TRUE;
+            /* At least a part of this base class must be zero initialized when
+               value-initializing object of the type being parsed. */
+            type_ptr->
+                     variant.class_struct_union.has_zero_init_component = TRUE;
           }  /* if */
         }  /* if */
-      }  /* for */
-      /* The implied default constructor of the current class will be
-         nontrivial if any of its base classes is virtual or has a nontrivial
-         default constructor itself.  The current class requires a destructor
-         if any of its base classes has a destructor.  Record such
-         requirements, if any, at this time. */
-      if (is_virtual || !has_trivial_default_constructor(bcp_cssp)) {
-        class_state->default_ctor_is_nontrivial = TRUE;
-      }  /* if */
-      if (has_nontrivial_destructor(bcp_cssp)) {
-        class_state->base_destruction_required = TRUE;
-      }  /* if */
-      /* Indicate whether an operator new or operate delete is inherited into
-         the current derived class. */
-      if (bcp_cssp->has_operator_new) cssp->has_operator_new = TRUE;
-      if (bcp_cssp->has_operator_array_new) {
-        cssp->has_operator_array_new = TRUE;
-      }  /* if */
-      if (bcp_cssp->has_operator_delete) cssp->has_operator_delete = TRUE;
-      if (bcp_cssp->has_operator_array_delete) {
-        cssp->has_operator_array_delete = TRUE;
-      }  /* if */
-      /* The current derived class cannot be copy-constructed or assigned by
-         bitwise copying if the base class does not allow it or is a virtual
-         base class.  (If the base class is nonreal, assume its type does not
-         affect bitwise copyability.) */
-      if (is_virtual) {
-        cssp->construction_by_bitwise_copy_allowed = FALSE;
-        cssp->assignment_by_bitwise_copy_allowed = FALSE;
-      } else if (!base_class_type
-                              ->variant.class_struct_union.is_nonreal_class) {
-        if (!bcp_cssp->construction_by_bitwise_copy_allowed) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (interface_definition && !is_interface_like(base_class_type)) {
+          error(ec_interface_must_derive_from_interface);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Issue a diagnostic if an explicit access specifier was not provided
+           (as per the recommendation on p. 243 of the ARM). */
+        if (!explicit_access_specifier) {
+          pos_st_remark(ec_missing_access_specifier, &error_position,
+                        default_access_str);
+        }  /* if */
+        check_assertion(ctsp != NULL);
+        /* Before creating the base class entry and adding it to the list of
+           base classes, go through the list looking for conflicts. */
+        ambiguous = FALSE;
+        for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+          if (same_entities(bcp->type, base_class_type)) {
+            /* There is already a base class entry in the list that represents
+               the same class. */
+            if (bcp->direct) {
+              /* It too is a directly derived base class.  This is an error. */
+              error(ec_dupl_base_class_name);
+              goto skip_base_class;
+            } else if (bcp->is_virtual && is_virtual) {
+              /* This virtual base class is already on the list.  Record this
+                 derivation as an alternate path; it may turn out to be the
+                 preferred path. */
+              (void)update_base_class_derivation(bcp,
+                                                 (a_derivation_step_ptr)NULL,
+                                                 access);
+              bcp->orig_type = orig_base_class_type;
+              bcp->direct = TRUE;
+              bcp->direct_base_number = direct_base_number;
+              bcp->decl_position = base_class_decl_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+              bcp->base_specifier_range.start = base_specifier_start_pos;
+              bcp->base_specifier_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+              if (attributes != NULL) {
+                attach_attributes(attributes, (char*)bcp, iek_base_class);
+              }  /* if */
+              goto skip_base_class;
+            } else {
+              /* At least one is non-virtual, so there is an ambiguity.  Mark
+                 both as ambiguous.  */
+              bcp->ambiguous = ambiguous = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+        /* The implied default constructor of the current class will be
+           nontrivial if any of its base classes is virtual or has a nontrivial
+           default constructor itself.  The current class requires a destructor
+           if any of its base classes has a destructor.  Record such
+           requirements, if any, at this time. */
+        if (is_virtual || !has_trivial_default_constructor(bcp_cssp)) {
+          class_state->default_ctor_is_nontrivial = TRUE;
+        }  /* if */
+        if (has_nontrivial_destructor(bcp_cssp)) {
+          class_state->base_destruction_required = TRUE;
+        }  /* if */
+        /* Indicate whether an operator new or operate delete is inherited into
+           the current derived class. */
+        if (bcp_cssp->has_operator_new) cssp->has_operator_new = TRUE;
+        if (bcp_cssp->has_operator_array_new) {
+          cssp->has_operator_array_new = TRUE;
+        }  /* if */
+        if (bcp_cssp->has_operator_delete) cssp->has_operator_delete = TRUE;
+        if (bcp_cssp->has_operator_array_delete) {
+          cssp->has_operator_array_delete = TRUE;
+        }  /* if */
+        /* The current derived class cannot be copy-constructed or assigned by
+           bitwise copying if the base class does not allow it or is a virtual
+           base class.  (If the base class is nonreal, assume its type does not
+           affect bitwise copyability.) */
+        if (is_virtual) {
           cssp->construction_by_bitwise_copy_allowed = FALSE;
-        }  /* if */
-        if (!bcp_cssp->assignment_by_bitwise_copy_allowed) {
           cssp->assignment_by_bitwise_copy_allowed = FALSE;
+        } else if (!base_class_type
+                              ->variant.class_struct_union.is_nonreal_class) {
+          if (!bcp_cssp->construction_by_bitwise_copy_allowed) {
+            cssp->construction_by_bitwise_copy_allowed = FALSE;
+          }  /* if */
+          if (!bcp_cssp->assignment_by_bitwise_copy_allowed) {
+            cssp->assignment_by_bitwise_copy_allowed = FALSE;
+          }  /* if */
         }  /* if */
-      }  /* if */
-      if (bcp_cssp->any_nonstatic_data_members) {
-        cssp->any_nonstatic_data_members = TRUE;
-      }  /* if */
-      if (bcp_cssp->any_nonreal_base_classes ||
-          (base_class_type->variant.class_struct_union.is_nonreal_class &&
-           !(base_class_type->
+        if (bcp_cssp->any_nonstatic_data_members) {
+          cssp->any_nonstatic_data_members = TRUE;
+        }  /* if */
+        if (bcp_cssp->any_nonreal_base_classes ||
+            (base_class_type->variant.class_struct_union.is_nonreal_class &&
+             !(base_class_type->
                       variant.class_struct_union.is_prototype_instantiation ||
-             !base_class_type->
-                      variant.class_struct_union.is_template_class))) {
-        /* Do not set the any_nonreal_base_classes field for a base that is a
-           prototype instantiation, or a class defined as part of a
-           prototype instantiation (e.g., a local class defined in the
-           prototype instantiation of a function template). */
-        cssp->any_nonreal_base_classes = TRUE;
-      }  /* if */
-      /* Update the flag indicating whether there are any virtual base
-         classes. */
-      if (is_virtual || base_class_type->
-                       variant.class_struct_union.any_virtual_base_classes) {
-        type_ptr->variant.class_struct_union.any_virtual_base_classes = TRUE;
-      }  /* if */
-      if (base_class_type->variant.class_struct_union.
-                       any_virtual_functions_including_in_base_classes) {
-        type_ptr->variant.class_struct_union.
+               !base_class_type->
+                        variant.class_struct_union.is_template_class))) {
+          /* Do not set the any_nonreal_base_classes field for a base that is a
+             prototype instantiation, or a class defined as part of a
+             prototype instantiation (e.g., a local class defined in the
+             prototype instantiation of a function template). */
+          cssp->any_nonreal_base_classes = TRUE;
+        }  /* if */
+        /* Update the flag indicating whether there are any virtual base
+           classes. */
+        if (is_virtual || base_class_type->
+                         variant.class_struct_union.any_virtual_base_classes) {
+          type_ptr->variant.class_struct_union.any_virtual_base_classes = TRUE;
+        }  /* if */
+        if (base_class_type->variant.class_struct_union.
+                         any_virtual_functions_including_in_base_classes) {
+          type_ptr->variant.class_struct_union.
                        any_virtual_functions_including_in_base_classes = TRUE;
-      }  /* if */
-      if (base_class_type->variant.class_struct_union.any_volatile_member) {
-        type_ptr->variant.class_struct_union.any_volatile_member = TRUE;
-      }  /* if */
-      if (base_class_type->variant.class_struct_union.any_mutable_member) {
-        type_ptr->variant.class_struct_union.any_mutable_member = TRUE;
-      }  /* if */
-      if (base_class_type->variant.class_struct_union.has_operator_ampersand) {
-        type_ptr->variant.class_struct_union.has_operator_ampersand = TRUE;
-      }
-      /* Now create the new base class entry and add it to the end of the
-         base classes list. */
-      new_direct_bcp = alloc_base_class();
-      new_direct_bcp->type = base_class_type;
-      new_direct_bcp->orig_type = orig_base_class_type;
-      new_direct_bcp->derived_class = type_ptr;
-      new_direct_bcp->decl_position = base_class_decl_pos;
-      new_direct_bcp->direct = TRUE;
-      new_direct_bcp->ambiguous = ambiguous;
-      new_direct_bcp->direct_base_number = direct_base_number;
-      if (is_virtual) new_direct_bcp->is_virtual = TRUE;
-      path = update_base_class_derivation(new_direct_bcp,
-                                          (a_derivation_step_ptr)NULL, access);
+        }  /* if */
+        if (base_class_type->variant.class_struct_union.any_volatile_member) {
+          type_ptr->variant.class_struct_union.any_volatile_member = TRUE;
+        }  /* if */
+        if (base_class_type->variant.class_struct_union.any_mutable_member) {
+          type_ptr->variant.class_struct_union.any_mutable_member = TRUE;
+        }  /* if */
+        if (base_class_type->
+                           variant.class_struct_union.has_operator_ampersand) {
+          type_ptr->variant.class_struct_union.has_operator_ampersand = TRUE;
+        }
+        /* Now create the new base class entry and add it to the end of the
+           base classes list. */
+        new_direct_bcp = alloc_base_class();
+        new_direct_bcp->type = base_class_type;
+        new_direct_bcp->orig_type = orig_base_class_type;
+        new_direct_bcp->derived_class = type_ptr;
+        new_direct_bcp->decl_position = base_class_decl_pos;
+        new_direct_bcp->direct = TRUE;
+        new_direct_bcp->ambiguous = ambiguous;
+        new_direct_bcp->direct_base_number = direct_base_number;
+        if (is_virtual) new_direct_bcp->is_virtual = TRUE;
+        path = update_base_class_derivation(new_direct_bcp,
+                                            (a_derivation_step_ptr)NULL,
+                                            access);
 #if DEBUG
-      if (debug_level >= 3 || db_flag_is_set("base_specifiers")) {
-        db_abbreviated_type(base_class_type);
-        fputs(" is direct base class of ", f_debug);
-        db_abbreviated_type(type_ptr);
-        fputc('\n', f_debug);
-      }  /* if */
+        if (debug_level >= 3 || db_flag_is_set("base_specifiers")) {
+          db_abbreviated_type(base_class_type);
+          fputs(" is direct base class of ", f_debug);
+          db_abbreviated_type(type_ptr);
+          fputc('\n', f_debug);
+        }  /* if */
 #endif /* DEBUG */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
-      /* When cfront lays out a class with base classes, the subobject for the
-         first direct nonvirtual base class does not include the data sections
-         for its own virtual base classes (if any).  However, the subobjects
-         for the second and subsequent direct nonvirtual base classes and for
-         virtual base classes do include the virtual base class data sections
-         and are therefore marked as having a "complete subobject". */
-      if (is_virtual || !first_direct_nonvirtual_base_class) {
-        new_direct_bcp->complete_subobject = TRUE;
-      }  /* if */
+        /* When cfront lays out a class with base classes, the subobject for
+           the first direct nonvirtual base class does not include the data
+           sections for its own virtual base classes (if any).  However, the
+           subobjects for the second and subsequent direct nonvirtual base
+           classes and for virtual base classes do include the virtual base
+           class data sections and are therefore marked as having a "complete
+           subobject". */
+        if (is_virtual || !first_direct_nonvirtual_base_class) {
+          new_direct_bcp->complete_subobject = TRUE;
+        }  /* if */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      new_direct_bcp->base_specifier_range.start = base_specifier_start_pos;
-      new_direct_bcp->base_specifier_range.end = end_pos_curr_token;
+        new_direct_bcp->base_specifier_range.start = base_specifier_start_pos;
+        new_direct_bcp->base_specifier_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      if (attributes != NULL) {
-        attach_attributes(attributes, (char*)new_direct_bcp, iek_base_class);
-      }  /* if */
-      /* Add base classes derived from this base class to the current class's
-         base class list.  They are marked as indirect. */
-      any_base_class_fixup_required = FALSE;
-      for (bcp = base_classes_of(new_direct_bcp->type);
-           bcp != NULL;
-           bcp = bcp->next) {
-        if (bcp->overriding_virtual_functions != NULL) {
-          any_base_class_fixup_required = TRUE;
+        if (attributes != NULL) {
+          attach_attributes(attributes, (char*)new_direct_bcp, iek_base_class);
         }  /* if */
-        if (!bcp->direct) {
-          continue;
-        } else if (bcp->is_virtual) {
-          /* A virtual base class is marked as "direct" if any of its paths
-             is direct.  However, for our purposes, the "first" path (first in
-             a depth-first left-to-right traversal of the derivation graph)
-             must be direct.  On the other hand, we still need to record the
-             direct path, but so set a flag so another pass will be done over
-             the base class list. */
-          if (!bcp->derivation->direct) {
-            any_base_class_fixup_required = TRUE;
-            continue;
-          }  /* if */
-        }  /* if */
-          /* Add the direct base class and all *its* base classes to the
-           base class list for the derived class. */
-        add_indirect_base_class(bcp, new_direct_bcp, path,
-                                &end_of_base_classes_list, type_ptr);
-      }  /* for */
-      /* Enter the base name on the base class list in the derived class's
-         class-supplement entry. */
-      if (end_of_base_classes_list == NULL) {
-        ctsp->base_classes = new_direct_bcp;
-      } else {
-        end_of_base_classes_list->next = new_direct_bcp;
-      }  /* if */
-      end_of_base_classes_list = new_direct_bcp;
-      /* Set shares_virtual_function_info for a base class of new_direct_bcp,
-         if appropriate. */
-      set_shares_virtual_function_info_flag(type_ptr, new_direct_bcp);
-      if (any_base_class_fixup_required) {
+        /* Add base classes derived from this base class to the current class's
+           base class list.  They are marked as indirect. */
+        any_base_class_fixup_required = FALSE;
         for (bcp = base_classes_of(new_direct_bcp->type);
              bcp != NULL;
              bcp = bcp->next) {
-          if (bcp->overriding_virtual_functions != NULL ||
-              (bcp->direct && bcp->is_virtual && !bcp->derivation->direct)) {
-            /* bcp is a base class of new_direct_bcp->type.  We need to find
-               the corresponding base class of type_ptr.  Find a disambiguator
-               in case what we are looking for is an ambiguous base class of
-               type_ptr. */
-            new_bcp = corresp_base_class(bcp, new_direct_bcp);
-          } else {
-            continue;
-          }  /* if */
-          if (bcp->direct && bcp->is_virtual && !bcp->derivation->direct) {
-            /* Add path information about a direct virtual base class of
-               new_direct_bcp that was not first in the depth-first
-               left-to-right traversal of the latter's derivation graph.
-               Look for the matching derivation entry to get the right
-               access. */
-            a_base_class_derivation_ptr  bcdp = bcp->derivation->next;
-
-            while (!bcdp->direct) bcdp = bcdp->next;
-            (void)update_base_class_derivation(new_bcp, path, bcdp->access);
-          }  /* if */
           if (bcp->overriding_virtual_functions != NULL) {
-#if DEBUG
-            if (debug_level >= 4) {
-              fputs("copying virtual function override list from ", f_debug);
-              db_base_class(bcp, FALSE);
-              db_virtual_function_override_list(bcp);
-            }  /* if */
-#endif /* DEBUG */
-            /* Copy the virtual function override entries from bcp (which is
-               on the base classes list for base_class_type) to the
-               corresponding copied base class new_bcp (which is on the base
-               classes list for type_ptr). */
-            copy_virtual_function_override_list(bcp, new_bcp, new_direct_bcp);
-#if DEBUG
-            if (debug_level >= 4) {
-              fputs("new base class ", f_debug);
-              db_base_class(bcp, FALSE);
-              db_virtual_function_override_list(new_bcp);
-            }  /* if */
-#endif /* DEBUG */
+            any_base_class_fixup_required = TRUE;
           }  /* if */
+          if (!bcp->direct) {
+            continue;
+          } else if (bcp->is_virtual) {
+            /* A virtual base class is marked as "direct" if any of its paths
+               is direct.  However, for our purposes, the "first" path (first
+               in a depth-first left-to-right traversal of the derivation
+               graph) must be direct.  On the other hand, we still need to
+               record the direct path, but so set a flag so another pass will
+               be done over the base class list. */
+            if (!bcp->derivation->direct) {
+              any_base_class_fixup_required = TRUE;
+              continue;
+            }  /* if */
+          }  /* if */
+            /* Add the direct base class and all *its* base classes to the
+             base class list for the derived class. */
+          add_indirect_base_class(bcp, new_direct_bcp, path,
+                                  &end_of_base_classes_list, type_ptr);
         }  /* for */
-      }  /* if */
-      if (ctsp->virtual_function_info_base_class == NULL &&
+        /* Enter the base name on the base class list in the derived class's
+           class-supplement entry. */
+        if (end_of_base_classes_list == NULL) {
+          ctsp->base_classes = new_direct_bcp;
+        } else {
+          end_of_base_classes_list->next = new_direct_bcp;
+        }  /* if */
+        end_of_base_classes_list = new_direct_bcp;
+        /* Set shares_virtual_function_info for a base class of new_direct_bcp,
+           if appropriate. */
+        set_shares_virtual_function_info_flag(type_ptr, new_direct_bcp);
+        if (any_base_class_fixup_required) {
+          for (bcp = base_classes_of(new_direct_bcp->type);
+               bcp != NULL;
+               bcp = bcp->next) {
+            if (bcp->overriding_virtual_functions != NULL ||
+                (bcp->direct && bcp->is_virtual && !bcp->derivation->direct)) {
+              /* bcp is a base class of new_direct_bcp->type.  We need to find
+                 the corresponding base class of type_ptr.  Find a
+                 disambiguator in case what we are looking for is an
+                 ambiguous base class of type_ptr. */
+              new_bcp = corresp_base_class(bcp, new_direct_bcp);
+            } else {
+              continue;
+            }  /* if */
+            if (bcp->direct && bcp->is_virtual && !bcp->derivation->direct) {
+              /* Add path information about a direct virtual base class of
+                 new_direct_bcp that was not first in the depth-first
+                 left-to-right traversal of the latter's derivation graph.
+                 Look for the matching derivation entry to get the right
+                 access. */
+              a_base_class_derivation_ptr  bcdp = bcp->derivation->next;
+  
+              while (!bcdp->direct) bcdp = bcdp->next;
+              (void)update_base_class_derivation(new_bcp, path, bcdp->access);
+            }  /* if */
+            if (bcp->overriding_virtual_functions != NULL) {
+#if DEBUG
+              if (debug_level >= 4) {
+                fputs("copying virtual function override list from ", f_debug);
+                db_base_class(bcp, FALSE);
+                db_virtual_function_override_list(bcp);
+              }  /* if */
+#endif /* DEBUG */
+              /* Copy the virtual function override entries from bcp (which is
+                 on the base classes list for base_class_type) to the
+                 corresponding copied base class new_bcp (which is on the base
+                 classes list for type_ptr). */
+              copy_virtual_function_override_list(bcp, new_bcp,
+                                                  new_direct_bcp);
+#if DEBUG
+              if (debug_level >= 4) {
+                fputs("new base class ", f_debug);
+                db_base_class(bcp, FALSE);
+                db_virtual_function_override_list(new_bcp);
+              }  /* if */
+#endif /* DEBUG */
+            }  /* if */
+          }  /* for */
+        }  /* if */
+        if (ctsp->virtual_function_info_base_class == NULL &&
 #if !IA64_ABI
-          first_direct_nonvirtual_base_class && 
+            first_direct_nonvirtual_base_class && 
 #endif /* IA64_ABI */
-          !is_virtual) {
-        /* For the first direct nonvirtual base class it is possible to
-           share virtual function info (e.g., virtual function tables and
-           their associated pointers) between the base class and the
-           derived class. */
-        a_class_type_supplement_ptr  base_ctsp;
+            !is_virtual) {
+          /* For the first direct nonvirtual base class it is possible to
+             share virtual function info (e.g., virtual function tables and
+             their associated pointers) between the base class and the
+             derived class. */
+          a_class_type_supplement_ptr  base_ctsp;
 
-        base_ctsp = base_class_type->variant.class_struct_union.extra_info;
-        bcp = base_ctsp->virtual_function_info_base_class;
-        /* Check to see whether or not the base has a virtual function table
-           that could be shared. */
-        if (needs_virtual_function_table(base_class_type) || bcp != NULL) {
-          set_virtual_function_info_base_class(new_direct_bcp);
-        }  /* if */
+          base_ctsp = base_class_type->variant.class_struct_union.extra_info;
+          bcp = base_ctsp->virtual_function_info_base_class;
+          /* Check to see whether or not the base has a virtual function table
+             that could be shared. */
+          if (needs_virtual_function_table(base_class_type) || bcp != NULL) {
+            set_virtual_function_info_base_class(new_direct_bcp);
+          }  /* if */
 #if !IA64_ABI
-        first_direct_nonvirtual_base_class = FALSE;
+          first_direct_nonvirtual_base_class = FALSE;
 #endif /* !IA64_ABI */
-        /* If the derived class was already mentioned as the target of a
-           conversion function, the base class should also have its
-           target_of_conversion_function flag set.  Here's the kind of
-           case where this is needed:
-             class A;
-             class B { ... };
-             class X { operator A&(); };      // The flag is set for A
-             class A : public B { ... };      // It must be set for B, too.
-        */
-        if (cssp->target_of_conversion_function) {
-          set_target_of_conversion_function_flag(new_direct_bcp->type);
+          /* If the derived class was already mentioned as the target of a
+             conversion function, the base class should also have its
+             target_of_conversion_function flag set.  Here's the kind of
+             case where this is needed:
+               class A;
+               class B { ... };
+               class X { operator A&(); };      // The flag is set for A
+               class A : public B { ... };      // It must be set for B, too.
+          */
+          if (cssp->target_of_conversion_function) {
+            set_target_of_conversion_function_flag(new_direct_bcp->type);
+          }  /* if */
         }  /* if */
-      }  /* if */
 skip_base_class:
-      first_base_class = FALSE;
-      /* Advance past the base class name to the comma or right brace. */
-      (void)get_token();
-    }  /* if */
+        first_base_class = FALSE;
+        /* Advance past the base class name to the comma or right brace. */
+        (void)get_token();
+      }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    /* Restore the instantiation insert point. */
-    if (saved_insert_point != NULL) {
-      scope_stack[depth_scope_stack].ss_list_instantiation_insert_point =
+      /* Restore the instantiation insert point. */
+      if (saved_insert_point != NULL) {
+        scope_stack[depth_scope_stack].ss_list_instantiation_insert_point =
                                                           saved_insert_point;
-    }  /* if */
-    }
+      }  /* if */
+      }
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      (void)end_potential_pack_expansion_context(pesep,
+                                                 /*is_declarator=*/FALSE);
+      any_types = advance_to_next_pack_element(pesep);
+    }  /* while */
     /* Advance past the next comma, if any, and scan the next base class
        specifier. */
     remove_stop_token(tok_comma);
