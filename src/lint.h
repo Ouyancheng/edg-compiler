@@ -249,6 +249,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,is_or_was_nullptr_type)*/
 /*lint -esym(759,is_or_was_nullptr_type)*/
 /*lint -esym(765,is_or_was_nullptr_type)*/
+/*lint -esym(765,do_type_name_mangling)*/
 #endif /* !DO_IL_LOWERING */
 #if !BACK_END_IS_CP_GEN_BE
 /*lint -esym(714,is_address_of_string_constant)*/
