@@ -9344,6 +9344,15 @@ symbol entry, and return a pointer to it in state->sym.
           /* C++ only.  Must be a tag symbol. */
           suppress_redecl_error = TRUE;
         }  /* if */
+      } else if (gcc_mode && is_enum_type(type_ptr) && is_integral_type(tp) &&
+                 skip_typerefs(type_ptr)->variant.integer.int_kind ==
+                                skip_typerefs(tp)->variant.integer.int_kind &&
+                 seq_is_in_system_header(sym->decl_position.seq)) {
+        /* In GNU C mode, a typedef for an enum type can replace a typedef the
+           type underlying the enum type if the earlier typedef appeared in a
+           system header. */
+        sym = NULL;
+        suppress_redecl_error = TRUE;
       } else {
         /* This typedef statement redefines a type name to a different type.
            -- diagnostic is issued in enter_symbol processing. */
