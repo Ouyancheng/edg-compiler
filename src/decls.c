@@ -1011,10 +1011,11 @@ new fields are set properly.
       } else {
         /* Ensure the argument type is T, T&, T&&, T%, or T^, with T the
            type indicated by class_type. */
-        a_type_ptr  param_type = skip_typerefs(rtsp->param_type_list->type);
+        a_type_ptr  param_type = rtsp->param_type_list->type;
         if (is_handle_type_or_any_ref_type(param_type)) {
-          param_type = skip_typerefs(type_pointed_to(param_type));
+          param_type = type_pointed_to(param_type);
         }  /* if */
+        param_type = skip_typerefs(param_type);
         if (!identical_types(param_type, class_type)) {
           pos_ty_error(ec_bad_parameter_type_for_static_member_operator,
                   &locator->source_position, class_type);
@@ -1057,7 +1058,8 @@ new fields are set properly.
       if (is_class_struct_union_type(tp) ||
           (operator_overloading_on_enums_enabled && is_enum_type(tp))) {
         any_class_or_enum_type_params = TRUE;
-        if (cppcli_enabled &&
+        if (cppcli_enabled && class_type != NULL &&
+            !is_nonstatic_member_function &&
             identical_types_ignoring_qualifiers(tp, class_type)) {
           /* For static C++/CLI member operators, at least one parameter must
              T, T&, T&&, T%, or T^, with T the type indicated by class_type
