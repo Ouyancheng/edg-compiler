@@ -7028,9 +7028,13 @@ instantiations are recorded in the IL.
       set_namespace_membership(sym, &rp->source_corresp, parent_nsp);
     }  /* if */
   }  /* if */
-  if (locator->template_arg_list != NULL) {
-    process_unattached_template_argument_list(locator->template_arg_list);
-    rp->template_arg_list = locator->template_arg_list;
+  if (locator->is_template_id) {
+    /* A (possibly-empty) template argument list was used. */
+    if (locator->template_arg_list != NULL) {
+      /* The argument list was non-empty. */
+      process_unattached_template_argument_list(locator->template_arg_list);
+      rp->template_arg_list = locator->template_arg_list;
+    }  /* if */
     rp->expl_template_arg_list_used = TRUE;
     rp->is_template_function = TRUE;
   }  /* if */

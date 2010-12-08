@@ -1,5 +1,22 @@
 Version 4.3
 
+12/810  [EDGcpfe/11129]
+C++-generating back end: friend function template declarations in prototype
+instantiations
+
+In configurations in which class template definitions are generated from
+prototype instantiations, the C++-generating back end failed to add an
+empty template argument list in a friend declaration referring to a
+previously-declared function template.  The friend declaration thus
+incorrectly declared a new, non-template function.  This is now fixed.  For
+example:
+
+  template<typename T> void f(T);
+  template<typename T> struct S {
+    friend void f<>(T);  // Previously generated as "void f(T)"
+  };
+
+
 12/5/10  [EDGcpfe/11166]
 C++-generating back end, GNU compatibility: compound literals and designated
 initializers

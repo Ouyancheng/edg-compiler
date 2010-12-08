@@ -2433,6 +2433,24 @@ that the remaining arguments will be defaulted.
         prev_argp->next = argp;
       }  /* if */
     }  /* if */
+  } else if (entry_kind == iek_routine &&
+             ((a_routine_ptr)scp)->expl_template_arg_list_used) {
+    /* An explicit template argument list was used, but the routine does not
+       have template arguments.  This occurs in a dependent friend
+       declaration to refer to a previously-declared function template, e.g.,
+           template<typename T> void f(T);
+           template<typename T> struct S {
+             friend void f<>(T);
+           };
+       If the <> were omitted, the friend declaration would declare a new
+       non-template function. */
+    if (((a_routine_ptr)scp)->special_kind ==
+                                       (a_special_function_kind)sfk_operator) {
+      /* We need to add a space before the <> in order to avoid tokenization
+         problems with operator< and operator<<. */
+      write_space();
+    }  /* if */
+    write_tok_str("<>");
   }  /* if */
 }  /* gen_template_arguments */
 
