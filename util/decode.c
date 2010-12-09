@@ -1238,8 +1238,8 @@ position following what was demangled.
     p += op_length;
     /* Put parentheses around the operation if necessary. */
     if (need_parens) write_id_ch('(', dctl);
-    /* For casts, sizeof, __alignof__, __uuidof__, typeid, or new get 
-       the type. */
+    /* For casts, sizeof, __alignof__, __uuidof__, typeid, new, or sizeof...
+       get the type. */
     if (takes_type) {
       if (strcmp(operator_str, "cast") == 0) {
         char *num_args_ptr;
@@ -1271,7 +1271,8 @@ position following what was demangled.
       } else if (strcmp(operator_str, "sizeof(") == 0 ||
                  strcmp(operator_str, "__alignof__(") == 0 ||
                  strcmp(operator_str, "__uuidof(") == 0 ||
-                 strcmp(operator_str, "typeid(") == 0) {
+                 strcmp(operator_str, "typeid(") == 0 ||
+                 strcmp(operator_str, "sizeof...(") == 0) {
         /* These manglings have three forms, dependent on the next character
            in the mangled name.  They're sufficiently different that they
            are handled (mostly separately) here. */
@@ -1812,6 +1813,9 @@ not an operator encoding, return NULL.
   } else if (start_of_id_is("sp", ptr, dctl)) {
     s = "...";
     *is_postfix = TRUE;
+  } else if (start_of_id_is("sk", ptr, dctl)) {
+    s = "sizeof...(";
+    *takes_type = TRUE;
   } else {
     s = NULL;
   }  /* if */

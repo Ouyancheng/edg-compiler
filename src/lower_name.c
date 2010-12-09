@@ -549,6 +549,9 @@ static void mangled_operator_or_conversion_function(
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 static a_boolean entity_needs_to_be_individuated(a_source_correspondence *scp,
                                                  an_il_entry_kind        kind);
+static void mangled_encoding_for_param_reference(
+                                               an_expr_node_ptr         expr,
+                                               a_mangling_control_block *mctl);
 
 #if !IA64_ABI
 /*
@@ -2117,6 +2120,62 @@ ignored if expr != NULL.
 end_of_routine:;
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 }  /* mangled_encoding_for_sizeof */
+
+
+static void mangled_encoding_for_sizeof_pack(an_expr_node_ptr         expr,
+                                             a_mangling_control_block *mctl)
+/*
+Provide mangling for a enk_sizeof_pack (sizeof...) expression.
+*/
+{
+  check_assertion(expr->kind == (an_expression_kind)enk_sizeof_pack);
+#if IA64_ABI
+  add_str_to_mangled_name("sZ", mctl);
+#else /* !IA64_ABI */
+  /* Mangling for sizeof...():
+       OskZ1Z_0_O <-- "sizeof...(T1)", T1 indicating a template parameter.
+                ^---- "O" to end the operation encoding.
+             ^^^----- Count of operands (new form), 0 for type and 1 for "X".
+          ^^^-------- Encoding for type or "X" (for expression cases).
+        ^^----------- Operation ("sk" for sizeof...).
+       ^------------- "O" for operation.
+     This mangling is similar to that for sizeof (and alignof, etc.) in that
+     it either encodes a type (which is always a template parameter) or an
+     expression (which is always a function parameter reference).  The
+     expression case is differentiated by an initial "X".
+  */
+  add_to_mangled_name('O', mctl);
+  add_str_to_mangled_name("sk", mctl);
+#endif /* IA64_ABI */
+  if (expr->variant.sizeof_pack.is_type) {
+    a_type_ptr type = expr->variant.sizeof_pack.variant.type;
+    check_assertion(type->kind == tk_template_param &&
+                    type->variant.template_param.is_pack &&
+                    type->variant.template_param.kind ==
+                                   (a_template_param_constant_kind)tptk_param);
+    /* Note that although this template parameter is a pack, it isn't mangled
+       as such (the IA-64 ABI mangling doesn't allow for that). */
+    mangled_encoding_for_template_parameter(
+                         &type->variant.template_param.extra_info->coordinates,
+                         (a_template_arg *)NULL,
+                         /*is_pack=*/FALSE,
+                         mctl);
+#if !IA64_ABI
+    store_digits_and_underscore((unsigned long)0, /*old_form=*/FALSE, mctl);
+#endif /* !IA64_ABI */
+  } else {
+    an_expr_node_ptr pack_expr = expr->variant.sizeof_pack.variant.expr;
+    check_assertion(pack_expr->kind == (an_expression_kind)enk_param_ref);
+#if !IA64_ABI
+    add_to_mangled_name('X', mctl);
+    store_digits_and_underscore((unsigned long)1, /*old_form=*/FALSE, mctl);
+#endif /* !IA64_ABI */
+    mangled_encoding_for_param_reference(pack_expr, mctl);
+  }  /* if */
+#if !IA64_ABI
+  add_to_mangled_name('O', mctl);
+#endif /* !IA64_ABI */
+}  /* mangled_encoding_for_sizeof_pack */
 
 
 static unsigned long number_of_operands_in_list(an_expr_node_ptr expr)
@@ -5166,6 +5225,10 @@ is TRUE.
                                    (a_template_param_constant_kind)tpck_typeid,
                                     mctl);
       }  /* if */
+      break;
+    case enk_sizeof_pack:
+      /* Mangle sizeof...(T). */
+      mangled_encoding_for_sizeof_pack(expr, mctl);
       break;
     case enk_variable:
 #if IA64_ABI
