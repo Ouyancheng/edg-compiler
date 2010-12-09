@@ -1,5 +1,18 @@
 Version 4.3
 
+12/9/10  [EDGcpfe/11201]
+Spurious errors on C++0x trailing return type with multiple specifiers
+
+In C++0x mode, the front end mistakenly reported that the "auto" specifier
+announcing a trailing return type was invalid when another specifier (like
+"inline") preceded it.  For example:
+
+  inline auto f()->int;  // Previously triggered spurious errors in C++0x
+                         // mode.
+
+This is now fixed.
+
+
 12/8/10  [EDGcpfe/11197]
 C++-generating back end, GNU/Microsoft compatibility: name references in
 prototype instantiations with dependent base classes

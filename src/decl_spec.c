@@ -7737,7 +7737,6 @@ storage_class_specifier:
           *storage_class = (a_storage_class)sc_asm;
           decl_specifiers_seen |= DS_STORAGE_CLASS;
         }  /* if */
-        auto_type_allowed = FALSE;
         break;
 #endif /* ASM_FUNCTION_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
@@ -7753,7 +7752,6 @@ storage_class_specifier:
       case tok_microsoft_inline:
       case tok_forceinline:
         /* Microsoft-specific specifiers: __inline and __forceinline. */
-        auto_type_allowed = FALSE;
         scan_microsoft_inline_specifiers(input_flags, output_flags,
                                          &decl_specifiers_seen,
                                          &state->decl_modifiers, &err);
@@ -8041,7 +8039,6 @@ storage_class_specifier:
 	/* "friend" specifier is allowed only in a C++ class declaration.
 	   This also excludes its appearing in a function parameter
 	   specification. */
-        auto_type_allowed = FALSE;
 	if (is_parameter) {
 	  /* "friend" may not appear in a function parameter specification. */
 	  error(ec_bad_param_specifier);
@@ -8087,7 +8084,6 @@ storage_class_specifier:
 	}  /* if */
 	break;
       case tok_virtual:
-        auto_type_allowed = FALSE;
         if (is_parameter) {
           /* "virtual" may not appear in a function parameter specification. */
           error(ec_bad_param_specifier);
@@ -8121,7 +8117,6 @@ storage_class_specifier:
         }  /* if */
         break;
       case tok_inline:
-        auto_type_allowed = FALSE;
         if (is_parameter) {
           /* "inline" may not appear in a function parameter specification. */
           error(ec_bad_param_specifier);
@@ -8938,7 +8933,6 @@ process_enum_specifier:
         goto something_unexpected;
       case tok_operator:
         /* Coalesce the operator name. */
-        auto_type_allowed = FALSE;
         (void)is_generalized_identifier_start(GID_NO_OPTIONS);
 operator_or_conversion_name:
         if ((input_flags & DSI_NO_REAL_DECLARATOR) != 0) {
