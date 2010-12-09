@@ -58,7 +58,7 @@ issued in such cases).  For example:
   typedef enum { e } X;  // Now accepted in GNU C mode (with a warning)
 
 
-12/810  [EDGcpfe/11129]
+12/8/10  [EDGcpfe/11129]
 C++-generating back end: friend function template declarations in prototype
 instantiations
 
