@@ -4420,9 +4420,9 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
 static a_boolean is_microsoft_static_operator(an_opname_kind  opname,
                                               a_type_ptr      parent_type)
 /*
-Microsoft compilers allowed most operators to be declared as to be declared
-static.  In C++/CLI mode, this is true only if parent_type (the class type of
-which the operator is a member) is a managed type.  This function returns
+Microsoft compilers allow most operators to be declared as static member
+functions.  In C++/CLI mode, this is true only if parent_type (the class type
+of which the operator is a member) is a managed type.  This function returns
 FALSE if and only if the operator kind opname is an exception to that rule (or
 if microsoft bugs mode and C++/CLI modes are disabled).
 */
