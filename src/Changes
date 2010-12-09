@@ -1,5 +1,36 @@
 Version 4.3
 
+12/8/10  [EDGcpfe/11197]
+C++-generating back end, GNU/Microsoft compatibility: name references in
+prototype instantiations with dependent base classes
+
+The C++ Standard says that the lookup for an unqualified name in a class
+template scope never looks into a dependent base, and the output of the
+C++-generating back end when template definitions are generated from the
+prototype instantiations relied on this feature.  The Microsoft and GNU C++
+compilers, however, do not implement this rule, leading to some programs
+having a different meaning in the generated code than they did in the
+original source, as a name that originally referred to a declaration
+outside the class template might be taken by the target compiler to refer
+to a member of a dependent base.  This is now fixed: if the target compiler
+searches dependent bases in unqualified name lookup, names in class
+templates with dependent bases that refer to declarations outside the
+template that previously were generated as unqualified names are now
+qualified names in the generated code.  For example:
+
+  template<int I> struct Base {
+    struct A { };
+  };
+
+  template<int I> struct Derived {
+    struct A { };
+    struct B: Base<I> {
+      typedef typename Derived::A A;  // Previously generated as
+                                      //   typedef A A;
+    };
+  };
+
+
 12/8/10  [EDGcpfe/11038]
 GNU C compatibility: Redefining an integer typedef from a system header
 

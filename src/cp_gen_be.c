@@ -254,6 +254,18 @@ typedef struct a_name_context {
 		field_selection_context;
 			/* TRUE if this context was pushed for the right
 			   operand of a field selection. */
+  a_byte_boolean
+		saved_in_class_scope_with_dependent_base;
+			/* The value of the global variable
+			   in_class_scope_with_dependent_base to be restored
+			   when this context is popped off the stack. */
+  a_byte_boolean
+		has_dependent_base;
+			/* TRUE if this scope is associated with the
+			   prototype instantiation of a class template with
+			   dependent bases.  (For efficiency, this will only
+			   be set to TRUE if the target compiler searches
+			   dependent bases during unqualified lookup.) */
 } a_name_context;
 static a_name_context_ptr
 		curr_name_context;
@@ -263,6 +275,26 @@ static a_name_context_ptr
 		avail_name_contexts;
 			/* List of name context entries that have been freed
 			   and are available for reuse. */
+
+static a_boolean
+		in_class_scope_with_dependent_base;
+			/* TRUE if there is a prototype instantiation class
+			   on the stack that has a dependent base.  Used so
+			   that references to names that are not part of
+			   the current instantiation can be qualified when
+			   generating code for compilers that do not
+			   exclude dependent bases from unqualified name
+			   lookup in the instantiated class.  (For
+			   efficiency, this will only be set to TRUE if the
+			   target compiler searches dependent base classes
+			   during unqualified name lookup.) */
+
+/*
+Return TRUE if the target compiler searches dependent base classes when
+doing unqualified name lookup.
+*/
+#define target_compiler_searches_dep_bases() \
+  (gcc_is_generated_code_target || msvc_is_generated_code_target)
 
 /*
 Return TRUE if the current name context is a class.
@@ -784,6 +816,9 @@ This routine is called for both C and C++.
   ncp->fixups = NULL;
   ncp->invisible_to_cfront = FALSE;
   ncp->field_selection_context = FALSE;
+  ncp->has_dependent_base = FALSE;
+  ncp->saved_in_class_scope_with_dependent_base =
+                                            in_class_scope_with_dependent_base;
   /* Put the entry on the stack. */
   ncp->next = curr_name_context;
   curr_name_context = ncp;
@@ -791,6 +826,19 @@ This routine is called for both C and C++.
     /* Go through the hidden names list and mark the hidden entities so
        they will be accessed specially in this and inner scopes. */
     push_scope_hidden_names(scope);
+  }  /* if */
+  if (class_type != NULL && target_compiler_searches_dep_bases() &&
+      class_type->variant.class_struct_union.is_prototype_instantiation) {
+    /* Check to see if the template has any dependent base classes. */
+    a_base_class_ptr bcp;
+    for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
+         bcp != NULL; bcp = bcp->next) {
+      if (bcp->type->variant.class_struct_union.is_nonreal_class) {
+        ncp->has_dependent_base = TRUE;
+        in_class_scope_with_dependent_base = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
   }  /* if */
 }  /* push_name_context_full */
 
@@ -860,6 +908,8 @@ Pop the top entry off the name context stack.
     }  /* if */
     free_hidden_name_fixup(hnfp);
   }  /* for */
+  in_class_scope_with_dependent_base =
+                   curr_name_context->saved_in_class_scope_with_dependent_base;
   /* Pop the stack. */
   curr_name_context = curr_name_context->next;
   /* Free the entry by putting it on the available list. */
@@ -963,6 +1013,67 @@ are also considered to be on the stack.
   }  /* for */
   return class_in_stack;
 }  /* class_is_in_name_context_stack */
+
+
+static a_boolean entity_is_member_of_current_instantiation(
+                                               a_source_correspondence_ptr scp)
+/*
+Return TRUE if the entity described by scp is a member of a class that is in
+the name context stack and that class is, or is nested in, the nearest class
+that has a dependent base class.  This is used to determine when a name must
+be qualified to prevent it from unintentionally referring to a member of a
+dependent base in target compilers that do not exclude dependent bases from
+unqualified name lookup.
+*/
+{
+  a_boolean   member_of_curr_instantiation = FALSE;
+  a_scope_ptr parent_scope = scp->parent_scope;
+
+  if (parent_scope == NULL && scp->enclosing_routine != NULL) {
+    parent_scope = scope_for_routine(scp->enclosing_routine);
+  }  /* if */
+  if (parent_scope == NULL) {
+    /* Assume we won't need qualification. */
+    member_of_curr_instantiation = TRUE;
+  } else if (parent_scope->kind == (a_scope_kind)sck_function &&
+             !scope_is_in_name_context_stack(parent_scope)) {
+    /* This situation occurs for the names of parameters in functions: the
+       function scope has not yet been pushed.  We can safely assume that
+       the name is a member of the current instantiation. */
+    member_of_curr_instantiation = TRUE;
+  } else if (parent_scope->kind == (a_scope_kind)sck_template_declaration) {
+    /* This is a template parameter, which can't be qualified in any event. */
+    member_of_curr_instantiation = TRUE;
+  } else {
+    /* Scan the name context stack looking for the parent scope. */
+    a_name_context_ptr ncp;
+    a_type_ptr         parent_class;
+
+    if (scp->is_class_member) {
+      parent_class = scp_parent_class(scp);
+    } else {
+      parent_class = NULL;
+    }  /* if */
+    for (ncp = curr_name_context; ncp != NULL; ncp = ncp->next) {
+      if (ncp->has_dependent_base || ncp->assoc_scope == parent_scope) {
+        /* We stop scanning if we've either found the parent scope or if
+           we've reached the innermost class with a dependent base. */
+        if (ncp->assoc_scope == parent_scope) {
+          member_of_curr_instantiation = TRUE;
+        }  /* if */
+        break;
+      } else if (parent_class != NULL && ncp->class_type != NULL &&
+                 find_base_class_of(ncp->class_type, parent_class) != NULL) {
+        /* For classes nested within the innermost class with a dependent
+           base, members of their base classes also are members of the
+           current instantiation. */
+        member_of_curr_instantiation = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return member_of_curr_instantiation;
+}  /* entity_is_member_of_current_instantiation */
 
 
 static a_type_ptr
@@ -2884,6 +2995,10 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
   a_source_correspondence *scp_for_unknown_base_member =
                                     (scp->member_of_unknown_base) ? scp : NULL;
 
+  if (in_class_scope_with_dependent_base &&
+      !entity_is_member_of_current_instantiation(scp)) {
+    force_qualified_name = TRUE;
+  }  /* if */
   /* If the name is a member of a class or namespace in C++, output the
      class or namespace qualifier. */
   if (il_header.source_language == sl_Cplusplus) {
@@ -14006,6 +14121,7 @@ Initialize for the C++/C-generating back end.
   curr_name_context = NULL;
   avail_hidden_name_fixups = NULL;
   avail_name_contexts = NULL;
+  in_class_scope_with_dependent_base = FALSE;
   accessible_typedefs = NULL;
   /* Set out the output control block used for interface with the il_to_str
      routines. */
