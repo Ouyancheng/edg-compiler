@@ -1864,6 +1864,17 @@ Update param_symbol to reflect the value specified by tap.
   }  /* switch */
 }  /* update_template_param_symbol */
 
+/* Forward declarations. */
+static void begin_special_variadic_template_arg_list_traversal(
+				a_template_param_ptr	templ_param_list,
+				a_template_arg_ptr	templ_arg_list,
+				a_template_param_ptr	*tpp,
+				a_template_arg_ptr	*tap);
+
+static void special_variadic_advance_to_next_template_arg(
+				a_template_param_ptr	*tpp,
+				a_template_arg_ptr	*tap);
+
 
 static void update_template_param_symbols(a_template_param_ptr  param_list,
                                           a_template_arg_ptr    arg_list)
@@ -1886,14 +1897,29 @@ values needed for the previous call.
   }  /* for */
   /* Loop through the parameters and arguments.  There may be fewer
      template arguments than parameters when push_scope is done while
-     scanning the template argument list of a template class reference. */
-  begin_template_arg_list_traversal(param_list, arg_list, &tpp, &tap);
-  for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
-    a_symbol_ptr  param_symbol = tpp->param_symbol;
-    if (tap != NULL) {
+     scanning the template argument list of a template class reference.
+     The "special" versions of the traversal routines are used so that we
+     access all parameters, even variadic ones for which there are no
+     elements. */
+  begin_special_variadic_template_arg_list_traversal(param_list,
+                                                     arg_list, &tpp, &tap);
+  for (; tap != NULL;
+         special_variadic_advance_to_next_template_arg(&tpp, &tap)) {
+    a_template_arg_ptr	tap_to_update = tap;
+    a_symbol_ptr	param_symbol = tpp->param_symbol;
+    param_symbol->template_param_not_visible = FALSE;
+    /* If a start of pack expansion entry is returned, only update the
+       symbol if there are associated pack elements. */
+    if (tap_to_update != NULL &&
+        is_start_of_pack_expansion_templ_arg(tap_to_update)) {
+      tap_to_update = tap_to_update->next;
+      if (tap_to_update != NULL && !tap_to_update->is_pack_element) {
+        tap_to_update = NULL;
+      }  /* if */
+    }  /* if */
+    if (tap_to_update != NULL) {
       /* A template argument exists for this parameter. */
-      update_template_param_symbol(tpp->param_symbol, tap);
-      param_symbol->template_param_not_visible = FALSE;
+      update_template_param_symbol(tpp->param_symbol, tap_to_update);
     }  /* if */
   }  /* for */
   db_exit();
