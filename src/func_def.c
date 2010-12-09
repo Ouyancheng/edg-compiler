@@ -1070,10 +1070,14 @@ and for the instantiation of template functions.
          look like the declarator did not appear at the top level (param_id is
          NULL in such cases).  In Microsoft mode, however, it can also occur
          when a single template-dependent parameter became "void" after
-         instantiation (ptp is NULL in that case). */
+         instantiation (ptp is NULL in that case).  It can also occur for
+         variadic templates that are instantiated on empty parameter packs. */
 #if CHECKING
       if (param_id == NULL) {
         check_assertion(total_errors != 0);
+      } else if (param_id->is_parameter_pack) {
+        /* A variadic function can have a function parameter pack that ends
+           up having no elements. */
       } else {
         check_assertion(microsoft_mode && param_id->next == NULL &&
                         param_id->type != NULL &&
