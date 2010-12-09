@@ -6244,6 +6244,11 @@ are deduced.
                                     &tpp, &tap);
   /* For the nth template parameter find the nth template argument. */
   for (; pos > 1; pos--) advance_to_next_template_arg(&tpp, &tap);
+  if (tpp == NULL) {
+    /* In variadic deduction contexts we can end up with a NULL template
+       parameter.  Use the last element of the parameter list. */
+    for (tpp = templ_param_list; tpp->next != NULL; tpp = tpp->next) {}
+  }  /* if */
   if (tpp->is_pack) {
     tap = get_curr_variadic_arg_for_param(tpp);
   }  /* if */
