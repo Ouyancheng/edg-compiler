@@ -2766,7 +2766,8 @@ class type.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (is_delegate_type_entry(class_type)) {
         /* Delegate class types have no source sequence entries associated
-           with their definition. */
+           with a "class body" (since the class definition is compiler-
+           generated). */
       } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */

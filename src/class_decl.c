@@ -15783,11 +15783,11 @@ delegate definition.  If it is, return TRUE; otherwise, return FALSE.
   if (curr_token_is_identifier_string("delegate")) {
     a_boolean     is_qualified_name = FALSE;
     if (next_token() == tok_colon_colon) {
-      /* Determine if this is a "delegate::" starts a qualified name.  We
-         cannot call is_generalized_identifier_start here because that would
-         trigger errors if "delegate" doesn't name a tag or namespace.
-         Copy locator_for_curr_id before performing the lookup to avoid
-         biasing future lookups. */
+      /* "delegate::" Determine if this starts a qualified name.  We cannot
+         call is_generalized_identifier_start here because that would trigger
+         errors if "delegate" doesn't name a tag or namespace.  Copy
+         locator_for_curr_id before performing the lookup to avoid biasing
+         future lookups. */
       a_symbol_locator  loc;
       loc = locator_for_curr_id;
       is_qualified_name =
@@ -15854,7 +15854,6 @@ definition and record it in the IL (as a special-purpose class type).
   if (is_template_context()) {
     /* Type checks are unreliable: Delay them until a real instantiation.
        E.g. "template<class T> ref struct S { delegate T D; };". */
-    /* FIXME: test. */
   } else if (!is_function_type(dps->type)) {
     if (is_error_type(dps->type)) {
       expect_error();
