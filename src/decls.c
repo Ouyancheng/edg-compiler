@@ -9348,9 +9348,9 @@ symbol entry, and return a pointer to it in state->sym.
                  skip_typerefs(type_ptr)->variant.integer.int_kind ==
                                 skip_typerefs(tp)->variant.integer.int_kind &&
                  seq_is_in_system_header(sym->decl_position.seq)) {
-        /* In GNU C mode, a typedef for an enum type can replace a typedef for
-           the type underlying the enum type if the earlier typedef appeared
-           in a system header. */
+        /* In GNU C mode, a typedef for an enum type can replace a typedef the
+           type underlying the enum type if the earlier typedef appeared in a
+           system header. */
         sym = NULL;
         suppress_redecl_error = TRUE;
       } else {
