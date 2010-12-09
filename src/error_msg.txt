@@ -2061,6 +2061,7 @@ ec_missing_add_or_remove_accessor;;"an event definition must include both \"add\
 ec_static_conversion_function_must_have_one_parameter;;"a static conversion function must accept exactly one argument"
 ec_bad_parameter_type_for_static_member_operator;;"static operator must have a parameter type T, T&, T%%, or T^ with T = %t"
 ec_sizeof_operand_not_parameter_pack;;"the operand of sizeof... must be a parameter pack name"
+ec_sizeof_pack_in_non_variadic_context;;"the sizeof... operator can be used only in a variadic template"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

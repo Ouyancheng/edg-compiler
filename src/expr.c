@@ -7048,6 +7048,10 @@ indication in *rcblock).
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   if (rcblock == NULL) {
     /* Scanning from source. */
+    if (!is_variadic_template_context()) {
+      expr_pos_error(ec_sizeof_pack_in_non_variadic_context, &pos_curr_token);
+      err = TRUE;
+    }  /* if */
     start_position = pos_curr_token;
     check_assertion(curr_token == tok_sizeof);
     (void)get_token();
@@ -7055,7 +7059,11 @@ indication in *rcblock).
     any_more = begin_potential_pack_expansion_context(&pesep);
     while (any_more) {
       result_count++;
-      record_pack_expansion_ellipsis();
+      if (is_variadic_template_context()) {
+        record_pack_expansion_ellipsis();
+      } else {
+        (void)get_token();
+      }  /* if */
       (void)required_token(tok_lparen, ec_exp_lparen);
       add_matching_stop_token(tok_rparen);
       if (curr_token != tok_identifier) {
