@@ -2782,6 +2782,10 @@ fields to default values.
       node->variant.sizeof_info.is_type = TRUE;
       node->variant.sizeof_info.variant.type = NULL;
       break;
+    case enk_sizeof_pack:
+      node->variant.sizeof_pack.is_type = TRUE;
+      node->variant.sizeof_pack.variant.type = NULL;
+      break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       node->variant.statement = NULL;

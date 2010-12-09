@@ -3131,6 +3131,7 @@ object or an rvalue that is a pointer to an object.
       case enk_field:
       case enk_condition:
       case enk_sizeof:
+      case enk_sizeof_pack:
       case enk_type_operand:
 #if GNU_EXTENSIONS_ALLOWED
       case enk_statement:
@@ -3293,6 +3294,7 @@ object or an rvalue that is a pointer to an object.
       case enk_field:
       case enk_condition:
       case enk_sizeof:
+      case enk_sizeof_pack:
       case enk_type_operand:
 #if VLA_DEALLOCATIONS_IN_IL
       case enk_vla_dealloc:

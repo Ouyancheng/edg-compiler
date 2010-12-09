@@ -1757,6 +1757,17 @@ Dump the contents of the indicated expression node for debug purposes.
         db_expr_node(node->variant.sizeof_info.variant.expr, level + 2);
       }  /* if */
       break;
+    case enk_sizeof_pack:
+      fputs("sizeof pack: ", f_debug);
+      if (node->variant.sizeof_pack.is_type) {
+        fputs("type = ", f_debug);
+        db_abbreviated_type(node->variant.sizeof_pack.variant.type);
+        fputc('\n', f_debug);
+      } else {
+        fprintf(f_debug, "expr =\n");
+        db_expr_node(node->variant.sizeof_pack.variant.expr, level + 2);
+      }  /* if */
+      break;
     case enk_address_of_ellipsis:
       fputs("address of ellipsis\n", f_debug);
       break;
@@ -5774,6 +5785,17 @@ are done.
                  compare_expressions(
                                  node1->variant.sizeof_info.variant.expr,
                                  node2->variant.sizeof_info.variant.expr,
+                                 options)));
+        break;
+      case enk_sizeof_pack:
+        eq = (node1->variant.sizeof_pack.is_type ==
+              node2->variant.sizeof_pack.is_type &&
+              (node1->variant.sizeof_pack.is_type ?
+                 identical_types(node1->variant.sizeof_pack.variant.type,
+                                 node2->variant.sizeof_pack.variant.type) :
+                 compare_expressions(
+                                 node1->variant.sizeof_pack.variant.expr,
+                                 node2->variant.sizeof_pack.variant.expr,
                                  options)));
         break;
       case enk_reuse_value:
@@ -15275,6 +15297,14 @@ be called to start a copy.
         }  /* if */
       }  /* if */
       break;
+    case enk_sizeof_pack:
+      /* If there is an expression, copy it. */
+      if (!expr->variant.sizeof_pack.is_type) {
+        expr_copy->variant.sizeof_pack.variant.expr =
+                       i_copy_expr_tree(expr->variant.sizeof_pack.variant.expr,
+                                        options, cblock);
+      }  /* if */
+      break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     case enk_lowered_eh_construct:
       /* Nothing to copy. */
@@ -16736,16 +16766,21 @@ doing nothing should be suppressed.
          expression is unevaluated and can't have side effects. */
       if (vla_enabled && node->variant.sizeof_info.is_type &&
           is_vla_type(node->variant.sizeof_info.variant.type)) {
-          /* However, sizeof a VLA type evaluates the bound expression.  Only
-             sizeof(type) can have side effects; for sizeof(expr), the
-             VLA type was generated elsewhere. */
-          /* Assume side effects from the type. */
-          tblock->result = TRUE;
-          tblock->terminate = TRUE;
-        } else {
-          tblock->suppress_subtree_walk = TRUE;
-        }  /* if */
-        break;
+        /* However, sizeof a VLA type evaluates the bound expression.  Only
+           sizeof(type) can have side effects; for sizeof(expr), the
+           VLA type was generated elsewhere. */
+        /* Assume side effects from the type. */
+        tblock->result = TRUE;
+        tblock->terminate = TRUE;
+      } else {
+        tblock->suppress_subtree_walk = TRUE;
+      }  /* if */
+      break;
+    case enk_sizeof_pack:
+      /* sizeof...(T) has no side effects. */
+      has_side_effects = FALSE;
+      tblock->suppress_subtree_walk = TRUE;
+      break;
     case enk_typeid:
       if (node->variant.typeid_info.expr != NULL) {
         /* A typeid applied to an expression that is a pointer to a

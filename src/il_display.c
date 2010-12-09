@@ -3651,6 +3651,18 @@ Display the indicated expression node.
                  iek_expr_node);
       }  /* if */
       break;
+    case enk_sizeof_pack:
+      (void)printf("enk_sizeof_pack\n");
+      disp_boolean("is_type",
+                   (a_boolean)ptr->variant.sizeof_pack.is_type);
+      if (ptr->variant.sizeof_pack.is_type) {
+        disp_ptr("type", (char *)ptr->variant.sizeof_pack.variant.type,
+                 iek_type);
+      } else {
+        disp_ptr("expr", (char *)ptr->variant.sizeof_pack.variant.expr,
+                 iek_expr_node);
+      }  /* if */
+      break;
     case enk_address_of_ellipsis:
       (void)printf("enk_address_of_ellipsis\n");
       break;

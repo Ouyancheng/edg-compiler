@@ -1705,6 +1705,9 @@ Return TRUE if sym is a template parameter pack or function parameter pack.
          pack. */
       result = sym->variant.variable.ptr->is_parameter_pack;
       break;
+    case sk_parameter:
+      result = sym->variant.param_id->is_parameter_pack;
+      break;
     default:
       break;
   }  /* switch */

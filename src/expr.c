@@ -67,6 +67,8 @@ static void scan_expr_full(an_operand              *result,
 static void scan_initializer_expr_with_potential_pack_expansion(
                                                   a_decl_parse_state *dps,
                                                   an_operand         *operand);
+static void make_param_ref_operand(an_operand    *result,
+                                   a_symbol_ptr  param_sym);
 /* Interface to scan_expr_full for the simple case where a bound function
    cannot be returned. */
 #define scan_expr(result, prec_level, local_options)                  \
@@ -894,6 +896,7 @@ instantiation.  Mark it as such.  pedep points to the pack expansion
 description block.
 */
 {
+  check_assertion(pedep != NULL);
   operand->pack_expansion_descr = pedep;
   /* We can't set the is_pack_expansion flag on the expression yet because
      there might be implicit conversions added on top of it later. */
@@ -7004,6 +7007,184 @@ the sizeof result is built and returned there.
 }  /* make_sizeof_expr */
 
 
+static void scan_sizeof_pack_operator(a_rescan_control_block *rcblock,
+                                      an_operand             *result)
+/*
+Scan the variadic template sizeof... operator, which gives the number
+of elements in a parameter pack.  For example:
+
+  sizeof...(T)
+
+The current token is the sizeof keyword.  Scan the operand, and
+return an operand for sizeof... applied to that, in *operand.  If
+rcblock is non-NULL, redo semantic analysis on a previously-scanned
+sizeof... expression, and return the result in *result (or an error
+indication in *rcblock).
+*/
+{
+  a_source_position          start_position, id_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position          end_position, id_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_symbol_ptr               sym = NULL;
+  a_boolean                  err = FALSE;
+  a_boolean                  any_more;
+  an_expr_stack_entry        expr_stack_entry;
+  a_memory_region_number     region_to_switch_back_to;
+  a_host_large_unsigned      result_count = 0;
+  a_pack_expansion_stack_entry_ptr
+                             pesep;
+  a_pack_expansion_descr_ptr pedep = NULL;
+
+  db_enter(4, "scan_sizeof_pack_operator");
+  /* If we're in the file-scope memory region instead of a function-scope
+     memory region because we're scanning something like an array bound,
+     switch back.  Any expression nodes allocated must be in the function-scope
+     memory region. */
+  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
+  if (rcblock == NULL) {
+    /* Scanning from source. */
+    start_position = pos_curr_token;
+    check_assertion(curr_token == tok_sizeof);
+    (void)get_token();
+    check_assertion(curr_token == tok_ellipsis);
+    any_more = begin_potential_pack_expansion_context(&pesep);
+    while (any_more) {
+      result_count++;
+      record_pack_expansion_ellipsis();
+      (void)required_token(tok_lparen, ec_exp_lparen);
+      add_matching_stop_token(tok_rparen);
+      if (curr_token != tok_identifier) {
+        expr_syntax_error(ec_exp_identifier);
+        err = TRUE;
+      } else {
+        id_position = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        id_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        /* Look up the identifier.  It must be a parameter pack name. */
+        sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+        if (sym == NULL) {
+          expr_pos_error(ec_sizeof_operand_not_parameter_pack,
+                         &pos_curr_token);
+          err = TRUE;
+        } else {
+          /* Record a reference against the identifier. */
+          (void)ref_entry(sym, &pos_curr_token);
+          if (is_prototype_instantiation_context()) {
+            /* Check that the identifier is a parameter pack name. */
+            if (!symbol_is_pack(sym)) {
+              expr_pos_error(ec_sizeof_operand_not_parameter_pack,
+                             &pos_curr_token);
+              err = TRUE;
+            } else {
+              record_potential_pack_reference(sym, &pos_curr_token);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        /* Advance past the identifier. */
+        (void)get_token();
+      }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      end_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      (void)required_token(tok_rparen, ec_exp_rparen);
+      remove_matching_stop_token(tok_rparen);
+      pedep = end_potential_pack_expansion_context(pesep,
+                                                   /*is_declarator=*/TRUE);
+      any_more = advance_to_next_pack_element(pesep);
+    }  /* while */
+  } else {
+    /* Rescanning a previously-scanned sizeof... */
+    an_expr_rescan_info_entry_ptr eriep;
+
+    check_assertion(rcblock->expr->kind == (an_expr_node_kind)enk_sizeof_pack);
+    eriep = get_expr_rescan_info(rcblock->expr,
+                                 (an_expr_rescan_info_entry *)NULL);
+    pedep = eriep->saved_operand.pack_expansion_descr;
+    check_assertion(pedep != NULL);
+    start_position = eriep->saved_operand.position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = eriep->saved_operand.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    any_more = begin_rescan_pack_expansion_context(pedep,
+                                                  rcblock->template_param_list,
+                                                   rcblock->template_arg_list,
+                                                   &pesep);
+    /* Again, we loop only to count the number of times around. */
+    while (any_more) {
+      result_count++;
+      (void)end_potential_pack_expansion_context(pesep,
+                                                 /*is_declarator=*/TRUE);
+      any_more = advance_to_next_pack_element(pesep);
+    }  /* while */
+  }  /* if */
+  if (err) {
+    /* Some previous error. */
+    make_error_operand(result);
+  } else if (is_prototype_instantiation_context()) {
+    /* For the prototype instantiation, return an enk_sizeof_pack
+       expression as a template constant. */
+    an_expr_node_ptr expr =alloc_expr_node((an_expr_node_kind)enk_sizeof_pack);
+    expr->type = integer_type(targ_size_t_int_kind);
+    if (is_type_symbol(sym)) {
+      expr->variant.sizeof_pack.is_type = TRUE;
+      expr->variant.sizeof_pack.variant.type = sym->variant.type.ptr;
+    } else {
+      an_operand operand;
+      expr->variant.sizeof_pack.is_type = FALSE;
+      /* Make an expression node for the parameter pack. */
+      if (sym->kind == (a_symbol_kind)sk_variable) {
+        make_lvalue_variable_operand(sym->variant.variable.ptr,
+                                     &id_position,
+                                     end_position_or_null(&id_end_position),
+                                     &operand, (a_ref_entry *)NULL);
+      } else if (sym->kind == (a_symbol_kind)sk_parameter) {
+        make_param_ref_operand(&operand, sym);
+      } else {
+        unexpected_condition();
+      }  /* if */
+      set_operand_position(&operand, &id_position, &id_end_position,
+                           (a_source_position *)NULL);
+      expr->variant.sizeof_pack.variant.expr=make_node_from_operand(&operand);
+    }  /* if */
+    make_expression_operand(expr, result);
+    mark_operand_as_pack_expansion(result, pedep);
+  } else {
+    /* For a real instantiation or a rescan, return the constant size of
+       the parameter pack. */
+    a_constant constant;
+    set_unsigned_integer_constant(&constant, result_count,
+                                  targ_size_t_int_kind);
+    make_constant_operand(&constant, result);
+  }  /* if */
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
+  record_operator_position_in_rescan_info(result, &start_position,
+                                          NO_TOKEN_SEQUENCE_NUMBER,
+                                          (a_source_position *)NULL);
+  if (is_prototype_instantiation_context()) {
+    /* Wrap the enk_sizeof_pack expression in a template parameter constant
+       so we produce a constant result.  This is done late so that the
+       correct position is already recorded in the operand so it gets
+       saved properly for any rescan. */
+    make_template_param_expr_constant_operand(result);
+    /* Clear the pack expansion indication on the resulting operand because
+       we've already handled the pack expansion at the sizeof... level.
+       We don't want the is_pack_expansion flag set on the enk_sizeof_pack
+       expression. */
+    result->pack_expansion_descr = NULL;
+  }  /* if */
+  pop_expr_stack();
+  switch_back_to_original_region(region_to_switch_back_to);
+  db_exit();
+}  /* scan_sizeof_pack_operator */
+
+
 static void scan_sizeof_operator(a_rescan_control_block *rcblock,
                                  an_operand             *result)
 /*
@@ -7012,6 +7193,10 @@ Scan the sizeof operator.
 Syntax:
         sizeof ( type-id )
         sizeof expression
+
+Also, when variadic templates are enabled:
+
+        sizeof... (pack-name)
 
 The current token is the sizeof keyword.  Scan a type or expression
 operand, and return an operand for sizeof applied to that, in
@@ -7048,6 +7233,24 @@ previously-scanned sizeof expression, and return the result in *result
                                           curr_expr_is_potentially_evaluated();
 
   db_enter(4, "scan_sizeof_operator");
+  if (variadic_templates_enabled) {
+    /* Check for the variadic template sizeof...(T) case. */
+    a_boolean is_sizeof_pack = FALSE;
+    if (rcblock != NULL) {
+      if (rcblock->expr->kind == (an_expr_node_kind)enk_sizeof_pack) {
+        is_sizeof_pack = TRUE;
+      }  /* if */
+    } else {
+      if (next_token() == tok_ellipsis) {
+        is_sizeof_pack = TRUE;
+      }  /* if */
+    }  /* if */
+    if (is_sizeof_pack) {
+      /* Handle sizeof...(T) in a separate routine. */
+      scan_sizeof_pack_operator(rcblock, result);
+      goto end_of_routine;
+    }  /* if */
+  }  /* if */
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
     a_token_sequence_number operator_tok_seq_number;
@@ -7452,7 +7655,7 @@ previously-scanned sizeof expression, and return the result in *result
                                           &type_position);
   pop_expr_stack();
   switch_back_to_original_region(region_to_switch_back_to);
-
+end_of_routine:
   db_exit();
 }  /* scan_sizeof_operator */
 
@@ -25242,6 +25445,9 @@ set accordingly.
       rescannable = FALSE;
     }  /* if */
   } else if (expr->kind == (an_expr_node_kind)enk_sizeof) {
+    operator_token = tok_sizeof;
+    *unary = TRUE;
+  } else if (expr->kind == (an_expr_node_kind)enk_sizeof_pack) {
     operator_token = tok_sizeof;
     *unary = TRUE;
   } else if (expr->kind == (an_expr_node_kind)enk_typeid) {

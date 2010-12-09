@@ -3497,9 +3497,10 @@ next_argument:;
     routine_type = skip_typerefs(routine_type);
     rtsp = routine_type->variant.routine.extra_info;
   }  /* for */
-  /* If param != NULL here, there are default arguments (because we
-     got past the argument-count check above). */
-  check_assertion_str(param == NULL || param->has_default_arg,
+  /* If param != NULL here, there are default arguments or a parameter pack
+     (because we got past the argument-count check above). */
+  check_assertion_str(param == NULL || param->has_default_arg ||
+                      param->is_parameter_pack,
                      "determine_function_viability: no param, no default arg");
   /* All the arguments can be made to match the parameters. */
   /* See if the "this" parameter, if any, matches. */

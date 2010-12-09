@@ -9892,6 +9892,19 @@ done_with_operation_after_parens:
         }  /* if */
       }  /* if */
       break;
+    case enk_sizeof_pack:
+      if (expr->variant.sizeof_pack.is_type) {
+        /* sizeof...(type). */
+        write_tok_str("sizeof...(");
+        gen_type(expr->variant.sizeof_pack.variant.type);
+        write_tok_ch(')');
+      } else {
+        /* sizeof...(expr). */
+        write_tok_str("sizeof...(");
+        gen_expression(expr->variant.sizeof_pack.variant.expr);
+        write_tok_ch(')');
+      }  /* if */
+      break;
     case enk_address_of_ellipsis:
       write_tok_str("&...");
       break;

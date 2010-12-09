@@ -1526,6 +1526,15 @@ do_set_proper_definition_needed_flag:
                                        variant.sizeof_info.variant.expr->type);
             }  /* if */
             break;
+          case enk_sizeof_pack:
+            if (ptr->variant.sizeof_pack.is_type) {
+              walk_ptr(ptr->variant.sizeof_pack.variant.type, a_type_ptr,
+                       iek_type);
+            } else {
+              walk_ptr(ptr->variant.sizeof_pack.variant.expr,
+                       an_expr_node_ptr, iek_expr_node);
+            }  /* if */
+            break;
           case enk_address_of_ellipsis:
             /* No pointers. */
             break;

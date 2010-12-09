@@ -3166,11 +3166,12 @@ enum a_template_param_constant_kind_tag {
   tpck_address,		/* Used, pointing to a tpck_member constant, to
 			   indicate the address of the indicated member. */
   tpck_sizeof,		/* The template param constant represents the sizeof
-			   operator applied to a type that contains a template
-			   parameter type. */
-  tpck_alignof,		/* The template param constant represents the
-			   __ALIGNOF__ operator applied to a type that
+			   operator applied to a type or expression that
 			   contains a template parameter type. */
+  tpck_alignof,		/* The template param constant represents the
+			   __ALIGNOF__ operator applied to a type or
+			   expression that contains a template parameter
+			   type. */
   tpck_uuidof,		/* The template param constant represents the
 			   Microsoft __uuidof operator applied to a type
 			   that contains a template parameter type.  It
@@ -12036,6 +12037,8 @@ enum an_expr_node_kind_tag {
 			   prototype instantiations, and for sizeofs that
 			   are actually variable (e.g., sizeof a
 			   variable-length array). */
+  enk_sizeof_pack,	/* sizeof...(T), the size of a variadic template
+			   parameter pack. */
   enk_address_of_ellipsis,
 			/* Used to represent nonstandard construct "&..."
 			   (when ALLOW_ADDRESS_OF_ELLIPSIS is TRUE, to support
@@ -13087,6 +13090,21 @@ typedef struct an_expr_node {
 		expr;	/* The expression whose size is needed. */
       } variant;
     } sizeof_info;
+    /* When kind == enk_sizeof_pack: */
+    struct {
+      a_byte_boolean
+		is_type;
+			/* TRUE for sizeof...(T) where T is a type template
+			   parameter pack. */
+      union {
+        /* When is_type is TRUE: */
+        a_type_ptr
+		type;	/* The argument of sizeof...(T), in type form. */
+        /* When is_type is FALSE: */
+        an_expr_node_ptr
+		expr;	/* The argument of sizeof...(x), in expression form. */
+      } variant;
+    } sizeof_pack;
 #if GNU_EXTENSIONS_ALLOWED
     /* When kind == enk_statement: */
     a_statement_ptr

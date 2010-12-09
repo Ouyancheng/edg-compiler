@@ -3100,6 +3100,16 @@ as specified in the control block.
         traverse_expr(expr->variant.sizeof_info.variant.expr, tblock);
       }  /* if */
       break;
+    case enk_sizeof_pack:
+      if (expr->variant.sizeof_pack.is_type) {
+        if (tblock->process_type != NULL) {
+          tblock->process_type(expr->variant.sizeof_pack.variant.type,
+                               tblock);
+        }  /* if */
+      } else {
+        traverse_expr(expr->variant.sizeof_pack.variant.expr, tblock);
+      }  /* if */
+      break;
     case enk_address_of_ellipsis:
       break;
 #if GNU_EXTENSIONS_ALLOWED

@@ -388,14 +388,16 @@ is put out.
       octl->output_str(" ", octl);
     }  /* if */
     begin_template_arg_list_traversal_simple(tap, &tap);
-    for (;;) {
-      form_a_template_arg(tap, octl);
-      advance_to_next_template_arg_simple(&tap);
-      /* Stop after the last argument. */
-      if (tap == NULL) break;
-      /* Put a comma between arguments. */
-      octl->output_str(", ", octl);
-    }  /* for */
+    if (tap != NULL) {
+      for (;;) {
+        form_a_template_arg(tap, octl);
+        advance_to_next_template_arg_simple(&tap);
+        /* Stop after the last argument. */
+        if (tap == NULL) break;
+        /* Put a comma between arguments. */
+        octl->output_str(", ", octl);
+      }  /* for */
+    }  /* if */
     octl->output_str(">", octl);
     if (octl->gen_compilable_code) {
       /* When generating compilable code, put out a space after the
