@@ -1055,16 +1055,20 @@ unqualified name lookup.
       parent_class = NULL;
     }  /* if */
     for (ncp = curr_name_context; ncp != NULL; ncp = ncp->next) {
-      if (ncp->has_dependent_base || ncp->assoc_scope == parent_scope) {
-        /* We stop scanning if we've either found the parent scope or if
-           we've reached the innermost class with a dependent base. */
-        if (ncp->assoc_scope == parent_scope) {
-          member_of_curr_instantiation = TRUE;
-        }  /* if */
+      if (ncp->assoc_scope == parent_scope ||
+          (ncp->class_type != NULL &&
+           &ncp->class_type->source_corresp == scp)) {
+        /* Either the name is declared in this scope or represents the
+           injected-class-name of this (class) scope. */
+        member_of_curr_instantiation = TRUE;
+        break;
+      } else if (ncp->has_dependent_base) {
+        /* We've reached a template with a dependent base without finding
+           the scope containing the entity. */
         break;
       } else if (parent_class != NULL && ncp->class_type != NULL &&
                  find_base_class_of(ncp->class_type, parent_class) != NULL) {
-        /* For classes nested within the innermost class with a dependent
+        /* For classes nested within the innermost template with a dependent
            base, members of their base classes also are members of the
            current instantiation. */
         member_of_curr_instantiation = TRUE;
