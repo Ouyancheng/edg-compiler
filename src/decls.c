@@ -1016,7 +1016,7 @@ new fields are set properly.
           param_type = type_pointed_to(param_type);
         }  /* if */
         param_type = skip_typerefs(param_type);
-        if (!identical_types(param_type, class_type)) {
+        if (!types_are_compatible(param_type, class_type)) {
           pos_ty_error(ec_bad_parameter_type_for_static_member_operator,
                   &locator->source_position, class_type);
           err = TRUE;
@@ -1060,7 +1060,7 @@ new fields are set properly.
         any_class_or_enum_type_params = TRUE;
         if (cppcli_enabled && class_type != NULL &&
             !is_nonstatic_member_function &&
-            identical_types_ignoring_qualifiers(tp, class_type)) {
+            types_are_compatible_ignoring_qualifiers(tp, class_type)) {
           /* For static C++/CLI member operators, at least one parameter must
              T, T&, T&&, T%, or T^, with T the type indicated by class_type
              (a template parameter is not sufficient); i.e., a parameter
