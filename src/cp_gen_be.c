@@ -6200,6 +6200,9 @@ static void gen_cli_delegate_definition(a_type_ptr  type)
                                      TQ_NONE, /*suppress_specifiers=*/FALSE,
                                      GDO_NO_OPTIONS,
                                      (a_name_reference_ptr)NULL);
+  /* Indicate that type is now declared so we can use a non-elaborated name
+     for future references to this type. */
+  type->has_been_declared = TRUE;
 }  /* gen_cli_delegate_definition */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
