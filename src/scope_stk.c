@@ -8907,7 +8907,7 @@ advance to the next pack element for each symbol.
         a_variable_ptr	vp;
         vp = find_variable_for_pack(prp->param_num, &elements_for_pack);
         new_prp->curr_argument.variable = vp;
-        new_prp->primary_var_symbol = symbol_for(vp);
+        new_prp->primary_var_symbol = vp == NULL ? NULL : symbol_for(vp);
       } else {
         a_template_arg_ptr	tap;
         tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
