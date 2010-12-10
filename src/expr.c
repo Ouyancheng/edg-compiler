@@ -7153,6 +7153,8 @@ indication in *rcblock).
                                      &operand, (a_ref_entry *)NULL);
       } else if (sym->kind == (a_symbol_kind)sk_parameter) {
         make_param_ref_operand(&operand, sym);
+      } else if (sym->kind == (a_symbol_kind)sk_constant) {
+        make_sym_constant_operand(sym, &operand);
       } else {
         unexpected_condition();
       }  /* if */
