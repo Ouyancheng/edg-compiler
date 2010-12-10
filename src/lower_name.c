@@ -2149,7 +2149,7 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
 #endif /* IA64_ABI */
   if (expr->variant.sizeof_pack.is_type) {
     a_type_ptr type = expr->variant.sizeof_pack.variant.type;
-    check_assertion(type->kind == tk_template_param &&
+    check_assertion(type->kind == (a_type_kind)tk_template_param &&
                     type->variant.template_param.is_pack &&
                     type->variant.template_param.kind ==
                                    (a_template_param_constant_kind)tptk_param);
