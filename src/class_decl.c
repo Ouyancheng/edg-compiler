@@ -18560,6 +18560,7 @@ classes.
             goto next_declaration;
           }  /* if */
           /* Check for an access adjustment declaration. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
           if (cppcli_enabled && curr_token == tok_identifier &&
               !identifier_starts_name_qualifier_or_template_id()) {
             /* In C++/CLI mode, a separate test is needed first to avoid
@@ -18569,12 +18570,14 @@ classes.
                  ref class C { property ::I p; };
                In this example, calling is_decl_qualified_name() would complain
                that "property" is not a class or namespace name. */
-          } else if (is_decl_qualified_name_start() &&
-                     !f_same_entities(
-                                 qualifier_class_type(locator_for_curr_id),
-                                 class_type) &&
-                     locator_for_curr_id.is_qualified_name &&
-                     next_token() == tok_semicolon) {
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
+          if (is_decl_qualified_name_start() &&
+              !f_same_entities(qualifier_class_type(locator_for_curr_id),
+                               class_type) &&
+              locator_for_curr_id.is_qualified_name &&
+              next_token() == tok_semicolon) {
             /* This looks syntactically like an access adjustment declaration.
                Be sure the semantics are correct.  Its semantics are the same
                as a using-declaration. */
