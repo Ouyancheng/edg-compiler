@@ -1016,14 +1016,15 @@ are also considered to be on the stack.
 
 
 static a_boolean entity_is_member_of_current_instantiation(
-                                               a_source_correspondence_ptr scp)
+                                        a_source_correspondence_ptr scp,
+                                        an_il_entry_kind            entry_kind)
 /*
-Return TRUE if the entity described by scp is a member of a class that is in
-the name context stack and that class is, or is nested in, the nearest class
-that has a dependent base class.  This is used to determine when a name must
-be qualified to prevent it from unintentionally referring to a member of a
-dependent base in target compilers that do not exclude dependent bases from
-unqualified name lookup.
+Return TRUE if the entity described by scp and entry_kind is a member of a
+class that is in the name context stack and that class is, or is nested in,
+the nearest class that has a dependent base class.  This is used to
+determine when a name must be qualified to prevent it from unintentionally
+referring to a member of a dependent base in target compilers that do not
+exclude dependent bases from unqualified name lookup.
 */
 {
   a_boolean   member_of_curr_instantiation = FALSE;
@@ -1035,11 +1036,16 @@ unqualified name lookup.
   if (parent_scope == NULL) {
     /* Assume we won't need qualification. */
     member_of_curr_instantiation = TRUE;
-  } else if (parent_scope->kind == (a_scope_kind)sck_function &&
-             !scope_is_in_name_context_stack(parent_scope)) {
-    /* This situation occurs for the names of parameters in functions: the
-       function scope has not yet been pushed.  We can safely assume that
-       the name is a member of the current instantiation. */
+  } else if (entry_kind == iek_type &&
+             is_immediate_class_type((a_type_ptr)scp) &&
+             ((a_type_ptr)scp)->variant.class_struct_union.is_nonreal_class) {
+    /* Nonreal classes are treated as belonging to the global scope but
+       should not be qualified. */
+    member_of_curr_instantiation = TRUE;
+  } else if (parent_scope->kind == (a_scope_kind)sck_function) {
+    /* Because a template must be defined in a namespace scope, we can
+       assume without scanning that a name with function scope is a member
+       of the current instantiation. */
     member_of_curr_instantiation = TRUE;
   } else if (parent_scope->kind == (a_scope_kind)sck_template_declaration) {
     /* This is a template parameter, which can't be qualified in any event. */
@@ -3000,7 +3006,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                                     (scp->member_of_unknown_base) ? scp : NULL;
 
   if (in_class_scope_with_dependent_base &&
-      !entity_is_member_of_current_instantiation(scp)) {
+      !entity_is_member_of_current_instantiation(scp, entry_kind)) {
     force_qualified_name = TRUE;
   }  /* if */
   /* If the name is a member of a class or namespace in C++, output the
