@@ -67,6 +67,7 @@ static void scan_expr_full(an_operand              *result,
 static void scan_initializer_expr_with_potential_pack_expansion(
                                                   a_decl_parse_state *dps,
                                                   an_operand         *operand);
+static a_boolean var_declared_in_current_routine(a_variable_ptr var);
 static void make_param_ref_operand(an_operand    *result,
                                    a_symbol_ptr  param_sym);
 /* Interface to scan_expr_full for the simple case where a bound function
@@ -7091,6 +7092,12 @@ indication in *rcblock).
               err = TRUE;
             } else {
               record_potential_pack_reference(sym, &pos_curr_token);
+              if (sym->kind == (a_symbol_kind)sk_variable &&
+                  !var_declared_in_current_routine(
+                                                  sym->variant.variable.ptr)) {
+                expr_pos_error(ec_ref_to_nested_function_var, &pos_curr_token);
+                err = TRUE;
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
