@@ -15765,6 +15765,34 @@ done:
 }  /* type_specifiers_next */
 
 
+static a_boolean identifier_starts_name_qualifier_or_template_id(void)
+/*
+The current token is an identifier that might be a C++/CLI context-sensitive
+declaration specifier (e.g., "delegate" or "property").  Return TRUE if it
+starts a name qualifier (i.e., it is a class, enum, or namespace name followed
+by a '::') or if it is followed by a '<' (which presumably means that it
+starts a template-id).
+*/
+{
+  a_boolean     result = FALSE;
+  a_token_kind  next_tok = next_token();
+
+  if (next_tok == tok_colon_colon) {
+    /* "<identifier>::" Determine if this starts a qualified name.  We cannot
+       call is_generalized_identifier_start here because that would trigger
+       errors if the identifier doesn't name a tag or namespace.  Copy
+       locator_for_curr_id before performing the lookup to avoid biasing
+       future lookups. */
+    a_symbol_locator  loc;
+    loc = locator_for_curr_id;
+    result = normal_id_lookup(&loc, IDL_MUST_BE_CLASS_OR_NAMESPACE) != NULL;
+  } else if (next_tok == tok_lt) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* identifier_starts_name_qualifier_or_template_id */
+
+
 a_boolean check_for_cli_delegate_definition(void)
 /*
 We're in a scope that allows a C++/CLI delegate definition and any prefix
@@ -15781,23 +15809,12 @@ delegate definition.  If it is, return TRUE; otherwise, return FALSE.
     (void)get_token();
   }  /* if */
   if (curr_token_is_identifier_string("delegate")) {
-    a_boolean     is_qualified_name = FALSE;
-    if (next_token() == tok_colon_colon) {
-      /* "delegate::" Determine if this starts a qualified name.  We cannot
-         call is_generalized_identifier_start here because that would trigger
-         errors if "delegate" doesn't name a tag or namespace.  Copy
-         locator_for_curr_id before performing the lookup to avoid biasing
-         future lookups. */
-      a_symbol_locator  loc;
-      loc = locator_for_curr_id;
-      is_qualified_name =
-               normal_id_lookup(&loc, IDL_MUST_BE_CLASS_OR_NAMESPACE) != NULL;
-    }  /* if */
-    if (is_qualified_name) {
-      /* "delegate" is part of qualified name and therefore not a keyword. */
+    if (identifier_starts_name_qualifier_or_template_id()) {
+      /* "delegate" is part of qualified name or template-id and therefore not
+          a keyword. */
     } else {
-      /* "delegate" is an unqualified name: Treat it as a keyword if a type
-         specifier follows. */
+      /* "delegate" is a simple unqualified name: Treat it as a keyword if a
+         type specifier follows. */
       cache_curr_token(&cache);
       (void)get_token();
       result = type_specifiers_next(&cache);
@@ -15952,15 +15969,11 @@ encountered (i.e., which kind of context-sensitive keyword appeared:
     cache_curr_token(&cache);
     (void)get_token();
   }  /* if */
-  if (curr_token == tok_identifier) {
+  if (curr_token != tok_identifier) {
+    /* Not an identifier and hence not a context-sensitive keyword. */
+    goto done;
+  } else {
     a_symbol_header_ptr  sym_hdr = locator_for_curr_id.symbol_header;
-    cache_curr_token(&cache);
-    (void)get_token();
-    if (curr_token == tok_colon_colon) {
-      /* None of "property", "event", "initonly", and "literal" can be
-         followed by a "::" if they're keywords. */
-      goto done;
-    }  /* if */
     if (symbol_header_is_for_identifier_string(sym_hdr, "property")) {
       dps->has_cli_property_keyword = TRUE;
     } else if (symbol_header_is_for_identifier_string(sym_hdr, "event")) {
@@ -15973,14 +15986,19 @@ encountered (i.e., which kind of context-sensitive keyword appeared:
     } else if (symbol_header_is_for_identifier_string(sym_hdr, "literal")) {
       dps->has_cli_literal_keyword = TRUE;
     } else {
+      /* Not one of the identifiers used for context-sensitive keywords. */
       goto done;
     }  /* if */
-    /* FIXME: Lookup symbol header as a common short circuit case. */
-  } else {
-    /* Since this is not an identifier, it cannot be a context-dependent
-       keyword. */
-    goto done;
+    if (identifier_starts_name_qualifier_or_template_id()) {
+      /* The identifier is part of qualified name or template-id and can
+         therefore not be a keyword. */
+      goto done;
+    }  /* if */
   }  /* if */
+  /* Cache the identifier (which now appears likely to be a context-sensitive
+     specifier keyword. */
+  cache_curr_token(&cache);
+  (void)get_token();
   /* For this to be a field-like declaration preceded by a context-sensitive
      keyword, a sequence of decl-specifiers including a type must follow. */
   if (type_specifiers_next(&cache)) {
@@ -18542,11 +18560,21 @@ classes.
             goto next_declaration;
           }  /* if */
           /* Check for an access adjustment declaration. */
-          if (is_decl_qualified_name_start() &&
-              !f_same_entities(qualifier_class_type(locator_for_curr_id),
-                               class_type) &&
-              locator_for_curr_id.is_qualified_name &&
-              next_token() == tok_semicolon) {
+          if (cppcli_enabled && curr_token == tok_identifier &&
+              !identifier_starts_name_qualifier_or_template_id()) {
+            /* In C++/CLI mode, a separate test is needed first to avoid
+               calling is_decl_qualified_name_start() on a valid context-
+               sensitive keyword that is followed by a '::'.  E.g.:
+                 typedef int I;
+                 ref class C { property ::I p; };
+               In this example, calling is_decl_qualified_name() would complain
+               that "property" is not a class or namespace name. */
+          } else if (is_decl_qualified_name_start() &&
+                     !f_same_entities(
+                                 qualifier_class_type(locator_for_curr_id),
+                                 class_type) &&
+                     locator_for_curr_id.is_qualified_name &&
+                     next_token() == tok_semicolon) {
             /* This looks syntactically like an access adjustment declaration.
                Be sure the semantics are correct.  Its semantics are the same
                as a using-declaration. */
