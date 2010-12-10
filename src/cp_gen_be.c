@@ -13157,6 +13157,29 @@ which are nonstandard and rejected by many compilers.)
 }  /* gen_typedef_for_unnamed_pseudo_dtor_type */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static void gen_overridden_function_list(a_routine_ptr rout)
+/*
+Write a comma-separated list of the names of the functions appearing in the
+overridden_functions list of rout.
+*/
+{
+  an_il_entity_list_entry_ptr ep;
+
+  check_assertion(rout->overridden_functions != NULL);
+  write_tok_str(" =");
+  for (ep = rout->overridden_functions; ep != NULL; ep = ep->next) {
+    if (ep != rout->overridden_functions) {
+      write_tok_ch(',');
+    }  /* if */
+    write_space();
+    gen_name((a_source_correspondence_ptr)ep->entity.ptr, ep->entity.kind,
+             GN_FORCE_QUALIFIED_NAME, (a_boolean *)NULL);
+  }  /* for */
+}  /* gen_overridden_function_list */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 static void gen_routine_decl(a_boolean suppress_specifiers,
                              a_boolean *another_decl_in_comma_list)
 /*
@@ -13745,22 +13768,34 @@ handle_as_definition:
     form_asm_name(rout->asm_name, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     gen_attributes(attributes, al_postfix, is_definition);
-    if (!is_definition) {
-      /* "Id-equivalent attributes" are best rendered at the end of a
-         declarator, except for function definitions (where postfix attributes
-         are not allowed). */
-      gen_attributes(attributes, al_id_equivalent, is_definition);
-    }  /* if */
+    /* "Id-equivalent attributes" are best rendered at the end of a
+       declarator, except for function definitions (where postfix attributes
+       are not allowed). */
+    gen_attributes(attributes, al_id_equivalent, is_definition);
     /* For a pure virtual function, add "= 0".  (If the "abstract" function
        modifier has been generated already do not output the "= 0" since it
        would be redundant.) */
-    if (rout->pure_virtual && !abstract_generated) write_tok_str(" = 0");
+    if (rout->pure_virtual && !abstract_generated) {
+      write_tok_str(" = 0");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (rout->overridden_functions != NULL) {
+      /* The routine has a list of overridden functions. */
+      gen_overridden_function_list(rout);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
                                          rout->surrounding_name_linkage_state);
     write_end_of_declaration_punctuation(*another_decl_in_comma_list);
   } else {
     /* The definition of the routine. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (decl_within_class && rout->overridden_functions != NULL) {
+      /* The routine has a list of overridden functions and is defined
+         inside the class, so the list should be generated here. */
+      gen_overridden_function_list(rout);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Push a name context for the function. */
     push_name_context(scope);
     /* For an old-style function, declare the parameters. */
