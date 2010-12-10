@@ -4423,11 +4423,15 @@ prev_init are maintained to allow checking of out-of-order initializations.
     dip = NULL;
     if (curr_token == tok_lparen) {
       /* Old-style base class initializer.  It is assumed to apply to the
-         the direct base class (further assuming that there is exactly
+         direct base class (it's allowed only if there is exactly
          one direct base class). */
-      if (!allow_anachronisms ||
-          (*direct_list) == NULL ||
-          (*direct_list)->next != NULL) {
+      a_boolean one_direct_base = (virtual_list != NULL &&
+                                   virtual_list->next == NULL &&
+                                   (*direct_list) == NULL) ||
+                                  ((*direct_list) != NULL &&
+                                   (*direct_list)->next == NULL &&
+                                   virtual_list == NULL);
+      if (!allow_anachronisms || !one_direct_base) {
         /* Either no base classes or more than one. */
         error(ec_missing_base_class_or_member_name);
         init_type = error_type();
