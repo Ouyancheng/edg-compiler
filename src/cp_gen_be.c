@@ -1424,9 +1424,11 @@ template instance.
     a_type_ptr type = (a_type_ptr)scp;
     if (is_immediate_class_type(type)) {
       a_template_arg_ptr tap;
-      for (tap =
-                type->variant.class_struct_union.extra_info->template_arg_list;
-           is_accessible && tap != NULL; tap = tap->next) {
+      begin_template_arg_list_traversal_simple(
+                type->variant.class_struct_union.extra_info->template_arg_list,
+                &tap);
+      for (; is_accessible && tap != NULL;
+           advance_to_next_template_arg_simple(&tap)) {
         if (!template_arg_is_accessible(tap, ignore_context)) {
           is_accessible = FALSE;
         }  /* if */
@@ -12853,6 +12855,9 @@ a constructor.
                          /*force_parens=*/TRUE,
                          /*obj_expr_of_mfunc_operator=*/FALSE,
                          /*is_static_cast=*/FALSE);
+      }  /* if */
+      if (ctor_init->is_pack_expansion) {
+        write_tok_str("...");
       }  /* if */
     }  /* if */
   }  /* for */

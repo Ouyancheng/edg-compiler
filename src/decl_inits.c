@@ -4367,7 +4367,7 @@ if the new initializer will occur before the previous initializer, and set
 }  /* check_out_of_order_init */
 
 
-static void scan_mem_initializer(
+static a_constructor_init_ptr scan_mem_initializer(
                        a_type_ptr                    class_type,
                        a_constructor_init_ptr        *cip_list,
                        a_constructor_init_ptr        *end_of_cip_list,
@@ -4387,10 +4387,13 @@ do the same for a list of direct base classes; and virtual_list is the
 list of virtual base classes (no end pointer is needed, an the parameter
 does not have an extra level of indirection, because this routine does not
 need to add to the virtual base class list).  For all those lists, the
-list passed in describes default initialization of all bases/members in
-order, and then any explicit mem-initializers scanned in the present
-routine replace entries on those lists.  out_of_order_diag_issued and
-prev_init are maintained to allow checking of out-of-order initializations.
+list passed in describes default initialization of all bases/members
+in order (well, nonstatic data members that don't require
+initialization are omitted), and then any explicit mem-initializers
+scanned in the present routine replace entries on those lists.
+out_of_order_diag_issued and prev_init are maintained to allow
+checking of out-of-order initializations.  Return a pointer to the
+constructor-init entry for the member, or NULL in some error cases.
 */
 {
   a_base_class_ptr              bcp;
@@ -4456,6 +4459,7 @@ prev_init are maintained to allow checking of out-of-order initializations.
       unget_token();
       goto scan_paren;
     }  /* if */
+    check_assertion(curr_token == tok_identifier);
     /* Scan the base class name or member name.  The lookup mode
 	   ilm_ctor_initializer_name skips the current function scope
 	   to ensure that a constructor parameter with the same name
@@ -4474,6 +4478,7 @@ prev_init are maintained to allow checking of out-of-order initializations.
       member_or_base_sym = coalesce_and_lookup_generalized_identifier
                                (gid_options, ilm, &gid_err);
       if (member_or_base_sym != NULL) {
+        record_potential_pack_reference(member_or_base_sym, &pos_curr_token);
         /* Check if a template-dependent entity is being initialized: */
         if (member_or_base_sym->kind == (a_symbol_kind)sk_field) {
           if (!member_or_base_sym->is_class_member) {
@@ -5028,6 +5033,7 @@ scan_paren:
       if (new_cip != NULL) new_cip->initializer = dip;
     }  /* if */
   }  /* if */
+  return new_cip;
 }  /* scan_mem_initializer */
 
 
@@ -5249,15 +5255,33 @@ initialized.  These are addressed in the course of the processing.
     add_stop_token(tok_lbrace);
     /* Loop through the comma-separated list of initializers. */
     do {
+      a_pack_expansion_stack_entry_ptr pesep;
+      a_boolean                        any_more;
       add_stop_token(tok_comma);
-      scan_mem_initializer(class_type,
-                           &cip_list,
-                           &end_of_cip_list,
-                           &direct_list,
-                           &end_of_direct_list,
-                           virtual_list,
-                           &out_of_order_diag_issued,
-                           &prev_init);
+      any_more = begin_potential_pack_expansion_context(&pesep);
+      /* Extra loop is used if the mem-initializer is a variadic template
+         pack expansion. */
+      while (any_more) {
+        a_pack_expansion_descr_ptr pedep;
+        cip = scan_mem_initializer(class_type,
+                                   &cip_list,
+                                   &end_of_cip_list,
+                                   &direct_list,
+                                   &end_of_direct_list,
+                                   virtual_list,
+                                   &out_of_order_diag_issued,
+                                   &prev_init);
+        pedep = end_potential_pack_expansion_context(pesep,
+                                                     /*is_declarator=*/FALSE);
+        if (pedep != NULL && cip != NULL) {
+          /* This expression is a variadic template pack expansion, i.e.,
+             it's followed by "...".  Furthermore, we're in the prototype
+             instantiation, so we mark the constructor init as a pack
+             expansion. */
+          cip->is_pack_expansion = TRUE;
+        }  /* if */
+        any_more = advance_to_next_pack_element(pesep);
+      }  /* while */
       remove_stop_token(tok_comma);
     } while (loop_token(tok_comma));
     remove_stop_token(tok_lbrace);

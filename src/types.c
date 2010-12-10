@@ -8949,10 +8949,10 @@ based on the specified template parameter constant.
     }  /* if */
   } else if (is_class_struct_union(type_ptr)) {
     /* Examine each template argument, if any. */
-    for (tap = type_ptr->variant.class_struct_union.extra_info->
-                                                         template_arg_list;
-         tap != NULL;
-         tap = tap->next) {
+    begin_template_arg_list_traversal_simple(
+            type_ptr->variant.class_struct_union.extra_info->template_arg_list,
+            &tap);
+    for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
       if (is_nontype_templ_arg(tap)) {
         /* A non-type argument.  See if a template parameter constant is
            used -- e.g.,
@@ -8983,10 +8983,10 @@ with a template argument that is a template template parameter.
   if (is_class_struct_union(type_ptr)) {
     /* Check for template template arguments of a template class. */
     a_template_arg_ptr  tap;
-    for (tap = type_ptr->variant.class_struct_union.extra_info->
-                                                         template_arg_list;
-         tap != NULL;
-         tap = tap->next) {
+    begin_template_arg_list_traversal_simple(
+            type_ptr->variant.class_struct_union.extra_info->template_arg_list,
+            &tap);
+    for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
       if (is_template_templ_arg(tap)) {
         a_template_symbol_supplement_ptr	tssp;
         /* Note: the following line accesses template_info directly instead
@@ -9097,10 +9097,10 @@ by specific_template_template_param.
     if (is_class_struct_union(type_ptr)) {
       /* Check for template template arguments of a template class. */
       a_template_arg_ptr  tap;
-      for (tap = type_ptr->variant.class_struct_union.extra_info->
-                                                         template_arg_list;
-           tap != NULL;
-           tap = tap->next) {
+      begin_template_arg_list_traversal_simple(
+            type_ptr->variant.class_struct_union.extra_info->template_arg_list,
+            &tap);
+      for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
         if (is_template_templ_arg(tap)) {
           if (equiv_templates(tap->variant.templ.ptr,
                               specific_template_template_param,
@@ -9475,7 +9475,8 @@ and the meaning of the return value.
   a_boolean		status = FALSE;
   a_type_ptr		tp;
 
-  for (tap = template_args; tap != NULL; tap = tap->next) {
+  begin_template_arg_list_traversal_simple(template_args, &tap);
+  for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
     if (is_type_templ_arg(tap)) {
       tp = tap->variant.type;
       if (traverse_type_tree(tp, func, flags)) {
@@ -10212,7 +10213,8 @@ class_type itself.
 {
   a_boolean                       result = FALSE;
 
-  for (; tap != NULL; tap = tap->next) {
+  begin_template_arg_list_traversal_simple(tap, &tap);
+  for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
     if (is_type_templ_arg(tap)) {
       if (type_involves_specific_class_type(tap->variant.type, class_type,
                                             members_only)) {

@@ -5695,6 +5695,10 @@ Display the indicated constructor init entry.
 */
 {
   disp_ptr("next", (char *)ptr->next, iek_constructor_init);
+  disp_boolean("compiler_generated", (a_boolean)ptr->compiler_generated);
+  if (ptr->is_pack_expansion) {
+    disp_boolean("is_pack_expansion", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case cik_virtual_base_class:
@@ -5713,7 +5717,6 @@ do_base_class:
     default:
       (void)printf("**BAD CONSTRUCTOR INIT KIND**\n");
   }  /* switch */
-  disp_boolean("compiler_generated", (a_boolean)ptr->compiler_generated);
   disp_ptr("initializer", (char *)ptr->initializer, iek_dynamic_init);
   disp_ptr("source_expr", (char *)ptr->source_expr, iek_expr_node);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
