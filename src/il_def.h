@@ -11749,15 +11749,19 @@ typedef struct a_routine {
   an_il_entity_list_entry_ptr
 		overridden_functions;
 			/* For selectively overriding virtual functions (a
-			   Microsoft extension), this points to the base class
-			   member functions being overridden.  Otherwise, NULL.
-			   Currently, this list contains at most one entry, but
-			   it is expected that future extensions will allow
-			   multiple members functions to be selectively
-			   overridden.  Usually, this list points to a_routine
-			   entries, but, for prototype instantiations, the
-			   overridden function may be represented by a
-			   ck_template_param/tpck_member constant. */
+			   Microsoft extension), this points to the base
+			   class member functions being overridden.
+			   Otherwise, NULL.  In a non-managed class, this
+			   reflects the single base class member function
+			   named by the declarator of the derived class
+			   member function.  In a managed class, this
+			   reflects the list of base class member functions
+			   following the declarator of the derived class
+			   member function.  Usually, this list points to
+			   a_routine entries, but, for prototype
+			   instantiations, an overridden function may be
+			   represented by a ck_template_param/tpck_member
+			   constant. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_class_list_entry_ptr
                 befriending_classes;

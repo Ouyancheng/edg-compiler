@@ -12969,14 +12969,14 @@ declarator (or NULL if it wasn't recorded).
   a_type_ptr                   qual_rout_type = rout_type;
   a_source_correspondence_ptr  scp = &rout->source_corresp;
   a_name_context_ptr           name_context_for_access_reset = NULL;
+  a_type_ptr                   parent_class;
 
   *context_pop_needed = FALSE;
-  if (!C_mode() && !force_unqualified_name &&
-      scp != NULL && scp->is_class_member) {
+  parent_class = (scp->is_class_member) ? scp_parent_class(scp) : NULL;
+  if (!C_mode() && !force_unqualified_name && scp->is_class_member) {
     /* If we're defining a class member, make note of the fact that we
        have access to its members in the type specifier. */
-    curr_name_context->class_type_for_access_not_naming =
-                                                        scp_parent_class(scp);
+    curr_name_context->class_type_for_access_not_naming = parent_class;
     name_context_for_access_reset = curr_name_context;
   }  /* if */
   /* Determine the effective routine type by starting from the routine
@@ -13060,11 +13060,12 @@ declarator (or NULL if it wasn't recorded).
          different than for ordinary declarations. */
       gen_friend_function_decl_name(scp, is_definition);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (rout->overridden_functions != NULL && decl_within_class) {
-      /* This is a selectively overriding virtual function declaration in
-         a class definition.  Such overriders are declared with the qualified 
-         name of the function being overridden (its unqualified name is
-         identical, of course). */
+    } else if (rout->overridden_functions != NULL && decl_within_class &&
+               !is_managed_class_type_entry(parent_class)) {
+      /* This is a non-C++/CLI selectively overriding virtual function
+         declaration in a class definition.  Such overriders are declared
+         with the qualified name of the function being overridden (its
+         unqualified name is identical, of course). */
       a_tagged_pointer  ep = rout->overridden_functions->entity;
       if ((an_il_entry_kind)ep.kind == iek_routine) {
         a_routine_ptr rp = (a_routine_ptr)ep.ptr;
@@ -13079,8 +13080,8 @@ declarator (or NULL if it wasn't recorded).
       } else {
         unexpected_condition();
       }  /* if */
-      /* Currently, only one function can be explicitly overridden by a
-         selectively overriding virtual function. */
+      /* In the non-C++/CLI form, only one function can be explicitly
+         overridden by a selectively overriding virtual function. */
       check_assertion(rout->overridden_functions->next == NULL);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
@@ -13163,6 +13164,33 @@ which are nonstandard and rejected by many compilers.)
 }  /* gen_typedef_for_unnamed_pseudo_dtor_type */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static void gen_overridden_function_list(a_routine_ptr rout)
+/*
+Write a comma-separated list of the names of the functions appearing in the
+overridden_functions list of rout, which must be a member function of a
+managed C++/CLI class.
+*/
+{
+  an_il_entity_list_entry_ptr ep;
+  a_type_ptr                  parent_class = parent_class_of(rout);
+
+  check_assertion(rout->overridden_functions != NULL &&
+                  parent_class != NULL &&
+                  is_managed_class_type_entry(parent_class));
+  write_tok_str(" =");
+  for (ep = rout->overridden_functions; ep != NULL; ep = ep->next) {
+    if (ep != rout->overridden_functions) {
+      write_tok_ch(',');
+    }  /* if */
+    write_space();
+    gen_name((a_source_correspondence_ptr)ep->entity.ptr, ep->entity.kind,
+             GN_FORCE_QUALIFIED_NAME, (a_boolean *)NULL);
+  }  /* for */
+}  /* gen_overridden_function_list */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 static void gen_routine_decl(a_boolean suppress_specifiers,
                              a_boolean *another_decl_in_comma_list)
 /*
@@ -13209,6 +13237,7 @@ TRUE if the declaration following this one is such a continuation.
                                                          in_generated_instance;
   a_boolean                     saved_expl_template_arg_list_used;
   an_attribute_ptr              attributes;
+  a_type_ptr                    parent_class;
 
   name_ref = get_current_name_ref();
   *another_decl_in_comma_list = FALSE;
@@ -13352,6 +13381,8 @@ handle_as_definition:
     /* Discard this declaration. */
     goto end_of_routine;
   }  /* if */
+  parent_class = (rout->source_corresp.is_class_member) ?
+                                                  parent_class_of(rout) : NULL;
   saved_expl_template_arg_list_used = rout->expl_template_arg_list_used;
   /* Position the output file to the declaration position. */
   set_decl_position(&rout->source_corresp, sec_decl);
@@ -13751,22 +13782,38 @@ handle_as_definition:
     form_asm_name(rout->asm_name, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     gen_attributes(attributes, al_postfix, is_definition);
-    if (!is_definition) {
-      /* "Id-equivalent attributes" are best rendered at the end of a
-         declarator, except for function definitions (where postfix attributes
-         are not allowed). */
-      gen_attributes(attributes, al_id_equivalent, is_definition);
-    }  /* if */
+    /* "Id-equivalent attributes" are best rendered at the end of a
+       declarator, except for function definitions (where postfix attributes
+       are not allowed). */
+    gen_attributes(attributes, al_id_equivalent, is_definition);
     /* For a pure virtual function, add "= 0".  (If the "abstract" function
        modifier has been generated already do not output the "= 0" since it
        would be redundant.) */
-    if (rout->pure_virtual && !abstract_generated) write_tok_str(" = 0");
+    if (rout->pure_virtual && !abstract_generated) {
+      write_tok_str(" = 0");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (rout->overridden_functions != NULL &&
+               is_managed_class_type_entry(parent_class)) {
+      /* The routine is a C++/CLI member function with a list of overridden
+         functions. */
+      gen_overridden_function_list(rout);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
                                          rout->surrounding_name_linkage_state);
     write_end_of_declaration_punctuation(*another_decl_in_comma_list);
   } else {
     /* The definition of the routine. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (decl_within_class && rout->overridden_functions != NULL &&
+        is_managed_class_type_entry(parent_class)) {
+      /* The routine is a C++/CLI member function with a list of overridden
+         functions and is defined inside the class, so the list should be
+         generated here. */
+      gen_overridden_function_list(rout);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Push a name context for the function. */
     push_name_context(scope);
     /* For an old-style function, declare the parameters. */
