@@ -13237,7 +13237,9 @@ TRUE if the declaration following this one is such a continuation.
                                                          in_generated_instance;
   a_boolean                     saved_expl_template_arg_list_used;
   an_attribute_ptr              attributes;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_type_ptr                    parent_class;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   name_ref = get_current_name_ref();
   *another_decl_in_comma_list = FALSE;
@@ -13381,8 +13383,10 @@ handle_as_definition:
     /* Discard this declaration. */
     goto end_of_routine;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   parent_class = (rout->source_corresp.is_class_member) ?
                                                   parent_class_of(rout) : NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   saved_expl_template_arg_list_used = rout->expl_template_arg_list_used;
   /* Position the output file to the declaration position. */
   set_decl_position(&rout->source_corresp, sec_decl);
