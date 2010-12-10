@@ -4465,6 +4465,9 @@ Display the indicated lambda capture.
   if (ptr->is_implicit) {
     disp_boolean("is_implicit", TRUE);
   }  /* if */
+  if (ptr->is_pack_expansion) {
+    disp_boolean("is_pack_expansion", TRUE);
+  }  /* if */
   disp_source_position("position", &ptr->position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("end_position", &ptr->end_position);

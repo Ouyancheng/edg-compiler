@@ -8908,6 +8908,9 @@ Render the list of lambda captures, including the delimiting brackets.
         gen_bare_name(&lcp->variable->source_corresp,
                       (an_il_entry_kind)iek_variable);
       }  /* if */
+      if (lcp->is_pack_expansion) {
+        write_tok_str("...");
+      }  /* if */
       comma_needed = TRUE;
     }  /* if */
   }  /* for */

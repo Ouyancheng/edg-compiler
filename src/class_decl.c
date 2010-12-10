@@ -1012,7 +1012,6 @@ the field.
   a_field_ptr              fp;
   a_type_ptr               field_type;
   a_type_ptr               orig_field_type;
-  a_symbol_ptr             var_sym = NULL;
   a_boolean                is_this = FALSE, is_ref = FALSE;
   a_class_def_state_ptr    class_state;
   a_scope_stack_entry_ptr  ssep;
@@ -1036,13 +1035,21 @@ the field.
     check_assertion(ssep != NULL);
   }  /* for */
   class_state = ssep->class_def_state;
+  /* Set up the context that is needed so that decl_nonstatic_data_member
+     can be used to create the field. */
+  initialize_member_decl_info(&decl_info, pos);
   closure_scope_depth = scope_depth_of(ssep);
   clear_locator(&locator, pos);
   /* "this" variables do not have associated symbols. */
   if (vp->is_this_parameter) {
     is_this = TRUE;
+    decl_info.is_unnamed_field = TRUE;
+  } else if (vp->is_pack_element) {
+    /* Elements of variadic template function pack expansions are given
+       no name. */
+    decl_info.is_unnamed_field = TRUE;
   } else {
-    var_sym = symbol_for(vp);
+    a_symbol_ptr var_sym = symbol_for(vp);
     check_assertion(var_sym != NULL);
     /* Create a symbol locator that can be used to declare the field. */
     locator.symbol_header = var_sym->header;
@@ -1071,10 +1078,6 @@ the field.
     /* The variable is being captured by value.  The type is the type
        of the captured variable. */
   }  /* if */
-  /* Set up the context that is needed so that decl_nonstatic_data_member
-     can be used to create the field. */
-  initialize_member_decl_info(&decl_info, pos);
-  decl_info.is_unnamed_field = is_this;
   decl_info.decl_state.type = field_type;
   /* The field must be private. */
   class_state->access = (an_access_specifier)as_private;
@@ -18907,80 +18910,101 @@ caller has already moved past the '[', and this routine leaves the trailing
   /* Now scan the explicit captures. */
   if (curr_token != tok_rbracket) {
     do {
-      a_source_position  pos_capture;
-      a_variable_ptr     var = NULL;
-      a_boolean          by_ref = FALSE;
-      pos_capture = pos_curr_token;
-      if (curr_token == tok_ampersand) {
-        by_ref = TRUE;
-        (void)get_token();
-      }  /* if */
-      capture_pos = pos_curr_token;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      capture_end_pos = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      if (curr_token == tok_this) {
-        /* Capture of "this" from an enclosing class.  (This is not the "this"
-           of a closure class member.) */
-        if (!variable_this_exists(&var)) {
-          /* We should be in a nonstatic member function. */
-          error(ec_this_used_incorrectly);
-        } else if (by_ref) {
-          /* "&this" is not allowed in a capture list. */
-          pos_error(ec_cannot_capture_this_by_reference, &pos_capture);
-          var = NULL;
+      a_pack_expansion_stack_entry_ptr pesep;
+      a_boolean                        any_more;
+      any_more = begin_potential_pack_expansion_context(&pesep);
+      /* This inner loop repeats if there is a variadic template pack
+         expansion. */
+      while (any_more) {
+        a_pack_expansion_descr_ptr pedep;
+        a_lambda_capture_ptr       lcp = NULL;
+        a_source_position          pos_capture;
+        a_variable_ptr             var = NULL;
+        a_boolean                  by_ref = FALSE;
+        pos_capture = pos_curr_token;
+        if (curr_token == tok_ampersand) {
+          by_ref = TRUE;
+          (void)get_token();
         }  /* if */
-        (void)get_token();
-      } else if (curr_token == tok_identifier) {
-        /* Explicit capture of what should be a local automatic variable.
-           Look up the identifier. */
-        a_symbol_ptr  sym = normal_id_lookup(&locator_for_curr_id,
-                                             IDL_DO_NOT_CREATE_PROJ_SYM);
-        if (sym == NULL) {
-          str_error(ec_undefined_identifier,
-                    locator_for_curr_id.symbol_header->identifier);
-        } else if (sym->kind != (a_symbol_kind)sk_variable) {
-          sym_error(ec_not_a_variable, sym);
-        } else {
-          an_error_code  diag = ec_no_error;
-          var = sym->variant.variable.ptr;
-          if (!check_var_for_lambda_capture(var, /*implicit=*/FALSE, &diag)) {
-            error(diag);
+        capture_pos = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        capture_end_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        if (curr_token == tok_this) {
+          /* Capture of "this" from an enclosing class.  (This is not the
+             "this" of a closure class member.) */
+          if (!variable_this_exists(&var)) {
+            /* We should be in a nonstatic member function. */
+            error(ec_this_used_incorrectly);
+          } else if (by_ref) {
+            /* "&this" is not allowed in a capture list. */
+            pos_error(ec_cannot_capture_this_by_reference, &pos_capture);
             var = NULL;
           }  /* if */
-        }  /* if */
-        (void)get_token();
-      } else {
-        syntax_error(ec_exp_identifier);
-      }  /* if */
-      if (lambda->has_capture_default &&
-          lambda->default_is_by_reference == by_ref && var != NULL) {
-        /* An explicit capture cannot match the default capture mode. */
-        pos_diagnostic(es_discretionary_error,
-                       ec_capture_mode_matches_default, &pos_capture);
-      }  /* if */
-      if (var != NULL) {
-        /* See if there is already a capture entry for this variable. */
-        if (find_lambda_capture(lambda, var) != NULL) {
-          /* A name cannot appear more than once in the capture list. */
-          pos_diagnostic(es_discretionary_error,
-                         ec_more_than_one_capture, &capture_pos);
+          (void)get_token();
+        } else if (curr_token == tok_identifier) {
+          /* Explicit capture of what should be a local automatic variable.
+             Look up the identifier. */
+          a_symbol_ptr  sym = normal_id_lookup(&locator_for_curr_id,
+                                               IDL_DO_NOT_CREATE_PROJ_SYM);
+          if (sym == NULL) {
+            str_error(ec_undefined_identifier,
+                      locator_for_curr_id.symbol_header->identifier);
+          } else {
+            record_potential_pack_reference(sym, &pos_curr_token);
+            if (sym->kind != (a_symbol_kind)sk_variable) {
+              sym_error(ec_not_a_variable, sym);
+            } else {
+              an_error_code  diag = ec_no_error;
+              var = sym->variant.variable.ptr;
+              if (!check_var_for_lambda_capture(var, /*implicit=*/FALSE,
+                                                &diag)) {
+                error(diag);
+                var = NULL;
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          (void)get_token();
         } else {
-          /* Create the lambda capture entry for this variable. */
-          a_lambda_capture_ptr  lcp;
-          a_boolean             no_impl_capture;
-          lcp = add_lambda_capture(lambda, var, /*is_implicit=*/FALSE, by_ref,
-                                   &capture_pos, &no_impl_capture);
-          check_assertion(lcp != NULL);
+          syntax_error(ec_exp_identifier);
+        }  /* if */
+        if (lambda->has_capture_default &&
+            lambda->default_is_by_reference == by_ref && var != NULL) {
+          /* An explicit capture cannot match the default capture mode. */
+          pos_diagnostic(es_discretionary_error,
+                         ec_capture_mode_matches_default, &pos_capture);
+        }  /* if */
+        if (var != NULL) {
+          /* See if there is already a capture entry for this variable. */
+          if (find_lambda_capture(lambda, var) != NULL) {
+            /* A name cannot appear more than once in the capture list. */
+            pos_diagnostic(es_discretionary_error,
+                           ec_more_than_one_capture, &capture_pos);
+          } else {
+            /* Create the lambda capture entry for this variable. */
+            a_boolean             no_impl_capture;
+            lcp = add_lambda_capture(lambda, var, /*is_implicit=*/FALSE,
+                                     by_ref, &capture_pos, &no_impl_capture);
+            check_assertion(lcp != NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-          lcp->end_position = capture_end_pos;
+            lcp->end_position = capture_end_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-          if (no_impl_capture) {
-            pos_error(ec_no_implicit_capture_on_enclosing_lambda,
-                      &capture_pos);
+            if (no_impl_capture) {
+              pos_error(ec_no_implicit_capture_on_enclosing_lambda,
+                        &capture_pos);
+            }  /* if */
           }  /* if */
         }  /* if */
-      }  /* if */
+        pedep = end_potential_pack_expansion_context(pesep,
+                                                     /*is_declarator=*/FALSE);
+        if (pedep != NULL && lcp != NULL) {
+          /* This capture is a variadic template pack expansion, i.e.,
+             it's followed by "...".  Furthermore, we're in the prototype
+             instantiation, so mark the capture as a pack expansion. */
+          lcp->is_pack_expansion = TRUE;
+        }  /* if */
+        any_more = advance_to_next_pack_element(pesep);
+      }  /* while */
     } while (loop_token(tok_comma));
   }  /* while */
   remove_stop_token(tok_comma);

@@ -5274,7 +5274,7 @@ initialized.  These are addressed in the course of the processing.
         pedep = end_potential_pack_expansion_context(pesep,
                                                      /*is_declarator=*/FALSE);
         if (pedep != NULL && cip != NULL) {
-          /* This expression is a variadic template pack expansion, i.e.,
+          /* This mem-initializer is a variadic template pack expansion, i.e.,
              it's followed by "...".  Furthermore, we're in the prototype
              instantiation, so we mark the constructor init as a pack
              expansion. */

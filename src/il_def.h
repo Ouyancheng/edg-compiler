@@ -14746,6 +14746,10 @@ typedef struct a_lambda_capture {
 			/* TRUE if this entity was implicitly added to the
 			   capture list, FALSE if it was explicitly named
 			   in the capture list. */
+  a_byte_boolean
+		is_pack_expansion;
+			/* TRUE if this capture is a variadic template
+			   pack expansion, i.e., it's followed by "...". */
   a_source_position
 		position;
 			/* The source position of the name of the captured

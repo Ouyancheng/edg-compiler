@@ -4372,6 +4372,7 @@ in the current memory region.
   entry->closure_field = NULL;
   entry->capture_by_reference = FALSE;
   entry->is_implicit = FALSE;
+  entry->is_pack_expansion = FALSE;
   entry->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   entry->end_position = null_source_position;
