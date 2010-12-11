@@ -13254,8 +13254,9 @@ managed C++/CLI class.
       write_tok_ch(',');
     }  /* if */
     write_space();
-    gen_name((a_source_correspondence_ptr)ep->entity.ptr, ep->entity.kind,
-             GN_FORCE_QUALIFIED_NAME, (a_boolean *)NULL);
+    gen_name((a_source_correspondence_ptr)ep->entity.ptr,
+             (an_il_entry_kind)ep->entity.kind, GN_FORCE_QUALIFIED_NAME,
+             (a_boolean *)NULL);
   }  /* for */
 }  /* gen_overridden_function_list */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
