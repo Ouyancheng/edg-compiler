@@ -6190,6 +6190,7 @@ Put out the list of direct base classes of the class associated with ctsp
       write_space();
       gen_name(&bcp->orig_type->source_corresp, iek_type, GN_BASE_SPECIFIER,
                (a_boolean *)NULL);
+      if (bcp->is_pack_expansion) write_tok_str("...");
     }  /* if */
   }  /* for */
 }  /* gen_base_class_list */

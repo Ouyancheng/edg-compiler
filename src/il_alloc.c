@@ -1211,6 +1211,7 @@ to it.
 #if IA64_ABI
   bcp->offset_is_set                   = FALSE;
 #endif /* IA64_ABI */
+  bcp->is_pack_expansion               = FALSE;
   bcp->direct_base_number	       = 0;
   bcp->offset                          = 0;
 #if !IA64_ABI

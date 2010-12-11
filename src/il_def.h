@@ -5793,6 +5793,9 @@ typedef struct a_base_class {
   a_bit_field	offset_is_set:1;
                         /* TRUE for a base after its offset has been set. */
 #endif /* IA64_ABI */
+  a_bit_field	is_pack_expansion:1;
+			/* TRUE if this base class is a variadic template
+			   pack expansion, i.e., it's followed by "...". */
   bitfield_to_avoid_codecenter_warnings()
   a_base_class_sequence_number
 		direct_base_number;

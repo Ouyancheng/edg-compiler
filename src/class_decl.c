@@ -6032,6 +6032,7 @@ or struct definition.  The syntax is
     any_types = begin_potential_pack_expansion_context(&pesep);
     if (any_types) direct_base_number++;
     while (any_types) {
+      a_pack_expansion_descr_ptr	pedep;
       an_attribute_ptr			attributes;
       attributes = scan_attributes(al_base_specifier);
       if (attributes != NULL) mark_primary_decl_attributes(attributes);
@@ -6044,6 +6045,7 @@ or struct definition.  The syntax is
         default_access_str = "public";
       }  /* if */
       base_specifier_start_pos = pos_curr_token;
+      new_direct_bcp = NULL;
       /* Scan a single base specification, first looping through the specifying
          keywords virtual, public, private, and protected. */
       scan_inheritance_kind(type_ptr, &is_virtual, &access,
@@ -6496,8 +6498,11 @@ skip_base_class:
       }
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      (void)end_potential_pack_expansion_context(pesep,
-                                                 /*is_declarator=*/FALSE);
+      pedep = end_potential_pack_expansion_context(pesep,
+                                                   /*is_declarator=*/FALSE);
+      if (pedep != NULL && new_direct_bcp != NULL) {
+        new_direct_bcp->is_pack_expansion = TRUE;
+      }  /* if */
       any_types = advance_to_next_pack_element(pesep);
     }  /* while */
     /* Advance past the next comma, if any, and scan the next base class
