@@ -2359,6 +2359,69 @@ etc.)
 }  /* gen_conversion_function_name */
 
 
+static void gen_pack_element_param_name(char          *name,
+                                        unsigned long count)
+/*
+Output the name of a parameter, given by "name", which is an element of
+a pack expansion.  count gives a discriminator number related to the position
+of the parameter in the expansion.
+*/
+{
+  disable_line_wrapping();
+  write_tok_str("__VAR");
+  write_unsigned_num(count);
+  write_tok_str("__");
+  write_tok_str(name);
+  enable_line_wrapping();
+}  /* gen_pack_element_param_name */
+
+
+static void gen_param_name_from_param_type(a_param_type_ptr ptp)
+/*
+Output the name of a parameter from the indicated parameter type
+entry, or nothing if the parameter is unnamed.
+*/
+{
+  char *name = ptp->name;
+
+  if (name != NULL) {
+    if (ptp->is_pack_element) {
+      /* Distinguish variadic template pack elements with a number prefix. */
+      unsigned long count = 1;
+      for (; ptp->next != NULL && ptp->next->is_pack_element; ptp = ptp->next){
+        count++;
+      }  /* for */
+      gen_pack_element_param_name(name, count);
+    } else {
+      m_write_tok_str(name);
+    }  /* if */
+  }  /* if */
+}  /* gen_param_name_from_param_type */
+
+
+static void gen_param_name(a_variable_ptr var)
+/*
+Output the name of a function parameter, or nothing if the parameter is
+unnamed.
+*/
+{
+  char *name = unmangled_name_of(&var->source_corresp);
+
+  if (name != NULL) {
+    if (var->is_pack_element) {
+      /* Distinguish variadic template pack elements with a number prefix. */
+      unsigned long count = 1;
+      for (; var->next != NULL && var->next->is_pack_element; var = var->next){
+        count++;
+      }  /* for */
+      gen_pack_element_param_name(name, count);
+    } else {
+      m_write_tok_str(name);
+    }  /* if */
+  }  /* if */
+}  /* gen_param_name */
+
+
 static void gen_bare_name(a_source_correspondence *scp,
                           an_il_entry_kind        entry_kind)
 /*
@@ -2379,19 +2442,18 @@ a name.  Never generate a qualified name.
     /* For conversion functions, generate the routine name from the type
        name. */
     gen_conversion_function_name((a_routine_ptr)scp);
-  } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* Check for identifiers named with the Microsoft __identifier operator. */
-    if (scp->microsoft_identifier_used) {
-      write_tok_str("__identifier(");
-      write_tok_str(name);
-      write_tok_str(")");
-    } else
+  } else if (scp->microsoft_identifier_used) {
+    /* Output identifiers named with the Microsoft __identifier operator. */
+    write_tok_str("__identifier(");
+    write_tok_str(name);
+    write_tok_str(")");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    {
-      m_write_tok_str(name);
-    }
+  } else if (entry_kind == iek_variable &&
+             ((a_variable_ptr)scp)->is_parameter) {
+    gen_param_name((a_variable_ptr)scp);
+  } else {
+    m_write_tok_str(name);
   }  /* if */
 }  /* gen_bare_name */
 
@@ -5202,8 +5264,8 @@ default arguments should be suppressed (needed for template specializations).
              if the parameter name is omitted, e.g.,
                void foo(void  (void*));  // gets error
                void foo(void f(void*));  // okay
-             Put out a generated name in this case (unless a name was
-             recorded). */
+             Put out a generated name in this case if the parameter was
+             unnamed. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
           gen_ms_attribute_block(param->ms_attributes);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5213,7 +5275,7 @@ default arguments should be suppressed (needed for template specializations).
                                       &octl);
           if (param->is_parameter_pack) write_tok_str("...");
           if (param->name != NULL) {
-            write_tok_str(param->name);
+            gen_param_name_from_param_type(param);
           } else {
             gen_temp_name((char *)param);
           }  /* if */
@@ -5224,8 +5286,8 @@ default arguments should be suppressed (needed for template specializations).
                                        &octl);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
-          /* This is just a declaration, so put out the type and no name
-             (unless one was recorded). */
+          /* This is just a declaration, so put out the type and the name
+             (if any) from the param type entry. */
           a_type_ptr            param_type = param->declared_type != NULL ?
                                            param->declared_type : param->type;
           a_type_qualifier_set  extra_qual = param->declared_type != NULL ?
@@ -5239,7 +5301,7 @@ default arguments should be suppressed (needed for template specializations).
           if (param->name != NULL) {
             write_space();
             if (param->is_parameter_pack) write_tok_str("...");
-            write_tok_str(param->name);
+            gen_param_name_from_param_type(param);
             gen_attributes(param->attributes, al_declarator_id,
                            /*primary_only=*/FALSE);
           } else {
