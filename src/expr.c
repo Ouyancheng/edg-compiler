@@ -26600,6 +26600,43 @@ As indicated, this is initialization with the "=" semantics
 }  /* scan_class_initializer_expression */
 
 
+static void push_expr_stack_for_aggregate_initializer(
+                              an_expr_stack_entry_ptr *saved_expr_stack,
+                              an_expr_stack_entry     *expr_stack_entry,
+                              a_boolean               static_lifetime,
+                              a_boolean               suppress_object_lifetime)
+/*
+Push an expression stack entry for an aggregate initialization context.
+saved_expr_stack provides a place to save the old expression stack.
+expr_stack_entry is the new entry to be pushed on the stack.
+static_lifetime is TRUE if the entity being initialized has static lifetime.
+suppress_object_lifetime is TRUE if the usual push of an object lifetime
+should be suppressed, e.g., for a compound literal.
+*/
+{
+  an_expression_kind expr_kind = (an_expression_kind)ek_normal;
+
+  if (C_mode() && (static_lifetime || !(c99_mode || gcc_mode))) {
+    /* In C89 mode aggregate initializers have to be constant.  In C99 and
+       GNU C modes, that is only true for static initializers. */
+    expr_kind = (an_expression_kind)ek_init_constant;
+  }  /* if */
+  save_expr_stack(saved_expr_stack);
+  push_expr_stack(expr_kind, expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  suppress_object_lifetime);
+  transfer_expr_context_if_applicable(*saved_expr_stack);
+  if (static_lifetime) expr_stack->in_static_initializer = TRUE;
+  if (static_lifetime || favor_constant_result_for_nonstatic_init) {
+    /* Fold constant addressing expressions to constants so that constant
+       initialization can be more easily discerned.  This is necessary for
+       C-mode static initialization, and it can result in better code for
+       auto initialization, as well. */
+    expr_stack->favor_constant_result = TRUE;
+  }  /* if */
+}  /* push_expr_stack_for_aggregate_initializer */
+
+
 a_boolean scan_aggregate_initializer_expression(
                                    a_type_ptr         required_type,
                                    a_boolean          static_lifetime,
@@ -26657,7 +26694,6 @@ a thrown exception) if that is appropriate.
   a_boolean           string_case = FALSE, empty_aggregate = FALSE;
   a_constant_ptr      string_con;
   a_conv_descr        conversion;
-  an_expression_kind  expr_kind;
   unsigned long       levels_down;
 
   db_enter(3, "scan_aggregate_initializer_expression");
@@ -26665,25 +26701,10 @@ a thrown exception) if that is appropriate.
   if (whole_string_init != NULL) *whole_string_init = FALSE;
   *is_constant = FALSE;
   *dip = NULL;
-  save_expr_stack(&saved_expr_stack);
-  expr_kind = (an_expression_kind)ek_normal;
-  if (C_mode() && (static_lifetime || !(c99_mode || gcc_mode))) {
-    /* In C89 mode aggregate initializers have to be constant.  In C99 and
-       GNU C modes, that is only true for static initializers. */
-    expr_kind = (an_expression_kind)ek_init_constant;
-  }  /* if */
-  push_expr_stack(expr_kind, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  suppress_object_lifetime);
-  transfer_expr_context_if_applicable(saved_expr_stack);
-  if (static_lifetime) expr_stack->in_static_initializer = TRUE;
-  if (static_lifetime || favor_constant_result_for_nonstatic_init) {
-    /* Fold constant addressing expressions to constants so that constant
-       initialization can be more easily discerned.  This is necessary for
-       C-mode static initialization, and it can result in better code for
-       auto initialization, as well. */
-    expr_stack->favor_constant_result = TRUE;
-  }  /* if */
+  push_expr_stack_for_aggregate_initializer(&saved_expr_stack,
+                                            &expr_stack_entry,
+                                            static_lifetime,
+                                            suppress_object_lifetime);
   if (anything_cached(&dps->prescanned_initializer_cache)) {
     /* There is a cached expression. */
     levels_down = dps->prescanned_initializer_levels_down;
@@ -26905,6 +26926,52 @@ wrap_up:
   db_exit();
   return okay;
 }  /* scan_aggregate_initializer_expression */
+
+
+void prescan_aggregate_initializer_expression(
+                          a_decl_parse_state *dps,
+                          a_boolean          static_lifetime,
+                          a_boolean          suppress_object_lifetime,
+                          a_boolean          *empty_expansion_at_closing_brace)
+/*
+If we're in a context that allows a variadic template pack expansion,
+scan the next initializer expression as part of an aggregate
+initializer list, and put the expression into the cache associated
+with dps.  static_lifetime is TRUE if the variable being initialized
+has static lifetime.  suppress_object_lifetime is TRUE if the usual
+object lifetime around the initializer expression should be suppressed,
+e.g., for a compound literal.  If the expression scanned is a variadic
+template pack expansion, put the expressions from its expansion into
+the cache; in the degenerate case where the expansion produces no
+expressions, nothing is cached.  In that case, if the empty expansion
+is immediately followed by a right brace, return
+*empty_expansion_at_closing_brace set to TRUE (which is really the
+point of this routine; that's used to break out of the initializer
+list loop before we get to a point where we've already committed
+to being able to fetch a next expression).
+*/
+{
+  *empty_expansion_at_closing_brace = FALSE;
+  if (is_variadic_template_context() &&
+      dps->initializer_is_expr_list &&
+      !is_prototype_instantiation_context() &&
+      !anything_cached(&dps->prescanned_initializer_cache)) {
+    an_expr_stack_entry *saved_expr_stack;
+    an_expr_stack_entry expr_stack_entry;
+
+    push_expr_stack_for_aggregate_initializer(&saved_expr_stack,
+                                              &expr_stack_entry,
+                                              static_lifetime,
+                                              suppress_object_lifetime);
+    scan_potential_pack_expansion_initializer_expr(dps);
+    if (!anything_cached(&dps->prescanned_initializer_cache) &&
+        curr_token == tok_rbrace) {
+      *empty_expansion_at_closing_brace = TRUE;
+    }  /* if */
+    pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
+  }  /* if */
+}  /* prescan_aggregate_initializer_expression */
 
 
 void scan_class_parenthesized_initializer(

@@ -2314,9 +2314,23 @@ this function points to a tree that includes a dynamic-init entry.
                                                any_more_members,
                                                nothing_taken);
       took_extra_comma = FALSE;
+      add_stop_token(tok_comma);
       /* Loop, scanning initializers and building an aggregate constant. */
       while (any_more_initializers) {
-        add_stop_token(tok_comma);
+        if (is_variadic_template_context() && brace_flag &&
+            !designator_coming(init_info, (a_boolean *)NULL)) {
+          /* In a context that allows variadic template pack expansions,
+             prescan the next expression and check for the case where it's
+             a zero-length pack expansion followed by a right brace, which
+             makes us leave the loop. */
+          a_boolean empty_expansion_at_closing_brace;
+          prescan_aggregate_initializer_expression(
+                                            dps,
+                                            init_info->static_lifetime,
+                                            init_info->compound_literal,
+                                            &empty_expansion_at_closing_brace);
+          if (empty_expansion_at_closing_brace) break;
+        }  /* if */
         /* See whether a designator is next (except in initializers for GNU
            vectors). */
         if (context.anonymous_union_field_sym != NULL) {
@@ -2557,7 +2571,6 @@ this function points to a tree that includes a dynamic-init entry.
         }  /* if */
         /* If a designation was active, it is now consumed: */
         init_info->designation_state = ds_no_designation;
-        remove_stop_token(tok_comma);
         check_assertion(!(local_nothing_taken && is_flexible_array));
         /* Advance to the next member of the aggregate.  Set
            any_more_members FALSE if there are no more members. */
@@ -2708,6 +2721,7 @@ this function points to a tree that includes a dynamic-init entry.
         }  /* if */
         /* Keep looping while there are more initializers. */
       }  /* while */
+      remove_stop_token(tok_comma);
       /* There are no more initializers in the source (at least, none
          that should be considered part of the current aggregate). */
       if (kind == (a_type_kind)tk_error) any_more_members = FALSE;
