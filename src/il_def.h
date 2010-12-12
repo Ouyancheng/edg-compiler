@@ -2171,6 +2171,9 @@ typedef struct an_attribute {
 			   by the trans_copy process.  FALSE means it is a
 			   duplicate of something in another translation unit
 			   and will be discarded. */
+  a_bit_field	is_pack_expansion:1;
+			/* TRUE if the attribute is a variadic template pack
+			   expansion, i.e., it's followed by "...". */
   char		*name;	/* The attribute name as it appeared in the source.
 			   E.g. "aligned" for __attribute((aligned(8))). */
   char		*namespace_name;

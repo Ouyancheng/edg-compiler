@@ -15,7 +15,7 @@ attribute.c -- Processing of attributes.
 How to Add a New Attribute
 ==========================
 The attribute framework is designed to make it relatively easy to add a new
-attribute.  Typically, adding an attribute just a few steps:
+attribute.  Typically, adding an attribute involves just a few steps:
 
   (1) Add a new ak_... attribute kind constant in il_def.h.
       For example: ak_section.
@@ -1788,17 +1788,31 @@ appear.
   an_attribute_ptr   attributes = NULL, *p_attribute = &attributes, ap;
 
   for (;;) {
-    if (curr_token == end_token || curr_token == tok_comma) {
-      /* An empty attribute: Create a placeholder attribute entry for it. */
-      *p_attribute = make_attribute(af);
-      (*p_attribute)->kind = (a_byte_attribute_kind)ak_empty_attr;
+    a_pack_expansion_stack_entry_ptr pesep;
+    a_boolean                        any_more;
+    any_more = begin_potential_pack_expansion_context(&pesep);
+    /* Loop for a variadic template pack expansion. */
+    while (any_more) {
+      if (curr_token == end_token || curr_token == tok_comma) {
+        /* An empty attribute: Create a placeholder attribute entry for it. */
+        *p_attribute = make_attribute(af);
+        (*p_attribute)->kind = (a_byte_attribute_kind)ak_empty_attr;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      (*p_attribute)->end_position = pos_curr_token;
+        (*p_attribute)->end_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    } else {
-      *p_attribute = scan_attribute(af);
-    }  /* if */
-    p_attribute = last_attribute_link(p_attribute);
+      } else {
+        *p_attribute = scan_attribute(af);
+      }  /* if */
+      { a_pack_expansion_descr_ptr pedep;
+        pedep = end_potential_pack_expansion_context(pesep,
+                                                     /*is_declarator=*/FALSE);
+        if (pedep != NULL) {
+          (*p_attribute)->is_pack_expansion = TRUE;
+        }  /* if */
+      }
+      any_more = advance_to_next_pack_element(pesep);
+      p_attribute = last_attribute_link(p_attribute);
+    }  /* while */
     if (curr_token == end_token) {
       break;
     } else if (curr_token == tok_identifier && af == af_ms_declspec) {

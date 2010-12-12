@@ -3632,6 +3632,7 @@ Generate the given attribute (not including the attribute group delimiters).
     if (ap->arguments != NULL) {
       gen_attribute_arg_list(ap);
     }  /* if */
+    if (ap->is_pack_expansion) write_tok_str("...");
   }  /* if */
 }  /* gen_attribute */
 

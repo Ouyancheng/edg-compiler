@@ -4416,6 +4416,7 @@ Allocate an attribute in file scope memory and return a pointer to it.
   ap->on_primary_declaration = FALSE;
   ap->transforms_type_specifier = FALSE;
   ap->must_be_preserved_in_trans_unit_copy = FALSE;
+  ap->is_pack_expansion = FALSE;
   ap->name = NULL;
   ap->namespace_name = NULL;
   ap->arguments = NULL;
