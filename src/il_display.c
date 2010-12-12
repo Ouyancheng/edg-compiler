@@ -3868,6 +3868,9 @@ Display the indicated exception-specification-type entry.
   disp_ptr("next", (char *)ptr->next, iek_exception_specification_type);
   disp_ptr("type", (char *)ptr->type, iek_type);  
   disp_boolean("redundant", (a_boolean)ptr->redundant);
+  if (ptr->is_pack_expansion) {
+    disp_boolean("is_pack_expansion", TRUE);
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("source_position", &ptr->source_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

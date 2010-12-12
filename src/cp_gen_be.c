@@ -5047,6 +5047,7 @@ that a function might throw.
        estp != NULL;
        estp = estp->next) {
     gen_type(estp->type);
+    if (estp->is_pack_expansion) write_tok_str("...");
     if (estp->next != NULL) write_tok_str(", ");
   }  /* for */
   write_tok_ch(')');

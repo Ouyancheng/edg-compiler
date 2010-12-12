@@ -1299,8 +1299,13 @@ specification is handled later (see check_exception_specification).
           set_used_in_exception_or_rtti_flag(estp->type);
         }  /* if */
       }  /* if */
-      (void)end_potential_pack_expansion_context(pesep,
+      { a_pack_expansion_descr_ptr pedep =
+            end_potential_pack_expansion_context(pesep,
                                                  /*is_declarator=*/FALSE);
+        if (pedep != NULL) {
+          estp->is_pack_expansion = TRUE;
+        }  /* if */
+      }
       any_types = advance_to_next_pack_element(pesep);
     }  /* while */
     remove_stop_token(tok_comma);

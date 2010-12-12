@@ -2218,7 +2218,6 @@ region.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   esp->throw_any = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
   return esp;
 }  /* alloc_exception_specification */
 
@@ -2240,6 +2239,7 @@ region.
   estp->next = NULL;
   estp->type = NULL;
   estp->redundant = FALSE;
+  estp->is_pack_expansion = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   estp->source_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

@@ -4975,6 +4975,10 @@ typedef struct an_exception_specification_type {
 		redundant;
 			/* TRUE when a previous entry on the list has the same
 			   type. */
+  a_byte_boolean
+		is_pack_expansion;
+			/* TRUE if the type is a variadic template pack
+			   expansion, i.e., it's followed by "...". */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
 		source_position;
