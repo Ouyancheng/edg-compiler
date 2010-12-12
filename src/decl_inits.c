@@ -2318,7 +2318,8 @@ this function points to a tree that includes a dynamic-init entry.
       /* Loop, scanning initializers and building an aggregate constant. */
       while (any_more_initializers) {
         if (is_variadic_template_context() && brace_flag &&
-            !designator_coming(init_info, (a_boolean *)NULL)) {
+            !designator_coming(init_info, (a_boolean *)NULL) &&
+            !curr_token_if_nothing_cached_is(tok_lbrace, dps)) {
           /* In a context that allows variadic template pack expansions,
              prescan the next expression and check for the case where it's
              a zero-length pack expansion followed by a right brace, which
