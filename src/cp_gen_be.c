@@ -6139,6 +6139,7 @@ Put out the list of direct base classes of the class associated with ctsp
 {
   a_base_class_ptr              bcp = ctsp->base_classes;
   a_base_class_sequence_number  next_base;
+  a_boolean                     first_base = TRUE;
 
   for (next_base = 1; ; next_base++) {
     /* Care must be taken to traverse the direct base classes in declaration
@@ -6172,26 +6173,37 @@ Put out the list of direct base classes of the class associated with ctsp
       /* We're done. */
       break;
     } else {
-      a_base_class_derivation_ptr bcdp = bcp->derivation;
-      /* Output the appropriate separator. */
-      if (next_base == 1) {
-        write_tok_str(": ");
-      } else {
-        write_tok_str(", ");
-      }  /* if */
-      gen_attributes(bcp->attributes, al_base_specifier,
-                     /*primary_only=*/TRUE);
-      if (bcp->is_virtual) {
-        write_tok_str("virtual ");
-        /* Find the direct derivation for a virtual base class. */
-        for (; !bcdp->direct; bcdp = bcdp->next) {}
-      }  /* if */
-      /* Display the derivation access. */
-      gen_access_specifier(bcdp->access);
-      write_space();
-      gen_name(&bcp->orig_type->source_corresp, iek_type, GN_BASE_SPECIFIER,
-               (a_boolean *)NULL);
-      if (bcp->is_pack_expansion) write_tok_str("...");
+      /* If there are multiple base classes with the same number because of
+         a pack expansion, loop to put out all of them.  They will be
+         adjacent in the list. */
+      for (;;) {
+        a_base_class_derivation_ptr bcdp = bcp->derivation;
+        /* Output the appropriate separator. */
+        if (first_base) {
+          write_tok_str(": ");
+          first_base = FALSE;
+        } else {
+          write_tok_str(", ");
+        }  /* if */
+        gen_attributes(bcp->attributes, al_base_specifier,
+                       /*primary_only=*/TRUE);
+        if (bcp->is_virtual) {
+          write_tok_str("virtual ");
+          /* Find the direct derivation for a virtual base class. */
+          for (; !bcdp->direct; bcdp = bcdp->next) {}
+        }  /* if */
+        /* Display the derivation access. */
+        gen_access_specifier(bcdp->access);
+        write_space();
+        gen_name(&bcp->orig_type->source_corresp, iek_type, GN_BASE_SPECIFIER,
+                 (a_boolean *)NULL);
+        if (bcp->is_pack_expansion) write_tok_str("...");
+        /* Loop if there's another base class from the same pack expansion. */
+        if (bcp->next == NULL || bcp->next->direct_base_number != next_base) {
+          break;
+        }  /* if */
+        bcp = bcp->next;
+      }  /* for */
     }  /* if */
   }  /* for */
 }  /* gen_base_class_list */
