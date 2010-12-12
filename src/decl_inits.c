@@ -2317,7 +2317,7 @@ this function points to a tree that includes a dynamic-init entry.
       add_stop_token(tok_comma);
       /* Loop, scanning initializers and building an aggregate constant. */
       while (any_more_initializers) {
-        if (is_variadic_template_context() && brace_flag &&
+        if (is_variadic_template_context() &&
             !designator_coming(init_info, (a_boolean *)NULL) &&
             !curr_token_if_nothing_cached_is(tok_lbrace, dps)) {
           /* In a context that allows variadic template pack expansions,
