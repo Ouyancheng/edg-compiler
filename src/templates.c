@@ -19327,29 +19327,18 @@ that follows.
             /* No need to copy the type, since it will not actually be
                pointed to by the routine entry. */
           }  /* if */
-          if (remove_qualifiers_from_param_types) {
-            /* The parameter type top-level cv-qualifiers that appeared on
-               the specialization declaration should be preserved (in
-               preference to those from on the template declaration), since
-               they belong to the definition -- i.e., are used to form the
-               the parameter variable types.  For instance:
+          /* Use the parameter type list from the specialization in place
+             of the one from the template.  This is important for several
+             reasons.  The qualifiers from the specialization should be
+             preserved, for example:
                  template <class T> int f(T);
                  template<> int f<const int>(int x) {
                    return ++x;        // no error
                  }
-               Go through the param-type lists of the two routine types and
-               update the type generated from the template with qualifiers
-               from the type as actually declared. */
-            a_param_type_ptr  ptp, decl_ptp;
-
-            for (ptp = rp->type->variant.routine.extra_info->param_type_list,
-                 decl_ptp = dps->type->variant.routine.extra_info
-                                     ->param_type_list;
-                 ptp != NULL && decl_ptp != NULL;
-                 ptp = ptp->next, decl_ptp = decl_ptp->next) {
-              ptp->qualifiers = decl_ptp->qualifiers;
-            }  /* for */
-          }  /* if */
+             In addition, for variadic templates, the parameter type list
+             of the specialization must be the expanded version. */
+          rp->type->variant.routine.extra_info->param_type_list =
+                       dps->type->variant.routine.extra_info->param_type_list;
           /* Scan the function body. */
           if (func_info.is_deleted || func_info.is_defaulted) {
             /* Scan "= default;" or "= delete;" (the first two tokens were
