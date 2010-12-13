@@ -16335,7 +16335,7 @@ the overridden base class members in decl_info->named_overrides.
       } else if (sym == NULL) {
         /* The symbol was not found: Issue an error. */
         pos_error(ec_override_name_must_be_a_base_class_member_function,
-                    &pos_curr_token);
+                  &pos_curr_token);
       } else if (is_nontype_template_param_symbol(sym)) {
         /* A template-dependent symbol (possibly due to the presence of a
            dependent base class).  Further checks are not possible at this
