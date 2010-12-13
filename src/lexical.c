@@ -14377,7 +14377,9 @@ describes the name specified by "locator".
     /* Set the number of template arguments appearing in the reference. */
     a_template_arg_ptr argp;
     nrp->num_template_arguments = 0;
-    for (argp = locator->template_arg_list; argp != NULL; argp = argp->next) {
+    begin_template_arg_list_traversal_simple(locator->template_arg_list,
+                                             &argp);
+    for (; argp != NULL; advance_to_next_template_arg_simple(&argp)) {
       ++nrp->num_template_arguments;
     }  /* for */
   }  /* for */

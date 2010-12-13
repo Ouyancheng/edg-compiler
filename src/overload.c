@@ -5342,7 +5342,9 @@ type deduction.
 
   check_assertion(best_candidate->is_function_template &&
                   nonstandard_default_arg_deduction);
-  for (tap = best_candidate->template_arg_list; tap != NULL; tap = tap->next) {
+  begin_template_arg_list_traversal_simple(best_candidate->template_arg_list,
+                                           &tap);
+  for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
     if (tap->kind == (a_templ_arg_kind)tak_type) {
       a_type_ptr type = tap->variant.type;
       a_type_ptr orig_type = type;

@@ -19713,8 +19713,9 @@ are entailed in its definition and marks them external as well.
     /* Any class used directly or indirectly in specifying a template class
        should be externally linked.  This is not explicitly specified by the
        ARM, but may be inferred. */
-    tap = ctsp->template_arg_list;
-    for (; tap != NULL; tap = tap->next) {
+    begin_template_arg_list_traversal_simple(ctsp->template_arg_list,
+                                             &tap);
+    for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
       switch (tap->kind) {
         case tak_type: tp = tap->variant.type; break;
         case tak_nontype: tp = tap->variant.constant->type; break;

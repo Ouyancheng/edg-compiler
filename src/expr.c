@@ -4159,9 +4159,11 @@ on the rescan info recorded in the entries on orig_template_arg_list.
 
   /* This routine must be callable even when there is nothing on the
      expression stack. */
-  for (tap = template_arg_list, orig_tap = orig_template_arg_list;
-       tap != NULL;
-       tap = tap->next, orig_tap = orig_tap->next) {
+  begin_template_arg_list_traversal_simple(template_arg_list, &tap);
+  begin_template_arg_list_traversal_simple(orig_template_arg_list, &orig_tap);
+  for (; tap != NULL;
+       advance_to_next_template_arg_simple(&tap),
+       advance_to_next_template_arg_simple(&orig_tap)) {
     check_assertion(orig_tap != NULL);
     if (is_nontype_templ_arg(tap) &&
         !tap->is_array_bound_of_unknown_type) {
@@ -10659,9 +10661,10 @@ there was an error type somewhere in the type.
       /* Templates don't have a uuid themselves (except if an explicit
          specialization provided one) -- the uuid of a template argument type
          is used.  There must be only one argument with a uuid value. */
-      a_template_arg_ptr tap = ctsp->template_arg_list;
+      a_template_arg_ptr tap;
       uuidof_type = NULL;
-      for (; tap != NULL; tap = tap->next) {
+      begin_template_arg_list_traversal_simple(ctsp->template_arg_list, &tap);
+      for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
         if (tap->kind == (a_templ_arg_kind)tak_type) {
           a_type_ptr temp_type = underlying_uuidof_type(tap->variant.type,
                                                         template_case,
@@ -21800,7 +21803,8 @@ rendered.  When the first argument is rendered, *first is set to FALSE.
 octl describes the output method.
 */
 {
-  for (; tap != NULL; tap = tap->next, tpp = tpp->next) {
+  begin_template_arg_list_traversal(tpp, tap, &tpp, &tap);
+  for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
     if (*first) {
       put_str_to_temp_text_buffer(" [with ");
       *first = FALSE;
@@ -21883,10 +21887,12 @@ for the __PRETTY_FUNCTION__ keyword.
     */
     a_template_arg_ptr tap;
     put_ch_to_temp_text_buffer('<');
-    for (tap = rp->template_arg_list; tap != NULL; tap = tap->next) {
+    begin_template_arg_list_traversal_simple(rp->template_arg_list, &tap);
+    while (tap != NULL) {
       form_a_template_arg(tap, &octl);
-      if (tap->next != NULL) put_str_to_temp_text_buffer(", ");
-    }  /* for */
+      advance_to_next_template_arg_simple(&tap);
+      if (tap != NULL) put_str_to_temp_text_buffer(", ");
+    }  /* while */
     put_ch_to_temp_text_buffer('>');
   }  /* if */
   if (render_return_type) {

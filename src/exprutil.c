@@ -5033,7 +5033,8 @@ so it can go into the IL.
 {
   a_template_arg_ptr tap;
 
-  for (tap = template_arg_list; tap != NULL; tap = tap->next) {
+  begin_template_arg_list_traversal_simple(template_arg_list, &tap);
+  for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
     if (tap->arg_operand != NULL) {
       /* A template argument in arg_operand form. */
       an_operand             *operand = &tap->arg_operand->operand;

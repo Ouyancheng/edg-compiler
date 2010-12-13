@@ -5280,9 +5280,10 @@ list pointer in type_list.  *type_list should be NULL on the first call.
         if (arg_type->variant.class_struct_union.is_template_class) {
           /* Include the types of any template type arguments. */
           a_template_arg_ptr	tap;
-          tap = arg_type->variant.class_struct_union.extra_info->
-                                                             template_arg_list;
-          for (; tap != NULL; tap = tap->next) {
+          begin_template_arg_list_traversal_simple(
+            arg_type->variant.class_struct_union.extra_info->template_arg_list,
+            &tap);
+          for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
             if (is_type_templ_arg(tap)) {
               /* Note that nontype template arguments do not influence
                  argument dependent lookup.  Template template arguments
@@ -5488,8 +5489,10 @@ associated namespaces and classes to "namespace_list" and "class_list".
       if (type->variant.class_struct_union.is_template_class) {
         /* Include the types of any template type arguments. */
         a_template_arg_ptr	tap;
-        tap = type->variant.class_struct_union.extra_info->template_arg_list;
-        for (; tap != NULL; tap = tap->next) {
+        begin_template_arg_list_traversal_simple(
+                type->variant.class_struct_union.extra_info->template_arg_list,
+                &tap);
+        for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
           if (is_template_templ_arg(tap)) {
             add_template_template_arg_to_lookup_lists(tap, namespace_list,
                                                       class_list);
