@@ -961,6 +961,9 @@ do_sizeof_cases:
       (void)printf("**BAD TEMPLATE PARAM CONSTANT KIND**\n");
       break;
   }  /* switch */    
+  if (ptr->variant.template_param.is_pack) {
+    disp_boolean("is_pack", TRUE);
+  }  /* if */
 }  /* disp_template_param_constant */
 
 
