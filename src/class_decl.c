@@ -15778,7 +15778,7 @@ static a_boolean identifier_starts_name_qualifier_or_template_id(void)
 The current token is an identifier that might be a C++/CLI context-sensitive
 declaration specifier (e.g., "delegate" or "property").  Return TRUE if it
 starts a name qualifier (i.e., it is a class, enum, or namespace name followed
-by a '::') or if it is followed by a '<' (which presumably means that it
+by a "::") or if it is followed by a "<" (which presumably means that it
 starts a template-id).
 */
 {
@@ -16004,7 +16004,7 @@ encountered (i.e., which kind of context-sensitive keyword appeared:
     }  /* if */
   }  /* if */
   /* Cache the identifier (which now appears likely to be a context-sensitive
-     specifier keyword. */
+     specifier keyword). */
   cache_curr_token(&cache);
   (void)get_token();
   /* For this to be a field-like declaration preceded by a context-sensitive
@@ -18573,7 +18573,7 @@ classes.
               !identifier_starts_name_qualifier_or_template_id()) {
             /* In C++/CLI mode, a separate test is needed first to avoid
                calling is_decl_qualified_name_start() on a valid context-
-               sensitive keyword that is followed by a '::'.  E.g.:
+               sensitive keyword that is followed by a "::".  E.g.:
                  typedef int I;
                  ref class C { property ::I p; };
                In this example, calling is_decl_qualified_name() would complain
