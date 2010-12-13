@@ -137,6 +137,7 @@ reflected in start_secondary_declarator.
   ps->first_decl = FALSE;
   ps->first_decl_of_predeclared_entity = FALSE;
   ps->is_property_or_event_field = FALSE;
+  ps->is_declspec_property_field = FALSE;
   ps->has_cli_context_sensitive_keyword = FALSE;
   ps->has_cli_property_keyword = FALSE;
   ps->has_cli_event_keyword = FALSE;

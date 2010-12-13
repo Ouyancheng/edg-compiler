@@ -9019,7 +9019,7 @@ functions.
 a_boolean in_cli_property_or_event_definition(void)
 /*
 Return TRUE if we currently parsing the brace-enclosed definition of a
-non-trivial C++/CLI property.
+non-trivial C++/CLI property or event.
 */
 {
   return (scope_stack_top().class_def_state != NULL &&
@@ -9220,7 +9220,9 @@ with and issue diagnostics as needed.
         is_qualified_type(rtp->variant.routine.return_type)) {
       /* The return type of an event "add" or "remove" accessor must be void;
          "void const" is not acceptable. */
-      pos_error(ec_bad_event_add_or_remove_return, &dps->start_pos);
+      if (!is_error_type(rtp->variant.routine.return_type)) {
+        pos_error(ec_bad_event_add_or_remove_return, &dps->start_pos);
+      }  /* if */
       err = TRUE;
     } else {
       /* Check that the "add" or "remove" accessor has exactly one parameter
@@ -9471,7 +9473,7 @@ implicitly declared member functions.
   if (pdp != NULL) {
     /* Do not check for redeclarations or overloading here since any errors
        would likely be spurious.  Instead, check_property_accessor or
-       check_even_accessor will report duplicates. */
+       check_event_accessor will report duplicates. */
     sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
                              decl_scope_level, /*suppress_redecl_error=*/TRUE);
     /* Property accessors cannot be called directly: Make them invisible. */
@@ -16104,6 +16106,8 @@ being parsed), *decl_info describes the current member declaration, and
     check_assertion(dps->has_cli_event_keyword);
     pdp->kind = (a_property_or_event_kind)pek_cli_event;
   }  /* if */
+  class_state->class_aggregate_ruled_out = TRUE;
+  class_state->POD_ruled_out = TRUE;
   /* First scan leading static/virtual keywords, and skip over the "property"
      or "event" token. */
   while (curr_token == tok_static || curr_token == tok_virtual) {
@@ -16163,11 +16167,13 @@ being parsed), *decl_info describes the current member declaration, and
     if (is_handle_type(dps->type)) {
       a_type_ptr  underlying_tp = type_pointed_to(dps->type);
       if (!is_delegate_type(underlying_tp) &&
-         !is_template_param_type(underlying_tp)) {
+          !is_template_param_type(underlying_tp) &&
+          !is_error_type(underlying_tp)) {
         pos_error(ec_invalid_event_type, &type_pos);
         dps->type = error_type();
       }  /* if */
-    } else if (!is_template_param_type(dps->type)) {
+    } else if (!is_template_param_type(dps->type) &&
+               !is_error_type(dps->type)) {
       pos_error(ec_invalid_event_type, &type_pos);
       dps->type = error_type();
     }  /* if */
@@ -17926,7 +17932,7 @@ named XYZ.
                                                        property_case)) {
         /* A diagnostic has been issued: Additional ones for this symbol
            would not be helpful. */
-        continue;
+        goto next_derived_class_symbol;
       }  /* if */
       for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
         if (class_type_supp(bcp->type)->has_direct_property_or_event &&
@@ -17934,10 +17940,11 @@ named XYZ.
                                                          property_case)) {
           /* A diagnostic has been issued: Additional ones for this symbol
              would not be helpful. */
-          continue;
+          goto next_derived_class_symbol;
         }  /* if */
       }  /* for */
     }  /* if */
+next_derived_class_symbol:;
   }  /* for */
 }  /* check_names_reserved_by_cli_properties_and_events */
 

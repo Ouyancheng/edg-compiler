@@ -7829,7 +7829,10 @@ typedef struct a_property_or_event_descr {
 			   __declspec(property(...)) attribute. */
   a_bit_field	is_trivial:1;
 			/* TRUE if this is a C++/CLI property or event declared
-			   without explicit accessor functions. */
+			   without explicit accessor functions.  Such "trivial"
+			   properties and events have associated storage
+			   represented by the associated field or static data
+			   member. */
   a_bit_field	is_default_indexed:1;
 			/* TRUE if this entry is for a default-indexed
 			   property (C++/CLI syntax only). */

@@ -2046,9 +2046,9 @@ ec_bad_use_of_delegate_type;;"a delegate type is not allowed here"
 ec_empty_pack_expansion;;"this pack expansion produces an empty list of expressions, and an expression is needed here"
 ec_virtual_static_event;;"an event cannot be both static and virtual"
 ec_event_requires_managed_class;;"events can only be members of managed types"
-ec_invalid_event_accessor_decl;;"this declaration cannot appear in a event definition"
+ec_invalid_event_accessor_decl;;"this declaration cannot appear in an event definition"
 ec_invalid_event_type;;"event type must be a handle-to-delegate type"
-ec_event_add_already_declared;;"a \"add\" accessor was already declared for this event %p"
+ec_event_add_already_declared;;"an \"add\" accessor was already declared for this event %p"
 ec_event_remove_already_declared;;"a \"remove\" accessor was already declared for this event %p"
 ec_event_raise_already_declared;;"a \"raise\" accessor was already declared for this event %p"
 ec_virtual_static_event_accessor;;"an event accessor cannot be both static and virtual"
@@ -2062,6 +2062,7 @@ ec_static_conversion_function_must_have_one_parameter;;"a static conversion func
 ec_bad_parameter_type_for_static_member_operator;;"static operator must have a parameter type T, T&, T%%, or T^ with T = %t"
 ec_sizeof_operand_not_parameter_pack;;"the operand of sizeof... must be a parameter pack name"
 ec_sizeof_pack_in_non_variadic_context;;"the sizeof... operator can be used only in a variadic template"
+ec_event_name_not_allowed;;"event name cannot appear here"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

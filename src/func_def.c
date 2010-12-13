@@ -2279,8 +2279,11 @@ operator routine or do bitwise assignment.
         /* A field. */
         fp = sym->variant.field.ptr;
         tp = skip_typerefs(fp->type);
-        if (field_is_nontrivial_property(fp)) {
-          /* Property fields aren't really fields and thus are not copied. */
+        if (field_is_nontrivial_property_or_event(fp)) {
+          /* Property and event fields aren't really data members and thus are
+             not copied.  (C++/CLI "trivial" properties and events do have
+             associated storage represented by the field and hence are copied
+             here.)*/
           continue;
         }  /* if */
         if (is_const_qualified_type(tp) || is_any_reference_type(tp)) {
@@ -2476,9 +2479,11 @@ member or a base class with a nonpublic operator=() is handled elsewhere.
       if (sym->kind == (a_symbol_kind)sk_field) {
         tp = sym->variant.field.ptr->type;
         is_ref = is_const = FALSE;
-        if (field_is_nontrivial_property(sym->variant.field.ptr)) {
-          /* Property fields are not copied by the default assignment
-             operator. */
+        if (field_is_nontrivial_property_or_event(sym->variant.field.ptr)) {
+          /* Property and event fields are not copied by the default
+             assignment operator (C++/CLI "trivial" properties and events are
+             an exception because the field also represents associated
+             storage). */
         } else if (is_any_reference_type(tp)) {
           /* An assignment operator should not be generated if a member has a
              ref type. */

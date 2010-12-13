@@ -1599,9 +1599,10 @@ bugs).
       a_targ_size_t elt, num_array_elts = 1, field_offset;
       /* Skip compiler generated fields. */
       if (field->compiler_generated) continue;
-      /* Skip Microsoft-mode property fields (except trivial properties, which
-         do represent an allocated field). */
-      if (microsoft_mode && field_is_nontrivial_property(field)) {
+      /* Skip Microsoft-mode property and event fields (except C++/CLI
+         "trivial" properties and events, which do have associated storage
+         also represented by the field). */
+      if (microsoft_mode && field_is_nontrivial_property_or_event(field)) {
         continue;
       }  /* if */
       field_type = skip_typerefs(field->type);
@@ -2566,8 +2567,8 @@ there's no overflow TRUE is returned.
   class_type = parent_class_of(field);
   if (is_error_type(field_type)) {
     /* Do nothing if the field has an error type. */
-  } else if (microsoft_mode && field_is_nontrivial_property(field)) {
-    /* Nontrivial property fields do not take any space. */
+  } else if (microsoft_mode && field_is_nontrivial_property_or_event(field)) {
+    /* Nontrivial property or event fields do not take any space. */
     field->offset = field->offset_bit_remainder = 0;
   } else {
     /* Ensure that the size of the field's type has been computed. */
@@ -3210,7 +3211,7 @@ Also, in Microsoft mode we must skip over property fields.
 #if TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
   a_field_ptr  result = class_type->variant.class_struct_union.field_list;
   if (microsoft_mode) {
-    while (result && field_is_nontrivial_property(result)) {
+    while (result && field_is_nontrivial_property_or_event(result)) {
       result = result->next;
     }  /* while */
   }  /* if */

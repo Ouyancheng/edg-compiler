@@ -4600,11 +4600,14 @@ constructor-init entry for the member, or NULL in some error cases.
       if (locator_for_curr_id.is_qualified_name) {
         pos_error(ec_qualified_name_not_allowed,
                   &locator_for_curr_id.source_position);
-      } else if (microsoft_mode && field_is_nontrivial_property(field)) {
-        /* Property fields cannot be mentioned in a constructor
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (microsoft_mode && field_is_property_or_event(field)) {
+        /* Property and event fields cannot be mentioned in a constructor
            initializer list. */
-        pos_error(ec_property_name_not_allowed,
+        pos_error(property_or_event_kind_is(field, pek_cli_event) ?
+                    ec_event_name_not_allowed : ec_property_name_not_allowed,
                   &locator_for_curr_id.source_position);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       init_type = field->type;
       if (is_array_type(init_type)) {
@@ -5186,9 +5189,9 @@ initialized.  These are addressed in the course of the processing.
       /* sym represents a field.  Determine whether constructor initialization
          is required. */
       a_field_ptr field = sym->variant.field.ptr;
-      if (microsoft_mode && field_is_nontrivial_property(field)) {
-        /* Nontrivial property fields are not really data members and should
-           not be initialized. */
+      if (microsoft_mode && field_is_property_or_event(field)) {
+        /* Property and event fields are not really data members and should
+           not be explicitly initialized. */
         continue;
       } else if (is_generated_cctor) {
         /* All fields are explicitly listed for a generated copy constructor,
@@ -5815,9 +5818,9 @@ though neither constructors nor initialization is involved here.)
     if (sym->kind == (a_symbol_kind)sk_field) {
       /* sym represents a field.  Determine whether a destructor exists. */
       a_field_ptr field = sym->variant.field.ptr;
-      if (microsoft_mode && field_is_nontrivial_property(field)) {
-        /* Property fields are not really data members and should not be
-           destroyed. */
+      if (microsoft_mode && field_is_property_or_event(field)) {
+        /* Property and event fields are not really data members and should
+           not be destroyed. */
         continue;
       }  /* if */
       tp = skip_typerefs(field->type);

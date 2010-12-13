@@ -3592,10 +3592,11 @@ positions).
   if (is_error_operand(operand_1)) {
     make_error_operand(result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && field_is_nontrivial_property(field)) {
-    /* A property or event field in Microsoft C++ mode.  Render as an
-       ok_property_ref operand, which will be rewritten later as a function
-       call. */
+  } else if (microsoft_mode && field_is_nontrivial_property_or_event(field) &&
+             (property_or_event_kind_is(field, pek_declspec_property) ||
+              property_or_event_kind_is(field, pek_cli_property))) {
+    /* A property field in Microsoft C++ mode.  Render as an ok_property_ref
+       operand, which will be rewritten later as a function call. */
     clear_operand((an_operand_kind)ok_property_ref, result);
     result->type = unknown_type();
     result->variant.property_ref.field = field;

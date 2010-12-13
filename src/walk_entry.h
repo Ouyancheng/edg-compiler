@@ -1276,11 +1276,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->primary_ctor_or_dtor, a_routine_ptr, iek_routine);
 #endif /* IA64_ABI && DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (ptr->special_kind == (a_special_function_kind)sfk_property_get ||
-            ptr->special_kind == (a_special_function_kind)sfk_property_set ||
-            ptr->special_kind == (a_special_function_kind)sfk_event_add ||
-            ptr->special_kind == (a_special_function_kind)sfk_event_remove ||
-            ptr->special_kind == (a_special_function_kind)sfk_event_raise) {
+        if (rout_is_cli_accessor(ptr)) {
           remap_ptr(ptr->variant.property_or_event_descr,
                     a_property_or_event_descr_ptr,
                     iek_property_or_event_descr);

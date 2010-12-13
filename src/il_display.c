@@ -2812,11 +2812,7 @@ Display the indicated routine.
                        ptr->variant.ctor_dtor.base_name_offset);
 #endif /* IA64_ABI && DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (ptr->special_kind == (a_special_function_kind)sfk_property_get ||
-             ptr->special_kind == (a_special_function_kind)sfk_property_set ||
-             ptr->special_kind == (a_special_function_kind)sfk_event_add ||
-             ptr->special_kind == (a_special_function_kind)sfk_event_remove ||
-             ptr->special_kind == (a_special_function_kind)sfk_event_raise) {
+  } else if (rout_is_cli_accessor(ptr)) {
     disp_ptr("property_or_event_descr",
              (char*)ptr->variant.property_or_event_descr,
              iek_property_or_event_descr);
@@ -4780,9 +4776,16 @@ Display the indicated property index type entry.
 
 static void disp_property_or_event_descr(a_property_or_event_descr_ptr  ptr)
 /*
-Display the indicated property description.
+Display the indicated property/event description.
 */
 {
+  disp_name("kind");
+  switch (ptr->kind) {
+    case pek_declspec_property: (void)printf("__declspec property\n"); break;
+    case pek_cli_property:      (void)printf("C++/CLI property\n");    break;
+    case pek_cli_event:         (void)printf("C++/CLI event\n");       break;
+    default:                    (void)printf("** BAD KIND **\n");      break;
+  }  /* switch */
   if (ptr->is_trivial) {
     disp_boolean("is_trivial", TRUE);
   }  /* if */
@@ -4818,7 +4821,8 @@ Display the indicated property description.
       disp_ptr("raise_routine", (char*)ptr->raise_routine, iek_routine);
       break;
     default:
-      unexpected_condition();
+      /* "** BAD KIND **" was already displayed -- no further output is
+         is needed. */
       break;
   }  /* switch */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

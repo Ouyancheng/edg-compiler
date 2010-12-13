@@ -940,13 +940,13 @@ a type identical to base_class_type.  It must be found.
 
 /*
 Macro to test for a zero-length field.  This includes zero-length bit fields,
-incomplete array fields (where allowed), and nontrivial properties (in
-Microsoft mode).
+incomplete array fields (where allowed), and nontrivial properties and events
+(in Microsoft mode).
 */
-#define field_has_zero_length(field)                         \
-  ((field)->is_bit_field ? (field)->bit_size == 0 :          \
-                           (skip_typerefs((field)->type)->size == 0 || \
-                            field_is_nontrivial_property(field)))
+#define field_has_zero_length(field)                                        \
+  ((field)->is_bit_field ? (field)->bit_size == 0 :                         \
+                           (skip_typerefs((field)->type)->size == 0 ||      \
+                            field_is_nontrivial_property_or_event(field)))
 
 
 static a_field_ptr add_field(char          *field_name,
@@ -7917,9 +7917,9 @@ added_to_list:;
          old_field != NULL;
          old_field = old_field->next) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (field_is_nontrivial_property(old_field)) {
-        /* Do not copy fields representing nontrivial properties: They will be
-           removed. */
+      if (field_is_nontrivial_property_or_event(old_field)) {
+        /* Do not copy fields representing nontrivial properties or events:
+           They will be removed. */
         continue;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -9121,8 +9121,8 @@ Do IL lowering of the fields of the indicated class and everything under them.
        field = next_field) {
     next_field = field->next;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* Remove any fields representing a nontrivial property. */
-    if (field_is_nontrivial_property(field)) {
+    /* Remove any fields representing a nontrivial property or event. */
+    if (field_is_nontrivial_property_or_event(field)) {
       check_assertion_str(!field->source_corresp.has_associated_pragma,
                           "property field has associated pragma");
       if (prev_field == NULL) {
