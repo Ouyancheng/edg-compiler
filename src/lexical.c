@@ -13085,117 +13085,126 @@ all arguments were explicit.
   }  /* if */
   arg_number = 0;
   do {
-    a_source_position  arg_pos;
-    if (!in_pack && param_ptr != NULL && param_ptr->is_pack) {
-      /* Create a start of parameter pack placeholder. */
-      arg_ptr =
+    a_source_position			arg_pos;
+    a_pack_expansion_stack_entry_ptr	pesep;
+    a_boolean				any_args;
+    any_args = begin_potential_pack_expansion_context(&pesep);
+    while (any_args) {
+      if (!in_pack && param_ptr != NULL && param_ptr->is_pack) {
+        /* Create a start of parameter pack placeholder. */
+        arg_ptr =
              alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
+        /* Link this entry on to the argument list. */
+        if (arg_list == NULL) arg_list = arg_ptr;
+        if (last_arg != NULL) last_arg->next = arg_ptr;
+        last_arg = arg_ptr;
+        in_pack = TRUE;
+      }  /* if */
+      if (curr_token == tok_shift_right && right_shift_can_be_angle_brackets) {
+        /* Check for the case where a "right shift" could be interpreted as two
+           consecutive closing angle brackets. */
+        replace_right_shift_by_two_closing_angle_brackets();
+      }  /* if */
+      /* If the current token is a ">", and this is the first argument,
+         then exit the loop (an empty argument list). */
+      if (curr_token == tok_gt &&
+          (arg_list == NULL || (in_pack && arg_ptr == last_arg))) {
+        break;
+      }  /* if */
+      arg_pos = pos_curr_token;
+      /* If the template parameter list is empty, exit the loop.  This only
+         occurs in error cases. */
+      if (param_ptr == NULL) break;
+      add_stop_token(tok_comma);
+      sym = param_ptr->param_symbol;
+      /* Determine the template argument kind for this parameter. */
+      arg_kind = templ_arg_kind_for_symbol_kind(sym->kind);
+      arg_ptr = alloc_template_arg(arg_kind);
+      if (is_type_templ_arg(arg_ptr)) {
+        a_boolean		is_unnamed, is_local, is_vla;
+        argument_type = scan_template_type_argument();
+        /* In standard C++98/C++03, template type arguments must have linkage,
+           and therefore cannot be based on local or unnamed classes/enums.  In
+           Microsoft and C++0x modes, local class types are acceptable even
+           though they have no linkage. */ 
+        if (is_invalid_template_arg_type(
+                            argument_type, &is_unnamed, &is_local, &is_vla)) {
+          if (is_local) {
+            pos_error(ec_local_type_in_template_arg, &arg_pos);
+          } else if (is_unnamed) {
+            pos_error(ec_unnamed_type_in_template_arg, &arg_pos);
+          } else if (is_vla) {
+            pos_error(ec_vla_type_in_template_arg, &arg_pos);
+          } else {
+            /* A named type nested in an unnamed class has no linkage in
+               C++98/C++03.  Use a different diagnostic for such cases. */
+            pos_error(ec_type_with_no_linkage_in_template_arg, &arg_pos);
+          }  /* if */
+          argument_type = error_type();
+        }  /* if */
+        arg_ptr->variant.type = argument_type;
+      } else if (is_nontype_templ_arg(arg_ptr)) {
+        a_type_ptr  constant_type = sym->variant.constant->type;
+        /* If the type of a constant involves a template parameter type,
+           rescan the declaration of the parameter type to get the type
+           to be used in this argument list. */
+        if (param_ptr->variant.constant.type_involves_template_param &&
+            !template_in_prototype_instantiation) {
+  	constant_type = rescan_template_constant_parameter(
+                              template_sym, sym, param_ptr, arg_list,
+                              /*do_default_arg=*/FALSE, (a_constant_ptr*)NULL);
+        }  /* if */
+        constant = fs_constant((a_constant_repr_kind)ck_error);
+        scan_template_argument_constant_expression(constant_type, constant);
+        /* Make sure the constant does not use a local or nonexternal
+           variable, etc. */
+        if (nontype_templ_arg_constant_references_non_external_entity(
+                                                                   constant)) {
+          pos_error(ec_nonexternal_entity_in_template_arg, &arg_pos);
+          set_error_constant(constant);
+        }  /* if */
+        arg_ptr->variant.constant = constant;
+      } else {
+        /* A template template argument. */
+        a_template_ptr		templ;
+        a_template_ptr		param_template;
+        check_assertion_str(sym->kind == (a_symbol_kind)sk_class_template,
+                            "scan_template_argument_list: template expected");
+        param_template = param_ptr->variant.templ->il_template_entry;
+        if (param_ptr->variant.templ->
+                              variant.class_template.involves_template_param &&
+            !template_in_prototype_instantiation) {
+          /* The template template parameter depends on another template
+             parameter, for example:
+               template <class T, template <T t> class X> ...
+             Rescan the template template parameter declaration to create a
+             new parameter template. */
+          param_template = rescan_template_template_parameter(
+                                         template_sym, param_ptr, arg_list);
+          arg_ptr->variant.templ.substituted_param_template = param_template;
+        }  /* if */
+        templ = scan_template_template_argument(param_template, &arg_pos);
+        arg_ptr->variant.templ.ptr = templ;
+      }  /* if */
       /* Link this entry on to the argument list. */
       if (arg_list == NULL) arg_list = arg_ptr;
       if (last_arg != NULL) last_arg->next = arg_ptr;
       last_arg = arg_ptr;
-      in_pack = TRUE;
-    }  /* if */
-    if (curr_token == tok_shift_right && right_shift_can_be_angle_brackets) {
-      /* Check for the case where a "right shift" could be interpreted as two
-         consecutive closing angle brackets. */
-      replace_right_shift_by_two_closing_angle_brackets();
-    }  /* if */
-    /* If the current token is a ">", and this is the first argument,
-       then exit the loop (an empty argument list). */
-    if (curr_token == tok_gt &&
-        (arg_list == NULL || (in_pack && arg_ptr == last_arg))) {
-      break;
-    }  /* if */
-    arg_pos = pos_curr_token;
-    /* If the template parameter list is empty, exit the loop.  This only
-       occurs in error cases. */
-    if (param_ptr == NULL) break;
-    add_stop_token(tok_comma);
-    sym = param_ptr->param_symbol;
-    /* Determine the template argument kind for this parameter. */
-    arg_kind = templ_arg_kind_for_symbol_kind(sym->kind);
-    arg_ptr = alloc_template_arg(arg_kind);
-    if (is_type_templ_arg(arg_ptr)) {
-      a_boolean		is_unnamed, is_local, is_vla;
-      argument_type = scan_template_type_argument();
-      /* In standard C++98/C++03, template type arguments must have linkage,
-         and therefore cannot be based on local or unnamed classes/enums.  In
-         Microsoft and C++0x modes, local class types are acceptable even
-         though they have no linkage. */ 
-      if (is_invalid_template_arg_type(
-                            argument_type, &is_unnamed, &is_local, &is_vla)) {
-        if (is_local) {
-          pos_error(ec_local_type_in_template_arg, &arg_pos);
-        } else if (is_unnamed) {
-          pos_error(ec_unnamed_type_in_template_arg, &arg_pos);
-        } else if (is_vla) {
-          pos_error(ec_vla_type_in_template_arg, &arg_pos);
-        } else {
-          /* A named type nested in an unnamed class has no linkage in
-             C++98/C++03.  Use a different diagnostic for such cases. */
-          pos_error(ec_type_with_no_linkage_in_template_arg, &arg_pos);
-        }  /* if */
-        argument_type = error_type();
+      remove_stop_token(tok_comma);
+      if (param_ptr->is_pack) {
+        /* Record that this argument was associated with a pack. */
+        arg_ptr->is_pack_element = TRUE;
+      } else {
+        /* Don't advance to the next parameter if this is a pack. */
+        param_ptr = param_ptr->next;
+        orig_param_ptr = orig_param_ptr->next;
       }  /* if */
-      arg_ptr->variant.type = argument_type;
-    } else if (is_nontype_templ_arg(arg_ptr)) {
-      a_type_ptr  constant_type = sym->variant.constant->type;
-      /* If the type of a constant involves a template parameter type,
-         rescan the declaration of the parameter type to get the type
-         to be used in this argument list. */
-      if (param_ptr->variant.constant.type_involves_template_param &&
-          !template_in_prototype_instantiation) {
-	constant_type = rescan_template_constant_parameter(
-                              template_sym, sym, param_ptr, arg_list,
-                              /*do_default_arg=*/FALSE, (a_constant_ptr*)NULL);
-      }  /* if */
-      constant = fs_constant((a_constant_repr_kind)ck_error);
-      scan_template_argument_constant_expression(constant_type, constant);
-      /* Make sure the constant does not use a local or nonexternal
-         variable, etc. */
-      if (nontype_templ_arg_constant_references_non_external_entity(
-                                                                   constant)) {
-        pos_error(ec_nonexternal_entity_in_template_arg, &arg_pos);
-        set_error_constant(constant);
-      }  /* if */
-      arg_ptr->variant.constant = constant;
-    } else {
-      /* A template template argument. */
-      a_template_ptr		templ;
-      a_template_ptr		param_template;
-      check_assertion_str(sym->kind == (a_symbol_kind)sk_class_template,
-                          "scan_template_argument_list: template expected");
-      param_template = param_ptr->variant.templ->il_template_entry;
-      if (param_ptr->variant.templ->
-                              variant.class_template.involves_template_param &&
-          !template_in_prototype_instantiation) {
-        /* The template template parameter depends on another template
-           parameter (e.g., "template <class T, template <T t> class X> ...").
-           Rescan the template template parameter declaration to create a new
-           parameter template. */
-        param_template = rescan_template_template_parameter(
-                                       template_sym, param_ptr, arg_list);
-        arg_ptr->variant.templ.substituted_param_template = param_template;
-      }  /* if */
-      templ = scan_template_template_argument(param_template, &arg_pos);
-      arg_ptr->variant.templ.ptr = templ;
-    }  /* if */
-    /* Link this entry on to the argument list. */
-    if (arg_list == NULL) arg_list = arg_ptr;
-    if (last_arg != NULL) last_arg->next = arg_ptr;
-    last_arg = arg_ptr;
-    remove_stop_token(tok_comma);
-    if (param_ptr->is_pack) {
-      /* Record that this argument was associated with a pack. */
-      arg_ptr->is_pack_element = TRUE;
-    } else {
-      /* Don't advance to the next parameter if this is a pack. */
-      param_ptr = param_ptr->next;
-      orig_param_ptr = orig_param_ptr->next;
-    }  /* if */
-    ++arg_number;
-  } while (param_ptr != NULL && loop_token(tok_comma));
+      ++arg_number;
+      arg_ptr->pack_expansion_descr =
+         end_potential_pack_expansion_context(pesep, /*is_declarator=*/FALSE);
+      any_args = advance_to_next_pack_element(pesep);
+   }  /* while */
+ } while (param_ptr != NULL && loop_token(tok_comma));
 
   /* If we were processing arguments associated with a parameter pack,
      advance past the parameter pack now that we have reached the end

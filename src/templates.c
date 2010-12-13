@@ -6104,8 +6104,9 @@ another template parameter.
     for (tpp = templ_param_list, specified_tap = partial_arg_list;
          tpp != NULL;
          specified_tap = specified_tap == NULL ? NULL : specified_tap->next,
-           tpp = is_parameter_pack && specified_tap != NULL ? tpp
-                                                            : tpp->next) {
+           tpp = is_parameter_pack &&
+           specified_tap != NULL ? tpp
+                                 : (is_parameter_pack = FALSE, tpp->next)) {
       a_symbol_kind		sym_kind = tpp->param_symbol->kind;
       a_templ_arg_kind		arg_kind;
       if (tpp->is_pack && !is_parameter_pack) {
@@ -6122,11 +6123,11 @@ another template parameter.
           prev_tap->next = tap;
         }  /* if */
         prev_tap = tap;
+        is_parameter_pack = TRUE;
       }  /* if */
       /* Don't create a template an empty argument for a parameter pack with
          no specified arguments. */
       if (tpp->is_pack && specified_tap == NULL) continue;
-      is_parameter_pack = tpp->is_pack;
       arg_kind = templ_arg_kind_for_symbol_kind(sym_kind);
       tap = alloc_template_arg(arg_kind);
       if (specified_tap != NULL) {
@@ -6777,6 +6778,33 @@ of types after all of the function arguments have been processed.
 }  /* matches_template_array_bound */
 
 
+static a_boolean is_deducible_template_arg_list(
+				a_template_arg_ptr	templ_tap)
+/*
+Return TRUE if the templ_tap is a template argument list that should
+participate in deduction.  A template argument list is not deducible
+if it contains a pack expansion that is not the final template argument.
+templ_tap is a template argument list from a template declaration.
+*/
+{
+  a_boolean	result = TRUE;
+  a_boolean	pack_found = FALSE;
+
+  for (begin_template_arg_list_traversal_simple(templ_tap, &templ_tap);
+       templ_tap != NULL; advance_to_next_template_arg_simple(&templ_tap)) {
+    if (pack_found) {
+      /* There was another argument after the pack.  This is a nondeduced
+         context. */
+      result = FALSE;
+      break;
+    }  /* if */
+    /* Record that a pack expansion was found. */
+    if (templ_tap->pack_expansion_descr != NULL) pack_found = TRUE;
+  }  /* for */
+  return result;
+}  /* is_deducible_template_arg_list */
+
+
 static a_boolean matches_template_arg_list(
 				a_template_arg_ptr	tap,
 				a_template_arg_ptr	templ_tap,
@@ -6791,9 +6819,20 @@ from a template class reference with a template argument list of a
 partial specialization.
 */
 {
-  a_boolean	match = FALSE;
+  a_boolean				match = FALSE;
+  a_pack_expansion_stack_entry_ptr	pesep = NULL;
 
+  begin_template_arg_list_traversal_simple(tap, &tap);
+  begin_template_arg_list_traversal_simple(templ_tap, &templ_tap);
   do {
+    if (pesep == NULL && templ_tap->pack_expansion_descr != NULL) {
+      /* The argument from the template is of the form "T...".  This
+         is a template parameter pack deduction context. */
+      begin_pack_deduction_context(templ_tap->pack_expansion_descr,
+                                   templ_param_list,
+                                   templ_arg_list,
+                                   &pesep);
+    }  /* if */
     if (tap->kind != templ_tap->kind) {
       /* The argument kinds do not match */
       match = FALSE;
@@ -6810,16 +6849,32 @@ partial specialization.
                                         templ_tap->variant.constant,
                                         templ_arg_list,
                                         templ_param_list);
-    } else {
+    } else if (is_template_templ_arg(tap)) {
       /* A template template argument. */
       match = matches_template_template_param(tap->variant.templ.ptr,
                                               templ_tap->variant.templ.ptr,
 					      templ_arg_list,
 					      templ_param_list);
+    } else {
+      unexpected_condition();
     }  /* if */
-    tap = tap->next;
-    templ_tap = templ_tap->next;
+    advance_to_next_template_arg_simple(&tap);
+    if (pesep != NULL) {
+      /* If this is a pack deduction, indicate we are starting the deduction
+         of a (potential) new element. */ 
+      advance_to_next_deduced_element(pesep);
+    } else {
+      advance_to_next_template_arg_simple(&templ_tap);
+    }  /* if */
   } while (match && tap != NULL && templ_tap != NULL);
+  if (pesep != NULL) {
+    /* If this is a pack deduction, indicate we have reached the end of
+       the deduction this parameter. */
+    end_pack_deduction_context(pesep);
+    /* Set templ_tap to NULL to indicate that we reached the end of the
+       list. */
+    templ_tap = NULL;
+  }  /* if */
   /* If either list has arguments remaining, this is not a match. */
   if ((tap == NULL) != (templ_tap == NULL)) match = FALSE;
   return match;
@@ -6872,8 +6927,12 @@ matches a class type from the parameter list of a template function.
                                                    template_arg_list;
     templ_tap = templ_type->variant.class_struct_union.
                                        extra_info->template_arg_list;
-    if (matches_template_arg_list(tap, templ_tap, templ_arg_list,
-                                  templ_param_list)) {
+    if (!is_deducible_template_arg_list(templ_tap)) {
+      /* This argument list is a nondeduced context.  Consider it a match
+         for now. */
+      match = TRUE;
+    } else if (matches_template_arg_list(tap, templ_tap, templ_arg_list,
+                                         templ_param_list)) {
       match = TRUE;
     }  /* if */
   } else if (templ_primary_template != NULL &&
@@ -6888,8 +6947,12 @@ matches a class type from the parameter list of a template function.
                                                      template_arg_list;
       templ_tap = templ_type->variant.class_struct_union.
                                          extra_info->template_arg_list;
-      if (matches_template_arg_list(tap, templ_tap, templ_arg_list,
-                                    templ_param_list)) {
+      if (!is_deducible_template_arg_list(templ_tap)) {
+        /* This argument list is a nondeduced context.  Consider it a match
+           for now. */
+        match = TRUE;
+      } else if (matches_template_arg_list(tap, templ_tap, templ_arg_list,
+                                           templ_param_list)) {
         match = TRUE;
       }  /* if */
     }  /* if */
@@ -7947,41 +8010,71 @@ associated parameter.
   a_boolean		have_params = (param_list_for_copy != NULL);
 
   prev_new_tap = new_list = NULL;
+  /* Note that this routine does not use the template argument list
+     traversal routines. */
   for (tap = arg_list_to_copy, tpp = param_list_for_copy;
-       tap != NULL;
-       tap = tap->next, tpp = have_params ? tpp->next : NULL) {
-    new_tap = alloc_template_arg(tap->kind);
-    /* If there are too few parameters, the copy should fail. */
-    if (have_params && tpp == NULL) {
-      *copy_error = TRUE;
-      break;
+       tap != NULL; tap = tap->next) {
+    a_pack_expansion_stack_entry_ptr	pesep = NULL;
+    a_boolean				any_more = TRUE;
+    if (have_params && tap->pack_expansion_descr != NULL) {
+      any_more = begin_rescan_pack_expansion_context(tap->pack_expansion_descr,
+                                                     templ_param_list,
+                                                     templ_arg_list,
+                                                     &pesep);
     }  /* if */
-    /* Copy the unsubstituted value to the new argument. */
-    if (is_type_templ_arg(tap)) {
-      new_tap->variant.type = tap->variant.type;
-    } else if (is_nontype_templ_arg(tap)) {
-      new_tap->variant.constant = tap->variant.constant;
-    } else {
-      /* A template template argument. */
-      new_tap->variant.templ.ptr = tap->variant.templ.ptr;
-    }  /* if */
-    /* Do the substitution on the argument. */
-    substitute_template_argument(new_tap, tpp, arg_list_to_copy,
-                                 param_list_for_copy,
-                                 templ_arg_list, templ_param_list, source_pos,
-                                 options, orig_is_nonreal_template,
-                                 copy_error);
+    while (any_more) {
+      /* If there are too few parameters, the copy should fail. */
+      if (have_params && tpp == NULL) {
+        *copy_error = TRUE;
+        break;
+      }  /* if */
+      new_tap = alloc_template_arg(tap->kind);
+      new_tap->is_pack_element = have_params && tpp->is_pack;
+      /* Copy the unsubstituted value to the new argument. */
+      switch (tap->kind) {
+        case tak_type:
+          new_tap->variant.type = tap->variant.type;
+          break;
+        case tak_template:
+          /* A template template argument. */
+         new_tap->variant.templ.ptr = tap->variant.templ.ptr;
+         break;
+        case tak_nontype:
+          new_tap->variant.constant = tap->variant.constant;
+          break;
+        case tak_start_of_pack_expansion:
+          break;
+        default:
+          unexpected_condition();
+          break;
+      }  /* switch */
+      /* Do the substitution on the argument. */
+      if (!is_start_of_pack_expansion_templ_arg(tap)) {
+        substitute_template_argument(new_tap, tpp, arg_list_to_copy,
+                                     param_list_for_copy,
+                                     templ_arg_list, templ_param_list,
+                                     source_pos,
+                                     options, orig_is_nonreal_template,
+                                     copy_error);
+      }  /* if */
+      /* Exit the loop if the substitution failed. */
+      if (*copy_error) break;
+      if (new_list == NULL) {
+        new_list = new_tap;
+      } else {
+        prev_new_tap->next = new_tap;
+      }  /* if */
+      prev_new_tap = new_tap;
+      if (have_params && !tpp->is_pack) tpp = tpp->next;
+      (void)end_potential_pack_expansion_context(
+                                               pesep, /*is_declarator=*/FALSE);
+      any_more = advance_to_next_pack_element(pesep);
+    }  /* while */
     /* Exit the loop if the substitution failed. */
     if (*copy_error) break;
-    if (new_list == NULL) {
-      new_list = new_tap;
-    } else {
-      prev_new_tap->next = new_tap;
-    }  /* if */
-    prev_new_tap = new_tap;
   }  /* for */
   /* If there are too many parameters, the copy should fail. */
-  if (have_params && tpp != NULL) {
+  if (have_params && tpp != NULL && !tpp->is_pack) {
     *copy_error = TRUE;
   }  /* if */
   return new_list;
@@ -14527,13 +14620,15 @@ static void scan_a_template_parameter_declaration(
 				a_symbol_locator	*param_locator,
 				a_type_ptr		*param_type_ptr,
 				a_boolean		*is_unnamed,
-				a_boolean		*template_dependent)
+				a_boolean		*template_dependent,
+				a_boolean		*is_pack)
 /*
 Scan the declaration of a single template nontype parameter.  If the
 parameter is unnamed, and is_unnamed is not NULL, return a flag indicating
 whether the nontype parameter is unnamed.  If the parameter type
 depends on a template parameter type, return TRUE in *template_dependent
-(if it is not NULL).
+(if it is not NULL).  If the type of the parameter is followed by an
+ellipsis, return TRUE in *is_pack.
 */
 {
   a_decl_parse_state           state;
@@ -14556,6 +14651,12 @@ depends on a template parameter type, return TRUE in *template_dependent
         &error_position, state.type, /*is_function=*/FALSE,
         /*function_def_present=*/FALSE, /*is_main_function=*/FALSE,
         (state.dso_flags & DSO_NO_DECL_SPECIFIERS) == 0);
+  }  /* if */
+  if (curr_token == tok_ellipsis && variadic_templates_enabled) {
+    /* A "..." indicating a parameter pack declaration. */
+    check_assertion(is_pack != NULL);
+    *is_pack = TRUE;
+     (void)get_token();
   }  /* if */
   /* Scan the declarator. */
   declarator((DI_REAL_DECLARATOR_ALLOWED |
@@ -14952,11 +15053,13 @@ parameter depends on a template parameter.
   a_boolean		const_type_involves_template_param = FALSE;
   a_constant_ptr	default_arg_constant = NULL;
   a_boolean		def_arg_involves_template_param = FALSE;
+  a_boolean		is_pack = FALSE;
 
   /* Scan the declaration of the type of the nontype parameter. */
   scan_a_template_parameter_declaration(&param_locator, &param_type_ptr,
                                         &is_unnamed,
-                                        &const_type_involves_template_param);
+                                        &const_type_involves_template_param,
+                                        &is_pack);
   /* Create a symbol and bind a template param constant to it. At each
       point of instantiation an actual constant will be substituted. */
   sym = create_template_param_symbol((a_symbol_kind)sk_constant,
@@ -14971,6 +15074,7 @@ parameter depends on a template parameter.
                     variant.coordinates.depth = decl_state->nesting_depth;
   param_con->variant.template_param.
                     variant.coordinates.position = template_param_list_pos;
+  param_con->variant.template_param.is_pack = is_pack;
   set_source_corresp(&param_con->source_corresp, sym);
   if (parent_scope_should_be_set_for_template_param()) {
     /* In some modes, the parent scope is set for template parameters. */
@@ -14987,6 +15091,7 @@ parameter depends on a template parameter.
   record_template_param_symbol(sym);
   /* Allocate a template parameter and set its fields based on sym. */
   template_param = alloc_template_param(sym);
+  if (is_pack) template_param_is_variadic(sym, template_param, decl_state);
   if (const_type_involves_template_param) {
     /* For nontype parameters, the type of the parameter needs
        to be saved as a token cache if the type uses template
@@ -14999,15 +15104,24 @@ parameter depends on a template parameter.
   }  /* if */
   if (curr_token == tok_assign) {
     /* Scan the default value. */
-    a_token_cache  def_arg_cache;
-    template_param->has_default_arg = TRUE;
+    a_token_cache	def_arg_cache;
+    a_boolean		ignore_default = FALSE;
+    if (is_pack) {
+      /* A parameter pack cannot have default argument.  Issue an error and
+         ignore the default. */
+      pos_error(ec_param_pack_cannot_have_default, &pos_curr_token);
+      ignore_default = TRUE;
+    }  /* if */
+    template_param->has_default_arg = !is_pack;
     /* Skip past the equals sign. */
     (void)get_token();
     /* Cache the tokens that make up the default argument expression. */
     prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
                              /*is_function_template=*/FALSE,
 			     /*is_friend_decl=*/FALSE);
-    if (const_type_involves_template_param) {
+    if (ignore_default) {
+      /* Ignore the default for a parameter pack. */
+    } else if (const_type_involves_template_param) {
       /* The type of the constant parameter involves a template parameter.
          When the type of the constant involves a template parameter we have
          to save the constant as a token cache, so we also set the flag that
@@ -15427,6 +15541,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
       rescan_reusable_cache(&param_ptr->cache.tokens);
       /* Scan the declaration specifiers. */
       scan_a_template_parameter_declaration(&param_locator, &constant_type,
+                                            (a_boolean*)NULL,
                                             (a_boolean*)NULL,
                                             (a_boolean*)NULL);
       /* Skip past any tokens remaining in the cache.  Extra tokens will

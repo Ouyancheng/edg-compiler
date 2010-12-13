@@ -655,6 +655,7 @@ ck_template_param constant.
   cp->variant.template_param.is_qualified_name = FALSE;
   switch (kind) {
     case tpck_param:
+      cp->variant.template_param.is_pack = FALSE;
       cp->variant.template_param.variant.coordinates.position = 0;
       cp->variant.template_param.variant.coordinates.depth = NO_NESTING_DEPTH;
       break;
@@ -1057,6 +1058,7 @@ allocated.
   }  /* if */
   tap->next = NULL;
   tap->kind = kind;
+  tap->pack_expansion_descr = NULL;
   tap->is_array_bound_of_unknown_type = FALSE;
   tap->explicitly_specified = FALSE;
   tap->template_template_param_checked = FALSE;

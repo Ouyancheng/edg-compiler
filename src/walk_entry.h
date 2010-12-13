@@ -908,7 +908,7 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_list(ptr->ms_attributes, an_ms_attribute_ptr, iek_ms_attribute);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-       conditionally_clear_fe_pointer(ptr->pack_expansion_descr);
+        conditionally_clear_fe_pointer(ptr->pack_expansion_descr);
       }
       break;
     case iek_routine_type_supplement:
@@ -2877,6 +2877,7 @@ after_entry_from_class:
           unexpected_condition();
         }  /* if */
         conditionally_clear_fe_pointer(ptr->arg_operand);
+        conditionally_clear_fe_pointer(ptr->pack_expansion_descr);
       }
       break;
     case iek_new_delete_supplement:

@@ -3615,6 +3615,9 @@ typedef struct a_constant {
 		is_qualified_name;
 			/* For tpck_unknown_function, TRUE if a qualified
 			   name was used in the source code. */
+      a_byte_boolean
+		is_pack;
+			/* TRUE if this is a template parameter pack. */
       union {
 	/* When template param constant kind == tpck_param: */
         a_template_param_coordinate
@@ -5426,6 +5429,10 @@ typedef struct a_template_arg {
 		kind;
 			/* Specifies whether this is a type, nontype,
 			   or template template argument. */
+  struct a_pack_expansion_descr
+		*pack_expansion_descr;
+			/* If non-NULL, this argument is a pack expansion,
+			   and this points to the expansion description. */
   a_bit_field	is_array_bound_of_unknown_type:1;
 			/* TRUE if the template argument is a deduced array
 			   bound whose type is not yet known. */
