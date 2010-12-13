@@ -9399,7 +9399,8 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
 {
   a_boolean			done = FALSE;
 
-  if (pesep == NULL || is_template_dependent_context()) {
+  if (pesep == NULL ||
+      pesep->instantiation_descr == NULL) {
     /* We are not in a pack expansion, or we are in a prototype instantiation.
        In either case, indicate that there are no further elements. */
     done = TRUE;
