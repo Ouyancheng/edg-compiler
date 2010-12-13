@@ -8574,6 +8574,7 @@ to it.
   pesep->first_token_handle = NO_CACHED_TOKEN_HANDLE;
   pesep->is_rescan = FALSE;
   pesep->is_deduction = FALSE;
+  pesep->expansion_with_no_packs_diagnostic_issued = FALSE;
   return pesep;
 }  /* alloc_pack_expansion_stack_entry */
 
@@ -9067,6 +9068,18 @@ instantiation is being pushed as part of template argument deduction
 }  /* push_pack_instantiation */
 
 
+void suppress_expansion_with_no_packs_diagnostic(
+			a_pack_expansion_stack_entry_ptr	pesep)
+/*
+Record that the caller has already issued a diagnostic to the effect the pack
+expansion specified by pesep did not reference any packs (so that that
+another diagnostic will not be issued).
+*/
+{
+  pesep->expansion_with_no_packs_diagnostic_issued = TRUE;
+}  /* suppress_expansion_with_no_packs_diagnostic */
+
+
 a_boolean begin_potential_pack_expansion_context(
 			a_pack_expansion_stack_entry_ptr	*p_pesep)
 /*
@@ -9362,7 +9375,8 @@ effect and returns NULL.
         /* There were no packs referenced.  This is not a pack expansion.
            If a pack expansion ("...") has been seen, issue an error that no
            packs were encountered. */
-        if (pedp->ellipsis_seen) {
+        if (pedp->ellipsis_seen &&
+            !pesep->expansion_with_no_packs_diagnostic_issued) {
           pos_error(ec_expansion_contains_no_packs, &pedp->ellipsis_position);
         }  /* if */
         /* Free the expansion descriptor entry. */

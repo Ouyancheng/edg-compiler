@@ -398,6 +398,12 @@ typedef struct a_pack_expansion_stack_entry {
 			   each pack element produced by the deduction
 			   process, but no token manipulation or checking
 			   is done. */
+  a_byte_boolean
+		expansion_with_no_packs_diagnostic_issued;
+			/* TRUE if suppress_expansion_with_no_packs_diagnostic
+			   was called to indicate that the caller already
+			   issued a diagnostic for an expansion with no
+			   packs. */
 } a_pack_expansion_stack_entry;
 
 
@@ -1683,6 +1689,9 @@ extern void end_pack_deduction_context(
 extern a_pack_expansion_descr_ptr end_potential_pack_expansion_context(
 			a_pack_expansion_stack_entry_ptr	pesep,
 			a_boolean				is_declarator);
+
+extern void suppress_expansion_with_no_packs_diagnostic(
+			a_pack_expansion_stack_entry_ptr	pesep);
 
 extern a_boolean is_non_initial_variadic_param(void);
 
