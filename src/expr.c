@@ -7091,6 +7091,7 @@ indication in *rcblock).
             if (!symbol_is_pack(sym)) {
               expr_pos_error(ec_sizeof_operand_not_parameter_pack,
                              &pos_curr_token);
+              suppress_expansion_with_no_packs_diagnostic(pesep);
               err = TRUE;
             } else {
               record_potential_pack_reference(sym, &pos_curr_token);
