@@ -874,12 +874,13 @@ level.
       }  /* if */
     }  /* if */
     if (tap != NULL) {
-      /* Display the argument list for this entity. */
+      /* Display the argument list for this entity.  Don't use the standard
+         template argument traversal routines because they hide the existence
+         of parameter packs and we want parameter packs to be displayed in
+         the diagnostic. */
       check_assertion(decl_info != NULL);
       tpp = decl_info->parameters;
-      begin_template_arg_list_traversal(tpp, tap,
-                                        &tpp, &tap);
-      for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
+      for (; tpp != NULL; tpp = tpp->next) {
         /* Display "parameter=value". */
         if (!*any_args) {
           /* This is the first argument displayed -- add the introduction
@@ -894,7 +895,30 @@ level.
         add_string_to_segment(tpp->param_symbol->header->identifier,
                               seg_ptr);
         add_string_to_segment("=", seg_ptr);
-        form_a_template_arg(tap, &octl);
+        check_assertion(tap != NULL);
+        if (is_start_of_pack_expansion_templ_arg(tap)) {
+          a_boolean   first_pack_arg = TRUE;
+          /* This template parameter maps to zero or more template arguments
+             in a parameter pack. */
+          add_string_to_segment("<", seg_ptr);
+          for (tap = tap->next;
+               (tap != NULL &&
+                !is_start_of_pack_expansion_templ_arg(tap) &&
+                tap->is_pack_element);
+               tap = tap->next) {
+            /* Add a "," separator after the first argument. */
+            if (first_pack_arg) {
+              first_pack_arg = FALSE;
+            } else {
+              add_string_to_segment(", ", seg_ptr);
+            }  /* if */
+            form_a_template_arg(tap, &octl);
+          }  /* for */
+          add_string_to_segment(">", seg_ptr);
+        } else {
+          form_a_template_arg(tap, &octl);
+          tap = tap->next;
+        }  /* if */
       }  /* for */
     }  /* if */
   }  /* if */
@@ -1297,12 +1321,15 @@ symbol_name:
      effect. */
   if (seg_ptr->variant.symbol.template_args) {
     a_scope_stack_entry_ptr  ssep = error_msg_scopes[seg_ptr->sequence_no];
+    a_template_arg_ptr       tap;
     check_assertion(sym->kind == (a_symbol_kind)sk_function_template ||
                     sym->kind == (a_symbol_kind)sk_class_template);
     check_assertion(ssep != NULL);
-    if (ssep->template_arg_list != NULL) {
+    begin_template_arg_list_traversal_simple(ssep->template_arg_list, &tap);
+    if (tap != NULL) {
       add_string_to_segment(" ", seg_ptr);
-      if (ssep->template_arg_list->next != NULL) {
+      advance_to_next_template_arg_simple(&tap);
+      if (tap != NULL) {
         add_string_to_segment(error_text(ec_based_on_template_arguments),
                               seg_ptr);
       } else {
