@@ -3895,6 +3895,9 @@ explicitly dealt with later in expression mangling.
 {
   an_expr_operator_kind op;
   an_expr_node_ptr      prev_expr = NULL;
+#if CHECKING
+  an_expr_node_ptr      orig_expr = expr;
+#endif /* CHECKING */
 
   /* Drop implicit operations. */
   while (expr != prev_expr) {
@@ -3999,7 +4002,7 @@ explicitly dealt with later in expression mangling.
       }  /* if */
     }  /* if */
   }  /* while */
-  check_assertion(prev_expr == NULL || !prev_expr->is_pack_expansion);
+  check_assertion(orig_expr == expr || !orig_expr->is_pack_expansion);
   return skip_parens(expr);
 }  /* skip_compiler_generated_expressions */
 
