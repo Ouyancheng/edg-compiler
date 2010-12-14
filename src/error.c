@@ -733,6 +733,7 @@ Display the parameter list of the function template specified by sym.
       add_string_to_segment("<", seg_ptr);
       for (; tpp != NULL; tpp = tpp->next) {
         add_string_to_segment(tpp->param_symbol->header->identifier, seg_ptr);
+        if (tpp->is_pack) add_string_to_segment("...", seg_ptr);
         if (tpp->next != NULL) add_string_to_segment(",", seg_ptr);
       }  /* for */
       add_string_to_segment(">", seg_ptr);

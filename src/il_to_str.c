@@ -1544,6 +1544,11 @@ by octl.
           } else {
             form_name(scp, (an_il_entry_kind)scp_kind, octl);
           }  /* if */
+          if (type->variant.template_param.is_pack &&
+              !octl->gen_compilable_code) {
+            /* Output an indication that this is a template parameter pack. */
+            octl->output_str("...", octl);
+          }  /* if */
         }  /* if */
       }
       break;
