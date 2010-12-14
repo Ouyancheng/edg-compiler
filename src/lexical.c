@@ -13150,7 +13150,7 @@ all arguments were explicit.
            to be used in this argument list. */
         if (param_ptr->variant.constant.type_involves_template_param &&
             !template_in_prototype_instantiation) {
-  	constant_type = rescan_template_constant_parameter(
+          constant_type = rescan_template_constant_parameter(
                               template_sym, sym, param_ptr, arg_list,
                               /*do_default_arg=*/FALSE, (a_constant_ptr*)NULL);
         }  /* if */
@@ -13203,8 +13203,8 @@ all arguments were explicit.
       arg_ptr->pack_expansion_descr =
          end_potential_pack_expansion_context(pesep, /*is_declarator=*/FALSE);
       any_args = advance_to_next_pack_element(pesep);
-   }  /* while */
- } while (param_ptr != NULL && loop_token(tok_comma));
+    }  /* while */
+  } while (param_ptr != NULL && loop_token(tok_comma));
 
   /* If we were processing arguments associated with a parameter pack,
      advance past the parameter pack now that we have reached the end
@@ -13519,6 +13519,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   current_instantiation_sym = template_sym;
   if (template_sym != NULL) {
     a_template_symbol_supplement_ptr	tssp;
+    record_potential_pack_reference(template_sym, &start_position);
     class_is_being_instantiated =
             current_class_symbol_if_class_template(&current_instantiation_sym);
     tssp = template_supplement_for_symbol(template_sym);

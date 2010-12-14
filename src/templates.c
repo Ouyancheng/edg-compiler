@@ -15229,6 +15229,7 @@ depends on a another template parameter.
   a_template_symbol_supplement_ptr	tssp;
   a_boolean				is_named;
   a_tmpl_decl_state			local_decl_state;
+  a_boolean				is_pack = FALSE;
 
   /* Create a new set of declaration state information to be used while
      scanning the template template parameter. */
@@ -15258,6 +15259,10 @@ depends on a another template parameter.
      }  /* if */
      /* Bypass the "class" or "struct" keyword. */
      (void)get_token();
+  }  /* if */
+  if (curr_token == tok_ellipsis && variadic_templates_enabled) {
+    is_pack = TRUE;
+    (void)get_token();
   }  /* if */
   is_named = curr_token == tok_identifier;
   /* Create a class template symbol for this template template parameter.
@@ -15303,6 +15308,7 @@ depends on a another template parameter.
   tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
   templ_ptr->coordinates.depth = parent_decl_state->nesting_depth;
   templ_ptr->coordinates.position = template_param_list_pos;
+  templ_ptr->is_pack = is_pack;
   tssp->il_template_entry = templ_ptr;
   tssp->variant.class_template.argument_template = sym;
   set_template_cache_info(&tssp->cache,
@@ -15315,12 +15321,22 @@ depends on a another template parameter.
      template parameter. */
   check_template_param_default_args(local_decl_state.decl_info->parameters,
                                     /*is_partial_specialization=*/FALSE);
+  if (is_pack) {
+    template_param_is_variadic(sym, template_param, parent_decl_state);
+  }  /* if */
   if (curr_token == tok_assign) {
     a_token_cache			def_arg_cache;
     a_template_ptr			def_arg_templ;
     a_template_symbol_supplement_ptr	def_arg_tssp;
+    a_boolean				ignore_default = FALSE;
     /* Scan the default value for a type argument. */
-    template_param->has_default_arg = TRUE;
+    if (is_pack) {
+      /* A parameter pack cannot have default argument.  Issue an error and
+         ignore the default. */
+      pos_error(ec_param_pack_cannot_have_default, &pos_curr_token);
+      ignore_default = TRUE;
+    }  /* if */
+    template_param->has_default_arg = !is_pack;
     /* Skip past the equals sign. */
     (void)get_token();
     /* Cache the tokens that make up the default argument expression. */
@@ -15335,10 +15351,11 @@ depends on a another template parameter.
        if we also decide to save the cache.  This value will be used if
        the default is needed, but the parameters on which it depends
        are still template dependent. */
-    template_param->default_arg.templ = def_arg_templ;
+    if (!ignore_default) template_param->default_arg.templ = def_arg_templ;
     /* Update the default argument information in the template parameter. */
-    if (def_arg_tssp->is_nonreal_member ||
-        def_arg_tssp->variant.class_template.template_template_param) {
+    if (!ignore_default &&
+        (def_arg_tssp->is_nonreal_member ||
+         def_arg_tssp->variant.class_template.template_template_param)) {
       /* If the template that is returned is marked as a nonreal member
          or a template template parameter, the qualifier must depend on a
          template parameter.  This means that the default needs to be

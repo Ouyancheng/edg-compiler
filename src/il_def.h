@@ -14145,6 +14145,10 @@ typedef struct a_template {
 			   types that make it impossible for them to be
 			   referenced outside of the translation unit (e.g.,
 			   types from an unnamed namespace). */
+  a_byte_boolean
+		is_pack;
+			/* TRUE for a template template arguments if it is
+			   a template parameter pack. */
 #if RECORD_TEMPLATE_STRINGS
   char		*text;
 			/* A null-terminated string representing the text of

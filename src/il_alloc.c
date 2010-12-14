@@ -3989,6 +3989,7 @@ fields, and return a pointer to it.
   tp->template_info = NULL;
   tp->coordinates.position = 0;
   tp->coordinates.depth = NO_NESTING_DEPTH;
+  tp->is_pack = FALSE;
   tp->template_decl = NULL;
   tp->prototype_instantiation.type = NULL;
   tp->prototype_instantiation.routine = NULL;

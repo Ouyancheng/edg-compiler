@@ -2292,15 +2292,7 @@ function declarator in a friend function declaration.
         ptp->declared_type = param_state.declared_type;
         ptp->qualifiers = param_qualifiers;
         if (param_state.has_pack_ellipsis && is_template_dependent_context()) {
-          /* This looks like the declaration of a function parameter pack.
-             Verify that the parameter type is a "pattern type". */
-          /* FIXME: Is this test still needed? */
-          if (is_variadic_pattern_type(param_state.declared_type)) {
-            ptp->is_parameter_pack = TRUE;
-          } else {
-            pos_error(ec_function_parameter_pack_requires_pattern,
-                      &param_state.declarator_pos);
-          }  /* if */
+          /* This looks like the declaration of a function parameter pack. */
           default_arg_allowed_on_curr_param = FALSE;
         } else {
           ptp->is_pack_element = is_pack_element;
@@ -2359,7 +2351,6 @@ function declarator in a friend function declaration.
                               local_decl_pos_block.identifier_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           last_param_id->param_num = param_number;
-          last_param_id->is_parameter_pack = ptp->is_parameter_pack;
           ptp->param_num = param_number;
 #if GNU_EXTENSIONS_ALLOWED
           if (last_param_id->symbol != NULL) {
@@ -2681,6 +2672,10 @@ function declarator in a friend function declaration.
            used to create a substituted function type. */
         ptp->pack_expansion_descr =
            end_potential_pack_expansion_context(pesep, /*is_declarator=*/TRUE);
+        if (ptp->pack_expansion_descr != NULL) {
+          ptp->is_parameter_pack = TRUE;
+          last_param_id->is_parameter_pack = ptp->is_parameter_pack;
+        }  /* if */
         any_variadic_params = advance_to_next_pack_element(pesep);
         if (!any_variadic_params && !done) {
           is_new_param = TRUE;

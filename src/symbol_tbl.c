@@ -1695,10 +1695,23 @@ Return TRUE if sym is a template parameter pack or function parameter pack.
       }
       break;
     case sk_constant:
-      /* FIXME: Flag for constant needs to be added. */
+      /* For a constant, check for a template parameter constant that is
+         marked as a pack. */
+      { a_constant_ptr	cp = sym->variant.constant;
+        if (cp->kind == (a_type_kind)ck_template_param) {
+          result = cp->variant.template_param.is_pack;
+        }  /* if */
+      }
       break;
     case sk_class_template:
-      /* FIXME: Flag for template template parameter needs to be added. */
+      /* For a class template, check for a template template parameter
+         marked as a pack. */
+      { a_template_symbol_supplement_ptr	tssp;
+        a_template_ptr				templ;
+        tssp = sym->variant.template_info;
+        templ = tssp->il_template_entry;
+        result = templ->is_pack;
+      }
       break;
     case sk_variable:
       /* For variables, check for a parameter variable marked as a parameter
