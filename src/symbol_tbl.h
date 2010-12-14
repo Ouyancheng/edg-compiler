@@ -4423,6 +4423,21 @@ Return TRUE if a symbol is a class template or an injected template symbol.
   ((sym)->kind == (a_symbol_kind)sk_class_template ||                  \
    is_injected_template_symbol(sym))
 
+/*
+Return TRUE if a symbol that, when followed by a "<", should not be
+coalesced as a template for error recovery purposes.  In general, a
+constant cannot be followed by a template argument list, but an exception
+is made for tpck_member constants that can be found in some modes as a result
+of the ability to name members assumed to exist in dependent base classes
+using unqualified names.
+*/
+#define symbol_cannot_be_template(sym)					\
+  ((sym)->kind == (a_symbol_kind)sk_constant &&			\
+   ((sym)->variant.constant->kind !=					\
+                          (a_constant_repr_kind)ck_template_param ||	\
+    (sym)->variant.constant->variant.template_param.kind !=		\
+                    (a_template_param_constant_kind)tpck_member))
+
 /* Return TRUE if a symbol is a class or function template symbol or an
    overload set containing a function template symbol */
 #define symbol_is_or_contains_template(sym)				\

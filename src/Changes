@@ -1,5 +1,15 @@
 Version 4.3
 
+12/14/10 [EDGcpfe/8817]
+Spurious error on nontype template parameter followed by "<"
+
+A spurious error could be issued if a nontype template parameter was followed
+by an "<".  Now fixed.
+
+  template<int i, bool b = i < 2> struct A {};
+  A<1> a;
+
+
 12/9/10  [EDGcpfe/11201]
 Spurious errors on C++0x trailing return type with multiple specifiers
 

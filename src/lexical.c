@@ -15421,7 +15421,10 @@ selection operator, in which case it points to the type of the left operand.
        list. */
     if ((qualifier_sym != NULL &&
          is_class_template_or_injected_template_symbol(qualifier_sym)) ||
-        next_tok == tok_lt || follows_template) {
+        (next_tok == tok_lt &&
+         (qualifier_sym == NULL ||
+          !symbol_cannot_be_template(qualifier_sym))) ||
+        follows_template) {
       /* Process a template reference.  This is considered a potential
          template reference if the symbol points to a class template
          or if the next token is a "<" (which could be a function template
