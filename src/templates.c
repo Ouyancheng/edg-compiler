@@ -8600,7 +8600,11 @@ a pointer over a reference type or creating an array of references.
             *copy_error = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           } else if (type->variant.pointer.is_handle) {
-            new_type = make_handle_type(tp);
+            if (check_handle_to_type(tp, (a_source_position*)NULL)) {
+              new_type = make_handle_type(tp);
+            } else {
+              *copy_error = TRUE;
+            }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             new_type = make_pointer_type(tp);

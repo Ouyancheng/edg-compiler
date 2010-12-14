@@ -2013,7 +2013,7 @@ ec_handle_to_void;;"handle to void is not allowed"
 ec_handle_to_address_type;;"handle to handle, pointer, or reference is not allowed"
 ec_tracking_reference_to_function;;"tracking reference to function is not allowed"
 ec_handle_not_allowed;;"a handle is not allowed here"
-ec_tracking_reference_not_allowed;;"a tracking reference is not allowed here"
+ec_field_cannot_be_tracking_reference;;"a field cannot be a tracking reference"
 ec_invalid_ref_tracking_ref_combination;;"a tracking reference cannot be combined with an ordinary reference in this way"
 ec_static_storage_variable_with_managed_type;;"a variable with static storage duration cannot have a managed type"
 ec_unnamed_cli_managed_class_type;;"a managed C++/CLI class type cannot be unnamed"
@@ -2063,6 +2063,8 @@ ec_bad_parameter_type_for_static_member_operator;;"static operator must have a p
 ec_sizeof_operand_not_parameter_pack;;"the operand of sizeof... must be a parameter pack name"
 ec_sizeof_pack_in_non_variadic_context;;"the sizeof... operator can be used only in a variadic template"
 ec_event_name_not_allowed;;"event name cannot appear here"
+ec_handle_to_standard_class_type;;"a handle to a non-managed class type is not allowed"
+ec_handle_to_unscoped_enum_type;;"a handle to an unscoped enum type is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

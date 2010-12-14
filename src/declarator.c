@@ -3834,6 +3834,35 @@ __w64 annotation, and __based variable specifiers).  The given type must be a
   }  /* if */
 }  /* apply_microsoft_ptr_modifiers */
 
+
+a_boolean check_handle_to_type(a_type_ptr         tp,
+                               a_source_position  *diag_pos)
+/*
+If a C++/CLI handle type on top of tp is valid, return TRUE.  Otherwise,
+return FALSE and if diag_pos is non-NULL issue a diagnostic at the given
+position.
+*/
+{
+  an_error_code  err_code = ec_no_error;
+
+  if (tp->kind == (a_type_kind)tk_pointer) {
+    /* A handle cannot point to any kind of pointer/handle or reference
+       type. */
+    err_code = ec_handle_to_address_type;
+  } else if (is_void_type(tp)) {
+    /* A handle-to-void type is invalid. */
+    err_code = ec_handle_to_void;
+  } else if (is_immediate_class_type(tp) && !is_managed_class_type_entry(tp)) {
+    err_code = ec_handle_to_standard_class_type;
+  } else if (is_immediate_enum_type(tp) && !integer_type_is_scoped_enum(tp)) {
+    err_code = ec_handle_to_unscoped_enum_type;
+  }  /* if */
+  if (diag_pos != NULL && err_code != ec_no_error) {
+    pos_error(err_code, diag_pos);
+  }  /* if */
+  return err_code == ec_no_error;
+}  /* make_handle_type_if_valid */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
@@ -4170,17 +4199,10 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
           based_not_allowed_here(ptr_mods.based_var, ptr_mods.based_pos);
           if (curr_token == tok_excl_or) {
             /* "^" for handle. */
-            if (temp_type->kind == (a_type_kind)tk_pointer) {
-              /* A handle cannot point to any kind of pointer/handle or
-                 reference type. */
-              pos_error(ec_handle_to_address_type, &pos_curr_token);
-              err = TRUE;
-            } else if (is_void_type(temp_type)) {
-              /* A handle-to-void type is invalid. */
-              pos_error(ec_handle_to_void, &pos_curr_token);
+            if (!check_handle_to_type(temp_type, &pos_curr_token)) {
               err = TRUE;
             }  /* if */
-            /* Make the handle type. */
+            /* Make the handle type if valid. */
             complete_type = err ? error_type() :
                                   make_handle_type(complete_type);
           } else {

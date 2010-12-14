@@ -12385,7 +12385,7 @@ declarations.
                                 field_type, &locator->source_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled && is_tracking_reference_type(field_type)) {
-      pos_error(ec_tracking_reference_not_allowed,
+      pos_error(ec_field_cannot_be_tracking_reference,
                 &decl_state->declarator_pos);
       field_type = error_type();
     } else if (cppcli_enabled && is_handle_type(field_type) &&

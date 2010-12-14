@@ -331,7 +331,6 @@ extern a_type_ptr form_declared_type(a_type_ptr             type_ptr,
                                      a_func_info_block_ptr  func_info);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-
 extern void add_to_derived_type_list(a_type_ptr          new_type_ptr,
                                      a_type_ptr          *derived_type,
                                      a_type_ptr          *bottom_derived_type,
@@ -346,6 +345,11 @@ extern void report_bad_return_type_qualifier(a_type_ptr          type,
 extern a_boolean check_return_type(a_type_ptr          type,
                                    a_decl_parse_state  *dps,
                                    a_source_position   *diag_pos);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean check_handle_to_type(a_type_ptr         tp,
+                                      a_source_position  *diag_pos);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void scan_lambda_declarator(a_lambda_ptr        lambda,
                                    a_decl_parse_state  *dps,
