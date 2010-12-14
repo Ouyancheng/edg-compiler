@@ -7078,29 +7078,32 @@ indication in *rcblock).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         id_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        /* Look up the identifier.  It must be a parameter pack name. */
-        sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
-        if (sym == NULL) {
-          expr_pos_error(ec_sizeof_operand_not_parameter_pack,
-                         &pos_curr_token);
-          err = TRUE;
-        } else {
-          /* Record a reference against the identifier. */
-          (void)ref_entry(sym, &pos_curr_token);
-          if (is_prototype_instantiation_context()) {
-            /* Check that the identifier is a parameter pack name. */
-            if (!symbol_is_pack(sym)) {
-              expr_pos_error(ec_sizeof_operand_not_parameter_pack,
-                             &pos_curr_token);
-              suppress_expansion_with_no_packs_diagnostic(pesep);
-              err = TRUE;
-            } else {
-              record_potential_pack_reference(sym, &pos_curr_token);
-              if (sym->kind == (a_symbol_kind)sk_variable &&
-                  !var_declared_in_current_routine(
-                                                  sym->variant.variable.ptr)) {
-                expr_pos_error(ec_ref_to_nested_function_var, &pos_curr_token);
+        if (is_variadic_template_context()) {
+          /* Look up the identifier.  It must be a parameter pack name. */
+          sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+          if (sym == NULL) {
+            expr_pos_error(ec_sizeof_operand_not_parameter_pack,
+                           &pos_curr_token);
+            err = TRUE;
+          } else {
+            /* Record a reference against the identifier. */
+            (void)ref_entry(sym, &pos_curr_token);
+            if (is_prototype_instantiation_context()) {
+              /* Check that the identifier is a parameter pack name. */
+              if (!symbol_is_pack(sym)) {
+                expr_pos_error(ec_sizeof_operand_not_parameter_pack,
+                               &pos_curr_token);
+                suppress_expansion_with_no_packs_diagnostic(pesep);
                 err = TRUE;
+              } else {
+                record_potential_pack_reference(sym, &pos_curr_token);
+                if (sym->kind == (a_symbol_kind)sk_variable &&
+                    !var_declared_in_current_routine(
+                                                  sym->variant.variable.ptr)) {
+                  expr_pos_error(ec_ref_to_nested_function_var,
+                                 &pos_curr_token);
+                  err = TRUE;
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
