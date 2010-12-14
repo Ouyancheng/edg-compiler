@@ -2061,14 +2061,14 @@ Display a STDC pragma value along with a name.
 
   disp_name(name);
   switch (value) {
-    case stdc_pv_none:    s = "none"; break;
-    case stdc_pv_off:     s = "off"; break;
-    case stdc_pv_on:      s = "on"; break;
+    case stdc_pv_none:    s = "none";                      break;
+    case stdc_pv_off:     s = "off";                       break;
+    case stdc_pv_on:      s = "on";                        break;
 #if FIXED_POINT_ALLOWED
-    case stdc_pv_sat:     s = "sat"; break;
+    case stdc_pv_sat:     s = "sat";                       break;
 #endif /* FIXED_POINT_ALLOWED */
-    case stdc_pv_default: s = "default"; break;
-    default: unexpected_condition(); break;
+    case stdc_pv_default: s = "default";                   break;
+    default:              s = "**BAD STDC PRAGMA VALUE**"; break;
   }  /* switch */
   (void)printf("%s\n", s);
 }  /* disp_stdc_pragma_value */
@@ -2294,7 +2294,9 @@ Display the indicated variable.
     if (asm_name_valid && named_register_storage_class) {
       /* A GNU asm alias and an Embedded C named-register storage class are
          mutually exclusive. */
-      unexpected_condition();
+      (void)printf("**BAD IL: %s %s**\n",
+                   "asm_name_is_valid and has_named_register_storage_class",
+                   "both TRUE");
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
     } else if (asm_name_valid) {
       if (ptr->asm_name_or_reg.name != NULL) {
@@ -4217,27 +4219,30 @@ Display the indicated pragma entry.
     }  /* if */
   } else if (ptr->kind == (a_pragma_kind)pk_conform) {
     disp_name("conform.kind");
-    check_assertion(ptr->variant.conform.kind ==
-                              (a_microsoft_pragma_conform_kind)mpck_forScope);
-    (void)printf("mpck_forScope\n");
-    if (ptr->variant.conform.on) {
-      disp_boolean("conform.on", TRUE);
-    }  /* if */
-    if (ptr->variant.conform.off) {
-      disp_boolean("conform.off", TRUE);
-    }  /* if */
-    if (ptr->variant.conform.show) {
-      disp_boolean("conform.show", TRUE);
-    }  /* if */
-    if (ptr->variant.conform.push) {
-      disp_boolean("conform.push", TRUE);
-    }  /* if */
-    if (ptr->variant.conform.pop) {
-      disp_boolean("conform.pop", TRUE);
-    }  /* if */
-    if (ptr->variant.conform.identifier != NULL) {
-      disp_string_ptr("conform.identifier", ptr->variant.conform.identifier,
-                      iek_other_text, (sizeof_t)0);
+    if (ptr->variant.conform.kind !=
+                             (a_microsoft_pragma_conform_kind)mpck_forScope) {
+      (void)printf("**BAD KIND**\n");
+    } else {
+      (void)printf("mpck_forScope\n");
+      if (ptr->variant.conform.on) {
+        disp_boolean("conform.on", TRUE);
+      }  /* if */
+      if (ptr->variant.conform.off) {
+        disp_boolean("conform.off", TRUE);
+      }  /* if */
+      if (ptr->variant.conform.show) {
+        disp_boolean("conform.show", TRUE);
+      }  /* if */
+      if (ptr->variant.conform.push) {
+        disp_boolean("conform.push", TRUE);
+      }  /* if */
+      if (ptr->variant.conform.pop) {
+        disp_boolean("conform.pop", TRUE);
+      }  /* if */
+      if (ptr->variant.conform.identifier != NULL) {
+        disp_string_ptr("conform.identifier", ptr->variant.conform.identifier,
+                        iek_other_text, (sizeof_t)0);
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4311,8 +4316,8 @@ Display the indicated template parameter.
                  (char*)ptr->variant.templ.default_arg_template, iek_template);
       }  /* if */
       break;
-      default:
-        unexpected_condition_str("unexpected template parameter kind");
+    default:
+      (void)printf("**BAD KIND**\n");
   }  /* switch */
 }  /* disp_template_parameter */
 
