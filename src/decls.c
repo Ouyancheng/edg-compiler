@@ -7359,6 +7359,7 @@ for use in generating cross-reference output describing this declaration.
         }  /* if */
       }  /* if */
       if (!linked_redecl_error) {
+        a_boolean  preserve_rout_type, preserve_type_ptr;
         if (!sym->variant.routine.instance_ptr->is_guiding_decl &&
             symbol_for_overloading != NULL) {
           a_namespace_ptr  parent_nsp = sym_parent_namespace_or_null(sym);
@@ -7382,13 +7383,18 @@ for use in generating cross-reference output describing this declaration.
                                         &func_info->throw_position,
                                         /*is_redecl=*/TRUE);
         }  /* if */
-        /* A guiding declaration should never impose the declared type --
-           always use the type derived from the template declaration, even
-           if the guiding declaration is simultaneously an old-style
-           specialization. */
+        /* A guiding declaration should generally not impose the recorded type
+           of an instance or specialization since the guiding declaration may
+           be declared using a typedef.  We therefore usually use the type
+           derived from the template declaration, even if the guiding
+           declaration is simultaneously an old-style specialization.
+           However, if the old-style specialization is also a definition, the
+           specialization's type must be used to ensure we preserve the
+           declared parameter types. */
+        preserve_rout_type = !is_function_def;
+        preserve_type_ptr = is_function_def;
         reconcile_routine_types(routine_ptr, type_ptr,
-                                /*preserve_rout_type=*/TRUE,
-                                /*preserve_type_ptr=*/FALSE, dps);
+                                preserve_rout_type, preserve_type_ptr, dps);
       }  /* if */
       dps->first_decl = TRUE;
     } else if (explicit_template_reference) {
