@@ -3845,6 +3845,7 @@ position.
 {
   an_error_code  err_code = ec_no_error;
 
+  tp = skip_typerefs(tp);
   if (tp->kind == (a_type_kind)tk_pointer) {
     /* A handle cannot point to any kind of pointer/handle or reference
        type. */
@@ -3853,8 +3854,10 @@ position.
     /* A handle-to-void type is invalid. */
     err_code = ec_handle_to_void;
   } else if (is_immediate_class_type(tp) && !is_managed_class_type_entry(tp)) {
+    /* A handle to a non-managed class type is invalid. */
     err_code = ec_handle_to_standard_class_type;
   } else if (is_immediate_enum_type(tp) && !integer_type_is_scoped_enum(tp)) {
+    /* A handle to an unscoped enum type is invalid. */
     err_code = ec_handle_to_unscoped_enum_type;
   }  /* if */
   if (diag_pos != NULL && err_code != ec_no_error) {
