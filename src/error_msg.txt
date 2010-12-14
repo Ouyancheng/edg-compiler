@@ -2065,6 +2065,7 @@ ec_sizeof_pack_in_non_variadic_context;;"the sizeof... operator can be used only
 ec_event_name_not_allowed;;"event name cannot appear here"
 ec_handle_to_standard_class_type;;"a handle to a non-managed class type is not allowed"
 ec_handle_to_unscoped_enum_type;;"a handle to an unscoped enum type is not allowed"
+ec_property_attribute_in_managed_class;;"\"property\" attribute not allowed in managed class type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

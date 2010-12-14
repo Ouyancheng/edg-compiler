@@ -5966,7 +5966,15 @@ sequence of "raw tokens", this involves some simple parsing of that token
 stream.
 */
 {
-  if (entity_kind == iek_field) {
+  if (entity_kind != iek_field) {
+    report_bad_attribute_target(es_warning, ap);
+  } else if (cppcli_enabled &&
+             is_cli_managed_type(parent_class_of((a_field*)entity))) {
+    /* __declspec(property(...)) is not allowed on members of managed class
+       types. */
+    pos_error(ec_property_attribute_in_managed_class, &ap->position);
+    make_attr_unrecognized(ap);
+  } else {
     an_attribute_arg_ptr  aap = ap->arguments;
     a_field_ptr           fp = (a_field*)entity;
     an_error_code         errcode = ec_bad_declspec_property;
@@ -6062,8 +6070,6 @@ stream.
       pos_diagnostic(es_discretionary_error, ec_declspec_property_not_allowed,
                      &ap->position);
     }  /* if */
-  } else {
-    report_bad_attribute_target(es_warning, ap);
   }  /* if */
   return entity;
 }  /* apply_property_attr */
