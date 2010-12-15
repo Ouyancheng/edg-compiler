@@ -19827,45 +19827,14 @@ entry into one representing a nondefining declaration.
     internal_error("turn_class_definition_into_declaration: class def needed");
   }  /* if */
 #endif /* CHECKING */
-  if (C_mode()) {
-    /* Discard the scope associated with the definition. */
-    class_type_supp(class_type)->assoc_scope = NULL;
-  } else {
-    /* In C++ mode, the class-type-supplement and the data structures pointed
-       to from it require more work. */
-    a_class_type_supplement_ptr  ctsp;
-    a_class_type_supplement      old_supp;
+  if (!C_mode()) {
     /* Do any necessary processing on the members of the class, which
        are being eliminated because the class is being eliminated. */
     process_members_of_eliminated_class_definition(class_type);
-    /* Clear the pointers in the class_type_supplement, including the
-       assoc_scope pointer; however, the template arg list and the list of
-       befriending classes should be preserved.
-       partial_spec_template_arg_list does not need to be saved because it
-       is only present for fully instantiated partial specializations. */
-    ctsp = class_type->variant.class_struct_union.extra_info;
-    /* Save the old supplement's contents in order to restore individual
-       fields later. */
-    old_supp = *ctsp;
-    clear_class_type_supplement(ctsp);
-    ctsp->template_arg_list = old_supp.template_arg_list;
-    ctsp->befriending_classes = old_supp.befriending_classes;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    ctsp->orig_type_kind = old_supp.orig_type_kind;
-    ctsp->uuid_string = old_supp.uuid_string;
-#if DO_IL_LOWERING
-    ctsp->uuid_variable = old_supp.uuid_variable;
-#endif /* DO_IL_LOWERING */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Clear flags that can only be TRUE for classes with definitions. */
-    class_type->variant.class_struct_union.any_const_member = FALSE;
-    class_type->variant.class_struct_union.any_virtual_base_classes = FALSE;
-    class_type->variant.class_struct_union.abstract = FALSE;
-    class_type->variant.class_struct_union.any_virtual_functions = FALSE;
-    class_type->variant.class_struct_union.any_pure_virtual_functions = FALSE;
-    class_type->variant.class_struct_union.
-               any_virtual_functions_including_in_base_classes = FALSE;
   }  /* if */
+  /* Clear the parts of the class type supplement that are only meaningful
+     for a defined class. */
+  clear_class_type_supplement_definition_fields(class_type_supp(class_type));
   /* Reset size and alignment to default values, as though this class had
      never been defined. */
   class_type->size = 0;
@@ -19875,6 +19844,14 @@ entry into one representing a nondefining declaration.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   eliminate_class_body_source_sequence_entries(class_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Clear flags that can only be TRUE for classes with definitions. */
+  class_type->variant.class_struct_union.any_const_member = FALSE;
+  class_type->variant.class_struct_union.any_virtual_base_classes = FALSE;
+  class_type->variant.class_struct_union.abstract = FALSE;
+  class_type->variant.class_struct_union.any_virtual_functions = FALSE;
+  class_type->variant.class_struct_union.any_pure_virtual_functions = FALSE;
+  class_type->variant.class_struct_union.
+                      any_virtual_functions_including_in_base_classes = FALSE;
   class_type->variant.class_struct_union.
                                nested_class_defined_outside_of_parent = FALSE;
   class_type->variant.class_struct_union.is_empty_class = FALSE;

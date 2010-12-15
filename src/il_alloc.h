@@ -83,7 +83,8 @@ extern a_based_type_list_member_ptr alloc_based_type_list_member(
                                                a_based_type_kind  kind,
                                                a_type_ptr         base_type);
 
-extern void clear_class_type_supplement(a_class_type_supplement_ptr  ctsp);
+extern void clear_class_type_supplement_definition_fields(
+                                            a_class_type_supplement_ptr  ctsp);
 
 extern void set_type_kind(a_type_ptr  pte,
                           a_type_kind kind);

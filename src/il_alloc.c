@@ -1330,9 +1330,12 @@ base_type, because base_type will point to the entry.
 }  /* alloc_based_type_list_member */
 
 
-void clear_class_type_supplement(a_class_type_supplement_ptr  ctsp)
+void clear_class_type_supplement_definition_fields(
+                                            a_class_type_supplement_ptr  ctsp)
 /*
-Give an pointer to a class-type-supplement entry, initialize its fields.
+Give an pointer to a class-type-supplement entry, clear its fields that are
+only meaningful when a definition (as opposed to just a declaration) of the
+class is available.
 */
 {
   ctsp->base_classes                      = NULL;
@@ -1352,20 +1355,13 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
 #endif /* DO_IL_LOWERING && IA64_ABI */
   ctsp->virtual_function_info_offset      = 0;
   ctsp->virtual_function_info_base_class  = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  ctsp->uuid_string                       = NULL;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE
   ctsp->decl_modifiers                    = DM_NONE;
 #endif /* DECL_MODIFIERS_IN_USE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  ctsp->orig_type_kind                    = (a_type_kind)tk_error;
   ctsp->inheritance_kind                  = (an_inheritance_kind)ihk_none;
   ctsp->inheritance_kind_is_explicit      = FALSE;
   ctsp->has_direct_property_or_event      = FALSE;
-  ctsp->assembly_visibility               = (an_assembly_visibility)av_none;
-  ctsp->cli_class_type_kind               =
-                                         (a_cli_class_type_kind)cctk_standard;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
@@ -1376,30 +1372,19 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
 #if BACK_END_IS_CP_GEN_BE
   ctsp->surrounding_name_linkage_state    = (a_name_linkage_kind)nlk_none;
 #endif /* BACK_END_IS_CP_GEN_BE */
-#if DO_IL_LOWERING
-  ctsp->compiler_generated                = FALSE;
-#endif /* DO_IL_LOWERING */
 #if NEAR_AND_FAR_ALLOWED
   ctsp->qualifiers                        = TQ_NONE;
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if RECORD_HIDDEN_NAMES_IN_IL
   ctsp->hidden_names_processed            = FALSE;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-  ctsp->is_lambda_closure_class           = FALSE;
-#if NEED_NAME_MANGLING
-  ctsp->defined_in_static_data_member_initializer
-                                          = FALSE;
-#endif /* NEED_NAME_MANGLING */
   ctsp->named_in_inline_template_directive
                                           = FALSE;
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
-  ctsp->befriending_classes               = NULL;
   ctsp->friend_routines                   = NULL;
   ctsp->friend_classes                    = NULL;
   ctsp->assoc_scope                       = NULL;
-  ctsp->assoc_template                    = NULL;
-  ctsp->template_arg_list                 = NULL;
   ctsp->partial_spec_template_arg_list    = NULL;
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
   ctsp->assoc_operator_new_routine        = NULL;
@@ -1413,15 +1398,44 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->virtual_table_table_var           = NULL;
 #endif /* IA64_ABI */
   ctsp->type_as_subobject                 = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  ctsp->uuid_variable                     = NULL;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
   ctsp->promoted_local_types              = NULL;
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
   ctsp->construction_vtbls                = NULL;
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+#endif /* DO_IL_LOWERING */
+}  /* clear_class_type_supplement_definition_fields */
+
+
+static void clear_class_type_supplement(a_class_type_supplement_ptr  ctsp)
+/*
+Give an pointer to a class-type-supplement entry, initialize its fields.
+*/
+{
+  clear_class_type_supplement_definition_fields(ctsp);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ctsp->uuid_string                       = NULL;
+  ctsp->orig_type_kind                    = (a_type_kind)tk_error;
+  ctsp->assembly_visibility               = (an_assembly_visibility)av_none;
+  ctsp->cli_class_type_kind               =
+                                         (a_cli_class_type_kind)cctk_standard;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if DO_IL_LOWERING
+  ctsp->compiler_generated                = FALSE;
+#endif /* DO_IL_LOWERING */
+  ctsp->is_lambda_closure_class           = FALSE;
+#if NEED_NAME_MANGLING
+  ctsp->defined_in_static_data_member_initializer
+                                          = FALSE;
+#endif /* NEED_NAME_MANGLING */
+  ctsp->befriending_classes               = NULL;
+  ctsp->assoc_template                    = NULL;
+  ctsp->template_arg_list                 = NULL;
+#if DO_IL_LOWERING
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ctsp->uuid_variable                     = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* DO_IL_LOWERING */
   ctsp->min_template_arguments            = -1;
 #if NEED_NAME_MANGLING
