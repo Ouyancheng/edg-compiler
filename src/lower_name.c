@@ -2128,9 +2128,21 @@ static void mangled_encoding_for_sizeof_pack(an_expr_node_ptr         expr,
 Provide mangling for a enk_sizeof_pack (sizeof...) expression.
 */
 {
+  a_template_param_coordinate *coordinates = NULL;
+
   check_assertion(expr->kind == (an_expression_kind)enk_sizeof_pack);
 #if IA64_ABI
-  add_str_to_mangled_name("sZ", mctl);
+  if (emulate_gnu_abi_bugs) {
+    /* GNU appears to use the encodings for sizeof rather than for
+       sizeof... (at least in current versions). */
+    if (expr->variant.sizeof_pack.is_type) {
+      add_str_to_mangled_name("stDp", mctl);
+    } else {
+      add_str_to_mangled_name("szsp", mctl);
+    }  /* if */
+  } else {
+    add_str_to_mangled_name("sZ", mctl);
+  }  /* if */
 #else /* !IA64_ABI */
   /* Mangling for sizeof...():
        OskZ1Z_0_O <-- "sizeof...(T1)", T1 indicating a template parameter.
@@ -2153,24 +2165,49 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
                     type->variant.template_param.is_pack &&
                     type->variant.template_param.kind ==
                                    (a_template_param_constant_kind)tptk_param);
+    /* A template parameter. */
+    coordinates = &type->variant.template_param.extra_info->coordinates;
+  } else {
+    an_expr_node_ptr pack_expr = expr->variant.sizeof_pack.variant.expr;
+    if (expr->variant.sizeof_pack.is_template_template) {
+      /* A template template parameter. */
+      coordinates = &expr->variant.sizeof_pack.variant.templ->coordinates;
+    } else {
+      if (is_constant_node(pack_expr) &&
+          pack_expr->variant.constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param &&
+          pack_expr->variant.constant->variant.template_param.kind ==
+                                  (a_template_param_constant_kind)tpck_param) {
+        /* Non-type template parameter. */
+        coordinates = &pack_expr->variant.constant->
+                                    variant.template_param.variant.coordinates;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* The argument is either a template (template) parameter (as identified
+     above) or a function parameter. */
+  if (coordinates != NULL) {
     /* Note that although this template parameter is a pack, it isn't mangled
        as such (the IA-64 ABI mangling doesn't allow for that). */
-    mangled_encoding_for_template_parameter(
-                         &type->variant.template_param.extra_info->coordinates,
-                         (a_template_arg *)NULL,
-                         /*is_pack=*/FALSE,
-                         mctl);
+    mangled_encoding_for_template_parameter(coordinates,
+                                            (a_template_arg *)NULL,
+                                            /*is_pack=*/FALSE,
+                                            mctl);
 #if !IA64_ABI
     store_digits_and_underscore((unsigned long)0, /*old_form=*/FALSE, mctl);
 #endif /* !IA64_ABI */
-  } else {
-    an_expr_node_ptr pack_expr = expr->variant.sizeof_pack.variant.expr;
-    check_assertion(pack_expr->kind == (an_expression_kind)enk_param_ref);
+  } else if (expr->variant.sizeof_pack.variant.expr->kind ==
+                                           (an_expression_kind)enk_param_ref) {
+    /* Function parameter. */
 #if !IA64_ABI
     add_to_mangled_name('X', mctl);
     store_digits_and_underscore((unsigned long)1, /*old_form=*/FALSE, mctl);
 #endif /* !IA64_ABI */
-    mangled_encoding_for_param_reference(pack_expr, mctl);
+    mangled_encoding_for_param_reference(
+                                        expr->variant.sizeof_pack.variant.expr,
+                                        mctl);
+  } else {
+    unexpected_condition();
   }  /* if */
 #if !IA64_ABI
   add_to_mangled_name('O', mctl);
@@ -5997,7 +6034,7 @@ given by tap.
     mangled_encoding_for_template_parameter(
                                      &temp->coordinates,
                                      (a_template_arg *)NULL,
-                                     /*is_pack=*/FALSE /* FIXME */,
+                                     temp->is_pack,
                                      mctl);
   } else {
     /* The value of the argument is a template. */

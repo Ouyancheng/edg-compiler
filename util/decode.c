@@ -1522,6 +1522,7 @@ block that controls output of extra information on template parameters.
                   ^------- Size of argument types, including the underscore.
       */
       is_pack = TRUE;
+      p+=6; /* Advance past the "__pk__". */
     } else {
       is_pack = FALSE;
     }  /* if */
@@ -1584,13 +1585,12 @@ block that controls output of extra information on template parameters.
       char          *pack_arg_base, *pack_prev_end;
       unsigned long pack_nchars;
       a_boolean     need_comma = FALSE;
-      p+=6; /* Advance past the "__pk__". */
       write_id_ch('<', dctl);
       /* Scan the size. */
       p = get_length(p, &pack_nchars, &pack_prev_end, dctl);
       pack_arg_base = p;
       p = advance_past_underscore(p, dctl);
-      /* Loop to process the types in the pack. */
+      /* Loop to process the arguments in the pack. */
       while ((unsigned long)(p - pack_arg_base) < pack_nchars) {
         if (dctl->err_in_id) break;  /* Avoid infinite loops on errors. */
         if (get_char(p, dctl) == '\0' || (get_char(p, dctl) == '_')) {
@@ -1604,7 +1604,14 @@ block that controls output of extra information on template parameters.
         } else {
           need_comma = TRUE;
         }  /* if */
-        p = demangle_type(p, dctl);
+        if (get_char(p, dctl) == 'X') {
+          /* Nontype argument. */
+          p++;  /* Advance past the "X". */
+          p = demangle_constant(p, /*suppress_address_of=*/FALSE,
+                                /*need_parens=*/FALSE, dctl);
+        } else {
+          p = demangle_type(p, dctl);
+        }  /* if */
       }  /* while */
       write_id_ch('>', dctl);
     } else {
