@@ -10388,11 +10388,14 @@ declarations.)
 
 static void scan_pure_specifier(a_symbol_ptr            rout_sym,
                                 a_type_ptr              class_type,
-                                a_member_decl_info_ptr  decl_info)
+                                a_member_decl_info_ptr  decl_info,
+                                a_func_info_block_ptr   func_info)
 /*
 The current token is an "=", encountered just after the scanning of a
 member or friend function declarator.  A pure specifier is defined as "= 0",
-and it is legal for virtual member functions only.
+and it is legal for virtual member functions only.  rout_sym represents the
+function being declared (in the definition of class_type).  decl_info and
+func_info describe the current member function declaration.
 */
 {
   a_routine_ptr  rout;
@@ -10478,6 +10481,16 @@ and it is legal for virtual member functions only.
     }  /* if */
     /* Advance past the "0". */
     (void)get_token();
+    /* The C++ standard's grammar does not allow a function body to follow a
+       pure-specifier.  Microsoft compilers, however, accept such
+       constructs. */
+    if (func_info->is_definition) {
+      pos_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
+                     ec_pure_virtual_definition, &pos_curr_token);
+    } else {
+      check_assertion_or_expect_error(curr_token == tok_semicolon ||
+                                      curr_token == tok_comma);
+    }  /* if */
   } else {
     set_err_pos_to_curr_token();
     /* Invalid pure specifier:  something other than "0" follows the "=". */
@@ -17103,7 +17116,7 @@ passed via template_decl.
            "= delete" construct. */
         a_token_kind  next_tok = next_token();
         if (next_tok != tok_delete && next_tok != tok_default) {
-          scan_pure_specifier(rout_sym, class_type, &decl_info);
+          scan_pure_specifier(rout_sym, class_type, &decl_info, &func_info);
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (func_info.abstract) {
