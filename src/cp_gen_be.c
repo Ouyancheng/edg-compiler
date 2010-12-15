@@ -6200,10 +6200,15 @@ Put out the list of direct base classes of the class associated with ctsp
                  (a_boolean *)NULL);
         if (bcp->is_pack_expansion) write_tok_str("...");
         /* Loop if there's another base class from the same pack expansion. */
-        if (bcp->next == NULL || bcp->next->direct_base_number != next_base) {
-          break;
-        }  /* if */
-        bcp = bcp->next;
+        if (!bcp->is_pack_element) break;
+        { a_base_class_ptr next_bcp = bcp->next;
+          while (next_bcp != NULL &&
+                 next_bcp->direct_base_number != next_base) {
+            next_bcp = next_bcp->next;
+          }  /* while */
+          if (next_bcp == NULL) break;
+          bcp = next_bcp;
+        }
       }  /* for */
     }  /* if */
   }  /* for */

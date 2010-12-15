@@ -6502,6 +6502,8 @@ skip_base_class:
                                                    /*is_declarator=*/FALSE);
       if (pedep != NULL && new_direct_bcp != NULL) {
         new_direct_bcp->is_pack_expansion = TRUE;
+      } else if (pesep != NULL) {
+        new_direct_bcp->is_pack_element = TRUE;
       }  /* if */
       any_types = advance_to_next_pack_element(pesep);
     }  /* while */

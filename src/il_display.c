@@ -5505,6 +5505,12 @@ Display the indicated base class entry.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     disp_boolean("is_optimized_empty_base",
                  (a_boolean)ptr->is_optimized_empty_base);
+    if (ptr->is_pack_expansion) {
+      disp_boolean("is_pack_expansion", TRUE);
+    }  /* if */
+    if (ptr->is_pack_element) {
+      disp_boolean("is_pack_element", TRUE);
+    }  /* if */
 #if !IA64_ABI
     disp_host_large_unsigned("pointer_offset",
                              (a_host_large_unsigned)ptr->pointer_offset);
