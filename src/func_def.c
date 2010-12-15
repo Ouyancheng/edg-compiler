@@ -752,17 +752,20 @@ in parameter types of C++ mode functions.
 
 
 static void advance_param_id_and_param_type(
-					a_param_id_ptr		*param_id,
-					a_param_type_ptr	*ptp)
+				a_param_id_ptr		*param_id,
+				a_param_type_ptr	*ptp,
+				a_boolean		is_specialization)
 /*
 Advance *param_id and *ptp to the next element in their lists.   If *ptp is
 an element of a variadic parameter pack, don't advance *param_id until we
-advance past the pack.
+advance past the pack.  This special processing is suppressed if
+is_specialization is TRUE.
 */
 {
   a_param_type_ptr	next_ptp = (*ptp)->next;
 
-  if (next_ptp != NULL && next_ptp->param_num == (*ptp)->param_num &&
+  if (!is_specialization &&
+      next_ptp != NULL && next_ptp->param_num == (*ptp)->param_num &&
       next_ptp->param_num != 0) {
     /* The next parameter type entry is for the same variadic parameter.
        Don't advance the param_id. */
@@ -1088,7 +1091,8 @@ and for the instantiation of template functions.
       ptp = NULL;
     }  /* if */
     for (; param_id != NULL && ptp != NULL;
-         advance_param_id_and_param_type(&param_id, &ptp)) {
+         advance_param_id_and_param_type(&param_id, &ptp,
+                                         rout_ptr->is_specialized)) {
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
