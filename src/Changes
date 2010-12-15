@@ -16,8 +16,8 @@ Visual C version 6 compiler.  For example:
                   // previously had inconsistent types recorded in the
                   // a_param_type and corresponding a_variable entries.
 
-This is now fixed: The types declared in the specialization definition is
-recorded all cases.
+This is now fixed: The types declared in the specialization definition are
+recorded in all cases.
 
 
 12/14/10 [EDGcpfe/8817]
