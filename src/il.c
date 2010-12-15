@@ -1759,7 +1759,11 @@ Dump the contents of the indicated expression node for debug purposes.
       break;
     case enk_sizeof_pack:
       fputs("sizeof pack: ", f_debug);
-      if (node->variant.sizeof_pack.is_type) {
+      if (node->variant.sizeof_pack.is_template_template) {
+        fputs("template = ", f_debug);
+        db_template_name(node->variant.sizeof_pack.variant.templ);
+        fputc('\n', f_debug);
+      } else if (node->variant.sizeof_pack.is_type) {
         fputs("type = ", f_debug);
         db_abbreviated_type(node->variant.sizeof_pack.variant.type);
         fputc('\n', f_debug);
@@ -5790,13 +5794,18 @@ are done.
       case enk_sizeof_pack:
         eq = (node1->variant.sizeof_pack.is_type ==
               node2->variant.sizeof_pack.is_type &&
-              (node1->variant.sizeof_pack.is_type ?
-                 identical_types(node1->variant.sizeof_pack.variant.type,
-                                 node2->variant.sizeof_pack.variant.type) :
-                 compare_expressions(
-                                 node1->variant.sizeof_pack.variant.expr,
-                                 node2->variant.sizeof_pack.variant.expr,
-                                 options)));
+              node1->variant.sizeof_pack.is_template_template ==
+              node2->variant.sizeof_pack.is_template_template &&
+              (node1->variant.sizeof_pack.is_template_template ?
+                (node1->variant.sizeof_pack.variant.templ ==
+                 node2->variant.sizeof_pack.variant.templ) :
+                (node1->variant.sizeof_pack.is_type ?
+                   identical_types(node1->variant.sizeof_pack.variant.type,
+                                   node2->variant.sizeof_pack.variant.type) :
+                   compare_expressions(
+                                   node1->variant.sizeof_pack.variant.expr,
+                                   node2->variant.sizeof_pack.variant.expr,
+                                   options))));
         break;
       case enk_reuse_value:
         eq = compare_dynamic_inits(node1->variant.reused_value_init,
@@ -15299,7 +15308,8 @@ be called to start a copy.
       break;
     case enk_sizeof_pack:
       /* If there is an expression, copy it. */
-      if (!expr->variant.sizeof_pack.is_type) {
+      if (!expr->variant.sizeof_pack.is_type &&
+          !expr->variant.sizeof_pack.is_template_template) {
         expr_copy->variant.sizeof_pack.variant.expr =
                        i_copy_expr_tree(expr->variant.sizeof_pack.variant.expr,
                                         options, cblock);

@@ -3101,7 +3101,9 @@ as specified in the control block.
       }  /* if */
       break;
     case enk_sizeof_pack:
-      if (expr->variant.sizeof_pack.is_type) {
+      if (expr->variant.sizeof_pack.is_template_template) {
+        /* Nothing. */
+      } else if (expr->variant.sizeof_pack.is_type) {
         if (tblock->process_type != NULL) {
           tblock->process_type(expr->variant.sizeof_pack.variant.type,
                                tblock);

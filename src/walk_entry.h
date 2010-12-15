@@ -1523,7 +1523,10 @@ do_set_proper_definition_needed_flag:
             }  /* if */
             break;
           case enk_sizeof_pack:
-            if (ptr->variant.sizeof_pack.is_type) {
+            if (ptr->variant.sizeof_pack.is_template_template) {
+              walk_ptr(ptr->variant.sizeof_pack.variant.templ, a_template_ptr,
+                       iek_template);
+            } else if (ptr->variant.sizeof_pack.is_type) {
               walk_ptr(ptr->variant.sizeof_pack.variant.type, a_type_ptr,
                        iek_type);
             } else {

@@ -9989,7 +9989,13 @@ done_with_operation_after_parens:
       }  /* if */
       break;
     case enk_sizeof_pack:
-      if (expr->variant.sizeof_pack.is_type) {
+      if (expr->variant.sizeof_pack.is_template_template) {
+        /* sizeof...(template-template). */
+        write_tok_str("sizeof...(");
+        gen_name(&expr->variant.sizeof_pack.variant.templ->source_corresp,
+                 iek_template, GN_NO_OPTIONS, (a_boolean *)NULL);
+        write_tok_ch(')');
+      } else if (expr->variant.sizeof_pack.is_type) {
         /* sizeof...(type). */
         write_tok_str("sizeof...(");
         gen_type(expr->variant.sizeof_pack.variant.type);
@@ -10623,6 +10629,7 @@ recorded with this particular header.
                            /*under_lhs_declarator=*/FALSE,
                            /*need_trailing_space=*/TRUE,
                            TQ_NONE, FTO_NO_OPTIONS, &octl);
+      if (param->is_pack) write_tok_str("...");
       /* Set the source position for the name. */
       set_output_position(&param->source_corresp.decl_position);
       /* Write the name. */
@@ -10644,9 +10651,7 @@ recorded with this particular header.
                                       ->coordinates,
                            &param->source_corresp);
       write_tok_str("class ");
-      if (type_param->variant.template_param.is_pack) {
-        write_tok_str("...");
-      }  /* if */
+      if (param->is_pack) write_tok_str("...");
       /* Set the source position for the name. */
       set_output_position(&param->source_corresp.decl_position);
       write_tok_str_if_nonnull(param->source_corresp.name);
@@ -10662,6 +10667,7 @@ recorded with this particular header.
                            &param->source_corresp);
       gen_template_header(param->variant.templ.class_template->template_decl);
       write_tok_str(" class ");
+      if (param->is_pack) write_tok_str("...");
       /* Set the source position for the name. */
       set_output_position(&param->source_corresp.decl_position);
       write_tok_str_if_nonnull(param->source_corresp.name);

@@ -3656,7 +3656,12 @@ Display the indicated expression node.
       (void)printf("enk_sizeof_pack\n");
       disp_boolean("is_type",
                    (a_boolean)ptr->variant.sizeof_pack.is_type);
-      if (ptr->variant.sizeof_pack.is_type) {
+      disp_boolean("is_template_template",
+                   (a_boolean)ptr->variant.sizeof_pack.is_template_template);
+      if (ptr->variant.sizeof_pack.is_template_template) {
+        disp_ptr("templ", (char *)ptr->variant.sizeof_pack.variant.templ,
+                 iek_template);
+      } else if (ptr->variant.sizeof_pack.is_type) {
         disp_ptr("type", (char *)ptr->variant.sizeof_pack.variant.type,
                  iek_type);
       } else {

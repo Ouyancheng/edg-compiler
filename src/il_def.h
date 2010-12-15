@@ -13123,13 +13123,20 @@ typedef struct an_expr_node {
 		is_type;
 			/* TRUE for sizeof...(T) where T is a type template
 			   parameter pack. */
+      a_byte_boolean
+		is_template_template;
+			/* TRUE if the operand is a template template
+			   parameter pack. */
       union {
-        /* When is_type is TRUE: */
+        /* When is_type is TRUE and is_template_template is FALSE: */
         a_type_ptr
 		type;	/* The argument of sizeof...(T), in type form. */
-        /* When is_type is FALSE: */
+        /* When is_type is FALSE and is_template_template is FALSE: */
         an_expr_node_ptr
 		expr;	/* The argument of sizeof...(x), in expression form. */
+        /* When is_template_template is TRUE: */
+        a_template_ptr
+		templ;	/* The argument of sizeof...(TT), in template form. */
       } variant;
     } sizeof_pack;
 #if GNU_EXTENSIONS_ALLOWED

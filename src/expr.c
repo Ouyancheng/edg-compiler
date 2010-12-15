@@ -7154,6 +7154,12 @@ indication in *rcblock).
     if (is_type_symbol(sym)) {
       expr->variant.sizeof_pack.is_type = TRUE;
       expr->variant.sizeof_pack.variant.type = sym->variant.type.ptr;
+    } else if (sym->kind == (a_symbol_kind)sk_class_template) {
+      a_template_ptr templ = sym->variant.template_info->il_template_entry;
+      check_assertion(templ != NULL && templ->is_pack);
+      expr->variant.sizeof_pack.is_type = FALSE;
+      expr->variant.sizeof_pack.is_template_template = TRUE;
+      expr->variant.sizeof_pack.variant.templ = templ;
     } else {
       an_operand operand;
       expr->variant.sizeof_pack.is_type = FALSE;

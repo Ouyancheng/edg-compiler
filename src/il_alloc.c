@@ -2802,6 +2802,7 @@ fields to default values.
       break;
     case enk_sizeof_pack:
       node->variant.sizeof_pack.is_type = TRUE;
+      node->variant.sizeof_pack.is_template_template = FALSE;
       node->variant.sizeof_pack.variant.type = NULL;
       break;
 #if GNU_EXTENSIONS_ALLOWED
