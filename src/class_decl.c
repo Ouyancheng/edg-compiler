@@ -16714,9 +16714,6 @@ passed via template_decl.
           (void)get_token();
         }  /* if */
       } else if (check_for_cli_delegate_definition()) {
-        if (!is_managed_class_type_entry(class_type)) {
-          pos_error(ec_delegate_in_standard_class, &pos_curr_token);
-        }  /* if */
         scan_cli_delegate_definition(decl_state);
         cannot_bind_to_curr_construct();
         goto next_declaration;
