@@ -12405,7 +12405,8 @@ declarations.
       field_type = error_type();
     } else if (cppcli_enabled && is_handle_type(field_type) &&
                !is_cli_managed_type(class_type)) {
-      pos_error(ec_handle_not_allowed, &decl_state->declarator_pos);
+      pos_error(ec_handle_field_in_standard_class,
+                &decl_state->declarator_pos);
       field_type = error_type();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (strict_ansi_mode && is_union_type(class_type) && is_ref) {
