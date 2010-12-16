@@ -1330,10 +1330,10 @@ base_type, because base_type will point to the entry.
 }  /* alloc_based_type_list_member */
 
 
-void clear_class_type_supplement_definition_fields(
+static void clear_class_type_supplement_definition_fields(
                                             a_class_type_supplement_ptr  ctsp)
 /*
-Give an pointer to a class-type-supplement entry, clear its fields that are
+Given an pointer to a class-type-supplement entry, clear its fields that are
 only meaningful when a definition (as opposed to just a declaration) of the
 class is available.
 */
@@ -1406,6 +1406,38 @@ class is available.
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
 }  /* clear_class_type_supplement_definition_fields */
+
+
+void clear_class_type_definition_fields(a_type_ptr  class_type)
+/*
+Given an pointer to a class type entry, clear its fields that are only
+meaningful when a definition (as opposed to just a declaration) of the
+class is available (including such fields in the class type supplement).
+This includes discarding the field list (if any), and making the type
+incomplete (which affects the recorded size and alignment).
+*/
+{
+  clear_class_type_supplement_definition_fields(class_type_supp(class_type));
+  class_type->size = 0;
+  class_type->alignment = 1;
+  class_type->incomplete = TRUE;
+  class_type->variant.class_struct_union.field_list = NULL;
+  class_type->variant.class_struct_union.any_const_member = FALSE;
+  class_type->variant.class_struct_union.any_virtual_base_classes = FALSE;
+  class_type->variant.class_struct_union.abstract = FALSE;
+  class_type->variant.class_struct_union.any_virtual_functions = FALSE;
+  class_type->variant.class_struct_union.any_pure_virtual_functions = FALSE;
+  class_type->variant.class_struct_union.
+                      any_virtual_functions_including_in_base_classes = FALSE;
+  class_type->variant.class_struct_union.
+                               nested_class_defined_outside_of_parent = FALSE;
+  class_type->variant.class_struct_union.is_empty_class = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* A delegate must be a defined ref class.  If the definition is discarded,
+       it should be treated as an ordinary ref class. */
+    class_type->variant.class_struct_union.is_delegate_class = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* clear_class_type_definition_fields */
 
 
 static void clear_class_type_supplement(a_class_type_supplement_ptr  ctsp)

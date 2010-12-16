@@ -19842,36 +19842,12 @@ entry into one representing a nondefining declaration.
        are being eliminated because the class is being eliminated. */
     process_members_of_eliminated_class_definition(class_type);
   }  /* if */
-  /* Clear the parts of the class type supplement that are only meaningful
-     for a defined class. */
-  clear_class_type_supplement_definition_fields(class_type_supp(class_type));
-  /* Reset size and alignment to default values, as though this class had
-     never been defined. */
-  class_type->size = 0;
-  class_type->alignment = 1;
-  /* Similarly, the field list pointer is cleared. */
-  class_type->variant.class_struct_union.field_list = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   eliminate_class_body_source_sequence_entries(class_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  /* Clear flags that can only be TRUE for classes with definitions. */
-  class_type->variant.class_struct_union.any_const_member = FALSE;
-  class_type->variant.class_struct_union.any_virtual_base_classes = FALSE;
-  class_type->variant.class_struct_union.abstract = FALSE;
-  class_type->variant.class_struct_union.any_virtual_functions = FALSE;
-  class_type->variant.class_struct_union.any_pure_virtual_functions = FALSE;
-  class_type->variant.class_struct_union.
-                      any_virtual_functions_including_in_base_classes = FALSE;
-  class_type->variant.class_struct_union.
-                               nested_class_defined_outside_of_parent = FALSE;
-  class_type->variant.class_struct_union.is_empty_class = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    /* A delegate must be a defined ref class.  If the body is discarded, it
-       should be treated as an ordinary ref class. */
-    class_type->variant.class_struct_union.is_delegate_class = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* The type is now incomplete. */
-  class_type->incomplete = TRUE;
+  /* Clear the fields of the class type that are only meaningful for a defined
+     class. */
+  clear_class_type_definition_fields(class_type);
   db_exit();
 }  /* turn_class_definition_into_declaration */
 
