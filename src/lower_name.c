@@ -552,6 +552,19 @@ static a_boolean entity_needs_to_be_individuated(a_source_correspondence *scp,
 static void mangled_encoding_for_param_reference(
                                                an_expr_node_ptr         expr,
                                                a_mangling_control_block *mctl);
+static void mangled_type_name_full(a_type_ptr               type,
+                                   a_boolean                check_for_subst,
+                                   a_boolean                ok_to_mangle_type,
+                                   a_mangling_control_block *mctl);
+
+/*
+Interface to mangled_type_name_full for the usual case, where the
+caller has not checked already for a substitution in IA-64 ABI mode and
+it's okay to give the type a mangled name.
+*/
+#define mangled_type_name(type, mctl)                                        \
+  (mangled_type_name_full(                                                   \
+      (type), /*check_for_subst=*/TRUE, /*ok_to_mangle_type=*/TRUE, (mctl)))
 
 #if !IA64_ABI
 /*
@@ -1845,6 +1858,10 @@ parameter is a template pack parameter.
   if (is_pack) {
     /* This is a template parameter pack; mangle it as such. */
     add_str_to_mangled_name("Dp", mctl);
+    /* FIXME: We need to allocate a substitution here, but how should it
+       be "named"?  For now, just allocate a dummy substitution so the
+       substitution numbers will be correct. */
+    alloc_substitution((char *)NULL, iek_variable, mctl);
   }  /* if */
   /* The IA-64 encoding is "Tnnn_".  The first parameter is "T_". */
   add_to_mangled_name('T', mctl);
@@ -2129,14 +2146,20 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
 */
 {
   a_template_param_coordinate *coordinates = NULL;
+  an_expr_node_ptr            pack_expr = NULL;
 
   check_assertion(expr->kind == (an_expression_kind)enk_sizeof_pack);
 #if IA64_ABI
-  if (emulate_gnu_abi_bugs) {
+  if (emulate_gnu_abi_bugs &&
+      !expr->variant.sizeof_pack.is_template_template) {
     /* GNU appears to use the encodings for sizeof rather than for
-       sizeof... (at least in current versions). */
+       sizeof... (at least in current versions).  It also doesn't appear to
+       handle the template template parameter case, so use the proper
+       mangling for that. */
     if (expr->variant.sizeof_pack.is_type) {
-      add_str_to_mangled_name("stDp", mctl);
+      add_str_to_mangled_name("st", mctl);
+      mangled_encoding_for_type(expr->variant.sizeof_pack.variant.type, mctl);
+      goto end_of_routine;
     } else {
       add_str_to_mangled_name("szsp", mctl);
     }  /* if */
@@ -2159,29 +2182,29 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
   add_to_mangled_name('O', mctl);
   add_str_to_mangled_name("sk", mctl);
 #endif /* IA64_ABI */
-  if (expr->variant.sizeof_pack.is_type) {
+  if (expr->variant.sizeof_pack.is_template_template) {
+    /* A template template parameter. */
+    coordinates = &expr->variant.sizeof_pack.variant.templ->coordinates;
+  } else if (expr->variant.sizeof_pack.is_type) {
+    /* A type (template parameter). */
     a_type_ptr type = expr->variant.sizeof_pack.variant.type;
     check_assertion(type->kind == (a_type_kind)tk_template_param &&
                     type->variant.template_param.is_pack &&
                     type->variant.template_param.kind ==
                                    (a_template_param_constant_kind)tptk_param);
-    /* A template parameter. */
     coordinates = &type->variant.template_param.extra_info->coordinates;
   } else {
-    an_expr_node_ptr pack_expr = expr->variant.sizeof_pack.variant.expr;
-    if (expr->variant.sizeof_pack.is_template_template) {
-      /* A template template parameter. */
-      coordinates = &expr->variant.sizeof_pack.variant.templ->coordinates;
-    } else {
-      if (is_constant_node(pack_expr) &&
-          pack_expr->variant.constant->kind ==
+    /* An expression.  Non-type template parameter case is handled here,
+       function parameter case is handled below. */
+    pack_expr = expr->variant.sizeof_pack.variant.expr;
+    if (is_constant_node(pack_expr) &&
+        pack_expr->variant.constant->kind ==
                                      (a_constant_repr_kind)ck_template_param &&
-          pack_expr->variant.constant->variant.template_param.kind ==
+        pack_expr->variant.constant->variant.template_param.kind ==
                                   (a_template_param_constant_kind)tpck_param) {
-        /* Non-type template parameter. */
-        coordinates = &pack_expr->variant.constant->
+      /* Non-type template parameter. */
+      coordinates = &pack_expr->variant.constant->
                                     variant.template_param.variant.coordinates;
-      }  /* if */
     }  /* if */
   }  /* if */
   /* The argument is either a template (template) parameter (as identified
@@ -2196,21 +2219,22 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
 #if !IA64_ABI
     store_digits_and_underscore((unsigned long)0, /*old_form=*/FALSE, mctl);
 #endif /* !IA64_ABI */
-  } else if (expr->variant.sizeof_pack.variant.expr->kind ==
-                                           (an_expression_kind)enk_param_ref) {
+  } else if (pack_expr != NULL) {
     /* Function parameter. */
+    check_assertion(expr->variant.sizeof_pack.variant.expr->kind ==
+                                            (an_expression_kind)enk_param_ref);
 #if !IA64_ABI
     add_to_mangled_name('X', mctl);
     store_digits_and_underscore((unsigned long)1, /*old_form=*/FALSE, mctl);
 #endif /* !IA64_ABI */
-    mangled_encoding_for_param_reference(
-                                        expr->variant.sizeof_pack.variant.expr,
-                                        mctl);
+    mangled_encoding_for_param_reference(pack_expr, mctl);
   } else {
     unexpected_condition();
   }  /* if */
 #if !IA64_ABI
   add_to_mangled_name('O', mctl);
+#else /* IA64_ABI */
+end_of_routine:;
 #endif /* !IA64_ABI */
 }  /* mangled_encoding_for_sizeof_pack */
 
@@ -7877,15 +7901,6 @@ potential performance improvement, allowing re-use of a mangled name).
 #endif /* IA64_ABI */
 done:;
 }  /* mangled_type_name_full */
-
-/*
-Interface to mangled_type_name_full for the usual case, where the
-caller has not checked already for a substitution in IA-64 ABI mode and
-it's okay to give the type a mangled name.
-*/
-#define mangled_type_name(type, mctl)                                        \
-  (mangled_type_name_full(                                                   \
-      (type), /*check_for_subst=*/TRUE, /*ok_to_mangle_type=*/TRUE, (mctl)))
 
 
 static void mangled_class_name_internal(a_type_ptr               type,
