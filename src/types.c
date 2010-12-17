@@ -7566,11 +7566,11 @@ well as C++ mode.
   if (is_incomplete(dest_type)) {
     /* Cannot cast to an incomplete type. */
     /* okay = FALSE; -- already set. */
-  } else if (((is_pointer(source_type) &&
+  } else if (((is_pointer(source_type)
 #if MICROSOFT_EXTENSIONS_ALLOWED
-               !source_type->variant.pointer.is_interior_ptr
+               && !source_type->variant.pointer.is_interior_ptr
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                            ) ||
+                                                               ) ||
               is_nullptr(source_type)) &&
              is_integral(dest_type) &&
              (C_mode() || microsoft_mode || gpp_mode ||
