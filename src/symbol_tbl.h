@@ -121,6 +121,26 @@ EXTERN a_translation_unit_ptr
 			/* A dynamically allocated array of translation
 			   unit pointers indexed by scope number. */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+typedef union a_property_or_event_parent *a_property_or_event_parent_ptr;
+typedef union a_property_or_event_parent {
+  /* This is used for Microsoft property and event accessor functions to
+     indicate the property or event with which the accessor function is
+     associated. */
+  /* When property_is_static is TRUE: */
+  a_variable_ptr
+		variable;
+			/* For static properties, this points to the property
+			   variable. */
+  /* When property_is_static is FALSE. */
+  a_field_ptr
+		field;
+			/* For events and nonstatic properties, this points
+			   to the property or event variable. */
+} a_property_or_event_parent;
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 typedef struct a_symbol_locator {
   /* Data structure used to store information about an identifier token.
@@ -221,6 +241,14 @@ typedef struct a_symbol_locator {
 			/* TRUE if a qualified name began with the Microsoft
 			   __super keyword.  This is TRUE even if there
 			   are other qualifiers after __super. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	is_property_or_event_accessor:1;
+			/* TRUE if the identifier is a Microsoft property
+			   or event accessor function. */
+  a_bit_field	property_is_static:1;
+			/* TRUE when is_property_or_event_accessor is TRUE
+			   and the accessor is for a static member. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_symbol_ptr	specific_symbol;
 			/* If is_qualified_name is TRUE, this points to the
 			   specific symbol for the qualified name.  Otherwise,
@@ -239,6 +267,14 @@ typedef struct a_symbol_locator {
 			   Also, this may point to an enumeration type if the
 			   qualifier is a C++0x-mode or Microsoft-mode enum
 			   qualifier. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_property_or_event_parent
+		property_or_event_parent;
+			/* If is_property_or_event_accessor is TRUE, this
+			   points to the property/event variable or field.
+			   It points to a variable if the property_is_static
+			   field is TRUE. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_template_arg_ptr
 		template_arg_list;
 			/* When a function template symbol, or an overloaded
@@ -4155,6 +4191,12 @@ Return the symbol associated with an IL entry.
 #define symbol_for(entry)  ((a_symbol_ptr)(entry)->source_corresp.assoc_info)
 
 /*
+Return the symbol associated with an IL entry, or NULL if the IL entry is NULL.
+*/
+#define symbol_for_or_null(entry) \
+  ((entry == NULL) ? NULL : ((a_symbol_ptr)(entry)->source_corresp.assoc_info))
+
+/*
 Return whether a given symbol is of a given kind.
 */
 #define symbol_is(sym, sym_kind)                                             \
@@ -4216,6 +4258,25 @@ extern a_boolean overload_set_contains_template(a_symbol_ptr sym);
                                               (a_type_kind)tk_template_param)
 
 /*
+Return TRUE if sym refers to a C++/CLI property or event field, which can
+be used as a qualifier in a qualified name.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_cppcli_property_or_event(sym)				\
+  (cppcli_enabled &&							\
+   (((sym)->kind == (a_symbol_kind)sk_field &&				\
+     (sym)->variant.field.ptr->property_or_event_descr != NULL &&	\
+     (sym)->variant.field.ptr->property_or_event_descr->kind !=		\
+                    (a_property_or_event_kind)pek_declspec_property) ||	\
+    ((sym)->kind == (a_symbol_kind)sk_variable &&			\
+     (sym)->variant.variable.ptr->property_or_event_descr != NULL &&	\
+     (sym)->variant.variable.ptr->property_or_event_descr->kind !=	\
+                        (a_property_or_event_kind)pek_declspec_property)))
+#else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_cppcli_property_or_event(sym) (FALSE)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
 Return TRUE if a symbol is one that should be found in a lookup of a name used
 as part of the qualifier in a qualified name.  The C++ standard requires that
 any type name be found by the lookup even though some kinds of types will
@@ -4227,6 +4288,7 @@ only be used in C++ mode.
   ((sym)->kind == (a_symbol_kind)sk_class_template ||		      \
    is_class_symbol(sym) ||                                            \
    (sym)->kind == (a_symbol_kind)sk_namespace ||		      \
+   is_cppcli_property_or_event(sym) ||				      \
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
     (is_template_param_type((sym)->variant.type.ptr) ||               \
      (!microsoft_mode && (!gpp_mode || gnu_version < 30400)))) ||     \

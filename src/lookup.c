@@ -3842,6 +3842,71 @@ current template member that is being defined; FALSE otherwise.
   return result;
 }  /* is_definition_of_template_member */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_symbol_ptr look_up_property_or_event_accessor(
+					a_symbol_locator         *locator,
+					a_type_ptr               class_type)
+/*
+The locator represents a Microsoft property or event accessor function.
+These are named in an unusual way.  For example, for a property P in class
+C, the accessor is named as C::P::get even though P is not itself a class
+type.  If the locator names a valid accessor in class_type, return the symbol
+for the accessor; otherwise return NULL;
+*/
+{
+  a_symbol_ptr	result_sym = NULL;
+
+  if (locator->specific_symbol != NULL) {
+    /* Retain the specific symbol if there is one. */
+    result_sym = locator->specific_symbol;
+  } else {
+    a_property_or_event_descr_ptr	pdp;
+    a_symbol_header_ptr			sym_hdr = locator->symbol_header;
+    a_symbol_ptr			sym;
+    if (locator->property_is_static) {
+      pdp = locator->
+                    property_or_event_parent.variable->property_or_event_descr;
+    } else {
+      pdp = locator->property_or_event_parent.field->property_or_event_descr;
+    }  /* if */
+    switch (pdp->kind) {
+      case pek_cli_property:
+        /* See if the symbol header we are looking for matches that of the
+           get or set routines (if present). */
+        sym = symbol_for_or_null(pdp->get_routine.ptr);
+        if (sym->header == sym_hdr) {
+          result_sym = sym;
+        } else {
+          sym = symbol_for_or_null(pdp->set_routine.ptr);
+          if (sym->header == sym_hdr) result_sym = sym;
+        }  /* if */
+        break;
+      case pek_cli_event:
+        /* See if the symbol header we are looking for matches that of the
+           the add, remove, or raise routines (if present). */
+        sym = symbol_for_or_null(pdp->add_routine);
+        if (sym->header == sym_hdr) {
+          result_sym = sym;
+        } else {
+          sym = symbol_for_or_null(pdp->remove_routine);
+          if (sym->header == sym_hdr) {
+            result_sym = sym;
+          } else {
+            sym = symbol_for_or_null(pdp->raise_routine);
+            if (sym->header == sym_hdr) result_sym = sym;
+          }  /* if */
+        }  /* if */
+        break;
+      default:
+        unexpected_condition();
+        break;
+    }  /* switch */
+  }  /* if */
+  return result_sym;
+}  /* look_up_property_or_event_accessor */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr class_qualified_id_lookup(a_symbol_locator         *locator,
                                        a_type_ptr               class_type,
@@ -3917,6 +3982,14 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
    (!(sym)->is_invisible || (sym)->kind == (a_symbol_kind)sk_projection))
 
   db_enter(4, "class_qualified_id_lookup");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (locator->is_property_or_event_accessor) {
+    /* If the locator refers to a property or event, do a special lookup
+       for accessor functions. */
+    sym = look_up_property_or_event_accessor(locator, class_type);
+    goto end_lookup;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Remove any typedef on the class type. */
   class_type = skip_typerefs_not_dependent_decltypes(class_type);
   if (class_type->kind == (a_type_kind)tk_template_param ||

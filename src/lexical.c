@@ -15101,6 +15101,10 @@ selection operator, in which case it points to the type of the left operand.
   a_token_kind         		qualifier_separator = tok_colon_colon;
   a_boolean                     qualifier_is_type = TRUE;
   a_boolean                     qualifier_is_enum = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean                     qualifier_is_property_or_event = FALSE;
+  a_symbol_ptr			qualifier_property_or_event = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean			qualifier_type_is_class = FALSE;
   a_namespace_ptr		qualifier_namespace = NULL;
   a_token_sequence_number	start_seq_number;
@@ -15529,6 +15533,14 @@ selection operator, in which case it points to the type of the left operand.
             qualifier_type_is_class = FALSE;
             check_assertion(is_template_param_type(qualifier_type) ||
                             is_vacuous_dtor);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (qualifier_sym->kind == (a_symbol_kind)sk_field ||
+                   qualifier_sym->kind == (a_symbol_kind)sk_variable) {
+          /* A C++/CLI property or event field. */
+          check_assertion(is_cppcli_property_or_event(qualifier_sym));
+          qualifier_is_property_or_event = TRUE;
+          qualifier_property_or_event = qualifier_sym;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           /* Some other kind of symbol -- must be an error. */
           invalid_qualifier_sym = TRUE;
@@ -15566,6 +15578,11 @@ selection operator, in which case it points to the type of the left operand.
             name_qualifier = NULL;
           } else if (qualifier_is_super) {
             /* No name qualifier entry is created for the __super level. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (qualifier_is_property_or_event) {
+            /* No name qualifier entry is created for the property or event
+               name. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             make_name_qualifier(&name_qualifier, qualifier_sym, qualifier_type,
                                 qualifier_namespace);
@@ -16225,6 +16242,20 @@ wrapup:
     locator_for_curr_id.qualifier_is_super = qualifier_is_super;
     locator_for_curr_id.is_super_qualified = is_super_qualified;
     locator_for_curr_id.name_qualifier = name_qualifier;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (qualifier_is_property_or_event) {
+      locator_for_curr_id.is_property_or_event_accessor = TRUE;
+      locator_for_curr_id.property_is_static =
+               qualifier_property_or_event->kind == (a_symbol_kind)sk_variable;
+      if (locator_for_curr_id.property_is_static) {
+        locator_for_curr_id.property_or_event_parent.variable =
+                             qualifier_property_or_event->variant.variable.ptr;
+      } else {
+        locator_for_curr_id.property_or_event_parent.field =
+                                qualifier_property_or_event->variant.field.ptr;
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Since we're returning a pseudo-token, set pos_curr_token. */
     pos_curr_token = start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL

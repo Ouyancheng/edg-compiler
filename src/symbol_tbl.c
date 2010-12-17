@@ -12611,6 +12611,11 @@ are handled in symbol_tbl_init.)
   cleared_locator.is_super_qualified              = FALSE;
   cleared_locator.specific_symbol                 = NULL;
   cleared_locator.parent.class_type               = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  cleared_locator.is_property_or_event_accessor   = FALSE;
+  cleared_locator.property_is_static              = FALSE;
+  cleared_locator.property_or_event_parent.field  = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cleared_locator.template_arg_list               = NULL;
   cleared_locator.name_qualifier                  = NULL;
   /* The following initializations are typically redundant, but are helpful
