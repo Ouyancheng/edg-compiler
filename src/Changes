@@ -1,5 +1,22 @@
 Version 4.3
 
+12/17/10 [EDGcpfe/11160]
+GNU built-in variadic parameter operations
+
+In configurations with GCC_BUILTIN_VARARGS set to TRUE, the front end supports
+GCC-like built-in variadic parameter operators like __builtin_va_start and
+__builtin_va_arg.  Previously, these operators were implemented as keywords.
+Now they're implemented as GNU built-in functions that are handled specially.
+As a consequence of this change, a program can e.g. declare local variables
+with the names of these operators, or, in C++ mode, qualify the operator
+names with "::".  E.g.:
+
+  void f(__builtin_va_list a, __builtin_va_list b) {
+    ::__builtin_va_copy(a, b);  // Now accepted in g++ mode.
+    int __builtin_va_end = 1;   // Now accepted in g++ mode.
+  }
+
+
 12/15/10 [EDGcpfe/11220]
 Pure-specifiers ("= 0") on member function definitions
 
