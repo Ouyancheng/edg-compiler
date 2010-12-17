@@ -3860,6 +3860,10 @@ for the accessor; otherwise return NULL;
   if (locator->specific_symbol != NULL) {
     /* Retain the specific symbol if there is one. */
     result_sym = locator->specific_symbol;
+  } else if (!locator->is_class_member ||
+             !same_entities(locator->parent.class_type, class_type)) {
+    /* The locator is not for a class member, or does not match the class
+       type provided.  Return NULL (set above). */
   } else {
     a_property_or_event_descr_ptr	pdp;
     a_symbol_header_ptr			sym_hdr = locator->symbol_header;

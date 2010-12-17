@@ -123,7 +123,6 @@ EXTERN a_translation_unit_ptr
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-typedef union a_property_or_event_parent *a_property_or_event_parent_ptr;
 typedef union a_property_or_event_parent {
   /* This is used for Microsoft property and event accessor functions to
      indicate the property or event with which the accessor function is
