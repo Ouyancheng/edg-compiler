@@ -564,20 +564,6 @@ Install the keywords in the symbol table.
     enter_gnu_keyword((a_token_kind)tok_builtin_types_compatible,
                       "__builtin_types_compatible_p");
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if GCC_BUILTIN_VARARGS
-    /* Enable built-in support for <stdarg.h> and <varargs.h>.  Note that
-       __builtin_va_start was introduced as a synonym for
-       __builtin_stdarg_start in GNU C/C++ 3.3. */
-    enter_keyword((a_token_kind)tok_va_start, "__builtin_stdarg_start");
-    enter_keyword((a_token_kind)tok_va_start, "__builtin_va_start");
-    enter_keyword((a_token_kind)tok_va_arg, "__builtin_va_arg");
-    enter_keyword((a_token_kind)tok_va_end, "__builtin_va_end");
-    enter_keyword((a_token_kind)tok_va_copy, "__builtin_va_copy");
-#if GNU_EXTENSIONS_ALLOWED
-    enter_keyword((a_token_kind)tok_va_start_single_operand,
-                  "__builtin_varargs_start");
-#endif /* GNU_EXTENSIONS_ALLOWED */
-#endif /* GCC_BUILTIN_VARARGS */
     /* Enable alternative token spellings. */
     enter_gnu_keyword((a_token_kind)tok_inline, "__inline");
     enter_gnu_keyword((a_token_kind)tok_asm, "__asm");

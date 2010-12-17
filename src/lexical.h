@@ -438,7 +438,6 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
 #endif /* NEAR_AND_FAR_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_attribute */
 #if GNU_EXTENSIONS_ALLOWED
-   (an_opname_kind)onk_none,          /* tok_va_start_single_operand */
    (an_opname_kind)onk_none,          /* tok_builtin_types_compatible */
    (an_opname_kind)onk_none,          /* tok_gnu_real */
    (an_opname_kind)onk_none,          /* tok_gnu_imag */

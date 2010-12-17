@@ -1905,6 +1905,16 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func2(_yn, double, int, double);
   enter_gnu_builtin_func2(_ynf, floating, int, floating);
   enter_gnu_builtin_func2(_ynl, long_double, int, long_double);
+#if GCC_BUILTIN_VARARGS
+  /* The following are handled as pseudo-functions during expression
+     processing: The actual types recorded here have no real effect. */
+  enter_gnu_builtin_vararg_func0(_va_start, no_return);
+  enter_gnu_builtin_vararg_func0(_stdarg_start, no_return);
+  enter_gnu_builtin_vararg_func0(_varargs_start, no_return);
+  enter_gnu_builtin_vararg_func0(_va_arg, no_return);
+  enter_gnu_builtin_vararg_func0(_va_end, no_return);
+  enter_gnu_builtin_vararg_func0(_va_copy, no_return);
+#endif /* GCC_BUILTIN_VARARGS */
   enter_gnu_builtin_func0(_va_arg_pack, int);
   enter_gnu_builtin_func0(_va_arg_pack_len, int);
   enter_gnu_builtin_func1(_bswap32, u4, u4);
