@@ -1568,6 +1568,20 @@ by octl.
       form_type(type->variant.vector.element_type, octl);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tk_pointer:
+      /* C++/CLI interior_ptr<T> and pin_ptr<T> */
+      if (type->variant.pointer.is_interior_ptr) {
+        octl->output_str("interior_ptr<", octl);
+      } else if (type->variant.pointer.is_pin_ptr) {
+        octl->output_str("pin_ptr<", octl);
+      } else {
+        unexpected_condition();
+      }  /* if */
+      form_type(type->variant.pointer.type, octl);
+      octl->output_str(">", octl);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tk_nullptr:
       check_assertion(!octl->c_generating_back_end);
       /* Output the type of the C++ "nullptr" keyword as the name of the
@@ -1817,7 +1831,13 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
   }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
   kind = type->kind;
-  if (kind == (a_type_kind)tk_pointer) {
+  if (kind == (a_type_kind)tk_pointer
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* C++/CLI interior_ptr and pin_ptr are handled as specifier types. */
+      && !type->variant.pointer.is_interior_ptr
+      && !type->variant.pointer.is_pin_ptr
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                          ) {
     /* Pointer or reference type. */
     form_type_first_part(type->variant.pointer.type,
                          /*under_lhs_declarator=*/TRUE,
@@ -2274,7 +2294,13 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
     type = type->variant.typeref.type;
   }  /* while */
   kind = type->kind;
-  if (kind == (a_type_kind)tk_pointer) {
+  if (kind == (a_type_kind)tk_pointer
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* C++/CLI interior_ptr and pin_ptr are handled as specifier types. */
+      && !type->variant.pointer.is_interior_ptr
+      && !type->variant.pointer.is_pin_ptr
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                          ) {
     /* Pointer or reference type. */
     form_type_second_part(type->variant.pointer.type,
                           /*under_lhs_declarator=*/TRUE,
@@ -2910,6 +2936,10 @@ and standalone utility programs.
 #if MICROSOFT_EXTENSIONS_ALLOWED
              && type_1->variant.pointer.is_handle == 
                 type_2->variant.pointer.is_handle
+             && type_1->variant.pointer.is_interior_ptr == 
+                type_2->variant.pointer.is_interior_ptr
+             && type_1->variant.pointer.is_pin_ptr == 
+                type_2->variant.pointer.is_pin_ptr
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             ) {
     /* Continue at the next level for pointers. */

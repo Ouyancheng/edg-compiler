@@ -148,8 +148,20 @@ predicates.
    that. */
 #define is_handle_ptr(tp) (is_pointer_or_handle(tp) &&                \
                            (tp)->variant.pointer.is_handle)
+#define is_non_cli_pointer(tp) (is_pointer(tp) && \
+                               !(tp)->variant.pointer.is_interior_ptr && \
+                               !(tp)->variant.pointer.is_pin_ptr)
+#define is_cli_pointer(tp) (is_pointer(tp) && \
+                            ((tp)->variant.pointer.is_interior_ptr || \
+                             (tp)->variant.pointer.is_pin_ptr))
+#define same_cli_pointer_kinds(tp1, tp2) \
+  ((tp1)->variant.pointer.is_interior_ptr == \
+   (tp2)->variant.pointer.is_interior_ptr && \
+   (tp1)->variant.pointer.is_pin_ptr == \
+   (tp2)->variant.pointer.is_pin_ptr)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_pointer(tp) (is_pointer_or_handle_type(tp))
+#define is_non_cli_pointer(tp) (is_pointer(tp))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* The reference type is a tk_pointer with the is_reference flag set.
@@ -469,13 +481,14 @@ nullptr keyword in C++, or a cv-qualified version thereof.
 a_boolean is_void_star_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is the void* type.  Note that this does not
-allow "const void*" or any other qualified version.
+allow "const void*" or any other qualified version, nor does it allow
+C++/CLI interior_ptr<void> or pin_ptr<void>.
 */
 {
   a_boolean is_void_star = FALSE;
 
   tp = skip_typerefs(tp);
-  if (is_pointer(tp)) {
+  if (is_non_cli_pointer(tp)) {
     a_type_ptr ptr_type = type_pointed_to(tp);
     if (is_void_type(ptr_type) && !is_qualified_type(ptr_type)) {
       is_void_star = TRUE;
@@ -674,7 +687,8 @@ Return TRUE if the given type is an arithmetic type.
 
 a_boolean is_pointer_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is a pointer type (3.1.2.5).
+Return TRUE if the given type is a pointer type.  In C++/CLI mode, includes
+interior_ptr and pin_ptr types.
 */
 {
   tp = skip_typerefs(tp);
@@ -685,6 +699,7 @@ Return TRUE if the given type is a pointer type (3.1.2.5).
 a_boolean is_pointer_or_handle_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a pointer type or a C++/CLI handle type.
+Includes C++/CLI interior_ptr and pin_ptr types.
 */
 {
   tp = skip_typerefs(tp);
@@ -781,7 +796,8 @@ references.
 a_boolean is_ptr_or_ref_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an IL pointer type (i.e., a pointer or
-reference).  Excludes C++/CLI handles and tracking references.
+reference).  Excludes C++/CLI handles and tracking references, but includes
+C++/CLI interior_ptr and pin_ptr types.
 */
 {
   tp = skip_typerefs(tp);
@@ -818,7 +834,7 @@ a_boolean is_handle_type_or_any_ref_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a C++/CLI handle type, an ordinary reference
 type, or a tracking reference type (i.e., any tk_pointer variant except an
-ordinary pointer).
+ordinary pointer, interior_ptr, or pin_ptr).
 */
 {
   tp = skip_typerefs(tp);
@@ -1715,7 +1731,7 @@ directly.
 a_boolean is_underlying_shared_qualified_type(a_type_ptr  tp)
 /*
 Return TRUE if this is fundamentally a shared type, i.e. if a pointer to
-this object must be a pointer-to-shared.
+this object must be a pointer-to-upc-shared.
 */
 {
   a_boolean  result;
@@ -1734,7 +1750,7 @@ this object must be a pointer-to-shared.
 
 a_boolean is_shared_void_star_type(a_type_ptr tp)
 /*
-Returns TRUE if the specified type is a shared void*.
+Returns TRUE if the specified type is a UPC shared void*.
 */
 {
   a_boolean  result = FALSE;
@@ -4170,6 +4186,7 @@ check_typerefs:
 #if MICROSOFT_EXTENSIONS_ALLOWED
              type_1->variant.pointer.is_handle ==
                                 type_2->variant.pointer.is_handle &&
+             same_cli_pointer_kinds(type_1, type_2) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
              type_1->variant.pointer.is_rvalue_reference ==
                                 type_2->variant.pointer.is_rvalue_reference)) {
@@ -4808,6 +4825,7 @@ check_typerefs:
 #if MICROSOFT_EXTENSIONS_ALLOWED
               type_1->variant.pointer.is_handle ==
                                  type_2->variant.pointer.is_handle &&
+              same_cli_pointer_kinds(type_1, type_2) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               type_1->variant.pointer.is_rvalue_reference ==
                                  type_2->variant.pointer.is_rvalue_reference) {
@@ -5257,6 +5275,7 @@ that are not present in standalone back ends and utilities.
                                        type_2->variant.pointer.base_variable &&
                    type_1->variant.pointer.is_handle ==
                                        type_2->variant.pointer.is_handle &&
+                   same_cli_pointer_kinds(type_1, type_2) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                    standalone_identical_types(type_1->variant.pointer.type,
                                               type_2->variant.pointer.type));
@@ -6183,6 +6202,13 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
     } else if (is_nullptr(source_type)) {
       /* Do not set the flag for the C++0x nullptr keyword, so that nullptr
          can be used as a template nontype argument. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (dest_type->variant.pointer.is_interior_ptr ||
+               dest_type->variant.pointer.is_pin_ptr) {
+      /* C++/CLI allows conversion of nullptr to interior_ptr or pin_ptr, but
+         not conversion of 0. */
+      okay = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* Normal case. */
       std_conv->pointer_normalization_needed = TRUE;
@@ -6200,12 +6226,21 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
     /* Get the type pointed to and drop type qualifiers and typedefs. */
     source_type_pointed_to = type_pointed_to(source_type);
     unqual_source_type_pointed_to = skip_typerefs(source_type_pointed_to);
-    /* The "_for_impl_conversion" version is used to get proper handling of
-       pointers to arrays with qualified element types and (in C++) to deal
-       appropriately with routine linkages on function types. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (source_type->variant.pointer.is_interior_ptr &&
+        !dest_type->variant.pointer.is_interior_ptr) {
+      /* Conversion from an interior_ptr to a non-interior_ptr is not
+         allowed, because it loses the gc-ness of the pointer. */
+      okay = FALSE;
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
     if (types_are_compatible_for_impl_conversion(
                                             unqual_source_type_pointed_to,
                                             unqual_dest_type_pointed_to)) {
+      /* The "_for_impl_conversion" version is used to get proper handling of
+         pointers to arrays with qualified element types and (in C++) to deal
+         appropriately with routine linkages on function types. */
       /* The types pointed to are compatible, ignoring the type qualifiers.
          ANSI C 3.3.6 (pointer - pointer: caller will check that types are
          object types); ANSI C 3.3.8 (relational operators: caller will check
@@ -6239,6 +6274,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       if (is_void(unqual_dest_type_pointed_to)) {
         /* Destination type is "void *" or a pointer to a qualified version
            of void. */
+        /* Note that C++/CLI interior_ptr<void> and pin_ptr<void> work like
+           void * in this regard. */
         if (is_object_type(unqual_source_type_pointed_to) ||
             (C_mode() && is_incomplete(unqual_source_type_pointed_to))) {
           /* In C, a pointer to an object or incomplete type
@@ -6295,6 +6332,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
                    is_character_type(unqual_dest_type_pointed_to)) {
           /* Allow a character string to be converted to a pointer to any kind
              of char.  This is an extension in both C and C++. */
+          /* C++/CLI interior_ptr<char> and pin_ptr<char> are treated as
+             char * in this regard. */
           okay = TRUE;
           if (strict_ansi_mode) {
             std_conv->warning_suggested = default_warning_code;
@@ -7254,9 +7293,8 @@ exception specifications are not checked.
                 This does not fall out of the impl_conversion_possible
                 test for cases like "void *" --> "const char *".  See
                 5.2.9/10 in the C++ standard. */
-             (is_pointer_type(source_type) &&
+             (is_void_star_type(source_type) &&
               is_pointer_type(dest_type) &&
-              is_void_type(type_pointed_to(source_type)) &&
               is_object_type(type_pointed_to(dest_type)))) {
     /* The inverse implicit conversion can be done.  Note that the
        inverse of conversions to bool is not allowed (see [expr.static.cast]
@@ -7528,7 +7566,12 @@ well as C++ mode.
   if (is_incomplete(dest_type)) {
     /* Cannot cast to an incomplete type. */
     /* okay = FALSE; -- already set. */
-  } else if ((is_pointer(source_type) || is_nullptr(source_type)) &&
+  } else if (((is_pointer(source_type) &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+               !source_type->variant.pointer.is_interior_ptr
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                            ) ||
+              is_nullptr(source_type)) &&
              is_integral(dest_type) &&
              (C_mode() || microsoft_mode || gpp_mode ||
               dest_of_ptr_cast_big_enough(source_type, dest_type))) {
@@ -7550,7 +7593,8 @@ well as C++ mode.
       *warning_suggested = ec_pointer_conversion_to_same_size_int;
       *is_mild_warning = TRUE;
     }  /* if */
-  } else if (is_integral_or_enum(source_type) && is_pointer(dest_type)
+  } else if (is_integral_or_enum(source_type) &&
+             is_non_cli_pointer(dest_type)
 #if UPC_EXTENSIONS_ALLOWED
              /* Casting an integer to a ptr-to-shared is not allowed. */
              && !(upc_mode && is_ptr_to_shared_type(dest_type))
@@ -7581,6 +7625,14 @@ well as C++ mode.
          upc_mode && is_underlying_shared_qualified_type(dest_type_pointed_to);
 #endif /* UPC_EXTENSIONS_ALLOWED */
     dest_type_pointed_to = skip_typerefs(dest_type_pointed_to);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_cli_pointer(source_type) ||
+        is_cli_pointer(dest_type)) {
+      /* No reinterpret_cast to/from interior_ptr or pin_ptr in C++/CLI. */
+      okay = FALSE;
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
     if (is_template_param(source_type_pointed_to) ||
         is_template_param(dest_type_pointed_to)) {
       /* Cast involving template parameter types, in a prototype
@@ -7876,7 +7928,11 @@ top-level qualifiers are dropped).  Otherwise, NULL is returned.
     type_2 = skip_typerefs(type_2);
     if (identical_types(type_1, type_2)) {
       result = type_1;
-    } else if (is_pointer_type(type_1) && is_pointer_type(type_2)) {
+    } else if (is_pointer(type_1) && is_pointer(type_2)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+               && same_cli_pointer_kinds(type_1, type_2)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+              ) {
       a_type_ptr  type_pointed_to_1 = type_pointed_to(type_1);
       a_type_ptr  type_pointed_to_2 = type_pointed_to(type_2);
 
@@ -7886,7 +7942,18 @@ top-level qualifiers are dropped).  Otherwise, NULL is returned.
         result = make_qualified_type(result,
                                      get_type_qualifiers(type_pointed_to_1) |
                                        get_type_qualifiers(type_pointed_to_2));
-        result = make_pointer_type(result);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (type_1->variant.pointer.is_interior_ptr) {
+          result = make_interior_ptr_type(result);
+        } else if (type_1->variant.pointer.is_pin_ptr) {
+          result = make_pin_ptr_type(result);
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here */
+        {
+          result = make_pointer_type(result);
+        }  /* if */
       }  /* if */
     } else {
       /* The types at this level are not the same, so there is no composite

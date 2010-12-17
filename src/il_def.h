@@ -6603,6 +6603,8 @@ enum a_based_type_kind_tag {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   btk_handle,		/* C++/CLI handle. */
   btk_tracking_ref,	/* C++/CLI tracking reference. */
+  btk_interior_ptr,	/* C++/CLI interior_ptr. */
+  btk_pin_ptr,		/* C++/CLI pin_ptr. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   btk_pointer		/* Pointer to the type. */
 };
@@ -7024,6 +7026,20 @@ typedef struct a_type {
 			/* If TRUE, this type is a C++/CLI handle (is_reference
 			   FALSE) or tracking reference (is_reference TRUE)
 			   type. */
+      a_bit_field
+		is_interior_ptr:1;
+			/* If TRUE, this type is a C++/CLI interior_ptr<T>,
+			   which can (but need not) point to a subobject
+			   within an object on the managed heap.  It is
+			   otherwise treated as a normal pointer except in
+			   a few contexts. */
+      a_bit_field
+		is_pin_ptr:1;
+			/* If TRUE, this type is a C++/CLI pin_ptr<T>, which,
+			   when it points to a subobject on the managed heap,
+			   keeps the garbage collector from moving the object.
+			   It is otherwise treated as a normal pointer except
+			   in a few contexts. */
       a_pointer_modifier_set
 		modifiers;
 			/* Bit set with bits to indicate the presence of one

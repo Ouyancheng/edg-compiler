@@ -880,6 +880,10 @@ extern a_type_ptr make_rvalue_reference_type(a_type_ptr  pointed_to_type);
 extern a_type_ptr make_handle_type(a_type_ptr type_pointed_to);
 
 extern a_type_ptr make_tracking_reference_type(a_type_ptr type_pointed_to);
+
+extern a_type_ptr make_interior_ptr_type(a_type_ptr pointed_to_type);
+
+extern a_type_ptr make_pin_ptr_type(a_type_ptr pointed_to_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_type_ptr make_type_of_this(a_type_ptr            class_type,

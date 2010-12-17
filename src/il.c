@@ -1189,6 +1189,10 @@ Dump the contents of the indicated type entry, for debug purposes.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (tp->variant.pointer.is_handle) {
           fputs("handle to ", f_debug);
+        } else if (tp->variant.pointer.is_interior_ptr) {
+          fputs("interior_ptr to ", f_debug);
+        } else if (tp->variant.pointer.is_pin_ptr) {
+          fputs("pin_ptr to ", f_debug);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5372,6 +5376,8 @@ to refine the hash value developed in hash_constant.
                      + type->variant.pointer.is_rvalue_reference*2
 #if MICROSOFT_EXTENSIONS_ALLOWED
                      + type->variant.pointer.is_handle*4
+                     + type->variant.pointer.is_interior_ptr*7
+                     + type->variant.pointer.is_pin_ptr*13
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                      ;
       break;
@@ -9120,6 +9126,66 @@ find and reuse an existing entry if possible.
   }  /* if */
   return ptr;
 }  /* make_tracking_reference_type */
+
+
+a_type_ptr make_interior_ptr_type(a_type_ptr pointed_to_type)
+/*
+Allocate a C++/CLI interior_ptr type and initialize it.  Attempt to find
+and reuse an existing entry if possible.
+*/
+{
+  a_type_ptr ptr;
+
+  /* See if an interior_ptr type for the type pointed to has already been
+     allocated.  If one was allocated, a pointer to it is stored in the
+     based_types list for the base type, and the interior_ptr type can be
+     reused. */
+  ptr = get_based_type(pointed_to_type, (a_based_type_kind)btk_interior_ptr,
+                       TQ_NONE, PM_NONE, /*expl_mem_attr_implicit=*/FALSE,
+                       /*class_type=*/(a_type_ptr)NULL, UPC_BLOCK_SIZE_NONE);
+  if (ptr == NULL) {
+    /* No allocated entry, need to allocate one. */
+    ptr = alloc_type((a_type_kind)tk_pointer);
+    ptr->variant.pointer.type = pointed_to_type;
+    ptr->variant.pointer.is_interior_ptr = TRUE;
+    set_type_size(ptr);
+    /* Remember the existence of this interior_ptr type by putting a pointer
+       to it in the based_types list. */
+    add_based_type_list_member(pointed_to_type,
+                               (a_based_type_kind)btk_interior_ptr, ptr);
+  }  /* if */
+  return ptr;
+}  /* make_interior_ptr_type */
+
+
+a_type_ptr make_pin_ptr_type(a_type_ptr pointed_to_type)
+/*
+Allocate a C++/CLI pin_ptr type and initialize it.  Attempt to find
+and reuse an existing entry if possible.
+*/
+{
+  a_type_ptr ptr;
+
+  /* See if a pin_ptr type for the type pointed to has already been
+     allocated.  If one was allocated, a pointer to it is stored in the
+     based_types list for the base type, and the pin_ptr type can be
+     reused. */
+  ptr = get_based_type(pointed_to_type, (a_based_type_kind)btk_pin_ptr,
+                       TQ_NONE, PM_NONE, /*expl_mem_attr_implicit=*/FALSE,
+                       /*class_type=*/(a_type_ptr)NULL, UPC_BLOCK_SIZE_NONE);
+  if (ptr == NULL) {
+    /* No allocated entry, need to allocate one. */
+    ptr = alloc_type((a_type_kind)tk_pointer);
+    ptr->variant.pointer.type = pointed_to_type;
+    ptr->variant.pointer.is_pin_ptr = TRUE;
+    set_type_size(ptr);
+    /* Remember the existence of this pin_ptr type by putting a pointer
+       to it in the based_types list. */
+    add_based_type_list_member(pointed_to_type,
+                               (a_based_type_kind)btk_pin_ptr, ptr);
+  }  /* if */
+  return ptr;
+}  /* make_pin_ptr_type */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

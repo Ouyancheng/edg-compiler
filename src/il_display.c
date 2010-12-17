@@ -1445,6 +1445,8 @@ Display the indicated based type list.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         case btk_handle:         kind_str = "  handle";                  break;
         case btk_tracking_ref:   kind_str = "  tracking reference";      break;
+        case btk_interior_ptr:   kind_str = "  interior_ptr";            break;
+        case btk_pin_ptr:        kind_str = "  pin_ptr";                 break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case btk_pointer:        kind_str = "  pointer";                 break;
         default:                 kind_str = "  **BAD BASED TYPE KIND**"; break;
@@ -1758,6 +1760,12 @@ Display the indicated type entry.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (ptr->variant.pointer.is_handle) {
         disp_boolean("is_handle", TRUE);
+      }  /* if */
+      if (ptr->variant.pointer.is_interior_ptr) {
+        disp_boolean("is_interior_ptr", TRUE);
+      }  /* if */
+      if (ptr->variant.pointer.is_pin_ptr) {
+        disp_boolean("is_pin_ptr", TRUE);
       }  /* if */
       if (ptr->variant.pointer.modifiers != PM_NONE) {
         disp_name("modifiers");

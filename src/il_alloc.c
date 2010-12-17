@@ -1539,6 +1539,8 @@ to default values.
       pte->variant.pointer.is_rvalue_reference = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.pointer.is_handle = FALSE;
+      pte->variant.pointer.is_interior_ptr = FALSE;
+      pte->variant.pointer.is_pin_ptr = FALSE;
       pte->variant.pointer.modifiers = PM_NONE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
