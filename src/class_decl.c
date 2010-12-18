@@ -6283,18 +6283,6 @@ or struct definition.  The syntax is
         new_direct_bcp->direct_base_number = direct_base_number;
         if (is_virtual) new_direct_bcp->is_virtual = TRUE;
         if (class_state->is_nonreal_instantiation) {
-          if (bcp_cssp->any_nonreal_base_classes ||
-              (base_class_type->variant.class_struct_union.is_nonreal_class &&
-               !(base_class_type->
-                      variant.class_struct_union.is_prototype_instantiation ||
-                 !base_class_type->
-                          variant.class_struct_union.is_template_class))) {
-            /* Do not set the any_nonreal_base_classes field for a base that
-               is a prototype instantiation, or a class defined as part of a
-               prototype instantiation (e.g., a local class defined in the
-               prototype instantiation of a function template). */
-            cssp->any_nonreal_base_classes = TRUE;
-          }  /* if */
           if (is_or_contains_template_param(base_class_type)) {
             new_direct_bcp->ignore_during_dependent_lookup = TRUE;
             cssp->any_dependent_base_classes = TRUE;
@@ -6302,6 +6290,18 @@ or struct definition.  The syntax is
         } else if (class_state->is_template_instantiation) {
           mark_base_dependent_if_needed(new_direct_bcp, class_state,
                                         proto_base_number);
+        }  /* if */
+        if (bcp_cssp->any_nonreal_base_classes ||
+            (base_class_type->variant.class_struct_union.is_nonreal_class &&
+             !(base_class_type->
+                      variant.class_struct_union.is_prototype_instantiation ||
+               !base_class_type->
+                          variant.class_struct_union.is_template_class))) {
+          /* Do not set the any_nonreal_base_classes field for a base that is
+             a prototype instantiation, or a class defined as part of a
+             prototype instantiation (e.g., a local class defined in the
+             prototype instantiation of a function template). */
+          cssp->any_nonreal_base_classes = TRUE;
         }  /* if */
         path = update_base_class_derivation(new_direct_bcp,
                                             (a_derivation_step_ptr)NULL,
