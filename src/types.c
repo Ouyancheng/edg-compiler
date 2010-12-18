@@ -78,8 +78,8 @@ predicates.
 #define is_bool(tp) \
   (type_kind_is_integer(tp) && (tp)->variant.integer.bool_type)
 
-/* The nullptr type (std::nullptr_t) is the type of the nullptr keyword in
-   C++. */
+/* The nullptr type is the type of the nullptr keyword in C++ and also
+   includes both the managed and native nullptr types in C++/CLI. */
 #define is_nullptr(tp) ((tp)->kind == (a_type_kind)tk_nullptr)
 
 /* Character types are three particular integral types. */
@@ -469,12 +469,36 @@ version thereof.
 
 a_boolean is_nullptr_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is std::nullptr_t, i.e., the type of the
-nullptr keyword in C++, or a cv-qualified version thereof.
+Return TRUE if the given type is the type of the nullptr keyword in C++
+(including both nullptr and __nullptr in C++/CLI), or a cv-qualified version
+thereof.
 */
 {
   tp = skip_typerefs(tp);
   return(is_nullptr(tp));
+}  /* is_nullptr_type */
+
+
+a_boolean is_managed_nullptr_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is the type of the managed nullptr keyword in
+C++/CLI (i.e., not the type of __nullptr), or a cv-qualified version
+thereof.
+*/
+{
+  tp = skip_typerefs(tp);
+  return(is_nullptr(tp) && tp->incomplete);
+}  /* is_nullptr_type */
+
+
+a_boolean is_native_nullptr_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is the type of the nullptr keyword in C++ or
+the __nullptr keyword in C++/CLI, or a cv-qualified version thereof.
+*/
+{
+  tp = skip_typerefs(tp);
+  return(is_nullptr(tp) && !tp->incomplete);
 }  /* is_nullptr_type */
 
 
@@ -4109,7 +4133,6 @@ check_typerefs:
       case tk_error:
       case tk_unknown:
       case tk_void:
-      case tk_nullptr:
         /* No further check needed.  The types are identical. */
         identical = TRUE;
         break;
@@ -4394,6 +4417,11 @@ check_typerefs:
         }  /* if */
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+      case tk_nullptr:
+        /* The managed and native nullptr types are distinguished by the
+           former being an incomplete type while the latter is complete. */
+        identical = (type_1->incomplete == type_2->incomplete);
+        break;
 #if CHECKING
       default:
         internal_error("f_identical_types: bad type");
@@ -5183,7 +5211,7 @@ static a_boolean dest_of_ptr_cast_big_enough(a_type_ptr source_type,
 /*
 Return TRUE if a value of type "source_type" will fit in an entity of
 type "dest_type".  This is used in testing whether or not non-portable
-casts involving pointers or std::nullptr_t should be allowed.
+casts involving pointers or nullptr types should be allowed.
 */
 {
   source_type = skip_typerefs(source_type);
@@ -6214,11 +6242,11 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       std_conv->pointer_normalization_needed = TRUE;
     }  /* if */
   } else if (is_nullptr(source_type)) {
-    /* std::nullptr_t, i.e., the type of the C++ nullptr keyword, can be
-       converted to any pointer type.  (Note: the nullptr keyword itself is
-       handled in the preceding case; this case is for other expressions of
-       type std::nullptr_t, which are also "null pointer constants,"
-       although they need not be constant expressions.) */
+    /* Values of nullptr types can be converted to any pointer type.
+       (Note: the nullptr/__nullptr keyword is handled in the preceding
+       case; this case is for other expressions with a nullptr type, which
+       are also "null pointer constants," although they need not be
+       constant expressions.) */
     okay = TRUE;
   } else if (is_pointer(source_type)) {
     /* Pointer --> pointer. */
@@ -6832,10 +6860,10 @@ pointers to members).
       std_conv->pointer_normalization_needed = TRUE;
     }  /* if */
   } else if (is_nullptr(source_type)) {
-    /* std::nullptr_t, i.e., the type of the C++ nullptr keyword, can be
-       converted to all pointer-to-member types.  (The nullptr keyword
-       itself is handled by the preceding case; this case is for other
-       expressions of type std::nullptr_t.) */
+    /* An expression with a nullptr type can be converted to all
+       pointer-to-member types.  (The nullptr/__nullptr keyword is handled
+       by the preceding case; this case is for other expressions with a
+       nullptr type.) */
     okay = TRUE;
   } else if (is_error(source_type)) {
     /* Error --> pointer to member is always allowed. */
@@ -7134,11 +7162,12 @@ See conversion_possible.
                                          std_conv);
   } else if (is_nullptr(dest_type)) {
     if (is_nullptr(source_type) ||
-        (source_is_constant &&
+        (source_is_constant && !dest_type->incomplete &&
          is_or_might_be_null_pointer_constant(source_constant))) {
-      /* Only a null pointer constant (nullptr or other rvalue of type
-         std::nullptr_t or a 0-valued integral constant expression) can be
-         converted to std::nullptr_t. */
+      /* An expression with a nullptr type can be converted to both native
+         (std::nullptr_t) and managed nullptr types; however, a 0-valued
+         integral constant expression cannot be converted to a managed
+         nullptr type (identified by being an incomplete type). */
       okay = TRUE;
       std_conv->nontrivial_conversion = !is_nullptr(source_type);
       /* We only want to set pointer_normalization_needed for integral
@@ -7571,11 +7600,12 @@ well as C++ mode.
                && !source_type->variant.pointer.is_interior_ptr
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                                ) ||
-              is_nullptr(source_type)) &&
+              (is_nullptr(source_type) && !source_type->incomplete)) &&
              is_integral(dest_type) &&
              (C_mode() || microsoft_mode || gpp_mode ||
               dest_of_ptr_cast_big_enough(source_type, dest_type))) {
-    /* Pointer or std::nullptr_t --> integral is okay
+    /* Pointer or std::nullptr_t (but not the managed nullptr type,
+       identified by being incomplete) --> integral is okay
          -- In C mode, always (size of destination is not an issue; see
             6.3.4 in the ISO C89 standard)
          -- In C++ mode, if (a) the integer is big enough or (b) it's
@@ -7803,7 +7833,8 @@ set to TRUE (otherwise it is set to FALSE).
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
 
-  if (is_incomplete(dest_type) && !is_void(dest_type)) {
+  if (is_incomplete(dest_type) && !is_void(dest_type) &&
+      !is_managed_nullptr_type(dest_type)) {
     /* Cannot cast to an incomplete type. */
     /* okay = FALSE; -- already set. */
   } else {

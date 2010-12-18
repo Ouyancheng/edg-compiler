@@ -834,6 +834,9 @@ associated variant fields to default values.
   cp->null_keyword = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   cp->nullptr_keyword = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  cp->native_nullptr_keyword = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cp->explicit_braces_on_aggregate = FALSE;
   cp->from_undefined_preproc_id = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED

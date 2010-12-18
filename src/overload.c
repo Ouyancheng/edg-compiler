@@ -2721,7 +2721,12 @@ it is always NULL.
          void m() { f(*p); }
     */
     complete_type_is_needed(arg_type);
-    if (is_incomplete_type(arg_type)) goto done;
+    if (is_incomplete_type(arg_type) && !is_managed_nullptr_type(arg_type)) {
+      /* Although the managed (C++/CLI) nullptr type is incomplete and
+         cannot be used as the type of an object, for example, the Microsoft
+         compiler allows it as a template argument. */
+      goto done;
+    }  /* if */
   }  /* if */
   /* Return the adjusted types at this point as the types that can be used to
      check for deduction via a qualification conversion. */
@@ -16501,6 +16506,11 @@ Deduction failures are diagnosed as errors.
   check_assertion(auto_arg_operand != NULL && auto_arg_operand->next == NULL);
   arg = &auto_arg_operand->operand;
   arg_type = arg->type;
+  if (is_managed_nullptr_type(arg_type)) {
+    /* The Microsoft C++/CLI compiler deduces the native nullptr type from
+       an auto initializer of the managed nullptr type. */
+    arg_type = nullptr_type(/*managed=*/FALSE);
+  }  /* if */
   dps->type = NULL;
   templ_param = alloc_template_param(symbol_for(dps->auto_type));
   /* Adjust the argument and parameter types for deduction.  Some types can

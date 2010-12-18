@@ -12321,7 +12321,8 @@ declarations.
                void operator?:();
              in which the param list is not processed. */
         } else {
-          pos_error(ec_incomplete_type_not_allowed, &locator->source_position);
+          pos_error(managed_nullptr_or_incomplete_type_msg(field_type,
+                   ec_incomplete_type_not_allowed), &locator->source_position);
         }  /* if */
         field_type = error_type();
       }  /* if */

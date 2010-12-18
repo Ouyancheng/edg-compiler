@@ -606,6 +606,14 @@ extern void embedded_cplusplus_noncompliance_diagnostic(
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+/*
+Macro that converts an "incomplete type" diagnostic to one referring
+specifically to the managed nullptr type if appropriate.
+*/
+#define managed_nullptr_or_incomplete_type_msg(tp, msg)                   \
+  (is_managed_nullptr_type(tp) ? ec_managed_nullptr_not_allowed : (msg))
+
 extern void end_error(void);
 
 extern void start_command_line_error(an_error_code      error_code,

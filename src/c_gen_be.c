@@ -2066,7 +2066,7 @@ Do any desirable consistency checks on the indicated type.
     }  /* if */
   } else {
     check_assertion_str(!is_nullptr_type(type),
-                        "validate_type: unlowered std::nullptr_t type");
+                        "validate_type: unlowered nullptr type");
   }  /* if */
 }  /* validate_type */
 
@@ -4881,7 +4881,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 
   check_assertion_str(expr != NULL, "dump_expr: NULL expression");
   check_assertion_str(!is_nullptr_type(expr->type),
-                      "dump_expr: unlowered std::nullptr_t type");
+                      "dump_expr: unlowered nullptr type");
   switch (expr->kind) {
     case enk_operation:
       /* Expression operation. */

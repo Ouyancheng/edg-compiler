@@ -1584,9 +1584,13 @@ by octl.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tk_nullptr:
       check_assertion(!octl->c_generating_back_end);
-      /* Output the type of the C++ "nullptr" keyword as the name of the
-         standard typedef. */
-      octl->output_str("std::nullptr_t", octl);
+      /* If this is the native nullptr type, put it out as the name of the
+         standard C++ typedef; otherwise, use decltype. */
+      if (is_native_nullptr_type(type)) {
+        octl->output_str("std::nullptr_t", octl);
+      } else {
+        octl->output_str("decltype(nullptr)", octl);
+      }  /* if */
       break;
     case tk_unknown:
       check_assertion(!octl->gen_compilable_code);
@@ -4430,8 +4434,14 @@ precedence confusion.  Do the output in the way described by octl.
         octl->output_str("__null", octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       } else if (!octl->c_generating_back_end && constant->nullptr_keyword) {
-        /* The C++ nullptr keyword. */
+        /* The C++ and C++/CLI nullptr keyword. */
         octl->output_str("nullptr", octl);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (!octl->c_generating_back_end &&
+                                            constant->native_nullptr_keyword) {
+        /* The Microsoft __nullptr keyword. */
+        octl->output_str("__nullptr", octl);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* coverity[var_deref_model] */
       } else if (!octl->c_generating_back_end &&
                  il_header.source_language == sl_Cplusplus &&

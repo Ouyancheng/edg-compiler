@@ -298,13 +298,13 @@ IL lowering.
 
 a_boolean is_or_was_nullptr_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is either std::nullptr_t or a lowered version of 
-std::nullptr_t.
+Return TRUE if the given type is either a nullptr type or a lowered version
+of a nullptr type.
 */
 {
 #if DO_IL_LOWERING
-  /* A lowered std::nullptr_t has been transformed into a typeref with
-     void* type, whose underlying type is the original std::nullptr_t. */
+  /* A lowered nullptr type has been transformed into a typeref with void*
+     type, whose underlying type is the original nullptr type. */
   tp = get_underlying_type(tp);
 #endif /* DO_IL_LOWERING */
   return is_nullptr_type(tp);
@@ -8835,12 +8835,12 @@ Do IL lowering of the indicated type and everything under it.
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:
-        /* The type of the C++ nullptr keyword, std::nullptr_t.  Change it
-           to a typeref to the "void *" type (the C++ Standard requires it to
-           have that size, so we use that type in the lowered IL to make it
-           happen naturally) and maintain a copy of the original std::nullptr_t
-           type for the use of IL lowering; it is not really part of the IL
-           tree. */
+        /* The type of the nullptr or __nullptr keyword in C++ or C++/CLI.
+           Change it to a typeref to the "void *" type (the C++ Standard
+           requires it to have that size, so we use that type in the
+           lowered IL to make it happen naturally) and maintain a copy of
+           the original type for the use of IL lowering; it is not really
+           part of the IL tree. */
         copy_of_orig_type = alloc_type(type->kind);
         copy_type(type, copy_of_orig_type);
         /* Change the type to a pure typeref to the new (lowered) type. */
@@ -10584,16 +10584,16 @@ already), do nothing.
 static an_expr_node_ptr expr_for_nullptr_type(a_type_ptr       type,
                                               an_expr_node_ptr expr)
 /*
-Returns an expression of the specified type that can be used as a replacement
-for the input expression (an rvalue).  The input expression is either an
-expression whose type is std::nullptr_t or one that has been cast to
-std::nullptr_t.  The returned expression yields a std::nullptr_t value that is
-cast to the specified type (if needed).  Typically the returned expression is
-simply a constant zero of the specified type, but can also be something more
-complicated (e.g., when the type is a pointer to member type), and can also
-contain the original expression as the first operand of a comma operation in
-cases where the expression has side effects.  The expression has typically been
-previously lowered (and is not lowered by this routine).
+Returns an expression of the specified type that can be used as a
+replacement for the input expression (an rvalue).  The input expression is
+either an expression having a nullptr type or one that has been cast to a
+nullptr type.  The returned expression yields a nullptr value that is cast
+to the specified type (if needed).  Typically the returned expression is
+simply a constant zero of the specified type, but can also be something
+more complicated (e.g., when the type is a pointer to member type), and can
+also contain the original expression as the first operand of a comma
+operation in cases where the expression has side effects.  The expression
+has typically been previously lowered (and is not lowered by this routine).
 */
 {
   a_constant_ptr   zero_constant;
@@ -10639,9 +10639,9 @@ Lower an eok_bool_cast node, which converts an operand to bool.
 
   check_assertion(!expr->is_lvalue);
   if (is_or_was_nullptr_type(operand->type)) {
-    /* The operand had type std::nullptr_t in the unlowered IL so the
-       result of the cast will always be false; change the eok_bool_cast to
-       an expression that will return a zero of the proper type (preserving
+    /* The operand had a nullptr type in the unlowered IL so the result of
+       the cast will always be false; change the eok_bool_cast to an
+       expression that will return a zero of the proper type (preserving
        the original expression if it has any side effects). */
     overwrite_node(expr, expr_for_nullptr_type(orig_type, operand));
   } else {
@@ -12607,13 +12607,13 @@ Lower the type_kind of the operation node as appropriate.
 
 static void rewrite_nullptr_expr_if_necessary(an_expr_node_ptr expr)
 /*
-Called during the lowering post pass to replace rvalue expressions of type
-std::nullptr_t with an equivalent zero constant (pointer to member cases
-have been handled during lowering).  Expressions that have side-effects
-are maintained (as the first operand of a comma operation).  Must not be
-called as part of a pre-order expression traversal (infinite loop would
-occur when expression is changed into a comma operation).  This routine
-can't introduce any lvalue-returning operations (the lowering post pass has
+Called during the lowering post pass to replace rvalue expressions having a
+nullptr type with an equivalent zero constant (pointer to member cases have
+been handled during lowering).  Expressions that have side-effects are
+maintained (as the first operand of a comma operation).  Must not be called
+as part of a pre-order expression traversal (infinite loop would occur when
+expression is changed into a comma operation).  This routine can't
+introduce any lvalue-returning operations (the lowering post pass has
 already processed these).
 */
 {
@@ -12622,10 +12622,10 @@ already processed these).
       !is_constant_node(expr) &&
       expr->kind != (an_expr_node_kind)enk_field &&
       !expr->result_is_not_used) {
-    /* Replace an rvalue expression whose type was std::nullptr_t with
-       a constant zero of the right type (such an expression could
-       contain uninitialized fields or variables, so we don't want to
-       use its value).  Constants don't need to be re-written.  Fields aren't
+    /* Replace an rvalue expression having a nullptr type with a constant
+       zero of the right type (such an expression could contain
+       uninitialized fields or variables, so we don't want to use its
+       value).  Constants don't need to be re-written.  Fields aren't
        rewritten (but the selection operation above it is). */
     overwrite_node(expr, expr_for_nullptr_type(expr->type, expr));
   }  /* if */
@@ -12682,7 +12682,7 @@ optimizations that require operands be optimized first.
 #endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
   /* Nothing invoked at this point in the expression lowering can introduce
      lvalue-returning C++ operations (which would need lowering). */
-  /* Transform expressions involving std::nullptr_t types. */
+  /* Transform expressions involving nullptr types. */
   rewrite_nullptr_expr_if_necessary(expr);
 }  /* perform_post_pass_on_lowered_node_post_expr */
 
@@ -14166,9 +14166,9 @@ cast.  See lower_expr for typical invocation.
                 ((is_or_was_ptr_to_member_function_type(type) ||
                   is_or_was_ptr_to_data_member_type(type)) &&
                   is_or_was_nullptr_type(operand_node->type))) {
-              /* Replace a cast to a std::nullptr_t type, or a cast of a
-                 std::nullptr_t type to a pointer to member type, with a
-                 constant of the proper type. */
+              /* Replace a cast to a nullptr type, or a cast of a nullptr
+                 type to a pointer to member type, with a constant of the
+                 proper type. */
               overwrite_node(expr, expr_for_nullptr_type(type, operand_node));
             } else if (is_or_was_ptr_to_member_function_type(expr->type)) {
               /* Preserve the result type because it tells us how to call

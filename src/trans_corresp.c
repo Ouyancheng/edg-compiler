@@ -76,7 +76,8 @@ static a_type_ptr canonical_imaginary_types[(int)fk_last];
 static a_type_ptr canonical_il_void_type;
 static a_type_ptr canonical_il_wchar_t_type;
 static a_type_ptr canonical_il_bool_type;
-static a_type_ptr canonical_il_nullptr_type;
+static a_type_ptr canonical_il_native_nullptr_type;
+static a_type_ptr canonical_il_managed_nullptr_type;
 
 /*
 Correspondence checking is inhibited when errors other than correspondence
@@ -1360,7 +1361,11 @@ is set to point to the first created type.
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_nullptr:
-      set_builtin_type_corresp(&canonical_il_nullptr_type, type);
+      if (type->incomplete) {
+        set_builtin_type_corresp(&canonical_il_managed_nullptr_type, type);
+      } else {
+        set_builtin_type_corresp(&canonical_il_native_nullptr_type, type);
+      }  /* if */
       break;
     default:
       unexpected_condition_str("record_builtin_type: bad type kind");
@@ -1464,16 +1469,17 @@ created such an entry as a result of copying an entry into the primary IL.
 }  /* primary_wchar_t_type */
 
 
-a_type_ptr primary_nullptr_type(void)
+a_type_ptr primary_nullptr_type(a_boolean managed)
 /*
-Return the std::nullptr_t type entry used in the primary translation unit
-IL, or NULL if the type hasn't been used in the primary IL.  This routine
-takes into account the possibility that the trans_copy process (which must
-have completed) created such an entry as a result of copying an entry into
-the primary IL.
+Return the specified (managed or native) nullptr type entry used in the
+primary translation unit IL, or NULL if the type hasn't been used in the
+primary IL.  This routine takes into account the possibility that the
+trans_copy process (which must have completed) created such an entry as a
+result of copying an entry into the primary IL.
 */
 {
-  a_type_ptr  result = canonical_il_nullptr_type;
+  a_type_ptr  result = managed ? canonical_il_managed_nullptr_type :
+                                 canonical_il_native_nullptr_type;
 
   if (result != NULL) {
     result = (a_type_ptr)canonical_il_entry_of(result);
@@ -7236,7 +7242,8 @@ for each compilation.
   canonical_il_void_type = NULL;
   canonical_il_wchar_t_type = NULL;
   canonical_il_bool_type = NULL;
-  canonical_il_nullptr_type = NULL;
+  canonical_il_native_nullptr_type = NULL;
+  canonical_il_managed_nullptr_type = NULL;
   verification_list = NULL;
   avail_verification_entries = NULL;
   instantiations_to_process = NULL;

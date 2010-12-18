@@ -7992,7 +7992,7 @@ specified type.  Substitutions are not allocated for <builtin-type>s
       break;
     case tk_pointer:
       /* Pointers, reference, rvalue reference all get substitutions
-         (unless it's a lowered std::nullptr_t type). */
+         (unless it's a lowered nullptr type). */
 #if DO_IL_LOWERING
       if (is_or_was_nullptr_type(type)) {
         result = FALSE;
@@ -8315,10 +8315,9 @@ top_of_loop:
       case tk_pointer:
 #if DO_IL_LOWERING
         if (is_or_was_nullptr_type(type)) {
-          /* std::nullptr_t, the type of the C++ nullptr keyword, is not
-             itself a pointer type and is handled in the tk_nullptr case
-             below, but it is lowered to a pointer type; the lowered type
-             is handled here. */
+          /* A nullptr type is not itself a pointer type and is handled in
+             the tk_nullptr case below, but it is lowered to a pointer
+             type; the lowered type is handled here. */
           s = MANGLING_STRING_FOR_NULLPTR;
         } else 
 #endif /* DO_IL_LOWERING */
@@ -8489,7 +8488,7 @@ top_of_loop:
     switch (type->kind) {
       case tk_pointer:
 #if DO_IL_LOWERING
-        /* The lowered std::nullptr_t is a pointer, but is mangled by 
+        /* The lowered nullptr type is a pointer, but is mangled by 
            itself and should not be decorated by the type pointed to. */
         if (!is_or_was_nullptr_type(type)) 
 #endif /* DO_IL_LOWERING */

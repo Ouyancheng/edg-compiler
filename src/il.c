@@ -75,7 +75,8 @@ static a_type_ptr il_unknown_type;
 static a_type_ptr il_void_type;
 static a_type_ptr il_wchar_t_type;
 static a_type_ptr il_bool_type;
-static a_type_ptr il_nullptr_type;
+static a_type_ptr il_native_nullptr_type;
+static a_type_ptr il_managed_nullptr_type;
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if DEBUG
@@ -1529,7 +1530,11 @@ Dump the contents of the indicated type entry, for debug purposes.
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:
-        fputs("std::nullptr_t", f_debug);
+        if (tp->incomplete) {
+          fputs("decltype(nullptr)", f_debug);
+        } else {
+          fputs("std::nullptr_t", f_debug);
+        }  /* if */
         break;
       default:
         fputs("<bad type kind>", f_debug);
@@ -6012,6 +6017,9 @@ definition of the CC flags in il.h for more information.
         if (eq && strictly_identical) {
           if (cp1->non_arithmetic != cp2->non_arithmetic ||
               cp1->nullptr_keyword != cp2->nullptr_keyword
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              || cp1->native_nullptr_keyword != cp2->native_nullptr_keyword
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
               || cp1->null_keyword != cp2->null_keyword
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -7954,7 +7962,8 @@ primary translation unit.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* for */
   il_wchar_t_type = primary_wchar_t_type();
-  il_nullptr_type = primary_nullptr_type();
+  il_native_nullptr_type = primary_nullptr_type(/*managed=*/FALSE);
+  il_managed_nullptr_type = primary_nullptr_type(/*managed=*/TRUE);
 #if C99_IL_EXTENSIONS_SUPPORTED
   il_bool_type = primary_bool_type();
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -8264,25 +8273,47 @@ Make or find a type entry for a bool type and return a pointer to it.
 }  /* bool_type */
 
 
-a_type_ptr nullptr_type(void)
+a_type_ptr nullptr_type(a_boolean managed)
 /*
-Make or find a type entry for std::nullptr_t, i.e., the type of the nullptr
-keyword, and return a pointer to it.
+Make or find a type entry for the type of the nullptr keyword, and return a
+pointer to it.  If managed is TRUE, the type corresponds to the C++/CLI
+version, which is an incomplete type; otherwise, it is the standard C++
+type std::nullptr_t (which is also used for the __nullptr keyword in
+C++/CLI).
 */
 {
-  if (il_nullptr_type == NULL) {
-    /* The type must be created. */
-    il_nullptr_type = alloc_type((a_type_kind)tk_nullptr);
-    set_type_size(il_nullptr_type);
+  a_type_ptr type;
+  if (managed) {
+    check_assertion(cppcli_enabled);
+    if (il_managed_nullptr_type == NULL) {
+      /* The type must be created. */
+      il_managed_nullptr_type = alloc_type((a_type_kind)tk_nullptr);
+      il_managed_nullptr_type->incomplete = TRUE;
 #if ORPHAN_PROCESSING_NEEDED
-    /* Record the type entry as an orphan in case it is discarded now
-       and then found again in a later phase (e.g., IL lowering). */
-    add_orphaned_file_scope_il_entry((char *)il_nullptr_type,
-                                     (an_il_entry_kind)iek_type);
+      /* Record the type entry as an orphan in case it is discarded now
+         and then found again in a later phase (e.g., IL lowering). */
+      add_orphaned_file_scope_il_entry((char *)il_managed_nullptr_type,
+                                       (an_il_entry_kind)iek_type);
 #endif /* ORPHAN_PROCESSING_NEEDED */
-    record_builtin_type(il_nullptr_type);
+      record_builtin_type(il_managed_nullptr_type);
+    }  /* if */
+    type = il_managed_nullptr_type;
+  } else {
+    if (il_native_nullptr_type == NULL) {
+      /* The type must be created. */
+      il_native_nullptr_type = alloc_type((a_type_kind)tk_nullptr);
+      set_type_size(il_native_nullptr_type);
+#if ORPHAN_PROCESSING_NEEDED
+      /* Record the type entry as an orphan in case it is discarded now
+         and then found again in a later phase (e.g., IL lowering). */
+      add_orphaned_file_scope_il_entry((char *)il_native_nullptr_type,
+                                       (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
+      record_builtin_type(il_native_nullptr_type);
+    }  /* if */
+    type = il_native_nullptr_type;
   }  /* if */
-  return il_nullptr_type;
+  return type;
 }  /* nullptr_type */
 
 #if FIXED_POINT_ALLOWED
@@ -12950,7 +12981,7 @@ and return a pointer to it.
 a_boolean is_bad_type_for_template_arg_operand(a_type_ptr type)
 /*
 Return TRUE if type is a bad type for an operand of an expression in
-a template argument, i.e., it is not integral, enum, or std::nullptr_t.
+a template argument, i.e., it is not integral, enum, or a nullptr type.
 */
 {
   a_boolean is_bad_type;
@@ -13175,7 +13206,7 @@ to TRUE.  *source_pos gives the source position for errors.
 #endif /* GNU_EXTENSIONS_ALLOWED */
         if (!is_nullptr_type(type_1) && !is_nullptr_type(type_2)) {
           /* The usual arithmetic conversions are not performed if one of
-             the operands has type std::nullptr_t. */
+             the operands has a nullptr type. */
           do_usual_arith_conversions = TRUE;
         }  /* if */
         break;
@@ -13229,11 +13260,18 @@ to TRUE.  *source_pos gives the source position for errors.
   } else if (op == (an_expr_operator_kind)eok_question) {
     /* Three-operand operation, i.e., "?" */
     /* If the operands have the same type, use that type.  Otherwise, if
-       one of the operands has type std::nullptr_t, use that type.
-       Otherwise, do the usual arithmetic conversions. */
+       one of the operands has a nullptr type, the result type will also be
+       a nullptr type.  Otherwise, do the usual arithmetic conversions. */
     if (!types_are_compatible(type_2, type_3)) {
       if (is_nullptr_type(type_2) || is_nullptr_type(type_3)) {
-        result_type = nullptr_type();
+        /* The Microsoft C++/CLI compiler follows the third operand in
+           deciding whether the common type is managed or native.  (We
+           will get the native nullptr type, std::nullptr_t, if the third
+           operand does not have a nullptr type, and that's correct, since
+           the second operand must necessarily have been std::nullptr_t --
+           the managed nullptr type is incompatible with non-nullptr
+           operands.) */
+        result_type = nullptr_type(is_managed_nullptr_type(type_3));
       } else {
         result_type = usual_arithmetic_conversions(type_2, type_3);
       }  /* if */
@@ -13570,7 +13608,7 @@ static a_boolean template_nullptr_operation_types_are_compatible(
                                                          a_constant_ptr con_2)
 /*
 Return TRUE if two operands of the specified types (at least one of which
-must be std::nullptr_t) and, if the operands are constant, with the
+must be a nullptr type) and, if the operands are constant, with the
 specified values, can be used together in an expression.  This is called
 from check_template_nullptr_operation to determine whether an expression is
 permitted in a template argument expression.  It is similar to
@@ -13587,12 +13625,12 @@ and pointer-to-member types directly.
     compatible_types = (is_nullptr_type(type_2) ||
                         is_pointer_or_handle_type(type_2) ||
                         is_ptr_to_member_type(type_2) ||
-                        (con_2 != NULL &&
+                        (con_2 != NULL && is_native_nullptr_type(type_1) &&
                          is_null_pointer_constant(con_2)));
   } else {
     compatible_types = (is_pointer_or_handle_type(type_1) ||
                         is_ptr_to_member_type(type_1) ||
-                        (con_1 != NULL &&
+                        (con_1 != NULL && is_native_nullptr_type(type_2) &&
                          is_null_pointer_constant(con_1)));
   }  /* if */
   return compatible_types;
@@ -13609,14 +13647,14 @@ static void check_template_nullptr_operation(an_expr_operator_kind op,
                                              a_boolean             *copy_error)
 /*
 Called from copy_template_param_expr to determine whether an operation
-involving operands of type std::nullptr_t is permissible in an expression
-that is the result of substituting template arguments into a template
-argument expression.  The types of the operands are given by the opN_type
+involving operands with a nullptr type is permissible in an expression that
+is the result of substituting template arguments into a template argument
+expression.  The types of the operands are given by the opN_type
 parameters, and if the operand is a constant, its value is given by the
 opN_con parameters (NULL if the value is a non-constant expression).  If op
-is an operation that is not permitted on an operand of type std::nullptr_t,
-or if the type or value of the other operand is not compatible with
-std::nullptr_t, set *copy_error to TRUE.  (No checking is needed or done if
+is an operation that is not permitted on an operand with a nullptr type, or
+if the type or value of the other operand is not compatible with the
+nullptr type, set *copy_error to TRUE.  (No checking is needed or done if
 *copy_error is already TRUE.)
 */
 {
@@ -13652,7 +13690,7 @@ std::nullptr_t, set *copy_error to TRUE.  (No checking is needed or done if
         break;
       default:
         /* All other operators are not permitted at all or are not permitted
-           with an operand of type std::nullptr_t. */
+           with an operand having a nullptr type. */
         *copy_error = TRUE;
         break;
     }  /* switch */
@@ -13886,7 +13924,7 @@ options is a set of name lookup options.
             (new_op2_type != NULL && is_nullptr_type(new_op2_type)) ||
             (new_op3_type != NULL && is_nullptr_type(new_op3_type))) {
           /* Only a small subset of possible operations are permitted on
-             operands of type std::nullptr_t.  If substitution has resulted
+             operands with a nullptr type.  If substitution has resulted
              in an expression involving such operands, check to make sure
              it is one of the permitted ones; if not, substitution fails. */
           a_constant_ptr op1_con = new_operand_1 != NULL ? NULL :
@@ -21469,7 +21507,15 @@ is ignored, except for C++ class rvalues.
     if (drop_qualifiers_under_ptr) {
       pointed_to_type = make_unqualified_type(pointed_to_type);
     }  /* if */
-    result = identical_types(pointed_to_type, targ_type);
+    if (is_managed_nullptr_type(pointed_to_type) &&
+        is_native_nullptr_type(targ_type)) {
+      /* The Microsoft C++/CLI compiler gives the native nullptr type as
+         the result of indirection through a pointer to the managed nullptr
+         type. */
+      result = TRUE;
+    } else {
+      result = identical_types(pointed_to_type, targ_type);
+    }  /* if */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (!result &&
         (is_template_dependent_type(pointed_to_type) ||
@@ -22208,7 +22254,8 @@ in il_init.)
       pch_saved_var_array_elem(il_void_type),
       pch_saved_var_array_elem(il_wchar_t_type),
       pch_saved_var_array_elem(il_bool_type),
-      pch_saved_var_array_elem(il_nullptr_type),
+      pch_saved_var_array_elem(il_native_nullptr_type),
+      pch_saved_var_array_elem(il_managed_nullptr_type),
       pch_array_saved_var_array_elem(int_types),
       pch_array_saved_var_array_elem(signed_int_types),
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -22287,7 +22334,8 @@ in il_init.)
   register_trans_unit_variable(il_void_type);
   register_trans_unit_variable(il_wchar_t_type);
   register_trans_unit_variable(il_bool_type);
-  register_trans_unit_variable(il_nullptr_type);
+  register_trans_unit_variable(il_native_nullptr_type);
+  register_trans_unit_variable(il_managed_nullptr_type);
   register_trans_unit_variable(shareable_constants_table);
   register_trans_unit_variable(seq_cache);
   register_trans_unit_variable(effective_primary_source_file);
@@ -22394,7 +22442,8 @@ need initialization for every (primary and secondary) translation unit.
   il_wchar_t_type = NULL;
   il_bool_type = NULL;
   il_error_type = il_unknown_type = il_void_type = NULL;
-  il_nullptr_type = NULL;
+  il_native_nullptr_type = NULL;
+  il_managed_nullptr_type = NULL;
   { sizeof_t size = sizeof(a_constant_ptr) * SIZE_SHAREABLE_CONSTANTS_TABLE;
     shareable_constants_table = (a_constant_ptr*)alloc_fe(size);
     memzero((char *)shareable_constants_table, size_t_arg(size));

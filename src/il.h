@@ -847,7 +847,7 @@ extern a_type_ptr unknown_type(void);
 
 extern a_type_ptr void_type(void);
 
-extern a_type_ptr nullptr_type(void);
+extern a_type_ptr nullptr_type(a_boolean managed);
 
 extern a_type_ptr check_ptr_to_member_function_type(a_type_ptr  member_type,
                                                     a_type_ptr  class_type);

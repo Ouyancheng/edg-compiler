@@ -8038,7 +8038,8 @@ previously-scanned sizeof expression, and return the result in *result
          insides of templates). */
       template_case = TRUE;
     } else {
-      expr_pos_error(ec_incomplete_type_not_allowed, &type_position);
+      expr_pos_error(managed_nullptr_or_incomplete_type_msg(sizeof_type,
+                              ec_incomplete_type_not_allowed), &type_position);
       sizeof_type = error_type();
     }  /* if */
   }  /* if */
@@ -10667,6 +10668,10 @@ indication in *rcblock).
     /* typeid of a variable-length array is not allowed. */
     expr_pos_error(ec_vla_not_allowed, &operand_position);
     err = TRUE;
+  } else if (is_managed_nullptr_type(typeid_type)) {
+    /* typeid of the C++/CLI managed nullptr type is not allowed. */
+    expr_pos_error(ec_managed_nullptr_not_allowed, &operand_position);
+    err = TRUE;
   }  /* if */
   if (rcblock == NULL) {
     /* Check for and pass over the right parenthesis. */
@@ -12161,7 +12166,8 @@ in *rcblock).
       set_type_size(unqual_new_type);
     } else if (is_incomplete_type(new_type)) {
       /* A case like "new int[]" -- an incomplete array type. */
-      expr_pos_error(ec_incomplete_type_not_allowed, &type_position);
+      expr_pos_error(managed_nullptr_or_incomplete_type_msg(new_type,
+                              ec_incomplete_type_not_allowed), &type_position);
       err = TRUE;
     }  /* if */
   }  /* if */
@@ -12178,7 +12184,8 @@ in *rcblock).
     if (is_error_type(base_new_type)) {
       /* Error already issued. */
     } else if (is_incomplete_type(base_new_type)) {
-      expr_pos_error(ec_incomplete_type_not_allowed, &type_position);
+      expr_pos_error(managed_nullptr_or_incomplete_type_msg(base_new_type,
+                              ec_incomplete_type_not_allowed), &type_position);
     } else {
       expr_pos_error(ec_type_must_be_object_type, &type_position);
     }  /* if */
@@ -13295,7 +13302,8 @@ C++ functional-notation type conversions, and C++ new-style casts.
     /* We are in a prototype instantiation of a template.  The type is
        a template parameter type, i.e., we don't know what it is.  Assume
        it's okay and go on. */
-  } else if (is_incomplete_type(type_cast_to) && !is_void_type(type_cast_to)) {
+  } else if (is_incomplete_type(type_cast_to) && !is_void_type(type_cast_to) &&
+             !is_managed_nullptr_type(type_cast_to)) {
     /* This check catches incomplete enum types. */
     expr_pos_error(ec_incomplete_type_not_allowed, type_position);
     err = TRUE;
@@ -13496,7 +13504,7 @@ expressions allow only certain limited casts).
     /* Okay, cast is to integral type. */
     /* The cast should be from an arithmetic or enum type or std::nullptr_t. */
     if (is_arithmetic_or_enum_type(source_type) ||
-        is_nullptr_type(source_type)) {
+        is_native_nullptr_type(source_type)) {
       /* Okay. */
       valid_in_integral_const_expr = TRUE;
     } else if (is_pointer_type(source_type) &&
@@ -13543,7 +13551,7 @@ expressions allow only certain limited casts).
       use_type_position_in_diag = TRUE;
       if (err_severity == es_error) valid_in_integral_const_expr = FALSE;
     }  /* if */
-  } else if (is_nullptr_type(dest_type)) {
+  } else if (is_native_nullptr_type(dest_type)) {
     /* Okay: casting to std::nullptr_t.  (Restrictions on the operand of
        such a cast are the same in all contexts and are enforced
        elsewhere.) */
@@ -13632,7 +13640,7 @@ expressions allow only certain limited casts).
       err_severity = es_error;
       err_code = ec_expr_not_ptr_to_member;
     }  /* if */
-  } else if (is_nullptr_type(dest_type)) {
+  } else if (is_native_nullptr_type(dest_type)) {
     /* Okay: casting to std::nullptr_t.  (Restrictions on the operand of
        such a cast are the same in all contexts and are enforced
        elsewhere.) */
@@ -13745,7 +13753,7 @@ expressions allow only certain limited casts).
                                                  &operand->variant.constant)) {
       /* Okay: cast of a null pointer constant to a pointer or
          pointer-to-member type. */
-    } else if (is_nullptr_type(dest_type)) {
+    } else if (is_native_nullptr_type(dest_type)) {
       /* Okay: cast to std::nullptr_t.  (The restrictions on the operand of
          such a cast are the same in all contexts and are enforced
          elsewhere.) */
@@ -17329,7 +17337,7 @@ that case.
         }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
       } else if (operand_1_is_nullptr || is_nullptr_type(operand_2.type)) {
-        /* At least one of the operands is type std::nullptr_t. */
+        /* At least one of the operands has a nullptr type. */
         if (is_ptr_to_member_type(operand_2.type)) {
           /* Pointer to member types cannot be compared using relational
              operators.  (The case where operand_1 has a pointer to member
@@ -17539,7 +17547,7 @@ that case.
                            operand_1, &operand_2, &operator_position,
                            &operation_type);
       } else if (operand_1_is_nullptr || is_nullptr_type(operand_2.type)) {
-        /* At least one of the operands is type std::nullptr_t. */
+        /* At least one of the operands has a nullptr type. */
         (void)check_compatibility_of_nullptr_operands(operand_1, &operand_2,
                                                       &operator_position,
                                                       &operation_type);
@@ -18808,14 +18816,14 @@ that case.
                                                 &operand_2.variant.constant) &&
               op_is_false_constant(&operand_2)) &&
             (operand_3_is_pointer || operand_3_is_ptr_to_member ||
-             operand_3_is_nullptr)) ||
+             is_native_nullptr_type(operand_3.type))) ||
            (is_bool_type(operand_3.type) &&
             !(is_constant_operand(&operand_3) &&
               constant_bool_value_known_at_compile_time(
                                                 &operand_3.variant.constant) &&
               op_is_false_constant(&operand_3)) &&
             (operand_2_is_pointer || operand_2_is_ptr_to_member ||
-             operand_2_is_nullptr)))) {
+             is_native_nullptr_type(operand_2.type))))) {
         a_boolean         ptr_case;
         a_boolean         nullptr_case;
         a_source_position pos;
@@ -18952,8 +18960,8 @@ that case.
           err = TRUE;
         }  /* if */
       } else if (operand_2_is_nullptr || operand_3_is_nullptr) {
-        /* At least one of the operands is of type std::nullptr_t.  See if
-           the operands are compatible. */
+        /* At least one of the operands has a nullptr type.  See if the
+           operands are compatible. */
         err = !check_compatibility_of_nullptr_operands(&operand_2, &operand_3,
                                                        &colon_position,
                                                        &result_type);
@@ -19856,6 +19864,9 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_pretty_function_name:
     case tok_decorated_function_name:
     case tok_nullptr:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_native_nullptr:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       is_expr_start = TRUE;
       break;
     case tok_lbracket:
@@ -19991,7 +20002,8 @@ in *rcblock).
       error_in_operand(ec_void_throw, &operand);
     } else if (is_incomplete_type(incomp_test_type)) {
       /* Cannot throw an incomplete type. */
-      error_in_operand(ec_incomplete_type_not_allowed, &operand);
+      error_in_operand(managed_nullptr_or_incomplete_type_msg(incomp_test_type,
+                                    ec_incomplete_type_not_allowed), &operand);
     } else if (vla_enabled && is_variably_modified_type(throw_type)) {
       /* Cannot throw a variably-modified type, because can't catch it. */
       error_in_operand(ec_vla_not_allowed, &operand);
@@ -23157,12 +23169,24 @@ see expr.h).
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case tok_nullptr:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_native_nullptr:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       {
-        /* The C++0x nullptr keyword is represented by a zero-valued
-           constant of type std::nullptr_t. */
         a_constant nullptr_constant;
-        make_zero_of_proper_type(nullptr_type(), &nullptr_constant);
-        nullptr_constant.nullptr_keyword = TRUE;
+        a_boolean  managed = FALSE;
+        if (cppcli_enabled && curr_token == tok_nullptr) {
+          /* The C++/CLI nullptr keyword has the managed nullptr type;
+             otherwise (including the __nullptr C++/CLI keyword), the
+             type is the native variety (std::nullptr_t). */
+          managed = TRUE;
+        }  /* if */
+        make_zero_of_proper_type(nullptr_type(managed), &nullptr_constant);
+        nullptr_constant.nullptr_keyword = (curr_token == tok_nullptr);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        nullptr_constant.native_nullptr_keyword =
+                                            (curr_token == tok_native_nullptr);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         make_constant_operand(&nullptr_constant, &local_result);
       }
       (void)get_token();

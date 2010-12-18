@@ -6154,7 +6154,8 @@ C mode.
       /* MSVC++ allows a call returning an incomplete class type as an
          argument for an ellipsis in an unevaluated context. */
     } else {
-      error_in_operand(ec_incomplete_type_not_allowed, argument_operand);
+      error_in_operand(managed_nullptr_or_incomplete_type_msg(arg_type,
+                            ec_incomplete_type_not_allowed), argument_operand);
     }  /* if */
   } else if (is_class_struct_union_type(arg_type)) {
     /* Class.  No promotion needed. */
@@ -7252,15 +7253,14 @@ a_boolean check_compatibility_of_nullptr_operands(
                                           a_type_ptr        *operation_type)
 /*
 operand_1 and operand_2 are the operands of some operation, at least one of
-which is of type std::nullptr_t and the other has neither pointer nor
-pointer-to-member type.  (Cases involving std::nullptr_t with pointer or
+which has a nullptr type and the other has neither pointer nor
+pointer-to-member type.  (Cases involving nullptr with pointer or
 pointer-to-member types are handled by
 check_compatibility_of_pointer_operands and
 check_ptr_to_member_operands_for_compatibility, respectively.)  Check to
-see that the operands are compatible, i.e., that both are of type
-std::nullptr_t or that the other is an integral null pointer constant.  If
-the operands are compatible, set *operation_type to nullptr_type();
-otherwise, set it to error_type().  Return FALSE if there is an error.
+see that the operands are compatible.  If the operands are compatible, set
+*operation_type to the appropriate nullptr type; otherwise, set it to
+error_type().  Return FALSE if there is an error.
 */
 {
   a_boolean okay = FALSE;
@@ -7275,7 +7275,15 @@ otherwise, set it to error_type().  Return FALSE if there is an error.
     okay = TRUE;
     *operation_type = error_type();
   } else {
-    if (is_nullptr_type(operand_1->type)) {
+    /* The C++/CLI (managed) nullptr is compatible only with nullptr or
+       __nullptr; native nullptr (C++/CLI __nullptr or, in other modes,
+       nullptr, i.e., std::nullptr_t) is compatible with integral null
+       pointer constants, as well. */
+    if (is_managed_nullptr_type(operand_1->type)) {
+      okay = is_nullptr_type(operand_2->type);
+    } else if (is_managed_nullptr_type(operand_2->type)) {
+      okay = is_nullptr_type(operand_1->type);
+    } else if (is_nullptr_type(operand_1->type)) {
       okay =
           (is_nullptr_type(operand_2->type) ||
            (is_constant_operand(operand_2) &&
@@ -7288,8 +7296,10 @@ otherwise, set it to error_type().  Return FALSE if there is an error.
                                                              variant.constant);
     }  /* if */
     if (okay) {
-      /* The operation type will be nullptr_type(). */
-      *operation_type = nullptr_type();
+      /* The operation type will be a nullptr type.  The Microsoft compiler
+         follows the type of the second operand in determining whether the
+         type will be managed or native. */
+      *operation_type = nullptr_type(is_managed_nullptr_type(operand_2->type));
     } else {
       /* The operands are not compatible. */
       if (expr_error_should_be_issued()) {
@@ -13414,6 +13424,10 @@ it might produce an error).
        rvalue reference to array, for example), keep the array type as
        it is -- don't drop cv-qualifiers on the element type. */
     rvalue_node_type = node->type;
+  } else if (is_managed_nullptr_type(node->type)) {
+    /* The Microsoft C++/CLI compiler converts the managed nullptr type to
+       the native nullptr type in an lvalue-to-rvalue conversion. */
+    rvalue_node_type = nullptr_type(/*managed=*/FALSE);
   } else {
     rvalue_node_type = rvalue_type(node->type);
   }  /* if */
@@ -13847,12 +13861,15 @@ cases so we don't do it here.
          operand is not an lvalue anymore. */
       normalize_error_operand(operand);
     } else if (is_incomplete_type(operand_type) &&
+               !is_managed_nullptr_type(operand_type) &&
                (!C_mode() || !is_void_type(operand_type))) {
       /* Converting an lvalue with incomplete type to an rvalue is an
          error in C++ ([conv.lval]), and undefined behavior in C (C99
          6.3.2.1).  We treat it as an error in C mode except when the
          lvalue has (possibly cv-qualified) void type.  That latter
-         qualification is needed to pass DR 106. */
+         qualification is needed to pass DR 106.  In addition, the C++/CLI
+         managed nullptr type, although prohibited as the type of an
+         object, etc., is acceptable in an lvalue-to-rvalue conversion. */
       error_in_operand(ec_incomplete_type_not_allowed, operand);
     } else {
       using_lvalue(operand);

@@ -1008,6 +1008,11 @@ Display the indicated constant entry.
   if (ptr->nullptr_keyword) {
     disp_boolean("nullptr_keyword", TRUE);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->native_nullptr_keyword) {
+    disp_boolean("native_nullptr_keyword", TRUE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->explicit_braces_on_aggregate) {
     disp_boolean("explicit_braces_on_aggregate", TRUE);
   }  /* if */

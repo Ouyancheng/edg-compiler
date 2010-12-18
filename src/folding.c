@@ -1864,9 +1864,9 @@ for any diagnostics issued.
     goto exit;
   }  /* if */
   if (is_nullptr_type(new_type)) {
-    /* Conversion to std::nullptr_t.  There is only one "value" of type
-       std::nullptr_t, a null pointer, so the result is an integer with
-       value 0, just like old-style null pointer constants. */
+    /* Conversion to a nullptr type.  There is only one "value" of a
+       nullptr type, so the result is an integer with value 0, just like
+       old-style null pointer constants. */
     set_constant_kind(&new_constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&new_constant.variant.integer_value,
                       (a_host_large_integer)0);
@@ -2114,7 +2114,7 @@ for any diagnostics issued.
 
     case tk_nullptr:
       /* The old constant is a null pointer constant (the C++ "nullptr"
-         keyword or another value of type std::nullptr_t).  This is treated
+         keyword or another value with a nullptr type).  This is treated
          effectively like converting an integer 0, i.e., an old-style
          null pointer constant. */
       check_assertion(constant->kind == (a_constant_repr_kind)ck_integer);
@@ -2130,7 +2130,7 @@ for any diagnostics issued.
                                 &err_code, &err_severity);
       } else {
         unexpected_condition_str(
-                      "type_change_constant_full: std::nullptr_t to bad type");
+                      "type_change_constant_full: nullptr to bad type");
       }  /* if */
       break;
 
@@ -2290,9 +2290,9 @@ Return TRUE if the given constant is a null pointer constant.
   a_boolean is_null_pointer = FALSE;
 
   if (constant->kind == (a_constant_repr_kind)ck_integer) {
-    /* A null pointer constant is either of type std::nullptr_t or it has
-       the value zero, perhaps cast to "void *" in C.  Only certain kinds
-       of casts are allowed. */
+    /* A null pointer constant either has a nullptr type or it has the
+       value zero, perhaps cast to "void *" in C.  Only certain kinds of
+       casts are allowed. */
     if (is_nullptr_type(constant->type)) {
       is_null_pointer = TRUE;
     } else if ((!constant->null_pointer_constant_ruled_out ||

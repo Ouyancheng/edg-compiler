@@ -523,7 +523,7 @@ Install the keywords in the symbol table.
     if (nullptr_enabled) {
       /* The Microsoft compiler recognizes "__nullptr" as a native-only
          synonym for "nullptr". */
-      enter_keyword((a_token_kind)tok_nullptr, "__nullptr");
+      enter_keyword((a_token_kind)tok_native_nullptr, "__nullptr");
     }  /* if */
   }  /* if */
   init_whitespace_keywords();

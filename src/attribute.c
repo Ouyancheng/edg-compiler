@@ -3458,7 +3458,8 @@ return that entity.
       } else {
         complete_type_is_needed(tp);
         if (is_incomplete_type(tp)) {
-          pos_error(ec_incomplete_type_not_allowed, &aap->position);
+          pos_error(managed_nullptr_or_incomplete_type_msg(
+                          tp, ec_incomplete_type_not_allowed), &aap->position);
           apply_value = FALSE;
           make_attr_unrecognized(ap);
         } else {

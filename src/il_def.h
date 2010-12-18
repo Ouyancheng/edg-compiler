@@ -1071,6 +1071,9 @@ typedef enum /*a_token_kind*/ {
   tok_is_polymorphic,
   tok_is_union,
   tok_nullptr,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  tok_native_nullptr,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1178,6 +1181,9 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__is_polymorphic",
    "__is_union",
    "nullptr",
+#if MICROSOFT_EXTENSIONS_ALLOWED
+   "__nullptr",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -3303,11 +3309,10 @@ typedef struct a_constant {
                            Used for integer constants cast to pointer types
                            and one pointer type cast to another.  Also used
                            for the representation of nullptr (a zero-valued
-                           integer of type std::nullptr_t), even though
-                           there is no casting involved.  Note that,
-                           despite the name, this cast is not necessarily
-                           implicit in the source; it might be an explicit
-                           cast. */
+                           integer of a nullptr type), even though there is
+                           no casting involved.  Note that, despite the
+                           name, this cast is not necessarily implicit in
+                           the source; it might be an explicit cast. */
   a_bit_field	explicit_cast_applied:1;
 			/* TRUE when implicit_cast is TRUE and some part of
 			   the type change is explicit in the source code.
@@ -3356,9 +3361,16 @@ typedef struct a_constant {
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_bit_field	nullptr_keyword:1;
 			/* If TRUE, this constant was expressed with the
-			   C++0x nullptr keyword.  This is used to
-			   distinguish direct uses of nullptr from other
-			   expressions of type std::nullptr_t. */
+			   nullptr keyword.  This is used to distinguish
+			   direct uses of nullptr from other expressions
+			   with a nullptr type. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	native_nullptr_keyword:1;
+			/* if TRUE, this constant was expressed with the
+			   __nullptr keyword.  This is used to distinguish
+			   between nullptr and __nullptr in C++/CLI mode,
+			   where the keywords have different types. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	explicit_braces_on_aggregate:1;
 			/* For a ck_aggregate constant in an initializer,
 			   TRUE if the values were surrounded by explicit
@@ -3748,8 +3760,9 @@ enum a_type_kind_tag {
 #if GNU_VECTOR_TYPES_ALLOWED
   tk_vector,		/* GNU vector types. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-  tk_nullptr,		/* Type of C++ nullptr keyword, std::nullptr_t. */
-  tk_unknown            /* Unknown. */
+  tk_nullptr,		/* Type of C++ or C++/CLI nullptr or __nullptr
+			   keyword. */
+  tk_unknown		/* Unknown. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_type_kind;
@@ -7431,11 +7444,12 @@ typedef struct a_type {
 #if DO_IL_LOWERING
       a_type_ptr
 		orig_type;
-			/* When this typeref represents a type (specifically,
-			   a pointer to member type or std::nullptr_t) that has
-			   been lowered to something, this points to a copy of
-			   the original type.  NULL otherwise.  For internal
-			   use in IL lowering only. */
+			/* When this typeref represents a type
+			   (specifically, a pointer to member or nullptr
+			   type) that has been lowered to something, this
+			   points to a copy of the original type.  NULL
+			   otherwise.  For internal use in IL lowering
+			   only. */
 #endif /* DO_IL_LOWERING */
 #if UPC_EXTENSIONS_ALLOWED
       a_upc_block_size
