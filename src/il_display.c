@@ -5503,6 +5503,10 @@ Display the indicated base class entry.
   disp_source_range("base_specifier_range", &ptr->base_specifier_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   disp_boolean("direct", (a_boolean)ptr->direct);
+  if (ptr->direct) {
+    disp_host_large_unsigned("direct_base_number",
+                             (a_host_large_unsigned)ptr->direct_base_number);
+  }  /* if */
   disp_boolean("is_virtual", (a_boolean)ptr->is_virtual);
   disp_boolean("ambiguous", (a_boolean)ptr->ambiguous);
   disp_boolean("shares_virtual_function_info",
@@ -5520,9 +5524,6 @@ Display the indicated base class entry.
                  (a_boolean)ptr->is_optimized_empty_base);
     if (ptr->is_pack_expansion) {
       disp_boolean("is_pack_expansion", TRUE);
-    }  /* if */
-    if (ptr->is_pack_element) {
-      disp_boolean("is_pack_element", TRUE);
     }  /* if */
 #if !IA64_ABI
     disp_host_large_unsigned("pointer_offset",

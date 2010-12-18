@@ -5539,94 +5539,51 @@ done:;
 }  /* set_preferred_base_class_derivation */
 
 
-static void mark_dependent_base_classes(
-				a_type_ptr			class_type,
-				a_class_symbol_supplement_ptr	cssp,
-				a_class_def_state_ptr		class_state)
+static void mark_base_dependent_if_needed
+                                   (a_base_class_ptr              bcp, 
+                                    a_class_def_state_ptr         class_state,
+                                    a_base_class_sequence_number  proto_num)
 /*
-Determine which of the base classes of class_type are template-dependent,
-and so should not be visible for certain lookups.  cssp is the class
-symbol supplement of class_type.
-
-For a prototype instantiation, we go through the base classes of the
-prototype type and determine whether the base class depends on a
-template parameter.  It is marked accordingly.  For real classes,
-we check the flag previously set for the corresponding base class of
-the prototype instantiation.
-
-This routine is only called for generated instantiations, not for normal
-classes or explicitly specialized classes.
+bcp represents a direct base class generated during a real instantiation of a
+class template (the instance is described by class_state) and proto_num is the
+sequence number of the corresponding base in the prototype instantiation.
+If appropriate, mark bcp as being dependent (and update related bookkeeping
+information).
 */
 {
-  a_class_type_supplement_ptr	ctsp;
-  a_base_class_ptr		bcp;
+  a_base_class_ptr  proto_bcp;
+  a_type_ptr        proto_type;
 
-  ctsp = class_type->variant.class_struct_union.extra_info;
-  if (class_state->is_nonreal_instantiation) {
-    /* The class is a prototype instantiation.  If a direct base class
-       depends on a template parameter it should be ignored for unqualified
-       lookups. */
-    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-      if (bcp->direct && is_or_contains_template_param(bcp->type)) {
-        bcp->ignore_during_dependent_lookup = TRUE;
-        cssp->any_dependent_base_classes = TRUE;
-      }  /* if */
-    }  /* for */
+  check_assertion(bcp->direct && proto_num != 0);
+  check_assertion_str2(class_state->corresp_prototype_tag_sym != NULL,
+                       "mark_base_dependent_if_needed:",
+                       "no corresp_prototype_tag_sym");
+  proto_type = class_state->corresp_prototype_tag_sym
+                          ->variant.class_struct_union.type;
+  proto_bcp = base_classes_of(proto_type);
+  /* Find the corresponding prototype base class.  Note that in error cases a
+     given sequence number could be missing from the list. */
+  while (proto_bcp != NULL && proto_bcp->direct_base_number != proto_num) {
+    proto_bcp = proto_bcp->next;
+  }  /* while */
+  if (proto_bcp != NULL) {
+    /* Normal case: We find the corresponding base of the prototype
+       instantiation:  Set flags in the instantiated entities accordingly. */
+    bcp->ignore_during_dependent_lookup =
+                                    proto_bcp->ignore_during_dependent_lookup;
+    /* Indicate that this class has a dependent base if this base class
+       is dependent or any of its base classes are dependent. */
+    if (bcp->ignore_during_dependent_lookup ||
+        symbol_supplement_for_class(bcp->type)->any_dependent_base_classes) {
+      symbol_supplement_for_class(class_state->class_type)
+                                          ->any_dependent_base_classes = TRUE;
+    }  /* if */
   } else {
-    a_base_class_ptr		proto_bcp;
-    a_type_ptr			proto_type;
-    a_class_type_supplement_ptr	proto_ctsp;
-    a_symbol_ptr		proto_sym;
-
-    proto_sym = class_state->corresp_prototype_tag_sym;
-    check_assertion_str2(proto_sym != NULL,
-                         "mark_dependent_base_classes:",
-                         "no corresp_prototype_tag_sym");
-    proto_type = proto_sym->variant.class_struct_union.type;
-    proto_ctsp = proto_type->variant.class_struct_union.extra_info;
-    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-      /* Only process direct base classes. */
-      if (bcp->direct) {
-        /* Find the corresponding prototype base class.  Note that in
-           error cases a given sequence number could be missing from
-           either list.  Also, when dealing with virtual bases, the
-           order in which the base classes appear can differ from the
-           prototype instantiation to the real instantiation (e.g.,
-           a template-dependent base class (whose base classes are
-           unknown) could have a virtual base that is the same as a
-           direct virtual base of the current class).  Consequently,
-           we search from the beginning of the list for each base
-           class. */
-        proto_bcp = proto_ctsp->base_classes;
-        while (proto_bcp != NULL &&
-               (!proto_bcp->direct ||
-                proto_bcp->direct_base_number != bcp->direct_base_number)) {
-          proto_bcp = proto_bcp->next;
-        }  /* while */
-        if (proto_bcp != NULL &&
-            proto_bcp->direct_base_number == bcp->direct_base_number) {
-          /* Skip a base class if we did not find a correspondence.  In an
-             error case, this could result in names from a base class being
-             visible when they really shouldn't be. */
-          a_class_symbol_supplement_ptr	base_cssp;
-          base_cssp = symbol_supplement_for_class(bcp->type);
-          bcp->ignore_during_dependent_lookup =
-                                     proto_bcp->ignore_during_dependent_lookup;
-          /* Indicate that this class has a dependent base if this base class
-             is dependent or any of its base classes are dependent. */
-          if (bcp->ignore_during_dependent_lookup ||
-              base_cssp->any_dependent_base_classes) {
-            cssp->any_dependent_base_classes = TRUE;
-          }  /* if */
-        } else {
-          /* If we did not find a matching base class there must have been
-             an earlier error. */
-          check_assertion(total_errors != 0);
-        }  /* if */
-      }  /* if */
-    }  /* for */
+    /* If we did not find a matching base class there must have been an
+       earlier error. */
+    check_assertion(total_errors != 0);
   }  /* if */
-}  /* mark_dependent_base_classes */
+}  /* mark_base_dependent_if_needed */
 
 #if IA64_ABI
 
@@ -5990,7 +5947,7 @@ or struct definition.  The syntax is
   a_source_position             base_specifier_start_pos;
   a_derivation_step_ptr         path;
   a_boolean                     first_base_class = TRUE;
-  a_base_class_sequence_number	direct_base_number = 0;
+  a_base_class_sequence_number	direct_base_number = 0, proto_base_number = 0;
 #if IA64_ABI
   a_base_class_ptr              first_indirect_primary_vbase = NULL;
 #else /* !IA64_ABI */
@@ -6030,7 +5987,12 @@ or struct definition.  The syntax is
     add_stop_token(tok_comma);
     /* A base-specifier is a potential variadic pack expansion context. */
     any_types = begin_potential_pack_expansion_context(&pesep);
-    if (any_types) direct_base_number++;
+    /* In the case of a template instantiation, variadic template parameters
+       may cause the direct base number in the prototype instantiation to
+       differ from that of a corresponding base in the real instantiation.
+       We therefore keep track of the corresponding sequence number of the
+       prototype instantiation. */
+    if (class_state->is_template_instantiation) proto_base_number += 1;
     while (any_types) {
       a_pack_expansion_descr_ptr	pedep;
       an_attribute_ptr			attributes;
@@ -6045,6 +6007,7 @@ or struct definition.  The syntax is
         default_access_str = "public";
       }  /* if */
       base_specifier_start_pos = pos_curr_token;
+      direct_base_number++;
       new_direct_bcp = NULL;
       /* Scan a single base specification, first looping through the specifying
          keywords virtual, public, private, and protected. */
@@ -6287,18 +6250,6 @@ or struct definition.  The syntax is
         if (bcp_cssp->any_nonstatic_data_members) {
           cssp->any_nonstatic_data_members = TRUE;
         }  /* if */
-        if (bcp_cssp->any_nonreal_base_classes ||
-            (base_class_type->variant.class_struct_union.is_nonreal_class &&
-             !(base_class_type->
-                      variant.class_struct_union.is_prototype_instantiation ||
-               !base_class_type->
-                        variant.class_struct_union.is_template_class))) {
-          /* Do not set the any_nonreal_base_classes field for a base that is a
-             prototype instantiation, or a class defined as part of a
-             prototype instantiation (e.g., a local class defined in the
-             prototype instantiation of a function template). */
-          cssp->any_nonreal_base_classes = TRUE;
-        }  /* if */
         /* Update the flag indicating whether there are any virtual base
            classes. */
         if (is_virtual || base_class_type->
@@ -6331,6 +6282,27 @@ or struct definition.  The syntax is
         new_direct_bcp->ambiguous = ambiguous;
         new_direct_bcp->direct_base_number = direct_base_number;
         if (is_virtual) new_direct_bcp->is_virtual = TRUE;
+        if (class_state->is_nonreal_instantiation) {
+          if (bcp_cssp->any_nonreal_base_classes ||
+              (base_class_type->variant.class_struct_union.is_nonreal_class &&
+               !(base_class_type->
+                      variant.class_struct_union.is_prototype_instantiation ||
+                 !base_class_type->
+                          variant.class_struct_union.is_template_class))) {
+            /* Do not set the any_nonreal_base_classes field for a base that
+               is a prototype instantiation, or a class defined as part of a
+               prototype instantiation (e.g., a local class defined in the
+               prototype instantiation of a function template). */
+            cssp->any_nonreal_base_classes = TRUE;
+          }  /* if */
+          if (is_or_contains_template_param(base_class_type)) {
+            new_direct_bcp->ignore_during_dependent_lookup = TRUE;
+            cssp->any_dependent_base_classes = TRUE;
+          }  /* if */
+        } else if (class_state->is_template_instantiation) {
+          mark_base_dependent_if_needed(new_direct_bcp, class_state,
+                                        proto_base_number);
+        }  /* if */
         path = update_base_class_derivation(new_direct_bcp,
                                             (a_derivation_step_ptr)NULL,
                                             access);
@@ -6502,8 +6474,6 @@ skip_base_class:
                                                    /*is_declarator=*/FALSE);
       if (pedep != NULL && new_direct_bcp != NULL) {
         new_direct_bcp->is_pack_expansion = TRUE;
-      } else if (pesep != NULL) {
-        new_direct_bcp->is_pack_element = TRUE;
       }  /* if */
       any_types = advance_to_next_pack_element(pesep);
     }  /* while */
@@ -6580,13 +6550,6 @@ skip_base_class:
   }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  /* Determine which, if any, of the base classes was specified with a
-     template-dependent name and so should not be visible for certain
-     lookups. */
-  if (type_ptr->variant.class_struct_union.is_template_class &&
-      !type_ptr->variant.class_struct_union.is_specialized) {
-    mark_dependent_base_classes(type_ptr, cssp, class_state);
-  }  /* if */
 #if DEBUG
   if (debug_level >= 3 || db_flag_is_set("base_specifiers")) {
     db_base_class_list(type_ptr);

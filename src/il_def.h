@@ -5809,9 +5809,6 @@ typedef struct a_base_class {
   a_bit_field	is_pack_expansion:1;
 			/* TRUE if this base class is a variadic template
 			   pack expansion, i.e., it's followed by "...". */
-  a_bit_field	is_pack_element:1;
-			/* TRUE if this base class is an element generated
-			   from a pack expansion. */
   bitfield_to_avoid_codecenter_warnings()
   a_base_class_sequence_number
 		direct_base_number;
