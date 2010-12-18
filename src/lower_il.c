@@ -10616,7 +10616,7 @@ has typically been previously lowered (and is not lowered by this routine).
        expression node is created below. */
   } else {
     /* Create a zero of std::nullptr type for the value of the expression. */
-    make_zero_of_proper_type(nullptr_type(), zero_constant);
+    make_zero_of_proper_type(nullptr_type(/*managed=*/FALSE), zero_constant);
     lower_constant(zero_constant);
   }  /* if */
   zero_node = make_node_for_il_constant(zero_constant);
