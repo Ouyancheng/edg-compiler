@@ -18361,6 +18361,10 @@ that case.
                                      expr_stack->inside_conditional_expression;
   a_boolean             is_gnu_two_operand_form = FALSE;
   a_boolean             suppress_class_rvalue_temp = FALSE;
+  a_boolean             microsoft_rvalue_temp_bug =
+                                                  (microsoft_bugs &&
+                                                   microsoft_version < 1600 &&
+                                                   !rvalue_references_enabled);
 
   db_enter(4, "scan_conditional_operator");
 
@@ -18515,7 +18519,7 @@ that case.
           is_class_struct_union_type(operand_2.type)) {
         /* MSVC++ (6.0 through 8.0 beta at least) does not add the temp on
            a class rvalue "?". */
-        if (microsoft_bugs) suppress_class_rvalue_temp = TRUE;
+        if (microsoft_rvalue_temp_bug) suppress_class_rvalue_temp = TRUE;
         if (microsoft_version < 1310) {
           /* Try to get lvalues back to get an lvalue result. */
           revert_microsoft_rvalue_to_lvalue_if_possible(&operand_2);
@@ -18592,7 +18596,7 @@ that case.
          and whether a conversion from derived to base should force a copy
          to a temporary rather than just treating the object as having the
          new type (force_copy). */
-      if (microsoft_bugs) {
+      if (microsoft_rvalue_temp_bug) {
         /* MSVC++ (6.0 through 8.0 beta at least) does not add the temp. */
         force_copy = TRUE;
         suppress_class_rvalue_temp = TRUE;

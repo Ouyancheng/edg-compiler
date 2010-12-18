@@ -1,5 +1,30 @@
 Version 4.3
 
+12/18/10 [EDGcpfe/11224]
+Microsoft mode: quirk with "?" and class rvalues eliminated as of VC10
+
+A quirk of Microsoft mode related to the "?" operator and suppressing a
+copy of a class rvalue is now disabled as of microsoft_version=1600,
+to match the behavior of VC10.  The quirk interacts very badly with
+rvalue references, allowing stealing of the contents of a class lvalue,
+which is presumably why Microsoft fixed that issue when it added
+rvalue references.
+
+  extern "C" int printf(const char*,...);
+  struct string {
+    string(const string& _Right) {}
+    string() {}
+    string(const char* ptr) {}
+    string(string&&) {
+      printf("Ouch\n");
+    }
+  };
+  int main() {
+    string x("test");
+    string thief = true ? x : "empty";  // Contents of x were stolen
+  }
+
+
 12/17/10 [EDGcpfe/11160]
 GNU built-in variadic parameter operations
 
