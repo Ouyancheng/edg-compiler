@@ -1994,10 +1994,10 @@ by a command line option.
       if (!option_kind_used[(int)optk_rvalue_references]) {
         rvalue_references_enabled = TRUE;
       }  /* if */
-      if (!option_kind_used[(int)optk_nullptr]) {
-        nullptr_enabled = TRUE;
-      }  /* if */
 #endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
+    }  /* if */
+    if (!option_kind_used[(int)optk_nullptr]) {
+      nullptr_enabled = (microsoft_version >= 1600 || cppcli_enabled);
     }  /* if */
     if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
         !option_kind_used[(int)optk_cpp0x_mode]) {
