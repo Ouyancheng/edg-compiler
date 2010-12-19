@@ -1,5 +1,35 @@
 Version 4.3
 
+12/19/10 [EDGcpfe/11225]
+Explicit instantiation of class cannot be followed by "extern template"
+
+An explicit instantiation of an instance of a class template cannot be
+followed by an "extern template" (to suppress the instantiation of the
+class members) of the same instance.  Formerly, the front end would
+respect the last such directive encountered.  Now, a diagnostic is
+is issued (a warning in g++ mode and a discretionary error in other modes),
+and the "extern template" is ignored.  Note that if the class had direct
+members that were affected by the instantiation directive, diagnostics
+were issued on those members, but now the diagnostic is issued on
+the class itself instead.  But if the class had no direct members affected by
+the directive, no diagnostic was issued and the virtual function table was
+suppressed when it should have been emitted (when using the IA-64 ABI).
+Now, the vtable is emitted (when the diagnostic issued is not an error).
+
+  // vtable for B<int> should have been emitted, but was not
+  struct A {
+    virtual ~A() {};
+   void f() {}
+  };
+  template<class T> struct B : public A { };
+  template class B<int>;
+  extern template class B<int>;
+  int main () {
+    B<int> d;
+    d.f();
+  }
+
+
 12/18/10 [EDGcpfe/11224]
 Microsoft mode: quirk with "?" and class rvalues eliminated as of VC10
 

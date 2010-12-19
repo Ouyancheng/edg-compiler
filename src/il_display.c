@@ -1908,6 +1908,9 @@ Display the indicated type entry.
       if (ptr->variant.class_struct_union.specialized_with_old_syntax) {
         disp_boolean("specialized_with_old_syntax", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.explicitly_instantiated) {
+        disp_boolean("explicitly_instantiated", TRUE);
+      }  /* if */
       if (ptr->variant.class_struct_union.do_not_instantiate) {
         disp_boolean("do_not_instantiate", TRUE);
       }  /* if */

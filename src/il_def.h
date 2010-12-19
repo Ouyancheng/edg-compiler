@@ -7316,6 +7316,11 @@ typedef struct a_type {
 			   specialization syntax.  Also true for classes
 			   nested within an in-class specialization */
       a_bit_field
+		explicitly_instantiated:1;
+			/* TRUE if this class was referenced in an explicit
+			   instantiation directive (either the standard form
+			   or pragma). */
+      a_bit_field
 		do_not_instantiate:1;
 			/* TRUE if this class template will not be
 			   instantiated because of a do-not-instantiate

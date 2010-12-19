@@ -1597,6 +1597,7 @@ to default values.
       pte->variant.class_struct_union.is_specialized = FALSE;
       pte->variant.class_struct_union.specialized_with_old_syntax = FALSE;
       pte->variant.class_struct_union.is_in_class_specialization = FALSE;
+      pte->variant.class_struct_union.explicitly_instantiated = FALSE;
       pte->variant.class_struct_union.do_not_instantiate = FALSE;
 #if MAINTAIN_NEEDED_FLAGS
       pte->variant.class_struct_union.definition_needed = FALSE;
