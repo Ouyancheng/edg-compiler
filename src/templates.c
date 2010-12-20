@@ -23900,9 +23900,10 @@ dllimport or dllexport attribute to a template instance.
       /* Keep track of whether a class template is explicitly not
          instantiated in this translation unit. */
       if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate) {
-        if (class_type->variant.class_struct_union.explicitly_instantiated) {
+        if (!(is_pragma || is_dll_directive) &&
+            class_type->variant.class_struct_union.explicitly_instantiated) {
           /* If the class was previously explicitly instantiated, ignore this
-             "extern template" directive (or pragma). */
+             "extern template" directive. */
           sym_diagnostic(gpp_mode ? es_warning : es_discretionary_error,
                          ec_extern_template_follows_instantiation, sym);
           ignore_directive = TRUE;
