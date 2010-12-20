@@ -59,9 +59,9 @@ extern a_type_ptr primary_microsoft_sized_signed_int_type(
 
 extern a_type_ptr primary_wchar_t_type(void);
 
-extern a_type_ptr primary_managed_nullptr_type();
+extern a_type_ptr primary_managed_nullptr_type(void);
 
-extern a_type_ptr primary_standard_nullptr_type();
+extern a_type_ptr primary_standard_nullptr_type(void);
 
 extern a_type_ptr primary_float_type(a_float_kind  kind);
 
