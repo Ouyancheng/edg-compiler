@@ -6167,8 +6167,14 @@ last argument in the list).
   reserve_space_for_length(&length_reservation, mctl);
   add_to_mangled_name('_', mctl);
 #else /* IA64_ABI */
-  /* Mark the start of the template arguments. */
-  add_to_mangled_name('I', mctl);
+  if (is_pack && !emulate_gnu_abi_bugs) {
+    /* Mark the start of the argument pack. */
+    add_to_mangled_name('J', mctl);
+  } else {
+    /* Mark the start of the template arguments.  The original IA-64 ABI
+       specification mangled argument packs with an "I" rather than a "J". */
+    add_to_mangled_name('I', mctl);
+  }  /* if */
 #endif /* IA64_ABI */
   /* Run through the template argument list, determining the representation
      for each argument. */

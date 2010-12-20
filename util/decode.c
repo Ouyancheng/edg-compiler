@@ -6134,7 +6134,9 @@ A <template-args> encodes a template argument list.  The syntax is:
     } else if (*ptr == 'L') {
       /* Literal or external name. */
       ptr = demangle_expr_primary(ptr, dctl);
-    } else if (*ptr == 'I') {
+    } else if (*ptr == 'J') {
+      /* FIXME: proposed "J" rather than "I" (change comments in entire
+         routine). */
       /* Template argument pack. */
       ptr = demangle_template_args(ptr, dctl);
     } else if (*ptr == 's' && ptr[1] == 'p') {
