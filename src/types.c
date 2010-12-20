@@ -896,6 +896,17 @@ Return TRUE if the given type is a C++/CLI tracking reference type.
 }  /* is_tracking_reference_type */
 
 
+a_boolean is_interior_ptr_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++/CLI interior_ptr type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return (tp->kind == (a_type_kind)tk_pointer &&
+          tp->variant.pointer.is_interior_ptr);
+}  /* is_interior_ptr_type */
+
+
 a_boolean is_cli_managed_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a C++/CLI managed type.
@@ -7326,8 +7337,12 @@ exception specifications are not checked.
                 This does not fall out of the impl_conversion_possible
                 test for cases like "void *" --> "const char *".  See
                 5.2.9/10 in the C++ standard. */
-             (is_void_star_type(source_type) &&
+             (is_pointer_type(source_type) &&
               is_pointer_type(dest_type) &&
+              is_void_type(type_pointed_to(source_type)) &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              !is_interior_ptr_type(source_type) &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               is_object_type(type_pointed_to(dest_type)))) {
     /* The inverse implicit conversion can be done.  Note that the
        inverse of conversions to bool is not allowed (see [expr.static.cast]

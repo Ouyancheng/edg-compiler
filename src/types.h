@@ -113,6 +113,7 @@ extern a_boolean is_handle_type_or_any_ref_type(a_type_ptr tp);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean is_handle_type(a_type_ptr tp);
 extern a_boolean is_tracking_reference_type(a_type_ptr tp);
+extern a_boolean is_interior_ptr_type(a_type_ptr tp);
 extern a_boolean is_cli_managed_type(a_type_ptr tp);
 #define cli_class_type_kind_is(tp, cctk)                                     \
   (class_type_supp(tp)->cli_class_type_kind == (a_cli_class_type_kind)(cctk))
