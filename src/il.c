@@ -15662,6 +15662,126 @@ potentially_evaluated is TRUE if the expression is potentially evaluated.
   return first_node;
 }  /* copy_default_arg_expr_list */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void examine_expr_for_gc_lvalue(
+                                    an_expr_node_ptr                    node,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from the expression traversal routines to process an expression
+as part of finding out whether it is a gc-lvalue.  The expression passed in
+is an addressing expression, meaning either an lvalue that identifies an
+object or an rvalue that is a pointer or handle to an object.
+*/
+{
+  a_boolean  determined_result = FALSE;
+  a_type_ptr type = node->type;
+
+  if (node->is_lvalue) {
+    /* The expression passed in is an lvalue for an object. */
+    if (is_ref_class_type(type)) {
+      /* A ref class is always on the managed heap. */
+      tblock->result = TRUE;
+      determined_result = TRUE;
+    } else if (is_standard_class_type(type) ||
+               is_interior_ptr_type(type) ||
+               is_pin_ptr_type(type)) {
+      /* Native classes, interior_ptrs, and pin_ptrs are never on the managed
+         heap. */
+      tblock->result = FALSE;
+      determined_result = TRUE;
+    } else {
+      switch (node->kind) {
+        case enk_variable:
+          /* Static data members of managed classes are on the managed heap
+             (they're in a data block associated with the class that's
+             allocated before the first use of an instance of the class). */
+          { a_variable_ptr var = node->variant.variable;
+            if (var->source_corresp.is_class_member) {
+              a_type_ptr parent_class = parent_class_of(var); 
+              if (is_managed_class_type_entry(parent_class)) {
+                tblock->result = TRUE;
+                determined_result = TRUE;
+              }  /* if */
+            }  /* if */
+          }
+          break;
+        case enk_operation:
+          /* Operator. */
+          { an_expr_operator_kind op = node->variant.operation.kind;
+            an_expr_node_ptr      operand1 = node->variant.operation.operands;
+            if (op == (an_expr_operator_kind)eok_ref_indirect) {
+              /* Reference indirection.  If it's indirect through a tracking
+                 reference, the lvalue may be on the managed heap.  Note
+                 that if the underlying type of the reference is a type
+                 that can't be on the managed heap (e.g., a native class type),
+                 that will have been handled above. */
+              if (is_tracking_reference_type(operand1->type)) {
+                tblock->result = TRUE;
+                determined_result = TRUE;
+              }  /* if */
+            }  /* if */
+          }
+          break;
+        default:
+          break;
+      }  /* switch */
+    }  /* if */
+  } else {
+    /* The expression passed in is an rvalue pointer or handle. */
+    if (is_handle_type(type) ||
+        is_interior_ptr_type(type)) {
+      /* A handle always points to the managed heap. */
+      /* An interior_ptr might point to the managed heap. */
+      tblock->result = TRUE;
+      determined_result = TRUE;
+    } else {
+      /* Other pointers cannot point to the managed heap (or if they do
+         they are pinned pointers or copies thereof and we don't need to worry
+         about them). */
+      check_assertion(is_pointer_type(type));
+      tblock->result = FALSE;
+      determined_result = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!tblock->terminate) {
+    if (determined_result) {
+      tblock->suppress_subtree_walk = TRUE;
+      if (tblock->result) {
+        /* A TRUE result is sticky. */
+        tblock->terminate = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* examine_expr_for_gc_lvalue */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+a_boolean is_gc_lvalue_expr(an_expr_node_ptr expr)
+/*
+Return TRUE if the given expression is a gc-lvalue for C++/CLI.  Roughly,
+that means it is an lvalue that is or may be on the managed heap.  The
+important principle is that we never want to allow something that might
+point to the managed heap to be captured as a normal pointer that might
+thereafter get stale if the garbage collector moves the underlying object.
+*/
+{
+  a_boolean is_gc_lvalue = FALSE;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && expr->is_lvalue) {
+    an_expr_or_stmt_traversal_block tblock;
+
+    clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_expr = examine_expr_for_gc_lvalue;
+    tblock.follow_addressing_path = TRUE;
+    traverse_expr(expr, &tblock);
+    is_gc_lvalue = tblock.result;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return is_gc_lvalue;
+}  /* is_gc_lvalue_expr */
+
 
 an_expr_node_ptr var_lvalue_expr(a_variable_ptr var)
 /*
@@ -15918,11 +16038,19 @@ designated an rvalue.
       node = node->variant.operation.operands;
       check_assertion(!node->is_lvalue);
     } else {
+      /* If the lvalue is a C++/CLI gc-lvalue, the "&" operator's type
+         is an interior_ptr. */
+      a_type_ptr addr_type =
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                             is_gc_lvalue_expr(node) ?
+                               make_interior_ptr_type(node->type) :
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                               make_pointer_type(node->type);
       /* Set the address_taken flag for variables and routines. */
       set_address_taken_for_variable_or_routine_expr(node);
       node->next = NULL;
       node = make_operator_node((an_expr_operator_kind)eok_address_of,
-                                make_pointer_type(node->type), node);
+                                addr_type, node);
       node->variant.operation.compiler_generated = TRUE;
     }  /* if */
   }  /* if */
@@ -15939,18 +16067,35 @@ node is designated an rvalue.
 */
 {
   if (!is_error_node(node)) {
+    a_type_ptr ref_type;
     if (node->is_lvalue) {
       /* Set the address_taken flag for variables and routines. */
       set_address_taken_for_variable_or_routine_expr(node);
+      /* If the entity is a gc-lvalue, the reference created is a tracking
+         reference. */
+      ref_type =
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                 is_gc_lvalue_expr(node) ?
+                               make_tracking_reference_type(node->type) :
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                               make_reference_type(node->type);
     } else {
       /* For the rvalue case, the operand should be a class. */
       check_assertion(is_class_struct_union_type(node->type) ||
                       is_template_param_type(node->type) ||
                       is_error_type(node->type));
+      /* If the entity is an rvalue of a ref class type, the reference
+         created is a tracking reference. */
+      ref_type =
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                 is_ref_class_type(node->type) ?
+                               make_tracking_reference_type(node->type) :
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                               make_reference_type(node->type);
     }  /* if */
     node->next = NULL;
     node = make_operator_node((an_expr_operator_kind)eok_reference_to,
-                              make_reference_type(node->type), node);
+                              ref_type, node);
     node->variant.operation.compiler_generated = TRUE;
   }  /* if */
   return node;

@@ -2770,7 +2770,7 @@ in *bound_function_selector.
         /* Return an expression operand. */
         make_lvalue_or_rvalue_expression_operand(expr_copy, operand);
       }  /* if */
-      if (is_reference_type(operand->type)) {
+      if (is_any_reference_type(operand->type)) {
         add_reference_indirection(operand);
       }  /* if */
     }  /* if */
@@ -4434,26 +4434,30 @@ Add casts to *p_node to change its type from (a pointer to) a class type to
 (a pointer to) a base class of that class; bcp indicates the base class
 and qualifiers_model indicates the qualifiers to be placed on that class
 type.  *p_node can be an rvalue pointer to class, a class lvalue, or a
-class rvalue.  qualifiers_model is a potentially cv-qualified class type.
-Access control is done on the cast if check_cast_access is TRUE.
-Checking for an ambiguous base class is done if check_ambiguity is TRUE.
+class rvalue.  In C++/CLI mode, it can also be a handle to a class.
+qualifiers_model is a potentially cv-qualified class type.  Access
+control is done on the cast if check_cast_access is TRUE.  Checking
+for an ambiguous base class is done if check_ambiguity is TRUE.
 is_implicit_cast is TRUE if the cast is implicit.  implicit_in_naming
-is TRUE for casts that are generated implicitly in referencing a member
-of a class (roughly, in getting from the name used in the source --
-the projection symbol -- to the member actually used in the IL).
-*err_pos indicates a source position to be used for errors.
-If error_detected is non-NULL, return *error_detected set to TRUE if
-there was an error, and do not issue any diagnostics (including warnings).
-Note that calls from outside the expression-processing routines must
-specify error_detected != NULL.  For calls from inside, this routine
-does handle suppression of errors in deduction contexts appropriately
-and error_detected can be NULL.
+is TRUE for casts that are generated implicitly in referencing a
+member of a class (roughly, in getting from the name used in the
+source -- the projection symbol -- to the member actually used in the
+IL).  *err_pos indicates a source position to be used for errors.  If
+error_detected is non-NULL, return *error_detected set to TRUE if
+there was an error, and do not issue any diagnostics (including
+warnings).  Note that calls from outside the expression-processing
+routines must specify error_detected != NULL.  For calls from inside,
+this routine does handle suppression of errors in deduction contexts
+appropriately and error_detected can be NULL.
 */
 {
   a_type_ptr            curr_type, qual_curr_type;
   a_derivation_step_ptr dsp;
   a_base_class_ptr      base_class;
-  a_boolean             pointer_case;
+  a_boolean             pointer_case = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean             handle_case = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   /* The code here looks like fold_base_class_cast. */
   if (error_detected != NULL) *error_detected = FALSE;
@@ -4472,8 +4476,15 @@ and error_detected can be NULL.
        base class.  Check accessibility at each step and generate the
        necessary casts. */
     curr_type = (*p_node)->type;
-    pointer_case = is_pointer_type(curr_type);
-    if (pointer_case) curr_type = type_pointed_to(curr_type);
+    if (is_pointer_type(curr_type)) {
+      pointer_case = TRUE;
+      curr_type = type_pointed_to(curr_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (is_handle_type(curr_type)) {
+      handle_case = TRUE;
+      curr_type = type_pointed_to(curr_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
     curr_type = skip_typerefs(curr_type);
     check_assertion(is_immediate_class_type(curr_type));
     for (dsp = cast_derivation_path_of(bcp); dsp != NULL; dsp = dsp->next) {
@@ -4501,7 +4512,13 @@ and error_detected can be NULL.
          type. */
       qual_curr_type = make_identically_qualified_type(curr_type,
                                                        qualifiers_model);
-      if (pointer_case) qual_curr_type = make_pointer_type(qual_curr_type);
+      if (pointer_case) {
+        qual_curr_type = make_pointer_type(qual_curr_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (handle_case) {
+        qual_curr_type = make_handle_type(qual_curr_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
       if ((*p_node)->is_lvalue) {
         *p_node = make_lvalue_operator_node(
                                    (an_expr_operator_kind)eok_base_class_cast,
@@ -4810,7 +4827,8 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
   (*p_node)->next = NULL;
   if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
   if (!C_mode() && !reinterpret_semantics &&
-      related_class_pointers(old_type, new_type, &baseward_cast, &bcp)) {
+      related_class_pointers_or_handles(old_type, new_type,
+                                        &baseward_cast, &bcp)) {
     /* C++ cast from a pointer to a class to a pointer to a related
        (base or derived) class. */
     new_type_pointed_to = type_pointed_to(new_type);
@@ -5510,8 +5528,9 @@ void base_class_cast_operand(an_operand       *operand,
                              a_boolean        is_object_pointer)
 /*
 Cast operand to its base class identified by bcp.  operand can be an
-rvalue pointer to class, a class lvalue, or a class rvalue.  The
-result will be of the same kind (pointer, lvalue, or rvalue).  If
+rvalue pointer to class, a class lvalue, or a class rvalue.  In
+C++/CLI mode, it can also be a handle to a class.  The result will be
+of the same kind (pointer, lvalue, rvalue, or handle).  If
 qualifiers_model is non-NULL, it is a class type whose cv-qualifiers
 are the model for the cv-qualifiers of the result (i.e., the result's
 type is the base class from bcp with the cv-qualifiers from
@@ -5539,7 +5558,7 @@ used only in C++ mode.
   if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
   if (qualifiers_model == NULL) {
     qualifiers_model = operand->type;
-    if (is_pointer_type(qualifiers_model)) {
+    if (is_pointer_or_handle_type(qualifiers_model)) {
       qualifiers_model = type_pointed_to(qualifiers_model);
     }  /* if */
   }  /* if */
@@ -10149,15 +10168,15 @@ the positions of the "?" and ":" operators.
 
 void add_reference_indirection(an_operand *result)
 /*
-*result has a C++ reference type; add an implicit indirection to it.
-*result may be an rvalue or an lvalue on input; on output it will be
-an lvalue.
+*result has a C++ reference (or C++/CLI tracking reference) type; add an
+implicit indirection to it.  *result may be an rvalue or an lvalue on input;
+on output it will be an lvalue.
 */
 {
   an_expr_node_ptr node;
   an_operand       orig_result;
 
-  check_assertion_str(is_reference_type(result->type),
+  check_assertion_str(is_any_reference_type(result->type),
                       "add_reference_indirection: not reference type");
   if (curr_expr_kind_is_const() &&
       !current_mode_allows_field_selection_folding()) {
@@ -10297,6 +10316,11 @@ variable does not.
     /* A dllimport variable is accessed indirect through a variable
        and therefore does not have a constant address. */
     const_addr = FALSE;
+  } else if (cppcli_enabled && variable->source_corresp.is_class_member &&
+             is_managed_class_type_entry(parent_class_of(variable))) {
+    /* Static data members of managed classes are allocated on the
+       managed heap and therefore do not have constant addresses. */
+    const_addr = FALSE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
@@ -10370,7 +10394,7 @@ or is NULL if none is needed.
     /* Start a list of reference entries related to the operand. */
     result->ref_entries_list = rep;
     /* If the variable has a reference type, add an implicit indirection. */
-    if (!C_mode() && is_reference_type(variable_type)) {
+    if (!C_mode() && is_any_reference_type(variable_type)) {
       add_reference_indirection(result);
     }  /* if */
   }  /* if */
@@ -11739,7 +11763,7 @@ value).
   make_expression_operand(call_node, result);
   result->position = *call_pos;
   /* A function call returning a reference is an lvalue. */
-  if (is_reference_type(result->type)) {
+  if (is_any_reference_type(result->type)) {
     a_boolean is_rvalue_ref = is_rvalue_reference_type(result->type);
     add_reference_indirection(result);
     if (is_rvalue_ref) {
@@ -12340,14 +12364,30 @@ explicit "&" operator in the source and *operator_position gives its position.
             expr = add_reference_to_to_node(expr);
           } else {
             /* Create the "&" operator. */
-            if (operator_position == NULL) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            /* For the address of a C++/CLI ref class object, create a handle
+               instead of a pointer. */
+            a_boolean handle_case = is_ref_class_type(expr->type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            if (operator_position == NULL
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                          && !handle_case
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                         ) {
               /* An implicit "&" operator. */
               expr = add_address_of_to_node(expr);
             } else {
               /* An explicit "&" operator. */
+              a_type_ptr addr_type =
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                     handle_case ?
+                                       make_handle_type(expr->type) :
+                                       is_gc_lvalue_expr(expr) ?
+                                         make_interior_ptr_type(expr->type) :
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                         make_pointer_type(expr->type);
               expr = make_operator_node((an_expr_operator_kind)eok_address_of,
-                                        make_pointer_type(expr->type),
-                                        expr);
+                                        addr_type, expr);
             }  /* if */
           }  /* if */
         }  /* if */

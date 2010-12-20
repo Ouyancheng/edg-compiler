@@ -114,6 +114,9 @@ extern a_boolean is_handle_type_or_any_ref_type(a_type_ptr tp);
 extern a_boolean is_handle_type(a_type_ptr tp);
 extern a_boolean is_tracking_reference_type(a_type_ptr tp);
 extern a_boolean is_interior_ptr_type(a_type_ptr tp);
+extern a_boolean is_pin_ptr_type(a_type_ptr tp);
+extern a_boolean is_ref_class_type(a_type_ptr tp);
+extern a_boolean is_standard_class_type(a_type_ptr tp);
 extern a_boolean is_cli_managed_type(a_type_ptr tp);
 #define cli_class_type_kind_is(tp, cctk)                                     \
   (class_type_supp(tp)->cli_class_type_kind == (a_cli_class_type_kind)(cctk))
@@ -476,6 +479,16 @@ set *bcp to point to the base class entry that shows the relationship.
 #define related_class_pointers(type_1, type_2, baseward_cast, bcp)    \
   (C_dialect == C_dialect_cplusplus &&                                \
    is_pointer_type(type_1) && is_pointer_type(type_2) &&              \
+   f_related_class_pointers(type_1, type_2, baseward_cast, bcp))
+/*
+Return TRUE if type_1 and type_2 are related class pointers or related
+C++/CLI handles.  If they are, set *baseward_cast if type_1 --> type_2
+is a baseward cast, and set *bcp to point to the base class entry that
+shows the relationship.
+*/
+#define related_class_pointers_or_handles(type_1, type_2, baseward_cast, bcp) \
+  (!C_mode() && \
+   types_are_both_pointers_or_both_handles(type_1, type_2)  && \
    f_related_class_pointers(type_1, type_2, baseward_cast, bcp))
 
 extern a_boolean f_rel_member_pointers(a_type_ptr       type_1,
@@ -847,6 +860,13 @@ extern a_boolean impl_pointer_conversion(
                          a_boolean            suppress_extensions,
                          an_error_code        default_warning_code,
                          a_std_conv_descr_ptr std_conv);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean impl_handle_conversion(
+                         a_type_ptr           source_type,
+                         a_type_ptr           dest_type,
+                         a_boolean            allow_qualifier_or_eh_mismatch,
+                         a_std_conv_descr_ptr std_conv);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern a_boolean impl_ptr_to_member_conversion(
                          a_type_ptr           source_type,
                          a_boolean            source_is_constant,

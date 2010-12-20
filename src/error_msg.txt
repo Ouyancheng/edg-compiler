@@ -2067,6 +2067,7 @@ ec_handle_to_unscoped_enum_type;;"a handle to an unscoped enum type is not allow
 ec_property_attribute_in_managed_class;;"\"property\" attribute not allowed in managed class type"
 ec_pure_virtual_definition;;"a pure specifier (\"= 0\") followed by a definition is nonstandard"
 ec_managed_nullptr_not_allowed;;"the managed nullptr type cannot be used here"
+ec_addr_of_ref_class;;"the \"&\" operator cannot be used to take the address of an object with a ref class type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

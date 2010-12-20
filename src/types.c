@@ -160,7 +160,7 @@ predicates.
    (tp1)->variant.pointer.is_pin_ptr == \
    (tp2)->variant.pointer.is_pin_ptr)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_pointer(tp) (is_pointer_or_handle_type(tp))
+#define is_pointer(tp) (is_pointer_or_handle(tp))
 #define is_non_cli_pointer(tp) (is_pointer(tp))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -482,7 +482,7 @@ thereof.
 a_boolean is_managed_nullptr_type(a_type_ptr tp)
 /*
 In C++/CLI, the nullptr keyword has a type that is distinct from
-std::nullptr_t (which is the type of the the nullptr keyword in non-C++/CLI
+std::nullptr_t (which is the type of the nullptr keyword in non-C++/CLI
 modes and of the __nullptr keyword in Microsoft modes, both C++/CLI and
 native).  This function returns TRUE for the type of the C++/CLI nullptr
 keyword or a cv-qualified version thereof and FALSE for std::nullptr_t and
@@ -905,6 +905,52 @@ Return TRUE if the given type is a C++/CLI interior_ptr type.
   return (tp->kind == (a_type_kind)tk_pointer &&
           tp->variant.pointer.is_interior_ptr);
 }  /* is_interior_ptr_type */
+
+
+a_boolean is_pin_ptr_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++/CLI pin_ptr type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return (tp->kind == (a_type_kind)tk_pointer &&
+          tp->variant.pointer.is_pin_ptr);
+}  /* is_pin_ptr_type */
+
+
+a_boolean is_ref_class_type(a_type_ptr tp)
+/*
+Return TRUE if the indicated type is a C++/CLI ref class or ref struct.
+*/
+{
+  a_boolean is_ref_class = FALSE;
+
+  if (cppcli_enabled) {
+    tp = skip_typerefs(tp);
+    if (is_immediate_class_type(tp) &&
+        class_type_supp(tp)->cli_class_type_kind ==
+                                             (a_cli_class_type_kind)cctk_ref) {
+      is_ref_class = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_ref_class;
+}  /* is_ref_class_type */
+
+
+a_boolean is_standard_class_type(a_type_ptr tp)
+/*
+Return TRUE if the indicated type is a native class type, i.e., a class
+type that's not a C++/CLI class.
+*/
+{
+  a_boolean is_standard_class = FALSE;
+
+  tp = skip_typerefs(tp);
+  if (is_immediate_class_type(tp) && !is_managed_class_type_entry(tp)) {
+    is_standard_class = TRUE;
+  }  /* if */
+  return is_standard_class;
+}  /* is_standard_class_type */
 
 
 a_boolean is_cli_managed_type(a_type_ptr tp)
@@ -2506,7 +2552,8 @@ type_1 and type_2 are pointer types.  Check to see if they are pointers to
 related class types, and return TRUE if so.  If they are, set *baseward_cast
 if type_1 --> type_2 is a baseward cast, and set *bcp to point to the base
 class entry that shows the relationship.  Called from the macro
-related_class_pointers.
+related_class_pointers.  Can also be called for C++/CLI handles from the
+macro related_class_pointers_or_handles.
 */
 {
   a_boolean  related_classes = FALSE;
@@ -2577,6 +2624,7 @@ because any exception it can handle would be caught by type_1's handler.
 {
   a_boolean         masked = FALSE;
   a_base_class_ptr  bcp;
+  a_std_conv_descr  std_conv;
 
   db_enter(5, "type_masks_handler_param_type");
   /* "Reference" on top of a type is ignored for handlers as are type
@@ -2618,8 +2666,6 @@ because any exception it can handle would be caught by type_1's handler.
          implicitly converted to the former.  (This is not explicit in
          the working paper or the ARM and may turn out to be an incorrect
          inference; see 15.4 para 1 and para 2.) */
-      a_std_conv_descr std_conv;
-
       if (impl_pointer_conversion(type_2, /*source_is_constant=*/FALSE,
                                   /*source_is_string_literal=*/FALSE,
                                   (a_constant_ptr)NULL, type_1,
@@ -2628,6 +2674,17 @@ because any exception it can handle would be caught by type_1's handler.
                                   ec_no_error, &std_conv)) {
         masked = TRUE;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled &&
+               is_handle_type(type_1) && is_handle_type(type_2)) {
+      /* A C++/CLI handle type masks another handle type if the latter can be
+         implicitly converted to the former. */
+      if (impl_handle_conversion(type_2, type_1,
+                                  /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                  &std_conv)) {
+        masked = TRUE;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
   db_exit();
@@ -3094,7 +3151,7 @@ static void examine_expr_for_complete_object_type(
 Called from the expression traversal routines to process an expression
 as part of finding the complete object type.  The expression passed in
 is an addressing expression, meaning either an lvalue that identifies an
-object or an rvalue that is a pointer to an object.
+object or an rvalue that is a pointer (or C++/CLI handle) to an object.
 */
 {
   a_type_ptr complete_object_type = NULL;
@@ -3203,16 +3260,18 @@ object or an rvalue that is a pointer to an object.
     }  /* switch */
   } else {
 #if DO_IL_LOWERING
-    /* The expression passed in is a pointer or reference to an object. */
+    /* The expression passed in is a pointer or reference to an object,
+       or a C++/CLI handle. */
     check_assertion((!node->is_lvalue &&
-                     (is_ptr_or_ref_type(node->type) ||
+                     (is_any_ptr_or_ref_type(node->type) ||
                       is_template_param_type(node->type) ||
                       is_error_type(node->type))) ||
                     is_error_node(node));
 #else /* !DO_IL_LOWERING */
-    /* The expression passed in is a pointer to an object. */
+    /* The expression passed in is a pointer to an object (or a C++/CLI
+       handle). */
     check_assertion((!node->is_lvalue &&
-                     (is_pointer_type(node->type) ||
+                     (is_pointer_or_handle_type(node->type) ||
                       is_template_param_type(node->type) ||
                       is_error_type(node->type))) ||
                     is_error_node(node));
@@ -3418,13 +3477,14 @@ call.  NULL is always a safe answer; non-NULL values may permit optimizations.
 Note that "complete object" means an object that is not a base class of
 another object, not necessarily a top-level object.  This is used only in
 C++ mode; it is useful to know what the complete object type is to optimize
-base class casts and virtual function calls.
+base class casts and virtual function calls.  In C++/CLI mode, the expression
+can be a handle.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
 
   check_assertion((!expr->is_lvalue &&
-                   (is_pointer_type(expr->type) ||
+                   (is_pointer_or_handle_type(expr->type) ||
                     is_template_param_type(expr->type) ||
                     is_error_type(expr->type))) ||
                   is_error_node(expr));
@@ -6600,6 +6660,113 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
   return okay;
 }  /* impl_pointer_conversion */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean impl_handle_conversion(
+                         a_type_ptr           source_type,
+                         a_type_ptr           dest_type,
+                         a_boolean            allow_qualifier_or_eh_mismatch,
+                         a_std_conv_descr_ptr std_conv)
+/*
+Return TRUE if it's okay to implicitly convert something of type
+source_type (any type) to something of type dest_type (a C++/CLI
+handle type).  If allow_qualifier_or_eh_mismatch is TRUE, ignore
+cv-qualifier mismatches (the two types are probably the types of the
+operands of an operation).  If the conversion is possible, *std_conv
+is filled out to describe the conversion.
+*/
+{
+  a_boolean        okay = FALSE;
+  a_type_ptr       dest_type_pointed_to, source_type_pointed_to;
+  a_type_ptr       unqual_dest_type_pointed_to, unqual_source_type_pointed_to;
+  a_base_class_ptr bcp;
+  a_boolean        qualifiers_checked = FALSE;
+
+  db_enter(5, "impl_handle_conversion");
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "impl_handle_conversion: source_type = ");
+    db_abbreviated_type(source_type);
+    fprintf(f_debug, ", dest_type = ");
+    db_abbreviated_type(dest_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  clear_std_conv_descr(std_conv);
+  /* Assume a nontrivial conversion; the flag will be cleared later if in
+     fact there is nothing nontrivial. */
+  std_conv->nontrivial_conversion = TRUE;
+  source_type = skip_typerefs(source_type);
+  dest_type = skip_typerefs(dest_type);
+#if CHECKING
+  if (!is_handle_ptr(dest_type)) {
+    internal_error("impl_handle_conversion: dest_type is not handle");
+  }  /* if */
+#endif /* CHECKING */
+  /* Get the type pointed to and drop type qualifiers and typedefs. */
+  dest_type_pointed_to = type_pointed_to(dest_type);
+  unqual_dest_type_pointed_to = skip_typerefs(dest_type_pointed_to);
+  if (is_template_param_type(source_type)) {
+    /* A template parameter type might be a handle type. */
+    okay = TRUE;
+    qualifiers_checked = TRUE;
+  } else if (is_nullptr(source_type)) {
+    /* Values of nullptr types can be converted to any handle type. */
+    okay = TRUE;
+    qualifiers_checked = TRUE;
+  } else if (is_handle_ptr(source_type)) {
+    /* Handle --> handle. */
+    /* Get the type pointed to and drop type qualifiers and typedefs. */
+    source_type_pointed_to = type_pointed_to(source_type);
+    unqual_source_type_pointed_to = skip_typerefs(source_type_pointed_to);
+    if (types_are_compatible(unqual_source_type_pointed_to,
+                             unqual_dest_type_pointed_to)) {
+      /* The types pointed to are compatible. */
+      okay = TRUE;
+      std_conv->nontrivial_conversion = FALSE;
+    } else if (is_class_or_struct(unqual_source_type_pointed_to) &&
+               is_class_or_struct(unqual_dest_type_pointed_to) &&
+               (bcp = find_base_class_of(unqual_source_type_pointed_to,
+                                         unqual_dest_type_pointed_to))
+                                                                     != NULL) {
+      /* Conversion from handle-to-derived to handle-to-base. */
+      okay = TRUE;
+      std_conv->cast_base_class = bcp;
+    }  /* if */
+  } else if (is_error(source_type)) {
+    /* Error --> handle is always allowed. */
+    okay = TRUE;
+    qualifiers_checked = TRUE;
+  }  /* if */
+  if (okay && !qualifiers_checked && !allow_qualifier_or_eh_mismatch) {
+    /* Check that no qualifiers are dropped in going from the source type to
+       the destination type. */
+    a_type_qualifier_set dest_type_qualifiers =
+                                     get_type_qualifiers(dest_type_pointed_to);
+    a_type_qualifier_set source_type_qualifiers =
+                                   get_type_qualifiers(source_type_pointed_to);
+    if (dest_type_qualifiers == source_type_qualifiers) {
+      /* The qualifiers are the same. */
+    } else if (any_qualifier_in_set_missing(dest_type_qualifiers,
+                                            source_type_qualifiers)) {
+      /* Qualifiers are being dropped. */
+      okay = FALSE;
+    } else {
+      /* Qualifiers are being added. */
+      std_conv->type_qualifiers_added = TRUE;
+    }  /* if */
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "impl_handle_conversion: %s\n",
+                     okay ? "okay" : "not okay");
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return okay;
+}  /* impl_handle_conversion */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean this_param_types_correspond(
                                    a_type_ptr rout_type_1,
@@ -7156,11 +7323,7 @@ See conversion_possible.
       okay = FALSE;
     }  /* if */
   } else if (is_pointer(dest_type)) {
-    /* Destination type is pointer.  See if the types are compatible.
-       In C, the operands must be pointers to qualified or unqualified
-       versions of compatible types (i.e., object, incomplete, or function
-       types), and null pointer constants and "void *" pointers are specially
-       handled (ANSI C 3.3.15).  Ditto in C++ (ARM 4.6, 5.16). */
+    /* Destination type is pointer. */
     okay = impl_pointer_conversion(source_type, source_is_constant,
                                    source_is_string_literal,
                                    source_constant, dest_type,
@@ -7168,6 +7331,13 @@ See conversion_possible.
                                    suppress_extensions,
                                    default_warning_code,
                                    std_conv);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (is_handle_type(dest_type)) {
+    /* Destination type is a C++/CLI handle. */
+    okay = impl_handle_conversion(source_type, dest_type,
+                                  allow_qualifier_or_eh_mismatch,
+                                  std_conv);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (is_ptr_to_member(dest_type)) {
     /* Conversion to a C++ pointer-to-member type. */
     okay = impl_ptr_to_member_conversion(source_type,
@@ -7286,7 +7456,8 @@ exception specifications are not checked.
   a_boolean        qualifiers_added;
 
   clear_std_conv_descr(std_conv);
-  if (related_class_pointers(source_type, dest_type, &baseward_cast, &bcp) &&
+  if (related_class_pointers_or_handles(source_type, dest_type,
+                                        &baseward_cast, &bcp) &&
       !baseward_cast) {
     /* A pointer to a base class can be cast to a pointer to a derived
        class if it's not a virtual base and no qualifiers are dropped. */
@@ -7557,7 +7728,8 @@ and destination types, and return TRUE if one is allowed.
   a_boolean        baseward_cast;
   a_base_class_ptr bcp;
 
-  if (related_class_pointers(source_type, dest_type, &baseward_cast, &bcp)) {
+  if (related_class_pointers_or_handles(source_type, dest_type,
+                                        &baseward_cast, &bcp)) {
     /* A cast from const Derived * to Base * is allowed as a combination
        of a static_cast and a const_cast. */
     okay = TRUE;

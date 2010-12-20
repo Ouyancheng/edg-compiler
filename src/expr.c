@@ -4098,7 +4098,8 @@ right-side field.  rep points to an associated reference entry, or is NULL
 if none is needed.  The result is placed in *result.  member_position
 and end_position give the starting and ending source positions for the
 field reference (end_position only in configurations with extra source
-positions).
+positions).  This routine also accepts the case where the first operand
+is a C++/CLI handle.
 */
 {
   a_symbol_ptr          field_sym = field_locator->specific_symbol;
@@ -4175,6 +4176,11 @@ positions).
        is done to get the thing pointed to. */
     if (!C_mode() && is_reference_type(result_type)) {
       add_reference_indirection(result);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (is_tracking_reference_type(result_type)) {
+      /* Fields can't have tracking reference type. */
+      unexpected_condition();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* Preserve the reference entries for the base struct.  Don't do this
          if we are dereferencing a reference, because in that case the
@@ -5172,7 +5178,8 @@ case).
       normalize_error_operand(operand_1);
     } else {
       if (is_arrow_operator) {
-        /* "->" operator.  The left operand must be a pointer. */
+        /* "->" operator.  The left operand must be a pointer (or a C++/CLI
+           handle). */
         if (C_dialect == C_dialect_pcc &&
             is_integral_or_enum_type(operand_1->type)) {
           /* In pcc mode, something like 0->x is valid. */
@@ -5183,6 +5190,10 @@ case).
              which might be a pointer type.  Also allow a nonreal class type,
              which might have an operator-> function. */
           orig_class_struct_union_type = type_of_unknown_templ_param_nontype;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcli_enabled && is_handle_type(operand_1->type)) {
+          orig_class_struct_union_type = type_pointed_to(operand_1->type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (check_pointer_operand(operand_1, ec_expr_not_pointer)) {
           orig_class_struct_union_type = type_pointed_to(operand_1->type);
         } else {
@@ -6914,6 +6925,13 @@ error indication in *rcblock).
               /* Warn on taking the address of a temporary. */
               expr_pos_warning(ec_taking_address_of_temporary,
                                &start_position);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            } else if (cppcli_enabled && is_ref_class_type(operand.type)) {
+              /* C++/CLI doesn't allow "&" to apply to an object with a ref
+                 class type, on the theory that "%" ought to be used instead
+                 to create a handle. */
+              expr_pos_error(ec_addr_of_ref_class, &start_position);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             }  /* if */
             /* Convert the lvalue operand to an rvalue operand for the
                pointer. */
@@ -7230,7 +7248,11 @@ error indication in *rcblock).
     if (!processed) {
       /* Non-operator-function cases. */
       do_operand_transformations(&operand, TOPT_NO_OPTIONS);
-      if (check_pointer_operand(&operand, ec_bad_indirection_operand)) {
+      if (
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          (cppcli_enabled && is_handle_type(operand.type)) ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          check_pointer_operand(&operand, ec_bad_indirection_operand)) {
         a_type_ptr operand_type = type_pointed_to(operand.type);
         an_expr_node_ptr node;
         /* Make the "*" operator node. */
@@ -15109,9 +15131,10 @@ indication in *rcblock).
                                   bcp->type);
               }  /* if */
             } else if (expr_access_checking_should_be_done() &&
-                       related_class_pointers(adj_source_type,
-                                              adj_type_cast_to,
-                                              &baseward_cast, &bcp) &&
+                       related_class_pointers_or_handles(adj_source_type,
+                                                         adj_type_cast_to,
+                                                         &baseward_cast,
+                                                         &bcp) &&
                        !baseward_cast &&
                        !bcp->ambiguous &&
                        !is_accessible_base_class(bcp)) {
@@ -20971,7 +20994,7 @@ by param_sym (sk_parameter).
   node->variant.param_ref.levels_up = levels_up;
   make_lvalue_expression_operand(node, result);
   /* If the parameter has a reference type, add an implicit indirection. */
-  if (!C_mode() && is_reference_type(node->type)) {
+  if (!C_mode() && is_any_reference_type(node->type)) {
     add_reference_indirection(result);
   }  /* if */
 }  /* make_param_ref_operand */
@@ -25213,7 +25236,7 @@ operand of an "&" operator.
     expr_copy->type = do_type_substitution_for_rescan(expr->type, rcblock,
                                                       eriep);
     make_lvalue_or_rvalue_expression_operand(expr_copy, result);
-    if (is_reference_type(result->type)) {
+    if (is_any_reference_type(result->type)) {
       add_reference_indirection(result);
     }  /* if */
   } else if (is_operation_node(expr)) {

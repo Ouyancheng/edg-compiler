@@ -6644,13 +6644,14 @@ call.  NULL is always a safe answer; non-NULL values may permit optimizations.
 Note that "complete object" means an object that is not a base class of
 another object, not necessarily a top-level object.  This is used only in
 C++ mode; it is useful to know what the complete object type is to optimize
-base class casts and virtual function calls.
+base class casts and virtual function calls.  In C++/CLI mode, the operand
+can be a handle.
 */
 {
   a_type_ptr complete_object_type = NULL;
 
   check_assertion((is_an_rvalue(operand) &&
-                   (is_pointer_type(operand->type) ||
+                   (is_pointer_or_handle_type(operand->type) ||
                     is_template_param_type(operand->type) ||
                     is_error_type(operand->type))) ||
                   is_error_operand(operand));
@@ -6679,12 +6680,12 @@ Bind the operand for a function to an associated selector object.  If the
 complete object type can be determined, convert a virtual function call
 into a direct call if possible.  The selector object can be a class lvalue
 or rvalue ("." or ".*" case, selector_is_object_pointer FALSE) or a pointer
-to a class ("->" or "->*" case, selector_is_object_pointer TRUE).
+or handle to a class ("->" or "->*" case, selector_is_object_pointer TRUE).
 */
 {
   function_operand->bound_function = TRUE;
   check_assertion((selector_is_object_pointer ==
-                             is_pointer_type(bound_function_selector->type)) ||
+                   is_pointer_or_handle_type(bound_function_selector->type)) ||
                   (is_template_dependent_context() &&
                    is_template_dependent_type(bound_function_selector->type))||
                   is_error_operand(bound_function_selector));
@@ -7015,7 +7016,7 @@ intermediate language (operand should be NULL in that case).
     }  /* if */
   }  /* if */
 }  /* overloaded_function_catch_up */
-
+  
 
 static a_boolean is_dependent_selection_first_operand(
                                             a_boolean        is_arrow_operator,
@@ -7211,7 +7212,8 @@ symbol on it is significant.  access_control_error_reported is TRUE if
 an access control error has already been reported.
 do_protected_member_check is TRUE if the protected member access check
 of 11.5 in the C++ standard should be done.  *member_pos gives the
-source position of the member name reference.
+source position of the member name reference.  This routine also handles
+the case where the left operand is a C++/CLI handle.
 */
 {
   a_type_ptr       desired_class = sym_parent_class(projection_member_sym);

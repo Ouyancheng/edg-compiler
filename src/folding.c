@@ -5849,6 +5849,14 @@ handle_field_selection:
       /* Other expression kinds cannot be folded. */
       break;
   }  /* switch */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && is_constant_addr) {
+    /* A C++/CLI gc-lvalue should not ever be treated as a constant address,
+       as its address might change if the garbage collector moves the
+       underlying object. */
+    if (is_gc_lvalue_expr(expr)) is_constant_addr = FALSE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (template_constant == &local_template_constant && is_constant_addr) {
     /* Handle tagging a template constant locally. */
     if (local_template_constant &&

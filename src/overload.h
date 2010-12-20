@@ -565,6 +565,9 @@ void overloaded_function_catch_up(a_symbol_ptr      function_symbol,
                                   an_operand        *operand,
                                   a_boolean         *access_error_reported);
 
+extern a_type_ptr make_selector_type(a_type_ptr class_type,
+                                     an_operand *selector);
+
 extern a_boolean is_dependent_static_selection(an_expr_node_ptr sel_expr);
 
 extern void combine_unneeded_selector_with_operand(

@@ -1512,6 +1512,8 @@ extern an_expr_node_ptr copy_default_arg_expr_list(
                                a_boolean        inside_conditional_expression,
                                a_boolean        potentially_evaluated);
 
+extern a_boolean is_gc_lvalue_expr(an_expr_node_ptr expr);
+
 extern an_expr_node_ptr var_lvalue_expr(a_variable_ptr var);
 
 extern an_expr_node_ptr var_rvalue_expr(a_variable_ptr var);

@@ -2785,7 +2785,8 @@ Tips for proper use of the follow_addressing_path mode:
   (a)  The traversal should be entered at the top only with either an
        rvalue pointer or an lvalue.  It is sometimes necessary to guard the
        traverse_expr call to exclude other cases.  Common problem cases are
-       class rvalues and array rvalues.
+       class rvalues and array rvalues.  In C++/CLI mode, a handle is
+       acceptable as a kind of pointer.
   (b)  The "?" and GNU min/max operators can have two operands that are
        part of the addressing path, and this routine follows both.  That means
        you should be careful not to set "terminate" to TRUE unless you really
@@ -2913,13 +2914,13 @@ Tips for proper use of the follow_addressing_path mode:
       check_assertion((((il_lowering_underway ||
                          il_header.il_has_C_semantics) ?
                           is_any_ptr_or_ref_type(expr->type) :
-                          (is_pointer_type(expr->type) ||
+                          (is_pointer_or_handle_type(expr->type) ||
                            is_template_param_type(expr->type))) ||
                        is_error_type(expr->type)) ||
                       is_error_node(expr));
 #endif /* STANDALONE_UTILITY_PROGRAM */
 #else /* !DO_IL_LOWERING */
-      check_assertion((is_pointer_type(expr->type) ||
+      check_assertion((is_pointer_or_handle_type(expr->type) ||
                        is_template_param_type(expr->type) ||
                        is_error_type(expr->type)) ||
                       is_error_node(expr));
