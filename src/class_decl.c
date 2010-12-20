@@ -5555,33 +5555,41 @@ information).
   a_type_ptr        proto_type;
 
   check_assertion(bcp->direct && proto_num != 0);
-  check_assertion_str2(class_state->corresp_prototype_tag_sym != NULL,
-                       "mark_base_dependent_if_needed:",
-                       "no corresp_prototype_tag_sym");
-  proto_type = class_state->corresp_prototype_tag_sym
-                          ->variant.class_struct_union.type;
-  proto_bcp = base_classes_of(proto_type);
-  /* Find the corresponding prototype base class.  Note that in error cases a
-     given sequence number could be missing from the list. */
-  while (proto_bcp != NULL && proto_bcp->direct_base_number != proto_num) {
-    proto_bcp = proto_bcp->next;
-  }  /* while */
-  if (proto_bcp != NULL) {
-    /* Normal case: We find the corresponding base of the prototype
-       instantiation:  Set flags in the instantiated entities accordingly. */
-    bcp->ignore_during_dependent_lookup =
-                                    proto_bcp->ignore_during_dependent_lookup;
-    /* Indicate that this class has a dependent base if this base class
-       is dependent or any of its base classes are dependent. */
-    if (bcp->ignore_during_dependent_lookup ||
-        symbol_supplement_for_class(bcp->type)->any_dependent_base_classes) {
+  if (class_state->is_nonreal_instantiation) {
+    if (is_or_contains_template_param(bcp->type)) {
+      bcp->ignore_during_dependent_lookup = TRUE;
       symbol_supplement_for_class(class_state->class_type)
                                           ->any_dependent_base_classes = TRUE;
     }  /* if */
   } else {
-    /* If we did not find a matching base class there must have been an
-       earlier error. */
-    check_assertion(total_errors != 0);
+    check_assertion_str2(class_state->corresp_prototype_tag_sym != NULL,
+                         "mark_base_dependent_if_needed:",
+                         "no corresp_prototype_tag_sym");
+    proto_type = class_state->corresp_prototype_tag_sym
+                            ->variant.class_struct_union.type;
+    proto_bcp = base_classes_of(proto_type);
+    /* Find the corresponding prototype base class.  Note that in error cases a
+       given sequence number could be missing from the list. */
+    while (proto_bcp != NULL && proto_bcp->direct_base_number != proto_num) {
+      proto_bcp = proto_bcp->next;
+    }  /* while */
+    if (proto_bcp != NULL) {
+      /* Normal case: We find the corresponding base of the prototype
+         instantiation:  Set flags in the instantiated entities accordingly. */
+      bcp->ignore_during_dependent_lookup =
+                                    proto_bcp->ignore_during_dependent_lookup;
+      /* Indicate that this class has a dependent base if this base class
+         is dependent or any of its base classes are dependent. */
+      if (bcp->ignore_during_dependent_lookup ||
+          symbol_supplement_for_class(bcp->type)->any_dependent_base_classes) {
+        symbol_supplement_for_class(class_state->class_type)
+                                          ->any_dependent_base_classes = TRUE;
+      }  /* if */
+    } else {
+      /* If we did not find a matching base class there must have been an
+         earlier error. */
+      check_assertion(total_errors != 0);
+    }  /* if */
   }  /* if */
 }  /* mark_base_dependent_if_needed */
 
@@ -6202,6 +6210,10 @@ or struct definition.  The syntax is
               if (attributes != NULL) {
                 attach_attributes(attributes, (char*)bcp, iek_base_class);
               }  /* if */
+              if (class_state->is_template_instantiation) {
+                mark_base_dependent_if_needed(bcp, class_state,
+                                              proto_base_number);
+              }  /* if */
               goto skip_base_class;
             } else {
               /* At least one is non-virtual, so there is an ambiguity.  Mark
@@ -6282,12 +6294,7 @@ or struct definition.  The syntax is
         new_direct_bcp->ambiguous = ambiguous;
         new_direct_bcp->direct_base_number = direct_base_number;
         if (is_virtual) new_direct_bcp->is_virtual = TRUE;
-        if (class_state->is_nonreal_instantiation) {
-          if (is_or_contains_template_param(base_class_type)) {
-            new_direct_bcp->ignore_during_dependent_lookup = TRUE;
-            cssp->any_dependent_base_classes = TRUE;
-          }  /* if */
-        } else if (class_state->is_template_instantiation) {
+        if (class_state->is_template_instantiation) {
           mark_base_dependent_if_needed(new_direct_bcp, class_state,
                                         proto_base_number);
         }  /* if */
