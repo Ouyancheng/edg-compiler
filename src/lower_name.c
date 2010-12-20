@@ -157,6 +157,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_TRACKING_REFERENCE "U8__trkref"
 #define MANGLING_STRING_FOR_HANDLE "U8__handle"
 #define MANGLING_STRING_FOR_STATIC_CONSTRUCTOR "C8"
+#define MANGLING_STRING_FOR_MANAGED_NULLPTR "DN"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #else /* !IA64_ABI */
@@ -278,6 +279,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_TRACKING_REFERENCE "Tr"
 #define MANGLING_STRING_FOR_HANDLE "H"
 #define MANGLING_STRING_FOR_STATIC_CONSTRUCTOR "st"
+#define MANGLING_STRING_FOR_MANAGED_NULLPTR "j"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* IA64_ABI */
@@ -8318,7 +8320,16 @@ top_of_loop:
           /* A nullptr type is not itself a pointer type and is handled in
              the tk_nullptr case below, but it is lowered to a pointer
              type; the lowered type is handled here. */
-          s = MANGLING_STRING_FOR_NULLPTR;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (is_managed_nullptr_type(type)) {
+            /* Use a different mangling for C++/CLI managed __nullptr. */
+            s = MANGLING_STRING_FOR_MANAGED_NULLPTR;
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
+          {
+            s = MANGLING_STRING_FOR_NULLPTR;
+          }  /* if */
         } else 
 #endif /* DO_IL_LOWERING */
         /* Do not insert code here. */
@@ -8414,7 +8425,16 @@ top_of_loop:
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:
-        s = MANGLING_STRING_FOR_NULLPTR;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (is_managed_nullptr_type(type)) {
+          /* Use a different mangling for C++/CLI managed __nullptr. */
+          s = MANGLING_STRING_FOR_MANAGED_NULLPTR;
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          s = MANGLING_STRING_FOR_NULLPTR;
+        }  /* if */
         break;
       case tk_typeref:
         /* typedefs, cv-qualifiers, aliases and non-dependent decltypes/typeofs

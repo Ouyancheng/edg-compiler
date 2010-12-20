@@ -1074,7 +1074,9 @@ to the character position following what was demangled.
       */
       /* See if the type is bool. */
       a_boolean is_bool = (type+2 == p && *(type+1) == 'b');
-      a_boolean is_nullptr = (type+2 == p && *(type+1) == 'n');
+      a_boolean is_managed_nullptr = (type+2 == p && *(type+1) == 'j');
+      a_boolean is_nullptr = (type+2 == p && *(type+1) == 'n') ||
+                             is_managed_nullptr;
       a_boolean is_complex = (type+3 == p && *(type+1) == 'x');
       /* If the type is bool or nullptr, don't put out the cast. */
       if (!(is_bool || is_nullptr)) {
@@ -1085,6 +1087,11 @@ to the character position following what was demangled.
       }  /* if */
       if (is_complex) write_id_ch('(', dctl);
       p++;  /* Advance past the "L". */
+      if (is_managed_nullptr) {
+        /* If this is a managed C++/CLI __nullptr, emit the underscores to
+           distinguish it from the standard nullptr. */
+        write_id_str("__", dctl);
+      }  /* if */
       p = demangle_constant_value(p, is_bool, is_nullptr, dctl);
       if (!dctl->err_in_id && is_complex) {
         /* Now emit the imaginary portion of the complex number. */
@@ -2670,6 +2677,9 @@ to the character position following what was demangled.
         break;
       case 'n':
         s = "std::nullptr_t";
+        break;
+      case 'j':
+        s = "__nullptr";
         break;
       case 'u':
         s = "auto";
@@ -4547,6 +4557,10 @@ demangled as part of the template function instead).
           case 'n':
             s = "std::nullptr_t";
             break;
+          case 'N':
+            /* EDG extension for C++/CLI managed __nullptr. */
+            s = "__nullptr";
+            break;
           default:
             bad_mangled_name(dctl);
             s = "";
@@ -5714,12 +5728,19 @@ The syntax is:
               (sub[0] == 'C' && is_floating_point_type(sub[1])))) {
     /* Complex floating point literal. */
     ptr = demangle_complex_literal(ptr, dctl);
-  } else if (ptr[1] == 'D' && ptr[2] == 'n' && ptr[3] == 'E') {
-    /* Recognize the literal for nullptr and emit "nullptr". */
+  } else if (ptr[1] == 'D' &&
+             (ptr[2] == 'n' || ptr[2] == 'N') &&
+             ptr[3] == 'E') {
+    /* Recognize the literal for nullptr or __nullptr (the mangling is an
+       EDG extension for the C++/CLI managed __nullptr keyword). */
     dctl->suppress_id_output++;
     (void)demangle_type(ptr+1, dctl);
     dctl->suppress_id_output--;
-    write_id_str("nullptr", dctl);
+    if (ptr[2] == 'N') {
+      write_id_str("__nullptr", dctl);
+    } else {
+      write_id_str("nullptr", dctl);
+    }  /* if */
     ptr += 4;
   } else {
     /* Integer literal, or string literal. */
