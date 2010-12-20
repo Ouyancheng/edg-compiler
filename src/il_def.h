@@ -3361,7 +3361,11 @@ typedef struct a_constant {
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_bit_field	nullptr_keyword:1;
 			/* If TRUE, this constant was expressed with the
-			   nullptr keyword.  This is used to distinguish
+			   nullptr keyword (in both C++/CLI and non-C++/CLI
+			   modes; i.e., this flag reflects only the
+			   spelling of the keyword and not whether the type
+			   is the managed or standard variant of the
+			   nullptr types).  This is used to distinguish
 			   direct uses of nullptr from other expressions
 			   with a nullptr type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3760,8 +3764,17 @@ enum a_type_kind_tag {
 #if GNU_VECTOR_TYPES_ALLOWED
   tk_vector,		/* GNU vector types. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-  tk_nullptr,		/* Type of C++ or C++/CLI nullptr or __nullptr
-			   keyword. */
+  tk_nullptr,		/* Type of the C++ or C++/CLI nullptr and __nullptr
+			   keywords.  There are two nullptr types that have
+			   slightly different semantics: the managed
+			   nullptr type is the type of the nullptr keyword
+			   in C++/CLI, and the standard nullptr type
+			   (std::nullptr_t) is the type of the non-C++/CLI
+			   nullptr keyword and the __nullptr keyword in
+			   Microsoft mode (both C++/CLI and native).  See
+			   is_managed_nullptr_type and
+			   is_standard_nullptr_type in types.c for
+			   details. */
   tk_unknown		/* Unknown. */
 };
 /* Define as "a_byte" to explicitly control storage size. */

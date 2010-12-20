@@ -481,8 +481,12 @@ thereof.
 
 a_boolean is_managed_nullptr_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is the type of the nullptr keyword in C++/CLI
-(which is distinct from std::nullptr_t), or a cv-qualified version thereof.
+In C++/CLI, the nullptr keyword has a type that is distinct from
+std::nullptr_t (which is the type of the the nullptr keyword in non-C++/CLI
+modes and of the __nullptr keyword in Microsoft modes, both C++/CLI and
+native).  This function returns TRUE for the type of the C++/CLI nullptr
+keyword or a cv-qualified version thereof and FALSE for std::nullptr_t and
+its cv-qualified variants.
 */
 {
   tp = skip_typerefs(tp);
@@ -492,9 +496,9 @@ Return TRUE if the given type is the type of the nullptr keyword in C++/CLI
 
 a_boolean is_standard_nullptr_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is std::nullptr_t, i.e., the type of the
-nullptr keyword in C++ or the __nullptr keyword in C++/CLI, or a
-cv-qualified version thereof.
+Return TRUE if the given type is std::nullptr_t or a cv-qualified version
+thereof.  (See is_managed_nullptr_keyword above for a discussion of the
+distinction between the managed and standard nullptr types.)
 */
 {
   tp = skip_typerefs(tp);
