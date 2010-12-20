@@ -9910,12 +9910,14 @@ enum a_builtin_function_kind_tag {
   bfk_ia32_rorsi,               /* __builtin_ia32_rorsi */
   bfk_ia32_rordi,               /* __builtin_ia32_rordi */
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
+#if GCC_BUILTIN_VARARGS
   bfk_va_start,			/* __builtin_va_start */
   bfk_stdarg_start,		/* __builtin_stdarg_start */
   bfk_varargs_start,		/* __builtin_varargs_start */
   bfk_va_arg,			/* __builtin_va_arg */
   bfk_va_end,			/* __builtin_va_end */
   bfk_va_copy,			/* __builtin_va_copy */
+#endif /* GCC_BUILTIN_VARARGS */
   bfk_va_arg_pack,              /* __builtin_va_arg_pack */
   bfk_va_arg_pack_len,          /* __builtin_va_arg_pack_len */
   bfk_bswap32,                  /* __builtin_bswap32 */
@@ -11187,12 +11189,14 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_ia32_rorsi */               "__builtin_ia32_rorsi",
   /* bfk_ia32_rordi */               "__builtin_ia32_rordi",
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
+#if GCC_BUILTIN_VARARGS
   /* bfk_va_start */                 "__builtin_va_start",
   /* bfk_stdarg_start */             "__builtin_stdarg_start",
   /* bfk_varargs_start */            "__builtin_varargs_start",
   /* bfk_va_arg */                   "__builtin_va_arg",
   /* bfk_va_end */                   "__builtin_va_end",
   /* bfk_va_copy */                  "__builtin_va_copy",
+#endif /* GCC_BUILTIN_VARARGS */
   /* bfk_va_arg_pack */              "__builtin_va_arg_pack",
   /* bfk_va_arg_pack_len */          "__builtin_va_arg_pack_len",
   /* bfk_bswap32 */                  "__builtin_bswap32",

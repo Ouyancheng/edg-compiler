@@ -2859,6 +2859,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
       check_assertion(C_mode());  /* rcblock is not passed down. */
       scan_and_process_builtin_choose_expr_args(result_op);
       break;
+#if GCC_BUILTIN_VARARGS
     case bfk_stdarg_start:
     case bfk_va_start:
       scan_va_start_operator(result_op, operand, /*single_operand=*/FALSE);
@@ -2875,6 +2876,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
     case bfk_va_copy:
       scan_va_copy_operator(result_op, operand);
       break;
+#endif /* GCC_BUILTIN_VARARGS */
     default:
       regular_case = TRUE;
   }  /* switch */
