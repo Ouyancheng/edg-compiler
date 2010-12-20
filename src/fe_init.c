@@ -521,8 +521,10 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_microsoft_identifier, "__identifier");
     }  /* if */
     if (nullptr_enabled) {
-      /* The Microsoft compiler recognizes "__nullptr" as a native-only
-         synonym for "nullptr". */
+      /* In C++/CLI, the nullptr keyword has the managed nullptr type, which
+         has slightly different semantics from those of std::nullptr_t.  The
+         Microsoft compiler (in both C++/CLI and native modes) defines the
+         __nullptr keyword to designate the standard nullptr type. */
       enter_keyword((a_token_kind)tok_native_nullptr, "__nullptr");
     }  /* if */
   }  /* if */

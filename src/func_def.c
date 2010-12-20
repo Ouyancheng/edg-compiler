@@ -553,8 +553,7 @@ associated with a variadic parameter, but not the initial one.
   complete_type_is_needed(tp);
   if (is_incomplete_type(tp)) {
     /* Incomplete type is not allowed. */
-    pos_error(managed_nullptr_or_incomplete_type_msg(tp,
-                         ec_incomplete_type_not_allowed), &param_id->type_pos);
+    pos_error(incomplete_type_err_code(tp), &param_id->type_pos);
     tp = ptp->type = error_type();
   }  /* if */
   /* Create the parameter variable. */

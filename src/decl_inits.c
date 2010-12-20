@@ -3492,8 +3492,7 @@ returned set to TRUE.
       } else {
         if (is_incomplete_type(vp_type)) {
           /* Incomplete type is an error. */
-          pos_error(managed_nullptr_or_incomplete_type_msg(vp_type,
-                                  ec_incomplete_type_not_allowed), source_pos);
+          pos_error(incomplete_type_err_code(vp_type), source_pos);
           *incomplete_type_error_reported = TRUE;
         } else {
           /* Catch-all error. */

@@ -75,7 +75,7 @@ static a_type_ptr il_unknown_type;
 static a_type_ptr il_void_type;
 static a_type_ptr il_wchar_t_type;
 static a_type_ptr il_bool_type;
-static a_type_ptr il_native_nullptr_type;
+static a_type_ptr il_standard_nullptr_type;
 static a_type_ptr il_managed_nullptr_type;
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -1531,7 +1531,7 @@ Dump the contents of the indicated type entry, for debug purposes.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:
         if (tp->incomplete) {
-          fputs("decltype(nullptr)", f_debug);
+          fputs("managed nullptr type", f_debug);
         } else {
           fputs("std::nullptr_t", f_debug);
         }  /* if */
@@ -7962,8 +7962,8 @@ primary translation unit.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* for */
   il_wchar_t_type = primary_wchar_t_type();
-  il_native_nullptr_type = primary_nullptr_type(/*managed=*/FALSE);
-  il_managed_nullptr_type = primary_nullptr_type(/*managed=*/TRUE);
+  il_standard_nullptr_type = primary_standard_nullptr_type();
+  il_managed_nullptr_type = primary_managed_nullptr_type();
 #if C99_IL_EXTENSIONS_SUPPORTED
   il_bool_type = primary_bool_type();
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -8273,48 +8273,51 @@ Make or find a type entry for a bool type and return a pointer to it.
 }  /* bool_type */
 
 
-a_type_ptr nullptr_type(a_boolean managed)
+a_type_ptr managed_nullptr_type(void)
 /*
-Make or find a type entry for the type of the nullptr keyword, and return a
-pointer to it.  If managed is TRUE, the type corresponds to the C++/CLI
-version, which is an incomplete type; otherwise, it is the standard C++
-type std::nullptr_t (which is also used for the __nullptr keyword in
-C++/CLI).
+Make or find a type entry for the type of the C++/CLI nullptr keyword
+(which is different from std::nullptr_t and is an incomplete type) and
+return a pointer to it.
 */
 {
-  a_type_ptr type;
-  if (managed) {
-    check_assertion(cppcli_enabled);
-    if (il_managed_nullptr_type == NULL) {
-      /* The type must be created. */
-      il_managed_nullptr_type = alloc_type((a_type_kind)tk_nullptr);
-      il_managed_nullptr_type->incomplete = TRUE;
+  check_assertion(cppcli_enabled);
+  if (il_managed_nullptr_type == NULL) {
+    /* The type must be created. */
+    il_managed_nullptr_type = alloc_type((a_type_kind)tk_nullptr);
+    il_managed_nullptr_type->incomplete = TRUE;
 #if ORPHAN_PROCESSING_NEEDED
-      /* Record the type entry as an orphan in case it is discarded now
-         and then found again in a later phase (e.g., IL lowering). */
-      add_orphaned_file_scope_il_entry((char *)il_managed_nullptr_type,
-                                       (an_il_entry_kind)iek_type);
+    /* Record the type entry as an orphan in case it is discarded now
+       and then found again in a later phase (e.g., IL lowering). */
+    add_orphaned_file_scope_il_entry((char *)il_managed_nullptr_type,
+                                     (an_il_entry_kind)iek_type);
 #endif /* ORPHAN_PROCESSING_NEEDED */
-      record_builtin_type(il_managed_nullptr_type);
-    }  /* if */
-    type = il_managed_nullptr_type;
-  } else {
-    if (il_native_nullptr_type == NULL) {
-      /* The type must be created. */
-      il_native_nullptr_type = alloc_type((a_type_kind)tk_nullptr);
-      set_type_size(il_native_nullptr_type);
-#if ORPHAN_PROCESSING_NEEDED
-      /* Record the type entry as an orphan in case it is discarded now
-         and then found again in a later phase (e.g., IL lowering). */
-      add_orphaned_file_scope_il_entry((char *)il_native_nullptr_type,
-                                       (an_il_entry_kind)iek_type);
-#endif /* ORPHAN_PROCESSING_NEEDED */
-      record_builtin_type(il_native_nullptr_type);
-    }  /* if */
-    type = il_native_nullptr_type;
+    record_builtin_type(il_managed_nullptr_type);
   }  /* if */
-  return type;
-}  /* nullptr_type */
+  return il_managed_nullptr_type;
+}  /* managed_nullptr_type */
+
+
+a_type_ptr standard_nullptr_type(void)
+/*
+Make or find a type entry for std::nullptr_t, the type of the nullptr
+keyword (and also the C++/CLI __nullptr keyword), and return a pointer to
+it.
+*/
+{
+  if (il_standard_nullptr_type == NULL) {
+    /* The type must be created. */
+    il_standard_nullptr_type = alloc_type((a_type_kind)tk_nullptr);
+    set_type_size(il_standard_nullptr_type);
+#if ORPHAN_PROCESSING_NEEDED
+    /* Record the type entry as an orphan in case it is discarded now
+       and then found again in a later phase (e.g., IL lowering). */
+    add_orphaned_file_scope_il_entry((char *)il_standard_nullptr_type,
+                                     (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
+    record_builtin_type(il_standard_nullptr_type);
+  }  /* if */
+  return il_standard_nullptr_type;
+}  /* standard_nullptr_type */
 
 #if FIXED_POINT_ALLOWED
 
@@ -13265,13 +13268,16 @@ to TRUE.  *source_pos gives the source position for errors.
     if (!types_are_compatible(type_2, type_3)) {
       if (is_nullptr_type(type_2) || is_nullptr_type(type_3)) {
         /* The Microsoft C++/CLI compiler follows the third operand in
-           deciding whether the common type is managed or native.  (We
-           will get the native nullptr type, std::nullptr_t, if the third
-           operand does not have a nullptr type, and that's correct, since
-           the second operand must necessarily have been std::nullptr_t --
-           the managed nullptr type is incompatible with non-nullptr
-           operands.) */
-        result_type = nullptr_type(is_managed_nullptr_type(type_3));
+           deciding whether the common type is managed or standard.  (We
+           will get std::nullptr_t if the third operand does not have a
+           nullptr type, and that's correct, since the second operand must
+           necessarily have been std::nullptr_t -- the managed nullptr type
+           is incompatible with non-nullptr operands.) */
+        if (is_managed_nullptr_type(type_3)) {
+          result_type = managed_nullptr_type();
+        } else {
+          result_type = standard_nullptr_type();
+        }  /* if */
       } else {
         result_type = usual_arithmetic_conversions(type_2, type_3);
       }  /* if */
@@ -13625,12 +13631,12 @@ and pointer-to-member types directly.
     compatible_types = (is_nullptr_type(type_2) ||
                         is_pointer_or_handle_type(type_2) ||
                         is_ptr_to_member_type(type_2) ||
-                        (con_2 != NULL && is_native_nullptr_type(type_1) &&
+                        (con_2 != NULL && is_standard_nullptr_type(type_1) &&
                          is_null_pointer_constant(con_2)));
   } else {
     compatible_types = (is_pointer_or_handle_type(type_1) ||
                         is_ptr_to_member_type(type_1) ||
-                        (con_1 != NULL && is_native_nullptr_type(type_2) &&
+                        (con_1 != NULL && is_standard_nullptr_type(type_2) &&
                          is_null_pointer_constant(con_1)));
   }  /* if */
   return compatible_types;
@@ -21508,8 +21514,8 @@ is ignored, except for C++ class rvalues.
       pointed_to_type = make_unqualified_type(pointed_to_type);
     }  /* if */
     if (is_managed_nullptr_type(pointed_to_type) &&
-        is_native_nullptr_type(targ_type)) {
-      /* The Microsoft C++/CLI compiler gives the native nullptr type as
+        is_standard_nullptr_type(targ_type)) {
+      /* The Microsoft C++/CLI compiler gives the standard nullptr type as
          the result of indirection through a pointer to the managed nullptr
          type. */
       result = TRUE;
@@ -22254,7 +22260,7 @@ in il_init.)
       pch_saved_var_array_elem(il_void_type),
       pch_saved_var_array_elem(il_wchar_t_type),
       pch_saved_var_array_elem(il_bool_type),
-      pch_saved_var_array_elem(il_native_nullptr_type),
+      pch_saved_var_array_elem(il_standard_nullptr_type),
       pch_saved_var_array_elem(il_managed_nullptr_type),
       pch_array_saved_var_array_elem(int_types),
       pch_array_saved_var_array_elem(signed_int_types),
@@ -22334,7 +22340,7 @@ in il_init.)
   register_trans_unit_variable(il_void_type);
   register_trans_unit_variable(il_wchar_t_type);
   register_trans_unit_variable(il_bool_type);
-  register_trans_unit_variable(il_native_nullptr_type);
+  register_trans_unit_variable(il_standard_nullptr_type);
   register_trans_unit_variable(il_managed_nullptr_type);
   register_trans_unit_variable(shareable_constants_table);
   register_trans_unit_variable(seq_cache);
@@ -22442,7 +22448,7 @@ need initialization for every (primary and secondary) translation unit.
   il_wchar_t_type = NULL;
   il_bool_type = NULL;
   il_error_type = il_unknown_type = il_void_type = NULL;
-  il_native_nullptr_type = NULL;
+  il_standard_nullptr_type = NULL;
   il_managed_nullptr_type = NULL;
   { sizeof_t size = sizeof(a_constant_ptr) * SIZE_SHAREABLE_CONSTANTS_TABLE;
     shareable_constants_table = (a_constant_ptr*)alloc_fe(size);

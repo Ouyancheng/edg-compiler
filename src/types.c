@@ -481,25 +481,25 @@ thereof.
 
 a_boolean is_managed_nullptr_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is the type of the managed nullptr keyword in
-C++/CLI (i.e., not the type of __nullptr), or a cv-qualified version
-thereof.
+Return TRUE if the given type is the type of the nullptr keyword in C++/CLI
+(which is distinct from std::nullptr_t), or a cv-qualified version thereof.
 */
 {
   tp = skip_typerefs(tp);
   return(is_nullptr(tp) && tp->incomplete);
-}  /* is_nullptr_type */
+}  /* is_managed_nullptr_type */
 
 
-a_boolean is_native_nullptr_type(a_type_ptr tp)
+a_boolean is_standard_nullptr_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is the type of the nullptr keyword in C++ or
-the __nullptr keyword in C++/CLI, or a cv-qualified version thereof.
+Return TRUE if the given type is std::nullptr_t, i.e., the type of the
+nullptr keyword in C++ or the __nullptr keyword in C++/CLI, or a
+cv-qualified version thereof.
 */
 {
   tp = skip_typerefs(tp);
   return(is_nullptr(tp) && !tp->incomplete);
-}  /* is_nullptr_type */
+}  /* is_standard_nullptr_type */
 
 
 a_boolean is_void_star_type(a_type_ptr tp)

@@ -1584,9 +1584,9 @@ by octl.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tk_nullptr:
       check_assertion(!octl->c_generating_back_end);
-      /* If this is the native nullptr type, put it out as the name of the
+      /* If this is the standard nullptr type, put it out as the name of the
          standard C++ typedef; otherwise, use decltype. */
-      if (is_native_nullptr_type(type)) {
+      if (is_standard_nullptr_type(type)) {
         octl->output_str("std::nullptr_t", octl);
       } else {
         octl->output_str("decltype(nullptr)", octl);

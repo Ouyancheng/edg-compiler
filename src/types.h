@@ -70,7 +70,7 @@ extern a_boolean is_complete_object_type(a_type_ptr tp);
 extern a_boolean is_void_type(a_type_ptr tp);
 extern a_boolean is_nullptr_type(a_type_ptr tp);
 extern a_boolean is_managed_nullptr_type(a_type_ptr tp);
-extern a_boolean is_native_nullptr_type(a_type_ptr tp);
+extern a_boolean is_standard_nullptr_type(a_type_ptr tp);
 extern a_boolean is_void_star_type(a_type_ptr tp);
 extern a_boolean is_integral_type(a_type_ptr tp);
 extern a_boolean is_signed_integral_type(a_type_ptr tp);

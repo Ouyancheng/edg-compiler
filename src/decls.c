@@ -11021,8 +11021,7 @@ pos is used to mark the location that carries any diagnostic.
     pos_error(ec_vla_not_allowed, pos);
     result = TRUE;
   } else if (is_incomplete_type(type)) {
-    pos_error(managed_nullptr_or_incomplete_type_msg(type,
-                                         ec_incomplete_type_not_allowed), pos);
+    pos_error(incomplete_type_err_code(type), pos);
     result = TRUE;
   } else if (is_rvalue_reference_type(type) &&
              !is_template_param_type(type_pointed_to(type))) {
@@ -11668,8 +11667,7 @@ Return a pointer to the variable that is declared.
        having seen the initializer so we can handle the Microsoft extension
        that permits "if (char s[] = "x") ...".) */
     if (!incomplete_type_error_reported) {
-      pos_error(managed_nullptr_or_incomplete_type_msg(vp->type,
-                            ec_incomplete_type_not_allowed), &state.start_pos);
+      pos_error(incomplete_type_err_code(vp->type), &state.start_pos);
     }  /* if */
     vp->type = error_type();
   }  /* if */
@@ -14555,8 +14553,7 @@ if one is present.
         (!C_mode() && is_void_type(state->type)) ||
         (is_tentative_def && is_void_type(state->type))) {
       if (!incomplete_type_error_reported) {
-        pos_error(managed_nullptr_or_incomplete_type_msg(var_ptr->type,
-                                               ec_incomplete_type_not_allowed),
+        pos_error(incomplete_type_err_code(var_ptr->type),
                   &locator->source_position);
       }  /* if */
       var_ptr->type = error_type();

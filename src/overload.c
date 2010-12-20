@@ -16507,9 +16507,9 @@ Deduction failures are diagnosed as errors.
   arg = &auto_arg_operand->operand;
   arg_type = arg->type;
   if (is_managed_nullptr_type(arg_type)) {
-    /* The Microsoft C++/CLI compiler deduces the native nullptr type from
-       an auto initializer of the managed nullptr type. */
-    arg_type = nullptr_type(/*managed=*/FALSE);
+    /* The Microsoft C++/CLI compiler deduces std::nullptr_t from an auto
+       initializer of the managed nullptr type. */
+    arg_type = standard_nullptr_type();
   }  /* if */
   dps->type = NULL;
   templ_param = alloc_template_param(symbol_for(dps->auto_type));

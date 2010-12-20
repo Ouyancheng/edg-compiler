@@ -1112,8 +1112,7 @@ given position.
     complete_type_is_needed(tp);
     if (is_incomplete_type(tp) && !in_definition_of_class(tp)) {
       /* Incomplete type (including possibly void type). */
-      error_code = managed_nullptr_or_incomplete_type_msg(tp,
-                                               ec_incomplete_type_not_allowed);
+      error_code = incomplete_type_err_code(tp);
     } else if (is_any_ptr_or_ref_type(tp)) {
       tp = type_pointed_to(tp);
       if (is_void_type(tp)) {

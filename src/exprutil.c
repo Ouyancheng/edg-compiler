@@ -6154,8 +6154,7 @@ C mode.
       /* MSVC++ allows a call returning an incomplete class type as an
          argument for an ellipsis in an unevaluated context. */
     } else {
-      error_in_operand(managed_nullptr_or_incomplete_type_msg(arg_type,
-                            ec_incomplete_type_not_allowed), argument_operand);
+      error_in_operand(incomplete_type_err_code(arg_type), argument_operand);
     }  /* if */
   } else if (is_class_struct_union_type(arg_type)) {
     /* Class.  No promotion needed. */
@@ -7299,7 +7298,11 @@ error_type().  Return FALSE if there is an error.
       /* The operation type will be a nullptr type.  The Microsoft compiler
          follows the type of the second operand in determining whether the
          type will be managed or native. */
-      *operation_type = nullptr_type(is_managed_nullptr_type(operand_2->type));
+      if (is_managed_nullptr_type(operand_2->type)) {
+        *operation_type = managed_nullptr_type();
+      } else {
+        *operation_type = standard_nullptr_type();
+      }  /* if */
     } else {
       /* The operands are not compatible. */
       if (expr_error_should_be_issued()) {
@@ -13426,8 +13429,8 @@ it might produce an error).
     rvalue_node_type = node->type;
   } else if (is_managed_nullptr_type(node->type)) {
     /* The Microsoft C++/CLI compiler converts the managed nullptr type to
-       the native nullptr type in an lvalue-to-rvalue conversion. */
-    rvalue_node_type = nullptr_type(/*managed=*/FALSE);
+       std::nullptr_t in an lvalue-to-rvalue conversion. */
+    rvalue_node_type = standard_nullptr_type();
   } else {
     rvalue_node_type = rvalue_type(node->type);
   }  /* if */

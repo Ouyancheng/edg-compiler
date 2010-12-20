@@ -608,11 +608,19 @@ extern void embedded_cplusplus_noncompliance_diagnostic(
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /*
-Macro that converts an "incomplete type" diagnostic to one referring
-specifically to the managed nullptr type if appropriate.
+Macro that returns the appropriate error code to report an incorrect use of
+the incomplete type tp.  Currently it only distinguishes between the
+C++/CLI managed nullptr type and other incomplete types.
 */
-#define managed_nullptr_or_incomplete_type_msg(tp, msg)                   \
-  (is_managed_nullptr_type(tp) ? ec_managed_nullptr_not_allowed : (msg))
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define incomplete_type_err_code(tp)                                        \
+  (is_managed_nullptr_type(tp) ? ec_managed_nullptr_not_allowed             \
+                               : ec_incomplete_type_not_allowed)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+/* There's no need for a test if the type can't be the managed nullptr
+   type. */
+#define incomplete_type_err_code(tp) ec_incomplete_type_not_allowed
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void end_error(void);
 
