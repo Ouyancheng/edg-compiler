@@ -8366,14 +8366,14 @@ enable_microsoft_mode:
         command_line_error(ec_cl_cppcli_only_in_microsoft_cplusplus);
       }  /* if */
       cppcli_enabled = FALSE;
-    } else if (microsoft_version < 1400) {
-      /* microsoft_version must be at least 1400 for C++/CLI features. */
+    } else if (microsoft_version < 1600) {
+      /* microsoft_version must be at least 1600 for C++/CLI features. */
       if (option_kind_used[(int)optk_microsoft_version]) {
         /* Issue an error if microsoft_version is explicitly set to a low
            value. */
         command_line_error(ec_cl_microsoft_version_insufficient_for_cppcli);
       }  /* if */
-      microsoft_version = 1400;
+      microsoft_version = 1600;
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
