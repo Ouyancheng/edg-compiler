@@ -714,7 +714,7 @@ the specifiers and declarator that formed the new type.
           err = TRUE;
         } else if (cppcli_enabled && 
                    is_immediate_managed_class_type(temp_type)) {
-          /* A native array of handles is invalid. */
+          /* A native array of managed classes is invalid. */
           pos_error(ec_array_of_managed_class, &error_position);
           err = TRUE;
         } else
