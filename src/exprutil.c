@@ -7294,9 +7294,9 @@ error_type().  Return FALSE if there is an error.
     *operation_type = error_type();
   } else {
     /* The C++/CLI (managed) nullptr is compatible only with nullptr or
-       __nullptr; native nullptr (C++/CLI __nullptr or, in other modes,
-       nullptr, i.e., std::nullptr_t) is compatible with integral null
-       pointer constants, as well. */
+       __nullptr; std::nullptr_t (C++/CLI __nullptr or, in other modes,
+       nullptr) is compatible with integral null pointer constants, as
+       well. */
     if (is_managed_nullptr_type(operand_1->type)) {
       okay = is_nullptr_type(operand_2->type);
     } else if (is_managed_nullptr_type(operand_2->type)) {
@@ -7316,7 +7316,7 @@ error_type().  Return FALSE if there is an error.
     if (okay) {
       /* The operation type will be a nullptr type.  The Microsoft compiler
          follows the type of the second operand in determining whether the
-         type will be managed or native. */
+         type will be the managed nullptr type or std::nullptr_t. */
       if (is_managed_nullptr_type(operand_2->type)) {
         *operation_type = managed_nullptr_type();
       } else {

@@ -78,8 +78,9 @@ predicates.
 #define is_bool(tp) \
   (type_kind_is_integer(tp) && (tp)->variant.integer.bool_type)
 
-/* The nullptr type is the type of the nullptr keyword in C++ and also
-   includes both the managed and native nullptr types in C++/CLI. */
+/* The nullptr type is the type of the nullptr keyword in C++ (i.e.,
+   std::nullptr_t) and also includes the managed nullptr type in
+   C++/CLI. */
 #define is_nullptr(tp) ((tp)->kind == (a_type_kind)tk_nullptr)
 
 /* Character types are three particular integral types. */
@@ -4488,8 +4489,9 @@ check_typerefs:
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:
-        /* The managed and native nullptr types are distinguished by the
-           former being an incomplete type while the latter is complete. */
+        /* The managed nullptr type and std::nullptr_t are distinguished by
+           the former being an incomplete type while the latter is
+           complete. */
         identical = (type_1->incomplete == type_2->incomplete);
         break;
 #if CHECKING
@@ -7344,9 +7346,9 @@ See conversion_possible.
     if (is_nullptr(source_type) ||
         (source_is_constant && !dest_type->incomplete &&
          is_or_might_be_null_pointer_constant(source_constant))) {
-      /* An expression with a nullptr type can be converted to both native
-         (std::nullptr_t) and managed nullptr types; however, a 0-valued
-         integral constant expression cannot be converted to a managed
+      /* An expression with a nullptr type can be converted to both
+         std::nullptr_t and the managed nullptr type; however, a 0-valued
+         integral constant expression cannot be converted to the managed
          nullptr type (identified by being an incomplete type). */
       okay = TRUE;
       std_conv->nontrivial_conversion = !is_nullptr(source_type);
