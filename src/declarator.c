@@ -1899,7 +1899,9 @@ function declarator in a friend function declaration.
   a_param_id_ptr          last_param_id;
   a_symbol_locator        param_locator;
   a_boolean               done, any_params;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean               param_array_next = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_source_position       start_pos, param_type_pos, ellipsis_pos;
   a_routine_type_supplement_ptr
                           extra_info;
@@ -2001,10 +2003,12 @@ function declarator in a friend function declaration.
       /* Destructors are allowed no arguments. */
       pos_error(ec_too_many_params_for_destructor, &ellipsis_pos);
       any_params = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled && is_type_start(/*is_expr_context=*/FALSE)) {
       /* Presumably a C++/CLI parameter array. */
       param_array_next = TRUE;
       any_params = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* In C++ f(...) is legal, though it is not recommended since it is not
          portable (ARM 8.3).  In C it's an extension that is supported when
@@ -2599,7 +2603,9 @@ function declarator in a friend function declaration.
         } else {
           done = !loop_token(tok_comma);
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
         param_array_next = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (curr_token == tok_ellipsis) {
           /* The parameter list ends with an ellipsis.  Set the ellipsis
              flag on the parameter type list, and exit the loop. */
@@ -2610,12 +2616,16 @@ function declarator in a friend function declaration.
             pos_error(ec_bad_asm_func_ellipsis, &ellipsis_pos);
           }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
           if (cppcli_enabled && !done &&
               is_type_start(/*is_expr_context=*/FALSE)) {
             /* The ellipsis follows a comma and precedes a type specifier:
                A C++/CLI parameter array should be next. */
             param_array_next = TRUE;
-          } else {
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
+          {
             extra_info->has_ellipsis = TRUE;
             done = TRUE;
           }  /* if */
