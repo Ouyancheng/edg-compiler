@@ -2901,7 +2901,7 @@ Return a string that describes the tag kind for the indicated type (i.e.,
     check_assertion(type->kind == (a_type_kind)tk_struct);
     result = "__interface";
   } else if (type->kind != (a_type_kind)tk_enum &&
-             is_managed_class_type_entry(type)) {
+             is_immediate_managed_class_type(type)) {
     result = cli_managed_class_tag_keyword(type);
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4590,7 +4590,7 @@ al_tag_name attributes (if any).
        original kind. */
     if (il_header.source_language == sl_Cplusplus &&
         type->kind != (a_type_kind)tk_enum &&
-        !is_managed_class_type_entry(type) &&
+        !is_immediate_managed_class_type(type) &&
         /* Part of the point of the following test is to preserve
            __interface. */
         type->kind != class_type_supp(type)->orig_type_kind &&
@@ -7081,7 +7081,7 @@ this one is such a continuation.
         need_extern_C_closing_brace = TRUE;
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (is_delegate_type_entry(type)) {
+      if (is_immediate_delegate_type(type)) {
         gen_cli_delegate_definition(type);
       } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13196,7 +13196,7 @@ declarator (or NULL if it wasn't recorded).
       gen_friend_function_decl_name(scp, is_definition);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (rout->overridden_functions != NULL && decl_within_class &&
-               !is_managed_class_type_entry(parent_class)) {
+               !is_immediate_managed_class_type(parent_class)) {
       /* This is a non-C++/CLI selectively overriding virtual function
          declaration in a class definition.  Such overriders are declared
          with the qualified name of the function being overridden (its
@@ -13312,7 +13312,7 @@ managed C++/CLI class.
 
   check_assertion(rout->overridden_functions != NULL &&
                   parent_class != NULL &&
-                  is_managed_class_type_entry(parent_class));
+                  is_immediate_managed_class_type(parent_class));
   write_tok_str(" =");
   for (ep = rout->overridden_functions; ep != NULL; ep = ep->next) {
     if (ep != rout->overridden_functions) {
@@ -13933,7 +13933,7 @@ handle_as_definition:
       write_tok_str(" = 0");
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (rout->overridden_functions != NULL &&
-               is_managed_class_type_entry(parent_class)) {
+               is_immediate_managed_class_type(parent_class)) {
       /* The routine is a C++/CLI member function with a list of overridden
          functions. */
       gen_overridden_function_list(rout);
@@ -13947,7 +13947,7 @@ handle_as_definition:
     /* The definition of the routine. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (decl_within_class && rout->overridden_functions != NULL &&
-        is_managed_class_type_entry(parent_class)) {
+        is_immediate_managed_class_type(parent_class)) {
       /* The routine is a C++/CLI member function with a list of overridden
          functions and is defined inside the class, so the list should be
          generated here. */

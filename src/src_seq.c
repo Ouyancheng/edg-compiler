@@ -2353,7 +2353,7 @@ here).
             /* An embedded type definition: Remove it if it is not otherwise
                needed. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            check_assertion(!is_delegate_type_entry(tp));
+            check_assertion(!is_immediate_delegate_type(tp));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             if (!il_entry_prefix_of(tp).keep_in_il) {
               ssep = drop_tag_def_from_src_seq_list(ssep,
@@ -2472,7 +2472,7 @@ sequence entry that follows the entry or entries removed.
   if (ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
       is_tag_type(ss_entry_ptr(ssep, a_type_ptr))
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      && !is_delegate_type_entry(ss_entry_ptr(ssep, a_type_ptr))
+      && !is_immediate_delegate_type(ss_entry_ptr(ssep, a_type_ptr))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                                 ) { 
     /* It's a class or enum definition.  Remove everything from here through
@@ -2764,7 +2764,7 @@ class type.
          transformed to represent a secondary declaration now that the
          definition has been eliminated. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (is_delegate_type_entry(class_type)) {
+      if (is_immediate_delegate_type(class_type)) {
         /* Delegate class types have no source sequence entries associated
            with a "class body" (since the class definition is compiler-
            generated). */
