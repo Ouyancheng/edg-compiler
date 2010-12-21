@@ -4467,6 +4467,12 @@ typedef struct a_param_type {
 			/* TRUE if the name of this parameter is the same as
 			   that of an earlier parameter, which is allowed in
 			   some GNU modes and for variadic parameters. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field
+		is_cli_param_array;
+			/* TRUE if this parameter is a C++/CLI "parameter
+			   array" (declared with a leading ellipsis). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   uint32_t	param_num;
 			/* The ordinal position of the parameter (0, 1,

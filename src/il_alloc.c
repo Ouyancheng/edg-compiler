@@ -924,6 +924,9 @@ at file scope.
   ptp->nonnull = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   ptp->duplicate_name = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ptp->is_cli_param_array = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CENTERLINE_CHECKING
   ptp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

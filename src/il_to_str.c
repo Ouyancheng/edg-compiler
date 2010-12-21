@@ -2071,6 +2071,9 @@ in the way described by octl.
       } else {
         /* List the parameter types. */
         for (;;) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (param->is_cli_param_array) octl->output_str("... ", octl);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           form_type(param->type, octl);
           /* Default argument expressions are not put out. */
           param = param->next;

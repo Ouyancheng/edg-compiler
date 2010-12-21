@@ -973,6 +973,9 @@ If tp is a routine type, dump the function parameters, for debug purposes.
          ptp != NULL;
          ptp = ptp->next) {
       if (comma_required) fputs(", ", f_debug);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (ptp->is_cli_param_array) fputs("... ", f_debug);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (has_name(ptp->type)) {
         db_type_name(ptp->type);
       } else {
@@ -1394,6 +1397,9 @@ Dump the contents of the indicated type entry, for debug purposes.
         ptp = rtsp->param_type_list;
         while (ptp != NULL) {
           if (comma_required) fputs(", ", f_debug);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (ptp->is_cli_param_array) fputs("... ", f_debug);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           if (ptp->qualifiers != TQ_NONE &&
               remove_qualifiers_from_param_types) {
             a_type_qualifier_set  qualifiers = ptp->qualifiers;

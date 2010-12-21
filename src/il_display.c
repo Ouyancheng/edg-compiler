@@ -1290,6 +1290,11 @@ Display a_param_type entry.
   if (ptr->duplicate_name) {
     disp_boolean("duplicate_name", TRUE);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->is_cli_param_array) {
+    disp_boolean("is_cli_param_array", TRUE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->attributes != NULL) {
     disp_ptr("attributes", (char *)ptr->attributes, iek_attribute);
   }  /* if */

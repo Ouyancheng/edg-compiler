@@ -1511,6 +1511,19 @@ mode.)
   }  /* for */
 }  /* scan_microsoft_function_modifiers */
   
+static void check_param_array_type(a_param_type_ptr   ptp,
+                                   a_source_position  *diag_pos)
+/*
+Check that the given parameter description includes a variable C++/CLI
+parameter array type.  If not, issue a diagnostic at the given position.
+*/
+{
+  /* FIXME: Implement when cli::array is predeclared. */
+  if (!is_handle_type(ptp->type)) {
+    pos_error(ec_invalid_param_array_type, diag_pos);
+  }  /* if */
+}  /* check_param_array_type */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void make_param_syms_invisible(a_boolean  is_invisible)
@@ -1885,9 +1898,9 @@ function declarator in a friend function declaration.
   a_param_type_ptr        last_param_type;
   a_param_id_ptr          last_param_id;
   a_symbol_locator        param_locator;
-  a_boolean               done;
-  a_boolean               any_params;
-  a_source_position       start_pos, param_type_pos;
+  a_boolean               done, any_params;
+  a_boolean               param_array_next = FALSE;
+  a_source_position       start_pos, param_type_pos, ellipsis_pos;
   a_routine_type_supplement_ptr
                           extra_info;
   a_boolean               dangling_type_specifier = FALSE;
@@ -1980,31 +1993,38 @@ function declarator in a friend function declaration.
              (!C_mode() || allow_ellipsis_only_param_in_C_mode ||
               microsoft_C_leading_ellipsis)) {
     /* The first thing in the parameter list is an ellipsis. */
+    ellipsis_pos = pos_curr_token;
+    /* Advance past the ellipsis. */
+    (void)get_token();
+    any_params = FALSE;
     if (is_destructor) {
       /* Destructors are allowed no arguments. */
-      error(ec_too_many_params_for_destructor);
+      pos_error(ec_too_many_params_for_destructor, &ellipsis_pos);
+      any_params = FALSE;
+    } else if (cppcli_enabled && is_type_start(/*is_expr_context=*/FALSE)) {
+      /* Presumably a C++/CLI parameter array. */
+      param_array_next = TRUE;
+      any_params = TRUE;
     } else {
       /* In C++ f(...) is legal, though it is not recommended since it is not
          portable (ARM 8.3).  In C it's an extension that is supported when
          allow_ellipsis_only_param_in_C_mode is TRUE. */
       extra_info->has_ellipsis = TRUE;
+      any_params = FALSE;
 #if ASM_FUNCTION_ALLOWED
       if (func_info->is_asm_function) {
-        pos_error(ec_bad_asm_func_ellipsis, &pos_curr_token);
+        pos_error(ec_bad_asm_func_ellipsis, &ellipsis_pos);
       } else
 #endif /* ASM_FUNCTION_ALLOWED */
       /* Do not insert code here. */
       if (C_mode() && strict_ansi_mode) {
         /* Issue a diagnostic on use of a nonstandard feature. */
         pos_diagnostic(strict_ansi_error_severity,
-                       ec_nonstd_ellipsis_only_param, &pos_curr_token);
+                       ec_nonstd_ellipsis_only_param, &ellipsis_pos);
       }  /* if */
     }  /* if */
     /* An ellipsis only occurs in prototyped param lists. */
     extra_info->prototyped = TRUE;
-    /* Advance past the ellipsis. */
-    (void)get_token();
-    any_params = FALSE;
   } else {
     /* Determine whether this is an old-style list of identifiers or
        a prototyped parameter list. */
@@ -2307,6 +2327,13 @@ function declarator in a friend function declaration.
           apply_microsoft_attributes(&param_state.ms_attributes, (char*)ptp,
                                      iek_param_type, MSAT_PARAMETER);
         }  /* if */
+        if (param_array_next) {
+          ptp->is_cli_param_array = TRUE;
+          check_param_array_type(ptp, &ellipsis_pos);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          local_decl_pos_block.specifiers_range.start = ellipsis_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (!is_error_locator(param_locator)) {
           ptp->name = param_locator.symbol_header->identifier;
@@ -2572,17 +2599,26 @@ function declarator in a friend function declaration.
         } else {
           done = !loop_token(tok_comma);
         }  /* if */
+        param_array_next = FALSE;
         if (curr_token == tok_ellipsis) {
           /* The parameter list ends with an ellipsis.  Set the ellipsis
              flag on the parameter type list, and exit the loop. */
-          extra_info->has_ellipsis = TRUE;
+          ellipsis_pos = pos_curr_token;
+          (void)get_token();
 #if ASM_FUNCTION_ALLOWED
           if (func_info->is_asm_function) {
-            pos_error(ec_bad_asm_func_ellipsis, &pos_curr_token);
+            pos_error(ec_bad_asm_func_ellipsis, &ellipsis_pos);
           }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
-          (void)get_token();
-          done = TRUE;
+          if (cppcli_enabled && !done &&
+              is_type_start(/*is_expr_context=*/FALSE)) {
+            /* The ellipsis follows a comma and precedes a type specifier:
+               A C++/CLI parameter array should be next. */
+            param_array_next = TRUE;
+          } else {
+            extra_info->has_ellipsis = TRUE;
+            done = TRUE;
+          }  /* if */
         }  /* if */
         if (is_constructor) {
           /* In case this is an ill-formed copy constructor, we need to do

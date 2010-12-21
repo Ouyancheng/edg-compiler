@@ -5275,6 +5275,9 @@ default arguments should be suppressed (needed for template specializations).
         bypass_prototyped_param_src_seq_entries();
       }  /* if */
       for (;;) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (param->is_cli_param_array) write_tok_str("... ");
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (scope != NULL) {
           /* This is the definition of the function, so put out the type and
              name from the parameter variable.  Note that the type in the
