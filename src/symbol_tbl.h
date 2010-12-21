@@ -4268,9 +4268,11 @@ be used as a qualifier in a qualified name.
      (sym)->variant.field.ptr->property_or_event_descr != NULL &&	\
      (sym)->variant.field.ptr->property_or_event_descr->kind !=		\
                     (a_property_or_event_kind)pek_declspec_property) ||	\
-    ((sym)->kind == (a_symbol_kind)sk_variable &&			\
-     (sym)->variant.variable.ptr->property_or_event_descr != NULL &&	\
-     (sym)->variant.variable.ptr->property_or_event_descr->kind !=	\
+    ((sym)->kind == (a_symbol_kind)sk_static_data_member &&		\
+     (sym)->variant.static_data_member.variable->			\
+				property_or_event_descr != NULL &&	\
+     (sym)->variant.static_data_member.variable->			\
+				property_or_event_descr->kind !=	\
                         (a_property_or_event_kind)pek_declspec_property)))
 #else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_cppcli_property_or_event(sym) (FALSE)
