@@ -3852,7 +3852,7 @@ The locator represents a Microsoft property or event accessor function.
 These are named in an unusual way.  For example, for a property P in class
 C, the accessor is named as C::P::get even though P is not itself a class
 type.  If the locator names a valid accessor in class_type, return the symbol
-for the accessor; otherwise return NULL;
+for the accessor; otherwise return NULL.
 */
 {
   a_symbol_ptr	result_sym = NULL;
