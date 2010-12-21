@@ -127,15 +127,15 @@ typedef union a_property_or_event_parent {
   /* This is used for Microsoft property and event accessor functions to
      indicate the property or event with which the accessor function is
      associated. */
-  /* When property_is_static is TRUE: */
+  /* When property_or_event_is_static is TRUE: */
   a_variable_ptr
 		variable;
-			/* For static properties, this points to the property
-			   variable. */
-  /* When property_is_static is FALSE: */
+			/* For static properties and events, this points to the
+			   property or event variable. */
+  /* When property_or_event_is_static is FALSE: */
   a_field_ptr
 		field;
-			/* For events and nonstatic properties, this points
+			/* For nonstatic properties and events, this points
 			   to the property or event field. */
 } a_property_or_event_parent;
 
@@ -244,7 +244,7 @@ typedef struct a_symbol_locator {
   a_bit_field	is_property_or_event_accessor:1;
 			/* TRUE if the identifier is a Microsoft property
 			   or event accessor function. */
-  a_bit_field	property_is_static:1;
+  a_bit_field	property_or_event_is_static:1;
 			/* TRUE when is_property_or_event_accessor is TRUE
 			   and the accessor is for a static member. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -271,8 +271,9 @@ typedef struct a_symbol_locator {
 		property_or_event_parent;
 			/* If is_property_or_event_accessor is TRUE, this
 			   points to the property/event variable or field.
-			   It points to a variable if the property_is_static
-			   field is TRUE. */
+			   If the property_or_event_is_static field is TRUE
+			   it points to a variable, otherwise it points to
+			   a field. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_template_arg_ptr
 		template_arg_list;

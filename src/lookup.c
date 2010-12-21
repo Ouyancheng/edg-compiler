@@ -3868,7 +3868,7 @@ for the accessor; otherwise return NULL.
     a_property_or_event_descr_ptr	pdp;
     a_symbol_header_ptr			sym_hdr = locator->symbol_header;
     a_symbol_ptr			sym;
-    if (locator->property_is_static) {
+    if (locator->property_or_event_is_static) {
       pdp = locator->
                     property_or_event_parent.variable->property_or_event_descr;
     } else {

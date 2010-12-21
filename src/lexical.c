@@ -16245,9 +16245,9 @@ wrapup:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (qualifier_is_property_or_event) {
       locator_for_curr_id.is_property_or_event_accessor = TRUE;
-      locator_for_curr_id.property_is_static =
+      locator_for_curr_id.property_or_event_is_static =
                qualifier_property_or_event->kind == (a_symbol_kind)sk_variable;
-      if (locator_for_curr_id.property_is_static) {
+      if (locator_for_curr_id.property_or_event_is_static) {
         locator_for_curr_id.property_or_event_parent.variable =
                              qualifier_property_or_event->variant.variable.ptr;
       } else {
