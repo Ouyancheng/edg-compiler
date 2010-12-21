@@ -132,11 +132,11 @@ typedef union a_property_or_event_parent {
 		variable;
 			/* For static properties, this points to the property
 			   variable. */
-  /* When property_is_static is FALSE. */
+  /* When property_is_static is FALSE: */
   a_field_ptr
 		field;
 			/* For events and nonstatic properties, this points
-			   to the property or event variable. */
+			   to the property or event field. */
 } a_property_or_event_parent;
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
