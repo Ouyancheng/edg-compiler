@@ -14388,13 +14388,10 @@ if one is present.
          that may require tracking.  (An exception are static data members of
          managed class types, but those are not handled here since they must
          be defined inside a class.) */
-      a_type_ptr  tp = skip_typerefs(var_ptr->type);
-      if (is_immediate_class_type(tp) &&
-          cli_class_type_kind_is(tp, cctk_ref)) {
+      if (is_ref_class_type(var_ptr->type)) {
         pos_error(ec_static_storage_variable_with_ref_class_type,
                   &locator->source_position);
-      } else if (tp->kind == (a_type_kind)tk_pointer &&
-                 tp->variant.pointer.is_handle) {
+      } else if (is_handle_or_tracking_ref_type(var_ptr->type)) {
         pos_error(ec_static_storage_variable_with_handle_or_tracking_ref_type,
                   &locator->source_position);
       }  /* if */

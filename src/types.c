@@ -896,6 +896,16 @@ Return TRUE if the given type is a C++/CLI tracking reference type.
 }  /* is_tracking_reference_type */
 
 
+a_boolean is_handle_or_tracking_ref_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++/CLI handle or tracking reference type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_handle_ptr(tp) || is_tracking_reference(tp);
+}  /* is_handle_or_tracking_ref_type */
+
+
 a_boolean is_interior_ptr_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a C++/CLI interior_ptr type.
