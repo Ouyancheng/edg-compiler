@@ -5554,14 +5554,15 @@ information).
   a_base_class_ptr  proto_bcp;
   a_type_ptr        proto_type;
 
-  check_assertion(bcp->direct && proto_num != 0);
+  check_assertion(bcp->direct);
   if (class_state->is_nonreal_instantiation) {
     if (is_or_contains_template_param(bcp->type)) {
       bcp->ignore_during_dependent_lookup = TRUE;
       symbol_supplement_for_class(class_state->class_type)
                                           ->any_dependent_base_classes = TRUE;
     }  /* if */
-  } else {
+  } else if (class_state->is_template_instantiation) {
+    check_assertion(proto_num != 0);
     check_assertion_str2(class_state->corresp_prototype_tag_sym != NULL,
                          "mark_base_dependent_if_needed:",
                          "no corresp_prototype_tag_sym");
@@ -6210,10 +6211,8 @@ or struct definition.  The syntax is
               if (attributes != NULL) {
                 attach_attributes(attributes, (char*)bcp, iek_base_class);
               }  /* if */
-              if (class_state->is_template_instantiation) {
-                mark_base_dependent_if_needed(bcp, class_state,
-                                              proto_base_number);
-              }  /* if */
+              mark_base_dependent_if_needed(bcp, class_state,
+                                            proto_base_number);
               goto skip_base_class;
             } else {
               /* At least one is non-virtual, so there is an ambiguity.  Mark
@@ -6294,10 +6293,8 @@ or struct definition.  The syntax is
         new_direct_bcp->ambiguous = ambiguous;
         new_direct_bcp->direct_base_number = direct_base_number;
         if (is_virtual) new_direct_bcp->is_virtual = TRUE;
-        if (class_state->is_template_instantiation) {
-          mark_base_dependent_if_needed(new_direct_bcp, class_state,
-                                        proto_base_number);
-        }  /* if */
+        mark_base_dependent_if_needed(new_direct_bcp, class_state,
+                                      proto_base_number);
         if (bcp_cssp->any_nonreal_base_classes ||
             (base_class_type->variant.class_struct_union.is_nonreal_class &&
              !(base_class_type->
