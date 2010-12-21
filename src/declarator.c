@@ -712,6 +712,11 @@ the specifiers and declarator that formed the new type.
           /* A native array of handles is invalid. */
           pos_error(ec_array_of_handle, &error_position);
           err = TRUE;
+        } else if (cppcli_enabled && 
+                   is_immediate_managed_class_type(temp_type)) {
+          /* A native array of handles is invalid. */
+          pos_error(ec_array_of_managed_class, &error_position);
+          err = TRUE;
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
@@ -877,10 +882,9 @@ the specifiers and declarator that formed the new type.
               error(ec_pointer_to_reference);
               new_type_ptr = error_type();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            } else if (cppcli_enabled && is_cli_managed_type(new_type_ptr) &&
-                       !is_handle_type(new_type_ptr)) {
-              /* Attempting to form a type "pointer to managed type" is only
-                 valid if the managed type is a handle. */
+            } else if (cppcli_enabled && is_managed_class_type(new_type_ptr)) {
+              /* Attempting to form a type "pointer to managed class type" is
+                 invalid. */
               pos_error(ec_pointer_to_managed_type, &pos_curr_token);
               err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -928,9 +932,9 @@ the specifiers and declarator that formed the new type.
               err = TRUE;
             }  /* if */
           } else {
-            if (is_cli_managed_type(temp_type) && !is_handle_type(temp_type)) {
-              /* Attempting to form a type "reference to managed type" is only
-                 valid if the managed type is a handle. */
+            if (is_managed_class_type(temp_type)) {
+              /* Attempting to form a type "reference to managed class type"
+                 is invalid. */
               error(ec_reference_to_managed_type);
               err = TRUE;
             }  /* if */
@@ -3853,7 +3857,8 @@ position.
   } else if (is_void_type(tp)) {
     /* A handle-to-void type is invalid. */
     err_code = ec_handle_to_void;
-  } else if (is_immediate_class_type(tp) && !is_managed_class_type_entry(tp)) {
+  } else if (is_immediate_class_type(tp) &&
+             cli_class_type_kind_is(tp, cctk_standard)) {
     /* A handle to a non-managed class type is invalid. */
     err_code = ec_handle_to_standard_class_type;
   } else if (is_immediate_enum_type(tp) && !integer_type_is_scoped_enum(tp)) {
@@ -4137,10 +4142,9 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
               error(ec_pointer_to_reference);
               err = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            } else if (cppcli_enabled && is_cli_managed_type(temp_type) &&
-                       !is_handle_type(temp_type)) {
-              /* Attempting to form a type "pointer to managed type" is only
-                 valid if the managed type is a handle. */
+            } else if (cppcli_enabled && is_managed_class_type(temp_type)) {
+              /* Attempting to form a type "pointer to managed class type" is
+                 invalid. */
               error(ec_pointer_to_managed_type);
               err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4179,10 +4183,9 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
             sym_error(ec_bad_use_of_member_function_typedef, sym);
             err = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          } else if (cppcli_enabled && is_cli_managed_type(temp_type) &&
-                     !is_handle_type(temp_type)) {
-            /* Attempting to form a type "reference to managed type" is only
-               valid if the managed type is a handle. */
+          } else if (cppcli_enabled && is_managed_class_type(temp_type)) {
+            /* Attempting to form a type "reference to managed class type" is
+               invalid. */
             error(ec_reference_to_managed_type);
             err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4456,7 +4459,7 @@ if microsoft bugs mode and C++/CLI modes are disabled).
 
   if (microsoft_bugs || cppcli_enabled) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && !is_cli_managed_type(parent_type)) {
+    if (cppcli_enabled && !is_managed_class_type(parent_type)) {
       result = FALSE;
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5078,7 +5081,7 @@ declared entity is known to not be a function.
         (locator->specific_symbol == NULL &&
          !(input_flags & DI_NONSTATIC_MEMBER) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-         !(cppcli_enabled && is_cli_managed_type(*p_member_parent_type)) &&
+         !(cppcli_enabled && is_managed_class_type(*p_member_parent_type)) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
          !is_in_class_specialization)) {
       pos_error(ec_bad_conversion_function_decl,

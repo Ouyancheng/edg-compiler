@@ -6942,7 +6942,7 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
       a_boolean   is_static_ctor = FALSE;
       if (class_type != NULL) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (cppcli_enabled && is_managed_class_type_entry(class_type) &&
+        if (cppcli_enabled && is_immediate_managed_class_type(class_type) &&
             dps->declared_storage_class == (a_storage_class)sc_static) {
           is_static_ctor = TRUE;
         }  /* if */

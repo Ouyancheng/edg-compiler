@@ -2003,7 +2003,7 @@ ec_visibility_specifier_requires_definition;;"a top-level visibility specifier r
 ec_trivial_reference_property;;"a trivial property cannot have a reference type"
 ec_trivial_const_or_volatile_property;;"a trivial property cannot have a const or volatile type"
 ec_incompatible_enum_kinds;;"%nd was previously declared as a different kind of enumeration type"
-ec_lambda_captures_managed_type;;"a variable captured by a lambda cannot have a managed type"
+ec_lambda_captures_managed_class_type;;"a variable captured by a lambda cannot have a managed class type"
 ec_covariant_override_in_managed_class;;"virtual function overriding with a covariant return type is not allowed in a managed class type"
 ec_array_of_handle;;"array of handles is not allowed"
 ec_handle_to_array;;"handle to array is not allowed"
@@ -2014,7 +2014,7 @@ ec_tracking_reference_to_function;;"tracking reference to function is not allowe
 ec_handle_field_in_standard_class;;"a field of a non-managed class type cannot be a handle"
 ec_field_cannot_be_tracking_reference;;"a field cannot be a tracking reference"
 ec_invalid_ref_tracking_ref_combination;;"a tracking reference cannot be combined with an ordinary reference in this way"
-ec_static_storage_variable_with_managed_type;;"a variable with static storage duration cannot have a managed type"
+ec_static_storage_variable_with_ref_class_type;;"a variable with static storage duration cannot have a ref class type"
 ec_unnamed_cli_managed_class_type;;"a managed C++/CLI class type cannot be unnamed"
 ec_local_cli_managed_class_type;;"a managed C++/CLI class type cannot be local"
 ec_conflicting_cli_class_type_kinds;;"%nd was previously declared as a different kind of class"
@@ -2032,8 +2032,8 @@ ec_static_constructor_member_template;;"a static constructor cannot be a member 
 ec_compound_lvalue_as_asm_operand;;"a compound lvalue is not allowed as an asm output operand"
 ec_property_requires_managed_class;;"properties can only be members of managed types"
 ec_qualifier_not_allowed_on_managed_member_function;;"a type qualifier is not allowed on a member function of a managed class"
-ec_pointer_to_managed_type;;"an ordinary pointer to a managed type is not allowed"
-ec_reference_to_managed_type;;"an ordinary reference to a managed type is not allowed"
+ec_pointer_to_managed_type;;"an ordinary pointer to a managed class type is not allowed"
+ec_reference_to_managed_type;;"an ordinary reference to a managed class type is not allowed"
 ec_override_name_must_be_a_base_class_member_function;;"override specifier does not name a base class member function"
 ec_override_name_nonvirtual;;"override specifier designates a nonvirtual member function %nd"
 ec_multiple_overrides;;"member function overrides %nd1 which is already overridden by %nd2"
@@ -2068,6 +2068,9 @@ ec_property_attribute_in_managed_class;;"\"property\" attribute not allowed in m
 ec_pure_virtual_definition;;"a pure specifier (\"= 0\") followed by a definition is nonstandard"
 ec_managed_nullptr_not_allowed;;"the managed nullptr type cannot be used here"
 ec_addr_of_ref_class;;"the \"&\" operator cannot be used to take the address of an object with a ref class type"
+ec_array_of_managed_class;;"array of managed class type is not allowed"
+ec_static_storage_variable_with_handle_or_tracking_ref_type;;"a variable with static storage duration cannot have a handle or tracking reference type"
+ec_lambda_captures_handle_or_tracking_ref;;"a variable captured by a lambda cannot be a handle or tracking reference"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

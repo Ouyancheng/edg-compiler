@@ -10317,7 +10317,7 @@ variable does not.
        and therefore does not have a constant address. */
     const_addr = FALSE;
   } else if (cppcli_enabled && variable->source_corresp.is_class_member &&
-             is_managed_class_type_entry(parent_class_of(variable))) {
+             is_immediate_managed_class_type(parent_class_of(variable))) {
     /* Static data members of managed classes are allocated on the
        managed heap and therefore do not have constant addresses. */
     const_addr = FALSE;

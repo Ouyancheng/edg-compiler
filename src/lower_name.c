@@ -9406,7 +9406,7 @@ mangle_template:
        the overridden function (unless it's in a managed class). */
     if (routine->overridden_functions != NULL &&
         (is_class_or_namespace_member(routine) &&
-         !is_managed_class_type_entry(parent_class_of(routine)))) {
+         !is_immediate_managed_class_type(parent_class_of(routine)))) {
       a_routine_ptr  overridden_function =
                                      selectively_overridden_function(routine);
       if (overridden_function != NULL) {
@@ -9431,7 +9431,7 @@ mangle_template:
      the overridden function (unless it's in a managed class). */
   if (routine->overridden_functions != NULL &&
       (is_class_or_namespace_member(routine) &&
-       !is_managed_class_type_entry(parent_class_of(routine)))) {
+       !is_immediate_managed_class_type(parent_class_of(routine)))) {
     a_routine_ptr  overridden_function =
                                      selectively_overridden_function(routine);
     if (overridden_function != NULL) {

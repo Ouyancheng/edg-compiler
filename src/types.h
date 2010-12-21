@@ -117,12 +117,13 @@ extern a_boolean is_interior_ptr_type(a_type_ptr tp);
 extern a_boolean is_pin_ptr_type(a_type_ptr tp);
 extern a_boolean is_ref_class_type(a_type_ptr tp);
 extern a_boolean is_standard_class_type(a_type_ptr tp);
-extern a_boolean is_cli_managed_type(a_type_ptr tp);
+extern a_boolean is_managed_class_type(a_type_ptr tp);
 #define cli_class_type_kind_is(tp, cctk)                                     \
   (class_type_supp(tp)->cli_class_type_kind == (a_cli_class_type_kind)(cctk))
-#define is_managed_class_type_entry(tp)                                      \
-  (cppcli_enabled && !cli_class_type_kind_is((tp), cctk_standard))
-#define is_delegate_type_entry(tp)                                           \
+#define is_immediate_managed_class_type(tp)                                  \
+  (is_immediate_class_type(tp) &&                                            \
+   !cli_class_type_kind_is((tp), cctk_standard))
+#define is_immediate_delegate_type(tp)                                       \
   (is_immediate_class_type(tp) &&                                            \
    (tp)->variant.class_struct_union.is_delegate_class)
 extern a_boolean is_delegate_type(a_type_ptr tp);

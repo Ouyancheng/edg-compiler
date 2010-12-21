@@ -4053,7 +4053,7 @@ return_types_are_override_compatible.
          later. */
       rout->covariant_return_virtual_override = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled && is_cli_managed_type(class_type)) {
+      if (cppcli_enabled && is_managed_class_type(class_type)) {
         pos_error(ec_covariant_override_in_managed_class, source_pos);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7566,7 +7566,7 @@ was used).
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (microsoft_mode &&
                  new_sym->kind == (a_symbol_kind)sk_member_function &&
-                 !is_managed_class_type_entry(class_type) &&
+                 !is_immediate_managed_class_type(class_type) &&
                  !is_selectively_overridden_by(overridden_function, new_sym)) {
         /* Although a declaration with a matching type was found, it overrides
            a different base member.  Treat the new declaration as a distinct
@@ -9460,7 +9460,7 @@ implicitly declared member functions.
       /* In non-managed class types, a qualified member function declarator
          indicates selective overriding in Microsoft mode, but in managed
          classes the construct is not allowed. */
-      if (!is_managed_class_type_entry(class_type)) {
+      if (!is_immediate_managed_class_type(class_type)) {
         overridden_function = find_explicitly_overridden_member(
                                            locator, class_state, member_type);
       } else {
@@ -12375,7 +12375,7 @@ declarations.
                 &decl_state->declarator_pos);
       field_type = error_type();
     } else if (cppcli_enabled && is_handle_type(field_type) &&
-               !is_cli_managed_type(class_type)) {
+               !is_managed_class_type(class_type)) {
       pos_error(ec_handle_field_in_standard_class,
                 &decl_state->declarator_pos);
       field_type = error_type();
@@ -15853,7 +15853,7 @@ definition and record it in the IL (as a special-purpose class type).
   check_assertion(curr_token_is_identifier_string("delegate"));
   if (scope_stack_top().kind == (a_scope_kind)sck_class_struct_union) {
     parent_type = scope_stack_top().assoc_type;
-    if (!is_managed_class_type_entry(parent_type)) {
+    if (!is_immediate_managed_class_type(parent_type)) {
       pos_error(ec_delegate_requires_managed_class, &pos_curr_token);
     }  /* if */
   }  /* if */
@@ -16120,7 +16120,7 @@ being parsed), *decl_info describes the current member declaration, and
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   pdp->property_or_event_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (!is_managed_class_type_entry(class_type)) {
+  if (!is_immediate_managed_class_type(class_type)) {
     pos_error(is_property ? ec_property_requires_managed_class
                           : ec_event_requires_managed_class,
               &pos_curr_token);

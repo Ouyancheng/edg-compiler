@@ -9234,7 +9234,7 @@ type, but for C++/CLI classes it is a handle type.
   a_type_ptr  result = make_qualified_type(class_type, qualifiers);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_managed_class_type_entry(class_type)) {
+  if (is_immediate_managed_class_type(class_type)) {
     /* In C++/CLI, managed class types use a "this" handle instead of a this
        pointer. */
     result = make_handle_type(result);
@@ -15699,7 +15699,7 @@ object or an rvalue that is a pointer or handle to an object.
           { a_variable_ptr var = node->variant.variable;
             if (var->source_corresp.is_class_member) {
               a_type_ptr parent_class = parent_class_of(var); 
-              if (is_managed_class_type_entry(parent_class)) {
+              if (is_immediate_managed_class_type(parent_class)) {
                 tblock->result = TRUE;
                 determined_result = TRUE;
               }  /* if */

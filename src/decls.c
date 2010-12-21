@@ -14376,20 +14376,30 @@ if one is present.
        for certain variable declarations. */
     complete_type_is_needed(state->type);
   }  /* if */
-  if (!C_mode() && var_ptr != NULL && is_abstract_class_type(state->type)) {
-    /* Abstract class objects are prohibited (ARM 10.3). */
-    abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
-                              state->type, &locator->source_position);
+  if (!C_mode() && var_ptr != NULL) {
+    if (is_abstract_class_type(state->type)) {
+      /* Abstract class objects are prohibited. */
+      abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
+                                state->type, &locator->source_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && 
-             has_static_storage_duration(var_ptr->storage_class) &&
-             is_cli_managed_type(var_ptr->type)) {
-    /* Variables with static storage duration cannot have a managed type.
-       (An exception are static data members of managed class types, but those
-       are not handled here since they must be defined inside a class.) */
-    pos_error(ec_static_storage_variable_with_managed_type,
-              &locator->source_position);
+    } else if (cppcli_enabled && 
+               has_static_storage_duration(var_ptr->storage_class)) {
+      /* Variables with static storage duration cannot have a C++/CLI type
+         that may require tracking.  (An exception are static data members of
+         managed class types, but those are not handled here since they must
+         be defined inside a class.) */
+      a_type_ptr  tp = skip_typerefs(var_ptr->type);
+      if (is_immediate_class_type(tp) &&
+          cli_class_type_kind_is(tp, cctk_ref)) {
+        pos_error(ec_static_storage_variable_with_ref_class_type,
+                  &locator->source_position);
+      } else if (tp->kind == (a_type_kind)tk_pointer &&
+                 tp->variant.pointer.is_handle) {
+        pos_error(ec_static_storage_variable_with_handle_or_tracking_ref_type,
+                  &locator->source_position);
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
   }  /* if */
   /* Set the error position to the start of the initializer (that is, to
      the "=" if there is one) or to where the initializer should be in

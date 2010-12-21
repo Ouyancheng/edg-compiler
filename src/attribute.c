@@ -5969,7 +5969,7 @@ stream.
   if (entity_kind != iek_field) {
     report_bad_attribute_target(es_warning, ap);
   } else if (cppcli_enabled &&
-             is_cli_managed_type(parent_class_of((a_field*)entity))) {
+             is_managed_class_type(parent_class_of((a_field*)entity))) {
     /* __declspec(property(...)) is not allowed on members of managed class
        types. */
     pos_error(ec_property_attribute_in_managed_class, &ap->position);

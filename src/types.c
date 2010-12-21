@@ -927,9 +927,7 @@ Return TRUE if the indicated type is a C++/CLI ref class or ref struct.
 
   if (cppcli_enabled) {
     tp = skip_typerefs(tp);
-    if (is_immediate_class_type(tp) &&
-        class_type_supp(tp)->cli_class_type_kind ==
-                                             (a_cli_class_type_kind)cctk_ref) {
+    if (is_immediate_class_type(tp) && cli_class_type_kind_is(tp, cctk_ref)) {
       is_ref_class = TRUE;
     }  /* if */
   }  /* if */
@@ -946,35 +944,22 @@ type that's not a C++/CLI class.
   a_boolean is_standard_class = FALSE;
 
   tp = skip_typerefs(tp);
-  if (is_immediate_class_type(tp) && !is_managed_class_type_entry(tp)) {
+  if (is_immediate_class_type(tp) &&
+      cli_class_type_kind_is(tp, cctk_standard)) {
     is_standard_class = TRUE;
   }  /* if */
   return is_standard_class;
 }  /* is_standard_class_type */
 
 
-a_boolean is_cli_managed_type(a_type_ptr tp)
+a_boolean is_managed_class_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is a C++/CLI managed type.
+Return TRUE if the given type is a C++/CLI managed class type.
 */
 {
-  a_boolean  result;
-
   tp = skip_typerefs(tp);
-  switch (tp->kind) {
-    case tk_pointer:
-      result = is_handle_ptr(tp) || is_tracking_reference(tp);
-      break;
-    case tk_class:
-    case tk_struct:
-      result = is_managed_class_type_entry(tp);
-      break;
-    default:
-      result = FALSE;
-      break;
-  }  /* switch */
-  return result;
-}  /* is_cli_managed_type */
+  return is_immediate_managed_class_type(tp);
+}  /* is_managed_class_type */
 
 
 a_boolean is_delegate_type(a_type_ptr tp)
@@ -983,7 +968,7 @@ Return TRUE if the given type is a C++/CLI delegate type.
 */
 {
   tp = skip_typerefs(tp);
-  return is_delegate_type_entry(tp);
+  return is_immediate_delegate_type(tp);
 }  /* is_delegate_type */
 
 
@@ -994,7 +979,7 @@ Given a delegate class type, return the associated function type.
 {
   a_routine_ptr  rp;
 
-  check_assertion(is_delegate_type_entry(delegate_type));
+  check_assertion(is_immediate_delegate_type(delegate_type));
   rp = class_type_supp(delegate_type)->assoc_scope->routines;
 #if CHECKING
   { char  *name = unmangled_name_of(&rp->source_corresp);
