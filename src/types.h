@@ -117,6 +117,7 @@ extern a_boolean is_handle_or_tracking_ref_type(a_type_ptr tp);
 extern a_boolean is_interior_ptr_type(a_type_ptr tp);
 extern a_boolean is_pin_ptr_type(a_type_ptr tp);
 extern a_boolean is_ref_class_type(a_type_ptr tp);
+extern a_boolean is_value_class_type(a_type_ptr tp);
 extern a_boolean is_standard_class_type(a_type_ptr tp);
 extern a_boolean is_managed_class_type(a_type_ptr tp);
 #define cli_class_type_kind_is(tp, cctk)                                     \

@@ -946,6 +946,24 @@ Return TRUE if the indicated type is a C++/CLI ref class or ref struct.
 }  /* is_ref_class_type */
 
 
+a_boolean is_value_class_type(a_type_ptr tp)
+/*
+Return TRUE if the indicated type is a C++/CLI value class or value struct.
+*/
+{
+  a_boolean is_value_class = FALSE;
+
+  if (cppcli_enabled) {
+    tp = skip_typerefs(tp);
+    if (is_immediate_class_type(tp) &&
+        cli_class_type_kind_is(tp, cctk_value)) {
+      is_value_class = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_value_class;
+}  /* is_value_class_type */
+
+
 a_boolean is_standard_class_type(a_type_ptr tp)
 /*
 Return TRUE if the indicated type is a native class type, i.e., a class
@@ -3501,7 +3519,8 @@ qualification of a member function type.
 {
   a_routine_type_supplement_ptr  rtsp =
                       skip_typerefs(routine_type)->variant.routine.extra_info;
-  a_type_ptr                     result = rtsp->this_class;
+  a_type_ptr                     class_type = rtsp->this_class;
+  a_type_ptr                     result = class_type;
 
   /* The standard function cv-qualifiers (recorded in rtsp->qualifiers) apply
      not to the "this" pointer, but to the type pointed to by the "this"
@@ -3512,7 +3531,19 @@ qualification of a member function type.
   if (rtsp->qualifiers != TQ_NONE) {
     result = make_qualified_type(result, rtsp->qualifiers);
   }  /* if */
-  result = make_pointer_type(result);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_ref_class_type(class_type)) {
+    /* "this" in a C++/CLI ref class is a handle (ECMA 22.3.3). */
+    result = make_handle_type(result);
+  } else if (is_value_class_type(class_type)) {
+    /* "this" in a C++/CLI value class is an interior_ptr (ECMA 22.3.3). */
+    result = make_interior_ptr_type(result);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    result = make_pointer_type(result);
+  }  /* if */
   if (rtsp->this_qualifiers != TQ_NONE) {
     result = make_qualified_type(result, rtsp->this_qualifiers);
   }  /* if */

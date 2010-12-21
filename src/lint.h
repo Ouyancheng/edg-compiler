@@ -646,8 +646,10 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_win32_api_error)*/
 #endif /* !(EDG_WIN32 && MICROSOFT_EXTENSIONS_ALLOWED) */
 /* FIXME */
-/*lint -esym(759,record_pack_expansion_ellipsis)*/
-/*lint -esym(765,record_pack_expansion_ellipsis)*/
+/*lint -esym(759,is_value_class_type)*/
+/*lint -esym(765,is_value_class_type)*/
+/*lint -esym(759,impl_handle_conversion)*/
+/*lint -esym(765,impl_handle_conversion)*/
 
 #endif /* ifndef LINT_H */
 
