@@ -10069,9 +10069,9 @@ void init_whitespace_keywords(void)
 Populate the table of canonical spellings for whitespace keywords.
 */
 {
-  sizeof_t     spelling_buffer_size = 0;
-  char         *ptr;
-  a_token_kind tok;
+  sizeof_t spelling_buffer_size = 0;
+  char     *ptr;
+  int      tok;
 
   /* Allocate the table of whitespace keyword spellings. */
   whitespace_keywords = (a_whitespace_keyword_ptr)alloc_fe(
@@ -10079,20 +10079,22 @@ Populate the table of canonical spellings for whitespace keywords.
                  ((int)tok_last_whitespace_token -
                   (int)tok_first_whitespace_token + 1));
   /* Determine out how large a buffer is needed. */
-  for (tok = tok_first_whitespace_token; tok <= tok_last_whitespace_token;
+  for (tok = (int)tok_first_whitespace_token;
+       tok <= (int)tok_last_whitespace_token;
        ++tok) {
     spelling_buffer_size += strlen(token_names[tok]) + LE_ESCAPE_LEN;
   }  /* for */
   /* Allocate the buffer */
   ptr = alloc_fe(spelling_buffer_size);
   /* Copy the spellings and populate the whitespace_keyword array. */
-  for (tok = tok_first_whitespace_token; tok <= tok_last_whitespace_token;
+  for (tok = (int)tok_first_whitespace_token;
+       tok <= (int)tok_last_whitespace_token;
        ++tok) {
-    sizeof_t len = strlen(token_names[(int)tok]);
+    sizeof_t len = strlen(token_names[tok]);
     (void)memcpy(ptr, token_names[tok], size_t_arg(len));
-    whitespace_keywords[(int)tok - (int)tok_first_whitespace_token].text = ptr;
+    whitespace_keywords[tok - (int)tok_first_whitespace_token].text = ptr;
     ptr += len;
-    whitespace_keywords[(int)tok - (int)tok_first_whitespace_token].
+    whitespace_keywords[tok - (int)tok_first_whitespace_token].
                                                         end_of_insertion = ptr;
     *ptr++ = LE_ESCAPE;
     *ptr++ = LE_END_OF_INSERTION;
