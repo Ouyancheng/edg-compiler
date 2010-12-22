@@ -9550,7 +9550,7 @@ is set to tok_error.
          For example, ref class __identifier("Foo<int>"). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
-    diagnostic(es_discretionary_error, ec_exp_cpp_keyword);
+    diagnostic(es_discretionary_error, ec_exp_cpp_keyword); /*lint !e725*/
     clear_locator(&locator, &pos_curr_token);
     cp = get_constant_for_ms_string_operand();
     if (cp != NULL) {

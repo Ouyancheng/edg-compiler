@@ -15734,7 +15734,7 @@ by *buffer.
   } /* while */
   /* Get the injected end of source token. */
   check_assertion(curr_token == tok_end_of_source);
-  get_token();
+  (void)get_token();
   /* Restore the flags. */
   is_scanning_generated_code_from_metadata 
                               = saved_is_scanning_generated_code_from_metadata;
