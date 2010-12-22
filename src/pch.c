@@ -2154,7 +2154,10 @@ is created when the primary source file is reopened between the two fixups.
       an_assembly_index     assembly_index;
       a_cpp_cli_feature_set features = edg_supported_features;
 
-      if (cmfp->as_friend) features = features | cpp_cli_as_friend_assembly;
+      if (cmfp->as_friend) {
+        features = features |
+                   (a_cpp_cli_feature_set)cpp_cli_as_friend_assembly;
+      }  /* if */
       /* Re-register the assemblies that we have imported.  It is important 
          that we import the assemblies in the same order so that they will
          maintain the same assembly index. */

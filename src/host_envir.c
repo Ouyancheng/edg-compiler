@@ -4931,7 +4931,7 @@ void import_class_definition(an_assembly_index assembly_index,
 
 
 /*ARGSUSED*/
-void ms_metadata_trans_unit_init(char *trans_unit_file_name) {}
+void ms_metadata_trans_unit_init(char *file_name) {}
 
 
 void ms_metadata_trans_unit_wrapup(void) {}
@@ -5082,7 +5082,7 @@ This is done before command line processing.
 #endif /* CPPCLI_ENABLING_POSSIBLE */
 #else /* !EDG_WIN32 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  edg_supported_features = cpp_cli_none;
+  edg_supported_features = (int)cpp_cli_none;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* EDG_WIN32 */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
