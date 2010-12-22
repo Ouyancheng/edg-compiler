@@ -14,7 +14,7 @@ lexical.c -- Source input and lexical scanning routines.
 These routines and data structures handle reading of source lines
 and parsing of them into tokens.
 
-*/
+F*/
 
 /* Header files common to all files. */
 #include "fe_common.h"
@@ -17781,7 +17781,7 @@ instantiation.  class_type is the class to be defined.
                     (a_decl_pos_block_ptr)NULL);
   process_deferred_class_fixups_and_instantiations(
                                                   /*for_instantiation=*/TRUE);
-  get_token();
+  (void)get_token();
   expand_macros = save_expand_macros;
   pop_template_instantiation_scope();
   free_template_decl_info(tdip);
