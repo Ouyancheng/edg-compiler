@@ -7216,8 +7216,9 @@ See conversion_possible.
   } else if (is_bool(dest_type)) {
     /* Conversion to the bool type.  This is possible only in C++.
        Conversion is allowed from arithmetic, unscoped enumeration, pointer,
-       and pointer to member.   C++/CLI allows conversion from a handle
-       as well. */
+       and pointer to member.   C++/CLI does not allow conversion from a handle
+       to bool (though it is allowed, effectively, in a boolean controlling
+       expression). */
     if (is_bool(source_type)) {
       /* bool --> bool is no conversion. */
       okay = TRUE;
@@ -7225,9 +7226,6 @@ See conversion_possible.
     } else if (is_arithmetic_or_unscoped_enum(source_type)) {
       okay = TRUE;
     } else if (is_pointer(source_type) || is_ptr_to_member(source_type) ||
-#if MICROSOFT_EXTENSIONS_ALLOWED
-               is_handle_ptr(source_type) ||
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                is_nullptr(source_type)) {
       okay = TRUE;
       /* This conversion is worse than others in overload resolution.

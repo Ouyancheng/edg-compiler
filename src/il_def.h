@@ -12354,8 +12354,9 @@ enum an_expr_operator_kind_tag {
 			   dynamic_cast<T &>(x), the node type is T, not
 			   T&. */
   eok_bool_cast,	/* C++ and C99 cast to bool.  Operand can be
-			   arithmetic, enum, pointer, or pointer-to-member,
-			   and result is the equivalent of "operand != 0". */
+			   arithmetic, enum, pointer, pointer-to-member, or
+			   C++/CLI handle, and result is the equivalent of
+			   "operand != 0". */
   eok_array_to_pointer,
 			/* Array to pointer decay: converts an array lvalue or
 			   rvalue to a pointer to its first element. */

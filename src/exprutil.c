@@ -15320,7 +15320,13 @@ types to get a boolean expression (see process_boolean_controlling_expression).
                                    /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                    /*suppress_extensions=*/FALSE,
                                    ec_expr_not_bool,
-                                   &std_conv)) {
+                                   &std_conv)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          /* C++/CLI handles are not actually convertible to bool, but
+             they can be tested in boolean controlling expressions. */
+          || (cppcli_enabled && is_handle_type(operand->type))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                              ) {
         okay = TRUE;
         /* Convert the expression to bool. */
         cast_operand(bool_type(), operand, /*is_implicit_cast=*/TRUE);
