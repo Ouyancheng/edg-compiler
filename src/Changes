@@ -1,5 +1,31 @@
 Version 4.3
 
+12/22/10 [EDGcpfe/11206]
+C++-generating back end, GNU compatibility: template keyword before template-id
+in prototype instantiation
+
+In certain circumstances, g++ incorrectly reports an error when the template
+keyword is omitted before a non-dependent template-id.  (Standard C++ only
+requires the template keyword preceding a dependent template-id.)  In
+configurations in which the C++-generating back end generates the definition
+of templates from their prototype instantiations and
+gcc_is_generated_code_target is TRUE, the C++-generating back end now works
+around this problem by adding the template keyword preceding function names
+that are generated with explicit template arguments.  For example:
+
+  struct A {
+    template<int N> int f();
+  };
+  template<int> struct B {
+    A* ap;
+    void g(B* bp) {
+      bp->ap->f<1>();  // template keyword not required but triggers g++
+                       // bug if omitted; now generated as
+                       //    bp->ap->template f<1>()
+    }
+  };
+
+
 12/19/10 [EDGcpfe/11225]
 Explicit instantiation of class cannot be followed by "extern template"
 
