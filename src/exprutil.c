@@ -7359,11 +7359,13 @@ a_boolean check_compatibility_of_nullptr_operands(
 /*
 operand_1 and operand_2 are the operands of some operation, at least one of
 which has a nullptr type and the other has neither pointer nor
-pointer-to-member type.  (Cases involving nullptr with pointer or
-pointer-to-member types are handled by
-check_compatibility_of_pointer_operands and
-check_ptr_to_member_operands_for_compatibility, respectively.)  Check to
-see that the operands are compatible.  If the operands are compatible, set
+pointer-to-member type nor C++/CLI handle type.  (Cases involving nullptr
+with those types are handled by check_compatibility_of_pointer_operands,
+check_ptr_to_member_operands_for_compatibility, and
+check_compatibility_of_handle_operands, respectively.)  Check to
+see that the operands are compatible, i.e., check for compatibility 
+between pairs of nullptr operands or between a nullptr operand and
+a null pointer constant of some kind.  If the operands are compatible, set
 *operation_type to the appropriate nullptr type; otherwise, set it to
 error_type().  Return FALSE if there is an error.
 */
@@ -7374,6 +7376,10 @@ error_type().  Return FALSE if there is an error.
                   !is_pointer_type(operand_2->type) &&
                   !is_ptr_to_member_type(operand_1->type) &&
                   !is_ptr_to_member_type(operand_2->type));
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  check_assertion(!is_handle_type(operand_1->type) &&
+                  !is_handle_type(operand_2->type));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_error_type(operand_1->type) || is_error_type(operand_2->type)) {
     /* An error type is compatible, but the result type will also be an
        error type. */
