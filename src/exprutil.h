@@ -1285,6 +1285,14 @@ extern a_boolean check_compatibility_of_pointer_operands(
                    a_boolean         mixed_object_and_incomplete_standard_in_C,
                    a_type_ptr        *operation_type);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+a_boolean check_compatibility_of_handle_operands(
+                                          an_operand        *operand_1,
+                                          an_operand        *operand_2,
+                                          a_source_position *operator_position,
+                                          a_type_ptr        *operation_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern a_boolean check_compatibility_of_nullptr_operands(
                                           an_operand        *operand_1,
                                           an_operand        *operand_2,

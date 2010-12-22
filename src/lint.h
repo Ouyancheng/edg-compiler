@@ -648,8 +648,6 @@ extern int fileno(FILE *);
 /* FIXME */
 /*lint -esym(759,is_value_class_type)*/
 /*lint -esym(765,is_value_class_type)*/
-/*lint -esym(759,impl_handle_conversion)*/
-/*lint -esym(765,impl_handle_conversion)*/
 
 #endif /* ifndef LINT_H */
 

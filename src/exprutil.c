@@ -7161,7 +7161,7 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
         is_error_type(type_pointed_to(operand_1_type))) ||
        (operand_2_is_pointer &&
         is_error_type(type_pointed_to(operand_2_type))))) {
-    /* One or both of the operands is a pointer to void, so don't do any
+    /* One or both of the operands is a pointer to error, so don't do any
        further checking. */
     *operation_type = make_pointer_type(error_type());
     goto done;
@@ -7263,6 +7263,93 @@ done:
   return okay;
 }  /* check_compatibility_of_pointer_operands */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean check_compatibility_of_handle_operands(
+                                          an_operand        *operand_1,
+                                          an_operand        *operand_2,
+                                          a_source_position *operator_position,
+                                          a_type_ptr        *operation_type)
+/*
+operand_1 and operand_2 are the operands of a C++/CLI handle
+operation.  Check to see that the operands are compatible or can be
+made compatible.  One or the other of the operands, or both, must have
+a handle type.  Return the operation type in *operation_type.  (The
+operands are not cast to the operation type; the caller must do that.)
+operator_position gives the operator position (for errors).  Return
+FALSE if there is an error.
+*/
+{
+  a_boolean        okay = FALSE;
+  a_type_ptr       operand_1_type = operand_1->type;
+  a_type_ptr       operand_2_type = operand_2->type;
+  a_type_ptr       local_operation_type;
+  a_boolean        operand_1_is_handle = is_handle_type(operand_1_type);
+  a_boolean        operand_2_is_handle = is_handle_type(operand_2_type);
+  a_std_conv_descr std_conv;
+
+  if (operand_1_is_handle) {
+    /* See if the second operand can be converted to the type of the
+       first operand. */
+    if (impl_handle_conversion(operand_2_type,
+                               operand_1_type,
+                               /*allow_qualifier_or_eh_mismatch=*/TRUE,
+                               &std_conv)) {
+      local_operation_type = operand_1_type;
+      okay = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!okay && operand_2_is_handle) {
+    /* See if the first operand can be converted to the type of the
+       second operand. */
+    if (impl_handle_conversion(operand_1_type,
+                               operand_2_type,
+                               /*allow_qualifier_or_eh_mismatch=*/TRUE,
+                               &std_conv)) {
+      local_operation_type = operand_2_type;
+      okay = TRUE;
+    }  /* if */
+  }  /* if */
+  if (okay &&
+      ((operand_1_is_handle &&
+        is_error_type(type_pointed_to(operand_1_type))) ||
+       (operand_2_is_handle &&
+        is_error_type(type_pointed_to(operand_2_type))))) {
+    /* One or both of the operands is a handle to error, so don't do any
+       further checking. */
+    *operation_type = make_handle_type(error_type());
+  } else if (okay && operand_1_is_handle && operand_2_is_handle &&
+             !same_entities(operand_1_type, operand_2_type)) {
+    /* Make sure the operation type has all the cv-qualifiers present on
+       each of the operands. */
+    a_type_ptr type_pointed_to_1 = type_pointed_to(operand_1_type);
+    a_type_ptr type_pointed_to_2 = type_pointed_to(operand_2_type);
+    a_type_ptr operation_type_pointed_to;
+    if (same_entities(local_operation_type, operand_1_type)) {
+      operation_type_pointed_to =
+                      type_plus_qualifiers_from_second_type(type_pointed_to_1,
+                                                            type_pointed_to_2);
+    } else {
+      check_assertion(same_entities(local_operation_type, operand_2_type));
+      operation_type_pointed_to =
+                      type_plus_qualifiers_from_second_type(type_pointed_to_2,
+                                                            type_pointed_to_1);
+    }  /* if */
+    local_operation_type = make_handle_type(operation_type_pointed_to);
+  }  /* if */
+  if (!okay) {
+    /* The operands are not compatible. */
+    if (expr_error_should_be_issued()) {
+      pos_ty2_error(ec_incompatible_operands, operator_position,
+                    operand_1_type, operand_2_type);
+    }  /* if */
+    local_operation_type = error_type();
+  }  /* if */
+  *operation_type = local_operation_type;
+  return okay;
+}  /* check_compatibility_of_handle_operands */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean check_compatibility_of_nullptr_operands(
                                           an_operand        *operand_1,

@@ -17476,6 +17476,9 @@ that case.
   a_type_ptr            result_type;
   an_expr_operator_kind op;
   a_boolean             operand_1_is_pointer, operand_1_is_ptr_to_member;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean             operand_1_is_handle = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean             operand_1_is_nullptr;
   a_boolean             processed = FALSE;
   a_boolean             funny_unsigned_comparison = FALSE, second_is_constant;
@@ -17530,6 +17533,10 @@ that case.
     operand_1_is_nullptr = FALSE;
     if (is_arithmetic_or_enum_type(operand_1->type)) {
       /* Okay. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled && is_handle_type(operand_1->type)) {
+      operand_1_is_handle = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_nullptr_type(operand_1->type)) {
       operand_1_is_nullptr = TRUE;
     } else if (is_ptr_to_member_type(operand_1->type)) {
@@ -17568,6 +17575,13 @@ that case.
         (void)check_ptr_to_member_operands_for_compatibility(
                            operand_1, &operand_2, &operator_position,
                            &operation_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (operand_1_is_handle || is_handle_type(operand_2.type)) {
+        /* At least one of the operands has a C++/CLI handle type. */
+        (void)check_compatibility_of_handle_operands(
+                           operand_1, &operand_2, &operator_position,
+                           &operation_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (operand_1_is_nullptr || is_nullptr_type(operand_2.type)) {
         /* At least one of the operands has a nullptr type. */
         (void)check_compatibility_of_nullptr_operands(operand_1, &operand_2,
@@ -18378,12 +18392,17 @@ that case.
   a_boolean             err = FALSE, processed = FALSE;
   a_type_ptr            result_type, ptr_result_type, operation_type;
   a_boolean             operand_2_is_pointer, operand_3_is_pointer;
-  a_boolean             operand_2_is_nullptr;
-  a_boolean             operand_3_is_nullptr;
+  a_boolean             operand_2_is_nullptr = FALSE;
+  a_boolean             operand_3_is_nullptr = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean             operand_2_is_handle = FALSE;
+  a_boolean             operand_3_is_handle = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_type_ptr            type_pointed_to_2, type_pointed_to_3;
   a_type_ptr            unqual_type_pointed_to_2, unqual_type_pointed_to_3;
   a_type_ptr            operation_type_underlying_class;
-  a_boolean             operand_2_is_ptr_to_member, operand_3_is_ptr_to_member;
+  a_boolean             operand_2_is_ptr_to_member = FALSE;
+  a_boolean             operand_3_is_ptr_to_member = FALSE;
   a_boolean             saved_evaluated = curr_expr_is_evaluated();
   a_boolean             expr2_evaluated, expr3_evaluated;
   a_boolean             types_are_the_same = FALSE;
@@ -18825,10 +18844,12 @@ that case.
         operand_3_is_ptr_to_member = is_ptr_to_member_type(operand_3.type);
         operand_2_is_nullptr = is_nullptr_type(operand_2.type);
         operand_3_is_nullptr = is_nullptr_type(operand_3.type);
-      } else {
-        operand_2_is_ptr_to_member = operand_3_is_ptr_to_member = FALSE;
-        operand_2_is_nullptr = FALSE;
-        operand_3_is_nullptr = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cppcli_enabled) {
+          operand_2_is_handle = is_handle_type(operand_2.type);
+          operand_3_is_handle = is_handle_type(operand_3.type);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_bugs &&
@@ -18981,6 +19002,13 @@ that case.
           /* The operands are incompatible. */
           err = TRUE;
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (operand_2_is_handle || operand_3_is_handle) {
+        /* At least one of the operands has a C++/CLI handle type. */
+        err = !check_compatibility_of_handle_operands(&operand_2, &operand_3,
+                                                      &colon_position,
+                                                      &result_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (operand_2_is_nullptr || operand_3_is_nullptr) {
         /* At least one of the operands has a nullptr type.  See if the
            operands are compatible. */
