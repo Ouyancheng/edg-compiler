@@ -7174,7 +7174,8 @@ C++.
       if (!node_operator_is(node, eok_cast)) {
         a_type_ptr dest_type = node->type;
         a_type_ptr src_type = node->variant.operation.operands->type;
-        if (is_pointer_type(dest_type) && is_pointer_type(src_type)) {
+        if (is_pointer_or_handle_type(dest_type) &&
+            is_pointer_or_handle_type(src_type)) {
           /* The qualifiers are under the pointer type. */
           dest_type = type_pointed_to(dest_type);
           src_type = type_pointed_to(src_type);
@@ -7631,7 +7632,7 @@ indicated by opstr.
     }  /* if */
   }  /* if */
   if (operand_1_type != NULL) {
-    if (is_pointer_type(operand_1_type)) {
+    if (is_pointer_or_handle_type(operand_1_type)) {
       operand_1_type = type_pointed_to(operand_1_type);
     }  /* if */
     if (operand_1_type != NULL && is_template_param_type(operand_1_type)) {
@@ -8323,7 +8324,7 @@ function reference.
 #endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
     /* Remove unnecessary type-qualifier and base-class casts. */
     object_expr = optimized_expr_for_selection(object_expr, &naming_class);
-    if (is_pointer_type(object_expr->type)) {
+    if (is_pointer_or_handle_type(object_expr->type)) {
       selection_class = type_pointed_to(object_expr->type);
     } else {
       selection_class = object_expr->type;

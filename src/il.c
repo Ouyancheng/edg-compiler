@@ -21654,7 +21654,7 @@ is ignored, except for C++ class rvalues.
   a_boolean result = FALSE;
   a_boolean drop_qualifiers_under_ptr = targ_type_is_rvalue;
 
-  if (is_ptr_or_ref_type(ptr_type)) {
+  if (is_any_ptr_or_ref_type(ptr_type)) {
     a_type_ptr pointed_to_type = type_pointed_to(ptr_type);
     if (!il_header.il_has_C_semantics &&
         is_class_struct_union_type(pointed_to_type)) {
