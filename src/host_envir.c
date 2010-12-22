@@ -4910,23 +4910,27 @@ Stub versions of metadata reading routines to aid in development on platforms
 on which the metadata API is not available.
 */
 
+/*ARGSUSED*/
 an_assembly_index import_metadata_file(
                           char                  *assembly_full_name,
                           a_cpp_cli_feature_set supported_features,
                           a_boolean             *is_duplicate) { return 0; }
 
 
+/*ARGSUSED*/
 void import_all_types(an_assembly_index assembly_index,
                       char              *buffer,
                       size_t            *buffer_size) {}
 
 
+/*ARGSUSED*/
 void import_class_definition(an_assembly_index assembly_index,
                              a_cpp_cli_token   metadata_type_def_token,
                              char              *buffer,
                              size_t            *buffer_size) {}
 
 
+/*ARGSUSED*/
 void ms_metadata_trans_unit_init(char *trans_unit_file_name) {}
 
 

@@ -51,9 +51,9 @@ to know whether or not the C files are being compiled as C or C++ code.
 */
 #ifndef FRONT_END_C_FILES_COMPILED_AS_CPP
 #ifdef __cplusplus
-#define FRONT_END_C_FILES_COMPILED_AS_CPP TRUE
+#define FRONT_END_C_FILES_COMPILED_AS_CPP 1
 #else /* ifndef __cplusplus */
-#define FRONT_END_C_FILES_COMPILED_AS_CPP FALSE
+#define FRONT_END_C_FILES_COMPILED_AS_CPP 0
 #endif /* ifdef __cplusplus */
 #endif /* ifndef FRONT_END_C_FILES_COMPILED_AS_CPP */
 
