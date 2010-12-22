@@ -1950,8 +1950,16 @@ be called for the potential lazy loading of class definitions. See
 get_definition_of_class for more information.
 */
 #ifndef GET_DEFINITION_OF_CLASS_NEEDED
+#if CPPCLI_ENABLING_POSSIBLE
+#define GET_DEFINITION_OF_CLASS_NEEDED TRUE
+#else /* !CPPCLI_ENABLING_POSSIBLE */
 #define GET_DEFINITION_OF_CLASS_NEEDED FALSE
+#endif /* CPPCLI_ENABLING_POSSIBLE */
 #endif /* ifndef GET_DEFINITION_OF_CLASS_NEEDED */
+
+#if CPPCLI_ENABLING_POSSIBLE && !GET_DEFINITION_OF_CLASS_NEEDED 
+ #error -- CPPCLI_ENABLING_POSSIBLE requires GET_DEFINITION_OF_CLASS_NEEDED 
+#endif /* CPPCLI_ENABLING_POSSIBLE && !GET_DEFINITION_OF_CLASS_NEEDED */
 
 /*
 The front end is not intended to be built in UNICODE mode on Windows.
@@ -2132,9 +2140,12 @@ EXTERN a_boolean
 			   of a byte order mark. */
 #if EDG_WIN32
 extern wchar_t *translate_filename_to_wchar(char *filename);
+extern wchar_t *conv_utf8_to_wchar(char *buffer);
+
 EXTERN a_text_buffer_ptr
-		wchar_filename_buffer;
-			/* Text buffer used by translate_filename_to_wchar. */
+		wchar_translation_buffer;
+			/* Text buffer used by translate_filename_to_wchar
+			   and conv_utf8_to_wchar. */
 #endif /* EDG_WIN32 */
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
@@ -2603,6 +2614,18 @@ EXTERN struct a_preinclude_file
                 *preusing_file_list,
                 *preusing_file_tail;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+#if CPPCLI_ENABLING_POSSIBLE
+#define METADATA_IMPORT_BUFFER_SIZE 0x30000
+			/* The initial size of the buffer used to import
+			   metadata.  This should be large enough to
+			   handle mscorlib. */
+
+#define METADATA_IMPORT_BUFFER_ALLOCATION_INCREMENT 0x1000
+			/* The amount by which the import buffer should be
+			   increased in size if it is too small. */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
+
 
 /*
 Object file name, usually derived from the primary source file name.

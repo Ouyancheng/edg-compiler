@@ -603,6 +603,7 @@ a pointer to it.
   cmfp->full_name       = NULL;
   cmfp->next            = NULL;
   cmfp->position        = null_source_position;
+  cmfp->assembly_index  = 0;
   cmfp->as_friend       = FALSE;
   cmfp->referenced_by_preusing     = FALSE;
   cmfp->referenced_by_system_using = FALSE;
@@ -1173,6 +1174,8 @@ a pointer to it.
 #endif /* DEBUG */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   itsp->assembly_visibility = (an_assembly_visibility)av_none;
+  itsp->assembly_index = 0;
+  itsp->metadata_type_def_token = 0;
   itsp->uuid_string = NULL;
 #if DO_IL_LOWERING
   itsp->uuid_variable = NULL;
@@ -1479,6 +1482,10 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->lambda_parent.routine             = NULL;
 #endif /* NEED_NAME_MANGLING */
   ctsp->hash_value = 0;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ctsp->assembly_index                    = 0;
+  ctsp->metadata_type_def_token           = 0;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* clear_class_type_supplement */
 
 

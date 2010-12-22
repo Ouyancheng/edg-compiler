@@ -70,6 +70,10 @@ This version for UNIX, MS-DOS, VAX/VMS, and Windows NT.
 #include <metahost.h>
 #endif /* EDG_WIN32 */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#include "ms_metadata.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 /*
 Argument strings for fopen.
 */
@@ -4679,7 +4683,7 @@ so the result must be used before the buffer is reused.
 
 #if CPPCLI_ENABLING_POSSIBLE
 
-static char *conv_wide_to_utf8(wchar_t *wide_str)
+char *conv_wide_to_utf8(wchar_t *wide_str)
 /*
 Convert a wide character string to a UTF-8 encoded string and return it
 in a temporary buffer.
@@ -4898,7 +4902,42 @@ final search path will include, in this order:
 }  /* init_assembly_search_path */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+#if CPPCLI_ENABLING_POSSIBLE && !EDG_WIN32
+
+/*
+Stub versions of metadata reading routines to aid in development on platforms
+on which the metadata API is not available.
+*/
+
+an_assembly_index import_metadata_file(
+                          char                  *assembly_full_name,
+                          a_cpp_cli_feature_set supported_features,
+                          a_boolean             *is_duplicate) { return 0; }
+
+
+void import_all_types(an_assembly_index assembly_index,
+                      char              *buffer,
+                      size_t            *buffer_size) {}
+
+
+void import_class_definition(an_assembly_index assembly_index,
+                             a_cpp_cli_token   metadata_type_def_token,
+                             char              *buffer,
+                             size_t            *buffer_size) {}
+
+
+void ms_metadata_trans_unit_init(char *trans_unit_file_name) {}
+
+
+void ms_metadata_trans_unit_wrapup(void) {}
+
+
+void ms_metadata_cleanup(void) {}
+
+#endif /* CPPCLI_ENABLING_POSSIBLE && !EDG_WIN32 */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
 
 void host_envir_one_time_init(void)
 /*
@@ -5030,13 +5069,17 @@ This is done before command line processing.
   mbc_buffer = NULL;
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
-  wchar_filename_buffer = NULL;
+  wchar_translation_buffer = NULL;
 #endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
 #if !STANDALONE_UTILITY_PROGRAM
 #if EDG_WIN32
 #if CPPCLI_ENABLING_POSSIBLE
   conv_utf8_buffer = NULL;
 #endif /* CPPCLI_ENABLING_POSSIBLE */
+#else /* !EDG_WIN32 */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  edg_supported_features = cpp_cli_none;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* EDG_WIN32 */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if __MICROSOFT_OS__

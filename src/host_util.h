@@ -87,14 +87,12 @@ called again.
 
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED 
 #if defined(MEM_MANAGE_H)  /* Will be FALSE when building the prelinker. */
-wchar_t *translate_filename_to_wchar(char *filename)
+static wchar_t *conv_utf8_to_wchar_full(char      *char_buffer, 
+                                        a_boolean *utf8_character_seen)
 /*
-Copy the supplied filename to a buffer as wchar_t characters, translating
+Copy the supplied char_buffer to a buffer as wchar_t characters, translating
 any UTF-8 multibyte characters to UTF-16, and return the address of the
-buffer.  If the filename contains only ASCII characters, the returned
-address will be NULL, indicating that the filename needs no translation and
-can be used directly.  The buffer is reused by each successive call, so the
-caller should copy the contents as needed.
+buffer.  utf8_character_seen is set to TRUE if any utf8 character is detected. 
 */
 {
   unsigned char   *p;
@@ -106,9 +104,9 @@ caller should copy the contents as needed.
   unsigned short  utf16_chars[2];
   int             i;
   static wchar_t  *buffer;
-  a_boolean       utf8_character_seen = FALSE;
   static sizeof_t buffer_allocation_size = 512 * sizeof(wchar_t);
 
+  if (utf8_character_seen) *utf8_character_seen = FALSE;
 /* Macro to add one wide character to the buffer, expanding the buffer as
    needed. */
 #if !defined(MEM_MANAGE_H) || STANDALONE_UTILITY_PROGRAM
@@ -128,10 +126,10 @@ caller should copy the contents as needed.
   buffer[utf16_len-1] = wchar;
 #else /* !(!defined(MEM_MANAGE_H) || STANDALONE_UTILITY_PROGRAM) */
 #define add_to_wchar_buffer(wchar)                                  \
-  ensure_text_buffer_space(wchar_filename_buffer,                   \
+  ensure_text_buffer_space(wchar_translation_buffer,                \
                            (++utf16_len) * sizeof(wchar_t));        \
   /* Update the buffer pointer to reflect possible reallocation. */ \
-  buffer = (wchar_t *)wchar_filename_buffer->buffer;                \
+  buffer = (wchar_t *)wchar_translation_buffer->buffer;             \
   buffer[utf16_len-1] = wchar;
 #endif /* !defined(MEM_MANAGE_H) || STANDALONE_UTILITY_PROGRAM */
 
@@ -144,22 +142,22 @@ caller should copy the contents as needed.
     }  /* if */
   }  /* if */
 #else /* !(!defined(MEM_MANAGE_H) || STANDALONE_UTILITY_PROGRAM) */
-  if (wchar_filename_buffer == NULL) {
-    wchar_filename_buffer = alloc_text_buffer(buffer_allocation_size);
-    buffer = (wchar_t *)wchar_filename_buffer->buffer;
+  if (wchar_translation_buffer == NULL) {
+    wchar_translation_buffer = alloc_text_buffer(buffer_allocation_size);
+    buffer = (wchar_t *)wchar_translation_buffer->buffer;
   }  /* if */
 #endif /* !defined(MEM_MANAGE_H) || STANDALONE_UTILITY_PROGRAM */
   utf16_len = 0;
-  for (p = (unsigned char *)filename; *p != 0; p += num_utf8_bytes) {
+  for (p = (unsigned char *)char_buffer; *p != 0; p += num_utf8_bytes) {
     if (*p < 0x80) {
       /* This is an ASCII character, so we can just copy it directly. */
       add_to_wchar_buffer(*p);
       num_utf8_bytes = 1;
     } else {
       /* Convert a UTF-8 character to a single Unicode code point, noting
-         how many bytes from filename were occupied by the UTF-8
+         how many bytes from char_buffer were occupied by the UTF-8
          representation. */
-      utf8_character_seen = TRUE;
+      if (utf8_character_seen) *utf8_character_seen = TRUE;
       num_utf8_bytes = mbc_to_wide_char((char *)p, &unicode_char, &err,
                                         /*is_native=*/FALSE);
       /* Convert that to either one UTF-16 value or a pair of surrogates. */
@@ -173,9 +171,39 @@ caller should copy the contents as needed.
   }  /* for */
   /* Add the terminating null character. */
   add_to_wchar_buffer(0);
-  return utf8_character_seen ? buffer : (wchar_t *)NULL;
+  return buffer;
 #undef add_to_wchar_buffer
+}  /* conv_utf8_to_wchar_full */
+
+
+wchar_t *translate_filename_to_wchar(char *filename)
+/*
+Copy the supplied filename to a buffer as wchar_t characters, translating
+any UTF-8 multibyte characters to UTF-16, and return the address of the
+buffer.  If the filename contains only ASCII characters, the returned
+address will be NULL, indicating that the filename needs no translation and
+can be used directly.  The buffer is reused by each successive call, so the
+caller should copy the contents as needed.
+*/
+{
+  wchar_t   *buffer; 
+  a_boolean utf8_character_seen;
+
+  buffer = conv_utf8_to_wchar_full(filename, &utf8_character_seen);
+  return utf8_character_seen ? buffer : (wchar_t *)NULL;
 }  /* translate_filename_to_wchar */
+
+
+wchar_t *conv_utf8_to_wchar(char *buffer)
+/* 
+Copy the supplied buffer containing UTF-8 to a buffer as wchar_t
+characters, translating any UTF-8 multibyte characters to UTF-16, and
+return the address of the buffer. The buffer is reused by each
+successive call, so the caller should copy the contents as needed.
+*/
+{
+  return conv_utf8_to_wchar_full(buffer, /*utf8_character_seen=*/NULL);
+}  /* conv_utf8_to_wchar */
 #endif /* defined(MEM_MANAGE_H) */
 #endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
 

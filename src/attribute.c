@@ -304,6 +304,7 @@ static an_attr_descr known_attr_table[] = {
   { "thread", "", "mx", ak_thread },
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   { "uuid", "(sn)", "m+", ak_uuid },
+  { "assembly_info", "(ci,ci)", "mx", ak_assembly_info },
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if SUN_EXTENSIONS_ALLOWED && GNU_EXTENSIONS_ALLOWED
@@ -520,6 +521,7 @@ static an_attr_application_fn apply_selectany_attr;
 static an_attr_application_fn apply_thread_attr;
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 static an_attr_application_fn apply_uuid_attr;
+static an_attr_application_fn apply_assembly_info_attr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if INCLUDE_EDG_TEST_ATTRIBUTES
@@ -629,6 +631,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_thread, "v|Wt|Wp", apply_thread_attr },
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   { ak_uuid, "c|e|Wr|Wv|Wt|Wp|Wd", apply_uuid_attr },
+  { ak_assembly_info, "c|e", apply_assembly_info_attr },
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if INCLUDE_EDG_TEST_ATTRIBUTES
@@ -6195,6 +6198,53 @@ return that entity).
   }  /* if */
   return entity;
 }  /* apply_uuid_attr */
+
+
+static char *apply_assembly_info_attr(an_attribute_ptr  ap,
+                                      char              *entity,
+                                      an_il_entry_kind  entity_kind)
+/*
+Apply the Microsoft  __declspec(assembly_info(<index>, <def-token>)) attribute
+to the given entity (and return that entity).  <index> is the assembly index
+of the assembly in which type is defined.  <def-token> is the def-token of
+the type.
+*/
+{
+  a_constant_ptr    arg, arg2;
+  a_type_ptr        tp = (a_type_ptr)entity;
+  a_boolean         ovflo;
+  an_assembly_index assembly_index;
+  a_cpp_cli_token   metadata_type_def_token;
+
+  /* Get the assembly index and the typedef token. */
+  check_assertion(entity_kind == iek_type);
+  check_assertion(ap->arguments != NULL && 
+                  ap->arguments->kind == (an_attribute_arg_kind)aak_constant &&
+                  ap->arguments->next != NULL &&
+                  ap->arguments->next->kind == 
+                                          (an_attribute_arg_kind)aak_constant);
+  arg = ap->arguments->variant.constant;
+  check_assertion(arg->kind == (a_constant_repr_kind)ck_integer);
+  arg2 = ap->arguments->next->variant.constant;
+  check_assertion(arg2->kind == (a_constant_repr_kind)ck_integer);
+  assembly_index = 
+            (an_assembly_index)unsigned_value_of_integer_constant(arg, &ovflo);
+  check_assertion(!ovflo);
+  metadata_type_def_token = 
+             (a_cpp_cli_token)unsigned_value_of_integer_constant(arg2, &ovflo);
+  check_assertion(!ovflo);
+  /* Apply the values to the various il entries. */
+  if (is_class_or_struct(tp) && !cli_class_type_kind_is(tp, cctk_standard)) {
+    class_type_supp(tp)->assembly_index = assembly_index;
+    class_type_supp(tp)->metadata_type_def_token = metadata_type_def_token;
+  } else if (is_immediate_enum_type(tp)) {
+    integer_type_supp(tp)->assembly_index = assembly_index;
+    integer_type_supp(tp)->metadata_type_def_token = metadata_type_def_token;
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return entity;
+}  /* apply_assembly_info_attr */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_EDG_TEST_ATTRIBUTES

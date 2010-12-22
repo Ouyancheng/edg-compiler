@@ -44,6 +44,34 @@ mode, these expand to nothing.
 #endif /* __cplusplus */
 
 /*
+In some environments, some files linked with the front end are C++ files.
+This occurs, for example, with the ms_metadata.cpp file that is used
+in configurations that support C++/CLI.  In such cases, the C++ files need
+to know whether or not the C files are being compiled as C or C++ code.
+*/
+#ifndef FRONT_END_C_FILES_COMPILED_AS_CPP
+#ifdef __cplusplus
+#define FRONT_END_C_FILES_COMPILED_AS_CPP TRUE
+#else /* ifndef __cplusplus */
+#define FRONT_END_C_FILES_COMPILED_AS_CPP FALSE
+#endif /* ifdef __cplusplus */
+#endif /* ifndef FRONT_END_C_FILES_COMPILED_AS_CPP */
+
+#if !defined(__cplusplus) && FRONT_END_C_FILES_COMPILED_AS_CPP
+ #error -- FRONT_END_C_FILES_COMPILED_AS_CPP is TRUE but file is compiled as C.
+#endif /* !defined(__cplusplus) && FRONT_END_C_FILES_COMPILED_AS_CPP */
+
+#if FRONT_END_C_FILES_COMPILED_AS_CPP
+#define EXTERN_C_IN_CPP_FILE extern
+#define EXTERN_C_BLOCK_IN_CPP_FILE /* nothing */
+#define END_EXTERN_C_BLOCK_IN_CPP_FILE /* nothing */
+#else /* !FRONT_END_C_FILES_COMPILED_AS_CPP */
+#define EXTERN_C_IN_CPP_FILE extern "C"
+#define EXTERN_C_BLOCK_IN_CPP_FILE extern "C" {
+#define END_EXTERN_C_BLOCK_IN_CPP_FILE }
+#endif /* FRONT_END_C_FILES_COMPILED_AS_CPP */
+
+/*
 Determine if this is a WIN32 (e.g., Windows NT or Windows 95) system.
 */
 #ifndef EDG_WIN32

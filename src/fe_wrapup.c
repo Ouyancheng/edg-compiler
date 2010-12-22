@@ -51,6 +51,9 @@ fe_wrapup.c - End of front end processing.
 #if BACK_END_IS_CP_GEN_BE
 #include "cp_gen_be.h"
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#include "ms_metadata.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 #if DEBUG
@@ -141,6 +144,11 @@ are instantiated.
        translation unit. */
     set_master_instance_information();
   }  /* if */
+#if CPPCLI_ENABLING_POSSIBLE
+  if (cppcli_enabled) {
+    ms_metadata_trans_unit_wrapup();
+  }  /* if */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
 
   db_exit();
 }  /* translation_unit_wrapup */
@@ -804,6 +812,9 @@ Do any processing required at the end of execution of the front end,
 and after the back end (if any) is executed.
 */
 {
+#if CPPCLI_ENABLING_POSSIBLE
+  if (cppcli_enabled) ms_metadata_cleanup();
+#endif /* CPPCLI_ENABLING_POSSIBLE */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   /* Close the IL output file, be it a temporary or actual file. */
   close_il_output_file();
@@ -844,6 +855,9 @@ memory used by the compilation.
   pch_cleanup();
   lexical_cleanup();
   mem_manage_wrapup();
+#if CPPCLI_ENABLING_POSSIBLE
+  if (cppcli_enabled) ms_metadata_cleanup();
+#endif /* CPPCLI_ENABLING_POSSIBLE */
 }  /* fe_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */

@@ -28,6 +28,8 @@ This is the version for Windows 95/98/NT/etc.
 #define DEBUG 0
 #endif /* ifdef DEMO_VERSION */
 
+#define FRONT_END_C_FILES_COMPILED_AS_CPP 0
+
 /* Configuration definitions determined by dettarg.c: */
 #define TARG_LITTLE_ENDIAN TRUE
 #define TARG_CHAR_BIT 8
@@ -83,7 +85,7 @@ Use fixed address for mmap to work around issues with address space
 layout randomization (ASLR) on Windows Vista.
 */
 #define USE_FIXED_ADDRESS_FOR_MMAP 1
-#define FIXED_ADDRESS_FOR_MMAP 0X2000000
+#define FIXED_ADDRESS_FOR_MMAP 0x21000000
 
 #if 0
 /*

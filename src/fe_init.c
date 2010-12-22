@@ -34,6 +34,9 @@ in .h files.
 #include "basic_hdrs.h"
 #include "fe_common.h"
 #include "fe_init.h"
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#include "ms_metadata.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if STANDALONE_UTILITY_PROGRAM
 
@@ -1290,6 +1293,11 @@ when it is a secondary file.
   lower_c99_trans_unit_init();
 #endif /* DO_C99_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
+#if CPPCLI_ENABLING_POSSIBLE
+  if (cppcli_enabled) {
+    ms_metadata_trans_unit_init(trans_unit_file_name);
+  }  /* if */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
 #if RECORD_MACROS_IN_IL
   il_header.macros = NULL;
 #endif /* RECORD_MACROS_IN_IL */

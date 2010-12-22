@@ -40,6 +40,9 @@ and protected by the ifndef there.
 #ifndef MEM_TABLES_H
 #include "mem_tables.h"
 #endif /* ifndef MEM_TABLES_H */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#include "ms_metadata.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Specify the version stamp of the IL being generated.
@@ -284,6 +287,10 @@ typedef struct a_cli_metadata_file {
   a_source_position
 		position;
 			/* The position of the start of the directive. */
+  an_assembly_index
+		assembly_index;
+			/* The index of the assembly given by the metadata
+			   reader. */
   a_bit_field   as_friend:1;
 			/* TRUE if the #using that named this file included
 			   the as_friend keyword, making all types from
@@ -2124,6 +2131,7 @@ typedef enum an_attribute_kind_tag {
   ak_thread,		/* "thread" (ms). */
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   ak_uuid,		/* "uuid" (ms). */
+  ak_assembly_info,     /* "assembly_info" (ms). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if INCLUDE_EDG_TEST_ATTRIBUTES
@@ -6452,6 +6460,18 @@ typedef struct a_class_type_supplement {
 		hash_value;
 			/* A hash value computed for this class type, or
 			   zero if a hash has not yet been computed. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_assembly_index
+		assembly_index;
+			/* This index of the assembly in which this construct
+			   was defined, or zero if the construct is not from
+			   an assembly. */
+  a_cpp_cli_token
+		metadata_type_def_token;
+			/* If this construct was defined in assembly, the
+			   typedef-token for this construct within the
+			   assembly in which it was defined. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_class_type_supplement;
 
 enum a_template_param_type_kind_tag {
@@ -6587,6 +6607,16 @@ typedef struct an_integer_type_supplement {
   a_bit_field   assembly_visibility:2;
 			/* Visibility of this type at the assembly level.
 			   (Enumeration types in C++/CLI mode only.) */
+  an_assembly_index
+		assembly_index;
+			/* This index of the assembly in which this construct
+			   was defined, or zero if the construct is not from
+			   an assembly. */
+  a_cpp_cli_token
+		metadata_type_def_token;
+			/* If this construct was defined in assembly, the
+			   typedef-token for this construct within the
+			   assembly in which it was defined. */
   char
 		*uuid_string;
 			/* Pointer to a character string representing the

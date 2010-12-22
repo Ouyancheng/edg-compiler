@@ -36,6 +36,9 @@ pch.c -- Precompiled header processing.
 #endif /* DO_IL_LOWERING */
 #include "lower_name.h"
 #endif /* MANGLE_ALL_NAMES */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#include "ms_metadata.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 #define PCH_ID_STRING_LENGTH 128
@@ -628,6 +631,9 @@ precedes the header stop position.
       }  /* if */
       if (nesting_level == 0 && 
           (ppd_kind == ppd_include ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+           ppd_kind == ppd_using ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
            ppd_kind == ppd_define ||
            ppd_kind == ppd_pragma ||
            ppd_kind == ppd_endif)) {
@@ -1022,6 +1028,33 @@ child files encountered.
   db_exit();
 }  /* write_list_of_file_timestamps */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void write_list_of_metadata_file_timestamps(
+                                                  a_cli_metadata_file_ptr cmfp)
+/*
+Go through a list of cli metadata file entries and write the file name and
+timestamp to the PCH output file.  
+*/
+{
+  db_enter(5, "write_list_of_file_timestamps");
+  for (; cmfp != NULL; cmfp = cmfp->next) {
+    time_t	mod_time;
+
+    (void)get_file_modification_time(cmfp->full_name, &mod_time);
+    pch_write_string(cmfp->full_name);
+    pch_write_value(mod_time);
+#if DEBUG
+    if (debug_level >= 5) {
+      fprintf(f_debug, "Writing file timestamp for %s, time is %ld\n",
+              cmfp->full_name, (long)mod_time);
+    }  /* if */
+#endif /* DEBUG */
+  }  /* for */
+  db_exit();
+}  /* write_list_of_metadata_file_timestamps */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void write_include_file_timestamps(void)
 /*
@@ -1031,6 +1064,11 @@ changed.
 */
 {
   write_list_of_file_timestamps(il_header.primary_source_file);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled) {
+    write_list_of_metadata_file_timestamps(il_header.cli_metadata_files);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Write a NULL string to mark the end of the list. */
   pch_write_string((char *)NULL);
 }  /* write_include_file_timestamps */
@@ -2100,6 +2138,33 @@ is created when the primary source file is reopened between the two fixups.
   /* Set the ending sequence number for what was the primary source
      file when the precompiled header was generated. */
   orig_sfp->last_seq_number = saved_curr_seq_number;
+#if CPPCLI_ENABLING_POSSIBLE
+  /* Restore the metadata files.  Since the metadata reader doesn't use 
+     the memory region mechanism, it cannot be saved using the normal PCH 
+     mechanism.  Instead, we will re-import the metadata files.  However, 
+     since the top level declarations are in the symbol table already, we
+     can skip that step. */
+  il_header.cli_metadata_files = il_header_from_pch.cli_metadata_files;
+  if (il_header.cli_metadata_files) {
+    a_cli_metadata_file_ptr cmfp;
+    a_boolean               is_duplicate;
+
+    cmfp = il_header.cli_metadata_files;
+    while (cmfp) {
+      an_assembly_index     assembly_index;
+      a_cpp_cli_feature_set features = edg_supported_features;
+
+      if (cmfp->as_friend) features = features | cpp_cli_as_friend_assembly;
+      /* Re-register the assemblies that we have imported.  It is important 
+         that we import the assemblies in the same order so that they will
+         maintain the same assembly index. */
+      assembly_index = import_metadata_file(cmfp->full_name, features, 
+                                            &is_duplicate);
+      check_assertion(assembly_index = cmfp->assembly_index);
+      cmfp = cmfp->next;
+    }  /* while */
+  }  /* if */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
   db_exit();
 }  /* pch_fixup_part_2 */
 

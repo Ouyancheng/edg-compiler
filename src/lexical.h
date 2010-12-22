@@ -2422,6 +2422,10 @@ extern void check_for_unclosed_if_exists_blocks(void);
 extern void init_whitespace_keywords(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if CPPCLI_ENABLING_POSSIBLE
+extern char *generate_top_level_metadata_code(an_assembly_index index);
+#endif /* CPPCLI_ENABLING_POSSIBLE */
+
 #endif /* ifndef LEXICAL_H */
 
 /******************************************************************************

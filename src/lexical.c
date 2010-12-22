@@ -46,6 +46,9 @@ and parsing of them into tokens.
 /* Include the definition of an_arg_operand to suppress lint errors. */
 #include "exprutil.h"
 #endif /* ifdef lint */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#include "ms_metadata.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Macro that returns TRUE if tok is tok_uuid.
@@ -518,6 +521,13 @@ static a_text_buffer_ptr
 		class_def_buffer;
 			/* A buffer used by get_definition_of_class */
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static a_text_buffer_ptr
+		metadata_import_buffer;
+			/* Text buffer used by 
+			   generate_top_level_metadata_code. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_text_buffer_ptr
 		ucn_buffer;
@@ -9533,6 +9543,13 @@ is set to tok_error.
        error (which will automatically be suppressed in files from system
        include directories). */
     a_constant_ptr	cp;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && !is_scanning_generated_code_from_metadata) 
+      /* Suppress this error for generated code from metadata.  We use 
+         __identifier for template specialization imported from metadata.  
+         For example, ref class __identifier("Foo<int>"). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
     diagnostic(es_discretionary_error, ec_exp_cpp_keyword);
     clear_locator(&locator, &pos_curr_token);
     cp = get_constant_for_ms_string_operand();
@@ -17664,13 +17681,30 @@ instantiation.  class_type is the class to be defined.
   a_symbol_ptr			class_sym;
   a_template_decl_info_ptr	tdip;
   a_boolean			define_class = FALSE;
+  an_assembly_index		assembly_index;
+  a_cpp_cli_token		metadata_type_def_token;
+  a_boolean			save_expand_macros = expand_macros;
+  sizeof_t			size = 0;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean			saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   /* This routine cannot handle local classes. */
   if (class_type->source_corresp.is_local_to_function) {
     define_class = FALSE;
   }  /* if */
-  /* Add any other code here to decide whether the definition of this class
-     should be loaded. */
+  if (class_type->incomplete) {
+    a_class_type_supplement_ptr ctsp 
+                           = class_type->variant.class_struct_union.extra_info;
+
+    if (ctsp->assembly_index != 0 && ctsp->metadata_type_def_token != 0) {
+      /* The class is from an assembly.  Load the definition of the class
+         now. */
+      assembly_index = ctsp->assembly_index;
+      metadata_type_def_token = ctsp->metadata_type_def_token;
+      define_class = TRUE;
+    }  /* if */
+  }  /* if */
   if (!define_class) goto done;
 #if DEBUG
   if (db_flag_is_set("gdoc")) {
@@ -17684,6 +17718,14 @@ instantiation.  class_type is the class to be defined.
      to reestablish the context in which the tokens of the class definition
      should be processed.  A special template declaration information entry
      is created for purposes of creating the context for the class. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Don't generate source sequence entries for injected the class 
+     definitions. */
+  saved_source_sequence_entries_disallowed =
+                                            source_sequence_entries_disallowed;
+  scope_stack_top().source_sequence_entries_disallowed = TRUE;
+  source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   tdip = alloc_template_decl_info();
   set_template_decl_info_for_class_definition(tdip, class_type);
   (void)push_template_instantiation_scope(
@@ -17692,6 +17734,26 @@ instantiation.  class_type is the class to be defined.
                               /*push_lex_state=*/TRUE, PS_NO_OPTIONS);
   if (class_def_buffer == NULL) class_def_buffer = alloc_text_buffer(1024);
   reset_text_buffer(class_def_buffer);
+#if CPPCLI_ENABLING_POSSIBLE
+  /* Get the definition from metadata.  */
+  size = class_def_buffer->allocated_size;
+  import_class_definition(assembly_index, 
+                          metadata_type_def_token,
+                          class_def_buffer->buffer, &size);
+  if (size <= class_def_buffer->allocated_size) {
+    /* The buffer fits.  Mark the size that have been written. */
+    class_def_buffer->size = size;
+  } else {
+    /* expand the buffer */
+    reset_text_buffer(class_def_buffer);
+    expand_text_buffer(class_def_buffer, size);
+    import_class_definition(assembly_index, 
+                            metadata_type_def_token,
+                            class_def_buffer->buffer, &size);
+    check_assertion(size <= class_def_buffer->allocated_size);
+    class_def_buffer->size = size;
+  }  /* if */
+#else /* !CPPCLI_ENABLING_POSSIBLE */
   /* Add code here to construct in the text buffer the string to be used to
      define the class.  It may also be desirable to disable macro expansion
      while the tokens are being scanned.  This shows a simple class
@@ -17702,8 +17764,10 @@ instantiation.  class_type is the class to be defined.
      class name in a normal class definition (i.e., the base classes or
      the opening brace of the class) and ends with the closing brace and
      semicolon. */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
   /* Terminate the buffer. */
   add_char_to_text_buffer(class_def_buffer, '\0');
+  expand_macros = FALSE;
   insert_string_into_token_stream(class_def_buffer->buffer,
                                   /*insert_after=*/FALSE);
   (void)scan_class_definition(
@@ -17718,13 +17782,70 @@ instantiation.  class_type is the class to be defined.
   process_deferred_class_fixups_and_instantiations(
                                                   /*for_instantiation=*/TRUE);
   get_token();
+  expand_macros = save_expand_macros;
   pop_template_instantiation_scope();
   free_template_decl_info(tdip);
+#if BACK_END_IS_CP_GEN_BE
+  /* Set this flag so that the C++-generating back end will not use elaborated
+     type specifiers when referring this type (e.g., "X" instead of 
+     "class X"). */
+  class_type->has_been_declared = TRUE;
+#endif /* BACK_END_IS_CP_GEN_BE */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  source_sequence_entries_disallowed =
+                                      saved_source_sequence_entries_disallowed;
+  scope_stack_top().source_sequence_entries_disallowed 
+                                    = saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 done:
   return;
 }  /* get_definition_of_class */
 
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
+
+#if CPPCLI_ENABLING_POSSIBLE
+
+char *generate_top_level_metadata_code(an_assembly_index index)
+/*
+Generate top level declarations for types being imported and return the
+address of the buffer.  The buffer is reused by each successive call, so
+the caller should copy the contents as needed.
+*/
+{
+  sizeof_t          size = 0;
+  a_text_buffer_ptr buffer;
+
+  if (metadata_import_buffer == NULL) {
+    /* Allocate the buffer used to read the metadata.  The argument passed
+       to alloc_text_buffer is both the initial size and the allocation
+       increment.   METADATA_IMPORT_BUFFER_SIZE is quite large, so we
+       don't want to also use that as the allocation increment so we
+       initially allocate it with a smaller size and immediately resize it. */
+    metadata_import_buffer =
+               alloc_text_buffer(METADATA_IMPORT_BUFFER_ALLOCATION_INCREMENT);
+    expand_text_buffer(metadata_import_buffer, METADATA_IMPORT_BUFFER_SIZE);
+  }  /* if */
+  reset_text_buffer(metadata_import_buffer);
+  buffer = metadata_import_buffer;
+  size = buffer->allocated_size;
+  import_all_types(index, buffer->buffer, &size);
+  if (size <= buffer->allocated_size) {
+    /* The buffer fits.  Mark the size that have been written. */
+    buffer->size = size;
+  } else {
+    /* Expand the buffer */
+    reset_text_buffer(buffer);
+    expand_text_buffer(buffer, size);
+    import_all_types(index, buffer->buffer, &size);
+    check_assertion(size <= buffer->allocated_size);
+    buffer->size = size;
+  }  /* if */
+  /* Terminate the buffer. */
+  add_char_to_text_buffer(buffer, '\0');
+  return buffer->buffer;
+}  /* generate_top_level_metadata_code */
+
+#endif /* CPPCLI_ENABLING_POSSIBLE */
 
 #if DEBUG
 void db_token_cache(a_token_cache *cache,

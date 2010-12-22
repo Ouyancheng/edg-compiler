@@ -407,6 +407,35 @@ pointed to by the translation unit entry.
   il_header.root_macro_invocation_record_block =
                              tup->il_header.root_macro_invocation_record_block;
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
+#if CPPCLI_ENABLING_POSSIBLE
+  if (cppcli_enabled) {
+    a_cli_metadata_file_ptr cmfp;
+    a_boolean               is_duplicate;
+
+    /* Reset the metadata reader for the next translation unit. */
+    ms_metadata_trans_unit_wrapup();
+    ms_metadata_trans_unit_init(trans_unit_file_name);
+    /* Restore the metadata files.  Since the metadata reader doesn't use 
+       the memory region mechanism, it cannot be saved using the normal PCH 
+       mechanism.  Instead, we will re-import the metadata files.  However, 
+       since the top level declarations are in the symbol table already, we
+       can skip that step. */
+    cmfp = il_header.cli_metadata_files;
+    while (cmfp) {
+      an_assembly_index     assembly_index;
+      a_cpp_cli_feature_set features = edg_supported_features;
+
+      if (cmfp->as_friend) features = features | cpp_cli_as_friend_assembly;
+      /* Re-register the assemblies that we have imported.  It is important 
+         that we import the assemblies in the same order so that they will
+         maintain the same assembly index. */
+      assembly_index = import_metadata_file(cmfp->full_name, features, 
+                                            &is_duplicate);
+      check_assertion(assembly_index = cmfp->assembly_index);
+      cmfp = cmfp->next;
+    }  /* while */
+  }  /* if */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
   /* Restore the depth_in_scope stack field of any scopes on the scope
      stack. */
   if (depth_scope_stack != NO_SCOPE_DEPTH) {

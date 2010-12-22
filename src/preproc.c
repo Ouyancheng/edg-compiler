@@ -29,6 +29,9 @@ preproc.c -- Preprocessing directives.
 #include "expr.h"
 #include "macro.h"
 #include "literals.h"
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#include "ms_metadata.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 typedef struct a_pp_if_stack_entry *a_pp_if_stack_entry_ptr;
 typedef struct a_pp_if_stack_entry {
@@ -1519,10 +1522,42 @@ in the metadata file.
     pos_str2_catastrophe(ec_cannot_open_file, error_text(ec_metadata),
                          name, pos);
   } else {
-    (void)make_cli_metadata_file(name, full_name, as_friend, 
+    a_boolean               is_duplicate = FALSE;
+    a_cli_metadata_file_ptr cmfp;
+    a_cpp_cli_feature_set   features = edg_supported_features;
+
+    if (as_friend) features = features | cpp_cli_as_friend_assembly;
+    cmfp = make_cli_metadata_file(name, full_name, as_friend, 
                                    is_system_include, referenced_by_preusing,
                                    pos);
-    /* FIXME - add metadata reader code here. */
+#if CPPCLI_ENABLING_POSSIBLE
+    cmfp->assembly_index = import_metadata_file(cmfp->full_name, 
+                                                features, 
+                                                &is_duplicate);
+    if (cmfp->assembly_index == 0) {
+      /* Failed to import metadata. */
+      pos_st_error(ec_cannot_import_metadata, &cmfp->position, 
+                   cmfp->name_as_written);
+    } else if (!is_duplicate) {
+      a_boolean         save_fetch_pp_tokens = fetch_pp_tokens;
+      a_boolean         save_in_preprocessing_directive 
+                                             = in_preprocessing_directive;
+      char              *buffer;
+
+      /* Import the top level declarations. */
+      fetch_pp_tokens = FALSE;
+      in_preprocessing_directive = FALSE;
+      buffer = generate_top_level_metadata_code(cmfp->assembly_index);
+      scan_top_level_metadata_declarations(buffer);
+      /* If this is not a preusing, the next token should be tok_newline of 
+         the #using directive. */
+      check_assertion(curr_token == tok_newline || 
+                      cmfp->referenced_by_preusing);
+      /* Restore the flags. */
+      fetch_pp_tokens = save_fetch_pp_tokens;
+      in_preprocessing_directive = save_in_preprocessing_directive;
+    }  /* if */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
   }  /* if */
 }  /* import_metadata */
 
