@@ -1526,7 +1526,10 @@ in the metadata file.
     a_cli_metadata_file_ptr cmfp;
     a_cpp_cli_feature_set   features = edg_supported_features;
 
-    if (as_friend) features = features | cpp_cli_as_friend_assembly;
+    if (as_friend) {
+      features = features |
+                 (a_cpp_cli_feature_set)cpp_cli_as_friend_assembly;
+    }  /* if */
     cmfp = make_cli_metadata_file(name, full_name, as_friend, 
                                    is_system_include, referenced_by_preusing,
                                    pos);

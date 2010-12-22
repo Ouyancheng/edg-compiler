@@ -434,7 +434,7 @@ pointed to by the translation unit entry.
          maintain the same assembly index. */
       assembly_index = import_metadata_file(cmfp->full_name, features, 
                                             &is_duplicate);
-      check_assertion(assembly_index = cmfp->assembly_index);
+      check_assertion(assembly_index == cmfp->assembly_index);
       cmfp = cmfp->next;
     }  /* while */
   }  /* if */
