@@ -12326,18 +12326,19 @@ enum an_expr_operator_kind_tag {
   eok_base_class_cast,	/* C++ cast of a class to a direct base class.  The
 			   type of the expression indicates the type to cast
 			   to.  The operand can be a class lvalue, a class
-			   rvalue, or an rvalue pointer to class.  The result
-			   is of the same kind (lvalue, rvalue, or pointer).
-			   Also used for reference casts that convert to a
-			   base class. */
+			   rvalue, an rvalue pointer to class, or an rvalue
+			   C++/CLI handle.  The result is of the same kind
+			   (lvalue, rvalue, pointer, or handle).  Also used for
+			   reference casts that convert to a base class. */
   eok_derived_class_cast,
 			/* C++ cast of a class to a direct derived class.  The
 			   type of the expression indicates the type to cast
 			   to.  The operand can be a class lvalue, a class
-			   rvalue, or an rvalue pointer to class.  The result
-			   is of the same kind (lvalue, rvalue, or pointer).
-			   Also used for reference casts that convert to
-			   a derived class. */
+			   rvalue, an rvalue pointer to class, or an rvalue
+			   C++/CLI handle.  The result is of the same kind
+			   (lvalue, rvalue, pointer, or handle).  Also used
+			   for reference casts that convert to a derived
+			   class. */
   eok_pm_base_class_cast,
 			/* C++ cast of a pointer to a member of a class to
 			   a pointer to a member of a direct base class.
@@ -12348,7 +12349,8 @@ enum an_expr_operator_kind_tag {
 			   a pointer to a member of a direct derived class.
 			   The type of the expression indicates the type to
 			   cast to. */
-  eok_dynamic_cast,	/* C++ dynamic_cast operation on pointers. */
+  eok_dynamic_cast,	/* C++ dynamic_cast operation on pointers or C++/CLI
+			   handles. */
   eok_ref_dynamic_cast,	/* C++ dynamic_cast operation on references.  The
 			   operand and the result are lvalues.  For a
 			   dynamic_cast<T &>(x), the node type is T, not
@@ -12490,8 +12492,8 @@ enum an_expr_operator_kind_tag {
 			   an enk_field. */
   eok_points_to_field,	/* Selection of a nonstatic data member of a class,
 			   source form p->y.  The first operand is an rvalue
-			   pointer to class.  The second operand is an
-			   enk_field. */
+			   pointer to class or C++/CLI handle to class.
+			   The second operand is an enk_field. */
   eok_pm_field,		/* Selection of a nonstatic data member of a class
 			   using a pointer to member, source form x.*pm.
 			   The first operand is an lvalue or rvalue of
@@ -12513,12 +12515,12 @@ enum an_expr_operator_kind_tag {
 			   constant (e.g., an enumerator). */
   eok_points_to_static,	/* Selection of a static member of a class, source
 			   form p->y.  The first operand is an rvalue
-			   pointer to class, which is evaluated and then
-			   discarded.  The second operand is an enk_variable
-			   identifying a static data member, an enk_routine
-			   identifying a static member function, or an
-			   enk_constant identifying a member constant (e.g.,
-			   an enumerator). */
+			   pointer to class or C++/CLI handle to class, which
+			   is evaluated and then discarded.  The second operand
+			   is an enk_variable identifying a static data member,
+			   an enk_routine identifying a static member function,
+			   or an enk_constant identifying a member constant
+			   (e.g., an enumerator). */
   eok_virtual_function_ptr,
 			/* Produce a normal function pointer for a C++ virtual
 			   member function.  This is (only) used to implement
@@ -12556,10 +12558,11 @@ enum an_expr_operator_kind_tag {
 			   source form p->f(args).  The first operand
 			   identifies the member function (as a routine
 			   address, not a pointer-to-member); the second
-			   operand is an rvalue pointer to class that
-			   identifies the selector object; the remaining
-			   operands are the arguments.  The is_virtual_call
-			   flag indicates whether the call is virtual. */
+			   operand is an rvalue pointer to class or C++/CLI
+			   handle to class that identifies the selector object;
+			   the remaining operands are the arguments.  The
+			   is_virtual_call flag indicates whether the call
+			   is virtual. */
   eok_dot_pm_call,	/* A call of a function identified by a pointer
 			   to member, with the source form (x.*pmf)(args).
 			   The first operand is the pointer to member
