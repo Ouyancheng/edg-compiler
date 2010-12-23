@@ -1,6 +1,27 @@
 Version 4.3
 
-12/13/10 [EDGcpfe/11235]
+12/23/10 [EDGcpfe/11236]
+Internal error in select_overloaded_copy_constructor
+
+A change introduced in version 4.2 caused an abort in
+select_overloaded_copy_constructor ("NULL constructor") in some
+cases when a function has a parameter of an incomplete class
+type and is potentially called with an argument of that same
+class type.  Now fixed.
+
+  class Incomp;
+  struct A {
+    A();
+    A(Incomp);
+    void operator+(const A&);
+    void operator+(const Incomp &);
+  };
+  void g(const Incomp &p) {
+    A() + p;
+  }
+
+
+12/23/10 [EDGcpfe/11235]
 No multi-level pointer conversions if pointer representations differ
 
 The implicit conversions defined for multi-level pointers, e.g.,

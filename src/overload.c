@@ -1689,7 +1689,11 @@ constructor.
 
   check_assertion(arg_operand != NULL &&
                   is_class_struct_union_type(param_type));
-  cctor_sym = select_overloaded_copy_constructor(
+  /* Watch out for cases where we don't have a definition of the class, so
+     we shouldn't try to look for a copy constructor. */
+  complete_type_is_needed(param_type);
+  if (!is_incomplete_type(param_type)) {
+    cctor_sym = select_overloaded_copy_constructor(
                                         param_type,
                                         get_type_qualifiers(arg_operand->type),
                                         is_an_rvalue(arg_operand),
@@ -1697,9 +1701,10 @@ constructor.
                                         &ambiguous,
                                         /*uncallable=*/(a_boolean *)NULL,
                                         &class_bitwise_copy);
-  if (class_bitwise_copy || ambiguous || cctor_sym != NULL) {
-    /* A copy constructor can be used. */
-    copy_can_be_done = TRUE;
+    if (class_bitwise_copy || ambiguous || cctor_sym != NULL) {
+      /* A copy constructor can be used. */
+      copy_can_be_done = TRUE;
+    }  /* if */
   }  /* if */
   return copy_can_be_done;
 }  /* arg_copy_can_be_done_via_constructor */
