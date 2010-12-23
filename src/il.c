@@ -9229,6 +9229,31 @@ and reuse an existing entry if possible.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+a_type_ptr make_type_of_this(a_type_ptr            class_type,
+                             a_type_qualifier_set  qualifiers)
+/*
+Return the type of the implicit "this" parameter for a member of class_type
+with the given qualifiers.  For standard classes, this is an ordinary pointer
+type, but for C++/CLI classes it is a handle type.
+*/
+{
+  a_type_ptr  result = make_qualified_type(class_type, qualifiers);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_immediate_managed_class_type(class_type)) {
+    /* In C++/CLI, managed class types use a "this" handle instead of a this
+       pointer. */
+    result = make_handle_type(result);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    result = make_pointer_type(result);
+  }  /* if */
+  return result;
+}  /* make_type_of_this */
+
+
 #if !NEAR_AND_FAR_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED
 /* ARGSUSED */  /* <- is_error and tracking_ref are not used in some
                       configurations. */

@@ -894,6 +894,9 @@ extern a_type_ptr make_interior_ptr_type(a_type_ptr pointed_to_type);
 extern a_type_ptr make_pin_ptr_type(a_type_ptr pointed_to_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern a_type_ptr make_type_of_this(a_type_ptr            class_type,
+                                    a_type_qualifier_set  qualifiers);
+
 extern a_type_ptr make_reference_to_reference(
                                           a_type_ptr            base_ref_type,
                                           a_boolean             rvalue_ref,

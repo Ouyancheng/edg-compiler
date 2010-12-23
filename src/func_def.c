@@ -452,9 +452,16 @@ Create a variable entry for an implicit-this parameter, using the indicated
 routine type, and return a pointer to it.
 */
 {
-  a_variable_ptr vp;
-  a_type_ptr     this_type = f_implicit_this_param_type_of(rout_type);
+  a_variable_ptr                 vp;  /* Result */
+  a_type_ptr                     this_type;
+  a_routine_type_supplement_ptr  rtsp = skip_typerefs(rout_type)->
+                                                   variant.routine.extra_info;
 
+  /* The implicit this parameter is a pointer type that is not const
+     qualified as far as the interface is concerned.  The variable, however,
+     does get a const qualifier. */
+  this_type = make_type_of_this(rtsp->this_class, rtsp->qualifiers);
+  this_type = make_qualified_type(this_type, TQ_CONST | rtsp->this_qualifiers);
   vp = make_param_variable(this_type, (a_storage_class)sc_auto);
   vp->is_this_parameter = TRUE;
   set_parent_scope(&vp->source_corresp, iek_variable,
