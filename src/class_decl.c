@@ -6597,7 +6597,7 @@ of a C++ class, struct, or union or a C struct or union.
     is_start = TRUE;
   } else if (C_dialect == C_dialect_cplusplus) {
     /* C++ class/struct/union members can also start with one of the following
-       keywords. */
+       tokens. */
     is_start = (curr_token == tok_static || curr_token == tok_typedef ||
                 curr_token == tok_private || curr_token == tok_protected ||
                 curr_token == tok_public || curr_token == tok_compl
@@ -16819,6 +16819,7 @@ passed via template_decl.
   decl_info.is_destructor = (dso_flags & DSO_DESTRUCTOR) != 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   decl_info.is_static_constructor = (dso_flags & DSO_STATIC_CONSTRUCTOR) != 0;
+  decl_info.is_finalizer = (dso_flags & DSO_FINALIZER) != 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   mutable_specified = (dso_flags & DSO_MUTABLE) != 0;
   is_typedef =
