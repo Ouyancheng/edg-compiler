@@ -158,6 +158,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_HANDLE "U8__handle"
 #define MANGLING_STRING_FOR_STATIC_CONSTRUCTOR "C8"
 #define MANGLING_STRING_FOR_MANAGED_NULLPTR "DN"
+#define MANGLING_STRING_FOR_OPERATOR_HANDLE_TO "ht"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #else /* !IA64_ABI */
@@ -276,10 +277,12 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_OPERATOR_MINUS_MINUS_PREFIX "mme"
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+/* These are all specific to C++/CLI. */
 #define MANGLING_STRING_FOR_TRACKING_REFERENCE "Tr"
 #define MANGLING_STRING_FOR_HANDLE "H"
 #define MANGLING_STRING_FOR_STATIC_CONSTRUCTOR "st"
 #define MANGLING_STRING_FOR_MANAGED_NULLPTR "j"
+#define MANGLING_STRING_FOR_OPERATOR_HANDLE_TO "ht"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* IA64_ABI */
@@ -9086,6 +9089,11 @@ of cast (which requires mangling of a type as well as an expression), return
       break;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case eok_handle_to:
+      name = MANGLING_STRING_FOR_OPERATOR_HANDLE_TO;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case eok_lvalue:                     /* Handled higher up */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case eok_assume:                     /* Handled higher up */

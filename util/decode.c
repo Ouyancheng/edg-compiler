@@ -1830,6 +1830,8 @@ not an operator encoding, return NULL.
   } else if (start_of_id_is("sk", ptr, dctl)) {
     s = "sizeof...(";
     *takes_type = TRUE;
+  } else if (start_of_id_is("ht", ptr, dctl)) {
+    s = "%";
   } else {
     s = NULL;
   }  /* if */
@@ -5047,6 +5049,12 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
           str = ">=";
         } else if (ch2 == 't') {
           str = ">";
+        }  /* if */
+        break;
+      case 'h':
+        if (ch2 == 't') {
+          str = "%";
+          *num_operands = 1;
         }  /* if */
         break;
       case 'i':
