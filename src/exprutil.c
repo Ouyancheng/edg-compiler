@@ -12467,28 +12467,17 @@ explicit "&" operator in the source and *operator_position gives its position.
             expr = add_reference_to_to_node(expr);
           } else {
             /* Create the "&" operator. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            /* For the address of a C++/CLI ref class object, create a handle
-               instead of a pointer. */
-            a_boolean handle_case = is_ref_class_type(expr->type);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            if (operator_position == NULL
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                          && !handle_case
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                         ) {
+            if (operator_position == NULL) {
               /* An implicit "&" operator. */
               expr = add_address_of_to_node(expr);
             } else {
               /* An explicit "&" operator. */
               a_type_ptr addr_type =
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                                     handle_case ?
-                                       make_handle_type(expr->type) :
-                                       is_gc_lvalue_expr(expr) ?
-                                         make_interior_ptr_type(expr->type) :
+                                     is_gc_lvalue_expr(expr) ?
+                                       make_interior_ptr_type(expr->type) :
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                         make_pointer_type(expr->type);
+                                       make_pointer_type(expr->type);
               expr = make_operator_node((an_expr_operator_kind)eok_address_of,
                                         addr_type, expr);
             }  /* if */

@@ -8350,21 +8350,6 @@ enable_microsoft_mode:
     check_and_set_ansi_mode_options();
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
-    /* Turn on features implied by Microsoft mode. */
-    set_microsoft_mode_flags();
-  } else {
-    /* Microsoft mode is not being used. */
-    microsoft_bugs = FALSE;
-    if (import_dir_name != NULL) {
-      /* --import_dir is allowed only in Microsoft mode. */
-      command_line_error(ec_cl_import_only_in_microsoft);
-    }  /* if */
-  }  /* if */
-  /* If no directory was specified for #import, use the current directory. */
-  if (import_dir_name == NULL) {
-    import_dir_name = ".";
-  }  /* if */
   if (cppcli_enabled) {
     /* C++/CLI requires Microsoft C++ mode. */
     if (!microsoft_mode) {
@@ -8390,6 +8375,21 @@ enable_microsoft_mode:
       }  /* if */
       microsoft_version = 1600;
     }  /* if */
+  }  /* if */
+  if (microsoft_mode) {
+    /* Turn on features implied by Microsoft mode. */
+    set_microsoft_mode_flags();
+  } else {
+    /* Microsoft mode is not being used. */
+    microsoft_bugs = FALSE;
+    if (import_dir_name != NULL) {
+      /* --import_dir is allowed only in Microsoft mode. */
+      command_line_error(ec_cl_import_only_in_microsoft);
+    }  /* if */
+  }  /* if */
+  /* If no directory was specified for #import, use the current directory. */
+  if (import_dir_name == NULL) {
+    import_dir_name = ".";
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (extended_designators_allowed) {

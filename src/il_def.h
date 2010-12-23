@@ -12294,6 +12294,8 @@ enum an_expr_operator_kind_tag {
 			   reference equivalent of eok_address_of.  Can also be
 			   applied to a class rvalue, where it produces a
 			   reference to the class object in memory. */
+  eok_handle_to,	/* C++/CLI unary "%" operator, which returns a handle
+			   to its operand. */
   eok_indirect,		/* Pointer de-reference operator ("*"). */
   eok_ref_indirect,	/* Implicit indirection through a reference to get an
 			   lvalue, i.e., the reference equivalent of
@@ -15582,7 +15584,7 @@ EXTERN an_il_header il_header;
 /* Table of debug names for expression operators. */
 EXTERN char     *db_operator_names[(int)eok_last+1]
 #if VAR_INITIALIZERS
-= {"&", "ref-&", "*", "ref-*",
+= {"&", "ref-&", "%", "*", "ref-*",
    "cast", "lvalue cast", "ref cast", "lvalue adjust", "class rvalue adjust",
    "base class cast", "derived class cast",
    "pm base class cast", "pm derived class cast",

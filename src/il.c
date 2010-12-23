@@ -12086,6 +12086,7 @@ tk_unknown is returned.
   switch (expr->variant.operation.kind) {
     case eok_address_of:
     case eok_reference_to:
+    case eok_handle_to:
     case eok_indirect:
     case eok_ref_indirect:
       result = (a_type_kind)tk_pointer;
@@ -17884,6 +17885,7 @@ operand.
 
   switch (op) {
     case eok_address_of:
+    case eok_handle_to:
     case eok_lvalue_cast:
     case eok_ref_cast:
     case eok_lvalue_adjust:
@@ -21297,6 +21299,7 @@ Definition of the bits in lvalue_rvalue_test.
 static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_address_of: */			LVRV_OPND1_IS_LVALUE,
   /* eok_reference_to: */		LVRV_NO_REQUIREMENTS,
+  /* eok_handle_to: */			LVRV_OPND1_IS_LVALUE,
   /* eok_indirect: */			LVRV_OPND1_IS_RVALUE,
   /* eok_ref_indirect: */		LVRV_OPND1_IS_RVALUE,
   /* eok_cast: */			LVRV_OPND1_IS_RVALUE,
@@ -21614,6 +21617,7 @@ their is_lvalue flag set incorrectly, TRUE otherwise.
 #endif /* !(STANDALONE_UTILITY_PROGRAM && PROTOTYPE_INSTANTIATIONS_IN_IL) */
 
 #if !STANDALONE_UTILITY_PROGRAM
+
 static a_boolean pointer_type_is_consistent(a_type_ptr ptr_type,
                                             a_type_ptr targ_type,
                                             a_boolean  targ_type_is_rvalue)
@@ -21623,7 +21627,8 @@ ptr_type is, in fact, not a pointer type (or a reference type -- in some
 cases, reference types are not lowered to pointer types) or if the type to
 which it points is not targ_type; return TRUE if the conditions are met.
 If targ_type_is_rvalue is TRUE, cv-qualification of the pointed-to type
-is ignored, except for C++ class rvalues.
+is ignored, except for C++ class rvalues.  This is also used for C++/CLI
+handle operations.
 */
 {
   a_boolean result = FALSE;
@@ -21663,6 +21668,7 @@ is ignored, except for C++ class rvalues.
   }  /* if */
   return result;
 }  /* pointer_type_is_consistent */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void check_operation_node_consistency(an_expr_node_ptr expr)
@@ -21752,6 +21758,16 @@ node, and report any failure as an internal error.
 #endif /* DEBUG */
     internal_error("wrong result type for &");
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (op == (an_expr_operator_kind)eok_handle_to &&
+      !pointer_type_is_consistent(expr->type, operand_1->type,
+                                  /*targ_type_is_rvalue=*/FALSE)) {
+#if DEBUG
+    db_expression(expr);
+#endif /* DEBUG */
+    internal_error("wrong result type for %");
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (op == (an_expr_operator_kind)eok_subscript &&
       !pointer_type_is_consistent(
                          subscript_or_padd_pointer_operand(expr)->type,

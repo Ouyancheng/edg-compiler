@@ -7004,6 +7004,116 @@ error indication in *rcblock).
   db_exit();
 }  /* scan_ampersand_operator */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void scan_handle_address_operator(a_rescan_control_block *rcblock,
+                                         an_operand             *result)
+/*
+Scan the C++/CLI unary "%" (handle address of) operator.  The current
+token is the operator.  Scan the operand, build an expression, and
+return an operand for that in *result.  If rcblock is non-NULL, redo
+semantic analysis on a previously-scanned expression, and return the
+result in *result (or an error indication in *rcblock).
+*/
+{
+  an_operand        operand;
+  a_source_position start_position, operator_position;
+  a_token_sequence_number
+                    operator_tok_seq_number;
+  a_boolean         err = FALSE;
+  a_boolean         template_case = FALSE;
+
+  db_enter(4, "scan_handle_address_operator");
+
+  check_assertion(cppcli_enabled);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(rcblock->operator_token == tok_remainder);
+    make_rescan_operands(rcblock, &operand,
+                         (an_operand *)NULL, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+  }  /* if */
+  start_position = operator_position;
+
+  if (curr_expr_kind_is(ek_pp)) {
+    /* Handles not allowed in preprocessing expressions. */
+    expr_pos_error(ec_bad_pp_operator, &start_position);
+    err = TRUE;
+  } else if (curr_expr_kind_is_const()) {
+    /* Handles not allowed in constant expressions. */
+    expr_pos_error(ec_bad_constant_operator, &start_position);
+    err = TRUE;
+  }  /* if */
+
+  if (rcblock == NULL) {
+    /* Advance past the "%". */
+    (void)get_token();
+    /* Scan the operand. */
+    scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
+  }  /* if */
+
+  if (err) {
+    /* Operator is not allowed in this kind of expression. */
+    make_error_operand(result);
+    operand_will_not_be_used_because_of_error(&operand);
+  } else {
+    /* As of this writing, this call suppresses every known transformation,
+       but it's here to allow for future transformations. */
+    do_operand_transformations(&operand,
+                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                               TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                               TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
+                               TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION |
+                               TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
+    if (is_template_param_type(operand.type)) template_case = TRUE;
+    if (is_error_operand(&operand)) {
+      /* Leave an error operand mostly alone.  Mark the address as being taken
+         to prevent cascading diagnostics. */
+      change_ref_kinds(operand.ref_entries_list, SRK_ADDRESS_TAKEN);
+      operand_will_not_be_used_because_of_error(&operand);
+      make_error_operand(result);
+    } else if (!is_ref_class_type(operand.type) && !template_case) {
+      /* The operand of "%" must have a ref class type. */
+      /* FIXME: value classes okay too, get boxed.  Also interface classes. */
+      error_in_operand(ec_handle_of_non_managed, &operand);
+      make_error_operand(result);
+    } else if (is_an_lvalue(&operand) || template_case) {
+      /* Make an eok_handle_to node for the operation.  Note that a handle
+         is never considered constant. */
+      an_expr_node_ptr expr;
+      if (template_case) {
+        prep_generic_operand_full(&operand,
+                                  /*lvalue_expected=*/TRUE,
+                                  /*rvalue_expected=*/FALSE);
+      }  /* if */
+      expr = make_node_from_operand(&operand);
+      change_ref_kinds(operand.ref_entries_list, SRK_ADDRESS_TAKEN);
+      expr = make_operator_node((an_expr_operator_kind)eok_handle_to,
+                                make_handle_type(expr->type), expr);
+      make_expression_operand(expr, result);
+    } else {
+      /* "%" applied to something that is not an lvalue. */
+      error_in_operand(ec_expr_not_an_lvalue, &operand);
+      make_error_operand(result);
+    }  /* if */
+  }  /* if */
+
+  set_operand_position(result, &start_position, &operand.end_position,
+                       &operator_position);
+  record_operator_position_in_rescan_info(result,
+                                          &operator_position,
+                                          operator_tok_seq_number,
+                                          (a_source_position *)NULL);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
+  db_exit();
+}  /* scan_handle_address_operator */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 
 static void scan_address_of_label_expression(an_operand *result)
@@ -19932,6 +20042,12 @@ Return TRUE if the indicated token is one that could start an expression.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       is_expr_start = TRUE;
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_remainder:
+      /* C++/CLI unary "%" operator. */
+      is_expr_start = cppcli_enabled;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_lbracket:
       /* Possible start of lambda. */
       is_expr_start = lambdas_enabled;
@@ -23308,6 +23424,14 @@ see expr.h).
       scan_ampersand_operator((a_rescan_control_block *)NULL, &local_result);
       break;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_remainder:
+      if (!cppcli_enabled) goto bad_start_of_primary;
+      scan_handle_address_operator((a_rescan_control_block *)NULL,
+                                   &local_result);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if GNU_EXTENSIONS_ALLOWED
     case tok_and_and:
       if (!gnu_mode ||
@@ -25427,6 +25551,13 @@ set accordingly.
         operator_token = tok_ampersand;
         *unary = TRUE;
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case eok_handle_to:
+        check_assertion(cppcli_enabled);
+        operator_token = tok_remainder;
+        *unary = TRUE;
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case eok_indirect:
         operator_token = tok_star;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -25843,6 +25974,11 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_ampersand:
         scan_ampersand_operator(rcblock, result);
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_remainder:
+        scan_handle_address_operator(rcblock, result);
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_star:
         scan_indirection_operator(rcblock, result);
         break;

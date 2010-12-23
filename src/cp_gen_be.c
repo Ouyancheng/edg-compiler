@@ -513,6 +513,7 @@ reflect the one with the lowest precedence.
 static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_PREFIX,		/* eok_address_of */
   PREC_LOWEST,		/* eok_reference_to */
+  PREC_PREFIX,		/* eok_handle_to */
   PREC_PREFIX,		/* eok_indirect */
   PREC_LOWEST,		/* eok_ref_indirect */
   PREC_CAST,		/* eok_cast (NOTE: cases where the cast is not
@@ -9412,6 +9413,12 @@ gen_expr that might end up generating this expr as a temporary.
           gen_expr(operand_1, /*need_parens=*/FALSE,
                    obj_expr_of_mfunc_operator);
           goto done_with_operation;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case eok_handle_to:
+          write_tok_ch('%');
+          gen_expr_with_parens(operand_1);
+          goto done_with_operation;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case eok_indirect:
           if (expr->variant.operation.compiler_generated &&
               is_constant_node(operand_1) &&
