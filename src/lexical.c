@@ -9544,7 +9544,7 @@ is set to tok_error.
        include directories). */
     a_constant_ptr	cp;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && !is_scanning_generated_code_from_metadata) 
+    if (!cppcli_enabled || !is_scanning_generated_code_from_metadata) 
       /* Suppress this error for generated code from metadata.  We use 
          __identifier for template specialization imported from metadata.  
          For example, ref class __identifier("Foo<int>"). */
