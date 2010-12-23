@@ -5592,6 +5592,10 @@ nonstatic_member_function:
           /* Member constant (e.g., an enumerator). */
           make_sym_constant_operand(member_sym, result);
           set_operand_id_details_from_locator(result, &locator);
+          result->position = member_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          result->end_position = end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           combine_unneeded_selector_with_operand(operand_1, is_arrow_operator,
                                                  result);
           break;
