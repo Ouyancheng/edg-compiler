@@ -118,22 +118,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(755,END_EXTERN_C_BLOCK_IN_CPP_FILE)*/
 /*lint -esym(755,EXTERN_C_BLOCK_IN_CPP_FILE)*/
 /*lint -esym(755,EXTERN_C_IN_CPP_FILE)*/
-/*lint -esym(769,cli_none)*/
-/*lint -esym(769,cli_ref_classes)*/
-/*lint -esym(769,cli_value_types)*/
-/*lint -esym(769,cli_interfaces)*/
-/*lint -esym(769,cli_enumerations)*/
-/*lint -esym(769,cli_nested_types)*/
-/*lint -esym(769,cli_generic_types)*/
-/*lint -esym(769,cli_generic_methods)*/
-/*lint -esym(769,cli_delegates)*/
-/*lint -esym(769,cli_properties)*/
-/*lint -esym(769,cli_events)*/
-/*lint -esym(769,cli_as_friend_assembly)*/
-/*lint -esym(769,cli_implementation_details)*/
-/*lint -esym(769,cli_declspec_assemby_info)*/
-/*lint -esym(769,cli_declspec_member_info)*/
-/*lint -esym(769,cli_define_all_types)*/
+/*lint -esym(769,a_cpp_cli_feature_tag::cli_*)*/
 #if !MACRO_INVOCATION_TREE_IN_IL
 /*lint -esym(755,copy_simple_position_to_full_position)*/
 #endif /* !MACRO_INVOCATION_TREE_IN_IL */
