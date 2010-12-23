@@ -5150,6 +5150,11 @@ file.
   comment_undefined_macro_name(
                       FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS);
 #endif /* defined(FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS) */
+#if defined(FRONT_END_C_FILES_COMPILED_AS_CPP)
+  define_numeric_valued_macro(FRONT_END_C_FILES_COMPILED_AS_CPP);
+#else /* !defined(FRONT_END_C_FILES_COMPILED_AS_CPP) */
+  comment_undefined_macro_name(FRONT_END_C_FILES_COMPILED_AS_CPP);
+#endif /* defined(FRONT_END_C_FILES_COMPILED_AS_CPP) */
 #if defined(FULLY_RESOLVED_MACRO_POSITIONS)
   define_numeric_valued_macro(FULLY_RESOLVED_MACRO_POSITIONS);
 #else /* !defined(FULLY_RESOLVED_MACRO_POSITIONS) */
@@ -5708,6 +5713,16 @@ file.
 #else /* !defined(MAX_UNUSED_ALL_MODE_INSTANTIATIONS) */
   comment_undefined_macro_name(MAX_UNUSED_ALL_MODE_INSTANTIATIONS);
 #endif /* defined(MAX_UNUSED_ALL_MODE_INSTANTIATIONS) */
+#if defined(METADATA_IMPORT_BUFFER_ALLOCATION_INCREMENT)
+  define_numeric_valued_macro(METADATA_IMPORT_BUFFER_ALLOCATION_INCREMENT);
+#else /* !defined(METADATA_IMPORT_BUFFER_ALLOCATION_INCREMENT) */
+  comment_undefined_macro_name(METADATA_IMPORT_BUFFER_ALLOCATION_INCREMENT);
+#endif /* defined(METADATA_IMPORT_BUFFER_ALLOCATION_INCREMENT) */
+#if defined(METADATA_IMPORT_BUFFER_SIZE)
+  define_numeric_valued_macro(METADATA_IMPORT_BUFFER_SIZE);
+#else /* !defined(METADATA_IMPORT_BUFFER_SIZE) */
+  comment_undefined_macro_name(METADATA_IMPORT_BUFFER_SIZE);
+#endif /* defined(METADATA_IMPORT_BUFFER_SIZE) */
 #if defined(MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET)
   define_numeric_valued_macro(MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET);
 #else /* !defined(MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET) */
