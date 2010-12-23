@@ -10133,7 +10133,17 @@ question_position and colon_position give the position of the "?" and ":".
     error_in_operand(ec_constant_value_not_known, operand_1);
     make_error_operand(result);
   } else {
-    if (suppress_class_rvalue_temp) class_rvalue_case = FALSE;
+    if (suppress_class_rvalue_temp) {
+      class_rvalue_case = FALSE;
+    } else if (microsoft_mode && rvalue_references_enabled) {
+      /* MSVC10 treats an rvalue reference object as similar to an lvalue
+         and doesn't copy it, which prefigures the changes in the C++0X
+         standard to add "xvalues". */
+      if (is_rvalue_reference_object_operand(operand_2) &&
+          is_rvalue_reference_object_operand(operand_3)) {
+        class_rvalue_case = FALSE;
+      }  /* if */
+    }  /* if */
     if (class_rvalue_case) {
       /* When the result is a class rvalue, we will do a final copy. */
       /* See if this operation can be optimized to avoid a copy. */
