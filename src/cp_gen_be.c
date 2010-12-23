@@ -187,14 +187,6 @@ static a_boolean
 			   parameter (needed to work around a Microsoft 6.0
 			   bug). */
 static a_boolean
-		in_default_argument;
-			/* TRUE if the expression being generated appears
-			   in a default argument of any kind of function.
-			   (Used to work around g++ bugs when generating a
-			   call to a function template with explicit
-			   arguments in a template definition generated
-			   from a prototype instantiation.) */ 
-static a_boolean
 		in_generated_instance;
 			/* TRUE if the expression being generated appears
 			   in a generated instance of a function template. */
@@ -3327,7 +3319,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         used_qualified_name = TRUE;
       }  /* if */
       if (used_qualified_name || curr_name_context->field_selection_context) {
-        if (class_type->variant.class_struct_union.is_nonreal_class &&
+        if ((class_type->variant.class_struct_union.is_nonreal_class ||
+             (gcc_is_generated_code_target &&
+              in_prototype_instantiation_context())) &&
             (template_arguments_for_name(
                 scp, entry_kind, /*insert_space=*/(a_boolean *)NULL) != NULL ||
              (options & GN_TEMPLATE))) {
@@ -3606,15 +3600,14 @@ to indicate that the name reference was successfully emitted.
       if (entry_kind == iek_routine) {
         /* Do routine names specially because we have an indication of
            whether to include template arguments. */
-        if (gcc_is_generated_code_target && !in_default_argument &&
+        if (gcc_is_generated_code_target && scp->is_class_member &&
             nrp->is_template_id && nrp->from_prototype_instantiation) {
           /* In some circumstances, g++ requires the "template" keyword in
              references to template-ids that are not actually dependent and
-             does not complain when the keyword is used unnecessarily
-             (except in default arguments), so we put it out
-             unconditionally here.  (The cases that are actually dependent
-             are handled as ck_template_param constants and do not come
-             here.) */
+             does not complain when the keyword is used unnecessarily, so
+             we put it out unconditionally here.  (The cases that are
+             actually dependent are handled as ck_template_param constants
+             and do not come here.) */
           write_tok_str("template ");
         }  /* if */
         gen_bare_name(scp, entry_kind);
@@ -5111,10 +5104,8 @@ parameter.
          MSVC++ 5.0. */
       write_tok_ch('0');
     } else {
-      in_default_argument = TRUE;
       gen_initializer_expr(expr, param->type, /*need_parens=*/TRUE,
                            curr_name_context_is_a_class());
-      in_default_argument = FALSE;
     }  /* if */
   }  /* if */
 }  /* gen_default_arg_expr */
@@ -8514,16 +8505,16 @@ function reference.
         gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
         if (!suppress_this) pop_name_context();
       }  /* if */
-      if (gcc_is_generated_code_target && !in_default_argument &&
+      if (gcc_is_generated_code_target &&
           in_prototype_instantiation_context() &&
           template_arguments_for_name(&rout->source_corresp, iek_routine,
                                       (a_boolean *)NULL) != NULL) {
         /* In some circumstances, g++ requires the "template" keyword in
            references to template-ids that are not actually dependent and
-           does not complain when the keyword is used unnecessarily (except
-           in default arguments), so we put it out unconditionally here.
-           (The cases that are actually dependent are handled as
-           ck_template_param constants and do not come here.) */
+           does not complain when the keyword is used unnecessarily, so we
+           put it out unconditionally here.  (The cases that are actually
+           dependent are handled as ck_template_param constants and do not
+           come here.) */
         write_tok_str("template ");
       }  /* if */
       /* Put out the base routine name.*/
@@ -14391,7 +14382,6 @@ Initialize for the C++/C-generating back end.
   innermost_function_scope = NULL;
   in_friend_declaration = FALSE;
   in_ctor_default_argument = FALSE;
-  in_default_argument = FALSE;
   in_generated_instance = FALSE;
   curr_name_context = NULL;
   avail_hidden_name_fixups = NULL;
