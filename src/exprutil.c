@@ -5775,7 +5775,7 @@ is an lvalue reference to const.
   a_type_ptr underlying_type;
   a_boolean  is_rvalue_ref = FALSE;
 
-  check_assertion(is_reference_type(dest_type));
+  check_assertion(is_any_reference_type(dest_type));
   is_rvalue_ref = is_rvalue_reference_type(dest_type);
   underlying_type = type_pointed_to(dest_type);
   if (is_rvalue_ref) {
@@ -9446,7 +9446,7 @@ e.g., if the source operand is an lvalue.
 {
   an_operand orig_operand;
   a_boolean  rvalue_expected = FALSE, lvalue_expected = FALSE;
-  a_boolean  is_reference_cast = is_reference_type(dest_type);
+  a_boolean  is_reference_cast = is_any_reference_type(dest_type);
   a_boolean  is_rvalue_reference_cast = FALSE;
 
   orig_operand = *operand;
@@ -10763,7 +10763,7 @@ an error.
   if (base_member_sym->kind == (a_symbol_kind)sk_field) {
     /* Pointer to nonstatic data member. */
     a_field_ptr field = base_member_sym->variant.field.ptr;
-    if (is_reference_type(field->type)) {
+    if (is_any_reference_type(field->type)) {
       if (expr_error_should_be_issued()) {
         pos_ty_error(ec_bad_member_type_in_ptr_to_member, position,
                      field->type);
@@ -12066,7 +12066,7 @@ intended to be called from outside of the expression routines.
                         /*uses_operator_syntax=*/FALSE,
                         err_pos,
                         /*function_call_node=*/(an_expr_node_ptr *)NULL);
-  if (is_reference_type(node->type)) {
+  if (is_any_reference_type(node->type)) {
     /* The function returns a reference. */
     node = add_ref_indirection_to_node(node);
   }  /* if */
@@ -12769,7 +12769,7 @@ e.g., in a back end.
     /* Re-fetch the variable type, because cv-qualifiers might have been
        dropped in converting it to an rvalue. */
     lvalue_type = var->type;
-    check_assertion(!is_reference_type(lvalue_type));
+    check_assertion(!is_any_reference_type(lvalue_type));
 #if DO_IL_LOWERING
     if (il_lowering_underway &&
         var->is_parameter && var->assoc_param_type != NULL &&

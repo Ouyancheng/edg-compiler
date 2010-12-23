@@ -2015,7 +2015,7 @@ been scanned: builtin_func represents the reference to the builtin function
   type_name(&type);
   if (is_function_type(type) ||
       is_array_type(type) ||
-      is_reference_type(type)) {
+      is_any_reference_type(type)) {
     /* The type is not allowed to be an array, function, or reference type. */
     expr_pos_error(ec_bad_va_arg, &type_position);
     err = TRUE;
@@ -4174,7 +4174,7 @@ is a C++/CLI handle.
                                  is_lvalue, compiler_generated, result);
     /* In C++, a field may have a reference type.  An implicit indirection
        is done to get the thing pointed to. */
-    if (!C_mode() && is_reference_type(result_type)) {
+    if (!C_mode() && is_any_reference_type(result_type)) {
       add_reference_indirection(result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (is_tracking_reference_type(result_type)) {
@@ -5630,7 +5630,8 @@ nonstatic_member_function:
         } else if (member_sym->kind != (a_symbol_kind)sk_field) {
           expr_pos_error(ec_offsetof_nonfield, &member_position);
           conv_to_error_operand(result);
-        } else if (is_reference_type(member_sym->variant.field.ptr->type)) {
+        } else if (is_any_reference_type(
+                                        member_sym->variant.field.ptr->type)) {
           expr_pos_error(ec_offsetof_ref_field, &member_position);
           conv_to_error_operand(result);
         } else if (member_sym->variant.field.ptr->is_bit_field) {
@@ -5967,7 +5968,7 @@ the selection, not an operator token for the call.
             result->ref_entries_list = operand_1->ref_entries_list;
           }  /* if */
           /* There shouldn't be any pointers to members to references. */
-          check_assertion(!is_reference_type(result_type));
+          check_assertion(!is_any_reference_type(result_type));
         }  /* if */
       }  /* if */
     }  /* if */
@@ -7977,7 +7978,7 @@ previously-scanned sizeof expression, and return the result in *result
     /* Type case. */
     /* If the top type is a reference, drop the reference so that the sizeof
        applies to the type referenced.  Keep a dependent reference. */
-    if (is_reference_type(sizeof_type) &&
+    if (is_any_reference_type(sizeof_type) &&
         !(is_template_dependent_context() &&
           is_template_dependent_type(sizeof_type))) {
       sizeof_type = type_pointed_to(sizeof_type);
@@ -8389,7 +8390,7 @@ result in *result (or an error indication in *rcblock).
     /* Type case. */
     /* If the top type is a reference, drop the reference so that the operator
        applies to the type referenced.  Keep a dependent reference. */
-    if (is_reference_type(alignof_type) &&
+    if (is_any_reference_type(alignof_type) &&
         !(is_template_dependent_context() &&
           is_template_dependent_type(alignof_type))) {
       alignof_type = type_pointed_to(alignof_type);
@@ -10605,7 +10606,7 @@ indication in *rcblock).
   if (is_type) {
     /* Type case. */
     /* If the type is a reference, drop that. */
-    if (is_reference_type(typeid_type)) {
+    if (is_any_reference_type(typeid_type)) {
       typeid_type = type_pointed_to(typeid_type);
     }  /* if */
   } else {
@@ -10931,7 +10932,7 @@ indication in *rcblock).  after_keyword is ignored in that case.
     /* Type case. */
     /* If the type is a reference, drop that. */
     /* For __uuidof(0) on a rescan, uuidof_type is NULL. */
-    if (uuidof_type != NULL && is_reference_type(uuidof_type)) {
+    if (uuidof_type != NULL && is_any_reference_type(uuidof_type)) {
       uuidof_type = type_pointed_to(uuidof_type);
     }  /* if */
   } else {
@@ -11219,7 +11220,7 @@ indication in *rcblock).
     cast_type_okay = FALSE;
     if (is_ptr_or_ref_type(cast_type)) {
       underlying_cast_type = type_pointed_to(cast_type);
-      reference_case = is_reference_type(cast_type);
+      reference_case = is_any_reference_type(cast_type);
       if (reference_case && is_rvalue_reference_type(cast_type)) {
         rvalue_reference_case = TRUE;
       }  /* if */
@@ -13844,7 +13845,7 @@ called only in C++ mode.
 
   *processed = FALSE;
   *allow_rvalue_on_rewrite = FALSE;
-  cast_to_reference = is_reference_type(type_cast_to);
+  cast_to_reference = is_any_reference_type(type_cast_to);
   cast_to_rvalue_reference = is_rvalue_reference_type(type_cast_to);
   /* Don't check for user-defined conversions in constant expressions. */
   if (!curr_expr_kind_is_const()) {
@@ -14116,7 +14117,7 @@ it to an lvalue).
   a_type_ptr underlying_type_cast_to;
 
   *processed = FALSE;
-  check_assertion(is_reference_type(type_cast_to));
+  check_assertion(is_any_reference_type(type_cast_to));
   underlying_type_cast_to = type_pointed_to(type_cast_to);
   if (is_template_dependent_context() &&
       (is_template_dependent_type(type_cast_to) ||
@@ -14469,7 +14470,7 @@ indicates which.
     cast_to_void = is_void_type(type_cast_to);
     if (!C_mode()) {
       /* See if we're casting to a reference type. */
-      cast_to_reference = is_reference_type(type_cast_to);
+      cast_to_reference = is_any_reference_type(type_cast_to);
       check_user_defined_conversions_for_cast(type_cast_to, operand,
                                               source_form, type_position,
                                               &allow_rvalue_on_rewrite,
@@ -14771,7 +14772,7 @@ indication in *rcblock).
   } else {
     operand_expression = expr_node_from_operand(&operand);
   }  /* if */
-  reference_case = is_reference_type(cast_type);
+  reference_case = is_any_reference_type(cast_type);
   if (reference_case && is_rvalue_reference_type(cast_type)) {
     rvalue_reference_case = TRUE;
   }  /* if */
@@ -14998,7 +14999,7 @@ indication in *rcblock).
   } else {
     a_boolean cast_to_void = is_void_type(type_cast_to);
 
-    cast_to_reference = is_reference_type(type_cast_to);
+    cast_to_reference = is_any_reference_type(type_cast_to);
     operand_expression = expr_node_from_operand(result);
     /* Check for user-defined conversions and casts to reference type. */
     check_user_defined_conversions_for_cast(type_cast_to, result,
@@ -15295,7 +15296,7 @@ indication in *rcblock).
       is_const_string_literal_in_microsoft_mode = TRUE;
     }  /* if */
     /* Check for casts to reference type. */
-    cast_to_reference = is_reference_type(type_cast_to);
+    cast_to_reference = is_any_reference_type(type_cast_to);
     if (!cast_to_reference && !microsoft_ignored_case) {
       /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
          conversions.  They must be done now because they affect the type
@@ -16364,7 +16365,7 @@ as the cast in place of rcblock->expr.
       if (err) {
         /* Some previous error. */
         make_error_operand(result);
-      } else if (is_reference_type(type_cast_to)) {
+      } else if (is_any_reference_type(type_cast_to)) {
         /* Disallow a cast to a reference type without operands; you
            can't default-initialize a reference. */
         expr_pos_error(ec_bad_cast, start_position);
@@ -19812,7 +19813,7 @@ Add the list of accessible base classes to the throw node throw_node
 
   /* Remove a reference or pointer type to get to any underlying class
      type. */
-  if (is_reference_type(type)) type = type_pointed_to(type);
+  if (is_any_reference_type(type)) type = type_pointed_to(type);
   if (is_pointer_type(type)) type = type_pointed_to(type);
   type = f_skip_typerefs(type);
   if (is_immediate_class_type(type)) {
@@ -21335,7 +21336,7 @@ variable:
                       make_selection_for_captured_variable(lambda_capture,
                                                            /*is_lvalue=*/TRUE);
             make_lvalue_expression_operand(sel_expr, result);
-            if (is_reference_type(lambda_capture->closure_field->type)) {
+            if (is_any_reference_type(lambda_capture->closure_field->type)) {
               add_reference_indirection(result);
             }  /* if */
             okay_for_integral_const_expr = FALSE;
@@ -22713,7 +22714,7 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       a_field_ptr      source_field = lcp->source_closure_field;
       an_expr_node_ptr this_expr = this_param_value_expr();
       an_expr_node_ptr field_sel;
-      if (is_reference_type(source_field->type)) {
+      if (is_any_reference_type(source_field->type)) {
         field_sel = field_rvalue_selection_expr(this_expr, source_field);
         field_sel = add_ref_indirection_to_node(field_sel);
       } else {
@@ -24615,7 +24616,7 @@ required_type will be void if the expression should have void type
                                /*nontype_template_arg=*/FALSE,
                                err_code);
       expression = make_node_from_operand(&result);
-      if (!is_reference_type(required_type)) {
+      if (!is_any_reference_type(required_type)) {
         check_for_return_of_address_of_local_variable(expression,
                                                       &result.position);
       }  /* if */
@@ -27845,7 +27846,7 @@ of this where the source should be considered an rvalue.
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
-  if (is_reference_type(src_type)) {
+  if (is_any_reference_type(src_type)) {
     /* It's not clear what it means to specify a reference type as
        the source type (the standard doesn't say), but we ignore it. */
     src_type = type_pointed_to(src_type);

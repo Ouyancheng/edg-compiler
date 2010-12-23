@@ -189,7 +189,7 @@ destination type (this comes up in a Microsoft-mode extension).
     dest_class = NULL;
     is_ptr = TRUE;
     dest_underlying_type = type_pointed_to(dest_type);
-  } else if (is_reference_type(dest_type)) {
+  } else if (is_any_reference_type(dest_type)) {
     dest_class = NULL;
     is_ref = TRUE;
     is_rvalue_ref = is_rvalue_reference_type(dest_type);
@@ -1583,7 +1583,7 @@ part of determining the conversions on the operands of a "?" operator.
   a_type_ptr base_dest_type;
 
   *ambiguous = FALSE;
-  check_assertion(is_reference_type(dest_type));
+  check_assertion(is_any_reference_type(dest_type));
   base_dest_type = type_pointed_to(dest_type);
   if (is_rvalue_reference_type(dest_type)) {
     /* This conversion is not applicable to rvalue references (if you convert
@@ -1806,7 +1806,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     arg_originally_an_lvalue = (is_an_lvalue(arg_operand) ||
                                 is_a_function_designator(arg_operand));
   }  /* if */
-  param_is_reference = is_reference_type(param_type);
+  param_is_reference = is_any_reference_type(param_type);
   param_is_rvalue_reference = is_rvalue_reference_type(param_type);
   /* See if the array --> pointer and function --> pointer transformations
      should be done. */
@@ -2674,7 +2674,7 @@ it is always NULL.
                              arg_type,
                              arg_type->variant.routine.extra_info->this_class);
   }  /* if */
-  if (is_reference_type(param_type)) {
+  if (is_any_reference_type(param_type)) {
     /* The parameter has a reference type. */
     a_boolean is_rvalue_ref = is_rvalue_reference_type(param_type);
     /* Drop the reference type. */
@@ -4248,7 +4248,7 @@ it is a pointer type for the implicit "this" parameter, which is treated
 by the standard as a reference-equivalent in overload resolution.
 */
 #define is_ref_or_ref_equivalent(param_type, arg_match) \
-  (is_reference_type(param_type) || \
+  (is_any_reference_type(param_type) || \
    ((arg_match)->is_match_for_this_param && is_pointer_type(param_type)))
 
 
@@ -9572,9 +9572,9 @@ This routine is only used in C++ mode.
     conv_routine_type = skip_typerefs(conv_routine_type);
     return_type = return_type_of(conv_routine_type);
     raw_return_type = conv_routine_type->variant.routine.return_type;
-    result_is_a_reference = is_reference_type(raw_return_type);
+    result_is_a_reference = is_any_reference_type(raw_return_type);
     result_is_an_lvalue = result_is_a_reference &&
-                          is_lvalue_reference_type(raw_return_type);
+                          is_any_lvalue_reference_type(raw_return_type);
     if (need_lvalue_result && !result_is_an_lvalue) {
       /* We need an lvalue result but the conversion function does
          not return one.  This is tested again later; the test here is for
@@ -12645,7 +12645,7 @@ a reference type (the caller should have rewritten that case).
   *failed = FALSE;
   clear_conv_descr(conversion);
 #if CHECKING
-  if (is_reference_type(dest_type)) {
+  if (is_any_reference_type(dest_type)) {
     internal_error("user_defined_conversion_possible: dest_type is reference");
   }  /* if */
 #endif /* CHECKING */
@@ -12865,7 +12865,7 @@ NULL, the operand is not a parameter.
   db_enter(4, "conversion_possible");
   clear_conv_descr(conversion);
 #if CHECKING
-  if (is_reference_type(dest_type)) {
+  if (is_any_reference_type(dest_type)) {
     internal_error("conversion_possible: dest_type is reference");
   }  /* if */
 #endif /* CHECKING */
@@ -13543,7 +13543,7 @@ See conversion_possible for the meaning of is_transparent.
   a_conv_descr local_conversion;
 
 #if CHECKING
-  if (is_reference_type(dest_type)) {
+  if (is_any_reference_type(dest_type)) {
     internal_error("prep_conversion_operand: dest_type is reference");
   }  /* if */
 #endif /* CHECKING */
@@ -13602,7 +13602,7 @@ elided_cctor is passed as NULL.
                                    variant.routine.extra_info->param_type_list;
         a_type_qualifier_set qualifiers;
         a_type_ptr           under_type;
-        check_assertion(ptp != NULL && is_reference_type(ptp->type));
+        check_assertion(ptp != NULL && is_any_reference_type(ptp->type));
         under_type = type_pointed_to(ptp->type);
         qualifiers = get_type_qualifiers(under_type);
         if ((qualifiers & (TQ_CONST | TQ_VOLATILE)) ==
@@ -14361,7 +14361,7 @@ be a reference type.  Only used in C++.  This is copy-initialization.
   *err = FALSE;
   orig_operand = *source_operand;
 #if CHECKING
-  if (is_reference_type(dest_type)) {
+  if (is_any_reference_type(dest_type)) {
     internal_error("convert_operand_into_temp: dest_type is reference");
   }  /* if */
 #endif /* CHECKING */
@@ -14674,7 +14674,7 @@ direct binding is "possible" and not whether it is "valid".
   a_type_ptr base_dest_type, unqual_dest_type, unqual_source_type;
                                            
   if (function_symbol != NULL) *function_symbol = NULL;
-  check_assertion(is_reference_type(dest_type));
+  check_assertion(is_any_reference_type(dest_type));
   base_dest_type = type_pointed_to(dest_type);
   is_rvalue_ref = is_rvalue_reference_type(dest_type);
   if (source_operand != NULL) {
@@ -14961,7 +14961,7 @@ been found to be acceptable, and *conversion describes it.
                ambiguity_list = NULL;
   a_symbol_ptr function_symbol = NULL;
 
-  check_assertion(is_reference_type(dest_type));
+  check_assertion(is_any_reference_type(dest_type));
   is_rvalue_ref = is_rvalue_reference_type(dest_type);
   orig_operand = *source_operand;
   if (conversion != NULL &&
@@ -15469,7 +15469,7 @@ of is_transparent.
   }  /* if */
   if (is_error_operand(source_operand)) {
     /* Previous error.  Leave the operand alone. */
-  } else if (is_reference_type(dest_type)) {
+  } else if (is_any_reference_type(dest_type)) {
     /* Reference initialization. */
     prep_reference_initializer_operand(source_operand, dest_type,
                                        conversion,
@@ -16257,7 +16257,7 @@ constructor.
       rtsp = routine_type->variant.routine.extra_info;
       ptp = rtsp->param_type_list;
       param_type = ptp->type;
-      check_assertion(is_reference_type(param_type));
+      check_assertion(is_any_reference_type(param_type));
       arg_match = alloc_arg_match_summary();
       determine_arg_match_level((an_operand *)NULL, arg_type,
                                 param_type,
