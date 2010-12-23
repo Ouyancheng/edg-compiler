@@ -2073,6 +2073,20 @@ ec_static_storage_variable_with_handle_or_tracking_ref_type;;"a variable with st
 ec_lambda_captures_handle_or_tracking_ref;;"a variable captured by a lambda cannot be a handle or tracking reference"
 ec_invalid_param_array_type;;"C++/CLI parameter array must be a handle to a one-dimensional CLI array type"
 ec_cannot_import_metadata;;"could import metadata from file %sq"
+ec_bad_finalizer_decl;;"invalid finalizer declaration"
+ec_too_many_params_for_finalizer;;"a finalizer may not have parameters"
+ec_function_qualifier_on_finalizer;;"a type qualifier is not allowed on a finalizer"
+ec_return_type_on_finalizer;;"a return type may not be specified on a finalizer"
+ec_no_finalizer_using_declaration;;"a using-declaration may not name a finalizer"
+ec_finalizer_name_must_be_qualified;;"a finalizer name must be qualified"
+ec_finalizer_qualifier_type_mismatch;;"qualifier of finalizer name %t1 does not match type %t2"
+ec_var_used_as_finalizer;;"%n cannot be used to name a finalizer (a type name is required)"
+ec_invalid_finalizer_name;;"invalid finalizer name for type %t"
+ec_ambiguous_finalizer;;"finalizer reference is ambiguous -- both %n1 and %n2 could be used"
+ec_finalizer_requires_reference_type;;"a finalizer can only be a member of a reference type"
+ec_finalizer_name_mismatch;;"finalizer name does not match name of class %t"
+ec_finalizer_type_mismatch;;"type used as finalizer name does not match type %t"
+ec_finalizer_does_not_exist;;"a finalizer does not exist for this type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

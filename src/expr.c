@@ -4445,10 +4445,9 @@ mode cases).  Set *err to TRUE if there is an error.
        position of the "A". */
     member_position = locator_for_curr_id.source_position;
     qualified_member_position = pos_curr_token;
-    if (offsetof_case &&
-        locator_for_curr_id.is_destructor_name) {
-      /* A destructor name is not allowed as a field name for the offsetof
-         case. */
+    if (offsetof_case && is_dtor_like_locator(locator_for_curr_id)) {
+      /* A destructor or C++/CLI finalizer name is not allowed as a field name
+         for the offsetof case. */
       expr_pos_error(ec_exp_identifier, &pos_curr_token);
       *err = TRUE;
     } else if (locator_for_curr_id.is_vacuous_destructor_reference) {
@@ -5298,8 +5297,17 @@ case).
      if the error flag is also set, and it is intentional that we check it
      anyway. */
   if (locator.is_vacuous_destructor_reference) {
-    is_vacuous_destructor_reference = TRUE;
     need_operand_1_type_check = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (locator.is_finalizer_name) {
+      error_in_operand(ec_finalizer_does_not_exist, operand_1);
+      err = TRUE;
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here */
+    {
+      is_vacuous_destructor_reference = TRUE;
+    }  /* if */
   }  /* if */
 
   if (need_operand_1_type_check &&

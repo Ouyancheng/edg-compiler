@@ -13821,10 +13821,10 @@ proceed after the call.
       if ((state->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) == 0) {
         /* Function with no explicitly specified return type.  Issue a
            remark (except in pcc mode and except for C++ constructors,
-           destructors, and conversion operators). */
+           destructors, finalizers, and conversion operators). */
         if (C_dialect != C_dialect_pcc &&
-            !(state->do_flags & (DO_IS_CONSTRUCTOR|DO_IS_DESTRUCTOR|
-                                 DO_IS_STATIC_CONSTRUCTOR)) &&
+            !(state->do_flags & (DO_IS_CONSTRUCTOR | DO_IS_STATIC_CONSTRUCTOR |
+                                 DO_IS_DESTRUCTOR | DO_IS_FINALIZER)) &&
             !locator->is_conversion_name &&
             !(locator->is_error && looks_like_ctor_or_dtor(locator))) {
           report_missing_type_specifier(&state->declarator_start_pos,

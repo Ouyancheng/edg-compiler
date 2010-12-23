@@ -2341,10 +2341,14 @@ value.  Also clear related variant fields to default values.
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case sfk_static_constructor:
+    case sfk_finalizer:
       check_assertion(cppcli_enabled);
       break;
     case sfk_property_get:
     case sfk_property_set:
+    case sfk_event_add:
+    case sfk_event_remove:
+    case sfk_event_raise:
       rp->variant.property_or_event_descr = NULL;
       check_assertion(cppcli_enabled);
       break;

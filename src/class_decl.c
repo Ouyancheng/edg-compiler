@@ -891,6 +891,12 @@ typedef struct a_member_decl_info {
 			/* TRUE if the current declaration is a destructor.
 			   In unusual cases this value may be different from
 			   (dso_flags & DSO_DESTRUCTOR). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	is_finalizer:1;
+			/* TRUE if the current declaration is a finalizer.
+			   In unusual cases this value may be different from
+			   (dso_flags & DSO_FINALIZER). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	invalid_virtual_specifier:1;
 			/* TRUE when (dso_flags & DSO_VIRTUAL) is TRUE but
 			   it is not a valid use of the specifier. */
@@ -956,6 +962,9 @@ a class member declaration as it appears.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   mdip->is_trivial_default_constructor = FALSE;
   mdip->is_destructor = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  mdip->is_finalizer = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   mdip->invalid_virtual_specifier = FALSE;
   mdip->is_unnamed_field = FALSE;
   mdip->is_anonymous_union = FALSE;
@@ -6591,8 +6600,11 @@ of a C++ class, struct, or union or a C struct or union.
        keywords. */
     is_start = (curr_token == tok_static || curr_token == tok_typedef ||
                 curr_token == tok_private || curr_token == tok_protected ||
-                curr_token == tok_public || curr_token == tok_compl);
-
+                curr_token == tok_public || curr_token == tok_compl
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                || (cppcli_enabled && curr_token == tok_not)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                            );
   }  /* if */
   return is_start;
 }  /* is_member_decl_start */
@@ -7965,16 +7977,21 @@ function, set *ambiguous to TRUE.
                                       &class_bitwise_copy);
         }  /* if */
         break;
+      case sfk_destructor:
+        /* Destructor. */
+        sym = (symbol_supplement_for_class(class_type))->destructor;
+        break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case sfk_static_constructor:
         check_assertion(cppcli_enabled);
         sym = (symbol_supplement_for_class(class_type))->static_constructor;
         break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      case sfk_destructor:
-        /* Destructor. */
-        sym = (symbol_supplement_for_class(class_type))->destructor;
+      case sfk_finalizer:
+        /* C++/CLI finalizer. */
+        check_assertion(cppcli_enabled);
+        sym = (symbol_supplement_for_class(class_type))->finalizer;
         break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case sfk_operator:
         /* Assignment operator. */
         check_assertion(first_param != NULL);
@@ -8406,6 +8423,11 @@ set to FALSE (and FALSE is always returned).
         /* Static constructors are allowed on C++/CLI managed interface types
            (e.g. "interface class"), but not on non-CLI "__interface" types. */
         check_assertion(!type->variant.class_struct_union.is_interface);
+        break;
+      case sfk_finalizer:
+        /* Finalizers are only allowed in C++/CLI ref class types. */
+        check_assertion_or_expect_error(is_ref_class_type(type) &&
+                                        !rtn->compiler_generated);
         break;
       default:
         unexpected_condition();
@@ -9359,6 +9381,94 @@ If a specific override was specified using a qualified member declarator
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void update_class_for_special_member(a_class_def_state   *class_state,
+                                            a_member_decl_info  *decl_info,
+                                            a_symbol_ptr        overload_sym)
+/*
+Update the class structures associated with class_state to reflect the fact
+that a special member function (e.g., a constructor) described by decl_info
+is being declared in the associated class.  If the special member is part of
+an overload set, overload_sym points to the symbol representing that set;
+otherwise, it is NULL.
+*/
+{
+  a_type_ptr                 class_type = class_state->class_type;
+  a_class_symbol_supplement  *cssp = symbol_supplement_for_class(class_type);
+  a_decl_parse_state         *dps = &decl_info->decl_state;
+  a_symbol_ptr               sym = dps->sym;
+  a_routine_ptr              rtn = sym->variant.routine.ptr;
+
+  switch (rtn->special_kind) {
+    case sfk_constructor:
+      /* Set the pointer to the constructor symbol in the class symbol
+         supplement. */
+      if (decl_info->is_trivial_default_constructor) {
+        /* An implicitly-declared trivial default constructor is never
+           actually called or declared, so it is not added to the constructor
+           set (which should be empty). */
+        check_assertion(cssp->constructor == NULL);
+        cssp->trivial_default_constructor = sym;
+        rtn->is_trivial_default_constructor = TRUE;
+      } else {
+        if (cssp->constructor == NULL) {
+          cssp->constructor = sym;
+        } else if (cssp->constructor->kind ==
+                                    (a_symbol_kind)sk_overloaded_function) {
+          /* The overloaded function symbol is already registered. */
+        } else if (overload_sym != NULL) {
+          /* The overloaded function symbol was just created.  (Unless an
+             error occurred, in which case overload_sym is NULL.) */
+          cssp->constructor = overload_sym;
+        }  /* if */
+        /* Determine if this is a default constructor. */
+        if (is_default_constructor(rtn, /*is_declarative_context=*/TRUE)) {
+          if (rtn->is_trivial_default_constructor) {
+            /* A defaulted default constructor.  It is assumed trivial until
+               the class is completed, at which point we can make a final
+               determination as to whether it is really trivial. */
+            cssp->trivial_default_constructor = sym;
+          } else {
+            cssp->has_nontrivial_default_constructor = TRUE;
+          }  /* if */
+          if (!rtn->compiler_generated) {
+            cssp->has_user_declared_default_constructor = TRUE;
+            if (!rtn->is_defaulted) {
+              cssp->has_user_provided_default_constructor = TRUE;
+              class_state->POD_ruled_out = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        /* Determine if this is a copy constructor.  If so, set the class
+           symbol supplement flags appropriately. */
+        check_member_decl_is_copy_constructor(rtn, class_type,
+                                              rtn->compiler_generated);
+      }  /* if */
+      break;
+    case sfk_destructor:
+      /* Set the pointer to the destructor symbol in the class symbol
+         supplement. */
+      cssp->destructor = sym;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case sfk_static_constructor:
+      /* If multiple static constructors are declared in the same class, an
+         error should have been issued. */
+      check_assertion_or_expect_error(cssp->static_constructor == NULL);
+      cssp->static_constructor = sym;
+      break;
+    case sfk_finalizer:
+      /* Set the pointer to the finalizer symbol in the class symbol
+         supplement. */
+      cssp->finalizer = sym;
+      break;
+    default:
+      /* Nothing to do. */
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+}  /* update_class_for_special_member */
+
+
 static void decl_member_function(a_symbol_locator        *locator,
                                  a_func_info_block_ptr   func_info,
                                  a_class_def_state_ptr   class_state,
@@ -9397,6 +9507,12 @@ implicitly declared member functions.
   if (cppcli_enabled) {
     if (decl_info->is_static_constructor) {
       check_assertion(decl_state->storage_class == (a_storage_class)sc_static);
+    } else if (decl_info->is_finalizer) {
+      /* Finalizers can only appear in ref class types. */
+      if (!cli_class_type_kind_is(class_type, cctk_ref)) {
+        pos_error(ec_finalizer_requires_reference_type,
+                  &decl_state->declarator_pos);
+      }  /* if */
     } else if (pdp != NULL && pdp->is_static) {
       /* The member function declaration appears as part of a static property
          declaration. */
@@ -9494,7 +9610,24 @@ implicitly declared member functions.
   /* Set the source correspondence, including the access specifier. */
   set_source_corresp(&rtn->source_corresp, sym);
   set_class_membership(sym, &rtn->source_corresp, class_type);
-  rtn->source_corresp.access = class_state->access;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && decl_info->is_finalizer) {
+    /* ECMA-372 says that the access-specifier of a finalizer is ignored and
+       that the finalizer can only be called from other members of its parent
+       class. */
+    rtn->source_corresp.access = (an_access_specifier)as_private;
+  } else if (cppcli_enabled && decl_info->is_destructor &&
+             cli_class_type_kind_is(class_type, cctk_ref)) {
+    /* Similarly, ECMA-372 says that the access-specifier of a destructor for
+       a ref class type is ignored.  Microsoft compilers appear to treat them
+       as public members in that case. */
+    rtn->source_corresp.access = (an_access_specifier)as_public;
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    rtn->source_corresp.access = class_state->access;
+  }  /* if */
   if (locator->is_operator_name) {
     /* Overloaded operator function. */
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_operator);
@@ -9515,6 +9648,9 @@ implicitly declared member functions.
       /* A C++/CLI static constructor declaration. */
       set_routine_special_kind(
                         rtn, (a_special_function_kind)sfk_static_constructor);
+    } else if (decl_info->is_finalizer) {
+      /* A C++/CLI finalizer declaration. */
+      set_routine_special_kind(rtn, (a_special_function_kind)sfk_finalizer);
     } else if (pdp != NULL) {
       /* A C++/CLI property accessor. */
       if (pdp->kind == (a_property_or_event_kind)pek_cli_property) {
@@ -9944,62 +10080,8 @@ implicitly declared member functions.
         cssp->assignment_by_bitwise_copy_allowed = FALSE;
       }  /* if */
     }  /* if */
-    if (rtn->special_kind == (a_special_function_kind)sfk_constructor) {
-      /* Set the pointer to the constructor symbol in the class symbol
-         supplement. */
-      if (decl_info->is_trivial_default_constructor) {
-        /* An implicitly-declared trivial default constructor is never
-           actually called or declared, so it is not added to the constructor
-           set (which should be empty). */
-        check_assertion(cssp->constructor == NULL);
-        cssp->trivial_default_constructor = sym;
-        rtn->is_trivial_default_constructor = TRUE;
-      } else {
-        if (cssp->constructor == NULL) {
-          cssp->constructor = sym;
-        } else if (cssp->constructor->kind ==
-                                    (a_symbol_kind)sk_overloaded_function) {
-          /* The overloaded function symbol is already registered. */
-        } else if (overload_sym != NULL) {
-          /* The overloaded function symbol was just created.  (Unless an
-             error occurred, in which case overload_sym is NULL.) */
-          cssp->constructor = overload_sym;
-        }  /* if */
-        /* Determine if this is a default constructor. */
-        if (is_default_constructor(rtn, /*is_declarative_context=*/TRUE)) {
-          if (rtn->is_trivial_default_constructor) {
-            /* A defaulted default constructor.  It is assumed trivial until
-               the class is completed, at which point we can make a final
-               determination as to whether it is really trivial. */
-            cssp->trivial_default_constructor = sym;
-          } else {
-            cssp->has_nontrivial_default_constructor = TRUE;
-          }  /* if */
-          if (!compiler_generated) {
-            cssp->has_user_declared_default_constructor = TRUE;
-            if (!rtn->is_defaulted) {
-              cssp->has_user_provided_default_constructor = TRUE;
-              class_state->POD_ruled_out = TRUE;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-        /* Determine if this is a copy constructor.  If so, set the class
-           symbol supplement flags appropriately. */
-        check_member_decl_is_copy_constructor(rtn, class_type,
-                                              compiler_generated);
-      }  /* if */
-    } else if (rtn->special_kind == (a_special_function_kind)sfk_destructor) {
-      /* Set the pointer to the destructor symbol in the class symbol
-         supplement. */
-      cssp->destructor = sym;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (rtn->special_kind ==
-                             (a_special_function_kind)sfk_static_constructor) {
-      /* If multiple static constructors are declared in the same class, an
-         error should have been issued. */
-      check_assertion_or_expect_error(cssp->static_constructor == NULL);
-      cssp->static_constructor = sym;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (!special_kind_is(rtn, sfk_none)) {
+      update_class_for_special_member(class_state, decl_info, overload_sym);
     }  /* if */
 #if BACK_END_IS_CP_GEN_BE
     /* Set the "name linkage environment" for this routine. */
@@ -11438,6 +11520,9 @@ nonstandard anonymous unions is_nonstd is TRUE.
     /* Clear special symbol pointers for routines that will be discarded. */
     cssp->constructor = NULL;
     cssp->destructor = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    cssp->finalizer = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     cssp->trivial_default_constructor = NULL;
     cssp->assignment_operator = NULL;
     /* Also reset some flags to values that make sense after the union
@@ -14406,10 +14491,15 @@ distinguish an alias declaration from a using-declaration.)
 #endif /* CHECKING */
     } else if (is_constructor_symbol(declared_sym) ||
                is_destructor_symbol(declared_sym)) {
-      /* A using-declaration may not specify a constructor or destructor. */
+      /* A using-declaration may not specify a constructor or destructor.
+         (C++/CLI static constructors cannot get here.) */
       pos_diagnostic(microsoft_mode ? es_warning :
                      strict_ansi_mode ? es_error : es_discretionary_error,
                      ec_no_ctor_or_dtor_using_declaration, &decl_pos);
+      err = TRUE;
+    } else if (cppcli_enabled && is_finalizer_symbol(declared_sym)) {
+      /* A using-declaration may not specify a finalizer. */
+      pos_error(ec_no_finalizer_using_declaration, &decl_pos);
       err = TRUE;
     } else if (declared_sym->ambiguous) {
       /* declared_sym must be a projection symbol -- and it is ambiguous. */
@@ -15316,9 +15406,13 @@ is found.
     if (microsoft_mode) {
       severity = es_warning;
     }  /* if */
-  } else if (decl_info->is_constructor || is_union_type(class_type)) {
-    /* Constructors may not be virtual functions (WP 12.1 [class.ctor]) and
-       unions may not have them (WP 9.5 [class.union]). */
+  } else if (decl_info->is_constructor || is_union_type(class_type)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+             || (cppcli_enabled && decl_info->is_finalizer)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                           ) {
+    /* Constructors may not be virtual functions and unions may not have them.
+       C++/CLI finalizers may not be virtual functions. */
     error_code = ec_virtual_not_allowed;
   } else if (decl_state->storage_class == (a_storage_class)sc_static ||
              (locator->is_operator_name &&
@@ -16402,18 +16496,27 @@ flag if error recovery should be performed as if the specifier didn't occur.
   dps->sym = NULL;
   if (!decl_info->is_first_in_declarator_list) {
     /* Check if a secondary declarator declares a constructor or destructor.
-       (In C++/CLI mode, also consider static constructors.) */
+       (In C++/CLI mode, also consider static constructors and finalizers.) */
     decl_info->is_destructor = decl_info->is_constructor = FALSE;
     dps->dso_flags &= ~(DSO_CONSTRUCTOR | DSO_DESTRUCTOR);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     decl_info->is_static_constructor = FALSE;
-    dps->dso_flags &= ~DSO_STATIC_CONSTRUCTOR;
+    decl_info->is_finalizer = FALSE;
+    dps->dso_flags &= ~(DSO_STATIC_CONSTRUCTOR | DSO_FINALIZER);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (curr_token == tok_compl ||
         (is_generalized_identifier_start(GID_NO_OPTIONS) &&
          locator_for_curr_id.is_destructor_name)) {
       decl_info->is_destructor = TRUE;
       dps->type = dps->declared_type = unknown_type();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled &&
+               (curr_token == tok_not ||
+                (is_generalized_identifier_start(GID_NO_OPTIONS) &&
+                 locator_for_curr_id.is_finalizer_name))) {
+      decl_info->is_finalizer = TRUE;
+      dps->type = dps->declared_type = unknown_type();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (curr_token == tok_identifier &&
                is_constructor_decl(class_type, dps)) {
       if (dps->declared_storage_class != (a_storage_class)sc_static) {
@@ -16439,7 +16542,12 @@ flag if error recovery should be performed as if the specifier didn't occur.
     set_to_error_locator(*locator);
     check_pending_qualifiers_used(dps);
   } else if (no_decl_specifiers && !decl_info->is_constructor &&
-             !decl_info->is_destructor && !is_declarator_start()) {
+             !decl_info->is_destructor &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+             !decl_info->is_finalizer &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+             !is_declarator_start()) {
+    /* No specifiers and no declarator: Issue a syntax error. */
     remove_stop_token(tok_comma);
     remove_stop_token(tok_colon);
     remove_stop_token(tok_try);
@@ -16561,6 +16669,9 @@ flag if error recovery should be performed as if the specifier didn't occur.
           /* C++/CLI static constructors cannot have parameters. */
           pos_error(ec_static_constructor_with_params, &dps->start_pos);
         }  /* if */
+      } else if (locator->is_finalizer_name ||
+                 (dps->do_flags & DO_IS_FINALIZER) != 0) {
+        decl_info->is_finalizer = TRUE;
       }  /* if */
       scan_named_overrides_if_any(decl_info);
     }  /* if */
@@ -16852,14 +16963,14 @@ passed via template_decl.
       if (!type_explicitly_specified) {
         /* No type specifier. */
         if (decl_info.is_constructor || decl_info.is_destructor ||
-            locator.is_conversion_name) {
-          /* Type specifier is not expected (nor permitted) on constructors,
-             destructors, and conversion functions. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled && decl_info.is_static_constructor) {
-          /* Type specifier is not expected (nor permitted) on C++/CLI static
-             constructors. */
+            decl_info.is_static_constructor || decl_info.is_finalizer ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            locator.is_conversion_name ||
+            (locator.is_error && looks_like_ctor_or_dtor(&locator))) {
+          /* Type specifier is not expected (nor permitted) on constructors,
+             destructors, and conversion functions.  Similarly, they are not
+             permitted on C++/CLI static constructors and finalizers. */
         } else {
           /* Type specifier is missing.  The type defaults to int, but issue
              a diagnostic. */
@@ -16901,7 +17012,9 @@ passed via template_decl.
         if ((decl_info.is_constructor || decl_info.is_destructor) &&
             decl_state->storage_class == (a_storage_class)sc_static) {
           /* Constructors and destructors may not be declared "static"
-             (ARM 12.1, 12.4). */
+             (except in C++/CLI mode, but "static constructors" do not have
+             the is_constructor flag set to TRUE).  C++/CLI finalizer cannot
+             be static either. */
           pos_error(ec_static_not_allowed, &decl_state->start_pos);
           decl_state->storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
@@ -17159,7 +17272,11 @@ passed via template_decl.
       remove_stop_token(tok_comma);
       discard_curr_construct_pragmas();
       break;
-    } else if (decl_info.is_destructor) {
+    } else if (decl_info.is_destructor
+#if MICROSOFT_EXTENSIONS_ALLOWED
+               || decl_info.is_finalizer
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                        ) {
       /* Error has already been issued if it wasn't processed as a
          function. */
       discard_curr_construct_pragmas();

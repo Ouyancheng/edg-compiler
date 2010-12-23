@@ -7051,14 +7051,17 @@ does not set either return value.
       case sfk_constructor:
         *symbols = cssp->constructor;
         break;
+      case sfk_destructor:
+        *symbols = cssp->destructor;
+        break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case sfk_static_constructor:
         *symbols = cssp->static_constructor;
         break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      case sfk_destructor:
-        *symbols = cssp->destructor;
+      case sfk_finalizer:
+        *symbols = cssp->finalizer;
         break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case sfk_conversion:
         /* There are two lists of conversion operators.  One for templates
            and one for non-templates. */

@@ -82,7 +82,7 @@ EXTERN a_cached_token_handle
 
 
 /* Flags used to specify how identifiers are to be scanned by the
-   generalized identifier routines.   is_generalized_identifier_start
+   generalized identifier routines.  is_generalized_identifier_start
    recognizes only the GID_TEMPLATE_ARGS_OPTIONAL and
    GID_DTOR_RECOGNIZED flags. */
 typedef int an_identifier_options_set;

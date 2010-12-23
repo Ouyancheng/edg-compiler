@@ -253,11 +253,18 @@ abstract or real declarator.
 			/* This bit is set in GNU C++ mode when a right
 			   parenthesis has been seen inside a new-declarator
 			   (which is only possible due to a GNU bug). */
-#define DO_IS_STATIC_CONSTRUCTOR ((a_decl_flag_set)0x400)
+#define DO_IS_STATIC_CONSTRUCTOR ((a_decl_flag_set)0x200)
 			/* This bit is set if a C++/CLI static constructor
 			   declarator was scanned.  It is FALSE when
 			   DO_IS_CONSTRUCTOR is TRUE and vice versa. */
-#define DO_LAST DO_IS_STATIC_CONSTRUCTOR
+#define DO_IS_FINALIZER ((a_decl_flag_set)0x400)
+			/* This bit is set if a finalizer declarator was
+			   scanned.  It will certainly be set if the input
+			   flag corresponding to DI_IS_FINALIZER was set,
+			   but even when that is not the case -- presumably
+			   because the declarator was parenthesized -- this
+			   bit may become set. */
+#define DO_LAST DO_IS_FINALIZER
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DO_LAST)*/
 

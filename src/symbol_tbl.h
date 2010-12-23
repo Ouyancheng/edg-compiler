@@ -184,6 +184,11 @@ typedef struct a_symbol_locator {
   a_bit_field	is_destructor_name:1;
 			/* TRUE if the "identifier" is a C++ destructor
 			   name, of the form "~<name>". */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	is_finalizer_name:1;
+			/* TRUE if the "identifier" is a C++/CLI finalizer
+			   name, of the form "!<name>". */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	is_semivisible_nested_type:1;
 			/* TRUE if specific_symbol points to a nested type
 			   that is not actually visible, except as a C++
@@ -202,11 +207,13 @@ typedef struct a_symbol_locator {
 			   a type that has no destructor.  Used for
 			   explicit destructor invocations of the form
 			   p->int::~int.  The type can be a nonclass type
-			   or a class type with no destructor. */
+			   or a class type with no destructor.  (Also used for
+			   C++/CLI finalizers.) */
   a_bit_field	is_nonclass_destructor:1;
 			/* TRUE for vacuous destructor references for 
 			   nonclass types such as int::~int or i::~i
-			   where "i" is a typedef name. */
+			   where "i" is a typedef name.  (Also used for
+			   C++/CLI finalizers.) */
   a_bit_field	is_error:1;
 			/* TRUE if an error has been diagnosed on the use
 			   of the associated identifier and no symbol should
@@ -304,12 +311,13 @@ typedef struct a_symbol_locator {
     a_type_ptr  conversion_result_type;
 			/* The return type when a user-defined conversion
 			   name is scanned. */
-    /* When is_destructor_name is TRUE: */
+    /* When is_destructor_name or is_finalizer_name is TRUE: */
     a_type_ptr	destructor_type;
-			/* This is the type of the name that follows the
-			   "~" in a destructor name.  This field is only
-			   guaranteed to be non-NULL for destructor names
-			   from field selection operations. */
+			/* This is the type of the name that follows the "~"
+			   in a destructor name or the "!" in a finalizer name.
+			   This field is only guaranteed to be non-NULL for
+			   destructor and finalizer names from field selection
+			   operations. */
   } variant;
 } a_symbol_locator;
 
@@ -354,6 +362,15 @@ Clear a symbol locator.
 
 /* Test a locator to see if it is an error locator. */
 #define is_error_locator(loc) ((loc).is_error)
+
+/* Test a locator to see if it is a destructor or finalizer locator. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_dtor_like_locator(loc)                                     \
+  ((loc).is_destructor_name || (loc).is_finalizer_name)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_dtor_like_locator(loc)                                     \
+  ((loc).is_destructor_name)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Retrieve a pointer to the symbol list from a locator. */
 #define symbol_list_from_locator(loc) ((loc).symbol_header->symbol)
@@ -793,12 +810,6 @@ typedef struct a_class_symbol_supplement {
 			   class has only an implicitly-declared trivial
 			   default constructor and an implicitly-declared
 			   trivial copy constructor. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_symbol_ptr  static_constructor;
-                        /* Pointer to an sk_member_function symbol when there
-                           is a C++/CLI static constructor defined for the
-                           class; NULL if there is none. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_symbol_ptr	trivial_default_constructor;
 			/* When constructor is NULL and is_POD is FALSE,
 			   pointer to an sk_member_function symbol for the
@@ -822,6 +833,16 @@ typedef struct a_class_symbol_supplement {
 			/* Pointer to an sk_member_function symbol that
 			   identifies the destructor for this class; NULL if
 			   there is none. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_symbol_ptr  static_constructor;
+                        /* Pointer to an sk_member_function symbol when there
+                           is a C++/CLI static constructor defined for the
+                           class; NULL if there is none. */
+  a_symbol_ptr	finalizer;
+			/* Pointer to an sk_member_function symbol that
+			   identifies the C++/CLI finalizer for this class;
+			   NULL if there is none. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_symbol_ptr  assignment_operator;
 			/* Pointer to a symbol (sk_member_function or
 			   sk_overloaded_function) symbol that identifies
@@ -3701,7 +3722,12 @@ extern a_symbol_ptr find_external_symbol(a_symbol_locator     *location,
                                          a_type_ptr           type,
                                          a_symbol_locator     *ext_location);
 
-extern void tildize_locator(a_symbol_locator *locator);
+extern void change_to_destructor_or_finalizer_locator(
+                                                 a_symbol_locator  *locator,
+                                                 a_boolean         finalizer);
+
+#define tildize_locator(loc)                                                 \
+  (change_to_destructor_or_finalizer_locator((loc), /*finalizer=*/FALSE))
 
 extern a_boolean destructor_name_matches_class_name(a_symbol_ptr class_sym);
 
@@ -4562,19 +4588,25 @@ extern a_type_ptr underlying_function_type(a_symbol_ptr  sym);
    ((cssp)->trivial_default_constructor != NULL ||                   \
     (cssp)->constructor == NULL))
 
+/* Return TRUE if a symbol is a destructor symbol. */
+#define is_destructor_symbol(sym)                                     \
+  is_special_function_symbol(sym,                                     \
+                             (a_special_function_kind)sfk_destructor)
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* Return TRUE if a symbol is a C++/CLI static constructor symbol. */
 #define is_static_constructor_symbol(sym)                             \
   is_special_function_symbol(sym,                                     \
                              (a_special_function_kind)sfk_static_constructor)
+
+/* Return TRUE if a symbol is a C++/CLI finalizer symbol. */
+#define is_finalizer_symbol(sym)                                      \
+  is_special_function_symbol(sym,                                     \
+                             (a_special_function_kind)sfk_finalizer)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_static_constructor_symbol(sym) FALSE
+#define is_finalizer_symbol(sym) FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-/* Return TRUE if a symbol is a destructor symbol. */
-#define is_destructor_symbol(sym)                                     \
-  is_special_function_symbol(sym,                                     \
-                             (a_special_function_kind)sfk_destructor)
 
 /* Return TRUE if a class symbol supplement is for a class with a nontrivial
    destructor.  (The cssp->destructor != NULL test ensures that the macro

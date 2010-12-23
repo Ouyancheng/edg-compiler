@@ -8817,7 +8817,7 @@ process_enum_specifier:
              "A::operator int"." */
           goto operator_or_conversion_name;
         }  /* if */
-        if (locator_for_curr_id.is_destructor_name &&
+        if (is_dtor_like_locator(locator_for_curr_id) &&
             !(decl_specifiers_seen & DS_FRIEND) &&
 	    (simplify_curr_class_qualified_name() ||
 	     !locator_for_curr_id.is_qualified_name)) {
@@ -8831,7 +8831,16 @@ process_enum_specifier:
              that would have been executed if the program simply said "~A"
              instead of "A::~A".  If we are not processing the definition of
              class A, we simply fall through this test. */
-          goto destructor_name;
+          /* C++/CLI finalizer syntax is handled similarly. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (locator_for_curr_id.is_finalizer_name) {
+            goto finalizer_name;
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
+          {
+            goto destructor_name;
+          }  /* if */
         }  /* if */
         bad_type_name_error = FALSE;
         if (is_error_locator(locator_for_curr_id) &&
@@ -8915,6 +8924,9 @@ process_enum_specifier:
 #if MICROSOFT_EXTENSIONS_ALLOWED
               } else if (is_static_constructor_symbol(sym)) {
                 *output_flags |= DSO_STATIC_CONSTRUCTOR;
+                basic_type = bt_no_type;
+              } else if (is_finalizer_symbol(sym)) {
+                *output_flags |= DSO_FINALIZER;
                 basic_type = bt_no_type;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               } else {
@@ -9014,6 +9026,25 @@ operator_or_conversion_name:
         } else {
           goto something_unexpected;
         }  /* if */
+      case tok_not:
+finalizer_name:
+        if (cppcli_enabled && is_member_decl) {
+          auto_type_allowed = FALSE;
+          if (!any_decl_specifiers_seen) {
+            *output_flags |= DSO_NO_DECL_SPECIFIERS;
+          }  /* if */
+          *output_flags |= DSO_FINALIZER;
+          if (basic_type == bt_none && sign == sign_none &&
+              size == size_none) {
+            basic_type = bt_no_type;
+          } else {
+            /* It is an error to specify the type on a finalizer, but it will
+               be reported later. */
+          }  /* if */
+          goto exit_loop;
+        }  /* if */
+        /* A finalizer is not expected. */
+        goto something_unexpected;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_compl:
 destructor_name:

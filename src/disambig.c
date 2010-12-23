@@ -539,7 +539,7 @@ The typeof operator can be used with or without parentheses in g++
 }  /* prescan_typeof_operator */
 
 
-static a_boolean is_ctor_or_dtor(void)
+static a_boolean is_ctor_dtor_or_finalizer(void)
 /*
 Return TRUE if the current locator is for a constructor or destructor
 definition.  The locator must refer to a qualified name.  
@@ -552,6 +552,12 @@ definition.  The locator must refer to a qualified name.
     if (locator_for_curr_id.is_destructor_name) {
       /* This is a destructor name. */
       result = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled && locator_for_curr_id.is_finalizer_name) {
+      /* This is a finalizer name. */
+      result = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
     } else {
       /* To see if this is a constructor, look up the identifier using
          a tentative type lookup (so that no error will be issued if the
@@ -590,7 +596,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
   a_boolean	is_decl_specifier_token = TRUE;
   a_boolean	any_decl_specifiers = FALSE;
   a_boolean	type_specifier_seen = FALSE;
-  a_boolean	is_ctor_or_dtor_name = FALSE;
+  a_boolean	is_ctor_dtor_or_finalizer_name = FALSE;
   a_boolean	is_typename = FALSE;
   a_symbol_ptr	sym;
   /* Disambiguation code should never be called in C mode.  (Otherwise, we
@@ -660,9 +666,10 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
            cases because the other disambiguation contexts are not in a
            namespace scope, and constructor and destructor declarations are
            not permitted. */
-        is_ctor_or_dtor_name = is_template_decl(flags) && is_ctor_or_dtor();
+        is_ctor_dtor_or_finalizer_name = is_template_decl(flags) &&
+                                         is_ctor_dtor_or_finalizer();
         if (!type_specifier_seen &&
-            !is_ctor_or_dtor_name &&
+            !is_ctor_dtor_or_finalizer_name &&
             (prescan_curr_id_is_type_name() ||
              (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template))) {
           /* A class template will probably result in a "missing template
@@ -805,7 +812,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       get_token_and_coalesce_if_identifier(flags);
     }  /* if */
   }  /* for */
-  if (!any_decl_specifiers && !is_ctor_or_dtor_name) {
+  if (!any_decl_specifiers && !is_ctor_dtor_or_finalizer_name) {
     /* A declaration must have at least one decl-specifier, or this must be
        a constructor or destructor.  This requirement is waived for namespace
        scope declarations. */

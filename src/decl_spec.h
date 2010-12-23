@@ -330,7 +330,13 @@ extern void decl_spec_one_time_init(void);
 			   static constructor, in which case the type returned
 			   from decl_specifiers is tk_void.  This bit is
 			   mutually exclusive w.r.t. DSO_CONSTRUCTOR. */
-#define DSO_LAST DSO_STATIC_CONSTRUCTOR
+#define DSO_FINALIZER 		((a_decl_flag_set)0x40000)
+                        /* If this bit is set the declaration appears to be
+                           that of a C++/CLI finalizer (a "!" was seen, and
+                           the specifiers, if any, are consistent with those
+                           allowed on a finalizer declaration), and so a type
+                           of tk_void was returned. */
+#define DSO_LAST DSO_FINALIZER
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DSO_LAST)*/
 #endif /* DECL_SPEC_H */

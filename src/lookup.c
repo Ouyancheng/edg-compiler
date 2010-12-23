@@ -4245,6 +4245,14 @@ bypass_inactive_search:
         /* This is the destructor. */
         sym = cssp->destructor;
         goto end_lookup;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (cppcli_enabled && cssp->finalizer != NULL &&
+                 locator->symbol_header == cssp->finalizer->header) {
+        /* This is the finalizer. */
+        sym = cssp->finalizer;
+        goto end_lookup;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
       }  /* if */
       if (sym == NULL && !direct_class_members_only &&
           locator->is_conversion_name &&

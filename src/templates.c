@@ -9625,14 +9625,17 @@ declaration that must be checked.
     a_boolean	is_function = is_function_type(state->type);
     if (!(state->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
       if (is_function_type(state->type) &&
-          (((state->dso_flags & (DSO_CONSTRUCTOR | DSO_DESTRUCTOR)) != 0) ||
-           ((state->do_flags & (DO_IS_CONSTRUCTOR | DO_IS_DESTRUCTOR)) != 0) ||
+          ((state->dso_flags & (DSO_CONSTRUCTOR | DSO_DESTRUCTOR)) != 0 ||
+           (state->do_flags & (DO_IS_CONSTRUCTOR | DO_IS_DESTRUCTOR)) != 0 ||
            locator->is_conversion_name)) {
         /* No type specifier is required. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (cppcli_enabled && is_function_type(state->type) &&
-                 (state->dso_flags & DSO_STATIC_CONSTRUCTOR) != 0) {
-        /* No type specifier is required on a C++/CLI static constructor. */
+                 ((state->dso_flags & DSO_STATIC_CONSTRUCTOR) != 0 ||
+                   (state->dso_flags & DSO_FINALIZER) != 0 ||
+                   (state->do_flags & DO_IS_FINALIZER) != 0)) {
+        /* No type specifier is required on a C++/CLI static constructor or
+           finalizer. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* Error on omitted type specifier. */

@@ -13193,15 +13193,16 @@ declarator (or NULL if it wasn't recorded).
        destructors, etc. */
     a_boolean  return_type_needed = TRUE;
     a_type_ptr saved_routine_type = rout->type;
-    if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
-        rout->special_kind == (a_special_function_kind)sfk_destructor ||
+    if (special_kind_is(rout, sfk_constructor) ||
+        special_kind_is(rout, sfk_destructor) ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        rout->special_kind ==
-                             (a_special_function_kind)sfk_static_constructor ||
+        special_kind_is(rout, sfk_static_constructor) ||
+        special_kind_is(rout, sfk_finalizer) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         rout->special_kind == (a_special_function_kind)sfk_conversion) {
       /* Do not put out the return type for a constructor, destructor, or
-         conversion function. */
+         conversion function.  In C++/CLI mode, the same applies to a static
+         constructor or finalizer. */
       return_type_needed = FALSE;
       if (rout->special_kind == (a_special_function_kind)sfk_conversion &&
           !is_definition) {

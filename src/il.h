@@ -440,6 +440,12 @@ extern a_lambda_ptr get_current_lambda(void);
 extern a_namespace_ptr namespace_enclosing_class(a_type_ptr  tp);
 
 /*
+Macro to test a routine entry's special_kind field.
+*/
+#define special_kind_is(rp, sfk)                                            \
+  ((rp)->special_kind == (a_special_function_kind)(sfk))
+
+/*
 Macro that returns TRUE if a routine has been defined.  The value is
 TRUE from the beginning of scanning of the function body (not just
 after the closing brace), and is also TRUE for functions with
@@ -1312,11 +1318,11 @@ Macros to examine property and event members (and their accessor functions).
 #define var_is_property_or_event(vp)  ((vp)->property_or_event_descr != NULL)
 #endif /* BACK_END_IS_CP_GEN_BE */
 #define rout_is_cli_accessor(rp)                                             \
-  ((rp)->special_kind == (a_special_function_kind)sfk_property_get ||        \
-   (rp)->special_kind == (a_special_function_kind)sfk_property_set ||        \
-   (rp)->special_kind == (a_special_function_kind)sfk_event_add ||           \
-   (rp)->special_kind == (a_special_function_kind)sfk_event_remove ||        \
-   (rp)->special_kind == (a_special_function_kind)sfk_event_raise)
+  (special_kind_is(rp, sfk_property_get) ||                                  \
+   special_kind_is(rp, sfk_property_set) ||                                  \
+   special_kind_is(rp, sfk_event_add) ||                                     \
+   special_kind_is(rp, sfk_event_remove) ||                                  \
+   special_kind_is(rp, sfk_event_raise))
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define field_is_property_or_event(fp)  (FALSE)
 #define field_is_nontrivial_property_or_event(fp)  (FALSE)

@@ -6325,10 +6325,11 @@ if found, or NULL.
 }  /* find_macro_symbol_by_name */
 
 
-void tildize_locator(a_symbol_locator *locator)
+void change_to_destructor_or_finalizer_locator(a_symbol_locator  *locator,
+                                               a_boolean         finalizer)
 /*
-Change the name indicated by the given locator so that it has a "~" on the
-front.  This is used in C++ for destructor names.
+Change the name indicated by the given locator so that it has a "~" or "!" on
+the front.  This is used for destructor names and C++/CLI finalizer names.
 */
 {
   sizeof_t ident_length = locator->symbol_header->identifier_length;
@@ -6339,22 +6340,31 @@ front.  This is used in C++ for destructor names.
   ensure_ident_buffer_space(ident_length+1);
   (void)memcpy(ident_buffer+1, locator->symbol_header->identifier,
                size_t_arg(ident_length));
-  ident_buffer[0] = '~';
+  ident_buffer[0] = finalizer ? '!' : '~';
   ident_length++;
   position = locator->source_position;
   clear_locator(locator, &position);
-  locator->is_destructor_name = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (finalizer) {
+    check_assertion(cppcli_enabled);
+    locator->is_finalizer_name = TRUE;
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    locator->is_destructor_name = TRUE;
+  }  /* if */
   (void)find_symbol(ident_buffer, ident_length, locator);
-}  /* tildize_locator */
+}  /* change_to_destructor_or_finalizer_locator */
 
 
 a_boolean destructor_name_matches_class_name(a_symbol_ptr class_sym)
 /*
-The locator points to a symbol header associated with a destructor
-(e.g., "~A") and class_sym points to a symbol associated with a
-class (e.g., "A").  This routine compares the class name portion of the
-destructor name with the name of the class symbol.  Returns TRUE if the
-names match and FALSE if they do not match.
+The locator points to a symbol header associated with a destructor or
+C++/CLI finalizer (e.g., "~A" or "!A") and class_sym points to a symbol
+associated with a class (e.g., "A").  This routine compares the class name
+portion of the destructor or finalizer name with the name of the class symbol.
+Returns TRUE if the names match and FALSE if they do not match.
 */
 {
   char		*destructor_name;
@@ -6363,9 +6373,9 @@ names match and FALSE if they do not match.
 
   check_assertion(!is_error_locator(locator_for_curr_id));
   check_assertion(class_sym != NULL);
-  check_assertion(locator_for_curr_id.is_destructor_name);
+  check_assertion(is_dtor_like_locator(locator_for_curr_id));
   /* Get a pointer to the second character of the identifier associated
-     with the destructor.  This skips over the tilde. */
+     with the destructor.  This skips over the tilde or exclamation point. */
   destructor_name = &locator_for_curr_id.symbol_header->identifier[1];
   /* Get a pointer to the first character of the class name. */
   class_name = class_sym->header->identifier;
@@ -12597,6 +12607,9 @@ are handled in symbol_tbl_init.)
   cleared_locator.is_operator_name                = FALSE;
   cleared_locator.is_conversion_name              = FALSE;
   cleared_locator.is_destructor_name              = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  cleared_locator.is_finalizer_name               = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cleared_locator.is_semivisible_nested_type      = FALSE;
   cleared_locator.access_control_error_reported   = FALSE;
   cleared_locator.has_been_coalesced              = FALSE;
