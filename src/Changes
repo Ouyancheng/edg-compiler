@@ -1,5 +1,26 @@
 Version 4.3
 
+12/22/10 [EDGcpfe/11087]
+Source position of dependent member function in call expression
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the
+source position information in the enk_constant node designating a
+dependent member function in a member function call was incorrect, with
+both the starting position and, in configurations with
+EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE, the ending position referring to
+the left parenthesis following the member function name.  The positions
+are now set correctly.  For example:
+
+  template<typename T> struct A;
+  template<typename T> struct B {
+    A<T> a;
+    int f() {
+      return a.g();  // position of enk_constant node for g previously had
+                     // position of ( instead
+    }
+  };
+
+
 12/22/10 [EDGcpfe/11206]
 C++-generating back end, GNU compatibility: template keyword before template-id
 in prototype instantiation
