@@ -5592,13 +5592,15 @@ value of the expression they are equivalent.
       dest_type = skip_typerefs(dest_type);
       source_type = skip_typerefs(source_type);
       if (types_are_both_pointers_or_both_handles(dest_type, source_type)) {
+        if (dest_type->size != source_type->size
 #ifdef pointer_types_have_same_repr
-        if (!pointer_types_have_same_repr(dest_type, source_type)) {
-          same = FALSE;
-        } else
+            || !pointer_types_have_same_repr(source_type, dest_type)
 #endif /* ifdef pointer_types_have_same_repr */
-        /* Do not add code here. */
-        {
+                                                                    ) {
+          /* If the pointers have different representations, do not
+             consider them the same. */
+          same = FALSE;
+        } else {
           /* Continue at the next level for pointers. */
           dest_type = type_pointed_to(dest_type);
           source_type = type_pointed_to(source_type);
@@ -6010,7 +6012,7 @@ the __unaligned and __restrict qualifiers).
   an_error_code warning_code = ec_no_error;
 
   if (warning_suggested != NULL) *warning_suggested = ec_no_error;
-  for (same = TRUE; same == TRUE;) {
+  for (same = TRUE; same;) {
     a_type_qualifier_set dest_type_qualifiers = get_type_qualifiers(dest_type);
     a_type_qualifier_set source_type_qualifiers =
                                               get_type_qualifiers(source_type);
@@ -6066,6 +6068,16 @@ the __unaligned and __restrict qualifiers).
       dest_type = skip_typerefs(dest_type);
       source_type = skip_typerefs(source_type);
       if (types_are_both_pointers_or_both_handles(dest_type, source_type)) {
+        if (dest_type->size != source_type->size
+#ifdef pointer_types_have_same_repr
+            || !pointer_types_have_same_repr(source_type, dest_type)
+#endif /* ifdef pointer_types_have_same_repr */
+                                                                    ) {
+          /* If the pointer types have different representations we can't
+             consider the overall conversion valid. */
+          same = FALSE;
+          break;
+        }  /* if */
         /* Continue at the next level for pointers and handles. */
         dest_type = type_pointed_to(dest_type);
 	source_type = type_pointed_to(source_type);

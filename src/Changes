@@ -1,5 +1,25 @@
 Version 4.3
 
+12/13/10 [EDGcpfe/11235]
+No multi-level pointer conversions if pointer representations differ
+
+The implicit conversions defined for multi-level pointers, e.g.,
+"pointer to pointer to int" to "pointer to const pointer to const int",
+are now disallowed if any of the underlying pointer representations
+differ, e.g., one is 32-bit and the other 64-bit, or one is a near
+pointer and the other a far pointer.  For example, in --microsoft_16
+mode:
+
+  int x;
+  int near *np;
+  const int far *const far *fpp;
+  int main() {
+    np = &x;
+    fpp = &np; // Now an error
+    x = **fpp; // Without error, this is allowed and harmful
+  }
+
+
 12/22/10 [EDGcpfe/11087]
 Source position of dependent member function in call expression
 
