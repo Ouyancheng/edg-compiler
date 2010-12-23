@@ -118,7 +118,6 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(755,END_EXTERN_C_BLOCK_IN_CPP_FILE)*/
 /*lint -esym(755,EXTERN_C_BLOCK_IN_CPP_FILE)*/
 /*lint -esym(755,EXTERN_C_IN_CPP_FILE)*/
-/*lint -esym(769,a_cpp_cli_feature_tag::cli_*)*/
 #if !MACRO_INVOCATION_TREE_IN_IL
 /*lint -esym(755,copy_simple_position_to_full_position)*/
 #endif /* !MACRO_INVOCATION_TREE_IN_IL */
@@ -649,6 +648,7 @@ extern int fileno(FILE *);
 /*lint -esym(552,using_framework_directory)*/
 /*lint -esym(769,ec_win32_api_error)*/
 #endif /* !(EDG_WIN32 && MICROSOFT_EXTENSIONS_ALLOWED) */
+/*lint -esym(769,a_cpp_cli_feature_tag::*)*/
 /* FIXME */
 /*lint -esym(759,is_value_class_type)*/
 /*lint -esym(765,is_value_class_type)*/
