@@ -2815,11 +2815,12 @@ state.
            check_anonymous_union_symbols (class_decl.c). */
         cssp->symbols = NULL;
         cssp->constructor = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        cssp->static_constructor = NULL;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cssp->trivial_default_constructor = NULL;
         cssp->destructor = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        cssp->static_constructor = NULL;
+        cssp->finalizer = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cssp->assignment_operator = NULL;
         cssp->conversion_list = NULL;
         cssp->conversion_template_list = NULL;
