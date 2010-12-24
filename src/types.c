@@ -3514,7 +3514,9 @@ can be a handle.
 a_type_ptr f_implicit_this_param_type_of(a_type_ptr  routine_type)
 /*
 Synthesize the type of "this" from the underlying class type and the
-qualification of a member function type.
+qualification of a member function type.  Note that the type
+returned does not include a top-level "const", and that must sometimes
+be added to get the actual "this" variable type.
 */
 {
   a_routine_type_supplement_ptr  rtsp =
