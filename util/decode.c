@@ -2035,16 +2035,22 @@ template parameters.
           write_id_str("[static]", dctl);
         }  /* if */
       }  /* if */
-    } else if (start_of_id_is("dt__", p, dctl)) {
-      /* Destructor. */
+    } else if (start_of_id_is("dt__", p, dctl) ||
+               start_of_id_is("df__", p, dctl)) {
+      /* Destructor or C++/CLI finalizer. */
       end_ptr = p + 2;
       if (mclass == NULL) {
         /* The mangled name for the class is not provided, so handle this as
            a normal name. */
       } else {
-        /* Output ~class-name for the destructor name. */
+        /* Output ~class-name for the destructor name, or !class-name for
+           a C++/CLI finalizer. */
         is_special_name = TRUE;
-        write_id_ch('~', dctl);
+        if (start_of_id_is("df__", p, dctl)) {
+          write_id_ch('!', dctl);
+        } else {
+          write_id_ch('~', dctl);
+        }  /* if */
         (void)full_demangle_type_name(mclass, /*base_name_only=*/TRUE,
                                       /*temp_par_info=*/
                                               (a_template_param_block_ptr)NULL,
@@ -6245,16 +6251,25 @@ substitution, the name of the last component in the substitution is used.
         prev_component_name = ptr;
         ptr = demangle_unqualified_name(ptr, is_no_return_name, dctl);
       } else {
-        /* A constructor or destructor name.  Put out the class name again
+        /* A constructor or destructor name (or their C++/CLI counterparts:
+           a static constructor or finalizer).  Put out the class name again
            (it's provided by prev_component_name). */
         *is_no_return_name = TRUE;
-        if (*ptr == 'D') write_id_ch('~', dctl);
+        if (*ptr == 'D') {
+          if (ptr[1] == '7') {
+            /* A C++/CLI finalizer. */
+            write_id_ch('!', dctl);
+          } else {
+            /* Some type of destructor. */
+            write_id_ch('~', dctl);
+          }  /* if */
+        }  /* if */
         if (prev_component_name == NULL ||
             *prev_component_name == 'S') {
           /* The constructor or destructor code is the first thing in the
              nested name or the previous name is a substitution (we're
              supposed to have gotten the name from inside the
-             substitution).  */
+             substitution). */
           bad_mangled_name(dctl);
         } else {
           a_boolean dummy;
@@ -6262,14 +6277,16 @@ substitution, the name of the last component in the substitution is used.
           (void)demangle_unqualified_name(prev_component_name, &dummy, dctl);
           /* Check that the second character of the constructor/destructor
              name is a valid digit. */
-          /* '8' is the code used by the EDG C++ Front End for C++/CLI
+          /* "D7" is the code used by the EDG C++ Front End for C++/CLI
+             finalizers.  It's not part of the ABI spec. */
+          /* "C8" is the code used by the EDG C++ Front End for C++/CLI
              static constructors.  It's not part of the ABI spec. */
           /* '9' is the code used by the EDG C++ Front End for the
              underlying routine called by the various entry points.
              It's not part of the ABI spec. */
           if (ptr[1] == '1' || ptr[1] == '2' || ptr[1] == '9' ||
               (ptr[0] == 'C' ? (ptr[1] == '3' || ptr[1] == '8') :
-                               ptr[1] == '0')) {
+                               (ptr[1] == '0' || ptr[1] == '7'))) {
             /* Okay. */
             *ctor_dtor_kind = ptr[1];
             ptr += 2;
@@ -6966,6 +6983,9 @@ non-template functions).
         break;
       case '3':
         write_id_str(" [allocating]", dctl);
+        break;
+      case '7':
+        /* An EDG extension for C++/CLI finalizers (no extra label). */
         break;
       case '8':
         /* An EDG extension for C++/CLI static constructors. */
