@@ -2040,12 +2040,12 @@ symbol_found:
 
 a_boolean looks_like_ctor_or_dtor(a_symbol_locator  *loc)
 /*
-Return TRUE if the given symbol locator looks like that for a constructor or
-destructor.  The answer can be TRUE even when an error symbol is given (in
-which case the symbol is never actually marked as being a special function).
-This is useful to inhibit some diagnostics that are not meaningful on
-constructors or destructors (e.g., missing return statements and implicit
-return types).
+Return TRUE if the given symbol locator looks like that for a constructor,
+destructor, or C++/CLI finalizer.  The answer can be TRUE even when an error
+symbol is given (in which case the symbol is never actually marked as being a
+special function).  This is useful to inhibit some diagnostics that are not
+meaningful on these kinds of member functions (e.g., missing return statements
+and implicit return types).
 */
 {
   a_boolean  answer = FALSE;
@@ -2062,7 +2062,8 @@ return types).
   if (!answer && loc->symbol_header != NULL) {
     /* Misdeclared destructors may not be marked as class members: */
     char *name = loc->symbol_header->identifier;
-    if (name != NULL && name[0] == '~') {
+    if (name != NULL &&
+        (name[0] == '~' || (cppcli_enabled && name[0] == '!'))) {
       answer = TRUE;
     }  /* if */
   }  /* if */

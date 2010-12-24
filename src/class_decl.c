@@ -17010,9 +17010,14 @@ passed via template_decl.
         check_for_invalid_use_of_virtual(&locator, class_type, &decl_info);
       }  /* if */
       if (!friend_specified) {
-        if ((decl_info.is_constructor || decl_info.is_destructor) &&
+        if ((decl_info.is_constructor ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+             decl_info.is_finalizer ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+             decl_info.is_destructor) &&
             decl_state->storage_class == (a_storage_class)sc_static) {
-          /* Constructors and destructors may not be declared "static"
+          /* Constructors, destructors, and finalizers may not be declared
+            "static"
              (except in C++/CLI mode, but "static constructors" do not have
              the is_constructor flag set to TRUE).  C++/CLI finalizer cannot
              be static either. */

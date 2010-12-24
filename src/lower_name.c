@@ -157,6 +157,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_TRACKING_REFERENCE "U8__trkref"
 #define MANGLING_STRING_FOR_HANDLE "U8__handle"
 #define MANGLING_STRING_FOR_STATIC_CONSTRUCTOR "C8"
+#define MANGLING_STRING_FOR_FINALIZER "DF"
 #define MANGLING_STRING_FOR_MANAGED_NULLPTR "DN"
 #define MANGLING_STRING_FOR_OPERATOR_HANDLE_TO "ht"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -281,6 +282,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_TRACKING_REFERENCE "Tr"
 #define MANGLING_STRING_FOR_HANDLE "H"
 #define MANGLING_STRING_FOR_STATIC_CONSTRUCTOR "st"
+#define MANGLING_STRING_FOR_FINALIZER "df"
 #define MANGLING_STRING_FOR_MANAGED_NULLPTR "j"
 #define MANGLING_STRING_FOR_OPERATOR_HANDLE_TO "ht"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -9171,6 +9173,9 @@ constructors and conversion functions.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case sfk_static_constructor:
         name = MANGLING_STRING_FOR_STATIC_CONSTRUCTOR;
+        break;
+      case sfk_finalizer:
+        name = MANGLING_STRING_FOR_FINALIZER;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case sfk_constructor:

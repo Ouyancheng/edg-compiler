@@ -14417,7 +14417,7 @@ describes the name specified by "locator".
   nrp->is_template_id = locator->is_template_id;
   nrp->is_super_qualified = locator->is_super_qualified;
   nrp->from_prototype_instantiation = is_prototype_instantiation_context();
-  if (locator->is_destructor_name) {
+  if (is_dtor_like_locator(*locator)) {
     a_type_ptr	dtor_type = locator->variant.destructor_type;
     if (dtor_type != NULL) {
       nrp->destructor_type = dtor_type;
@@ -16231,11 +16231,7 @@ selection operator, in which case it points to the type of the left operand.
                                          qualifier_sym);
       }  /* if */
     }  /* if */
-    if (locator_for_curr_id.is_destructor_name
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        || locator_for_curr_id.is_finalizer_name
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                ) {
+    if (is_dtor_like_locator(locator_for_curr_id)) {
       /* The position of the current identifier should be the tilde that
          begins the destructor name (or the exclamation point in the finalizer
          case). */
@@ -16393,7 +16389,7 @@ wrapup:
     /* Perform error checks as specified in "options". */
     err |= check_for_generalized_identifier_errors(options, &pos_curr_token);
   }  /* if */
-  if (locator_for_curr_id.is_destructor_name &&
+  if (is_dtor_like_locator(locator_for_curr_id) &&
       locator_for_curr_id.is_vacuous_destructor_reference &&
       locator_for_curr_id.is_nonclass_destructor) {
     /* For nonclass vacuous destructors, the parent class will be set to the

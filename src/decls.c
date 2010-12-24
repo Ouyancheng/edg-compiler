@@ -13597,7 +13597,8 @@ has no explicit type specifier.  Issue a diagnostic if appropriate.  func_info
 is non-NULL only if this is called for a function declaration.
 */
 {
-  if (!(state->do_flags & (DO_IS_CONSTRUCTOR|DO_IS_DESTRUCTOR)) &&
+  if (!(state->do_flags & (DO_IS_CONSTRUCTOR | DO_IS_DESTRUCTOR |
+                           DO_IS_FINALIZER)) &&
 #if GNU_EXTENSIONS_ALLOWED
       /* "typedef foo = 3;" is an old GNU C extension, not a use of implicit
          int (this extension is not present in the GNU C++ compiler, nor in

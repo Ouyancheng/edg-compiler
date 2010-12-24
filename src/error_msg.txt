@@ -2083,7 +2083,7 @@ ec_finalizer_qualifier_type_mismatch;;"qualifier of finalizer name %t1 does not 
 ec_var_used_as_finalizer;;"%n cannot be used to name a finalizer (a type name is required)"
 ec_invalid_finalizer_name;;"invalid finalizer name for type %t"
 ec_ambiguous_finalizer;;"finalizer reference is ambiguous -- both %n1 and %n2 could be used"
-ec_finalizer_requires_reference_type;;"a finalizer can only be a member of a reference type"
+ec_finalizer_requires_reference_type;;"a finalizer can only be a member of a ref class type"
 ec_finalizer_name_mismatch;;"finalizer name does not match name of class %t"
 ec_finalizer_type_mismatch;;"type used as finalizer name does not match type %t"
 ec_finalizer_does_not_exist;;"a finalizer does not exist for this type"
