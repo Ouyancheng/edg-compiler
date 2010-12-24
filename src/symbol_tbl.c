@@ -6337,8 +6337,8 @@ the front.  This is used for destructor names and C++/CLI finalizer names.
   sizeof_t ident_length = locator->symbol_header->identifier_length;
   a_source_position position;
 
-  /* Copy the identifier name into a dynamically-allocated buffer and put
-     a tilde at the front.  The final null is not copied. */
+  /* Copy the identifier name into a dynamically-allocated buffer and put a
+     tilde or exclamation point at the front.  The final null is not copied. */
   ensure_ident_buffer_space(ident_length+1);
   (void)memcpy(ident_buffer+1, locator->symbol_header->identifier,
                size_t_arg(ident_length));

@@ -4252,7 +4252,6 @@ bypass_inactive_search:
         sym = cssp->finalizer;
         goto end_lookup;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* Do not insert code here. */
       }  /* if */
       if (sym == NULL && !direct_class_members_only &&
           locator->is_conversion_name &&
