@@ -541,8 +541,8 @@ The typeof operator can be used with or without parentheses in g++
 
 static a_boolean is_ctor_dtor_or_finalizer(void)
 /*
-Return TRUE if the current locator is for a constructor or destructor
-definition.  The locator must refer to a qualified name.  
+Return TRUE if the current locator is for a constructor, destructor, or
+finalizer definition.  The locator must refer to a qualified name.  
 */
 {
   a_boolean	result = FALSE;

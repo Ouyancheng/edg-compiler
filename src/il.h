@@ -1315,11 +1315,11 @@ Macros to examine property and event members (and their accessor functions).
 #define var_is_property_or_event(vp)  ((vp)->property_or_event_descr != NULL)
 #endif /* BACK_END_IS_CP_GEN_BE */
 #define rout_is_cli_accessor(rp)                                             \
-  (special_kind_is(rp, sfk_property_get) ||                                  \
-   special_kind_is(rp, sfk_property_set) ||                                  \
-   special_kind_is(rp, sfk_event_add) ||                                     \
-   special_kind_is(rp, sfk_event_remove) ||                                  \
-   special_kind_is(rp, sfk_event_raise))
+  (special_kind_is((rp), sfk_property_get) ||                                \
+   special_kind_is((rp), sfk_property_set) ||                                \
+   special_kind_is((rp), sfk_event_add) ||                                   \
+   special_kind_is((rp), sfk_event_remove) ||                                \
+   special_kind_is((rp), sfk_event_raise))
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define field_is_property_or_event(fp)  (FALSE)
 #define field_is_nontrivial_property_or_event(fp)  (FALSE)

@@ -11521,7 +11521,8 @@ nonstandard anonymous unions is_nonstd is TRUE.
     cssp->constructor = NULL;
     cssp->destructor = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    cssp->finalizer = NULL;
+    check_assertion(cssp->finalizer = NULL &&
+                    cssp->static_constructor == NULL);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     cssp->trivial_default_constructor = NULL;
     cssp->assignment_operator = NULL;
@@ -17017,10 +17018,9 @@ passed via template_decl.
              decl_info.is_destructor) &&
             decl_state->storage_class == (a_storage_class)sc_static) {
           /* Constructors, destructors, and finalizers may not be declared
-            "static"
-             (except in C++/CLI mode, but "static constructors" do not have
-             the is_constructor flag set to TRUE).  C++/CLI finalizer cannot
-             be static either. */
+             "static" (except in C++/CLI mode, but "static constructors" do
+             not have the is_constructor flag set to TRUE).  C++/CLI
+             finalizers cannot be static either. */
           pos_error(ec_static_not_allowed, &decl_state->start_pos);
           decl_state->storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
