@@ -11521,7 +11521,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
     cssp->constructor = NULL;
     cssp->destructor = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    check_assertion(cssp->finalizer = NULL &&
+    check_assertion(cssp->finalizer == NULL &&
                     cssp->static_constructor == NULL);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     cssp->trivial_default_constructor = NULL;
