@@ -15695,7 +15695,7 @@ by *buffer.
   a_token_cache     cache;
   an_error_severity saved_error_threshold;
   a_boolean         saved_is_scanning_generated_code_from_metadata;
-  a_boolean	    saved_expand_macros;
+  a_boolean         saved_expand_macros;
   a_boolean         saved_next_token_is_top_level_decl_start;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean         saved_source_sequence_entries_disallowed;
@@ -15732,7 +15732,7 @@ by *buffer.
                 /*is_top_level_declaration=*/TRUE,
                 /*marked_as_gnu_extension=*/FALSE,
                 (a_param_id_ptr)NULL, (a_source_range *)NULL);
-  } /* while */
+  }  /* while */
   /* Get the injected end of source token. */
   check_assertion(curr_token == tok_end_of_source);
   (void)get_token();
@@ -15753,15 +15753,23 @@ by *buffer.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
+void decls_trans_unit_init(void)
+/*
+Initialize variables that are specific to a given translation unit.
+*/
+{
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  is_scanning_generated_code_from_metadata = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* decls_trans_unit_init */
+
+
 void decls_one_time_init(void)
 /*
 Do one-time initialization of static variables defined in this file.
 */
 {
   init_null_decl_parse_state();
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  is_scanning_generated_code_from_metadata = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_decl_parse_callbacks),

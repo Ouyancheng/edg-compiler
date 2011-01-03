@@ -106,7 +106,7 @@ buffer.  utf8_character_seen is set to TRUE if any utf8 character is detected.
   static wchar_t  *buffer;
   static sizeof_t buffer_allocation_size = 512 * sizeof(wchar_t);
 
-  if (utf8_character_seen) *utf8_character_seen = FALSE;
+  if (utf8_character_seen != NULL) *utf8_character_seen = FALSE;
 /* Macro to add one wide character to the buffer, expanding the buffer as
    needed. */
 #if !defined(MEM_MANAGE_H) || STANDALONE_UTILITY_PROGRAM
@@ -157,7 +157,7 @@ buffer.  utf8_character_seen is set to TRUE if any utf8 character is detected.
       /* Convert a UTF-8 character to a single Unicode code point, noting
          how many bytes from char_buffer were occupied by the UTF-8
          representation. */
-      if (utf8_character_seen) *utf8_character_seen = TRUE;
+      if (utf8_character_seen != NULL) *utf8_character_seen = TRUE;
       num_utf8_bytes = mbc_to_wide_char((char *)p, &unicode_char, &err,
                                         /*is_native=*/FALSE);
       /* Convert that to either one UTF-16 value or a pair of surrogates. */

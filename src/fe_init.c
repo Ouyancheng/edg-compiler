@@ -1276,6 +1276,7 @@ when it is a secondary file.
   host_envir_trans_unit_init();
   error_trans_unit_init();
   il_trans_unit_init();
+  decls_trans_unit_init();
   lexical_trans_unit_init();
   symbol_tbl_trans_unit_init();
   scope_stk_trans_unit_init();

@@ -95,9 +95,9 @@ Operator to convert text from wide characters to UTF-8 and output the result.
 class an_import_scope;
 
 /*
-The representation of a single generic parameter. Note: at the moment we only
-really need the name but if we want to support contraints I believe we will
-need the other information.
+The representation of a single generic parameter.  Note: at the moment we only
+really need the name but if we want to support constraints we may need the
+other information.
 */
 class a_generic_parameter {
 public:
@@ -227,7 +227,7 @@ private:
                         /* The import scope associated with this signature. */
   const a_generic_parameter_list
                 &generic_type_parameters_;
-                        /* Any generic parameters associated with type with
+                        /* Any generic parameters associated with the type with
                            which this signature is associated. */
   const a_generic_parameter_list
                 &generic_method_parameters_;
@@ -242,7 +242,7 @@ wstring a_signature_decoder::decode_method_signature(const wstring& name,
 /*
 Decode a function signature and then combine the various elements along with
 the name of the function to create a declaration which we return as a
-std::wstring. Note: this function also handles decoding a property signature
+std::wstring.  Note: this function also handles decoding a property signature
 which is almost the same as a method signature.
 */
 {
@@ -290,7 +290,7 @@ which is almost the same as a method signature.
   }  /* if */
   declaration << name;
   /* We only emit parameters for methods and parameterized properties (and we
-     use '[]' instead of '()' for parameterized properties). Simple properties
+     use "[]" instead of "()" for parameterized properties).  Simple properties
      do not have any parameters. */
   if (is_for_property) {
     if (number_of_parameters > 0) {
@@ -371,8 +371,8 @@ private:
 
 wstring a_constant_decoder::decode()
 /*
-Decode code the constant.  Emit the constant as a hexadecimal
-constant and then cast to the appropriate type.
+Decode the constant.  Emit the constant as a hexadecimal constant and then
+cast to the appropriate type.
 */
 {
   wostringstream buffer;
@@ -455,11 +455,11 @@ constant and then cast to the appropriate type.
 }  /* a_constant_decoder::decode */
 
 /*
-Classes for importing an assembly and a scope with an assembly
+Classes for importing an assembly and a scope with an assembly.
 */
 
 /*
-The representation of a single assembly. Note: an assembly may contain
+The representation of a single assembly.  Note: an assembly may contain
 multiple import scopes, but only one import scope contains metadata.
 */
 class an_assembly {

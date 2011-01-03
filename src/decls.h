@@ -1040,6 +1040,8 @@ extern void record_std_alignment_attr(a_decl_parse_state_ptr  dps);
 
 extern void decls_one_time_init(void);
 
+extern void decls_trans_unit_init(void);
+
 extern void decls_init(void);
 
 #if DEBUG
