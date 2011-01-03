@@ -1,5 +1,19 @@
 Version 4.3
 
+1/3/11   [EDGcpfe/11240]
+Microsoft Compatibility: abort on ill-formed class template declaration
+
+An abort could occur (in copy_type_with_substitution) on the declaration
+of a Microsoft in-class specialization if the enclosing class was declared
+with an illegal specifier ("static", in the case of the example below).
+Now fixed.
+
+  template<typename T1, typename T2> static struct A {
+    template<bool Bool> inline T1 f(T2 x);
+    template<> inline T1 f<false>(T2 x) { return (T1)x; }
+  };
+
+
 12/23/10 [EDGcpfe/11236]
 Internal error in select_overloaded_copy_constructor
 
