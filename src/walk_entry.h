@@ -2142,6 +2142,9 @@ do_set_proper_definition_needed_flag:
             remap_ptr(ptr->add_routine, a_routine_ptr, iek_routine);
             remap_ptr(ptr->remove_routine, a_routine_ptr, iek_routine);
             remap_ptr(ptr->raise_routine, a_routine_ptr, iek_routine);
+#if KEEP_IN_IL_WALK
+            keep_event_delegate_definition_in_il(ptr);
+#endif /* KEEP_IN_IL_WALK */
             break;
           default:
             unexpected_condition();

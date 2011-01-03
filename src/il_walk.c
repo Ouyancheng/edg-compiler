@@ -1249,6 +1249,10 @@ static void clear_keep_in_il_to_allow_subtree_walk(
                                                   an_il_entry_kind entry_kind);
 static void set_keep_in_il_on_befriending_classes(
                                    a_class_list_entry_ptr befriending_classes);
+#if MICROSOFT_EXTENSIONS_ALLOWED && MAINTAIN_NEEDED_FLAGS
+static void keep_event_delegate_definition_in_il(
+                                          a_property_or_event_descr_ptr  pepd);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && MAINTAIN_NEEDED_FLAGS */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 static void set_keep_in_il_on_source_sequence_entries(a_scope_ptr scope);
@@ -1596,6 +1600,33 @@ keep_in_il walk.
   }  /* for */
 }  /* set_keep_in_il_on_befriending_classes */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED && MAINTAIN_NEEDED_FLAGS
+
+static void keep_event_delegate_definition_in_il(
+                                          a_property_or_event_descr_ptr  pepd)
+/*
+The given entry describes a C++/CLI event.  Set the keep_definition_in_il flag
+of the associated delegate class type (if any) to TRUE.
+*/
+{
+  a_type_ptr  type;
+
+  check_assertion(pepd->kind == (a_property_or_event_kind)pek_cli_event);
+  if (pepd->is_static) {
+    type = pepd->variant.variable->type;
+  } else {
+    type = pepd->variant.field->type;
+  }  /* if */
+  if (is_handle_type(type)) {
+    type = type_pointed_to(type);
+    type = skip_typerefs(type);
+    if (is_immediate_delegate_type(type)) {
+      set_class_keep_definition_in_il(type);
+    }  /* if */
+  }  /* if */
+}  /* keep_event_delegate_definition_in_il */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && MAINTAIN_NEEDED_FLAGS */
 
 static void mark_canonical_to_keep_in_il(char             *entry_ptr,
                                          an_il_entry_kind entry_kind)
