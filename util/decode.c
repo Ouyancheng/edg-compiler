@@ -791,17 +791,11 @@ position following what was demangled.
 {
   char          *p = ptr;
   unsigned long position, depth = 1;
-  a_boolean     is_pack = FALSE;
 
   /* This comes up with the modern mangling for template functions.
-     Form is "Z[p]nZ" or "Z[p]n_mZ", where n is the parameter number, m is the
-     depth number (1 if not specified), and the optional "p" character
-     indicates that the template parameter is a parameter pack. */
+     Form is "ZnZ" or "Zn_mZ", where n is the parameter number,
+     m is the depth number (1 if not specified). */
   p++;  /* Advance past the "Z". */
-  if (get_char(p, dctl) == 'p') {
-    p++;
-    is_pack = TRUE;
-  }  /* if */
   /* Get the position number. */
   p = get_number(p, &position, dctl);
   if (get_char(p, dctl) == '_' && get_char(p+1, dctl) != '_') {
@@ -830,7 +824,6 @@ position following what was demangled.
   } else {
     p++;
   }  /* if */
-  if (is_pack) write_id_str("...", dctl);
   return p;
 }  /* demangle_template_parameter_name */
 
@@ -1487,12 +1480,13 @@ static char *demangle_template_arguments(
                                       a_template_param_block_ptr temp_par_info,
                                       a_decode_control_block_ptr dctl)
 /*
-Demangle the template class arguments beginning at ptr and output the
-demangled form.  Return a pointer to the character position following what was
-demangled.  ptr points to just past the "__tm__", "__ps__", or "__pt__"
-string.  partial_spec is TRUE if this is a partial-specialization
-parameter list ("__ps__").  When temp_par_info != NULL, it points to a
-block that controls output of extra information on template parameters.
+Demangle the template class arguments or template parameter pack beginning at
+ptr and output the demangled form.  Return a pointer to the character position
+following what was demangled.  ptr points to just past the "__tm__", "__ps__",
+"__pt__", or "__pk__" string.  partial_spec is TRUE if this is a
+partial-specialization parameter list ("__ps__").  When temp_par_info != NULL,
+it points to a block that controls output of extra information on template
+parameters.
 */
 {
   char          *p = ptr, *arg_base, ch, *prev_end;
@@ -1589,38 +1583,11 @@ block that controls output of extra information on template parameters.
                             /*need_parens=*/FALSE, dctl);
     } else if (is_pack) {
       /* A template argument pack. */
-      char          *pack_arg_base, *pack_prev_end;
-      unsigned long pack_nchars;
-      a_boolean     need_comma = FALSE;
-      write_id_ch('<', dctl);
-      /* Scan the size. */
-      p = get_length(p, &pack_nchars, &pack_prev_end, dctl);
-      pack_arg_base = p;
-      p = advance_past_underscore(p, dctl);
-      /* Loop to process the arguments in the pack. */
-      while ((unsigned long)(p - pack_arg_base) < pack_nchars) {
-        if (dctl->err_in_id) break;  /* Avoid infinite loops on errors. */
-        if (get_char(p, dctl) == '\0' || (get_char(p, dctl) == '_')) {
-          /* We ran off the end of the string. */
-          bad_mangled_name(dctl);
-          break;
-        }  /* if */
-        /* Put out a comma between pack types. */
-        if (need_comma) {
-          write_id_str(", ", dctl);
-        } else {
-          need_comma = TRUE;
-        }  /* if */
-        if (get_char(p, dctl) == 'X') {
-          /* Nontype argument. */
-          p++;  /* Advance past the "X". */
-          p = demangle_constant(p, /*suppress_address_of=*/FALSE,
-                                /*need_parens=*/FALSE, dctl);
-        } else {
-          p = demangle_type(p, dctl);
-        }  /* if */
-      }  /* while */
-      write_id_ch('>', dctl);
+      a_template_param_block pack_temp_par_info;
+      clear_template_param_block(&pack_temp_par_info);
+      /* Recurse to handle the template argument pack. */
+      p = demangle_template_arguments(p, /*partial_spec=*/FALSE,
+                                      &pack_temp_par_info, dctl);
     } else {
       /* Type argument. */
       p = demangle_type(p, dctl);
@@ -2921,6 +2888,18 @@ not empty, because it contains a name or a derived type).
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
     if (under_lhs_declarator) write_id_ch('(', dctl);
+  } else if (kind == 'D') {
+    /* The 'D' is used as an "escape" character.  The following character
+       determines the actual action to be taken. */
+    p++;
+    kind = get_char(p, dctl);
+    if (kind == 'p') {
+      /* A pack expansion. */
+      p = demangle_type_first_part(p+1, /*under_lhs_declarator=*/FALSE,
+                                   /*need_trailing_space=*/FALSE, dctl);
+    } else {
+      bad_mangled_name(dctl);
+    }  /* if */
   } else {
     /* No declarator part to process.  Handle the specifier type. */
     p = demangle_type_specifier(qualp, dctl);
@@ -3018,6 +2997,19 @@ use of parentheses around parts of the declarator.)
     write_id_ch(']', dctl);
     /* Process the element type. */
     demangle_type_second_part(p, /*under_lhs_declarator=*/FALSE, dctl);
+  } else if (kind == 'D') {
+    /* The 'D' is used as an "escape" character.  The following character
+       determines the actual action to be taken. */
+    p++;
+    kind = get_char(p, dctl);
+    if (kind == 'p') {
+      /* A pack expansion. */
+      p++;
+      demangle_type_second_part(p, /*under_lhs_declarator=*/FALSE, dctl);
+      write_id_str("...", dctl);
+    } else {
+      bad_mangled_name(dctl);
+    }  /* if */
   } else {
     /* No declarator part to process.  No need to scan the specifiers type --
        it was done by demangle_type_first_part. */
@@ -6148,7 +6140,8 @@ A <template-args> encodes a template argument list.  The syntax is:
     } else if (*ptr == 'L') {
       /* Literal or external name. */
       ptr = demangle_expr_primary(ptr, dctl);
-    } else if (*ptr == 'J') {
+    } else if (*ptr == 'J' ||
+              (*ptr == 'I' && emulate_gnu_abi_bugs)) {
       /* FIXME: proposed "J" rather than "I" (change comments in entire
          routine). */
       /* Template argument pack. */

@@ -324,6 +324,10 @@ typedef struct a_substitution {
     a_variable_ptr
 		variable_ptr;
 			/* The variable to which this substitution applies. */
+    /* When kind == iek_param_type */
+    a_param_type_ptr
+		param_type_ptr;
+			/* The parameter to which this substitution applies. */
   } variant;
 } a_substitution;
 
@@ -682,6 +686,9 @@ mctl->first_substitution/mctl->last_substitution.
         break;
       case iek_variable:
         sp->variant.variable_ptr = (a_variable_ptr)entity;
+        break;
+      case iek_param_type:
+        sp->variant.param_type_ptr = (a_param_type_ptr)entity;
         break;
       default:
         unexpected_condition();
@@ -1343,6 +1350,13 @@ is available; do not put it out.
               result = TRUE;
             }  /* if */
             break;
+          case iek_param_type:
+            /* Note that we don't use same_entities because a_param_type
+               doesn't have an a_source_correspondence. */
+            if ((a_param_type_ptr)entity == sp->variant.param_type_ptr) {
+              result = TRUE;
+            }  /* if */
+            break;
           default:
             unexpected_condition();
         }  /* switch */
@@ -1696,12 +1710,27 @@ type "type".
         }  /* if */
       }  /* for */
 #endif /* !IA64_ABI */
+      if (param->pack_expansion_descr != NULL) {
+        /* This parameter is a pack expansion. */
+#if IA64_ABI
+        /* Allocate a substitution if we've previously seen this parameter
+           before. */
+        if (!add_substitution_if_available((char *)param, iek_param_type,
+                                                                       mctl)) {
+          /* Mangle the underlying parameter type as a pack expansion. */
+          add_str_to_mangled_name("Dp", mctl);
+          mangled_encoding_for_type(param->type, mctl);
+          alloc_substitution((char *)param, iek_param_type, mctl);
+        }  /* if */
+        goto arg_done;
+#else /* !IA64_ABI */
+        add_str_to_mangled_name("Dp", mctl);
+#endif /* !IA64_ABI */
+      }  /* if */
       /* The parameter type does not match any of the previous parameter
          types, so just put it out. */
       mangled_encoding_for_type(param->type, mctl);
-#if !IA64_ABI
 arg_done:;
-#endif /* !IA64_ABI */
     }  /* for */
   }  /* if */
   /* Output the final "e" (or "z" in the IA64 ABI) for an ellipsis. */
@@ -1831,29 +1860,22 @@ With old_form FALSE, the representation is "_dd_" regardless of the length.
 static void mangled_encoding_for_template_parameter(
                                        a_template_param_coordinate *coordinate,
                                        a_template_arg_ptr          args,
-                                       a_boolean                   is_pack,
                                        a_mangling_control_block    *mctl)
 /*
 Add to the mangled name the encoding for a template parameter with the
 given coordinates.  args points to the template argument list (for a
-template template parameter), if any.  is_pack is TRUE if the template
-parameter is a template pack parameter.
+template template parameter), if any.
 */
 {
   check_assertion(distinct_template_signatures);
 #if !IA64_ABI
-  /* The encoding is "Z[p]nZ" for a first-level parameter, and "Z[p]n_mZ" for
-     a non-first-level parameter, with "n" the parameter number,
-     "m" the depth number, and the character "p" if the template parameter
-     is a template parameter pack.  The "Z" on the end is to avoid ambiguities
+  /* The encoding is "ZnZ" for a first-level parameter, and "Zn_mZ" for
+     a non-first-level parameter, with "n" the parameter number, and
+     "m" the depth number.  The "Z" on the end is to avoid ambiguities
      when this construct is followed by something that begins with a
      number, e.g., when a template parameter in a function parameter
      list is followed by a class name. */
   add_to_mangled_name('Z', mctl);
-  if (is_pack) {
-    /* This is a template parameter pack; mangle it as such. */
-    add_to_mangled_name('p', mctl);
-  }  /* if */
   /* Put out the parameter position number. */
   add_number_to_mangled_name((unsigned long)coordinate->position, mctl);
   if (coordinate->depth != 1) {
@@ -1862,14 +1884,6 @@ parameter is a template pack parameter.
     add_number_to_mangled_name((unsigned long)coordinate->depth, mctl);
   }  /* if */
 #else /* IA64_ABI */
-  if (is_pack) {
-    /* This is a template parameter pack; mangle it as such. */
-    add_str_to_mangled_name("Dp", mctl);
-    /* FIXME: We need to allocate a substitution here, but how should it
-       be "named"?  For now, just allocate a dummy substitution so the
-       substitution numbers will be correct. */
-    alloc_substitution((char *)NULL, iek_variable, mctl);
-  }  /* if */
   /* The IA-64 encoding is "Tnnn_".  The first parameter is "T_". */
   add_to_mangled_name('T', mctl);
   /* Put out the parameter position number. */
@@ -2160,19 +2174,12 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
   if (emulate_gnu_abi_bugs &&
       !expr->variant.sizeof_pack.is_template_template) {
     /* GNU appears to use the encodings for sizeof rather than for
-       sizeof... (at least in current versions).  It also doesn't appear to
-       handle the template template parameter case, so use the proper
-       mangling for that. */
-    if (expr->variant.sizeof_pack.is_type) {
-      add_str_to_mangled_name("st", mctl);
-      mangled_encoding_for_type(expr->variant.sizeof_pack.variant.type, mctl);
-      goto end_of_routine;
-    } else {
-      add_str_to_mangled_name("szsp", mctl);
-    }  /* if */
-  } else {
-    add_str_to_mangled_name("sZ", mctl);
+       sizeof... (at least in current versions).  We'd try to emulate that
+       here, but we'd get the substitution wrong for the type (since our
+       pack expansion substitution requires an iek_param_type and we don't
+       have one here).  Instead, just use the proper mangling for sizeof... */
   }  /* if */
+  add_str_to_mangled_name("sZ", mctl);
 #else /* !IA64_ABI */
   /* Mangling for sizeof...():
        OskZ1Z_0_O <-- "sizeof...(T1)", T1 indicating a template parameter.
@@ -2221,7 +2228,6 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
        as such (the IA-64 ABI mangling doesn't allow for that). */
     mangled_encoding_for_template_parameter(coordinates,
                                             (a_template_arg *)NULL,
-                                            /*is_pack=*/FALSE,
                                             mctl);
 #if !IA64_ABI
     store_digits_and_underscore((unsigned long)0, /*old_form=*/FALSE, mctl);
@@ -3637,7 +3643,6 @@ operator on some template constants when suppress_address_of is TRUE
           mangled_encoding_for_template_parameter(
                               &con->variant.template_param.variant.coordinates,
                               (a_template_arg *)NULL,
-                              /*is_pack=*/FALSE /* FIXME */,
                               mctl);
           break;
         case tpck_expression:
@@ -6065,7 +6070,6 @@ given by tap.
     mangled_encoding_for_template_parameter(
                                      &temp->coordinates,
                                      (a_template_arg *)NULL,
-                                     temp->is_pack,
                                      mctl);
   } else {
     /* The value of the argument is a template. */
@@ -6346,7 +6350,7 @@ is NULL, all of the arguments pointed to by template_arg_list are mangled.
                                                partial_spec,
                                                old_form,
                                                name_reference,
-                                               /*in_pack=*/FALSE,
+                                               /*is_pack=*/FALSE,
                                                mctl);
 }  /* mangled_template_arguments */
 
@@ -6728,7 +6732,6 @@ that fact should be put out.
           mangled_encoding_for_template_parameter(
                &template_param->variant.template_param.extra_info->coordinates,
                (a_template_arg *)NULL,
-               template_param->variant.template_param.is_pack,
                mctl);
           break;
         case tptk_member:
@@ -6773,7 +6776,6 @@ that fact should be put out.
                                      &tssp->il_template_entry->coordinates,
                                      type->variant.class_struct_union.
                                                  extra_info->template_arg_list,
-                                     /*is_pack=*/FALSE /* FIXME */,
                                      mctl);
       }  /* if */
     }  /* if */
@@ -8398,19 +8400,14 @@ top_of_loop:
         /* This comes up when mangling the names for template entities using
            the modern mangling approach. */
         if (is_auto_type(type)) {
-          check_assertion(!type->variant.template_param.is_pack);
           /* This occurs, for example, when mangling decltype(new auto(p1)). */
           s = MANGLING_STRING_FOR_AUTO;
         } else {
-          check_assertion(!type->variant.template_param.is_pack ||
-                          type->variant.template_param.kind ==
-                                   (a_template_param_constant_kind)tptk_param);
           switch (type->variant.template_param.kind) {
             case tptk_param:
               mangled_encoding_for_template_parameter(
                          &type->variant.template_param.extra_info->coordinates,
                          (a_template_arg *)NULL,
-                         type->variant.template_param.is_pack,
                          mctl);
               break;
             case tptk_member:
