@@ -793,8 +793,8 @@ position following what was demangled.
   unsigned long position, depth = 1;
 
   /* This comes up with the modern mangling for template functions.
-     Form is "ZnZ" or "Zn_mZ", where n is the parameter number,
-     m is the depth number (1 if not specified). */
+     Form is "ZnZ" or "Zn_mZ", where n is the parameter number and m
+     is the depth number (1 if not specified). */
   p++;  /* Advance past the "Z". */
   /* Get the position number. */
   p = get_number(p, &position, dctl);
