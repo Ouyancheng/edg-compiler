@@ -7037,6 +7037,10 @@ for use in generating cross-reference output describing this declaration.
         pos_sy_warning(ec_already_defined, &locator->source_position, sym);
         *new_rp = *routine_ptr;
         new_rp->next = NULL;
+        new_rp->source_corresp.decl_position = locator->source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        new_rp->source_corresp.decl_pos_info = NULL;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         routine_ptr = new_rp;
         routine_ptr->gnu_c89_inline = FALSE;
         old_decl_has_body = FALSE;
