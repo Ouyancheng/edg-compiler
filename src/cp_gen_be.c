@@ -10782,30 +10782,6 @@ recorded with this particular header.
 }  /* gen_template_header */
 
 
-void unmap_template_parameters(a_template_decl_ptr  tdp)
-/*
-Deactivate the mapping of template parameter coordinates recorded with this
-particular header.
-*/
-{
-  a_template_parameter_ptr  param = tdp->param_list;
-
-  for (; param != NULL; param = param->next) {
-    if (param->kind == (a_template_parameter_kind)tpk_nontype) {
-      a_constant_ptr  cp = param->variant.nontype.constant;
-      unmap_template_param(&cp->variant.template_param.variant.coordinates);
-    } else if  (param->kind == (a_template_parameter_kind)tpk_type) {
-      unmap_template_param(&param->variant.type.ptr
-                              ->variant.template_param.extra_info
-                              ->coordinates);
-    } else {
-      check_assertion(param->kind == (a_template_parameter_kind)tpk_template);
-      unmap_template_param(&param->variant.templ.class_template->coordinates);
-    }  /* if */
-  }  /* for */
-}  /* unmap_template_parameters */
-
-
 static a_boolean gen_template_from_prototype_instantiation(a_template_ptr  tp)
 /*
 The given template entry points to a prototype instantiation.  Dispatch the
