@@ -6463,12 +6463,12 @@ typedef struct a_class_type_supplement {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_assembly_index
 		assembly_index;
-			/* This index of the assembly in which this construct
+			/* The index of the assembly in which this construct
 			   was defined, or zero if the construct is not from
 			   an assembly. */
   a_cpp_cli_token
 		metadata_type_def_token;
-			/* If this construct was defined in assembly, the
+			/* If this construct was defined in an assembly, the
 			   typedef-token for this construct within the
 			   assembly in which it was defined. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -6609,12 +6609,12 @@ typedef struct an_integer_type_supplement {
 			   (Enumeration types in C++/CLI mode only.) */
   an_assembly_index
 		assembly_index;
-			/* This index of the assembly in which this construct
+			/* The index of the assembly in which this construct
 			   was defined, or zero if the construct is not from
 			   an assembly. */
   a_cpp_cli_token
 		metadata_type_def_token;
-			/* If this construct was defined in assembly, the
+			/* If this construct was defined in an assembly, the
 			   typedef-token for this construct within the
 			   assembly in which it was defined. */
   char

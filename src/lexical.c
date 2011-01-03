@@ -14,7 +14,7 @@ lexical.c -- Source input and lexical scanning routines.
 These routines and data structures handle reading of source lines
 and parsing of them into tokens.
 
-F*/
+*/
 
 /* Header files common to all files. */
 #include "fe_common.h"
@@ -9546,7 +9546,7 @@ is set to tok_error.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (!cppcli_enabled || !is_scanning_generated_code_from_metadata) 
       /* Suppress this error for generated code from metadata.  We use 
-         __identifier for template specialization imported from metadata.  
+         __identifier for template specializations imported from metadata.  
          For example, ref class __identifier("Foo<int>"). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */

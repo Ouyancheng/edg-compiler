@@ -12,7 +12,7 @@
 
 ms_metadata.cpp -- reading of C++/CLI metadata from assemblies.
 
-This is a C++ file and that it relies on Microsoft Windows
+This is a C++ file that relies on Microsoft Windows
 APIs.  As a result, it can only be compiled on a Windows platform.
 In addition, the C++ code makes use of C++0x features, so it must be
 compiled by at least the Microsoft VC10 compiler or version 4.2 of the
