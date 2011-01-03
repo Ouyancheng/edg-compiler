@@ -2246,8 +2246,6 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
   }  /* if */
 #if !IA64_ABI
   add_to_mangled_name('O', mctl);
-#else /* IA64_ABI */
-end_of_routine:;
 #endif /* !IA64_ABI */
 }  /* mangled_encoding_for_sizeof_pack */
 
