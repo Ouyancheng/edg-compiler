@@ -728,7 +728,8 @@ base results in the creations of a class template symbol.
 */
 #define nonreal_member_symbol_kind(locator, options)		\
   ((a_symbol_kind)(((options & IDL_TREAT_AS_TEMPLATE_ID) ||	\
-    (microsoft_mode && (options & IDL_TENTATIVE_TEMPLATE_LOOKUP) && \
+    (microsoft_mode && implicit_typename_enabled &&		\
+     (options & IDL_TENTATIVE_TEMPLATE_LOOKUP) &&		\
      (options & IDL_MEMBER_OF_UNKNOWN_BASE)))			\
     ? sk_class_template						\
     : 								\
