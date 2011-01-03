@@ -17822,7 +17822,7 @@ instantiation.  class_type is the class to be defined.
      should be processed.  A special template declaration information entry
      is created for purposes of creating the context for the class. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* Don't generate source sequence entries for injected the class 
+  /* Don't generate source sequence entries for the injected class 
      definitions. */
   saved_source_sequence_entries_disallowed =
                                             source_sequence_entries_disallowed;
@@ -17844,10 +17844,10 @@ instantiation.  class_type is the class to be defined.
                           metadata_type_def_token,
                           class_def_buffer->buffer, &size);
   if (size <= class_def_buffer->allocated_size) {
-    /* The buffer fits.  Mark the size that have been written. */
+    /* The buffer fits.  Mark the size that has been written. */
     class_def_buffer->size = size;
   } else {
-    /* expand the buffer */
+    /* Expand the buffer */
     reset_text_buffer(class_def_buffer);
     expand_text_buffer(class_def_buffer, size);
     import_class_definition(assembly_index, 
@@ -17890,7 +17890,7 @@ instantiation.  class_type is the class to be defined.
   free_template_decl_info(tdip);
 #if BACK_END_IS_CP_GEN_BE
   /* Set this flag so that the C++-generating back end will not use elaborated
-     type specifiers when referring this type (e.g., "X" instead of 
+     type specifiers when referring to this type (e.g., "X" instead of 
      "class X"). */
   class_type->has_been_declared = TRUE;
 #endif /* BACK_END_IS_CP_GEN_BE */
@@ -17933,7 +17933,7 @@ the caller should copy the contents as needed.
   size = buffer->allocated_size;
   import_all_types(index, buffer->buffer, &size);
   if (size <= buffer->allocated_size) {
-    /* The buffer fits.  Mark the size that have been written. */
+    /* The buffer fits.  Mark the size that has been written. */
     buffer->size = size;
   } else {
     /* Expand the buffer */
