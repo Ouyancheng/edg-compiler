@@ -991,6 +991,23 @@ Return TRUE if the given type is a C++/CLI managed class type.
 }  /* is_managed_class_type */
 
 
+a_boolean is_cli_ref_or_interface_class_type(a_type_ptr tp)
+/*
+Return TRUE if the indicated type is a C++/CLI ref class or interface class.
+*/
+{
+  a_boolean result = FALSE;
+
+  tp = skip_typerefs(tp);
+  if (is_immediate_class_type(tp) &&
+      (cli_class_type_kind_is(tp, cctk_ref) ||
+       cli_class_type_kind_is(tp, cctk_interface))) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_cli_ref_or_interface_class_type */
+
+
 a_boolean is_delegate_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a C++/CLI delegate type.

@@ -8591,6 +8591,10 @@ a pointer over a reference type or creating an array of references.
             } else {
               new_type = make_tracking_reference_type(tp);
             }  /* if */
+          } else if (is_cli_ref_or_interface_class_type(tp)) {
+            /* An ordinary reference to a C++/CLI ref class type or interface
+               class type is not valid. */
+            *copy_error = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             new_type = make_reference_type(tp);
@@ -8606,6 +8610,10 @@ a pointer over a reference type or creating an array of references.
             } else {
               *copy_error = TRUE;
             }  /* if */
+          } else if (is_cli_ref_or_interface_class_type(tp)) {
+            /* An ordinary pointer to a C++/CLI ref class type or interface
+               class type is not valid. */
+            *copy_error = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             new_type = make_pointer_type(tp);

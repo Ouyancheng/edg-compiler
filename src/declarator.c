@@ -882,10 +882,11 @@ the specifiers and declarator that formed the new type.
               error(ec_pointer_to_reference);
               new_type_ptr = error_type();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            } else if (cppcli_enabled && is_managed_class_type(new_type_ptr)) {
+            } else if (cppcli_enabled && 
+                       is_cli_ref_or_interface_class_type(new_type_ptr)) {
               /* Attempting to form a type "pointer to managed class type" is
                  invalid. */
-              pos_error(ec_pointer_to_managed_type, &pos_curr_token);
+              pos_error(ec_pointer_to_ref_or_interface_class, &pos_curr_token);
               err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             }  /* if */
@@ -932,10 +933,10 @@ the specifiers and declarator that formed the new type.
               err = TRUE;
             }  /* if */
           } else {
-            if (is_managed_class_type(temp_type)) {
+            if (is_cli_ref_or_interface_class_type(temp_type)) {
               /* Attempting to form a type "reference to managed class type"
                  is invalid. */
-              error(ec_reference_to_managed_type);
+              error(ec_reference_to_ref_or_interface_class);
               err = TRUE;
             }  /* if */
           }  /* if */
@@ -4193,10 +4194,11 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
               error(ec_pointer_to_reference);
               err = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            } else if (cppcli_enabled && is_managed_class_type(temp_type)) {
+            } else if (cppcli_enabled &&
+                       is_cli_ref_or_interface_class_type(temp_type)) {
               /* Attempting to form a type "pointer to managed class type" is
                  invalid. */
-              error(ec_pointer_to_managed_type);
+              error(ec_pointer_to_ref_or_interface_class);
               err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             }  /* if */
@@ -4234,10 +4236,11 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
             sym_error(ec_bad_use_of_member_function_typedef, sym);
             err = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          } else if (cppcli_enabled && is_managed_class_type(temp_type)) {
+          } else if (cppcli_enabled &&
+                     is_cli_ref_or_interface_class_type(temp_type)) {
             /* Attempting to form a type "reference to managed class type" is
                invalid. */
-            error(ec_reference_to_managed_type);
+            error(ec_reference_to_ref_or_interface_class);
             err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {

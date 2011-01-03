@@ -120,6 +120,7 @@ extern a_boolean is_ref_class_type(a_type_ptr tp);
 extern a_boolean is_value_class_type(a_type_ptr tp);
 extern a_boolean is_standard_class_type(a_type_ptr tp);
 extern a_boolean is_managed_class_type(a_type_ptr tp);
+extern a_boolean is_cli_ref_or_interface_class_type(a_type_ptr tp);
 #define cli_class_type_kind_is(tp, cctk)                                     \
   (class_type_supp(tp)->cli_class_type_kind == (a_cli_class_type_kind)(cctk))
 #define is_immediate_managed_class_type(tp)                                  \
