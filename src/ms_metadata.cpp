@@ -596,7 +596,7 @@ enum a_top_level_kind {
 };  /* a_top_level_kind */
 
 /*
-The representation of a single import scope.  Each assembly can contains one
+The representation of a single import scope.  Each assembly can contain one
 or more import scope - though only one import scope has the metadata for types.
 */
 class an_import_scope {
@@ -689,7 +689,7 @@ an_import_scope::an_import_scope(IMetaDataImport2 *md_import2_interface,
                                  an_assembly      &containing_assembly)
 /*
 Create a representation of an import scope and get the information about the
-scope that we will need later. Currently this is just the name of the scope.
+scope that we will need later.  Currently this is just the name of the scope.
 */
   : md_import2_interface_(md_import2_interface),
     containing_assembly_(containing_assembly)
@@ -750,7 +750,7 @@ Import all the types from an import scope.
 void an_import_scope::open_namespace(ostringstream& buffer,
                                      const wstring& namespace_name)
 /*
-Emit the text to open a namespace scope
+Emit the text to open a namespace scope.
 */
 {
   buffer << "namespace ";
@@ -770,7 +770,7 @@ Emit the text to open a namespace scope
 void an_import_scope::close_namespace(ostringstream& buffer,
                                                  const wstring& namespace_name)
 /*
-Emit the text to close a namespace scope
+Emit the text to close a namespace scope.
 */
 {
   buffer << "}" ;
@@ -843,13 +843,12 @@ Open a single namespace.
     namespace_stack_.push_back(namespace_name);
   } else {
     check_assertion(namespace_stack_.size() >= 1);
-    /* If the are more than one namespace on the namespace stack then we need
+    /* If there is more than one namespace on the namespace stack then we need
        to remove all but the last (outermost) namespace. */
     while (namespace_stack_.size() != 1) {
       close_namespace(buffer, namespace_stack_.back());
       namespace_stack_.pop_back();
     }  /* while */
-    check_assertion(namespace_stack_.size() == 1);
     /* If the outermost namespace doesn't match the new namespace then we need
        to replace it with the new namespace. */
     if (namespace_stack_.back() != namespace_name) {
@@ -979,7 +978,7 @@ Get all the pertinent information associated with this assembly.
 
 bool an_assembly::import_all_scopes()
 /*
-Import all the import scopes associated with this assembly. Note, only one 
+Import all the import scopes associated with this assembly.  Note, only one 
 import scope will contain any interesting metadata.
 */
 {
@@ -997,7 +996,7 @@ import scope will contain any interesting metadata.
       result = false;
       break;
     } else if ((hr == S_FALSE) || (md_import_inferface == nullptr)) {
-      /* There are no types in this scope. Skip it. */
+      /* There are no types in this scope.  Skip it. */
       continue;
     }  /* if */
     check_assertion(!processed_an_interesting_scope);
@@ -1263,11 +1262,11 @@ wstring an_import_scope::resolve_type_token(
                        bool                           replace_dots) const
 /*
 Resolve the type given by the token.  Get the name of the type and replace
-any "." in the name with C++ scope operator, "::".
+any "." in the name with the C++ scope operator, "::".
 */
 {
   wstring type_name;
-  /* First check if this token is a typedef token for type we have already
+  /* First check if this token is a typedef token for a type we have already
      imported within the current scope. */
   auto    iter = map_of_tokens_to_names_.find(token);
 
@@ -1310,7 +1309,7 @@ any "." in the name with C++ scope operator, "::".
         break;
       case mdtInterfaceImpl:
         /* If this is an interface-impl token then get the token for the 
-           interface definition and the attempt to resolve that token. */
+           interface definition and then attempt to resolve that token. */
         hr = md_import2_interface_->GetInterfaceImplProps(
                                          token, /*mdTypeDef=*/nullptr, &token);
         CHECK_API_RESULT(hr, GetInterfaceImplProps);
@@ -1339,7 +1338,7 @@ any "." in the name with C++ scope operator, "::".
       type_name = name_buffer.get();
     }  /* if */
   }  /* if */
-  /* If necessary replace any '.' in the type-name with the C++ token '::'. */
+  /* If necessary replace any "." in the type-name with the C++ token "::". */
   if (replace_dots) {
     wstring::size_type start = 0;
     auto               dot   = type_name.find(L'.', start);
@@ -1723,7 +1722,7 @@ Return the appropriate string for the specified accessibility.
 
   switch (accessibility) {
     case mdPrivateScope:
-      /* We should not be emitting this accessibilties. */
+      /* We should not be emitting this accessibility. */
       unexpected_condition();
       break;
     case mdPrivate:
@@ -1823,6 +1822,7 @@ Return the appropriate string for the specified accessibility.
   check_assertion(!result.empty());
   return result;
 }  /* a_type_definition::accessibility_as_wstring */
+
 
 void a_type_definition::import_one_member(ostringstream &buffer,
                                           mdTypeDef     member_token,
@@ -1927,7 +1927,7 @@ Import a single member of a type.
           (supported_features & cpp_cli_generic_methods) == 0) {
         emit_declaration = false;
       }  /* if */
-      /* Emit the storage class */
+      /* Emit the storage class. */
       if (IsMdStatic(member_attributes)) {
         declaration << L"static ";
       } else if (IsMdVirtual(member_attributes)) {
@@ -1947,7 +1947,7 @@ Import a single member of a type.
       /* A field. */
       wstring field_type;
 
-      /* Emit the storage class.  'literal' implies 'static'. */
+      /* Emit the storage class.  "literal" implies "static". */
       if (IsFdStatic(member_attributes) && !IsFdLiteral(member_attributes)) {
         declaration << L"static ";
       }  /* if */
@@ -1963,8 +1963,8 @@ Import a single member of a type.
       field_type = decoder.decode_field_signature();
       declaration << field_type << L' ' << member_name;
       if (IsFdLiteral(member_attributes)) {
-        /* Note: we emit the value as a hexdecimal constant cast to the
-           appropriate type. This seems to work best for some corner cases. */
+        /* Note: we emit the value as a hexadecimal constant cast to the
+           appropriate type.  This seems to work best for some corner cases. */
         a_constant_decoder decoder(constant_type, constant_value,
                                    characters_in_constant);
 
@@ -1976,7 +1976,7 @@ Import a single member of a type.
     auto back_tick = declaration.str().find(L'`');
     if (back_tick != wstring::npos &&
         (supported_features & cpp_cli_generic_types) == 0) {
-      /* Generics are not supported it. */
+      /* Generics are not supported yet. */
       emit_declaration = false;
     }  /* if */
     if (emit_declaration) {
@@ -2100,7 +2100,7 @@ itself and its associated accessor methods.
   if (!IsNilToken(get_method_token)) {
     get_method = import_property_method(get_method_token);
   }  /* if */
-  /* Set the accessibility fo the property itself.  The accessibility of the 
+  /* Set the accessibility of the property itself.  The accessibility of the 
      property itself is the greater accessibility of its associated accessor 
      methods. */
   set_method_accessibility = set_method.accessibility();
@@ -2360,7 +2360,7 @@ Import all the events associated with this type.
 
 void a_type_definition::import_nested_classes(ostringstream &buffer)
 /*
-Import all the nested class enclosed by this type.
+Import all the nested classes enclosed by this type.
 */
 {
   HCORENUM  enum_typedefs = 0;
@@ -2469,11 +2469,11 @@ void an_import_scope::import_one_type(ostringstream& buffer,
                                       bool class_body_only)
 /*
 Import a single type from an import scope and create either a declaration or
-a definition for the type depend on want_definition.  Note, in some cases (like
-enumerations) we always need to create a definition.  at_top_level denotes 
-whether this declaration/definition is at file scope.  If so, namespace scopes 
-and top-level-visibility will be emitted and nested classes will be
-suppressed. 
+a definition for the type depending on want_definition.  Note, in some cases
+(like enumerations) we always need to create a definition.  at_top_level
+denotes  whether this declaration/definition is at file scope.  If so,
+namespace scopes and top-level-visibility will be emitted and nested classes
+will be suppressed. 
 
 If class_body_only is true, the class head and the namespace scopes will be 
 omitted.
@@ -2671,7 +2671,7 @@ omitted.
       }  /* if */
     }  /* if */
     if (!want_definition && !IsTdNested(attributes)) {
-      /* If this is for a declaration we need should remember the mapping from 
+      /* If this is for a declaration we need to remember the mapping from 
          the def-token to the name as this will make it easier to find any 
          future references to this token. */
       map_of_tokens_to_names_.insert(make_pair(typedef_token,
@@ -2703,7 +2703,7 @@ responsiblity to ensure that there is at least one generic argument.
 
 wstring a_signature_decoder::decode_type()
 /*
-Decode code a type signature and return it as a std::wstring.
+Decode a type signature and return it as a std::wstring.
 */
 {
   wostringstream buffer;
@@ -2764,7 +2764,7 @@ Decode code a type signature and return it as a std::wstring.
       buffer << decode_type() << L'*';
       break;
     case ELEMENT_TYPE_BYREF:
-      /* Decode the referenced type and append a '%'. */
+      /* Decode the referenced type and append a "%". */
       buffer << decode_type() << L'%';
       break;
     case ELEMENT_TYPE_VALUETYPE:
@@ -2803,13 +2803,13 @@ Decode code a type signature and return it as a std::wstring.
         num_of_sizes = read_four_bytes();
         for (ULONG i = 0; i < num_of_sizes; ++i) {
           /* We don't need the sizes.  They don't affect the typename.
-             However, we need to consume these bytes in the signiture blob. */
+             However, we need to consume these bytes in the signature blob. */
           (void)read_four_bytes();
         }  /* if */
         num_of_lower_bounds = read_four_bytes();
         for (ULONG i = 0; i < num_of_lower_bounds; ++i) {
           /* We don't need the lower bounds.  They don't affect the typename.  
-             However, we need to consumer these bytes in the signiture blob. */
+             However, we need to consumer these bytes in the signature blob. */
           (void)read_four_bytes();
         }  /* if */
         buffer << L">^";
@@ -3065,8 +3065,8 @@ interfaces.
 
 bool a_metadata_reader::trans_unit_init(char *trans_unit_file_name)
 /*
-Do per-translation unit initialization.  This resetis the assembly
-index, sets the name of the translation unit, retrieves a file token for
+Do per-translation unit initialization.  This resets the assembly
+index, sets the name of the translation unit, and retrieves a file token for
 the translation unit.
 */
 {
@@ -3105,7 +3105,7 @@ index.
 
 void a_metadata_reader::cleanup()
 /*
-Cleanup and tear down the interface that were created.
+Clean up and tear down the interface that were created.
 */
 {
   release_and_zero_out_helper(md_dispenser_interface_);
@@ -3123,15 +3123,14 @@ an_assembly_index a_metadata_reader::import_assembly(
                                      bool                  *is_duplicated)
 /*
 Import a single assembly.  assembly_full_name contains the full path to the 
-assembly to be processed.  *assembly_index contains an unique assembly index 
-representing this assembly.  If this assembly has been processed, 
+assembly to be processed.  If this assembly has been processed, 
 *is_duplicated is set to TRUE and the previous assembly index is returned.
 */
 {
   an_assembly_index result;
   wstring           full_assembly_name(char_string_to_wstring(
                                                           assembly_full_name));
-  /* Determine whether this assembly have been imported.  If so, don't process
+  /* Determine whether this assembly has been imported.  If so, don't process
      it again. */
   auto              iter = assemblies_.find(full_assembly_name);
 
@@ -3297,8 +3296,8 @@ void import_class_definition(an_assembly_index assembly_index,
                              size_t            *buffer_size)
 /*
 Import the definition of the type specified by typedef_token.  The generated
-code only contains body of the class definiton, including the base classes 
-list.  The namespace scopes and class head are be omited.  
+code only contains the body of the class definiton, including the base classes 
+list.  The namespace scopes and class head are omitted.  
 */
 {
   string str;
