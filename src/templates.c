@@ -13121,7 +13121,8 @@ of which it is a member.
     pos_sy_error(ec_bad_scope_for_definition,
                  &locator->source_position, sym);
     result = TRUE;
-  } else if (!locator_parent_matches_symbol(locator, sym, &parent_sym)) {
+  } else if (parent_sym != NULL &&
+             !locator_parent_matches_symbol(locator, sym, &parent_sym)) {
     /* The symbol is something like X::Y, but the locator has a parent
        class or namespace of Z.  This can occur if X::Y is an inherited
        member or one made visible by a using-directive. */
