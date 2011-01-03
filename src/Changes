@@ -563,8 +563,8 @@ Microsoft compatibility: abort on class template that uses its own default
 argument
 
 A change in version 4.2 introduced an abort in Microsoft mode on certain
-cases in which a class template made use of own of its own default template
-argument.  Now fixed.
+cases in which a class template made use of one of its own default template
+arguments.  Now fixed.
 
   template<class U> class B {
     template <class T,
