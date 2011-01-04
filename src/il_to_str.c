@@ -4864,15 +4864,18 @@ do_sizeof_cases:
     case ck_designator:
       if (constant->variant.designator.field != NULL) {
         a_field_ptr field = constant->variant.designator.field;
-        if (!octl->c_generating_back_end &&
-            il_header.source_language == sl_Cplusplus &&
+#if BACK_END_IS_CP_GEN_BE
+        if (il_header.source_language == sl_Cplusplus &&
             gcc_is_generated_code_target) {
           /* g++ does not accept the C99 syntax for designated initializers
              but does accept a nonstandard variant:
                  struct S s = { m: 0 }; */
           form_unqualified_name(&field->source_corresp, iek_field, octl);
           octl->output_str(": ", octl);
-        } else {
+        } else
+#endif /* BACK_END_IS_CP_GEN_BE */
+        /* Do not insert code here. */
+        {
           /* Use the C99 designated initializer syntax. */
           octl->output_str(".", octl);
           form_unqualified_name(&field->source_corresp, iek_field, octl);
