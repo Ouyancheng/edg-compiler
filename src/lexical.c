@@ -14846,7 +14846,7 @@ is preferred over the normal lookup symbol.
   a_symbol_ptr	class_sym;
   a_symbol_ptr	normal_fund_sym;
   a_symbol_ptr	class_fund_sym;
-  a_symbol_ptr	sym;
+  a_symbol_ptr	sym = NULL;
   a_boolean	do_class_lookup;
 
   /* Do the lookup if a type was provided that is a class type that is
@@ -14881,6 +14881,17 @@ is preferred over the normal lookup symbol.
   } else {
     sym = normal_fund_sym;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && sym == NULL && class_type == NULL) {
+    a_symbol_header_ptr sym_hdr = locator_for_curr_id.symbol_header;
+    if (sym_hdr->identifier_length == (sizeof("array")-1) &&
+        strcmp(sym_hdr->identifier, "array") == 0 &&
+        symbol_for_cli_array != NULL) {
+      /* Fallback to cli::array.  ECMA-372 $24.1. */
+      sym = symbol_for_cli_array;
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (sym != NULL && might_be_vacuous_dtor_or_finalizer) {
     /* If the lookup above returned something that is only valid as a vacuous
        destructor, set the is_vacuous destructor flag. */

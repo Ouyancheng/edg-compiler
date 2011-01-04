@@ -12225,6 +12225,14 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
          declaration. */
       process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
       nsp = ns_sym->variant.namespace_info.ptr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* User code is not permitted to extend the cli namespace. */
+      if (cppcli_enabled && !is_scanning_generated_code_from_metadata && 
+          ns_sym == symbol_for_namespace_cli) {
+        pos_error(ec_namespace_cli_cannot_be_extended,
+                  &locator.source_position);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (!ignore_std_namespace ||
           ns_sym != symbol_for_namespace_std) {
         /* Push a scope for the scanning the namespace body.  This is not done

@@ -1424,6 +1424,10 @@ when it is a secondary file.
       make_predeclared_bool_symbol();
     }  /* if */
   }  /* if */
+  if (cppcli_enabled) {
+    /* Add symbol for ::cli namespace. */
+    make_symbol_for_namespace_cli();
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_primary_translation_unit) {
     /* We have to wait until now to create name linkage constants to

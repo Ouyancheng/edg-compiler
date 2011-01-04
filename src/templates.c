@@ -13605,6 +13605,20 @@ declaration of a partial specialization declared outside of its class.
          declaration of a partial specialization. */
       if (sym != NULL && is_template_class_symbol(sym) &&
           locator_for_curr_id.is_template_id) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* Check whether this template can be specialized. */
+        a_symbol_ptr                     class_template_sym;
+        a_template_symbol_supplement_ptr tssp;
+
+        class_template_sym = template_for_instance(sym);
+        tssp = class_template_sym->variant.template_info;
+        if (cppcli_enabled && 
+            tssp->variant.class_template.cannot_be_specialized) {
+          pos_sy_error(ec_partial_specialization_not_allowed, 
+                       &locator_for_curr_id.source_position, 
+                       class_template_sym);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         decl_state->is_partial_specialization = TRUE;
       }  /* if */
       /* If the symbol found is an injected template symbol, replace it with
@@ -18816,6 +18830,19 @@ that follows.
         }  /* if */
       }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* Check whether this template can be specialized. */
+      { a_symbol_ptr                     class_template_sym;
+        a_template_symbol_supplement_ptr tssp;
+
+        class_template_sym = template_for_instance(sym);
+        tssp = class_template_sym->variant.template_info;
+        if (cppcli_enabled && 
+            tssp->variant.class_template.cannot_be_specialized) {
+          sym_error(ec_entity_cannot_be_specialized, class_template_sym);
+        }  /* if */
+      }
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     /* No locator is set for the class case, so set it to an error locator
        for cleanliness. */

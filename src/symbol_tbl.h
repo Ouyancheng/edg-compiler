@@ -2263,6 +2263,12 @@ typedef struct a_template_symbol_supplement {
 			/* TRUE if an alias template uses its own type in the
 			   type-id referred to by the alias.  This is used to
 			   suppress instantiations of the alias. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_bit_field
+		cannot_be_specialized:1;
+			/* TRUE if this template cannot be explicitly 
+			   specialized. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       bitfield_to_avoid_codecenter_warnings()
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       a_source_sequence_entry_ptr
@@ -3663,6 +3669,24 @@ extern void make_symbol_for_namespace_abi(void);
 
 extern void enter_symbol_for_namespace_abi(a_symbol_locator  *locator);
 #endif /* IA64_ABI */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+EXTERN a_symbol_ptr
+		symbol_for_namespace_cli;
+			/* Symbol for namespace "cli".  Used when 
+			   cppcli_enabled is TRUE. */
+
+EXTERN a_symbol_ptr
+		symbol_for_cli_array;
+			/* Symbol for "cli::array".  Used when 
+			   cppcli_enabled is TRUE.  NULL if the class template
+			   used to represent the array type has not yet been
+			   created. */
+
+extern void make_symbol_for_namespace_cli(void);
+extern void make_symbol_for_cli_array(void);
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN a_type_ptr
 		builtin_va_list_type;

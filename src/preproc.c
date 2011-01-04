@@ -1581,6 +1581,9 @@ any other metadata files specified via --preusing.
     import_metadata(mscorlib, /*as_friend=*/FALSE, /*is_system_include=*/TRUE,
                     /*referenced_by_preusing=*/TRUE,
                     &preinclude_source_position);
+    /* Create cli::array.  Note: cli::array will not be defined if 
+       implicit_mscorlib is FALSE. */
+    make_symbol_for_cli_array();
   }  /* if */
   while (preusing_file_list != NULL) {
     name = alloc_il(strlen(preusing_file_list->file_name) + 1);
