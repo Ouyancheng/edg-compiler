@@ -10591,7 +10591,8 @@ operator function reference.
   }  /* if */
   /* Bypass the "operator" keyword. */
   (void)get_token();
-  if (is_type_start(/*is_expr_context=*/FALSE)) {
+  if (is_type_start(/*is_expr_context=*/FALSE) ||
+      (gpp_mode && curr_token == tok_attribute)) {
     /* It is the start of a type name. */
     a_boolean           ptr_to_member_scanned;
     a_decl_parse_state  state;
