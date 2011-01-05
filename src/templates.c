@@ -13608,7 +13608,6 @@ declaration of a partial specialization declared outside of its class.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         /* Check whether this template can be specialized. */
         a_symbol_ptr                     class_template_sym;
-        a_template_symbol_supplement_ptr tssp;
 
         class_template_sym = template_for_instance(sym);
         tssp = class_template_sym->variant.template_info;
@@ -18835,11 +18834,14 @@ that follows.
       { a_symbol_ptr                     class_template_sym;
         a_template_symbol_supplement_ptr tssp;
 
-        class_template_sym = template_for_instance(sym);
-        tssp = class_template_sym->variant.template_info;
-        if (cppcli_enabled && 
-            tssp->variant.class_template.cannot_be_specialized) {
-          sym_error(ec_entity_cannot_be_specialized, class_template_sym);
+        class_template_sym =
+                    sym->variant.class_struct_union.extra_info->class_template;
+        if (class_template_sym != NULL) {
+          tssp = class_template_sym->variant.template_info;
+          if (cppcli_enabled && 
+              tssp->variant.class_template.cannot_be_specialized) {
+            sym_error(ec_entity_cannot_be_specialized, class_template_sym);
+          }  /* if */
         }  /* if */
       }
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
