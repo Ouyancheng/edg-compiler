@@ -624,9 +624,11 @@ function-local entities.
           a_type_ptr  type, new_type;
           new_type = sym->variant.class_struct_union.type;
           type = sep->symbol->variant.class_struct_union.type;
-          if (distinct_lambda_signatures(type, new_type)) {
-            /* Two closure types whose call operators have distinct types
-               are considered to be non-colliding. */
+          if (!emulate_gnu_abi_bugs &&
+              distinct_lambda_signatures(type, new_type)) {
+            /* Two closure types whose call operators have distinct types are
+               considered to be non-colliding.  (Except when emulating GCC ABI
+               bugs, since g++ appears to ignore the lambda signature.) */
           } else {
             /* A collision between closure types. */
             value = discriminator_of(sep->symbol)+1;

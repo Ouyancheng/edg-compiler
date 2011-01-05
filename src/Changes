@@ -1,5 +1,23 @@
 Version 4.3
 
+1/4/11   [EDGcpfe/11245]
+GNU C++ compatibility: Mangling of local closure types
+
+When multiple C++0x lambdas appear in a function, the IA-64 ABI introduces a
+"discriminator" value to uniquely mangle closure types associated with lambdas
+that have the same signature.  GCC, however, enforces distinct values even
+when two local lambdas have different signatures, which results in nonstandard
+encodings.  Now, when emulating GNU ABI bugs, the front end assigns
+discriminator values corresponding to the encodings produced by GCC.
+For example:
+
+  int main() {
+    int a = []{ return 37; }();         // Discriminator == 1
+    int b([](int& a){ return a; }(a));  // Discriminator == 2 when emulating
+  }                                     // GNU ABI bugs; 1 otherwise.
+  
+
+
 1/4/11   [EDGcpfe/11146]
 GNU C++ compatibility: Attributes in conversion function names
 
