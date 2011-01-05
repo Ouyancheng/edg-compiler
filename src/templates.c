@@ -5255,7 +5255,7 @@ greater.  If this is an  invalid array, issue an error and return FALSE.
       if (tap->variant.constant) {
         a_constant_ptr con = tap->variant.constant;
         a_boolean      ovflo;
-        if (con->kind != ck_integer || 
+        if (con->kind != (a_constant_repr_kind)ck_integer || 
             value_of_integer_constant(con, &ovflo) <= 0 || ovflo ) {
           error(ec_cli_array_invalid_rank);
           is_valid = FALSE;
