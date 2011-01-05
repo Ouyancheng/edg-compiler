@@ -2134,6 +2134,7 @@ TRUE if this is the function declarator in a friend function declaration.
         if (microsoft_mode) dsi_flags |= DSI_MICROSOFT_ATTRIBUTES_ALLOWED;
         add_stop_token(tok_comma);
         init_decl_parse_state(&param_state);
+        param_state.is_pack_element = is_pack_element;
         param_state.assoc_func_decl_state = state;
         param_state.trailing_return_type_allowed =
                                                 trailing_return_types_enabled;
@@ -2232,18 +2233,21 @@ TRUE if this is the function declarator in a friend function declaration.
            looking for a declarator when decl_specifiers has found a badly
            formed type specifier.  If an error is to be put out, that's done
            later. */
-        if (!dangling_type_specifier &&
-            (is_abstract_or_real_declarator_start() ||
+        if ((!dangling_type_specifier &&
+             is_abstract_or_real_declarator_start()) ||
              /* Check for a parameter pack declaration like "P ...". This is
                 not handled by the is_abstract_or_real_declarator_start macro
                 because the specifiers type may be required for
                 disambiguation: If the next two tokens are "... )", the
                 ellipsis declare a parameter pack only if the specifiers type
                 is a pattern type (i.e., contains an unexpanded template
-                parameter pack). */
-             (variadic_templates_enabled && curr_token == tok_ellipsis &&
-              (next_token() != tok_rparen ||
-               is_variadic_pattern_type(param_state.specifiers_type))))) {
+                parameter pack) or if we are in an instantiation of a pack
+                element. */
+             (variadic_templates_enabled &&
+              ((curr_token == tok_ellipsis &&
+                (next_token() != tok_rparen ||
+                is_variadic_pattern_type(param_state.specifiers_type))) ||
+              is_pack_element))) {
           a_decl_flag_set  di_flags = DI_IS_PARAMETER_DECL |
                                       DI_REAL_DECLARATOR_ALLOWED |
                                       DI_ABSTRACT_DECLARATOR_ALLOWED;
@@ -2621,7 +2625,7 @@ TRUE if this is the function declarator in a friend function declaration.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         param_array_next = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        if (curr_token == tok_ellipsis) {
+        if (curr_token == tok_ellipsis && !is_pack_element) {
           /* The parameter list ends with an ellipsis.  Set the ellipsis
              flag on the parameter type list, and exit the loop. */
           ellipsis_pos = pos_curr_token;
@@ -5648,7 +5652,7 @@ The syntax is:
          template<typename T>     void f(T ...);  // Classic vararg function.
        */
     if (variadic_templates_enabled && curr_token == tok_ellipsis &&
-        (next_token() != tok_rparen ||
+        (next_token() != tok_rparen || state->is_pack_element ||
          (state->type != NULL && is_variadic_pattern_type(state->type)))) {
       /* An ellipsis at this point can indicate a parameter pack. */
       if (state->pack_ellipsis_allowed) {

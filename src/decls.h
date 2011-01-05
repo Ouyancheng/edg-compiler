@@ -430,6 +430,10 @@ typedef struct a_decl_parse_state {
 			/* TRUE if the current declaration includes an
 			   ellipsis indicating that a parameter pack is
 			   being declared. */
+  a_bit_field	is_pack_element:1;
+			/* TRUE during a real instantiation if the current
+			   declaration is a parameter that is a pack
+			   element. */
   a_bit_field
 		is_new_expr_type:1;
 			/* TRUE if this information block describes the parsing

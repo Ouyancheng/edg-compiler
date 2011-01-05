@@ -15067,6 +15067,7 @@ related-fields of *ps prior to scanning the next declarator.
   }  /* if */
   ps->pack_ellipsis_allowed = FALSE;
   ps->has_pack_ellipsis = FALSE;
+  ps->is_pack_element = FALSE;
   ps->nested_ptr_or_ref_seen = FALSE;
   ps->has_initializer = FALSE;
   ps->first_decl = FALSE;
