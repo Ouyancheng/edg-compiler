@@ -5778,31 +5778,151 @@ TRUE.  ECMA-372 $17.1.
 }  /* make_symbol_for_namespace_cli */
 
 
+void make_symbol_for_namespace_system(void)
+/*
+Predeclare namespace "System".  This namespace is used when cppcli_enabled is
+TRUE.
+*/
+{
+  a_symbol_locator locator;
+
+  clear_locator(&locator, &null_source_position);
+  make_symbol_for_predeclared_namespace("System",
+                                        &symbol_for_namespace_system);
+  enter_symbol_for_namespace(symbol_for_namespace_system, &locator);
+}  /* make_symbol_for_namespace_cli */
+
+
+static a_symbol_ptr look_up_name_string_in_namespace(
+                                            char            *symbol_name, 
+                                            a_namespace_ptr ns_ptr)
+/*
+Look up symbol_name in the specified namespace.  Return the symbol found,
+if any.
+*/
+{
+  a_symbol_locator loc;
+  a_symbol_ptr     sym;
+
+  clear_locator(&loc, &null_source_position);
+  (void)find_symbol(symbol_name, (sizeof_t)strlen(symbol_name), &loc);
+  sym = namespace_qualified_id_lookup(&loc, ns_ptr, IDL_NO_OPTIONS);
+  return sym;
+}  /* look_up_name_string_in_namespace */
+
+
+static a_symbol_ptr make_cli_pseudo_template(char *symbol_name,
+                                             char *definition_string)
+/*
+Declare and define the entity specified by symbol_name.  The definition is
+provided by definition_string.
+*/
+{
+  a_namespace_ptr                  ns_ptr;
+  a_template_symbol_supplement_ptr tssp;
+  a_symbol_ptr                     result_sym;
+
+  scan_top_level_metadata_declarations(definition_string);
+  /* Set the global variable symbol_for_cli_array. */
+  ns_ptr = symbol_for_namespace_cli->variant.namespace_info.ptr;
+  result_sym = look_up_name_string_in_namespace(symbol_name, ns_ptr);
+  check_assertion(result_sym->kind == (a_symbol_kind)sk_class_template);
+  tssp = result_sym->variant.template_info;
+  tssp->variant.class_template.cannot_be_specialized = TRUE;
+  return result_sym;
+}  /* make_cli_pseudo_template */
+
+
 void make_symbol_for_cli_array(void)
 /*
 Declare and define "cli::array".  The definition is given by ECMA-372 $8.2.3.
 */
 {
-  a_symbol_locator                 loc;
-  a_namespace_ptr                  ns_ptr;
-  a_template_symbol_supplement_ptr tssp;
-
-  scan_top_level_metadata_declarations(
+  symbol_for_cli_array = make_cli_pseudo_template("array",
       "namespace cli { "
       "  template <typename T, int rank = 1>"
       "  ref class array sealed : System::Array{};"
       "} "
     );
-  /* Set the global variable symbol_for_cli_array. */
-  ns_ptr = symbol_for_namespace_cli->variant.namespace_info.ptr;
-  clear_locator(&loc, &null_source_position);
-  (void)find_symbol("array", (sizeof_t)strlen("array"), &loc);
-  symbol_for_cli_array = namespace_qualified_id_lookup(&loc, ns_ptr, 
-                                                       IDL_NO_OPTIONS);
-  check_assertion(symbol_for_cli_array->kind == sk_class_template);
-  tssp = symbol_for_cli_array->variant.template_info;
-  tssp->variant.class_template.cannot_be_specialized = TRUE;
 }  /* make_symbol_for_cli_array */
+
+
+static void make_symbol_for_cli_interior_ptr(void)
+/*
+Declare and define "cli::interior_ptr".  ECMA-372 $12.3.6.
+*/
+{
+  symbol_for_cli_interior_ptr = make_cli_pseudo_template("interior_ptr",
+     "namespace cli { "
+     "  template <typename Type>"
+     "  class interior_ptr sealed {};"
+      "} "
+    );
+}  /* make_symbol_for_cli_interior_ptr */
+
+
+static void make_symbol_for_cli_pin_ptr(void)
+/*
+Declare and define "cli::pin_ptr".  ECMA-372 $12.3.7.
+*/
+{
+  symbol_for_cli_pin_ptr = make_cli_pseudo_template("pin_ptr",
+      "namespace cli { "
+      "  template <typename Type>"
+      "  class pin_ptr sealed {};"
+      "} "
+    );
+}  /* make_symbol_for_cli_pin_ptr */
+
+
+void make_symbols_for_cli_built_in_types(void)
+/*
+Declare and define built-in types for C++/CLI such as cli::array, 
+cli::interior_ptr and cli::pin_ptr.  
+*/
+{
+  make_symbol_for_cli_interior_ptr();
+  make_symbol_for_cli_pin_ptr();
+}  /* make_symbols_for_cli_built_in_types */
+
+
+void init_symbols_for_cli_system_types(void)
+/*
+Look up various C++/CLI system types and cache them in their corresponding 
+global pointers.  This function assumes that the mscorlib.dll has been
+imported.
+*/
+{
+  a_namespace_ptr                  ns_ptr;
+
+  ns_ptr = symbol_for_namespace_system->variant.namespace_info.ptr;
+  /* System::Object. */
+  symbol_for_system_object = look_up_name_string_in_namespace("Object",
+                                                              ns_ptr);
+  check_assertion(symbol_for_system_object != NULL);
+  /* System::ValueType. */
+  symbol_for_system_valuetype = look_up_name_string_in_namespace("ValueType",
+                                                                 ns_ptr);
+  check_assertion(symbol_for_system_valuetype != NULL);
+  /* System::Enum. */
+  symbol_for_system_enum = look_up_name_string_in_namespace("Enum", ns_ptr);
+  check_assertion(symbol_for_system_enum != NULL);
+  /* System::Type. */
+  symbol_for_system_type = look_up_name_string_in_namespace("Type", ns_ptr);
+  check_assertion(symbol_for_system_type != NULL);
+  /* System::String. */
+  symbol_for_system_string = look_up_name_string_in_namespace("String",
+                                                              ns_ptr);
+  check_assertion(symbol_for_system_string != NULL);
+  /* System::Delegate. */
+  symbol_for_system_delegate = look_up_name_string_in_namespace("Delegate",
+                                                                ns_ptr);
+  check_assertion(symbol_for_system_delegate != NULL);
+  /* System::MulticastDelegate. */
+  symbol_for_system_multicast_delegate = look_up_name_string_in_namespace(
+                                                  "MulticastDelegate", ns_ptr);
+  check_assertion(symbol_for_system_multicast_delegate != NULL);
+}  /* init_symbols_for_cli_system_types */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -12786,6 +12906,16 @@ are handled in symbol_tbl_init.)
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(symbol_for_namespace_cli),
       pch_saved_var_array_elem(symbol_for_cli_array),
+      pch_saved_var_array_elem(symbol_for_cli_interior_ptr),
+      pch_saved_var_array_elem(symbol_for_cli_pin_ptr),
+      pch_saved_var_array_elem(symbol_for_namespace_system),
+      pch_saved_var_array_elem(symbol_for_system_object),
+      pch_saved_var_array_elem(symbol_for_system_valuetype),
+      pch_saved_var_array_elem(symbol_for_system_enum),
+      pch_saved_var_array_elem(symbol_for_system_type),
+      pch_saved_var_array_elem(symbol_for_system_string),
+      pch_saved_var_array_elem(symbol_for_system_delegate),
+      pch_saved_var_array_elem(symbol_for_system_multicast_delegate),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(va_list_global_alias_has_been_created),
       pch_saved_var_array_elem(file_scope_symbols_are_on_inactive_list),
@@ -12858,6 +12988,16 @@ are handled in symbol_tbl_init.)
 #if MICROSOFT_EXTENSIONS_ALLOWED
   register_trans_unit_variable(symbol_for_namespace_cli);
   register_trans_unit_variable(symbol_for_cli_array);
+  register_trans_unit_variable(symbol_for_cli_interior_ptr);
+  register_trans_unit_variable(symbol_for_cli_pin_ptr);
+  register_trans_unit_variable(symbol_for_namespace_system);
+  register_trans_unit_variable(symbol_for_system_object);
+  register_trans_unit_variable(symbol_for_system_valuetype);
+  register_trans_unit_variable(symbol_for_system_enum);
+  register_trans_unit_variable(symbol_for_system_type);
+  register_trans_unit_variable(symbol_for_system_string);
+  register_trans_unit_variable(symbol_for_system_delegate);
+  register_trans_unit_variable(symbol_for_system_multicast_delegate);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   register_trans_unit_variable(va_list_global_alias_has_been_created);
 #if IA64_ABI
@@ -12901,6 +13041,16 @@ given translation unit.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   symbol_for_namespace_cli = NULL;
   symbol_for_cli_array = NULL;
+  symbol_for_cli_interior_ptr = NULL;
+  symbol_for_cli_pin_ptr = NULL;
+  symbol_for_namespace_system = NULL;
+  symbol_for_system_object = NULL;
+  symbol_for_system_valuetype = NULL;
+  symbol_for_system_enum = NULL;
+  symbol_for_system_type = NULL;
+  symbol_for_system_string = NULL;
+  symbol_for_system_delegate = NULL;
+  symbol_for_system_multicast_delegate = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   va_list_global_alias_has_been_created = FALSE;
 #if IA64_ABI

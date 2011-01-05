@@ -38,6 +38,7 @@ http://code.msdn.microsoft.com/alink
 #include <iomanip>
 #include <algorithm>
 #include <fstream>
+#include <memory>
 
 #include "basics.h"
 

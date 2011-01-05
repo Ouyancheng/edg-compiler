@@ -13356,6 +13356,19 @@ all arguments were explicit.
     flush_to_end_of_arg_list();
     *any_errors = TRUE;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (*any_errors == FALSE && cppcli_enabled) {
+    /* In C++/CLI, interior_ptr and pin_ptr are implemented as
+       pseudo-templates.  Check that their arguments meet the requirements
+       of the language. */
+    if (template_sym == symbol_for_cli_array) {
+      *any_errors = !is_valid_cli_array_instantiation(arg_list);
+    } else if (template_sym == symbol_for_cli_interior_ptr ||
+               template_sym == symbol_for_cli_pin_ptr) {
+      *any_errors = !is_valid_cli_managed_ptr_instantiation(arg_list);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   scope_stack_top().in_template_arg_list = saved_in_template_arg_list;
   return arg_list;
 }  /* scan_template_argument_list */
@@ -14883,12 +14896,23 @@ is preferred over the normal lookup symbol.
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled && sym == NULL && class_type == NULL) {
+    /* If the lookup above did not find a symbol, check for a C++/CLI
+       type that acts like a template (array, interior_ptr, pin_ptr). */
     a_symbol_header_ptr sym_hdr = locator_for_curr_id.symbol_header;
-    if (sym_hdr->identifier_length == (sizeof("array")-1) &&
-        strcmp(sym_hdr->identifier, "array") == 0 &&
-        symbol_for_cli_array != NULL) {
-      /* Fallback to cli::array.  ECMA-372 $24.1. */
-      sym = symbol_for_cli_array;
+    if (sym_hdr != NULL) {
+      if (symbol_for_cli_array != NULL &&
+          sym_hdr == symbol_for_cli_array->header) {
+        /* Fallback to cli::array.  ECMA-372 $24.1. */
+        sym = symbol_for_cli_array;
+      } else if (symbol_for_cli_interior_ptr != NULL &&
+                 sym_hdr == symbol_for_cli_interior_ptr->header) {
+        /* Fallback to cli::interior_ptr.  ECMA-372 $12.3.6. */
+        sym = symbol_for_cli_interior_ptr;
+      } else if (symbol_for_cli_pin_ptr != NULL &&
+                 sym_hdr == symbol_for_cli_pin_ptr->header) {
+        /* Fallback to cli::pin_ptr.  ECMA-372 $12.3.7. */
+        sym = symbol_for_cli_pin_ptr;
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

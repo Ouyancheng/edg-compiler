@@ -1174,6 +1174,8 @@ scan of a file to build the PCH prefix information.
   if (!pch_prefix_scan && !using_a_pch_file) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled) {
+      /* Scan the built-in types of c++/cli. */
+      make_symbols_for_cli_built_in_types();
       /* If there were any preusing directives to implicitly #using one
          or more assemblies, process them now.  Note, #using do not
          depend on macro states.  Thus, they can be processed before the
@@ -1427,6 +1429,8 @@ when it is a secondary file.
   if (cppcli_enabled) {
     /* Add symbol for ::cli namespace. */
     make_symbol_for_namespace_cli();
+    /* Add symbol for ::System namespace. */
+    make_symbol_for_namespace_system();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_primary_translation_unit) {

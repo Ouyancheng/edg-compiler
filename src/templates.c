@@ -5209,6 +5209,114 @@ specified by tssp.
   return eta_options;
 }  /* eta_options_for_template */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean is_valid_cli_array_instantiation(
+                                      a_template_arg_ptr template_arg_list)
+/*
+Check the element type and rank of the template_arg_list of a C++/CLI array.
+The element type must be a handle or a value type.  The rank must be one or
+greater.  If this is an  invalid array, issue an error and return FALSE.
+*/
+{
+  a_template_arg_ptr tap;
+  a_boolean          is_valid = TRUE;
+
+  check_assertion(template_arg_list);
+  tap = template_arg_list;
+  /* Check the first argument -- must be handle or value type. */
+  if (template_arg_is_dependent(tap)) {
+    /* This is template dependent.  We don't know the real type yet.  Do not 
+       issue any errors. */
+  } else if (is_type_templ_arg(tap) && tap->variant.type != NULL) {
+    a_type_ptr tp = skip_typerefs(tap->variant.type);
+    if (!is_pointer_or_handle_type(tp) && !is_integral_or_enum_type(tp) &&
+        !(is_class_or_struct(tp) && cli_class_type_kind_is(tp, cctk_value))) {
+      /* Elements of an array must be handle or value type (or types that
+         can be implicitly converted to value type). */
+      /* FIXME: Add check for types implicitly convertible to value types. */
+      error(ec_cli_array_invalid_element_type);
+      is_valid = FALSE; 
+    } /* if */
+  } else {
+    /* The template argument kind does not match.  This should have been 
+       check by scan_template_argument_list(). */
+    unexpected_condition();
+  } /* if */
+  tap = template_arg_list->next;
+  if (tap) {
+    /* Check the second argument -- rank must be integral type and a value of 
+       one or greater. */
+    if (template_arg_is_dependent(tap)) {
+      /* This is template dependent.  We don't know the real type yet.  Do not
+         issue any errors. */
+    } else if (is_nontype_templ_arg(tap)) {
+      check_assertion(tap->arg_operand == NULL);
+      if (tap->variant.constant) {
+        a_constant_ptr con = tap->variant.constant;
+        a_boolean      ovflo;
+        if (con->kind != ck_integer || 
+            value_of_integer_constant(con, &ovflo) <= 0 || ovflo ) {
+          error(ec_cli_array_invalid_rank);
+          is_valid = FALSE;
+        }  /* if */
+      } /* if */
+    } else {
+      /* The template argument kind does not match.  This should have been 
+         check by scan_template_argument_list(). */
+      unexpected_condition();
+    }  /* if */
+  }  /* if */
+  return is_valid;
+}  /* is_valid_cli_array_instantiation */
+
+
+a_boolean is_valid_cli_managed_ptr_instantiation(
+                                      a_template_arg_ptr template_arg_list)
+/*
+Check the target type for a C++/CLI interior_ptr or pin_ptr (specified by
+template_arg_list).  If the target type is invalid, issue an error and
+return FALSE.
+
+ECMA-372 $12.3.6.2. The target type T of interior_ptr<T> shall be a value 
+class type, a handle type, a native class type, or a native pointer. 
+*/
+{
+  a_template_arg_ptr tap;
+  a_boolean          is_valid = TRUE;
+
+  check_assertion(template_arg_list);
+  tap = template_arg_list;
+  if (template_arg_is_dependent(tap)) {
+    /* This is template dependent.  We don't know the real type yet.  Do not 
+       issue any errors. */
+  } else if (is_type_templ_arg(tap) && tap->variant.type) {
+    a_type_ptr   tp = skip_typerefs(tap->variant.type);
+
+    if (!is_pointer_or_handle_type(tp) && !is_integral_or_enum_type(tp) &&
+        !(is_class_or_struct(tp) &&
+          (cli_class_type_kind_is(tp, cctk_value) ||
+           cli_class_type_kind_is(tp, cctk_standard)))) {
+      /* ECMA-372 $12.3.6.2. The target type T of interior_ptr<T> shall be a 
+         value class type, a handle type, a native class type, or a native 
+         pointer. */
+      error(ec_invalid_target_type);
+      is_valid = FALSE; 
+    } else if (is_cli_interior_ptr_type(tp) || is_cli_pin_ptr_type(tp)) {
+      /* The target type T of interior_ptr<T> cannot be an interior_ptr or 
+         pin_ptr. */
+      error(ec_invalid_target_type);
+      is_valid = FALSE; 
+    } /* if */
+  } else {
+    /* The template argument kind does not match.  This should have been 
+       check by scan_template_argument_list(). */
+    unexpected_condition();
+  } /* if */
+  return is_valid;
+}  /* is_valid_cli_managed_ptr_instantiation */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Structure used to pass lookup key information into the hash routines
@@ -8154,6 +8262,8 @@ are looked up, if needed.  The symbol of the new instance is returned.
                         (options & CTWS_PROTOTYPE_ALLOWED) != 0;
     new_sym = find_template_class(template_sym, &new_list, prototype_allowed,
                                   (a_symbol_ptr)NULL);
+    /* FIXME: This needs to call is_valid_cli_array_instantiation, etc.
+       or do equivalent processing. */
   }  /* if */
   return new_sym;
 }  /* copy_template_class_reference_with_substitution */

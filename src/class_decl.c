@@ -10771,6 +10771,14 @@ specific information about the member declaration, respectively.
     /* Abstract class objects are prohibited (ARM 10.3). */
     abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
                               member_type, &locator->source_position);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && (is_cli_interior_ptr_type(member_type) || 
+                                is_cli_pin_ptr_type(member_type))) {
+    /* In C++/CLI, an interior_ptr or pin_ptr cannot be a class member.  
+       ECMA $12.3.6.1 & $12.3.7.1. */
+    type_error(ec_type_cannot_be_class_member, member_type);
+    member_type = error_type();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* The Microsoft compiler instantiates a template class used as the type
      of a static data member. */
@@ -12461,6 +12469,13 @@ declarations.
                !is_managed_class_type(class_type)) {
       pos_error(ec_handle_field_in_standard_class,
                 &decl_state->declarator_pos);
+      field_type = error_type();
+    } else if (cppcli_enabled && (is_cli_interior_ptr_type(field_type) || 
+                                  is_cli_pin_ptr_type(field_type))) {
+      /* In C++/CLI, an interior_ptr or pin_ptr cannot be a class member.  
+         ECMA-372 $12.3.6.1 & $12.3.7.1. */
+      pos_ty_error(ec_type_cannot_be_class_member, 
+                   &locator->source_position, field_type);
       field_type = error_type();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (strict_ansi_mode && is_union_type(class_type) && is_ref) {

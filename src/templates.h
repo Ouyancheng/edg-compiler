@@ -778,6 +778,13 @@ translation unit.
 extern a_boolean is_nontemplate_routine_from_exported_trans_unit(
 						a_routine_ptr rout_ptr);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean is_valid_cli_array_instantiation(
+                                        a_template_arg_ptr template_arg_list);
+extern a_boolean is_valid_cli_managed_ptr_instantiation(
+                                        a_template_arg_ptr template_arg_list);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if DEBUG
 extern unsigned long db_show_template_space_used(unsigned long grand_total);
 #endif /* DEBUG */

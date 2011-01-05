@@ -622,6 +622,12 @@ position recorded in *dps (depending on the diagnostic).
     pos_error(ec_vla_in_return_type, diag_pos);
     err = TRUE;
 #endif /* VLA_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && is_cli_pin_ptr_type(type)) {
+    /* ECMA-372 $12.3.7.1.  A pin pointer shall not be used as a parameter 
+       type or return type. */
+    pos_error(ec_pin_ptr_cannot_be_used_as_param_or_return_type, diag_pos);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (is_qualified_type(type)) {
     /* A qualified return type. */
@@ -5251,6 +5257,46 @@ locator->specific_symbol to point to the correct symbol entry.
   }  /* if */
 }  /* process_conversion_function_declarator */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void check_special_cli_types(a_type_ptr tp)
+/*
+Check that pointers to special C++/CLI types (cli::array, cli::interior_ptr,
+and cli::pin_ptr) are valid.
+*/
+{
+  a_type_ptr underlying_type = find_bottom_of_type(tp);
+
+  if (is_cli_interior_ptr_type(underlying_type) || 
+      is_cli_pin_ptr_type(underlying_type)) {
+    /* cli::interior_ptr or cli::pin_ptr type. */ 
+    /* interior_ptr<T>* and pin_ptr<T>* are allowed by the standard,
+       ECMA-372 $12.3.6.4.  However, the CLR runtime disallow it. */
+    if (is_any_ptr_or_ref_type(tp) || is_array_type(tp)) {
+      /* interior_ptr or pin_ptr cannot be used with any indirections. */
+      type_error(ec_ordinary_pointer_not_allowed, underlying_type);
+    }  /* if */
+  } else if (is_cli_array_type(underlying_type)) {
+    /* A cli::array type.  ECMA-372 $24.1 -  A CLI array shall always be 
+       accessed through a handle.  Check if bottom indirection is a handle. */
+    a_type_ptr bottom_indirection = skip_typerefs(tp);
+
+    while (bottom_indirection->kind == (a_type_kind)tk_pointer) {
+      if (type_pointed_to(bottom_indirection) == underlying_type) {
+        break;
+      } else {
+        bottom_indirection = type_pointed_to(bottom_indirection);
+      }  /* if */
+    }  /* while */
+    if (!is_handle_type(bottom_indirection)) {
+      type_error(ec_type_must_be_accessed_through_handle, 
+                 underlying_type);
+    }  /* if */
+  }  /* if */
+}  /* check_special_cli_types */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED || !NEAR_AND_FAR_ALLOWED
 /*ARGSUSED*/  /* <-- because p_left_call_conv et al. are used only in
@@ -6253,6 +6299,21 @@ function_lparen:
   if (specifiers_type != NULL) {
     /* This is a top-level call to declarator. */
     check_assertion(complete_type != NULL);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled) {
+      /* Make sure that any special C++/CLI types are used properly. */
+      if (is_function_type(complete_type)) {
+        /* This is a function type.  We only need to check the return type of 
+           the routine.  The parameters list has already been checked in the 
+           recursive calls to r_declarator(). */
+        a_type_ptr tp = skip_typerefs(complete_type);
+        
+        check_special_cli_types(tp->variant.routine.return_type);
+      } else {
+        check_special_cli_types(complete_type);
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (!is_function_type(complete_type)) {
       if (locator != NULL &&
           (locator->is_operator_name || locator->is_conversion_name)) {

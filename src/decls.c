@@ -925,6 +925,12 @@ error checking and type adjustments as required.
     } else if (type_qualified_with_named_address_space(*type_ptr)) {
       pos_error(ec_named_address_space_for_parameter, error_pos);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled && is_cli_pin_ptr_type(*type_ptr)) { 
+      /* ECMA-372 $12.3.7.1 A pin pointer shall not be used as a parameter 
+         type or return type. */
+      pos_error(ec_pin_ptr_cannot_be_used_as_param_or_return_type, error_pos);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       if (!C_mode() && !(ptr_to_unknown_bound_array_allowed_in_param_type &&
                          ref_to_unknown_bound_array_allowed_in_param_type)) {
