@@ -354,8 +354,16 @@ extern a_boolean check_return_type(a_type_ptr          type,
                                    a_source_position   *diag_pos);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern a_boolean check_handle_to_type(a_type_ptr         tp,
-                                      a_source_position  *diag_pos);
+extern a_boolean f_check_cli_type_pointed_to(a_type_ptr         tp,
+                                             a_boolean          is_ref,
+                                             a_boolean          is_handle,
+                                             a_source_position  *pos);
+
+#define check_cli_type_pointed_to(tp, is_ref, is_handle, pos)                \
+  (!cppcli_enabled ||                                                        \
+   f_check_cli_type_pointed_to((tp), (is_ref), (is_handle), (pos)))
+#else /* MICROSOFT_EXTENSIONS_ALLOWED */
+#define check_cli_type_pointed_to(tp, is_ref, is_handle, pos)  TRUE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void scan_lambda_declarator(a_lambda_ptr        lambda,

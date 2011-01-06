@@ -504,6 +504,120 @@ decl-specifier (e.g., "array [1] of NULL").
   return result;
 }  /* is_partial_type */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean f_check_cli_type_pointed_to(a_type_ptr         tp,
+                                      a_boolean          is_ref,
+                                      a_boolean          is_handle,
+                                      a_source_position  *pos)
+/*
+A construct attempting to form a tk_pointer type with tp as the underlying
+type is encountered.  If is_ref is TRUE, the resulting type would be a
+reference or tracking reference type.  If is_handle is TRUE, the resulting
+type would be a handle or tracking reference type.  If such a type would be
+invalid for a C++/CLI-specific reason (e.g., a handle or a managed class type
+is involved), issue a diagnostic at the given position (when it is non-NULL)
+and return FALSE.  Otherwise, return TRUE.
+*/
+{
+  an_error_code  err_code = ec_no_error;
+
+  tp = skip_typerefs(tp);
+  if (is_handle) {
+    if (is_void_type(tp)) {
+      /* A handle or tracking reference to void is invalid. */
+      err_code = is_ref ? ec_reference_to_void
+                        : ec_handle_to_void;
+    } else if (is_function_type(tp)) {
+      /* A handle or tracking reference to a function is invalid. */
+      err_code = is_ref ? ec_handle_to_function
+                        : ec_tracking_reference_to_function;
+    } else if (is_ref) {
+      /* Checks applicable to tracking references but not handles. */
+      if (is_delegate_type(tp)) {
+        /* A tracking reference to a delegate is invalid. */
+        err_code = ec_tracking_reference_to_delegate;
+      }  /* if */
+    } else {
+      /* Checks applicable to handles but not tracking references. */
+      if (is_array_type(tp)) {
+        /* A handle to an array is invalid.  (Strangely, Microsoft compilers
+           allow tracking references to arrays.) */
+        err_code = ec_handle_to_array;
+      } else if (is_any_ptr_or_ref_type(tp)) {
+        /* Handles to pointers or references are not allowed. */
+        err_code = ec_handle_to_address_type;
+      } else if (is_immediate_class_type(tp) &&
+                 cli_class_type_kind_is(tp, cctk_standard)) {
+        /* A handle to a non-managed class type is invalid. */
+        err_code = ec_handle_to_standard_class_type;
+      } else if (is_immediate_enum_type(tp) &&
+                 !integer_type_is_scoped_enum(tp)) {
+        /* A handle to an unscoped enum type is invalid. */
+        err_code = ec_handle_to_unscoped_enum_type;
+      }  /* if */
+    }  /* if */
+  } else {
+    /* Ordinary pointers and references to ref class and interface class types
+       are not allowed. */
+    if (is_cli_ref_or_interface_class_type(tp)) {
+      err_code = is_ref ? ec_reference_to_ref_or_interface_class
+                        : ec_pointer_to_ref_or_interface_class;
+    }  /* if */
+  }  /* if */
+  if (err_code == ec_no_error && is_immediate_class_type(tp)) {
+    /* A pointer, handle, or reference type to an interior/pin pointer may not
+       be formed. Similarly, an ordinary pointer or a reference to a C++/CLI
+       array invalid  (a handle is okay). */
+    /* FIXME: Currently, interior_ptr<T> and pin_ptr<T> produce class types.
+       However, they should really be alias expansions that produce tk_pointer
+       variants (the IL for that is already in place). */
+    if (is_cli_interior_ptr_type(tp)) {
+      err_code = ec_ptr_handle_or_ref_to_interior_ptr;
+    } else if (is_cli_pin_ptr_type(tp)) {
+      err_code = ec_ptr_handle_or_ref_to_pin_ptr;
+    } else if (is_cli_array_type(tp) && (is_ref || !is_handle)) {
+      err_code = ec_ptr_or_ref_to_cli_array;
+    }  /* if */
+  }  /* if */
+  if (err_code != ec_no_error && pos != NULL) {
+    pos_error(err_code, pos);
+  }  /* if */
+  return err_code == ec_no_error;
+}  /* f_check_cli_type_pointed_to */
+
+
+a_boolean check_invalid_use_of_special_cli_class_type(a_type_ptr         tp,
+                                                      a_source_position  *pos)
+/*
+Some special C++/CLI class types (notably, delegate types and C++/CLI array
+types) can only be used in a few ways:
+  (a) to form a handle
+  (b) as the underlying type of a typedef or template argument
+  (c) as an argument to gcnew
+This routine is called in other contexts where the appearance of such a type
+should be diagnosed.
+If the given type is one of the special types above, return FALSE and if pos
+is non-NULL, issue an error at that position.  Otherwise, return TRUE.
+*/
+{
+  an_error_code  err_code = ec_no_error;
+
+  tp = skip_typerefs(tp);
+  if (is_immediate_class_type(tp)) {
+    if (is_immediate_delegate_type(tp)) {
+      err_code = ec_bad_use_of_delegate_type;
+    } else if (is_cli_array_type(tp)) {
+      err_code = ec_bad_use_of_cli_array_type;
+    }  /* if */
+  }  /* if */
+  if (err_code != ec_no_error && pos != NULL) {
+    pos_error(err_code, pos);
+  }  /* if */
+  return err_code == ec_no_error;
+}  /* check_invalid_use_of_special_cli_class_type */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !NAMED_ADDRESS_SPACES_ALLOWED && !UPC_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* *err is not used in some configurations. */
@@ -623,10 +737,17 @@ position recorded in *dps (depending on the diagnostic).
     err = TRUE;
 #endif /* VLA_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && is_cli_pin_ptr_type(type)) {
-    /* ECMA-372 $12.3.7.1.  A pin pointer shall not be used as a parameter 
-       type or return type. */
-    pos_error(ec_pin_ptr_cannot_be_used_as_param_or_return_type, diag_pos);
+  } else if (cppcli_enabled) {
+    /* If a return type was explicitly specified, use its position for
+       diagnostic purposes. */
+    if (dps != NULL) diag_pos = &dps->return_type_pos;
+    if (is_cli_pin_ptr_type(type)) {
+      /* A pin pointer cannot be used as a return type. */
+      pos_error(ec_pin_ptr_cannot_be_used_as_param_or_return_type, diag_pos);
+      err = TRUE;
+    } else {
+      err = !check_invalid_use_of_special_cli_class_type(type, diag_pos);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (is_qualified_type(type)) {
@@ -881,37 +1002,14 @@ the specifiers and declarator that formed the new type.
           new_type_ptr = mft_rout_type;
           tkind = (a_type_kind)tk_ptr_to_member;
         } else {
-          if (!is_handle) {
-            /* An ordinary pointer (as opposed to a C++/CLI handle). */
-            if (is_any_reference_type(new_type_ptr)) {
-              /* Pointer to reference is illegal. */
-              error(ec_pointer_to_reference);
-              new_type_ptr = error_type();
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            } else if (cppcli_enabled && 
-                       is_cli_ref_or_interface_class_type(new_type_ptr)) {
-              /* Attempting to form a type "pointer to managed class type" is
-                 invalid. */
-              pos_error(ec_pointer_to_ref_or_interface_class, &pos_curr_token);
-              err = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          } else {
-            /* A C++/CLI handle type. */
-            if (is_any_ptr_or_ref_type(new_type_ptr)) {
-              pos_error(ec_handle_to_address_type, &error_position);
-              new_type_ptr = error_type();
-            } else if (is_function_type(new_type_ptr)) {
-              /* A handle-to-function type is invalid. */
-              pos_error(ec_handle_to_function, &error_position);
-              new_type_ptr = error_type();
-            } else if (is_array_type(new_type_ptr)) {
-              /* A handle-to-array type is invalid. */
-              pos_error(ec_handle_to_array, &error_position);
-              new_type_ptr = error_type();
-            }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          if (!check_cli_type_pointed_to(new_type_ptr, /*is_ref=*/FALSE,
+                                         is_handle, &error_position)) {
+            new_type_ptr = error_type();
+          } else if (is_any_reference_type(new_type_ptr)) {
+            /* A pointer-to-reference type is invalid (a handle-to-reference
+               would be diagnosed by check_cli_type_pointed_to). */
+            error(ec_pointer_to_reference);
+            new_type_ptr = error_type();
           }  /* if */
           check_for_restrict_qualifier_on_derived_type(new_type_ptr,
                                                        derived_type,
@@ -930,23 +1028,11 @@ the specifiers and declarator that formed the new type.
              forming a pointer-to-member type. */
           sym_error(ec_bad_use_of_member_function_typedef, mft_sym);
           err = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled) {
-          if (is_tracking_reference_type(*bottom_derived_type)) {
-            if (is_function_type(new_type_ptr)) {
-              /* A tracking-reference-to-function type is invalid. */
-              pos_error(ec_tracking_reference_to_function, &error_position);
-              err = TRUE;
-            }  /* if */
-          } else {
-            if (is_cli_ref_or_interface_class_type(temp_type)) {
-              /* Attempting to form a type "reference to managed class type"
-                 is invalid. */
-              error(ec_reference_to_ref_or_interface_class);
-              err = TRUE;
-            }  /* if */
-          }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        } else if (!check_cli_type_pointed_to(
+                             temp_type, /*is_ref=*/TRUE,
+                             is_tracking_reference_type(*bottom_derived_type),
+                             &error_position)) {
+          err = TRUE;
         }  /* if */
         if (err) new_type_ptr = error_type();
         check_for_restrict_qualifier_on_derived_type(new_type_ptr,
@@ -2279,6 +2365,14 @@ TRUE if this is the function declarator in a friend function declaration.
           param_state.declarator_pos = pos_curr_token;
           set_to_error_locator(param_locator);
           check_pending_qualifiers_used(&param_state);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (cppcli_enabled) {
+            /* Some special C++/CLI class types (e.g., delegates) are invalid
+               at this point. */
+            check_invalid_use_of_special_cli_class_type(
+                               param_state.type, &param_state.specifiers_pos);
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
         /* Check that the type is legal, and do required adjustments. */
         check_use_of_auto_type(&param_state);
@@ -3931,7 +4025,7 @@ position.
     pos_error(err_code, diag_pos);
   }  /* if */
   return err_code == ec_no_error;
-}  /* make_handle_type_if_valid */
+}  /* check_handle_to_type */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -4203,14 +4297,10 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
               /* Type "pointer to reference to anything" is illegal. */
               error(ec_pointer_to_reference);
               err = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            } else if (cppcli_enabled &&
-                       is_cli_ref_or_interface_class_type(temp_type)) {
-              /* Attempting to form a type "pointer to managed class type" is
-                 invalid. */
-              error(ec_pointer_to_ref_or_interface_class);
+            } else if (!check_cli_type_pointed_to(temp_type, /*is_ref=*/FALSE,
+                                                  /*is_handle=*/FALSE,
+                                                  &error_position)) {
               err = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             }  /* if */
             /* Make the pointer type. */
             complete_type = make_pointer_type(err ? error_type()
@@ -4245,14 +4335,10 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                forming a pointer-to-member type. */
             sym_error(ec_bad_use_of_member_function_typedef, sym);
             err = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          } else if (cppcli_enabled &&
-                     is_cli_ref_or_interface_class_type(temp_type)) {
-            /* Attempting to form a type "reference to managed class type" is
-               invalid. */
-            error(ec_reference_to_ref_or_interface_class);
+          } else if (!check_cli_type_pointed_to(temp_type, /*is_ref=*/TRUE,
+                                                /*is_handle=*/FALSE,
+                                                &error_position)) {
             err = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             /* Make the reference type. */
             complete_type =
@@ -4267,28 +4353,18 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
           /* A handle ("^") or tracking-reference ("%") type. */
           /* Make sure this was not preceded by __based. */
           based_not_allowed_here(ptr_mods.based_var, ptr_mods.based_pos);
-          if (curr_token == tok_excl_or) {
+          if (!check_cli_type_pointed_to(temp_type,
+                                         curr_token == tok_remainder,
+                                         /*is_handle=*/TRUE,
+                                         &pos_curr_token)) {
+            complete_type = error_type();
+          } else if (curr_token == tok_excl_or) {
             /* "^" for handle. */
-            if (!check_handle_to_type(temp_type, &pos_curr_token)) {
-              err = TRUE;
-            }  /* if */
-            /* Make the handle type if valid. */
-            complete_type = err ? error_type() :
-                                  make_handle_type(complete_type);
+            complete_type = make_handle_type(complete_type);
           } else {
-            check_assertion(curr_token == tok_remainder);
             /* "%" for tracking reference. */
-            if (is_void_type(temp_type)) {
-              /* Type "reference to void" is invalid. */
-              pos_error(ec_reference_to_void, &pos_curr_token);
-              err = TRUE;
-            } else if (is_delegate_type(temp_type)) {
-              pos_error(ec_tracking_reference_to_delegate, &pos_curr_token);
-              err = TRUE;
-            }  /* if */
-            if (err) {
-              complete_type = error_type();
-            } else if (is_any_reference_type(temp_type)) {
+            check_assertion(curr_token == tok_remainder);
+            if (is_any_reference_type(temp_type)) {
               /* A "reference to reference" case. */
               complete_type = 
                   make_reference_to_reference(
@@ -5260,46 +5336,6 @@ locator->specific_symbol to point to the correct symbol entry.
     *return_type = locator->variant.conversion_result_type;
   }  /* if */
 }  /* process_conversion_function_declarator */
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static void check_special_cli_types(a_type_ptr tp)
-/*
-Check that pointers to special C++/CLI types (cli::array, cli::interior_ptr,
-and cli::pin_ptr) are valid.
-*/
-{
-  a_type_ptr underlying_type = find_bottom_of_type(tp);
-
-  if (is_cli_interior_ptr_type(underlying_type) || 
-      is_cli_pin_ptr_type(underlying_type)) {
-    /* cli::interior_ptr or cli::pin_ptr type. */ 
-    /* interior_ptr<T>* and pin_ptr<T>* are allowed by the standard,
-       ECMA-372 $12.3.6.4.  However, the CLR runtime disallow it. */
-    if (is_any_ptr_or_ref_type(tp) || is_array_type(tp)) {
-      /* interior_ptr or pin_ptr cannot be used with any indirections. */
-      type_error(ec_ordinary_pointer_not_allowed, underlying_type);
-    }  /* if */
-  } else if (is_cli_array_type(underlying_type)) {
-    /* A cli::array type.  ECMA-372 $24.1 -  A CLI array shall always be 
-       accessed through a handle.  Check if bottom indirection is a handle. */
-    a_type_ptr bottom_indirection = skip_typerefs(tp);
-
-    while (bottom_indirection->kind == (a_type_kind)tk_pointer) {
-      if (type_pointed_to(bottom_indirection) == underlying_type) {
-        break;
-      } else {
-        bottom_indirection = type_pointed_to(bottom_indirection);
-      }  /* if */
-    }  /* while */
-    if (!is_handle_type(bottom_indirection)) {
-      type_error(ec_type_must_be_accessed_through_handle, 
-                 underlying_type);
-    }  /* if */
-  }  /* if */
-}  /* check_special_cli_types */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED || !NEAR_AND_FAR_ALLOWED
@@ -6303,21 +6339,6 @@ function_lparen:
   if (specifiers_type != NULL) {
     /* This is a top-level call to declarator. */
     check_assertion(complete_type != NULL);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled) {
-      /* Make sure that any special C++/CLI types are used properly. */
-      if (is_function_type(complete_type)) {
-        /* This is a function type.  We only need to check the return type of 
-           the routine.  The parameters list has already been checked in the 
-           recursive calls to r_declarator(). */
-        a_type_ptr tp = skip_typerefs(complete_type);
-        
-        check_special_cli_types(tp->variant.routine.return_type);
-      } else {
-        check_special_cli_types(complete_type);
-      }  /* if */
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (!is_function_type(complete_type)) {
       if (locator != NULL &&
           (locator->is_operator_name || locator->is_conversion_name)) {
@@ -6552,15 +6573,12 @@ the parameters.
   state->declarator_pos = error_position;
   state->type = state->declared_type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && is_delegate_type(state->type)) {
-    /* In C++/CLI mode, delegate types can be used only for a few things:
-         - to create typedefs of those types
-         - for gcnew construction (FIXME: not yet implemented)
-         - to form a handle type (checked elsewhere).
-       Issue an error for other cases. */
-    if (state->declared_storage_class != (a_storage_class)sc_typedef) {
-      pos_error(ec_bad_use_of_delegate_type, &state->specifiers_pos);
-    }  /* if */
+  if (cppcli_enabled &&
+      state->declared_storage_class != (a_storage_class)sc_typedef) {
+    /* Some special C++/CLI class types (e.g., delegates) are invalid at this
+       point. */
+    check_invalid_use_of_special_cli_class_type(
+                                         state->type, &state->specifiers_pos);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* declarator */

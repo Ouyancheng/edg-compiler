@@ -8676,7 +8676,12 @@ a pointer over a reference type or creating an array of references.
         tp = type->variant.pointer.type;
         tp = copy_type_with_substitution(tp, templ_arg_list, templ_param_list,
                                          source_pos, options, copy_error);
-        if (type->variant.pointer.is_reference) {
+        if (!check_cli_type_pointed_to(tp, type->variant.pointer.is_reference,
+                                       type->variant.pointer.is_handle,
+                                       (a_source_position*)NULL)) {
+          /* A C++/CLI-specific substitution failure. */
+          *copy_error = TRUE;
+        } else if (type->variant.pointer.is_reference) {
           if (is_void_type(tp)) {
             /* A reference to void would be invalid. */
             *copy_error = TRUE;
@@ -8695,35 +8700,18 @@ a pointer over a reference type or creating an array of references.
             new_type = make_rvalue_reference_type(tp);
 #if MICROSOFT_EXTENSIONS_ALLOWED
           } else if (type->variant.pointer.is_handle) {
-            if (is_delegate_type(tp)) {
-              /* A tracking reference to a delegate is not allowed. */
-              *copy_error = TRUE;
-            } else {
-              new_type = make_tracking_reference_type(tp);
-            }  /* if */
-          } else if (is_cli_ref_or_interface_class_type(tp)) {
-            /* An ordinary reference to a C++/CLI ref class type or interface
-               class type is not valid. */
-            *copy_error = TRUE;
+            new_type = make_tracking_reference_type(tp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             new_type = make_reference_type(tp);
           }  /* if */
         } else {
           if (is_any_reference_type(tp)) {
-            /* A pointer (or C++/CLI handle) to reference would be invalid. */
+            /* A pointer to reference would be invalid. */
             *copy_error = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           } else if (type->variant.pointer.is_handle) {
-            if (check_handle_to_type(tp, (a_source_position*)NULL)) {
-              new_type = make_handle_type(tp);
-            } else {
-              *copy_error = TRUE;
-            }  /* if */
-          } else if (is_cli_ref_or_interface_class_type(tp)) {
-            /* An ordinary pointer to a C++/CLI ref class type or interface
-               class type is not valid. */
-            *copy_error = TRUE;
+            new_type = make_handle_type(tp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             new_type = make_pointer_type(tp);
@@ -8830,6 +8818,9 @@ a pointer over a reference type or creating an array of references.
             /* Check for a function returning a function, a function
                returning an array type, or a function returning an abstract
                class type. */
+            /* FIXME: The following test should be updated for C++/CLI
+               restrictions.  In fact, it would probably be a good idea to
+               modify check_return_type so it can be called here. */
             if (is_array_type(new_return_type) ||
                 is_function_type(new_return_type) ||
                 (!microsoft_mode && !gpp_mode &&

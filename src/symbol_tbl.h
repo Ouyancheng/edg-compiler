@@ -3751,6 +3751,7 @@ Return TRUE if tp is a template instance based on managed_pointer_type.
 */
 #define is_cli_managed_pointer_type(tp, managed_pointer_type)                 \
   (is_class_struct_union_type(tp) &&                                          \
+   managed_pointer_type != NULL &&                                            \
    symbol_supplement_for_class(tp)->class_template == (managed_pointer_type))
 
 /*
