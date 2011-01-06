@@ -3083,7 +3083,7 @@ the scope being pushed.
     if (is_scanning_generated_code_from_metadata) {
       /* Don't update source_sequence_entries_disallowed when scanning
         a declaration from metadata. */ 
-   } else if (instance_sym == NULL) {
+    } else if (instance_sym == NULL) {
       /* If instance_sym is NULL we are pushing the scope for the declaration
          (but not the body) of a template function -- no source sequence
          entries would be involved. */
