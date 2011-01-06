@@ -6186,7 +6186,17 @@ declaration following this one is such a continuation.
       !field->property_or_event_descr->is_trivial &&
       !property_or_event_kind_is(field, pek_declspec_property)) {
     /* The property/event field declaration is followed by the accessor
-       declarations enclosed in braces. */
+       declarations enclosed in braces.  The braces are optionally preceded
+       by a list of indices in the case of a property. */
+    a_property_index_type_ptr  index = field->property_or_event_descr->indices;
+    if (index != NULL) {
+      write_tok_str("[");
+      for (; index != NULL; index = index->next) {
+        gen_type(index->type);
+        if (index->next != NULL) write_tok_str(", ");
+      }  /* for */
+      write_tok_str("]");
+    }  /* if */
     write_tok_str(" {");
     /* Render one, two, or three accessor declarations.  If there are more
        than one, the one rendered by the call to gen_declaration may not
