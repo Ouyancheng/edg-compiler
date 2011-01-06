@@ -5715,6 +5715,7 @@ a type specifier (no trailing ";").  The current source sequence entry
 is the one associated with the definition of the enum.
 */
 {
+  a_type_ptr     base_type;
   a_constant_ptr enum_con;
   a_constant     next_enum_value;
   a_boolean      explicit_enum_expr;
@@ -5745,11 +5746,12 @@ is the one associated with the definition of the enum.
     gen_name(&type->source_corresp, iek_type, GN_DECLARATION,
              (a_boolean *)NULL);
   }  /* if */
-  if (integer_type_supp(type)->base_type != NULL) {
+  base_type = integer_type_supp(type)->base_type;
+  if (base_type != NULL) {
     /* C++0x and Microsoft C++ allow the explicit specification of an
        underlying type. */
     write_tok_str(": ");
-    gen_type(integer_type_supp(type)->base_type);
+    gen_type(base_type);
   }  /* if */
   write_tok_str(" { ");
   enum_con = enum_constants(type);
@@ -5793,9 +5795,12 @@ is the one associated with the definition of the enum.
              explicit expression if this constant does not have the
              expected value, i.e., one more than the previous one.  An
              explicit expression is also needed if the next_enum_value
-             calculation overflowed. */
-          explicit_enum_expr = next_value_calc_overflowed ||
-                      (cmp_integer_constants(enum_con, &next_enum_value) != 0);
+             calculation overflowed.  Also, C++/CLI requires explicit
+             expressions for enumerations with a boolean "base type". */
+          explicit_enum_expr =
+                   next_value_calc_overflowed ||
+                   (cmp_integer_constants(enum_con, &next_enum_value) != 0) ||
+                   (cppcli_enabled && is_bool_type(base_type));
         } else {
           /* The previous constant involved a template parameter, so an
              explicit expression is needed for this integral constant. */
