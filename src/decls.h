@@ -894,12 +894,6 @@ extern void scan_implicitly_included_template_definition_file(void);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void scan_top_level_metadata_declarations(char* buffer);
-
-EXTERN a_boolean 
-                is_scanning_generated_code_from_metadata;
-                        /* TRUE if we are scanning code generated from
-                           metadata. */
-
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean reconcile_external_symbol_types(

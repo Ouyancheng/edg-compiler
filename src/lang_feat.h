@@ -989,6 +989,12 @@ EXTERN a_boolean
 EXTERN a_boolean
 		cppcli_enabled;
 			/* TRUE if C++/CLI features should be accepted. */
+
+EXTERN a_boolean 
+                is_scanning_generated_code_from_metadata;
+                        /* TRUE if we are scanning code generated from
+                           metadata. */
+
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 /* When Microsoft mode is unavailable, replace the variables for Microsoft
    mode and Microsoft bugs with macros.  This will allow optimizers to remove
@@ -1001,10 +1007,13 @@ EXTERN a_boolean
 		microsoft_bugs;
 EXTERN a_boolean
 		cppcli_enabled;
+EXTERN a_boolean 
+                is_scanning_generated_code_from_metadata;
 #else /* !defined(_lint) */
 #define microsoft_mode FALSE
 #define microsoft_bugs FALSE
 #define cppcli_enabled FALSE
+#define is_scanning_generated_code_from_metadata FALSE
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
