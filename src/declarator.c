@@ -530,8 +530,8 @@ and return FALSE.  Otherwise, return TRUE.
                         : ec_handle_to_void;
     } else if (is_function_type(tp)) {
       /* A handle or tracking reference to a function is invalid. */
-      err_code = is_ref ? ec_handle_to_function
-                        : ec_tracking_reference_to_function;
+      err_code = is_ref ? ec_tracking_reference_to_function
+                        : ec_handle_to_function;
     } else if (is_ref) {
       /* Checks applicable to tracking references but not handles. */
       if (is_delegate_type(tp)) {
