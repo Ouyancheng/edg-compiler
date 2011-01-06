@@ -2370,7 +2370,7 @@ TRUE if this is the function declarator in a friend function declaration.
           if (cppcli_enabled) {
             /* Some special C++/CLI class types (e.g., delegates) are invalid
                at this point. */
-            check_invalid_use_of_special_cli_class_type(
+            (void)check_invalid_use_of_special_cli_class_type(
                                param_state.type, &param_state.specifiers_pos);
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -6545,7 +6545,7 @@ the parameters.
       state->declared_storage_class != (a_storage_class)sc_typedef) {
     /* Some special C++/CLI class types (e.g., delegates) are invalid at this
        point. */
-    check_invalid_use_of_special_cli_class_type(
+    (void)check_invalid_use_of_special_cli_class_type(
                                          state->type, &state->specifiers_pos);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
