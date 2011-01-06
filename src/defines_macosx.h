@@ -102,9 +102,11 @@ This version is for the Apple MacOS X operating system.
 /* ABI selection. */
 #define IA64_ABI 1
 #define DEFAULT_EMULATE_GNU_ABI_BUGS 0
+#ifndef CP_GEN_BE_VERSION
 #ifndef GCC_IS_GENERATED_CODE_TARGET
 #define GCC_IS_GENERATED_CODE_TARGET 1
 #endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
+#endif /* ifndef CP_GEN_BE_VERSION */
 #define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 1
 #define TARG_BIT_FIELD_CONTAINER_SIZE (-1)
 #define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C 1
@@ -115,9 +117,9 @@ This version is for the Apple MacOS X operating system.
 #define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 1
 #elif defined(__ppc__)
 #define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 0
-#else
+#else /* Not a recognized architecture. */
 #error -- Unexpected MacOS X platform
-#endif
+#endif /* defined(__i386__) */
 
 #endif /* ifndef DEFINES_MACOS_H */
 
