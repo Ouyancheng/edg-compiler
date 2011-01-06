@@ -587,6 +587,7 @@ and return FALSE.  Otherwise, return TRUE.
 }  /* f_check_cli_type_pointed_to */
 
 
+static
 a_boolean check_invalid_use_of_special_cli_class_type(a_type_ptr         tp,
                                                       a_source_position  *pos)
 /*
@@ -3993,39 +3994,6 @@ __w64 annotation, and __based variable specifiers).  The given type must be a
     *type = make_qualified_type(copy, qualifiers);
   }  /* if */
 }  /* apply_microsoft_ptr_modifiers */
-
-
-a_boolean check_handle_to_type(a_type_ptr         tp,
-                               a_source_position  *diag_pos)
-/*
-If a C++/CLI handle type on top of tp is valid, return TRUE.  Otherwise,
-return FALSE and if diag_pos is non-NULL issue a diagnostic at the given
-position.
-*/
-{
-  an_error_code  err_code = ec_no_error;
-
-  tp = skip_typerefs(tp);
-  if (tp->kind == (a_type_kind)tk_pointer) {
-    /* A handle cannot point to any kind of pointer/handle or reference
-       type. */
-    err_code = ec_handle_to_address_type;
-  } else if (is_void_type(tp)) {
-    /* A handle-to-void type is invalid. */
-    err_code = ec_handle_to_void;
-  } else if (is_immediate_class_type(tp) &&
-             cli_class_type_kind_is(tp, cctk_standard)) {
-    /* A handle to a non-managed class type is invalid. */
-    err_code = ec_handle_to_standard_class_type;
-  } else if (is_immediate_enum_type(tp) && !integer_type_is_scoped_enum(tp)) {
-    /* A handle to an unscoped enum type is invalid. */
-    err_code = ec_handle_to_unscoped_enum_type;
-  }  /* if */
-  if (diag_pos != NULL && err_code != ec_no_error) {
-    pos_error(err_code, diag_pos);
-  }  /* if */
-  return err_code == ec_no_error;
-}  /* check_handle_to_type */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
