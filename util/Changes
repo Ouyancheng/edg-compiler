@@ -1,5 +1,13 @@
 Version 4.3
 
+1/7/11   [EDGcpfe/11254]
+GNU C++ compatibility: __GXX_RTTI macro
+
+The make_predef_macro_table script has been updated to suppress the __GXX_RTTI
+macro from occurring in the predefined_macros.txt file.  This macro is now set
+by the front end.
+
+
 11/12/10 [EDGcpfe/11157]
 Potential buffer overrun issue in mk_errinfo
 

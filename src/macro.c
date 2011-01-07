@@ -7655,6 +7655,12 @@ Enter symbols for the predefined macros of GNU C and C++.
                              "__GNUG__",
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
+    if (rtti_enabled && gnu_version >= 40300) {
+      /* g++ introduced the __GXX_RTTI macro in version 4.3.0. */
+      (void)enter_predef_macro("1", "__GXX_RTTI",
+                               /*cannot_be_redefined=*/FALSE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
   } else {
     /* GNU C mode. */
     /* GCC 4.1.3 and later define a macro to indicate whether the GNU C89 or

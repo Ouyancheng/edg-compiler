@@ -1324,7 +1324,8 @@ preprocessing symbol should be defined.
 /*
 The name of the macro to be defined when RTTI is enabled.
 This is only used when DEFINE_MACRO_WHEN_RTTI_ENABLED
-is TRUE.
+is TRUE.  Note that in later g++ emulation modes, the
+__GXX_RTTI macro is also defined when RTTI is enabled.
 */
 #if DEFINE_MACRO_WHEN_RTTI_ENABLED
 #ifndef MACRO_DEFINED_WHEN_RTTI_ENABLED

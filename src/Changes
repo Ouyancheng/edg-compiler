@@ -1,5 +1,16 @@
 Version 4.3
 
+1/7/11   [EDGcpfe/11254]
+GNU C++ compatibility: __GXX_RTTI macro
+
+According to the GNU documentation, the __GXX_RTTI macro is defined (with
+a value of 1) when runtime type identification is enabled.  The front end
+now emulates that behavior (in g++ emulation mode when gnu_version >= 40300).
+Accordingly, users should remove any setting of __GXX_RTTI in their
+predefined_macros.txt file (newer versions of make_predef_macro_table now
+suppress that macro from the predefined_macros.txt file).
+
+
 1/4/11   [EDGcpfe/11245]
 GNU C++ compatibility: Mangling of local closure types
 

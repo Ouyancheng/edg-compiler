@@ -110,6 +110,7 @@ delete_unneeded_entries()
   unneeded="$unneeded __STDC_HOSTED__"
   unneeded="$unneeded __STDC__"
   unneeded="$unneeded __GNUC_PATCHLEVEL__"
+  unneeded="$unneeded __GXX_RTTI"
   for name in $unneeded
   do
     sed -e "/:$name:/ d" output.tmp >$$
