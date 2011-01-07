@@ -1,5 +1,22 @@
 Version 4.3
 
+1/7/11   [EDGcpfe/11261]
+Internal error on lambdas with implicit return type in some configurations
+
+In some configurations with MAINTAIN_NEEDED_FLAGS set to FALSE and
+IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE, the front end could abort with an
+internal error in scope_for_routine ("scope for routine is NULL") when parsing
+a lambda expression with an implicit return type.  For example:
+
+  void f() {
+    int total = 0;
+    auto lambda = [&total](int x){ return x; };
+      // Previously aborted.
+  }
+
+This is now fixed.
+
+
 1/7/11   [EDGcpfe/11254]
 GNU C++ compatibility: __GXX_RTTI macro
 

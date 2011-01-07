@@ -19366,46 +19366,6 @@ done:
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void check_implicit_lambda_return_type(a_lambda_ptr       lambda,
-                                              a_source_position  *diag_pos)
-/*
-The given lambda did not include an explicitly specified return type.  If a
-value-returning statement was encountered, the return type was set accordingly;
-otherwise, this routine will set it to void.  If the return type is non-void,
-check that the body had the simple form
-      { return <expr> ; }
-and issue a diagnostic if that was not the case.
-*/
-{
-  a_routine_ptr  rp = lambda->lambda_routine;
-  a_type_ptr     rtp;
-
-  check_assertion(rp->type->kind == (a_type_kind)tk_routine);
-  rtp = rp->type->variant.routine.return_type;
-  if (is_unknown_type(rtp)) {
-    /* No return type was specified on the lambda construct, and no return
-       type was deduced from a return statement: The return type is therefore
-       "void". */
-    rp->type->variant.routine.return_type = void_type();
-  } else if (!is_void_type(rtp) && !is_error_type(rtp) &&
-             !rp->is_prototype_instantiation) {
-    /* A return type was deduced from a non-void return.  Check that that
-       return statement was the only statement in the function body.  The
-       check is not done for prototype instantiations, because (a) they
-       might not be recorded in the IL, and (b) even if they were, it's
-       not always known whether the deduced return type is void or not. */
-    a_statement_ptr  sp = scope_for_routine(rp)->assoc_block;
-    check_assertion(sp->kind == (a_statement_kind)stmk_block &&
-                    sp->next == NULL);
-    sp = sp->variant.block.statements;
-    if (sp->kind != (a_statement_kind)stmk_return ||
-        sp->next != NULL) {
-      pos_error(ec_lambda_return_must_be_only_construct, diag_pos);
-    }  /* if */
-  }  /* if */
-}  /* check_implicit_lambda_return_type */
-
-
 static a_scope_depth decl_level_for_lambda_closure_class(a_boolean  *bad_scope)
 /*
 A lambda appears in the current scope context.  Return the scope depth at
@@ -19538,15 +19498,10 @@ The heavy lifting for this routine is performed by scan_function_body.
       lambda->lambda_routine->type->variant.routine.return_type = error_type();
       lambda->lambda_routine = NULL;
     } else {
-      a_source_position  body_pos;
       a_routine_ptr      rp = lambda->lambda_routine;
       a_decl_flag_set    sfb_flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
                                      SFB_NO_CLASS_REACTIVATION;
-      body_pos = pos_curr_token;
       scan_function_body(rp, func_info, sfb_flags);
-      if (!lambda->explicit_return_type) {
-        check_implicit_lambda_return_type(lambda, &body_pos);
-      }  /* if */
     }  /* if */
     if (curr_token == tok_rbrace) {
       /* Don't use required_token, because if we aren't at a brace, an error
