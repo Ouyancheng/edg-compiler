@@ -2105,6 +2105,10 @@ ec_ref_class_has_multiple_ref_bases;;"a ref class type can have at most one dire
 ec_managed_base_for_standard_class;;"a standard class type cannot derive from a managed class type"
 ec_virtual_base_for_managed_class;;"a managed class type cannot have a virtual base"
 ec_managed_class_type_cannot_have_private_or_protected_base;;"a managed class type cannot have a \"private\" or \"protected\" base"
+ec_override_requires_virtual;;"the \"override\" modifier requires a virtual function declaration with an explicit \"virtual\" keyword"
+ec_abstract_requires_virtual;;"the \"abstract\" modifier requires a virtual function declaration with an explicit \"virtual\" keyword"
+ec_sealed_requires_virtual;;"the \"sealed\" modifier requires a virtual function declaration with an explicit \"virtual\" keyword"
+ec_named_override_requires_virtual;;"a named override specifier requires a virtual function declaration with an explicit \"virtual\" keyword"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

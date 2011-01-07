@@ -4360,6 +4360,21 @@ done:
     class_type->variant.class_struct_union.
                  any_virtual_functions_including_in_base_classes = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && !virtual_specified) {
+      /* Any override modifier often requires that the function also be
+         declared with an explicit "virtual" keyword. */
+      if (func_info->override) {
+        pos_error(ec_override_requires_virtual, source_pos);
+      } else if (is_immediate_managed_class_type(class_type)) {
+        if (func_info->abstract) {
+          pos_error(ec_abstract_requires_virtual, source_pos);
+        } else if (func_info->sealed) {
+          pos_error(ec_sealed_requires_virtual, source_pos);
+        } else if (named_override != NULL) {
+          pos_error(ec_named_override_requires_virtual, source_pos);
+        }  /* if */
+      }  /* if */
+    }  /* if */
   } else if (func_info->sealed || func_info->abstract) {
     pos_error(ec_function_modifier_requires_virtual_function, source_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
