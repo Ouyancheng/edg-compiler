@@ -5813,10 +5813,12 @@ diagnostics that can be emitted based on this information.
   for (;;) {
     if (curr_token == tok_virtual) {
       if (*is_virtual) {
-        error(ec_dupl_decl_specifier);
+        pos_error(ec_dupl_decl_specifier, &pos_curr_token);
 #if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (is_immediate_managed_class_type(type_ptr)) {
+        pos_error(ec_virtual_base_for_managed_class, &pos_curr_token);
       } else if (type_ptr->variant.class_struct_union.is_interface) {
-        error(ec_interface_cannot_have_virtual_base);
+        pos_error(ec_interface_cannot_have_virtual_base, &pos_curr_token);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         *is_virtual = TRUE;
@@ -5824,7 +5826,7 @@ diagnostics that can be emitted based on this information.
     } else if (curr_token == tok_public || curr_token == tok_protected ||
                curr_token == tok_private) {
       if (access_already_specified) {
-        error(ec_access_already_specified);
+        pos_error(ec_access_already_specified, &pos_curr_token);
       } else {
         if (curr_token == tok_public) {
           *access = (an_access_specifier)as_public;
@@ -5835,8 +5837,14 @@ diagnostics that can be emitted based on this information.
             *access = (an_access_specifier)as_private;
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (type_ptr->variant.class_struct_union.is_interface) {
-            error(ec_interface_cannot_have_private_or_protected);
+          if (is_immediate_managed_class_type(type_ptr)) {
+            pos_error(
+                  ec_managed_class_type_cannot_have_private_or_protected_base,
+                  &pos_curr_token);
+            *access = (an_access_specifier)as_public;
+          } else if (type_ptr->variant.class_struct_union.is_interface) {
+            pos_error(ec_interface_cannot_have_private_or_protected,
+                      &pos_curr_token);
             *access = (an_access_specifier)as_public;
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5882,18 +5890,58 @@ issue an error and return FALSE.
     check_assertion(is_class_struct_union_type(base_class_type));
     complete_class_type_is_needed(base_class_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && microsoft_version >= 1300) {
-      /* Recent Microsoft compilers apply the dllimport/dllexport attributes
-         of a derived class to any base class type that is an implicit class
-         template specialization (unless a DLL interface was already
-         specified on that type). */
-      a_decl_modifier  flags = (type->variant.class_struct_union.extra_info
-                                    ->decl_modifiers & DM_DLLFLAGS);
-      if (flags != 0) {
-        update_dll_info_for_class(base_class_type, flags,
-                                  /*explicit_inst=*/FALSE,
-                                  /*adjust_template_base=*/TRUE,
-                                  &error_position);
+    if (microsoft_mode) {
+      if (is_immediate_managed_class_type(type)) {
+        /* Managed class types have different constraints.  Value classes and
+           interface classes can only derive from interface classes.  Ref
+           classes can derive from at most one other ref class; other base
+           classes must be interface classes. */
+        if (!cli_class_type_kind_is(base_class_type, cctk_interface)) {
+          switch (class_type_supp(type)->cli_class_type_kind) {
+            case cctk_ref:
+              if (cli_class_type_kind_is(base_class_type, cctk_ref)) {
+                a_base_class_ptr  bcp = base_classes_of(type);
+                for (; bcp != NULL; bcp = bcp->next) {
+                  if (bcp->direct &&
+                      cli_class_type_kind_is(bcp->type, cctk_ref)) {
+                    pos_ty_error(ec_ref_class_has_multiple_ref_bases,
+                                 &error_position, bcp->type);
+                    break;
+                  }  /* if */
+                }  /* for */
+              } else {
+                pos_error(ec_invalid_ref_class_base, &error_position);
+              }  /* if */
+              break;
+            case cctk_value:
+              pos_error(ec_invalid_value_class_base, &error_position);
+              break;
+            case cctk_interface:
+              pos_error(ec_invalid_interface_class_base, &error_position);
+              break;
+            default:
+              unexpected_condition();
+          }  /* switch */
+        }  /* if */
+      } else {
+        if (cppcli_enabled &&
+            is_immediate_managed_class_type(base_class_type)) {
+          pos_error(ec_managed_base_for_standard_class, &error_position);
+        }  /* if */
+        if (microsoft_version >= 1300) {
+          /* Recent Microsoft compilers apply the dllimport/dllexport
+             attributes of a derived class to any base class type that is an
+             implicit class template specialization (unless a DLL interface
+             was already specified on that type). */
+          a_decl_modifier  flags = class_type_supp(type)->decl_modifiers &
+                                                                  DM_DLLFLAGS;
+          if (flags != 0) {
+            update_dll_info_for_class(base_class_type, flags,
+                                      /*explicit_inst=*/FALSE,
+                                      /*adjust_template_base=*/TRUE,
+                                      &error_position);
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5907,8 +5955,7 @@ issue an error and return FALSE.
     }  /* if */
     if (is_incomplete_type(base_class_type)) {
       if ((gpp_mode || microsoft_mode) &&
-          base_class_type->variant.class_struct_union.extra_info->assoc_scope
-                                                                    != NULL &&
+          class_type_supp(base_class_type)->assoc_scope != NULL &&
           is_template_param_or_nonreal_class_type(base_class_type)) {
         /* Microsoft and GNU compilers never check the completeness of a
            parameterized base class that has not been fully parsed yet.

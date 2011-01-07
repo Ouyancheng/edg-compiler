@@ -2098,6 +2098,13 @@ ec_ptr_handle_or_ref_to_interior_ptr;;"a pointer, handle, or reference to a C++/
 ec_ptr_handle_or_ref_to_pin_ptr;;"a pointer, handle, or reference to a C++/CLI interior pointer is not allowed"
 ec_ptr_or_ref_to_cli_array;;"a pointer or reference to a C++/CLI array is not allowed"
 ec_bad_use_of_cli_array_type;;"a C++/CLI array type is not allowed here"
+ec_invalid_ref_class_base;;"a C++/CLI ref class type can only derive from a ref class or from interface classes"
+ec_invalid_value_class_base;;"a C++/CLI value class type can only derive from interface classes"
+ec_invalid_interface_class_base;;"a C++/CLI interface class type can only derive from interface classes"
+ec_ref_class_has_multiple_ref_bases;;"a ref class type can have at most one direct ref base class (%t is already such a base)"
+ec_managed_base_for_standard_class;;"a standard class type cannot derive from a managed class type"
+ec_virtual_base_for_managed_class;;"a managed class type cannot have a virtual base"
+ec_managed_class_type_cannot_have_private_or_protected_base;;"a managed class type cannot have a \"private\" or \"protected\" base"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
