@@ -5206,6 +5206,9 @@ specified by tssp.
   if (microsoft_bugs && microsoft_version <= 1100) {
     eta_options |= ETA_MS_IGNORE_QUALIFIERS;
   }  /* if */
+  if (tssp->is_variadic) {
+    eta_options |= ETA_IS_VARIADIC;
+  }  /* if */
   return eta_options;
 }  /* eta_options_for_template */
 
