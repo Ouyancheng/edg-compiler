@@ -2615,7 +2615,7 @@ EXTERN struct a_preinclude_file
                 *preusing_file_tail;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if CPPCLI_ENABLING_POSSIBLE
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #define METADATA_IMPORT_BUFFER_SIZE 0x30000
 			/* The initial size of the buffer used to import
 			   metadata.  This should be large enough to
@@ -2624,7 +2624,7 @@ EXTERN struct a_preinclude_file
 #define METADATA_IMPORT_BUFFER_ALLOCATION_INCREMENT 0x1000
 			/* The amount by which the import buffer should be
 			   increased in size if it is too small. */
-#endif /* CPPCLI_ENABLING_POSSIBLE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 /*

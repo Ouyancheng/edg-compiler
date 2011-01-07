@@ -1412,9 +1412,6 @@ simply include that.
   }  /* if */
 }  /* proc_import */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_cli_metadata_file_ptr make_cli_metadata_file(
                                  char                  *name,
@@ -1533,7 +1530,6 @@ in the metadata file.
     cmfp = make_cli_metadata_file(name, full_name, as_friend, 
                                    is_system_include, referenced_by_preusing,
                                    pos);
-#if CPPCLI_ENABLING_POSSIBLE
     cmfp->assembly_index = import_metadata_file(cmfp->full_name, 
                                                 features, 
                                                 &is_duplicate);
@@ -1560,7 +1556,6 @@ in the metadata file.
       fetch_pp_tokens = save_fetch_pp_tokens;
       in_preprocessing_directive = save_in_preprocessing_directive;
     }  /* if */
-#endif /* CPPCLI_ENABLING_POSSIBLE */
   }  /* if */
 }  /* import_metadata */
 

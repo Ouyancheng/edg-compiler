@@ -4903,7 +4903,7 @@ final search path will include, in this order:
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if CPPCLI_ENABLING_POSSIBLE && !EDG_WIN32
+#if MICROSOFT_EXTENSIONS_ALLOWED && (!CPPCLI_ENABLING_POSSIBLE || !EDG_WIN32)
 
 /*
 Stub versions of metadata reading routines to aid in development on platforms
@@ -4939,7 +4939,8 @@ void ms_metadata_trans_unit_wrapup(void) {}
 
 void ms_metadata_cleanup(void) {}
 
-#endif /* CPPCLI_ENABLING_POSSIBLE && !EDG_WIN32 */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED &&
+          (!CPPCLI_ENABLING_POSSIBLE || !EDG_WIN32) */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 

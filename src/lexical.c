@@ -17941,7 +17941,7 @@ done:
 
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
 
-#if CPPCLI_ENABLING_POSSIBLE
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 char *generate_top_level_metadata_code(an_assembly_index index)
 /*
@@ -17983,7 +17983,7 @@ the caller should copy the contents as needed.
   return buffer->buffer;
 }  /* generate_top_level_metadata_code */
 
-#endif /* CPPCLI_ENABLING_POSSIBLE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if DEBUG
 void db_token_cache(a_token_cache *cache,
@@ -18537,6 +18537,9 @@ of the front end.
 #if GET_DEFINITION_OF_CLASS_NEEDED
   class_def_buffer = NULL;
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  metadata_import_buffer = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   in_token_insertion_from_string = FALSE;
   token_insertion_position = null_source_position;
 #if !FULLY_RESOLVED_MACRO_POSITIONS
