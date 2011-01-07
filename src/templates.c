@@ -13556,7 +13556,7 @@ declaration of a partial specialization declared outside of its class.
   an_extended_decl_info_block       extended_decl_info;
   a_boolean                         is_abstract = FALSE, is_sealed = FALSE;
   a_boolean                         is_interface = FALSE;
-  a_cli_class_type_kind             cli_type_kind;
+  a_cli_class_type_kind             cli_type_kind = cctk_standard;
   an_assembly_visibility            cli_visibility;
   a_source_position                 cli_visibility_pos; 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

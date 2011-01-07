@@ -15578,7 +15578,7 @@ potentially_evaluated is TRUE if the expression is potentially evaluated.
      the point of declaration of the function, but the problem
      could not be corrected there because the function type may
      have come from a typedef (i.e., it might be shared). */
-  if (ptp->default_arg_expr == NULL) {
+  if (ptp->default_arg_expr == NULL || is_error_node(ptp->default_arg_expr)) {
     expr = error_node();
   } else {
     expr = ptp->default_arg_expr;
