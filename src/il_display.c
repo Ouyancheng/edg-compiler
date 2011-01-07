@@ -3814,7 +3814,7 @@ cleanup_state_common:
     case enk_builtin_operation:
       (void)printf("enk_builtin_operation\n");
       disp_name("builtin_operation.kind");
-      (void)printf("%s", builtin_operation_names[
+      (void)printf("%s\n", builtin_operation_names[
                                         ptr->variant.builtin_operation.kind]);
       disp_ptr("operands", (char *)ptr->variant.builtin_operation.operands,
                iek_expr_node);
