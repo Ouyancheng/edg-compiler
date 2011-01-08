@@ -13559,7 +13559,8 @@ declaration of a partial specialization declared outside of its class.
   an_extended_decl_info_block       extended_decl_info;
   a_boolean                         is_abstract = FALSE, is_sealed = FALSE;
   a_boolean                         is_interface = FALSE;
-  a_cli_class_type_kind             cli_type_kind = cctk_standard;
+  a_cli_class_type_kind             cli_type_kind =
+                                          (a_cli_class_type_kind)cctk_standard;
   an_assembly_visibility            cli_visibility;
   a_source_position                 cli_visibility_pos; 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -17283,6 +17284,7 @@ caller.
     /* Set the assoc_template field of the prototype instantiation routine
        entry. */
     tssp->variant.function.routine->assoc_template = tssp->il_template_entry;
+    tssp->is_variadic = decl_state->is_variadic;
     /* Update the exported flag, if necessary. */
     update_export_flag_for_function(decl_state, rout_ptr, sym, tssp);
   }  /* if */
