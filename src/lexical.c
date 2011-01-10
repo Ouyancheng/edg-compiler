@@ -14921,15 +14921,15 @@ is preferred over the normal lookup symbol.
     if (sym_hdr != NULL) {
       if (symbol_for_cli_array != NULL &&
           sym_hdr == symbol_for_cli_array->header) {
-        /* Fallback to cli::array.  ECMA-372 $24.1. */
+        /* Fall back to cli::array.  ECMA-372 $24.1. */
         sym = symbol_for_cli_array;
       } else if (symbol_for_cli_interior_ptr != NULL &&
                  sym_hdr == symbol_for_cli_interior_ptr->header) {
-        /* Fallback to cli::interior_ptr.  ECMA-372 $12.3.6. */
+        /* Fall back to cli::interior_ptr.  ECMA-372 $12.3.6. */
         sym = symbol_for_cli_interior_ptr;
       } else if (symbol_for_cli_pin_ptr != NULL &&
                  sym_hdr == symbol_for_cli_pin_ptr->header) {
-        /* Fallback to cli::pin_ptr.  ECMA-372 $12.3.7. */
+        /* Fall back to cli::pin_ptr.  ECMA-372 $12.3.7. */
         sym = symbol_for_cli_pin_ptr;
       }  /* if */
     }  /* if */
