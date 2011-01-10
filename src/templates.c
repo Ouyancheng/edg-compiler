@@ -12678,6 +12678,14 @@ to the newly created list.
   a_symbol_ptr                      param_sym;
 
   for (tpp = templ_param_list; tpp != NULL; tpp = tpp->next) {
+    if (tpp->is_pack) {
+      /* The parameter is a parameter pack.  Create a start of parameter
+         pack placeholder. */
+      tap = alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
+      if (list_head == NULL) list_head = tap;
+      if (list_tail != NULL) list_tail->next = tap;
+      list_tail = tap;
+    }  /* if */
     param_sym = tpp->param_symbol;
     if (param_sym->kind == (a_symbol_kind)sk_type) {
       tap = alloc_template_arg((a_templ_arg_kind)tak_type);
@@ -12692,6 +12700,7 @@ to the newly created list.
       tap->variant.templ.ptr = param_sym->
                                       variant.template_info->il_template_entry;
     }  /* if */
+    tap->is_pack_element = tpp->is_pack;
     if (list_head == NULL) list_head = tap;
     if (list_tail != NULL) list_tail->next = tap;
     list_tail = tap;
