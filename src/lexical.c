@@ -1201,6 +1201,8 @@ This is used to save tokens for later rescanning.
        a handle into the cache that can be used to rescan a range of
        tokens. */
     ctp->token_handle = ctp;
+  } else {
+    ctp->token_handle = curr_cached_token_handle;
   }  /* if */
   if (fetch_pp_tokens) {
     /* The token being saved is a pp token.  Save this by copying the token

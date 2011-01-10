@@ -9170,6 +9170,7 @@ will be set to NULL.
                                       /*is_rescan=*/FALSE,
                                       /*is_deduction=*/FALSE);
       if (pesep != NULL) {
+        check_assertion(curr_cached_token_handle != NO_CACHED_TOKEN_HANDLE);
         pesep->first_token_handle = curr_cached_token_handle;
         check_assertion(curr_token_sequence_number == pedp->first_token);
       } else {
@@ -9375,14 +9376,14 @@ effect and returns NULL.
     if (is_template_dependent_context()) {
       /* The pack expansion descriptor passed in should be on top of the
          stack. */
-      if (pedp->packs_referenced != NULL) {
-        /* There were packs referenced.  This is a pack expansion. */
+     if (pedp->packs_referenced != NULL) {
+        /* There were expanded packs referenced.  This is a pack expansion. */
         record_pack_expansion(pedp);
         result_pedp = pedp;
       } else {
         /* There were no packs referenced.  This is not a pack expansion.
-           If a pack expansion ("...") has been seen, issue an error that no
-           packs were encountered. */
+           If a pack expansion ("...") has been seen, issue an error that
+           no packs were encountered. */
         if (pedp->ellipsis_seen &&
             !pesep->expansion_with_no_packs_diagnostic_issued) {
           pos_error(ec_expansion_contains_no_packs, &pedp->ellipsis_position);
