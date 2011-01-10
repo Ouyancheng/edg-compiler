@@ -156,6 +156,8 @@ differs (see the IA-64 ABI spec for details).
 */
 #define MANGLING_STRING_FOR_TRACKING_REFERENCE "U8__trkref"
 #define MANGLING_STRING_FOR_HANDLE "U8__handle"
+#define MANGLING_STRING_FOR_INTERIOR_PTR "U14__interior_ptr"
+#define MANGLING_STRING_FOR_PIN_PTR "U9__pin_ptr"
 #define MANGLING_STRING_FOR_STATIC_CONSTRUCTOR "C8"
 #define MANGLING_STRING_FOR_FINALIZER "D7"
 #define MANGLING_STRING_FOR_MANAGED_NULLPTR "DN"
@@ -279,8 +281,10 @@ differs (see the IA-64 ABI spec for details).
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* These are all specific to C++/CLI. */
-#define MANGLING_STRING_FOR_TRACKING_REFERENCE "Tr"
-#define MANGLING_STRING_FOR_HANDLE "H"
+#define MANGLING_STRING_FOR_TRACKING_REFERENCE "Ht"
+#define MANGLING_STRING_FOR_HANDLE "Hh"
+#define MANGLING_STRING_FOR_INTERIOR_PTR "Hi"
+#define MANGLING_STRING_FOR_PIN_PTR "Hp"
 #define MANGLING_STRING_FOR_STATIC_CONSTRUCTOR "st"
 #define MANGLING_STRING_FOR_FINALIZER "df"
 #define MANGLING_STRING_FOR_MANAGED_NULLPTR "j"
@@ -8357,6 +8361,10 @@ top_of_loop:
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (type->variant.pointer.is_handle) {
           s = MANGLING_STRING_FOR_HANDLE;
+        } else if (type->variant.pointer.is_interior_ptr) {
+          s = MANGLING_STRING_FOR_INTERIOR_PTR;
+        } else if (type->variant.pointer.is_pin_ptr) {
+          s = MANGLING_STRING_FOR_PIN_PTR;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           s = MANGLING_STRING_FOR_POINTER;

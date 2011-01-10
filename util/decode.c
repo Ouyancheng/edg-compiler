@@ -2806,18 +2806,30 @@ not empty, because it contains a name or a derived type).
 */
 {
   char *p = ptr, *qualp = p;
-  char kind;
+  char kind, ext_kind;
 
   /* Remove type qualifiers. */
   while (is_immediate_type_qualifier(p, dctl)) p++;
   kind = get_char(p, dctl);
-  if (kind == 'P' || kind == 'R' || kind == 'E' || kind == 'H' ||
-      (kind == 'T' && get_char(p+1, dctl) == 'r')) {
-    /* Pointer, reference, rvalue reference, handle, or tracking reference
-       type, e.g., "Pc" is pointer to char. */
-    if (kind == 'T') p++;
+  if (kind == 'P' || kind == 'R' || kind == 'E' || kind == 'H') {
+    a_boolean need_space = TRUE;
+    /* Pointer, reference, rvalue reference, or C++/CLI-specific type, e.g.,
+       "Pc" is pointer to char. */
+    if (kind == 'H') {
+      /* Some type of C++/CLI-specific type (handle, tracking reference,
+         interior_ptr, pin_ptr). */
+      p++;
+      ext_kind = get_char(p, dctl);
+      if (ext_kind == 'i') {
+        write_id_str("interior_ptr<", dctl);
+        need_space = FALSE;
+      } else if (ext_kind == 'p') {
+        write_id_str("pin_ptr<", dctl);
+        need_space = FALSE;
+      }  /* if */
+    }  /* if */
     p = demangle_type_first_part(p+1, /*under_lhs_declarator=*/TRUE,
-                                 /*need_trailing_space=*/TRUE, dctl);
+                                 need_space, dctl);
     /* Output "*" (pointer), "&" (reference), "&&" (rvalue reference),
        "^" (handle), or "%" (tracking reference). */
     if (kind == 'R') {
@@ -2825,9 +2837,17 @@ not empty, because it contains a name or a derived type).
     } else if (kind == 'E') {
       write_id_str("&&", dctl);
     } else if (kind == 'H') {
-      write_id_ch('^', dctl);
-    } else if (kind == 'T') {
-      write_id_ch('%', dctl);
+      if (ext_kind == 'h') {
+        write_id_ch('^', dctl);
+      } else if (ext_kind == 't') {
+        write_id_ch('%', dctl);
+      } else if (ext_kind == 'i') {
+        write_id_ch('>', dctl);
+      } else if (ext_kind == 'p') {
+        write_id_ch('>', dctl);
+      } else {
+        bad_mangled_name(dctl);
+      }  /* if */
     } else {
       write_id_ch('*', dctl);
     }  /* if */
@@ -2930,11 +2950,12 @@ use of parentheses around parts of the declarator.)
   /* Remove type qualifiers. */
   while (is_immediate_type_qualifier(p, dctl)) p++;
   kind = get_char(p, dctl);
-  if (kind == 'P' || kind == 'R' || kind == 'E' || kind == 'H' ||
-      (kind == 'T' && get_char(p+1, dctl) == 'r')) {
-    /* Pointer, reference, rvalue reference, handle, or tracking reference
-       type, e.g., "Pc" is pointer to char. */
-    if (kind == 'T') p++;
+  if (kind == 'P' || kind == 'R' || kind == 'E' || kind == 'H') {
+    /* Pointer, reference, rvalue reference, or C++/CLI-extended type, e.g.,
+       "Pc" is pointer to char. */
+    /* If it's a C++/CLI-extension, there's a second character after the "H",
+       but we ignore that here. */
+    if (kind == 'H') p++;
     demangle_type_second_part(p+1, /*under_lhs_declarator=*/TRUE, dctl);
   } else if (kind == 'M') {
     /* Pointer-to-member type, e.g., "M1Ai" is pointer to member of A of
@@ -4211,7 +4232,9 @@ Note that these vendor extended type qualifiers are treated as order-sensitive.
 */
 {
   return (start_of_id_is("U8__handle", ptr) ||
-          start_of_id_is("U8__trkref", ptr));
+          start_of_id_is("U8__trkref", ptr) ||
+          start_of_id_is("U14__interior_ptr", ptr) ||
+          start_of_id_is("U9__pin_ptr", ptr));
 }  /* is_vendor_extended_declarator */
 
 
@@ -4641,7 +4664,8 @@ to be on top of the type.  If parse_template_args is TRUE then any
     }  /* if */
   } else if (kind == 'P' || kind == 'R' || kind == 'O' || kind == 'C' ||
              (kind == 'U' && is_vendor_extended_declarator(p))) {
-    char *vendor_ext = NULL;
+    char      *vendor_ext = NULL;
+    a_boolean need_space = TRUE;
     /* Look for type qualifiers:
         <type> ::= <CV-qualifiers> <type>
                ::= P <type> # pointer-to
@@ -4653,27 +4677,36 @@ to be on top of the type.  If parse_template_args is TRUE then any
     p++;
     if (kind == 'U') {
       /* This is a vendor extended type qualifier that is being used by the
-         front end to encode the C++/CLI handle and tracking reference
-         declarators (to avoid adding EDG-specific manglings for these entities
-         that might be used in subsequent IA-64 ABI revisions).  Note that
-         these extensions are treated as "order-sensitive" for the purposes of
-         substitutions. */
+         front end to encode C++/CLI-specific types (i.e., handles, tracking
+         references, interior_ptrs, and pin_ptrs).  This avoids adding
+         EDG-specific manglings for these entities that might be used in
+         subsequent IA-64 ABI revisions.  Note that these extensions are
+         treated as "order-sensitive" for the purposes of substitutions. */
+      long num;
       if (start_of_id_is("8__handle", p)) {
         vendor_ext = "^";
-        p += 9;
       } else if (start_of_id_is("8__trkref", p)) {
         vendor_ext = "%";
-        p += 9;
+      } else if (start_of_id_is("14__interior_ptr", p)) {
+        write_id_str("interior_ptr<", dctl);
+        vendor_ext = ">";
+        need_space = FALSE;
+      } else if (start_of_id_is("9__pin_ptr", p)) {
+        write_id_str("pin_ptr<", dctl);
+        vendor_ext = ">";
+        need_space = FALSE;
       } else {
         bad_mangled_name(dctl);
       }  /* if */
+      /* Advance past the vendor string. */
+      p = get_number(p, &num, dctl);
+      p += num;
     }  /* if */
     if (kind == 'C') {
       write_id_str("_Complex ", dctl);
     }  /* if */
     p = demangle_type_first_part(p, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
-                                 /*need_trailing_space=*/TRUE,
-                                 parse_template_args, dctl);
+                                 need_space, parse_template_args, dctl);
     if (kind == 'P') {
       write_id_ch('*', dctl);
     } else if (kind == 'R') {
