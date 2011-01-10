@@ -9305,6 +9305,12 @@ to expand the pack in real instantiation.
 {
   a_template_decl_info_ptr	tdip;
 
+#if DEBUG
+  if (db_flag_is_set("packs")) {
+    fprintf(f_debug, "Recording pack expansion from %ld to %ld\n",
+            (long)pedp->first_token, (long)curr_token_sequence_number);
+  }  /* if */
+#endif /* DEBUG */
   /* Save the end of the token range for the pack. */
   pedp->last_token = curr_token_sequence_number;
   /* Get the template declaration information entry associated with the
@@ -9321,12 +9327,6 @@ to expand the pack in real instantiation.
     last_pedp->next = pedp;
   }  /* if */
   tdip->last_pack_expansion = pedp;
-#if DEBUG
-  if (db_flag_is_set("packs")) {
-    fprintf(f_debug, "Recording pack expansion from %ld to %ld\n",
-            (long)pedp->first_token, (long)pedp->last_token);
-  }  /* if */
-#endif /* DEBUG */
 }  /* record_pack_expansion */
 
 
