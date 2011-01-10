@@ -5766,8 +5766,8 @@ Don't put its symbol into the symbol table yet.
 
 void make_symbol_for_namespace_cli(void)
 /*
-Predeclare namespace "cli".  This namespace is used when cppcli_enabled is
-TRUE.  ECMA-372 $17.1.
+Predeclare namespace "cli".  This namespace is used in C++/CLI mode.
+ECMA-372 $17.1.
 */
 {
   a_symbol_locator locator;
@@ -5835,7 +5835,8 @@ provided by definition_string.
 
 void make_symbol_for_cli_array(void)
 /*
-Declare and define "cli::array".  The definition is given by ECMA-372 $8.2.3.
+Declare and define the C++/CLI type "cli::array".  The definition is given
+by ECMA-372 $8.2.3.
 */
 {
   symbol_for_cli_array = make_cli_pseudo_template("array",
@@ -5849,7 +5850,7 @@ Declare and define "cli::array".  The definition is given by ECMA-372 $8.2.3.
 
 static void make_symbol_for_cli_interior_ptr(void)
 /*
-Declare and define "cli::interior_ptr".  ECMA-372 $12.3.6.
+Declare and define the C++/CLI type "cli::interior_ptr".  ECMA-372 $12.3.6.
 */
 {
   symbol_for_cli_interior_ptr = make_cli_pseudo_template("interior_ptr",
@@ -5863,7 +5864,7 @@ Declare and define "cli::interior_ptr".  ECMA-372 $12.3.6.
 
 static void make_symbol_for_cli_pin_ptr(void)
 /*
-Declare and define "cli::pin_ptr".  ECMA-372 $12.3.7.
+Declare and define the C++/CLI type "cli::pin_ptr".  ECMA-372 $12.3.7.
 */
 {
   symbol_for_cli_pin_ptr = make_cli_pseudo_template("pin_ptr",

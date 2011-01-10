@@ -3673,72 +3673,65 @@ extern void enter_symbol_for_namespace_abi(a_symbol_locator  *locator);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_symbol_ptr
 		symbol_for_namespace_cli;
-			/* Symbol for namespace "cli".  Used when 
-			   cppcli_enabled is TRUE. */
+			/* Symbol for namespace "cli".  Used in C++/CLI
+			   mode. */
 
 EXTERN a_symbol_ptr
 		symbol_for_namespace_system;
-			/* Symbol for namespace "System".  Used when 
-			   cppcli_enabled is TRUE. */
+`			/* Symbol for namespace "System".  Used in C++/CLI 
+			   mode. */
   
 EXTERN a_symbol_ptr
 		symbol_for_cli_array;
-			/* Symbol for "cli::array".  Used when 
-			   cppcli_enabled is TRUE.  NULL if the class template
-			   used to represent the array type has not yet been
-			   created. */
+			/* Symbol for "cli::array".  Used in C++/CLI 
+			   NULL if the class template used to represent
+			   the array type has not yet been created. */
 
 EXTERN a_symbol_ptr
 		symbol_for_cli_interior_ptr;
-			/* Symbol for "cli::interior_ptr".  Used when 
-			   cppcli_enabled is TRUE. */
+			/* Symbol for "cli::interior_ptr".  Used in C++/CLI 
+			   mode. */
 
 EXTERN a_symbol_ptr
 		symbol_for_cli_pin_ptr;
-			/* Symbol for "cli::pin_ptr".  Used when 
-			   cppcli_enabled is TRUE. */
+			/* Symbol for "cli::pin_ptr".  Used in C++/CLI 
+			   mode. */
 
 EXTERN a_symbol_ptr
 		symbol_for_system_object;
-			/* Symbol for "System::Object".  Used when 
-			   cppcli_enabled is TRUE.  NULL until mscorlib
-			   has been loaded. */
+			/* Symbol for "System::Object".  Used in C++/CLI 
+			   mode.  NULL until mscorlib has been loaded. */
 
 EXTERN a_symbol_ptr
 		symbol_for_system_valuetype;
-			/* Symbol for "System::ValueType".  Used when 
-			   cppcli_enabled is TRUE.  NULL until mscorlib
-			   has been loaded. */
+			/* Symbol for "System::ValueType".  Used in C++/CLI 
+			   mode.  NULL until mscorlib has been loaded. */
 
 EXTERN a_symbol_ptr
 		symbol_for_system_enum;
-			/* Symbol for "System::Enum".  Used when 
-			   cppcli_enabled is TRUE.  NULL until mscorlib
-			   has been loaded. */
+			/* Symbol for "System::Enum".  Used in C++/CLI 
+			   mode.  NULL until mscorlib has been loaded. */
 
 EXTERN a_symbol_ptr
 		symbol_for_system_type;
-			/* Symbol for "System::Type".  Used when 
-			   cppcli_enabled is TRUE.  NULL until mscorlib
-			   has been loaded. */
+			/* Symbol for "System::Type".  Used in C++/CLI 
+			   mode.  NULL until mscorlib has been loaded. */
 
 EXTERN a_symbol_ptr
 		symbol_for_system_string;
-			/* Symbol for "System::String".  Used when 
-			   cppcli_enabled is TRUE.  NULL until mscorlib
-			   has been loaded. */
+			/* Symbol for "System::String".  Used in C++/CLI 
+			   mode.  NULL until mscorlib has been loaded. */
 
 EXTERN a_symbol_ptr
 		symbol_for_system_delegate;
-			/* Symbol for "System::Delegate".  Used when 
-			   cppcli_enabled is TRUE.  NULL until mscorlib
-			   has been loaded. */
+			/* Symbol for "System::Delegate".  Used in C++/CLI 
+			   mode.  NULL until mscorlib has been loaded. */
 
 EXTERN a_symbol_ptr
 		symbol_for_system_multicast_delegate;
-			/* Symbol for "System::MulticastDelegate".  Used when 
-			   cppcli_enabled is TRUE.  NULL until mscorlib
-			   has been loaded. */
+			/* Symbol for "System::MulticastDelegate".  Used in
+			   C++/CLI mode.  NULL until mscorlib has been
+			   loaded. */
 
 extern void make_symbol_for_namespace_cli(void);
 extern void make_symbol_for_cli_array(void);

@@ -13730,9 +13730,13 @@ declaration of a partial specialization declared outside of its class.
           pos_sy_error(ec_partial_specialization_not_allowed, 
                        &locator_for_curr_id.source_position, 
                        class_template_sym);
+          sym = NULL;
+          tssp = NULL;
+          err = TRUE;
+          decl_state->is_partial_specialization = FALSE;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        decl_state->is_partial_specialization = TRUE;
+        if (sym != NULL) decl_state->is_partial_specialization = TRUE;
       }  /* if */
       /* If the symbol found is an injected template symbol, replace it with
          the template that it represents. */
@@ -18924,6 +18928,8 @@ that follows.
     if (!is_any_template_instance_class_symbol(sym)) {
       /* Not a template instance. */
       sym_error(ec_entity_cannot_be_specialized, sym);
+      sym = NULL;
+      set_to_error_locator(locator);
     } else {
       /* Make sure that this declaration has the correct number of
          "template <>" clauses. */
