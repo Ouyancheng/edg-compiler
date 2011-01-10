@@ -4926,11 +4926,12 @@ the same constant.
   equiv = TRUE;
   /* Loop through both lists in step, comparing arguments. */
   while (arg1 != NULL && arg2 != NULL) {
-    /* For a given class, argument lists should always have the same sequence
-       of type, constant, and template arguments. */
+    /* For a given non-variadic class, argument lists should always have
+       the same sequence of type, constant, and template arguments. */
     if (arg1->kind != arg2->kind) {
       equiv = FALSE;
-      check_assertion_str(is_nonreal_member,
+      check_assertion_str(is_nonreal_member ||
+                          (options & ETA_IS_VARIADIC) != 0,
                           "equiv_template_arg_lists: arg inconsistency");
       break;
     } else if (is_nontype_templ_arg(arg1)) {
