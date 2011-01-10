@@ -3678,7 +3678,7 @@ EXTERN a_symbol_ptr
 
 EXTERN a_symbol_ptr
 		symbol_for_namespace_system;
-`			/* Symbol for namespace "System".  Used in C++/CLI 
+			/* Symbol for namespace "System".  Used in C++/CLI 
 			   mode. */
   
 EXTERN a_symbol_ptr
