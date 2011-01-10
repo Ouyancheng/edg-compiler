@@ -6378,6 +6378,9 @@ of flags.  Only generate the keyword if we target a Sun compiler.
 
 static void gen_cli_delegate_definition(a_type_ptr  type)
 /*
+Render the given delegate type as a C++/CLI delegate definition.  E.g.:
+
+	delegate void Ping(int);
 */
 {
   /* Advance past the source sequence entry for the class itself. */
