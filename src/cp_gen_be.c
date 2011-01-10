@@ -5800,7 +5800,8 @@ is the one associated with the definition of the enum.
           explicit_enum_expr =
                    next_value_calc_overflowed ||
                    (cmp_integer_constants(enum_con, &next_enum_value) != 0) ||
-                   (cppcli_enabled && is_bool_type(base_type));
+                   (cppcli_enabled && base_type != NULL &&
+                    is_bool_type(base_type));
         } else {
           /* The previous constant involved a template parameter, so an
              explicit expression is needed for this integral constant. */
