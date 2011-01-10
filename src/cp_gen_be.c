@@ -6293,8 +6293,18 @@ Put out the list of direct base classes of the class associated with ctsp
           /* Find the direct derivation for a virtual base class. */
           for (; !bcdp->direct; bcdp = bcdp->next) {}
         }  /* if */
-        /* Display the derivation access. */
-        gen_access_specifier(bcdp->access);
+        /* Display the derivation access (except for C++/CLI managed
+           classes). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (ctsp->cli_class_type_kind !=
+                                       (a_cli_class_type_kind)cctk_standard) {
+          /* Managed classes cannot specify access for base classes. */
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          gen_access_specifier(bcdp->access);
+        }  /* if */
         write_space();
         gen_name(&bcp->orig_type->source_corresp, iek_type, GN_BASE_SPECIFIER,
                  (a_boolean *)NULL);
