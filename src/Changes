@@ -74,7 +74,8 @@ Microsoft compatibility: "<" handled incorrectly with --parse_templates
 
 When parsing nonclass templates in Microsoft mode, a "<" was sometimes
 incorrectly treated as starting a template argument list when it should
-have been treated as a less-then sign.  Now fixed.
+have been treated as a less-than sign.  This was a regression introduced
+in version 4.2.  Now fixed.
 
   template <class T> struct A {
     int i,j;   
