@@ -6289,15 +6289,6 @@ been completed.
     /* Restore the "defined" flag. */
     rp->defined = saved_defined;
   }  /* for */
-#if DOING_SOURCE_ANALYSIS
-  if (scope->templates != NULL) {
-    /* The very presence of templates in the IL means pruning the IL of
-       apparently unneeded entries must be suppressed.  This is because an
-       IL entry may be needed by an instantiation of a template without the
-       front end being able to tell. */
-    okay_to_eliminate_unneeded_il_entries = FALSE;
-  }  /* if */
-#endif /* DOING_SOURCE_ANALYSIS */
   if (scope->kind == (a_scope_kind)sck_file) {
     /* End of top-level call. */
     if (!C_mode()) {

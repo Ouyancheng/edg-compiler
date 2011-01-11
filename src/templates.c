@@ -666,9 +666,17 @@ may be a friend template.
     reset_ss_list_instantiation_insert_point();
   }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-  /* There's not yet a name or symbol for the template declaration, so call
-     add_to_source_sequence_list directly. */
-  add_to_source_sequence_list((char *)tp, (an_il_entry_kind)iek_template);
+  if (!source_sequence_entries_disallowed) {
+    /* There's not yet a name or symbol for the template declaration, so call
+       f_update_source_sequence_list directly. */
+    f_update_source_sequence_list((char *)tp, (an_il_entry_kind)iek_template,
+                                  /*old_ssep=*/(a_source_sequence_entry*)NULL);
+     /* The very presence of templates in the IL means pruning the IL of
+        apparently unneeded entries must be suppressed.  This is because an
+        IL entry may be needed by an instantiation of a template without the
+        front end being able to tell. */
+     okay_to_eliminate_unneeded_il_entries = FALSE;
+  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
   return tp;
