@@ -2717,10 +2717,21 @@ TRUE if this is the function declarator in a friend function declaration.
         } else {
           done = !loop_token(tok_comma);
         }  /* if */
+        remove_stop_token(tok_comma);
+        /* If this was actually a pack declaration in a template definition
+           context, a pack expansion descriptor will be returned that can be
+           used to create a substituted function type. */
+        ptp->pack_expansion_descr =
+           end_potential_pack_expansion_context(pesep, /*is_declarator=*/TRUE);
+        if (ptp->pack_expansion_descr != NULL) {
+          ptp->is_parameter_pack = TRUE;
+          last_param_id->is_parameter_pack = ptp->is_parameter_pack;
+        }  /* if */
+        any_variadic_params = advance_to_next_pack_element(pesep);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         param_array_next = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        if (curr_token == tok_ellipsis && !is_pack_element) {
+        if (curr_token == tok_ellipsis) {
           /* The parameter list ends with an ellipsis.  Set the ellipsis
              flag on the parameter type list, and exit the loop. */
           ellipsis_pos = pos_curr_token;
@@ -2830,17 +2841,6 @@ TRUE if this is the function declarator in a friend function declaration.
             }  /* if */
           }  /* if */
         }  /* if */
-        remove_stop_token(tok_comma);
-        /* If this was actually a pack declaration in a template definition
-           context, a pack expansion descriptor will be returned that can be
-           used to create a substituted function type. */
-        ptp->pack_expansion_descr =
-           end_potential_pack_expansion_context(pesep, /*is_declarator=*/TRUE);
-        if (ptp->pack_expansion_descr != NULL) {
-          ptp->is_parameter_pack = TRUE;
-          last_param_id->is_parameter_pack = ptp->is_parameter_pack;
-        }  /* if */
-        any_variadic_params = advance_to_next_pack_element(pesep);
         if (!any_variadic_params && !done) {
           is_new_param = TRUE;
           any_variadic_params = begin_potential_pack_expansion_context(&pesep);
