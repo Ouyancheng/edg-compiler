@@ -894,7 +894,7 @@ GNU target compiler configuration.  When not using a GNU compiler to compile
 the front end, set GNU_TARGET_VERSION_NUMBER to a reasonable default.
 */
 #if !defined(__GNUC__) || !defined(__GNUC_MINOR__) || \
-    !defined(__GNUC_PATCHLEVEL)
+    !defined(__GNUC_PATCHLEVEL__)
 #define GNU_TARGET_VERSION_NUMBER 30200
 #endif /* !defined(__GNUC__) || !defined(__GNUC_MINOR__) || ... */
 
