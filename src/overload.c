@@ -6161,7 +6161,8 @@ and return NULL.  This routine is called only in C++ mode.
     for (arg_operand = arg_operand_list;
          arg_operand != NULL;
          arg_operand = arg_operand->next) {
-      an_operand *arg = &arg_operand->operand;
+      an_expr_node_ptr expr;
+      an_operand       *arg = &arg_operand->operand;
       if (operand_is_dependent(arg)) {
         dependent_call = TRUE;
         break;
@@ -6179,6 +6180,14 @@ and return NULL.  This routine is called only in C++ mode.
         /* g++ incorrectly treats something like "this->x" in a member
            function of a template as dependent even if the type of x is
            not dependent. */
+        dependent_call = TRUE;
+        break;
+      } else if (is_variadic_template_context() &&
+                 (arg->pack_expansion_descr != NULL ||
+                  ((expr = expr_node_from_operand(arg)) != NULL &&
+                   expr->is_pack_expansion))) {
+        /* If the argument list contains a pack expansion, treat the call
+           as dependent because the number of arguments is unknown. */
         dependent_call = TRUE;
         break;
       }  /* if */
