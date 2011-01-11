@@ -1764,6 +1764,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   a_boolean         ambiguous;
   a_boolean         arg_operand_is_constant, arg_converted_to_rvalue = FALSE;
   a_boolean         arg_originally_an_lvalue = FALSE;
+  a_boolean         arg_originally_a_bindable_bit_field = FALSE;
   a_boolean         arg_operand_is_simple_string_literal;
   a_constant_ptr    arg_operand_constant;
   an_operand        implicit_arg_operand;
@@ -1805,6 +1806,10 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                                          arg_operand->is_simple_string_literal;
     arg_originally_an_lvalue = (is_an_lvalue(arg_operand) ||
                                 is_a_function_designator(arg_operand));
+    arg_originally_a_bindable_bit_field =
+                                  (binding_rvalue_ref_to_bit_field_allowed() &&
+                                   arg_originally_an_lvalue &&
+                                   is_bit_field_operand(arg_operand));
   }  /* if */
   param_is_reference = is_any_reference_type(param_type);
   param_is_rvalue_reference = is_rvalue_reference_type(param_type);
@@ -2297,7 +2302,12 @@ have_level:;
     if (param_is_rvalue_reference) {
       /* An rvalue reference can only be bound to an rvalue. */
       if (arg_originally_an_lvalue) {
-        arg_summary->match_level = aml_none;
+        if (arg_originally_a_bindable_bit_field) {
+          /* MSVC10 allows binding an rvalue reference to a bit field
+             (presumably by converting the bit field to an rvalue). */
+        } else {
+          arg_summary->match_level = aml_none;
+        }  /* if */
       }  /* if */
     } else if (!source_can_be_rvalue &&
                (arg_converted_to_rvalue ||
@@ -14770,11 +14780,17 @@ direct binding is "possible" and not whether it is "valid".
   *binding_to_rvalue_allowed = *ref_to_const;
   *ref_to_const_volatile = FALSE;
   if (is_rvalue_ref) {
-    /* An rvalue reference can bind (only) to an rvalue.  In a cast,
-       however, the source can be an lvalue. */
+    /* An rvalue reference can bind (only) to an rvalue. */
     *binding_to_rvalue_allowed = TRUE;
-    if (!is_cast && source_operand != NULL && !is_an_rvalue(source_operand)) {
-      direct_binding_possible = FALSE;
+    if (source_operand != NULL && !is_an_rvalue(source_operand)) {
+      if (is_cast) {
+        /* In a cast, the source can be an lvalue. */
+      } else if (binding_rvalue_ref_to_bit_field_allowed() &&
+                 is_bit_field_operand(source_operand)) {
+        /* MSVC10 allows binding an rvalue reference to a bit-field lvalue. */
+      } else {
+        direct_binding_possible = FALSE;
+      }  /* if */
     }  /* if */
   } else if (!(any_cfront_mode() || microsoft_bugs) && *ref_to_const &&
              is_volatile_qualified_type(base_dest_type)) {
@@ -14821,6 +14837,7 @@ direct binding is "possible" and not whether it is "valid".
     direct_binding_possible = FALSE;
   }  /* if */
   if (direct_binding_possible && *binding_to_rvalue_allowed &&
+      !is_rvalue_ref &&
       source_operand != NULL && is_bit_field_operand(source_operand) &&
       !template_case) {
     /* For a bit-field case like
@@ -14992,22 +15009,34 @@ been found to be acceptable, and *conversion describes it.
                                                     &dropping_qualifiers,
                                                     &template_case,
                                                     &function_symbol);
-    if (!direct_binding_possible && !curr_expr_kind_is_const() &&
-        is_class_struct_union_type(source_operand->type)) {
-      /* It might be possible to convert the source operand to an lvalue
-         via a conversion function, and then bind the reference directly to
-         the result. */
-      if (conversion_for_direct_reference_binding_possible(
+    if (direct_binding_possible) {
+      /* Direct binding is possible. */
+      if (is_rvalue_ref && 
+          binding_rvalue_ref_to_bit_field_allowed() &&
+          is_bit_field_operand(source_operand)) {
+        /* MSVC10 allows binding an rvalue reference to a bit-field lvalue.
+           Presumably this is done by converting the bit field to an rvalue. */
+        conv_lvalue_to_rvalue(source_operand);
+      }  /* if */
+    } else {
+      /* Direct binding is not possible. */
+      if (!curr_expr_kind_is_const() &&
+          is_class_struct_union_type(source_operand->type)) {
+        /* It might be possible to convert the source operand to an lvalue
+           via a conversion function, and then bind the reference directly to
+           the result. */
+        if (conversion_for_direct_reference_binding_possible(
                                                       source_operand,
                                                       dest_type,
                                                       /*question_conv=*/FALSE,
                                                       &conv_for_direct_binding,
                                                       &ambiguous,
                                                       &ambiguity_list) ||
-          ambiguous) {
-        direct_binding_conversion_possible = TRUE;
-        conversion = &conv_for_direct_binding;
-        if (conversion->unknown_dependent_conversion) template_case = TRUE;
+            ambiguous) {
+          direct_binding_conversion_possible = TRUE;
+          conversion = &conv_for_direct_binding;
+          if (conversion->unknown_dependent_conversion) template_case = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -15278,6 +15307,8 @@ been found to be acceptable, and *conversion describes it.
   } else {
     /* The initialization cannot be done directly; a temporary must be
        used and/or an implicit conversion must be done. */
+    /* Note that the case of an rvalue reference binding to a non-class
+       rvalue comes here so a temporary can be created. */
     a_boolean cfront_argument_case = any_cfront_mode() &&
                                      !initializing_variable;
     if (dropping_qualifiers && !cfront_argument_case) {

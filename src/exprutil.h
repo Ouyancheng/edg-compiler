@@ -978,6 +978,12 @@ should be consumed before taking more expressions from source or a rescan.
    expr_stack->expression_cache != NULL && \
    anything_cached(expr_stack->expression_cache))
 
+/*
+TRUE if the current mode allows binding an rvalue reference to an lvalue
+bit-field expression.  MSVC10 allows that.
+*/
+#define binding_rvalue_ref_to_bit_field_allowed() \
+  (microsoft_bugs && microsoft_version >= 1600)
 
 /* Copy an operand.  Note that this does not copy the subtree of the
    operand.  This macro is used to move an operand from one place to

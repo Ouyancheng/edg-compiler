@@ -1,5 +1,28 @@
 Version 4.3
 
+1/11/11  [EDGcpfe/11262]
+Microsoft compatibility: Binding an rvalue reference to a bit field
+
+MSVC10's implementation of rvalue references includes the late change to
+the standard's wording that disallows binding an rvalue reference to an
+lvalue.  However, apparently MSVC does not apply that rule to bit-field
+lvalues; in that case it allows the bit-field reference to be converted
+to an rvalue and the rvalue reference to be bound to that.  We now
+emulate that behavior in Microsoft bugs mode.
+
+  struct AA {
+    int foo : 6;
+  };
+  void bar(int &&);
+  void bar(int &);
+  int main() {
+    AA aa;
+    AA *obj = &aa;
+    int &&r = obj->foo;  // Now okay in Microsoft bugs mode
+    bar(obj->foo);       // Now selects bar(int &&) in Microsoft bugs mode
+  }
+
+
 1/7/11   [EDGcpfe/11261]
 Internal error on lambdas with implicit return type in some configurations
 

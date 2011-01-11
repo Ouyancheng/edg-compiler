@@ -5785,6 +5785,13 @@ is an lvalue reference to const.
                                                            type_position)) {
       underlying_type = error_type();
     }  /* if */
+    if (!is_an_rvalue(operand) &&
+        binding_rvalue_ref_to_bit_field_allowed() &&
+        is_bit_field_operand(operand)) {
+      /* MSVC10 allows casting a bit field to an rvalue reference by
+         converting it to an rvalue. */
+      conv_lvalue_to_rvalue(operand);
+    }  /* if */
   }  /* if */
   if (is_an_rvalue(operand)) {
     /* If the caller passes in an rvalue, convert it to an lvalue. */
