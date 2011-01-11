@@ -2078,7 +2078,7 @@ ec_cli_array_invalid_element_type;;"the element type of a cli::array may only a 
 ec_cli_array_invalid_rank;;"the rank of a cli::array must be one or greater"
 ec_invalid_target_type;;"invalid target type"
 ec_type_cannot_be_class_member;;"%t cannot be a class member"
-ec_pin_ptr_cannot_be_used_as_param_or_return_type;;"cli::pin_ptr cannot be used as a parameter or return type"
+ec_pin_ptr_param_not_allowed;;"a parameter of type cli::pin_ptr is not allowed"
 ec_bad_finalizer_decl;;"invalid finalizer declaration"
 ec_too_many_params_for_finalizer;;"a finalizer may not have parameters"
 ec_function_qualifier_on_finalizer;;"a type qualifier is not allowed on a finalizer"
@@ -2109,6 +2109,7 @@ ec_override_requires_virtual;;"the \"override\" modifier requires a virtual func
 ec_abstract_requires_virtual;;"the \"abstract\" modifier requires a virtual function declaration with an explicit \"virtual\" keyword"
 ec_sealed_requires_virtual;;"the \"sealed\" modifier requires a virtual function declaration with an explicit \"virtual\" keyword"
 ec_named_override_requires_virtual;;"a named override specifier requires a virtual function declaration with an explicit \"virtual\" keyword"
+ec_pin_ptr_return_type_not_allowed;;"a cli::pin_ptr return type is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

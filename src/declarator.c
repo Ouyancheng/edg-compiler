@@ -744,7 +744,7 @@ position recorded in *dps (depending on the diagnostic).
     if (dps != NULL) diag_pos = &dps->return_type_pos;
     if (is_cli_pin_ptr_type(type)) {
       /* A pin pointer cannot be used as a return type. */
-      pos_error(ec_pin_ptr_cannot_be_used_as_param_or_return_type, diag_pos);
+      pos_error(ec_pin_ptr_return_type_not_allowed, diag_pos);
       err = TRUE;
     } else {
       err = !check_invalid_use_of_special_cli_class_type(type, diag_pos);
