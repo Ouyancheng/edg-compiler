@@ -2813,10 +2813,10 @@ not empty, because it contains a name or a derived type).
   kind = get_char(p, dctl);
   if (kind == 'P' || kind == 'R' || kind == 'E' || kind == 'H') {
     a_boolean need_space = TRUE;
-    /* Pointer, reference, rvalue reference, or C++/CLI-specific type, e.g.,
-       "Pc" is pointer to char. */
+    /* Pointer, reference, rvalue reference, or C++/CLI pointer-like type.
+       For example, "Pc" is pointer to char. */
     if (kind == 'H') {
-      /* Some type of C++/CLI-specific type (handle, tracking reference,
+      /* Some kind of C++/CLI pointer-like type (handle, tracking reference,
          interior_ptr, pin_ptr). */
       p++;
       ext_kind = get_char(p, dctl);
@@ -2951,10 +2951,10 @@ use of parentheses around parts of the declarator.)
   while (is_immediate_type_qualifier(p, dctl)) p++;
   kind = get_char(p, dctl);
   if (kind == 'P' || kind == 'R' || kind == 'E' || kind == 'H') {
-    /* Pointer, reference, rvalue reference, or C++/CLI-extended type, e.g.,
-       "Pc" is pointer to char. */
-    /* If it's a C++/CLI-extension, there's a second character after the "H",
-       but we ignore that here. */
+    /* Pointer, reference, rvalue reference, or C++/CLI pointer-like type.
+       For example, "Pc" is pointer to char. */
+    /* If it's a C++/CLI pointer-like type, there's a second character after
+       the "H", but we ignore that here. */
     if (kind == 'H') p++;
     demangle_type_second_part(p+1, /*under_lhs_declarator=*/TRUE, dctl);
   } else if (kind == 'M') {
@@ -4677,8 +4677,8 @@ to be on top of the type.  If parse_template_args is TRUE then any
     p++;
     if (kind == 'U') {
       /* This is a vendor extended type qualifier that is being used by the
-         front end to encode C++/CLI-specific types (i.e., handles, tracking
-         references, interior_ptrs, and pin_ptrs).  This avoids adding
+         front end to encode C++/CLI pointer-like types (i.e., handles,
+         tracking references, interior_ptrs, and pin_ptrs).  This avoids adding
          EDG-specific manglings for these entities that might be used in
          subsequent IA-64 ABI revisions.  Note that these extensions are
          treated as "order-sensitive" for the purposes of substitutions. */
