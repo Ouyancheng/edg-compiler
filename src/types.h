@@ -522,6 +522,8 @@ extern a_type_ptr pointer_con_complete_object_type(a_constant_ptr constant);
 extern
 a_type_ptr pointer_expr_complete_object_type(an_expr_node_ptr node,
                                              a_boolean        call_case);
+extern a_type_ptr add_right_pointer_type_to_this(a_type_ptr type,
+                                                 a_type_ptr class_type);
 
 /*
 Bit vector used to pass flags into f_identical_types.

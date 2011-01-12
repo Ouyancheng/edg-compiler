@@ -3528,6 +3528,32 @@ can be a handle.
 }  /* pointer_expr_complete_object_type */
 
 
+a_type_ptr add_right_pointer_type_to_this(a_type_ptr type,
+                                          a_type_ptr class_type)
+/*
+Add the right kind of "pointer to" to "type" so it can be used as a "this"
+pointer for a member of the class class_type, and return the pointer type.
+The kind of pointer is unusual (e.g., it can be a handle) when the class
+is a C++/CLI class.
+*/
+{
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && is_ref_class_type(class_type)) {
+    /* "this" in a C++/CLI ref class is a handle (ECMA 22.3.3). */
+    type = make_handle_type(type);
+  } else if (cppcli_enabled && is_value_class_type(class_type)) {
+    /* "this" in a C++/CLI value class is an interior_ptr (ECMA 22.3.3). */
+    type = make_interior_ptr_type(type);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    type = make_pointer_type(type);
+  }  /* if */
+  return type;
+}  /* add_right_pointer_type_to_this */
+
+
 a_type_ptr f_implicit_this_param_type_of(a_type_ptr  routine_type)
 /*
 Synthesize the type of "this" from the underlying class type and the
@@ -3550,19 +3576,7 @@ be added to get the actual "this" variable type.
   if (rtsp->qualifiers != TQ_NONE) {
     result = make_qualified_type(result, rtsp->qualifiers);
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_ref_class_type(class_type)) {
-    /* "this" in a C++/CLI ref class is a handle (ECMA 22.3.3). */
-    result = make_handle_type(result);
-  } else if (is_value_class_type(class_type)) {
-    /* "this" in a C++/CLI value class is an interior_ptr (ECMA 22.3.3). */
-    result = make_interior_ptr_type(result);
-  } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  {
-    result = make_pointer_type(result);
-  }  /* if */
+  result = add_right_pointer_type_to_this(result, class_type);
   if (rtsp->this_qualifiers != TQ_NONE) {
     result = make_qualified_type(result, rtsp->this_qualifiers);
   }  /* if */

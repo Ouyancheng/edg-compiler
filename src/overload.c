@@ -1486,6 +1486,26 @@ reference type if param_is_reference is TRUE.
   }  /* if */
 }  /* set_arg_summary_for_user_conversion */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean is_gc_lvalue_operand(an_operand *operand)
+/*
+Return TRUE if the given operand is a gc-lvalue for C++/CLI.  Roughly,
+that means it is an lvalue that is or may be on the managed heap.
+*/
+{
+  a_boolean is_gc_lvalue = FALSE;
+
+  if (cppcli_enabled && is_expression_operand(operand)) {
+    if (is_gc_lvalue_expr(operand->variant.expression)) {
+      is_gc_lvalue = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_gc_lvalue;
+}  /* is_gc_lvalue_operand */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 
 static a_boolean array_transformation_needed_on_reference_init(
                                                        a_type_ptr *arg_type,
@@ -1662,6 +1682,16 @@ part of determining the conversions on the operands of a "?" operator.
         }  /* if */
       }  /* if */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && okay &&
+        !is_tracking_reference_type(dest_type) &&
+        is_gc_lvalue_operand(source_operand)) {
+      /* C++/CLI does not allow binding a normal (non-tracking) reference
+         to a gc-lvalue.  That appears to also preclude doing a conversion
+         from a gc-lvalue to a non-gc-lvalue in order to bind the reference. */
+      okay = FALSE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* The flag here is deliberately not set when *ambiguous is TRUE. */
     if (okay) conversion->conversion_for_direct_reference_binding = TRUE;
   }  /* if */
@@ -1780,6 +1810,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
+  param_is_reference = is_any_reference_type(param_type);
+  param_is_rvalue_reference = is_rvalue_reference_type(param_type);
   clear_arg_match_summary(arg_summary);
   arg_summary->param_type = param_type;
   if (arg_type == NULL) {
@@ -1810,9 +1842,20 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                                   (binding_rvalue_ref_to_bit_field_allowed() &&
                                    arg_originally_an_lvalue &&
                                    is_bit_field_operand(arg_operand));
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && param_is_reference &&
+        !is_tracking_reference_type(param_type) &&
+        arg_originally_an_lvalue &&
+        is_gc_lvalue_operand(arg_operand)) {
+      /* C++/CLI does not allow binding a normal (non-tracking) reference to a
+         gc-lvalue, because that might allow a heap address to leak out.
+         A conversion of a gc-lvalue class to something that's not a gc-lvalue
+         is not allowed either. */
+      arg_summary->match_level = aml_none;
+      goto have_level;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-  param_is_reference = is_any_reference_type(param_type);
-  param_is_rvalue_reference = is_rvalue_reference_type(param_type);
   /* See if the array --> pointer and function --> pointer transformations
      should be done. */
   if (is_array_type(arg_type) &&
@@ -2422,7 +2465,7 @@ selector is enabled, allow that kind of mismatch here.
      The C++ standard [over.match.funcs] actually defines this matching in
      terms of references, but pointers give the same result. */
   if (!selector_is_object_pointer) {
-    arg_type = make_pointer_type(arg_type);
+    arg_type = add_right_pointer_type_to_this(arg_type, arg_type);
   } else if (is_class_struct_union_type(arg_type) &&
              could_be_dependent_class_type(arg_type)) {
     /* A nonreal class could have an operator-> function, so try matching
@@ -14857,6 +14900,15 @@ direct binding is "possible" and not whether it is "valid".
        message about taking the address of a bit field. */
     direct_binding_possible = FALSE;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && direct_binding_possible &&
+      !is_tracking_reference_type(dest_type) &&
+      is_gc_lvalue_operand(source_operand)) {
+    /* C++/CLI does not allow binding a normal (non-tracking) reference
+       to a gc-lvalue. */
+    direct_binding_possible = FALSE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   *p_template_case = template_case;
   return direct_binding_possible;
 }  /* direct_reference_binding_possible */
@@ -15071,6 +15123,14 @@ been found to be acceptable, and *conversion describes it.
   } else if (is_error_type(base_dest_type)) {
     /* If the reference is to an error type, return an error operand. */
     conv_to_error_operand(source_operand);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled &&
+             !is_tracking_reference_type(dest_type) &&
+             is_gc_lvalue_operand(source_operand)) {
+    /* C++/CLI does not allow binding a normal (non-tracking) reference
+       to a gc-lvalue. */
+    error_in_operand(ec_normal_ref_bound_to_gc_lvalue, source_operand);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (template_case) {
     /* Some unknown types in a prototype instantiation.  Assume the binding
        can be done. */

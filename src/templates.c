@@ -8716,11 +8716,15 @@ a pointer over a reference type or creating an array of references.
           }  /* if */
         } else {
           if (is_any_reference_type(tp)) {
-            /* A pointer to reference would be invalid. */
+            /* A pointer or handle to reference would be invalid. */
             *copy_error = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           } else if (type->variant.pointer.is_handle) {
             new_type = make_handle_type(tp);
+          } else if (type->variant.pointer.is_interior_ptr) {
+            new_type = make_interior_ptr_type(tp);
+          } else if (type->variant.pointer.is_pin_ptr) {
+            new_type = make_pin_ptr_type(tp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             new_type = make_pointer_type(tp);
