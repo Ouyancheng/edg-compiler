@@ -2188,6 +2188,12 @@ TRUE if this is the function declarator in a friend function declaration.
          empty function parameter pack. */
       any_params = begin_potential_pack_expansion_context(&pesep);
       any_variadic_params = any_params;
+      if (!any_params && curr_token == tok_ellipsis) {
+        /* An empty pack expansion immediately followed by an ellipsis: This
+           is similar to "(...)". */
+        (void)get_token();
+        extra_info->has_ellipsis = TRUE;
+      }  /* if */
     }  /* if */
     if (any_params) {
       unsigned long	param_number = 0;
