@@ -5850,13 +5850,14 @@ by ECMA-372 $8.2.3.
 
 static void make_symbol_for_cli_interior_ptr(void)
 /*
-Declare and define the C++/CLI type "cli::interior_ptr".  ECMA-372 $12.3.6.
+Declare and define the C++/CLI type "cli::interior_ptr".
 */
 {
   symbol_for_cli_interior_ptr = make_cli_pseudo_template("interior_ptr",
-     "namespace cli { "
-     "  template <typename Type>"
-     "  class interior_ptr sealed {};"
+      "namespace cli { "
+      "  template <typename Type> "
+      "  __internal_alias_decl interior_ptr = "
+      "              __declspec(__edg_interior_ptr_alias) Type;"
       "} "
     );
 }  /* make_symbol_for_cli_interior_ptr */
@@ -5864,13 +5865,14 @@ Declare and define the C++/CLI type "cli::interior_ptr".  ECMA-372 $12.3.6.
 
 static void make_symbol_for_cli_pin_ptr(void)
 /*
-Declare and define the C++/CLI type "cli::pin_ptr".  ECMA-372 $12.3.7.
+Declare and define the C++/CLI type "cli::pin_ptr".
 */
 {
   symbol_for_cli_pin_ptr = make_cli_pseudo_template("pin_ptr",
       "namespace cli { "
-      "  template <typename Type>"
-      "  class pin_ptr sealed {};"
+      "  template <typename Type> "
+      "  __internal_alias_decl pin_ptr = "
+      "              __declspec(__edg_pin_ptr_alias) Type;"
       "} "
     );
 }  /* make_symbol_for_cli_pin_ptr */

@@ -3753,18 +3753,6 @@ Return TRUE if tp is a C++/CLI array type.
 #define is_cli_array_type(tp)                                                 \
   is_cli_managed_pointer_type((tp), symbol_for_cli_array)
 
-/*
-Return TRUE if tp is a C++/CLI interior_ptr type.
-*/
-#define is_cli_interior_ptr_type(tp)                                          \
-  is_cli_managed_pointer_type((tp), symbol_for_cli_interior_ptr)
-
-/*
-Return TRUE if tp is a C++/CLI pin_ptr type.
-*/
-#define is_cli_pin_ptr_type(tp)                                               \
-  is_cli_managed_pointer_type((tp), symbol_for_cli_pin_ptr)
-
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN a_type_ptr

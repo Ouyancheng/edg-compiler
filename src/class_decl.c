@@ -10834,10 +10834,9 @@ specific information about the member declaration, respectively.
     abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
                               member_type, &locator->source_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && (is_cli_interior_ptr_type(member_type) || 
-                                is_cli_pin_ptr_type(member_type))) {
-    /* In C++/CLI, an interior_ptr or pin_ptr cannot be a class member.  
-       ECMA $12.3.6.1 & $12.3.7.1. */
+  } else if (cppcli_enabled && (is_interior_ptr_type(member_type) || 
+                                is_pin_ptr_type(member_type))) {
+    /* In C++/CLI, an interior_ptr or pin_ptr cannot be a class member. */
     type_error(ec_type_cannot_be_class_member, member_type);
     member_type = error_type();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12532,10 +12531,9 @@ declarations.
       pos_error(ec_handle_field_in_standard_class,
                 &decl_state->declarator_pos);
       field_type = error_type();
-    } else if (cppcli_enabled && (is_cli_interior_ptr_type(field_type) || 
-                                  is_cli_pin_ptr_type(field_type))) {
-      /* In C++/CLI, an interior_ptr or pin_ptr cannot be a class member.  
-         ECMA-372 $12.3.6.1 & $12.3.7.1. */
+    } else if (cppcli_enabled && (is_interior_ptr_type(field_type) || 
+                                  is_pin_ptr_type(field_type))) {
+      /* In C++/CLI, an interior_ptr or pin_ptr cannot be a class member. */
       pos_ty_error(ec_type_cannot_be_class_member, 
                    &locator->source_position, field_type);
       field_type = error_type();

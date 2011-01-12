@@ -532,6 +532,8 @@ and return FALSE.  Otherwise, return TRUE.
       /* A handle or tracking reference to a function is invalid. */
       err_code = is_ref ? ec_tracking_reference_to_function
                         : ec_handle_to_function;
+    } else if (is_interior_ptr_type(tp) || is_pin_ptr_type(tp)) {
+      /* Interior pointers and pin pointers are handled below. */
     } else if (is_ref) {
       /* Checks applicable to tracking references but not handles. */
       if (is_delegate_type(tp)) {
@@ -565,16 +567,13 @@ and return FALSE.  Otherwise, return TRUE.
                         : ec_pointer_to_ref_or_interface_class;
     }  /* if */
   }  /* if */
-  if (err_code == ec_no_error && is_immediate_class_type(tp)) {
+  if (err_code == ec_no_error) {
     /* A pointer, handle, or reference type to an interior/pin pointer may not
        be formed. Similarly, an ordinary pointer or a reference to a C++/CLI
        array invalid  (a handle is okay). */
-    /* FIXME: Currently, interior_ptr<T> and pin_ptr<T> produce class types.
-       However, they should really be alias expansions that produce tk_pointer
-       variants (the IL for that is already in place). */
-    if (is_cli_interior_ptr_type(tp)) {
+    if (is_interior_ptr_type(tp)) {
       err_code = ec_ptr_handle_or_ref_to_interior_ptr;
-    } else if (is_cli_pin_ptr_type(tp)) {
+    } else if (is_pin_ptr_type(tp)) {
       err_code = ec_ptr_handle_or_ref_to_pin_ptr;
     } else if (is_cli_array_type(tp) && (is_ref || !is_handle)) {
       err_code = ec_ptr_or_ref_to_cli_array;
@@ -742,7 +741,7 @@ position recorded in *dps (depending on the diagnostic).
     /* If a return type was explicitly specified, use its position for
        diagnostic purposes. */
     if (dps != NULL) diag_pos = &dps->return_type_pos;
-    if (is_cli_pin_ptr_type(type)) {
+    if (is_pin_ptr_type(type)) {
       /* A pin pointer cannot be used as a return type. */
       pos_error(ec_pin_ptr_return_type_not_allowed, diag_pos);
       err = TRUE;

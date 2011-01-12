@@ -926,9 +926,8 @@ error checking and type adjustments as required.
       pos_error(ec_named_address_space_for_parameter, error_pos);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && is_cli_pin_ptr_type(*type_ptr)) { 
-      /* ECMA-372 $12.3.7.1 A pin pointer shall not be used as a parameter 
-         type or return type. */
+    } else if (cppcli_enabled && is_pin_ptr_type(*type_ptr)) { 
+      /* A pin pointer shall not be used as a parameter type or return type. */
       pos_error(ec_pin_ptr_param_not_allowed, error_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {

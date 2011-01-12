@@ -5289,9 +5289,6 @@ a_boolean is_valid_cli_managed_ptr_instantiation(
 Check the target type for a C++/CLI interior_ptr or pin_ptr (specified by
 template_arg_list).  If the target type is invalid, issue an error and
 return FALSE.
-
-ECMA-372 $12.3.6.2. The target type T of interior_ptr<T> shall be a value 
-class type, a handle type, a native class type, or a native pointer. 
 */
 {
   a_template_arg_ptr tap;
@@ -5314,7 +5311,7 @@ class type, a handle type, a native class type, or a native pointer.
          pointer. */
       error(ec_invalid_target_type);
       is_valid = FALSE; 
-    } else if (is_cli_interior_ptr_type(tp) || is_cli_pin_ptr_type(tp)) {
+    } else if (is_interior_ptr_type(tp) || is_pin_ptr_type(tp)) {
       /* The target type T of interior_ptr<T> cannot be an interior_ptr or 
          pin_ptr. */
       error(ec_invalid_target_type);
@@ -17988,7 +17985,12 @@ form:
 
 The template parameter clause has already been scanned at the time this
 routine has been called, and the current token is the tok_using of the
-alias-declaration.
+alias-declaration.  
+
+In C++/CLI mode, alias templates are generated internally for the
+representation of types like interior_ptr<T>.  In that case, tok_using is
+replaced by tok_internal_alias_decl; the latter can be used even when standard
+alias declarations are disabled.
 
 Unlike other template declarations, an alias template is essentially always
 a definition.  As a result, when the declaration appears in a class it
@@ -18010,6 +18012,7 @@ alias
   a_boolean				saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_boolean				keep_token_cache = TRUE;
+  a_boolean				internal_alias;
   a_token_sequence_number		tsn_for_alias =
                                                     curr_token_sequence_number;
 
@@ -18020,8 +18023,11 @@ alias
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* All alias declarations are considered definitions. */
   decl_state->defines_something = TRUE;
-  /* Skip past the "using". */
-  check_assertion(curr_token == tok_using);
+  /* Skip past the "using" (or "__internal_alias_decl" when e.g. processing
+     the internal declaration of C++/CLI's cli::interior_ptr). */
+  check_assertion(curr_token == tok_using ||
+                  curr_token == tok_internal_alias_decl);
+  internal_alias = (curr_token == tok_internal_alias_decl);
   (void)get_token();
   if (!is_generalized_identifier_start(GID_DISALLOW_QUALIFIED_NAME |
                                        GID_DISALLOW_OPERATOR_NAME)) {
@@ -18075,6 +18081,16 @@ alias
     (void)get_token();
   } else {
     pos_error(ec_exp_assign, &pos_curr_token);
+  }  /* if */
+  if (internal_alias) {
+    /* For internal aliases, we must be able to handle something like:
+         template<class T>
+           __internal_alias_decl interior_ptr =
+             __declspec(__edg_interior_ptr_alias) T;
+       Note that we cannot use a __declspec attribute before the "=" token
+       because that is an al_declarator_id location (which doesn't permit the
+       __declspec attribute variants). */
+    *last_attribute_link(&attributes) = scan_attributes(al_prefix);
   }  /* if */
   /* Enter the symbol at the scope indicated by effective_decl_level. */
   ssep = &scope_stack[decl_state->effective_decl_level];
@@ -18260,7 +18276,8 @@ any non-empty template parameter lists that were scanned.
       /* Save a pointer to the token cache for class template body. */
       p_template_body_cache = &tssp->cache.tokens;
     }  /* if */
-  } else if (alias_declarations_enabled && curr_token == tok_using) {
+  } else if ((alias_declarations_enabled && curr_token == tok_using) ||
+             curr_token == tok_internal_alias_decl) {
     /* An alias template declaration. */
     sym = alias_template_declaration(decl_state);
     tssp = template_supplement_for_symbol(sym);

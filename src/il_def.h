@@ -1081,6 +1081,7 @@ typedef enum /*a_token_kind*/ {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_native_nullptr,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  tok_internal_alias_decl,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1191,6 +1192,7 @@ EXTERN char	*token_names[(int)tok_last+1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__nullptr",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+   "__internal_alias_decl",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -2117,8 +2119,12 @@ typedef enum an_attribute_kind_tag {
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Microsoft-__declspec-only attributes. */
+  ak_assembly_info,     /* "assembly_info" (ms). */
   ak_dllexport,		/* "dllexport" (ms). */
   ak_dllimport,		/* "dllimport" (ms). */
+  ak_edg_interior_ptr_alias,
+			/* "__edg_interior_ptr_alias" (ms). */
+  ak_edg_pin_ptr_alias,	/* "__edg_pin_ptr_alias" (ms). */
   ak_implementation_key,
 			/* "implementation_key" (ms). */
   ak_intrin_type,	/* "intrin_type" (ms). */
@@ -2131,7 +2137,6 @@ typedef enum an_attribute_kind_tag {
   ak_thread,		/* "thread" (ms). */
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   ak_uuid,		/* "uuid" (ms). */
-  ak_assembly_info,     /* "assembly_info" (ms). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if INCLUDE_EDG_TEST_ATTRIBUTES

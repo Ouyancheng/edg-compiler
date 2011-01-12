@@ -540,6 +540,11 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_cli_interface, "interface");
     enter_keyword((a_token_kind)tok_ref, "ref");
     enter_keyword((a_token_kind)tok_value, "value");
+    /* A keyword used to predefine alias templates even when alias declarations
+       are not otherwise enabled.  This is e.g. used to map interior_ptr<T>
+       to the appropriate tk_pointer entry. */
+    enter_keyword((a_token_kind)tok_internal_alias_decl,
+                  "__internal_alias_decl");
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (type_traits_helpers_enabled ||

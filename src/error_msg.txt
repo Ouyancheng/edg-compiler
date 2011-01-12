@@ -2110,6 +2110,7 @@ ec_abstract_requires_virtual;;"the \"abstract\" modifier requires a virtual func
 ec_sealed_requires_virtual;;"the \"sealed\" modifier requires a virtual function declaration with an explicit \"virtual\" keyword"
 ec_named_override_requires_virtual;;"a named override specifier requires a virtual function declaration with an explicit \"virtual\" keyword"
 ec_pin_ptr_return_type_not_allowed;;"a cli::pin_ptr return type is not allowed"
+ec_cppcli_attribute_only;;"attribute %sq applies in C++/CLI mode only"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
