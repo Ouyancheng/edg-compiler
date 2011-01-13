@@ -5170,7 +5170,7 @@ configured.
   if (size > *buffer_size) {
     *buffer = '\0';
   } else {
-    strncpy(buffer, entry->mmap_addr + entry->table[i].offset, size);
+    strncpy(buffer, (char *)entry->mmap_addr + entry->table[i].offset, size);
   }  /* if */
   *buffer_size = size;
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES */
