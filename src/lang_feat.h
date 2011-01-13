@@ -1022,9 +1022,9 @@ EXTERN a_boolean
 			/* TRUE if C++/CLI features should be accepted. */
 
 EXTERN a_boolean 
-                is_scanning_generated_code_from_metadata;
-                        /* TRUE if we are scanning code generated from
-                           metadata. */
+		is_scanning_generated_code_from_metadata;
+			/* TRUE if we are scanning code generated from
+			   metadata. */
 
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 /* When Microsoft mode is unavailable, replace the variables for Microsoft
@@ -1039,7 +1039,7 @@ EXTERN a_boolean
 EXTERN a_boolean
 		cppcli_enabled;
 EXTERN a_boolean 
-                is_scanning_generated_code_from_metadata;
+		is_scanning_generated_code_from_metadata;
 #else /* !defined(_lint) */
 #define microsoft_mode FALSE
 #define microsoft_bugs FALSE

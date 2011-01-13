@@ -929,6 +929,18 @@ Return TRUE if the given type is a C++/CLI pin_ptr type.
 }  /* is_pin_ptr_type */
 
 
+a_boolean is_cli_array_type(a_type_ptr tp)
+/*
+Return TRUE if the given types is a C++/CLI array type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_immediate_class_type(tp) && symbol_for_cli_array != NULL &&
+         symbol_supplement_for_class(tp)->class_template ==
+                                                         symbol_for_cli_array;
+}  /* is_cli_array_type */
+
+
 a_boolean is_ref_class_type(a_type_ptr tp)
 /*
 Return TRUE if the indicated type is a C++/CLI ref class or ref struct.

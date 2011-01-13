@@ -927,7 +927,7 @@ error checking and type adjustments as required.
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled && is_pin_ptr_type(*type_ptr)) { 
-      /* A pin pointer shall not be used as a parameter type or return type. */
+      /* A pin pointer cannot be used as a parameter type. */
       pos_error(ec_pin_ptr_param_not_allowed, error_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {

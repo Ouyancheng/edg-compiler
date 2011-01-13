@@ -3682,25 +3682,23 @@ EXTERN a_symbol_ptr
 			   mode. */
   
 EXTERN a_symbol_ptr
-		symbol_for_cli_array;
-			/* Symbol for "cli::array".  Used in C++/CLI 
-			   NULL if the class template used to represent
-			   the array type has not yet been created. */
-
-EXTERN a_symbol_ptr
 		symbol_for_cli_interior_ptr;
 			/* Symbol for "cli::interior_ptr".  Used in C++/CLI 
 			   mode. */
 
 EXTERN a_symbol_ptr
 		symbol_for_cli_pin_ptr;
-			/* Symbol for "cli::pin_ptr".  Used in C++/CLI 
-			   mode. */
+			/* Symbol for "cli::pin_ptr".  Used in C++/CLI mode. */
+
+EXTERN a_symbol_ptr
+		symbol_for_cli_array;
+			/* Symbol for "cli::array".  Used in C++/CLI mode.
+			   NULL until mscorlib has been loaded. */
 
 EXTERN a_symbol_ptr
 		symbol_for_system_object;
-			/* Symbol for "System::Object".  Used in C++/CLI 
-			   mode.  NULL until mscorlib has been loaded. */
+			/* Symbol for "System::Object".  Used in C++/CLI mode.
+			   NULL until mscorlib has been loaded. */
 
 EXTERN a_symbol_ptr
 		symbol_for_system_valuetype;
@@ -3709,18 +3707,18 @@ EXTERN a_symbol_ptr
 
 EXTERN a_symbol_ptr
 		symbol_for_system_enum;
-			/* Symbol for "System::Enum".  Used in C++/CLI 
-			   mode.  NULL until mscorlib has been loaded. */
+			/* Symbol for "System::Enum".  Used in C++/CLI mode.
+			   NULL until mscorlib has been loaded. */
 
 EXTERN a_symbol_ptr
 		symbol_for_system_type;
-			/* Symbol for "System::Type".  Used in C++/CLI 
-			   mode.  NULL until mscorlib has been loaded. */
+			/* Symbol for "System::Type".  Used in C++/CLI mode.
+			   NULL until mscorlib has been loaded. */
 
 EXTERN a_symbol_ptr
 		symbol_for_system_string;
-			/* Symbol for "System::String".  Used in C++/CLI 
-			   mode.  NULL until mscorlib has been loaded. */
+			/* Symbol for "System::String".  Used in C++/CLI mode.
+			   NULL until mscorlib has been loaded. */
 
 EXTERN a_symbol_ptr
 		symbol_for_system_delegate;
@@ -3735,23 +3733,10 @@ EXTERN a_symbol_ptr
 
 extern void make_symbol_for_namespace_cli(void);
 extern void make_symbol_for_cli_array(void);
-extern void make_symbols_for_cli_built_in_types(void);
+extern void make_symbol_for_cli_interior_ptr(void);
+extern void make_symbol_for_cli_pin_ptr(void);
 extern void make_symbol_for_namespace_system(void);
 extern void init_symbols_for_cli_system_types(void);
-
-/*
-Return TRUE if tp is a template instance based on managed_pointer_type.
-*/
-#define is_cli_managed_pointer_type(tp, managed_pointer_type)                 \
-  (is_class_struct_union_type(tp) &&                                          \
-   managed_pointer_type != NULL &&                                            \
-   symbol_supplement_for_class(tp)->class_template == (managed_pointer_type))
-
-/*
-Return TRUE if tp is a C++/CLI array type.
-*/
-#define is_cli_array_type(tp)                                                 \
-  is_cli_managed_pointer_type((tp), symbol_for_cli_array)
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

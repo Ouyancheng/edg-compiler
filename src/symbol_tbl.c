@@ -5767,7 +5767,6 @@ Don't put its symbol into the symbol table yet.
 void make_symbol_for_namespace_cli(void)
 /*
 Predeclare namespace "cli".  This namespace is used in C++/CLI mode.
-ECMA-372 $17.1.
 */
 {
   a_symbol_locator locator;
@@ -5780,8 +5779,7 @@ ECMA-372 $17.1.
 
 void make_symbol_for_namespace_system(void)
 /*
-Predeclare namespace "System".  This namespace is used when cppcli_enabled is
-TRUE.
+Predeclare namespace "System".  This namespace is used in C++/CLI mode.
 */
 {
   a_symbol_locator locator;
@@ -5790,7 +5788,7 @@ TRUE.
   make_symbol_for_predeclared_namespace("System",
                                         &symbol_for_namespace_system);
   enter_symbol_for_namespace(symbol_for_namespace_system, &locator);
-}  /* make_symbol_for_namespace_cli */
+}  /* make_symbol_for_namespace_system */
 
 
 static a_symbol_ptr look_up_name_string_in_namespace(
@@ -5811,11 +5809,13 @@ if any.
 }  /* look_up_name_string_in_namespace */
 
 
-static a_symbol_ptr make_cli_pseudo_template(char *symbol_name,
-                                             char *definition_string)
+static a_symbol_ptr make_cli_internal_template(char *symbol_name,
+                                               char *definition_string)
 /*
-Declare and define the entity specified by symbol_name.  The definition is
-provided by definition_string.
+Declare and define the template specified by symbol_name and return the symbol
+associated with it.  The definition is provided by definition_string.
+These templates are generated internally to implement C++/CLI features like
+cli::array or cli::interior_ptr.
 */
 {
   a_namespace_ptr                  ns_ptr;
@@ -5823,70 +5823,58 @@ provided by definition_string.
   a_symbol_ptr                     result_sym;
 
   scan_top_level_metadata_declarations(definition_string);
-  /* Set the global variable symbol_for_cli_array. */
   ns_ptr = symbol_for_namespace_cli->variant.namespace_info.ptr;
   result_sym = look_up_name_string_in_namespace(symbol_name, ns_ptr);
   check_assertion(result_sym->kind == (a_symbol_kind)sk_class_template);
   tssp = result_sym->variant.template_info;
   tssp->variant.class_template.cannot_be_specialized = TRUE;
   return result_sym;
-}  /* make_cli_pseudo_template */
+}  /* make_cli_internal_template */
 
 
 void make_symbol_for_cli_array(void)
 /*
-Declare and define the C++/CLI type "cli::array".  The definition is given
-by ECMA-372 $8.2.3.
+Declare and define the C++/CLI type "cli::array".  (The definition is lifted
+from ECMA-372, subsection 8.2.3.)
 */
 {
-  symbol_for_cli_array = make_cli_pseudo_template("array",
-      "namespace cli { "
+  symbol_for_cli_array = make_cli_internal_template("array",
+      "namespace cli {"
       "  template <typename T, int rank = 1>"
-      "  ref class array sealed : System::Array{};"
-      "} "
+      "  ref class array sealed : System::Array {};"
+      "}"
     );
 }  /* make_symbol_for_cli_array */
 
 
-static void make_symbol_for_cli_interior_ptr(void)
+void make_symbol_for_cli_interior_ptr(void)
 /*
 Declare and define the C++/CLI type "cli::interior_ptr".
 */
 {
-  symbol_for_cli_interior_ptr = make_cli_pseudo_template("interior_ptr",
-      "namespace cli { "
-      "  template <typename Type> "
-      "  __internal_alias_decl interior_ptr = "
+  symbol_for_cli_interior_ptr = make_cli_internal_template("interior_ptr",
+      "namespace cli {"
+      "  template <typename Type>"
+      "  __internal_alias_decl interior_ptr ="
       "              __declspec(__edg_interior_ptr_alias) Type;"
-      "} "
+      "}"
     );
 }  /* make_symbol_for_cli_interior_ptr */
 
 
-static void make_symbol_for_cli_pin_ptr(void)
+void make_symbol_for_cli_pin_ptr(void)
 /*
 Declare and define the C++/CLI type "cli::pin_ptr".
 */
 {
-  symbol_for_cli_pin_ptr = make_cli_pseudo_template("pin_ptr",
-      "namespace cli { "
-      "  template <typename Type> "
-      "  __internal_alias_decl pin_ptr = "
+  symbol_for_cli_pin_ptr = make_cli_internal_template("pin_ptr",
+      "namespace cli {"
+      "  template <typename Type>"
+      "  __internal_alias_decl pin_ptr ="
       "              __declspec(__edg_pin_ptr_alias) Type;"
-      "} "
+      "}"
     );
 }  /* make_symbol_for_cli_pin_ptr */
-
-
-void make_symbols_for_cli_built_in_types(void)
-/*
-Declare and define built-in types for C++/CLI such as cli::array, 
-cli::interior_ptr and cli::pin_ptr.  
-*/
-{
-  make_symbol_for_cli_interior_ptr();
-  make_symbol_for_cli_pin_ptr();
-}  /* make_symbols_for_cli_built_in_types */
 
 
 void init_symbols_for_cli_system_types(void)
@@ -5896,35 +5884,49 @@ global pointers.  This function assumes that the mscorlib.dll has been
 imported.
 */
 {
-  a_namespace_ptr                  ns_ptr;
+  a_namespace_ptr  ns_ptr;
 
   ns_ptr = symbol_for_namespace_system->variant.namespace_info.ptr;
   /* System::Object. */
   symbol_for_system_object = look_up_name_string_in_namespace("Object",
                                                               ns_ptr);
-  check_assertion(symbol_for_system_object != NULL);
+  if (symbol_for_system_object != NULL) {
+    str_catastrophe(ec_cli_system_entity_not_loaded, "Object");
+  }  /* if */
   /* System::ValueType. */
   symbol_for_system_valuetype = look_up_name_string_in_namespace("ValueType",
                                                                  ns_ptr);
-  check_assertion(symbol_for_system_valuetype != NULL);
+  if (symbol_for_system_valuetype != NULL) {
+    str_catastrophe(ec_cli_system_entity_not_loaded, "ValueType");
+  }  /* if */
   /* System::Enum. */
   symbol_for_system_enum = look_up_name_string_in_namespace("Enum", ns_ptr);
-  check_assertion(symbol_for_system_enum != NULL);
+  if (symbol_for_system_enum != NULL) {
+    str_catastrophe(ec_cli_system_entity_not_loaded, "Enum");
+  }  /* if */
   /* System::Type. */
   symbol_for_system_type = look_up_name_string_in_namespace("Type", ns_ptr);
-  check_assertion(symbol_for_system_type != NULL);
+  if (symbol_for_system_type != NULL) {
+    str_catastrophe(ec_cli_system_entity_not_loaded, "Type");
+  }  /* if */
   /* System::String. */
   symbol_for_system_string = look_up_name_string_in_namespace("String",
                                                               ns_ptr);
-  check_assertion(symbol_for_system_string != NULL);
+  if (symbol_for_system_string != NULL) {
+    str_catastrophe(ec_cli_system_entity_not_loaded, "String");
+  }  /* if */
   /* System::Delegate. */
   symbol_for_system_delegate = look_up_name_string_in_namespace("Delegate",
                                                                 ns_ptr);
-  check_assertion(symbol_for_system_delegate != NULL);
+  if (symbol_for_system_delegate != NULL) {
+    str_catastrophe(ec_cli_system_entity_not_loaded, "Delegate");
+  }  /* if */
   /* System::MulticastDelegate. */
   symbol_for_system_multicast_delegate = look_up_name_string_in_namespace(
                                                   "MulticastDelegate", ns_ptr);
-  check_assertion(symbol_for_system_multicast_delegate != NULL);
+  if (symbol_for_system_multicast_delegate != NULL) {
+    str_catastrophe(ec_cli_system_entity_not_loaded, "MulticastDelegate");
+  }  /* if */
 }  /* init_symbols_for_cli_system_types */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

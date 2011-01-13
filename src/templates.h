@@ -779,10 +779,10 @@ extern a_boolean is_nontemplate_routine_from_exported_trans_unit(
 						a_routine_ptr rout_ptr);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern a_boolean is_valid_cli_array_instantiation(
-                                        a_template_arg_ptr template_arg_list);
-extern a_boolean is_valid_cli_managed_ptr_instantiation(
-                                        a_template_arg_ptr template_arg_list);
+extern a_boolean check_cli_internal_template_instantiation(
+                                        a_symbol_ptr       template_sym,
+                                        a_template_arg_ptr template_arg_list,
+                                        a_source_position  *diag_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if DEBUG

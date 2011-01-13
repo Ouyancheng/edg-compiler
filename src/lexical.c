@@ -13376,16 +13376,12 @@ all arguments were explicit.
     *any_errors = TRUE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (*any_errors == FALSE && cppcli_enabled) {
-    /* In C++/CLI, interior_ptr and pin_ptr are implemented as
-       pseudo-templates.  Check that their arguments meet the requirements
-       of the language. */
-    if (template_sym == symbol_for_cli_array) {
-      *any_errors = !is_valid_cli_array_instantiation(arg_list);
-    } else if (template_sym == symbol_for_cli_interior_ptr ||
-               template_sym == symbol_for_cli_pin_ptr) {
-      *any_errors = !is_valid_cli_managed_ptr_instantiation(arg_list);
-    }  /* if */
+  if (cppcli_enabled && !*any_errors) {
+    /* cli::interior_ptr, cli::pin_ptr, and cli::array are implemented via
+       templates.  Check that their arguments meet the requirements of the
+       language. */
+    *any_errors = check_cli_internal_template_instantiation(
+                                     template_sym, arg_list, &error_position);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   scope_stack_top().in_template_arg_list = saved_in_template_arg_list;

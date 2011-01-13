@@ -1179,8 +1179,11 @@ scan of a file to build the PCH prefix information.
   if (!pch_prefix_scan && !using_a_pch_file) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled) {
-      /* Scan the built-in types of c++/cli. */
-      make_symbols_for_cli_built_in_types();
+      /* Make the symbol associated with some C++/CLI internal templates.
+         (cli::array is not created here, because it depends on System::Array
+         having been loaded.) */
+      make_symbol_for_cli_interior_ptr();
+      make_symbol_for_cli_pin_ptr();
       /* If there were any preusing directives to implicitly #using one
          or more assemblies, process them now.  Note, #using do not
          depend on macro states.  Thus, they can be processed before the

@@ -512,7 +512,7 @@ a_boolean f_check_cli_type_pointed_to(a_type_ptr         tp,
                                       a_source_position  *pos)
 /*
 A construct attempting to form a tk_pointer type with tp as the underlying
-type is encountered.  If is_ref is TRUE, the resulting type would be a
+type has been encountered.  If is_ref is TRUE, the resulting type would be a
 reference or tracking reference type.  If is_handle is TRUE, the resulting
 type would be a handle or tracking reference type.  If such a type would be
 invalid for a C++/CLI-specific reason (e.g., a handle or a managed class type
@@ -569,8 +569,8 @@ and return FALSE.  Otherwise, return TRUE.
   }  /* if */
   if (err_code == ec_no_error) {
     /* A pointer, handle, or reference type to an interior/pin pointer may not
-       be formed. Similarly, an ordinary pointer or a reference to a C++/CLI
-       array invalid  (a handle is okay). */
+       be formed.  Similarly, an ordinary pointer or a reference to a C++/CLI
+       array is invalid  (a handle is okay). */
     if (is_interior_ptr_type(tp)) {
       err_code = ec_ptr_handle_or_ref_to_interior_ptr;
     } else if (is_pin_ptr_type(tp)) {
