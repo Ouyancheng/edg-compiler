@@ -17910,6 +17910,13 @@ instantiation.  class_type is the class to be defined.
     check_assertion(size <= class_def_buffer->allocated_size);
     class_def_buffer->size = size;
   }  /* if */
+#if DEBUG
+  if (db_flag_is_set("dump_metadata")) {
+    fprintf(f_debug, "Class definition for %x/%08x: %.256s%s\n",
+            assembly_index, metadata_type_def_token, class_def_buffer->buffer,
+            class_def_buffer->size > 255 ? "..." : "");
+  }  /* if */
+#endif /* DEBUG */
 #else /* !CPPCLI_ENABLING_POSSIBLE */
   /* Add code here to construct in the text buffer the string to be used to
      define the class.  It may also be desirable to disable macro expansion
@@ -17999,6 +18006,12 @@ the caller should copy the contents as needed.
   }  /* if */
   /* Terminate the buffer. */
   add_char_to_text_buffer(buffer, '\0');
+#if DEBUG
+  if (db_flag_is_set("dump_metadata")) {
+    fprintf(f_debug, "Import types from %x: %.256s%s\n",
+            index, buffer->buffer, buffer->size > 255 ? "..." : "");
+  }  /* if */
+#endif /* DEBUG */
   return buffer->buffer;
 }  /* generate_top_level_metadata_code */
 

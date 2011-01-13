@@ -1543,6 +1543,12 @@ in the metadata file.
                                              = in_preprocessing_directive;
       char              *buffer;
 
+#if DEBUG
+      if (db_flag_is_set("dump_metadata")) {
+        fprintf(f_debug, "Importing metadata from '%s' returns %x.\n",
+                cmfp->full_name, cmfp->assembly_index);
+      }  /* if */
+#endif /* DEBUG */
       /* Import the top level declarations. */
       fetch_pp_tokens = FALSE;
       in_preprocessing_directive = FALSE;

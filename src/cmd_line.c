@@ -1759,6 +1759,9 @@ static a_flag_name
   { "use_nonstd_partial_ordering", &use_nonstd_partial_ordering },
   { "no_checking_pragmas", &no_checking_pragmas },
   { "warn_on_try_statement", &warn_on_try_statement },
+#if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
+  { "generate_portable_assemblies", &generate_portable_assemblies },
+#endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
   { NULL, NULL }  /* must be last */
 };
 
@@ -5981,6 +5984,11 @@ file.
   comment_undefined_macro_name(
                             QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR);
 #endif /* defined(QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR) */
+#if defined(READ_CPPCLI_PORTABLE_ASSEMBLIES)
+  define_numeric_valued_macro(READ_CPPCLI_PORTABLE_ASSEMBLIES);
+#else /* !defined(READ_CPPCLI_PORTABLE_ASSEMBLIES) */
+  comment_undefined_macro_name(READ_CPPCLI_PORTABLE_ASSEMBLIES);
+#endif /* defined(READ_CPPCLI_PORTABLE_ASSEMBLIES) */
 #if defined(READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS)
   define_numeric_valued_macro(READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS);
 #else /* !defined(READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS) */
@@ -7088,6 +7096,11 @@ file.
 #else /* !defined(WCHAR_T_ENABLING_POSSIBLE) */
   comment_undefined_macro_name(WCHAR_T_ENABLING_POSSIBLE);
 #endif /* defined(WCHAR_T_ENABLING_POSSIBLE) */
+#if defined(WRITE_CPPCLI_PORTABLE_ASSEMBLIES)
+  define_numeric_valued_macro(WRITE_CPPCLI_PORTABLE_ASSEMBLIES);
+#else /* !defined(WRITE_CPPCLI_PORTABLE_ASSEMBLIES) */
+  comment_undefined_macro_name(WRITE_CPPCLI_PORTABLE_ASSEMBLIES);
+#endif /* defined(WRITE_CPPCLI_PORTABLE_ASSEMBLIES) */
 #if defined(WRITE_SIGNOFF_MESSAGE)
   define_numeric_valued_macro(WRITE_SIGNOFF_MESSAGE);
 #else /* !defined(WRITE_SIGNOFF_MESSAGE) */
@@ -9366,6 +9379,9 @@ variables declared in cmd_line.h.
      but have no effect unless cppcli_enabled is TRUE. */
   implicit_mscorlib = DEFAULT_IMPLICIT_MSCORLIB;
   using_framework_directory = TRUE;
+#if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
+  generate_portable_assemblies = FALSE;
+#endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef _lint
   microsoft_mode = FALSE;

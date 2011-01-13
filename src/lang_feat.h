@@ -744,6 +744,37 @@ extensions are enabled.
 #endif /* DEFAULT_CPPCLI_ENABLED && !CPPCLI_ENABLING_POSSIBLE */
 
 /*
+Flag that is TRUE if the front end is configured to write C++/CLI portable
+assemblies.  This internal testing mode can be used on Windows systems
+to write portable assembly files (which can then be used on non-Windows systems
+as a source of metadata).
+*/
+#ifndef WRITE_CPPCLI_PORTABLE_ASSEMBLIES
+#define WRITE_CPPCLI_PORTABLE_ASSEMBLIES FALSE
+#endif /* ifndef WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
+
+#if WRITE_CPPCLI_PORTABLE_ASSEMBLIES && !CPPCLI_ENABLING_POSSIBLE
+ #error -- WRITE_CPPCLI_PORTABLE_ASSEMBLIES requires CPPCLI_ENABLING_POSSIBLE
+#endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES && !CPPCLI_ENABLING_POSSIBLE */
+
+#if WRITE_CPPCLI_PORTABLE_ASSEMBLIES && !EDG_WIN32
+ #error -- WRITE_CPPCLI_PORTABLE_ASSEMBLIES requires EDG_WIN32
+#endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES && !EDG_WIN32 */
+
+/*
+Flag that is TRUE if the front end is configured to read C++/CLI portable
+assemblies.  This internal testing mode can be used on non-Windows systems
+to read C++/CLI metadata from portable assembly files.
+*/
+#ifndef READ_CPPCLI_PORTABLE_ASSEMBLIES
+#define READ_CPPCLI_PORTABLE_ASSEMBLIES FALSE
+#endif /* ifndef READ_CPPCLI_PORTABLE_ASSEMBLIES */
+
+#if READ_CPPCLI_PORTABLE_ASSEMBLIES && !CPPCLI_ENABLING_POSSIBLE
+ #error -- READ_CPPCLI_PORTABLE_ASSEMBLIES requires CPPCLI_ENABLING_POSSIBLE
+#endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !CPPCLI_ENABLING_POSSIBLE */
+
+/*
 Flag that is TRUE if in C++/CLI mode, mscorlib should be made available
 by default as if by a #using directive.
 */

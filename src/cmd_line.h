@@ -1074,6 +1074,12 @@ EXTERN a_boolean
 		using_framework_directory;
 			/* TRUE if assemblies should be searched for in the
 			   directory .NET is installed in. */
+#if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
+EXTERN a_boolean
+		generate_portable_assemblies;
+			/* TRUE if generating portable assemblies for use
+			   in testing C++/CLI on non-Windows platforms. */
+#endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS

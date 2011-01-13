@@ -2112,6 +2112,7 @@ ec_named_override_requires_virtual;;"a named override specifier requires a virtu
 ec_pin_ptr_return_type_not_allowed;;"a cli::pin_ptr return type is not allowed"
 ec_cppcli_attribute_only;;"attribute %sq applies in C++/CLI mode only"
 ec_normal_ref_bound_to_gc_lvalue;;"a simple (non-tracking) reference cannot be bound to an entity on the managed heap"
+ec_portable_assembly;INTERNAL;"portable assembly"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

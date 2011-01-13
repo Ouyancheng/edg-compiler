@@ -58,6 +58,44 @@ extern void import_class_definition(an_assembly_index assembly_index,
 extern void ms_metadata_trans_unit_init(char *trans_unit_file_name);
 extern void ms_metadata_trans_unit_wrapup(void);
 extern void ms_metadata_cleanup(void);
+
+#if READ_CPPCLI_PORTABLE_ASSEMBLIES || WRITE_CPPCLI_PORTABLE_ASSEMBLIES
+
+typedef struct a_portable_assembly_header {
+  /* This structure defines the data found at the beginning of a
+     portable assembly file.  These fields are each converted to ASCII and
+     formatted as %08x in the file.  The header is terminated with a
+     newline. */
+#define PORTABLE_ASSEMBLY_HEADER_FORMAT "%08x %08x %08x\n"
+#define PORTABLE_ASSEMBLY_MAGIC_NUMBER  0x11223344
+  uint32_t      magic;	/* Identifying "magic" number for portable assembly
+			   files. */
+  uint32_t      num_entries;
+                        /* The number of a_portable_assembly_table_entrys
+                           this file contains. */
+  uint32_t      table_offset;
+                        /* An offset (from the beginning of the file) to the
+                           a_portable_assembly_table_entry table. */
+  /* This header is followed by the string data, then the table. */
+} a_portable_assembly_header;
+
+typedef struct a_portable_assembly_table_entry {
+  /* Each entry in this table represents the metadata associated with a
+     particular C++/CLI metadata token. These fields are each converted to
+     ASCII and formatted as %08x in the file.  Each entry is terminated
+     with a newline. */
+#define PORTABLE_ASSEMBLY_TABLE_FORMAT "%08x %08x %08x\n"
+  uint32_t      token;  /* The C++/CLI metadata type_def token associated with
+                           this entry.  The first entry in this table
+                           (token == 0) refers to the string returned by
+                           import_all_types. */
+  uint32_t      offset; /* Offset (from the beginning of the file) to the
+                           metadata string associated with token. */
+  uint32_t      size;   /* Size (in bytes) of the associated metadata. */
+} a_portable_assembly_table_entry;
+
+#endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES || WRITE_CPPCLI_PORTABLE_ASSEMBLIES*/
+
 #endif /* MS_METADATA */
 
 /******************************************************************************

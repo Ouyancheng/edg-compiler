@@ -1,5 +1,21 @@
 Version 4.3
 
+1/13/11  [EDGcpfe/11280]
+C++/CLI internal testing mode: portable assemblies
+
+To enable testing of C++/CLI mode on non-Windows environments, the front
+end now has the capability to read in a Windows assembly that contains
+metadata and write that metadata to a "portable assembly" which can then
+be used by the front end on a non-Windows system to provide the necessary
+metadata for C++/CLI testing.  This mode is for internal testing only.
+To enable writing of portable assemblies, the WRITE_CPPCLI_PORTABLE_ASSEMBLIES
+configuration macro must be set to TRUE and the "--set_flag
+generate_portable_assemblies" command line option must be given.  To read
+portable assemblies, the configuration macro READ_CPPCLI_PORTABLE_ASSEMBLIES
+must be set to TRUE (and any referenced portable assemblies must be found using
+the standard search mechanism for assemblies).
+
+
 1/11/11  [EDGcpfe/11262]
 Microsoft compatibility: Binding an rvalue reference to a bit field
 

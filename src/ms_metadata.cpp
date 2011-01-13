@@ -46,6 +46,11 @@ EXTERN_C_BLOCK_IN_CPP_FILE
 #include "error.h"
 #include "ms_metadata.h"
 #include "host_envir.h"
+#include "mem_manage.h"
+#if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
+#include "symbol_tbl.h"
+#include "cmd_line.h"
+#endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
 END_EXTERN_C_BLOCK_IN_CPP_FILE
 
 
@@ -2891,6 +2896,25 @@ public:
   bool trans_unit_init(char *trans_unit_file_name);
   void trans_unit_wrapup();
 
+#if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
+  IMetaDataImport2 *import_interface(an_assembly_index assembly_index)
+  /*
+  The code that writes portable assemblies needs access to the assembly's
+  import_interface in order to enumerate the typedefs in the assembly.
+  */
+  {
+    auto iter = assemblies_.begin();
+    auto end = assemblies_.end();
+
+    for ( ; iter != end; ++iter) {
+      if (iter->second.assembly_index() == assembly_index) {
+        break;
+      }  /* if */
+    }  /* for */
+    return iter->second.find_scope().import_interface();
+  }  /* a_metadata_reader::import_interface */
+#endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
+
 private:
   bool init_clr_host();
   bool init_clr_runtime_info();
@@ -3221,6 +3245,172 @@ Helper function to initialize the metadata reader.
   return result;
 }  /* ms_metadata_init_if_needed */
 
+#if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
+
+static a_portable_assembly_table_entry
+                *pa_table = nullptr;
+                        /* A dynamically-allocated list of entries used to
+                           refer to metadata tokens and their associated
+                           strings. */
+
+static uint32_t pa_table_entries = 0;
+                        /* The number of allocated entries in pa_table. */
+
+static a_text_buffer_ptr
+		metadata_string_buffer = nullptr;
+			/* Text buffer used by create_portable_assembly. */
+
+static void clear_portable_assembly_header(a_portable_assembly_header *header)
+/*
+Initialize the specified portable assembly header.
+*/
+{
+  header->magic = 0;
+  header->num_entries = 0;
+  header->table_offset = 0;
+}  /* clear_portable_assembly_header */
+
+
+static void create_portable_assembly(char               *assembly_name,
+                                     an_assembly_index  index)
+/*
+Create a "portable assembly" for the assembly named by assembly_name, and
+referred to by index.  A portable assembly contains all of the metadata
+information contained by the assembly, but in string format so that it can
+be used on non-Windows systems (for testing purposes).
+*/
+{
+  a_portable_assembly_header      header;
+  a_portable_assembly_table_entry *table;
+  IMetaDataImport2                *import_interface;
+  string                          pa_name(start_of_file_name(assembly_name));
+  FILE                            *f_pa;
+  uint32_t                        cur_entry_no = 0;
+  HCORENUM                        enum_typedefs = 0;
+  mdTypeDef                       typedefs[64];
+  ULONG                           count_of_typedefs;
+  a_text_buffer_ptr               buffer;
+  sizeof_t                        size;
+  uint32_t                        i;
+
+  /* The portable assembly is written in the current directory (without
+     regard to an existing file).  This is usually okay because the assemblies
+     we're concerned with are typically in system directories. */
+  f_pa = fopen_with_error((char *)pa_name.c_str(), "wb", OFF_NO_OPTIONS,
+                          ec_portable_assembly);
+  if (f_pa != nullptr) {
+    check_assertion(metadata_reader != nullptr);
+    check_assertion(metadata_reader->is_initialized());
+    check_assertion(index != 0);
+    import_interface = metadata_reader->import_interface(index);
+    /* Write a dummy header to the file initially (will be overwritten at
+       the end with the proper information). */
+    clear_portable_assembly_header(&header);
+    /* Write the header in ASCII so it's more portable.  Use a format string
+       that will result in the same number of bytes being used when the
+       header is later re-written (so the offsets will stay the same). */
+    (void)fprintf(f_pa, PORTABLE_ASSEMBLY_HEADER_FORMAT,
+                  header.magic, header.num_entries, header.table_offset);
+    /* Get the string returned by import_all_types. */
+    if (metadata_string_buffer == nullptr) {
+      /* Allocate the buffer that will temporarily house the metadata string
+         information. */
+      metadata_string_buffer =
+                alloc_text_buffer(METADATA_IMPORT_BUFFER_ALLOCATION_INCREMENT);
+      expand_text_buffer(metadata_string_buffer, METADATA_IMPORT_BUFFER_SIZE);
+    }  /* if */
+    reset_text_buffer(metadata_string_buffer);
+    buffer = metadata_string_buffer;
+    size = buffer->allocated_size;
+    import_all_types(index, buffer->buffer, &size);
+    if (size <= buffer->allocated_size) {
+      /* The buffer fits.  Mark the size that has been written. */
+      buffer->size = size;
+    } else {
+      /* Expand the buffer */
+      reset_text_buffer(buffer);
+      expand_text_buffer(buffer, size);
+      import_all_types(index, buffer->buffer, &size);
+      check_assertion(size <= buffer->allocated_size);
+      buffer->size = size;
+    }  /* if */
+    if (pa_table == nullptr) {
+      /* 2780 entries are needed for mscorlib, so allocate enough so to handle
+         that (most likely) case. */
+      pa_table_entries = 3000;
+      pa_table = (a_portable_assembly_table_entry *)alloc_resizable_buffer(
+                          (sizeof_t)(pa_table_entries *
+                                     sizeof(a_portable_assembly_table_entry)));
+    }  /* if */
+    /* The import_all_types string is pointed to by the first entry in the
+       table.  Keep the offset and size information, then write the string
+       to the portable assembly file. */
+    pa_table[0].token = 0;
+    pa_table[0].offset = ftell(f_pa);
+    pa_table[0].size = buffer->size;
+    (void)fwrite((a_stdio_arg)buffer->buffer, 1, buffer->size, f_pa);
+    cur_entry_no++;
+    /* For each typedef in the assembly, get its definition (in case we ever
+       need it) and write it to the portable assembly. */
+    do {
+      HRESULT hr = import_interface->EnumTypeDefs(&enum_typedefs,
+                                                  typedefs,
+                                                  _countof(typedefs),
+                                                  &count_of_typedefs);
+      CHECK_API_RESULT(hr, EnumTypeDefs);
+      for (ULONG i = 0; i < count_of_typedefs; ++i) {
+        check_assertion(typedefs[i] != 0);
+        reset_text_buffer(metadata_string_buffer);
+        buffer = metadata_string_buffer;
+        size = buffer->allocated_size;
+        import_class_definition(index, typedefs[i], buffer->buffer, &size);
+        if (size <= buffer->allocated_size) {
+          /* The buffer fits.  Mark the size that has been written. */
+          buffer->size = size;
+        } else {
+          /* Expand the buffer */
+          reset_text_buffer(buffer);
+          expand_text_buffer(buffer, size);
+          import_class_definition(index, typedefs[i], buffer->buffer, &size);
+          check_assertion(size <= buffer->allocated_size);
+          buffer->size = size;
+        }  /* if */
+        if (++cur_entry_no > pa_table_entries-1) {
+          /* Double the size of the table if we've run out of space. */
+          sizeof_t old_size = pa_table_entries *
+                              sizeof(a_portable_assembly_table_entry);
+          pa_table_entries *= 2;
+          pa_table = (a_portable_assembly_table_entry *)realloc_buffer(
+                                       (char *)pa_table, old_size, old_size*2);
+        }  /* if */
+        table = &pa_table[cur_entry_no];
+        table->token = typedefs[i];
+        table->offset = ftell(f_pa);
+        table->size = buffer->size;
+        (void)fwrite((a_stdio_arg)buffer->buffer, 1, buffer->size, f_pa);
+      }  /* for */
+    } while (count_of_typedefs > 0);
+    import_interface->CloseEnum(enum_typedefs);
+    /* Initialize the header now that we know the proper information. */
+    header.magic = PORTABLE_ASSEMBLY_MAGIC_NUMBER;
+    header.num_entries = cur_entry_no;
+    header.table_offset = ftell(f_pa);
+    /* Add a newline before the table contents. */
+    (void)fputc('\n', f_pa);
+    /* Write out the table contents. */
+    for (i = 0; i < cur_entry_no; i++) {
+      (void)fprintf(f_pa, PORTABLE_ASSEMBLY_HEADER_FORMAT,
+                    pa_table[i].token, pa_table[i].offset, pa_table[i].size);
+    }  /* for */
+    /* Re-write the header with the proper information now that it is known. */
+    (void)fseek(f_pa, 0L, SEEK_SET);
+    (void)fprintf(f_pa, PORTABLE_ASSEMBLY_TABLE_FORMAT,
+                  header.magic, header.num_entries, header.table_offset);
+    (void)fclose(f_pa);
+  }  /* if */
+}  /* create_portable_assembly */
+
+#endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
 
 EXTERN_C_IN_CPP_FILE
 an_assembly_index import_metadata_file(
@@ -3243,6 +3433,12 @@ assembly will be returned.
   result = metadata_reader->import_assembly(assembly_full_name, 
                                             supported_features, &is_dup);
   *is_duplicated = is_dup ? TRUE : FALSE;
+#if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
+  if (generate_portable_assemblies && result != 0) {
+    /* Create a portable assembly. */
+    create_portable_assembly(assembly_full_name, result);
+  }  /* if */
+#endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
   return result;
 }  /* import_metadata_file */
 

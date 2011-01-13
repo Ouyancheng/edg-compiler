@@ -4962,6 +4962,56 @@ final search path will include, in this order:
 
 #if MICROSOFT_EXTENSIONS_ALLOWED && (!CPPCLI_ENABLING_POSSIBLE || !EDG_WIN32)
 
+#if READ_CPPCLI_PORTABLE_ASSEMBLIES
+typedef struct a_portable_assembly_entry {
+  /* This structure contains information about a portable assembly file
+     whose C++/CLI metadata is being used in the current compilation. */
+  char          *name;  /* The full name of the portable assembly. */
+  FILE          *f_assembly;
+                        /* A FILE pointer to the file. */
+  void          *mmap_addr;
+                        /* The address to which the file has been mapped to. */
+  a_portable_assembly_header
+                header;
+                        /* The file header information for the portable
+                           assembly. */
+  a_portable_assembly_table_entry
+                *table; /* A table of offsets (for each typedef) in the
+                           portable assembly. */
+} a_portable_assembly_entry;
+
+static a_portable_assembly_entry
+                *portable_assembly_table; 
+                        /* A dynamically-allocated table with information
+                           about each portable assembly that is currently
+                           available.  Note that entry zero in this table is
+                           unused. */
+static an_assembly_index
+                pa_table_entries;
+                        /* Contains the number of entries allocated for
+                           portable_assembly_table. */
+static an_assembly_index
+                pa_cur_table_entry;
+                        /* An index into portable_assembly_table that
+                           represents the last entry in use (with the exception
+                           that zero is not used). */
+
+static void clear_portable_assembly_entry(a_portable_assembly_entry *entry)
+/*
+Initialize a portable assembly entry.
+*/
+{
+  entry->name = NULL;
+  entry->f_assembly = NULL;
+  entry->mmap_addr = NULL;
+  entry->header.magic = 0;
+  entry->header.num_entries = 0;
+  entry->header.table_offset = 0;
+  entry->table = NULL;
+}  /* clear_portable_assembly_entry */
+
+#endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES */
+
 /*
 Stub versions of metadata reading routines to aid in development on platforms
 on which the metadata API is not available.
@@ -4971,30 +5021,202 @@ on which the metadata API is not available.
 an_assembly_index import_metadata_file(
                           char                  *assembly_full_name,
                           a_cpp_cli_feature_set supported_features,
-                          a_boolean             *is_duplicate) { return 0; }
+                          a_boolean             *is_duplicate)
+/*
+Prepare an assembly for metadata import.  This is a stub function (the real
+function is in ms_metadata.cpp) that either returns an error, or attempts to
+find a portable assembly file that contains the metadata.  The latter
+configuration is useful for testing on non-Windows platforms where metadata
+typically isn't available.
+*/
+{
+#if READ_CPPCLI_PORTABLE_ASSEMBLIES
+  a_portable_assembly_entry *entry;
+  FILE                      *file;
+  an_assembly_index         index = 0;
+  struct stat               stat_buf;
+  int                       i;
+  
+  /* The full name of the "dll" (really a portable assembly) has been
+     supplied. */
+  check_assertion(assembly_full_name != NULL);
+  file = fopen_with_error(assembly_full_name, FOPEN_MODE_FOR_BINARY_READ,
+                          OFF_NO_OPTIONS, ec_portable_assembly);
+  if (file != NULL) {
+    /* Note: an index of zero is used to indicate an error, so the first
+       entry isn't used in the table. */
+    index = ++pa_cur_table_entry;
+    if (index >= pa_table_entries) {
+      /* Dynamically allocate and grow the table as needed. */
+      sizeof_t old_size = pa_table_entries * sizeof(a_portable_assembly_entry);
+      pa_table_entries += 50;
+      portable_assembly_table = (a_portable_assembly_entry *)realloc_buffer(
+                               (char *)portable_assembly_table,
+                               old_size,
+                               pa_table_entries *
+                                            sizeof(a_portable_assembly_entry));
+    }  /* if */
+    entry = &portable_assembly_table[index];
+    clear_portable_assembly_entry(entry);
+    if (fstat(fileno(file), &stat_buf) != 0) {
+      goto close_file_with_error_return;
+    }  /* if */
+    /* Read the file header from the beginning of the file. */
+    if (fscanf(file, PORTABLE_ASSEMBLY_HEADER_FORMAT,
+                                           &entry->header.magic,
+                                           &entry->header.num_entries,
+                                           &entry->header.table_offset) != 3) {
+      goto close_file_with_error_return;
+    }  /* if */
+    if (entry->header.magic != PORTABLE_ASSEMBLY_MAGIC_NUMBER) {
+      goto close_file_with_error_return;
+    }
+    /* Check to make sure the data we're reading makes sense (i.e., that
+       this really is a portable assembly file). */
+    if (stat_buf.st_size < entry->header.table_offset + 
+                           entry->header.num_entries) {
+      goto close_file_with_error_return;
+    }  /* if */
+    entry->table = (a_portable_assembly_table_entry *)alloc_general(
+                                      entry->header.num_entries *
+                                      sizeof(a_portable_assembly_table_entry));
+    /* Read in the table. */
+    (void)fseek(file, entry->header.table_offset, SEEK_SET);
+    for (i = 0; i < entry->header.num_entries; i++) {
+      if (fscanf(file, PORTABLE_ASSEMBLY_TABLE_FORMAT,
+                                                 &entry->table[i].token,
+                                                 &entry->table[i].offset,
+                                                 &entry->table[i].size) != 3) {
+        goto close_file_with_error_return;
+      }  /* if */
+    }  /* for */
+    (void)fseek(file, 0L, SEEK_SET);
+    /* See if we've opened this portable assembly before. */
+    *is_duplicate = FALSE;
+    for (i = 1; i<index; i++) {
+      if (strcmp(assembly_full_name, portable_assembly_table[i].name) == 0) {
+        *is_duplicate = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+    entry->name = assembly_full_name;
+    /* Map the file into our address space.  Note that the host-independent
+       mmap routines aren't used here (they assume we're mapping to a known
+       address), but that should be okay as it's unlikely that we'll use
+       portable assemblies on a Windows platform.  We only map the amount
+       necessary (the table isn't mapped). */
+    entry->mmap_addr = mmap((caddr_t)0, entry->header.table_offset, PROT_READ,
+                            MAP_PRIVATE, fileno(file), (off_t)0);
+    if (entry->mmap_addr == MAP_FAILED) goto close_file_with_error_return;
+    goto end_of_routine;
+close_file_with_error_return:
+    /* Return this entry in the table and close the file. */
+    pa_cur_table_entry--;
+    (void)fclose(file);
+    index = 0;
+  }  /* if */
+end_of_routine:
+  return index;
+#else /* !READ_CPPCLI_PORTABLE_ASSEMBLIES */
+  return 0;
+#endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES */
+}  /* import_metadata_file */
 
 
 /*ARGSUSED*/
 void import_all_types(an_assembly_index assembly_index,
                       char              *buffer,
-                      size_t            *buffer_size) {}
+                      size_t            *buffer_size)
+/*
+Import all types from the specified assembly into the buffer whose size
+is in *buffer_size.  This routine is a stub for the actual routine (in
+ms_metadata.cpp) and either does nothing or returns the desired string
+from a portable assembly if so configured.
+*/
+{
+#if READ_CPPCLI_PORTABLE_ASSEMBLIES
+  /* The class declarations for the assembly are stored in the first entry
+     (with typedef of zero), so return that entry. */
+  import_class_definition(assembly_index, 0, buffer, buffer_size);
+#endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES */
+}  /* import_all_types */
 
 
 /*ARGSUSED*/
 void import_class_definition(an_assembly_index assembly_index,
                              a_cpp_cli_token   metadata_type_def_token,
                              char              *buffer,
-                             size_t            *buffer_size) {}
+                             size_t            *buffer_size)
+/*
+Import a specific class definition (as defined by metadata_type_def_token) from
+the specified assembly into the buffer whose size is in *buffer_size.  This
+routine is a stub for the actual routine (in ms_metadata.cpp) and either does
+nothing or returns the desired string from a portable assembly if so
+configured.
+*/
+{
+#if READ_CPPCLI_PORTABLE_ASSEMBLIES
+  a_portable_assembly_entry *entry;
+  size_t                    size;
+  int                       i;
+
+  check_assertion(assembly_index <= pa_cur_table_entry);
+  entry = &portable_assembly_table[assembly_index];
+  for (i = 0; i < entry->header.num_entries; i++) {
+    if (entry->table[i].token == metadata_type_def_token) break;
+  }
+  check_assertion(i < entry->header.num_entries);
+  size = entry->table[i].size;
+  if (size > *buffer_size) {
+    *buffer = '\0';
+  } else {
+    strncpy(buffer, entry->mmap_addr + entry->table[i].offset, size);
+  }  /* if */
+  *buffer_size = size;
+#endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES */
+}  /* import_class_definition */
 
 
 /*ARGSUSED*/
 void ms_metadata_trans_unit_init(char *file_name) {}
 
 
-void ms_metadata_trans_unit_wrapup(void) {}
+void ms_metadata_trans_unit_wrapup(void)
+/*
+Reset the metadata reader for the next translation unit.  This clears all 
+imported assemblies.
+*/
+{
+#if READ_CPPCLI_PORTABLE_ASSEMBLIES
+  /* Close everything, leaving the table allocated. */
+  ms_metadata_cleanup();
+#endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES */
+}  /* ms_metadata_trans_unit_wrapup */
 
 
-void ms_metadata_cleanup(void) {}
+void ms_metadata_cleanup(void)
+/*
+Cleanup as necessary.
+*/
+{
+#if READ_CPPCLI_PORTABLE_ASSEMBLIES
+  int i;
+  /* Close any open files. */
+  for (i = 1; i <= pa_cur_table_entry; i++) {
+    a_portable_assembly_entry *entry = &portable_assembly_table[i];
+    if (entry->mmap_addr != NULL) {
+      (void)munmap(entry->mmap_addr, entry->header.table_offset + 
+                                      entry->header.num_entries *
+                                      sizeof(a_portable_assembly_table_entry));
+    }  /* if */
+    if (entry->f_assembly != NULL) {
+      (void)fclose(entry->f_assembly);
+    }  /* if */
+    clear_portable_assembly_entry(entry);
+  }  /* for */
+  pa_cur_table_entry = 0;
+#endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES */
+}  /* ms_metadata_cleanup */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED &&
           (!CPPCLI_ENABLING_POSSIBLE || !EDG_WIN32) */
@@ -5203,6 +5425,11 @@ This is done before command line processing.
   reset_cpu_time_limit();
 #endif /* !EDG_WIN32 */
 #endif /* DEBUG */
+#if READ_CPPCLI_PORTABLE_ASSEMBLIES && !STANDALONE_UTILITY_PROGRAM
+  portable_assembly_table = NULL;
+  pa_table_entries = 0;
+  pa_cur_table_entry = 0;
+#endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !STANDALONE_UTILITY_PROGRAM */
   /* Make sure the predefined macro mode enumeration and the array of
      mode names match. */
   check_assertion_str2(predef_macro_mode_names[(int)pmm_last] != NULL &&
