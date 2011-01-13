@@ -5205,9 +5205,7 @@ Cleanup as necessary.
   for (i = 1; i <= pa_cur_table_entry; i++) {
     a_portable_assembly_entry *entry = &portable_assembly_table[i];
     if (entry->mmap_addr != NULL) {
-      (void)munmap(entry->mmap_addr, entry->header.table_offset + 
-                                      entry->header.num_entries *
-                                      sizeof(a_portable_assembly_table_entry));
+      (void)munmap(entry->mmap_addr, entry->header.table_offset);
     }  /* if */
     if (entry->f_assembly != NULL) {
       (void)fclose(entry->f_assembly);
