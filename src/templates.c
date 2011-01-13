@@ -8301,12 +8301,14 @@ are looked up, if needed.  The symbol of the new instance is returned.
                         (options & CTWS_PROTOTYPE_ALLOWED) != 0;
     new_sym = find_template_class(template_sym, &new_list, prototype_allowed,
                                   (a_symbol_ptr)NULL);
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled && new_sym != NULL &&
         !check_cli_internal_template_instantiation(template_sym, new_list,
                                                    (a_source_position*)NULL)) {
       new_sym = NULL;
       *copy_error = TRUE;
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   return new_sym;
 }  /* copy_template_class_reference_with_substitution */
