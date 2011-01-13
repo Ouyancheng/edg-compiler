@@ -5251,7 +5251,9 @@ non-NULL, issue error at the given position.
       /* Elements of an array must have a handle or value type (or a type that
          can be implicitly converted to a value type). */
       /* FIXME: Add check for types implicitly convertible to value types. */
-      pos_error(ec_cli_array_invalid_element_type, diag_pos);
+      if (diag_pos != NULL) {
+        pos_error(ec_cli_array_invalid_element_type, diag_pos);
+      }  /* if */
       is_valid = FALSE; 
     } /* if */
   } /* if */
@@ -5270,7 +5272,9 @@ non-NULL, issue error at the given position.
         a_boolean      ovflo;
         if (con->kind != (a_constant_repr_kind)ck_integer || 
             value_of_integer_constant(con, &ovflo) <= 0 || ovflo ) {
-          pos_error(ec_cli_array_invalid_number_of_dimensions, diag_pos);
+          if (diag_pos != NULL) {
+            pos_error(ec_cli_array_invalid_number_of_dimensions, diag_pos);
+          }  /* if */
           is_valid = FALSE;
         }  /* if */
       } /* if */
@@ -5311,8 +5315,10 @@ diag_pos is non-NULL, issue an error at the given position.
                !is_pin_ptr_type(tp)) {
       /* A handle or native pointer type: Okay. */
     } else {
-      pos_error(ec_invalid_type_pointed_to_for_interior_ptr_or_pin_ptr,
-                diag_pos);
+      if (diag_pos != NULL) {
+        pos_error(ec_invalid_type_pointed_to_for_interior_ptr_or_pin_ptr,
+                  diag_pos);
+      }  /* if */
       is_valid = FALSE; 
     } /* if */
   } else {
