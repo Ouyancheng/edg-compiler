@@ -4963,6 +4963,10 @@ final search path will include, in this order:
 #if MICROSOFT_EXTENSIONS_ALLOWED && (!CPPCLI_ENABLING_POSSIBLE || !EDG_WIN32)
 
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES
+#if !USE_MMAP_FOR_MEMORY_REGIONS
+#include <sys/mman.h>
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
+
 typedef struct a_portable_assembly_entry {
   /* This structure contains information about a portable assembly file
      whose C++/CLI metadata is being used in the current compilation. */
