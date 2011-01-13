@@ -3204,7 +3204,6 @@ after_entry_from_class:
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case iek_cli_metadata_file:
-#if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
       {
         a_cli_metadata_file_ptr ptr = (a_cli_metadata_file_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_cli_metadata_file_ptr,
@@ -3212,7 +3211,6 @@ after_entry_from_class:
         walk_string_ptr(ptr->name_as_written, iek_other_text, 0);
         walk_string_ptr(ptr->full_name, iek_other_text, 0);
       }
-#endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case iek_id_name:
