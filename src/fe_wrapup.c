@@ -144,12 +144,6 @@ are instantiated.
        translation unit. */
     set_master_instance_information();
   }  /* if */
-#if CPPCLI_ENABLING_POSSIBLE
-  if (cppcli_enabled) {
-    ms_metadata_trans_unit_wrapup();
-  }  /* if */
-#endif /* CPPCLI_ENABLING_POSSIBLE */
-
   db_exit();
 }  /* translation_unit_wrapup */
 
@@ -617,6 +611,11 @@ already been copied over.
 #endif /* CHECKING */
     check_for_done_with_memory_region(file_scope_region_number);
   }  /* if */
+#if CPPCLI_ENABLING_POSSIBLE
+  if (cppcli_enabled) {
+    ms_metadata_trans_unit_wrapup();
+  }  /* if */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
 }  /* file_scope_il_wrapup_part_3 */
 
 

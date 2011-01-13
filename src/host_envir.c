@@ -4740,6 +4740,54 @@ is the length of the dir_name buffer.
   ICLRRuntimeInfo    *crip = NULL;
   HRESULT            hr = E_FAIL;
 
+#if defined(__cplusplus)
+  /* Get the ICLRMetaHostPolicy interface to query for the preferred CLR
+     runtime version based on the available versions that are installed or
+     loaded. */
+  hr = CLRCreateInstance(CLSID_CLRMetaHostPolicy, IID_ICLRMetaHostPolicy, 
+                         (LPVOID*)(&cmhpp));
+  if (FAILED(hr)) {
+    hresult_catastrophe("CLRCreateInstance");
+  }  /* if */
+  check_assertion(cmhpp != NULL);
+  /* First try to get the version of the runtime specified by the application
+     config file (app.exe.config). */
+  cmhpp->GetRequestedRuntime(
+                          METAHOST_POLICY_USE_PROCESS_IMAGE_PATH,
+                          /*pwzBinary=*/NULL, /*pCfgStream=*/NULL, 
+                          /*pwzVersion=*/NULL, /*pcchVersion=*/NULL, 
+                          /*pwzImageVersion=*/NULL, /*pcchImageVersion=*/NULL,
+                          /*pdwConfigFlags=*/NULL, IID_ICLRRuntimeInfo, 
+                          (LPVOID*)(&crip));
+  if (FAILED(hr) || crip == NULL) {
+#define CLR_VERSION_BUFFER_SIZE 128
+    wchar_t            version_buffer[CLR_VERSION_BUFFER_SIZE];
+    DWORD              version_size = CLR_VERSION_BUFFER_SIZE;
+#undef CLR_VERSION_BUFFER_SIZE
+    
+    wcscpy(version_buffer, CLR_FALLBACK_VERSION);
+    /* Fall back on the version of the runtime specified by CLR_VERSION. */
+    cmhpp->GetRequestedRuntime(
+                          (METAHOST_POLICY_FLAGS)
+                          (METAHOST_POLICY_USE_PROCESS_IMAGE_PATH | 
+                           METAHOST_POLICY_APPLY_UPGRADE_POLICY),
+                          /*pwzBinary=*/NULL, /*pCfgStream=*/NULL, 
+                          version_buffer, &version_size, 
+                          /*pwzImageVersion=*/NULL, /*pcchImageVersion=*/NULL,
+                          /*pdwConfigFlags=*/NULL, IID_ICLRRuntimeInfo, 
+                          (LPVOID*)(&crip));
+    if (FAILED(hr) || crip == NULL) {
+      hresult_catastrophe("ICLRMetaHostPolicy::GetRequestedRuntime");
+    }  /* if */
+  }  /* if */
+  check_assertion(crip != NULL);
+  hr = crip->GetRuntimeDirectory(dir_name, (DWORD*)dir_name_size);
+  if (FAILED(hr)) {
+    hresult_catastrophe("ICLRRuntimeInfo::GetRuntimeDirectory");
+  }  /* if */
+  crip->Release();
+  cmhpp->Release();
+#else /* ifndef __cplusplus */
   /* Get the ICLRMetaHostPolicy interface to query for the preferred CLR
      runtime version based on the available versions that are installed or
      loaded. */
@@ -4785,6 +4833,7 @@ is the length of the dir_name buffer.
   }  /* if */
   crip->lpVtbl->Release(crip);
   cmhpp->lpVtbl->Release(cmhpp);
+#endif /* defined(__cplusplus) */
 }  /* get_clr_runtime_directory */
 
 
@@ -4805,14 +4854,22 @@ must be used before the buffer (temp_text_buffer) is overwritten.
   /* According to MSDN, GetErrorInfo returns either S_OK or S_FALSE. */
   check_assertion(hr == S_OK || hr == S_FALSE);
   if (hr == S_OK) {
+#if defined(__cplusplus)
+    hr = error_info->GetDescription(&description);
+#else /* ifndef __cplusplus */
     hr = (error_info->lpVtbl->GetDescription)(error_info, &description);
+#endif /* defined(__cplusplus) */
     if (SUCCEEDED(hr)) {
       /* "description" may contain embedded NULLs, but those are ignored
          because we wouldn't know how to format the text anyway. */
       result = conv_wide_to_utf8(description);
       SysFreeString(description);
     }  /* if */
+#if defined(__cplusplus)
+    error_info->Release();
+#else /* ifndef __cplusplus */
     (error_info->lpVtbl->Release)(error_info);
+#endif /* defined(__cplusplus) */
   }  /* if */
   if (result == NULL) {
     /* Either the API didn't set the error info, or some other error
@@ -4856,7 +4913,7 @@ final search path will include, in this order:
     char          *temp_buffer;
     char          *clr_directory_utf8;
     size_t        clr_directory_utf8_size;
-    unsigned long length_wide = _MAX_DIR;
+    sizeof_t      length_wide = _MAX_DIR;
 
     get_clr_runtime_directory(clr_directory_wide, &length_wide);
     temp_buffer = conv_wide_to_utf8(clr_directory_wide);
