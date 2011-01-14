@@ -1470,7 +1470,7 @@ process_option()
 	 --upc_threads | \
          --pack_alignment | \
          --unicode_source_kind | \
-         --mscorlib_file_name |
+         --mscorlib_file_name | \
          --preusing | \
          --using_directory | \
          --default_calling_convention)
@@ -1548,7 +1548,7 @@ process_option()
           --definition_list_file=* | \
           --pack_alignment=* | \
           --unicode_source_kind=* | \
-          --mscorlib_file_name=* |
+          --mscorlib_file_name=* | \
           --preusing=* | \
           --using_directory=* | \
           --default_calling_convention=*)
