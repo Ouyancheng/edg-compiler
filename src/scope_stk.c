@@ -7727,7 +7727,8 @@ End a name scope by popping an entry off the scope stack.
     /* Restore the pack expansion stack for a template declaration or
        instantiation scope. */
     pack_expansion_stack = ssep->pack_expansion_stack;
-    if (pack_expansion_stack != NULL) {
+    if (pack_expansion_stack != NULL &&
+        pack_expansion_stack->instantiation_descr != NULL) {
       /* Restore the state of any parameter pack parameters. */
       update_parameter_pack_symbol_values(pack_expansion_stack);
     }  /* if */
