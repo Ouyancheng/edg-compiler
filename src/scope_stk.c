@@ -1478,7 +1478,11 @@ with ssep, looking for namespace scopes.
 }  /* determine_scope_at_which_using_directive_applies */
 
 
-/* Forward declaration. */
+/* Forward declarations. */
+static void free_list_of_pack_references(a_pack_reference_ptr prp);
+
+static void issue_pack_not_expanded_diagnostics(a_pack_reference_ptr	prp);
+
 static void add_active_using_directive_to_scope(
 				a_using_decl_ptr	udp,
 				a_scope_stack_entry_ptr	ssep,
@@ -1881,6 +1885,37 @@ static void special_variadic_advance_to_next_template_arg(
 				a_template_arg_ptr	*tap);
 
 
+static void set_template_param_symbol_to_error(a_symbol_ptr	param_symbol)
+/*
+Set param_symbol to refer to an error value.
+*/
+{
+  switch (param_symbol->kind) {
+    case sk_type:
+      param_symbol->variant.type.ptr = error_type();
+      break;
+    case sk_class_template:
+      /* A template template argument. */
+      { a_template_symbol_supplement_ptr	param_tssp;
+        a_symbol_ptr				error_ct_sym;
+        error_ct_sym = error_class_template();
+        param_tssp = param_symbol->variant.template_info;
+        param_tssp->variant.class_template.argument_template = error_ct_sym;
+        param_tssp->variant.class_template.substituted_param_template =
+                       error_ct_sym->variant.template_info->il_template_entry;
+      }
+      break;
+    case sk_constant:
+      param_symbol->variant.constant =
+                                   fs_constant((a_constant_repr_kind)ck_error);
+      break;
+    default:
+      unexpected_condition();
+      break;
+  }  /* switch */
+}  /* set_template_param_symbol_to_error */
+
+
 static void update_template_param_symbols(a_template_param_ptr  param_list,
                                           a_template_arg_ptr    arg_list)
 /*
@@ -1918,8 +1953,11 @@ values needed for the previous call.
     if (tap_to_update != NULL &&
         is_start_of_pack_expansion_templ_arg(tap_to_update)) {
       tap_to_update = tap_to_update->next;
-      if (tap_to_update != NULL && !tap_to_update->is_pack_element) {
+      if (tap_to_update == NULL || !tap_to_update->is_pack_element) {
+        /* There is no argument for this parameter.  Set the parameter
+           symbol to point to an error value. */
         tap_to_update = NULL;
+        set_template_param_symbol_to_error(tpp->param_symbol);
       }  /* if */
     }  /* if */
     if (tap_to_update != NULL) {
@@ -7666,6 +7704,13 @@ End a name scope by popping an entry off the scope stack.
                                     scope_stack[prev_depth].template_arg_list);
     }  /* if */
   }  /* if */
+  if (ssep->packs_referenced != NULL) {
+    /* If there were any variadic parameter packs that were referenced but
+       not expanded, issue a diagnostic. */
+    issue_pack_not_expanded_diagnostics(ssep->packs_referenced);
+    free_list_of_pack_references(ssep->packs_referenced);
+    ssep->packs_referenced = NULL;
+  }  /* if */
   if (ssep->template_decl_info != NULL &&
       ssep->template_decl_info->pack_expansions != NULL) {
     /* The variable entries for in pack expansions are cleared to prevent
@@ -9405,6 +9450,18 @@ that list to pedp.
 }  /* extract_pack_references_for_context */
 
 
+static void issue_pack_not_expanded_diagnostics(a_pack_reference_ptr	prp)
+/*
+Issue diagnostics for each element of the pack reference list pointed to
+by prp.
+*/
+{
+  for (; prp != NULL; prp = prp->next) {
+    pos_sy_error(ec_pack_not_expanded, &prp->position, prp->symbol);
+  }  /* for */
+}  /* issue_pack_not_expanded_diagnostics */
+
+
 a_pack_expansion_descr_ptr end_potential_pack_expansion_context(
 			a_pack_expansion_stack_entry_ptr	pesep,
 			a_boolean				is_declarator)
@@ -9453,8 +9510,12 @@ effect and returns NULL.
          stack. */
       /* Save the end of the token range for the pack. */
      pedp->last_token = curr_token_sequence_number;
-     /* Get the pack references for this context from the scope stack. */
-     extract_pack_references_for_context(pedp);
+     /* Get the pack references for this context from the scope stack.  This
+        is only done if the we have seen an ellipsis or if we know there
+        is no enclosing expansion. */
+     if (pedp->ellipsis_seen || pesep->next == NULL) {
+       extract_pack_references_for_context(pedp);
+     }  /* if */
      if (pedp->packs_referenced != NULL) {
         /* There were expanded packs referenced.  This is a pack expansion. */
         record_pack_expansion(pedp);
@@ -9478,10 +9539,7 @@ effect and returns NULL.
     /* If a "..." was not encountered, issue an error. */
     a_pack_expansion_descr_ptr	pedp = pesep->expansion_descr;
     if (!pedp->ellipsis_seen) {
-      a_pack_reference_ptr	prp;
-      for (prp = pedp->packs_referenced; prp != NULL; prp = prp->next) {
-        pos_sy_error(ec_pack_not_expanded, &prp->position, prp->symbol);
-      }  /* for */
+      issue_pack_not_expanded_diagnostics(pedp->packs_referenced);
     }  /* if */
   }  /* if */
   return result_pedp;
