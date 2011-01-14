@@ -1483,6 +1483,9 @@ static void free_list_of_pack_references(a_pack_reference_ptr prp);
 
 static void issue_pack_not_expanded_diagnostics(a_pack_reference_ptr	prp);
 
+static void update_parameter_pack_symbol_values(
+			a_pack_expansion_stack_entry_ptr	pesep);
+
 static void add_active_using_directive_to_scope(
 				a_using_decl_ptr	udp,
 				a_scope_stack_entry_ptr	ssep,
@@ -2685,6 +2688,7 @@ the scope being pushed.
   ssep->next_nondependent_call   = NULL;
   ssep->next_pack_expansion      = NULL;
   ssep->packs_referenced         = NULL;
+  ssep->pack_expansion_stack     = NULL;
   ssep->qualified_conversion_operator = FALSE;
   ssep->conversion_parent_type   = NULL;
   ssep->initial_decl_of_namespace_std = FALSE;
@@ -3045,6 +3049,13 @@ the scope being pushed.
         ssep->depth_template_declaration_scope =
           depth_template_declaration_scope = NO_SCOPE_DEPTH;
       }  /* if */
+    }  /* if */
+    if (kind == (a_scope_kind)sck_template_declaration ||
+        kind == (a_scope_kind)sck_template_instantiation) {
+      /* Start a new pack expansion stack for a template declaration or
+         instantiation scope. */
+      ssep->pack_expansion_stack = pack_expansion_stack;
+      pack_expansion_stack = NULL;
     }  /* if */
     /* The in_template_deduction_context field should be TRUE for
        template declaration scopes and function prototype scopes directly
@@ -7711,6 +7722,16 @@ End a name scope by popping an entry off the scope stack.
     free_list_of_pack_references(ssep->packs_referenced);
     ssep->packs_referenced = NULL;
   }  /* if */
+  if (kind == (a_scope_kind)sck_template_declaration ||
+      kind == (a_scope_kind)sck_template_instantiation) {
+    /* Restore the pack expansion stack for a template declaration or
+       instantiation scope. */
+    pack_expansion_stack = ssep->pack_expansion_stack;
+    if (pack_expansion_stack != NULL) {
+      /* Restore the state of any parameter pack parameters. */
+      update_parameter_pack_symbol_values(pack_expansion_stack);
+    }  /* if */
+  }  /* if */
   if (ssep->template_decl_info != NULL &&
       ssep->template_decl_info->pack_expansions != NULL) {
     /* The variable entries for in pack expansions are cleared to prevent
@@ -9040,8 +9061,13 @@ pack expansion stack entry for which the symbols are to be updated.
        param_prp = param_prp->next, arg_prp = arg_prp->next) {
     a_symbol_ptr	sym = param_prp->symbol;
     if (!param_prp->is_variable) {
-      /* A template argument. */
-      update_template_param_symbol(sym, arg_prp->curr_argument.template_arg);
+      if (arg_prp->curr_argument.template_arg != NULL) {
+        /* A template argument. */
+        update_template_param_symbol(sym, arg_prp->curr_argument.template_arg);
+      } else {
+        /* There is no argument -- set the symbol to an error value. */
+        set_template_param_symbol_to_error(sym);
+      }  /* if */
     }  /* if */
   }  /* for */
 }  /* update_parameter_pack_symbol_values */

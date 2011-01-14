@@ -1154,6 +1154,11 @@ typedef struct a_scope_stack_entry {
 			   The list is expected to be NULL when the end of the
 			   scope is reached, otherwise a diagnostic is
 			   issued. */
+  a_pack_expansion_stack_entry_ptr
+			pack_expansion_stack;
+			/* The saved value of the pack expansion stack when
+			   a template declaration or template instantiation
+			   scope is pushed. */
   a_type_ptr	conversion_parent_type;
 			/* When scanning a conversion operator, this provides
 			   the left hand side of the field selection associated
