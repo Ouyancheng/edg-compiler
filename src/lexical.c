@@ -13380,7 +13380,7 @@ all arguments were explicit.
     /* cli::interior_ptr, cli::pin_ptr, and cli::array are implemented via
        templates.  Check that their arguments meet the requirements of the
        language. */
-    *any_errors = check_cli_internal_template_instantiation(
+    *any_errors = !check_cli_internal_template_instantiation(
                                      template_sym, arg_list, &error_position);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
