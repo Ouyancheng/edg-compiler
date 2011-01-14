@@ -5344,10 +5344,10 @@ issue an error at the given position.
   a_boolean  result;
 
   if (template_sym == symbol_for_cli_array) {
-    result = !is_valid_cli_array_instantiation(template_arg_list, diag_pos);
+    result = is_valid_cli_array_instantiation(template_arg_list, diag_pos);
   } else if (template_sym == symbol_for_cli_interior_ptr ||
              template_sym == symbol_for_cli_pin_ptr) {
-    result = !is_valid_cli_special_ptr_instantiation(
+    result = is_valid_cli_special_ptr_instantiation(
                                                  template_arg_list, diag_pos);
   } else {
     result = TRUE;
