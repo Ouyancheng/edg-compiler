@@ -5039,7 +5039,7 @@ typically isn't available.
   FILE                      *file;
   an_assembly_index         index = 0;
   struct stat               stat_buf;
-  int                       i;
+  unsigned int              i;
   
   /* The full name of the "dll" (really a portable assembly) has been
      supplied. */
@@ -5077,8 +5077,8 @@ typically isn't available.
     }
     /* Check to make sure the data we're reading makes sense (i.e., that
        this really is a portable assembly file). */
-    if (stat_buf.st_size < entry->header.table_offset + 
-                           entry->header.num_entries) {
+    if (stat_buf.st_size < (off_t)(entry->header.table_offset +
+                                   entry->header.num_entries)) {
       goto close_file_with_error_return;
     }  /* if */
     entry->table = (a_portable_assembly_table_entry *)alloc_general(
@@ -5162,7 +5162,7 @@ configured.
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES
   a_portable_assembly_entry *entry;
   size_t                    size;
-  int                       i;
+  unsigned int              i;
 
   check_assertion(assembly_index <= pa_cur_table_entry);
   entry = &portable_assembly_table[assembly_index];
@@ -5204,7 +5204,7 @@ Cleanup as necessary.
 */
 {
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES
-  int i;
+  unsigned int i;
   /* Close any open files. */
   for (i = 1; i <= pa_cur_table_entry; i++) {
     a_portable_assembly_entry *entry = &portable_assembly_table[i];
