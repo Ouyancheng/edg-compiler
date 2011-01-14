@@ -3260,17 +3260,6 @@ static a_text_buffer_ptr
 		metadata_string_buffer = nullptr;
 			/* Text buffer used by create_portable_assembly. */
 
-static void clear_portable_assembly_header(a_portable_assembly_header *header)
-/*
-Initialize the specified portable assembly header.
-*/
-{
-  header->magic = 0;
-  header->num_entries = 0;
-  header->table_offset = 0;
-}  /* clear_portable_assembly_header */
-
-
 static void create_portable_assembly(char               *assembly_name,
                                      an_assembly_index  index)
 /*
@@ -3358,6 +3347,7 @@ be used on non-Windows systems (for testing purposes).
                                                   _countof(typedefs),
                                                   &count_of_typedefs);
       CHECK_API_RESULT(hr, EnumTypeDefs);
+      check_assertion(count_of_typedefs <= _countof(typedefs));
       for (ULONG i = 0; i < count_of_typedefs; ++i) {
         check_assertion(typedefs[i] != 0);
         reset_text_buffer(metadata_string_buffer);

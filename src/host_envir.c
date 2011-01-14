@@ -4960,6 +4960,20 @@ final search path will include, in this order:
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if READ_CPPCLI_PORTABLE_ASSEMBLIES || WRITE_CPPCLI_PORTABLE_ASSEMBLIES
+
+void clear_portable_assembly_header(a_portable_assembly_header *header)
+/*
+Initialize the specified portable assembly header.
+*/
+{
+  header->magic = 0;
+  header->num_entries = 0;
+  header->table_offset = 0;
+}  /* clear_portable_assembly_header */
+
+#endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES || WRITE_CPPCLI_PORTABLE_ASSEMBLIES*/
+
 #if MICROSOFT_EXTENSIONS_ALLOWED && (!CPPCLI_ENABLING_POSSIBLE || !EDG_WIN32)
 
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES
@@ -5000,6 +5014,7 @@ static an_assembly_index
                            represents the last entry in use (with the exception
                            that zero is not used). */
 
+
 static void clear_portable_assembly_entry(a_portable_assembly_entry *entry)
 /*
 Initialize a portable assembly entry.
@@ -5008,17 +5023,19 @@ Initialize a portable assembly entry.
   entry->name = NULL;
   entry->f_assembly = NULL;
   entry->mmap_addr = NULL;
-  entry->header.magic = 0;
-  entry->header.num_entries = 0;
-  entry->header.table_offset = 0;
+  clear_portable_assembly_header(&entry->header);
   entry->table = NULL;
 }  /* clear_portable_assembly_entry */
 
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES */
 
 /*
-Stub versions of metadata reading routines to aid in development on platforms
-on which the metadata API is not available.
+Substitute versions of metadata reading routines to aid in development on
+platforms on which the metadata API is not available.  When
+READ_CPPCLI_PORTABLE_ASSEMBLIES is TRUE, these substitute versions are
+functional replacements for the corresponding routines in ms_metadata.cpp; when
+READ_CPPCLI_PORTABLE_ASSEMBLIES is FALSE, the routines are simple stubs that
+return an error indication.
 */
 
 /*ARGSUSED*/
@@ -5027,11 +5044,12 @@ an_assembly_index import_metadata_file(
                           a_cpp_cli_feature_set supported_features,
                           a_boolean             *is_duplicate)
 /*
-Prepare an assembly for metadata import.  This is a stub function (the real
-function is in ms_metadata.cpp) that either returns an error, or attempts to
-find a portable assembly file that contains the metadata.  The latter
-configuration is useful for testing on non-Windows platforms where metadata
-typically isn't available.
+Prepare an assembly for metadata import.  This is a substitute version
+(the real function is in ms_metadata.cpp) that either returns an error or
+attempts to read the specified portable assembly file that contains the
+metadata obtained from the original assembly.  The latter configuration is
+useful for testing on non-Windows platforms where metadata typically isn't
+available.
 */
 {
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES
@@ -5044,6 +5062,19 @@ typically isn't available.
   /* The full name of the "dll" (really a portable assembly) has been
      supplied. */
   check_assertion(assembly_full_name != NULL);
+  /* See if we've opened this portable assembly before. */
+  *is_duplicate = FALSE;
+  if (portable_assembly_table != NULL) {
+    for (i = 1; i<=pa_cur_table_entry; i++) {
+      if (strcmp(assembly_full_name, portable_assembly_table[i].name) == 0) {
+        /* We've already opened this assembly, return its index along with
+           an indication that the assembly has been previously imported. */
+        index = i;
+        *is_duplicate = TRUE;
+        goto end_of_routine;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   file = fopen_with_error(assembly_full_name, FOPEN_MODE_FOR_BINARY_READ,
                           OFF_NO_OPTIONS, ec_portable_assembly);
   if (file != NULL) {
@@ -5072,12 +5103,10 @@ typically isn't available.
                                            &entry->header.table_offset) != 3) {
       goto close_file_with_error_return;
     }  /* if */
-    if (entry->header.magic != PORTABLE_ASSEMBLY_MAGIC_NUMBER) {
-      goto close_file_with_error_return;
-    }
     /* Check to make sure the data we're reading makes sense (i.e., that
        this really is a portable assembly file). */
-    if (stat_buf.st_size < (off_t)(entry->header.table_offset +
+    if (entry->header.magic != PORTABLE_ASSEMBLY_MAGIC_NUMBER ||
+        stat_buf.st_size < (off_t)(entry->header.table_offset +
                                    entry->header.num_entries)) {
       goto close_file_with_error_return;
     }  /* if */
@@ -5095,14 +5124,6 @@ typically isn't available.
       }  /* if */
     }  /* for */
     (void)fseek(file, 0L, SEEK_SET);
-    /* See if we've opened this portable assembly before. */
-    *is_duplicate = FALSE;
-    for (i = 1; i<index; i++) {
-      if (strcmp(assembly_full_name, portable_assembly_table[i].name) == 0) {
-        *is_duplicate = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
     entry->name = assembly_full_name;
     /* Map the file into our address space.  Note that the host-independent
        mmap routines aren't used here (they assume we're mapping to a known
@@ -5133,9 +5154,9 @@ void import_all_types(an_assembly_index assembly_index,
                       size_t            *buffer_size)
 /*
 Import all types from the specified assembly into the buffer whose size
-is in *buffer_size.  This routine is a stub for the actual routine (in
-ms_metadata.cpp) and either does nothing or returns the desired string
-from a portable assembly if so configured.
+is in *buffer_size.  This routine is a substitute version for the actual
+routine (in ms_metadata.cpp) and either does nothing or returns the desired
+string from a portable assembly if so configured.
 */
 {
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES
@@ -5154,9 +5175,9 @@ void import_class_definition(an_assembly_index assembly_index,
 /*
 Import a specific class definition (as defined by metadata_type_def_token) from
 the specified assembly into the buffer whose size is in *buffer_size.  This
-routine is a stub for the actual routine (in ms_metadata.cpp) and either does
-nothing or returns the desired string from a portable assembly if so
-configured.
+routine is a substitute version for the actual routine (in ms_metadata.cpp) and
+either does nothing or returns the desired string from a portable assembly if
+so configured.
 */
 {
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES
@@ -5168,7 +5189,7 @@ configured.
   entry = &portable_assembly_table[assembly_index];
   for (i = 0; i < entry->header.num_entries; i++) {
     if (entry->table[i].token == metadata_type_def_token) break;
-  }
+  }  /* for */
   check_assertion(i < entry->header.num_entries);
   size = entry->table[i].size;
   if (size > *buffer_size) {
@@ -5177,6 +5198,8 @@ configured.
     strncpy(buffer, (char *)entry->mmap_addr + entry->table[i].offset, size);
   }  /* if */
   *buffer_size = size;
+#else /* !READ_CPPCLI_PORTABLE_ASSEMBLIES */
+  *buffer_size = 0;
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES */
 }  /* import_class_definition */
 

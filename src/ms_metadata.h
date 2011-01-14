@@ -68,8 +68,8 @@ typedef struct a_portable_assembly_header {
      newline. */
 #define PORTABLE_ASSEMBLY_HEADER_FORMAT "%08x %08x %08x\n"
 #define PORTABLE_ASSEMBLY_MAGIC_NUMBER  0x11223344
-  uint32_t      magic;	/* Identifying "magic" number for portable assembly
-			   files. */
+  uint32_t      magic;  /* Identifying "magic" number for portable assembly
+                           files. */
   uint32_t      num_entries;
                         /* The number of a_portable_assembly_table_entrys
                            this file contains. */
@@ -81,7 +81,7 @@ typedef struct a_portable_assembly_header {
 
 typedef struct a_portable_assembly_table_entry {
   /* Each entry in this table represents the metadata associated with a
-     particular C++/CLI metadata token. These fields are each converted to
+     particular C++/CLI metadata token.  These fields are each converted to
      ASCII and formatted as %08x in the file.  Each entry is terminated
      with a newline. */
 #define PORTABLE_ASSEMBLY_TABLE_FORMAT "%08x %08x %08x\n"

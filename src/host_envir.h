@@ -3397,6 +3397,12 @@ EXTERN a_boolean
 			   in the IL.  If FALSE, a warning (by default) is
 			   emitted on unrecognized attributes. */
 
+#if READ_CPPCLI_PORTABLE_ASSEMBLIES || WRITE_CPPCLI_PORTABLE_ASSEMBLIES
+struct a_portable_assembly_header;
+extern void clear_portable_assembly_header(
+                                    struct a_portable_assembly_header *header);
+#endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES || WRITE_CPPCLI_PORTABLE_ASSEMBLIES*/
+
 #endif /* ifndef HOST_ENVIR_H */
 
 /******************************************************************************

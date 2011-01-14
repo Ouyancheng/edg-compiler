@@ -17910,7 +17910,7 @@ instantiation.  class_type is the class to be defined.
   if (db_flag_is_set("dump_metadata")) {
     fprintf(f_debug, "Class definition for %x/%08x: %.256s%s\n",
             assembly_index, metadata_type_def_token, class_def_buffer->buffer,
-            class_def_buffer->size > 255 ? "..." : "");
+            class_def_buffer->size > 256 ? "..." : "");
   }  /* if */
 #endif /* DEBUG */
 #else /* !CPPCLI_ENABLING_POSSIBLE */
@@ -18005,7 +18005,7 @@ the caller should copy the contents as needed.
 #if DEBUG
   if (db_flag_is_set("dump_metadata")) {
     fprintf(f_debug, "Import types from %x: %.256s%s\n",
-            index, buffer->buffer, buffer->size > 255 ? "..." : "");
+            index, buffer->buffer, buffer->size > 256 ? "..." : "");
   }  /* if */
 #endif /* DEBUG */
   return buffer->buffer;
