@@ -5890,41 +5890,41 @@ imported.
   /* System::Object. */
   symbol_for_system_object = look_up_name_string_in_namespace("Object",
                                                               ns_ptr);
-  if (symbol_for_system_object != NULL) {
+  if (symbol_for_system_object == NULL) {
     str_catastrophe(ec_cli_system_entity_not_loaded, "Object");
   }  /* if */
   /* System::ValueType. */
   symbol_for_system_valuetype = look_up_name_string_in_namespace("ValueType",
                                                                  ns_ptr);
-  if (symbol_for_system_valuetype != NULL) {
+  if (symbol_for_system_valuetype == NULL) {
     str_catastrophe(ec_cli_system_entity_not_loaded, "ValueType");
   }  /* if */
   /* System::Enum. */
   symbol_for_system_enum = look_up_name_string_in_namespace("Enum", ns_ptr);
-  if (symbol_for_system_enum != NULL) {
+  if (symbol_for_system_enum == NULL) {
     str_catastrophe(ec_cli_system_entity_not_loaded, "Enum");
   }  /* if */
   /* System::Type. */
   symbol_for_system_type = look_up_name_string_in_namespace("Type", ns_ptr);
-  if (symbol_for_system_type != NULL) {
+  if (symbol_for_system_type == NULL) {
     str_catastrophe(ec_cli_system_entity_not_loaded, "Type");
   }  /* if */
   /* System::String. */
   symbol_for_system_string = look_up_name_string_in_namespace("String",
                                                               ns_ptr);
-  if (symbol_for_system_string != NULL) {
+  if (symbol_for_system_string == NULL) {
     str_catastrophe(ec_cli_system_entity_not_loaded, "String");
   }  /* if */
   /* System::Delegate. */
   symbol_for_system_delegate = look_up_name_string_in_namespace("Delegate",
                                                                 ns_ptr);
-  if (symbol_for_system_delegate != NULL) {
+  if (symbol_for_system_delegate == NULL) {
     str_catastrophe(ec_cli_system_entity_not_loaded, "Delegate");
   }  /* if */
   /* System::MulticastDelegate. */
   symbol_for_system_multicast_delegate = look_up_name_string_in_namespace(
                                                   "MulticastDelegate", ns_ptr);
-  if (symbol_for_system_multicast_delegate != NULL) {
+  if (symbol_for_system_multicast_delegate == NULL) {
     str_catastrophe(ec_cli_system_entity_not_loaded, "MulticastDelegate");
   }  /* if */
 }  /* init_symbols_for_cli_system_types */
