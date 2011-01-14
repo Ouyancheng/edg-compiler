@@ -648,6 +648,7 @@ check_abbreviation()
 --microsoft_bugs
 --microsoft_version
 --module_init
+--mscorlib_file_name
 --multibyte_chars
 --multi_trans_unit
 --munch
@@ -746,6 +747,7 @@ check_abbreviation()
 --no_uliterals
 --no_upc
 --no_use_before_set_warnings
+--no_using_framework_directory
 --no_using_std
 --no_variadic_macros
 --no_vla
@@ -785,6 +787,7 @@ check_abbreviation()
 --prelink_local_only
 --prelink_objects
 --preprocess
+--preusing
 --purify
 --quantify
 --remarks
@@ -835,6 +838,8 @@ check_abbreviation()
 --upc_strict
 --upc_threads
 --use_pch
+--using_directory
+--using_framework_directory
 --using_std
 --variadic_macros
 --version
@@ -1372,6 +1377,8 @@ process_option()
          --no_c++0x_sfinae | \
          --c++0x_sfinae_ignore_access | \
          --no_c++0x_sfinae_ignore_access | \
+         --using_framework_directory | \
+         --no_using_framework_directory | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
@@ -1463,6 +1470,9 @@ process_option()
 	 --upc_threads | \
          --pack_alignment | \
          --unicode_source_kind | \
+         --mscorlib_file_name |
+         --preusing | \
+         --using_directory | \
          --default_calling_convention)
       feoptions=$feoptions" $curr_arg $curr_param"
       used_two_params=1
@@ -1538,6 +1548,9 @@ process_option()
           --definition_list_file=* | \
           --pack_alignment=* | \
           --unicode_source_kind=* | \
+          --mscorlib_file_name=* |
+          --preusing=* | \
+          --using_directory=* | \
           --default_calling_convention=*)
       feoptions=$feoptions" $curr_arg"
 #     See if an instantiation mode was specified
