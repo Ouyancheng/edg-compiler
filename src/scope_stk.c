@@ -2646,6 +2646,7 @@ the scope being pushed.
   ssep->pending_templ_arg_lists  = 0;
   ssep->next_nondependent_call   = NULL;
   ssep->next_pack_expansion      = NULL;
+  ssep->packs_referenced         = NULL;
   ssep->qualified_conversion_operator = FALSE;
   ssep->conversion_parent_type   = NULL;
   ssep->initial_decl_of_namespace_std = FALSE;
@@ -8384,16 +8385,14 @@ is called only in C++.
 }  /* pop_class_reactivation_scope */
 
 
-a_template_decl_info_ptr get_current_template_decl_info(void)
+static a_scope_stack_entry_ptr get_current_template_dependent_context(void)
 /*
-Return a pointer to the template declaration information entry associated
-with the innermost template instantiation or template declaration scope.
-Note that such a scope is required to exist when this routine is called.
+Return the scope stack entry for the innermost template declaration
+scope or template instantiation scope for a prototype instantiation.
 */
 {
   a_scope_stack_entry_ptr	ssep;
   a_scope_depth			depth_to_use;
-  a_template_decl_info_ptr	tdip;
 
   /* Find the innermost template declaration or template instantiation
      scope. */
@@ -8407,6 +8406,23 @@ Note that such a scope is required to exist when this routine is called.
   }  /* if */
   check_assertion(depth_to_use != NO_SCOPE_DEPTH);
   ssep = &scope_stack[depth_to_use];
+  return ssep;
+}  /* get_current_template_dependent_context */
+
+
+a_template_decl_info_ptr get_current_template_decl_info(void)
+/*
+Return a pointer to the template declaration information entry associated
+with the innermost template instantiation or template declaration scope.
+Note that such a scope is required to exist when this routine is called.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_template_decl_info_ptr	tdip;
+
+  /* Get the innermost template declaration or template instantiation
+     scope for a prototype instantiation. */
+  ssep = get_current_template_dependent_context();
   tdip = ssep->template_decl_info;
   check_assertion(tdip != NULL);
   return tdip;
@@ -8440,6 +8456,7 @@ controls the initialization of fields used only in such cases.
   prp->is_variable = is_variable;
   prp->param_num = 0;
   prp->position = null_source_position;
+  prp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   prp->primary_var_symbol = NULL;
   if (is_variable) {
     prp->curr_argument.variable = NULL;
@@ -8494,6 +8511,7 @@ to it.
   pedp->packs_referenced = NULL;
   pedp->ellipsis_seen = FALSE;
   pedp->ellipsis_position = null_source_position;
+  pedp->is_function_declarator = FALSE;
   return pedp;
 }  /* alloc_pack_expansion_descr */
 
@@ -9079,8 +9097,9 @@ another diagnostic will not be issued).
 }  /* suppress_expansion_with_no_packs_diagnostic */
 
 
-a_boolean begin_potential_pack_expansion_context(
-			a_pack_expansion_stack_entry_ptr	*p_pesep)
+a_boolean begin_potential_pack_expansion_context_full(
+			a_pack_expansion_stack_entry_ptr	*p_pesep,
+			a_pack_expansion_descr_ptr		*p_pedp)
 /*
 This is called at the start of a construct that could be a variadic template
 pack expansion.  Such pack expansions occur only within the declarations
@@ -9127,10 +9146,15 @@ context.  A stack of such entries is maintained and the p_pesep pointer passed
 by the caller is updated to point to the stack entry created for the
 new context.  In a non-variadic context in an actual instantiation, *p_pesep
 will be set to NULL.
+
+*p_pedp is a pointer to the pack expansion descriptor for this pack
+expansion.  If p_pedp is non-NULL a pointer to the entry is returned in
+*p_pedp;
 */
 {
   a_boolean				any_args = FALSE;
   a_pack_expansion_stack_entry_ptr	pesep = NULL;
+  a_pack_expansion_descr_ptr		pedp = NULL;
 
   if (!variadic_templates_enabled) {
     /* Variadic template processing is not enabled.  Return TRUE as this will
@@ -9139,6 +9163,14 @@ will be set to NULL.
   } else if (!is_variadic_template_context()) {
     /* We are not in the definition or instantiation of a variadic template. */
     any_args = TRUE;
+  } else if (pack_expansion_stack != NULL &&
+             pack_expansion_stack->expansion_descr->first_token ==
+                                                  curr_token_sequence_number) {
+    /* This is a redundant push of the same starting location.  Just return
+       the previously created entry. */
+    pesep = pack_expansion_stack;
+    any_args = TRUE;
+    pedp = pesep->expansion_descr;
   } else if (is_template_dependent_context()) {
     any_args = TRUE;
     pesep = push_pack_expansion_stack();
@@ -9146,10 +9178,10 @@ will be set to NULL.
     pesep->expansion_descr = alloc_pack_expansion_descr();
     /* Save the start of the token range for the pack. */
     pesep->expansion_descr->first_token = curr_token_sequence_number;
+    pedp = pesep->expansion_descr;
   } else if (is_real_instantiation_context()) {
     /* This is a real instantiation.  See if there is a corresponding
        parameter pack from the template definition. */
-    a_pack_expansion_descr_ptr	pedp;
     pedp = get_pack_expansion_for_curr_context();
     if (pedp != NULL) {
       /* Get the template parameter list and template argument associated with
@@ -9177,6 +9209,22 @@ will be set to NULL.
   }  /* if */
   /* Return the pack expansion descriptor, if any, to the caller. */
   *p_pesep = pesep;
+  if (p_pedp != NULL) *p_pedp = pedp;
+  return any_args;
+}  /* begin_potential_pack_expansion_context_full */
+
+
+a_boolean begin_potential_pack_expansion_context(
+			a_pack_expansion_stack_entry_ptr	*p_pesep)
+/*
+Interface to begin_potential_pack_expansion_context_full that supplies
+a default p_pedp argument.  See that routine for more information.
+*/
+{
+  a_boolean				any_args;
+
+  any_args = begin_potential_pack_expansion_context_full(
+                                   p_pesep, (a_pack_expansion_descr_ptr*)NULL);
   return any_args;
 }  /* begin_potential_pack_expansion_context */
 
@@ -9299,11 +9347,9 @@ to expand the pack in real instantiation.
 #if DEBUG
   if (db_flag_is_set("packs")) {
     fprintf(f_debug, "Recording pack expansion from %ld to %ld\n",
-            (long)pedp->first_token, (long)curr_token_sequence_number);
+            (long)pedp->first_token, (long)pedp->last_token);
   }  /* if */
 #endif /* DEBUG */
-  /* Save the end of the token range for the pack. */
-  pedp->last_token = curr_token_sequence_number;
   /* Get the template declaration information entry associated with the
      current context. */
   tdip = get_current_template_decl_info();
@@ -9319,6 +9365,44 @@ to expand the pack in real instantiation.
   }  /* if */
   tdip->last_pack_expansion = pedp;
 }  /* record_pack_expansion */
+
+
+static void extract_pack_references_for_context(
+					a_pack_expansion_descr_ptr	pedp)
+/*
+Go through the list of pack references in the current scope stack entry,
+extract any entries for the range of tokens comprised by pedp, and attach
+that list to pedp.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_pack_reference_ptr		*p_first_prp;
+  a_pack_reference_ptr		last_prp;
+  a_pack_reference_ptr		prp;
+
+  ssep = get_current_template_dependent_context();
+  p_first_prp = &ssep->packs_referenced;
+  /* Find the first pack reference, if any, of the expansion range. */
+  for (prp = ssep->packs_referenced; prp != NULL; prp = prp->next) {
+    if (prp->token_sequence_number >= pedp->first_token) break;
+    p_first_prp = &prp->next;
+  }  /* for */
+  if (prp != NULL) {
+    /* We found a pack reference after the start of the expansion.  Find any
+       that are also before the end of the expansion. */
+    last_prp = NULL;
+    for (prp = ssep->packs_referenced; prp != NULL; prp = prp->next) {
+      if (prp->token_sequence_number > pedp->last_token) break;
+      last_prp = prp;
+    }  /* for */
+    if (last_prp != NULL) {
+      /* There are pack references for this expansion.  Extract them from
+         the scope stack list. */
+      pedp->packs_referenced = *p_first_prp;
+      *p_first_prp = last_prp->next;
+    }  /* if */
+  }  /* if */
+}  /* extract_pack_references_for_context */
 
 
 a_pack_expansion_descr_ptr end_potential_pack_expansion_context(
@@ -9367,6 +9451,10 @@ effect and returns NULL.
     if (is_template_dependent_context()) {
       /* The pack expansion descriptor passed in should be on top of the
          stack. */
+      /* Save the end of the token range for the pack. */
+     pedp->last_token = curr_token_sequence_number;
+     /* Get the pack references for this context from the scope stack. */
+     extract_pack_references_for_context(pedp);
      if (pedp->packs_referenced != NULL) {
         /* There were expanded packs referenced.  This is a pack expansion. */
         record_pack_expansion(pedp);
@@ -9489,19 +9577,20 @@ source position of the use of the symbols is indicated by position.
 */
 {
   /* It is only possible to reference a pack expansion in a template
-     dependent context. */
-  if (is_template_dependent_context()) {
+     dependent context.  Don't record pack references during rescans -- just
+     use the pack references from the definition. */
+  if (is_template_dependent_context() &&
+      (pack_expansion_stack == NULL || !pack_expansion_stack->is_rescan)) {
     if (symbol_is_pack(pack_symbol)) {
-      /* Add this pack symbol to the list of packs referenced by the
-         pack expansion on top of the stack. */
-      a_pack_expansion_descr_ptr	pedp;
+      /* Add this pack symbol to the list of packs in the scope stack
+         entry. */
       a_pack_reference_ptr		prp;
-      check_assertion(pack_expansion_stack != NULL);
-      pedp = pack_expansion_stack->expansion_descr;
+      a_scope_stack_entry_ptr		ssep;
+      ssep = get_current_template_dependent_context();
       /* Look for an existing expansion of this symbol. */
-      for (prp = pedp->packs_referenced; prp != NULL; prp = prp->next) {
+      for (prp = ssep->packs_referenced; prp != NULL; prp = prp->next) {
         if (prp->symbol == pack_symbol) break;
-       }  /* for */
+      }  /* for */
       if (prp == NULL) {
         /* An existing entry was not found.  Create a new one. */
         a_boolean	is_variable;
@@ -9513,8 +9602,9 @@ source position of the use of the symbols is indicated by position.
                             variant.variable.ptr->assoc_param_type->param_num;
         }  /* if */
         prp->position = *position;
-        prp->next = pedp->packs_referenced;
-        pedp->packs_referenced = prp;
+        prp->token_sequence_number = curr_token_sequence_number;
+        prp->next = ssep->packs_referenced;
+        ssep->packs_referenced = prp;
       }  /* if */
     }  /* if */
   }  /* if */

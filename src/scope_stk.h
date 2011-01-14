@@ -264,6 +264,10 @@ typedef struct a_pack_reference {
   a_source_position
 		position;
 			/* The source position of the pack reference. */
+  a_token_sequence_number
+		token_sequence_number;
+			/* The token sequence number associated with the
+			   pack reference. */
   a_byte_boolean
 		is_variable;
 			/* TRUE if this entry is for a reference to a
@@ -328,6 +332,12 @@ typedef struct a_pack_expansion_descr {
 			/* If ellipsis_seen is TRUE, this is the position of
 			   the ellipsis token; null_source_position
 			   otherwise. */
+  a_boolean	is_function_declarator;
+			/* This field is used by declarator processing to
+			   save the disambiguation result between a function
+			   declarator and a parenthesized initializer so that
+			   during an actual instantiation the zero-trip case
+			   can be handled properly. */
 } a_pack_expansion_descr;
 
 
@@ -1135,6 +1145,15 @@ typedef struct a_scope_stack_entry {
 			   list of pack expansions.  This is used to find
 			   the pack expansion entry for a given point within
 			   the actual instantiation. */
+  a_pack_reference_ptr
+		packs_referenced;
+			/* When a variadic parameter pack is referenced, it
+			   is placed on this list.  When we reach the end of
+			   the expansion context, any packs referenced within
+			   the range of the pack are extracted from this list.
+			   The list is expected to be NULL when the end of the
+			   scope is reached, otherwise a diagnostic is
+			   issued. */
   a_type_ptr	conversion_parent_type;
 			/* When scanning a conversion operator, this provides
 			   the left hand side of the field selection associated
@@ -1676,6 +1695,10 @@ extern void begin_pack_deduction_context(
 		a_template_param_ptr			templ_param_list,
 		a_template_arg_ptr			*templ_arg_list,
 		a_pack_expansion_stack_entry_ptr	*p_pesep);
+
+extern a_boolean begin_potential_pack_expansion_context_full(
+			a_pack_expansion_stack_entry_ptr	*p_pesep,
+			a_pack_expansion_descr_ptr		*p_pedp);
 
 extern a_boolean begin_potential_pack_expansion_context(
 			a_pack_expansion_stack_entry_ptr	*p_pesep);

@@ -5788,7 +5788,25 @@ The syntax is:
            is enabled because is_decl_not_expr can return an incorrect result
            in such cases.  In other cases, we still use is_decl_not_expr
            because it provides for better diagnostics later on. */
-        if ((not_a_function_declarator && implicit_typename_enabled &&
+        a_pack_expansion_stack_entry_ptr	pesep;
+        a_pack_expansion_descr_ptr		pedp;
+        a_boolean				any_args;
+        /* We could be at the start of a function declarator or a parenthesized
+           initializer.  Determining which case we have may involve
+           coalescing an identifier that could be part of a pack expansion.
+           As a result, we need to push the pack expansion context now.
+           During a real instantiation of a variadic template with an empty
+           pack, we should rely on the value of is_function_declarator saved
+           during the prototype instantiation to determine whether or not
+           this is a function. */
+        any_args = begin_potential_pack_expansion_context_full(&pesep, &pedp);
+        if (!is_template_dependent_context() && pedp != NULL) {
+          /* This is a real instantiation.  If we found a function declarator
+             in the prototype instantiation, treat this as one now. */
+          if (pedp->is_function_declarator) goto function_lparen;
+        }  /* if */
+        if ((!any_args && pedp != NULL && !pedp->is_function_declarator) ||
+            (not_a_function_declarator && implicit_typename_enabled &&
              is_template_dependent_context()) ||
             !is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                               DFS_REAL_DECLARATOR_ALLOWED)) {
@@ -5801,7 +5819,10 @@ The syntax is:
              only be a function definition.  Otherwise assume it to be a
              parenthesized initializer.  GNU C++ does not accept old-style
              parameter lists. */
-          if (curr_token == tok_identifier && !gpp_mode) {
+          if (!any_args && pedp != NULL && !pedp->is_function_declarator) {
+            /* We know from the prototype instantiation that this is a
+               parenthesized initializer. */
+          } else if (curr_token == tok_identifier && !gpp_mode) {
             a_token_cache       cache;
 
             clear_token_cache(&cache, /*reusable=*/FALSE);
@@ -5839,6 +5860,10 @@ The syntax is:
             break;
           }  /* if */
         }  /* if */
+        /* Save the knowledge that this should be processed as a function
+           declarator (note that we only get here with pedp non-NULL in
+           template dependent contexts). */
+        if (pedp != NULL) pedp->is_function_declarator = TRUE;
       }  /* if */
 function_lparen:
       /* For function types as the top type, fetch the extra function info
