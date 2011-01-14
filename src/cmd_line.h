@@ -284,7 +284,7 @@ typedef enum /*an_option_kind*/ {
   optk_preusing,
   optk_assembly_using_dir,
   optk_using_framework_directory,
-  optk_implicit_mscorlib,
+  optk_mscorlib_file_name,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_last		/* Must be last. */
 } an_option_kind;
@@ -1066,10 +1066,15 @@ EXTERN a_boolean
 			/* TRUE if 64-bit pointer extensions (__ptr32/__ptr64
 			   and __sptr/__uptr) should be accepted in Microsoft
 			   modes. */
-EXTERN a_boolean
-		implicit_mscorlib;
-			/* TRUE if mscorlib is implicitly made available,
-			   as if by a #using directive. */
+EXTERN char
+		*mscorlib_file_name;
+			/* If non-NULL, the name of the file to be used
+			   to load mscorlib instead of using the normal
+			   search mechanism.  This can be used, for example,
+			   if a development version of mscorlib is to
+			   be used.  If this is not an absolute path name,
+			   it will be searched for using the normal
+			   assembly search path mechanism. */
 EXTERN a_boolean
 		using_framework_directory;
 			/* TRUE if assemblies should be searched for in the

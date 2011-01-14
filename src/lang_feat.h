@@ -775,18 +775,6 @@ to read C++/CLI metadata from portable assembly files.
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !CPPCLI_ENABLING_POSSIBLE */
 
 /*
-Flag that is TRUE if in C++/CLI mode, mscorlib should be made available
-by default as if by a #using directive.
-*/
-#ifndef DEFAULT_IMPLICIT_MSCORLIB
-#if EDG_WIN32
-#define DEFAULT_IMPLICIT_MSCORLIB TRUE
-#else /* !EDG_WIN32 */
-#define DEFAULT_IMPLICIT_MSCORLIB FALSE
-#endif /* EDG_WIN32 */
-#endif /* ifndef DEFAULT_IMPLICIT_MSCORLIB */
-
-/*
 Flag that is TRUE if by default in Microsoft modes the front end should accept
 64-bit pointer extensions (__ptr32/__ptr64 and __sptr/__uptr).  This is used
 to initialize the global variable microsoft_64bit_pointer_extensions_enabled.

@@ -1568,25 +1568,29 @@ in the metadata file.
 
 void process_preusings(void)
 /*
-Import mscorlib.dll if we haven't seen --no_implicit_mscorlib, then import
-any other metadata files specified via --preusing.
+Import mscorlib.dll or the file to be used in place of mscorlib to define
+system types.  Then import any other metadata files specified via --preusing.
 */
 {
   char *name;
+  char *mscorlib;
+  char *il_mscorlib;
 
-  if (implicit_mscorlib) {
-    char *mscorlib;
-    
-    mscorlib = alloc_il(sizeof("mscorlib.dll"));
-    strcpy(mscorlib, "mscorlib.dll");
-    import_metadata(mscorlib, /*as_friend=*/FALSE, /*is_system_include=*/TRUE,
-                    /*referenced_by_preusing=*/TRUE,
-                    &preinclude_source_position);
-    /* Create cli::array.  Note: cli::array will not be defined if 
-       implicit_mscorlib is FALSE. */
-    make_symbol_for_cli_array();
-    init_symbols_for_cli_system_types();
-  }  /* if */
+  /* mscorlib_file_name will be non-NULL if a user-specified file should
+     be used in place of mscorlib. */
+  if (mscorlib_file_name != NULL) {
+    mscorlib = mscorlib_file_name;
+  } else {
+    mscorlib = "mscorlib.dll";
+  }  /* if */    
+  il_mscorlib = alloc_il(strlen(mscorlib) + 1);
+  strcpy(il_mscorlib, mscorlib);
+  import_metadata(il_mscorlib, /*as_friend=*/FALSE, /*is_system_include=*/TRUE,
+                  /*referenced_by_preusing=*/TRUE,
+                  &preinclude_source_position);
+  /* Create cli::array. */
+  make_symbol_for_cli_array();
+  init_symbols_for_cli_system_types();
   while (preusing_file_list != NULL) {
     name = alloc_il(strlen(preusing_file_list->file_name) + 1);
     strcpy(name, preusing_file_list->file_name);

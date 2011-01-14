@@ -512,11 +512,8 @@ Initialize the option information table.
                          "no_using_framework_directory",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_implicit_mscorlib, "implicit_mscorlib",
-                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_command_line);
-  add_option_description(optk_implicit_mscorlib, "no_implicit_mscorlib",
-                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+  add_option_description(optk_mscorlib_file_name, "mscorlib_file_name",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
 #endif /* CPPCLI_ENABLING_POSSIBLE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4551,11 +4548,6 @@ file.
 #else /* !defined(DEFAULT_GUIDING_DECLS_ALLOWED) */
   comment_undefined_macro_name(DEFAULT_GUIDING_DECLS_ALLOWED);
 #endif /* defined(DEFAULT_GUIDING_DECLS_ALLOWED) */
-#if defined(DEFAULT_IMPLICIT_MSCORLIB)
-  define_numeric_valued_macro(DEFAULT_IMPLICIT_MSCORLIB);
-#else /* !defined(DEFAULT_IMPLICIT_MSCORLIB) */
-  comment_undefined_macro_name(DEFAULT_IMPLICIT_MSCORLIB);
-#endif /* defined(DEFAULT_IMPLICIT_MSCORLIB) */
 #if defined(DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE)
   define_numeric_valued_macro(DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE);
 #else /* !defined(DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE) */
@@ -7695,9 +7687,10 @@ enable_microsoft_mode:
           goto enable_microsoft_mode;
         }  /* if */
         break;
-      case optk_implicit_mscorlib:
-        /* Enable or disable implicitly referencing mscorlib. */
-        implicit_mscorlib = opt_value;
+      case optk_mscorlib_file_name:
+        /* Specify the file name to be used to provide the system types
+           normally provided by mscorlib.dll. */
+        mscorlib_file_name = file_name_from_opt_arg(opt_arg);
         break;
       case optk_using_framework_directory:
         /* Enable or disable searching for assemblies (#using) in the
@@ -9375,9 +9368,9 @@ variables declared in cmd_line.h.
   microsoft_mode = DEFAULT_MICROSOFT_MODE;
   microsoft_bugs = DEFAULT_MICROSOFT_BUGS && microsoft_mode;  /*lint !e506*/
   cppcli_enabled = DEFAULT_CPPCLI_ENABLED && microsoft_mode;  /*lint !e506*/
-  /* implicit_mscorlib and using_framework_directory may default to TRUE,
-     but have no effect unless cppcli_enabled is TRUE. */
-  implicit_mscorlib = DEFAULT_IMPLICIT_MSCORLIB;
+  mscorlib_file_name = NULL;
+  /* using_framework_directory defaults to TRUE, but has no effect unless
+     cppcli_enabled is TRUE. */
   using_framework_directory = TRUE;
 #if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
   generate_portable_assemblies = FALSE;
