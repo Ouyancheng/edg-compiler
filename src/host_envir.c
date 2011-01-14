@@ -4896,6 +4896,8 @@ final search path will include, in this order:
   - .NET system directory (if we haven't seen --no_using_framework_directory)
   - Directories specified from the --using_directory option
   - Directories from the environment variable LIBPATH
+  - CPPCLI_PORTABLE_ASSEMBLY_PATH (in some configurations)
+  - EDG_CPPCLI_PORTABLE_ASSEMBLY_PATH environment variable (in some configs)
 */
 {
   char       *libpath;
@@ -4956,6 +4958,19 @@ final search path will include, in this order:
       current_path = semicolon + 1;
     }  /* for */
   }  /* if */
+#if READ_CPPCLI_PORTABLE_ASSEMBLIES
+  /* Make it easy to find portable assemblies on non-Windows systems. */
+#ifdef CPPCLI_PORTABLE_ASSEMBLY_PATH
+  add_to_specified_include_search_path(CPPCLI_PORTABLE_ASSEMBLY_PATH, FALSE,
+                             &assembly_search_path, &end_assembly_search_path);
+#endif /* ifdef CPPCLI_PORTABLE_ASSEMBLY_PATH */
+  { char *pa_path = getenv("EDG_CPPCLI_PORTABLE_ASSEMBLY_PATH");
+    if (pa_path != NULL) {
+      add_to_specified_include_search_path(pa_path, FALSE,
+                             &assembly_search_path, &end_assembly_search_path);
+    }  /* if */
+  }
+#endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES */
 }  /* init_assembly_search_path */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
