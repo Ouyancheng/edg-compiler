@@ -1,5 +1,20 @@
 Version 4.3
 
+1/15/06  [EDGcpfe/11277]
+Exception specifications on templates when exceptions are disabled
+
+The front end was changed to issue a warning instead of an error on
+exception specifications on function definitions when support for
+exceptions was disabled (see 1/16/06 entry).  This change failed to
+address such diagnostics on function templates and member functions of
+class templates in modes in which nonclass prototype instantiations
+are performed.  Now fixed.  Formerly, the following example would produce
+an error with the --strict and --no_exceptions option.  It now produces
+a warning.
+
+  template <class T> void f(T) throw() {}
+
+
 1/14/11  [EDGcpfe/11270]
 Partial ordering of lvalue vs. rvalue references
 

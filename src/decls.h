@@ -70,6 +70,9 @@ typedef int an_is_decl_start_options_set;
 /* Test whether or not the current token is the start of a declaration. */
 extern a_boolean is_decl_start(an_is_decl_start_options_set options);
 
+void issue_no_exception_support_diag_on_throw_spec(
+				a_func_info_block_ptr		func_info);
+
 extern a_boolean check_member_function_typedef(a_type_ptr         tp,
                                                a_source_position  *pos);
 

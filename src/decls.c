@@ -6658,6 +6658,23 @@ TRUE if that is the case.  The current declaration is described by *dps and
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+void issue_no_exception_support_diag_on_throw_spec(
+					a_func_info_block_ptr	func_info)
+/*
+Issue a diagnostic on attempting to define a noninline function with
+an exception specification when exception support is not enabled.
+The function is specified by func_info.  (No diagnostic is issued on
+nondefinition -- the exception specification is just ignored.  In GNU
+C++ mode, even exception specifications on definitions are ignored.)
+*/
+{
+  if (!(func_info->is_inline || gpp_mode) && 
+      func_info->throw_position.seq != 0) {
+    pos_warning(ec_no_exception_support, &func_info->throw_position);
+  }  /* if */
+}  /* issue_no_exception_support_diag_on_throw_spec */
+
+
 #if !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS)
 /* ARGSUSED */ /* decl_pos_block is not used in some configurations. */
 #endif /* !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS) */
@@ -8033,15 +8050,10 @@ skip_overloading:;
        process_curr_construct_pragmas; otherwise the pragmas we're interested
        in would have been disposed of. */
     record_lint_argsused_and_varargs_state(sym);
-    if (!C_mode() && !exceptions_enabled && 
-        !(func_info->is_inline || gpp_mode) &&
-        func_info->throw_position.seq != 0) {
-      /* Issue a diagnostic on attempting to define a noninline function with
-         an exception specification when exception support is not enabled.
-         (No diagnostic is issued on nondefinition -- the exception
-         specification is just ignored.  In GNU C++ mode, even exception
-         specifications on definitions are ignored.) */
-      pos_warning(ec_no_exception_support, &func_info->throw_position);
+    if (!C_mode() && !exceptions_enabled) {
+      /* Check whether a diagnostic should be issued on this exception
+         specification, and issue one if needed. */
+      issue_no_exception_support_diag_on_throw_spec(func_info);
     }  /* if */
     record_pragma_state_in_routine(routine_ptr);
   }  /* if */
