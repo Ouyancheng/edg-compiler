@@ -1,5 +1,17 @@
 Version 4.3
 
+1/14/11  [EDGcpfe/11270]
+Partial ordering of lvalue vs. rvalue references
+
+Core issue 1164 clarified that an lvalue reference parameter should be
+considered more specialized than an rvalue reference parameter.  We
+now implement the revised rules.
+
+  template<typename T> int f(T&);
+  template<typename T> int f(T&&);
+  int i;
+  int j = f(i);  // formerly ambiguous, now calls f(T&)
+
 1/11/11  [EDGcpfe/11262]
 Microsoft compatibility: Binding an rvalue reference to a bit field
 

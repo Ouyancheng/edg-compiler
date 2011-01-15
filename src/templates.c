@@ -1891,6 +1891,8 @@ function).
 {
   a_boolean	type_1_is_reference;
   a_boolean	type_2_is_reference;
+  a_boolean	type_1_is_lvalue_reference;
+  a_boolean	type_2_is_lvalue_reference;
   a_boolean	qualifiers_dropped1 = FALSE;
   a_boolean	qualifiers_dropped2 = FALSE;
   a_boolean	type_under_ref_is_function = FALSE;
@@ -1904,6 +1906,9 @@ function).
   param_type2 = skip_typerefs(param_type2);
   /* Remove any top level references. */
   type_1_is_reference = is_any_reference_type(param_type1);
+  type_1_is_lvalue_reference = type_1_is_reference
+                                        ? is_lvalue_reference_type(param_type1)
+                                        : FALSE;
   if (type_1_is_reference) {
     param_type1 = type_pointed_to(param_type1);
     /* The "ref. vs. ptr check" below needs to know if we have a reference
@@ -1913,6 +1918,9 @@ function).
     }  /* if */
   }  /* if */
   type_2_is_reference = is_any_reference_type(param_type2);
+  type_2_is_lvalue_reference = type_2_is_reference
+                                        ? is_lvalue_reference_type(param_type2)
+                                        : FALSE;
   if (type_2_is_reference) {
     param_type2 = type_pointed_to(param_type2);
     /* The "ref. vs. ptr check" below needs to know if we have a reference
@@ -1978,7 +1986,15 @@ function).
   }  /* if */
   /* If both comparisons match, prefer the direction that is more qualified. */
   if (*match1 && *match2) {
-    if (qualifiers_dropped1 && !qualifiers_dropped2) {
+    if ((type_1_is_reference && type_2_is_reference) &&
+        (type_1_is_lvalue_reference != type_2_is_lvalue_reference)) {
+      /* An lvalue reference is more specialized than an rvalue reference. */
+      if (type_1_is_lvalue_reference) {
+        *match2 = FALSE;
+      } else {
+        *match1 = FALSE;
+      }  /* if */
+    } else if (qualifiers_dropped1 && !qualifiers_dropped2) {
       *match2 = FALSE;
     } else if (qualifiers_dropped2 && !qualifiers_dropped1) {
       *match1 = FALSE;
