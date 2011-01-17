@@ -9669,6 +9669,30 @@ the error type is a member, or is NULL for a nonmember.
 }  /* create_error_routine_type */
 
 
+void set_template_arg_to_error(a_template_arg_ptr	tap)
+/*
+Set the template argument specified by tap to refer to an error entity.
+*/
+{
+  switch (tap->kind) {
+    case tak_type:
+      tap->variant.type = error_type();
+      break;
+    case tak_nontype:
+      tap->variant.constant = fs_constant((a_constant_repr_kind)ck_error);
+      tap->variant.constant->type = error_type();
+      break;
+    case tak_template:
+      tap->variant.templ.ptr = error_class_template()->
+                                      variant.template_info->il_template_entry;
+      break;
+    default:
+      unexpected_condition();
+      break;
+  }  /* switch */
+}  /* set_template_arg_to_error */
+
+
 static a_symbol_ptr create_error_routine(a_symbol_ptr	template_sym,
 					 a_type_ptr	parent_class)
 /*
@@ -9703,22 +9727,7 @@ created.
                                            (a_source_position_ptr)NULL);
   /* Fill in the template argument list with error values. */
   for (tap = rout->template_arg_list; tap != NULL; tap = tap->next) {
-    switch (tap->kind) {
-      case tak_type:
-        tap->variant.type = error_type();
-        break;
-      case tak_nontype:
-        tap->variant.constant = fs_constant((a_constant_repr_kind)ck_error);
-        tap->variant.constant->type = error_type();
-        break;
-      case tak_template:
-        tap->variant.templ.ptr = error_class_template()->
-                                      variant.template_info->il_template_entry;
-        break;
-      default:
-        unexpected_condition();
-        break;
-    }  /* switch */
+    set_template_arg_to_error(tap);
   }  /* for */
   set_routine_special_kind(rout, templ_rout->special_kind);
   if (rout->special_kind == (a_special_function_kind)sfk_operator) {

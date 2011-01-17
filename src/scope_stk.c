@@ -9083,21 +9083,23 @@ matches tpp.  Return the current template argument value for that parameter.
 In deduction contexts, if there is no current argument, create one.
 */
 {
-  a_pack_reference_ptr			param_prp;
-  a_pack_reference_ptr			arg_prp;
+  a_pack_reference_ptr			param_prp = NULL;
+  a_pack_reference_ptr			arg_prp = NULL;
   a_pack_expansion_stack_entry_ptr	pesep = pack_expansion_stack;
   a_symbol_ptr				tpp_sym = tpp->param_symbol;
   a_template_arg_ptr			result_tap = NULL;
 
-  for (param_prp = pesep->expansion_descr->packs_referenced,
-         arg_prp = pesep->instantiation_descr->pack_status;
-       param_prp != NULL;
+  /* The pack expansion stack could be NULL in certain error cases. */
+  if (pesep != NULL) {
+    param_prp = pesep->expansion_descr->packs_referenced;
+    arg_prp = pesep->instantiation_descr->pack_status;
+  }  /* if */
+  for (; param_prp != NULL;
        param_prp = param_prp->next, arg_prp = arg_prp->next) {
     a_symbol_ptr	sym = param_prp->symbol;
-    if (sym == tpp_sym) {
-      check_assertion(sym->kind != (a_symbol_kind)sk_variable);
-      result_tap = arg_prp->curr_argument.template_arg;
-    }  /* if */
+    if (sym != tpp_sym) continue;
+    check_assertion(sym->kind != (a_symbol_kind)sk_variable);
+    result_tap = arg_prp->curr_argument.template_arg;
     if (result_tap == NULL && pesep->is_deduction) {
       /* We are deducing the value for a new pack element.  Create the
          argument now and link it into the argument list. */
@@ -9109,8 +9111,16 @@ In deduction contexts, if there is no current argument, create one.
       arg_prp->prev_template_arg = result_tap;
       arg_prp->curr_argument.template_arg = result_tap;
     }  /* if */
+    break;
   }  /* for */
-  check_assertion(result_tap != NULL);
+  if (result_tap == NULL) {
+    /* In error cases, we may not find an argument.  Create an error
+       argument. */
+    check_assertion(total_errors != 0);
+    result_tap = alloc_template_arg(
+                                templ_arg_kind_for_symbol_kind(tpp_sym->kind));
+    set_template_arg_to_error(result_tap);
+  }  /* if */
   return result_tap;
 }  /* get_curr_variadic_arg_for_param */
 
