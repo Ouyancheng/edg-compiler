@@ -1632,6 +1632,9 @@ diagnostic at the given position.
       dim_cp = tap->variant.constant;
       if (dim_cp->kind == (a_constant_repr_kind)ck_template_param) {
         /* A template-dependent value cannot be compared to one. */
+      } else if (dim_cp->kind == (a_constant_repr_kind)ck_error) {
+        /* A previous error: No additional diagnostic is needed. */
+        expect_error();
       } else {
         a_boolean  ovflo;
         check_assertion(dim_cp->kind == (a_constant_repr_kind)ck_integer);
