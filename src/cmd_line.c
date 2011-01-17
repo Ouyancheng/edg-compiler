@@ -4946,6 +4946,11 @@ file.
 #else /* !defined(DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD) */
   comment_undefined_macro_name(DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD);
 #endif /* defined(DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD) */
+#if defined(DEFINE_STDC_IN_MICROSOFT_MODE)
+  define_numeric_valued_macro(DEFINE_STDC_IN_MICROSOFT_MODE);
+#else /* !defined(DEFINE_STDC_IN_MICROSOFT_MODE) */
+  comment_undefined_macro_name(DEFINE_STDC_IN_MICROSOFT_MODE);
+#endif /* defined(DEFINE_STDC_IN_MICROSOFT_MODE) */
 #if defined(DELETE_CAN_BE_FOLDED_INTO_DTOR)
   define_numeric_valued_macro(DELETE_CAN_BE_FOLDED_INTO_DTOR);
 #else /* !defined(DELETE_CAN_BE_FOLDED_INTO_DTOR) */

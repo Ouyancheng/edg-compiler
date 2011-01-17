@@ -1,5 +1,27 @@
 Version 4.3
 
+1/17/11  [EDGcpfe/11288]
+Microsoft compatibility: Defining __STDC__ macro
+
+The Microsoft compiler does not define __STDC__, and neither does the
+front end in Microsoft emulation mode, but that behavior can cause problems
+when using Microsoft emulation mode with non-Microsoft system headers.
+In particular, on Linux systems (with GNU headers) when __STDC__ is not defined
+and <stdio.h> is included, "const" is defined as a NULL macro (effectively
+disabling it during the rest of the compilation).  To allow user control over
+this behavior, a new configuration macro DEFINE_STDC_IN_MICROSOFT_MODE has been
+added.  Its default value is FALSE on Windows systems (i.e., when EDG_WIN32 is
+TRUE), otherwise its value is TRUE.  In this C++ example, on a Linux system
+using GNU headers, when emulating Microsoft, an error had been issued
+("function 'f' has already been defined"), but now with
+DEFINE_STDC_IN_MICROSOFT_MODE set to TRUE, the example compiles properly
+(creating a pair of overloaded functions):
+
+  #include <stdio.h>
+  void f(const char *) {}
+  void f(char *) {}
+
+
 1/15/11  [EDGcpfe/11277]
 Exception specifications on templates when exceptions are disabled
 

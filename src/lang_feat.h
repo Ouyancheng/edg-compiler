@@ -157,6 +157,22 @@ TRUE if __STDC__ should be defined to 0 while processing system header files.
 #endif /* ifndef DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS */
 
 /*
+TRUE if __STDC__ should be defined (to 1) in Microsoft mode.  This is typically
+FALSE (as Microsoft compilers do not define it in either C or C++ mode),
+but should be set to TRUE in configurations where the system header files
+may be expecting it to be set (e.g., GNU headers on non-Windows platforms).
+Some versions of GNU's libio.h -- included by stdio.h -- define "const" to a
+NULL macro if __STDC__ isn't defined.
+*/
+#ifndef DEFINE_STDC_IN_MICROSOFT_MODE
+#if EDG_WIN32
+#define DEFINE_STDC_IN_MICROSOFT_MODE FALSE
+#else /* !EDG_WIN32 */
+#define DEFINE_STDC_IN_MICROSOFT_MODE TRUE
+#endif /* EDG_WIN32 */
+#endif /* ifndef DEFINE_STDC_IN_MICROSOFT_MODE */
+
+/*
 Flag that is TRUE if the address of a bit field may be taken as long
 as the bit field has a size and alignment that match some integral type.
 A warning is issued.
