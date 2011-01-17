@@ -2044,9 +2044,6 @@ TRUE if this is the function declarator in a friend function declaration.
   a_boolean               is_top_level_declarator = TRUE;
   a_boolean               microsoft_C_leading_ellipsis = FALSE;
   a_boolean               must_pop_function_prototype_scope = FALSE;
-#if 0
-  a_param_type_ptr        variadic_param_types = NULL;
-#endif /* 0 */
 
   db_enter(3, "function_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -2056,14 +2053,7 @@ TRUE if this is the function declarator in a friend function declaration.
      a "top-level" function declaration.  Use the storage passed in by the
      caller.  But if func_info is NULL, use a local func info block.  This
      is mainly useful for managing param_id entries properly. */
-  if (func_info != NULL) {
-#if 0
-    if (is_variadic_template_context() && !is_template_dependent_context()) {
-      /* FIXME: is this needed? */
-      variadic_param_types = get_param_types_for_variadic_template();
-    }  /* if */
-#endif /* 0 */
-  } else {
+  if (func_info == NULL) {
     clear_func_info(&local_func_info_block);
     func_info = &local_func_info_block;
     is_top_level_declarator = FALSE;
