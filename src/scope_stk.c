@@ -8658,6 +8658,7 @@ to it.
   pesep->first_token_handle = NO_CACHED_TOKEN_HANDLE;
   pesep->is_rescan = FALSE;
   pesep->is_deduction = FALSE;
+  pesep->is_suppression = FALSE;
   pesep->expansion_with_no_packs_diagnostic_issued = FALSE;
   return pesep;
 }  /* alloc_pack_expansion_stack_entry */
@@ -9179,6 +9180,41 @@ another diagnostic will not be issued).
 }  /* suppress_expansion_with_no_packs_diagnostic */
 
 
+void push_expansion_suppression(
+			a_pack_expansion_stack_entry_ptr	*p_pesep)
+/*
+Push an entry on the pack expansion stack that will suppress the recording
+of pack expansion contexts and pack references in template dependent
+contexts.  This routine has no effect outside of such contexts.  It
+is used in prescan contexts to avoid creating redundant pack expansion
+entries.
+*/
+{
+  a_pack_expansion_stack_entry_ptr	pesep = NULL;
+
+  if (is_template_dependent_context() && is_variadic_template_context()) {
+    pesep = push_pack_expansion_stack();
+    pesep->is_suppression = TRUE;
+  }  /* if */
+  *p_pesep = pesep;
+}  /* push_pack_suppression */
+
+
+void pop_expansion_suppression(
+			a_pack_expansion_stack_entry_ptr	pesep)
+/*
+Pop the pack suppression entry pesep from the pack expansion stack.  pesep
+will be NULL outside of template dependent contexts.
+*/
+{
+  if (pesep != NULL) {
+    check_assertion(pesep == pack_expansion_stack &&
+                    pesep->is_suppression);
+    pop_pack_expansion_stack();
+  }  /* if */
+}  /* push_pack_suppression */
+
+
 a_boolean begin_potential_pack_expansion_context_full(
 			a_pack_expansion_stack_entry_ptr	*p_pesep,
 			a_pack_expansion_descr_ptr		*p_pedp)
@@ -9244,6 +9280,12 @@ expansion.  If p_pedp is non-NULL a pointer to the entry is returned in
     any_args = TRUE;
   } else if (!is_variadic_template_context()) {
     /* We are not in the definition or instantiation of a variadic template. */
+    any_args = TRUE;
+  } else if (pack_expansion_stack != NULL &&
+             pack_expansion_stack->is_suppression) {
+    /* We are suppressing the recording of pack expansions.  Return the pack
+       expansion stack entry for the suppression entry. */
+    pesep = pack_expansion_stack;
     any_args = TRUE;
   } else if (pack_expansion_stack != NULL &&
              pack_expansion_stack->expansion_descr->first_token ==
@@ -9535,6 +9577,13 @@ effect and returns NULL.
   if (pesep != NULL && pesep->is_rescan) pesep = NULL;
   if (pesep == NULL) {
     /* A non-variadic context.  There is nothing to be done. */
+  } else if (pesep->is_suppression) {
+    /* We are suppressing pack expansion processing. */
+    pesep = NULL;
+    if (!is_declarator && curr_token == tok_ellipsis) {
+      /* Skip over the ellipsis. */
+      (void)get_token();
+    }  /* if */ 
   } else {
     a_pack_expansion_descr_ptr	pedp = pesep->expansion_descr;
     check_assertion(pesep == pack_expansion_stack);
@@ -9596,10 +9645,17 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
 {
   a_boolean			done = FALSE;
 
-  if (pesep == NULL ||
-      pesep->instantiation_descr == NULL) {
-    /* We are not in a pack expansion, or we are in a prototype instantiation.
-       In either case, indicate that there are no further elements. */
+  if (pesep == NULL) {
+    /* We are not in a pack expansion.  Indicate that there are no further
+       elements. */
+    done = TRUE;
+  } else if (pesep->is_suppression) {
+    /* We are suppressing pack expansion processing. */
+    done = TRUE;
+    pesep = NULL;
+  } else if (pesep->instantiation_descr == NULL) {
+    /* We are in a prototype instantiation.  Indicate that there are no
+       further elements. */
     done = TRUE;
   } else {
      a_pack_reference_ptr	param_prp;
@@ -9675,7 +9731,8 @@ source position of the use of the symbols is indicated by position.
      dependent context.  Don't record pack references during rescans -- just
      use the pack references from the definition. */
   if (is_template_dependent_context() &&
-      (pack_expansion_stack == NULL || !pack_expansion_stack->is_rescan)) {
+      (pack_expansion_stack == NULL || !pack_expansion_stack->is_rescan ||
+       pack_expansion_stack->is_suppression)) {
     if (symbol_is_pack(pack_symbol)) {
       /* Add this pack symbol to the list of packs in the scope stack
          entry. */

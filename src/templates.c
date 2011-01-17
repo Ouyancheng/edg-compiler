@@ -17642,8 +17642,11 @@ Otherwise, return FALSE.  This is done by rescanning the tokens from
 the declaration token cache.
 */
 {
-  a_boolean		result = FALSE;
+  a_pack_expansion_stack_entry_ptr	pesep;
+  a_boolean				result = FALSE;
 
+  /* Don't record pack expansions during the prescan. */
+  push_expansion_suppression(&pesep);
   rescan_reusable_cache(token_cache);
   if (curr_token == tok_friend) (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -17693,6 +17696,7 @@ the declaration token cache.
   while (curr_token != tok_end_of_source) (void)get_token();
   /* Skip past the tok_end_of_source. */
   (void)get_token();
+  pop_expansion_suppression(pesep);
   return result;
 }  /* is_class_template_decl */
 

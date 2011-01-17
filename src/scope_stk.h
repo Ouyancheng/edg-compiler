@@ -409,6 +409,11 @@ typedef struct a_pack_expansion_stack_entry {
 			   process, but no token manipulation or checking
 			   is done. */
   a_byte_boolean
+		is_suppression;
+			/* TRUE when the processing of expansion contexts
+			   is being suppressed.  This only suppresses
+			   expansions from tokens, not rescans. */
+  a_byte_boolean
 		expansion_with_no_packs_diagnostic_issued;
 			/* TRUE if suppress_expansion_with_no_packs_diagnostic
 			   was called to indicate that the caller already
@@ -1700,6 +1705,12 @@ extern void begin_pack_deduction_context(
 		a_template_param_ptr			templ_param_list,
 		a_template_arg_ptr			*templ_arg_list,
 		a_pack_expansion_stack_entry_ptr	*p_pesep);
+
+extern void push_expansion_suppression(
+			a_pack_expansion_stack_entry_ptr	*p_pesep);
+
+extern void pop_expansion_suppression(
+			a_pack_expansion_stack_entry_ptr	pesep);
 
 extern a_boolean begin_potential_pack_expansion_context_full(
 			a_pack_expansion_stack_entry_ptr	*p_pesep,
