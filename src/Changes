@@ -1,5 +1,27 @@
 Version 4.3
 
+1/17/11  [EDGcpfe/11262]
+Microsoft compatibility: Binding a reference to non-const to a bit field
+in overload resolution
+
+The C++ standard requires that in overload resolution a parameter of
+type lvalue reference to non-const should be allowed to bind to an
+argument that is a bit-field lvalue.  Later, if the function is chosen,
+an error is issued because such a reference cannot bind to a bit field.
+MSVC seems to disallow such cases early in overload resolution (checked in
+6.0 through 10.0), and now we emulate that in Microsoft mode.
+
+  struct A {
+    int i:2;
+  };
+  void f(int &);
+  void f(int);
+  int main() {
+    A a;
+    f(a.i);  // No longer ambiguous in Microsoft mode; chooses f(int)
+  }
+
+
 1/17/11  [EDGcpfe/11288]
 Microsoft compatibility: Defining __STDC__ macro
 

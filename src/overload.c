@@ -2385,6 +2385,14 @@ have_level:;
       } else {
         arg_summary->match_level = aml_none;
       }  /* if */
+    } else if (microsoft_bugs && arg_operand != NULL &&
+               param_is_reference && !source_can_be_rvalue &&
+               is_bit_field_operand(arg_operand)) {
+      /* MSVC (checked in 6.0 through 10.0) doesn't allow an lvalue reference
+         to non-const to bind to a bit field.  The standard requires that
+         such a binding be allowed in overload resolution, and then if the
+         function is selected an error would be issued later. */
+      arg_summary->match_level = aml_none;
     }  /* if */
     if (arg_summary->match_level == aml_none) {
       /* We decided the binding can't be done, so clear any conversion
