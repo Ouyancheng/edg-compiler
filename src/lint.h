@@ -652,6 +652,10 @@ extern int fileno(FILE *);
 /* FIXME */
 /*lint -esym(759,is_value_class_type)*/
 /*lint -esym(765,is_value_class_type)*/
+#if READ_CPPCLI_PORTABLE_ASSEMBLIES && !WRITE_CPPCLI_PORTABLE_ASSEMBLIES
+/*lint -esym(759,clear_portable_assembly_header)*/
+/*lint -esym(765,clear_portable_assembly_header)*/
+#endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !WRITE_CPPCLI_PORTABLE_ASSEM... */
 
 #endif /* ifndef LINT_H */
 
