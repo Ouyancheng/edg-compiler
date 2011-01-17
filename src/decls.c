@@ -6665,7 +6665,7 @@ void issue_no_exception_support_diag_on_throw_spec(
 Issue a diagnostic on attempting to define a noninline function with
 an exception specification when exception support is not enabled.
 The function is specified by func_info.  (No diagnostic is issued on
-nondefinition -- the exception specification is just ignored.  In GNU
+a nondefinition -- the exception specification is just ignored.  In GNU
 C++ mode, even exception specifications on definitions are ignored.)
 */
 {
