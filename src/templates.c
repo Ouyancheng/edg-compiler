@@ -1986,9 +1986,12 @@ function).
   }  /* if */
   /* If both comparisons match, prefer the direction that is more qualified. */
   if (*match1 && *match2) {
-    if ((type_1_is_reference && type_2_is_reference) &&
+    if (!microsoft_mode && !gpp_mode && !sun_mode &&
+        (type_1_is_reference && type_2_is_reference) &&
         (type_1_is_lvalue_reference != type_2_is_lvalue_reference)) {
-      /* An lvalue reference is more specialized than an rvalue reference. */
+      /* An lvalue reference is more specialized than an rvalue reference.
+         This rule (from core issue 1164) is not yet implemented by the
+         Microsoft and g++ compilers. */
       if (type_1_is_lvalue_reference) {
         *match2 = FALSE;
       } else {

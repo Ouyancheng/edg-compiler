@@ -20,7 +20,7 @@ Partial ordering of lvalue vs. rvalue references
 
 Core issue 1164 clarified that an lvalue reference parameter should be
 considered more specialized than an rvalue reference parameter.  We
-now implement the revised rules.
+now implement the revised rules, except in Microsoft, g++, and Sun modes.
 
   template<typename T> int f(T&);
   template<typename T> int f(T&&);
