@@ -1618,7 +1618,8 @@ diagnostic at the given position.
     err = !is_error_type(ptp->type);
   } else {
     /* Check that the handle "points to" a C++/CLI array type. */
-    a_type_ptr  tp = skip_typerefs(type_pointed_to(ptp->type));
+    a_type_ptr  tp = type_pointed_to(ptp->type);
+    tp = skip_typerefs(tp);
     if (!is_cli_array_type(tp)) {
       err = !is_error_type(tp);
     } else {
