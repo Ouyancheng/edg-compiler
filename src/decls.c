@@ -145,6 +145,7 @@ reflected in start_secondary_declarator.
   ps->has_cli_literal_keyword = FALSE;
   ps->override_okay = FALSE;
   ps->initializer_is_expr_list = FALSE;
+  ps->no_special_cli_class_type_check = FALSE;
   ps->prefix_attributes = NULL;
   ps->id_attributes = NULL;
   ps->specifier_attributes = NULL;
@@ -15085,6 +15086,7 @@ related-fields of *ps prior to scanning the next declarator.
   ps->first_decl_of_predeclared_entity = FALSE;
   ps->override_okay = FALSE;
   ps->initializer_is_expr_list = FALSE;
+  ps->no_special_cli_class_type_check = FALSE;
   ps->id_attributes = NULL;
   ps->asm_name = NULL;
   ps->asm_name_pos = null_source_position;

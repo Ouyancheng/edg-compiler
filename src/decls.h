@@ -574,6 +574,14 @@ typedef struct a_decl_parse_state {
 			   scanned now is an element on an expression list.
 			   If so, variadic template pack expansions are
 			   allowed. */
+  a_bit_field	no_special_cli_class_type_check:1;
+			/* Some special C++/CLI class types (like cli::array
+			   instances) can ordinarily not be used as top-level
+			   types; only as types "pointed to" by a handle.  If
+			   this flag is TRUE, the generic diagnostic for the
+			   top-level uses of such special types is inhibited
+			   (e.g., because higher-level code will issue a more
+			   specific diagnostic). */
   an_attribute_ptr
 		prefix_attributes;
 			/* A list of non-type-transforming attributes scanned

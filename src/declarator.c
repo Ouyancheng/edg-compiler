@@ -1607,13 +1607,45 @@ mode.)
 static void check_param_array_type(a_param_type_ptr   ptp,
                                    a_source_position  *diag_pos)
 /*
-Check that the given parameter description includes a variable C++/CLI
-parameter array type.  If not, issue a diagnostic at the given position.
+The given parameter description describes a C++/CLI parameter array.  Check
+that its type is a handle to a one-dimensional cli::array; if not, issue a
+diagnostic at the given position.
 */
 {
-  /* FIXME: Implement when cli::array is predeclared. */
+  a_boolean  err = FALSE;
+
   if (!is_handle_type(ptp->type)) {
+    err = !is_error_type(ptp->type);
+  } else {
+    /* Check that the handle "points to" a C++/CLI array type. */
+    a_type_ptr  tp = skip_typerefs(type_pointed_to(ptp->type));
+    if (!is_cli_array_type(tp)) {
+      err = !is_error_type(tp);
+    } else {
+      /* Check that the C++/CLI array type is one-dimensional. */
+      a_template_arg_ptr  tap = class_type_supp(tp)->template_arg_list;
+      a_constant_ptr      dim_cp;
+      check_assertion(tap != NULL && tap->next != NULL);
+      tap = tap->next;
+      check_assertion(tap->kind == (a_templ_arg_kind)tak_nontype &&
+                      !tap->is_array_bound_of_unknown_type);
+      dim_cp = tap->variant.constant;
+      if (dim_cp->kind == (a_constant_repr_kind)ck_template_param) {
+        /* A template-dependent value cannot be compared to one. */
+      } else {
+        a_boolean  ovflo;
+        check_assertion(dim_cp->kind == (a_constant_repr_kind)ck_integer);
+        if (sign_of_integer_constant(dim_cp) <= 0 ||
+            unsigned_value_of_integer_constant(dim_cp, &ovflo) > 1 ||
+            ovflo) {
+          err = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (err) {
     pos_error(ec_invalid_param_array_type, diag_pos);
+    ptp->type = error_type();
   }  /* if */
 }  /* check_param_array_type */
 
@@ -2231,6 +2263,7 @@ TRUE if this is the function declarator in a friend function declaration.
         param_state.trailing_return_type_allowed =
                                                 trailing_return_types_enabled;
         param_state.pack_ellipsis_allowed = is_variadic_template_context();
+        param_state.no_special_cli_class_type_check = param_array_next;
         copy_source_position(pos_curr_token, param_type_pos);
         clear_decl_pos_block(&local_decl_pos_block);
         /* Scan prefix attributes. */
@@ -2372,7 +2405,7 @@ TRUE if this is the function declarator in a friend function declaration.
           set_to_error_locator(param_locator);
           check_pending_qualifiers_used(&param_state);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (cppcli_enabled) {
+          if (cppcli_enabled && !param_state.no_special_cli_class_type_check) {
             /* Some special C++/CLI class types (e.g., delegates) are invalid
                at this point. */
             (void)check_invalid_use_of_special_cli_class_type(
@@ -2452,7 +2485,7 @@ TRUE if this is the function declarator in a friend function declaration.
         }  /* if */
         if (param_array_next) {
           ptp->is_cli_param_array = TRUE;
-          check_param_array_type(ptp, &ellipsis_pos);
+          check_param_array_type(ptp, &param_state.specifiers_pos);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           local_decl_pos_block.specifiers_range.start = ellipsis_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -6572,7 +6605,8 @@ the parameters.
   state->type = state->declared_type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled &&
-      state->declared_storage_class != (a_storage_class)sc_typedef) {
+      state->declared_storage_class != (a_storage_class)sc_typedef &&
+      !state->no_special_cli_class_type_check) {
     /* Some special C++/CLI class types (e.g., delegates) are invalid at this
        point. */
     (void)check_invalid_use_of_special_cli_class_type(
