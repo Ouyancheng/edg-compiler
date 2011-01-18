@@ -1,5 +1,26 @@
 Version 4.3
 
+1/18/11  [EDGcpfe/11289]
+Internal error on using-declaration of operator=
+
+An internal error could occur (in add_symbol_to_overload_set) if a class
+contained a using-declaration referring to a base class operator= function
+followed by the declaration of an operator= function or template that did
+not suppress the generation of the implicitly declared operator=.  Now fixed.
+
+  template <class T> struct A { };
+  template <class T> struct C {};
+  template <class T> struct B : public A <T> {
+    using A<T>::operator=; 
+    template <class U> B& operator=(C <U>& rhs) { return *this; }
+  };
+  int main() {
+    B<int> b;
+    C<int> c;
+    b = c;
+  }
+
+
 1/18/10  [EDGcpfe/11282]
 Source sequence entries and local static variables
 

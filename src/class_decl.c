@@ -8390,7 +8390,7 @@ overload set to which sym belongs; it may be NULL.
 */
 {
   if (cssp->assignment_operator == NULL) {
-    cssp->assignment_operator = sym;
+    cssp->assignment_operator = overload_sym == NULL ? sym : overload_sym;
   } else if (cssp->assignment_operator->kind ==
                                     (a_symbol_kind)sk_overloaded_function) {
     /* The overloaded function symbol is already registered. */
