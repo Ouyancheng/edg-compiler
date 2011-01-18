@@ -6038,6 +6038,17 @@ to FALSE before returning).
     fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+  /* When cfront lays out a class with base classes, the subobject for the
+     first direct nonvirtual base class does not include the data sections for
+     its own virtual base classes (if any).  However, the subobjects for the
+     second and subsequent direct nonvirtual base classes and for virtual base
+     classes do include the virtual base class data sections and are therefore
+     marked as having a "complete subobject". */
+  if (is_virtual || !*p_may_be_first_direct_nonvirtual_base) {
+    direct_bcp->complete_subobject = TRUE;
+  }  /* if */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   /* Add base classes derived from this base class to the current class' base
      class list.  They are marked as indirect. */
   for (bcp = base_classes_of(bcp_type); bcp != NULL; bcp = bcp->next) {
@@ -6118,17 +6129,6 @@ to FALSE before returning).
       }  /* if */
     }  /* for */
   }  /* if */
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-  /* When cfront lays out a class with base classes, the subobject for the
-     first direct nonvirtual base class does not include the data sections for
-     its own virtual base classes (if any).  However, the subobjects for the
-     second and subsequent direct nonvirtual base classes and for virtual base
-     classes do include the virtual base class data sections and are therefore
-     marked as having a "complete subobject". */
-  if (is_virtual || !*p_may_be_first_direct_nonvirtual_base) {
-    direct_bcp->complete_subobject = TRUE;
-  }  /* if */
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   if (ctsp->virtual_function_info_base_class == NULL &&
 #if !IA64_ABI
       *p_may_be_first_direct_nonvirtual_base && 
