@@ -3582,9 +3582,11 @@ scope into the complete object ctor/dtor scope.
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
 
 /* Forward declarations. */
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS || !IA64_ABI
 static a_variable_ptr make_construction_vtbl_temporary(void);
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS || !IA64_ABI */
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 
 static void add_virtual_base_init_code(
                                      a_scope_ptr        scope,
@@ -3593,10 +3595,14 @@ static void add_virtual_base_init_code(
                                      a_variable_ptr     construction_vtbls_var,
                                      an_insert_location *insert_location);
 
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+
 static void insert_default_construction_vtbls_assignment(
                                 a_type_ptr              class_type,
                                 a_variable_ptr          construction_vtbls_var,
                                 an_insert_location      *insert_location);
+
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 
 static void lower_dtor_init(a_constructor_init_ptr ctor_init,
                             a_variable_ptr         this_param_var,
@@ -12986,10 +12992,13 @@ destructor scope, and also lower the user code.
   a_source_position      saved_error_position, saved_code_pos;
   a_source_position      opening_brace_pos;
 #if !IA64_ABI
-  an_insert_location     else_insert_location, insert_location3;
+  an_insert_location     insert_location3;
   a_source_position      closing_brace_pos;
   a_routine_ptr          delete_routine;
   a_boolean              epilogue_setup_done = FALSE;
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+  an_insert_location     else_insert_location;
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* !IA64_ABI */
   a_destructor_wrapper_info_block
                          dtor_info;

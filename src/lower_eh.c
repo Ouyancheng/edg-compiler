@@ -1382,8 +1382,6 @@ typeinfo variable in a COMDAT group.
   a_boolean      is_class_type = is_immediate_class_type(type);
   a_type_info_kind
                  typeinfo_kind = get_typeinfo_kind(type);
-  a_type_info_kind
-                 typeinfo_kind_for_vtbl;
   a_type_ptr     tinfo_type = make_typeinfo_type(typeinfo_kind, type);
   a_variable_ptr typeinfo_var = type->typeinfo_var;
   a_variable_ptr vtbl_var;
@@ -1397,6 +1395,8 @@ typeinfo variable in a COMDAT group.
                  saved_error_position;
 #if ABI_CHANGES_FOR_RTTI
   a_constant_ptr type_info_con, vptr_con, name_con;
+  a_type_info_kind
+                 typeinfo_kind_for_vtbl;
 #endif /* ABI_CHANGES_FOR_RTTI */
 #if !PASS_DTOR_POINTER_TO_THROW
   a_constant_ptr dtor_con;

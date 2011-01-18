@@ -20448,7 +20448,10 @@ eliminated, if appropriate.
 #if DO_IL_LOWERING
             a_type_ptr                   class_type = sym_parent_class(sym);
             a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
-            a_variable_ptr               vtbl_var, typeinfo_var;
+            a_variable_ptr               vtbl_var;
+#if ABI_CHANGES_FOR_RTTI
+            a_variable_ptr               typeinfo_var;
+#endif /* ABI_CHANGES_FOR_RTTI */
             if (((vtbl_var = ctsp->virtual_function_table_var) == NULL ||
                   !il_entry_prefix_of(vtbl_var).keep_in_il)
 #if ABI_CHANGES_FOR_RTTI
