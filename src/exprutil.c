@@ -14816,16 +14816,20 @@ is a "get" if put_operand is NULL.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-void convert_function_template_to_single_function_if_possible(
-                                                          an_operand *operand,
-                                                          a_boolean  will_call)
+static void convert_function_template_to_single_function_full(
+                                                an_operand    *operand,
+                                                a_boolean     will_call,
+                                                a_symbol_ptr  *single_func_sym)
 /*
 If operand is a reference to a function template with explicit template
 arguments that reduces to a single function, change the operand to that
 function.  See Core Issue 115.  If will_call is TRUE, the resulting function
 will be called immediately (as opposed to, say, having its address taken).
+If single_func_sym is non-NULL, return the symbol for the single function
+in *single_func_sym, or set that to NULL if there is no single function.
 */
 {
+  if (single_func_sym != NULL) *single_func_sym = NULL;
   if (is_indefinite_function_operand(operand) &&
       operand->is_template_id) {
     a_symbol_ptr orig_sym = operand->symbol;
@@ -14894,6 +14898,7 @@ will be called immediately (as opposed to, say, having its address taken).
         check_assertion(sym != NULL &&
                         (sym->kind == (a_symbol_kind)sk_routine ||
                          sym->kind == (a_symbol_kind)sk_member_function));
+        if (single_func_sym != NULL) *single_func_sym = sym;
         if (sym->kind == (a_symbol_kind)sk_member_function &&
             routine_type_is_nonstatic_member_function(
                                              sym->variant.routine.ptr->type)) {
@@ -14931,7 +14936,61 @@ will be called immediately (as opposed to, say, having its address taken).
       }  /* if */
     }  /* if */
   }  /* if */
+}  /* convert_function_template_to_single_function_full */
+
+
+void convert_function_template_to_single_function_if_possible(
+                                                          an_operand *operand,
+                                                          a_boolean  will_call)
+/*
+If operand is a reference to a function template with explicit template
+arguments that reduces to a single function, change the operand to that
+function.  See Core Issue 115.  If will_call is TRUE, the resulting function
+will be called immediately (as opposed to, say, having its address taken).
+*/
+{
+  convert_function_template_to_single_function_full(operand, will_call,
+                                                    (a_symbol_ptr *)NULL);
 }  /* convert_function_template_to_single_function_if_possible */
+
+
+a_boolean conv_bound_function_to_static_selection(
+                                           an_operand *operand,
+                                           an_operand *bound_function_selector)
+/*
+operand is a bound function, with bound_function_selector the associated
+selector.  If it is a reference to a function template with explicit
+arguments such that a single instance of the template is specified,
+and the instance is static, change the operand to an un-bound static
+selection for the specific function.
+*/
+{
+  a_boolean    converted = FALSE;
+  a_symbol_ptr single_func_sym;
+
+  check_assertion(operand->bound_function);
+  convert_function_template_to_single_function_full(operand,
+                                                    /*will_call=*/FALSE,
+                                                    &single_func_sym);
+  if (single_func_sym != NULL) {
+    a_symbol_ptr sym = fundamental_symbol_of(single_func_sym);
+    if (sym->kind == (a_symbol_kind)sk_member_function &&
+        !routine_type_is_nonstatic_member_function(
+                                             sym->variant.routine.ptr->type)) {
+      /* A single function has been identified, and it is a static member
+         function, so we can convert the bound function to a static
+         selection. */
+      operand->bound_function = FALSE;
+      combine_unneeded_selector_with_operand(
+                                           bound_function_selector,
+                                           (a_boolean)bound_function_selector->
+                                                    selector_is_object_pointer,
+                                           operand);
+      converted = TRUE;
+    }  /* if */
+  }  /* if */
+  return converted;
+}  /* conv_bound_function_to_static_selection */
 
 
 static void error_if_indefinite_function(an_operand *operand)

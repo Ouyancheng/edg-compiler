@@ -14306,10 +14306,10 @@ FALSE if the bound function case is not one that undergoes the conversion.
   a_boolean converted = FALSE;
 
   check_assertion(operand->bound_function && bound_function_selector != NULL);
-  /* Do not convert cases that result from the operators .* and ->*.
-     It's not that there would be anything wrong with that; we just don't
-     have a way of representing that in the IL. */
   if (microsoft_version < 1300) {
+    /* Do not convert cases that result from the operators .* and ->*.
+       It's not that there would be anything wrong with that; we just don't
+       have a way of representing that in the IL. */
     a_routine_ptr rout = routine_from_function_operand(operand);
     if (rout != NULL) {
       a_symbol_ptr sym = symbol_for(rout);
@@ -14360,11 +14360,16 @@ merely transformed to something to which the cast may apply.
   /* Convert function to pointer, etc. */
   do_operand_transformations(operand,
                              TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
-  if (allow_anachronisms &&
-      is_pointer_type(type_cast_to) &&
-      is_function_type(type_pointed_to(type_cast_to)) &&
-      is_pointer_type(operand->type) &&
-      is_function_type(type_pointed_to(operand->type))) {
+  if (conv_bound_function_to_static_selection(operand,
+                                              bound_function_selector)) {
+    /* In some cases a bound function that is a reference to a static
+       member function template with explicit arguments can be reduced
+       to a static selection for a single function. */
+  } else if (allow_anachronisms &&
+             is_pointer_type(type_cast_to) &&
+             is_function_type(type_pointed_to(type_cast_to)) &&
+             is_pointer_type(operand->type) &&
+             is_function_type(type_pointed_to(operand->type))) {
     /* In C++, a bound function may be cast to a normal function pointer
        as an anachronism, as in
 
@@ -23819,6 +23824,12 @@ bad_start_of_primary:
          to be called. */
       if (curr_token == tok_lparen) {
         /* The bound function is about to be called, so it's okay. */
+      } else if (conv_bound_function_to_static_selection(
+                                             &local_result,
+                                             &local_bound_function_selector)) {
+        /* In some cases a bound function that is a reference to a static
+           member function template with explicit arguments can be reduced
+           to a static selection for a single function. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (microsoft_bugs &&
                  conv_bound_function_to_pointer_to_member(
@@ -24000,6 +24011,12 @@ bad_start_of_primary:
 #endif /* CHECKING */
       copy_operand(&local_bound_function_selector, bound_function_selector);
       selector_ref_entry_list = bound_function_selector->ref_entries_list;
+    } else if (conv_bound_function_to_static_selection(
+                                             &local_result,
+                                             &local_bound_function_selector)) {
+      /* In some cases a bound function that is a reference to a static
+         member function template with explicit arguments can be reduced
+         to a static selection for a single function. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (microsoft_bugs &&
                conv_bound_function_to_pointer_to_member(

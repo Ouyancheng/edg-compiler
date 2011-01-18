@@ -1338,6 +1338,10 @@ extern void convert_function_template_to_single_function_if_possible(
                                                         an_operand *operand,
                                                         a_boolean   will_call);
 
+extern a_boolean conv_bound_function_to_static_selection(
+                                          an_operand *operand,
+                                          an_operand *bound_function_selector);
+
 extern void do_operand_transformations(an_operand                   *operand,
                                        a_transformation_options_set options);
 

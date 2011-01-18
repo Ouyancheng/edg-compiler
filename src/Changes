@@ -1,5 +1,24 @@
 Version 4.3
 
+1/18/11  [EDGcpfe/11191]
+Bound function for static template with explicit arguments treated as
+simple function
+
+A reference to a static member function template with explicit template
+arguments that identify a single instance of the template can now be
+used as a function address.  Formerly, it was viewed as a bound
+function, and a spurious error was issued ("a pointer to a bound
+function may only be used to call the function") if it wasn't
+immediately called.
+
+  struct A {
+    template <class T> static void f();
+  } a;
+  int main() {
+    void (*p)() = a.f<int>;  // No longer an error
+  }
+
+
 1/18/11  [EDGcpfe/11289]
 Internal error on using-declaration of operator=
 
