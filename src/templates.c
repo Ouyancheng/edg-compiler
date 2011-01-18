@@ -6403,14 +6403,12 @@ are deduced.
 				templ_param_list, (a_template_arg_ptr)NULL,
                                 (a_source_position*)NULL);
   }  /* if */
-  begin_template_arg_list_traversal(templ_param_list, *templ_arg_list,
-                                    &tpp, &tap);
+  begin_special_variadic_template_arg_list_traversal(templ_param_list,
+                                                     *templ_arg_list,
+                                                     &tpp, &tap);
   /* For the nth template parameter find the nth template argument. */
-  for (; pos > 1; pos--) advance_to_next_template_arg(&tpp, &tap);
-  if (tpp == NULL) {
-    /* In variadic deduction contexts we can end up with a NULL template
-       parameter.  Use the last element of the parameter list. */
-    for (tpp = templ_param_list; tpp->next != NULL; tpp = tpp->next) {}
+  for (; pos > 1; pos--) {
+    special_variadic_advance_to_next_template_arg(&tpp, &tap);
   }  /* if */
   if (tpp->is_pack) {
     tap = get_curr_variadic_arg_for_param(tpp);
@@ -25180,6 +25178,53 @@ list.
     }  /* if */
   }  /* if */
 }  /* advance_to_next_template_arg */
+
+
+void begin_special_variadic_template_arg_list_traversal(
+				a_template_param_ptr	templ_param_list,
+				a_template_arg_ptr	templ_arg_list,
+				a_template_param_ptr	*tpp,
+				a_template_arg_ptr	*tap)
+/*
+This routine is used to traverse a template argument list and associated
+template parameter list.  This differs from begin_template_arg_list_traversal
+in that for a variadic parameter, the start of expansion placeholder is
+returned.  When we advance to the next template argument, any pack elements
+will be skipped.
+
+This routine is used as follows:
+
+  begin_special_variadic_template_arg_list_traversal(templ_param_list,
+                                                    templ_arg_list,
+                                                    &tpp, &tap);
+  for (; tap != NULL;
+         special_variadic_advance_to_next_template_arg(&tpp, &tap)) {
+    ...
+  } 
+*/
+{
+  *tpp = templ_param_list;
+  *tap = templ_arg_list;
+}  /* begin_special_variadic_template_arg_list_traversal */
+
+
+void special_variadic_advance_to_next_template_arg(
+				a_template_param_ptr	*tpp,
+				a_template_arg_ptr	*tap)
+/*
+Advance the template parameter and template argument pointers specified by
+*tpp and *tap to the next element in the list.  Set them to NULL when the
+last argument is encountered.  This is the "advance" routine for
+begin_special_variadic_template_arg_list_traversal.  See the comments in
+that routine for how this routine differs from advance_to_next_template_arg.
+*/
+{
+  check_assertion(tap != NULL);
+  *tap = (*tap)->next;
+  /* Skip over any pack elements. */
+  while ((*tap) != NULL && (*tap)->is_pack_element) *tap = (*tap)->next;
+  *tpp = (*tpp)->next;
+}  /* special_variadic_advance_to_next_template_arg */
 
 
 #if DEBUG

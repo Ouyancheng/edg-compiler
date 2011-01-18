@@ -696,6 +696,16 @@ extern void advance_to_next_template_arg(
 				a_template_param_ptr	*tpp,
 				a_template_arg_ptr	*tap);
 
+extern void begin_special_variadic_template_arg_list_traversal(
+				a_template_param_ptr	templ_param_list,
+				a_template_arg_ptr	templ_arg_list,
+				a_template_param_ptr	*tpp,
+				a_template_arg_ptr	*tap);
+
+extern void special_variadic_advance_to_next_template_arg(
+				a_template_param_ptr	*tpp,
+				a_template_arg_ptr	*tap);
+
 extern void templates_one_time_init(void);
 
 extern void templates_trans_unit_init(void);

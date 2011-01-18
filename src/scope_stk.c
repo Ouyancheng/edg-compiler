@@ -1876,17 +1876,6 @@ Update param_symbol to reflect the value specified by tap.
   }  /* switch */
 }  /* update_template_param_symbol */
 
-/* Forward declarations. */
-static void begin_special_variadic_template_arg_list_traversal(
-				a_template_param_ptr	templ_param_list,
-				a_template_arg_ptr	templ_arg_list,
-				a_template_param_ptr	*tpp,
-				a_template_arg_ptr	*tap);
-
-static void special_variadic_advance_to_next_template_arg(
-				a_template_param_ptr	*tpp,
-				a_template_arg_ptr	*tap);
-
 
 static void set_template_param_symbol_to_error(a_symbol_ptr	param_symbol)
 /*
@@ -8840,53 +8829,6 @@ to be part of the function template such as a lambda nested therein.
   }  /* for */
   return result_vp;
 }  /* find_variable_for_pack */
-
-
-static void begin_special_variadic_template_arg_list_traversal(
-				a_template_param_ptr	templ_param_list,
-				a_template_arg_ptr	templ_arg_list,
-				a_template_param_ptr	*tpp,
-				a_template_arg_ptr	*tap)
-/*
-This routine is used to traverse a template argument list and associated
-template parameter list.  This differs from begin_template_arg_list_traversal
-in that for a variadic parameter, the start of expansion placeholder is
-returned.  When we advance to the next template argument, any pack elements
-will be skipped.
-
-This routine is used as follows:
-
-  begin_special_variadic_template_arg_list_traversal(templ_param_list,
-                                                    templ_arg_list,
-                                                    &tpp, &tap);
-  for (; tap != NULL;
-         special_variadic_advance_to_next_template_arg(&tpp, &tap)) {
-    ...
-  } 
-*/
-{
-  *tpp = templ_param_list;
-  *tap = templ_arg_list;
-}  /* begin_special_variadic_template_arg_list_traversal */
-
-
-static void special_variadic_advance_to_next_template_arg(
-				a_template_param_ptr	*tpp,
-				a_template_arg_ptr	*tap)
-/*
-Advance the template parameter and template argument pointers specified by
-*tpp and *tap to the next element in the list.  Set them to NULL when the
-last argument is encountered.  This is the "advance" routine for
-begin_special_variadic_template_arg_list_traversal.  See the comments in
-that routine for how this routine differs from advance_to_next_template_arg.
-*/
-{
-  check_assertion(tap != NULL);
-  *tap = (*tap)->next;
-  /* Skip over any pack elements. */
-  while ((*tap) != NULL && (*tap)->is_pack_element) *tap = (*tap)->next;
-  *tpp = (*tpp)->next;
-}  /* special_variadic_advance_to_next_template_arg */
 
 
 static a_template_arg_ptr find_placeholder_arg_for_pack(
