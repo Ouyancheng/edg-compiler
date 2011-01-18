@@ -5988,6 +5988,181 @@ issue an error and return FALSE.
 }  /* check_base_class_type */
 
 
+#if IA64_ABI
+/*ARGSUSED*/  /* p_may_be_first_direct_nonvirtual_base is not used in some
+                 configurations. */
+#endif /* IA64_ABI */
+static void add_new_direct_base(
+                  a_base_class_ptr     direct_bcp,
+                  an_access_specifier  access,
+                  a_base_class_ptr     *p_last_base,
+                  a_boolean            *p_may_be_first_direct_nonvirtual_base)
+/*
+Add direct_bcp as a base class to direct_bcp->derived_class, and recursively
+add any base classes of direct_bcp->type.  access is the (possibly implicit)
+access specified on the base class.  *p_last_base points to the last base
+currently recorded for the derived class and is updated by this function.
+*p_may_be_first_direct_nonvirtual_base is TRUE if this may be the first direct
+nonvirtual base of the direct base (in which case this function sets the flag
+to FALSE before returning).
+*/
+{
+  a_boolean                      is_virtual = direct_bcp->is_virtual;
+  a_type_ptr                     bcp_type = direct_bcp->type;
+  a_type_ptr                     class_type = direct_bcp->derived_class;
+  a_class_type_supplement_ptr    ctsp = class_type_supp(class_type);
+  a_class_symbol_supplement_ptr  bcp_cssp, cssp;
+  a_derivation_step_ptr          path;
+  a_base_class_ptr               bcp;
+  a_boolean                      any_base_class_fixup_required = FALSE;
+
+  cssp = symbol_supplement_for_class(class_type);
+  bcp_cssp = symbol_supplement_for_class(bcp_type);
+  if (bcp_cssp->any_nonreal_base_classes ||
+      (bcp_type->variant.class_struct_union.is_nonreal_class &&
+       !(bcp_type->variant.class_struct_union.is_prototype_instantiation ||
+         !bcp_type->variant.class_struct_union.is_template_class))) {
+    /* Do not set the any_nonreal_base_classes field for a base that is a
+       prototype instantiation, or a class defined as part of a prototype
+       instantiation (e.g., a local class defined in the prototype
+       instantiation of a function template). */
+    cssp->any_nonreal_base_classes = TRUE;
+  }  /* if */
+  path = update_base_class_derivation(direct_bcp, (a_derivation_step_ptr)NULL,
+                                      access);
+#if DEBUG
+  if (debug_level >= 3 || db_flag_is_set("base_specifiers")) {
+    db_abbreviated_type(bcp_type);
+    fputs(" is direct base class of ", f_debug);
+    db_abbreviated_type(class_type);
+    fputc('\n', f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  /* Add base classes derived from this base class to the current class' base
+     class list.  They are marked as indirect. */
+  for (bcp = base_classes_of(bcp_type); bcp != NULL; bcp = bcp->next) {
+    if (bcp->overriding_virtual_functions != NULL) {
+      any_base_class_fixup_required = TRUE;
+    }  /* if */
+    if (!bcp->direct) {
+      continue;
+    } else if (bcp->is_virtual) {
+      /* A virtual base class is marked as "direct" if any of its paths is
+         direct.  However, for our purposes, the "first" path (first in a
+         depth-first left-to-right traversal of the derivation graph) must be
+         direct.  On the other hand, we still need to record the direct path,
+         but so set a flag so another pass will be done over the base class
+         list. */
+      if (!bcp->derivation->direct) {
+        any_base_class_fixup_required = TRUE;
+        continue;
+      }  /* if */
+    }  /* if */
+      /* Add the direct base class and, recursively, the base classes thereof
+         to the base class list for the derived class. */
+    add_indirect_base_class(bcp, direct_bcp, path, p_last_base, class_type);
+  }  /* for */
+  /* Enter the base name on the base class list in the derived class's
+     class-supplement entry. */
+  if (*p_last_base == NULL) {
+    ctsp->base_classes = direct_bcp;
+  } else {
+    (*p_last_base)->next = direct_bcp;
+  }  /* if */
+  *p_last_base = direct_bcp;
+  /* Set shares_virtual_function_info for a base class of direct_bcp, if
+     appropriate. */
+  set_shares_virtual_function_info_flag(class_type, direct_bcp);
+  if (any_base_class_fixup_required) {
+    for (bcp = base_classes_of(bcp_type); bcp != NULL; bcp = bcp->next) {
+      a_base_class_ptr  new_bcp;
+      if (bcp->overriding_virtual_functions != NULL ||
+          (bcp->direct && bcp->is_virtual && !bcp->derivation->direct)) {
+        /* bcp is a base class of direct_bcp->type.  We need to find the
+           corresponding base class of class_type.  Find a disambiguator in
+           case what we are looking for is an ambiguous base class of
+           class_type. */
+        new_bcp = corresp_base_class(bcp, direct_bcp);
+      } else {
+        continue;
+      }  /* if */
+      if (bcp->direct && bcp->is_virtual && !bcp->derivation->direct) {
+        /* Add path information about a direct virtual base class of direct_bcp
+           that was not first in the depth-first left-to-right traversal of the
+           latter's derivation graph.  Look for the matching derivation entry
+           to get the right access. */
+        a_base_class_derivation_ptr  bcdp = bcp->derivation->next;
+        while (!bcdp->direct) bcdp = bcdp->next;
+        (void)update_base_class_derivation(new_bcp, path, bcdp->access);
+      }  /* if */
+      if (bcp->overriding_virtual_functions != NULL) {
+#if DEBUG
+        if (debug_level >= 4) {
+          fputs("copying virtual function override list from ", f_debug);
+          db_base_class(bcp, FALSE);
+          db_virtual_function_override_list(bcp);
+        }  /* if */
+#endif /* DEBUG */
+        /* Copy the virtual function override entries from bcp (which is
+           on the base classes list for bcp_type) to the
+           corresponding copied base class new_bcp (which is on the base
+           classes list for class_type). */
+        copy_virtual_function_override_list(bcp, new_bcp, direct_bcp);
+#if DEBUG
+        if (debug_level >= 4) {
+          fputs("new base class ", f_debug);
+          db_base_class(bcp, FALSE);
+          db_virtual_function_override_list(new_bcp);
+        }  /* if */
+#endif /* DEBUG */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+  /* When cfront lays out a class with base classes, the subobject for the
+     first direct nonvirtual base class does not include the data sections for
+     its own virtual base classes (if any).  However, the subobjects for the
+     second and subsequent direct nonvirtual base classes and for virtual base
+     classes do include the virtual base class data sections and are therefore
+     marked as having a "complete subobject". */
+  if (is_virtual || !*p_may_be_first_direct_nonvirtual_base) {
+    new_direct_bcp->complete_subobject = TRUE;
+  }  /* if */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+  if (ctsp->virtual_function_info_base_class == NULL &&
+#if !IA64_ABI
+      *p_may_be_first_direct_nonvirtual_base && 
+#endif /* !IA64_ABI */
+      !is_virtual) {
+    /* For the first direct nonvirtual base class it is possible to
+       share virtual function info (e.g., virtual function tables and
+       their associated pointers) between the base class and the
+       derived class. */
+    bcp = class_type_supp(bcp_type)->virtual_function_info_base_class;
+    /* Check to see whether or not the base has a virtual function table
+       that could be shared. */
+    if (needs_virtual_function_table(bcp_type) || bcp != NULL) {
+      set_virtual_function_info_base_class(direct_bcp);
+    }  /* if */
+#if !IA64_ABI
+    *p_may_be_first_direct_nonvirtual_base = FALSE;
+#endif /* !IA64_ABI */
+    /* If the derived class was already mentioned as the target of a
+       conversion function, the base class should also have its
+       target_of_conversion_function flag set.  Here's the kind of
+       case where this is needed:
+         class A;
+         class B { ... };
+         class X { operator A&(); };      // The flag is set for A
+         class A : public B { ... };      // It must be set for B, too.
+    */
+    if (cssp->target_of_conversion_function) {
+      set_target_of_conversion_function_flag(direct_bcp->type);
+    }  /* if */
+  }  /* if */
+}  /* add_new_direct_base */
+
+
 static void scan_base_specifier_list(a_type_ptr             type_ptr,
                                      a_class_def_state_ptr  class_state)
 /*
@@ -6011,7 +6186,7 @@ or struct definition.  The syntax is
 */
 {
   a_class_type_supplement_ptr   ctsp;
-  a_base_class_ptr              bcp, new_bcp, end_of_base_classes_list = NULL;
+  a_base_class_ptr              bcp, end_of_base_classes_list = NULL;
   a_base_class_ptr              new_direct_bcp;
   an_access_specifier           access;
   a_boolean                     is_virtual;
@@ -6022,17 +6197,14 @@ or struct definition.  The syntax is
   a_type_ptr                    orig_base_class_type;
   a_boolean                     ambiguous;
   a_class_symbol_supplement_ptr cssp, bcp_cssp;
-  a_boolean                     any_base_class_fixup_required;
   a_source_position             base_class_decl_pos;
   a_source_position             base_specifier_start_pos;
-  a_derivation_step_ptr         path;
   a_boolean                     first_base_class = TRUE;
   a_base_class_sequence_number	direct_base_number = 0, proto_base_number = 0;
 #if IA64_ABI
   a_base_class_ptr              first_indirect_primary_vbase = NULL;
-#else /* !IA64_ABI */
-  a_boolean                     first_direct_nonvirtual_base_class = TRUE;
 #endif /* IA64_ABI */
+  a_boolean                     may_be_first_direct_nonvirtual_base = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                     interface_definition =
                                    microsoft_mode &&
@@ -6366,41 +6538,6 @@ or struct definition.  The syntax is
         if (is_virtual) new_direct_bcp->is_virtual = TRUE;
         mark_base_dependent_if_needed(new_direct_bcp, class_state,
                                       proto_base_number);
-        if (bcp_cssp->any_nonreal_base_classes ||
-            (base_class_type->variant.class_struct_union.is_nonreal_class &&
-             !(base_class_type->
-                      variant.class_struct_union.is_prototype_instantiation ||
-               !base_class_type->
-                          variant.class_struct_union.is_template_class))) {
-          /* Do not set the any_nonreal_base_classes field for a base that is
-             a prototype instantiation, or a class defined as part of a
-             prototype instantiation (e.g., a local class defined in the
-             prototype instantiation of a function template). */
-          cssp->any_nonreal_base_classes = TRUE;
-        }  /* if */
-        path = update_base_class_derivation(new_direct_bcp,
-                                            (a_derivation_step_ptr)NULL,
-                                            access);
-#if DEBUG
-        if (debug_level >= 3 || db_flag_is_set("base_specifiers")) {
-          db_abbreviated_type(base_class_type);
-          fputs(" is direct base class of ", f_debug);
-          db_abbreviated_type(type_ptr);
-          fputc('\n', f_debug);
-        }  /* if */
-#endif /* DEBUG */
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-        /* When cfront lays out a class with base classes, the subobject for
-           the first direct nonvirtual base class does not include the data
-           sections for its own virtual base classes (if any).  However, the
-           subobjects for the second and subsequent direct nonvirtual base
-           classes and for virtual base classes do include the virtual base
-           class data sections and are therefore marked as having a "complete
-           subobject". */
-        if (is_virtual || !first_direct_nonvirtual_base_class) {
-          new_direct_bcp->complete_subobject = TRUE;
-        }  /* if */
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         new_direct_bcp->base_specifier_range.start = base_specifier_start_pos;
         new_direct_bcp->base_specifier_range.end = end_pos_curr_token;
@@ -6408,128 +6545,8 @@ or struct definition.  The syntax is
         if (attributes != NULL) {
           attach_attributes(attributes, (char*)new_direct_bcp, iek_base_class);
         }  /* if */
-        /* Add base classes derived from this base class to the current class's
-           base class list.  They are marked as indirect. */
-        any_base_class_fixup_required = FALSE;
-        for (bcp = base_classes_of(new_direct_bcp->type);
-             bcp != NULL;
-             bcp = bcp->next) {
-          if (bcp->overriding_virtual_functions != NULL) {
-            any_base_class_fixup_required = TRUE;
-          }  /* if */
-          if (!bcp->direct) {
-            continue;
-          } else if (bcp->is_virtual) {
-            /* A virtual base class is marked as "direct" if any of its paths
-               is direct.  However, for our purposes, the "first" path (first
-               in a depth-first left-to-right traversal of the derivation
-               graph) must be direct.  On the other hand, we still need to
-               record the direct path, but so set a flag so another pass will
-               be done over the base class list. */
-            if (!bcp->derivation->direct) {
-              any_base_class_fixup_required = TRUE;
-              continue;
-            }  /* if */
-          }  /* if */
-            /* Add the direct base class and all *its* base classes to the
-             base class list for the derived class. */
-          add_indirect_base_class(bcp, new_direct_bcp, path,
-                                  &end_of_base_classes_list, type_ptr);
-        }  /* for */
-        /* Enter the base name on the base class list in the derived class's
-           class-supplement entry. */
-        if (end_of_base_classes_list == NULL) {
-          ctsp->base_classes = new_direct_bcp;
-        } else {
-          end_of_base_classes_list->next = new_direct_bcp;
-        }  /* if */
-        end_of_base_classes_list = new_direct_bcp;
-        /* Set shares_virtual_function_info for a base class of new_direct_bcp,
-           if appropriate. */
-        set_shares_virtual_function_info_flag(type_ptr, new_direct_bcp);
-        if (any_base_class_fixup_required) {
-          for (bcp = base_classes_of(new_direct_bcp->type);
-               bcp != NULL;
-               bcp = bcp->next) {
-            if (bcp->overriding_virtual_functions != NULL ||
-                (bcp->direct && bcp->is_virtual && !bcp->derivation->direct)) {
-              /* bcp is a base class of new_direct_bcp->type.  We need to find
-                 the corresponding base class of type_ptr.  Find a
-                 disambiguator in case what we are looking for is an
-                 ambiguous base class of type_ptr. */
-              new_bcp = corresp_base_class(bcp, new_direct_bcp);
-            } else {
-              continue;
-            }  /* if */
-            if (bcp->direct && bcp->is_virtual && !bcp->derivation->direct) {
-              /* Add path information about a direct virtual base class of
-                 new_direct_bcp that was not first in the depth-first
-                 left-to-right traversal of the latter's derivation graph.
-                 Look for the matching derivation entry to get the right
-                 access. */
-              a_base_class_derivation_ptr  bcdp = bcp->derivation->next;
-  
-              while (!bcdp->direct) bcdp = bcdp->next;
-              (void)update_base_class_derivation(new_bcp, path, bcdp->access);
-            }  /* if */
-            if (bcp->overriding_virtual_functions != NULL) {
-#if DEBUG
-              if (debug_level >= 4) {
-                fputs("copying virtual function override list from ", f_debug);
-                db_base_class(bcp, FALSE);
-                db_virtual_function_override_list(bcp);
-              }  /* if */
-#endif /* DEBUG */
-              /* Copy the virtual function override entries from bcp (which is
-                 on the base classes list for base_class_type) to the
-                 corresponding copied base class new_bcp (which is on the base
-                 classes list for type_ptr). */
-              copy_virtual_function_override_list(bcp, new_bcp,
-                                                  new_direct_bcp);
-#if DEBUG
-              if (debug_level >= 4) {
-                fputs("new base class ", f_debug);
-                db_base_class(bcp, FALSE);
-                db_virtual_function_override_list(new_bcp);
-              }  /* if */
-#endif /* DEBUG */
-            }  /* if */
-          }  /* for */
-        }  /* if */
-        if (ctsp->virtual_function_info_base_class == NULL &&
-#if !IA64_ABI
-            first_direct_nonvirtual_base_class && 
-#endif /* IA64_ABI */
-            !is_virtual) {
-          /* For the first direct nonvirtual base class it is possible to
-             share virtual function info (e.g., virtual function tables and
-             their associated pointers) between the base class and the
-             derived class. */
-          a_class_type_supplement_ptr  base_ctsp;
-
-          base_ctsp = base_class_type->variant.class_struct_union.extra_info;
-          bcp = base_ctsp->virtual_function_info_base_class;
-          /* Check to see whether or not the base has a virtual function table
-             that could be shared. */
-          if (needs_virtual_function_table(base_class_type) || bcp != NULL) {
-            set_virtual_function_info_base_class(new_direct_bcp);
-          }  /* if */
-#if !IA64_ABI
-          first_direct_nonvirtual_base_class = FALSE;
-#endif /* !IA64_ABI */
-          /* If the derived class was already mentioned as the target of a
-             conversion function, the base class should also have its
-             target_of_conversion_function flag set.  Here's the kind of
-             case where this is needed:
-               class A;
-               class B { ... };
-               class X { operator A&(); };      // The flag is set for A
-               class A : public B { ... };      // It must be set for B, too.
-          */
-          if (cssp->target_of_conversion_function) {
-            set_target_of_conversion_function_flag(new_direct_bcp->type);
-          }  /* if */
-        }  /* if */
+        add_new_direct_base(new_direct_bcp, access, &end_of_base_classes_list,
+                            &may_be_first_direct_nonvirtual_base);
 skip_base_class:
         first_base_class = FALSE;
         /* Advance past the base class name to the comma or right brace. */
@@ -9132,7 +9149,6 @@ with and issue diagnostics as needed.
         err = TRUE;
         break;
       } else if (!types_are_compatible(pitp->type, ptp->type)) {
-        /* FIXME: Compare types before or after decay? */
         pos_warning(is_setter ? ec_property_set_index_type_mismatch
                               : ec_property_get_index_type_mismatch,
                     &pitp->position);
@@ -15989,6 +16005,30 @@ delegate definition.  If it is, return TRUE; otherwise, return FALSE.
 }  /* check_for_cli_delegate_definition */
 
 
+static void add_cli_system_base_class(a_type_ptr    class_type,
+                                      a_symbol_ptr  base_type_symbol)
+/*
+Add to the given C++/CLI class type a base class of the type indicated by
+base_type_symbol (which is a System::... type).  The given class type should
+have no other base classes.
+*/
+{
+  a_base_class_ptr  bcp = alloc_base_class(), last_base = NULL;
+  a_boolean         may_be_first_direct_nonvirtual_base = TRUE;
+
+  check_assertion(base_classes_of(class_type) == NULL);
+  check_assertion(base_type_symbol != NULL);
+  bcp->type = type_symbol_type(base_type_symbol);
+  check_assertion(bcp->type != NULL && is_class_struct_union_type(bcp->type));
+  bcp->orig_type = bcp->type;
+  bcp->derived_class = class_type;
+  bcp->direct = TRUE;
+  bcp->direct_base_number = 1;
+  add_new_direct_base(bcp, (an_access_specifier)as_public, &last_base,
+                      &may_be_first_direct_nonvirtual_base);
+}  /* add_cli_system_base_class */
+
+
 void scan_cli_delegate_definition(a_decl_parse_state  *dps)
 /*
 The caller has determined that the upcoming tokens look like a C++/CLI
@@ -16044,7 +16084,6 @@ definition and record it in the IL (as a special-purpose class type).
     }  /* if */
   }  /* if */
   /* Create the delegate class type (a sealed ref class). */
-  /* FIXME: Derive from System::Delegate. */
   class_type = alloc_type((a_type_kind)tk_struct);
   ctsp = class_type_supp(class_type);
   ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
@@ -16070,6 +16109,8 @@ definition and record it in the IL (as a special-purpose class type).
   source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   initialize_class_def_state(class_type, &class_state);
+  /* Add System::MulticastDelegate as a base class. */
+  add_cli_system_base_class(class_type, symbol_for_system_multicast_delegate);
   class_state.access = (an_access_specifier)as_public;
   ctsp->assoc_scope =
              push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
