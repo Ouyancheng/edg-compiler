@@ -799,6 +799,7 @@ entry that has already been created and linked in for this entity.
         a_boolean  update_source_corresp = TRUE;
         if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
             in_file_scope(new_ssep) && !scp->is_class_member &&
+            scp->name_linkage != (a_name_linkage_kind)nlk_none &&
             (kind == (an_il_entry_kind)iek_routine ||
              kind == (an_il_entry_kind)iek_variable)) {
           /* This must be a block-extern declaration or (in C mode) an

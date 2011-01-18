@@ -1,5 +1,20 @@
 Version 4.3
 
+1/18/10  [EDGcpfe/11282]
+Source sequence entries and local static variables
+
+When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, a variable usually points to the
+source sequence entry that corresponds to its primary declaration.  An
+exception is a variable that has only been declared using block-extern
+declarations (see Changes entry of 3/5/97).  However, the implementation of
+that exception accidentally caused local static variables not to point back to
+their associated source sequence entry.  That is now fixed.  For example:
+
+  void f() {
+    static int si;  // Previously the a_variable entry did not point to the
+  }                 // source sequence entry for this declaration.
+
+
 1/17/11  [EDGcpfe/11262]
 Microsoft compatibility: Binding a reference to non-const to a bit field
 in overload resolution
