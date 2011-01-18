@@ -8814,6 +8814,10 @@ to be part of the function template such as a lambda nested therein.
 
   check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
   ssep = scope_stack_entry_for(depth_innermost_function_scope);
+  while (ssep->kind != (a_scope_kind)sck_function || ssep->lambda != NULL) {
+    check_assertion(ssep->kind != (a_scope_kind)sck_file);
+    ssep--;
+  }  /* while */
   for (vp = ssep->il_scope->variant.routine.parameters;
        vp != NULL; vp = vp->next) {
     if (vp->assoc_param_type->param_num == param_num) {
