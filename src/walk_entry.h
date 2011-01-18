@@ -3412,6 +3412,10 @@ pointers.  The subtree is not processed.
             a_macro_invocation_record_block_ptr,
             iek_macro_invocation_record_block);
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  remap_list_ptr(il_header.cli_metadata_files,
+                 a_cli_metadata_file_ptr, iek_cli_metadata_file);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* region_scope_entry should not be changed; it's not a pointer into
      IL memory in the usual way.  It's changed explicitly as needed. */
   walk_remap_func = saved_walk_remap_func;
