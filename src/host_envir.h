@@ -3398,7 +3398,8 @@ EXTERN a_boolean
 			   emitted on unrecognized attributes. */
 
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES || WRITE_CPPCLI_PORTABLE_ASSEMBLIES
-struct a_portable_assembly_header;
+typedef struct a_portable_assembly_header
+                                      a_portable_assembly_header_dummy_typedef;
 extern void clear_portable_assembly_header(
                                     struct a_portable_assembly_header *header);
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES || WRITE_CPPCLI_PORTABLE_ASSEMBLIES*/
