@@ -6126,7 +6126,7 @@ to FALSE before returning).
      classes do include the virtual base class data sections and are therefore
      marked as having a "complete subobject". */
   if (is_virtual || !*p_may_be_first_direct_nonvirtual_base) {
-    new_direct_bcp->complete_subobject = TRUE;
+    direct_bcp->complete_subobject = TRUE;
   }  /* if */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
   if (ctsp->virtual_function_info_base_class == NULL &&
