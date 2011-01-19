@@ -2434,7 +2434,8 @@ TRUE if this is the function declarator in a friend function declaration.
              be a function definition, it will be needed (in C++ unnamed
              parameters are allowed). */
 #if DEBUG
-          if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+          if (!source_sequence_entries_disallowed &&
+              (debug_level >= 4 || db_flag_is_set("dump_ss_full"))) {
             if (!is_error_locator(param_locator)) {
               fprintf(f_debug,
                      "function_declarator: empty ss entry for param \"%s\":\n",
@@ -5722,7 +5723,8 @@ The syntax is:
       /* Real (non-abstract) declarator. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
-      if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+      if (!source_sequence_entries_disallowed &&
+          (debug_level >= 4 || db_flag_is_set("dump_ss_full"))) {
         fprintf(f_debug, "declarator: empty ss entry for \"%s\":\n",
                 curr_token == tok_identifier ?
                   locator_for_curr_id.symbol_header->identifier :

@@ -10114,6 +10114,9 @@ implicitly declared member functions.
       }  /* if */
     }  /* if */
     if (exceptions_enabled && compiler_generated &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        !is_immediate_managed_class_type(class_type) &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         !class_type->variant.class_struct_union.is_nonreal_class) {
       /* A compiler generated constructor, destructor, or assignment
          operator is assumed to throw any exception that can be thrown by
@@ -16019,6 +16022,7 @@ have no other base classes.
   check_assertion(base_classes_of(class_type) == NULL);
   check_assertion(base_type_symbol != NULL);
   bcp->type = type_symbol_type(base_type_symbol);
+  complete_type_is_needed(bcp->type);
   check_assertion(bcp->type != NULL && is_class_struct_union_type(bcp->type));
   bcp->orig_type = bcp->type;
   bcp->derived_class = class_type;
@@ -16050,8 +16054,7 @@ definition and record it in the IL (as a special-purpose class type).
   a_scope_depth                decl_level = depth_scope_stack;
   a_class_def_state            class_state;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_boolean                    saved_source_sequence_entries_disallowed =
-                                           source_sequence_entries_disallowed;
+  a_boolean                    saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_member_decl_info           member_info;
 
@@ -16106,6 +16109,9 @@ definition and record it in the IL (as a special-purpose class type).
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   class_type->autonomous_primary_tag_decl = TRUE;
   /* Don't issue source sequence entries for generated entities. */
+  saved_source_sequence_entries_disallowed =
+                                            source_sequence_entries_disallowed;
+  scope_stack_top().source_sequence_entries_disallowed = TRUE;
   source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   initialize_class_def_state(class_type, &class_state);
@@ -16148,6 +16154,8 @@ definition and record it in the IL (as a special-purpose class type).
   /* Restore the previous state wrt. generating source sequence entries. */
   source_sequence_entries_disallowed =
                                      saved_source_sequence_entries_disallowed;
+  scope_stack_top().source_sequence_entries_disallowed 
+                                    = saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* scan_cli_delegate_definition */
 

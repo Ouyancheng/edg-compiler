@@ -2311,7 +2311,7 @@ from the list.
   a_param_id_ptr  pid = func_info->param_id_list;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr  ss_list = func_info->prototype_scope_ss_list;
-  a_source_sequence_entry_ptr  ssep, next_ssep, *avail_list;
+  a_source_sequence_entry_ptr  ssep, next_ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   /* Update xref information on each symbol. */
@@ -2334,16 +2334,7 @@ from the list.
           ssep->prev->next = ssep->next;
         }  /* if */
         if (ssep->next != NULL) ssep->next->prev = ssep->prev;
-        if (in_file_scope(ssep)) {
-          avail_list = &scope_stack[DEPTH_OF_FILE_SCOPE].
-                                              source_sequence_avail_list;
-        } else {
-          check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
-          avail_list = &scope_stack[depth_innermost_function_scope].
-                                              source_sequence_avail_list;
-        }  /* if */
-        ssep->next = *avail_list;
-        *avail_list = ssep;
+        recycle_src_seq_entry(ssep);
       }  /* if */
       pid->source_sequence_entry = NULL;
     }  /* if */

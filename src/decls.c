@@ -11910,7 +11910,8 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
   (void)get_token();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
-  if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+  if (!source_sequence_entries_disallowed &&
+      (debug_level >= 4 || db_flag_is_set("dump_ss_full"))) {
     fputs("namespace_declaration: adding empty ss entry\n", f_debug);
   }  /* if */
 #endif /* DEBUG */
@@ -15386,7 +15387,7 @@ Broadly speaking, three kinds of declarations are handled here:
   /* Handle any cases that don't start with a decl-specifier or a
      declarator. */
   switch (check_special_declaration_form(&state, param_id_list,
-          &final_token)) {
+                                         &final_token)) {
     case eoda_not_at_end:        break;
     case eoda_done:              goto return_point;
     case eoda_skip_final_token:  goto advance_past_final_token;

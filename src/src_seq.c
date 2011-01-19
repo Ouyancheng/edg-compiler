@@ -1055,7 +1055,7 @@ end; otherwise, insert it immediatedly before insert_before.
 }  /* insert_src_seq_list */
 
 
-static void recycle_src_seq_entry(a_source_sequence_entry_ptr  ssep)
+void recycle_src_seq_entry(a_source_sequence_entry_ptr  ssep)
 /*
 Return the given source sequence entry to the appropriate available list.
 */

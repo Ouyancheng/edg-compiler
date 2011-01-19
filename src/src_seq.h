@@ -84,6 +84,8 @@ extern void insert_src_seq_list(a_source_sequence_entry_ptr  head,
                                 a_scope_depth                scope_depth,
                                 a_source_sequence_entry_ptr  insert_point);
 
+extern void recycle_src_seq_entry(a_source_sequence_entry_ptr  ssep);
+
 extern a_src_seq_secondary_decl_ptr make_source_sequence_secondary_decl(
                                             char               *ptr,
                                             an_il_entry_kind   kind,

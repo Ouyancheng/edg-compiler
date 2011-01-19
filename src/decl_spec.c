@@ -4857,7 +4857,8 @@ dsi_flags is the set of input flags passed to decl_specifiers.
         } else {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
-          if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+          if (!source_sequence_entries_disallowed &&
+              (debug_level >= 4 || db_flag_is_set("dump_ss_full"))) {
             fprintf(f_debug, "enum_specifier: empty ss entry for \"%s\":\n",
                     locator_for_curr_id.symbol_header->identifier);
           }  /* if */
