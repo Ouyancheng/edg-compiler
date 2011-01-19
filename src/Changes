@@ -130,8 +130,7 @@ The front end was changed to issue a warning instead of an error on
 exception specifications on function definitions when support for
 exceptions was disabled (see 1/16/06 entry).  This change failed to
 address such diagnostics on function templates and member functions of
-class templates in modes in which nonclass prototype instantiations
-are performed.  Now fixed.  Formerly, the following example would produce
+class templates.  Now fixed.  Formerly, the following example would produce
 an error with the --strict and --no_exceptions option.  It now produces
 a warning.
 

@@ -4501,14 +4501,10 @@ Instantiate the body of the template function associated with tip.
      process_curr_construct_pragmas; otherwise the pragmas we're interested
      in would have been disposed of. */
   record_lint_argsused_and_varargs_state(rout_sym);
-  if (!exceptions_enabled && !func_info_ptr->is_inline &&
-      func_info_ptr->throw_position.seq != 0) {
-    /* Issue a diagnostic on attempting to define a noninline function with
-       an exception specification when exception support is not enabled.
-       (No diagnostic is issued on nondefinition -- the exception
-       specification is just ignored.) */
-    pos_error(ec_no_exception_support,
-              &func_info_ptr->throw_position);
+  if (!exceptions_enabled) {
+    /* Check whether a diagnostic should be issued on this exception
+       specification, and issue one if needed. */
+    issue_no_exception_support_diag_on_throw_spec(func_info_ptr);
   }  /* if */
   /* Reactivate the tokens comprising the function body and scan them. */
   rescan_reusable_cache(&tcp->tokens);

@@ -1701,13 +1701,10 @@ member declaration (allowed in some Microsoft modes only).
 #endif /* DEBUG */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
-  if (!exceptions_enabled && !func_info->is_inline && !gpp_mode &&
-      func_info->throw_position.seq != 0) {
-    /* Issue a diagnostic on attempting to define a noninline function with
-       an exception specification when exception support is not enabled.
-       (No diagnostic is issued on nondefinition -- the exception
-       specification is just ignored.) */
-    pos_warning(ec_no_exception_support, &func_info->throw_position);
+  if (!exceptions_enabled) {
+    /* Check whether a diagnostic should be issued on this exception
+       specification, and issue one if needed. */
+    issue_no_exception_support_diag_on_throw_spec(func_info);
   }  /* if */
   if (func_info->is_inline) {
     if (!rp->is_inline) {
