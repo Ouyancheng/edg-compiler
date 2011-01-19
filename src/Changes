@@ -45,7 +45,7 @@ immediately called.
 1/18/11  [EDGcpfe/11289]
 Internal error on using-declaration of operator=
 
-An internal error could occur (in add_symbol_to_overload_set) if a class
+An internal error could occur (in add_symbol_to_overload_list) if a class
 contained a using-declaration referring to a base class operator= function
 followed by the declaration of an operator= function or template that did
 not suppress the generation of the implicitly declared operator=.  Now fixed.
