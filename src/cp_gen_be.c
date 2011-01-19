@@ -3054,6 +3054,23 @@ is called.
       /* The underlying type may be inaccessible, so we have to use the
          typedef. */
       invisible = FALSE;
+    } else {
+      for (underlying_type = type->variant.typeref.type;
+           underlying_type != NULL &&
+                              underlying_type->kind == (a_type_kind)tk_typeref;
+           underlying_type = underlying_type->variant.typeref.type) {
+        if (typeref_is_decltype_or_typeof(underlying_type)) {
+          /* The operand or result of a decltype or typeof can refer to
+             inaccessible names, so we should just use the original
+             typedef. */
+          invisible = FALSE;
+          break;
+        } else if (typeref_is_typedef(underlying_type)) {
+          /* We've reached another typedef; use it (leave the current one
+             as invisible). */
+          break;
+        }  /* if */
+      }  /* for */
     }  /* if */
   }  /* if */
   return invisible;

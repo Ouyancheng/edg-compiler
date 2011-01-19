@@ -1,5 +1,28 @@
 Version 4.3
 
+1/18/11  [EDGcpfe/11290]
+C++-generating back end: typedefs to decltype or typeof as template arguments
+
+In most cases, in order to avoid unnecessarily verbose template argument
+lists, the C++-generating back end uses the underlying type of a typedef
+as a template argument instead of the typedef name itself.  When the
+underlying type is a C++0x decltype or GNU typeof, however, the resulting
+code was sometimes erroneous.  For example, the operand of a decltype might
+be inaccessible in the context in which the template-id is used, or (in a
+configuration with DEFAULT_RECORD_FORM_OF_NAME_REFERENCE set to TRUE) a
+name in the operand might be generated without the necessary qualification.
+This has now been fixed by using the typedef instead of the underlying type
+when the underlying type is a decltype or typeof construct.  For example:
+
+  struct S {
+    static int f();
+    typedef decltype(f()) type;
+  };
+  template<typename T> struct X;
+  typedef X<S::type> xi;  // Previously generated as X<decltype(f()) when
+                          // name references are recorded
+
+
 1/18/11  [EDGcpfe/11191]
 Bound function for static template with explicit arguments treated as
 simple function
