@@ -2664,7 +2664,20 @@ whose definition has not yet been generated, force the definition now.
           skind == (a_special_function_kind)sfk_destructor  ||
           (skind == (a_special_function_kind)sfk_operator &&
            rp->variant.opname_kind == (an_opname_kind)onk_assign)) {
-        define_special_member_function(rp);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        a_type_ptr  parent_type = parent_class_of(rp);
+        if (cppcli_enabled &&
+            (cli_class_type_kind_is(parent_type, cctk_ref) ||
+             cli_class_type_kind_is(parent_type, cctk_interface))) {
+          /* Do not generate these members for C++/CLI ref classes or
+             interface classes.  (We might get here with the generated
+             constructor of a delegate class.) */
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          define_special_member_function(rp);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
