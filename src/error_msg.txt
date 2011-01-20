@@ -2115,6 +2115,7 @@ ec_normal_ref_bound_to_gc_lvalue;;"a simple (non-tracking) reference cannot be b
 ec_portable_assembly;INTERNAL;"portable assembly"
 ec_cli_system_entity_not_loaded;;"\"System::%s\" not loaded from default assemblies"
 ec_list_initializer_nonstandard_in_current_mode;;"list initialization syntax is a C++0x feature"
+ec_sizeof_ref_or_interface_class;;"operand of sizeof may not be a ref class type or interface class type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

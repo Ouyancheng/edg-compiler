@@ -8255,6 +8255,29 @@ previously-scanned sizeof expression, and return the result in *result
       (void)make_sizeof_expr(is_type, sizeof_type, &operand, result);
       operand_was_used = !is_type;
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && !template_case &&
+             (is_managed_class_type(sizeof_type) ||
+              is_handle_type(sizeof_type))) {
+    /* In C++/CLI mode, the size of a value class type or a handle type is
+       nonconstant, and applying sizeof to a ref/interface class type is
+       invalid. */
+    a_type_ptr  tp = skip_typerefs(sizeof_type);
+    if (is_immediate_class_type(tp) &&
+        (cli_class_type_kind_is(tp, cctk_ref) ||
+         cli_class_type_kind_is(tp, cctk_interface))) {
+      expr_pos_error(ec_sizeof_ref_or_interface_class, &start_position);
+      make_error_operand(result);
+    } else if (in_constant_expression) {
+      expr_pos_error(ec_expr_not_constant, &start_position);
+      make_error_operand(result);
+    } else {
+      /* Make an expression node to represent a sizeof that cannot be
+         evaluated until runtime. */
+      (void)make_sizeof_expr(is_type, sizeof_type, &operand, result);
+      operand_was_used = !is_type;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef SIZEOF_TYPE_IS_UNKNOWN
   } else if (!template_case && SIZEOF_TYPE_IS_UNKNOWN(sizeof_type)) {
     /* The size of this type is not known at compile time.  This is
