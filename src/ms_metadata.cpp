@@ -3560,7 +3560,7 @@ a_cpp_cli_feature_set
                                          cpp_cli_value_types |
                                          cpp_cli_interfaces |
                                          cpp_cli_enumerations |
-//                                       cpp_cli_properties |
+                                         cpp_cli_properties |
 //                                       cpp_cli_events |
 //                                       cpp_cli_generic_types |
 //                                       cpp_cli_generic_methods |
