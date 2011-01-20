@@ -855,13 +855,8 @@ This ensures that "back end" components (including utilities like the IL
 display program) can query these entities.
 */
 {
-  /* Make sure that the signedness of "plain" char is set correctly in
-     int_kind_is_signed.  Doing this here ensures that it won't be overlooked
-     in standalone utility programs. */
-  int_kind_is_signed[(int)ik_char] = il_header.plain_chars_are_signed;
-  /* Ditto for C_dialect.  Setting this allows "back end" software to
-     use C_mode().  Also set global variable default_routine_name_linkage,
-     which may be needed in outputting function types. */
+  int_kind_is_signed[(int)ik_char] = targ_has_signed_chars =
+                                              il_header.plain_chars_are_signed;
   switch (il_header.source_language) {
     case sl_C:
       C_dialect = il_header.pcc_compatibility_mode ? C_dialect_pcc :
