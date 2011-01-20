@@ -8499,8 +8499,14 @@ set to FALSE (and FALSE is always returned).
         }  /* if */
         break;
       case sfk_static_constructor:
-        /* Static constructors are allowed on C++/CLI managed interface types
-           (e.g. "interface class"), but not on non-CLI "__interface" types. */
+      case sfk_property_get:
+      case sfk_property_set:
+      case sfk_event_add:
+      case sfk_event_remove:
+      case sfk_event_raise:
+        /* Static constructors, properties, and events are allowed on C++/CLI
+           managed interface types (e.g. "interface class"), but not on
+           non-CLI "__interface" types. */
         check_assertion(!type->variant.class_struct_union.is_interface);
         break;
       case sfk_finalizer:
