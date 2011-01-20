@@ -1483,7 +1483,6 @@ static void begin_caching_fetched_tokens(a_boolean	include_curr_token);
 static void end_caching_fetched_tokens(void);
 
 
-static
 a_boolean cache_token_stream_until_matching_token(
 				a_token_cache		*cache,
                                 a_boolean		coalesce_ids)

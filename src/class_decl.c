@@ -15943,6 +15943,22 @@ sensitive keywords.
          appear in a malformed declaration involving such a specifier: Don't
          attempt to parse this assuming the identifier is a keyword. */
       break;
+    } else if (curr_token == tok_declspec) {
+      /* A __declspec attribute: Cache the tokens until (but not including)
+         the closing right parenthesis. */
+      cache_curr_token(cache);
+      (void)get_token();
+      if (curr_token != tok_lparen ||
+          cache_token_stream_until_matching_token(cache,
+                                                  /*coalesce_ids=*/FALSE)) {
+        /* A syntax error.  Assume a context-sensitive error. */
+        expect_error();
+        result = TRUE;
+        goto done;
+      } else {
+        /* The closing parenthesis will be cached below. */
+        check_assertion(curr_token == tok_rparen);
+      }  /* if */
     } else {
       /* Presumably another specifier token. */
     }  /* if */

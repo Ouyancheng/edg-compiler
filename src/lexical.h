@@ -1787,6 +1787,10 @@ void cache_token_stream_with_coalesce_flag(a_token_cache_ptr  cache,
 extern void cache_std_attribute(a_token_cache	*cache,
                                 a_boolean	add_tokens_to_cache);
 
+extern a_boolean cache_token_stream_until_matching_token(
+				a_token_cache		*cache,
+                                a_boolean		coalesce_ids);
+
 extern
 void remove_token_from_cache(a_cached_token_ptr	ctp,
 			     a_cached_token_ptr	*prev_ptr,
