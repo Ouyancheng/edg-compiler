@@ -2114,6 +2114,7 @@ ec_cppcli_attribute_only;;"attribute %sq applies in C++/CLI mode only"
 ec_normal_ref_bound_to_gc_lvalue;;"a simple (non-tracking) reference cannot be bound to an entity on the managed heap"
 ec_portable_assembly;INTERNAL;"portable assembly"
 ec_cli_system_entity_not_loaded;;"\"System::%s\" not loaded from default assemblies"
+ec_list_initializer_nonstandard_in_current_mode;;"list initialization syntax is a C++0x feature"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

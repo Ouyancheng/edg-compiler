@@ -3968,7 +3968,7 @@ to the constant.  Otherwise, literal_con is NULL and dip and literal_type
 give the dynamic initialization entry and type for the compound literal.
 An example of the form of a compound literal:
        (int []){1, 2, 3}
-In GNU C++0x mode, a "list initializer" may also be represented as a compound
+In GNU C++ mode, a "list initializer" may also be represented as a compound
 literal (but the source form doesn't include the cast-like prefix).
 */
 {

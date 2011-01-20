@@ -15870,8 +15870,8 @@ initializer, e.g.,
 
   (int []){1, 2, 3}
 
-This routine is also called in GNU C++0x mode for "list initializers" in
-return expressions -- list_init is TRUE in that case.  E.g.,
+This routine is also called in GNU C++ mode for "list initializers" in return
+expressions -- list_init is TRUE in that case.  E.g.,
 
   struct S { int x, y; };
   S f() { return { 1, 2 }; }
@@ -24683,8 +24683,14 @@ required_type will be void if the expression should have void type
       lambda_implicit_return_case = TRUE;
     }  /* if */
   }  /* if */
-  if (curr_token == tok_lbrace && gpp_mode && cpp0x_mode &&
-      !lambda_implicit_return_case) {
+  if (curr_token == tok_lbrace && gpp_mode && !lambda_implicit_return_case) {
+    /* GNU C++ allows C++0x list initializers even in non-C++0x modes.  We
+       currently accept only a small subset of such cases, and treat them like
+       compound literals. */
+    if (!cpp0x_mode) {
+      pos_warning(ec_list_initializer_nonstandard_in_current_mode,
+                  &pos_curr_token);
+    }  /* if */
     scan_compound_literal(&required_type, /*list_init=*/TRUE,
                           &pos_curr_token, &result, EOPT_NO_OPTIONS);
   } else {

@@ -1,5 +1,17 @@
 Version 4.3
 
+1/20/11  [EDGcpfe/11295]
+GNU C++ compatibility: List initializers in return statements
+
+In version 4.2, the front end added support in GNU C++0x mode for a small
+subset of C++0x list initialization syntax (see Changes entry of 6/15/10).  
+Recent GCC versions also accept this syntax (with a warning) in non-C++0x
+modes.  The front end now emulates that behavior in GNU C++ mode.
+
+  struct S { int x; };
+  S f() { return { 42 }; }  // Now accepted with --g++ (with a warning).
+
+
 1/18/11  [EDGcpfe/11290]
 C++-generating back end: typedefs to decltype or typeof as template arguments
 
