@@ -593,12 +593,12 @@ private:
 The possible top level types we can find in an assembly. 
 */
 enum a_top_level_kind {
-  an_unknown_kind,
-  a_ref_class,
-  a_value_type,
-  an_interface,
-  an_enumeration,
-  a_delegate,
+  tlk_unknown_kind,
+  tlk_ref_class,
+  tlk_value_type,
+  tlk_interface,
+  tlk_enumeration,
+  tlk_delegate,
 };  /* a_top_level_kind */
 
 /*
@@ -918,29 +918,29 @@ Classify a type into one of the top-level kinds - this depends on the
 attributes associated with the type and/or the type that this type extends.
 */
 {
-  a_top_level_kind kind = an_unknown_kind;
+  a_top_level_kind kind = tlk_unknown_kind;
 
   if (IsTdInterface(attributes)) {
-    kind = an_interface;
+    kind = tlk_interface;
   } else if (!IsNilToken(extends_token)) {
     wstring extends_class_name = resolve_type_token(extends_token,
                                                     generic_type_parameters,
                                                     /*replaces_dots=*/false);
 
     if (extends_class_name == L"System.ValueType") {
-      kind = a_value_type;
+      kind = tlk_value_type;
     } else if (extends_class_name == L"System.Enum") {
-      kind = an_enumeration;
+      kind = tlk_enumeration;
     } else if (extends_class_name == L"System.MulticastDelegate") {
-      kind = a_delegate;
+      kind = tlk_delegate;
     } else {
       /* Not one of the above so this must be a ref-class. */
-      kind = a_ref_class;
+      kind = tlk_ref_class;
     }  /* if */
   } else {
     /* Not an interface and it doesn't extend anything so this must be
        System.Object which is a ref-class. */
-    kind = a_ref_class;
+    kind = tlk_ref_class;
   }  /* if */
   return kind;
 }  /* an_import_scope::classify_type */
@@ -1590,14 +1590,14 @@ Decode the extends token and emit the appropriate text.
                                                       extends_token_,
                                                       generic_type_parameters_,
                                                       /*replaces_dots=*/true);
-  if (kind_ == a_value_type) {
+  if (kind_ == tlk_value_type) {
     /* By definition all value types extend System.ValueType so there is no
        need to explicitly add it as a base-class. */
     check_assertion(extends_name == L"System::ValueType");
   } else if (!extends_name.empty()) {
     /* Similarly with ref classes: by definition they all extend (directly or
        indirectly) System.Object. */
-    if ((kind_ != a_ref_class) || (extends_name != L"System::Object")) {
+    if ((kind_ != tlk_ref_class) || (extends_name != L"System::Object")) {
       buffer << " : " << extends_name;
       is_first_base_class_processed = true;
     }  /* if */
@@ -2445,19 +2445,19 @@ Return the appropriate string for the specified top level kind.
   wstring result;
 
   switch (kind) {
-    case a_ref_class:
+    case tlk_ref_class:
       result = L"ref class";
       break;
-    case a_value_type:
+    case tlk_value_type:
       result = L"value class";
       break;
-    case an_interface:
+    case tlk_interface:
       result = L"interface class";
       break;
-    case an_enumeration:
+    case tlk_enumeration:
       result = L"enum class";
       break;
-    case a_delegate:
+    case tlk_delegate:
       result = L"delegate";
       break;
     default:
@@ -2546,34 +2546,34 @@ omitted.
   kind = classify_type(attributes, generic_type_parameters, extends_token);
   /* Check whether the top level kind is supported. */
   switch (kind) {
-    case a_ref_class:
+    case tlk_ref_class:
       if ((supported_features & cpp_cli_ref_classes) == 0) {
         skip_type = true;
       }  /* if */
       break;
-    case a_value_type:
+    case tlk_value_type:
       if ((supported_features & cpp_cli_value_types) == 0) {
         skip_type = true;
       }  /* if */
       break;
-    case an_interface:
+    case tlk_interface:
       if ((supported_features & cpp_cli_interfaces) == 0) {
         skip_type = true;
       }  /* if */
       break;
-    case an_enumeration:
+    case tlk_enumeration:
       if ((supported_features & cpp_cli_enumerations) == 0) {
         skip_type = true;
       }  /* if */
       break;
-    case a_delegate:
+    case tlk_delegate:
       if ((supported_features & cpp_cli_delegates) == 0) {
         skip_type = true;
-	  } else if (!want_definition) {
-		/* If no definition is required, treat the delegate as a ref class
-		   since "delegate ..." is always a definition.  Doing so avoids
-		   declaration ordering problems. */
-		kind = a_ref_class;
+      } else if (!want_definition) {
+        /* If no definition is required, treat the delegate as a ref class
+           since "delegate ..." is always a definition.  Doing so avoids
+           declaration ordering problems. */
+        kind = tlk_ref_class;
       }  /* if */
       break;
     default:
@@ -2651,9 +2651,9 @@ omitted.
         buffer << ")) ";
       }  /* if */
     }  /* if  */
-    if (kind == a_delegate) {
+    if (kind == tlk_delegate) {
       import_delegate_definition(buffer, typedef_token, type_name);
-    } else if (kind == an_enumeration) {
+    } else if (kind == tlk_enumeration) {
       /* At the moment we can't forward declare a C++/CLI enumeration so we
          need to import (and emit) the full definition. */
       import_enum_definition(buffer, typedef_token, type_name);
