@@ -2569,6 +2569,11 @@ omitted.
     case a_delegate:
       if ((supported_features & cpp_cli_delegates) == 0) {
         skip_type = true;
+	  } else if (!want_definition) {
+		/* If no definition is required, treat the delegate as a ref class
+		   since "delegate ..." is always a definition.  Doing so avoids
+		   declaration ordering problems. */
+		kind = a_ref_class;
       }  /* if */
       break;
     default:
@@ -2657,8 +2662,7 @@ omitted.
                           (supported_features & cpp_cli_define_all_types) != 0;
 
       /* Emit the name of the type. */
-      if (!class_body_only)
-        buffer << type_name;
+      if (!class_body_only) buffer << type_name;
       if (want_definition || define_all_types) {
         a_type_definition type_definition(typedef_token, type_name, 
                                           extends_token,
@@ -3564,7 +3568,7 @@ a_cpp_cli_feature_set
                                          cpp_cli_events |
 //                                       cpp_cli_generic_types |
 //                                       cpp_cli_generic_methods |
-//                                       cpp_cli_delegates |
+                                         cpp_cli_delegates |
 //                                       cpp_cli_define_all_types |
                                          cpp_cli_declspec_assemby_info;
 

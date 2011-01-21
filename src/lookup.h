@@ -96,7 +96,7 @@ represented as a bit set:
 				   declarations made visible in the class by
 				   using-declarations may be found.
 				   This lookup will not create a projection
-                                   symbol.  This flag also suppresses
+				   symbol.  This flag also suppresses
 				   creation of a conversion operator function
 				   based on a template that matches the
 				   specified type. */

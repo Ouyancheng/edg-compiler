@@ -16070,6 +16070,7 @@ definition and record it in the IL (as a special-purpose class type).
                                            DSI_VACUOUS_TAG_DECL_ALLOWED;
   a_decl_flag_set              di_flags = DI_REAL_DECLARATOR_ALLOWED;
   a_symbol_locator             loc, member_loc;
+  a_symbol_ptr                 prev_decl = NULL;
   a_func_info_block            func_info;
   a_type_ptr                   parent_type = NULL, class_type;
   a_class_type_supplement_ptr  ctsp;
@@ -16079,6 +16080,7 @@ definition and record it in the IL (as a special-purpose class type).
   a_boolean                    saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_member_decl_info           member_info;
+  a_boolean                    compiler_generated = (pos_curr_token.seq == 0);
 
   clear_decl_pos_block(&decl_pos_block);
   visibility = scan_cli_visibility_specifier_if_any(&visibility_pos);
@@ -16108,21 +16110,34 @@ definition and record it in the IL (as a special-purpose class type).
       dps->type = error_type();
     }  /* if */
   }  /* if */
+  if (compiler_generated) {
+    /* If a delegate is generated from an assembly (metadata) file, it was
+       previously loaded as an incomplete ref class.  Only in this case is
+       a "redeclaration" allowed. */
+    prev_decl = curr_scope_id_lookup(&loc, IDL_MUST_BE_TAG);
+    if (prev_decl != NULL) class_type = type_symbol_type(prev_decl);
+  }  /* if */
   /* Create the delegate class type (a sealed ref class). */
-  class_type = alloc_type((a_type_kind)tk_struct);
+  if (prev_decl == NULL) {
+    class_type = alloc_type((a_type_kind)tk_struct);
+    dps->sym = enter_local_symbol((a_symbol_kind)sk_class_or_struct_tag, &loc,
+                                  decl_level, /*suppress_redecl_error=*/FALSE);
+    dps->sym->variant.class_struct_union.type = class_type;
+    set_source_corresp(&(class_type->source_corresp), dps->sym);
+    update_membership_of_class(dps->sym, /*def_or_vacuous_decl=*/TRUE,
+                               decl_level, &dps->start_pos);
+    add_to_types_list(class_type, decl_level);
+  } else {
+    class_type = type_symbol_type(prev_decl);
+    dps->sym = prev_decl;
+    move_to_end_of_types_list(class_type, decl_level);
+  }  /* if */
   ctsp = class_type_supp(class_type);
   ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
   class_type->variant.class_struct_union.is_delegate_class = TRUE;
   class_type->variant.class_struct_union.final = TRUE;
-  dps->sym = enter_local_symbol((a_symbol_kind)sk_class_or_struct_tag, &loc,
-                                decl_level, /*suppress_redecl_error=*/FALSE);
-  dps->sym->variant.class_struct_union.type = class_type;
-  set_source_corresp(&(class_type->source_corresp), dps->sym);
-  update_membership_of_class(dps->sym, /*def_or_vacuous_decl=*/TRUE,
-                             decl_level, &dps->start_pos);
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, dps->sym,
                             &loc.source_position, dps->source_sequence_entry);
-  add_to_types_list(class_type, decl_level);
   if (cppcli_enabled) {
     set_cli_visibility(class_type, visibility, &visibility_pos,
                        /*is_definition=*/TRUE);
