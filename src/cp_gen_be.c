@@ -8883,6 +8883,7 @@ return FALSE and let the caller generate the code normally.
 }  /* handle_operator_call */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 static a_boolean write_compound_assignment_for_property_set(
                                         a_property_or_event_descr_ptr desc,
                                         an_expr_node_ptr              obj_expr,
@@ -9083,7 +9084,7 @@ actual first argument (if any) for static members.
       unexpected_condition();
   }  /* switch */
 }  /* gen_cli_property_or_event_call */
-
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_call(an_expr_node_ptr expr)
 /*
@@ -9130,13 +9131,17 @@ call.
       gen_expression(func_expr);
     } else if (rout != NULL) {
       /* We can tell which routine is being called. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
       if (rout_is_cli_accessor(rout)) {
         /* This is a call of an accessor function for a C++/CLI property or
            event; it should be generated using the associated operator
            instead of as a function call. */
         gen_cli_property_or_event_call(args, rout);
         processed = TRUE;
-      } else {
+      } else 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
         a_type_ptr    rout_type = skip_typerefs(rout->type);
         if (rout_type->variant.routine.extra_info->this_class != NULL) {
           /* Nonstatic member function call, so put out the selector object
