@@ -16080,7 +16080,6 @@ definition and record it in the IL (as a special-purpose class type).
   a_boolean                    saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_member_decl_info           member_info;
-  a_boolean                    compiler_generated = (pos_curr_token.seq == 0);
 
   clear_decl_pos_block(&decl_pos_block);
   visibility = scan_cli_visibility_specifier_if_any(&visibility_pos);
