@@ -8422,20 +8422,22 @@ process_class_specifier:
                  Access checks are disabled during this processing. */
               a_boolean   is_elaborated_ctor = FALSE;
               a_type_ptr  class_type = enclosing_class_type(input_flags);
-              begin_deferral_of_access_checks();
-              is_elaborated_ctor = is_constructor_decl(class_type, state);
-              discard_deferred_access_checks();
-              end_deferral_of_access_checks();
-              if (is_elaborated_ctor) {
-                basic_type = bt_no_type;
-                if (*storage_class == (a_storage_class)sc_static) {
-                  *output_flags |= DSO_STATIC_CONSTRUCTOR;
-                } else {
-                  *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
+              if (class_type != NULL) {
+                begin_deferral_of_access_checks();
+                is_elaborated_ctor = is_constructor_decl(class_type, state);
+                discard_deferred_access_checks();
+                end_deferral_of_access_checks();
+                if (is_elaborated_ctor) {
+                  basic_type = bt_no_type;
+                  if (*storage_class == (a_storage_class)sc_static) {
+                    *output_flags |= DSO_STATIC_CONSTRUCTOR;
+                  } else {
+                    *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
+                  }  /* if */
+                  /* Skip "class" or "struct". */
+                  (void)get_token();
+                  goto exit_loop;
                 }  /* if */
-                /* Skip "class" or "struct". */
-                (void)get_token();
-                goto exit_loop;
               }  /* if */
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -1,5 +1,24 @@
 Version 4.3
 
+1/24/11  [EDGcpfe/11302]
+Abort on malformed friend template declaration in Microsoft-mode
+
+In Microsoft C++ mode, the front end aborted (null pointer indirection in
+is_constructor_decl) on certain malformed friend template declarations
+referring to a nested class template of an incomplete class template.
+For example:
+
+  template<typename> class C;
+  struct S {
+    template<typename T> template<typename U>
+      friend struct C<T>::N<U>;  // Previously triggered an abort.
+  };
+
+
+The abort is now fixed, but unlike the Microsoft compiler, such erroneous
+constructs still elicit errors.
+
+
 1/20/11  [EDGcpfe/11295]
 GNU C++ compatibility: List initializers in return statements
 
