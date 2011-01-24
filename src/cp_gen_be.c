@@ -8883,6 +8883,208 @@ return FALSE and let the caller generate the code normally.
 }  /* handle_operator_call */
 
 
+static a_boolean write_compound_assignment_for_property_set(
+                                        a_property_or_event_descr_ptr desc,
+                                        an_expr_node_ptr              obj_expr,
+                                        an_expr_node_ptr              *args)
+/*
+This function is called for a "set" operation on a C++/CLI property,
+described by desc.  If the property is non-static, obj_expr designates the
+expression to be passed as the "this" pointer; otherwise, it is NULL.  *args
+designates the value to be passed to the "set" function.  Analyze the value
+to see if this operation is the expansion of a compound assignment like
+P += 1; if so, write the string for the compound assignment operator,
+updating *args to point to its operand, and return TRUE.  Otherwise, leave
+*args unchanged and return FALSE.
+*/
+{
+  an_expr_node_ptr node = *args;
+  char             *opstr = NULL;
+  a_boolean        processed = FALSE;
+
+  if (is_operation_node(node) &&
+      node->variant.operation.compiler_generated &&
+      is_cast_operation_node(node)) {
+    /* Skip over the conversion of the operand to the type of the
+       property. */
+    node = node->variant.operation.operands;
+  }  /* if */
+  if (is_operation_node(node)) {
+    /* A compound assignment is decomposed in the IL to the corresponding
+       simple operation with the first operand being a call to the property's
+       "get" function.  Check to see if this operation could be the result
+       of that decomposition and, if so, make note of the string for the
+       corresponding compound assignment operator. */
+    switch (node->variant.operation.kind) {
+      case eok_add:
+      case eok_padd:
+        opstr = " += ";
+        break;
+      case eok_subtract:
+      case eok_psubtract:
+        opstr = " -= ";
+        break;
+      case eok_multiply:
+        opstr = " *= ";
+        break;
+      case eok_divide:
+        opstr = " /= ";
+        break;
+      case eok_remainder:
+        opstr = " %= ";
+        break;
+      case eok_shiftl:
+        opstr = " <<= ";
+        break;
+      case eok_shiftr:
+        opstr = " >>= ";
+        break;
+      case eok_and:
+        opstr = " &= ";
+        break;
+      case eok_or:
+        opstr = " |= ";
+        break;
+      case eok_xor:
+        opstr = " ^= ";
+        break;
+      default:
+        /* Not an operator with a corresponding compound assignment. */
+        break;
+    }  /* switch */
+  }  /* if */
+  if (opstr != NULL) {
+    /* The operation is consistent with a compound assignment.  Now check
+       its first operand to see if it is a call to the "get" function for
+       the same property. */
+    an_expr_node_ptr opnd2;
+    node = node->variant.operation.operands;
+    opnd2 = node->next;
+    if (is_operation_node(node) &&
+        node->variant.operation.compiler_generated &&
+        is_cast_operation_node(node)) {
+      /* Skip over the conversion from the property type to the type of the
+         operation. */
+      node = node->variant.operation.operands;
+    }  /* if */
+    if (is_operation_node(node) &&
+        node_operator_is(node, eok_points_to_member_call)) {
+      /* This could be the invocation of a property "get" function.  Check
+         the function being called to see if it is. */
+      a_routine_ptr rout;
+      node = node->variant.operation.operands;
+      rout = routine_from_function_expr(node);
+      node = node->next;
+      if (rout != NULL &&
+          rout->special_kind == (a_special_function_kind)sfk_property_get) {
+        a_property_or_event_descr_ptr desc2 =
+                                         rout->variant.property_or_event_descr;
+        /* The operand is a call to a property "get" function.  Check to see
+           if it's the same property and, if the property is non-static, the
+           object expressions are the same (indicated by enk_reuse_value
+           nodes that designate the same dynamic initialization or
+           enk_variable nodes that designate the same variable). */
+        if (desc == desc2 &&
+            (desc->is_static ||
+             ((obj_expr->kind == (an_expr_node_kind)enk_reuse_value &&
+               node->kind == (an_expr_node_kind)enk_reuse_value &&
+               obj_expr->variant.reused_value_init ==
+                                           node->variant.reused_value_init) ||
+              (obj_expr->kind == (an_expr_node_kind)enk_variable &&
+               node->kind == (an_expr_node_kind)enk_variable &&
+               obj_expr->variant.variable == node->variant.variable)))) {
+          /* We've found a compound assignment.  Write the operation string
+             and update *args to point to the operand expression. */
+          write_tok_str(opstr);
+          *args = opnd2;
+          processed = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return processed;
+}  /* write_compound_assignment_for_property_set */
+
+
+static void gen_cli_property_or_event_call(an_expr_node_ptr args,
+                                           a_routine_ptr    rout)
+/*
+Generate the appropriate operator-notation code to call the C++/CLI
+property or event access routine rout.  args is the first argument in
+the call, i.e., the object expression for a non-static member or the
+actual first argument (if any) for static members.
+*/
+{
+  a_property_or_event_descr_ptr desc = rout->variant.property_or_event_descr;
+  an_expr_node_ptr obj_expr;
+
+  if (desc->is_static) {
+    obj_expr = NULL;
+    gen_name(&desc->variant.variable->source_corresp, iek_variable,
+             GN_NO_OPTIONS, (a_boolean *)NULL);
+  } else {
+    /* A non-static member: check to see if an object expression is needed
+       and generate it if necessary before putting out the property/event
+       name. */
+    a_boolean        need_context_pop = FALSE;
+    obj_expr = args;
+    args = args->next;
+    if (!(is_variable_node(obj_expr) &&
+          obj_expr->variant.variable->is_this_parameter)) {
+      gen_expr_with_parens(obj_expr);
+      push_class_name_context(
+                             f_skip_typerefs(type_pointed_to(obj_expr->type)));
+      need_context_pop = TRUE;
+      write_tok_str("->");
+    }  /* if */
+    gen_name(&desc->variant.field->source_corresp, iek_field,
+             GN_NO_OPTIONS, (a_boolean *)NULL);
+    if (need_context_pop) {
+      pop_name_context();
+    }  /* if */
+    if (desc->is_default_indexed) {
+      /* Generate the subscript list for the property reference. */
+      write_tok_ch('[');
+      a_property_index_type_ptr idx;
+      for (idx = desc->indices; idx != NULL; idx = idx->next) {
+        check_assertion(args != NULL);
+        gen_expr_with_parens(args);
+        args = args->next;
+        if (idx->next != NULL) {
+          write_tok_str(", ");
+        }  /* if */
+      }  /* for */
+      write_tok_ch(']');
+    }  /* if */
+  }  /* if */
+  switch (rout->special_kind) {
+    case sfk_property_get:
+      /* The generated code is just the property name, already done
+         above. */
+      break;
+    case sfk_property_set:
+      if (!write_compound_assignment_for_property_set(desc, obj_expr, &args)) {
+        write_tok_str(" = ");
+      }  /* if */
+      gen_expr_with_parens(args);
+      break;
+    case sfk_event_add:
+      write_tok_str(" += ");
+      gen_expr_with_parens(args);
+      break;
+    case sfk_event_remove:
+      write_tok_str(" -= ");
+      gen_expr_with_parens(args);
+      break;
+    case sfk_event_raise:
+      gen_argument_list(args, (a_type_ptr)NULL, /*skip_num=*/0);
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* gen_cli_property_or_event_call */
+
+
 static void gen_call(an_expr_node_ptr expr)
 /*
 Generate code for the indicated expression, which is a (possibly virtual)
@@ -8891,6 +9093,7 @@ call.
 {
   an_expr_node_ptr func_expr = expr->variant.operation.operands;
   an_expr_node_ptr args = func_expr->next;
+  a_boolean        processed = FALSE;
 
   if (handle_conversion_function_call(expr)) {
     /* Conversion function call.  Code was generated by the subroutine. */
@@ -8927,20 +9130,28 @@ call.
       gen_expression(func_expr);
     } else if (rout != NULL) {
       /* We can tell which routine is being called. */
-      a_type_ptr    rout_type = skip_typerefs(rout->type);
-      if (rout_type->variant.routine.extra_info->this_class != NULL) {
-        /* Nonstatic member function call, so put out the selector object
-           first. */
-        gen_bound_function(args, func_expr,
-                           node_operator_is(expr, eok_points_to_member_call),
-                           !expr->variant.operation.is_virtual_call);
-        args = args->next;
+      if (rout_is_cli_accessor(rout)) {
+        /* This is a call of an accessor function for a C++/CLI property or
+           event; it should be generated using the associated operator
+           instead of as a function call. */
+        gen_cli_property_or_event_call(args, rout);
+        processed = TRUE;
       } else {
-        /* Nonmember function or static member function. */
-        gen_name_from_routine_node(
+        a_type_ptr    rout_type = skip_typerefs(rout->type);
+        if (rout_type->variant.routine.extra_info->this_class != NULL) {
+          /* Nonstatic member function call, so put out the selector object
+             first. */
+          gen_bound_function(args, func_expr,
+                             node_operator_is(expr, eok_points_to_member_call),
+                             !expr->variant.operation.is_virtual_call);
+          args = args->next;
+        } else {
+          /* Nonmember function or static member function. */
+          gen_name_from_routine_node(
                func_expr,
                expr->variant.operation.only_found_through_arg_dependent_lookup,
                expr->variant.operation.call_with_qualified_function_name);
+        }  /* if */
       }  /* if */
     } else {
       if (is_constant_node(func_expr) &&
@@ -8959,17 +9170,19 @@ call.
         gen_expr_with_parens(func_expr);
       }  /* if */
     }  /* if */
-    if (need_arg_dep_close_paren) {
-      /* Close parentheses around the name of the function to suppress
-         argument-dependent lookup. */
-      write_tok_ch(')');
-    }  /* if */
-    /* Put out the arguments. */
-    gen_argument_list(args,
-                      (is_pointer_type(func_expr->type) ?
+    if (!processed) {
+      if (need_arg_dep_close_paren) {
+        /* Close parentheses around the name of the function to suppress
+           argument-dependent lookup. */
+        write_tok_ch(')');
+      }  /* if */
+      /* Put out the arguments. */
+      gen_argument_list(args,
+                        (is_pointer_type(func_expr->type) ?
                                       type_pointed_to(func_expr->type) : NULL),
-                      /*skip_num=*/0);
-    if (need_close_paren) write_tok_ch(')');
+                        /*skip_num=*/0);
+      if (need_close_paren) write_tok_ch(')');
+    }  /* if */
   }  /* if */
 }  /* gen_call */
 
@@ -9803,20 +10016,15 @@ gen_expr that might end up generating this expr as a temporary.
           if (operand_1->kind == (an_expr_node_kind)enk_temp_init &&
               operand_1->variant.init.dynamic_init->is_reused_value) {
             /* This is probably the expansion of a Microsoft property
-               reference.  In such cases, the front end inserts
-               compiler-generated nodes to convert the property field
-               expression to the "this" pointer for the accessor function,
-               and these must be stripped before generating the code for
-               the expression. */
-            (void)strip_lvalue_cast_sequence(&operand_1);
-            gen_expr_with_parens(operand_1);
+               reference.  The expression will be generated in the call
+               to the property access function, so ignore it here. */
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
           {
             gen_expr_with_parens(operand_1);
+            write_tok_str(", ");
           }  /* if */
-          write_tok_str(", ");
           gen_expr_with_parens(operand_2);
           goto done_with_operation;
         case eok_land:
