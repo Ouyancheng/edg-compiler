@@ -2656,9 +2656,6 @@ omitted.
          easily distinguished from a more traditional (managed) class
          definition. */
       buffer << "delegate ";
-    } else {
-      check_assertion(kind == tlk_ref_class || kind == tlk_value_type ||
-                      kind == tlk_interface);
     }  /* if  */
     if (kind == tlk_delegate) {
       import_delegate_definition(buffer, typedef_token, type_name);
