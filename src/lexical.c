@@ -17827,7 +17827,8 @@ This routine is used to allow an incomplete class declaration to be created
 at one point and to allow the class to be defined by scanning tokens at some
 later point.  Unlike such a class definition processed from normal source code,
 this processing can happen at an arbitrary point in time much like a template
-instantiation.  class_type is the class to be defined.
+instantiation.  class_type is the class to be defined.  (This includes
+C++/CLI delegate class types.)
 */
 {
   a_symbol_ptr			class_sym;
@@ -17846,8 +17847,7 @@ instantiation.  class_type is the class to be defined.
     define_class = FALSE;
   }  /* if */
   if (class_type->incomplete) {
-    a_class_type_supplement_ptr ctsp 
-                           = class_type->variant.class_struct_union.extra_info;
+    a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
 
     if (ctsp->assembly_index != 0 && ctsp->metadata_type_def_token != 0) {
       /* The class is from an assembly.  Load the definition of the class
@@ -17929,7 +17929,12 @@ instantiation.  class_type is the class to be defined.
   expand_macros = FALSE;
   insert_string_into_token_stream(class_def_buffer->buffer,
                                   /*insert_after=*/FALSE);
-  (void)scan_class_definition(
+  if (strncmp(class_def_buffer->buffer, "delegate ", 9) == 0) {
+    /* Delegate definitions are a special kind of class definition that is
+       nor handled by the call to scan_class_definition below. */
+    scan_cli_delegate_definition_from_assembly_import();
+  } else {
+    (void)scan_class_definition(
                     class_type, depth_innermost_namespace_scope,
                     /*is_local_class=*/FALSE,
                     /*delayed_nested_class_def=*/
@@ -17938,8 +17943,9 @@ instantiation.  class_type is the class to be defined.
                     /*is_template_specialization=*/FALSE,
                     (a_template_ptr)NULL,
                     (a_decl_pos_block_ptr)NULL);
-  process_deferred_class_fixups_and_instantiations(
+    process_deferred_class_fixups_and_instantiations(
                                                   /*for_instantiation=*/TRUE);
+  }  /* if */
   (void)get_token();
   expand_macros = save_expand_macros;
   pop_template_instantiation_scope();

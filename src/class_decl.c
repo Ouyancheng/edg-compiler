@@ -16110,15 +16110,28 @@ definition and record it in the IL (as a special-purpose class type).
       dps->type = error_type();
     }  /* if */
   }  /* if */
-  if (compiler_generated) {
-    /* If a delegate is generated from an assembly (metadata) file, it was
-       previously loaded as an incomplete ref class.  Only in this case is
-       a "redeclaration" allowed. */
-    prev_decl = curr_scope_id_lookup(&loc, IDL_MUST_BE_TAG);
-    if (prev_decl != NULL) class_type = type_symbol_type(prev_decl);
+  /* If a delegate is generated from an assembly (metadata) file, it was
+     previously loaded as an incomplete ref class.  Only in this case is a
+     "redeclaration" allowed. */
+  prev_decl = curr_scope_id_lookup(&loc, IDL_MUST_BE_TAG);
+  if (prev_decl != NULL) {
+    class_type = type_symbol_type(prev_decl);
+    if (class_type_supp(class_type)->assembly_index != 0) {
+      /* The delegate was loaded from an assembly file. */
+      a_boolean      is_local = FALSE;
+      decl_level = scope_depth_of_symbol(prev_decl, &is_local);
+      check_assertion(!is_local);
+      dps->sym = prev_decl;
+    } else {
+      /* A redeclaration of a user-declared delegate: Ignore the previous
+         declaration, which will trigger an error later on. */
+      prev_decl = NULL;
+      class_type = NULL;
+      expect_error();
+    }  /* if */
   }  /* if */
-  /* Create the delegate class type (a sealed ref class). */
   if (prev_decl == NULL) {
+    /* Create the delegate class type (a sealed ref class). */
     class_type = alloc_type((a_type_kind)tk_struct);
     dps->sym = enter_local_symbol((a_symbol_kind)sk_class_or_struct_tag, &loc,
                                   decl_level, /*suppress_redecl_error=*/FALSE);
@@ -16127,10 +16140,6 @@ definition and record it in the IL (as a special-purpose class type).
     update_membership_of_class(dps->sym, /*def_or_vacuous_decl=*/TRUE,
                                decl_level, &dps->start_pos);
     add_to_types_list(class_type, decl_level);
-  } else {
-    class_type = type_symbol_type(prev_decl);
-    dps->sym = prev_decl;
-    move_to_end_of_types_list(class_type, decl_level);
   }  /* if */
   ctsp = class_type_supp(class_type);
   ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
@@ -16195,6 +16204,22 @@ definition and record it in the IL (as a special-purpose class type).
                                     = saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* scan_cli_delegate_definition */
+
+
+void scan_cli_delegate_definition_from_assembly_import(void)
+/*
+Scan a delegate definition generated from assembly metadata.  (Delegates from
+assemblies are first loaded as incomplete ref class declarations that can
+later be completed via a call to this function.  The caller has already
+ensured that the token stream contains a delegate definition corresponding to
+the assembly file.)
+*/
+{
+  a_decl_parse_state  dps;
+
+  init_decl_parse_state(&dps);
+  scan_cli_delegate_definition(&dps);
+}  /* scan_cli_delegate_definition_from_assembly_import */
 
 
 static a_boolean check_for_cli_field_modifier(a_decl_parse_state  *dps)
@@ -16406,11 +16431,15 @@ being parsed), *decl_info describes the current member declaration, and
     /* An event's type must be handle-to-delegate. */
     if (is_handle_type(dps->type)) {
       a_type_ptr  underlying_tp = type_pointed_to(dps->type);
-      if (!is_delegate_type(underlying_tp) &&
-          !is_template_param_type(underlying_tp) &&
-          !is_error_type(underlying_tp)) {
-        pos_error(ec_invalid_event_type, &type_pos);
-        dps->type = error_type();
+      if (is_template_param_type(underlying_tp) ||
+          is_error_type(underlying_tp)) {
+        /* More specific checking is not needed or possible. */
+      } else {
+        complete_type_is_needed(underlying_tp);
+        if (!is_delegate_type(underlying_tp)) {
+          pos_error(ec_invalid_event_type, &type_pos);
+          dps->type = error_type();
+        }  /* if */
       }  /* if */
     } else if (!is_template_param_type(dps->type) &&
                !is_error_type(dps->type)) {

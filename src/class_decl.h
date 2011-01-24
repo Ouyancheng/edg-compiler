@@ -43,6 +43,8 @@ extern a_boolean check_for_cli_delegate_definition(void);
 
 extern void scan_cli_delegate_definition(a_decl_parse_state  *dps);
 
+extern void scan_cli_delegate_definition_from_assembly_import(void);
+
 extern a_boolean in_cli_property_or_event_definition(void);
 
 extern void merge_dll_flags_from_parent_class(a_type_ptr          class_type,
