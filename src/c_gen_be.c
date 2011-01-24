@@ -7010,7 +7010,9 @@ rendered as executable code.
 static void dump_compound_literal(an_expr_node_ptr expr)
 /*
 Generate code for a compound literal (a C99 feature), which is represented
-as an enk_temp_init expression.
+as an enk_temp_init expression.  Note that lowering removes enk_temp_init
+nodes, so this code is never executed (though a customer could make a local
+change to suppress lowering of compound literals).
 */
 {
   a_dynamic_init_ptr    dip = expr->variant.init.dynamic_init;
