@@ -9045,8 +9045,8 @@ actual first argument (if any) for static members.
     }  /* if */
     if (desc->is_default_indexed) {
       /* Generate the subscript list for the property reference. */
-      write_tok_ch('[');
       a_property_index_type_ptr idx;
+      write_tok_ch('[');
       for (idx = desc->indices; idx != NULL; idx = idx->next) {
         check_assertion(args != NULL);
         gen_expr_with_parens(args);
