@@ -6250,6 +6250,10 @@ typedef struct a_class_type_supplement {
 			   modes, it is always cctk_standard.  In C++/CLI mode,
 			   other kinds of classes (e.g., "ref classes") are
 			   possible: See a_cli_class_type_kind. */
+  a_bit_field	ref_class_is_hide_by_name:1;
+			/* Normally, C++/CLI ref classes are "hidebysig".
+			   This flag is TRUE if instead this ref class should
+			   be treated as "hidebyname". */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
@@ -14940,7 +14944,7 @@ enum a_scope_kind_tag {
   /* Kinds of scopes. */
   sck_file,		/* File scope. */
   sck_func_prototype,   /* Function prototype scope, used also during
-			   function declarators that are part of a
+			   function declarators that are part of
 			   function definition (since we don't know at
 			   that point whether or not a body will follow). */
   sck_block,		/* Block scope, for blocks other than the topmost
