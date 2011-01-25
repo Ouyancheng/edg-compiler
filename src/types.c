@@ -11582,6 +11582,64 @@ of the front end are called.
   enum_type_is_integral = FALSE ;
 }  /* types_early_init */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_type_ptr system_type_from_basic_type(a_type_ptr tp)
+/*
+Returns the C++/CLI type corresponding to the basic type, specified by tp, or
+NULL if there is no corresponding C++/CLI type.  Note that the caller is
+expected to call skip_typerefs if necessary.  See basic_type_from_system_type
+for the reverse mapping.
+*/
+{
+  a_symbol_ptr symbol = NULL;
+
+  check_assertion(tp != NULL);
+  switch (tp->kind) {
+    case tk_integer:
+      if (tp->variant.integer.enum_type) {
+        symbol = NULL;
+      } else if (tp->variant.integer.bool_type) {
+        symbol = cli_symbol_from_kind(csk_system_boolean);
+      } else if (tp->variant.integer.wchar_t_type) {
+        symbol = cli_symbol_from_kind(csk_system_char);
+      } else {
+        symbol = cli_symbol_from_integer_kind(tp->variant.integer.int_kind);
+      }  /* if */
+      break;
+    case tk_float:
+      symbol = cli_symbol_from_float_kind(tp->variant.float_kind);
+      break;
+    default:
+      symbol = NULL;
+      break;
+  }  /* switch */
+  return symbol ? type_symbol_type(symbol) : NULL;
+}  /* system_type_from_basic_type */
+
+
+a_type_ptr basic_type_from_system_type(a_type_ptr tp)
+/*
+Returns the basic type corresponding to the C++/CLI type, specified by tp,
+or NULL if there is no corresponding basic type.  Note that the caller is
+expected to call skip_typerefs if necessary.  See system_type_from_basic_type
+for the reverse mapping.
+*/
+{
+  a_type_ptr result;
+
+  check_assertion(tp != NULL);
+  if (is_immediate_class_type(tp)) {
+    result = class_type_supp(tp)->corresponding_basic_type;
+  } else {
+    result = NULL;
+  }  /* if */
+  return result;
+}  /* basic_type_from_system_type */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *

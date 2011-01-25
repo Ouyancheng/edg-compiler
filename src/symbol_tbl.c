@@ -6128,56 +6128,119 @@ Declare and define the C++/CLI type "cli::pin_ptr".
 }  /* make_symbol_for_cli_pin_ptr */
 
 
+void init_cli_symbol_corresponding_basic_types(void)
+/*
+For each fundamental CLI type, initialize its corresponding_basic_type member.
+This will be used later by the basic_type_from_system_type function.
+Without taking modopts into account, there is a one-to-many relationship
+when mapping some CLI types to basic types.  For example, System::Int32
+could be mapped to either int or long.  The cli_integer_kinds and
+cli_float_kinds arrays therefore list only the preferred basic types.
+*/
+{
+  /* Select only the integer kinds that a CLI fundamental type maps to. */
+  an_integer_kind cli_integer_kinds[] = {
+    (an_integer_kind)ik_signed_char,
+    (an_integer_kind)ik_unsigned_char,
+    (an_integer_kind)ik_short,
+    (an_integer_kind)ik_unsigned_short,
+    (an_integer_kind)ik_int,
+    (an_integer_kind)ik_unsigned_int
+#if LONG_LONG_ALLOWED
+    ,(an_integer_kind)ik_long_long,
+    (an_integer_kind)ik_unsigned_long_long
+#endif /* LONG_LONG_ALLOWED */
+  };
+  /* Select only the float kinds that a CLI fundamental type maps to. */
+  a_float_kind    cli_float_kinds[] = {
+    (a_float_kind)fk_float,
+    (a_float_kind)fk_double
+  };
+  int             i;
+  a_symbol_ptr    cli_symbol;
+
+  /* Map the CLI fundamental integer types. */
+  for (i = 0;
+       i < (int)(sizeof(cli_integer_kinds)/sizeof(cli_integer_kinds[0]));
+       i++) {
+    an_integer_kind kind = cli_integer_kinds[i];
+
+    cli_symbol = cli_symbol_from_integer_kind(kind);
+    check_assertion(cli_symbol != NULL);
+    check_assertion(class_type_supp(type_symbol_type(cli_symbol))->
+                                             corresponding_basic_type == NULL);
+    class_type_supp(type_symbol_type(cli_symbol))->
+                                 corresponding_basic_type = integer_type(kind);
+  }  /* for */
+  /* Map the CLI fundamental float types. */
+  for (i = 0;
+       i < (int)(sizeof(cli_float_kinds)/sizeof(cli_float_kinds[0]));
+       i++) {
+    a_float_kind kind = cli_float_kinds[i];
+
+    cli_symbol = cli_symbol_from_float_kind(kind);
+    check_assertion(cli_symbol != NULL);
+    check_assertion(class_type_supp(type_symbol_type(cli_symbol))->
+                                             corresponding_basic_type == NULL);
+    class_type_supp(type_symbol_type(cli_symbol))->
+                                   corresponding_basic_type = float_type(kind);
+  }  /* for */
+  /* Map System::Boolean to bool. */
+  cli_symbol = cli_symbol_from_kind(csk_system_boolean);
+  check_assertion(cli_symbol != NULL);
+  check_assertion(class_type_supp(type_symbol_type(cli_symbol))->
+                                             corresponding_basic_type == NULL);
+  class_type_supp(type_symbol_type(cli_symbol))->
+                                        corresponding_basic_type = bool_type();
+  /* Map System::Char to wchar_t. */
+  cli_symbol = cli_symbol_from_kind(csk_system_char);
+  check_assertion(cli_symbol != NULL);
+  check_assertion(class_type_supp(type_symbol_type(cli_symbol))->
+                                             corresponding_basic_type == NULL);
+  class_type_supp(type_symbol_type(cli_symbol))->
+                                     corresponding_basic_type = wchar_t_type();
+}  /* init_cli_symbol_corresponding_basic_types */
+
+
 void init_symbols_for_cli_system_types(void)
 /*
 Look up various C++/CLI system types and cache them in their corresponding 
-global pointers.  This function assumes that the mscorlib.dll has been
-imported.
+global pointers.  This function assumes that mscorlib.dll has been imported.
 */
 {
-  a_namespace_ptr  ns_ptr;
+  a_namespace_ptr ns_ptr = symbol_for_namespace_system->
+                                                   variant.namespace_info.ptr;
+  int             csk;
 
-  ns_ptr = symbol_for_namespace_system->variant.namespace_info.ptr;
-  /* System::Object. */
-  symbol_for_system_object = look_up_name_string_in_namespace("Object",
-                                                              ns_ptr);
-  if (symbol_for_system_object == NULL) {
-    str_catastrophe(ec_cli_system_entity_not_loaded, "Object");
+  /* Check that the a_cli_symbol_kind_tag enumeration is correctly defined. */
+  if ((int)csk_last_integer - (int)csk_first_integer != (int)ik_last ||
+      (int)csk_last_float - (int)csk_first_float != (int)fk_last) {
+    internal_error(
+           "init_cli_symbols: incorrect definition for a_cli_symbol_kind_tag");
   }  /* if */
-  /* System::ValueType. */
-  symbol_for_system_valuetype = look_up_name_string_in_namespace("ValueType",
-                                                                 ns_ptr);
-  if (symbol_for_system_valuetype == NULL) {
-    str_catastrophe(ec_cli_system_entity_not_loaded, "ValueType");
+  /* Check that the cli_symbol_names array is correctly initialized. */
+  if (cli_symbol_names[(int)csk_last] == NULL ||
+      strcmp(cli_symbol_names[(int)csk_last], "last") != 0) {
+    internal_error(
+             "init_cli_symbols: incorrect initialization of cli_symbol_names");
   }  /* if */
-  /* System::Enum. */
-  symbol_for_system_enum = look_up_name_string_in_namespace("Enum", ns_ptr);
-  if (symbol_for_system_enum == NULL) {
-    str_catastrophe(ec_cli_system_entity_not_loaded, "Enum");
-  }  /* if */
-  /* System::Type. */
-  symbol_for_system_type = look_up_name_string_in_namespace("Type", ns_ptr);
-  if (symbol_for_system_type == NULL) {
-    str_catastrophe(ec_cli_system_entity_not_loaded, "Type");
-  }  /* if */
-  /* System::String. */
-  symbol_for_system_string = look_up_name_string_in_namespace("String",
-                                                              ns_ptr);
-  if (symbol_for_system_string == NULL) {
-    str_catastrophe(ec_cli_system_entity_not_loaded, "String");
-  }  /* if */
-  /* System::Delegate. */
-  symbol_for_system_delegate = look_up_name_string_in_namespace("Delegate",
-                                                                ns_ptr);
-  if (symbol_for_system_delegate == NULL) {
-    str_catastrophe(ec_cli_system_entity_not_loaded, "Delegate");
-  }  /* if */
-  /* System::MulticastDelegate. */
-  symbol_for_system_multicast_delegate = look_up_name_string_in_namespace(
-                                                  "MulticastDelegate", ns_ptr);
-  if (symbol_for_system_multicast_delegate == NULL) {
-    str_catastrophe(ec_cli_system_entity_not_loaded, "MulticastDelegate");
-  }  /* if */
+  /* Initialize the symbols in the cli_symbols array. */
+  for (csk = 0; csk < (int)csk_last; csk++) {
+    if (cli_symbol_names[csk] != NULL && *cli_symbol_names[csk] != 0) {
+        cli_symbols[csk] = look_up_name_string_in_namespace(
+                                                         cli_symbol_names[csk],
+                                                         ns_ptr);
+      if (cli_symbols[csk] == NULL) {
+        str_catastrophe(ec_cli_system_entity_not_loaded,
+                        cli_symbol_names[csk]);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* Initialize csk_system_byte_sign_unspecified based on the signedness
+     of plain char. */
+  cli_symbols[csk_system_byte_sign_unspecified] =
+               il_header.plain_chars_are_signed ? cli_symbols[csk_system_sbyte]
+                                                : cli_symbols[csk_system_byte];
 }  /* init_symbols_for_cli_system_types */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13163,13 +13226,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(symbol_for_cli_interior_ptr),
       pch_saved_var_array_elem(symbol_for_cli_pin_ptr),
       pch_saved_var_array_elem(symbol_for_namespace_system),
-      pch_saved_var_array_elem(symbol_for_system_object),
-      pch_saved_var_array_elem(symbol_for_system_valuetype),
-      pch_saved_var_array_elem(symbol_for_system_enum),
-      pch_saved_var_array_elem(symbol_for_system_type),
-      pch_saved_var_array_elem(symbol_for_system_string),
-      pch_saved_var_array_elem(symbol_for_system_delegate),
-      pch_saved_var_array_elem(symbol_for_system_multicast_delegate),
+      pch_array_saved_var_array_elem(cli_symbols),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(va_list_global_alias_has_been_created),
       pch_saved_var_array_elem(file_scope_symbols_are_on_inactive_list),
@@ -13246,13 +13303,7 @@ are handled in symbol_tbl_init.)
   register_trans_unit_variable(symbol_for_cli_interior_ptr);
   register_trans_unit_variable(symbol_for_cli_pin_ptr);
   register_trans_unit_variable(symbol_for_namespace_system);
-  register_trans_unit_variable(symbol_for_system_object);
-  register_trans_unit_variable(symbol_for_system_valuetype);
-  register_trans_unit_variable(symbol_for_system_enum);
-  register_trans_unit_variable(symbol_for_system_type);
-  register_trans_unit_variable(symbol_for_system_string);
-  register_trans_unit_variable(symbol_for_system_delegate);
-  register_trans_unit_variable(symbol_for_system_multicast_delegate);
+  register_trans_unit_array(cli_symbols),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   register_trans_unit_variable(va_list_global_alias_has_been_created);
 #if IA64_ABI
@@ -13299,13 +13350,7 @@ given translation unit.
   symbol_for_cli_interior_ptr = NULL;
   symbol_for_cli_pin_ptr = NULL;
   symbol_for_namespace_system = NULL;
-  symbol_for_system_object = NULL;
-  symbol_for_system_valuetype = NULL;
-  symbol_for_system_enum = NULL;
-  symbol_for_system_type = NULL;
-  symbol_for_system_string = NULL;
-  symbol_for_system_delegate = NULL;
-  symbol_for_system_multicast_delegate = NULL;
+  memzero((char *)cli_symbols, sizeof(cli_symbols));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   va_list_global_alias_has_been_created = FALSE;
 #if IA64_ABI

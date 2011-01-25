@@ -1186,6 +1186,13 @@ extern void types_early_init(void);
 
 extern int32_t *min_template_arguments_for_type(a_type_ptr	tp);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+extern a_type_ptr system_type_from_basic_type(a_type_ptr tp);
+
+extern a_type_ptr basic_type_from_system_type(a_type_ptr tp);
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef TYPES_H */
 

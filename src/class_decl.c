@@ -16161,7 +16161,8 @@ definition and record it in the IL (as a special-purpose class type).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   initialize_class_def_state(class_type, &class_state);
   /* Add System::MulticastDelegate as a base class. */
-  add_cli_system_base_class(class_type, symbol_for_system_multicast_delegate);
+  add_cli_system_base_class(class_type,
+                          cli_symbol_from_kind(csk_system_multicast_delegate));
   class_state.access = (an_access_specifier)as_public;
   ctsp->assoc_scope =
              push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,

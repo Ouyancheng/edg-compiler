@@ -6470,6 +6470,10 @@ typedef struct a_class_type_supplement {
 			/* A hash value computed for this class type, or
 			   zero if a hash has not yet been computed. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  a_type_ptr
+		corresponding_basic_type;
+			/* If this class is a fundamental C++/CLI type, the
+			   corresponding basic C++ type (otherwise NULL). */
   an_assembly_index
 		assembly_index;
 			/* The index of the assembly in which this construct

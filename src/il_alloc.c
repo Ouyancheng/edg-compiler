@@ -1484,6 +1484,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
 #endif /* NEED_NAME_MANGLING */
   ctsp->hash_value = 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  ctsp->corresponding_basic_type          = NULL;
   ctsp->assembly_index                    = 0;
   ctsp->metadata_type_def_token           = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

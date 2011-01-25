@@ -3715,41 +3715,125 @@ EXTERN a_symbol_ptr
 			/* Symbol for "cli::array".  Used in C++/CLI mode.
 			   NULL until mscorlib has been loaded. */
 
-EXTERN a_symbol_ptr
-		symbol_for_system_object;
-			/* Symbol for "System::Object".  Used in C++/CLI mode.
-			   NULL until mscorlib has been loaded. */
+
+/*
+Enumerates the cli_symbols array.  The array is apportioned as follows:
+
+1) The first section is indexable by the an_integer_kind enumeration and
+   should contain the corresponding C++/CLI type for each integer kind.
+2) The second section is indexable by the a_float_kind enumeration and
+   should contain the corresponding C++/CLI type for each float kind.
+3) The remainder of the array is for other well-known C++/CLI types
+   (e.g. System::Object, etc.)
+
+Note that for each addition to this enumeration, a corresponding entry must
+be added to the cli_symbol_names array.  The cli_symbol_names entry will be
+used to look up and initialize the corresponding cli_symbol entry.  If the
+symbol requires special initialization, leave the corresponding
+cli_symbol_names entry set to NULL.
+*/
+typedef enum /*a_cli_symbol_kind_tag*/ {
+  csk_first_integer,
+  csk_system_byte_sign_unspecified = csk_first_integer, /* ik_char */
+  csk_system_sbyte,				/* ik_signed_char */
+  csk_system_byte,				/* ik_unsigned_char */
+  csk_system_int16,				/* ik_short */
+  csk_system_uint16,				/* ik_unsigned_short */
+  csk_system_int32,				/* ik_int */
+  csk_system_uint32,				/* ik_unsigned_int */
+  csk_system_int32_is_long,			/* ik_long */
+  csk_system_uint32_is_long,			/* ik_unsigned_long */
+#if LONG_LONG_ALLOWED
+  csk_system_int64,				/* ik_long_long */
+  csk_system_uint64,				/* ik_unsigned_long_long */
+#endif /* LONG_LONG_ALLOWED */
+  csk_last_integer,
+  csk_first_float = csk_last_integer,
+  csk_system_single = csk_first_float,		/* fk_float */
+  csk_system_double,				/* fk_double */
+  csk_system_double_is_long,			/* fk_long_double */
+  csk_last_float,
+  csk_system_boolean = csk_last_float,		/* bool_type() */
+  csk_system_char,				/* wchar_t_type() */
+  csk_system_object,
+  csk_system_value_type,
+  csk_system_enum,
+  csk_system_type,
+  csk_system_string,
+  csk_system_delegate,
+  csk_system_multicast_delegate,
+  csk_last,
+  csk_none = csk_last
+} a_cli_symbol_kind_tag;
+
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_cli_symbol_kind;
 
 EXTERN a_symbol_ptr
-		symbol_for_system_valuetype;
-			/* Symbol for "System::ValueType".  Used in C++/CLI 
-			   mode.  NULL until mscorlib has been loaded. */
+		cli_symbols[(int)csk_last];
+			/* Contains pointers to various well-known C++/CLI
+			   symbols (e.g. System::Object, System::Int) and is
+			   indexed by the a_cli_symbol_kind_tag enumeration.
+			   See the a_cli_symbol_kind_tag enumeration for more
+			   information. */
 
-EXTERN a_symbol_ptr
-		symbol_for_system_enum;
-			/* Symbol for "System::Enum".  Used in C++/CLI mode.
-			   NULL until mscorlib has been loaded. */
+EXTERN char
+		*cli_symbol_names[(int)csk_last + 1]
+			/* Array of symbol names corresponding to each entry in
+			   a_cli_symbol_kind_tag, respectively.  See
+			   a_cli_symbol_kind_tag for more information. */
+#if VAR_INITIALIZERS
+= {
+  NULL,                /* csk_system_byte_sign_unspecified */
+  "SByte",             /* csk_system_sbyte */
+  "Byte",              /* csk_system_byte */
+  "Int16",             /* csk_system_int16 */
+  "UInt16",            /* csk_system_uint16 */
+  "Int32",             /* csk_system_int32 */
+  "UInt32",            /* csk_system_uint32 */
+  "Int32",             /* csk_system_int32_is_long */
+  "UInt32",            /* csk_system_uint32_is_long */
+#if LONG_LONG_ALLOWED
+  "Int64",             /* csk_system_int64 */
+  "UInt64",            /* csk_system_uint64 */
+#endif /* LONG_LONG_ALLOWED */
+  "Single",            /* csk_system_single */
+  "Double",            /* csk_system_double */
+  "Double",            /* csk_system_double_is_long */
+  "Boolean",           /* csk_system_boolean */
+  "Char",              /* csk_system_char */
+  "Object",            /* csk_system_object */
+  "ValueType",         /* csk_system_value_type */
+  "Enum",              /* csk_system_enum */
+  "Type",              /* csk_system_type */
+  "String",            /* csk_system_string */
+  "Delegate",          /* csk_system_delegate */
+  "MulticastDelegate", /* csk_system_multicast_delegate */
+  "last"               /* csk_last */
+}
+#endif /* VAR_INITIALIZERS */
+;
 
-EXTERN a_symbol_ptr
-		symbol_for_system_type;
-			/* Symbol for "System::Type".  Used in C++/CLI mode.
-			   NULL until mscorlib has been loaded. */
+/*
+The following macros convert an_integer_kind/a_float_kind respectively into
+an index suitable for use in indexing the cli_symbols or cli_symbol_names
+arrays.
+*/
+#define integer_kind_to_cli_symbol_kind(ik)                           \
+  ((a_cli_symbol_kind)(csk_first_integer + (int)(ik)))
+#define float_kind_to_cli_symbol_kind(fk)                             \
+  ((a_cli_symbol_kind)(csk_first_float + (int)(fk)))
 
-EXTERN a_symbol_ptr
-		symbol_for_system_string;
-			/* Symbol for "System::String".  Used in C++/CLI mode.
-			   NULL until mscorlib has been loaded. */
+/*
+Macros to return a cli_symbols entry given one of
+a_cli_symbol_kind_tag/an_integer_kind/a_float_kind respectively.
+*/
+#define cli_symbol_from_kind(csk) (cli_symbols[(int)(csk)])
+#define cli_symbol_from_integer_kind(ik)                              \
+  (cli_symbol_from_kind(integer_kind_to_cli_symbol_kind((ik))))
+#define cli_symbol_from_float_kind(fk)                                \
+  (cli_symbol_from_kind(float_kind_to_cli_symbol_kind((fk))))
 
-EXTERN a_symbol_ptr
-		symbol_for_system_delegate;
-			/* Symbol for "System::Delegate".  Used in C++/CLI 
-			   mode.  NULL until mscorlib has been loaded. */
-
-EXTERN a_symbol_ptr
-		symbol_for_system_multicast_delegate;
-			/* Symbol for "System::MulticastDelegate".  Used in
-			   C++/CLI mode.  NULL until mscorlib has been
-			   loaded. */
 
 extern void make_symbol_for_namespace_cli(void);
 extern void make_symbol_for_cli_array(void);
@@ -3757,6 +3841,8 @@ extern void make_symbol_for_cli_interior_ptr(void);
 extern void make_symbol_for_cli_pin_ptr(void);
 extern void make_symbol_for_namespace_system(void);
 extern void init_symbols_for_cli_system_types(void);
+extern void init_cli_symbol_corresponding_basic_types(void);
+
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

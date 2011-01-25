@@ -5747,6 +5747,12 @@ Display the indicated class type supplement entry.
              iek_routine);
   }  /* if */
 #endif /* NEED_NAME_MANGLING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->corresponding_basic_type != NULL) {
+    disp_ptr("corresponding_basic_type",
+             (char *)ptr->corresponding_basic_type, iek_type);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* disp_class_type_supplement */
 
 
