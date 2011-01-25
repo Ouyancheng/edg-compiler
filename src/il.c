@@ -9114,6 +9114,11 @@ an existing entry if possible.
 {
   a_type_ptr ptr;
 
+  /* Box built-in types when creating handles. */
+  ptr = system_type_from_basic_type(pointed_to_type);
+  if (ptr != NULL) {
+    pointed_to_type = ptr;
+  }  /* if */
   /* See if a handle type for the type pointed to has already been
      allocated.  If one was allocated, a pointer to it is stored in the
      based_types list for the base type, and the handle type can be
