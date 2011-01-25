@@ -4077,16 +4077,17 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
         /* Ignore the operator= symbol if it does not meet the lookup
            criteria. */
         if (sym != NULL && !is_acceptable_symbol(sym, sym)) sym = NULL;
-        if (sym != NULL) goto end_lookup; else goto bypass_inactive_search;
+        if (sym != NULL) goto end_lookup; else goto bypass_normal_search;
       }  /* if */
       /* First, search the list of inactive symbols.  These are class
          members for classes that are no longer active.  Or, in C,
          fields of structs/unions. */
       tag_symbol = NULL;
       type_tag_symbol = NULL;
-      for (sym = inactive_symbol_list_from_locator(*locator);
+      for (sym = find_symbol_list_in_table(&cssp->pointers_block,
+                                           locator->symbol_header);
            sym != NULL;
-           sym = sym->next) {
+           sym = sym->next_in_lookup_table) {
         a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
         if (is_acceptable_symbol(sym, fund_sym)) {
           /* Found an acceptable symbol. */
@@ -4156,7 +4157,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
         goto end_lookup;
       }  /* if */
     }  /* if */
-bypass_inactive_search:
+bypass_normal_search:
     if (is_proxy_or_nonreal_class_lookup &&
         !(options & IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) {
       /* When looking up a name in a proxy or nonreal class, the name is
@@ -4166,58 +4167,6 @@ bypass_inactive_search:
       goto end_lookup;
     }  /* if */
     if (C_dialect == C_dialect_cplusplus) {
-      /* The name was not found on the inactive symbols list.  Try the
-         active symbols list.  This would come up when a qualified name
-         is used when the qualification is not really necessary, i.e.,
-         when we're inside the class mentioned in the qualifier. */
-      type_tag_symbol = NULL;
-      /*lint --e{446} sym modified in loop (LINTBUG) */
-      for (sym = symbol_list_from_locator(*locator);
-           sym != NULL;
-           sym = sym->next) {
-        a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
-        /* Exit the loop if we found a type tag symbol and the new symbol
-           to check is not from the same scope. */
-        if (type_tag_symbol != NULL &&
-            type_tag_symbol->decl_scope != sym->decl_scope) {
-          sym = NULL;
-          break;
-        }  /* if */
-        if (is_acceptable_symbol(sym, fund_sym)) {
-          if (any_nonreal_base_classes &&
-              sym->kind == (a_symbol_kind)sk_projection &&
-              sym->variant.projection.fund_sym_is_nonreal_member &&
-              !acceptable_nonreal_class_member_symbol(fund_sym, options,
-                                                     locator)) {
-          /* The symbol is a projection symbol in derived class that points
-             to a nonreal member of a base class.  Ignore this symbol
-             if it does not match the kind required by the lookup. */
-          } else if (direct_class_members_only &&
-                     sym->kind == (a_symbol_kind)sk_projection &&
-                     !sym->variant.projection.is_using_decl) {
-            /* This is a projection symbol not created by a using-declaration.
-               This should be ignored for "direct class members only"
-               lookups. */
-          } else {
-            /* We found a matching symbol.  If this is a type symbol found
-               by a must-be-tag lookup, keep searching for a "real" tag in
-               the same scope. */
-            if (must_be_tag &&
-                fund_sym->kind == (a_symbol_kind)sk_type) {
-              type_tag_symbol = sym;
-            } else {
-              /* Use this symbol. */
-              goto end_lookup;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* for */
-      /* If a type symbol was found and no other matching tag was present,
-         use the type symbol. */
-      if (sym == NULL && type_tag_symbol != NULL) {
-        sym = type_tag_symbol;
-        goto end_lookup;
-      }  /* if */
       /* Look to see if the name is the name of a constructor or destructor
          for the class.  The symbols for those are not entered in the
          normal symbol table; they're pointed to from the class symbol

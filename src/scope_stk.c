@@ -2181,6 +2181,7 @@ Initialize the fields in a scope-pointers-block substructure.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   spbp->last_ms_attribute             = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  spbp->lookup_table                  = NULL;
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   spbp->last_ms_if_exists             = NULL;
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
@@ -3094,7 +3095,11 @@ the scope being pushed.
       expr_stack = NULL;
     }  /* if */
   }  /* if */
-  if (kind == (a_scope_kind)sck_file) {
+  if (kind == (a_scope_kind)sck_class_struct_union) {
+    a_class_symbol_supplement_ptr cssp;
+    cssp = symbol_supplement_for_class(assoc_type);
+    ssep->assoc_pointers_block = &cssp->pointers_block;
+  } else if (kind == (a_scope_kind)sck_file) {
     /* For the file scope, use the pointers block allocated in the
        translation unit entry. */
     ssep->assoc_pointers_block = &curr_translation_unit->

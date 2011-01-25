@@ -15016,7 +15016,8 @@ enum a_scope_kind_tag {
   sck_enum,
 			/* The scope associated with a C++0x scoped enum
 			   type. */
-  sck_function		/* Function scope. */
+  sck_function,		/* Function scope. */
+  sck_none		/* No scope kind or scope kind not known. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_scope_kind;

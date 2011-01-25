@@ -226,6 +226,13 @@ typedef struct a_scope_pointers_block {
 			/* For sck_file and sck_namespace scopes only, pointer
 			   to the symbol representing the unnamed namespace
 			   for the current scope; NULL if there is none. */
+  a_hash_table_ptr
+		lookup_table;
+			/* Some scopes have an associated hash table to aid
+			   in name lookup.  This is non-NULL if such a table
+			   has been created for the associated scope.  The
+			   table is only created when the first entry has been
+			   added to the table. */
   a_bit_field	add_symbols_to_inactive_list:1;
 			/* TRUE for sck_namespace_reactivation scopes if
 			   symbols added to the scope should be added

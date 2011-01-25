@@ -100,6 +100,7 @@ static unsigned long
 		num_symbol_headers_in_hash_table,
 		num_conversion_headers_allocated,
 		symbol_name_string_space,
+                num_symbol_header_lookup_entries_allocated,
 		num_enum_symbol_supplements_allocated,
 		num_class_symbol_supplements_allocated,
 		num_template_symbol_supplements_allocated,
@@ -1748,6 +1749,7 @@ Allocate a new symbol header, and return a pointer to it.
   ptr->opname            = (an_opname_kind)onk_none;
   ptr->identifier        = NULL;
   ptr->identifier_length = 0;
+  ptr->hash_value        = 0;
   ptr->any_nested_types_on_inactive_list = FALSE;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   ptr->has_cfront_transitional_nested_type_mangled_name = FALSE;
@@ -1937,7 +1939,7 @@ been set by get_token when an identifier is scanned, but sometimes the
 caller may have to set it directly.
 */
 {
-  register unsigned            hash_value = 0;
+  register a_hash_value        hash_value = 0;
   register char                *ptr;
   register sizeof_t            a;
   register a_symbol_header_ptr hdr_ptr;
@@ -2025,6 +2027,7 @@ caller may have to set it directly.
   /* Terminate the string and set the length. */
   hdr_ptr->identifier[length] = '\0';
   hdr_ptr->identifier_length = length;
+  hdr_ptr->hash_value = hash_value;
 
   /* There is no symbol. */
   sym_ptr = NULL;
@@ -2891,6 +2894,7 @@ state.
 #if CENTERLINE_CHECKING
         cssp->avoid_codecenter_warnings = FALSE;
 #endif /* CENTERLINE_CHECKING */
+       clear_scope_pointers_block(&cssp->pointers_block);
       }
       break;
     case sk_variable:
@@ -3141,6 +3145,97 @@ Remove a symbol from the symbols_with_no_scope list.
 }  /* remove_symbol_from_no_scope_list */
 
 
+/*
+Entry used to build a hash table for looking up symbols with a given
+symbol header in a scope.
+*/
+typedef struct a_symbol_header_lookup_entry *a_symbol_header_lookup_entry_ptr;
+typedef struct a_symbol_header_lookup_entry {
+  a_symbol_header_ptr	header;
+				/* The symbol header associated with this
+				   entry. */
+  a_symbol_ptr
+			symbols;
+				/* A list of symbol entries that have the
+				   given header.  Can be NULL. */
+} a_symbol_header_lookup_entry;
+
+
+static void clear_symbol_header_lookup_entry(
+				a_symbol_header_lookup_entry_ptr shlep)
+/*
+Initialize the fields of an include search result entry.
+*/
+{
+  shlep->header = NULL;
+  shlep->symbols = NULL;
+}  /* clear_symbol_header_lookup_entry */
+
+
+static a_symbol_header_lookup_entry_ptr alloc_symbol_header_lookup_entry(void)
+/*
+Allocate a new include search result entry, initialize its fields, and
+return a pointer to it.
+*/
+{
+  a_symbol_header_lookup_entry_ptr	shlep;
+
+  shlep = alloc_fe_of_type(a_symbol_header_lookup_entry);
+#if DEBUG
+  num_symbol_header_lookup_entries_allocated++;
+#endif /* DEBUG */
+  clear_symbol_header_lookup_entry(shlep);
+  return shlep;
+}  /* alloc_symbol_header_lookup_entry */
+
+
+static void remove_symbol_from_lookup_table(
+				a_symbol_ptr			symbol,
+				a_scope_pointers_block_ptr	pointers_block)
+/*
+Remove symbol from the lookup table associated with pointers_block.
+*/
+{
+  a_symbol_header_lookup_entry_ptr	shlep;
+  a_symbol_header_lookup_entry_ptr	*shlep_in_table;
+  a_symbol_header_lookup_entry		shle_key;
+  a_symbol_ptr				*p_sym;
+  a_symbol_ptr				table_sym;
+
+  /* Create an entry to be used as the lookup key. */
+  clear_symbol_header_lookup_entry(&shle_key);
+  shle_key.header = symbol->header;
+  shlep_in_table = (a_symbol_header_lookup_entry_ptr*)
+                              hash_find(pointers_block->lookup_table,
+					(a_void_ptr)&shle_key,
+					/*create=*/FALSE);
+  shlep = *shlep_in_table;
+  check_assertion(shlep != NULL);
+  /* Find the entry on the symbol list and remove it. */
+  p_sym = &shlep->symbols;
+  for (table_sym = *p_sym; table_sym != NULL;
+       p_sym = &table_sym->next_in_lookup_table,
+         table_sym = table_sym->next_in_lookup_table) {
+    if (table_sym == symbol) break;
+  }  /* for */
+  check_assertion(table_sym != NULL);
+  /* Unlink the entry from the list. */
+  *p_sym = symbol->next_in_lookup_table;
+  symbol->next_in_lookup_table = NULL;
+}  /* remove_symbol_from_lookup_table */
+
+
+static a_boolean is_scope_kind_with_lookup_table(a_scope_kind	kind)
+/*
+Return TRUE if the scope kind is one for which a lookup table will be
+created if needed.
+*/
+{
+  /* FIXME: Do we only want to create lookup tables for classes for now? */
+  return kind != (a_scope_kind)sck_none;
+}  /* is_scope_kind_with_lookup_table */
+
+
 static void remove_symbol_from_scope_list(a_symbol_ptr sym_ptr)
 /*
 Remove the given symbol from the list of symbols for its scope.
@@ -3148,6 +3243,7 @@ Remove the given symbol from the list of symbols for its scope.
 {
   a_scope_stack_entry_ptr     ssep;
   a_scope_pointers_block_ptr  pointers_block;
+  a_scope_kind	              scope_kind;
 
   if (sym_ptr->is_error) {
     /* Error symbols are not on the scope list and cannot be removed. */
@@ -3181,6 +3277,7 @@ Remove the given symbol from the list of symbols for its scope.
        symbol will be the first on the list.  If not, we have to find the
        previous symbol. */
     pointers_block = assoc_pointers_block_of(ssep);
+    scope_kind = ssep->kind;
     if (sym_ptr == pointers_block->symbols) {
       pointers_block->symbols = sym_ptr->next_in_scope;
     } else {
@@ -3193,6 +3290,9 @@ Remove the given symbol from the list of symbols for its scope.
        last-pointer. */
     if (sym_ptr == pointers_block->last_symbol) {
       pointers_block->last_symbol = sym_ptr->prev_in_scope;
+    }  /* if */
+    if (is_scope_kind_with_lookup_table(scope_kind)) {
+      remove_symbol_from_lookup_table(sym_ptr, pointers_block);
     }  /* if */
   }  /* if */
   sym_ptr->next_in_scope = NULL;
@@ -4080,6 +4180,144 @@ checked for and ignored. Finally, injected class names are also allowed.
 }  /* member_name_conflicts_with_class_name */
 
 
+static a_hash_value hash_symbol_header_lookup_entry(a_void_ptr	key)
+/*
+Produce a hash value for a symbol header.  The key is a pointer to a
+symbol header lookup entry.
+*/
+{
+  a_hash_value				value;
+  a_symbol_header_lookup_entry_ptr	shlep;
+
+  shlep = (a_symbol_header_lookup_entry_ptr)key;
+  value = shlep->header->hash_value;
+  return value;
+}  /* hash_symbol_header_lookup_entry */
+
+
+static a_boolean compare_symbol_header_lookup_entry(a_void_ptr	entry,
+			          a_void_ptr	key)
+/*
+Compare an entry in the symbol header lookup hash table with an entry to be
+found.  "entry" and "key" are of type a_symbol_header_lookup_entry_ptr.
+Return TRUE if the key matches the entry.
+*/
+{
+  a_symbol_header_lookup_entry_ptr	entry_shlep;
+  a_symbol_header_lookup_entry_ptr	key_shlep;
+  a_boolean				result;
+
+  entry_shlep = (a_symbol_header_lookup_entry_ptr)entry;
+  key_shlep = (a_symbol_header_lookup_entry_ptr)key;
+  result = entry_shlep->header == key_shlep->header;
+  return result;
+}  /* compare_symbol_header_lookup_entry */
+
+
+static a_hash_table_ptr create_name_lookup_table(a_scope_kind	kind)
+/*
+Create a name lookup table for the specified scope kind.  Return a pointer to
+it.
+*/
+{
+  a_hash_table_ptr	hash_table;
+
+  /* Select an initial size for the hash table.  This value is not critical
+     as the table is enlarged if needed, and that is an inexpensive
+     operation.  Note this is a minimum size.  The actual allocated size
+     will be determined by select_hash_table_size. */
+  a_hash_table_size	size = 0;
+  switch (kind) {
+    case sck_file: size = 100; break;
+    case sck_func_prototype: size = 10; break;
+    case sck_block: size = 10; break;
+    case sck_namespace: size = 100; break;
+    case sck_namespace_extension: size = 100; break;
+    case sck_class_struct_union: size = 30; break;
+    case sck_template_declaration: size = 10; break;
+    case sck_template_instantiation: size = 10; break;
+    case sck_pragma: size = 5; break;
+    case sck_condition: size = 2; break;
+    case sck_enum: size = 5; break;
+    case sck_function: size = 20; break;
+    /* Eventually class reactivations should share the pointers block with
+       the class scope. */
+    case sck_class_reactivation: size=5; break;
+    default:
+#if DEBUG
+      fprintf(f_debug, "Bad scope kind:\n");
+      db_scope_kind(kind);
+#endif  /* DEBUG */
+      unexpected_condition_str("is_scope_kind_with_lookup_table");
+      break;
+  }  /* switch */
+  hash_table = alloc_hash_table(FRONT_END_REGION_NUMBER, size,
+			       hash_symbol_header_lookup_entry,
+			       compare_symbol_header_lookup_entry);
+  return hash_table;
+}  /* is_scope_kind_with_lookup_table */
+
+
+static void add_symbol_to_lookup_table(
+				a_symbol_ptr			symbol,
+				a_scope_pointers_block_ptr	pointers_block)
+/*
+Add symbol to the lookup table associated with pointers_block.
+*/
+{
+  a_symbol_header_lookup_entry_ptr	shlep;
+  a_symbol_header_lookup_entry_ptr	*shlep_in_table;
+  a_symbol_header_lookup_entry		shle_key;
+
+  /* Create an entry to be used as the lookup key. */
+  clear_symbol_header_lookup_entry(&shle_key);
+  shle_key.header = symbol->header;
+  shlep_in_table = (a_symbol_header_lookup_entry_ptr*)
+                              hash_find(pointers_block->lookup_table,
+					(a_void_ptr)&shle_key,
+					/*create=*/TRUE);
+  shlep = *shlep_in_table;
+  if (shlep == NULL) {
+    /* No entry was found -- create one now. */
+    shlep = alloc_symbol_header_lookup_entry();
+    shlep->header = symbol->header;
+    /* Update the entry in the hash table. */
+    *shlep_in_table = shlep;
+  }  /* if */
+  /* Link the symbol into the table. */
+  symbol->next_in_lookup_table = shlep->symbols;
+  shlep->symbols = symbol;
+}  /* add_symbol_to_lookup_table */
+
+
+a_symbol_ptr find_symbol_list_in_table(
+			a_scope_pointers_block_ptr	pointers_block,
+			a_symbol_header_ptr		header)
+/*
+Look up header in hash_table.  Return a pointer to the symbol list from the
+hash table or NULL if no entry was found.
+*/
+{
+  a_symbol_header_lookup_entry_ptr	*shlep_in_table;
+  a_symbol_header_lookup_entry		shle_key;
+  a_symbol_ptr				result_sym = NULL;
+  a_hash_table_ptr			hash_table =
+                                                  pointers_block->lookup_table;
+
+  if (hash_table != NULL) {
+    /* Create an entry to be used as the lookup key. */
+    clear_symbol_header_lookup_entry(&shle_key);
+    shle_key.header = header;
+    shlep_in_table = (a_symbol_header_lookup_entry_ptr*)
+                              hash_find(hash_table,
+					(a_void_ptr)&shle_key,
+					/*create=*/FALSE);
+    if (shlep_in_table != NULL) result_sym = (*shlep_in_table)->symbols;
+  }  /* if */
+  return result_sym;
+}  /* find_symbol_list_in_table  */
+
+
 static void add_symbol_to_scope_list(a_symbol_ptr  sym_ptr,
                                      a_scope_depth scope_depth,
                                      a_boolean     *err)
@@ -4092,6 +4330,7 @@ changed if there is no error.
   a_scope_stack_entry_ptr     ssep;
   a_scope_pointers_block_ptr  pointers_block;
   a_namespace_ptr             nsp;
+  a_scope_kind	              scope_kind = (a_scope_kind)sck_none;
 
   if (scope_depth == NO_SCOPE_DEPTH) {
     /* The scope to which this symbol belongs is not on the scope stack. */
@@ -4113,6 +4352,7 @@ changed if there is no error.
       sym_ptr->decl_scope = nsp->variant.assoc_scope->number;
       pointers_block = &((a_symbol_ptr)nsp->source_corresp.assoc_info)->
                             variant.namespace_info.extra_info->pointers_block;
+      scope_kind = sck_namespace;
     }  /* if */
   } else {
 #if CHECKING
@@ -4122,6 +4362,7 @@ changed if there is no error.
 #endif /* CHECKING */
     ssep = &scope_stack[scope_depth];
     pointers_block = assoc_pointers_block_of(ssep);
+    scope_kind = ssep->kind;
     /* Put the proper scope number into the symbol entry. */
     sym_ptr->decl_scope = ssep->number;
     if (C_dialect == C_dialect_cplusplus && !sym_ptr->is_error) {
@@ -4174,6 +4415,13 @@ changed if there is no error.
       sym_ptr->prev_in_scope = pointers_block->last_symbol;
     }  /* if */
     pointers_block->last_symbol = sym_ptr;
+    if (is_scope_kind_with_lookup_table(scope_kind)) {
+      if (pointers_block->lookup_table == NULL) {
+        /* Create the lookup table for the scope. */
+        pointers_block->lookup_table = create_name_lookup_table(scope_kind);
+      }  /* if */
+      add_symbol_to_lookup_table(sym_ptr, pointers_block);
+    }  /* if */
   }  /* if */
 }  /* add_symbol_to_scope_list */
 
@@ -4876,6 +5124,9 @@ the file scope is used.
         /* The entry is the first on the scope's symbol list. */
         pointers_block->symbols = overload_sym;
       }  /* if */
+      /* Remove the original symbol from the hash table and add the new one. */
+      remove_symbol_from_lookup_table(other_sym, pointers_block);
+      add_symbol_to_lookup_table(overload_sym, pointers_block);
     }  /* if */
     overload_sym->next_in_scope = other_sym->next_in_scope;
     overload_sym->prev_in_scope = other_sym->prev_in_scope;
@@ -10728,7 +10979,6 @@ created if a projected symbol cannot be found in any of the real bases.
   a_boolean			ambiguous = FALSE;
   a_boolean			found;
   a_scope_stack_entry_ptr	ssep;
-  a_scope_pointers_block_ptr	pointers_block;
   a_symbol_ptr			class_sym;
   a_class_symbol_supplement_ptr	cssp;
   a_boolean			any_using_decl = FALSE;
@@ -10849,6 +11099,7 @@ created if a projected symbol cannot be found in any of the real bases.
       }  /* if */
       /* Add the symbol to the symbol table. */
       if (add_to_active_list) {
+        a_boolean	err;
         /* Insert the symbol into the active list. */
         if (insert_sym == NULL) {
           /* Insert at head of list. */
@@ -10876,17 +11127,11 @@ created if a projected symbol cannot be found in any of the real bases.
           }  /* if */
 #endif /* CHECKING */
         }  /* for */
-        pointers_block = assoc_pointers_block_of(ssep);
-        if (pointers_block->symbols != NULL) {
-          pointers_block->last_symbol->next_in_scope = new_sym;
-          new_sym->prev_in_scope = pointers_block->last_symbol;
-        } else {
-          pointers_block->symbols = new_sym;
-        }  /* if */
-        pointers_block->last_symbol = new_sym;
+        add_symbol_to_scope_list(new_sym, scope_depth_of(ssep), &err);
       } else {
         /* Add it to the inactive list.  It can go at the beginning. */
         add_symbol_to_inactive_list(new_sym);
+        add_symbol_to_lookup_table(new_sym, &cssp->pointers_block);
       }  /* if */
 #if DEBUG
       if (debug_level >= 4) db_symbol(new_sym, "symbol created: ", 2);
@@ -12594,6 +12839,9 @@ for space tracking purposes.
   db_space_used("conversion header", num_conversion_headers_allocated,
                 a_conversion_header);
   db_space_used("Name strings", symbol_name_string_space, char);
+  db_space_used("symbol header lookup entries",
+                num_symbol_header_lookup_entries_allocated,
+                a_symbol_header_lookup_entry);
   db_space_used("extern symbol descr", num_extern_symbol_descrs_allocated,
                 an_extern_symbol_descr);
   db_space_used("extern type fixup", num_extern_type_fixups_allocated,
@@ -12823,6 +13071,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.next                              = NULL;
   cleared_symbol.next_in_scope                     = NULL;
   cleared_symbol.prev_in_scope                     = NULL;
+  cleared_symbol.next_in_lookup_table              = NULL;
   cleared_symbol.decl_scope                        = NO_SCOPE_NUMBER;
   cleared_symbol.decl_seq                          = 0;
   cleared_symbol.decl_position                     = null_source_position;
@@ -12964,6 +13213,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_symbol_headers_allocated),
       pch_saved_var_array_elem(num_symbol_headers_in_hash_table),
       pch_saved_var_array_elem(num_symbol_list_entries_allocated),
+      pch_saved_var_array_elem(num_symbol_header_lookup_entries_allocated),
       pch_saved_var_array_elem(num_type_list_entries_allocated),
       pch_saved_var_array_elem(num_substituted_type_list_entries_allocated),
       pch_saved_var_array_elem(num_symbols_allocated),
@@ -13145,6 +13395,7 @@ of the front end.
   num_symbol_headers_in_hash_table             = 0;
   num_conversion_headers_allocated             = 0;
   symbol_name_string_space                     = 0;
+  num_symbol_header_lookup_entries_allocated   = 0;
   num_enum_symbol_supplements_allocated        = 0;
   num_class_symbol_supplements_allocated       = 0;
   num_template_symbol_supplements_allocated    = 0;

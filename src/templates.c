@@ -11372,9 +11372,10 @@ and create a function instantiation entry to bind the two symbols together.
       /* The prototype instantiation can be incomplete in certain error
          cases. */
       corresp_prototype_decl_scope = proto_class_scope->number;
-      for (sym = rout_sym->header->inactive_symbols;
+      for (sym = find_symbol_list_in_table(&cssp->pointers_block,
+                                           rout_sym->header);
            sym != NULL;
-           sym = sym->next) {
+           sym = sym->next_in_lookup_table) {
         if (sym->decl_scope == corresp_prototype_decl_scope) {
           sym_from_prototype = sym;
           if (sym->kind == (a_symbol_kind)sk_member_function ||

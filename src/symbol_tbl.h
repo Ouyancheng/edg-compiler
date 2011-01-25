@@ -1131,6 +1131,14 @@ typedef struct a_class_symbol_supplement {
 			   whose must_be_preserved_in_trans_unit_copy flag is
 			   TRUE. */
   bitfield_to_avoid_codecenter_warnings()
+  a_scope_pointers_block
+		pointers_block;
+			/* A block of pointers that are logically part of the
+			   scope stack entry for the associated class
+			   -- including a pointer to a linked list of all
+			   symbols declared in the namespace and pointers to
+			   the last entries in linked lists of IL entries
+			   entered in the associated IL scope. */
 } a_class_symbol_supplement;
 
 
@@ -2587,6 +2595,10 @@ typedef struct a_symbol {
   a_symbol_ptr	prev_in_scope;
 			/* When the symbol is in the symbol table, this
 			   points to the previous symbol in the same scope. */
+  a_symbol_ptr	next_in_lookup_table;
+			/* When the symbol is in a lookup table, this
+			   points to the next symbol in the same scope with
+			   the same symbol header. */
   a_scope_number
 		decl_scope;
 			/* Scope number of the scope in which this symbol
@@ -3165,6 +3177,10 @@ typedef struct a_symbol_header {
   sizeof_t	identifier_length;
 			/* The length of the identifier, not counting the
 			   final null. */
+  a_hash_value	hash_value;
+			/* The hash value for the identifier.  This is saved
+			   to avoid the need to recompute it if the header
+			   is entered into a scope's lookup table. */
   a_symbol_ptr	symbol;
 			/* This is the pointer to a symbol table entry.  This
 			   is actually a list of all symbols with the same
@@ -3440,6 +3456,10 @@ EXTERN a_symbol_ptr
 extern a_symbol_ptr find_symbol(char             *identifier,
 			        sizeof_t         identifier_length,
 				a_symbol_locator *location);
+
+extern a_symbol_ptr find_symbol_list_in_table(
+			a_scope_pointers_block_ptr	pointers_block,
+			a_symbol_header_ptr		header);
 
 extern
 a_boolean find_projected_symbol(
