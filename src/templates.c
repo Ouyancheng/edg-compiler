@@ -1311,7 +1311,6 @@ supplement already associated with ct_symbol.  token_sequence_number
 is the token sequence number to be used as the identifier for this template.
 */
 {
-  a_type_ptr                        tp;
   a_symbol_ptr                      sym;
   a_template_symbol_supplement_ptr  tssp;
   a_template_symbol_supplement_ptr  orig_tssp;
@@ -1330,7 +1329,6 @@ is the token sequence number to be used as the identifier for this template.
   corresp_prototype_tag_sym =
                          corresp_prototype_for_class_symbol(parent_class_sym);
   if (corresp_prototype_tag_sym != NULL) {
-    tp = type_symbol_type(corresp_prototype_tag_sym);
     cssp = corresp_prototype_tag_sym->variant.class_struct_union.extra_info;
     for (sym = find_symbol_list_in_table(&cssp->pointers_block,
                                          ct_symbol->header);
@@ -4123,12 +4121,9 @@ supplement already associated with ft_symbol.
         }  /* if */
       }  /* for */
     } else {
-      a_type_ptr                    tp;
       a_class_symbol_supplement_ptr cssp;
-
-      /* Get the scope in which the members of the class represented by
-         corresp_prototype_tag_sym were declared. */
-      tp = type_symbol_type(corresp_prototype_tag_sym);
+      /* Get the lookup table information for the members of the class
+         represented by corresp_prototype_tag_sym. */
       cssp = corresp_prototype_tag_sym->variant.class_struct_union.extra_info;
       for (sym = find_symbol_list_in_table(&cssp->pointers_block,
                                            ft_symbol->header);
