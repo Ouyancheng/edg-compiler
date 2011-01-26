@@ -3534,9 +3534,7 @@ extern void reenter_symbol(a_symbol_ptr     symbol_to_reenter,
                            a_scope_depth    scope_depth,
                            a_boolean        suppress_error);
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 extern void enter_symbol_into_completed_class(a_symbol_ptr  sym);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_symbol_ptr enter_copy_of_symbol(a_symbol_ptr     orig_sym,
                                          a_scope_depth    scope_depth,
