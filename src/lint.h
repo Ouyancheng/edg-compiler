@@ -649,13 +649,34 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_win32_api_error)*/
 #endif /* !(EDG_WIN32 && MICROSOFT_EXTENSIONS_ALLOWED) */
 /*lint -esym(769,a_cpp_cli_feature_tag::*)*/
-/* FIXME */
-/*lint -esym(759,is_value_class_type)*/
-/*lint -esym(765,is_value_class_type)*/
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES && !WRITE_CPPCLI_PORTABLE_ASSEMBLIES
 /*lint -esym(759,clear_portable_assembly_header)*/
 /*lint -esym(765,clear_portable_assembly_header)*/
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !WRITE_CPPCLI_PORTABLE_ASSEM... */
+/* FIXME */
+/*lint -esym(759,is_value_class_type)*/
+/*lint -esym(765,is_value_class_type)*/
+/*lint -esym(759,basic_type_from_system_type)*/
+/*lint -esym(765,basic_type_from_system_type)*/
+/*lint -esym(714,basic_type_from_system_type)*/
+/*lint -esym(769,csk_system_int16)*/
+/*lint -esym(769,csk_system_uint16)*/
+/*lint -esym(769,csk_system_int32)*/
+/*lint -esym(769,csk_system_uint32)*/
+/*lint -esym(769,csk_system_int32_is_long)*/
+/*lint -esym(769,csk_system_uint32_is_long)*/
+/*lint -esym(769,csk_system_int64)*/
+/*lint -esym(769,csk_system_uint64)*/
+/*lint -esym(769,csk_system_single)*/
+/*lint -esym(769,csk_system_double)*/
+/*lint -esym(769,csk_system_double_is_long)*/
+/*lint -esym(769,csk_system_object)*/
+/*lint -esym(769,csk_system_value_type)*/
+/*lint -esym(769,csk_system_enum)*/
+/*lint -esym(769,csk_system_type)*/
+/*lint -esym(769,csk_system_string)*/
+/*lint -esym(769,csk_system_delegate)*/
+/*lint -esym(769,csk_none)*/
 
 #endif /* ifndef LINT_H */
 
