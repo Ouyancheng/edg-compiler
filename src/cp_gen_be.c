@@ -9577,6 +9577,7 @@ used as an rvalue).
 }  /* handle_lvalue_constant_node */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 static a_boolean is_property_or_event_call(an_expr_node_ptr expr)
 /*
 Return TRUE if expr is a call to a property or event accessor function.
@@ -9591,6 +9592,7 @@ Return TRUE if expr is a call to a property or event accessor function.
   }  /* if */
   return result;
 }  /* is_property_or_event_call */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 static void gen_expr(an_expr_node_ptr expr,
