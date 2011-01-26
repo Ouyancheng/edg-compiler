@@ -6074,6 +6074,7 @@ that do that are extracted and concatenated.
        aop != NULL;
        aop = aop->next) {
     expr = make_comma_node(expr, make_node_from_operand(&aop->operand));
+    expr->variant.operation.compiler_generated = TRUE;
   }  /* for */
   return expr;  
 }  /* make_node_from_property_ref_operand */
@@ -6176,6 +6177,7 @@ in result.
     orig_operand = *result;
     expr = make_node_from_operand(result);
     expr = make_comma_node(temp_init_expr, expr);
+    expr->variant.operation.compiler_generated = TRUE;
     make_expression_operand(expr, result);
     if (is_an_lvalue(&orig_operand) ||
         is_a_function_designator(&orig_operand)) {

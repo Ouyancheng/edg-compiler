@@ -9043,7 +9043,7 @@ actual first argument (if any) for static members.
     if (need_context_pop) {
       pop_name_context();
     }  /* if */
-    if (desc->is_default_indexed) {
+    if (desc->indices != NULL) {
       /* Generate the subscript list for the property reference. */
       a_property_index_type_ptr idx;
       write_tok_ch('[');
@@ -9577,6 +9577,22 @@ used as an rvalue).
 }  /* handle_lvalue_constant_node */
 
 
+static a_boolean is_property_or_event_call(an_expr_node_ptr expr)
+/*
+Return TRUE if expr is a call to a property or event accessor function.
+*/
+{
+  a_boolean result = FALSE;
+  if (is_operation_node(expr) &&
+      node_operator_is(expr, eok_points_to_member_call)) {
+    a_routine_ptr rout =
+                  routine_from_function_expr(expr->variant.operation.operands);
+    result = (rout != NULL && rout_is_cli_accessor(rout));
+  }  /* if */
+  return result;
+}  /* is_property_or_event_call */
+
+
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens,
                      a_boolean        obj_expr_of_mfunc_operator)
@@ -10018,11 +10034,12 @@ gen_expr that might end up generating this expr as a temporary.
           check_result_not_used_flag(operand_1);
 #endif /* CHECKING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (operand_1->kind == (an_expr_node_kind)enk_temp_init &&
-              operand_1->variant.init.dynamic_init->is_reused_value) {
-            /* This is probably the expansion of a Microsoft property
-               reference.  The expression will be generated in the call
-               to the property access function, so ignore it here. */
+          if (expr->variant.operation.compiler_generated &&
+              is_property_or_event_call(operand_2)) {
+            /* This is the expansion of a Microsoft property or event
+               reference.  operand_1 contains enk_temp_init nodes whose
+               expressions will be generated in the call to the property
+               access function, so suppress it here. */
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
