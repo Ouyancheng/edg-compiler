@@ -4242,7 +4242,7 @@ it.
     default:
 #if DEBUG
       fprintf(f_debug, "Bad scope kind:\n");
-      db_scope_kind(kind);
+      (void)db_scope_kind(kind);
 #endif  /* DEBUG */
       unexpected_condition_str("is_scope_kind_with_lookup_table");
       break;
@@ -4355,7 +4355,7 @@ changed if there is no error.
         sym_ptr->decl_scope = nsp->variant.assoc_scope->number;
         pointers_block = &((a_symbol_ptr)nsp->source_corresp.assoc_info)->
                             variant.namespace_info.extra_info->pointers_block;
-        scope_kind = sck_namespace;
+        scope_kind = (a_scope_kind)sck_namespace;
       }  /* if */
     }  /* if */
   } else {
