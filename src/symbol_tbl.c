@@ -4854,7 +4854,6 @@ defined in that scope and name space unless suppress_error is TRUE.
   db_exit();
 }  /* reenter_symbol */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 void enter_symbol_into_completed_class(a_symbol_ptr  sym)
 /*
@@ -4866,7 +4865,6 @@ the corresponding symbol header.)
   link_symbol_into_symbol_table(sym, NO_SCOPE_DEPTH, /*suppress_error=*/FALSE);
 }  /* enter_symbol_into_completed_class */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr enter_copy_of_symbol(a_symbol_ptr     orig_sym,
                                   a_scope_depth    scope_depth,

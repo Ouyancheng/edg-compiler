@@ -1311,7 +1311,6 @@ supplement already associated with ct_symbol.  token_sequence_number
 is the token sequence number to be used as the identifier for this template.
 */
 {
-  a_scope_number                    corresp_prototype_decl_scope;
   a_type_ptr                        tp;
   a_symbol_ptr                      sym;
   a_template_symbol_supplement_ptr  tssp;
@@ -1332,10 +1331,6 @@ is the token sequence number to be used as the identifier for this template.
                          corresp_prototype_for_class_symbol(parent_class_sym);
   if (corresp_prototype_tag_sym != NULL) {
     tp = type_symbol_type(corresp_prototype_tag_sym);
-    /* Get the scope in which the members of the class represented by
-       corresp_prototype_tag_sym were declared. */
-    corresp_prototype_decl_scope =
-               tp->variant.class_struct_union.extra_info->assoc_scope->number;
     cssp = corresp_prototype_tag_sym->variant.class_struct_union.extra_info;
     for (sym = find_symbol_list_in_table(&cssp->pointers_block,
                                          ct_symbol->header);
@@ -11480,7 +11475,6 @@ template instance entry already associated with static_data_member_sym.
 Also, add the instance to the definitions list for the template.
 */
 {
-  a_scope_number                    corresp_prototype_decl_scope;
   a_type_ptr                        tp, member_type;
   a_symbol_ptr                      sym;
   a_variable_ptr                    vp;
@@ -11531,7 +11525,6 @@ Also, add the instance to the definitions list for the template.
       expect_error();
       sym = NULL;
     } else {
-      corresp_prototype_decl_scope = prototype_scope->number;
       for (sym = find_symbol_list_in_table(&cssp->pointers_block,
                                            static_data_member_sym->header);
            sym != NULL;
@@ -11618,11 +11611,9 @@ this routine has no effect.
          a definition. */
       expect_error();
     } else {
-      a_scope_number			corresp_prototype_decl_scope;
       a_symbol_ptr			proto_sym;
       a_template_symbol_supplement_ptr	alias_tssp;
       a_template_symbol_supplement_ptr	proto_tssp;
-      corresp_prototype_decl_scope = prototype_scope->number;
       cssp = corresp_prototype_tag_sym->variant.class_struct_union.extra_info;
       for (proto_sym = find_symbol_list_in_table(&cssp->pointers_block,
                                            alias_sym->header);
