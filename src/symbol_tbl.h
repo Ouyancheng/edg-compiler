@@ -3732,7 +3732,7 @@ used to look up and initialize the corresponding cli_symbol entry.  If the
 symbol requires special initialization, leave the corresponding
 cli_symbol_names entry set to NULL.
 */
-typedef enum /*a_cli_symbol_kind_tag*/ {
+enum a_cli_symbol_kind_tag {
   csk_first_integer,
   csk_system_byte_sign_unspecified = csk_first_integer, /* ik_char */
   csk_system_sbyte,				/* ik_signed_char */
@@ -3764,7 +3764,7 @@ typedef enum /*a_cli_symbol_kind_tag*/ {
   csk_system_multicast_delegate,
   csk_last,
   csk_none = csk_last
-} a_cli_symbol_kind_tag;
+};
 
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_cli_symbol_kind;
@@ -3820,15 +3820,15 @@ an index suitable for use in indexing the cli_symbols or cli_symbol_names
 arrays.
 */
 #define integer_kind_to_cli_symbol_kind(ik)                           \
-  ((a_cli_symbol_kind)(csk_first_integer + (int)(ik)))
+  ((a_cli_symbol_kind)((int)csk_first_integer + (int)(ik)))
 #define float_kind_to_cli_symbol_kind(fk)                             \
-  ((a_cli_symbol_kind)(csk_first_float + (int)(fk)))
+  ((a_cli_symbol_kind)((int)csk_first_float + (int)(fk)))
 
 /*
 Macros to return a cli_symbols entry given one of
 a_cli_symbol_kind_tag/an_integer_kind/a_float_kind respectively.
 */
-#define cli_symbol_from_kind(csk) (cli_symbols[(int)(csk)])
+#define cli_symbol_from_kind(csk) (cli_symbols[(a_cli_symbol_kind)(csk)])
 #define cli_symbol_from_integer_kind(ik)                              \
   (cli_symbol_from_kind(integer_kind_to_cli_symbol_kind((ik))))
 #define cli_symbol_from_float_kind(fk)                                \
