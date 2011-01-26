@@ -3099,6 +3099,12 @@ the scope being pushed.
     a_class_symbol_supplement_ptr cssp;
     cssp = symbol_supplement_for_class(assoc_type);
     ssep->assoc_pointers_block = &cssp->pointers_block;
+  } else if (kind == (a_scope_kind)sck_class_reactivation) {
+    /* For class reactivation scopes, use the lookup table created when the
+       class was scanned. */
+    a_class_symbol_supplement_ptr cssp;
+    cssp = symbol_supplement_for_class(assoc_type);
+    ssep->pointers_block.lookup_table = cssp->pointers_block.lookup_table;
   } else if (kind == (a_scope_kind)sck_file) {
     /* For the file scope, use the pointers block allocated in the
        translation unit entry. */

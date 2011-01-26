@@ -304,12 +304,12 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
          doesn't have to be done for original namespace scopes because their
          symbols will still be on the active list. */
       a_symbol_ptr	tag_symbol = NULL;
-      for (sym = inactive_symbol_list_from_locator(*locator);
+      for (sym = find_symbol_list_in_table(assoc_pointers_block_of(ssep),
+                                           locator->symbol_header);
            sym != NULL;
-           sym = sym->next) {
+           sym = sym->next_in_lookup_table) {
         a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-        if (sym->decl_scope == scope_number &&
-            is_acceptable_symbol(sym, fund_sym)) {
+        if (is_acceptable_symbol(sym, fund_sym)) {
           /* Found an acceptable symbol. */
           /* If the symbol is a tag symbol, there's the possibility that
              there is a non-type symbol in the same scope later in the list
@@ -982,8 +982,8 @@ created symbol to the inactive list and returns it to the caller.
   a_symbol_ptr	sym;
 
   sym = create_proxy_or_nonreal_class_member(class_type, options, locator);
-  /* Add the symbol to the inactive list. */
-  add_symbol_to_inactive_list(sym);
+  /* Add the symbol to the scope list and inactive list. */
+  enter_symbol_into_completed_class(sym);
   return sym;
 }  /* add_member_to_proxy_or_nonreal_class */
 
@@ -2358,12 +2358,22 @@ that do normal id lookup processing.
       } else {
         /* Look on the inactive list for a symbol from this reactivated
            scope. */
-        a_symbol_ptr	type_tag_symbol = NULL;
-        a_symbol_ptr	tag_symbol = NULL;
-        a_symbol_ptr	namespace_symbol = NULL;
-        sym = NULL;
-        for (sym = inactive_symbol_list_from_locator(*locator);
-             sym != NULL; sym = sym->next) {
+        a_symbol_ptr			type_tag_symbol = NULL;
+        a_symbol_ptr			tag_symbol = NULL;
+        a_symbol_ptr			namespace_symbol = NULL;
+        a_scope_pointers_block_ptr	spbp;
+        a_boolean			use_lookup_table;
+        spbp = assoc_pointers_block_of(ssep);
+        use_lookup_table = spbp->lookup_table != NULL;
+        /* If the scope has a lookup table, use it.  Otherwise, use the
+           inactive list. */
+        if (use_lookup_table) {
+          sym = find_symbol_list_in_table(spbp, locator->symbol_header);
+        } else {
+          sym = inactive_symbol_list_from_locator(*locator);
+        }  /* if */
+        for (; sym != NULL;
+             sym = use_lookup_table ? sym->next_in_lookup_table :sym->next) {
           if (sym->decl_scope == ssep->number) {
             a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
             if (is_acceptable_symbol(sym, fund_sym, *lookup_state,
@@ -4783,6 +4793,8 @@ namespace_qualified_id_lookup.
                                !is_linkage_or_friend_lookup;
   a_decl_sequence_number
 		decl_seq_number = NO_DECL_SEQUENCE_NUMBER;
+  a_namespace_symbol_supplement_ptr
+		nssp;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
@@ -4790,8 +4802,6 @@ namespace_qualified_id_lookup.
     /* Some versions of g++ find invisible names in qualified declarators. */ \
     (gpp_mode && is_declarator_lookup && gnu_version < 40300)) &&      \
    (!(sym)->is_class_member) &&                                       \
-   /* Note that same_entities must not be used for this test. */      \
-   sym_parent_namespace_or_null((sym)) == ns_ptr &&                   \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) &&     		      \
    (!must_be_class ||				     		      \
@@ -4805,13 +4815,12 @@ namespace_qualified_id_lookup.
   check_assertion(ns_ptr != NULL);
   /* Get the declaration sequence number to be used for this lookup. */
   decl_seq_number = get_effective_decl_seq();
-  /* Search for a symbol in the right scope. */
-  /* First, search the list of inactive symbols.  Namespace symbols
-     are moved to the inactive list after the initial definition of
-     the namespace. */
-  for (sym = inactive_symbol_list_from_locator(*locator);
+  nssp = symbol_supplement_for_namespace(ns_ptr);
+  /* Search for a symbol in the lookup table for the namespace. */
+  for (sym = find_symbol_list_in_table(&nssp->pointers_block,
+                                       locator->symbol_header);
        sym != NULL;
-       sym = sym->next) {
+       sym = sym->next_in_lookup_table) {
     a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
     if (is_acceptable_symbol(sym, fund_sym)) {
       /* Found an acceptable symbol. */
@@ -4861,40 +4870,6 @@ namespace_qualified_id_lookup.
       /* If a namespace symbol was saved, use it. */
       sym = namespace_symbol;
     }  /* if */
-  }  /* if */
-  if (sym == NULL) {
-    /* The name was not found on the inactive symbols list.  Try the
-       active symbols list.  This would be used during the initial
-       definition of the namespace. */
-    type_tag_symbol = NULL;
-    /*lint --e{446} sym modified in loop (LINTBUG) */
-    for (sym = symbol_list_from_locator(*locator);
-         sym != NULL;
-         sym = sym->next) {
-      a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-      /* Exit the loop if we found a type tag symbol and the new symbol
-         to check is not from the same scope. */
-      if (type_tag_symbol != NULL &&
-          type_tag_symbol->decl_scope != sym->decl_scope) {
-        sym = NULL;
-        break;
-      }  /* if */
-      if (is_acceptable_symbol(sym, fund_sym)) {
-        /* We found a matching symbol.  If this is a type symbol found
-           by a must-be-tag lookup, keep searching for a "real" tag in
-           the same scope. */
-        if (must_be_tag &&
-            fund_sym->kind == (a_symbol_kind)sk_type) {
-          type_tag_symbol = sym;
-        } else {
-          /* Use this symbol. */
-          break;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    /* If a type symbol was found and no other matching tag was present,
-       use the type symbol. */
-    if (sym == NULL && type_tag_symbol != NULL) sym = type_tag_symbol;
   }  /* if */
   if ((sym == NULL || (gpp_mode && is_function_or_template_symbol(sym))) &&
       !is_linkage_or_friend_lookup && !direct_namespace_members_only) {
@@ -5074,16 +5049,16 @@ file scope.
     /* If a type symbol was found and no other matching tag was present,
        use the type symbol. */
     if (sym == NULL && type_tag_symbol != NULL) sym = type_tag_symbol;
-    /* If no symbol was found, search the list of inactive symbols.  File
-       scope symbols are moved to the inactive list when the file scope is
-       popped at the end of the translation unit, so lookups done after
-       that point need to consider the inactive list too. */
+    /* If no symbol was found, continue the search in the lookup table. */
     if (sym == NULL) {
       a_symbol_ptr	tag_symbol = NULL;
       type_tag_symbol = NULL;
-      for (sym = inactive_symbol_list_from_locator(*locator);
+      for (sym = find_symbol_list_in_table(
+                               &get_trans_unit_for_scope(scope_number_to_use)->
+                                                     file_scope_pointers_block,
+                                locator->symbol_header);
            sym != NULL;
-           sym = sym->next) {
+           sym = sym->next_in_lookup_table) {
         a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
         if (is_acceptable_symbol(sym, fund_sym)) {
           /* Found an acceptable symbol. */

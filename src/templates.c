@@ -1319,6 +1319,7 @@ is the token sequence number to be used as the identifier for this template.
   a_symbol_ptr			    parent_class_sym;
   a_symbol_ptr			    corresp_prototype_tag_sym;
   a_symbol_list_entry_ptr	    slep;
+  a_class_symbol_supplement_ptr     cssp;
 
   db_enter(3, "find_class_template_member");
   /* Get the prototype instantiation symbol that corresponds to the parent
@@ -1335,11 +1336,12 @@ is the token sequence number to be used as the identifier for this template.
        corresp_prototype_tag_sym were declared. */
     corresp_prototype_decl_scope =
                tp->variant.class_struct_union.extra_info->assoc_scope->number;
-    for (sym = ct_symbol->header->inactive_symbols;
+    cssp = corresp_prototype_tag_sym->variant.class_struct_union.extra_info;
+    for (sym = find_symbol_list_in_table(&cssp->pointers_block,
+                                         ct_symbol->header);
          sym != NULL;
-         sym = sym->next) {
-      if (sym->decl_scope == corresp_prototype_decl_scope &&
-          sym->kind == (a_symbol_kind)sk_class_template) {
+         sym = sym->next_in_lookup_table) {
+      if (sym->kind == (a_symbol_kind)sk_class_template) {
         break;
       }  /* if */
     }  /* for */
@@ -4127,21 +4129,19 @@ supplement already associated with ft_symbol.
       }  /* for */
     } else {
       a_type_ptr                    tp;
-      a_scope_number                corresp_prototype_decl_scope;
+      a_class_symbol_supplement_ptr cssp;
 
       /* Get the scope in which the members of the class represented by
          corresp_prototype_tag_sym were declared. */
       tp = type_symbol_type(corresp_prototype_tag_sym);
-      corresp_prototype_decl_scope =
-               tp->variant.class_struct_union.extra_info->assoc_scope->number;
-      for (sym = ft_symbol->header->inactive_symbols;
+      cssp = corresp_prototype_tag_sym->variant.class_struct_union.extra_info;
+      for (sym = find_symbol_list_in_table(&cssp->pointers_block,
+                                           ft_symbol->header);
            sym != NULL;
-           sym = sym->next) {
-        if (sym->decl_scope == corresp_prototype_decl_scope) {
-          if (sym->kind == (a_symbol_kind)sk_function_template ||
-              sym->kind == (a_symbol_kind)sk_overloaded_function) {
-            break;
-          }  /* if */
+           sym = sym->next_in_lookup_table) {
+        if (sym->kind == (a_symbol_kind)sk_function_template ||
+            sym->kind == (a_symbol_kind)sk_overloaded_function) {
+          break;
         }  /* if */
       }  /* for */
     }  /* if */
@@ -11275,7 +11275,6 @@ and create a function instantiation entry to bind the two symbols together.
   a_symbol_ptr                      sym = NULL;
   a_template_instance_ptr           tip;
   a_type_ptr                        tp;
-  a_scope_number                    corresp_prototype_decl_scope;
   a_symbol_ptr			    sym_from_prototype = NULL;
   a_class_symbol_supplement_ptr     cssp;
 
@@ -11371,17 +11370,14 @@ and create a function instantiation entry to bind the two symbols together.
     if (proto_class_scope != NULL) {
       /* The prototype instantiation can be incomplete in certain error
          cases. */
-      corresp_prototype_decl_scope = proto_class_scope->number;
       for (sym = find_symbol_list_in_table(&cssp->pointers_block,
                                            rout_sym->header);
            sym != NULL;
            sym = sym->next_in_lookup_table) {
-        if (sym->decl_scope == corresp_prototype_decl_scope) {
-          sym_from_prototype = sym;
-          if (sym->kind == (a_symbol_kind)sk_member_function ||
-              sym->kind == (a_symbol_kind)sk_overloaded_function) {
-            break;
-          }  /* if */
+        sym_from_prototype = sym;
+        if (sym->kind == (a_symbol_kind)sk_member_function ||
+            sym->kind == (a_symbol_kind)sk_overloaded_function) {
+          break;
         }  /* if */
       }  /* for */
     }  /* if */
@@ -11488,10 +11484,12 @@ Also, add the instance to the definitions list for the template.
   a_type_ptr                        tp, member_type;
   a_symbol_ptr                      sym;
   a_variable_ptr                    vp;
+  a_class_symbol_supplement_ptr     cssp;
 
   db_enter(3, "find_static_data_member_template");
   /* Find a static data member symbol belonging to the prototype instantiation
      and corresponding to static_data_member_sym. */
+  cssp = corresp_prototype_tag_sym->variant.class_struct_union.extra_info;
   tp = type_symbol_type(corresp_prototype_tag_sym);
   member_type = static_data_member_sym->
                         variant.static_data_member.variable->type;
@@ -11534,11 +11532,11 @@ Also, add the instance to the definitions list for the template.
       sym = NULL;
     } else {
       corresp_prototype_decl_scope = prototype_scope->number;
-      for (sym = static_data_member_sym->header->inactive_symbols;
+      for (sym = find_symbol_list_in_table(&cssp->pointers_block,
+                                           static_data_member_sym->header);
            sym != NULL;
-           sym = sym->next) {
-        if (sym->decl_scope == corresp_prototype_decl_scope &&
-            sym->kind == (a_symbol_kind)sk_static_data_member &&
+           sym = sym->next_in_lookup_table) {
+        if (sym->kind == (a_symbol_kind)sk_static_data_member &&
             sym->variant.static_data_member.instance_ptr != NULL) {
           break;
         }  /* if */
@@ -11596,9 +11594,10 @@ prototype instantiation.  Note that if parent_class is not an instantiation,
 this routine has no effect.
 */
 {
-  a_type_ptr		corresp_prototype_type;
-  a_symbol_ptr		corresp_prototype_tag_sym;
-  a_symbol_ptr		parent_class_sym;
+  a_type_ptr			corresp_prototype_type;
+  a_symbol_ptr			corresp_prototype_tag_sym;
+  a_symbol_ptr			parent_class_sym;
+  a_class_symbol_supplement_ptr	cssp;
 
   /* Get the prototype instantiation symbol that corresponds to the parent
      class of this member template. */
@@ -11624,11 +11623,12 @@ this routine has no effect.
       a_template_symbol_supplement_ptr	alias_tssp;
       a_template_symbol_supplement_ptr	proto_tssp;
       corresp_prototype_decl_scope = prototype_scope->number;
-      for (proto_sym = alias_sym->header->inactive_symbols;
+      cssp = corresp_prototype_tag_sym->variant.class_struct_union.extra_info;
+      for (proto_sym = find_symbol_list_in_table(&cssp->pointers_block,
+                                           alias_sym->header);
            proto_sym != NULL;
-           proto_sym = proto_sym->next) {
-        if (proto_sym->decl_scope == corresp_prototype_decl_scope &&
-            proto_sym->kind == (a_symbol_kind)sk_class_template) {
+           proto_sym = proto_sym->next_in_lookup_table) {
+        if (proto_sym->kind == (a_symbol_kind)sk_class_template) {
           proto_tssp = proto_sym->variant.template_info;
           if (proto_tssp->token_sequence_number == token_sequence_number) {
             break;

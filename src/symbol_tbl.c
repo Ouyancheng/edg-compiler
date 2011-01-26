@@ -3189,7 +3189,7 @@ return a pointer to it.
 }  /* alloc_symbol_header_lookup_entry */
 
 
-static void remove_symbol_from_lookup_table(
+void remove_symbol_from_lookup_table(
 				a_symbol_ptr			symbol,
 				a_scope_pointers_block_ptr	pointers_block)
 /*
@@ -3232,7 +3232,8 @@ created if needed.
 */
 {
   /* FIXME: Do we only want to create lookup tables for classes for now? */
-  return kind != (a_scope_kind)sck_none;
+  return kind != (a_scope_kind)sck_none &&
+         kind != (a_scope_kind)sck_template_instantiation;
 }  /* is_scope_kind_with_lookup_table */
 
 
@@ -3876,15 +3877,10 @@ symbol must be added to the inactive list.
 #endif /* CHECKING */
     insert_after = NULL;
     if (scope_depth == NO_SCOPE_DEPTH) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
       if (sym_ptr->is_class_member) {
-        check_assertion(microsoft_mode &&
-                        sym_ptr->kind == (a_symbol_kind)sk_member_function);
+        /* A symbol is being added to a completed class. */
         add_sym_to_inactive_list = TRUE;
-      } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Do not insert code here. */
-      {
+      } else {
         /* The symbol is being entered outside of any scope; this happens for
            keywords and command-line -D options, for example.  No error check
            is done. */
@@ -4335,24 +4331,32 @@ changed if there is no error.
   if (scope_depth == NO_SCOPE_DEPTH) {
     /* The scope to which this symbol belongs is not on the scope stack. */
     ssep = NULL;
-    nsp = sym_parent_namespace_or_null(sym_ptr);
-    if (nsp == NULL) {
-      /* The symbol is being entered outside of any scope (e.g., a macro
-         defined by a command-line -D option). */
-      sym_ptr->decl_scope = NO_SCOPE_NUMBER;
-      pointers_block = NULL;
+    if (sym_ptr->is_class_member) {
+      a_type_ptr			tp = sym_parent_class(sym_ptr);
+      a_class_symbol_supplement_ptr	cssp;
+      tp = skip_typerefs(tp);
+      cssp = symbol_supplement_for_class(tp);
+      pointers_block = &cssp->pointers_block;
     } else {
-      /* The symbol belongs to a namespace scope that may not actually be on
-         the stack.  This can happen with a friend declaration that causes
-         instantiation of a function template that is a namespace member:
-           namespace N { template <class T> void f(T); }
-           class A { friend void N::f(int); };
-      */
-      nsp = skip_namespace_aliases(nsp);
-      sym_ptr->decl_scope = nsp->variant.assoc_scope->number;
-      pointers_block = &((a_symbol_ptr)nsp->source_corresp.assoc_info)->
+      nsp = sym_parent_namespace_or_null(sym_ptr);
+      if (nsp == NULL) {
+        /* The symbol is being entered outside of any scope (e.g., a macro
+           defined by a command-line -D option). */
+        sym_ptr->decl_scope = NO_SCOPE_NUMBER;
+        pointers_block = NULL;
+      } else {
+        /* The symbol belongs to a namespace scope that may not actually be on
+           the stack.  This can happen with a friend declaration that causes
+           instantiation of a function template that is a namespace member:
+             namespace N { template <class T> void f(T); }
+             class A { friend void N::f(int); };
+        */
+        nsp = skip_namespace_aliases(nsp);
+        sym_ptr->decl_scope = nsp->variant.assoc_scope->number;
+        pointers_block = &((a_symbol_ptr)nsp->source_corresp.assoc_info)->
                             variant.namespace_info.extra_info->pointers_block;
-      scope_kind = sck_namespace;
+        scope_kind = sck_namespace;
+      }  /* if */
     }  /* if */
   } else {
 #if CHECKING
@@ -12327,6 +12331,21 @@ with the translation unit specified by tup.
   }  /* if */
   return result;
 }  /* symbol_is_from_trans_unit */
+
+
+a_translation_unit_ptr get_trans_unit_for_scope(a_scope_number	scope_number)
+/*
+Return the translation unit pointer for the translation unit that contains
+scope_number.
+*/
+{
+  a_translation_unit_ptr tup;
+
+  check_assertion(scope_number != NO_SCOPE_NUMBER);
+  tup = trans_unit_for_scope[scope_number];
+  check_assertion(tup != NULL);
+  return tup;
+}  /* get_trans_unit_for_scope */
 
 
 a_translation_unit_ptr trans_unit_for_symbol(a_symbol_ptr	sym)

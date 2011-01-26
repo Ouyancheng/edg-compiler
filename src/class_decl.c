@@ -4148,9 +4148,6 @@ next_named_override:
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* We scan symbols on the inactive list, since we are only interested in
-     functions declared in base classes. */
-  symbol_list = sym_header_to_search->inactive_symbols;
   /* Outer loop:  go through the base classes of the current class. */
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     if (rout->special_kind == (a_special_function_kind)sfk_destructor) {
@@ -4171,7 +4168,9 @@ next_named_override:
     } else {
       /* Not a destructor, so do normal processing. */
       /* Pull out the unique scope identifier for this base class. */
+      a_class_symbol_supplement_ptr  base_class_cssp;
       base_class_scope = class_type_supp(bcp->type)->assoc_scope;
+      base_class_cssp = symbol_supplement_for_class(bcp->type);
       if (base_class_scope == NULL ||
           bcp->type->variant.class_struct_union.is_nonreal_class) {
         /* This is probably a nonreal base class in a prototype instantiation.
@@ -4179,12 +4178,14 @@ next_named_override:
         dps->override_okay = TRUE;
         goto next_base_class;
       }  /* if */
-      /* Inner loop:  go through all the symbols for this name, looking for
-         one which represents a member function (overloaded or simple) from
-         the base class under examination. */
+      /* Inner loop:  go through all the symbols for this name from the
+         base class, looking for one which represents a member function
+         (overloaded or simple) from the base class under examination. */
       /*lint --e{446,445} sym modified in loop (LINTBUG) */
+      symbol_list = find_symbol_list_in_table(&base_class_cssp->pointers_block,
+                                              sym_header_to_search);
       for (sym = symbol_list; sym != NULL; sym = sym_next) {
-        sym_next = sym->next;
+        sym_next = sym->next_in_lookup_table;
         sym_for_override_registry = sym;
         if (sym->decl_scope == base_class_scope->number) {
           /* Symbol represents a member of bcp's class. */
@@ -11647,6 +11648,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
          list when it is reentered in the symbol table. */
       sym->next_in_scope = NULL;
       sym->prev_in_scope = NULL;
+      remove_symbol_from_lookup_table(sym, &cssp->pointers_block);
       if (!is_template_symbol(sym)) {
         /* It is no longer treated as a member of the anonymous union but
            rather it will be a member of the class_type.  (Templates are not
@@ -14813,7 +14815,9 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
   a_symbol_ptr                   corresp_prototype_tag_sym = NULL;
   a_symbol_ptr                   sym, templ_sym;
   a_class_symbol_supplement_ptr  cssp;
+  a_class_symbol_supplement_ptr  proto_cssp;
   a_type_ptr                     tp;
+  a_symbol_ptr	                 parent_sym;
 
   db_enter(3, "find_corresp_prototype_tag_sym");
   if (is_nonreal_instance_class_symbol(curr_sym)) {
@@ -14823,15 +14827,15 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
        tag symbol of its parent class; then find the corresponding nested
        class within it.  The prototype tag symbol of the parent class is
        stored in the latter's class symbol supplement. */
-    sym = symbol_supplement_for_class(sym_parent_class(curr_sym))->
+    parent_sym = symbol_supplement_for_class(sym_parent_class(curr_sym))->
                                                        corresp_prototype_sym;
-    if (sym != NULL) {
+    if (parent_sym != NULL) {
       /* sym is the corresponding prototype tag symbol of the parent class.
          It represents a prototype instantiation of a class template or a
          class nested within a prototype instantiation. One of its own nested
          classes will be the nested class that corresponds to curr_sym: find
          a symbol for that nested class. */
-      tp = sym->variant.class_struct_union.type;
+      tp = parent_sym->variant.class_struct_union.type;
       if (is_unnamed_tag_symbol(curr_sym) || curr_sym->is_error) {
         /* Unusual case of an unnamed class -- e.g., an anonymous union.
            Look through the types list associated with the parent class. */
@@ -14848,7 +14852,28 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
           }  /* if */
         }  /* for */
       } else {
-        if (is_incomplete_type(sym->variant.class_struct_union.type)) {
+        proto_cssp = parent_sym->variant.class_struct_union.extra_info;
+        for (sym = find_symbol_list_in_table(&proto_cssp->pointers_block,
+                                             curr_sym->header);
+             sym != NULL;
+             sym = sym->next_in_lookup_table) {
+            if (sym->kind == curr_sym->kind) {
+            cssp = sym->variant.class_struct_union.extra_info;
+            /* Note that a translation unit test is not needed because
+               token sequence numbers uniquely identify a translation unit. */
+            if (cssp->prototype_token_sequence_number ==
+                                                curr_token_sequence_number) {
+              corresp_prototype_tag_sym = sym;
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      }  /* if */
+      if (corresp_prototype_tag_sym == NULL) {
+        /* In some cases involving anonymous unions the symbol may not
+           be found in the lookup tables (these cases are nonstandard).
+           Go through the active or inactive symbols to look for a match. */
+        if (is_incomplete_type(parent_sym->variant.class_struct_union.type)) {
           /* We must still be in the midst of the prototype instantiation, so
              the symbol is still on the active list. */
           sym = curr_sym->header->symbol;

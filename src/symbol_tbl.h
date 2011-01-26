@@ -3894,6 +3894,10 @@ extern void remove_symbol_from_overload_set(a_symbol_ptr  sym,
 
 extern void remove_symbol(a_symbol_ptr sym_ptr);
 
+extern void remove_symbol_from_lookup_table(
+			a_symbol_ptr			symbol,
+			a_scope_pointers_block_ptr	pointers_block);
+
 extern void remove_anonymous_union_member_from_inactive_symbols_list
                                                        (a_symbol_ptr sym_ptr);
 
@@ -5006,6 +5010,9 @@ extern a_scope_number take_next_scope_number(void);
 
 extern a_boolean symbol_is_from_trans_unit(a_symbol_ptr			sym,
 					   a_translation_unit_ptr	tup);
+
+extern
+a_translation_unit_ptr get_trans_unit_for_scope(a_scope_number	scope_number);
 
 extern a_translation_unit_ptr trans_unit_for_symbol(a_symbol_ptr	sym);
 

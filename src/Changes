@@ -1,14 +1,13 @@
 Version 4.3
 
-1/25/11  [EDGcpfe/11310]
+1/25/11  [EDGcpfe/10641, EDGcpfe/11310]
 Reducing use of inactive list to improve performance
 
 The front end now constructs hash tables for the names in a given scope.
 This will allow us to eliminate many of the uses of the inactive list,
 which can be performance bottlenecks.  The new processing is currently
-used by class_qualified_id_lookup and find_member_function_template.
-This mechanism will be applied to other uses of the inactive list in
-the future.
+used the various lookup routines, among other things.  This mechanism will
+be applied to other uses of the inactive list in the future.
 
 
 1/24/11  [EDGcpfe/11302]
