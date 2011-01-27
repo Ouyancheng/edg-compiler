@@ -3785,13 +3785,6 @@ Do C99 lowering on the indicated full expression.  A full expression is
 one not contained inside another expression.
 */
 {
-#if CHECKING
-  /* Make sure we're not in a nested full-expression (by definition, that
-     would make this a subexpression and temporaries might be incorrectly
-     reused in that case). */
-  check_assertion(!curr_context->in_full_expression);
-  curr_context->in_full_expression = TRUE;
-#endif /* CHECKING */
 #if !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL
   if (expr->result_is_not_used &&
       is_operation_node(expr) &&
@@ -3803,9 +3796,6 @@ one not contained inside another expression.
 #endif /* !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL */
   lower_c99_expr(expr);
   end_of_c99_full_expr(expr);
-#if CHECKING
-  curr_context->in_full_expression = FALSE;
-#endif /* CHECKING */
 }  /* lower_c99_full_expr */
 
 void lower_c99_boolean_controlling_expr(an_expr_node_ptr expr,

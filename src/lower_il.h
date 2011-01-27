@@ -519,12 +519,6 @@ typedef struct a_context {
 			   innermost to outermost.  Stops at the scope
 			   or lifetime associated with this context stack
 			   entry. */
-#if CHECKING
-  a_boolean     in_full_expression;
-                        /* TRUE if we're lowering a full-expression in this
-                           context.  Used to guard against lowering nested
-                           full-expressions in the same context. */
-#endif /* CHECKING */
 } a_context;
 
 EXTERN a_context_ptr
