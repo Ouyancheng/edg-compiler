@@ -3605,12 +3605,14 @@ is a C++/CLI class.
 */
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && is_ref_class_type(class_type)) {
-    /* "this" in a C++/CLI ref class is a handle (ECMA 22.3.3). */
-    type = make_handle_type(type);
-  } else if (cppcli_enabled && is_value_class_type(class_type)) {
+  if (cppcli_enabled && is_value_class_type(class_type)) {
     /* "this" in a C++/CLI value class is an interior_ptr (ECMA 22.3.3). */
     type = make_interior_ptr_type(type);
+  } else if (cppcli_enabled && is_managed_class_type(class_type)) {
+    /* "this" in a C++/CLI ref class is a handle (ECMA 22.3.3).  Likewise
+       for an interface class, even though you really can't get a "this"
+       pointer in those because they are abstract. */
+    type = make_handle_type(type);
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */

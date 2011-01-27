@@ -687,6 +687,74 @@ pointer type that can then be subscripted.
   }  /* if */
   return has_pointer_accessor;
 }  /* property_ref_has_simple_pointer_get_accessor */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+
+static void make_property_ref_operand(
+                               a_property_or_event_descr_ptr pedp,
+                               an_operand                    *operand,
+                               a_boolean                     is_arrow_operator,
+                               an_operand                    *result)
+/*
+Make an operand for a Microsoft property member reference.  pedp describes
+the property (associated with a field or static data member variable).
+operand is the class object, or (if is_arrow_operator is TRUE) a handle to
+the class object.  The property reference operand created is returned in
+*result.
+*/
+{
+  check_assertion(operand != result);
+  clear_operand((an_operand_kind)ok_property_ref, result);
+  result->type = unknown_type();
+  result->variant.property_ref.descr = pedp;
+  set_lvalue_operand_state(result);
+  conv_selector_to_object_pointer(operand, &is_arrow_operator);
+  result->variant.property_ref.object = make_node_from_operand(operand);
+}  /* make_property_ref_operand */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+static void rewrite_class_with_default_indexed_property_as_property_ref(
+                                                           an_operand *operand)
+/*
+operand is the left operand of a subscripting operation.  If it is an
+object of a C++/CLI ref class type that has a default indexed property,
+rewrite it as a property reference so the subscripts can be applied to that.
+*/
+{
+  if (cppcli_enabled) {
+    a_type_ptr type = operand->type;
+    a_boolean  handle_case = FALSE;
+    if (is_handle_type(type)) {
+      type = type_pointed_to(type);
+      handle_case = TRUE;
+    }  /* if */
+    type = skip_typerefs(type);
+    if (is_immediate_managed_class_type(type)) {
+      a_field_ptr field;
+      /* Look for a default indexed property field. */
+      for (field = type->variant.class_struct_union.field_list;
+           field != NULL;
+           field = field->next) {
+        a_property_or_event_descr_ptr pedp = field->property_or_event_descr;
+        if (pedp != NULL && pedp->is_default_indexed) {
+          /* This is a default indexed property, so rewrite the
+             reference. */
+          an_operand new_operand;
+          do_operand_transformations(operand,
+                                  handle_case ?
+                                    TOPT_NO_OPTIONS :
+                                    TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+          make_property_ref_operand(pedp, operand, handle_case, &new_operand);
+          restore_operand_details(&new_operand, operand);
+          copy_operand(&new_operand, operand);
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* rewrite_class_with_default_indexed_property_as_property_ref */
+
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -777,6 +845,7 @@ This routine is also used when scanning __builtin_offsetof constructs.
     if (cppcli_enabled) {
       a_type_ptr op1_type = operand_1->type;
       a_boolean  is_handle = is_handle_type(op1_type);
+      rewrite_class_with_default_indexed_property_as_property_ref(operand_1);
       cli_array_case = (is_handle &&
                         is_cli_array_type(type_pointed_to(op1_type)));
       if (subscript_is_expr_list) {
@@ -4304,12 +4373,8 @@ is a C++/CLI handle.
               property_or_event_kind_is(field, pek_cli_property))) {
     /* A property field in Microsoft C++ mode.  Render as an ok_property_ref
        operand, which will be rewritten later as a function call. */
-    clear_operand((an_operand_kind)ok_property_ref, result);
-    result->type = unknown_type();
-    result->variant.property_ref.descr = field->property_or_event_descr;
-    set_lvalue_operand_state(result);
-    conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
-    result->variant.property_ref.object = make_node_from_operand(operand_1);
+    make_property_ref_operand(field->property_or_event_descr,
+                              operand_1, is_arrow_operator, result);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Determine the result type. */

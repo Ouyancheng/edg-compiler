@@ -12363,15 +12363,18 @@ we test for a limited set of cases, and only lvalues.
 
 
 static void take_address_of_or_reference_to_lvalue(
-                                       an_operand        *operand,
-                                       a_boolean         reference_case,
-                                       a_boolean         rvalue_reference_case,
-                                       a_source_position *operator_position)
+                                    an_operand        *operand,
+                                    a_boolean         reference_case,
+                                    a_boolean         rvalue_reference_case,
+                                    a_boolean         use_handle_for_ref_class,
+                                    a_source_position *operator_position)
 /*
 Change operand (an lvalue or a function designator) to an rvalue that is:
 
 (a)  If reference_case is FALSE, a pointer to the lvalue.  This is the
-function of the "&" operator.
+function of the "&" operator.  If use_handle_for_ref_class is TRUE and
+the operand is a ref class object, add a "%" operator instead to generate
+a C++/CLI handle.
 (b)  If reference_case is TRUE, a reference to the lvalue.  This is the
 value stored in a reference when it is bound to the lvalue.
 If rvalue_reference_case is TRUE, the reference being bound is an rvalue
@@ -12482,6 +12485,16 @@ explicit "&" operator in the source and *operator_position gives its position.
             expr = add_reference_to_to_node(expr);
           } else {
             /* Create the "&" operator. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (use_handle_for_ref_class &&
+                is_managed_class_type(expr->type) &&
+                !is_value_class_type(expr->type)) {
+              /* Use the "%" operator to create a handle as the address. */
+              expr = make_operator_node((an_expr_operator_kind)eok_handle_to,
+                                        make_handle_type(expr->type), expr);
+            } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            /* Do not insert code here. */
             if (operator_position == NULL) {
               /* An implicit "&" operator. */
               expr = add_address_of_to_node(expr);
@@ -12532,6 +12545,7 @@ in the source and *operator_position gives its position.
   take_address_of_or_reference_to_lvalue(operand,
                                          /*reference_case=*/FALSE,
                                          /*rvalue_reference_case=*/FALSE,
+                                         /*use_handle_for_ref_class=*/FALSE,
                                          operator_position);
 }  /* take_address_of_lvalue */
 
@@ -12554,6 +12568,7 @@ is an rvalue reference.
     take_address_of_or_reference_to_lvalue(operand,
                                            /*reference_case=*/TRUE,
                                            rvalue_reference_case,
+                                           /*use_handle_for_ref_class=*/FALSE,
                                            (a_source_position *)NULL);
   } else {
     /* Binding a reference to a class rvalue. */
@@ -13326,7 +13341,8 @@ Convert a class operand for an object into an operand for a pointer to the
 object.  The operand may be either an lvalue or an rvalue; in the rvalue
 case, a temporary may be created and initialized with the rvalue, and the
 address of the temporary returned.  It's assumed that the address of
-the class object may escape.  This routine is used only in C++ mode.
+the class object may escape.  If the operand has a ref class type, convert
+to a C++/CLI handle instead of a pointer.
 */
 {
   if (is_error_operand(operand)) {
@@ -13338,12 +13354,20 @@ the class object may escape.  This routine is used only in C++ mode.
 #endif /* CHECKING */
   } else if (is_an_lvalue(operand)) {
     /* The operand is an lvalue.  Take its address. */
-    take_address_of_lvalue(operand, (a_source_position *)NULL);
+    take_address_of_or_reference_to_lvalue(operand,
+                                           /*reference_case=*/FALSE,
+                                           /*rvalue_reference_case=*/FALSE,
+                                           /*use_handle_for_ref_class=*/TRUE,
+                                           (a_source_position *)NULL);
   } else if (is_an_rvalue(operand)) {
     /* The operand is an rvalue.  Turn it into an lvalue and take its
        address. */
     conv_class_rvalue_operand_to_lvalue(operand);
-    take_address_of_lvalue(operand, (a_source_position *)NULL);
+    take_address_of_or_reference_to_lvalue(operand,
+                                           /*reference_case=*/FALSE,
+                                           /*rvalue_reference_case=*/FALSE,
+                                           /*use_handle_for_ref_class=*/TRUE,
+                                           (a_source_position *)NULL);
   }  /* if */
 }  /* conv_class_operand_to_object_pointer */
 
