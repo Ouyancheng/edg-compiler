@@ -5019,7 +5019,9 @@ extern void db_template_param_list(a_template_param_ptr	tpp);
 
 extern void db_template_parameter(a_template_param_ptr	tpp);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 extern void db_hide_by_sig_list(a_hide_by_sig_list_entry_ptr	hbslep);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Information used to gather performance statistics related to symbol
