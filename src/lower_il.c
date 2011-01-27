@@ -823,6 +823,9 @@ scope, or the lifetime from the parent context, will be used.
     context->scopeless_compound_stmts =
                                       parent_context->scopeless_compound_stmts;
   }  /* if */
+#if CHECKING
+  context->in_full_expression = FALSE;
+#endif /* CHECKING */
 }  /* push_context */
 
 
@@ -14575,6 +14578,13 @@ expression statement, statement points to the statement; otherwise, it is NULL.
       expr->type = make_unqualified_type(expr->type);
     }  /* if */
   }  /* if */
+#if CHECKING
+  /* Make sure we're not in a nested full-expression (by definition, that
+     would make this a subexpression and temporaries might be incorrectly
+     reused in that case). */
+  check_assertion(!curr_context->in_full_expression);
+  curr_context->in_full_expression = TRUE;
+#endif /* CHECKING */
   if (expr->is_lvalue && expr_to_lower->result_is_not_used) {
 #if DEBUG
     if (db_flag_is_set("rewrite_expr")) {
@@ -14662,6 +14672,9 @@ expression statement, statement points to the statement; otherwise, it is NULL.
   /* Release any temporary variables that are no longer needed after the
      end of the full expression. */
   release_reusable_temporaries();
+#if CHECKING
+  curr_context->in_full_expression = FALSE;
+#endif /* CHECKING */
 }  /* lower_full_expr */
 
 
