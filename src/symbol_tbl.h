@@ -753,6 +753,43 @@ typedef struct a_type_list_entry {
 			/* Pointer to a type entry. */
 } a_type_list_entry;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+/*
+An entry used to represent a list of symbols that should be considered by
+a function call using a C++/CLI hide-by-sig ref class or interface.
+
+Given a hierarchy like this:
+
+A   B   D   E
+ \ /     \ /
+  C       F
+    \   /
+      G
+
+A flattened version of the tree is represented as a list.  So if all of
+the nodes had symbols, the list would look like (where the number for
+each entry is its level):
+
+G-0 -> C-1 -> A-2 -> B-2 -> F-1 -> D-2 -> E-2
+
+A node is only be on the list if it or one of its child nodes has a non-NULL
+symbol pointer.
+*/
+typedef struct a_hide_by_sig_list_entry *a_hide_by_sig_list_entry_ptr;
+typedef struct a_hide_by_sig_list_entry {
+  a_hide_by_sig_list_entry_ptr
+		next;
+			/* Next in a list of entries, or NULL for the
+			   last on the list. */
+  a_symbol_ptr  symbol;
+			/* Pointer to the symbol entry for this level, or
+			   NULL if this level has no symbol. */
+  uint32_t	level;
+			/* The level associated with this entry. */
+} a_hide_by_sig_list_entry;
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 typedef struct a_substituted_type_list_entry
 			*a_substituted_type_list_entry_ptr;
@@ -2634,6 +2671,13 @@ typedef struct a_symbol {
 			   The is_nonreal_nested_type flag can be used to
 			   determine whether a given symbol is the original
 			   one or the nonreal version. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_hide_by_sig_list_entry_ptr
+		hide_by_sig_lookup_result;
+			/* In C++/CLI mode this points to the list of lookup
+			   symbols to be used.  This is NULL until the first
+			   hide-by-sig lookup is done. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_symbol_kind kind;
 			/* The kind of symbol. */
   a_bit_field	referenced:1;
@@ -3959,6 +4003,9 @@ EXTERN a_symbol_ptr
 extern void make_predeclared_size_t_symbol(void);
 
 extern void make_predeclared_bool_symbol(void);
+
+extern
+a_hide_by_sig_list_entry_ptr hide_by_sig_list_for_symbol(a_symbol_ptr sym);
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
