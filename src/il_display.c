@@ -3353,6 +3353,7 @@ Display the name of an expression operator.
     case eok_lor:               s = "eok_lor";                    break;
     case eok_comma:             s = "eok_comma";                  break;
     case eok_subscript:         s = "eok_subscript";              break;
+    case eok_cli_subscript:     s = "eok_cli_subscript";          break;
     case eok_dot_field:         s = "eok_dot_field";              break;
     case eok_points_to_field:   s = "eok_points_to_field";        break;
     case eok_pm_field:          s = "eok_pm_field";               break;

@@ -67,6 +67,11 @@ static void scan_expr_full(an_operand              *result,
 static void scan_initializer_expr_with_potential_pack_expansion(
                                                   a_decl_parse_state *dps,
                                                   an_operand         *operand);
+static an_arg_operand_ptr scan_expr_list(a_token_kind closing_token,
+                                         a_boolean    empty_list_okay,
+                                         a_boolean    trailing_comma_okay);
+static an_arg_operand *rescan_expr_list(an_expr_node_ptr       expr_list,
+                                        a_rescan_control_block *rcblock);
 static a_boolean var_declared_in_current_routine(a_variable_ptr var);
 static void make_param_ref_operand(an_operand    *result,
                                    a_symbol_ptr  param_sym);
@@ -641,7 +646,7 @@ expression node to indicate that.
 static a_boolean property_ref_has_simple_pointer_get_accessor(
                                                            an_operand *operand)
 /*
-Return TRUE if the property reference given by "operand" has a "get"
+Return TRUE if the Microsoft property reference given by "operand" has a "get"
 accessor that will allow the conversion of the property reference to a
 pointer type that can then be subscripted.
 */
@@ -649,9 +654,9 @@ pointer type that can then be subscripted.
   a_boolean    has_pointer_accessor = FALSE;
   a_symbol_ptr get_sym;
 
-  check_assertion(is_property_ref_operand(operand));
-  /* Get the "get" functions symbol. */
-  get_sym = get_property_accessor_symbol(operand->variant.property_ref.field,
+  check_assertion(is_old_form_property_ref_operand(operand));
+  /* Get the "get" function symbol. */
+  get_sym = get_property_accessor_symbol(operand->variant.property_ref.descr,
                                          /*put=*/FALSE,
                                          /*must_be_present=*/FALSE,
                                          &operand->position);
@@ -705,6 +710,7 @@ This routine is also used when scanning __builtin_offsetof constructs.
 */
 {
   an_operand         local_operand_1, operand_2;
+  an_arg_operand_ptr operand_2_list = NULL;
   a_type_ptr         result_type;
   a_source_position  operator_position, closing_bracket_position;
   a_token_sequence_number
@@ -713,8 +719,8 @@ This routine is also used when scanning __builtin_offsetof constructs.
   a_source_position  end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean          err = FALSE, processed = FALSE;
-  an_operand         *pointer_operand, *integer_operand;
-  a_boolean          pointer_operand_is_second = FALSE;
+  a_boolean          subscript_is_expr_list = FALSE;
+  a_boolean          cli_array_case = FALSE;
 
   db_enter(4, "scan_subscript_operator");
 
@@ -723,9 +729,26 @@ This routine is also used when scanning __builtin_offsetof constructs.
     check_assertion(rcblock->operator_token == tok_lbracket);
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
-    make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number,
-                         &closing_bracket_position);
+    check_assertion(is_operation_node(rcblock->expr));
+    if (node_operator_is(rcblock->expr, eok_subscript)) {
+      make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
+                           &operator_position, &operator_tok_seq_number,
+                           &closing_bracket_position);
+    } else {
+      /* C++/CLI eok_cli_subscript case. */
+      check_assertion(cppcli_enabled &&
+                      node_operator_is(rcblock->expr, eok_cli_subscript));
+      /* Get the first operand, and then rescan the rest of the
+         operands as a list of expressions. */
+      make_rescan_operands(rcblock, operand_1,
+                           (an_operand *)NULL, (an_operand *)NULL,
+                           &operator_position, &operator_tok_seq_number,
+                           &closing_bracket_position);
+      operand_2_list = rescan_expr_list(
+                               rcblock->expr->variant.operation.operands->next,
+                               rcblock);
+      subscript_is_expr_list = cli_array_case = TRUE;
+    }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -749,56 +772,128 @@ This routine is also used when scanning __builtin_offsetof constructs.
     err = TRUE;
   }  /* if */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    if (cppcli_enabled) {
+      a_type_ptr op1_type = operand_1->type;
+      a_boolean  is_handle = is_handle_type(op1_type);
+      cli_array_case = (is_handle &&
+                        is_cli_array_type(type_pointed_to(op1_type)));
+      if (subscript_is_expr_list) {
+        /* On a rescan of an enk_cli_subscript, we always go the
+           expression-list route.  A rescan of an eok_subscript can go
+           either way. */
+      } else if (cli_array_case ||
+                 is_template_param_type(op1_type) ||
+                 (is_handle &&
+                  is_template_param_type(type_pointed_to(op1_type))) ||
+                 is_error_type(op1_type) ||
+                 is_property_ref_operand(operand_1)) {
+        /* In C++/CLI mode, the [...] brackets contain an expression list
+           instead of a single expression if the array is a C++/CLI
+           array or a property reference. */
+        subscript_is_expr_list = TRUE;
+      }  /* if */
+    }  /* if */
+    if (is_old_form_property_ref_operand(operand_1) &&
+        property_ref_has_simple_pointer_get_accessor(operand_1)) {
+      /* For a property field reference where there's a zero-argument get
+         accessor that returns a pointer type, use that and then subscript the
+         returned value. */
+      rewrite_property_field_reference(operand_1, (an_operand *)NULL);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (rcblock == NULL) {
     /* Get past the opening bracket. */
     (void)get_token();
     add_matching_stop_token(tok_rbracket);
     /* Scan the second operand. */
-    scan_expr(&operand_2, PREC_LOWEST, EOPT_NO_OPTIONS);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (subscript_is_expr_list) {
+      /* The subscript is an expression list in C++/CLI mode.  Top-level commas
+         separate elements of the list. */
+      operand_2_list = scan_expr_list(tok_rbracket,
+                                      /*empty_list_okay=*/FALSE,
+                                      /*trailing_comma_okay=*/FALSE);
+      check_assertion(operand_2_list != NULL);
+      if (cli_array_case ||
+          is_property_ref_operand(operand_1)) {
+        /* We know we want to handle these specially regardless of the
+           number of subscripts. */
+      } else if (operand_2_list->next == NULL) {
+        /* We scanned the subscripts as a list because the first operand
+           is a template parameter or an error, and therefore might be
+           a C++/CLI array, but it's turned out there is only one subscript,
+           so fall back to the traditional interpretation. */
+        subscript_is_expr_list = FALSE;
+        copy_operand(&operand_2_list->operand, &operand_2);
+        free_arg_operand_list(operand_2_list);
+        operand_2_list = NULL;
+      }  /* if */
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      /* The subscript is the usual single expression.  Top-level commas
+         are operators, e.g., x[1, 2] has a single subscript expression that
+         is the comma expression "1, 2". */
+      scan_expr(&operand_2, PREC_LOWEST, EOPT_NO_OPTIONS);
+    }  /* if */
     closing_bracket_position = pos_curr_token;
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode &&
-      is_property_ref_operand(operand_1) &&
-      property_ref_has_simple_pointer_get_accessor(operand_1)) {
-    /* For a property field reference where there's a zero-argument get
-       accessor that returns a pointer type, use that and then subscript the
-       returned value. */
-    rewrite_property_field_reference(operand_1, (an_operand *)NULL);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (err) {
     /* Subscripting is not allowed in this kind of expression. */
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand_1);
-    operand_will_not_be_used_because_of_error(&operand_2);
+    if (!subscript_is_expr_list) {
+      operand_will_not_be_used_because_of_error(&operand_2);
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode &&
              is_property_ref_operand(operand_1)) {
     /* The operand is a field selection for a field declared with the
-       Microsoft C++ extension __declspec(property(...)).  Add the
-       subscript expression to the operand.  It will be included as
-       an argument in the call of a "get" or "put" function when this
-       operand is rewritten later. */
-    an_arg_operand_ptr last_subscript;
-    an_arg_operand_ptr subscript = alloc_arg_operand();
+       Microsoft property extension (either via __declspec(property(...)
+       or via the C++/CLI syntax).  Add the subscript expression to the
+       operand.  It will be included as an argument in the call of a "get"
+       or "put" function when this operand is rewritten later.  If
+       the subscripts were scanned as a list, add all of them to the
+       existing list. */
+    an_arg_operand_ptr last_subscript, arg_op;
 
-    subscript->operand = operand_2;
-    /* Attach the arg_operand for the subscript to the end of the existing
-       list of subscripts (if any). */
+    /* Find the end of the existing subscript list. */
     last_subscript = operand_1->variant.property_ref.subscripts;
-    if (last_subscript == NULL) {
-      operand_1->variant.property_ref.subscripts = subscript;
-    } else {
+    if (last_subscript != NULL) {
       while (last_subscript->next != NULL) {
         last_subscript = last_subscript->next;
       }  /* while */
-      last_subscript->next = subscript;
     }  /* if */
+    /* There should be at least one subscript expression. */
+    check_assertion(!subscript_is_expr_list || operand_2_list != NULL);
+    arg_op = operand_2_list;
+    for (;;) {
+      an_operand         *subsc_op = subscript_is_expr_list ?
+                                                     &arg_op->operand :
+                                                     &operand_2;
+      an_arg_operand_ptr subscript = alloc_arg_operand();
+      copy_operand(subsc_op, &subscript->operand);
+      /* Attach the arg_operand for the subscript to the end of the existing
+         list of subscripts. */
+      if (last_subscript == NULL) {
+        operand_1->variant.property_ref.subscripts = subscript;
+      } else {
+        last_subscript->next = subscript;
+      }  /* if */
+      last_subscript = subscript;
+      if (!subscript_is_expr_list) break;
+      arg_op = arg_op->next;
+      if (arg_op == NULL) break;
+    }  /* for */
     *result = *operand_1;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     if (C_dialect == C_dialect_cplusplus &&
+        !subscript_is_expr_list &&
         (is_overloadable_type_operand(operand_1) ||
          is_overloadable_type_operand(&operand_2))) {
       /* Look for C++ operator overloading cases. */
@@ -817,62 +912,148 @@ This routine is also used when scanning __builtin_offsetof constructs.
     if (!processed) {
       /* Non-operator-function cases. */
       do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
-      do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-      /* One of the operands must have type "pointer to object type" and the 
-         other must be an integral expression. */
-      pointer_operand = operand_1;
-      integer_operand = &operand_2;
-      if (is_integral_or_enum_type(operand_1->type)) {
-        /* The subscript value is outside the brackets and the pointer value is
-           inside the brackets.  Swap them for the type checking. */
-        pointer_operand_is_second = TRUE;
-        pointer_operand = &operand_2;
-        integer_operand = operand_1;
-      }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (subscript_is_expr_list) {
+        /* A C++/CLI array subscripting case. */
+        an_arg_operand_ptr    arg_op;
+        an_expr_node_ptr      subsc_expr_list = NULL,
+                              end_subsc_expr_list = NULL;
+        a_host_large_unsigned subsc_count = 0;
+        a_boolean             any_subsc_error = FALSE;
+        /* Check the types of the subscripts and link them into a list
+           of expressions. */
+        for (arg_op = operand_2_list; arg_op != NULL; arg_op = arg_op->next) {
+          an_expr_node_ptr subsc_expr;
+          do_operand_transformations(&arg_op->operand, TOPT_NO_OPTIONS);
+          if (!is_template_param_type(arg_op->operand.type) &&
+              !check_integral_or_enum_operand(&arg_op->operand)) {
+            any_subsc_error = TRUE;
+          }  /* if */
+          subsc_expr = make_node_from_operand(&arg_op->operand);
+          if (subsc_expr_list == NULL) {
+            subsc_expr_list = subsc_expr;
+          } else {
+            end_subsc_expr_list->next = subsc_expr;
+          }  /* if */
+          end_subsc_expr_list = subsc_expr;
+          subsc_count++;
+        }  /* for */
+        /* The first operand must be a handle to a C++/CLI array. */
+        if (is_handle_type(operand_1->type)) {
+          a_type_ptr arr_type = type_pointed_to(operand_1->type);
+          if (is_cli_array_type(arr_type)) {
+            /* The first operand is a handle to a CLI array. */
+            a_boolean unknown;
+            /* Check that the number of subscripts provided matches the
+               array rank. */
+            if (subsc_count != cli_array_rank(arr_type, &unknown) &&
+                !unknown) {
+              if (!any_subsc_error) {
+                expr_pos_error(ec_cli_array_invalid_number_of_subscripts,
+                               &operator_position);
+              }  /* if */
+              err = TRUE;
+            } else {
+              result_type = cli_array_element_type(arr_type);
+            }  /* if */
+          } else if (is_template_param_type(arr_type)) {
+            /* Handle to template parameter type is okay -- that might
+               turn out to be a handle to CLI array. */
+            result_type = type_of_unknown_templ_param_nontype;
+          } else {
+            check_assertion(is_error_type(arr_type));
+            err = TRUE;
+          }  /* if */
+        } else if (is_template_param_type(operand_1->type)) {
+          /* A first operand of template parameter type is okay -- that might
+             turn out to be a handle. */
+          result_type = type_of_unknown_templ_param_nontype;
+        } else {
+          check_assertion(is_error_type(operand_1->type));
+          err = TRUE;
+        }  /* if */
+        if (err) {
+          make_error_operand(result);
+          operand_will_not_be_used_because_of_error(operand_1);
+        } else {
+          /* Make an eok_cli_subscript operation.  No folding to a constant
+             is ever possible. */
+          an_expr_node_ptr subsc_node;
+          an_expr_node_ptr op1_node = make_node_from_operand(operand_1);
+          op1_node->next = subsc_expr_list;
+          subsc_node = make_lvalue_operator_node(
+                                      (an_expr_operator_kind)eok_cli_subscript,
+                                      result_type, op1_node);
+          make_lvalue_expression_operand(subsc_node, result);
+        }  /* if */
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        /* Normal case, not C++/CLI array. */
+        an_operand *pointer_operand, *integer_operand;
+        a_boolean  pointer_operand_is_second = FALSE;
+        do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
+        /* One of the operands must have type "pointer to object type" and the 
+           other must be an integral expression. */
+        pointer_operand = operand_1;
+        integer_operand = &operand_2;
+        if (is_integral_or_enum_type(operand_1->type)) {
+          /* The subscript value is outside the brackets and the pointer value
+             is inside the brackets.  Swap them for the type checking. */
+          pointer_operand_is_second = TRUE;
+          pointer_operand = &operand_2;
+          integer_operand = operand_1;
+        }  /* if */
 
-      /* One operand must be a pointer to object. */
-      if (gcc_mode && is_pointer_type(pointer_operand->type) &&
-                      is_void_type(type_pointed_to(pointer_operand->type))) {
-        /* GNU C allows a pointer to "void" to be subscripted. */
-        expr_pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
-        result_type = type_pointed_to(pointer_operand->type);
-      } else if (
+        if (gcc_mode &&
+            is_pointer_type(pointer_operand->type) &&
+            is_void_type(type_pointed_to(pointer_operand->type))) {
+          /* GNU C allows a pointer to "void" to be subscripted. */
+          expr_pos_warning(ec_nonobject_pointer_arithmetic,
+                           &operator_position);
+          result_type = type_pointed_to(pointer_operand->type);
+        } else if (
+                   /* One operand must be a pointer to object. */
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
-          /* Pointer to incomplete array is also allowed. */
-          check_object_or_incomp_array_pointer_operand(pointer_operand,
+                   /* Pointer to incomplete array is also allowed. */
+                   check_object_or_incomp_array_pointer_operand(
+                                                 pointer_operand,
                                                  ec_expr_not_pointer_to_object,
-                                                       integer_operand)
+                                                 integer_operand)
 #else /* !PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
-          check_object_pointer_operand(pointer_operand,
-                                       ec_expr_not_pointer_to_object)
+                   check_object_pointer_operand(pointer_operand,
+                                                ec_expr_not_pointer_to_object)
 #endif /* PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
                                                                             ) {
-        result_type = type_pointed_to(pointer_operand->type);
-      } else {
-        result_type = error_type();
-      }  /* if */
-
-      /* The other operand must be integral or enum. */
-      (void)check_integral_or_enum_operand(integer_operand);
-      /* Build the expression. */
-      /* Note that the integral promotions are NOT done on the subscript;
-         this is as the standard wants it. */
-      do_binary_operation_full((an_expr_operator_kind)eok_subscript,
-                               operand_1, &operand_2, result_type,
-                               /*result_is_lvalue=*/TRUE, result,
-                               &operator_position, operator_tok_seq_number,
-                               &closing_bracket_position);
-      if (!is_error_operand(result)) {
-        if (pointer_operand_is_second) {
-          set_pointer_operand_is_second_flag(result);
+          result_type = type_pointed_to(pointer_operand->type);
+        } else {
+          result_type = error_type();
         }  /* if */
-        /* Preserve the reference entries from the pointer operand (the
-           array) because the result is an lvalue. */
-        result->ref_entries_list = pointer_operand->ref_entries_list;
+
+        /* The other operand must be integral or enum. */
+        (void)check_integral_or_enum_operand(integer_operand);
+        /* Build the expression. */
+        /* Note that the integral promotions are NOT done on the subscript;
+           this is as the standard wants it. */
+        do_binary_operation_full((an_expr_operator_kind)eok_subscript,
+                                 operand_1, &operand_2, result_type,
+                                 /*result_is_lvalue=*/TRUE, result,
+                                 &operator_position, operator_tok_seq_number,
+                                 &closing_bracket_position);
+        if (!is_error_operand(result)) {
+          if (pointer_operand_is_second) {
+            set_pointer_operand_is_second_flag(result);
+          }  /* if */
+          /* Preserve the reference entries from the pointer operand (the
+             array) because the result is an lvalue. */
+          result->ref_entries_list = pointer_operand->ref_entries_list;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
 
+  free_arg_operand_list(operand_2_list);
   if (rcblock == NULL) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Save the position of the "]". */
@@ -904,12 +1085,16 @@ description block.
 }  /* mark_operand_as_pack_expansion */
 
 
-static an_arg_operand_ptr scan_expr_list(a_boolean  trailing_comma_okay)
+static an_arg_operand_ptr scan_expr_list(a_token_kind closing_token,
+                                         a_boolean    empty_list_okay,
+                                         a_boolean    trailing_comma_okay)
 /*
-Scan a comma-separated list of expressions.  The list must be terminated by a
-right parenthesis (not consumed by this routine).  If trailing_comma_okay is
-TRUE, the last expression may be followed by a comma (which is consumed here).
-A pointer to the resulting operand list is returned.
+Scan a comma-separated list of expressions.  The list must be
+terminated by the token indicated by closing_token (which is not
+consumed by this routine).  If empty_list_okay is TRUE, an empty list
+is allowed.  If trailing_comma_okay is TRUE, the last expression may
+be followed by a comma (which is consumed here).  A pointer to the
+resulting operand list is returned.
 */
 {
   a_boolean           after_cached_expr = FALSE;
@@ -932,7 +1117,9 @@ A pointer to the resulting operand list is returned.
   }  /* while */
   /* Check for an empty argument list (or the end, if we picked up some
      cached expressions). */
-  if (curr_token != tok_rparen) {
+  if (curr_token != closing_token ||
+      (!empty_list_okay && !after_cached_expr)) {
+    add_matching_stop_token(closing_token);
     add_stop_token(tok_comma);
     /* Scan a comma-separated list of arguments. */
     do {
@@ -947,7 +1134,7 @@ A pointer to the resulting operand list is returned.
       }  /* if */
       if (trailing_comma_okay) {
         /* Allow an extra comma at the end of the argument list. */
-        if (curr_token == tok_rparen) break;
+        if (curr_token == closing_token) break;
       }  /* if */
       /* Each expression on the list is potentially a pack expansion
          ended by "...". */
@@ -982,6 +1169,7 @@ A pointer to the resulting operand list is returned.
       }  /* while */
     } while (loop_token(tok_comma));
     remove_stop_token(tok_comma);
+    remove_matching_stop_token(closing_token);
   }  /* if */
   return arg_operand_list;
 }  /* scan_expr_list */
@@ -1144,7 +1332,6 @@ to TRUE.
 {
   an_arg_operand_ptr arg_operand_list;
   an_arg_check_block arg_block;
-  a_boolean          stop_token_removal_needed = FALSE;
 
   db_enter(4, "scan_call_arguments");
   if (p_arg_operand_list != NULL) *p_arg_operand_list = NULL;
@@ -1177,12 +1364,10 @@ to TRUE.
       /* Get past the opening parenthesis. */
       (void)get_token();
     }  /* if */
-    /* Add ")" as a stop token. */
-    add_matching_stop_token(tok_rparen);
-    stop_token_removal_needed = TRUE;
     /* Scan the argument list. */  
-    arg_operand_list =
-                    scan_expr_list(/*trailing_comma_okay=*/any_cfront_mode());
+    arg_operand_list = scan_expr_list(tok_rparen,
+                                    /*empty_list_okay=*/TRUE,
+                                    /*trailing_comma_okay=*/any_cfront_mode());
     set_err_pos_to_curr_token();
     arg_block.closing_paren_position = pos_curr_token;
     if (closing_paren_position != NULL) {
@@ -1213,7 +1398,6 @@ to TRUE.
     curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)required_token(tok_rparen, ec_exp_rparen);
-    if (stop_token_removal_needed) remove_matching_stop_token(tok_rparen);
   }  /* if */
   db_exit();
 }  /* scan_call_arguments */
@@ -4122,7 +4306,7 @@ is a C++/CLI handle.
        operand, which will be rewritten later as a function call. */
     clear_operand((an_operand_kind)ok_property_ref, result);
     result->type = unknown_type();
-    result->variant.property_ref.field = field;
+    result->variant.property_ref.descr = field->property_or_event_descr;
     set_lvalue_operand_state(result);
     conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
     result->variant.property_ref.object = make_node_from_operand(operand_1);
@@ -6073,8 +6257,11 @@ that do that are extracted and concatenated.
   for (aop = operand->variant.property_ref.subscripts;
        aop != NULL;
        aop = aop->next) {
-    expr = make_comma_node(expr, make_node_from_operand(&aop->operand));
-    expr->variant.operation.compiler_generated = TRUE;
+    an_expr_node_ptr sub_expr = make_node_from_operand(&aop->operand);
+    if (node_has_side_effects(sub_expr, (a_boolean *)NULL)) {
+      expr = make_comma_node(expr, sub_expr);
+      expr->variant.operation.compiler_generated = TRUE;
+    }  /* if */
   }  /* for */
   return expr;  
 }  /* make_node_from_property_ref_operand */
@@ -6126,18 +6313,18 @@ static void prepare_property_ref_incr_decr(
                                           a_boolean         *processed)
 /*
 Do the first part of processing for an increment or decrement of a
-reference to a field declared with the Microsoft C++ extension
-__declspec(property(...)).  is_increment is TRUE if the operation is
-an increment, FALSE for a decrement.  operator_position gives the position
-of the "++" or "--" operator.  operand is the operand of the
-increment/decrement; it is transformed to an rvalue that is a
-call of the appropriate "get" routine.  operand_clone is set to a clone
-of the operand, for use later when generating the "put" call.
-Operator overloading is checked for, and if it applies, it is handled,
-the result is placed in *result, and *processed is set to TRUE.
-If the cloning of the operand required setting a temporary,
-*temp_init_expr is set to the code that must be evaluated searly
-to get the temporary initialized; otherwise, it is set to NULL.
+reference to a member declared with the Microsoft property extension.
+is_increment is TRUE if the operation is an increment, FALSE for a
+decrement.  operator_position gives the position of the "++" or "--"
+operator.  operand is the operand of the increment/decrement; it is
+transformed to an rvalue that is a call of the appropriate "get"
+routine.  operand_clone is set to a clone of the operand, for use
+later when generating the "put" call.  Operator overloading is checked
+for, and if it applies, it is handled, the result is placed in
+*result, and *processed is set to TRUE.  If the cloning of the operand
+required setting a temporary, *temp_init_expr is set to the code that
+must be evaluated searly to get the temporary initialized; otherwise,
+it is set to NULL.
 */
 {
   check_assertion(is_property_ref_operand(operand));
@@ -6199,18 +6386,17 @@ static void process_property_ref_incr_decr(
                                           an_operand        *result)
 /*
 Generate the IL operation for an increment or decrement operation on a
-reference to a field declared with the Microsoft C++ extension
-__declspec(property(...)).  is_increment is TRUE if the operation is an
-increment, FALSE for a decrement.  operator_position gives the source
-position of the operator.  "operand" is the operand to be
-incremented/decremented, already transformed into a call of the
-appropriate "get" function.  operand_clone is a clone of the original
-operand, to be transformed into a call of the appropriate "put"
-function.  If temp_init_expr is non-NULL, the cloning of the operand
-required setting a temporary, and temp_init_expr points to the
-code to set the temporary, which must be inserted before the
-overall operation so it will be evaluated before any use of the
-temporary.  The overall result is placed in *result.
+reference to a member declared with the Microsoft property extension.
+is_increment is TRUE if the operation is an increment, FALSE for a
+decrement.  operator_position gives the source position of the
+operator.  "operand" is the operand to be incremented/decremented,
+already transformed into a call of the appropriate "get" function.
+operand_clone is a clone of the original operand, to be transformed
+into a call of the appropriate "put" function.  If temp_init_expr is
+non-NULL, the cloning of the operand required setting a temporary, and
+temp_init_expr points to the code to set the temporary, which must be
+inserted before the overall operation so it will be evaluated before
+any use of the temporary.  The overall result is placed in *result.
 */
 {
   an_operand             one_operand;
@@ -6306,10 +6492,10 @@ case.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     property_ref_case = is_property_ref_operand(operand);
     if (property_ref_case) {
-      /* The operand is a reference to a field declared with the Microsoft
-         C++ extension __declspec(property(...)).  The fetch of the field will
-         be made via a call of a "get" function, and the store will be made
-         via a call of a "put" function. */
+      /* The operand is a reference to a member declared as a Microsoft
+         property.  The fetch of the member will be made via a call of a
+         "get" function, and the store will be made via a call of a "put"
+         function. */
       prepare_property_ref_incr_decr(is_increment, &operator_position,
                                      operand, &operand_clone, &temp_init_expr,
                                      result, &processed);
@@ -6458,8 +6644,7 @@ case.
         make_error_operand(result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (property_ref_case) {
-        /* Operand is a reference to a field declared with
-           __declspec(property(...)). */
+        /* Operand is a reference to a Microsoft property. */
         process_property_ref_incr_decr(is_increment, &operator_position,
                                        operand, &operand_clone, temp_init_expr,
                                        result);
@@ -6608,10 +6793,10 @@ and return the result in *result (or an error indication in *rcblock).
 #if MICROSOFT_EXTENSIONS_ALLOWED
     property_ref_case = is_property_ref_operand(&operand);
     if (property_ref_case && !err) {
-      /* The operand is a reference to a field declared with the Microsoft
-         C++ extension __declspec(property(...)).  The fetch of the field will
-         be made via a call of a "get" function, and the store will be made
-         via a call of a "put" function. */
+      /* The operand is a reference to a member declared as a Microsoft
+         property.  The fetch of the member will be made via a call of a
+         "get" function, and the store will be made via a call of a "put"
+         function. */
       prepare_property_ref_incr_decr(is_increment, &operator_position,
                                      &operand, &operand_clone, &temp_init_expr,
                                      result, &processed);
@@ -6707,8 +6892,7 @@ and return the result in *result (or an error indication in *rcblock).
         make_error_operand(result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (property_ref_case) {
-        /* Operand is a reference to a field declared with
-           __declspec(property(...)). */
+        /* Operand is a reference to a Microsoft property. */
         process_property_ref_incr_decr(is_increment, &operator_position,
                                        &operand, &operand_clone,
                                        temp_init_expr, result);
@@ -19399,9 +19583,9 @@ that case.
     operand_will_not_be_used_because_of_error(&operand_2);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (is_property_ref_operand(operand_1)) {
-    /* The operand is a field selection for a field declared with the
-       Microsoft extension __declspec(property(...)).  Rewrite it as
-       a call of the "put" function for the field. */
+    /* The operand is a reference to a member declared as a Microsoft
+       property.  Rewrite it as a call of the "put" function for the
+       property. */
     rewrite_property_field_reference(operand_1, &operand_2);
     *result = *operand_1;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -19552,10 +19736,9 @@ is expected to be NULL in that case.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   property_ref_case = is_property_ref_operand(operand_1);
   if (property_ref_case && !err) {
-    /* The left operand is a reference to a field declared with the Microsoft
-       C++ extension __declspec(property(...)).  The fetch of the field will
-       be made via a call of a "get" function, and the store will be made
-       via a call of a "put" function. */
+    /* The left operand is a reference to a member declared as a Microsoft
+       property.  The fetch of the member will be made via a call of a "get"
+       function, and the store will be made via a call of a "put" function. */
     /* The operation gets performed as the corresponding non-assignment
        operation, e.g., "+=" becomes "+".  This is used for building the
        IL operation and for overload resolution. */
@@ -19911,8 +20094,8 @@ operation_type_determined:
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (property_ref_case && !err) {
-    /* For a reference to a __declspec(property(...)) field, store
-       the result by calling a "put" function. */
+    /* For a reference to a Microsoft property member, store the result by
+       calling a "put" function. */
     rewrite_property_field_reference(&operand_1_clone, result);
     copy_operand(&operand_1_clone, result);
     operand_1_clone_unused = FALSE;
@@ -23817,10 +24000,10 @@ bad_start_of_primary:
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (is_property_ref_operand(&local_result)) {
-      /* If the operand is a field selection for a field declared with
-         __declspec(property(...)), change it to a call of the appropriate 
-         "get" function.  But preserve it for [], ++, --, and assignment
-         operators, where the "put" interpretation may apply. */
+      /* If the operand is a reference to a member declared as a Microsoft
+         property, change it to a call of the appropriate "get" function.
+         But preserve it for [], ++, --, and assignment operators, where the
+         "put" interpretation may apply. */
       switch (curr_token) {
         case tok_plus_plus:
         case tok_minus_minus:
@@ -24013,9 +24196,8 @@ bad_start_of_primary:
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (is_property_ref_operand(&local_result)) {
     if (!(local_options & EOPT_PRESERVE_PROPERTY_REF)) {
-      /* If the operand is a field selection for a field declared with
-         __declspec(property(...)), change it to a call of the appropriate 
-        "get" function. */
+      /* If the operand is a reference to a member declared as a Microsoft
+         property, change it to a call of the appropriate "get" function. */
       rewrite_property_field_reference(&local_result, (an_operand *)NULL);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -25542,6 +25724,7 @@ set accordingly.
   if (is_operation_node(expr)) {
     switch (expr->variant.operation.kind) {
       case eok_subscript:
+      case eok_cli_subscript:
         operator_token = tok_lbracket;
         break;
       case eok_call:

@@ -5845,6 +5845,8 @@ handle_field_selection:
       /* A reference to a parameter is similar to a variable with automatic
          storage duration: Its address is not a constant. */
       break;
+    case eok_cli_subscript:  /* A C++/CLI array element is on the GC heap and
+                                therefore does not have a constant address. */
     default:
       /* Other expression kinds cannot be folded. */
       break;

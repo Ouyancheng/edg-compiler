@@ -5231,7 +5231,7 @@ static a_boolean is_valid_cli_array_instantiation(
 Check the element type and rank of the template_arg_list of a C++/CLI array.
 The element type must be a handle or a value type.  The rank must be one or
 greater.  If this is an invalid array, return FALSE, and, if diag_pos is
-non-NULL, issue error at the given position.
+non-NULL, issue an error at the given position.
 */
 {
   a_template_arg_ptr tap;
@@ -5262,22 +5262,21 @@ non-NULL, issue error at the given position.
   if (tap != NULL) {
     /* Check the second (optional) argument which specifies the number of
        dimensions: it must be an integer of value one or greater. */
-    check_assertion(is_nontype_templ_arg(tap));
-    if (template_arg_is_dependent(tap)) {
-      /* This is template dependent.  We don't know the real type yet.  Do not
-         issue any errors. */
-    } else if (is_nontype_templ_arg(tap)) {
-      check_assertion(tap->arg_operand == NULL);
-      if (tap->variant.constant) {
-        a_constant_ptr con = tap->variant.constant;
-        a_boolean      ovflo;
-        if (con->kind != (a_constant_repr_kind)ck_integer || 
-            value_of_integer_constant(con, &ovflo) <= 0 || ovflo ) {
-          if (diag_pos != NULL) {
-            pos_error(ec_cli_array_invalid_number_of_dimensions, diag_pos);
-          }  /* if */
-          is_valid = FALSE;
+    a_constant_ptr con;
+    check_assertion(is_nontype_templ_arg(tap) && tap->arg_operand == NULL &&
+                    tap->variant.constant != NULL);
+    con = tap->variant.constant;
+    if (con->kind == (a_constant_repr_kind)ck_template_param ||
+        con->kind == (a_constant_repr_kind)ck_error) {
+      /* Can't check. */
+    } else {
+      a_boolean ovflo;
+      check_assertion(con->kind == (a_constant_repr_kind)ck_integer);
+      if (value_of_integer_constant(con, &ovflo) <= 0 || ovflo ) {
+        if (diag_pos != NULL) {
+          pos_error(ec_cli_array_invalid_number_of_dimensions, diag_pos);
         }  /* if */
+        is_valid = FALSE;
       } /* if */
     }  /* if */
   }  /* if */

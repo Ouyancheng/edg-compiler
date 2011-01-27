@@ -1624,26 +1624,9 @@ diagnostic at the given position.
       err = !is_error_type(tp);
     } else {
       /* Check that the C++/CLI array type is one-dimensional. */
-      a_template_arg_ptr  tap = class_type_supp(tp)->template_arg_list;
-      a_constant_ptr      dim_cp;
-      check_assertion(tap != NULL && tap->next != NULL);
-      tap = tap->next;
-      check_assertion(tap->kind == (a_templ_arg_kind)tak_nontype &&
-                      !tap->is_array_bound_of_unknown_type);
-      dim_cp = tap->variant.constant;
-      if (dim_cp->kind == (a_constant_repr_kind)ck_template_param) {
-        /* A template-dependent value cannot be compared to one. */
-      } else if (dim_cp->kind == (a_constant_repr_kind)ck_error) {
-        /* A previous error: No additional diagnostic is needed. */
-        expect_error();
-      } else {
-        a_boolean  ovflo;
-        check_assertion(dim_cp->kind == (a_constant_repr_kind)ck_integer);
-        if (sign_of_integer_constant(dim_cp) <= 0 ||
-            unsigned_value_of_integer_constant(dim_cp, &ovflo) > 1 ||
-            ovflo) {
-          err = TRUE;
-        }  /* if */
+      a_boolean unknown;
+      if (cli_array_rank(tp, &unknown) != 1 && !unknown) {
+        err = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */

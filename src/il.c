@@ -12242,6 +12242,7 @@ tk_unknown is returned.
     case eok_subscript:
       result = (a_type_kind)tk_pointer;
       break;
+    case eok_cli_subscript:
     case eok_dot_field:
     case eok_points_to_field:
     case eok_pm_field:
@@ -16611,6 +16612,7 @@ already indicates the load.
           case eok_points_to_field:
           case eok_pm_points_to_field:
           case eok_subscript:
+          case eok_cli_subscript:
           case eok_indirect:
           case eok_ref_indirect:
           case eok_ref_cast:
@@ -16762,6 +16764,18 @@ process_ptr_to_member_selection:
               does_fetch = TRUE;
               fetched_type = type_pointed_to(op1->type);
               break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            case eok_cli_subscript:
+              /* C++/CLI array subscript operator. */
+              if (!is_handle_type(op1->type)) break;
+              { a_type_ptr arr_type = type_pointed_to(op1->type);
+                if (is_cli_array_type(arr_type)) {
+                  does_fetch = TRUE;
+                  fetched_type = cli_array_element_type(arr_type);
+                }  /* if */
+              }
+              break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             case eok_ref_cast:
             case eok_lvalue_adjust:
             case eok_ref_dynamic_cast:
@@ -21434,6 +21448,8 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 					LVRV_OPND2_IS_RVALUE,
   /* eok_comma: */			LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
   /* eok_subscript: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_cli_subscript: */		LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
   /* eok_dot_field: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_points_to_field: */		LVRV_OPND1_IS_RVALUE,

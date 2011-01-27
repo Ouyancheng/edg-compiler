@@ -53,11 +53,10 @@ expr.h -- Declarations related to expression parsing.
 #define EOPT_ALLOW_BOUND_FUNCTION 0x10
 			/* A C++ bound function may be returned. */
 #define EOPT_PRESERVE_PROPERTY_REF 0x20
-			/* A reference of a field defined with the Microsoft
-			   extension __declspec(property(...)) can be returned
-			   in that form, so that it has a chance to be
-			   rewritten in the "put" form.  By default, it will
-			   be rewritten to the "get" form. */
+			/* A reference to a Microsoft property member can
+			   be left in that form, so that it has a chance
+			   to be rewritten in the "put" form.  By default,
+			   it will be rewritten in the "get" form. */
 #define EOPT_MARKED_AS_GNU_EXTENSION 0x40
 			/* The caller of scan_expr scanned over the GNU keyword
 			   __extension__. */

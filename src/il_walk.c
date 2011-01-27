@@ -2864,6 +2864,11 @@ Tips for proper use of the follow_addressing_path mode:
           /* x[y].  Follow the pointer operand, which could be either one. */
           traverse_expr(subscript_or_padd_pointer_operand(expr), tblock);
           break;
+        case eok_cli_subscript:
+          /* C++/CLI x[y].  Follow the first operand, which is a handle to
+             the array. */
+          traverse_expr(operand1, tblock);
+          break;
         case eok_indirect:
           /* *p:  Follow p. */
           traverse_expr(operand1, tblock);

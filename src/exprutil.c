@@ -1644,7 +1644,7 @@ to default values.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case ok_property_ref:
       operand->variant.property_ref.object = NULL;
-      operand->variant.property_ref.field = NULL;
+      operand->variant.property_ref.descr = NULL;
       operand->variant.property_ref.subscripts = NULL;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1823,8 +1823,16 @@ Display an expression operand for debugging purposes.
       (void)fprintf(f_debug, "property ref = \n");
       (void)fprintf(f_debug, "object =\n");
       db_expression(operand->variant.property_ref.object);
-      (void)fprintf(f_debug, "field = ");
-      db_name(&operand->variant.property_ref.field->source_corresp);
+      { a_property_or_event_descr_ptr pedp =
+                                           operand->variant.property_ref.descr;
+        if (pedp->is_static) {
+          (void)fprintf(f_debug, "variable = ");
+          db_name(&pedp->variant.variable->source_corresp);
+        } else {
+          (void)fprintf(f_debug, "field = ");
+          db_name(&pedp->variant.field->source_corresp);
+        }  /* if */
+      }
       (void)fprintf(f_debug, "\nsubscripts =\n");
       { an_arg_operand_ptr aop;
         for (aop = operand->variant.property_ref.subscripts;
@@ -12833,6 +12841,18 @@ e.g., in a back end.
           lvalue_type = type_pointed_to(op2->type);
         }  /* if */
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case eok_cli_subscript:
+        /* C++/CLI subscript operator -- transform to an lvalue. */
+        possible = TRUE;
+        if (is_handle_type(op1->type)) {
+          a_type_ptr arr_type = type_pointed_to(op1->type);
+          if (is_cli_array_type(arr_type)) {
+            lvalue_type = cli_array_element_type(arr_type);
+          }  /* if */
+        }  /* if */
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case eok_parens:
         /* Parentheses: just do a recursive call on the operand. */
         op1 = conv_rvalue_expr_to_lvalue(op1, &possible,
@@ -13699,6 +13719,12 @@ it might produce an error).
               }  /* if */
             }  /* if */
           }  /* if */
+          node->is_lvalue = FALSE;
+          node->type = rvalue_node_type;
+          processed = TRUE;
+          break;
+        case eok_cli_subscript:
+          /* C++/CLI array subscript.  Can never be folded to a constant. */
           node->is_lvalue = FALSE;
           node->type = rvalue_node_type;
           processed = TRUE;
@@ -14627,27 +14653,35 @@ qualifiers as appropriate).  If operand != NULL, it is the associated operand
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-a_symbol_ptr get_property_accessor_symbol(a_field_ptr       field,
-                                          a_boolean         put,
-                                          a_boolean         must_be_present,
-                                          a_source_position *pos)
+a_symbol_ptr get_property_accessor_symbol(
+                                 a_property_or_event_descr_ptr pedp,
+                                 a_boolean                     put,
+                                 a_boolean                     must_be_present,
+                                 a_source_position             *pos)
 /*
-"field" is a Microsoft property field.  Get and return the symbol for the
-accessor function, either for "get" (put == FALSE) or "put" (put == TRUE).
-Return NULL if there is no such symbol.  In that case, if must_be_present is
-TRUE also put out an error.  The source position of the reference is given
-by pos.
+pedp points to the description for a Microsoft property.  Get and return the
+symbol for the accessor function, either for "get" (put == FALSE) or "put"
+(put == TRUE).  Return NULL if there is no such symbol.  In that case, if
+must_be_present is TRUE also put out an error.  The source position of the
+reference is given by pos.
 */
 {
-  a_symbol_ptr getput_sym = NULL;
+  a_symbol_ptr                getput_sym = NULL;
+  a_source_correspondence_ptr assoc_scp;
 
-  check_assertion(field_is_property_or_event(field));
-  if (property_or_event_kind_is(field, pek_declspec_property)) {
+  check_assertion(pedp != NULL);
+  /* Get the source correspondence of the associated declared entity (a field
+     or static data member). */
+  assoc_scp = (pedp->is_static ? &pedp->variant.variable->source_corresp :
+                                 &pedp->variant.field->source_corresp);
+
+  if (pedp->kind == (a_property_or_event_kind)pek_declspec_property) {
+    /* And old-style property, specified via __declspec. */
     char *getput_property_name;
     if (put) {
-      getput_property_name = field->property_or_event_descr->set_routine.name;
+      getput_property_name = pedp->set_routine.name;
     } else {
-      getput_property_name = field->property_or_event_descr->get_routine.name;
+      getput_property_name = pedp->get_routine.name;
     }  /* if */
     if (getput_property_name == NULL) {
       if (must_be_present) {
@@ -14663,7 +14697,7 @@ by pos.
       (void)find_symbol(getput_property_name,
                         (sizeof_t)strlen(getput_property_name),
                         &locator);
-      class_type = parent_class_of(field);
+      class_type = scp_parent_class(assoc_scp);
       /* Look for the "get" or "put" function by name in the class. */
       getput_sym = class_qualified_id_lookup(&locator, class_type,
                                              IDL_NO_OPTIONS);
@@ -14680,20 +14714,20 @@ by pos.
         getput_sym = locator.specific_symbol;
       }  /* if */
     }  /* if */
-  } else if (property_or_event_kind_is(field, pek_cli_property)) {
+  } else if (pedp->kind == (a_property_or_event_kind)pek_cli_property) {
     /* C++/CLI property. */
     a_routine_ptr getput_routine;
     if (put) {
-      getput_routine = field->property_or_event_descr->set_routine.ptr;
+      getput_routine = pedp->set_routine.ptr;
     } else {
-      getput_routine = field->property_or_event_descr->get_routine.ptr;
+      getput_routine = pedp->get_routine.ptr;
     }  /* if */
     if (getput_routine == NULL) {
       if (must_be_present &&
           expr_error_should_be_issued()) {
         pos_st_error(put ? ec_cli_put_property_function_missing :
                            ec_cli_get_property_function_missing,
-                     pos, unmangled_name_of(&field->source_corresp));
+                     pos, unmangled_name_of(assoc_scp));
       }  /* if */
       getput_sym = NULL;
     } else {
@@ -14711,14 +14745,15 @@ by pos.
 void rewrite_property_field_reference(an_operand *operand,
                                       an_operand *put_operand)
 /*
-*operand is an operand for a reference to a field declared with the
-Microsoft C++ extension __declspec(property(...)).  Transform it to a
-call of an accessor routine.  The access is a "put" if put_operand
-is non-NULL (and *put_operand gives the value to be put); the access
-is a "get" if put_operand is NULL.
+*operand is an operand for a reference to a class member declared as
+a Microsoft property (either using __declspec(property) or the C++/CLI
+property syntax).  Transform it to a call of an accessor routine.  The
+access is a "put" if put_operand is non-NULL (and *put_operand gives
+the value to be put); the access is a "get" if put_operand is NULL.
 */
 {
-  a_field_ptr       field = operand->variant.property_ref.field;
+  a_property_or_event_descr_ptr
+                    pedp = operand->variant.property_ref.descr;
   a_symbol_ptr      getput_sym;
   a_source_position operand_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -14730,7 +14765,7 @@ is a "get" if put_operand is NULL.
   operand_end_position = operand->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Get the "get" or "put" function name from the field. */
-  getput_sym = get_property_accessor_symbol(field,
+  getput_sym = get_property_accessor_symbol(pedp,
                                             /*put=*/(put_operand != NULL),
                                             /*must_be_present=*/TRUE,
                                             &operand_position);
@@ -15015,9 +15050,8 @@ The transformations are:
   (2)  Conversion of an array lvalue to pointer-to-first-element.
   (3)  (Not really a transformation, but...) Checking for indefinite functions.
   (4)  Conversion of an lvalue to an rvalue.
-  (5)  Conversion of a reference to a field declared with
-       __declspec(property(...)) (a Microsoft extension) to a call of the
-       appropriate "get" function.
+  (5)  Conversion of a reference to a member declared as a Microsoft
+       property to a call of the appropriate "get" function.
 The flags in options can be used to suppress one or more of these
 transformations.
 */
@@ -15026,9 +15060,8 @@ transformations.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_property_ref_operand(operand)) {
     if (!(options & TOPT_SUPPRESS_RVALUE_PROPERTY_REWRITE)) {
-      /* This operand is a field selection for a field declared with
-         __declspec(property(...)).  Change it to a call of the appropriate
-         "get" function. */
+      /* This operand is a reference to a member declared as a Microsoft
+         property.  Change it to a call of the appropriate "get" function. */
       rewrite_property_field_reference(operand, (an_operand *)NULL);
     }  /* if */
   }  /* if */

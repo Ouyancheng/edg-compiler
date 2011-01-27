@@ -12532,6 +12532,11 @@ enum an_expr_operator_kind_tag {
   eok_subscript,	/* Subscripting operation.  The operands are the
 			   pointer to the first element of the array and the
 			   integral subscript value, in either order. */
+  eok_cli_subscript,	/* C++/CLI array subscripting operation.  The first
+			   operand is a handle to a CLI array object (a ref
+			   class type), and following arguments are the
+			   subscripts.  The result is an lvalue for the
+			   array element. */
   eok_dot_field,	/* Selection of a nonstatic data member of a class,
 			   source form x.y.  The first operand is an lvalue
 			   or rvalue of class type.  The second operand is
@@ -15627,7 +15632,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "p+=", "p-=",
    "b=",
    "&&", "||", ",",
-   "[]", ".", "->", ".*", "->*", ".static", "->static",
+   "[]", "cli[]", ".", "->", ".*", "->*", ".static", "->static",
    "virt func ptr",
    "?",
    "call",

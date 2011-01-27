@@ -1373,8 +1373,13 @@ the file scope, do not process it (but record an orphan in the latter case).
                 case eok_pre_decr:
                 case eok_padd_assign:
                 case eok_psubtract_assign:
-                case eok_points_to_vacuous_destructor_call:
                   /* First operand may be a pointer. */
+                  if (!is_pointer_type(op1_type)) break;
+                  optype = type_pointed_to(op1_type);
+                  goto do_definition_needed_if_class;
+                case eok_points_to_vacuous_destructor_call:
+                case eok_cli_subscript:
+                  /* First operand may be a pointer or handle. */
                   if (!is_pointer_or_handle_type(op1_type)) break;
                   optype = type_pointed_to(op1_type);
                   goto do_definition_needed_if_class;

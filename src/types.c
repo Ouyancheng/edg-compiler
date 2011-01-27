@@ -941,6 +941,61 @@ Return TRUE if the given types is a C++/CLI array type.
 }  /* is_cli_array_type */
 
 
+a_type_ptr cli_array_element_type(a_type_ptr tp)
+/*
+tp is a C++/CLI array type.  Return its element type.
+*/
+{
+  a_template_arg_ptr tap;
+  a_type_ptr         elem_type;
+
+  tp = skip_typerefs(tp);
+  check_assertion(is_cli_array_type(tp));
+  /* The element type is the first template argument type. */
+  tap = class_type_supp(tp)->template_arg_list;
+  check_assertion(tap != NULL && is_type_templ_arg(tap));
+  elem_type = tap->variant.type;
+  return elem_type;
+}  /* cli_array_element_type */
+
+
+a_host_large_unsigned cli_array_rank(a_type_ptr tp,
+                                     a_boolean  *unknown)
+/*
+tp is a C++/CLI array type.  Return its rank, i.e., the number of dimensions.
+If the rank is unknown, e.g., because it's template-dependent, *unknown is
+returned TRUE.
+*/
+{
+  a_template_arg_ptr    tap;
+  a_host_large_unsigned rank = 0;
+  a_constant_ptr        rank_con;
+
+  *unknown = FALSE;
+  tp = skip_typerefs(tp);
+  check_assertion(is_cli_array_type(tp));
+  tap = class_type_supp(tp)->template_arg_list;
+  /* The first argument is the element type. */
+  check_assertion(tap != NULL && is_type_templ_arg(tap));
+  /* The rank is the value of the second template argument. */
+  tap = tap->next;
+  check_assertion(tap != NULL && is_nontype_templ_arg(tap) &&
+                  !tap->is_array_bound_of_unknown_type);
+  rank_con = tap->variant.constant;
+  if (rank_con->kind == (a_constant_repr_kind)ck_template_param ||
+      rank_con->kind == (a_constant_repr_kind)ck_error) {
+    /* A template-dependent value or error is unknown. */
+    *unknown = TRUE;
+  } else {
+    a_boolean ovflo;
+    check_assertion(rank_con->kind == (a_constant_repr_kind)ck_integer);
+    rank = unsigned_value_of_integer_constant(rank_con, &ovflo);
+    check_assertion(!ovflo);
+  }  /* if */
+  return rank;
+}  /* cli_array_rank */
+  
+
 a_boolean is_ref_class_type(a_type_ptr tp)
 /*
 Return TRUE if the indicated type is a C++/CLI ref class or ref struct.

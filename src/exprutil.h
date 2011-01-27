@@ -247,8 +247,8 @@ enum an_operand_kind_tag {
 			   functions (ok_indefinite_function is used
 			   instead).  Used only in C++. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  ok_property_ref,	/* A reference to a field declared with the Microsoft
-			   C++ extension __declspec(property(...)). */
+  ok_property_ref,	/* A reference to a Microsoft property member
+			   of a class. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ok_undefined_symbol	/* An undefined symbol encountered while scanning an
 			   expression.  Could be an implicit function
@@ -454,13 +454,14 @@ typedef struct an_operand {
     a_constant	constant;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* When kind == ok_property_ref: */
-    /* This is used for a reference to a field declared with the Microsoft
-       C++ extension __declspec(property(...)). */
+    /* This is used for a reference to a class member declared with the
+       Microsoft C++ extension __declspec(property(...)) or with the C++/CLI
+       property syntax. */
     struct {
       an_expr_node_ptr
 		object;	/* Expression for the class object pointer. */
-      a_field_ptr
-		field;	/* The field referenced. */
+      a_property_or_event_descr_ptr
+		descr;	/* The property description. */
       an_arg_operand_ptr
 		subscripts;
 			/* Optional list of subscript expressions, for cases
@@ -597,10 +598,9 @@ some of the transformations.
 			/* Member functions should not be converted implicitly
 			   to pointer-to-member. */
 #define TOPT_SUPPRESS_RVALUE_PROPERTY_REWRITE 0x40
-			/* References to fields declared with
-			   __declspec(property(...)) (a Microsoft extension)
-			   should not be rewritten as calls of the appropriate
-			   "get" function. */
+			/* References to class members that are Microsoft
+			   properties should not be rewritten as calls of
+			   the appropriate "get" function (yet). */
 #define TOPT_NO_OPTIONS 0
 typedef int a_transformation_options_set;
 
@@ -1047,11 +1047,19 @@ Macro that is TRUE if the operand is an undefined symbol operand.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*
-Macro that is TRUE if the operand is one that references a field declared
-with the Microsoft C++ extension __declspec(property(...)).
+Macro that is TRUE if the operand is one that references a member declared
+with the Microsoft C++ extension __declspec(property(...)) or the C++/CLI
+property syntax.
 */
 #define is_property_ref_operand(operand)				\
 	((operand)->kind == (an_operand_kind)ok_property_ref)
+/*
+Ditto, but only for a property declared with __declspec(property(...)).
+*/
+#define is_old_form_property_ref_operand(operand)                       \
+        (is_property_ref_operand(operand) &&                            \
+         (operand)->variant.property_ref.descr->kind ==                 \
+          (a_property_or_event_kind)pek_declspec_property)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -1325,10 +1333,11 @@ extern void change_binary_operand_types(a_type_ptr             type,
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern
-a_symbol_ptr get_property_accessor_symbol(a_field_ptr       field,
-                                          a_boolean         put,
-                                          a_boolean         must_be_present,
-                                          a_source_position *pos);
+a_symbol_ptr get_property_accessor_symbol(
+                                 a_property_or_event_descr_ptr pedp,
+                                 a_boolean                     put,
+                                 a_boolean                     must_be_present,
+                                 a_source_position             *pos);
 
 extern void rewrite_property_field_reference(an_operand *operand,
                                              an_operand *put_operand);
