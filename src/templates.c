@@ -5237,7 +5237,7 @@ non-NULL, issue an error at the given position.
   a_template_arg_ptr tap;
   a_boolean          is_valid = TRUE;
 
-  check_assertion(template_arg_list);
+  check_assertion(template_arg_list != NULL);
   tap = template_arg_list;
   /* Check the first argument: It must be a handle or value type. */
   /* The argument kind was already verified in scan_template_argument_list. */
