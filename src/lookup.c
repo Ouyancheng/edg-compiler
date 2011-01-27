@@ -4802,6 +4802,8 @@ namespace_qualified_id_lookup.
     /* Some versions of g++ find invisible names in qualified declarators. */ \
     (gpp_mode && is_declarator_lookup && gnu_version < 40300)) &&      \
    (!(sym)->is_class_member) &&                                       \
+   /* Note that same_entities must not be used for this test. */      \
+   sym_parent_namespace_or_null((sym)) == ns_ptr &&                   \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) &&     		      \
    (!must_be_class ||				     		      \
