@@ -14857,7 +14857,7 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
                                              curr_sym->header);
              sym != NULL;
              sym = sym->next_in_lookup_table) {
-            if (sym->kind == curr_sym->kind) {
+          if (sym->kind == curr_sym->kind) {
             cssp = sym->variant.class_struct_union.extra_info;
             /* Note that a translation unit test is not needed because
                token sequence numbers uniquely identify a translation unit. */
