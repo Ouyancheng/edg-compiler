@@ -18,7 +18,6 @@ Throw processing for exception handling.
 #include "eh.h"
 #pragma hdrstop
 #include "vec_newdel.h"
-#include "vla_alloc.h"
 
 #if EXCEPTION_HANDLING
 

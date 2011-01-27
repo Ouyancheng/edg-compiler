@@ -1,5 +1,11 @@
 Version 4.3
 
+1/27/11  [EDGcpfe/11316]
+Unneeded include in throw.c
+
+throw.c included vla_alloc, but should not have.  Now fixed.
+
+
 10/12/10 [EDGcpfe/11068]
 Warn on signed/unsigned comparison in vec_newdel.c
 
