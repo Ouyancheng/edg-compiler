@@ -1,5 +1,31 @@
 Version 4.3
 
+1/28/11  [EDGcpfe/11312]
+Microsoft property references and subscripting
+
+Further changes to be more compatible with Microsoft property
+references and subscripting (see EDGcpfe/11049 below for the previous
+round of changes): this time, if a property has a "get" accessor that
+returns a class type that has an operator[] function, and there
+are no overloaded accessor functions that have parameters (and
+therefore could be used for subscripting), the class-returning accessor
+is called in a subscripting context to produce the class object, which
+can then be subscripted.
+
+  extern "C" int printf(const char *, ...);
+  struct X {
+    X &operator[](int) { printf("0\n"); static X lx; return lx; }
+  } xx;
+  struct A {
+    __declspec(property(get=getp,put=putp)) X x;
+    X getp() { printf("1\n"); return xx; }
+    void putp(int) { printf("2\n"); }
+  } a;
+  int main() {
+    X x = a.x[1];  // Now accepted, prints 1 0
+  }
+
+
 1/25/11  [EDGcpfe/10641, EDGcpfe/11310]
 Reducing use of inactive list to improve performance
 

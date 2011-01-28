@@ -643,15 +643,17 @@ expression node to indicate that.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_boolean property_ref_has_simple_pointer_get_accessor(
+static a_boolean property_ref_has_accessor_that_yields_subscriptable_object(
                                                            an_operand *operand)
 /*
 Return TRUE if the Microsoft property reference given by "operand" has a "get"
-accessor that will allow the conversion of the property reference to a
-pointer type that can then be subscripted.
+accessor that will allow the conversion of the property reference to an
+object that can then be subscripted.  Note that in some cases the conversion
+is not done because the property has subscripting accessors that are supposed
+to win out.
 */
 {
-  a_boolean    has_pointer_accessor = FALSE;
+  a_boolean    has_subscriptable_accessor = FALSE;
   a_symbol_ptr get_sym;
 
   check_assertion(is_old_form_property_ref_operand(operand));
@@ -661,6 +663,8 @@ pointer type that can then be subscripted.
                                          /*must_be_present=*/FALSE,
                                          &operand->position);
   if (get_sym != NULL) {
+    a_boolean pointer_case = FALSE, class_case = FALSE;
+    a_boolean some_function_has_params = FALSE;
     a_boolean overloaded_case = FALSE;
     reduce_projection_symbol_to_fundamental_symbol(get_sym);
     if (get_sym->kind == (a_symbol_kind)sk_overloaded_function) {
@@ -679,15 +683,32 @@ pointer type that can then be subscripted.
             is_object_type(type_pointed_to(return_type))) {
           /* This function has zero arguments and returns a pointer to object
              type, so it can be used to get an "array" to be subscripted. */
-          has_pointer_accessor = TRUE;
+          pointer_case = TRUE;
           break;
+        } else if (!some_function_has_params &&
+                   is_class_struct_union_type(return_type)) {
+          /* If the function returns a class that has an operator[] function,
+             the returned object is subscriptable. */
+          if (opname_member_function_symbol((an_opname_kind)onk_subscript,
+                                            skip_typerefs(return_type))
+                                                                     != NULL) {
+            class_case = TRUE;
+            /* We don't break because we want to look for accessors with
+               parameters. */
+          }  /* if */
         }  /* if */
+      } else {
+        /* Some function has parameters, which suppresses the class case. */
+        some_function_has_params = TRUE;
       }  /* if */
     }  /* for */
+    /* The class case is accepted only if the property has no accessors that
+       might be used for subscripting. */
+    if (class_case && some_function_has_params) class_case = FALSE;
+    if (class_case || pointer_case) has_subscriptable_accessor = TRUE;
   }  /* if */
-  return has_pointer_accessor;
-}  /* property_ref_has_simple_pointer_get_accessor */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+  return has_subscriptable_accessor;
+}  /* property_ref_has_accessor_that_yields_subscriptable_object */
 
 
 static void make_property_ref_operand(
@@ -712,7 +733,6 @@ the class object.  The property reference operand created is returned in
   result->variant.property_ref.object = make_node_from_operand(operand);
 }  /* make_property_ref_operand */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void rewrite_class_with_default_indexed_property_as_property_ref(
                                                            an_operand *operand)
@@ -754,7 +774,6 @@ rewrite it as a property reference so the subscripts can be applied to that.
     }  /* if */
   }  /* if */
 }  /* rewrite_class_with_default_indexed_property_as_property_ref */
-
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -865,10 +884,10 @@ This routine is also used when scanning __builtin_offsetof constructs.
       }  /* if */
     }  /* if */
     if (is_old_form_property_ref_operand(operand_1) &&
-        property_ref_has_simple_pointer_get_accessor(operand_1)) {
-      /* For a property field reference where there's a zero-argument get
-         accessor that returns a pointer type, use that and then subscript the
-         returned value. */
+        property_ref_has_accessor_that_yields_subscriptable_object(operand_1)){
+      /* For a property field reference where there's a "get" accessor that
+         returns something that can be subscripted, use that and then subscript
+         the returned value. */
       rewrite_property_field_reference(operand_1, (an_operand *)NULL);
     }  /* if */
   }  /* if */
