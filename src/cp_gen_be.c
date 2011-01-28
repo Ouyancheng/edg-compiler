@@ -10052,10 +10052,15 @@ gen_expr that might end up generating this expr as a temporary.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (expr->variant.operation.compiler_generated &&
               is_property_or_event_call(operand_2)) {
-            /* This is the expansion of a Microsoft property or event
+            /* This is the expansion of a C++/CLI property or event
                reference.  operand_1 contains enk_temp_init nodes whose
                expressions will be generated in the call to the property
                access function, so suppress it here. */
+          } else if (operand_1->kind == (an_expr_node_kind)enk_temp_init &&
+                     operand_1->variant.init.dynamic_init->is_reused_value) {
+            /* This is probably the expansion of a Microsoft __declspec
+               property reference.  Again, the first operand should be
+               suppressed. */
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
