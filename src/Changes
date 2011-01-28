@@ -4,10 +4,9 @@ Version 4.3
 Reducing use of inactive list to improve performance
 
 The front end now constructs hash tables for the names in a given scope.
-This will allow us to eliminate many of the uses of the inactive list,
-which can be performance bottlenecks.  The new processing is currently
-used the various lookup routines, among other things.  This mechanism will
-be applied to other uses of the inactive list in the future.
+This allows us to eliminate many of the uses of the inactive list
+that have proven to be performance bottlenecks.  This mechanism will be
+applied to more uses of the inactive list in the future.
 
 
 1/24/11  [EDGcpfe/11302]
