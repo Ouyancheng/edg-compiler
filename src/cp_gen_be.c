@@ -9046,7 +9046,8 @@ actual first argument (if any) for static members.
       }  /* if */
     }  /* if */
     if (!desc->is_default_indexed) {
-      /* Suppress the member name. */
+      /* Write the property name unless this is a default-indexed property,
+         in which case the member name is suppressed. */
       gen_name(&desc->variant.field->source_corresp, iek_field,
                GN_NO_OPTIONS, (a_boolean *)NULL);
       if (need_context_pop) {
