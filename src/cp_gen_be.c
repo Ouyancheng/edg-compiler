@@ -9034,15 +9034,24 @@ actual first argument (if any) for static members.
     if (!(is_variable_node(obj_expr) &&
           obj_expr->variant.variable->is_this_parameter)) {
       gen_expr_with_parens(obj_expr);
-      push_class_name_context(
+      if (!desc->is_default_indexed) {
+        /* With a default-indexed property, the property is unnamed and the
+           subscripts are applied to the object expression directly, not to
+           the property member.  Both the -> and the member name must be
+           suppressed. */
+        push_class_name_context(
                              f_skip_typerefs(type_pointed_to(obj_expr->type)));
-      need_context_pop = TRUE;
-      write_tok_str("->");
+        need_context_pop = TRUE;
+        write_tok_str("->");
+      }  /* if */
     }  /* if */
-    gen_name(&desc->variant.field->source_corresp, iek_field,
-             GN_NO_OPTIONS, (a_boolean *)NULL);
-    if (need_context_pop) {
-      pop_name_context();
+    if (!desc->is_default_indexed) {
+      /* Suppress the member name. */
+      gen_name(&desc->variant.field->source_corresp, iek_field,
+               GN_NO_OPTIONS, (a_boolean *)NULL);
+      if (need_context_pop) {
+        pop_name_context();
+      }  /* if */
     }  /* if */
     if (desc->indices != NULL) {
       /* Generate the subscript list for the property reference. */
