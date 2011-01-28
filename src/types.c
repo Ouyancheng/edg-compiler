@@ -11671,7 +11671,7 @@ for the reverse mapping.
       symbol = NULL;
       break;
   }  /* switch */
-  return symbol ? type_symbol_type(symbol) : NULL;
+  return (symbol != NULL) ? type_symbol_type(symbol) : NULL;
 }  /* system_type_from_basic_type */
 
 

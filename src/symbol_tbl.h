@@ -3785,17 +3785,15 @@ enum a_cli_symbol_kind_tag {
   csk_system_uint32,				/* ik_unsigned_int */
   csk_system_int32_is_long,			/* ik_long */
   csk_system_uint32_is_long,			/* ik_unsigned_long */
-#if LONG_LONG_ALLOWED
   csk_system_int64,				/* ik_long_long */
   csk_system_uint64,				/* ik_unsigned_long_long */
-#endif /* LONG_LONG_ALLOWED */
-  csk_last_integer,
-  csk_first_float = csk_last_integer,
+  csk_last_integer = csk_system_uint64,
+  csk_first_float,
   csk_system_single = csk_first_float,		/* fk_float */
   csk_system_double,				/* fk_double */
   csk_system_double_is_long,			/* fk_long_double */
-  csk_last_float,
-  csk_system_boolean = csk_last_float,		/* bool_type() */
+  csk_last_float = csk_system_double_is_long,
+  csk_system_boolean,				/* bool_type() */
   csk_system_char,				/* wchar_t_type() */
   csk_system_object,
   csk_system_value_type,
@@ -3835,10 +3833,8 @@ EXTERN char
   "UInt32",            /* csk_system_uint32 */
   "Int32",             /* csk_system_int32_is_long */
   "UInt32",            /* csk_system_uint32_is_long */
-#if LONG_LONG_ALLOWED
   "Int64",             /* csk_system_int64 */
   "UInt64",            /* csk_system_uint64 */
-#endif /* LONG_LONG_ALLOWED */
   "Single",            /* csk_system_single */
   "Double",            /* csk_system_double */
   "Double",            /* csk_system_double_is_long */

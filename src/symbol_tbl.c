@@ -6336,11 +6336,9 @@ cli_float_kinds arrays therefore list only the preferred basic types.
     (an_integer_kind)ik_short,
     (an_integer_kind)ik_unsigned_short,
     (an_integer_kind)ik_int,
-    (an_integer_kind)ik_unsigned_int
-#if LONG_LONG_ALLOWED
-    ,(an_integer_kind)ik_long_long,
+    (an_integer_kind)ik_unsigned_int,
+    (an_integer_kind)ik_long_long,
     (an_integer_kind)ik_unsigned_long_long
-#endif /* LONG_LONG_ALLOWED */
   };
   /* Select only the float kinds that a CLI fundamental type maps to. */
   a_float_kind    cli_float_kinds[] = {
@@ -6404,22 +6402,23 @@ global pointers.  This function assumes that mscorlib.dll has been imported.
   int             csk;
 
   /* Check that the a_cli_symbol_kind_tag enumeration is correctly defined. */
-  if ((int)csk_last_integer - (int)csk_first_integer != (int)ik_last ||
-      (int)csk_last_float - (int)csk_first_float != (int)fk_last)/*lint !e506*/
-                                                                              {
+  if ((int)csk_last_integer - (int)csk_first_integer != (int)ik_last-1 ||
+      (int)csk_last_float - (int)csk_first_float !=
+                                               (int)fk_last-1) /*lint !e506*/ {
     internal_error(
-           "init_cli_symbols: incorrect definition for a_cli_symbol_kind_tag");
+         "init_symbols_for_cli_system_types: incorrect a_cli_symbol_kind_tag");
   }  /* if */
   /* Check that the cli_symbol_names array is correctly initialized. */
   if (cli_symbol_names[(int)csk_last] == NULL ||
       strcmp(cli_symbol_names[(int)csk_last], "last") != 0) {
     internal_error(
-             "init_cli_symbols: incorrect initialization of cli_symbol_names");
+              "init_symbols_for_cli_system_types: incorrect cli_symbol_names");
   }  /* if */
   /* Initialize the symbols in the cli_symbols array. */
   for (csk = 0; csk < (int)csk_last; csk++) {
-    if (cli_symbol_names[csk] != NULL && *cli_symbol_names[csk] != 0) {
-        cli_symbols[csk] = look_up_name_string_in_namespace(
+    if (cli_symbol_names[csk] != NULL) {
+      check_assertion(*cli_symbol_names[csk] != '\0');
+      cli_symbols[csk] = look_up_name_string_in_namespace(
                                                          cli_symbol_names[csk],
                                                          ns_ptr);
       if (cli_symbols[csk] == NULL) {

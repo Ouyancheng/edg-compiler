@@ -522,6 +522,10 @@ whether C99 IL extensions are supported, and that is only known here.
  #error -- GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED requires LONG_LONG_ALLOWED
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED && !LONG_LONG_ALLOWED */
 
+#if CPPCLI_ENABLING_POSSIBLE && !LONG_LONG_ALLOWED
+ #error -- CPPCLI_ENABLING_POSSIBLE requires LONG_LONG_ALLOWED
+#endif /* CPPCLI_ENABLING_POSSIBLE && !LONG_LONG_ALLOWED */
+
 /*
 Flag that is TRUE if C++0x lambdas should be enabled in other C++ modes by
 default (they are, of course, always enabled in C++0x mode).  This macro is

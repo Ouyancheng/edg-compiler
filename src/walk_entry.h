@@ -2769,7 +2769,8 @@ after_entry_from_class:
 #endif /* !NEEDED_FLAG_WALK */
 #endif /* NEED_NAME_MANGLING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        remap_ptr(ptr->corresponding_basic_type, a_type_ptr, iek_type);
+        walk_ptr_not_needed(ptr->corresponding_basic_type, a_type_ptr,
+                            iek_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }
       break;
