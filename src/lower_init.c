@@ -12732,6 +12732,7 @@ insert_dtor_member_and_base_destructions.
   }  /* if */
 }  /* gen_dtor_member_and_base_destructions */
 
+
 void add_function_try_wrapper_code(a_statement_ptr                 statement,
                                    a_destructor_wrapper_info_block *dtor_info)
 /*
