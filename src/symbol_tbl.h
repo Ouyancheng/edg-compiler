@@ -1173,7 +1173,7 @@ typedef struct a_class_symbol_supplement {
 			/* A block of pointers that are logically part of the
 			   scope stack entry for the associated class
 			   -- including a pointer to a linked list of all
-			   symbols declared in the namespace and pointers to
+			   symbols declared in the class and pointers to
 			   the last entries in linked lists of IL entries
 			   entered in the associated IL scope. */
 } a_class_symbol_supplement;

@@ -100,7 +100,7 @@ static unsigned long
 		num_symbol_headers_in_hash_table,
 		num_conversion_headers_allocated,
 		symbol_name_string_space,
-                num_symbol_header_lookup_entries_allocated,
+		num_symbol_header_lookup_entries_allocated,
 		num_enum_symbol_supplements_allocated,
 		num_class_symbol_supplements_allocated,
 		num_template_symbol_supplements_allocated,
@@ -3353,7 +3353,7 @@ typedef struct a_symbol_header_lookup_entry {
 static void clear_symbol_header_lookup_entry(
 				a_symbol_header_lookup_entry_ptr shlep)
 /*
-Initialize the fields of an include search result entry.
+Initialize the fields of a symbol header lookup entry.
 */
 {
   shlep->header = NULL;
@@ -3363,7 +3363,7 @@ Initialize the fields of an include search result entry.
 
 static a_symbol_header_lookup_entry_ptr alloc_symbol_header_lookup_entry(void)
 /*
-Allocate a new include search result entry, initialize its fields, and
+Allocate a symbol header lookup entry, initialize its fields, and
 return a pointer to it.
 */
 {
@@ -3391,26 +3391,29 @@ Remove symbol from the lookup table associated with pointers_block.
   a_symbol_ptr				*p_sym;
   a_symbol_ptr				table_sym;
 
-  /* Create an entry to be used as the lookup key. */
-  clear_symbol_header_lookup_entry(&shle_key);
-  shle_key.header = symbol->header;
-  shlep_in_table = (a_symbol_header_lookup_entry_ptr*)
+  /* Some scopes do not have lookup tables.  Do nothing in that case. */
+  if (pointers_block->lookup_table != NULL) {
+    /* Create an entry to be used as the lookup key. */
+    clear_symbol_header_lookup_entry(&shle_key);
+    shle_key.header = symbol->header;
+    shlep_in_table = (a_symbol_header_lookup_entry_ptr*)
                               hash_find(pointers_block->lookup_table,
 					(a_void_ptr)&shle_key,
 					/*create=*/FALSE);
-  shlep = *shlep_in_table;
-  check_assertion(shlep != NULL);
-  /* Find the entry on the symbol list and remove it. */
-  p_sym = &shlep->symbols;
-  for (table_sym = *p_sym; table_sym != NULL;
-       p_sym = &table_sym->next_in_lookup_table,
-         table_sym = table_sym->next_in_lookup_table) {
-    if (table_sym == symbol) break;
-  }  /* for */
-  check_assertion(table_sym != NULL);
-  /* Unlink the entry from the list. */
-  *p_sym = symbol->next_in_lookup_table;
-  symbol->next_in_lookup_table = NULL;
+    shlep = *shlep_in_table;
+    check_assertion(shlep != NULL);
+    /* Find the entry on the symbol list and remove it. */
+    p_sym = &shlep->symbols;
+    for (table_sym = *p_sym; table_sym != NULL;
+         p_sym = &table_sym->next_in_lookup_table,
+           table_sym = table_sym->next_in_lookup_table) {
+      if (table_sym == symbol) break;
+    }  /* for */
+    check_assertion(table_sym != NULL);
+    /* Unlink the entry from the list. */
+    *p_sym = symbol->next_in_lookup_table;
+    symbol->next_in_lookup_table = NULL;
+  }  /* if */
 }  /* remove_symbol_from_lookup_table */
 
 
@@ -3420,9 +3423,34 @@ Return TRUE if the scope kind is one for which a lookup table will be
 created if needed.
 */
 {
-  /* FIXME: Do we only want to create lookup tables for classes for now? */
-  return kind != (a_scope_kind)sck_none &&
-         kind != (a_scope_kind)sck_template_instantiation;
+  a_boolean	result = FALSE;
+
+  switch (kind) {
+    case sck_file:
+    case sck_namespace:
+    case sck_namespace_extension:
+    case sck_class_struct_union:
+    case sck_class_reactivation:
+      result = TRUE;
+      break;
+    case sck_func_prototype:
+    case sck_block:
+    case sck_template_declaration:
+    case sck_template_instantiation:
+    case sck_pragma:
+    case sck_condition:
+    case sck_enum:
+    case sck_function:
+      break;
+    default:
+#if DEBUG
+      fprintf(f_debug, "Bad scope kind:\n");
+      (void)db_scope_kind(kind);
+#endif  /* DEBUG */
+      unexpected_condition_str("is_scope_kind_with_lookup_table");
+      break;
+  }  /* switch */
+  return result;
 }  /* is_scope_kind_with_lookup_table */
 
 
@@ -4381,7 +4409,7 @@ symbol header lookup entry.
 
 
 static a_boolean compare_symbol_header_lookup_entry(a_void_ptr	entry,
-			          a_void_ptr	key)
+						    a_void_ptr	key)
 /*
 Compare an entry in the symbol header lookup hash table with an entry to be
 found.  "entry" and "key" are of type a_symbol_header_lookup_entry_ptr.
@@ -4425,22 +4453,20 @@ it.
     case sck_condition: size = 2; break;
     case sck_enum: size = 5; break;
     case sck_function: size = 20; break;
-    /* Eventually class reactivations should share the pointers block with
-       the class scope. */
     case sck_class_reactivation: size=5; break;
     default:
 #if DEBUG
       fprintf(f_debug, "Bad scope kind:\n");
       (void)db_scope_kind(kind);
 #endif  /* DEBUG */
-      unexpected_condition_str("is_scope_kind_with_lookup_table");
+      unexpected_condition_str("create_name_lookup_table");
       break;
   }  /* switch */
   hash_table = alloc_hash_table(FRONT_END_REGION_NUMBER, size,
-			       hash_symbol_header_lookup_entry,
-			       compare_symbol_header_lookup_entry);
+                                hash_symbol_header_lookup_entry,
+                                compare_symbol_header_lookup_entry);
   return hash_table;
-}  /* is_scope_kind_with_lookup_table */
+}  /* create_name_lookup_table */
 
 
 static void add_symbol_to_lookup_table(
@@ -4454,24 +4480,27 @@ Add symbol to the lookup table associated with pointers_block.
   a_symbol_header_lookup_entry_ptr	*shlep_in_table;
   a_symbol_header_lookup_entry		shle_key;
 
-  /* Create an entry to be used as the lookup key. */
-  clear_symbol_header_lookup_entry(&shle_key);
-  shle_key.header = symbol->header;
-  shlep_in_table = (a_symbol_header_lookup_entry_ptr*)
+  /* Some scopes do not have lookup tables.  Do nothing in that case. */
+  if (pointers_block->lookup_table != NULL) {
+    /* Create an entry to be used as the lookup key. */
+    clear_symbol_header_lookup_entry(&shle_key);
+    shle_key.header = symbol->header;
+    shlep_in_table = (a_symbol_header_lookup_entry_ptr*)
                               hash_find(pointers_block->lookup_table,
 					(a_void_ptr)&shle_key,
 					/*create=*/TRUE);
-  shlep = *shlep_in_table;
-  if (shlep == NULL) {
-    /* No entry was found -- create one now. */
-    shlep = alloc_symbol_header_lookup_entry();
-    shlep->header = symbol->header;
-    /* Update the entry in the hash table. */
-    *shlep_in_table = shlep;
+    shlep = *shlep_in_table;
+    if (shlep == NULL) {
+      /* No entry was found -- create one now. */
+      shlep = alloc_symbol_header_lookup_entry();
+      shlep->header = symbol->header;
+      /* Update the entry in the hash table. */
+      *shlep_in_table = shlep;
+    }  /* if */
+    /* Link the symbol into the table. */
+    symbol->next_in_lookup_table = shlep->symbols;
+    shlep->symbols = symbol;
   }  /* if */
-  /* Link the symbol into the table. */
-  symbol->next_in_lookup_table = shlep->symbols;
-  shlep->symbols = symbol;
 }  /* add_symbol_to_lookup_table */
 
 
