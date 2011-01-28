@@ -89,6 +89,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,db_seq_number_lookup_table)*/
 /*lint -esym(714,db_internal_float_value)*/
 /*lint -esym(714,db_context_stack)*/
+/*lint -esym(714,db_hide_by_sig_list)*/
 /*lint -esym(714,free_template_decl_info)*/
 /*lint -esym(759,f_db_sym_has_traced_name)*/
 /*lint -esym(759,free_template_decl_info)*/

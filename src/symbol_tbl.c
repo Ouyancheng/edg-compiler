@@ -1891,7 +1891,7 @@ Display a hide-by-sig list, for debugging purposes.
 */
 {
   for (; hbslep != NULL; hbslep = hbslep->next) {
-    fprintf(f_debug, "\n%*s", hbslep->level*2, "");
+    fprintf(f_debug, "\n%*s", (int)(hbslep->level*2), "");
     if (hbslep->symbol == NULL) {
       fprintf(f_debug, "<NULL>\n");
     } else {
