@@ -16930,7 +16930,12 @@ done here.
                      ec_default_template_arg_not_allowed,
                      &param_sym->decl_position);
     }  /* if */
-    if (is_conversion_operator) {
+    if (function_template_default_args_allowed && tpp->has_default_arg) {
+      /* If the template has a default argument, consider the parameter
+         to be used.  Such parameters are often intentionally unused and
+         are used for techniques like "enable_if". */
+      param_used = TRUE;
+    } else if (is_conversion_operator) {
       /* For conversion operator functions, the template parameters must be
          used in the return type. */
       param_used = template_param_used_in_type(

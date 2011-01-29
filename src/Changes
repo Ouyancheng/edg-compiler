@@ -1,5 +1,29 @@
 Version 4.3
 
+1/29.11  [EDGcpfe/11303]
+Suppress warning about unusable template parameter if it has a default value
+
+The front end issues a warning if a template constructor or conversion
+operator declares a template parameter that is not used in the function
+type under the assumption that such a template parameter could not be
+deduced.  Now that default arguments are allowed for template parameters
+of function templates (see 6/23/10 entry), such template parameters
+could be used even though they are not part of the function type.
+Furthermore, this is an useful technique when using "enable_if" like
+techniques.  The warning is now suppressed for template parameters that
+have default values.
+
+  struct X {
+    template <class T, class = typename T::X> X(T) {}
+  };
+  struct A { typedef int X; };
+  int main() {
+    A a;
+    X x(a);  // okay: A has a type member X
+    X x2(1);  // error: no matching constructor
+  }
+
+
 1/28/11  [EDGcpfe/11312]
 Microsoft property references and subscripting
 
