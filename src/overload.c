@@ -99,6 +99,76 @@ Clear a conversion description.
 }  /* clear_conv_descr */
 
 
+/*
+Data structure used by set_up_overload_set_traversal et al. to control the
+traversal of an overload set to produce a sequence of symbols to be
+tried in overload resolution.
+*/
+typedef struct an_overload_set_traversal_block {
+  a_symbol_ptr	current_symbol;
+			/* The symbol currently being considered. */
+  a_byte_boolean
+		is_overloaded_function_list;
+			/* TRUE if the list being traversed is the list
+			   under an sk_overloaded_function symbol. */
+} an_overload_set_traversal_block;
+
+
+static a_symbol_ptr set_up_overload_set_traversal(
+                                     a_symbol_ptr                    sym,
+                                     an_overload_set_traversal_block *ostblock)
+/*
+Set up for traversing the symbols of an overload set via
+next_symbol_in_overload_set.  sym is the original symbol (often an
+sk_overloaded_function symbol, but it can be a non-overloaded function
+symbol, or a projection symbol for either of those).  Returns the first
+symbol to be considered, or NULL if there isn't one.  The symbol
+returned may be a projection symbol.
+*/
+{
+  a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
+
+  if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    ostblock->is_overloaded_function_list = TRUE;
+    sym = fund_sym->variant.overloaded_function.symbols;
+  } else {
+    check_assertion(fund_sym->kind == (a_symbol_kind)sk_member_function ||
+                    fund_sym->kind == (a_symbol_kind)sk_routine ||
+                    fund_sym->kind == (a_symbol_kind)sk_function_template);
+    ostblock->is_overloaded_function_list = FALSE;
+  }  /* if */
+  return (ostblock->current_symbol = sym);
+}  /* set_up_overload_set_traversal */
+
+
+/*FIXME*/
+/*ARGSUSED*/
+static a_symbol_ptr next_symbol_in_overload_set(
+                          an_overload_set_traversal_block *ostblock,
+                          a_boolean                       any_viable_functions)
+/*
+Advance to the next symbol in the overload set whose traversal is underway
+and described by ostblock, and return that next symbol, or NULL if there is
+no next symbol.  The symbol returned may be a projection symbol.
+any_viable_functions is TRUE if previous iterations of the loop have
+found at least one viable function.
+*/
+{
+  a_symbol_ptr sym = ostblock->current_symbol;
+
+  check_assertion(sym != NULL);
+  if (ostblock->is_overloaded_function_list) {
+    /* Advance in a list of functions under an sk_overloaded_function
+       symbol. */
+    sym = sym->next;
+  } else {
+    /* For a non-overloaded function, there is no next symbol. */
+    sym = NULL;
+  }  /* if */
+  return (ostblock->current_symbol = sym);
+}  /* next_symbol_in_overload_set */
+    
+
 static a_boolean symbol_is_member_of_nonreal_class(a_symbol_ptr sym)
 /*
 Return TRUE if the given symbol is a member of a nonreal class.
@@ -3803,29 +3873,20 @@ call is written in operator form, e.g., a+b rather than operator+(a,
 b).
 */
 {
-  a_boolean     overloaded_function_case;
   a_symbol_ptr  function_symbol, proj_function_symbol;
-  a_symbol_ptr  saved_proj_function_symbol;
   a_type_ptr    implicit_selector_type = NULL;
   a_boolean     allow_post_declared_functions = FALSE;
   a_boolean     any_discarded_because_post_decl;
   a_boolean     any_not_discarded_because_post_decl;
   a_candidate_function_ptr
                 saved_candidate_functions = *candidate_functions;
+  an_overload_set_traversal_block
+                ostblock;
 
-  function_symbol = fundamental_symbol_of(overloaded_function_symbol);
-  /* Determine whether or not the symbol is an overloaded function. */
-  overloaded_function_case = (function_symbol->kind ==
-                                        (a_symbol_kind)sk_overloaded_function);
-  if (overloaded_function_case) {
-    /* Overloaded functions. */
-    overloaded_function_symbol = function_symbol;
-    proj_function_symbol =
-               overloaded_function_symbol->variant.overloaded_function.symbols;
-  } else {
-    /* Non-overloaded function. */
-    proj_function_symbol = overloaded_function_symbol;
-  }  /* if */
+  /* Get the first symbol to be considered in the overload set. */
+  proj_function_symbol = set_up_overload_set_traversal(
+                                                    overloaded_function_symbol,
+                                                    &ostblock);
   /* Remove namespace projections, if any. */
   function_symbol = fundamental_symbol_of(proj_function_symbol);
   /* If we have no selector, see if any one of the functions requires one.
@@ -3850,15 +3911,16 @@ b).
     routine_type = skip_typerefs(routine->type);
     if (routine_type_is_nonstatic_member_function(routine_type)) {
       some_function_needs_selector = TRUE;
-    }  /* if */
-    /* If the first function of a list of functions does not need a selector,
-       and the mixed_static_nonstatic says the list contains both static
-       and nonstatic functions, then we know at least one function needs
-       a selector. */
-    if (overloaded_function_case && !some_function_needs_selector &&
-        overloaded_function_symbol->variant.overloaded_function.
-                                                      mixed_static_nonstatic) {
-      some_function_needs_selector = TRUE;
+    } else {
+      /* If the first function of a list of functions does not need a selector,
+         and the mixed_static_nonstatic flag says the list contains both static
+         and nonstatic functions, then we know at least one function needs
+         a selector. */
+      a_symbol_ptr sym = fundamental_symbol_of(overloaded_function_symbol);
+      if (sym->kind == (a_symbol_kind)sk_overloaded_function &&
+          sym->variant.overloaded_function.mixed_static_nonstatic) {
+        some_function_needs_selector = TRUE;
+      }  /* if */
     }  /* if */
     if (some_function_needs_selector) {
       /* We need a selector and we don't have one.  See if a selector
@@ -3873,16 +3935,15 @@ b).
        Make functions declared after the call visible. */
     allow_post_declared_functions = TRUE;
   }  /* if */
-  saved_proj_function_symbol = proj_function_symbol;
 retry:
   any_discarded_because_post_decl = FALSE;
   any_not_discarded_because_post_decl = FALSE;
   /* Look at each instance of the overloaded function and see whether or
      not it can match the actual arguments, and if so, how well. */
   for (; proj_function_symbol != NULL;
-       proj_function_symbol = overloaded_function_case ? 
-                                                   proj_function_symbol->next :
-                                                   NULL) {
+       proj_function_symbol =
+                 next_symbol_in_overload_set(&ostblock,
+                                             (*candidate_functions != NULL))) {
     a_boolean discarded_because_post_decl;
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("overload")) {
@@ -3932,7 +3993,9 @@ retry:
        dependent call to be visible, but only if nothing from before the
        call is visible. */
     allow_post_declared_functions = TRUE;
-    proj_function_symbol = saved_proj_function_symbol;
+    proj_function_symbol = set_up_overload_set_traversal(
+                                                    overloaded_function_symbol,
+                                                    &ostblock);
     goto retry;
   }  /* if */
 }  /* try_overloaded_function_match */
