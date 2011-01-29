@@ -111,19 +111,21 @@ typedef struct an_overload_set_traversal_block {
 		is_overloaded_function_list;
 			/* TRUE if the list being traversed is the list
 			   under an sk_overloaded_function symbol. */
+  a_hide_by_sig_list_entry_ptr
+		hide_by_sig_list;
+			/* For a C++/CLI hide-by-sig name, the list of
+			   symbols to be considered, in order.  NULL
+			   otherwise. */
 } an_overload_set_traversal_block;
 
 
-static a_symbol_ptr set_up_overload_set_traversal(
+static a_symbol_ptr set_overload_set_traversal_symbol(
                                      a_symbol_ptr                    sym,
                                      an_overload_set_traversal_block *ostblock)
 /*
-Set up for traversing the symbols of an overload set via
-next_symbol_in_overload_set.  sym is the original symbol (often an
-sk_overloaded_function symbol, but it can be a non-overloaded function
-symbol, or a projection symbol for either of those).  Returns the first
-symbol to be considered, or NULL if there isn't one.  The symbol
-returned may be a projection symbol.
+Set the current symbol in the overload set traversal block ostblock to sym.
+Return the symbol that was stored (which, for an overloaded function, is
+the first symbol in the overload set).
 */
 {
   a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
@@ -138,11 +140,43 @@ returned may be a projection symbol.
     ostblock->is_overloaded_function_list = FALSE;
   }  /* if */
   return (ostblock->current_symbol = sym);
+}  /* set_overload_set_traversal_symbol */
+
+
+static a_symbol_ptr set_up_overload_set_traversal(
+                                     a_symbol_ptr                    sym,
+                                     an_overload_set_traversal_block *ostblock)
+/*
+Set up for traversing the symbols of an overload set via
+next_symbol_in_overload_set.  sym is the original symbol (often an
+sk_overloaded_function symbol, but it can be a non-overloaded function
+symbol, or a projection symbol for either of those).  Returns the first
+symbol to be considered, or NULL if there isn't one.  The symbol
+returned may be a projection symbol.
+*/
+{
+  ostblock->hide_by_sig_list = NULL;
+  if (cppcli_enabled) {
+    /* In C++/CLI mode, look to see if hide-by-sig lookup applies for this
+       symbol.  If so, we'll have a list to traverse to get to all the
+       not-hidden symbols, including those in base classes. */
+    a_hide_by_sig_list_entry_ptr list = hide_by_sig_list_for_symbol(sym);
+    if (list != NULL) {
+      /* There is a hide-by-sig list.  Start with the first symbol on the
+         list. */
+      while (list->symbol == NULL) {
+        list = list->next;
+        check_assertion(list != NULL);
+      }  /* if */
+      ostblock->hide_by_sig_list = list;
+      sym = list->symbol;
+    }  /* if */
+  }  /* if */
+  sym = set_overload_set_traversal_symbol(sym, ostblock);
+  return sym;
 }  /* set_up_overload_set_traversal */
 
 
-/*FIXME*/
-/*ARGSUSED*/
 static a_symbol_ptr next_symbol_in_overload_set(
                           an_overload_set_traversal_block *ostblock,
                           a_boolean                       any_viable_functions)
@@ -165,7 +199,32 @@ found at least one viable function.
     /* For a non-overloaded function, there is no next symbol. */
     sym = NULL;
   }  /* if */
-  return (ostblock->current_symbol = sym);
+  ostblock->current_symbol = sym;
+  if (sym == NULL) {
+    a_hide_by_sig_list_entry_ptr list = ostblock->hide_by_sig_list;
+    if (list != NULL) {
+      /* We've finished one symbol on the hide-by-sig list (which, if the
+         symbol was an overloaded function, involved going through the list
+         of functions).  Go on to the next entry on the hide-by-sig list.
+         If we have viable functions at the current level, we don't go down
+         into base classes (higher level numbers); we skip to the next
+         entry at the same or a lower (numerically) level. */
+      uint32_t level = list->level;
+      list = list->next;
+      while (list != NULL &&
+             (list->symbol == NULL ||
+              (list->level > level && any_viable_functions))) {
+        list = list->next;
+      }  /* while */
+      ostblock->hide_by_sig_list = list;
+      if (list != NULL) {
+        sym = list->symbol;
+        check_assertion(sym != NULL);
+        sym = set_overload_set_traversal_symbol(sym, ostblock);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return sym;
 }  /* next_symbol_in_overload_set */
     
 
