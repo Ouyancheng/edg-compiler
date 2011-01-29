@@ -2045,10 +2045,10 @@ is a hide-by-name ref class, a NULL pointer is returned.
 
   if (sym->hide_by_lookup_result != NULL) {
     result_list = sym->hide_by_lookup_result;
-  } else {if ((is_class ||
+  } else if ((is_class ||
               parent_ctsp->cli_class_type_kind ==
                                       (a_cli_class_type_kind)cctk_interface) &&
-              !parent_ctsp->is_hide_by_name) {
+             !parent_ctsp->is_hide_by_name) {
     a_hide_by_sig_list_entry_ptr	sublist;
     a_hide_by_sig_list_entry_ptr	sublist_tail;
     add_symbol_to_hide_by_sig_list(&result_list, &list_tail, sym, level);

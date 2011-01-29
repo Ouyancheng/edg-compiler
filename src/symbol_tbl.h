@@ -773,7 +773,7 @@ each entry is its level):
 
 G-0 -> C-1 -> A-2 -> B-2 -> F-1 -> D-2 -> E-2
 
-A node is only be on the list if it or one of its child nodes has a non-NULL
+A node is only on the list if it or one of its child nodes has a non-NULL
 symbol pointer.
 */
 typedef struct a_hide_by_sig_list_entry *a_hide_by_sig_list_entry_ptr;
