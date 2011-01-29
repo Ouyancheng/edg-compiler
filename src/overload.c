@@ -111,11 +111,13 @@ typedef struct an_overload_set_traversal_block {
 		is_overloaded_function_list;
 			/* TRUE if the list being traversed is the list
 			   under an sk_overloaded_function symbol. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_hide_by_sig_list_entry_ptr
 		hide_by_sig_list;
 			/* For a C++/CLI hide-by-sig name, the list of
 			   symbols to be considered, in order.  NULL
 			   otherwise. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } an_overload_set_traversal_block;
 
 
@@ -155,6 +157,7 @@ symbol to be considered, or NULL if there isn't one.  The symbol
 returned may be a projection symbol.
 */
 {
+#if MICROSOFT_EXTENSIONS_ALLOWED
   ostblock->hide_by_sig_list = NULL;
   if (cppcli_enabled) {
     /* In C++/CLI mode, look to see if hide-by-sig lookup applies for this
@@ -172,11 +175,15 @@ returned may be a projection symbol.
       sym = list->symbol;
     }  /* if */
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sym = set_overload_set_traversal_symbol(sym, ostblock);
   return sym;
 }  /* set_up_overload_set_traversal */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- any_viable_functions is not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_symbol_ptr next_symbol_in_overload_set(
                           an_overload_set_traversal_block *ostblock,
                           a_boolean                       any_viable_functions)
@@ -200,6 +207,7 @@ found at least one viable function.
     sym = NULL;
   }  /* if */
   ostblock->current_symbol = sym;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (sym == NULL) {
     a_hide_by_sig_list_entry_ptr list = ostblock->hide_by_sig_list;
     if (list != NULL) {
@@ -224,6 +232,7 @@ found at least one viable function.
       }  /* if */
     }  /* if */
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return sym;
 }  /* next_symbol_in_overload_set */
     
