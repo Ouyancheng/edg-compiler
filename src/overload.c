@@ -185,14 +185,14 @@ returned may be a projection symbol.
 /*ARGSUSED*/  /* <-- any_viable_functions is not used in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_symbol_ptr next_symbol_in_overload_set(
-                          an_overload_set_traversal_block *ostblock,
-                          a_boolean                       any_viable_functions)
+                               an_overload_set_traversal_block *ostblock,
+                               a_boolean                       curr_sym_viable)
 /*
 Advance to the next symbol in the overload set whose traversal is underway
 and described by ostblock, and return that next symbol, or NULL if there is
 no next symbol.  The symbol returned may be a projection symbol.
-any_viable_functions is TRUE if previous iterations of the loop have
-found at least one viable function.
+curr_sym_viable is TRUE if the current symbol on entry (the one processed
+on the iteration of the loop just completed) turned out to be viable.
 */
 {
   a_symbol_ptr sym = ostblock->current_symbol;
@@ -213,15 +213,19 @@ found at least one viable function.
     if (list != NULL) {
       /* We've finished one symbol on the hide-by-sig list (which, if the
          symbol was an overloaded function, involved going through the list
-         of functions).  Go on to the next entry on the hide-by-sig list.
-         If we have viable functions at the current level, we don't go down
-         into base classes (higher level numbers); we skip to the next
-         entry at the same or a lower (numerically) level. */
+         of functions).  Go on to the next entry on the hide-by-sig list. */
       uint32_t level = list->level;
       list = list->next;
-      while (list != NULL &&
-             (list->symbol == NULL ||
-              (list->level > level && any_viable_functions))) {
+      /* If the symbol we just finished processing was viable, do not descend
+         into base classes under it; skip instead to the next entry at the same
+         or a lower (numerically) level. */
+      if (curr_sym_viable) {
+        while (list != NULL && list->level > level) {
+          list = list->next;
+        }  /* while */
+      }  /* if */
+      /* Skip entries with null symbols. */
+      while (list != NULL && list->symbol == NULL) {
         list = list->next;
       }  /* while */
       ostblock->hide_by_sig_list = list;
@@ -3946,8 +3950,10 @@ b).
   a_boolean     allow_post_declared_functions = FALSE;
   a_boolean     any_discarded_because_post_decl;
   a_boolean     any_not_discarded_because_post_decl;
+  a_boolean     curr_sym_viable;
   a_candidate_function_ptr
-                saved_candidate_functions = *candidate_functions;
+                orig_saved_candidate_functions = *candidate_functions,
+                saved_candidate_functions;
   an_overload_set_traversal_block
                 ostblock;
 
@@ -4009,9 +4015,8 @@ retry:
   /* Look at each instance of the overloaded function and see whether or
      not it can match the actual arguments, and if so, how well. */
   for (; proj_function_symbol != NULL;
-       proj_function_symbol =
-                 next_symbol_in_overload_set(&ostblock,
-                                             (*candidate_functions != NULL))) {
+       proj_function_symbol = next_symbol_in_overload_set(&ostblock,
+                                                          curr_sym_viable)) {
     a_boolean discarded_because_post_decl;
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("overload")) {
@@ -4020,6 +4025,7 @@ retry:
                 "try_overloaded_function_match: considering ", 4);
     }  /* if */
 #endif /* DEBUG */
+    saved_candidate_functions = *candidate_functions;
     /* Determine whether the function is viable by looking at the arguments.
        Add the function to the candidates list if it is viable. */
     determine_function_viability(proj_function_symbol,
@@ -4050,9 +4056,10 @@ retry:
     } else {
       any_not_discarded_because_post_decl = TRUE;
     }  /* if */
+    curr_sym_viable = (saved_candidate_functions != *candidate_functions);
   }  /* for */
   if (gpp_mode && gnu_version >= 40100 &&
-      *candidate_functions == saved_candidate_functions &&
+      *candidate_functions == orig_saved_candidate_functions &&
       any_discarded_because_post_decl &&
       !any_not_discarded_because_post_decl &&
       !allow_post_declared_functions &&
