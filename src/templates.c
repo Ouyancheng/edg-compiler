@@ -5251,7 +5251,6 @@ non-NULL, issue an error at the given position.
         !is_value_class_type(tp)) {
       /* Elements of an array must have a handle or value type (or a type that
          can be implicitly converted to a value type). */
-      /* FIXME: Add check for types implicitly convertible to value types. */
       if (diag_pos != NULL) {
         pos_error(ec_cli_array_invalid_element_type, diag_pos);
       }  /* if */
