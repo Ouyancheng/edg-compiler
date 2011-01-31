@@ -4726,7 +4726,9 @@ static void lower_ck_dynamic_init(a_constant_ptr         con_ptr,
                                   an_implied_copy_source *source_desc,
                                   a_boolean              others_follow_in_aggr,
                                   an_insert_location_ptr insert_location,
-                                  a_boolean              *keep_constant)
+                                  a_boolean              *keep_constant,
+                                  a_lower_dynamic_init_options_set
+                                                         options)
 /*
 Generate executable code to handle a ck_dynamic_init constant (pointed
 to by con_ptr).  The entity to be initialized is described by ipdp.
@@ -4744,7 +4746,9 @@ constant for the constant parts and *keep_constant will be set to TRUE.
 *keep_constant is also set to TRUE if the ck_dynamic_init is used to
 initialize an element of a vector.  Individual vector elements cannot be
 individually assigned, so they must remain as part of the aggregate
-initializer.
+initializer.  options is a bit mask specifying any special treatment of this
+initialization (e.g., whether this initialization represents a full
+expression).
 */
 {
   a_constant_ptr     next_con;
@@ -4779,7 +4783,7 @@ initializer.
   } else {
     /* Normal initialization. */
     lower_dynamic_init(dip, ipdp, source_desc, (a_variable_ptr)NULL,
-                       LDIO_FULL_EXPR, others_follow_in_aggr,
+                       options, others_follow_in_aggr,
                        insert_location, 
 #if GNU_VECTOR_TYPES_ALLOWED
                        &keep_dynamic_init,
@@ -4897,7 +4901,9 @@ static void lower_dynamic_init_aggregate_constant(
                           a_boolean              others_follow_in_aggr,
                           an_insert_location_ptr insert_location,
                           a_boolean              *contains_vector_dynamic_init,
-                          a_boolean              *keep_constant)
+                          a_boolean              *keep_constant,
+                          a_lower_dynamic_init_options_set
+                                                 options)
 /*
 aggr_const points to a ck_aggregate constant that contains one or more
 ck_dynamic_init dynamic initializations.  The ck_aggregate constant is
@@ -4912,7 +4918,9 @@ and update *insert_location.  If contains_vector_dynamic_init is non-NULL,
 set *contains_vector_dynamic_init to TRUE if aggr_con is a vector that
 contains a dynamic initialization for a vector element, FALSE otherwise.
 If there are any (genuine) constants in the aggregate, set *keep_constant to
-TRUE.
+TRUE.  options is a bit mask specifying any special treatment of this
+initialization (e.g., whether this initialization represents a full
+expression).
 */
 {
   an_init_pos_descr    ipd;
@@ -5003,7 +5011,8 @@ TRUE.
     if (con_ptr->kind == (a_constant_repr_kind)ck_dynamic_init) {
       /* Dynamic initialization. */
       lower_ck_dynamic_init(con_ptr, &ipd, dtor_case, source_desc,
-                            others_follow, insert_location, keep_constant);
+                            others_follow, insert_location, keep_constant,
+                            options);
 #if GNU_VECTOR_TYPES_ALLOWED
       if (aggr_type->kind == (a_type_kind)tk_vector) {
         /* This is a dynamic initialization of an element of a vector type,
@@ -5046,7 +5055,8 @@ TRUE.
                           (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
         ipd.array_element_type = repeated_con->type;
         lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, source_desc,
-                              others_follow, insert_location, keep_constant);
+                              others_follow, insert_location, keep_constant,
+                              options);
         /* Remove the ck_init_repeat constant, in case the overall aggregate
            is kept for the constant parts. */
         check_assertion(con_ptr->next == NULL);
@@ -5063,7 +5073,7 @@ TRUE.
                                             dtor_case, source_desc,
                                             others_follow, insert_location,
                                             contains_vector_dynamic_init,
-                                            keep_constant);
+                                            keep_constant, options);
     } else {
       /* Normal constant. */
       if (C_mode()) {
@@ -7548,7 +7558,8 @@ do_assignment:;
 #else /* !GNU_VECTOR_TYPES_ALLOWED */
                                             (a_boolean *)NULL,
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-                                            &keep_constant);
+                                            &keep_constant,
+                                            options);
       if (keep_constant) {
         /* There is a constant part of the initialization to be kept. */
         if (variable == NULL) {
@@ -12355,7 +12366,8 @@ array if necessary.  The statements created are inserted at
                                           /*others_follow_in_aggr=*/FALSE,
                                           insert_location,
                                           (a_boolean *)NULL,
-                                          &keep_constant);
+                                          &keep_constant,
+                                          LDIO_FULL_EXPR);
 #if CHECKING
     if (keep_constant) {
       internal_error("lower_dtor_init: unexpected result");

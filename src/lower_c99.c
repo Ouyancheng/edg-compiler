@@ -134,22 +134,32 @@ Lower the expression in a VLA dimension entry.
 */
 {
   an_expr_node_ptr  expr = vdp->dimension_expr;
+  a_context         context;
+  a_context         *saved_curr_context;
 
   if (expr != NULL) {
-    a_context    context;
     a_scope_ptr  saved_innermost_function_scope;
     if (vdp->in_prototype_scope) {
       /* The expression we're about to lower may generate temporaries, but
          those temporaries would be allocated in the function scope (and
          therefore not available for use in the prototype scope).  As a
          workaround, temporarily restore the file scope context to catch these
-         temporaries.   (Note that VLAs can only appear in prototype scope in
+         temporaries.  (Note that VLAs can only appear in prototype scope in
          C modes.) */
       check_assertion(C_mode());
       saved_innermost_function_scope = innermost_function_scope;
       innermost_function_scope = NULL;
       push_context(&context, il_header.primary_scope,
                    (an_object_lifetime_ptr)NULL);
+    } else {
+      /* We're about to lower a VLA expression as a full expression, but we
+         may already be in a full expression context (and full expressions
+         can't be nested).  Save the existing context stack and push a new
+         one with the same scope and lifetime (so temporaries don't
+         inadvertently get reused in the outer full expression). */
+      clear_curr_context(&saved_curr_context);
+      push_context(&context, saved_curr_context->scope,
+                   saved_curr_context->lifetime);
     }  /* if */
     if (C_mode()) {
 #if DO_C99_IL_LOWERING
@@ -158,9 +168,11 @@ Lower the expression in a VLA dimension entry.
     } else {
       lower_full_expr(expr, (a_statement_ptr)NULL);
     }  /* if */
+    pop_context();
     if (vdp->in_prototype_scope) {
-      pop_context();
       innermost_function_scope = saved_innermost_function_scope;
+    } else {
+      restore_curr_context(saved_curr_context);
     }  /* if */
 #if MINIMAL_INLINING
     /* Catch constant nonpositive sizes introduced by inlining. */
@@ -3785,6 +3797,13 @@ Do C99 lowering on the indicated full expression.  A full expression is
 one not contained inside another expression.
 */
 {
+#if CHECKING
+  /* Make sure we're not in a nested full-expression (by definition, that
+     would make this a subexpression and temporaries might be incorrectly
+     reused in that case). */
+  check_assertion(!curr_context->in_full_expression);
+  curr_context->in_full_expression = TRUE;
+#endif /* CHECKING */
 #if !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL
   if (expr->result_is_not_used &&
       is_operation_node(expr) &&
@@ -3796,6 +3815,9 @@ one not contained inside another expression.
 #endif /* !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL */
   lower_c99_expr(expr);
   end_of_c99_full_expr(expr);
+#if CHECKING
+  curr_context->in_full_expression = FALSE;
+#endif /* CHECKING */
 }  /* lower_c99_full_expr */
 
 void lower_c99_boolean_controlling_expr(an_expr_node_ptr expr,

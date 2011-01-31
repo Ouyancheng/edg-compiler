@@ -1,5 +1,39 @@
 Version 4.3
 
+1/31/11  [EDGcpfe/11307]
+Incorrect reuse of temporaries in some lowered full expressions
+
+During the lowering of certain full expressions, some subexpressions (e.g.,
+VLAs, lambdas, compound literals) were mistakenly being treated as full
+expressions, causing temporary variables to be reused before the end of
+the full expression.  This has now been fixed.  In this example (with --g++
+--c++0x), in the cases indicated below, the same temporary was being used for
+the first and third arguments in the call to f():
+
+  extern "C" int printf(const char *,...);
+  int ret = 0;
+  struct A {
+    ~A() {}
+  };
+  void f(A a1, int, A a2) {
+    if (&a1 == &a2) {
+      printf("FAIL\n");
+      ret = 1;
+    }
+  }
+  struct B { int i; };
+  int main() {
+    int i = 2;
+    f(A(), 0, A());                  // okay (different temporaries)
+    f(A(), ({0;}), A());             // okay (different temporaries)
+    f(A(), []{return 0;}(), A());    // okay (different temporaries)
+    f(A(), [&i]{return 0;}(), A());  // bad (same temporary used)
+    f(A(), ((int(*)[i]){0},0), A()); // bad (same temporary used)
+    f(A(), ((B){i},0), A());         // bad (same temporary used)
+    return ret;
+  }
+
+
 1/29/11  [EDGcpfe/11303]
 Suppress warning about unusable template parameter if it has a default value
 

@@ -760,6 +760,32 @@ lifetime.
 }  /* set_curr_cleanup_state_to_latest_initialization */
 
 
+void clear_curr_context(a_context **context)
+/*
+Clear the existing context stack by saving it to *context and start a new
+context stack (setting curr_context to NULL).  This is used as a mechanism
+in cases where nested full expressions are needed, for example, when lowering
+a VLA dimension expression within a full expression.  *context should be
+restored by a later call to restore_curr_context.
+*/
+{
+  check_assertion(context != NULL);
+  *context = curr_context;
+  curr_context = NULL;
+}  /* clear_curr_context */
+
+
+void restore_curr_context(a_context *context)
+/*
+Restore the context stack specified by *context (as saved by a previous
+call to clear_curr_context).
+*/
+{
+  check_assertion(curr_context == NULL);
+  curr_context = context;
+}  /* restore_curr_context */
+
+
 void push_context(a_context              *context,
                   a_scope_ptr            scope,
                   an_object_lifetime_ptr lifetime)
@@ -823,6 +849,9 @@ scope, or the lifetime from the parent context, will be used.
     context->scopeless_compound_stmts =
                                       parent_context->scopeless_compound_stmts;
   }  /* if */
+#if CHECKING
+  context->in_full_expression = FALSE;
+#endif /* CHECKING */
 }  /* push_context */
 
 
@@ -14575,6 +14604,13 @@ expression statement, statement points to the statement; otherwise, it is NULL.
       expr->type = make_unqualified_type(expr->type);
     }  /* if */
   }  /* if */
+#if CHECKING
+  /* Make sure we're not in a nested full-expression (by definition, that
+     would make this a subexpression and temporaries might be incorrectly
+     reused in that case). */
+  check_assertion(!curr_context->in_full_expression);
+  curr_context->in_full_expression = TRUE;
+#endif /* CHECKING */
   if (expr->is_lvalue && expr_to_lower->result_is_not_used) {
 #if DEBUG
     if (db_flag_is_set("rewrite_expr")) {
@@ -14662,6 +14698,9 @@ expression statement, statement points to the statement; otherwise, it is NULL.
   /* Release any temporary variables that are no longer needed after the
      end of the full expression. */
   release_reusable_temporaries();
+#if CHECKING
+  curr_context->in_full_expression = FALSE;
+#endif /* CHECKING */
 }  /* lower_full_expr */
 
 

@@ -519,6 +519,12 @@ typedef struct a_context {
 			   innermost to outermost.  Stops at the scope
 			   or lifetime associated with this context stack
 			   entry. */
+#if CHECKING
+  a_boolean     in_full_expression;
+                        /* TRUE if we're lowering a full-expression in this
+                           context.  Used to guard against lowering nested
+                           full-expressions in the same context. */
+#endif /* CHECKING */
 } a_context;
 
 EXTERN a_context_ptr
@@ -734,6 +740,10 @@ extern void pop_context(void);
 extern void push_context(a_context              *context,
                          a_scope_ptr            scope,
                          an_object_lifetime_ptr lifetime);
+
+extern void clear_curr_context(a_context **context);
+
+extern void restore_curr_context(a_context *context);
 
 extern void set_insert_location(a_statement_ptr    stmt,
                                 an_insert_location *insert_location);
