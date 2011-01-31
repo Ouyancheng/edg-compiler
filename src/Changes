@@ -1,6 +1,6 @@
 Version 4.3
 
-01/29/11  [EDGcpfe/11303]
+1/29/11  [EDGcpfe/11303]
 Suppress warning about unusable template parameter if it has a default value
 
 The front end issues a warning if a template constructor or conversion
