@@ -5,11 +5,11 @@ Suppress warning about unusable template parameter if it has a default value
 
 The front end issues a warning if a template constructor or conversion
 operator declares a template parameter that is not used in the function
-type under the assumption that such a template parameter could not be
+type, under the assumption that such a template parameter could not be
 deduced.  Now that default arguments are allowed for template parameters
 of function templates (see 6/23/10 entry), such template parameters
 could be used even though they are not part of the function type.
-Furthermore, this is an useful technique when using "enable_if" like
+Furthermore, this is a useful technique when using "enable_if" like
 techniques.  The warning is now suppressed for template parameters that
 have default values.
 
