@@ -1821,8 +1821,13 @@ Display an expression operand for debugging purposes.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case ok_property_ref:
       (void)fprintf(f_debug, "property ref = \n");
-      (void)fprintf(f_debug, "object =\n");
-      db_expression(operand->variant.property_ref.object);
+      (void)fprintf(f_debug, "object =");
+      if (operand->variant.property_ref.object != NULL) {
+        (void)fprintf(f_debug, "\n");
+        db_expression(operand->variant.property_ref.object);
+      } else {
+        (void)fprintf(f_debug, " NULL\n");
+      }  /* if */
       { a_property_or_event_descr_ptr pedp =
                                            operand->variant.property_ref.descr;
         if (pedp->is_static) {
@@ -1833,14 +1838,15 @@ Display an expression operand for debugging purposes.
           db_name(&pedp->variant.field->source_corresp);
         }  /* if */
       }
-      (void)fprintf(f_debug, "\nsubscripts =\n");
-      { an_arg_operand_ptr aop;
+      if (operand->variant.property_ref.subscripts != NULL) {
+        an_arg_operand_ptr aop;
+        (void)fprintf(f_debug, "subscripts =\n");
         for (aop = operand->variant.property_ref.subscripts;
              aop != NULL;
              aop = aop->next) {
           db_operand(&aop->operand);
         }  /* for */
-      }
+      }  /* if */
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:
@@ -2097,7 +2103,7 @@ operand clone.  The clone reuses the evaluation of the original
 expression rather than evaluating it again if it has side effects;
 *temp_init_used is returned TRUE if a temporary was used (including
 a reuse of an existing temporary), and the caller must ensure that
-expr is evaluated before the copy in that case.  vars_can_change
+operand is evaluated before the copy in that case.  vars_can_change
 is TRUE if values of variables might change due to code executed
 between the first evaluation and the clone evaluation.  The safe
 value is TRUE.
@@ -2159,9 +2165,22 @@ value is TRUE.
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case ok_property_ref:
-      operand_clone->variant.property_ref.object =
+      if (operand->variant.property_ref.descr->is_static) {
+        /* The property is static and has no associated object.  Even if there
+           is one on the original operand, don't copy it because we don't
+           need it on the clone. */
+        operand_clone->variant.property_ref.object = NULL;
+        if (operand->variant.property_ref.object!= NULL) {
+          /* ... but do set *temp_init_used to force the original operand
+             to be evaluated first. */
+          *temp_init_used = TRUE;
+        }  /* if */
+      } else {
+        check_assertion(operand->variant.property_ref.object != NULL);
+        operand_clone->variant.property_ref.object =
                   make_expr_reusable_copy(operand->variant.property_ref.object,
                                           vars_can_change, temp_init_used);
+      }  /* if */
       /* Copy the list of subscript operands. */
       { an_arg_operand_ptr aop, last_clone_aop = NULL;
         for (aop = operand->variant.property_ref.subscripts;
@@ -14766,8 +14785,8 @@ reference is given by pos.
 }  /* get_property_accessor_symbol */
 
 
-void rewrite_property_field_reference(an_operand *operand,
-                                      an_operand *put_operand)
+void rewrite_property_reference(an_operand *operand,
+                                an_operand *put_operand)
 /*
 *operand is an operand for a reference to a class member declared as
 a Microsoft property (either using __declspec(property) or the C++/CLI
@@ -14799,13 +14818,26 @@ the value to be put); the access is a "get" if put_operand is NULL.
   } else {
     an_operand         function_operand;
     an_operand         bound_function_selector;
+    an_operand         static_selector;
+    a_boolean          have_selector = !pedp->is_static;
+    a_boolean          have_static_selector = FALSE;
     an_arg_operand_ptr arg_operand_list;
     an_expr_node_ptr   argument_list;
 
-    /* Make an operand for the object pointer. */
-    make_expression_operand(operand->variant.property_ref.object,
-                            &bound_function_selector);
-    bound_function_selector.selector_is_object_pointer = TRUE;
+    if (have_selector) {
+      /* Make an operand for the object pointer. */
+      check_assertion(operand->variant.property_ref.object != NULL);
+      make_expression_operand(operand->variant.property_ref.object,
+                              &bound_function_selector);
+      bound_function_selector.selector_is_object_pointer = TRUE;
+    } else if (operand->variant.property_ref.object != NULL) {
+      /* This is a static property, but an object was specified.  It's
+         not used in overload resolution, but it gets attached to the
+         result as an unneeded selector. */
+      have_static_selector = TRUE;
+      make_expression_operand(operand->variant.property_ref.object,
+                              &static_selector);
+    }  /* if */
     /* The arg_operand list is the subscript expression list, if any. */
     arg_operand_list = operand->variant.property_ref.subscripts;
     /* The subscript arg_operands will be freed by the overload
@@ -14830,7 +14862,7 @@ the value to be put); the access is a "get" if put_operand is NULL.
                                        getput_sym,
                                        /*is_template_id=*/FALSE,
                                        (a_template_arg_ptr)NULL,
-                                       /*have_selector=*/TRUE,
+                                       have_selector,
                                        &bound_function_selector,
                                        arg_operand_list,
                                        /*do_arg_dep_lookup=*/FALSE,
@@ -14865,13 +14897,19 @@ the value to be put); the access is a "get" if put_operand is NULL.
          the original operand end position. */
       operand->end_position = operand_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      if (have_static_selector) {
+        /* Attach an unneeded selector for a static property. */
+        combine_unneeded_selector_with_operand(&static_selector,
+                                               /*is_arrow_operator=*/TRUE,
+                                               operand);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (curr_expr_kind_is_const() && !is_error_operand(operand)) {
     error_in_operand(ec_expr_not_constant, operand);
   }  /* if */
   rule_out_expr_kinds(ROEK_CONSTANT, operand);
-}  /* rewrite_property_field_reference */
+}  /* rewrite_property_reference */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -15086,7 +15124,7 @@ transformations.
     if (!(options & TOPT_SUPPRESS_RVALUE_PROPERTY_REWRITE)) {
       /* This operand is a reference to a member declared as a Microsoft
          property.  Change it to a call of the appropriate "get" function. */
-      rewrite_property_field_reference(operand, (an_operand *)NULL);
+      rewrite_property_reference(operand, (an_operand *)NULL);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

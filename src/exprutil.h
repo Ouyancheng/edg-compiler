@@ -459,7 +459,12 @@ typedef struct an_operand {
        property syntax. */
     struct {
       an_expr_node_ptr
-		object;	/* Expression for the class object pointer. */
+		object;	/* Expression for the class object pointer.  For a
+			   reference to a C++/CLI static property, can be NULL
+			   because there's no object, and if it is non-NULL
+			   indicates an object that is evaluated and discarded
+			   (it won't take part in the overload resolution
+			   used to select the accessor). */
       a_property_or_event_descr_ptr
 		descr;	/* The property description. */
       an_arg_operand_ptr
@@ -1339,8 +1344,8 @@ a_symbol_ptr get_property_accessor_symbol(
                                  a_boolean                     must_be_present,
                                  a_source_position             *pos);
 
-extern void rewrite_property_field_reference(an_operand *operand,
-                                             an_operand *put_operand);
+extern void rewrite_property_reference(an_operand *operand,
+                                       an_operand *put_operand);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void convert_function_template_to_single_function_if_possible(

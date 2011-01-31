@@ -721,7 +721,7 @@ Make an operand for a Microsoft property member reference.  pedp describes
 the property (associated with a field or static data member variable).
 operand is the class object, or (if is_arrow_operator is TRUE) a handle to
 the class object.  The property reference operand created is returned in
-*result.
+*result.  For a static property, operand is NULL if no object was specified.
 */
 {
   check_assertion(operand != result);
@@ -729,8 +729,13 @@ the class object.  The property reference operand created is returned in
   result->type = unknown_type();
   result->variant.property_ref.descr = pedp;
   set_lvalue_operand_state(result);
-  conv_selector_to_object_pointer(operand, &is_arrow_operator);
-  result->variant.property_ref.object = make_node_from_operand(operand);
+  if (operand != NULL) {
+    conv_selector_to_object_pointer(operand, &is_arrow_operator);
+    result->variant.property_ref.object = make_node_from_operand(operand);
+  } else {
+    /* The property is static and no object was specified. */
+    result->variant.property_ref.object = NULL;
+  }  /* if */
 }  /* make_property_ref_operand */
 
 
@@ -888,7 +893,7 @@ This routine is also used when scanning __builtin_offsetof constructs.
       /* For a property field reference where there's a "get" accessor that
          returns something that can be subscripted, use that and then subscript
          the returned value. */
-      rewrite_property_field_reference(operand_1, (an_operand *)NULL);
+      rewrite_property_reference(operand_1, (an_operand *)NULL);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5752,14 +5757,27 @@ case).
           break;
         case sk_static_data_member:
           /* Static data member reference. */
-          make_lvalue_variable_operand(
-                              member_sym->variant.static_data_member.variable,
+          { a_variable_ptr var =
+                               member_sym->variant.static_data_member.variable;
+            if (var->property_or_event_descr != NULL) {
+              /* A C++/CLI static property variable. */
+              make_property_ref_operand(var->property_or_event_descr,
+                                        operand_1,
+                                        is_arrow_operator,
+                                        result);
+            } else {
+              /* A normal static data member, not a property. */
+              make_lvalue_variable_operand(
+                              var,
                               &member_position,
                               end_position_or_null(&end_position),
                               result, rep);
-          set_operand_id_details_from_locator(result, &locator);
-          combine_unneeded_selector_with_operand(operand_1, is_arrow_operator,
-                                                 result);
+              set_operand_id_details_from_locator(result, &locator);
+              combine_unneeded_selector_with_operand(operand_1,
+                                                     is_arrow_operator,
+                                                     result);
+            }  /* if */
+          }
           break;
         case sk_member_function:
           /* Member function (static or non-static). */
@@ -6328,8 +6346,13 @@ static an_expr_node_ptr make_node_from_property_ref_operand(
                                                            an_operand *operand)
 /*
 Extract an expression node from a property-ref operand and return it.
-The operand is one that sets one or more temporaries, and the expressions
-that do that are extracted and concatenated.
+This used when the original copy of a cloned property-ref operand must be
+evaluated before the copies, e.g., to set one or more temporaries.
+The expression returned concatenates all the pieces that have side
+effects into one comma expression, which will then be inserted early in
+the evaluation sequence.  The expression returned can be NULL if none
+of the expressions has side effects (usually not possible, but can
+happen for a C++/CLI static property reference).
 */
 {
   an_expr_node_ptr   expr;
@@ -6337,14 +6360,24 @@ that do that are extracted and concatenated.
 
   check_assertion(is_property_ref_operand(operand));
   expr = operand->variant.property_ref.object;
+  if (expr != NULL) {
+    if (!node_has_side_effects(expr, (a_boolean *)NULL)) {
+      /* Discard the object expression because it has no side effects. */
+      expr = NULL;
+    }  /* if */
+  }  /* if */
   /* Add any subscript operands. */
   for (aop = operand->variant.property_ref.subscripts;
        aop != NULL;
        aop = aop->next) {
     an_expr_node_ptr sub_expr = make_node_from_operand(&aop->operand);
     if (node_has_side_effects(sub_expr, (a_boolean *)NULL)) {
-      expr = make_comma_node(expr, sub_expr);
-      expr->variant.operation.compiler_generated = TRUE;
+      if (expr == NULL) {
+        expr = sub_expr;
+      } else {
+        expr = make_comma_node(expr, sub_expr);
+        expr->variant.operation.compiler_generated = TRUE;
+      }  /* if */
     }  /* if */
   }  /* for */
   return expr;  
@@ -6369,20 +6402,25 @@ early to get the temporary initialized; otherwise, it is set to NULL.
   clone_operand(operand, operand_clone, /*vars_can_change=*/TRUE,
                 &temp_init_used);
   if (temp_init_used) {
-    a_boolean  dummy_temp_init_used;
-    an_operand temp_operand;
     /* The cloning required a temporary.  Arrange for setting the temporary
        before any of the code that uses it (by adding a comma expression
        later). */
-    a_ref_entry_ptr saved_ref_entries = operand->ref_entries_list;
-    operand->ref_entries_list = NULL;
-    /* Make another reuse of the expression for use in the "get" call. */
-    clone_operand(operand, &temp_operand, /*vars_can_change=*/TRUE,
-                  &dummy_temp_init_used);
     /* Extract and return the code that initializes the temporary. */
     *temp_init_expr = make_node_from_property_ref_operand(operand);
-    copy_operand(&temp_operand, operand);
-    operand->ref_entries_list = saved_ref_entries;
+    /* In some cases involving C++/CLI static properties, the temp_init_expr
+       might be NULL here, because the original operand has no side effects
+       and no temporaries are needed. */
+    if (*temp_init_expr != NULL) {
+      /* Make another reuse of the expression for use in the "get" call. */
+      an_operand      temp_operand;
+      a_boolean       dummy_temp_init_used;
+      a_ref_entry_ptr saved_ref_entries = operand->ref_entries_list;
+      operand->ref_entries_list = NULL;
+      clone_operand(operand, &temp_operand, /*vars_can_change=*/TRUE,
+                    &dummy_temp_init_used);
+      copy_operand(&temp_operand, operand);
+      operand->ref_entries_list = saved_ref_entries;
+    }  /* if */
   }  /* if */
 }  /* clone_property_ref_operand */
 
@@ -6415,7 +6453,7 @@ it is set to NULL.
   /* Make a clone of the operand, to be used in the store. */
   clone_property_ref_operand(operand, operand_clone, temp_init_expr);
   /* Transform the operand to a call of the appropriate "get" function. */
-  rewrite_property_field_reference(operand, (an_operand *)NULL);
+  rewrite_property_reference(operand, (an_operand *)NULL);
   if (is_overloadable_type_operand(operand)) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading((an_opname_kind)(is_increment ?
@@ -6501,7 +6539,7 @@ any use of the temporary.  The overall result is placed in *result.
   do_binary_operation(op, operand, &one_operand, result_type, result,
                       operator_position, NO_TOKEN_SEQUENCE_NUMBER);
   /* Add a call of the appropriate "put" routine. */
-  rewrite_property_field_reference(operand_clone, result);
+  rewrite_property_reference(operand_clone, result);
   copy_operand(operand_clone, result);
   /* Insert temporary-initialization code if required. */
   insert_temporary_initialization(temp_init_expr, result);
@@ -19670,7 +19708,7 @@ that case.
     /* The operand is a reference to a member declared as a Microsoft
        property.  Rewrite it as a call of the "put" function for the
        property. */
-    rewrite_property_field_reference(operand_1, &operand_2);
+    rewrite_property_reference(operand_1, &operand_2);
     *result = *operand_1;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
@@ -19866,7 +19904,7 @@ is expected to be NULL in that case.
     operand_1_clone_unused = TRUE;
     /* Transform the left operand to a call of the appropriate "get"
        function. */
-    rewrite_property_field_reference(operand_1, (an_operand *)NULL);
+    rewrite_property_reference(operand_1, (an_operand *)NULL);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -20180,7 +20218,7 @@ operation_type_determined:
   if (property_ref_case && !err) {
     /* For a reference to a Microsoft property member, store the result by
        calling a "put" function. */
-    rewrite_property_field_reference(&operand_1_clone, result);
+    rewrite_property_reference(&operand_1_clone, result);
     copy_operand(&operand_1_clone, result);
     operand_1_clone_unused = FALSE;
     insert_temporary_initialization(temp_init_expr, result);
@@ -21727,7 +21765,13 @@ if rescan_is_template_id is TRUE, and return the result in *operand
           break;
         case sk_static_data_member:
           var_ptr = sym_ptr->variant.static_data_member.variable;
-          goto variable;
+          if (var_ptr->property_or_event_descr == NULL) goto variable;
+          /* A C++/CLI static property variable. */
+          make_property_ref_operand(var_ptr->property_or_event_descr,
+                                    (an_operand *)NULL,
+                                    /*handle_case=*/FALSE,
+                                    result);
+          break;
         case sk_variable:
           var_ptr = sym_ptr->variant.variable.ptr;
 variable:
@@ -24106,7 +24150,7 @@ bad_start_of_primary:
           /* Leave as is. */
           break;
         default:
-          rewrite_property_field_reference(&local_result, (an_operand *)NULL);
+          rewrite_property_reference(&local_result, (an_operand *)NULL);
           break;
       }  /* switch */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -24282,7 +24326,7 @@ bad_start_of_primary:
     if (!(local_options & EOPT_PRESERVE_PROPERTY_REF)) {
       /* If the operand is a reference to a member declared as a Microsoft
          property, change it to a call of the appropriate "get" function. */
-      rewrite_property_field_reference(&local_result, (an_operand *)NULL);
+      rewrite_property_reference(&local_result, (an_operand *)NULL);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
