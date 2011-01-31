@@ -5759,13 +5759,17 @@ case).
           /* Static data member reference. */
           { a_variable_ptr var =
                                member_sym->variant.static_data_member.variable;
+#if MICROSOFT_EXTENSIONS_ALLOWED
             if (var->property_or_event_descr != NULL) {
               /* A C++/CLI static property variable. */
               make_property_ref_operand(var->property_or_event_descr,
                                         operand_1,
                                         is_arrow_operator,
                                         result);
-            } else {
+            } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            /* Do not insert code here. */
+            {
               /* A normal static data member, not a property. */
               make_lvalue_variable_operand(
                               var,
@@ -21765,13 +21769,17 @@ if rescan_is_template_id is TRUE, and return the result in *operand
           break;
         case sk_static_data_member:
           var_ptr = sym_ptr->variant.static_data_member.variable;
-          if (var_ptr->property_or_event_descr == NULL) goto variable;
-          /* A C++/CLI static property variable. */
-          make_property_ref_operand(var_ptr->property_or_event_descr,
-                                    (an_operand *)NULL,
-                                    /*handle_case=*/FALSE,
-                                    result);
-          break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (var_ptr->property_or_event_descr != NULL) {
+            /* A C++/CLI static property variable. */
+            make_property_ref_operand(var_ptr->property_or_event_descr,
+                                      (an_operand *)NULL,
+                                      /*handle_case=*/FALSE,
+                                      result);
+            break;
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          goto variable;
         case sk_variable:
           var_ptr = sym_ptr->variant.variable.ptr;
 variable:
