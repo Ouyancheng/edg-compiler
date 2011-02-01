@@ -1,5 +1,32 @@
 Version 4.3
 
+2/1/11   [EDGcpfe/10868]
+C++-generating back end: typedefs in qualifiers in template arguments
+
+In most cases, in order to avoid unnecessarily verbose template argument
+lists, the C++-generating back end uses the underlying type of a typedef in
+a template argument instead of the typedef name itself.  This was done even
+in the qualifiers in qualified names when the front end is configured with
+DEFAULT_RECORD_FORM_OF_NAME_REFERENCE set to TRUE, which could lead to
+incorrect output when the qualification required for the underlying type is
+different from that of the typedef that appears in the source code.  This
+has now been fixed by always using the recorded typedef names when putting
+out a name reference unless the typedef cannot be used at that point in the
+source because it is inaccessible or has not yet been declared.  For
+example:
+ 
+  namespace N {
+    template <typename T> struct S { static const bool b = false; };
+  }
+
+  template <bool> struct D { };
+
+  template<typename T> struct X {
+    typedef N::S<T> ST;
+    D<ST::b && ST::b> Var;  // Previously generated as "S<T>::b"
+  };
+
+
 1/31/11  [EDGcpfe/11307]
 Incorrect reuse of temporaries in some lowered full expressions
 

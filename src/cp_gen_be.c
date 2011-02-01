@@ -2959,16 +2959,14 @@ reference, pointer, or array of pointers to such a type.
 }  /* type_involves_non_cplusplus_function */
 
 
-static a_boolean is_typedef_invisible_in_cp_gen_be(a_type_ptr type)
+static a_boolean typedef_is_unusable(a_type_ptr type)
 /*
-Called from the il_to_str routines.  Returns TRUE if the indicated typedef
-type should be considered to be invisible, i.e., the type under it should
-be put out instead of the typedef name.  Note that certain basic
-visibility tests are done in the il_to_str routines before this routine
-is called.
+Return TRUE if type (which must be a typedef) cannot be used at the current
+point in the program, either because it is inaccessible or it has not yet
+been defined.
 */
 {
-  a_boolean invisible = FALSE;
+  a_boolean unusable = FALSE;
   a_boolean typedef_will_be_implicitly_instantiated_if_referenced;
 
   check_assertion(type->kind == (a_type_kind)tk_typeref &&
@@ -3013,12 +3011,12 @@ is called.
       !typedef_will_be_implicitly_instantiated_if_referenced) {
     /* The typedef definition has not been put out yet, so the typedef
        name cannot be referenced. */
-    invisible = TRUE;
+    unusable = TRUE;
 #if GCC_BUILTIN_VARARGS
     /* The definition of the va_list type is never put out, but it's
        visible even though the flag is not set (it's defined when the
        <stdarg.h> header is included). */
-    if (type->is_builtin_va_list) invisible = FALSE;
+    if (type->is_builtin_va_list) unusable = FALSE;
 #endif /* GCC_BUILTIN_VARARGS */
   } else if (!entity_name_is_accessible(&type->source_corresp, iek_type,
                                         /*ignore_context=*/FALSE)) {
@@ -3027,8 +3025,24 @@ is called.
        the typedef in that case.  This comes up, from example, on template
        arguments for non-member templates that are first established using
        a member typedef. */
-    invisible = TRUE;
+    unusable = TRUE;
   }  /* if */
+  return unusable;
+}  /* typedef_is_unusable */
+
+
+static a_boolean is_typedef_invisible_in_cp_gen_be(a_type_ptr type)
+/*
+Called from the il_to_str routines.  Returns TRUE if the indicated typedef
+type should be considered to be invisible, i.e., the type under it should
+be put out instead of the typedef name.  Note that certain basic
+visibility tests are done in the il_to_str routines before this routine
+is called.
+*/
+{
+  a_boolean invisible;
+
+  invisible = typedef_is_unusable(type);
   if (in_template_argument_list && !invisible
 #if GCC_BUILTIN_VARARGS
       && !type->is_builtin_va_list
@@ -3505,12 +3519,6 @@ put out nothing.
       a_type_ptr                  class_type = nqp->qualifier.class_type;
       a_source_correspondence_ptr scp;
       an_il_entry_kind            kind;
-      /* Drop invisible typedefs. */
-      while (class_type->kind == (a_type_kind)tk_typeref &&
-             typeref_is_typedef(class_type) &&
-             is_typedef_invisible_in_cp_gen_be(class_type)) {
-        class_type = class_type->variant.typeref.type;
-      }  /* while */
       scp = &class_type->source_corresp;
       kind = (an_il_entry_kind)iek_type;
       if (is_immediate_class_type(class_type) &&
@@ -3565,8 +3573,9 @@ class member in a non-class context, return FALSE; otherwise, return TRUE
 to indicate that the name reference was successfully emitted.
 */
 {
-  a_boolean name_generated = FALSE;
-  a_boolean use_name_reference = TRUE;
+  a_boolean            name_generated = FALSE;
+  a_boolean            use_name_reference = TRUE;
+  a_name_qualifier_ptr qual;
 
   if (nrp != NULL) {
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -3580,7 +3589,6 @@ to indicate that the name reference was successfully emitted.
          information and generate the reference as a qualified name. */
       use_name_reference = FALSE;
     } else if (nrp->qualifier != NULL && nrp->qualifier->is_class) {
-      a_name_qualifier_ptr qual;
       a_type_ptr           qual_class;
       for (qual = nrp->qualifier;
            qual->previous_qualifier != NULL &&
@@ -3605,6 +3613,18 @@ to indicate that the name reference was successfully emitted.
       }  /* if */
     }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    for (qual = nrp->qualifier;
+         use_name_reference && qual != NULL && qual->is_class;
+         qual = qual->previous_qualifier) {
+      if (qual->qualifier.class_type->kind == (a_type_kind)tk_typeref &&
+          typeref_is_typedef(qual->qualifier.class_type) &&
+          typedef_is_unusable(qual->qualifier.class_type)) {
+        /* One of the qualifiers is a typedef that cannot be used at this
+           point; ignore the name reference and just generate a qualified
+           name. */
+        use_name_reference = FALSE;
+      }  /* if */
+    }  /* if */
     if (use_name_reference) {
       name_generated = TRUE;
       if (nrp->is_global_qualified_name) {
