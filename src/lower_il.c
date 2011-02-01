@@ -16026,7 +16026,12 @@ otherwise it will be set to NULL.
   *new_lifetime = FALSE;
   *saved_curr_cleanup_state = curr_context->curr_cleanup_state;
   *saved_curr_context = NULL;
-  if (scope != NULL || lifetime != NULL || block->is_statement_expression) {
+  if (scope != NULL || lifetime != NULL
+#if GNU_EXTENSIONS_ALLOWED
+      || block->is_statement_expression
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                       ) {
+#if GNU_EXTENSIONS_ALLOWED
     if (block->is_statement_expression) {
       /* Make sure a new context is pushed for a statement expression (so
          full expressions aren't nested and temporaries aren't reused
@@ -16042,11 +16047,14 @@ otherwise it will be set to NULL.
         *new_lifetime = TRUE;
       }  /* if */
     }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     push_context(context, scope, lifetime);
     *context_pushed = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
     if (!block->is_statement_expression) {
       *new_lifetime = curr_context->new_lifetime;
     }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     if (scope != NULL) lifetime = scope->lifetime;
   } else if (block_statement == innermost_function_scope->assoc_block) {
     /* For the topmost block in a function, assoc_scope is NULL, so
@@ -16174,11 +16182,13 @@ cases where the block is a GNU statement expression.
   if (context_pushed) {
     /* Pop the context pushed by push_block_statement_context. */
     pop_context();
+#if GNU_EXTENSIONS_ALLOWED
     if (block->is_statement_expression) {
       /* Restore previously saved context stack. */
       check_assertion(saved_curr_context != NULL);
       restore_curr_context(saved_curr_context);
     }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (block_statement == innermost_function_scope->assoc_block) {
     /* This is the top-most block in a function. */
   } else {
