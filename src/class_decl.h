@@ -158,6 +158,9 @@ extern a_symbol_ptr find_class_assoc_operator_delete_routine(
 extern void set_class_assoc_operator_delete_routine(a_type_ptr class_type);
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 
+extern
+a_boolean is_implicitly_callable_conversion_function(a_type_ptr rout_type);
+
 extern a_boolean is_assignment_operator_for_copy(
                                    a_symbol_ptr          sym,
                                    a_boolean             move_assign_okay,

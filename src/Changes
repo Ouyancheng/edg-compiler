@@ -1,5 +1,27 @@
 Version 4.3
 
+2/1/11   [EDGcpfe/11301]
+Discard template conversion functions that match standard conversions
+
+Conversion functions that match some conversions that can be done via
+standard conversions, e.g., T to T&, or derived-class to base-class,
+are not supposed to be called implicitly to do conversions (they can
+be called using explicit call syntax).  This has previously worked
+properly for non-template conversion functions.  However, in
+some cases conversion function templates produced instances that
+matched some of those disallowed patterns, and were nonetheless
+used for conversions.  Now fixed; such instances are now discarded.
+
+  struct E {
+    template <typename T> operator T&() const;
+  };
+  int main() {
+    E e;
+    const E& c = e;
+    E& r = (E&)c;  // Conversion function no longer used
+  }
+
+
 2/1/11   [EDGcpfe/10868]
 C++-generating back end: typedefs in qualifiers in template arguments
 

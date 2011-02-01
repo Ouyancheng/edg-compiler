@@ -9774,6 +9774,12 @@ This routine is only used in C++ mode.
                                            (a_template_param_ptr)NULL,
                                            /*is_partial_order_check=*/FALSE);
       if (conv_routine_type == NULL) goto reject_function;
+      if (!is_implicitly_callable_conversion_function(conv_routine_type)) {
+        /* The deduced conversion function performs a conversion for which
+           a conversion function is never implicitly called, e.g.,
+           T to T&, so discard it. */
+        goto reject_function;
+      }  /* if */
     }  /* if */
     /* Is the type returned by this routine a type we want? */
     compatible = FALSE;

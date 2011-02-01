@@ -9554,6 +9554,42 @@ otherwise, it is NULL.
 }  /* update_class_for_special_member */
 
 
+a_boolean is_implicitly_callable_conversion_function(a_type_ptr rout_type)
+/*
+Return TRUE if a conversion function with the indicated routine type is
+one that can be implicitly called.  As described in [class.conv.fct],
+a conversion function will not be used implicitly to convert T to T,
+T to T&, or a number of other conversions that are doable as standard
+conversions.
+*/
+{
+  a_boolean  is_implicitly_callable = TRUE;
+  a_type_ptr class_type;
+  a_type_ptr ret_type;
+
+  rout_type = skip_typerefs(rout_type);
+  check_assertion(rout_type->kind == (a_type_kind)tk_routine);
+  class_type = rout_type->variant.routine.extra_info->this_class;
+  check_assertion(class_type != NULL);
+  /* Note that return_type_of removes references, which is desired. */
+  ret_type = f_skip_typerefs(return_type_of(rout_type));
+  if (same_entities(ret_type, class_type)) {
+    /* Converting to same type (possibly qualified) is not allowed. */
+    is_implicitly_callable = FALSE;
+  } else if (is_immediate_class_type(ret_type)) {
+    if (!cfront_2_1_mode && find_base_class_of(class_type, ret_type) != NULL) {
+      /* An operator that converts from a derived class to a base class
+         is not allowed, except by cfront 2.1. */
+      is_implicitly_callable = FALSE;
+    }  /* if */
+  } else if (is_void_type(ret_type)) {
+    /* Conversion to (possibly qualified) void type is not allowed. */
+    is_implicitly_callable = FALSE;
+  }  /* if */
+  return is_implicitly_callable;
+}  /* is_implicitly_callable_conversion_function */
+
+
 static void decl_member_function(a_symbol_locator        *locator,
                                  a_func_info_block_ptr   func_info,
                                  a_class_def_state_ptr   class_state,
@@ -10084,40 +10120,24 @@ implicitly declared member functions.
       }  /* if */
     } else if (locator->is_conversion_name) {
       /* User-defined conversion function. */
-      a_boolean  is_usable = TRUE;
-
-      /* Check the target type of the conversion -- which is the return type
-         of rout_type. */
-      tp = f_skip_typerefs(return_type_of(rtn->type));
-      if (same_entities(tp, class_type)) {
-        /* Converting to same type (possibly qualified) is not done. */
-        is_usable = FALSE;
-      } else if (is_immediate_class_type(tp)) {
-        if (!cfront_2_1_mode && find_base_class_of(class_type, tp) != NULL) {
-          /* An operator that converts from a derived class to a base class
-             is allowed by cfront 2.1, but not by cfront 3.0. */
-          is_usable = FALSE;
-        } else {
-          /* The target type of the conversion is a class or ref-to-class
-             type: set a flag to mark it as target of a conversion. */
-          set_target_of_conversion_function_flag(tp);
-        }  /* if */
-      } else if (is_void_type(tp)) {
-        /* Conversion to (possibly qualified) void type. */
-        is_usable = FALSE;
-      }  /* if */
-      if (is_usable) {
-        /* Create a conversion list entry.  This list provides an alternative
-           to traversing the entire symbols list for a class to find its
-           conversion functions. */
-        add_to_conversion_list(sym, cssp);
-      } else {
+      if (!is_implicitly_callable_conversion_function(rtn->type)) {
         /* Conversion to void or to the same type or a reference to the same
            type or to a base class or a reference to a base class "is never
            used" (WP 12.3.2; that is, it is not used in implicit or explicit
            conversions but only in an explicit invocations of the function). */
         pos_sy_warning(ec_conversion_function_not_usable,
                        &locator->source_position, sym);
+      } else {
+        /* Create a conversion list entry.  This list provides an alternative
+           to traversing the entire symbols list for a class to find its
+           conversion functions. */
+        add_to_conversion_list(sym, cssp);
+        tp = f_skip_typerefs(return_type_of(rtn->type));
+        if (is_immediate_class_type(tp)) {
+          /* The target type of the conversion is a class or ref-to-class
+             type: set a flag to mark it as target of a conversion. */
+          set_target_of_conversion_function_flag(tp);
+        }  /* if */
       }  /* if */
     }  /* if */
     if (exceptions_enabled && compiler_generated &&
