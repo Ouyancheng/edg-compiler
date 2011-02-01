@@ -3689,11 +3689,17 @@ second parameter.
         a_statement_ptr  block = expr->variant.statement;
         a_statement_ptr  last;
         a_boolean        original_statement_was_expr = FALSE;
+        a_context        context, *saved_curr_context;
         check_assertion(block->kind == (a_statement_kind)stmk_block);
         last = last_statement_in_block(block);
         if (last != NULL && last->kind == (a_statement_kind)stmk_expr) {
           original_statement_was_expr = TRUE;
         }  /* if */
+        /* Create a new context, unrelated to any previous contexts, into
+           which the statement expression should be lowered. */
+        clear_curr_context(&saved_curr_context);
+        push_context(&context, saved_curr_context->scope,
+                     saved_curr_context->lifetime);
 #if MINIMAL_INLINING
         saved_inlining_enabled = inlining_enabled;
         /* Turn off inlining, because the last statement creates a
@@ -3706,6 +3712,8 @@ second parameter.
 #if MINIMAL_INLINING
         inlining_enabled = saved_inlining_enabled;
 #endif /* MINIMAL_INLINING */
+        pop_context();
+        restore_curr_context(saved_curr_context);
         last = last_statement_in_block(block);
         if (original_statement_was_expr && 
             last != NULL && last->kind == (a_statement_kind)stmk_block) {

@@ -16004,7 +16004,8 @@ static void push_block_statement_context(
                                   a_context          *context,
                                   a_boolean          *context_pushed,
                                   a_boolean          *new_lifetime,
-                                  a_dynamic_init_ptr *saved_curr_cleanup_state)
+                                  a_dynamic_init_ptr *saved_curr_cleanup_state,
+                                  a_context          **saved_curr_context)
 /*
 Push a context and start an object lifetime, if necessary, for the
 indicated block statement.  If a context is pushed, context (a local
@@ -16012,6 +16013,9 @@ variable in the caller) is used as the stack entry and *context_pushed
 is returned TRUE.  *new_lifetime is returned TRUE if a new object lifetime
 is begun.  The value of curr_context->curr_cleanup_state is saved in
 *saved_curr_cleanup_state so it can be restored at the end of the block.
+If the block is a GNU statement expression, *saved_curr_context
+will be set to the saved current context (a new context will be pushed),
+otherwise it will be set to NULL.
 */
 {
   a_block_ptr            block = block_statement->variant.block.extra_info;
@@ -16021,10 +16025,28 @@ is begun.  The value of curr_context->curr_cleanup_state is saved in
   *context_pushed = FALSE;
   *new_lifetime = FALSE;
   *saved_curr_cleanup_state = curr_context->curr_cleanup_state;
-  if (scope != NULL || lifetime != NULL) {
+  *saved_curr_context = NULL;
+  if (scope != NULL || lifetime != NULL || block->is_statement_expression) {
+    if (block->is_statement_expression) {
+      /* Make sure a new context is pushed for a statement expression (so
+         full expressions aren't nested and temporaries aren't reused
+         before the end of the enclosing full expression).  Use scope and
+         lifetimes from the block if non-NULL, otherwise use those from
+         the previous context. */
+      clear_curr_context(saved_curr_context);
+      check_assertion(*saved_curr_context != NULL);
+      if (scope == NULL) scope = (*saved_curr_context)->scope;
+      if (lifetime == NULL) {
+        lifetime = (*saved_curr_context)->lifetime;
+      } else {
+        *new_lifetime = TRUE;
+      }  /* if */
+    }  /* if */
     push_context(context, scope, lifetime);
     *context_pushed = TRUE;
-    *new_lifetime = curr_context->new_lifetime;
+    if (!block->is_statement_expression) {
+      *new_lifetime = curr_context->new_lifetime;
+    }  /* if */
     if (scope != NULL) lifetime = scope->lifetime;
   } else if (block_statement == innermost_function_scope->assoc_block) {
     /* For the topmost block in a function, assoc_scope is NULL, so
@@ -16076,7 +16098,8 @@ static void pop_block_statement_context(
                                    a_statement_ptr    last_statement,
                                    a_boolean          context_pushed,
                                    a_boolean          new_lifetime,
-                                   a_dynamic_init_ptr saved_curr_cleanup_state)
+                                   a_dynamic_init_ptr saved_curr_cleanup_state,
+                                   a_context          *saved_curr_context)
 /*
 Pop a context and end an object lifetime, if necessary, for the
 indicated block statement.  context_pushed indicates whether or
@@ -16089,10 +16112,13 @@ in the block or to ask this routine to find the last statement itself.
 Any cleanup code inserted is placed after the last statement.
 *saved_curr_cleanup_state contains the value that
 curr_context->curr_cleanup_state had at the start of the block.
+*saved_curr_context contains the saved context that should be restored in
+cases where the block is a GNU statement expression.
 */
 {
+  a_block_ptr            block = block_statement->variant.block.extra_info;
+
   if (new_lifetime) {
-    a_block_ptr            block = block_statement->variant.block.extra_info;
     a_scope_ptr            scope = block->assoc_scope;
     an_object_lifetime_ptr lifetime = block->lifetime;
     an_insert_location     insert_location;
@@ -16148,6 +16174,11 @@ curr_context->curr_cleanup_state had at the start of the block.
   if (context_pushed) {
     /* Pop the context pushed by push_block_statement_context. */
     pop_context();
+    if (block->is_statement_expression) {
+      /* Restore previously saved context stack. */
+      check_assertion(saved_curr_context != NULL);
+      restore_curr_context(saved_curr_context);
+    }  /* if */
   } else if (block_statement == innermost_function_scope->assoc_block) {
     /* This is the top-most block in a function. */
   } else {
@@ -16176,7 +16207,7 @@ in the block, or NULL if there are no statements in the block.
   a_boolean          context_pushed, new_lifetime;
   a_dynamic_init_ptr saved_curr_cleanup_state;
   a_block_ptr        block;
-  a_context          context;
+  a_context          context, *saved_curr_context;
   a_scope_ptr        scope;
 
   set_position_from_stmt_source_position(code_pos_for_lowering,
@@ -16189,7 +16220,7 @@ in the block, or NULL if there are no statements in the block.
      or an object lifetime. */
   push_block_statement_context(statement, &context,
                                &context_pushed, &new_lifetime,
-                               &saved_curr_cleanup_state);
+                               &saved_curr_cleanup_state, &saved_curr_context);
   block = statement->variant.block.extra_info;
   scope = block->assoc_scope;
   if (scope != NULL) {
@@ -16206,7 +16237,7 @@ in the block, or NULL if there are no statements in the block.
   /* Generate any cleanup actions and pop the context. */
   pop_block_statement_context(statement, last_statement,
                               context_pushed, new_lifetime,
-                              saved_curr_cleanup_state);
+                              saved_curr_cleanup_state, saved_curr_context);
   if (p_last_statement != NULL) {
     /* Return a pointer to the last statement to the caller.  Advance
        if necessary in case pop_block_statement_context added some
