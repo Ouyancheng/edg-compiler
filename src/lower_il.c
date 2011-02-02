@@ -16051,7 +16051,12 @@ otherwise it will be set to NULL.
     push_context(context, scope, lifetime);
     *context_pushed = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
-    if (!block->is_statement_expression) {
+    if (block->is_statement_expression) {
+      /* Keep initializations from saved context (so proper destructions
+         will be generated if branching from the statement expression). */
+      curr_context->latest_initialization =
+                                  (*saved_curr_context)->latest_initialization;
+    } else {
       *new_lifetime = curr_context->new_lifetime;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
