@@ -5355,6 +5355,7 @@ case).
   a_token_sequence_number
                         operator_tok_seq_number;
   a_symbol_locator      locator;
+  a_boolean             cppcli_overloaded_case = FALSE;
 
   db_enter(4, "scan_field_selection_operator");
 
@@ -5704,17 +5705,21 @@ case).
       rep = NULL;
       force_indefinite_function = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (consider_function_overloaded_for_cppcli(member_sym)) {
+    } else if (consider_function_overloaded_for_cppcli(
+                                                      projection_member_sym)) {
       rep = NULL;
       force_indefinite_function = TRUE;
+      cppcli_overloaded_case = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       rep = ref_entry(member_sym, &member_position);
     }  /* if */
-    /* Do ambiguity and access control checking on the member.  For overloaded
-       functions, this checks ambiguity but not access (which can be different
-       for each function in the set). */
-    expr_check_ambiguity_and_verify_access(&locator);
+    if (!cppcli_overloaded_case) {
+      /* Do ambiguity and access control checking on the member.  For
+         overloaded functions, this checks ambiguity but not access (which
+         can be different for each function in the set). */
+      expr_check_ambiguity_and_verify_access(&locator);
+    }  /* if */
     if (is_error_locator(locator)) {
       /* Some error in ambiguity or access control checking. */
       make_error_operand(result);
@@ -21552,6 +21557,7 @@ if rescan_is_template_id is TRUE, and return the result in *operand
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position  end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_boolean          cppcli_overloaded_case = FALSE;
 
   db_enter(4, "scan_identifier");
 
@@ -21730,17 +21736,21 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       force_indefinite_function = TRUE;
       rep = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (consider_function_overloaded_for_cppcli(sym_ptr)) {
+    } else if (consider_function_overloaded_for_cppcli(
+                                                    locator.specific_symbol)) {
       force_indefinite_function = TRUE;
       rep = NULL;
+      cppcli_overloaded_case = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       rep = ref_entry(sym_ptr, &locator.source_position);
     }  /* if */
-    /* Do ambiguity and access control checking on the member.  For overloaded
-       functions, this checks ambiguity but not access (which can be different
-       for each function in the set). */
-    expr_check_ambiguity_and_verify_access(&locator);
+    if (!cppcli_overloaded_case) {
+      /* Do ambiguity and access control checking on the member.  For
+         overloaded functions, this checks ambiguity but not access (which
+         can be different for each function in the set). */
+      expr_check_ambiguity_and_verify_access(&locator);
+    }  /* if */
     if (is_error_locator(locator)) {
       /* Some kind of error in the ambiguity and access control checking. */
       make_error_operand(result);

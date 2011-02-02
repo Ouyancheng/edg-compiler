@@ -6706,7 +6706,12 @@ in_instantiation:
 #endif /* DEBUG */
     if (candidate_functions->next == NULL &&
         candidate_functions->function_symbol != NULL &&
-        is_ambiguous_by_inheritance(candidate_functions->function_symbol)) {
+        is_ambiguous_by_inheritance(candidate_functions->function_symbol)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        && !consider_function_overloaded_for_cppcli(
+                                       candidate_functions->function_symbol)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                            ) {
       /* For a case involving a single function name that's ambiguous
          by inheritance, use a simpler message. */
       if (expr_error_should_be_issued()) {
