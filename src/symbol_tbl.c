@@ -2046,8 +2046,10 @@ to a state block used to pass information between the hide-by-sig routines.
     if (is_function_or_template_symbol(sym)) {
       check_assertion(result_sym == NULL);
       result_sym = sym;
-    } else {
-      /* Record the fact that we found a non-function. */
+    } else if (sym->kind != (a_symbol_kind)sk_projection  ||
+               !sym->variant.projection.is_using_decl) {
+      /* Record the fact that we found a non-function.  Ignore projection
+         symbols unless they represent using-declarations. */
       other_sym = sym;
     }  /* if */
   }  /* for */
