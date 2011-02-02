@@ -2122,9 +2122,9 @@ to a state block used to pass information between the hide-by-sig routines.
       }  /* if */
     }  /* if */
   }  /* for */
+done:;
   *p_result_list = list;
   *p_list_tail = list_tail;
-done:;
 }  /* add_base_classes_to_hide_by_sig_list */
 
 
