@@ -1897,6 +1897,7 @@ Display a hide-by-sig list, for debugging purposes.
     } else {
       db_symbol_name(hbslep->symbol);
     }  /* if */
+    fprintf(f_debug, " (%d)\n", (int)hbslep->level);
   }  /* for */
 }  /* db_hide_by_sig_list */
 
@@ -1968,24 +1969,24 @@ starting type was a ref class, FALSE if it is an interface.
   a_hide_by_sig_list_entry_ptr	list_tail = NULL;
   a_base_class_ptr		bcp;
   a_symbol_ptr			result_sym = NULL;
+  a_class_symbol_supplement_ptr	cssp;
+  a_symbol_ptr			sym;
 
-  if (level == 0) {
-    add_symbol_to_hide_by_sig_list(&list, &list_tail, orig_sym, level);
-  } else {
-    a_class_symbol_supplement_ptr	cssp;
-    a_symbol_ptr			sym;
-    cssp = symbol_supplement_for_class(type);
-    sym = find_symbol_list_in_table(&cssp->pointers_block,
-                                    orig_sym->header);
-    for (; sym != NULL; sym = sym->next_in_lookup_table) {
-      if (is_function_symbol(sym)) {
-        check_assertion(result_sym == NULL);
-        result_sym = sym;
-      }  /* if */
-    }  /* for */
-    if (result_sym != NULL) {
-      add_symbol_to_hide_by_sig_list(&list, &list_tail, result_sym, level);
+  /* Look for a symbol in the specified type.  Note that the orig_sym is
+     never directly entered on the list (although it could be found by the
+     lookup below).  This is done because the orig_sym may not be
+     appropriate (e.g., it could be an ambiguous symbol of some kind). */
+  cssp = symbol_supplement_for_class(type);
+  sym = find_symbol_list_in_table(&cssp->pointers_block,
+                                  orig_sym->header);
+  for (; sym != NULL; sym = sym->next_in_lookup_table) {
+    if (is_function_or_template_symbol(sym)) {
+      check_assertion(result_sym == NULL);
+      result_sym = sym;
     }  /* if */
+  }  /* for */
+  if (result_sym != NULL) {
+    add_symbol_to_hide_by_sig_list(&list, &list_tail, result_sym, level);
   }  /* if */
   bcp = type->variant.class_struct_union.extra_info->base_classes;
   for (; bcp != NULL; bcp = bcp->next) {
@@ -2031,7 +2032,6 @@ is a hide-by-name ref class, a NULL pointer is returned.
 */
 {
   a_hide_by_sig_list_entry_ptr	result_list = NULL;
-#if 0
   a_type_ptr			parent_type;
   a_class_type_supplement_ptr	parent_ctsp;
   a_hide_by_sig_list_entry_ptr	list_tail = NULL;
@@ -2043,15 +2043,14 @@ is a hide-by-name ref class, a NULL pointer is returned.
   is_class = parent_ctsp->cli_class_type_kind ==
                                                (a_cli_class_type_kind)cctk_ref;
 
-  if (sym->hide_by_lookup_result != NULL) {
-    result_list = sym->hide_by_lookup_result;
+  if (sym->hide_by_sig_lookup_result != NULL) {
+    result_list = sym->hide_by_sig_lookup_result;
   } else if ((is_class ||
               parent_ctsp->cli_class_type_kind ==
                                       (a_cli_class_type_kind)cctk_interface) &&
              !parent_ctsp->is_hide_by_name) {
     a_hide_by_sig_list_entry_ptr	sublist;
     a_hide_by_sig_list_entry_ptr	sublist_tail;
-    add_symbol_to_hide_by_sig_list(&result_list, &list_tail, sym, level);
     add_base_classes_to_hide_by_sig_list(&sublist, &sublist_tail, parent_type,
                                          sym, level, is_class);
     if (sublist != NULL) {
@@ -2063,8 +2062,11 @@ is a hide-by-name ref class, a NULL pointer is returned.
        list_tail = sublist_tail;
     }  /* if */
   }  /* if */
-db_hide_by_sig_list(result_list);
-#endif
+#if DEBUG
+  if (db_flag_is_set("hbs")) {
+    db_hide_by_sig_list(result_list);
+  }  /* if */
+#endif /* DEBUG */
   return result_list;
 }  /* hide_by_sig_list_for_symbol */
 
