@@ -159,7 +159,7 @@ returned may be a projection symbol.
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ostblock->hide_by_sig_list = NULL;
-  if (cppcli_enabled) {
+  if (cppcli_enabled && sym->is_class_member) {
     /* In C++/CLI mode, look to see if hide-by-sig lookup applies for this
        symbol.  If so, we'll have a list to traverse to get to all the
        not-hidden symbols, including those in base classes. */
@@ -239,7 +239,28 @@ on the iteration of the loop just completed) turned out to be viable.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return sym;
 }  /* next_symbol_in_overload_set */
-    
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean consider_function_overloaded_for_cppcli(a_symbol_ptr sym)
+/*
+Return TRUE if the indicated function symbol should be considered overloaded
+in C++/CLI mode even if it's not itself an overloaded function.  Returns
+TRUE when the name is subject to hide-by-sig lookup processing.
+*/
+{
+  a_boolean consider_overloaded = FALSE;
+
+  if (cppcli_enabled) {
+    if (sym->is_class_member &&
+        hide_by_sig_list_for_symbol(sym) != NULL) {
+      consider_overloaded = TRUE;
+    }  /* if */
+  }  /* if */
+  return consider_overloaded;
+}  /* consider_function_overloaded_for_cppcli */
+   
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean symbol_is_member_of_nonreal_class(a_symbol_ptr sym)
 /*
@@ -6464,6 +6485,10 @@ in_instantiation:
         function_symbol = fundamental_symbol_of(overloaded_function_symbol);
         if ((function_symbol->kind == (a_symbol_kind)sk_routine ||
              function_symbol->kind == (a_symbol_kind)sk_member_function) &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            !consider_function_overloaded_for_cppcli(
+                                                 overloaded_function_symbol) &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             (known_to_be_visible ||
              candidate_function_is_visible(
                                        overloaded_function_symbol,
@@ -6533,6 +6558,9 @@ in_instantiation:
         function_symbol = fundamental_symbol_of(symbol_list->symbol);
         if ((function_symbol->kind == (a_symbol_kind)sk_routine ||
              function_symbol->kind == (a_symbol_kind)sk_member_function) &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            !consider_function_overloaded_for_cppcli(symbol_list->symbol) &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             candidate_function_is_visible(symbol_list->symbol,
                                           is_template_id,
                                          /*effects_copy_initialization=*/FALSE,

@@ -5342,7 +5342,6 @@ case).
   a_boolean             need_operand_1_type_check = FALSE;
   a_boolean             allow_constant_selection = FALSE;
   a_ref_entry_ptr       rep;
-  a_type_ptr            routine_type;
   a_boolean             is_vacuous_destructor_reference = FALSE;
   a_boolean             force_indefinite_function = FALSE;
   a_source_position     member_position;
@@ -5704,6 +5703,11 @@ case).
          to be treated as overloaded. */
       rep = NULL;
       force_indefinite_function = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (consider_function_overloaded_for_cppcli(member_sym)) {
+      rep = NULL;
+      force_indefinite_function = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       rep = ref_entry(member_sym, &member_position);
     }  /* if */
@@ -5785,8 +5789,9 @@ case).
           break;
         case sk_member_function:
           /* Member function (static or non-static). */
-          routine_type = routine_symbol_type(member_sym);
-          if (routine_type_is_nonstatic_member_function(routine_type)) {
+          if (force_indefinite_function ||
+              routine_type_is_nonstatic_member_function(
+                                            routine_symbol_type(member_sym))) {
             /* Nonstatic member function. */
             /* Also continue here for an overloaded function or a member
                template. */
@@ -21724,6 +21729,11 @@ if rescan_is_template_id is TRUE, and return the result in *operand
          is immediately followed by a left parenthesis. */
       force_indefinite_function = TRUE;
       rep = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (consider_function_overloaded_for_cppcli(sym_ptr)) {
+      force_indefinite_function = TRUE;
+      rep = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       rep = ref_entry(sym_ptr, &locator.source_position);
     }  /* if */
