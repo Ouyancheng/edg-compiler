@@ -2676,7 +2676,10 @@ typedef struct a_symbol {
 		hide_by_sig_lookup_result;
 			/* In C++/CLI mode this points to the list of lookup
 			   symbols to be used.  This is NULL until the first
-			   hide-by-sig lookup is done. */
+			   hide-by-sig lookup is done.  After the first lookup
+			   is done, hide_by_sig_lookup_done will be TRUE and
+			   this field will contain the saved result, which
+			   can be NULL. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_symbol_kind kind;
 			/* The kind of symbol. */
@@ -2829,6 +2832,11 @@ typedef struct a_symbol {
 			   referenced using operator notation.  Functions
 			   defined in friend declarations (and not declared
 			   elsewhere) have this flag set. */
+  a_bit_field	hide_by_sig_lookup_done:1;
+			/* TRUE if the hide-by-sig processing has already
+			   been done for this symbol, in which case the
+			   hide_by_sig_lookup_field contains the lookup
+			   result to be used. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	is_alias:1;

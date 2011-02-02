@@ -215,6 +215,11 @@ static a_saved_macro_state_ptr
 			/* List of saved macro state entries freed and
 			   available for reuse. */
 
+static a_hide_by_sig_list_entry_ptr
+		avail_hide_by_sig_list_entries;
+			/* List of hide-by-sig list entries freed and
+			   available for reuse. */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_symbol_ptr
@@ -1890,18 +1895,42 @@ void db_hide_by_sig_list(a_hide_by_sig_list_entry_ptr	hbslep)
 Display a hide-by-sig list, for debugging purposes.
 */
 {
-  for (; hbslep != NULL; hbslep = hbslep->next) {
-    fprintf(f_debug, "\n%*s", (int)(hbslep->level*2), "");
-    if (hbslep->symbol == NULL) {
-      fprintf(f_debug, "<NULL>\n");
-    } else {
-      db_symbol_name(hbslep->symbol);
-    }  /* if */
-    fprintf(f_debug, " (%d)\n", (int)hbslep->level);
-  }  /* for */
+  if (hbslep == NULL) {
+    fprintf(f_debug, "<NULL LIST>\n");
+  } else {
+    for (; hbslep != NULL; hbslep = hbslep->next) {
+      fprintf(f_debug, "%*s", (int)(hbslep->level*2), "");
+      if (hbslep->symbol == NULL) {
+        fprintf(f_debug, "<NULL>");
+      } else {
+        db_symbol_name(hbslep->symbol);
+      }  /* if */
+      fprintf(f_debug, " (%d)\n", (int)hbslep->level);
+    }  /* for */
+  }  /* if */
 }  /* db_hide_by_sig_list */
 
 #endif /* DEBUG */
+
+static void free_list_of_hide_by_sig_list_entries(
+					a_hide_by_sig_list_entry_ptr hbslep)
+/*
+Add a list of hide-by-sig list entries to the available list.  hbslep may
+be NULL, in which case nothing is done.
+*/
+{
+  a_hide_by_sig_list_entry_ptr	hbslep_tail;
+  if (hbslep != NULL) {
+    /* Find the last entry on the list. */
+    hbslep_tail = hbslep;
+    while (hbslep_tail->next != NULL) hbslep_tail = hbslep_tail->next;
+    /* Add the current available list to the end of the list passed by the
+       caller. */
+    hbslep_tail->next = avail_hide_by_sig_list_entries;
+    avail_hide_by_sig_list_entries = hbslep;
+  }  /* if */
+}  /* free_list_of_hide_by_sig_list_entries */
+
 
 static a_hide_by_sig_list_entry_ptr alloc_hide_by_sig_list_entry(void)
 /*
@@ -1911,15 +1940,51 @@ to it.
 {
   a_hide_by_sig_list_entry_ptr	hbslep;
 
-  hbslep = alloc_fe_of_type(a_hide_by_sig_list_entry);
+  if (avail_hide_by_sig_list_entries != NULL) {
+    /* Reuse an existing entry. */
+    hbslep = avail_hide_by_sig_list_entries;
+    avail_hide_by_sig_list_entries = avail_hide_by_sig_list_entries->next;
+  } else {
+    /* Allocate a new entry. */
+    hbslep = alloc_fe_of_type(a_hide_by_sig_list_entry);
 #if DEBUG
-  num_hide_by_sig_list_entries_allocated++;
+    num_hide_by_sig_list_entries_allocated++;
 #endif /* DEBUG */
+  }  /* if */
   hbslep->next = NULL;
   hbslep->symbol = NULL;
   hbslep->level = 0;
   return hbslep;
 }  /* alloc_hide_by_sig_list_entry */
+
+
+/*
+Structure used to pass information between the hide-by-sig processing
+routines.
+*/
+typedef struct a_hide_by_sig_state *a_hide_by_sig_state_ptr;
+typedef struct a_hide_by_sig_state {
+  a_symbol_ptr	orig_sym;
+			/* The symbol passed from overload resolution. */
+  a_boolean	is_class;
+			/* TRUE if orig_sym came from a ref class (as
+			   opposed to a ref interface). */
+  a_boolean	suppress_hide_by_sig;
+			/* TRUE if a condition was detected that renders
+			   this lookup ineligible for hide-by-sig
+			   processing. */
+} a_hide_by_sig_state;
+
+
+static void init_hide_by_sig_state(a_hide_by_sig_state_ptr	hbssp)
+/*
+Initialize a hide-by-sig state block.
+*/
+{
+  hbssp->orig_sym = NULL;
+  hbssp->is_class = FALSE;
+  hbssp->suppress_hide_by_sig = FALSE;
+}  /* init_hide_by_sig_state */
 
 
 static void add_symbol_to_hide_by_sig_list(
@@ -1948,27 +2013,25 @@ the level associated with the symbol.
 
 
 static void add_base_classes_to_hide_by_sig_list(
+				a_hide_by_sig_state_ptr		hbssp,
 				a_hide_by_sig_list_entry_ptr	*p_result_list,
 				a_hide_by_sig_list_entry_ptr	*p_list_tail,
 				a_type_ptr			type,
-				a_symbol_ptr			orig_sym,
-				uint32_t			level,
-				a_boolean			is_class)
+				uint32_t			level)
 /*
 Go through the base classes of type and call this routine recursively to
 see if the base class contains a function or overload set that should be
 returned in the hide-by-sig list specified by *p_result_list and
 *p_result_tail.  Note that a new list is created by this routine at each level.
-level is the level value to be recorded for any entry created.  orig_sym
-is the original symbol found in the derived class and is used to determine
-the symbol to be looked up in the base classes.  is_class is TRUE if the
-starting type was a ref class, FALSE if it is an interface.
+level is the level value to be recorded for any entry created.  hbssp points
+to a state block used to pass information between the hide-by-sig routines.
 */
 {
   a_hide_by_sig_list_entry_ptr	list = NULL;
   a_hide_by_sig_list_entry_ptr	list_tail = NULL;
   a_base_class_ptr		bcp;
   a_symbol_ptr			result_sym = NULL;
+  a_symbol_ptr			other_sym = NULL;
   a_class_symbol_supplement_ptr	cssp;
   a_symbol_ptr			sym;
 
@@ -1978,32 +2041,77 @@ starting type was a ref class, FALSE if it is an interface.
      appropriate (e.g., it could be an ambiguous symbol of some kind). */
   cssp = symbol_supplement_for_class(type);
   sym = find_symbol_list_in_table(&cssp->pointers_block,
-                                  orig_sym->header);
+                                  hbssp->orig_sym->header);
   for (; sym != NULL; sym = sym->next_in_lookup_table) {
     if (is_function_or_template_symbol(sym)) {
       check_assertion(result_sym == NULL);
       result_sym = sym;
+    } else {
+      /* Record the fact that we found a non-function. */
+      other_sym = sym;
     }  /* if */
   }  /* for */
+  if (result_sym == NULL && other_sym != NULL) {
+    /* This type contains a member with the given name that is not
+       a function.  Stop searching this branch of the hierarchy. */
+    goto done;
+  }  /* if */
   if (result_sym != NULL) {
-    add_symbol_to_hide_by_sig_list(&list, &list_tail, result_sym, level);
+    a_type_ptr				parent_type;
+    a_class_type_supplement_ptr		parent_ctsp;
+    a_boolean				is_static_in_interface = FALSE;
+    a_boolean				is_class;
+    parent_type = sym_parent_class(result_sym);
+    parent_ctsp = class_type_supp(parent_type);
+    is_class = parent_ctsp->cli_class_type_kind ==
+                                               (a_cli_class_type_kind)cctk_ref;
+    /* If we encounter a static method in an interface, the original symbol
+       should be used and hide-by-sig processing suppressed. */
+    if (!is_class) {
+      if (result_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+        if (result_sym->variant.overloaded_function.mixed_static_nonstatic) {
+          /* When this flag is set, we know there is at least one static
+             method. */
+          is_static_in_interface = TRUE;
+        } else {
+          a_symbol_ptr	first_sym;
+          a_type_ptr	rout_type;
+          first_sym = result_sym->variant.overloaded_function.symbols;
+          rout_type = first_sym->variant.routine.ptr->type;
+          if (!routine_type_is_nonstatic_member_function(rout_type)) {
+            /* The list is not mixed, so all the list entries are either
+               static or nonstatic, so we can just look at the first entry. */
+            is_static_in_interface = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (is_static_in_interface) {
+      hbssp->suppress_hide_by_sig = TRUE;
+    } else {
+      add_symbol_to_hide_by_sig_list(&list, &list_tail, result_sym, level);
+    }  /* if */
   }  /* if */
   bcp = type->variant.class_struct_union.extra_info->base_classes;
-  for (; bcp != NULL; bcp = bcp->next) {
+  for (; bcp != NULL && !hbssp->suppress_hide_by_sig; bcp = bcp->next) {
     a_type_ptr			base_type = bcp->type;
     a_class_type_supplement_ptr	base_ctsp;
+    /* Only process direct bases. */
+    if (!bcp->direct) continue;
     base_ctsp = class_type_supp(base_type);
-    if (!is_class ||
+    if (!hbssp->is_class ||
         base_ctsp->cli_class_type_kind == (a_cli_class_type_kind)cctk_ref) {
       a_hide_by_sig_list_entry_ptr	sublist = NULL;
       a_hide_by_sig_list_entry_ptr	sublist_tail = NULL;
-      add_base_classes_to_hide_by_sig_list(&sublist, &sublist_tail, bcp->type,
-                                           orig_sym, level+1, is_class);
+      add_base_classes_to_hide_by_sig_list(hbssp, &sublist, &sublist_tail,
+                                           bcp->type, level+1);
       if (sublist != NULL) {
-        /* There was a list returned for the base class.  Add an entry for
-           the current class if one does not already exist. */
-        add_symbol_to_hide_by_sig_list(&list, &list_tail, (a_symbol_ptr)NULL,
-                                       level);
+        if (result_sym == NULL) {
+          /* There was a list returned for the base class.  Add an entry for
+             the current class if one does not already exist. */
+          add_symbol_to_hide_by_sig_list(&list, &list_tail, (a_symbol_ptr)NULL,
+                                         level);
+        }  /* if */
         /* Append the sublist to the list being built. */
         if (list == NULL) {
           list = sublist;
@@ -2016,6 +2124,7 @@ starting type was a ref class, FALSE if it is an interface.
   }  /* for */
   *p_result_list = list;
   *p_list_tail = list_tail;
+done:;
 }  /* add_base_classes_to_hide_by_sig_list */
 
 
@@ -2028,31 +2137,34 @@ additional information to determine where the symbol fits in the
 derivation hierarchy.
 
 If the class of which sym is a member if not a ref class or interface, or
-is a hide-by-name ref class, a NULL pointer is returned.
+is a hide-by-name ref class, a NULL pointer is returned.  NULL is also
+returned if the lookup encounters an interface with a static method.
 */
 {
-  a_hide_by_sig_list_entry_ptr	result_list = NULL;
-  a_type_ptr			parent_type;
-  a_class_type_supplement_ptr	parent_ctsp;
-  a_hide_by_sig_list_entry_ptr	list_tail = NULL;
-  uint32_t			level = 0;
-  a_boolean			is_class;
+  a_hide_by_sig_list_entry_ptr		result_list = NULL;
+  a_type_ptr				parent_type;
+  a_class_type_supplement_ptr		parent_ctsp;
+  a_boolean				is_class;
 
   parent_type = sym_parent_class(sym);
   parent_ctsp = class_type_supp(parent_type);
   is_class = parent_ctsp->cli_class_type_kind ==
                                                (a_cli_class_type_kind)cctk_ref;
-
   if (sym->hide_by_sig_lookup_result != NULL) {
     result_list = sym->hide_by_sig_lookup_result;
   } else if ((is_class ||
               parent_ctsp->cli_class_type_kind ==
                                       (a_cli_class_type_kind)cctk_interface) &&
              !parent_ctsp->is_hide_by_name) {
+    a_hide_by_sig_list_entry_ptr	list_tail = NULL;
+    a_hide_by_sig_state			hbss;
     a_hide_by_sig_list_entry_ptr	sublist;
     a_hide_by_sig_list_entry_ptr	sublist_tail;
-    add_base_classes_to_hide_by_sig_list(&sublist, &sublist_tail, parent_type,
-                                         sym, level, is_class);
+    init_hide_by_sig_state(&hbss);
+    hbss.orig_sym =  sym;
+    hbss.is_class = is_class;
+    add_base_classes_to_hide_by_sig_list(&hbss, &sublist, &sublist_tail,
+                                         parent_type, /*level=*/0);
     if (sublist != NULL) {
        if (result_list == NULL) {
           result_list = sublist;
@@ -2061,6 +2173,15 @@ is a hide-by-name ref class, a NULL pointer is returned.
        }  /* if */
        list_tail = sublist_tail;
     }  /* if */
+    if (hbss.suppress_hide_by_sig) {
+      /* Hide-by-sig lookup should be suppressed (e.g., a base interface
+         contains a static method.  Return NULL. */
+      /* Free all of the allocated entries. */
+      free_list_of_hide_by_sig_list_entries(result_list);
+      result_list = NULL;
+    }  /* if */
+    sym->hide_by_sig_lookup_result = result_list;
+    sym->hide_by_sig_lookup_done = TRUE;
   }  /* if */
 #if DEBUG
   if (db_flag_is_set("hbs")) {
@@ -13414,6 +13535,7 @@ are handled in symbol_tbl_init.)
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cleared_symbol.is_super_reference                = FALSE;
   cleared_symbol.is_microsoft_invisible_operator   = FALSE;
+  cleared_symbol.hide_by_sig_lookup_done           = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   cleared_symbol.is_alias                          = FALSE;
@@ -13454,6 +13576,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(avail_progenitors),
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(avail_saved_macro_states),
+      pch_saved_var_array_elem(avail_hide_by_sig_list_entries),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(error_symbol_header),
       pch_saved_var_array_elem(unnamed_tag_symbol_header),
@@ -13672,6 +13795,7 @@ of the front end.
   avail_progenitors = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   avail_saved_macro_states = NULL;
+  avail_hide_by_sig_list_entries = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   error_symbol_header = NULL;
   unnamed_tag_symbol_header = NULL;
