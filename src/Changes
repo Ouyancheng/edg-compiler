@@ -28,14 +28,15 @@ C++-generating back end: typedefs in qualifiers in template arguments
 In most cases, in order to avoid unnecessarily verbose template argument
 lists, the C++-generating back end uses the underlying type of a typedef in
 a template argument instead of the typedef name itself.  This was done even
-in the qualifiers in qualified names when the front end is configured with
-DEFAULT_RECORD_FORM_OF_NAME_REFERENCE set to TRUE, which could lead to
-incorrect output when the qualification required for the underlying type is
-different from that of the typedef that appears in the source code.  This
-has now been fixed by always using the recorded typedef names when putting
-out a name reference unless the typedef cannot be used at that point in the
-source because it is inaccessible or has not yet been declared.  For
-example:
+in the qualifiers in a recorded name reference when the front end is
+configured with DEFAULT_RECORD_FORM_OF_NAME_REFERENCE set to TRUE, which
+could lead to incorrect output when the qualification required for the
+underlying type is different from that of the typedef that appears in the
+source code.  This has now been fixed by always using the recorded typedef
+name when putting out such a name reference unless the typedef cannot be
+used at that point in the source because it is inaccessible or has not yet
+been declared; in those cases, the entire recorded form is ignored and the
+name is generated normally.  For example:
  
   namespace N {
     template <typename T> struct S { static const bool b = false; };
