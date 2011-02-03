@@ -1118,7 +1118,7 @@ Free a destructible entity description by putting it on the available list.
   /* Put the entry on the available list. */
   dedp->next = avail_destructible_entity_descrs;
   avail_destructible_entity_descrs = dedp;
-}  /* free_destructible_entity_descr_list */
+}  /* free_destructible_entity_descr */
 
 
 static void modify_ctor_init_pos_descr(a_constructor_init_ptr   ctor_init,
