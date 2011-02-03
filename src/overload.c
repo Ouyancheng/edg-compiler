@@ -1501,11 +1501,23 @@ Return a printable string describing a type code.
 }  /* name_for_type_code */
 
 
+static a_boolean is_ambiguous_by_inheritance(a_symbol_ptr symbol)
 /*
 Return TRUE if the given symbol is ambiguous by inheritance.
 This applies to projection and namespace projection symbols.
 */
-#define is_ambiguous_by_inheritance(symbol) ((symbol)->ambiguous)
+{
+  a_boolean is_ambiguous = symbol->ambiguous;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* In C++/CLI, a symbol for which hide-by-sig lookup applies is
+     not considered ambiguous. */
+  if (is_ambiguous && cppcli_enabled &&
+      hide_by_sig_list_for_symbol(symbol) != NULL) {
+    is_ambiguous = FALSE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return is_ambiguous;
+}  /* is_ambiguous_by_inheritance */
 
 
 static a_boolean same_candidate_function(a_candidate_function_ptr cfp1,
@@ -6706,12 +6718,7 @@ in_instantiation:
 #endif /* DEBUG */
     if (candidate_functions->next == NULL &&
         candidate_functions->function_symbol != NULL &&
-        is_ambiguous_by_inheritance(candidate_functions->function_symbol)
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        && !consider_function_overloaded_for_cppcli(
-                                       candidate_functions->function_symbol)
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                            ) {
+        is_ambiguous_by_inheritance(candidate_functions->function_symbol)) {
       /* For a case involving a single function name that's ambiguous
          by inheritance, use a simpler message. */
       if (expr_error_should_be_issued()) {
@@ -7169,8 +7176,15 @@ intermediate language (operand should be NULL in that case).
     /* Non-overloaded function; use the normal routine.
        overloaded_function_symbol is either the same as function_symbol
        or is a projection symbol for it. */
-    make_locator_for_symbol(overloaded_function_symbol,
-                            &function_symbol_locator);
+    a_symbol_ptr sym_to_check = overloaded_function_symbol;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (consider_function_overloaded_for_cppcli(overloaded_function_symbol)) {
+      /* When C++/CLI hide-by-sig lookup applies, check the chosen symbol
+         and not its projection. */
+      sym_to_check = function_symbol;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    make_locator_for_symbol(sym_to_check, &function_symbol_locator);
     function_symbol_locator.source_position = *id_position;
     expr_check_ambiguity_and_verify_access(&function_symbol_locator);
   }  /* if */
