@@ -193,6 +193,8 @@ and described by ostblock, and return that next symbol, or NULL if there is
 no next symbol.  The symbol returned may be a projection symbol.
 curr_sym_viable is TRUE if the current symbol on entry (the one processed
 on the iteration of the loop just completed) turned out to be viable.
+That's used for C++/CLI hide-by-sig lookup overload resolution.  If you don't
+need that functionality, pass in FALSE to get all members of the overload set.
 */
 {
   a_symbol_ptr sym = ostblock->current_symbol;
@@ -800,10 +802,11 @@ from previous arguments; in the standard case, it is always NULL.
       }  /* if */
     }  /* if */
   } else {
-    check_assertion(sym->kind == (a_symbol_kind)sk_overloaded_function);
-    for (proj_sym = sym->variant.overloaded_function.symbols;
+    an_overload_set_traversal_block ostblock;
+    for (proj_sym = set_up_overload_set_traversal(sym, &ostblock);
          proj_sym != NULL;
-         proj_sym = proj_sym->next) {
+         proj_sym = next_symbol_in_overload_set(&ostblock,
+                                                /*curr_sym_viable=*/FALSE)) {
       a_type_ptr routine_type, ptr_routine_type;
       a_boolean  matches = FALSE;
       /* Remove projections for namespaces, if any. */
@@ -6071,16 +6074,12 @@ argument expression.
       (sym->is_class_member &&
        sym_parent_class(sym)->variant.class_struct_union.
                                                  is_prototype_instantiation)) {
-    a_boolean is_overloaded_function;
-    sym = fundamental_symbol_of(sym);
-    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      is_overloaded_function = TRUE;
-      sym = sym->variant.overloaded_function.symbols;
-    } else {
-      is_overloaded_function = FALSE;
-    }  /* if */
+    an_overload_set_traversal_block ostblock;
     /* Loop through the symbols in the overload set. */
-    for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
+    for (sym = set_up_overload_set_traversal(sym, &ostblock);
+         sym != NULL;
+         sym = next_symbol_in_overload_set(&ostblock,
+                                           /*curr_sym_viable=*/FALSE)) {
       a_symbol_ptr                  fund_sym = fundamental_symbol_of(sym);
       a_type_ptr                    rout_type;
       a_routine_type_supplement_ptr rtsp;
