@@ -10163,7 +10163,10 @@ implicitly declared member functions.
                                !decl_info->invalid_virtual_specifier);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode) {
-        if (check_virtual_interface_member(class_state, rtn, locator)) {
+        if (decl_state->storage_class == (a_storage_class)sc_static) {
+          /* An interface member explicitly declared static. */
+          is_virtual = FALSE;
+        } else if (check_virtual_interface_member(class_state, rtn, locator)) {
           /* This member is implicitly pure virtual by virtue of being
              declared in an interface class type.  Interfaces with virtual
              members cannot be PODs (in particular, they need generated
