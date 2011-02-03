@@ -242,11 +242,10 @@ on the iteration of the loop just completed) turned out to be viable.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-a_boolean consider_function_overloaded_for_cppcli(a_symbol_ptr sym)
+a_boolean hide_by_sig_lookup_applies(a_symbol_ptr sym)
 /*
-Return TRUE if the indicated function symbol should be considered overloaded
-in C++/CLI mode even if it's not itself an overloaded function.  Returns
-TRUE when the name is subject to hide-by-sig lookup processing.
+Return TRUE if C++/CLI hide-by-sig lookup applies to the given symbol.
+If so, the symbol is considered overloaded even if it doesn't look it.
 */
 {
   a_boolean consider_overloaded = FALSE;
@@ -258,7 +257,7 @@ TRUE when the name is subject to hide-by-sig lookup processing.
     }  /* if */
   }  /* if */
   return consider_overloaded;
-}  /* consider_function_overloaded_for_cppcli */
+}  /* hide_by_sig_lookup_applies */
    
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -6498,8 +6497,7 @@ in_instantiation:
         if ((function_symbol->kind == (a_symbol_kind)sk_routine ||
              function_symbol->kind == (a_symbol_kind)sk_member_function) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            !consider_function_overloaded_for_cppcli(
-                                                 overloaded_function_symbol) &&
+            !hide_by_sig_lookup_applies(overloaded_function_symbol) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             (known_to_be_visible ||
              candidate_function_is_visible(
@@ -6571,7 +6569,7 @@ in_instantiation:
         if ((function_symbol->kind == (a_symbol_kind)sk_routine ||
              function_symbol->kind == (a_symbol_kind)sk_member_function) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            !consider_function_overloaded_for_cppcli(symbol_list->symbol) &&
+            !hide_by_sig_lookup_applies(symbol_list->symbol) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             candidate_function_is_visible(symbol_list->symbol,
                                           is_template_id,
@@ -7178,7 +7176,7 @@ intermediate language (operand should be NULL in that case).
        or is a projection symbol for it. */
     a_symbol_ptr sym_to_check = overloaded_function_symbol;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (consider_function_overloaded_for_cppcli(overloaded_function_symbol)) {
+    if (hide_by_sig_lookup_applies(overloaded_function_symbol)) {
       /* When C++/CLI hide-by-sig lookup applies, check the chosen symbol
          and not its projection. */
       sym_to_check = function_symbol;
@@ -7556,7 +7554,14 @@ the case where the left operand is a C++/CLI handle.
          There's no access check on this part of the cast because the access
          to the fundamental base class was checked as part of determining
          access to the symbol. */
-      if (projection_member_sym->kind == (a_symbol_kind)sk_projection) {
+      if (projection_member_sym->kind == (a_symbol_kind)sk_projection
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          /* If C++/CLI hide-by-sig lookup applies, you can't trust the
+             base class in the projection symbol. */
+          && (!cppcli_enabled ||
+              !hide_by_sig_lookup_applies(projection_member_sym))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                 ) {
         bcp = projection_member_sym->variant.projection.extra_info->
                                                         fundamental_base_class;
         /* Normally, when a projection symbol is used it means the name was
@@ -7583,25 +7588,44 @@ the case where the left operand is a C++/CLI handle.
              class and no projection symbol exists for it.  Look for the
              member of the overload set of projection_member_sym that is
              the appropriate projection symbol. */
-          a_symbol_ptr fund_sym = fundamental_symbol_of(projection_member_sym);
           a_symbol_ptr fund_member_sym = fundamental_symbol_of(member_sym);
-          a_symbol_ptr sym;
-          check_assertion(fund_sym->kind ==
-                                        (a_symbol_kind)sk_overloaded_function);
-          for (sym = fund_sym->variant.overloaded_function.symbols;
-               ;
-               sym = sym->next) {
+          a_symbol_ptr sym, fund_sym;
+          an_overload_set_traversal_block
+                       ostblock;
+          sym = set_up_overload_set_traversal(projection_member_sym,
+                                              &ostblock);
+          for (;;
+               sym = next_symbol_in_overload_set(&ostblock,
+                                                 /*curr_sym_viable=*/FALSE)) {
             check_assertion(sym != NULL);
             fund_sym = fundamental_symbol_of(sym);
             /* If the symbol is a member function template, see if the
-               function_symbol is an instance of the template.  Otherwise,
-               just compare the pointers. */
+               function_symbol is an instance of the template. */
             if (fund_sym->kind == (a_symbol_kind)sk_function_template &&
                 fund_member_sym->variant.routine.instance_ptr != NULL &&
                 fund_member_sym->variant.routine.instance_ptr->
                                                     template_sym == fund_sym) {
               member_sym = sym;
               break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            } else if (cppcli_enabled &&
+                       fund_sym == fund_member_sym) {
+              /* In C++/CLI mode, a symbol can be picked off the hide-by-sig
+                 list, and we won't have a projection symbol leading to it. */
+              a_hide_by_sig_list_entry_ptr list = ostblock.hide_by_sig_list;
+              check_assertion(list != NULL && list->base_class != NULL);
+              base_class_cast_operand(operand_1,
+                                      list->base_class,
+                                      (a_type_ptr)NULL,
+                                      /*check_cast_access=*/FALSE,
+                                      /*is_implicit_cast=*/TRUE,
+                                      /*implicit_in_naming=*/TRUE,
+                                      /*is_object_pointer=*/TRUE);
+              /* By choosing fund_sym here, we ensure that the code below
+                 that deals with projections will do nothing. */
+              member_sym = fund_sym;
+              break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             }  /* if */
           }  /* for */
           /* Remove any namespace projection symbols. */

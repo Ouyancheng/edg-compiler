@@ -5705,8 +5705,10 @@ case).
       rep = NULL;
       force_indefinite_function = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (consider_function_overloaded_for_cppcli(
-                                                      projection_member_sym)) {
+    } else if (hide_by_sig_lookup_applies(projection_member_sym)) {
+      /* In C++/CLI mode, a symbol for which hide-by-sig lookup applies
+         has to be processed through overload resolution even if it
+         doesn't look overloaded. */
       rep = NULL;
       force_indefinite_function = TRUE;
       cppcli_overloaded_case = TRUE;
@@ -21736,8 +21738,10 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       force_indefinite_function = TRUE;
       rep = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (consider_function_overloaded_for_cppcli(
-                                                    locator.specific_symbol)) {
+    } else if (hide_by_sig_lookup_applies(locator.specific_symbol)) {
+      /* In C++/CLI mode, a symbol for which hide-by-sig lookup applies
+         has to be processed through overload resolution even if it
+         doesn't look overloaded. */
       force_indefinite_function = TRUE;
       rep = NULL;
       cppcli_overloaded_case = TRUE;

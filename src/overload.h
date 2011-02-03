@@ -477,7 +477,7 @@ typedef struct an_arg_check_block {
 extern void clear_conv_descr(a_conv_descr_ptr conv);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern a_boolean consider_function_overloaded_for_cppcli(a_symbol_ptr sym);
+extern a_boolean hide_by_sig_lookup_applies(a_symbol_ptr sym);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void display_object_type(a_type_ptr object_type);
