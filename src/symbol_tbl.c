@@ -2023,21 +2023,24 @@ class.
 
 
 static void add_base_classes_to_hide_by_sig_list(
-				a_hide_by_sig_state_ptr		hbssp,
-				a_hide_by_sig_list_entry_ptr	*p_result_list,
-				a_hide_by_sig_list_entry_ptr	*p_list_tail,
-				a_type_ptr			type,
-				uint32_t			level,
-				a_base_class_ptr		base_class)
+		a_hide_by_sig_state_ptr		hbssp,
+		a_hide_by_sig_list_entry_ptr	*p_result_list,
+		a_hide_by_sig_list_entry_ptr	*p_list_tail,
+		a_type_ptr			type,
+		uint32_t			level,
+		a_boolean			*p_any_entries_at_level,
+		a_base_class_ptr		base_class)
 /*
 Go through the base classes of type and call this routine recursively to
 see if the base class contains a function or overload set that should be
 returned in the hide-by-sig list specified by *p_result_list and
 *p_result_tail.  Note that a new list is created by this routine at each level.
-level is the level value to be recorded for any entry created.  hbssp points
-to a state block used to pass information between the hide-by-sig routines.
-base_class is the base class entry associated with type relative to the
-most derived type.  It will be NULL for the most derived class.
+level is the level value to be recorded for any entry created.
+any_entries_at_level is set to TRUE if any entries are added to the
+list for the level passed in.  hbssp points to a state block used to pass
+information between the hide-by-sig routines.  base_class is the base
+class entry associated with type relative to the most derived type.
+It will be NULL for the most derived class.
 */
 {
   a_hide_by_sig_list_entry_ptr	list = NULL;
@@ -2047,6 +2050,7 @@ most derived type.  It will be NULL for the most derived class.
   a_symbol_ptr			other_sym = NULL;
   a_class_symbol_supplement_ptr	cssp;
   a_symbol_ptr			sym;
+  a_boolean			any_entries_at_next_level = FALSE;
 
   /* Look for a symbol in the specified type.  Note that the orig_sym is
      never directly entered on the list (although it could be found by the
@@ -2106,6 +2110,7 @@ most derived type.  It will be NULL for the most derived class.
     } else {
       add_symbol_to_hide_by_sig_list(&list, &list_tail, result_sym, level,
                                      base_class);
+      *p_any_entries_at_level = TRUE;
     }  /* if */
   }  /* if */
   bcp = type->variant.class_struct_union.extra_info->base_classes;
@@ -2126,11 +2131,16 @@ most derived type.  It will be NULL for the most derived class.
         adjusted_bcp = corresp_base_class(bcp, base_class);
       }  /* if */
       add_base_classes_to_hide_by_sig_list(hbssp, &sublist, &sublist_tail,
-                                           bcp->type, level+1, adjusted_bcp);
+                                           bcp->type, level+1,
+                                           &any_entries_at_next_level,
+                                           adjusted_bcp);
       if (sublist != NULL) {
-        if (result_sym == NULL) {
+        if (result_sym == NULL && *p_any_entries_at_level) {
           /* There was a list returned for the base class.  Add an entry for
-             the current class if one does not already exist. */
+             the current class if one does not already exist.  This is only
+             done if there are already entries at this level (so the
+             caller needs to be able to find then one when skipping
+             forward). */
           add_symbol_to_hide_by_sig_list(&list, &list_tail, (a_symbol_ptr)NULL,
                                          level, base_class);
         }  /* if */
@@ -2182,11 +2192,13 @@ returned if the lookup encounters an interface with a static method.
     a_hide_by_sig_state			hbss;
     a_hide_by_sig_list_entry_ptr	sublist;
     a_hide_by_sig_list_entry_ptr	sublist_tail;
+    a_boolean				any_entries_at_level = FALSE;
     init_hide_by_sig_state(&hbss);
     hbss.orig_sym =  sym;
     hbss.is_class = is_class;
     add_base_classes_to_hide_by_sig_list(&hbss, &sublist, &sublist_tail,
                                          parent_type, /*level=*/0,
+                                         &any_entries_at_level,
                                          (a_base_class_ptr)NULL);
     if (sublist != NULL) {
        if (result_list == NULL) {
