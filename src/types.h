@@ -135,6 +135,8 @@ extern a_boolean is_cli_ref_or_interface_class_type(a_type_ptr tp);
    (tp)->variant.class_struct_union.is_delegate_class)
 extern a_boolean is_delegate_type(a_type_ptr tp);
 extern a_type_ptr delegate_invocation_type(a_type_ptr delegate_type);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_immediate_managed_class_type(tp) (FALSE)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern a_boolean is_scalar_type(a_type_ptr tp);
 extern a_boolean is_array_type(a_type_ptr tp);
