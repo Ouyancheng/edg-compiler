@@ -2036,8 +2036,8 @@ returned in the hide-by-sig list specified by *p_result_list and
 *p_result_tail.  Note that a new list is created by this routine at each level.
 level is the level value to be recorded for any entry created.  hbssp points
 to a state block used to pass information between the hide-by-sig routines.
-base_class is the base class entry associated with type, if any (i.e., will
-be NULL for the most derived class).
+base_class is the base class entry associated with type relative to the
+most derived type.  It will be NULL for the most derived class.
 */
 {
   a_hide_by_sig_list_entry_ptr	list = NULL;
@@ -2119,8 +2119,14 @@ be NULL for the most derived class).
         base_ctsp->cli_class_type_kind == (a_cli_class_type_kind)cctk_ref) {
       a_hide_by_sig_list_entry_ptr	sublist = NULL;
       a_hide_by_sig_list_entry_ptr	sublist_tail = NULL;
+      a_base_class_ptr			adjusted_bcp = bcp;
+      if (base_class != NULL) {
+        /* Get the version of the base class that is relative to the most
+           derived class. */
+        adjusted_bcp = corresp_base_class(bcp, base_class);
+      }  /* if */
       add_base_classes_to_hide_by_sig_list(hbssp, &sublist, &sublist_tail,
-                                           bcp->type, level+1, bcp);
+                                           bcp->type, level+1, adjusted_bcp);
       if (sublist != NULL) {
         if (result_sym == NULL) {
           /* There was a list returned for the base class.  Add an entry for
