@@ -1895,6 +1895,7 @@ void db_hide_by_sig_list(a_hide_by_sig_list_entry_ptr	hbslep)
 Display a hide-by-sig list, for debugging purposes.
 */
 {
+  fprintf(f_debug, "hide-by-sig list:\n");
   if (hbslep == NULL) {
     fprintf(f_debug, "<NULL LIST>\n");
   } else {
