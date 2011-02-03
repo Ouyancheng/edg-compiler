@@ -785,6 +785,11 @@ typedef struct a_hide_by_sig_list_entry {
   a_symbol_ptr  symbol;
 			/* Pointer to the symbol entry for this level, or
 			   NULL if this level has no symbol. */
+  a_base_class_ptr
+		base_class;
+			/* The bass class in which this symbol was found, or
+			   NULL if the symbol was found in the derived
+			   class. */
   uint32_t	level;
 			/* The level associated with this entry. */
 } a_hide_by_sig_list_entry;

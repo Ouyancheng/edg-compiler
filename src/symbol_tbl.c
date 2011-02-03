@@ -1901,11 +1901,16 @@ Display a hide-by-sig list, for debugging purposes.
     for (; hbslep != NULL; hbslep = hbslep->next) {
       fprintf(f_debug, "%*s", (int)(hbslep->level*2), "");
       if (hbslep->symbol == NULL) {
-        fprintf(f_debug, "<NULL>");
+        fprintf(f_debug, "<NULL> (%d)\n", (int)hbslep->level);
       } else {
         db_symbol_name(hbslep->symbol);
+        fprintf(f_debug, " (%d)", (int)hbslep->level);
+        if (hbslep->base_class != NULL) {
+          fprintf(f_debug, " base_class: ");
+          db_abbreviated_base_class(hbslep->base_class);
+        }  /* if */
+        fprintf(f_debug, "\n");
       }  /* if */
-      fprintf(f_debug, " (%d)\n", (int)hbslep->level);
     }  /* for */
   }  /* if */
 }  /* db_hide_by_sig_list */
@@ -1953,6 +1958,7 @@ to it.
   }  /* if */
   hbslep->next = NULL;
   hbslep->symbol = NULL;
+  hbslep->base_class = NULL;
   hbslep->level = 0;
   return hbslep;
 }  /* alloc_hide_by_sig_list_entry */
@@ -1991,11 +1997,14 @@ static void add_symbol_to_hide_by_sig_list(
 				a_hide_by_sig_list_entry_ptr	*result_list,
 				a_hide_by_sig_list_entry_ptr	*list_tail,
 				a_symbol_ptr			sym,
-				uint32_t			level)
+				uint32_t			level,
+				a_base_class_ptr		base_class)
 /*
 Add an entry to the hide-by-sig list specified by *result_list and
 *list_tail.   sym is the symbol for the entry, and can be NULL.  level is
-the level associated with the symbol.
+the level associated with the symbol.  base_class is the base class in
+which the symbol was found, or NULL if it was found in the most derived
+class.
 */
 {
   a_hide_by_sig_list_entry_ptr	hbslep;
@@ -2003,6 +2012,7 @@ the level associated with the symbol.
   hbslep = alloc_hide_by_sig_list_entry();
   hbslep->symbol = sym;
   hbslep->level = level;
+  hbslep->base_class = base_class;
   if (*result_list == NULL) {
     *result_list = hbslep;
   } else {
@@ -2017,7 +2027,8 @@ static void add_base_classes_to_hide_by_sig_list(
 				a_hide_by_sig_list_entry_ptr	*p_result_list,
 				a_hide_by_sig_list_entry_ptr	*p_list_tail,
 				a_type_ptr			type,
-				uint32_t			level)
+				uint32_t			level,
+				a_base_class_ptr		base_class)
 /*
 Go through the base classes of type and call this routine recursively to
 see if the base class contains a function or overload set that should be
@@ -2025,6 +2036,8 @@ returned in the hide-by-sig list specified by *p_result_list and
 *p_result_tail.  Note that a new list is created by this routine at each level.
 level is the level value to be recorded for any entry created.  hbssp points
 to a state block used to pass information between the hide-by-sig routines.
+base_class is the base class entry associated with type, if any (i.e., will
+be NULL for the most derived class).
 */
 {
   a_hide_by_sig_list_entry_ptr	list = NULL;
@@ -2091,7 +2104,8 @@ to a state block used to pass information between the hide-by-sig routines.
     if (is_static_in_interface) {
       hbssp->suppress_hide_by_sig = TRUE;
     } else {
-      add_symbol_to_hide_by_sig_list(&list, &list_tail, result_sym, level);
+      add_symbol_to_hide_by_sig_list(&list, &list_tail, result_sym, level,
+                                     base_class);
     }  /* if */
   }  /* if */
   bcp = type->variant.class_struct_union.extra_info->base_classes;
@@ -2106,13 +2120,13 @@ to a state block used to pass information between the hide-by-sig routines.
       a_hide_by_sig_list_entry_ptr	sublist = NULL;
       a_hide_by_sig_list_entry_ptr	sublist_tail = NULL;
       add_base_classes_to_hide_by_sig_list(hbssp, &sublist, &sublist_tail,
-                                           bcp->type, level+1);
+                                           bcp->type, level+1, bcp);
       if (sublist != NULL) {
         if (result_sym == NULL) {
           /* There was a list returned for the base class.  Add an entry for
              the current class if one does not already exist. */
           add_symbol_to_hide_by_sig_list(&list, &list_tail, (a_symbol_ptr)NULL,
-                                         level);
+                                         level, base_class);
         }  /* if */
         /* Append the sublist to the list being built. */
         if (list == NULL) {
@@ -2166,7 +2180,8 @@ returned if the lookup encounters an interface with a static method.
     hbss.orig_sym =  sym;
     hbss.is_class = is_class;
     add_base_classes_to_hide_by_sig_list(&hbss, &sublist, &sublist_tail,
-                                         parent_type, /*level=*/0);
+                                         parent_type, /*level=*/0,
+                                         (a_base_class_ptr)NULL);
     if (sublist != NULL) {
        if (result_list == NULL) {
           result_list = sublist;
