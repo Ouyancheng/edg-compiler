@@ -4017,6 +4017,13 @@ b).
     routine_type = skip_typerefs(routine->type);
     if (routine_type_is_nonstatic_member_function(routine_type)) {
       some_function_needs_selector = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled &&
+               ostblock.hide_by_sig_list != NULL) {
+      /* If the overload set is formed by C++/CLI hide-by-sig processing,
+         assume it contains a nonstatic member somewhere. */
+      some_function_needs_selector = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* If the first function of a list of functions does not need a selector,
          and the mixed_static_nonstatic flag says the list contains both static
