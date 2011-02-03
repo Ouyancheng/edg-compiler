@@ -2088,22 +2088,25 @@ It will be NULL for the most derived class.
     /* If we encounter a static method in an interface, the original symbol
        should be used and hide-by-sig processing suppressed. */
     if (!is_class) {
+      a_symbol_ptr	rout_sym = NULL;
+      a_type_ptr	rout_type;
       if (result_sym->kind == (a_symbol_kind)sk_overloaded_function) {
         if (result_sym->variant.overloaded_function.mixed_static_nonstatic) {
           /* When this flag is set, we know there is at least one static
              method. */
           is_static_in_interface = TRUE;
         } else {
-          a_symbol_ptr	first_sym;
-          a_type_ptr	rout_type;
-          first_sym = result_sym->variant.overloaded_function.symbols;
-          rout_type = first_sym->variant.routine.ptr->type;
-          if (!routine_type_is_nonstatic_member_function(rout_type)) {
-            /* The list is not mixed, so all the list entries are either
-               static or nonstatic, so we can just look at the first entry. */
-            is_static_in_interface = TRUE;
-          }  /* if */
+          rout_sym = result_sym->variant.overloaded_function.symbols;
         }  /* if */
+      } else {
+        rout_sym = result_sym;
+      }  /* if */
+      rout_type = rout_sym->variant.routine.ptr->type;
+      if (!routine_type_is_nonstatic_member_function(rout_type)) {
+        /* We either have a non-mixed list (so all the list entries are either
+           static or nonstatic) or a single symbol.  So we can just
+           look at the first entry (or the single symbol). */
+        is_static_in_interface = TRUE;
       }  /* if */
     }  /* if */
     if (is_static_in_interface) {
