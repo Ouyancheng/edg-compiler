@@ -6252,7 +6252,11 @@ or struct definition.  The syntax is
       attributes = scan_attributes(al_base_specifier);
       if (attributes != NULL) mark_primary_decl_attributes(attributes);
       /* Set the defaults. */
-      if (type_ptr->kind == (a_type_kind)tk_class) {
+      if (type_ptr->kind == (a_type_kind)tk_class
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          && !is_immediate_managed_class_type(type_ptr)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                       ) {
         access = (an_access_specifier)as_private;
         default_access_str = "private";
       } else {
