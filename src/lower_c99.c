@@ -136,8 +136,8 @@ Lower the expression in a VLA dimension entry.
   an_expr_node_ptr  expr = vdp->dimension_expr;
 
   if (expr != NULL) {
-    a_scope_ptr  saved_innermost_function_scope;
     a_context    context;
+    a_scope_ptr  saved_innermost_function_scope;
     a_context    *saved_curr_context;
     a_scope_ptr  scope = NULL;
     if (vdp->in_prototype_scope) {
