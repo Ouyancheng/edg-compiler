@@ -2258,6 +2258,7 @@ TRUE if this is the function declarator in a friend function declaration.
             /* The first and only parameter-declaration is just "void", which
                has a special meaning (no parameters).  (3.5.4.3)  */
             remove_stop_token(tok_comma);
+            abandon_potential_pack_expansion_context(pesep);
             break;
           } else if (is_void_type(param_state.type) &&
                      !is_qualified_type(param_state.type) &&
@@ -2302,6 +2303,7 @@ TRUE if this is the function declarator in a friend function declaration.
                 pos_diagnostic(sev, ec, &param_type_pos);
               }  /* if */
               remove_stop_token(tok_comma);
+              abandon_potential_pack_expansion_context(pesep);
               break;
             }  /* if */
           }  /* if */

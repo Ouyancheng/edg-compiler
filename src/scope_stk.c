@@ -9672,6 +9672,25 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
 }  /* advance_to_next_pack_element */
 
 
+void abandon_potential_pack_expansion_context(
+				a_pack_expansion_stack_entry_ptr	pesep)
+/*
+A call was been made to begin_potential_pack_expansion_context, but we
+have encountered something that caused us to discard this context, so the
+pack expansion stack must be popped.
+*/
+{
+  if (pesep != NULL) {
+    /* The pack expansion descriptor passed in should be on top of the
+       stack. */
+    check_assertion(pesep == pack_expansion_stack);
+    /* There should not have been any packs referenced. */
+    check_assertion(pesep->expansion_descr->packs_referenced == NULL);
+    pop_pack_expansion_stack();
+  }  /* if */
+}  /* abandon_potential_pack_expansion_context */
+
+
 void record_potential_pack_reference(a_symbol_ptr		pack_symbol,
 				     a_source_position_ptr	position)
 /*
