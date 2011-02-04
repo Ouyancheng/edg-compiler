@@ -417,6 +417,8 @@ destination type (this comes up in a Microsoft-mode extension).
       need_templates_pass = TRUE;
     } else {
       /* Check for an exact match on a non-template. */
+      /* It appears that MSVC does not do hide-by-sig lookup here, so we
+         do not use set_up_overload_set_traversal here. */
       for (proj_sym = ovl_sym;
            proj_sym != NULL;
            proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
@@ -453,6 +455,8 @@ destination type (this comes up in a Microsoft-mode extension).
         is_function_type(dest_underlying_type)) {
       a_partial_order_candidate_ptr candidate_list = NULL;
       /* Try matching function templates. */
+      /* It appears that MSVC does not do hide-by-sig lookup here, so we
+         do not use set_up_overload_set_traversal here. */
       for (proj_sym = ovl_sym;
            proj_sym != NULL;
            proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
@@ -513,6 +517,8 @@ destination type (this comes up in a Microsoft-mode extension).
       a_type_ptr match_routine_type = NULL;
       a_type_ptr eff_dest_type = dest_type;
       if (is_ref) eff_dest_type = type_pointed_to(eff_dest_type);
+      /* It appears that MSVC does not do hide-by-sig lookup here, so we
+         do not use set_up_overload_set_traversal here. */
       for (proj_sym = ovl_sym;
            proj_sym != NULL;
            proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
