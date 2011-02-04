@@ -3653,6 +3653,7 @@ are expected to be NULL in that case.
      a name enclosed in parentheses as in "(f)(x)"). */
   if (!C_mode() && arg_dependent_lookup_enabled) {
     if (operand->is_name_followed_by_left_paren &&
+        !operand->bound_function &&
         !operand->is_qualified_name) {
       do_arg_dep_lookup = TRUE;
       if (gpp_mode && gnu_version < 40400 && operand->is_template_id) {
@@ -5054,6 +5055,7 @@ static void get_locator_for_rescanned_selection_second_operand(
                                 a_type_ptr             class_struct_union_type,
                                 a_rescan_control_block *rcblock,
                                 a_boolean              call_rescan_case,
+                                a_boolean              *followed_by_left_paren,
                                 a_symbol_locator       *locator,
                                 a_boolean              *err)
 /*
@@ -5067,7 +5069,9 @@ basically a name, and put that in *locator.  The locator describes the
 result of looking up the name in the first operand's class, not just
 the name in the abstract.  If call_rescan_case is TRUE, rcblock->expr
 is a member call, and the locator produced is for its first operand,
-the function.  Set *err to TRUE if there is an error.
+the function.  Set *err to TRUE if there is an error.  Return
+*followed_by_left_paren TRUE if the member name was followed by
+a left parenthesis in the source.
 */
 {
   an_expr_node_ptr              expr = rcblock->expr, op1, member_op;
@@ -5081,6 +5085,7 @@ the function.  Set *err to TRUE if there is an error.
   a_boolean                     need_member_sym_check = TRUE;
   a_source_position             *qualified_member_position;
 
+  *followed_by_left_paren = FALSE;
   if (class_struct_union_type == NULL) {
     /* Some previous error on the first operand. */
     set_to_error_locator(*locator);
@@ -5098,6 +5103,8 @@ the function.  Set *err to TRUE if there is an error.
     eriep = get_expr_rescan_info(member_op, &rescan_info);
     is_qualified = eriep->saved_operand.is_qualified_name;
     qualified_member_position = &eriep->saved_operand.position;
+    *followed_by_left_paren =
+                           eriep->saved_operand.is_name_followed_by_left_paren;
   } else {
     /* Cases like vacuous destructor calls have no second operand. */
     eriep = get_expr_rescan_info(expr, &rescan_info);
@@ -5235,12 +5242,18 @@ the function.  Set *err to TRUE if there is an error.
           }  /* if */
         }  /* if */
         /* Do substitution on the constant and produce a symbol. */
-        sym = symbol_for_template_param_unknown_entity_rescan(
+        { a_ctws_options_set saved_options = rcblock->options;
+          if (*followed_by_left_paren) {
+            rcblock->options |= CTWS_IS_CALL_CONTEXT;
+          }  /* if */
+          sym = symbol_for_template_param_unknown_entity_rescan(
                                                          con,
                                                          rcblock,
                                                          eriep,
                                                          &is_template_id,
                                                          &expl_templ_arg_list);
+          rcblock->options = saved_options;
+        }
       } else if (is_variable_node(member_op)) {
         /* Static data member. */
         sym = symbol_for(member_op->variant.variable);
@@ -5344,6 +5357,7 @@ case).
   a_ref_entry_ptr       rep;
   a_boolean             is_vacuous_destructor_reference = FALSE;
   a_boolean             force_indefinite_function = FALSE;
+  a_boolean             member_name_followed_by_left_paren = FALSE;
   a_source_position     member_position;
   a_boolean             pcc_mode_integral_pointer_case = FALSE;
   an_operand            local_operand_1;
@@ -5548,6 +5562,7 @@ case).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    member_name_followed_by_left_paren = (curr_token == tok_lparen);
     if (updated_class_type != NULL) {
       /* The subroutine asks that the class type be updated at this level.
          This is used in pcc mode for an obscure feature. */
@@ -5557,11 +5572,13 @@ case).
     }  /* if */
   } else {
     /* Redoing semantic analysis on a previously-scanned selection. */
-    get_locator_for_rescanned_selection_second_operand(class_struct_union_type,
-                                                       rcblock,
-                                                       call_rescan_case,
-                                                       &locator,
-                                                       &err);
+    get_locator_for_rescanned_selection_second_operand(
+                                           class_struct_union_type,
+                                           rcblock,
+                                           call_rescan_case,
+                                           &member_name_followed_by_left_paren,
+                                           &locator,
+                                           &err);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -5705,7 +5722,8 @@ case).
       rep = NULL;
       force_indefinite_function = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (hide_by_sig_lookup_applies(projection_member_sym)) {
+    } else if (cppcli_enabled && member_name_followed_by_left_paren &&
+               hide_by_sig_lookup_applies(projection_member_sym)) {
       /* In C++/CLI mode, a symbol for which hide-by-sig lookup applies
          has to be processed through overload resolution even if it
          doesn't look overloaded. */
@@ -5788,9 +5806,12 @@ case).
                               end_position_or_null(&end_position),
                               result, rep);
               set_operand_id_details_from_locator(result, &locator);
+              result->is_name_followed_by_left_paren =
+                                            member_name_followed_by_left_paren;
               combine_unneeded_selector_with_operand(operand_1,
                                                      is_arrow_operator,
                                                      result);
+              member_name_followed_by_left_paren = FALSE;
             }  /* if */
           }
           break;
@@ -5861,9 +5882,12 @@ nonstatic_member_function:
                                              rep,
                                              result);
             set_operand_name_reference_from_locator(result, &locator);
+            result->is_name_followed_by_left_paren =
+                                            member_name_followed_by_left_paren;
             combine_unneeded_selector_with_operand(operand_1,
                                                    is_arrow_operator,
                                                    result);
+            member_name_followed_by_left_paren = FALSE;
           }  /* if */
           break;
         case sk_overloaded_function:
@@ -5906,8 +5930,11 @@ nonstatic_member_function:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           result->end_position = end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+          result->is_name_followed_by_left_paren =
+                                            member_name_followed_by_left_paren;
           combine_unneeded_selector_with_operand(operand_1, is_arrow_operator,
                                                  result);
+          member_name_followed_by_left_paren = FALSE;
           break;
         case sk_type:
         case sk_class_or_struct_tag:
@@ -5952,6 +5979,7 @@ nonstatic_member_function:
     check_assertion(!is_vacuous_destructor_reference);
     set_operand_position(result, &member_position, &end_position,
                          (a_source_position *)NULL);
+    result->is_name_followed_by_left_paren= member_name_followed_by_left_paren;
   } else {
     /* Not a bound function; the operand position reflects the entire
        selection. */

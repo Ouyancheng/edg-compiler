@@ -7303,7 +7303,7 @@ static or nonstatic.
 
   if (is_template_dependent_context()) {
     a_type_ptr left_type = left_operand->type;
-    if (is_arrow_operator && is_pointer_type(left_type)) {
+    if (is_arrow_operator && is_pointer_or_handle_type(left_type)) {
       left_type = type_pointed_to(left_type);
     }  /* if */
     if (could_be_dependent_class_type(left_type) ||
