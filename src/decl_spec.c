@@ -7686,6 +7686,17 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
       case tok_typedef:
         specifier_allows_vacuous_decl = !strict_ansi_mode;
         goto storage_class_specifier;
+      case tok_ellipsis:
+        if (variadic_templates_enabled &&
+            (decl_specifiers_seen & DS_TYPE) == 0) {
+          /* A "..." before a type specifier, so this can't be part of the
+             declarator. */
+          pos_error(ec_parameter_pack_decl_not_allowed, &pos_curr_token);
+          err = TRUE;
+        } else {
+          goto something_unexpected;
+        }  /* if */
+        break;
       case tok_extern:
         if (!C_mode() && next_token() == tok_string_literal) {
           /* This is a C++ linkage specification, which is an error in this
