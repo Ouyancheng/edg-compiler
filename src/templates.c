@@ -8483,7 +8483,6 @@ being looked up is known to be a type.
       new_sym = enum_qualified_id_lookup(&locator, parent_type);
     } else {
       an_id_lookup_options_set	lookup_options;
-      a_symbol_ptr		fund_sym;
       a_boolean			ambiguous = FALSE;
       /* If the entity being looked up is known the be the parent of another
          entity, then it must be a class or a namespace.  Otherwise, use the
@@ -8493,8 +8492,7 @@ being looked up is known to be a type.
       } else {
         lookup_options = is_type ? IDL_TYPENAME_LOOKUP : IDL_NO_OPTIONS;
       }  /* if */
-      fund_sym = class_qualified_id_lookup(&locator, parent_type,
-                                           lookup_options);
+      (void)class_qualified_id_lookup(&locator, parent_type, lookup_options);
       new_sym = locator.specific_symbol;
       if (new_sym != NULL && new_sym->ambiguous) ambiguous = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
