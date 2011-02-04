@@ -1431,6 +1431,11 @@ typedef int a_ctws_options_set;
 			   Used to control pushing a template instantiation
 			   scope when we first enter an expression rescan,
 			   and not again in any nested processing. */
+#define CTWS_IS_CALL_CONTEXT		0x20
+			/* TRUE when the substitution routines are called
+			   from rescan contexts and the entity being
+			   substituted is the function name in a call (e.g.,
+			   was followed by a "(" in the source). */
 
 
 extern an_expr_node_ptr copy_template_param_expr(
