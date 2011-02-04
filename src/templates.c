@@ -8189,6 +8189,8 @@ associated parameter.
           new_tap->variant.constant = tap->variant.constant;
           break;
         case tak_start_of_pack_expansion:
+          /* Clear the flag on the placeholder, if set above. */
+          new_tap->is_pack_element = FALSE;
           break;
         default:
           unexpected_condition();
