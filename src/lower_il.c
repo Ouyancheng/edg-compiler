@@ -760,30 +760,52 @@ lifetime.
 }  /* set_curr_cleanup_state_to_latest_initialization */
 
 
-void clear_curr_context(a_context **context)
+void save_and_push_context(a_context              *context,
+                           a_scope_ptr            scope,
+                           an_object_lifetime_ptr lifetime,
+                           a_context              **saved_curr_context)
 /*
-Clear the existing context stack by saving it to *context and start a new
-context stack (setting curr_context to NULL).  This is used as a mechanism
-in cases where nested full expressions are needed, for example, when lowering
-a VLA dimension expression within a full expression.  *context should be
-restored by a later call to restore_curr_context.
+Save the existing context stack (in *saved_curr_context), then push the new
+context onto the (now empty) context stack.  This is used in cases where
+"nested full expressions" are needed, for example, when lowering a VLA
+dimension expression within a full expression.  In such cases, its likely that
+a full expression is already being lowered and the VLA dimension expression
+needs to also be treated as a (separate), but full, expression so that any
+temporaries generated during the nested full expression are kept separate from
+those in the outer full expression (and aren't released prematurely).  If
+non-NULL, scope and lifetime represent the scope and lifetimes for the new
+context, but typically this is called with those values set to NULL (in which
+case the values from the current context are used).  *saved_curr_context should
+be restored by a later call to restore_curr_context.
 */
 {
-  check_assertion(context != NULL);
-  *context = curr_context;
+  check_assertion(curr_context != NULL);
+  /* In most cases we're not changing scope or lifetime, so use ones
+     from the current context. */
+  if (scope == NULL) scope = curr_context->scope;
+  if (lifetime == NULL) lifetime = curr_context->lifetime;
+  *saved_curr_context = curr_context;
   curr_context = NULL;
-}  /* clear_curr_context */
+  push_context(context, scope, lifetime);
+  /* Save the latest_initialization information from the saved context
+     (it's needed to generate proper destructions in some cases, for example,
+     if there's a branch out of a GNU statement expression). */
+  curr_context->latest_initialization =
+                                  (*saved_curr_context)->latest_initialization;
+}  /* save_and_push_context */
 
 
-void restore_curr_context(a_context *context)
+void restore_saved_context(a_context *context)
 /*
 Restore the context stack specified by *context (as saved by a previous
-call to clear_curr_context).
+call to save_and_push_context).
 */
 {
-  check_assertion(curr_context == NULL);
+  check_assertion(curr_context != NULL && curr_context->parent == NULL);
+  /* Pop the context, the overwrite it with the value from the caller. */
+  pop_context();
   curr_context = context;
-}  /* restore_curr_context */
+}  /* restore_saved_context */
 
 
 void push_context(a_context              *context,
@@ -16026,53 +16048,36 @@ otherwise it will be set to NULL.
   *new_lifetime = FALSE;
   *saved_curr_cleanup_state = curr_context->curr_cleanup_state;
   *saved_curr_context = NULL;
-  if (scope != NULL || lifetime != NULL
 #if GNU_EXTENSIONS_ALLOWED
-      || block->is_statement_expression
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                                       ) {
-#if GNU_EXTENSIONS_ALLOWED
-    if (block->is_statement_expression) {
-      /* Make sure a new context is pushed for a statement expression (so
-         full expressions aren't nested and temporaries aren't reused
-         before the end of the enclosing full expression).  Use scope and
-         lifetimes from the block if non-NULL, otherwise use those from
-         the previous context. */
-      clear_curr_context(saved_curr_context);
-      check_assertion(*saved_curr_context != NULL);
-      if (scope == NULL) scope = (*saved_curr_context)->scope;
-      if (lifetime == NULL) {
-        lifetime = (*saved_curr_context)->lifetime;
-      } else {
-        *new_lifetime = TRUE;
-      }  /* if */
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    push_context(context, scope, lifetime);
-    *context_pushed = TRUE;
-#if GNU_EXTENSIONS_ALLOWED
-    if (block->is_statement_expression) {
-      /* Keep initializations from saved context (so proper destructions
-         will be generated if branching from the statement expression). */
-      curr_context->latest_initialization =
-                                  (*saved_curr_context)->latest_initialization;
-    } else {
-      *new_lifetime = curr_context->new_lifetime;
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    if (scope != NULL) lifetime = scope->lifetime;
-  } else if (block_statement == innermost_function_scope->assoc_block) {
-    /* For the topmost block in a function, assoc_scope is NULL, so
-       no push_context is done.  That's correct, because the caller has
-       done the push_context already.  A new lifetime may begin here,
-       however. */
-    scope = innermost_function_scope;
-    lifetime = scope->lifetime;
+  if (block->is_statement_expression) {
+    /* Make sure a new context is pushed for a statement expression (so
+       full expressions aren't nested and temporaries aren't reused
+       before the end of the enclosing full expression). */
+    save_and_push_context(context, scope, lifetime, saved_curr_context);
     *new_lifetime = (lifetime != NULL);
-  } else {
-    /* Keep track of compound statements without scopes that we are inside of,
-       so they can be used to allocate temporaries. */
-    push_scopeless_compound_stmt(block_statement);
+    *context_pushed = TRUE;
+  } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    if (scope != NULL || lifetime != NULL) {
+      push_context(context, scope, lifetime);
+      *context_pushed = TRUE;
+      *new_lifetime = curr_context->new_lifetime;
+      if (scope != NULL) lifetime = scope->lifetime;
+    } else if (block_statement == innermost_function_scope->assoc_block) {
+      /* For the topmost block in a function, assoc_scope is NULL, so
+         no push_context is done.  That's correct, because the caller has
+         done the push_context already.  A new lifetime may begin here,
+         however. */
+      scope = innermost_function_scope;
+      lifetime = scope->lifetime;
+      *new_lifetime = (lifetime != NULL);
+    } else {
+      /* Keep track of compound statements without scopes that we are inside
+         of, so they can be used to allocate temporaries. */
+      push_scopeless_compound_stmt(block_statement);
+    }  /* if */
   }  /* if */
   if (*new_lifetime) {
     /* A new lifetime was pushed. */
@@ -16186,14 +16191,16 @@ cases where the block is a GNU statement expression.
   }  /* if */
   if (context_pushed) {
     /* Pop the context pushed by push_block_statement_context. */
-    pop_context();
 #if GNU_EXTENSIONS_ALLOWED
     if (block->is_statement_expression) {
       /* Restore previously saved context stack. */
       check_assertion(saved_curr_context != NULL);
-      restore_curr_context(saved_curr_context);
-    }  /* if */
+      restore_saved_context(saved_curr_context);
+    } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    {
+      pop_context();
+    }  /* if */
   } else if (block_statement == innermost_function_scope->assoc_block) {
     /* This is the top-most block in a function. */
   } else {

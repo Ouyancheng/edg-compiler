@@ -741,9 +741,12 @@ extern void push_context(a_context              *context,
                          a_scope_ptr            scope,
                          an_object_lifetime_ptr lifetime);
 
-extern void clear_curr_context(a_context **context);
+extern void save_and_push_context(a_context              *context,
+                                  a_scope_ptr            scope,
+                                  an_object_lifetime_ptr lifetime,
+                                  a_context              **saved_curr_context);
 
-extern void restore_curr_context(a_context *context);
+extern void restore_saved_context(a_context *context);
 
 extern void set_insert_location(a_statement_ptr    stmt,
                                 an_insert_location *insert_location);

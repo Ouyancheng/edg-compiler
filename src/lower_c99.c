@@ -134,11 +134,12 @@ Lower the expression in a VLA dimension entry.
 */
 {
   an_expr_node_ptr  expr = vdp->dimension_expr;
-  a_context         context;
-  a_context         *saved_curr_context;
 
   if (expr != NULL) {
     a_scope_ptr  saved_innermost_function_scope;
+    a_context    context;
+    a_context    *saved_curr_context;
+    a_scope_ptr  scope = NULL;
     if (vdp->in_prototype_scope) {
       /* The expression we're about to lower may generate temporaries, but
          those temporaries would be allocated in the function scope (and
@@ -149,18 +150,15 @@ Lower the expression in a VLA dimension entry.
       check_assertion(C_mode());
       saved_innermost_function_scope = innermost_function_scope;
       innermost_function_scope = NULL;
-      push_context(&context, il_header.primary_scope,
-                   (an_object_lifetime_ptr)NULL);
-    } else {
-      /* We're about to lower a VLA expression as a full expression, but we
-         may already be in a full expression context (and full expressions
-         can't be nested).  Save the existing context stack and push a new
-         one with the same scope and lifetime (so temporaries don't
-         inadvertently get reused in the outer full expression). */
-      clear_curr_context(&saved_curr_context);
-      push_context(&context, saved_curr_context->scope,
-                   saved_curr_context->lifetime);
+      scope = il_header.primary_scope;
     }  /* if */
+    /* We're about to lower a VLA expression as a full expression, but we're
+       likely already be in a full expression context (and full expressions
+       can't be nested).  Save the existing context stack and push a new
+       one with the same scope and lifetime (so temporaries don't
+       inadvertently get reused in the outer full expression). */
+    save_and_push_context(&context, scope, (an_object_lifetime_ptr)NULL,
+                          &saved_curr_context);
     if (C_mode()) {
 #if DO_C99_IL_LOWERING
       lower_c99_full_expr(expr);
@@ -168,11 +166,9 @@ Lower the expression in a VLA dimension entry.
     } else {
       lower_full_expr(expr, (a_statement_ptr)NULL);
     }  /* if */
-    pop_context();
+    restore_saved_context(saved_curr_context);
     if (vdp->in_prototype_scope) {
       innermost_function_scope = saved_innermost_function_scope;
-    } else {
-      restore_curr_context(saved_curr_context);
     }  /* if */
 #if MINIMAL_INLINING
     /* Catch constant nonpositive sizes introduced by inlining. */
@@ -3695,11 +3691,11 @@ second parameter.
         if (last != NULL && last->kind == (a_statement_kind)stmk_expr) {
           original_statement_was_expr = TRUE;
         }  /* if */
-        /* Create a new context, unrelated to any previous contexts, into
+        /* Create a new context, unrelated to any previous contexts, in
            which the statement expression should be lowered. */
-        clear_curr_context(&saved_curr_context);
-        push_context(&context, saved_curr_context->scope,
-                     saved_curr_context->lifetime);
+        save_and_push_context(&context, (a_scope_ptr)NULL,
+                              (an_object_lifetime_ptr)NULL,
+                              &saved_curr_context);
 #if MINIMAL_INLINING
         saved_inlining_enabled = inlining_enabled;
         /* Turn off inlining, because the last statement creates a
@@ -3712,8 +3708,7 @@ second parameter.
 #if MINIMAL_INLINING
         inlining_enabled = saved_inlining_enabled;
 #endif /* MINIMAL_INLINING */
-        pop_context();
-        restore_curr_context(saved_curr_context);
+        restore_saved_context(saved_curr_context);
         last = last_statement_in_block(block);
         if (original_statement_was_expr && 
             last != NULL && last->kind == (a_statement_kind)stmk_block) {
