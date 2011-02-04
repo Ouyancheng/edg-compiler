@@ -1683,7 +1683,7 @@ values.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   operand->is_microsoft_noop = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  operand->is_routine_name_followed_by_left_paren = FALSE;
+  operand->is_name_followed_by_left_paren = FALSE;
   operand->is_dummy_lvalue = FALSE;
   operand->is_parenthesized = FALSE;
   operand->name_reference_set = FALSE;
@@ -3723,8 +3723,8 @@ longer an id-expression.
 */
 {
   operand->is_id_expression = orig_operand->is_id_expression;
-  operand->is_routine_name_followed_by_left_paren =
-                          orig_operand->is_routine_name_followed_by_left_paren;
+  operand->is_name_followed_by_left_paren =
+                                  orig_operand->is_name_followed_by_left_paren;
 }  /* restore_operand_id_details */
 
 

@@ -3652,7 +3652,7 @@ are expected to be NULL in that case.
      simple name followed by a left parenthesis (not, for example,
      a name enclosed in parentheses as in "(f)(x)"). */
   if (!C_mode() && arg_dependent_lookup_enabled) {
-    if (operand->is_routine_name_followed_by_left_paren &&
+    if (operand->is_name_followed_by_left_paren &&
         !operand->is_qualified_name) {
       do_arg_dep_lookup = TRUE;
       if (gpp_mode && gnu_version < 40400 && operand->is_template_id) {
@@ -3667,7 +3667,7 @@ are expected to be NULL in that case.
          come here as overloaded functions when argument-dependent lookup
          is enabled.  The flag here only indicates suppression because
          of the lack of an immediately following left parenthesis. */
-      if (!operand->is_routine_name_followed_by_left_paren) {
+      if (!operand->is_name_followed_by_left_paren) {
         /* Argument-dependent lookup does not apply to member functions,
            so don't record it as "suppressed" for them. */
         if (!operand->symbol->is_class_member) {
@@ -21548,6 +21548,7 @@ if rescan_is_template_id is TRUE, and return the result in *operand
   a_type_ptr         qual_class_type;
   a_boolean          err = FALSE, is_ptr_to_member_context;
   a_boolean          force_indefinite_function = FALSE;
+  a_boolean          name_followed_by_left_paren = FALSE;
   a_boolean          okay_for_integral_const_expr = FALSE;
   a_boolean          nonstd_field_folding_case;
   a_boolean          okay_after_typename = FALSE;
@@ -21581,6 +21582,8 @@ if rescan_is_template_id is TRUE, and return the result in *operand
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rescan_operand->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    name_followed_by_left_paren =
+                                rescan_operand->is_name_followed_by_left_paren;
     /* Make a locator for the symbol. */
     make_locator_for_symbol(sym_ptr, &locator);
     reduce_projection_symbol_to_fundamental_symbol(sym_ptr);
@@ -21620,15 +21623,17 @@ if rescan_is_template_id is TRUE, and return the result in *operand
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if GNU_EXTENSIONS_ALLOWED
     { a_token_sequence_number paren_tok_seq_number;
+      name_followed_by_left_paren =
+             (next_token_with_seq_number(&paren_tok_seq_number) == tok_lparen);
+#if GNU_EXTENSIONS_ALLOWED
       if (gpp_mode && gnu_version >= 30400 &&
           do_dependent_name_processing &&
           is_nonspecialized_instantiation_context() &&
           !is_template_dependent_context() &&
           arg_dependent_lookup_enabled &&
           !locator.is_qualified_name &&
-          next_token_with_seq_number(&paren_tok_seq_number) == tok_lparen &&
+          name_followed_by_left_paren &&
           get_nondependent_call_info(paren_tok_seq_number,
                                      (a_nondependent_call_depth)0) == NULL) {
         a_symbol_ptr	new_sym;
@@ -21646,10 +21651,10 @@ if rescan_is_template_id is TRUE, and return the result in *operand
           sym_ptr = new_sym;
         }  /* if */
       }  /* if */
-    }
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    }
     if (microsoft_mode && sym_ptr != NULL && is_constructor_symbol(sym_ptr) &&
-        next_token() == tok_lparen) {
+        name_followed_by_left_paren) {
       /* In Microsoft mode, treat the name of a constructor as the name
          of the class, so that something like "C::C()" is seen as a
          functional-notation type conversion. */
@@ -21716,9 +21721,6 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       check_assertion(is_function_or_template_symbol(sym_ptr));
       force_indefinite_function = TRUE;
       rep = NULL;
-    } else if (rcblock != NULL) {
-      /* No cross-reference entries in rescans. */
-      rep = NULL;
     } else if (sym_ptr->kind == (a_symbol_kind)sk_routine &&
                !C_mode() && arg_dependent_lookup_enabled &&
 #if GNU_EXTENSIONS_ALLOWED
@@ -21729,7 +21731,7 @@ if rescan_is_template_id is TRUE, and return the result in *operand
                !(gpp_mode &&
                  is_gnu_builtin_function(sym_ptr->variant.routine.ptr)) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
-               (check_assertion(rcblock == NULL), next_token() == tok_lparen)){
+               name_followed_by_left_paren) {
       /* When argument-dependent lookup is enabled, even if the symbol
          is a simple routine name it might not be the routine that is
          called, so go to overload resolution and handle the reference
@@ -21738,7 +21740,8 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       force_indefinite_function = TRUE;
       rep = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (hide_by_sig_lookup_applies(locator.specific_symbol)) {
+    } else if (cppcli_enabled && name_followed_by_left_paren &&
+               hide_by_sig_lookup_applies(locator.specific_symbol)) {
       /* In C++/CLI mode, a symbol for which hide-by-sig lookup applies
          has to be processed through overload resolution even if it
          doesn't look overloaded. */
@@ -21746,6 +21749,9 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       rep = NULL;
       cppcli_overloaded_case = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (rcblock != NULL) {
+      /* No cross-reference entries in rescans. */
+      rep = NULL;
     } else {
       rep = ref_entry(sym_ptr, &locator.source_position);
     }  /* if */
@@ -22137,7 +22143,7 @@ overloaded_function:
                While we only create an undefined symbol operand from source
                in some special circumstances, if we bothered to create one
                and save it in the IL, we preserve it here in the rescan. */
-            if (rescan_operand->is_routine_name_followed_by_left_paren) {
+            if (rescan_operand->is_name_followed_by_left_paren) {
               make_undefined_symbol_operand(sym_ptr,
                                             (a_ref_entry_ptr)NULL,
                                             &locator.source_position,
@@ -22279,16 +22285,7 @@ overloaded_function:
        expression. */
     rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   }  /* if */
-  if (!C_mode() && rcblock == NULL && arg_dependent_lookup_enabled &&
-      (is_undefined_symbol_operand(result) ||
-       is_indefinite_function_operand(result)) &&
-      next_token() == tok_lparen) {
-    /* If a routine name is immediately followed by a left parenthesis,
-       argument-dependent lookup may apply.  Note the code above that
-       forces non-overloaded functions to be represented as indefinite
-       functions when argument-dependent lookup may apply. */
-    result->is_routine_name_followed_by_left_paren = TRUE;
-  }  /* if */
+  result->is_name_followed_by_left_paren = name_followed_by_left_paren;
   if (rcblock == NULL) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = end_position;

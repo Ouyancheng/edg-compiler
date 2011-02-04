@@ -364,10 +364,11 @@ typedef struct an_operand {
 			   This is used to suppress the warning that the
 			   code has no effect. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_bit_field	is_routine_name_followed_by_left_paren:1;
-			/* TRUE if this is a simple routine name followed by
-			   a left parenthesis (which enables argument-
-			   dependent lookup). */
+  a_bit_field	is_name_followed_by_left_paren:1;
+			/* TRUE if this is a name followed by a left
+			   parenthesis.  Needed to know if argument-dependent
+			   lookup applies, and also for C++/CLI hide-by-sig
+			   lookup. */
   a_bit_field	is_dummy_lvalue:1;
 			/* TRUE if this operand was created by
 			   make_dummy_lvalue_operand. */
