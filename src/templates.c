@@ -7889,6 +7889,7 @@ Otherwise, return the original template.
                                              /*is_type=*/FALSE,
                                              options,
                                              copy_error);
+    if (sym != NULL) sym = fundamental_symbol_of(sym);
     if (sym == NULL || !is_class_template_symbol(sym)) {
       /* The type was specified as something like A<T>::B, but the
          substituted "A<T>" does not contain a B, or the B found is not
@@ -8482,6 +8483,8 @@ being looked up is known to be a type.
       new_sym = enum_qualified_id_lookup(&locator, parent_type);
     } else {
       an_id_lookup_options_set	lookup_options;
+      a_symbol_ptr		fund_sym;
+      a_boolean			ambiguous = FALSE;
       /* If the entity being looked up is known the be the parent of another
          entity, then it must be a class or a namespace.  Otherwise, use the
          is_type parameter to determine whether a typename lookup is needed. */
@@ -8490,8 +8493,25 @@ being looked up is known to be a type.
       } else {
         lookup_options = is_type ? IDL_TYPENAME_LOOKUP : IDL_NO_OPTIONS;
       }  /* if */
-      new_sym = class_qualified_id_lookup(&locator, parent_type,
-                                          lookup_options);
+      fund_sym = class_qualified_id_lookup(&locator, parent_type,
+                                           lookup_options);
+      new_sym = locator.specific_symbol;
+      if (new_sym != NULL && new_sym->ambiguous) ambiguous = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (new_sym != NULL && (options & CTWS_IS_CALL_CONTEXT) != 0 &&
+          cppcli_enabled) {
+        /* In C++/CLI mode, and ambiguous symbol may not actually turn out
+           to be an ambiguity because of hide-by-sig lookup.  If the symbol
+           returned is ambiguous, see if there are symbols that should be
+           considered for hide-by-sig processing.  If so, ignore the
+           ambiguity (at least for now). */
+        if (new_sym->ambiguous &&
+            is_cli_ref_or_interface_class_type(parent_type)) {
+          if (hide_by_sig_list_for_symbol(new_sym) != NULL) ambiguous = FALSE;
+        }  /* if */
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      if (ambiguous) *copy_error = TRUE;
     }  /* if */
   }  /* if */
   return new_sym;
@@ -8514,13 +8534,14 @@ of sym.  The parent type is copied using copy_type_with_substitution,
 and the corresponding member is looked up in the updated parent type.
 The symbol associated with the corresponding member is returned.  A
 NULL symbol is returned if the updated parent type does not contain
-the specified member.  If it involves no template-parameter type,
-simply return "type".  options is a set of bit flags used to control
-how names are looked up, if needed.  is_type is TRUE if the child
-entity is known to be a type.
+the specified member.  The returned symbol can be a projection symbol.
+If it involves no template-parameter type, simply return "type".  options
+is a set of bit flags used to control how names are looked up, if needed.
+is_type is TRUE if the child entity is known to be a type.
 */
 {
   a_type_ptr			orig_parent_type;
+  a_symbol_ptr			fund_sym = NULL;
   a_symbol_ptr			new_sym = NULL;
   a_class_symbol_supplement_ptr	parent_cssp;
 
@@ -8564,9 +8585,10 @@ entity is known to be a type.
                              sym, parent_type, templ_arg_list,
                              templ_param_list, source_pos, is_type,
                              options, copy_error);
-    if (new_sym != NULL) {
+    if (new_sym != NULL) fund_sym = fundamental_symbol_of(new_sym);
+    if (fund_sym != NULL) {
       a_boolean	do_template_class_subst = FALSE;
-      if (is_class_template_symbol(new_sym) &&
+      if (is_class_template_symbol(fund_sym) &&
           !is_class_template_symbol(sym)) {
         /* The symbol found is a class template symbol but the original symbol
            was just a class.  Get the corresponding instance using the template
@@ -8581,13 +8603,14 @@ entity is known to be a type.
         }  /* if */
       } else if (is_nonreal_instance_class_symbol(sym) &&
                  template_arg_list_for_symbol(sym) != NULL &&
-                 !is_class_template_symbol(new_sym)) {
+                 !is_class_template_symbol(fund_sym)) {
         /* The original symbol is an instance of a nonreal template but
 	   the new symbol is not a class template. */
         *copy_error = TRUE;
+        new_sym = NULL;
       } else if (is_template_param_type(orig_parent_type) &&
                  is_nonreal_instance_class_symbol(sym)) {
-        if (is_class_template_symbol(new_sym)) {
+        if (is_class_template_symbol(fund_sym)) {
           /* The original symbol is a member of a nonreal template.  If the
              new symbol is a class template, get the corresponding
              instance of the new template. */
@@ -8601,10 +8624,11 @@ entity is known to be a type.
       }  /* if */
       if (do_template_class_subst) {
         /* Do the class template substitution as indicated above. */
-        new_sym = copy_template_class_reference_with_substitution(
-                                 new_sym, sym->variant.class_struct_union.type,
-                                 templ_arg_list, templ_param_list, source_pos,
-                                 options, copy_error);
+        fund_sym = copy_template_class_reference_with_substitution(
+                               fund_sym, sym->variant.class_struct_union.type,
+                               templ_arg_list, templ_param_list, source_pos,
+                               options, copy_error);
+        new_sym = fund_sym;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -8672,6 +8696,7 @@ a pointer over a reference type or creating an array of references.
                                              /*is_type=*/TRUE,
                                              options,
                                              copy_error);
+    if (sym != NULL) sym = fundamental_symbol_of(sym);
     if (sym == NULL || !is_type_symbol(sym)) {
       /* The type was specified as something like A<T>::B, but the
          substituted "A<T>" does not contain a B, or the B found is not
