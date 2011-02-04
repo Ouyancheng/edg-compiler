@@ -10736,6 +10736,16 @@ an error.
   a_symbol_ptr base_member_sym = fundamental_symbol_of(member_sym);
   a_constant   constant;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled &&
+      is_managed_class_type(sym_parent_class(member_sym))) {
+    /* You can't take a pointer-to-member of a member of a C++/CLI managed
+       class. */
+    expr_pos_error(ec_ptr_to_member_of_managed_class, position);
+    make_error_operand(result);
+    goto done;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* The standard only allows this when a qualified name is preceded
      by a "&".  In some modes we allow other forms as an extension. */
   if (!has_required_ampersand || !is_qualified_name) {
