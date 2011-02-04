@@ -5238,7 +5238,7 @@ non-NULL, issue an error at the given position.
   a_boolean          is_valid = TRUE;
 
   check_assertion(template_arg_list != NULL);
-  tap = template_arg_list;
+  begin_template_arg_list_traversal_simple(template_arg_list, &tap);
   /* Check the first argument: It must be a handle or value type. */
   /* The argument kind was already verified in scan_template_argument_list. */
   check_assertion(is_type_templ_arg(tap));
@@ -5257,7 +5257,7 @@ non-NULL, issue an error at the given position.
       is_valid = FALSE; 
     } /* if */
   } /* if */
-  tap = template_arg_list->next;
+  advance_to_next_template_arg_simple(&tap);
   if (tap != NULL) {
     /* Check the second (optional) argument which specifies the number of
        dimensions: it must be an integer of value one or greater. */
@@ -9711,7 +9711,8 @@ created.
                                            (a_template_arg_ptr)NULL,
                                            (a_source_position_ptr)NULL);
   /* Fill in the template argument list with error values. */
-  for (tap = rout->template_arg_list; tap != NULL; tap = tap->next) {
+  begin_template_arg_list_traversal_simple(rout->template_arg_list, &tap);
+  for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
     set_template_arg_to_error(tap);
   }  /* for */
   set_routine_special_kind(rout, templ_rout->special_kind);
