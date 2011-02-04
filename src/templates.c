@@ -12781,7 +12781,8 @@ the names of the template parameters specified by templ_param_list.
      argument list. */
   tap = ctsp->partial_spec_template_arg_list;
   if (tap == NULL) tap = ctsp->template_arg_list;
-  for (tpp = templ_param_list; tpp != NULL; tpp = tpp->next, tap = tap->next) {
+  begin_template_arg_list_traversal(templ_param_list, tap, &tpp, &tap);
+  for (; tpp != NULL; advance_to_next_template_arg(&tpp, &tap)) {
     check_assertion(tap != NULL);
     param_sym = tpp->param_symbol;
     if (param_sym->kind == (a_symbol_kind)sk_type) {
