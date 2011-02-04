@@ -12506,8 +12506,7 @@ explicit "&" operator in the source and *operator_position gives its position.
             /* Create the "&" operator. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
             if (use_handle_for_ref_class &&
-                is_managed_class_type(expr->type) &&
-                !is_value_class_type(expr->type)) {
+                is_cli_ref_or_interface_class_type(expr->type)) {
               /* Use the "%" operator to create a handle as the address. */
               expr = make_operator_node((an_expr_operator_kind)eok_handle_to,
                                         make_handle_type(expr->type), expr);
