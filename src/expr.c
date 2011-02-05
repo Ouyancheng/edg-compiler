@@ -25799,9 +25799,8 @@ anonymous union variables).  Make an operand in *result for the
 identifier after template substitution.  rcblock provides the
 deduction context, e.g., the template argument list being tried.  It
 also has an error_detected flag, which is set to TRUE if any
-non-access error is detected during the processing.
-is_operand_of_address_of is TRUE if the expression is the immediate
-operand of an "&" operator.
+error is detected during the processing.  is_operand_of_address_of
+is TRUE if the expression is the immediate operand of an "&" operator.
 */
 {
   an_expr_rescan_info_entry_ptr eriep;
@@ -26299,7 +26298,7 @@ void rescan_expr_with_substitution_internal(
 Redo the semantic analysis on the expression expr as part of doing
 template deduction.  rcblock provides the deduction context, e.g., the
 template argument list being tried.  It also has an error_detected
-flag, which is set to TRUE if any non-access error is detected during
+flag, which is set to TRUE if any error is detected during
 the rescan.  If there is no error, *result is set to an operand for the
 result after substitution.  If bound_function_selector is non-NULL,
 and if the expression results in a bound function, *bound_function_selector
@@ -26601,7 +26600,7 @@ an_expr_node_ptr rescan_expr_with_substitution(
 Redo the semantic analysis on the expression expr as part of doing
 template deduction.  rcblock provides the deduction context, e.g., the
 template argument list being tried.  It also has an error_detected
-flag, which is set to TRUE if any non-access error is detected during
+flag, which is set to TRUE if any error is detected during
 the rescan.  If there is no error, a copy of the expression, with
 appropriate substitution done, is returned.  If the result is a
 constant, *constant (not in the IL) is set to the constant value, and
@@ -26657,7 +26656,7 @@ void rescan_dynamic_init_with_substitution(a_dynamic_init_ptr     dip,
 Redo the semantic analysis on the dynamic initialization dip as part of doing
 template deduction.  rcblock provides the deduction context, e.g., the
 template argument list being tried.  It also has an error_detected
-flag, which is set to TRUE if any non-access error is detected during
+flag, which is set to TRUE if any error is detected during
 the rescan.  If there is no error, *result is set to an operand for the
 dynamic initialization after substitution.
 */
