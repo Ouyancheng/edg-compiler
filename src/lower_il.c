@@ -765,18 +765,18 @@ void save_and_push_context(a_context              *context,
                            an_object_lifetime_ptr lifetime,
                            a_context              **saved_curr_context)
 /*
-Save the existing context stack (in *saved_curr_context), then push the new
+Save the existing context stack in *saved_curr_context, then push the new
 context onto the (now empty) context stack.  This is used in cases where
 "nested full expressions" are needed, for example, when lowering a VLA
 dimension expression within a full expression.  In such cases, its likely that
 a full expression is already being lowered and the VLA dimension expression
-needs to also be treated as a (separate), but full, expression so that any
+needs to also be treated as a separate, but full, expression so that any
 temporaries generated during the nested full expression are kept separate from
 those in the outer full expression (and aren't released prematurely).  If
 non-NULL, scope and lifetime represent the scope and lifetimes for the new
 context, but typically this is called with those values set to NULL (in which
 case the values from the current context are used).  *saved_curr_context should
-be restored by a later call to restore_curr_context.
+be restored by a later call to restore_saved_context.
 */
 {
   check_assertion(curr_context != NULL);
@@ -802,7 +802,7 @@ call to save_and_push_context).
 */
 {
   check_assertion(curr_context != NULL && curr_context->parent == NULL);
-  /* Pop the context, the overwrite it with the value from the caller. */
+  /* Pop the context, then overwrite it with the value from the caller. */
   pop_context();
   curr_context = context;
 }  /* restore_saved_context */
@@ -16036,7 +16036,7 @@ is returned TRUE.  *new_lifetime is returned TRUE if a new object lifetime
 is begun.  The value of curr_context->curr_cleanup_state is saved in
 *saved_curr_cleanup_state so it can be restored at the end of the block.
 If the block is a GNU statement expression, *saved_curr_context
-will be set to the saved current context (a new context will be pushed),
+will be set to the saved current context (a new context will be pushed);
 otherwise it will be set to NULL.
 */
 {
@@ -16134,7 +16134,7 @@ curr_context->curr_cleanup_state had at the start of the block.
 cases where the block is a GNU statement expression.
 */
 {
-  a_block_ptr            block = block_statement->variant.block.extra_info;
+  a_block_ptr block = block_statement->variant.block.extra_info;
 
   if (new_lifetime) {
     a_scope_ptr            scope = block->assoc_scope;
@@ -16198,6 +16198,7 @@ cases where the block is a GNU statement expression.
       restore_saved_context(saved_curr_context);
     } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
     {
       pop_context();
     }  /* if */
