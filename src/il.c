@@ -14269,6 +14269,7 @@ for the copy/substitution.
                                                /*is_type=*/FALSE,
                                                options,
                                                &copy_error);
+      if (sym != NULL) sym = fundamental_symbol_of(sym);
       if (sym == orig_sym) {
         /* A reference like "X::operator T" will not be substituted by the call
            above because the parent type is not altered.  Check for an unknown
