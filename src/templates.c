@@ -8498,7 +8498,7 @@ being looked up is known to be a type.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (new_sym != NULL && (options & CTWS_IS_CALL_CONTEXT) != 0 &&
           cppcli_enabled) {
-        /* In C++/CLI mode, and ambiguous symbol may not actually turn out
+        /* In C++/CLI mode, an ambiguous symbol may not actually turn out
            to be an ambiguity because of hide-by-sig lookup.  If the symbol
            returned is ambiguous, see if there are symbols that should be
            considered for hide-by-sig processing.  If so, ignore the
