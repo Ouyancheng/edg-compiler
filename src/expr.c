@@ -4915,7 +4915,8 @@ is a template-id (i.e., it has explicit template arguments), return
 list.
 */
 {
-  a_symbol_ptr sym;
+  a_symbol_ptr       sym;
+  a_ctws_options_set options;
 
   *is_template_id = FALSE;
   *expl_templ_arg_list = NULL;
@@ -4937,12 +4938,17 @@ list.
                         (a_template_param_constant_kind)tpck_member ||
                   con->variant.template_param.kind ==
                         (a_template_param_constant_kind)tpck_unknown_function);
+  options = rcblock->options;
+  if (eriep->saved_operand.is_name_followed_by_left_paren) {
+    options |= CTWS_IS_CALL_CONTEXT;
+  }  /* if */
   sym  = symbol_for_template_param_unknown_entity_con_after_substitution(
                                                 con,
                                                 rcblock->template_arg_list,
                                                 rcblock->template_param_list,
                                                 &eriep->saved_operand.position,
-                                                rcblock->options);
+                                                options);
+  
   return sym;
 }  /* symbol_for_template_param_unknown_entity_rescan */
 
@@ -5242,18 +5248,12 @@ a left parenthesis in the source.
           }  /* if */
         }  /* if */
         /* Do substitution on the constant and produce a symbol. */
-        { a_ctws_options_set saved_options = rcblock->options;
-          if (*followed_by_left_paren) {
-            rcblock->options |= CTWS_IS_CALL_CONTEXT;
-          }  /* if */
-          sym = symbol_for_template_param_unknown_entity_rescan(
+        sym = symbol_for_template_param_unknown_entity_rescan(
                                                          con,
                                                          rcblock,
                                                          eriep,
                                                          &is_template_id,
                                                          &expl_templ_arg_list);
-          rcblock->options = saved_options;
-        }
       } else if (is_variable_node(member_op)) {
         /* Static data member. */
         sym = symbol_for(member_op->variant.variable);
