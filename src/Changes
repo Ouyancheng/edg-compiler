@@ -1,5 +1,19 @@
 Version 4.3
 
+2/7/11   [EDGcpfe/11331]
+g++ allows real floating --> complex
+
+g++ (as of its version 4.3) allows conversion of a real floating value
+to a complex type (which is allowed by the C99 standard, but for
+some reason was prohibited by g++ -- but not gcc -- up to version 4.2).
+We now emulate that in g++ mode.
+
+  void g(float f) {
+    __complex__ float cf;
+    cf = f;  // Now accepted in g++ mode for gnu_version >= 40300
+  }
+
+
 2/4/11   [EDGcpfe/11343]
 Ambiguity not detected during template substitution
 

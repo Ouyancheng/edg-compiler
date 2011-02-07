@@ -7515,7 +7515,12 @@ See conversion_possible.
                                         is_nonreal_floating_type(dest_type)) {
           /* GNU C++ does not allow _Complex double -> double and vice versa,
              for example.  C99 and GNU C do allow those conversions. */
-          okay = FALSE;
+          if (gnu_version >= 40300 && is_nonreal_floating_type(dest_type)) {
+            /* As of g++ 4.3, double -> _Complex double is allowed, but not
+               the other way around. */
+          } else {
+            okay = FALSE;
+          }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         }  /* if */
       }  /* if */
