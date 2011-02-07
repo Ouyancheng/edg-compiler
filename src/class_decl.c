@@ -16423,6 +16423,8 @@ being parsed), *decl_info describes the current member declaration, and
 {
   a_decl_parse_state    *dps = &decl_info->decl_state;
   a_type_ptr            class_type = class_state->class_type;
+  a_class_type_supplement_ptr
+                        ctsp = class_type_supp(class_type);
   a_decl_flag_set       dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
                                     DSI_NO_TAG_DEFINITION |
                                     DSI_VACUOUS_TAG_DECL_ALLOWED |
@@ -16534,6 +16536,9 @@ being parsed), *decl_info describes the current member declaration, and
       pos_error(ec_static_default_indexed_property, &pos_curr_token);
     } else {
       pdp->is_default_indexed = TRUE;
+      if (ctsp->default_indexed_property_descr == NULL) {
+        ctsp->default_indexed_property_descr = pdp;
+      }  /* if */
     }  /* if */
   }  /* if */
   class_state->property_or_event_descr = pdp;
@@ -16548,7 +16553,7 @@ being parsed), *decl_info describes the current member declaration, and
                                                     class_state, decl_info,
                                                     depth_scope_stack);
   }  /* if */
-  class_type_supp(class_type)->has_direct_property_or_event = TRUE;
+  ctsp->has_direct_property_or_event = TRUE;
   (void)get_token();
   if (is_property) {
     /* Check for index types. */

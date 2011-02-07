@@ -2658,6 +2658,8 @@ after_entry_from_class:
                   iek_template_arg);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_string_ptr(ptr->uuid_string, iek_other_text, 0);
+        remap_ptr(ptr->default_indexed_property_descr,
+                  a_property_or_event_descr_ptr, iek_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !NEEDED_FLAG_WALK
 #if KEEP_IN_IL_WALK

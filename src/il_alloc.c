@@ -1367,6 +1367,7 @@ class is available.
   ctsp->decl_modifiers                    = DM_NONE;
 #endif /* DECL_MODIFIERS_IN_USE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  ctsp->default_indexed_property_descr    = NULL;
   ctsp->inheritance_kind                  = (an_inheritance_kind)ihk_none;
   ctsp->inheritance_kind_is_explicit      = FALSE;
   ctsp->has_direct_property_or_event      = FALSE;
