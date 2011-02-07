@@ -5915,6 +5915,9 @@ the type.
   } else {
     unexpected_condition();
   }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+  tp->has_been_declared = TRUE;
+#endif /* BACK_END_IS_CP_GEN_BE */
   return entity;
 }  /* apply_assembly_info_attr */
 
