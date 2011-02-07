@@ -423,9 +423,11 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_enum_struct */
    (an_opname_kind)onk_none,          /* tok_interface_class */
    (an_opname_kind)onk_none,          /* tok_interface_struct */
-   (an_opname_kind)onk_none,          /* tok_ref */
-   (an_opname_kind)onk_none,          /* tok_value */
-   (an_opname_kind)onk_none,          /* tok_cli_interface */
+   (an_opname_kind)onk_none,          /* tok_prefix_ref */
+   (an_opname_kind)onk_none,          /* tok_prefix_value */
+   (an_opname_kind)onk_none,          /* tok_prefix_interface */
+   (an_opname_kind)onk_none,          /* tok_prefix_for */
+   (an_opname_kind)onk_none,          /* tok_prefix_enum */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_microsoft_asm */
    (an_opname_kind)onk_none,          /* tok_func_name */
@@ -1201,7 +1203,12 @@ typedef struct a_source_line_modif {
 			   read. */
   a_bit_field	is_whitespace_kwd:1;
 			/* TRUE if this modification represents the canonical
-			   form of a whitespace keyword. */
+			   form of a whitespace keyword or is a line-start
+			   modification that reinserts the first token of
+			   a failed multi-line whitespace keyword, i.e., a
+			   token that might have begun a whitespace keyword
+			   but the token that followed it (on a succeeding
+			   line) did not complete the keyword. */
   char		orig_char;
 			/* The character that was in the source line at
 			   position line_loc (provided so that the original

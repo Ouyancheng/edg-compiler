@@ -537,9 +537,9 @@ Install the keywords in the symbol table.
        are never returned by get_token() but are transformed either into
        the associated whitespace keyword or are treated as ordinary
        identifiers. */
-    enter_keyword((a_token_kind)tok_cli_interface, "interface");
-    enter_keyword((a_token_kind)tok_ref, "ref");
-    enter_keyword((a_token_kind)tok_value, "value");
+    enter_keyword((a_token_kind)tok_prefix_interface, "interface");
+    enter_keyword((a_token_kind)tok_prefix_ref, "ref");
+    enter_keyword((a_token_kind)tok_prefix_value, "value");
     /* A keyword used to predefine alias templates even when alias declarations
        are not otherwise enabled.  This is e.g. used to map interior_ptr<T>
        to the appropriate tk_pointer entry. */

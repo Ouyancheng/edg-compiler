@@ -5590,21 +5590,48 @@ macro_line_loc_to_source_pos should be used when speed is critical.
   if (!within_curr_source_line(adj_loc_in_line)) {
     orig_slmp = assoc_source_line_modif(adj_loc_in_line);
     if (orig_slmp->is_whitespace_kwd) {
-      /* This source line modification is for the canonical representation
-         of a whitespace keyword, not a macro expansion.  Use the
-         respective start or end positions of the original spelling of the
-         keyword instead.  This prevents mapping the ending position to the
-         beginning, as it would with a macro expansion, and it is
-         especially important with FULLY_RESOLVED_MACRO_POSITIONS because
-         such modifications do not have an associated macro text map and
-         thus must not be passed to get_source_pos_from_macro_text_map. */
+      /* This source line modification is either the canonical
+         representation of a whitespace keyword or a line-start
+         modification reinserting the first token of a potential whitespace
+         keyword that turned out not to be one.  It is not a macro
+         expansion, and thus positions within its text must be calculated
+         differently. */
+      a_boolean skip_position_calculation = TRUE;
       if (adj_loc_in_line == orig_slmp->inserted_text) {
-        adj_loc_in_line = loc_of_insert(orig_slmp);
+        /* The starting position of the first token was stored in the
+           source line modification when it was created.  Use it
+           directly. */
+        *position_var = orig_slmp->source_position;
       } else if (adj_loc_in_line == orig_slmp->end_inserted_text - 1) {
-        adj_loc_in_line = loc_of_insert(orig_slmp) +
+        if (orig_slmp->line_loc == NULL) {
+          /* This is the first token of a failed multi-line whitespace
+             keyword.  Because the end of that token was in a line that has
+             been overwritten, the position must be calculated relative to
+             the starting position of the token. */
+          *position_var = orig_slmp->source_position;
+          position_var->column += orig_slmp->end_inserted_text -
+                                                  orig_slmp->inserted_text - 1;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+          position_var->orig_column = position_var->column;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+        } else {
+          /* This is the canonical representation of a whitespace keyword,
+             so at least the ending position is still in the current source
+             line and should be calculated from that character position. */
+          adj_loc_in_line = loc_of_insert(orig_slmp) +
                                             orig_slmp->num_chars_to_delete - 1;
+          skip_position_calculation = FALSE;
+        }  /* if */
       } else {
+        /* Neither the start nor the end of the insertion. */
         unexpected_condition();
+      }  /* if */
+      if (skip_position_calculation) {
+        /* We've already set the position, so no further calculation is
+           needed.  Set orig_slmp to NULL so its stored position is not
+           overwritten. */
+        orig_slmp = NULL;
+        goto have_position;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -10130,58 +10157,69 @@ Some constants for the "class", "struct" and "each" keyword lengths.
 static a_token_kind scan_whitespace_keyword(a_token_kind first_word)
 /*
 Check to see if first_word (corresponding to the token beginning at
-start_of_curr_token) together with the next token on the current line
-form a whitespace token.  If so, add a source line modification replacing
-the actual spelling with the canonical spelling and return the
-corresponding token kind; otherwise, return the appropriate token kind
-considering the current token as a standalone token (i.e., either tok_for
-or tok_identifier).  Note that the current implementation does not accept
-newline as white space between the words, so the second word of the token
-must be within the current source line.
+start_of_curr_token) together with the next token on the current line form
+a whitespace token.  If so, add a source line modification replacing the
+actual spelling with the canonical spelling and return the corresponding
+token kind; otherwise, return the appropriate token kind considering the
+current token as a standalone token (i.e., tok_for, tok_enum, or
+tok_identifier).  If the second token is on a different line from the first
+and does not complete a whitespace keyword, a line-start source line
+modification will be added to restore the first token to the current line.
 */
 {
-  a_token_kind return_token = first_word;
-  a_token_kind next_word = tok_identifier;
-  char         *ptr;
-  char         *end_of_word;
-  sizeof_t     next_word_len;
+  a_token_kind             return_token = first_word;
+  a_token_kind             next_word = tok_identifier;
+  char                     *end_of_word;
+  sizeof_t                 next_word_len;
+  a_source_position        start_pos = pos_curr_token;
+  a_seq_number             start_seq_number = curr_seq_number;
+  char                     *orig_loc = start_of_curr_token;
+  a_boolean                saved_do_not_advance_past_end_of_file;
+  a_whitespace_keyword_ptr kwd;
+  a_source_line_modif_ptr  slmp;
 
-  ptr = curr_char_loc;
-  /* Skip over white space. */
-  while (*ptr == ' ' || *ptr == '\t' || *ptr == LE_ESCAPE) {
-    if (*ptr == LE_ESCAPE) {
-      if (*(ptr+1) == LE_END_OF_TOKEN) {
-        /* Marker put into text by preprocessing of macros, to force the same
-           interpretation of token boundaries as during the macro definition.
-           At this level, should be ignored. */
-        ptr += LE_ESCAPE_LEN;
-      } else {
-        /* This is a marker for something other than a token, do not skip
-           over it. */
-        break;
-      }  /* if */
-    } else {
-      ++ptr;
-    }  /* if */
-  }  /* while */
+  /* Skip over white space, but not past the end of the current file. */
+  if (curr_ise != NULL) {
+    saved_do_not_advance_past_end_of_file =
+                                     curr_ise->do_not_advance_past_end_of_file;
+    curr_ise->do_not_advance_past_end_of_file = TRUE;
+  }  /* if */
+  delete_source_from_loc = orig_loc;
+  skip_white_space();
+  if (curr_ise != NULL) {
+    curr_ise->do_not_advance_past_end_of_file =
+                                         saved_do_not_advance_past_end_of_file;
+  }  /* if */
+  if (curr_seq_number != start_seq_number) {
+    /* We moved to a new source line looking for the second word, so the
+       original pointer to the start of the first word is now invalid; use
+       the start of the current token instead.  We also need to delete the
+       leading white space, if any, on the new line. */
+    orig_loc = curr_char_loc;
+    add_deletion_source_line_modif(delete_source_from_loc,
+                                   orig_loc - delete_source_from_loc,
+                                   /*for_comment=*/FALSE);
+  }  /* if */
+  delete_source_from_loc = NULL;
   /* Get the length of the next word. */
-  end_of_word = ptr;
+  end_of_word = curr_char_loc;
   while (is_id_char[(*end_of_word)-CHAR_MIN]) ++end_of_word;
-  next_word_len = end_of_word - ptr;
+  next_word_len = end_of_word - curr_char_loc;
   /* Determine if first_word and next_word together make a whitespace
      keyword. */
   if (first_word == tok_for) {
     if (next_word_len == len_of_each &&
-        memcmp(ptr, "each", size_t_arg(len_of_each)) == 0) {
+        memcmp(curr_char_loc, "each", size_t_arg(len_of_each)) == 0) {
       check_assertion(microsoft_mode || cppcli_enabled);
       return_token = tok_for_each;
     }  /* if */
   } else if (cppcli_enabled) {
     if (next_word_len == len_of_class && 
-        memcmp(ptr, "class", size_t_arg(len_of_class)) == 0) {
+        memcmp(curr_char_loc, "class", size_t_arg(len_of_class)) == 0) {
       next_word = tok_class;
     } else if (next_word_len == len_of_struct && 
-               memcmp(ptr, "struct", size_t_arg(len_of_struct)) == 0) {
+               memcmp(curr_char_loc, "struct", size_t_arg(len_of_struct)) ==
+                                                                           0) {
       next_word = tok_struct;
     }  /* if */
     switch (first_word) {
@@ -10192,21 +10230,21 @@ must be within the current source line.
           default:         /* "enum" is a token.  Return it. */   break;
         }  /* switch */
         break;
-      case tok_cli_interface:
+      case tok_prefix_interface:
         switch (next_word) {
           case tok_class:  return_token = tok_interface_class;    break;
           case tok_struct: return_token = tok_interface_struct;   break;
           default:         return_token = tok_identifier;         break;
         }  /* switch */
         break;
-      case tok_ref:
+      case tok_prefix_ref:
         switch (next_word) {
           case tok_class:  return_token = tok_ref_class;          break;
           case tok_struct: return_token = tok_ref_struct;         break;
           default:         return_token = tok_identifier;         break;
         }  /* switch */
         break;
-      case tok_value:
+      case tok_prefix_value:
         switch (next_word) {
           case tok_class:  return_token = tok_value_class;        break;
           case tok_struct: return_token = tok_value_struct;       break;
@@ -10221,16 +10259,35 @@ must be within the current source line.
   if (return_token != first_word && return_token != tok_identifier) {
     /* A whitespace keyword was detected.  Add a source line modification
        to reduce the whitespace keyword into its canonical form. */
-    a_whitespace_keyword_ptr kwd;
-    a_source_line_modif_ptr  slmp;
     check_assertion(return_token >= tok_first_whitespace_token &&
                     return_token <= tok_last_whitespace_token);
-    kwd = &whitespace_keywords[((int)return_token -
-                                (int)tok_first_whitespace_token)];
-    slmp = add_source_line_modif(start_of_curr_token,
-                                 (sizeof_t)(end_of_word - start_of_curr_token),
+    kwd = &whitespace_keywords[(int)return_token -
+                               (int)tok_first_whitespace_token];
+    slmp = add_source_line_modif(orig_loc, (sizeof_t)(end_of_word - orig_loc),
                                  kwd->text, kwd->end_of_insertion);
     slmp->is_whitespace_kwd = TRUE;
+    slmp->source_position = start_pos;
+    start_of_curr_token = kwd->text;
+    curr_char_loc = kwd->end_of_insertion;
+    len_of_curr_token = curr_char_loc - start_of_curr_token;
+    end_of_curr_token = curr_char_loc - 1;
+  } else if (curr_seq_number != start_seq_number) {
+    /* We fell off the original source line looking for the second word, so
+       we have to restore the first word as a line-start modification. */
+    if (first_word == tok_for) {
+      /* Map "for" into the range of tokens for which we have replacement
+         text. */
+      first_word = tok_prefix_for;
+    } else if (first_word == tok_enum) {
+      /* Ditto for "enum". */
+      first_word = tok_prefix_enum;
+    }  /* if */
+    kwd = &whitespace_keywords[(int)first_word -
+                               (int)tok_first_whitespace_token];
+    slmp = add_source_line_modif((char *) NULL, 0, kwd->text,
+                                 kwd->end_of_insertion);
+    slmp->is_whitespace_kwd = TRUE;
+    slmp->source_position = start_pos;
     start_of_curr_token = kwd->text;
     curr_char_loc = kwd->end_of_insertion;
     len_of_curr_token = start_of_curr_token - curr_char_loc;
@@ -10253,10 +10310,10 @@ Returns TRUE if token is the beginning of a whitespace keyword.
          C++/CLI. */
       result = TRUE;
       break;
-    case tok_cli_interface:
+    case tok_prefix_interface:
     case tok_enum:
-    case tok_ref:
-    case tok_value:
+    case tok_prefix_ref:
+    case tok_prefix_value:
       /* These can introduce a whitespace keyword only in C++/CLI. */
       result = cppcli_enabled;
       break;
@@ -11131,9 +11188,9 @@ id_scan:
                    are defined as keywords but if we got here they are
                    identifiers in the current context. */
                 if (cppcli_enabled &&
-                    (ctoken == tok_cli_interface ||
-                     ctoken == tok_ref ||
-                     ctoken == tok_value)) {
+                    (ctoken == tok_prefix_interface ||
+                     ctoken == tok_prefix_ref ||
+                     ctoken == tok_prefix_value)) {
                   ctoken = tok_identifier;
                 }  /* if */
                 if (microsoft_mode) {

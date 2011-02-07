@@ -966,12 +966,16 @@ typedef enum /*a_token_kind*/ {
   tok_enum_struct,
   tok_interface_class,
   tok_interface_struct,
-  tok_last_whitespace_token = tok_interface_struct,
   /* Tokens for the first words of whitespace tokens (never returned by
      get_token()). */
-  tok_ref,
-  tok_value,
-  tok_cli_interface,
+  tok_prefix_ref,
+  tok_prefix_value,
+  tok_prefix_interface,
+  /* Used only for the spelling when a line-start modification is needed
+     because the scan for the second word moved to a new source line. */
+  tok_prefix_for,
+  tok_prefix_enum,
+  tok_last_whitespace_token = tok_prefix_enum,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_microsoft_asm,
   /* Special constants for various versions of the name of the current
@@ -1136,7 +1140,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__LPREFIX", "__identifier", "uuid",
    "for each", "ref class", "ref struct", "value class", "value struct",
    "enum class", "enum struct", "interface class", "interface struct",
-   "ref", "value", "interface",
+   "ref", "value", "interface", "for", "enum",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "__asm",
    "__func__",
