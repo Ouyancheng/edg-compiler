@@ -5923,6 +5923,11 @@ function_lparen:
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (*is_static_constructor) {
           is_nonstatic_member_function = FALSE;
+        } else if (cppcli_enabled &&
+                   in_static_cli_property_or_event_definition()) {
+          /* Accessor functions for static C++/CLI properties and events are
+             always static member functions. */
+          is_nonstatic_member_function = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           if (input_flags & DI_NONSTATIC_MEMBER) {

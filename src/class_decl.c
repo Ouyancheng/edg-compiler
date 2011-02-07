@@ -9096,13 +9096,27 @@ functions.
 
 a_boolean in_cli_property_or_event_definition(void)
 /*
-Return TRUE if we currently parsing the brace-enclosed definition of a
+Return TRUE if we are currently parsing the brace-enclosed definition of a
 non-trivial C++/CLI property or event.
 */
 {
-  return (scope_stack_top().class_def_state != NULL &&
-          scope_stack_top().class_def_state->property_or_event_descr != NULL);
+  a_class_def_state  *cdsp = scope_stack_top().class_def_state;
+
+  return (cdsp != NULL && cdsp->property_or_event_descr != NULL);
 }  /* in_cli_property_or_event_definition */
+
+
+a_boolean in_static_cli_property_or_event_definition(void)
+/*
+Return TRUE if we are currently parsing the brace-enclosed definition of a
+non-trivial static C++/CLI property or event.
+*/
+{
+  a_class_def_state  *cdsp = scope_stack_top().class_def_state;
+
+  return (cdsp != NULL && cdsp->property_or_event_descr != NULL &&
+          cdsp->property_or_event_descr->is_static);
+}  /* in_static_cli_property_or_event_definition */
 
 
 static void check_property_accessor_type(a_routine_ptr       rp,
