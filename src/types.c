@@ -6898,6 +6898,11 @@ is filled out to describe the conversion.
       /* Conversion from handle-to-derived to handle-to-base. */
       okay = TRUE;
       std_conv->cast_base_class = bcp;
+    } else if (is_template_dependent_context() &&
+               (is_template_dependent_type(unqual_dest_type_pointed_to) ||
+                is_template_dependent_type(unqual_source_type_pointed_to))) {
+      /* Conversions between template-dependent types are always allowed. */
+      okay = TRUE;
     }  /* if */
   } else if (is_error(source_type)) {
     /* Error --> handle is always allowed. */
