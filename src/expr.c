@@ -756,26 +756,20 @@ rewrite it as a property reference so the subscripts can be applied to that.
     }  /* if */
     type = skip_typerefs(type);
     if (is_immediate_managed_class_type(type)) {
-      a_field_ptr field;
-      /* Look for a default indexed property field. */
-      for (field = type->variant.class_struct_union.field_list;
-           field != NULL;
-           field = field->next) {
-        a_property_or_event_descr_ptr pedp = field->property_or_event_descr;
-        if (pedp != NULL && pedp->is_default_indexed) {
-          /* This is a default indexed property, so rewrite the
-             reference. */
-          an_operand new_operand;
-          do_operand_transformations(operand,
-                                  handle_case ?
+      a_property_or_event_descr_ptr pedp =
+                         class_type_supp(type)->default_indexed_property_descr;
+      if (pedp != NULL) {
+        /* The class has a default indexed property, so rewrite the
+           reference. */
+        an_operand new_operand;
+        do_operand_transformations(operand,
+                                   handle_case ?
                                     TOPT_NO_OPTIONS :
                                     TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-          make_property_ref_operand(pedp, operand, handle_case, &new_operand);
-          restore_operand_details(&new_operand, operand);
-          copy_operand(&new_operand, operand);
-          break;
-        }  /* if */
-      }  /* for */
+        make_property_ref_operand(pedp, operand, handle_case, &new_operand);
+        restore_operand_details(&new_operand, operand);
+        copy_operand(&new_operand, operand);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* rewrite_class_with_default_indexed_property_as_property_ref */
