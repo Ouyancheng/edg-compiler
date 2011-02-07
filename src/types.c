@@ -1075,6 +1075,29 @@ Return TRUE if the indicated type is a C++/CLI ref class or interface class.
 }  /* is_cli_ref_or_interface_class_type */
 
 
+static a_boolean is_cli_value_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++/CLI value type, which includes
+value class types and also fundamental types and pointers.  See ECMA
+standard 12.1.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (cppcli_enabled) {
+    tp = skip_typerefs(tp);
+    if (is_value_class_type(tp) ||
+        is_enum(tp) ||
+        is_pointer_type(tp) ||
+        is_integral(tp) ||
+        is_real_floating(tp)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_cli_value_type */
+
+
 a_boolean is_delegate_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a C++/CLI delegate type.
@@ -5404,6 +5427,7 @@ Clear a standard conversion description to default values.
   std_conv->nontrivial_conversion = FALSE;
   std_conv->promotion = FALSE;
   std_conv->ptr_or_pm_to_bool = FALSE;
+  std_conv->boxing_conversion = FALSE;
   std_conv->exception_spec_incompatibility = FALSE;
   std_conv->conv_of_string_literal_to_ptr_to_nonconst = FALSE;
   std_conv->warning_suggested = ec_no_error;
@@ -6908,6 +6932,64 @@ is filled out to describe the conversion.
   return okay;
 }  /* impl_handle_conversion */
 
+
+a_boolean boxing_conversion_possible(a_type_ptr           source_type,
+                                     a_type_ptr           dest_type,
+                                     a_std_conv_descr_ptr std_conv)
+/*
+Return TRUE if it's okay to implicitly convert something of type
+source_type to something of type dest_type as a C++/CLI boxing conversion.
+The cases accepted convert a value type to a handle to that value type.
+If the conversion is possible, *std_conv is filled out to describe the
+conversion.  std_conv can be NULL if that information is not needed.
+*/
+{
+  a_boolean okay = FALSE;
+
+  db_enter(5, "boxing_conversion_possible");
+#if DEBUG
+  if (debug_level >= 5) {
+    fprintf(f_debug, "boxing_conversion_possible: source_type = ");
+    db_abbreviated_type(source_type);
+    fprintf(f_debug, ", dest_type = ");
+    db_abbreviated_type(dest_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  if (std_conv != NULL) clear_std_conv_descr(std_conv);
+  if (cppcli_enabled) {
+    /* The source type has to be a value type, but not a pointer type.
+       The destination type has to be a handle type. */
+    if (is_handle_type(dest_type) &&
+        is_cli_value_type(source_type) &&
+        !is_pointer_type(source_type)) {
+      a_type_ptr corresp_type;
+      /* cv-qualifiers on the source type are dropped, since the value gets
+         copied into the box. */
+      source_type = skip_typerefs(source_type);
+      /* Convert a built-in type to the corresponding CLI type, e.g.,
+         int to System::Int32. */
+      corresp_type = system_type_from_basic_type(source_type);
+      if (corresp_type != NULL) source_type = corresp_type;
+      dest_type = type_pointed_to(dest_type);
+      /* cv-qualifiers are ignored on the destination type, since it's okay
+         to add cv-qualifiers. */
+      dest_type = skip_typerefs(dest_type);
+      if (types_are_compatible(source_type, dest_type)) {
+        /* A boxing conversion is possible. */
+        okay = TRUE;
+        if (std_conv != NULL) {
+          std_conv->nontrivial_conversion = TRUE;
+          std_conv->boxing_conversion = TRUE;
+          std_conv->promotion = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  db_exit();
+  return okay;
+}  /* boxing_conversion_possible */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean this_param_types_correspond(
@@ -7474,9 +7556,14 @@ See conversion_possible.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (is_handle_type(dest_type)) {
     /* Destination type is a C++/CLI handle. */
-    okay = impl_handle_conversion(source_type, dest_type,
-                                  allow_qualifier_or_eh_mismatch,
-                                  std_conv);
+    if (boxing_conversion_possible(source_type, dest_type, std_conv)) {
+      /* A boxing conversion is possible. */
+      okay = TRUE;
+    } else {
+      okay = impl_handle_conversion(source_type, dest_type,
+                                    allow_qualifier_or_eh_mismatch,
+                                    std_conv);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (is_ptr_to_member(dest_type)) {
     /* Conversion to a C++ pointer-to-member type. */

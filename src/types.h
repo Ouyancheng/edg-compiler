@@ -836,6 +836,11 @@ typedef struct a_std_conv_descr {
 			   pointer to member type, or nullptr type to
 			   bool. */
   a_byte_boolean
+		boxing_conversion;
+			/* TRUE if this conversion is a C++/CLI boxing
+			   conversion, i.e., from a value type to a handle
+			   to the value type. */
+  a_byte_boolean
 		exception_spec_incompatibility;
 			/* TRUE if the conversion involves converting to
 			   a function type with a more restrictive exception
@@ -878,6 +883,9 @@ extern a_boolean impl_handle_conversion(
                          a_type_ptr           dest_type,
                          a_boolean            allow_qualifier_or_eh_mismatch,
                          a_std_conv_descr_ptr std_conv);
+extern a_boolean boxing_conversion_possible(a_type_ptr           source_type,
+                                            a_type_ptr           dest_type,
+                                            a_std_conv_descr_ptr std_conv);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern a_boolean impl_ptr_to_member_conversion(
                          a_type_ptr           source_type,

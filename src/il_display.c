@@ -3272,6 +3272,8 @@ Display the name of an expression operator.
     case eok_lvalue_adjust:     s = "eok_lvalue_adjust";          break;
     case eok_class_rvalue_adjust:
                                 s = "eok_class_rvalue_adjust";    break;
+    case eok_box:               s = "eok_box";                    break;
+    case eok_unbox:             s = "eok_unbox";                  break;
     case eok_base_class_cast:   s = "eok_base_class_cast";        break;
     case eok_derived_class_cast:
                                 s = "eok_derived_class_cast";     break;

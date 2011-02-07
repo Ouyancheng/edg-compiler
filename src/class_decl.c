@@ -9586,6 +9586,14 @@ conversions.
   } else if (is_void_type(ret_type)) {
     /* Conversion to (possibly qualified) void type is not allowed. */
     is_implicitly_callable = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled &&
+             boxing_conversion_possible(class_type, ret_type,
+                                        (a_std_conv_descr *)NULL)) {
+    /* A conversion function that does a C++/CLI boxing conversion
+       is not allowed. */
+    is_implicitly_callable = FALSE;
+#endif /*MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   return is_implicitly_callable;
 }  /* is_implicitly_callable_conversion_function */

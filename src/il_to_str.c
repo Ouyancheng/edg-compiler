@@ -4101,16 +4101,19 @@ on every expression.
             octl->output_str("[", octl);
             form_expression(operand->next, octl);
             octl->output_str("]", octl);
-          } else if (op == (an_expr_operator_kind)eok_cast ||
-                     op == (an_expr_operator_kind)eok_bool_cast ||
-                     op == (an_expr_operator_kind)eok_base_class_cast ||
-                     op == (an_expr_operator_kind)eok_derived_class_cast ||
-                     op == (an_expr_operator_kind)eok_pm_base_class_cast ||
-                     op == (an_expr_operator_kind)eok_pm_derived_class_cast ||
-                     op == (an_expr_operator_kind)eok_ref_cast ||
-                     op == (an_expr_operator_kind)eok_lvalue_cast) {
+          } else if (is_cast_operation_node(expr)) {
             /* Casts. */
-            char *new_style_op = NULL;
+            char       *new_style_op = NULL;
+            a_type     ref_type, quals_type;
+            a_type_ptr dest_type = expr->type;
+            if (expr->variant.operation.is_reference_cast ||
+                op == (an_expr_operator_kind)eok_ref_cast ||
+                op == (an_expr_operator_kind)eok_ref_dynamic_cast) {
+              /* A cast to a reference type. */
+              destination_type_for_reference_cast(expr,
+                                                  &ref_type, &quals_type);
+              dest_type = &ref_type;
+            }  /* if */
             if (expr->is_static_cast) {
               new_style_op = "static_cast";
             } else if (expr->variant.operation.is_const_cast) {
@@ -4121,13 +4124,13 @@ on every expression.
             if (new_style_op != NULL) {
               octl->output_str(new_style_op, octl);
               octl->output_str("<", octl);
-              form_type(expr->type, octl);
+              form_type(dest_type, octl);
               octl->output_str(">(", octl);
               form_expression(operand, octl);
               octl->output_str(")", octl);
             } else {
               octl->output_str("(", octl);
-              form_type(expr->type, octl);
+              form_type(dest_type, octl);
               octl->output_str(")", octl);
               form_expression(operand, octl);
             }  /* if */

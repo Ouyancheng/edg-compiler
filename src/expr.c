@@ -7369,6 +7369,7 @@ result in *result (or an error indication in *rcblock).
 */
 {
   an_operand        operand;
+  an_expr_node_ptr  expr;
   a_source_position start_position, operator_position;
   a_token_sequence_number
                     operator_tok_seq_number;
@@ -7429,15 +7430,22 @@ result in *result (or an error indication in *rcblock).
       change_ref_kinds(operand.ref_entries_list, SRK_ADDRESS_TAKEN);
       operand_will_not_be_used_because_of_error(&operand);
       make_error_operand(result);
-    } else if (!is_ref_class_type(operand.type) && !template_case) {
-      /* The operand of "%" must have a ref class type. */
-      /* FIXME: value classes okay too, get boxed.  Also interface classes. */
+    } else if (is_value_class_type(operand.type)) {
+      /* A value class type object gets boxed.  The operand need not be an
+         lvalue in that case, since it gets copied.  Any cv-qualifiers
+         on the source object are dropped. */
+      do_operand_transformations(&operand, TOPT_NO_OPTIONS);
+      expr = make_node_from_operand(&operand);
+      expr = add_box_to_expression(expr, /*is_implicit=*/FALSE);
+      make_expression_operand(expr, result);
+    } else if (!is_cli_ref_or_interface_class_type(operand.type) &&
+               !template_case) {
+      /* The operand of "%" must have a ref or interface class type. */
       error_in_operand(ec_handle_of_non_managed, &operand);
       make_error_operand(result);
     } else if (is_an_lvalue(&operand) || template_case) {
       /* Make an eok_handle_to node for the operation.  Note that a handle
          is never considered constant. */
-      an_expr_node_ptr expr;
       if (template_case) {
         prep_generic_operand_full(&operand,
                                   /*lvalue_expected=*/TRUE,
@@ -26014,6 +26022,8 @@ set accordingly.
       case eok_pm_base_class_cast:
       case eok_pm_derived_class_cast:
       case eok_bool_cast:
+      case eok_box:
+      case eok_unbox:
         /* Casts.  There are additional flags that identify the cast source
            form. */
         *unary = TRUE;

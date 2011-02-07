@@ -1873,6 +1873,15 @@ for any diagnostics issued.
     new_constant.implicit_cast = TRUE;
     goto exit;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && is_handle_type(new_type) &&
+      boxing_conversion_possible(constant_type, new_type,
+                                 (a_std_conv_descr *)NULL)) {
+    /* A C++/CLI boxing conversion cannot be folded to a constant. */
+    *did_not_fold = TRUE;
+    goto exit;
+  }  /* if */
+#endif /*MICROSOFT_EXTENSIONS_ALLOWED */
   if (vla_enabled && !is_implicit_cast &&
       is_directly_variably_modified_type(new_type)) {
     /* A cast to a variably-modified type where the variable bound appears
@@ -5835,6 +5844,9 @@ handle_field_selection:
               }  /* if */
             }  /* if */
             break;
+          case eok_cli_subscript:  /* A C++/CLI array element is on the managed
+                                      heap and therefore does not have a
+                                      constant address. */
           default:
             /* Other operators cannot be folded. */
             break;
@@ -5845,8 +5857,6 @@ handle_field_selection:
       /* A reference to a parameter is similar to a variable with automatic
          storage duration: Its address is not a constant. */
       break;
-    case eok_cli_subscript:  /* A C++/CLI array element is on the GC heap and
-                                therefore does not have a constant address. */
     default:
       /* Other expression kinds cannot be folded. */
       break;

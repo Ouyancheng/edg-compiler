@@ -12370,6 +12370,16 @@ enum an_expr_operator_kind_tag {
 			   Used only in C++.  Always compiler-generated.
 			   Eliminated by IL lowering if
 			   LOWER_CLASS_RVALUE_ADJUST is TRUE. */
+  eok_box,		/* C++/CLI boxing operation.  The operand is an rvalue
+			   of a value type (other than a pointer) and the
+			   result is a handle to the box allocated to contain
+			   that value. */
+  eok_unbox,		/* C++/CLI unboxing operation.  The operand is a handle
+			   to a value type (other than a pointer) and the
+			   result is an lvalue for the unboxed value.  This
+			   does not copy the value; it returns a gc-lvalue
+			   for the value within the boxed object allocated
+			   on the managed heap. */
   eok_base_class_cast,	/* C++ cast of a class to a direct base class.  The
 			   type of the expression indicates the type to cast
 			   to.  The operand can be a class lvalue, a class
@@ -15606,6 +15616,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #if VAR_INITIALIZERS
 = {"&", "ref-&", "%", "*", "ref-*",
    "cast", "lvalue cast", "ref cast", "lvalue adjust", "class rvalue adjust",
+   "box", "unbox",
    "base class cast", "derived class cast",
    "pm base class cast", "pm derived class cast",
    "dynamic cast", "ref dynamic cast", "bool cast",

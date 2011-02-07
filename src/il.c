@@ -12094,6 +12094,8 @@ tk_unknown is returned.
     case eok_handle_to:
     case eok_indirect:
     case eok_ref_indirect:
+    case eok_box:
+    case eok_unbox:
       result = (a_type_kind)tk_pointer;
       break;
     case eok_cast:
@@ -13370,6 +13372,7 @@ expr_is_rescannable for the equivalent routine for new-style SFINAE.
   return is_foldable;
 }  /* operator_is_foldable */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_cast_operation_node(an_expr_node_ptr expr)
 /*
@@ -13385,6 +13388,8 @@ kind of cast.
       case eok_ref_cast:
       case eok_lvalue_adjust:
       case eok_class_rvalue_adjust:
+      case eok_box:
+      case eok_unbox:
       case eok_base_class_cast:
       case eok_derived_class_cast:
       case eok_pm_base_class_cast:
@@ -13401,6 +13406,7 @@ kind of cast.
   return is_cast;
 }  /* is_cast_operation_node */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 static an_expr_node_ptr copy_template_param_expr_as_lvalue(
                                   an_expr_node_ptr         expr,
@@ -15709,6 +15715,11 @@ object or an rvalue that is a pointer or handle to an object.
                 tblock->result = TRUE;
                 determined_result = TRUE;
               }  /* if */
+            } else if (op == (an_expr_operator_kind)eok_unbox) {
+              /* Unbox returns a gc-lvalue for the value contained within the
+                 managed heap object pointed to by its handle operand. */
+              tblock->result = TRUE;
+              determined_result = TRUE;
             }  /* if */
           }
           break;
@@ -16619,6 +16630,7 @@ already indicates the load.
           case eok_ref_cast:
           case eok_lvalue_adjust:
           case eok_ref_dynamic_cast:
+          case eok_unbox:
           case eok_va_arg:
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
           case eok_real_part:
@@ -16780,6 +16792,7 @@ process_ptr_to_member_selection:
             case eok_ref_cast:
             case eok_lvalue_adjust:
             case eok_ref_dynamic_cast:
+            case eok_unbox:
               /* Type adjustment of an lvalue, or cast to a reference type,
                  with an implicit lvalue-to-rvalue conversion afterwards. */
               does_fetch = TRUE;
@@ -16922,6 +16935,12 @@ check_cast_destination_type:
       if (vla_enabled && type_has_side_effects(node->type)) {
         has_side_effects = TRUE;
       }  /* if */
+      break;
+    case eok_box:
+    case eok_unbox:
+      /* Box allocates an object on the managed heap. */
+      /* Unbox is a lot like a ref cast, but it does a runtime check. */
+      has_side_effects = TRUE;
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case eok_negate:
@@ -21330,6 +21349,8 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_ref_cast: */			LVRV_OPND1_IS_LVALUE,
   /* eok_lvalue_adjust: */		LVRV_OPND1_IS_LVALUE,
   /* eok_class_rvalue_adjust: */	LVRV_OPND1_IS_RVALUE,
+  /* eok_box: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_unbox: */			LVRV_OPND1_IS_RVALUE,
   /* eok_base_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_derived_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_pm_base_class_cast: */		LVRV_OPND1_IS_RVALUE,

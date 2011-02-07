@@ -13007,6 +13007,14 @@ a reference type (the caller should have rewritten that case).
       /* There is a conversion function that converts from the source class
          type to the destination type. */
       okay = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled &&
+               boxing_conversion_possible(source_type, dest_type,
+                                          (a_std_conv_descr *)NULL)) {
+      /* If this is a boxing conversion, don't return failure; let the
+         caller find the conversion. */
+      okay = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       *failed = TRUE;
       /* Pick the right error code. */

@@ -2910,6 +2910,11 @@ Tips for proper use of the follow_addressing_path mode:
             }  /* if */
           }
           break;
+        case eok_unbox:
+          /* Unbox returns the address of the value within the object
+             pointed to by its handle operand, so continue with the handle. */
+          traverse_expr(operand1, tblock);
+          break;
         case eok_class_rvalue_adjust:
           /* eok_class_rvalue_adjust operations are used to adjust the
              cv-qualification of a class rvalue.  We wouldn't get here

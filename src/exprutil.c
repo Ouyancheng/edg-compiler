@@ -4821,6 +4821,27 @@ source position to be used for errors.  This routine is only used in C++ mode.
 }  /* add_pm_derived_class_casts */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+an_expr_node_ptr add_box_to_expression(an_expr_node_ptr expr,
+                                       a_boolean        is_implicit)
+/*
+Add a C++/CLI "box" operation to the indicated expression (an rvalue
+with a CLI value type), and return the boxed expression.  is_implicit
+is TRUE if the boxing is implicit (as opposed to coming from an explicit cast).
+*/
+{
+  a_type_ptr boxed_type = make_unqualified_type(expr->type);
+
+  check_assertion(!expr->is_lvalue);
+  expr = make_operator_node((an_expr_operator_kind)eok_box,
+                            make_handle_type(boxed_type), expr);
+  expr->variant.operation.compiler_generated = is_implicit;
+  return expr;
+}  /* add_box_to_expression */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 static void add_cast_to_node(an_expr_node_ptr  *p_node,
                              a_type_ptr        new_type,
                              a_boolean         check_cast_access,
@@ -4898,6 +4919,13 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
     *p_node = make_operator_node((an_expr_operator_kind)eok_bool_cast,
                                  new_type, *p_node);
     (*p_node)->variant.operation.compiler_generated = is_implicit_cast;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled &&
+             boxing_conversion_possible(old_type, new_type,
+                                        (a_std_conv_descr *)NULL)) {
+    /* Do a boxing conversion. */
+    (*p_node) = add_box_to_expression(*p_node, is_implicit_cast);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* For an ordinary cast, generate the eok_cast node. */
     *p_node = make_operator_node((an_expr_operator_kind)eok_cast, new_type,
@@ -13114,6 +13142,7 @@ e.g., in a back end.
       case eok_ref_cast:
       case eok_lvalue_adjust:
       case eok_ref_dynamic_cast:
+      case eok_unbox:
         /* Lvalue type adjustment or cast to reference type, with an
            lvalue-to-rvalue conversion built into it.  We can undo that by
            simply changing the flag. */

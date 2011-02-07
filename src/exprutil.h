@@ -2110,6 +2110,11 @@ extern void add_base_class_casts(a_base_class_ptr  bcp,
                                  a_source_position *err_pos,
                                  a_boolean         *error_detected);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern an_expr_node_ptr add_box_to_expression(an_expr_node_ptr expr,
+                                              a_boolean        is_implicit);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern void add_derived_class_casts(a_type_ptr        new_type_pointed_to,
                                     a_base_class_ptr  bcp,
                                     a_boolean         check_ambiguity,

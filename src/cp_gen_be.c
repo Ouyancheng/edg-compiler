@@ -523,6 +523,8 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_CAST,		/* eok_ref_cast */
   PREC_LOWEST,		/* eok_lvalue_adjust */
   PREC_LOWEST,		/* eok_class_rvalue_adjust */
+  PREC_CAST,		/* eok_box */
+  PREC_CAST,		/* eok_unbox */
   PREC_CAST,		/* eok_base_class_cast */
   PREC_CAST,		/* eok_derived_class_cast */
   PREC_CAST,		/* eok_pm_base_class_cast */
@@ -8903,8 +8905,8 @@ return FALSE and let the caller generate the code normally.
   return handled;
 }  /* handle_operator_call */
 
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
 static a_boolean write_compound_assignment_for_property_set(
                                         a_property_or_event_descr_ptr desc,
                                         an_expr_node_ptr              obj_expr,
@@ -9115,6 +9117,7 @@ actual first argument (if any) for static members.
       unexpected_condition();
   }  /* switch */
 }  /* gen_cli_property_or_event_call */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_call(an_expr_node_ptr expr)
@@ -9460,19 +9463,11 @@ problems.
         (node_operator_is(operand, eok_reference_to) ||
          node_operator_is(operand, eok_ref_indirect) ||
          (operand->variant.operation.compiler_generated &&
-          !operand->variant.operation.keep_cast_for_cp_gen_be &&
-          (node_operator_is(operand, eok_cast) ||
-           node_operator_is(operand, eok_lvalue_cast) ||
-           node_operator_is(operand, eok_lvalue_adjust) ||
-           node_operator_is(operand, eok_class_rvalue_adjust) ||
-           node_operator_is(operand, eok_base_class_cast) ||
-           node_operator_is(operand, eok_derived_class_cast) ||
-           node_operator_is(operand, eok_bool_cast) ||
-           node_operator_is(operand, eok_pm_base_class_cast) ||
-           node_operator_is(operand, eok_pm_derived_class_cast) ||
-           node_operator_is(operand, eok_address_of) ||
-           node_operator_is(operand, eok_indirect)) &&
-          !is_const_string_literal_cast(operand)))) {
+          (node_operator_is(operand, eok_address_of) ||
+           node_operator_is(operand, eok_indirect) ||
+           (is_cast_operation_node(operand) &&
+            !operand->variant.operation.keep_cast_for_cp_gen_be &&
+            !is_const_string_literal_cast(operand)))))) {
       operand = operand->variant.operation.operands;
       operand_changed = TRUE;
     } else if (is_constant_node(operand) &&
@@ -9827,7 +9822,9 @@ gen_expr that might end up generating this expr as a temporary.
         case eok_derived_class_cast:
         case eok_pm_base_class_cast:
         case eok_pm_derived_class_cast:
-          /* Related-class casts. */
+        case eok_box:
+        case eok_unbox:
+          /* Related-class casts, boxing/unboxing. */
           if (expr->variant.operation.compiler_generated) {
             /* For an implicit cast, just put out the underlying operand. */
             gen_expr(operand_1, /*need_parens=*/FALSE,
