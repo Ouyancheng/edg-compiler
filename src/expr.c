@@ -14328,7 +14328,9 @@ called only in C++ mode.
 */
 {
   a_boolean    cast_to_reference, cast_to_rvalue_reference, failed;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean    unbox_case = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_conv_descr conversion, ctor_arg_conversion;
 
   *processed = FALSE;
