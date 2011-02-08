@@ -2214,7 +2214,7 @@ returned if the lookup encounters an interface with a static method.
     }  /* if */
     if (hbss.suppress_hide_by_sig) {
       /* Hide-by-sig lookup should be suppressed (e.g., a base interface
-         contains a static method.  Return NULL. */
+         contains a static method).  Return NULL. */
       /* Free all of the allocated entries. */
       free_list_of_hide_by_sig_list_entries(result_list);
       result_list = NULL;
