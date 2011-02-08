@@ -14328,6 +14328,7 @@ called only in C++ mode.
 */
 {
   a_boolean    cast_to_reference, cast_to_rvalue_reference, failed;
+  a_boolean    unbox_case = FALSE;
   a_conv_descr conversion, ctor_arg_conversion;
 
   *processed = FALSE;
@@ -14407,6 +14408,19 @@ called only in C++ mode.
              bound directly to the result of the conversion function. */
           possible = TRUE;
           determined_conversion = &conversion;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcli_enabled &&
+                   is_tracking_reference_type(type_cast_to) &&
+                   (clear_conv_descr(&conversion),
+                    unboxing_conversion_possible(operand->type,
+                                                 eff_type_cast_to,
+                                                 &conversion.std))) {
+          /* An unboxing conversion can be done, after which the
+             reference binds to the unboxed value. */
+          possible = TRUE;
+          determined_conversion = &conversion;
+          unbox_case = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (binding_to_rvalue_allowed) {
           if (is_class_struct_union_type(eff_type_cast_to)) {
             if (is_an_lvalue(operand) &&
@@ -14491,6 +14505,20 @@ called only in C++ mode.
             generic_cast_operand(operand, type_cast_to, source_form,
                                  /*is_implicit_cast=*/FALSE,
                                  type_position);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (unbox_case) {
+            /* Generate a C++/CLI unbox operation. */
+            an_operand       orig_operand;
+            an_expr_node_ptr expr;
+            orig_operand = *operand;
+            do_operand_transformations(operand, TOPT_NO_OPTIONS);
+            expr = make_node_from_operand(operand);
+            expr = add_unbox_to_expression(expr, eff_type_cast_to,
+                                           /*make_lvalue=*/TRUE);
+            expr->variant.operation.is_reference_cast = TRUE;
+            make_lvalue_expression_operand(expr, operand);
+            restore_operand_details(operand, &orig_operand);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             if (determined_conversion != NULL) {
               determined_conversion->is_explicit_cast = TRUE;

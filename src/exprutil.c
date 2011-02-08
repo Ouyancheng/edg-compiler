@@ -4841,18 +4841,25 @@ is TRUE if the boxing is implicit (as opposed to coming from an explicit cast).
 }  /* add_box_to_expression */
 
 
-static an_expr_node_ptr add_unbox_to_expression(an_expr_node_ptr expr,
-                                                a_type_ptr       unboxed_type)
+an_expr_node_ptr add_unbox_to_expression(an_expr_node_ptr expr,
+                                         a_type_ptr       unboxed_type,
+                                         a_boolean        make_lvalue)
 /*
 Add a C++/CLI "unbox" operation to the indicated expression (an rvalue
 with a handle type), and return the unboxed expression.  unboxed_type
 gives the desired unboxed type (which may have cv-qualifiers, and
 might be a derived class of the underlying type of the handle).
+If make_lvalue is TRUE, an lvalue expression is returned.
 */
 {
   check_assertion(!expr->is_lvalue && is_handle_type(expr->type));
-  expr = make_operator_node((an_expr_operator_kind)eok_unbox,
-                            unboxed_type, expr);
+  if (make_lvalue) {
+    expr = make_lvalue_operator_node((an_expr_operator_kind)eok_unbox,
+                                     unboxed_type, expr);
+  } else {
+    expr = make_operator_node((an_expr_operator_kind)eok_unbox,
+                              unboxed_type, expr);
+  }  /* if */
   return expr;
 }  /* add_unbox_to_expression */
 
@@ -4946,7 +4953,8 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
                                           (a_std_conv_descr *)NULL)) {
     /* Do an unboxing conversion. */
     check_assertion(!is_implicit_cast);
-    (*p_node) = add_unbox_to_expression(*p_node, new_type);
+    (*p_node) = add_unbox_to_expression(*p_node, new_type,
+                                        /*make_lvalue=*/FALSE);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* For an ordinary cast, generate the eok_cast node. */

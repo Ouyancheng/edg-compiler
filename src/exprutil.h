@@ -2113,6 +2113,9 @@ extern void add_base_class_casts(a_base_class_ptr  bcp,
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern an_expr_node_ptr add_box_to_expression(an_expr_node_ptr expr,
                                               a_boolean        is_implicit);
+extern an_expr_node_ptr add_unbox_to_expression(an_expr_node_ptr expr,
+                                                a_type_ptr       unboxed_type,
+                                                a_boolean        make_lvalue);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void add_derived_class_casts(a_type_ptr        new_type_pointed_to,

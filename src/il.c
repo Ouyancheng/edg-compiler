@@ -22335,6 +22335,13 @@ by back ends.
   if (expr->variant.operation.is_rvalue_reference_cast) {
     ref_type->variant.pointer.is_rvalue_reference = TRUE;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_operation_node(expr) &&
+      node_operator_is(expr, eok_unbox)) {
+    /* A C++/CLI unbox is casting to a tracking reference type. */
+    ref_type->variant.pointer.is_handle = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ref_type->variant.pointer.type = dest_type;
 }  /* destination_type_for_reference_cast */
 
