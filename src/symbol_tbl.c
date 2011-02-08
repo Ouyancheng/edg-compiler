@@ -2037,7 +2037,7 @@ see if the base class contains a function or overload set that should be
 returned in the hide-by-sig list specified by *p_result_list and
 *p_result_tail.  Note that a new list is created by this routine at each level.
 level is the level value to be recorded for any entry created.
-any_entries_at_level is set to TRUE if any entries are added to the
+*p_any_entries_at_level is set to TRUE if any entries are added to the
 list for the level passed in.  hbssp points to a state block used to pass
 information between the hide-by-sig routines.  base_class is the base
 class entry associated with type relative to the most derived type.
@@ -2172,7 +2172,7 @@ that identifies the symbols of the functions to be considered, and
 additional information to determine where the symbol fits in the
 derivation hierarchy.
 
-If the class of which sym is a member if not a ref class or interface, or
+If the class of which sym is a member is not a ref class or interface, or
 is a hide-by-name ref class, a NULL pointer is returned.  NULL is also
 returned if the lookup encounters an interface with a static method.
 */
