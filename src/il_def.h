@@ -11439,7 +11439,13 @@ typedef struct a_routine {
 			   required.  Also TRUE when the Microsoft-specific
 			   specifiers __inline or __forceinline were used (in
 			   which case the variant is also recorded in the
-			   decl_modifiers field). */
+			   decl_modifiers field).  If the routine is a
+			   template instance, this flag is sometimes not
+			   set until the routine is either instantiated or
+			   explicitly specialized.  Consequently, to
+			   determine if a routine would be inline if
+			   instantiated, the is_inline_template_function and
+			   rout_is_inline_template_function can be used. */
   a_bit_field	compiler_generated:1;
 			/* TRUE for functions that are created by the
 			   compiler and have not been declared in the source,
