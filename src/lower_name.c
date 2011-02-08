@@ -8901,6 +8901,8 @@ of cast (which requires mangling of a type as well as an expression), return
     case eok_pm_derived_class_cast:
     case eok_lvalue_cast:
     case eok_bool_cast:
+    case eok_box:
+    case eok_unbox:
 #if ABI_COMPATIBILITY_VERSION >= 402
 #if IA64_ABI
       if (emulate_gnu_abi_bugs) {
