@@ -12392,7 +12392,9 @@ enum an_expr_operator_kind_tag {
 			   result is an lvalue for the unboxed value.  This
 			   does not copy the value; it returns a gc-lvalue
 			   for the value within the boxed object allocated
-			   on the managed heap. */
+			   on the managed heap.  The result type may be
+			   a derived class of the type underlying the
+			   handle. */
   eok_base_class_cast,	/* C++ cast of a class to a direct base class.  The
 			   type of the expression indicates the type to cast
 			   to.  The operand can be a class lvalue, a class

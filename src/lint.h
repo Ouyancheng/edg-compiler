@@ -654,10 +654,7 @@ extern int fileno(FILE *);
 /*lint -esym(759,clear_portable_assembly_header)*/
 /*lint -esym(765,clear_portable_assembly_header)*/
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !WRITE_CPPCLI_PORTABLE_ASSEM... */
-/* FIXME */
-/*lint -esym(759,basic_type_from_system_type)*/
-/*lint -esym(765,basic_type_from_system_type)*/
-/*lint -esym(714,basic_type_from_system_type)*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_int16)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_uint16)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_int32)*/
@@ -669,8 +666,17 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_single)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_double)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_double_is_long)*/
-/*lint -esym(769,a_cli_symbol_kind_tag::csk_system_object)*/
-/*lint -esym(769,a_cli_symbol_kind_tag::csk_system_value_type)*/
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+/* FIXME */
+/*lint -esym(759,basic_type_from_system_type)*/
+/*lint -esym(765,basic_type_from_system_type)*/
+/*lint -esym(714,basic_type_from_system_type)*/
+/*lint -esym(759,cli_system_object_type)*/
+/*lint -esym(765,cli_system_object_type)*/
+/*lint -esym(714,cli_system_object_type)*/
+/*lint -esym(759,cli_system_value_type)*/
+/*lint -esym(765,cli_system_value_type)*/
+/*lint -esym(714,cli_system_value_type)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_enum)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_type)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_string)*/

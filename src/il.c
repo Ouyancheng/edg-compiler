@@ -9115,9 +9115,10 @@ an existing entry if possible.
   a_type_ptr ptr;
 
   /* Box built-in types when creating handles. */
-  ptr = system_type_from_basic_type(pointed_to_type);
+  ptr = system_type_from_basic_type(skip_typerefs(pointed_to_type));
   if (ptr != NULL) {
-    pointed_to_type = ptr;
+    pointed_to_type = type_plus_qualifiers_from_second_type(ptr,
+                                                            pointed_to_type);
   }  /* if */
   /* See if a handle type for the type pointed to has already been
      allocated.  If one was allocated, a pointer to it is stored in the
@@ -9231,6 +9232,30 @@ and reuse an existing entry if possible.
   }  /* if */
   return ptr;
 }  /* make_pin_ptr_type */
+
+
+a_type_ptr cli_system_object_type(void)
+/*
+Return the C++/CLI System::Object type.
+*/
+{
+  a_symbol_ptr sym = cli_symbols[(int)csk_system_object];
+
+  check_assertion(sym != NULL && sym->kind == (a_symbol_kind)sk_type);
+  return sym->variant.type.ptr;
+}  /* cli_system_object_type */
+
+
+a_type_ptr cli_system_value_type(void)
+/*
+Return the C++/CLI System::ValueType type.
+*/
+{
+  a_symbol_ptr sym = cli_symbols[(int)csk_system_value_type];
+
+  check_assertion(sym != NULL && sym->kind == (a_symbol_kind)sk_type);
+  return sym->variant.type.ptr;
+}  /* cli_system_value_type */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

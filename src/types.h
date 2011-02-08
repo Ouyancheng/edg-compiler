@@ -886,6 +886,10 @@ extern a_boolean impl_handle_conversion(
 extern a_boolean boxing_conversion_possible(a_type_ptr           source_type,
                                             a_type_ptr           dest_type,
                                             a_std_conv_descr_ptr std_conv);
+extern
+a_boolean unboxing_conversion_possible(a_type_ptr           source_type,
+                                       a_type_ptr           dest_type,
+                                       a_std_conv_descr_ptr std_conv);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern a_boolean impl_ptr_to_member_conversion(
                          a_type_ptr           source_type,

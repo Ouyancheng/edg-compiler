@@ -4840,6 +4840,22 @@ is TRUE if the boxing is implicit (as opposed to coming from an explicit cast).
   return expr;
 }  /* add_box_to_expression */
 
+
+static an_expr_node_ptr add_unbox_to_expression(an_expr_node_ptr expr,
+                                                a_type_ptr       unboxed_type)
+/*
+Add a C++/CLI "unbox" operation to the indicated expression (an rvalue
+with a handle type), and return the unboxed expression.  unboxed_type
+gives the desired unboxed type (which may have cv-qualifiers, and
+might be a derived class of the underlying type of the handle).
+*/
+{
+  check_assertion(!expr->is_lvalue && is_handle_type(expr->type));
+  expr = make_operator_node((an_expr_operator_kind)eok_unbox,
+                            unboxed_type, expr);
+  return expr;
+}  /* add_unbox_to_expression */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void add_cast_to_node(an_expr_node_ptr  *p_node,
@@ -4925,6 +4941,12 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
                                         (a_std_conv_descr *)NULL)) {
     /* Do a boxing conversion. */
     (*p_node) = add_box_to_expression(*p_node, is_implicit_cast);
+  } else if (cppcli_enabled &&
+             unboxing_conversion_possible(old_type, new_type,
+                                          (a_std_conv_descr *)NULL)) {
+    /* Do an unboxing conversion. */
+    check_assertion(!is_implicit_cast);
+    (*p_node) = add_unbox_to_expression(*p_node, new_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* For an ordinary cast, generate the eok_cast node. */
@@ -4985,6 +5007,7 @@ to indicate that.
   a_boolean        did_not_fold;
   a_boolean        need_cast;
   an_expr_node_ptr node = *p_node;
+  a_type_ptr       old_type = node->type;
 
   if (within_expr_processing &&
       !expr_access_checking_should_be_done()) {
@@ -4999,7 +5022,7 @@ to indicate that.
   } else {
     /* An implicit cast: In some cases, such casts have no effect and need
        not be represented in the IL. */
-    if (!cast_identical_types(node->type, new_type)) {
+    if (!cast_identical_types(old_type, new_type)) {
       /* The cast is needed since it changes the type of the expression. */ 
       need_cast = TRUE;
     } else if (is_bit_field_extract_node(node)) {
@@ -5016,7 +5039,7 @@ to indicate that.
     check_assertion(is_implicit_cast);
     /* We don't need to add a cast. */
   } else if (m_is_error_type(new_type) ||
-             (m_is_error_type(node->type) &&
+             (m_is_error_type(old_type) &&
               is_class_struct_union_type(new_type))) {
     /* Casting to an error type changes the node to an error node.
        When casting from an error type, avoid creating a cast to a class
@@ -5024,8 +5047,15 @@ to indicate that.
     *p_node = error_node();
   } else {
     /* Casting a node to a class type is not allowed. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    check_assertion_str(!is_class_struct_union_type(new_type) ||
+                        unboxing_conversion_possible(old_type, new_type,
+                                                     (a_std_conv_descr *)NULL),
+                        "cast_node: cast to class type");
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
     check_assertion_str(!is_class_struct_union_type(new_type),
                         "cast_node: cast to class type");
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     did_not_fold = TRUE;
     if (is_constant_node(node)) {
       /* Copy the constant to a local copy.  Type-change the local constant

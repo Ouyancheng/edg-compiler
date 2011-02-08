@@ -12963,6 +12963,14 @@ a reference type (the caller should have rewritten that case).
       /* A user-defined conversion (constructor or conversion function) or
          bitwise copy is available to convert to the destination type. */
       okay = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled &&
+               unboxing_conversion_possible(source_type, dest_type,
+                                            (a_std_conv_descr *)NULL)) {
+      /* If this is an unboxing conversion, don't return failure; let the
+         caller find the conversion. */
+      okay = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* The conversion is not possible. */
       *failed = TRUE;

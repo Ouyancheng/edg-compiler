@@ -6952,17 +6952,17 @@ conversion.  std_conv can be NULL if that information is not needed.
   a_boolean okay = FALSE;
 
   db_enter(5, "boxing_conversion_possible");
-#if DEBUG
-  if (debug_level >= 5) {
-    fprintf(f_debug, "boxing_conversion_possible: source_type = ");
-    db_abbreviated_type(source_type);
-    fprintf(f_debug, ", dest_type = ");
-    db_abbreviated_type(dest_type);
-    fprintf(f_debug, "\n");
-  }  /* if */
-#endif /* DEBUG */
-  if (std_conv != NULL) clear_std_conv_descr(std_conv);
   if (cppcli_enabled) {
+#if DEBUG
+    if (debug_level >= 5) {
+      fprintf(f_debug, "boxing_conversion_possible: source_type = ");
+      db_abbreviated_type(source_type);
+      fprintf(f_debug, ", dest_type = ");
+      db_abbreviated_type(dest_type);
+      fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
+    if (std_conv != NULL) clear_std_conv_descr(std_conv);
     /* The source type has to be a value type, but not a pointer type.
        The destination type has to be a handle type. */
     if (is_handle_type(dest_type) &&
@@ -6994,6 +6994,73 @@ conversion.  std_conv can be NULL if that information is not needed.
   db_exit();
   return okay;
 }  /* boxing_conversion_possible */
+
+
+a_boolean unboxing_conversion_possible(a_type_ptr           source_type,
+                                       a_type_ptr           dest_type,
+                                       a_std_conv_descr_ptr std_conv)
+/*
+Return TRUE if it's okay to implicitly convert something of type
+source_type to something of type dest_type as a C++/CLI unboxing conversion.
+The cases accepted convert a handle to a value type.  If the conversion is
+possible, *std_conv is filled out to describe the conversion.  std_conv
+can be NULL if that information is not needed.
+*/
+{
+  a_boolean okay = FALSE;
+
+  db_enter(5, "unboxing_conversion_possible");
+  if (cppcli_enabled) {
+#if DEBUG
+    if (debug_level >= 5) {
+      fprintf(f_debug, "unboxing_conversion_possible: source_type = ");
+      db_abbreviated_type(source_type);
+      fprintf(f_debug, ", dest_type = ");
+      db_abbreviated_type(dest_type);
+      fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
+    if (std_conv != NULL) clear_std_conv_descr(std_conv);
+    /* The source type has to be a handle type.  The destination type has
+       to be a value type, but not a pointer type. */
+    if (is_handle_type(source_type) &&
+        is_cli_value_type(dest_type) &&
+        !is_pointer_type(dest_type)) {
+      a_base_class_ptr bcp = NULL;
+      a_type_ptr       corresp_type;
+      source_type = type_pointed_to(source_type);
+      /* cv-qualifiers on the source type are dropped. */
+      source_type = skip_typerefs(source_type);
+      /* cv-qualifiers are ignored on the destination type, since it's okay
+         to add cv-qualifiers. */
+      dest_type = skip_typerefs(dest_type);
+      /* Convert a built-in type to the corresponding CLI type, e.g.,
+         int to System::Int32. */
+      corresp_type = system_type_from_basic_type(dest_type);
+      if (corresp_type != NULL) dest_type = corresp_type;
+      if (types_are_compatible(source_type, dest_type)) {
+        /* A boxing conversion is possible:  cv1 V^ --> cv2 V. */
+        okay = TRUE;
+      } else if (is_value_class_type(dest_type) &&
+                 is_class_struct_union_type(source_type) &&
+                 (bcp = find_base_class_of(dest_type, source_type)) != NULL) {
+        /* System::ValueType ^ --> value class type and
+           System::Object ^    --> value class type are also allowed,
+           and conversions from interfaces that the value class type
+           implements. */
+        okay = TRUE;
+      }  /* if */
+      if (okay && std_conv != NULL) {
+        std_conv->nontrivial_conversion = TRUE;
+        std_conv->boxing_conversion = TRUE;
+        std_conv->promotion = TRUE;
+        std_conv->cast_base_class = bcp;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  db_exit();
+  return okay;
+}  /* unboxing_conversion_possible */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -7740,7 +7807,16 @@ exception specifications are not checked.
                                        allow_qualifier_or_eh_mismatch,
                                        suppress_extensions,
                                        ec_bad_cast,
-                                       std_conv)) ||
+                                       std_conv)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              /* Don't allow the inverse of boxing conversions.  If a
+                 conversion like that is to be allowed, let it come in
+                 openly via unboxing_conversion_possible (which covers
+                 some additional cases). */
+              && !boxing_conversion_possible(dest_type, source_type,
+                                             (a_std_conv_descr *)NULL)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                      ) ||
              /* Test for conversion of "void *" to a pointer to object type.
                 This does not fall out of the impl_conversion_possible
                 test for cases like "void *" --> "const char *".  See
@@ -7893,6 +7969,13 @@ C++ mode.  See [expr.static.cast].
         okay = TRUE;
         *warning_suggested = inv_impl_std_conv.warning_suggested;
         *is_mild_warning = inv_impl_std_conv.is_mild_warning;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (cppcli_enabled &&
+                 unboxing_conversion_possible(source_type, dest_type,
+                                              (a_std_conv_descr *)NULL)) {
+        /* An unboxing conversion is allowed in C++/CLI. */
+        okay = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
   }  /* if */
