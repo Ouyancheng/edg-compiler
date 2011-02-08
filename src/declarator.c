@@ -1558,7 +1558,8 @@ class template scope.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 /*ARGSUSED*/  /* "state" is currently unused. */
-static void scan_microsoft_function_modifiers(a_decl_parse_state  *state,
+static void scan_microsoft_function_modifiers(a_symbol_locator    *locator,
+                                              a_decl_parse_state  *state,
                                               a_func_info_block   *func_info)
 /*
 Scan for function modifiers and record their presence in *func_info.  *state
@@ -1574,12 +1575,20 @@ mode.)
         error(ec_duplicate_function_modifier);
       } else if (func_info->sealed) {
         error(ec_function_modifiers_abstract_and_sealed);
+      } else if (locator->is_destructor_name || locator->is_finalizer_name) {
+        error(locator->is_destructor_name ?
+                                      ec_modifier_not_allowed_on_destructor
+                                    : ec_modifier_not_allowed_on_finalizer);
       } else {
         func_info->abstract = TRUE;
       }  /* if */
     } else if (check_context_sensitive_keyword(tok_override, "override")) {
       if (func_info->override) {
         error(ec_duplicate_function_modifier);
+      } else if (locator->is_destructor_name || locator->is_finalizer_name) {
+        error(locator->is_destructor_name ?
+                                      ec_modifier_not_allowed_on_destructor
+                                    : ec_modifier_not_allowed_on_finalizer);
       } else {
         func_info->override = TRUE;
       }  /* if */
@@ -1588,12 +1597,20 @@ mode.)
         error(ec_duplicate_function_modifier);
       } else if (func_info->abstract) {
         error(ec_function_modifiers_abstract_and_sealed);
+      } else if (locator->is_destructor_name || locator->is_finalizer_name) {
+        error(locator->is_destructor_name ?
+                                      ec_modifier_not_allowed_on_destructor
+                                    : ec_modifier_not_allowed_on_finalizer);
       } else {
         func_info->sealed = TRUE;
       }  /* if */
     } else if (cppcli_enabled && curr_token == tok_new) {
       if (func_info->new_member) {
         error(ec_duplicate_function_modifier);
+      } else if (locator->is_destructor_name || locator->is_finalizer_name) {
+        error(locator->is_destructor_name ?
+                                      ec_modifier_not_allowed_on_destructor
+                                    : ec_modifier_not_allowed_on_finalizer);
       } else {
         func_info->new_member = TRUE;
       }  /* if */
@@ -1932,7 +1949,7 @@ this is a helper function.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && (cppcli_enabled || microsoft_version >= 1400) && 
       parent_type != NULL && is_nonstatic_member) {
-    scan_microsoft_function_modifiers(state, func_info);
+    scan_microsoft_function_modifiers(locator, state, func_info);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (attributes != NULL) {

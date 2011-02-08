@@ -4080,6 +4080,15 @@ return_types_are_override_compatible.
          can use the same virtual function number. */
       rout->virtual_function_number = rp->virtual_function_number;
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && is_immediate_managed_class_type(class_type) &&
+        is_more_accessible(rp->source_corresp.access, class_state->access)) {
+      /* For managed types, the accessibility of a member function cannot be
+         reduced through overriding. */
+      pos_sy_error(ec_overriding_reduces_accessibility_in_managed_type,
+                   source_pos, overridden_sym);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* check_virtual_function_override */
 
@@ -4123,6 +4132,7 @@ information about the function declarator.
   an_override_registry_entry_ptr  *registry_ptr;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_symbol_list_entry_ptr         named_override = decl_info->named_overrides;
+  a_boolean                       new_okay = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_source_position               *source_pos = &dps->declarator_pos;
 
@@ -4136,16 +4146,19 @@ information about the function declarator.
   if (rout->compiler_generated) source_pos = &rout_sym->decl_position;
   registry_ptr = &class_state->override_registry;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-next_named_override:
-  if (cppcli_enabled) {
-    if (named_override != NULL) {
-      sym_header_to_search = named_override->symbol->header;
-    } else if (func_info->new_member) {
-      /* Don't establish overriding of a base class member if the member
-         function was declared "new" (unless it also included a named
-         override specifier; e.g. "virtual void f() new = X::g;"). */
-      goto done;
+  if (cppcli_enabled && decl_info->is_destructor &&
+      is_immediate_managed_class_type(class_type)) {
+    /* A destructor of a managed type is never virtual even when "virtual" is
+       specified.  (A "virtual"-like behavior is instead achieved through the
+       so-called "CLI dispose pattern".) */
+    if (virtual_specified) {
+      pos_remark(ec_virtual_has_no_effect, &dps->virtual_pos);
     }  /* if */
+    goto done;
+  }  /* if */
+next_named_override:
+  if (cppcli_enabled && named_override != NULL) {
+    sym_header_to_search = named_override->symbol->header;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Outer loop:  go through the base classes of the current class. */
@@ -4294,6 +4307,41 @@ next_named_override:
               goto next_base_class;                                       
             }  /* if */
             /* Match */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (cppcli_enabled) {
+              if (!func_info->override && !func_info->new_member &&
+                  is_ref_class_type(bcp->type) && named_override == NULL) {
+                /* If a match is found in a base ref class, the overriding 
+                   function should have been declared with "new" or "override" 
+                   unless it is a named override. */
+                pos_sy_error(ec_new_or_override_required, source_pos, sym); 
+              } else if (!virtual_specified && !func_info->new_member 
+                         && (cli_class_type_kind_is(class_type, cctk_ref) ||
+                             cli_class_type_kind_is(class_type, cctk_value))) {
+                /* If a member function of a ref or value class matches a
+                   virtual member function from a base class it should have
+                   been declared with "new" or "virtual". */
+                pos_sy_error(ec_new_or_virtual_required, source_pos, sym); 
+              } else if ((func_info->override || func_info->new_member) &&
+                         cli_class_type_kind_is(bcp->type, cctk_interface)) {
+                /* For members of managed types, "override" and "new" are not
+                   allowed when the base class is not a ref class.  We only
+                   have to check that the type is a managed interface since
+                   override specifiers can be omitted for native types, and
+                   value types cannot be base classes. */
+                pos_sy_warning(ec_override_for_interface_member, source_pos,
+                               sym);
+              }  /* if */
+              if (func_info->new_member) {
+                new_okay = TRUE;
+                /* Don't establish overriding of a base class member if the 
+                   member function was declared "new".  The exception happens
+                   when a named override specifier is also present (e.g.,
+                   "virtual void f() new = X::g;"). */
+                if (named_override == NULL) goto next_base_class;
+              }  /* if */
+            }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             check_virtual_function_override(class_state, decl_info, sym, bcp,
                                             return_adjustment_bcp);
             dps->override_okay = real_override = TRUE;
@@ -4352,7 +4400,13 @@ done:
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (func_info->override && !dps->override_okay) {
-    pos_error(ec_override_member_does_not_override, source_pos);
+    pos_diagnostic(is_immediate_managed_class_type(class_type) ? es_warning
+                                                               : es_error,
+                   ec_override_member_does_not_override, source_pos);
+  } else if (func_info->new_member && !new_okay) {
+    /* The member function is marked as "new" but no matching
+       member function was found in a base class. */
+    pos_warning(ec_new_requires_matching_base_member, source_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (rout->is_virtual) {
@@ -4361,18 +4415,29 @@ done:
     class_type->variant.class_struct_union.
                  any_virtual_functions_including_in_base_classes = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && !virtual_specified) {
-      /* Any override modifier often requires that the function also be
-         declared with an explicit "virtual" keyword. */
-      if (func_info->override) {
-        pos_error(ec_override_requires_virtual, source_pos);
-      } else if (is_immediate_managed_class_type(class_type)) {
-        if (func_info->abstract) {
-          pos_error(ec_abstract_requires_virtual, source_pos);
-        } else if (func_info->sealed) {
-          pos_error(ec_sealed_requires_virtual, source_pos);
-        } else if (named_override != NULL) {
-          pos_error(ec_named_override_requires_virtual, source_pos);
+    if (cppcli_enabled) {
+      if (virtual_specified) {
+        if (class_state->access == (an_access_specifier)as_private &&
+            is_immediate_managed_class_type(class_type) &&
+            !func_info->sealed) {
+          /* A private virtual member function of a managed type should
+             be marked as sealed. */
+          pos_warning(ec_private_virtual_member_function_not_sealed, 
+                      source_pos);
+        }  /* if */
+      } else {
+        /* An override modifier often requires that the function also be
+           declared with an explicit "virtual" keyword. */
+        if (func_info->override) {
+          pos_error(ec_override_requires_virtual, source_pos);
+        } else if (is_immediate_managed_class_type(class_type)) {
+          if (func_info->abstract) {
+            pos_error(ec_abstract_requires_virtual, source_pos);
+          } else if (func_info->sealed) {
+            pos_error(ec_sealed_requires_virtual, source_pos);
+          } else if (named_override != NULL) {
+            pos_error(ec_named_override_requires_virtual, source_pos);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

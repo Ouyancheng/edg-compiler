@@ -2118,6 +2118,15 @@ ec_list_initializer_nonstandard_in_current_mode;;"list initialization syntax is 
 ec_sizeof_ref_or_interface_class;;"operand of sizeof may not be a ref class type or interface class type"
 ec_cli_array_invalid_number_of_subscripts;;"invalid number of subscripts for this cli::array type"
 ec_ptr_to_member_of_managed_class;;"a pointer-to-member is not valid for a managed class"
+ec_private_virtual_member_function_not_sealed;;"private virtual member function of managed type is not \"sealed\""
+ec_modifier_not_allowed_on_destructor;;"modifier is not allowed on a destructor"
+ec_modifier_not_allowed_on_finalizer;;"modifier is not allowed on a finalizer"
+ec_virtual_has_no_effect;;"\"virtual\" has no effect on a destructor of a managed class type"
+ec_new_or_override_required;;"\"new\" or \"override\" is required because this declaration matches %nd"
+ec_new_or_virtual_required;;"\"new\" or \"virtual\" is required because this declaration matches %nd"
+ec_override_for_interface_member;;"\"new\" or \"override\" are not valid here because the matching %nd is a member of an interface"
+ec_new_requires_matching_base_member;;"\"new\" modifier without a matching base class member"
+ec_overriding_reduces_accessibility_in_managed_type;;"%nd overridden with reduced access"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
