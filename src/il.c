@@ -16655,7 +16655,6 @@ already indicates the load.
           case eok_ref_cast:
           case eok_lvalue_adjust:
           case eok_ref_dynamic_cast:
-          case eok_unbox:
           case eok_va_arg:
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
           case eok_real_part:
@@ -16672,6 +16671,10 @@ already indicates the load.
           case eok_points_to_static:    /* Ditto. */
           case eok_base_class_cast:     /* Ditto. */
           case eok_derived_class_cast:  /* Ditto. */
+          case eok_unbox:        /* Not rvalueable: the version with is_lvalue
+                                    FALSE does a fetch, but it's an inherent
+                                    part of the operation, not an implicit
+                                    lvalue-to-rvalue conversion at the end. */
           default:
             break;
         }  /* switch */
@@ -16817,9 +16820,14 @@ process_ptr_to_member_selection:
             case eok_ref_cast:
             case eok_lvalue_adjust:
             case eok_ref_dynamic_cast:
-            case eok_unbox:
               /* Type adjustment of an lvalue, or cast to a reference type,
                  with an implicit lvalue-to-rvalue conversion afterwards. */
+              does_fetch = TRUE;
+              fetched_type = node->type;
+              break;
+            case eok_unbox:
+              /* A C++/CLI unbox operation with is_lvalue FALSE fetches the
+                 rvalue out of the box. */
               does_fetch = TRUE;
               fetched_type = node->type;
               break;

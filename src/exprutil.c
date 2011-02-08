@@ -13190,7 +13190,6 @@ e.g., in a back end.
       case eok_ref_cast:
       case eok_lvalue_adjust:
       case eok_ref_dynamic_cast:
-      case eok_unbox:
         /* Lvalue type adjustment or cast to reference type, with an
            lvalue-to-rvalue conversion built into it.  We can undo that by
            simply changing the flag. */

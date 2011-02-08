@@ -12394,7 +12394,11 @@ enum an_expr_operator_kind_tag {
 			   for the value within the boxed object allocated
 			   on the managed heap.  The result type may be
 			   a derived class of the type underlying the
-			   handle. */
+			   handle.  If is_lvalue is FALSE, the operation
+			   fetches an rvalue from the box (i.e., there's a
+			   built-in bitwise copy), but the operation is
+			   not rvalueable; the fetch/copy is an inherent
+			   part of the operation. */
   eok_base_class_cast,	/* C++ cast of a class to a direct base class.  The
 			   type of the expression indicates the type to cast
 			   to.  The operand can be a class lvalue, a class
