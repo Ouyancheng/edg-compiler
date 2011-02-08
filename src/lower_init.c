@@ -4378,8 +4378,6 @@ routine will be the same as the one passed in.
       copy_and_lower_param_type_list(routine, last_param_type, 
                                      /*do_default_args=*/TRUE,
                                      /*do_lowering=*/FALSE);
-      /* No need to lower this routine. */
-      mark_as_visited(new_routine);
     }  /* if */
     /* Define the routine if appropriate. */
     if (routine->assoc_scope != NULL_region_number &&
