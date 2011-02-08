@@ -17,7 +17,7 @@ We now emulate that in g++ mode.
 2/4/11   [EDGcpfe/11343]
 Ambiguity not detected during template substitution
 
-The substitution process used in template process failed to detect
+The substitution process used in template processing failed to detect
 certain ambiguities.  As a result, the following case would fail because
 both #1 and #2 were considered viable, but only #2 was viable because
 #1 would result in an ambiguity during instantiation.  Now fixed.
