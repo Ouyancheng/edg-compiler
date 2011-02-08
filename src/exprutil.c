@@ -12578,6 +12578,13 @@ explicit "&" operator in the source and *operator_position gives its position.
               /* Use the "%" operator to create a handle as the address. */
               expr = make_operator_node((an_expr_operator_kind)eok_handle_to,
                                         make_handle_type(expr->type), expr);
+              if (operator_position == NULL) {
+                expr->variant.operation.compiler_generated = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+              } else {
+                expr->operator_position = *operator_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+              }  /* if */
             } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* Do not insert code here. */
@@ -12594,6 +12601,9 @@ explicit "&" operator in the source and *operator_position gives its position.
                                        make_pointer_type(expr->type);
               expr = make_operator_node((an_expr_operator_kind)eok_address_of,
                                         addr_type, expr);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+              expr->operator_position = *operator_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
             }  /* if */
           }  /* if */
         }  /* if */
