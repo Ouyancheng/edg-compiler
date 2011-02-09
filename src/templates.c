@@ -18555,8 +18555,14 @@ any non-empty template parameter lists that were scanned.
     /* An alias template. */
     check_assertion(tssp->variant.class_template.is_alias_template);
     if (!decl_state->decl_scope_err) {
-      /* Do the prototype instantiation evaluation of the alias type. */
-      alias_prototype_instantiation(sym);
+      /* We only do a prototype instantiation for the primary template. */
+      if (tssp->prototype_template == NULL) {
+        /* Do the prototype instantiation evaluation of the alias type. */
+        alias_prototype_instantiation(sym);
+      } else {
+        /* Mark the prototype instantiation type as being complete. */
+        tssp->variant.class_template.prototype_instantiation_complete = TRUE;
+      }  /* if */
     }  /* if */
   } else if (sym != NULL) {
     if (is_function_or_template_symbol(sym) &&
