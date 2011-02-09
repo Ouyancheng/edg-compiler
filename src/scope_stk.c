@@ -9691,6 +9691,27 @@ pack expansion stack must be popped.
 }  /* abandon_potential_pack_expansion_context */
 
 
+a_boolean any_packs_referenced(void)
+/*
+Return TRUE if the current pack expansion context contains any pack
+references and we are in a template definition context.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (pack_expansion_stack != NULL) {
+    a_pack_expansion_stack_entry_ptr	pesep = pack_expansion_stack;
+    result = pesep->expansion_descr->packs_referenced != NULL;
+    if (!result && is_prototype_instantiation_context()) {
+      a_scope_stack_entry_ptr	ssep;
+      ssep = get_current_template_dependent_context();
+      result = ssep->packs_referenced != NULL;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* any_packs_referenced */
+
+
 void record_potential_pack_reference(a_symbol_ptr		pack_symbol,
 				     a_source_position_ptr	position)
 /*

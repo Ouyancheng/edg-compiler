@@ -1701,6 +1701,8 @@ extern a_template_decl_info_ptr get_current_template_decl_info(void);
 extern
 a_template_arg_ptr get_curr_variadic_arg_for_param(a_template_param_ptr	tpp);
 
+extern a_boolean any_packs_referenced(void);
+
 extern a_boolean begin_rescan_pack_expansion_context(
 		a_pack_expansion_descr_ptr		pedp,
 		a_template_param_ptr			templ_param_list,

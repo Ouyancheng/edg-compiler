@@ -11209,25 +11209,6 @@ array bound appears directly (rather than hidden under a typedef).
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-a_boolean is_variadic_pattern_type(a_type_ptr  tp)
-/*
-Return TRUE if tp contains a template parameter pack that can be subject to
-"pack expansion" (i.e., that hasn't been expanded yet).
-*/
-{
-  a_boolean  result = FALSE;
-
-  if (variadic_templates_enabled) {
-    /* FIXME: This either needs a tricky traversal, or a dedicated flag in the
-       type.  For now, we just recognize the template parameter pack itself so
-       that some simple cases can be tested. */
-    result = tp->kind == (a_type_kind)tk_template_param &&
-             tp->variant.template_param.is_pack;
-  }  /* if */
-  return result;
-}  /* is_variadic_pattern_type */
-
-
 /* Type of service function called by traverse_and_modify_type_tree to return
    TRUE if the type was modified or FALSE if it was not. */
 typedef a_boolean a_type_modifier_function(
