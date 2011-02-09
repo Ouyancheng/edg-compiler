@@ -4197,6 +4197,7 @@ next_named_override:
       /*lint --e{446,445} sym modified in loop (LINTBUG) */
       symbol_list = find_symbol_list_in_table(&base_class_cssp->pointers_block,
                                               sym_header_to_search);
+      /*lint --e{850} sym modified in loop */
       for (sym = symbol_list; sym != NULL; sym = sym_next) {
         sym_next = sym->next_in_lookup_table;
         sym_for_override_registry = sym;
