@@ -11817,7 +11817,7 @@ operator is the result of operator notation ("a+b") rather than an explicit
 function call.  If non-NULL, function_call_node is the address of an
 expression node pointer that will be set to point to the actual call node
 itself (which might be below the node returned because of transformations
-on the return value).
+on the return value).  It is returned NULL for some error cases.
 */
 {
   an_expr_operator_kind         op;
@@ -11958,7 +11958,7 @@ function call.  *call_pos gives the source position of the call.  If
 non-NULL, function_call_node is the address of an expression node pointer
 that will be set to point to the actual call node itself (which might be
 below the expression in the result because of transformations on the return
-value).
+value).  It is returned NULL for some error cases.
 */
 {
   an_expr_node_ptr call_node;
@@ -12023,7 +12023,8 @@ call_position gives the source position of the call.  An operand for the
 overall call is constructed in *result.  If non-NULL, function_call_node is
 the address of an expression node pointer that will be set to point to the
 actual call node itself (which might be below the expression in the result
-because of transformations on the return value).
+because of transformations on the return value).  It is returned NULL for
+some error cases.
 */
 {
   an_expr_node_ptr function_node;
@@ -12031,6 +12032,7 @@ because of transformations on the return value).
   a_type_ptr       function_type;
   a_boolean        selector_is_object_pointer = FALSE;
 
+  if (function_call_node != NULL) *function_call_node = NULL;
   if (is_error_operand(function_operand)) {
     /* If the function operand is an error, the arguments cannot be linked to
        it; just make an error operand for the result. */
@@ -14871,13 +14873,17 @@ reference is given by pos.
 
 
 void rewrite_property_reference(an_operand *operand,
-                                an_operand *put_operand)
+                                an_operand *put_operand,
+                                a_boolean  is_compound_put)
 /*
 *operand is an operand for a reference to a class member declared as
 a Microsoft property (either using __declspec(property) or the C++/CLI
 property syntax).  Transform it to a call of an accessor routine.  The
 access is a "put" if put_operand is non-NULL (and *put_operand gives
 the value to be put); the access is a "get" if put_operand is NULL.
+is_compound_put is TRUE if this call is adding the "put" at the end of
+a compound operation that required a previous "get".  A flag is set to
+indicate that.
 */
 {
   a_property_or_event_descr_ptr
@@ -14967,6 +14973,7 @@ the value to be put); the access is a "get" if put_operand is NULL.
       conv_to_error_operand(operand);
     } else {
       /* Create the function call. */
+      an_expr_node_ptr func_call_node;
       assemble_function_call(&function_operand, &bound_function_selector,
                              argument_list,
                              /*compiler_generated=*/TRUE,
@@ -14975,7 +14982,11 @@ the value to be put); the access is a "get" if put_operand is NULL.
                              /*found_through_adl=*/FALSE,
                              /*uses_operator_syntax=*/FALSE,
                              &operand_position, operand,
-                             (an_expr_node_ptr *)NULL);
+                             &func_call_node);
+      if (is_compound_put && func_call_node != NULL) {
+        func_call_node->variant.operation.
+                               is_rewritten_compound_property_reference = TRUE;
+      }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       /* The operand's end position now reflects the end of the current
          token, which is past the end of the field reference.  Restore
@@ -15209,7 +15220,8 @@ transformations.
     if (!(options & TOPT_SUPPRESS_RVALUE_PROPERTY_REWRITE)) {
       /* This operand is a reference to a member declared as a Microsoft
          property.  Change it to a call of the appropriate "get" function. */
-      rewrite_property_reference(operand, (an_operand *)NULL);
+      rewrite_property_reference(operand, (an_operand *)NULL,
+                                 /*is_compound_put=*/FALSE);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

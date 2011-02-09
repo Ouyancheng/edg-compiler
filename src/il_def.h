@@ -13159,6 +13159,15 @@ typedef struct an_expr_node {
 			   that a call to a virtual function with this flag
 			   FALSE is not a virtual call (perhaps because the
 			   function was named with a qualified name). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_bit_field
+		is_rewritten_compound_property_reference:1;
+			/* TRUE if this is the "put" call in a rewritten
+			   Microsoft property reference involving a compound
+			   assignment or other operator where both a "get"
+			   accessor and a "put" accessor are called as part
+			   of the expansion. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       an_expr_node_ptr  
                 operands;
                         /* The list of operands. */

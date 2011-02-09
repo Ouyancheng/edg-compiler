@@ -1346,7 +1346,8 @@ a_symbol_ptr get_property_accessor_symbol(
                                  a_source_position             *pos);
 
 extern void rewrite_property_reference(an_operand *operand,
-                                       an_operand *put_operand);
+                                       an_operand *put_operand,
+                                       a_boolean  is_compound_put);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void convert_function_template_to_single_function_if_possible(

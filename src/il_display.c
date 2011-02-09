@@ -3607,6 +3607,11 @@ Display the indicated expression node.
       if (ptr->variant.operation.is_virtual_call) {
         disp_boolean("is_virtual_call", TRUE);
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (ptr->variant.operation.is_rewritten_compound_property_reference) {
+        disp_boolean("is_rewritten_compound_property_reference", TRUE);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       disp_ptr("operands", (char *)ptr->variant.operation.operands,
                iek_expr_node);
       break;

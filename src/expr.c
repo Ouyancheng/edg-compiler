@@ -887,7 +887,8 @@ This routine is also used when scanning __builtin_offsetof constructs.
       /* For a property field reference where there's a "get" accessor that
          returns something that can be subscripted, use that and then subscript
          the returned value. */
-      rewrite_property_reference(operand_1, (an_operand *)NULL);
+      rewrite_property_reference(operand_1, (an_operand *)NULL,
+                                 /*is_compound_put=*/FALSE);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -6491,7 +6492,8 @@ it is set to NULL.
   /* Make a clone of the operand, to be used in the store. */
   clone_property_ref_operand(operand, operand_clone, temp_init_expr);
   /* Transform the operand to a call of the appropriate "get" function. */
-  rewrite_property_reference(operand, (an_operand *)NULL);
+  rewrite_property_reference(operand, (an_operand *)NULL,
+                             /*is_compound_put=*/FALSE);
   if (is_overloadable_type_operand(operand)) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading((an_opname_kind)(is_increment ?
@@ -6577,7 +6579,7 @@ any use of the temporary.  The overall result is placed in *result.
   do_binary_operation(op, operand, &one_operand, result_type, result,
                       operator_position, NO_TOKEN_SEQUENCE_NUMBER);
   /* Add a call of the appropriate "put" routine. */
-  rewrite_property_reference(operand_clone, result);
+  rewrite_property_reference(operand_clone, result, /*is_compound_put=*/TRUE);
   copy_operand(operand_clone, result);
   /* Insert temporary-initialization code if required. */
   insert_temporary_initialization(temp_init_expr, result);
@@ -19784,7 +19786,8 @@ that case.
     /* The operand is a reference to a member declared as a Microsoft
        property.  Rewrite it as a call of the "put" function for the
        property. */
-    rewrite_property_reference(operand_1, &operand_2);
+    rewrite_property_reference(operand_1, &operand_2,
+                               /*is_compound_put=*/FALSE);
     *result = *operand_1;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
@@ -19980,7 +19983,8 @@ is expected to be NULL in that case.
     operand_1_clone_unused = TRUE;
     /* Transform the left operand to a call of the appropriate "get"
        function. */
-    rewrite_property_reference(operand_1, (an_operand *)NULL);
+    rewrite_property_reference(operand_1, (an_operand *)NULL,
+                               /*is_compound_put=*/FALSE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -20294,7 +20298,8 @@ operation_type_determined:
   if (property_ref_case && !err) {
     /* For a reference to a Microsoft property member, store the result by
        calling a "put" function. */
-    rewrite_property_reference(&operand_1_clone, result);
+    rewrite_property_reference(&operand_1_clone, result,
+                               /*is_compound_put=*/TRUE);
     copy_operand(&operand_1_clone, result);
     operand_1_clone_unused = FALSE;
     insert_temporary_initialization(temp_init_expr, result);
@@ -24239,7 +24244,8 @@ bad_start_of_primary:
           /* Leave as is. */
           break;
         default:
-          rewrite_property_reference(&local_result, (an_operand *)NULL);
+          rewrite_property_reference(&local_result, (an_operand *)NULL,
+                                     /*is_compound_put=*/FALSE);
           break;
       }  /* switch */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -24415,7 +24421,8 @@ bad_start_of_primary:
     if (!(local_options & EOPT_PRESERVE_PROPERTY_REF)) {
       /* If the operand is a reference to a member declared as a Microsoft
          property, change it to a call of the appropriate "get" function. */
-      rewrite_property_reference(&local_result, (an_operand *)NULL);
+      rewrite_property_reference(&local_result, (an_operand *)NULL,
+                                 /*is_compound_put=*/FALSE);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */

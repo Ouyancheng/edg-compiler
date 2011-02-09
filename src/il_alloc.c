@@ -2773,6 +2773,9 @@ fields to default values.
 #endif /* GNU_EXTENSIONS_ALLOWED */
       node->variant.operation.pointer_operand_is_second = FALSE;
       node->variant.operation.is_virtual_call = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      node->variant.operation.is_rewritten_compound_property_reference = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       node->variant.operation.operands = NULL;
       break;
     case enk_constant:
