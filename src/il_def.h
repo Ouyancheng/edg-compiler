@@ -12322,7 +12322,7 @@ enum an_expr_operator_kind_tag {
 			   applied to a class rvalue, where it produces a
 			   reference to the class object in memory. */
   eok_handle_to,	/* C++/CLI unary "%" operator, which returns a handle
-			   to its operand. */
+			   to its operand.  See also eok_handle_to_box. */
   eok_indirect,		/* Pointer de-reference operator ("*"). */
   eok_ref_indirect,	/* Implicit indirection through a reference to get an
 			   lvalue, i.e., the reference equivalent of
@@ -12387,6 +12387,10 @@ enum an_expr_operator_kind_tag {
 			   of a value type (other than a pointer) and the
 			   result is a handle to the box allocated to contain
 			   that value. */
+  eok_handle_to_box,	/* Exactly the same semantics as eok_box, but used to
+			   indicate the case where the source form uses the
+			   unary "%" operator.  Never compiler-generated,
+			   and unlike eok_box never considered a cast. */
   eok_unbox,		/* C++/CLI unboxing operation.  The operand is a handle
 			   to a value type (other than a pointer) and the
 			   result is an lvalue for the unboxed value.  This
@@ -15644,7 +15648,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #if VAR_INITIALIZERS
 = {"&", "ref-&", "%", "*", "ref-*",
    "cast", "lvalue cast", "ref cast", "lvalue adjust", "class rvalue adjust",
-   "box", "unbox",
+   "box", "%-box", "unbox",
    "base class cast", "derived class cast",
    "pm base class cast", "pm derived class cast",
    "dynamic cast", "ref dynamic cast", "bool cast",

@@ -7432,7 +7432,8 @@ result in *result (or an error indication in *rcblock).
          on the source object are dropped. */
       do_operand_transformations(&operand, TOPT_NO_OPTIONS);
       expr = make_node_from_operand(&operand);
-      expr = add_box_to_expression(expr, /*is_implicit=*/FALSE);
+      expr = add_box_to_expression(expr, /*is_implicit=*/FALSE,
+                                   /*handle_to_form=*/TRUE);
       make_expression_operand(expr, result);
     } else if (!is_cli_ref_or_interface_class_type(operand.type) &&
                !template_case) {
@@ -26007,6 +26008,7 @@ set accordingly.
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case eok_handle_to:
+      case eok_handle_to_box:
         check_assertion(cppcli_enabled);
         operator_token = tok_remainder;
         *unary = TRUE;

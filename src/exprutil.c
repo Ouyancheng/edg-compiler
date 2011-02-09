@@ -4824,17 +4824,21 @@ source position to be used for errors.  This routine is only used in C++ mode.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 an_expr_node_ptr add_box_to_expression(an_expr_node_ptr expr,
-                                       a_boolean        is_implicit)
+                                       a_boolean        is_implicit,
+                                       a_boolean        handle_to_form)
 /*
 Add a C++/CLI "box" operation to the indicated expression (an rvalue
 with a CLI value type), and return the boxed expression.  is_implicit
 is TRUE if the boxing is implicit (as opposed to coming from an explicit cast).
+If handle_to_form is TRUE, the source form uses the unary "%" operator.
 */
 {
   a_type_ptr boxed_type = make_unqualified_type(expr->type);
 
   check_assertion(!expr->is_lvalue);
-  expr = make_operator_node((an_expr_operator_kind)eok_box,
+  expr = make_operator_node((handle_to_form ?
+                               (an_expr_operator_kind)eok_handle_to_box :
+                               (an_expr_operator_kind)eok_box),
                             make_handle_type(boxed_type), expr);
   expr->variant.operation.compiler_generated = is_implicit;
   return expr;
@@ -4947,7 +4951,8 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
              boxing_conversion_possible(old_type, new_type,
                                         (a_std_conv_descr *)NULL)) {
     /* Do a boxing conversion. */
-    (*p_node) = add_box_to_expression(*p_node, is_implicit_cast);
+    (*p_node) = add_box_to_expression(*p_node, is_implicit_cast,
+                                      /*handle_to_form=*/FALSE);
   } else if (cppcli_enabled &&
              unboxing_conversion_possible(old_type, new_type,
                                           (a_std_conv_descr *)NULL)) {

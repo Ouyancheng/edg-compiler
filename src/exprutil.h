@@ -2112,8 +2112,10 @@ extern void add_base_class_casts(a_base_class_ptr  bcp,
                                  a_boolean         *error_detected);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern an_expr_node_ptr add_box_to_expression(an_expr_node_ptr expr,
-                                              a_boolean        is_implicit);
+extern
+an_expr_node_ptr add_box_to_expression(an_expr_node_ptr expr,
+                                       a_boolean        is_implicit,
+                                       a_boolean        handle_to_form);
 extern an_expr_node_ptr add_unbox_to_expression(an_expr_node_ptr expr,
                                                 a_type_ptr       unboxed_type,
                                                 a_boolean        make_lvalue);

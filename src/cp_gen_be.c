@@ -524,6 +524,7 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_LOWEST,		/* eok_lvalue_adjust */
   PREC_LOWEST,		/* eok_class_rvalue_adjust */
   PREC_CAST,		/* eok_box */
+  PREC_PREFIX,		/* eok_handle_to_box */
   PREC_CAST,		/* eok_unbox */
   PREC_CAST,		/* eok_base_class_cast */
   PREC_CAST,		/* eok_derived_class_cast */
@@ -9723,6 +9724,7 @@ gen_expr that might end up generating this expr as a temporary.
           goto done_with_operation;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         case eok_handle_to:
+        case eok_handle_to_box:
           write_tok_ch('%');
           gen_expr_with_parens(operand_1);
           goto done_with_operation;
