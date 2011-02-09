@@ -1840,7 +1840,7 @@ Display an expression operand for debugging purposes.
       }
       if (operand->variant.property_ref.subscripts != NULL) {
         an_arg_operand_ptr aop;
-        (void)fprintf(f_debug, "subscripts =\n");
+        (void)fprintf(f_debug, "\nsubscripts =\n");
         for (aop = operand->variant.property_ref.subscripts;
              aop != NULL;
              aop = aop->next) {
