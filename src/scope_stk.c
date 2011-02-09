@@ -9149,7 +9149,7 @@ entries.
 {
   a_pack_expansion_stack_entry_ptr	pesep = NULL;
 
-  if (is_template_dependent_context() && is_variadic_template_context()) {
+  if (is_prototype_instantiation_context() && is_variadic_template_context()) {
     pesep = push_pack_expansion_stack();
     pesep->is_suppression = TRUE;
   }  /* if */
@@ -9252,7 +9252,7 @@ expansion.  If p_pedp is non-NULL a pointer to the entry is returned in
     pesep = pack_expansion_stack;
     any_args = TRUE;
     pedp = pesep->expansion_descr;
-  } else if (is_template_dependent_context()) {
+  } else if (is_prototype_instantiation_context()) {
     any_args = TRUE;
     pesep = push_pack_expansion_stack();
     /* Allocate an expansion descriptor for this stack entry. */
@@ -9548,7 +9548,7 @@ effect and returns NULL.
       /* Record the fact that the "..." has been seen. */
       record_pack_expansion_ellipsis();
     }  /* if */ 
-    if (is_template_dependent_context()) {
+    if (is_prototype_instantiation_context()) {
       /* The pack expansion descriptor passed in should be on top of the
          stack. */
       /* Save the end of the token range for the pack. */
@@ -9704,9 +9704,9 @@ source position of the use of the symbols is indicated by position.
 */
 {
   /* It is only possible to reference a pack expansion in a template
-     dependent context.  Don't record pack references during rescans -- just
+     definition context.  Don't record pack references during rescans -- just
      use the pack references from the definition. */
-  if (is_template_dependent_context() &&
+  if (is_prototype_instantiation_context() &&
       (pack_expansion_stack == NULL || !pack_expansion_stack->is_rescan ||
        pack_expansion_stack->is_suppression)) {
     if (symbol_is_pack(pack_symbol)) {
@@ -9752,7 +9752,7 @@ end_potential_pack_expansion_context).
 */
 {
   check_assertion(curr_token == tok_ellipsis);
-  if (is_template_dependent_context()) {
+  if (is_prototype_instantiation_context()) {
     a_pack_expansion_descr_ptr	pedp = pack_expansion_stack->expansion_descr;
     check_assertion(pack_expansion_stack != NULL);
     pedp->ellipsis_seen = TRUE;
