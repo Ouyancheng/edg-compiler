@@ -3490,7 +3490,7 @@ the point of call.
 #if DEBUG
   unsigned long            narg;
 #endif /* DEBUG */
-  a_boolean                reached_ellipsis, first_pass;
+  a_boolean                reached_end_of_param_list, first_pass;
   an_arg_match_summary_ptr this_match, this_match_next;
   an_arg_match_summary_ptr arg_match = NULL, saved_arg_match_next;
   an_arg_match_summary_ptr arg_match_list = NULL;
@@ -3637,7 +3637,7 @@ the point of call.
   first_pass = TRUE;
   for (;;) {
     param = rtsp->param_type_list;
-    reached_ellipsis = FALSE;
+    reached_end_of_param_list = FALSE;
     param_before_deduction = first_param_before_deduction;
 #if DEBUG
     narg = 0;
@@ -3670,18 +3670,28 @@ the point of call.
       if (param == NULL) {
         /* More arguments than required.  Since the function was not rejected
            in the initial argument-count check, it must have an ellipsis. */
-        check_assertion_str(rtsp->has_ellipsis,
-                          "determine_function_viability: no arg, no ellipsis");
-        reached_ellipsis = TRUE;
-        /* There is an ellipsis, so there is a match, but with a low
-           desirability. */
-        arg_match->match_level = aml_ellipsis;
+        reached_end_of_param_list = TRUE;
+        if (rtsp->has_ellipsis) {
+          /* There is an ellipsis, so there is a match, but with a low
+             desirability. */
+          arg_match->match_level = aml_ellipsis;
 #if DEBUG
-        if (debug_level >= 4 || db_flag_is_set("overload")) {
-          db_display_overload_level();
-          fprintf(f_debug, "determine_function_viability: ellipsis match\n");
-        }  /* if */
+          if (debug_level >= 4 || db_flag_is_set("overload")) {
+            db_display_overload_level();
+            fprintf(f_debug, "determine_function_viability: ellipsis match\n");
+          }  /* if */
 #endif /* DEBUG */
+        } else if (function_template_case &&
+                   param_before_deduction->is_parameter_pack) {
+          /* The parameter was a parameter pack, but it generated no
+             parameters in spite of the fact that there is an argument, so
+             there must have been an error. */
+          if (expr_error_should_be_issued()) expect_error();
+          arg_match->match_level = aml_error;
+        } else {
+          unexpected_condition_str(
+                           "determine_function_viability: ran off param list");
+        }  /* if */
       } else if (param->is_parameter_pack) {
         /* For a parameter pack in the first pass, continue advancing through
            the arguments, keeping the parameter the same, so the match entry
@@ -3726,7 +3736,8 @@ the point of call.
       }  /* if */
 next_parameter:
       /* Go on to the next parameter. */
-      if (!reached_ellipsis) {
+      if (!reached_end_of_param_list) {
+        check_assertion(param != NULL);
         param = param->next;
         if (function_template_case) {
           check_assertion(param_before_deduction != NULL);
