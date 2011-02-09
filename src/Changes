@@ -1,5 +1,32 @@
 Version 4.3
 
+2/9/11   [EDGcpfe/11349]
+Microsoft compatibility: function template as argument for deduced parameter
+
+The standard requires that if a function template is passed as an
+argument for a deduced parameter the parameter be considered
+nondeduced (core issue 325).  MSVC apparently doesn't do that, and
+instead does what we did up until version 4.1 (see change for
+EDGcpfe/9711 below), which is that the template is considered not
+to match, but other overloaded functions can still match.  We've
+restored that behavior in Microsoft mode.
+
+  struct A { };
+  struct B {
+    virtual int f(A*) = 0;
+    template<typename T> int f(T* tp) {
+      return g(&B::f, tp);  // Once again accepted in Microsoft mode
+    }
+  };
+  struct C { };
+  template<typename T, typename U> int g(T t, U*) {
+    return 0;
+  }
+  void g(B* bp, C* cp) {
+    bp->f(cp);
+  }
+
+
 2/7/11   [EDGcpfe/11331]
 g++ allows real floating --> complex
 

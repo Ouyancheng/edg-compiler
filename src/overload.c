@@ -836,8 +836,12 @@ from previous arguments; in the standard case, it is always NULL.
           /* If an overload set contains any function templates (and the
              operand is not a template-id), the parameter is considered a
              nondeduced context. */
-          can_be_arg = FALSE;
-          break;
+          /* MSVC doesn't do this (checked in 7.1 - 10.0).  The template is
+             just considered not to match. */
+          if (!microsoft_bugs) {
+            can_be_arg = FALSE;
+            break;
+          }  /* if */
         }  /* if */
       } else {
         /* Not a function template. */
