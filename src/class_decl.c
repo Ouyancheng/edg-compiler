@@ -4309,6 +4309,14 @@ next_named_override:
             /* Match */
 #if MICROSOFT_EXTENSIONS_ALLOWED
             if (cppcli_enabled) {
+              /* Check that required modifiers are specified. */
+#if /*FIXME*/1
+              if (class_type_supp(class_type)->assembly_index != 0) {
+                /* FIXME: The metadata reader currently does not generate
+                   required override modifiers.  For now, we just rely on
+                   standard implicit overriding rules in such cases. */
+              } else
+ #endif /*FIXME*/
               if (!func_info->override && !func_info->new_member &&
                   is_ref_class_type(bcp->type) && named_override == NULL) {
                 /* If a match is found in a base ref class, the overriding 
