@@ -9098,6 +9098,7 @@ of cast (which requires mangling of a type as well as an expression), return
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case eok_handle_to:
+    case eok_handle_to_box:
       name = MANGLING_STRING_FOR_OPERATOR_HANDLE_TO;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
