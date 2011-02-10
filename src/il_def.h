@@ -6231,6 +6231,20 @@ typedef struct a_property_or_event_descr {
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_property_or_event_descr;
 
+/*
+Values for the rewritten_property_reference_kind field, indicating
+the original kind of operator rewritten as a property reference.
+*/
+enum a_rewritten_property_reference_kind_tag {
+  rprk_none,
+  rprk_compound_assignment,
+			/* Compound assignment, e.g., a.p += 1. */
+  rprk_pre_incr_decr,	/* Pre-increment or -decrement, e.g., ++a.p. */
+  rprk_post_incr_decr	/* Post-increment or -decrement, e.g., a.p++. */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_rewritten_property_reference_kind;
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if DO_IL_LOWERING && IA64_ABI
@@ -13164,13 +13178,14 @@ typedef struct an_expr_node {
 			   FALSE is not a virtual call (perhaps because the
 			   function was named with a qualified name). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      a_bit_field
-		is_rewritten_compound_property_reference:1;
-			/* TRUE if this is the "put" call in a rewritten
+      a_bit_field /* a_rewritten_property_reference_kind */
+		rewritten_property_reference_kind:2;
+			/* If this is the "put" call in a rewritten
 			   Microsoft property reference involving a compound
 			   assignment or other operator where both a "get"
 			   accessor and a "put" accessor are called as part
-			   of the expansion. */
+			   of the expansion, indicates the kind of operator.
+			   Otherwise, rprk_none. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       an_expr_node_ptr  
                 operands;

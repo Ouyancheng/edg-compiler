@@ -888,7 +888,7 @@ This routine is also used when scanning __builtin_offsetof constructs.
          returns something that can be subscripted, use that and then subscript
          the returned value. */
       rewrite_property_reference(operand_1, (an_operand *)NULL,
-                                 /*is_compound_put=*/FALSE);
+                               (a_rewritten_property_reference_kind)rprk_none);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -6493,7 +6493,7 @@ it is set to NULL.
   clone_property_ref_operand(operand, operand_clone, temp_init_expr);
   /* Transform the operand to a call of the appropriate "get" function. */
   rewrite_property_reference(operand, (an_operand *)NULL,
-                             /*is_compound_put=*/FALSE);
+                             (a_rewritten_property_reference_kind)rprk_none);
   if (is_overloadable_type_operand(operand)) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading((an_opname_kind)(is_increment ?
@@ -6541,6 +6541,7 @@ in result.
 
 static void process_property_ref_incr_decr(
                                           a_boolean         is_increment,
+                                          a_boolean         is_post,
                                           a_source_position *operator_position,
                                           an_operand        *operand,
                                           an_operand        *operand_clone,
@@ -6550,9 +6551,10 @@ static void process_property_ref_incr_decr(
 Generate the IL operation for an increment or decrement operation on a
 reference to a member declared with the Microsoft property extension.
 is_increment is TRUE if the operation is an increment, FALSE for a
-decrement.  operator_position gives the source position of the
-operator.  "operand" is the operand to be incremented/decremented,
-already transformed into a call of the appropriate "get" function.
+decrement.  is_post is TRUE for postfix, FALSE for prefix.
+operator_position gives the source position of the operator.
+"operand" is the operand to be incremented/decremented, already
+transformed into a call of the appropriate "get" function.
 operand_clone is a clone of the original operand, to be transformed
 into a call of the appropriate "put" function.  If temp_init_expr is
 non-NULL, the cloning of the operand required setting a temporary, and
@@ -6579,7 +6581,11 @@ any use of the temporary.  The overall result is placed in *result.
   do_binary_operation(op, operand, &one_operand, result_type, result,
                       operator_position, NO_TOKEN_SEQUENCE_NUMBER);
   /* Add a call of the appropriate "put" routine. */
-  rewrite_property_reference(operand_clone, result, /*is_compound_put=*/TRUE);
+  rewrite_property_reference(operand_clone, result,
+                             (is_post ?
+                     (a_rewritten_property_reference_kind)rprk_post_incr_decr :
+                     (a_rewritten_property_reference_kind)rprk_pre_incr_decr));
+
   copy_operand(operand_clone, result);
   /* Insert temporary-initialization code if required. */
   insert_temporary_initialization(temp_init_expr, result);
@@ -6807,7 +6813,8 @@ case.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (property_ref_case) {
         /* Operand is a reference to a Microsoft property. */
-        process_property_ref_incr_decr(is_increment, &operator_position,
+        process_property_ref_incr_decr(is_increment, /*is_post=*/TRUE,
+                                       &operator_position,
                                        operand, &operand_clone, temp_init_expr,
                                        result);
         operand_clone_unused = FALSE;
@@ -7055,7 +7062,8 @@ and return the result in *result (or an error indication in *rcblock).
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (property_ref_case) {
         /* Operand is a reference to a Microsoft property. */
-        process_property_ref_incr_decr(is_increment, &operator_position,
+        process_property_ref_incr_decr(is_increment, /*is_post=*/FALSE,
+                                       &operator_position,
                                        &operand, &operand_clone,
                                        temp_init_expr, result);
         operand_clone_unused = FALSE;
@@ -19790,7 +19798,7 @@ that case.
        property.  Rewrite it as a call of the "put" function for the
        property. */
     rewrite_property_reference(operand_1, &operand_2,
-                               /*is_compound_put=*/FALSE);
+                               (a_rewritten_property_reference_kind)rprk_none);
     *result = *operand_1;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
@@ -19987,7 +19995,7 @@ is expected to be NULL in that case.
     /* Transform the left operand to a call of the appropriate "get"
        function. */
     rewrite_property_reference(operand_1, (an_operand *)NULL,
-                               /*is_compound_put=*/FALSE);
+                               (a_rewritten_property_reference_kind)rprk_none);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -20302,7 +20310,7 @@ operation_type_determined:
     /* For a reference to a Microsoft property member, store the result by
        calling a "put" function. */
     rewrite_property_reference(&operand_1_clone, result,
-                               /*is_compound_put=*/TRUE);
+                (a_rewritten_property_reference_kind)rprk_compound_assignment);
     copy_operand(&operand_1_clone, result);
     operand_1_clone_unused = FALSE;
     insert_temporary_initialization(temp_init_expr, result);
@@ -24248,7 +24256,7 @@ bad_start_of_primary:
           break;
         default:
           rewrite_property_reference(&local_result, (an_operand *)NULL,
-                                     /*is_compound_put=*/FALSE);
+                               (a_rewritten_property_reference_kind)rprk_none);
           break;
       }  /* switch */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -24425,7 +24433,7 @@ bad_start_of_primary:
       /* If the operand is a reference to a member declared as a Microsoft
          property, change it to a call of the appropriate "get" function. */
       rewrite_property_reference(&local_result, (an_operand *)NULL,
-                                 /*is_compound_put=*/FALSE);
+                               (a_rewritten_property_reference_kind)rprk_none);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */

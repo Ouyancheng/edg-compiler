@@ -2774,7 +2774,8 @@ fields to default values.
       node->variant.operation.pointer_operand_is_second = FALSE;
       node->variant.operation.is_virtual_call = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      node->variant.operation.is_rewritten_compound_property_reference = FALSE;
+      node->variant.operation.rewritten_property_reference_kind =
+                                (a_rewritten_property_reference_kind)rprk_none;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       node->variant.operation.operands = NULL;
       break;

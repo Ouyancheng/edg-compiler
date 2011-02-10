@@ -14877,18 +14877,18 @@ reference is given by pos.
 }  /* get_property_accessor_symbol */
 
 
-void rewrite_property_reference(an_operand *operand,
-                                an_operand *put_operand,
-                                a_boolean  is_compound_put)
+void rewrite_property_reference(
+                              an_operand                          *operand,
+                              an_operand                          *put_operand,
+                              a_rewritten_property_reference_kind kind)
 /*
 *operand is an operand for a reference to a class member declared as
 a Microsoft property (either using __declspec(property) or the C++/CLI
 property syntax).  Transform it to a call of an accessor routine.  The
 access is a "put" if put_operand is non-NULL (and *put_operand gives
 the value to be put); the access is a "get" if put_operand is NULL.
-is_compound_put is TRUE if this call is adding the "put" at the end of
-a compound operation that required a previous "get".  A flag is set to
-indicate that.
+When put_operand is non-NULL, kind indicates the kind of operator
+being rewritten; it's used to set a kind in the expression created.
 */
 {
   a_property_or_event_descr_ptr
@@ -14988,9 +14988,9 @@ indicate that.
                              /*uses_operator_syntax=*/FALSE,
                              &operand_position, operand,
                              &func_call_node);
-      if (is_compound_put && func_call_node != NULL) {
+      if (put_operand != NULL && func_call_node != NULL) {
         func_call_node->variant.operation.
-                               is_rewritten_compound_property_reference = TRUE;
+                                      rewritten_property_reference_kind = kind;
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       /* The operand's end position now reflects the end of the current
@@ -15226,7 +15226,7 @@ transformations.
       /* This operand is a reference to a member declared as a Microsoft
          property.  Change it to a call of the appropriate "get" function. */
       rewrite_property_reference(operand, (an_operand *)NULL,
-                                 /*is_compound_put=*/FALSE);
+                               (a_rewritten_property_reference_kind)rprk_none);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

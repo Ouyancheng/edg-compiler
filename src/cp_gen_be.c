@@ -9202,7 +9202,8 @@ call.
            instead of as a function call. */
         gen_cli_property_or_event_call(
              args, rout,
-             expr->variant.operation.is_rewritten_compound_property_reference);
+             expr->variant.operation.rewritten_property_reference_kind !=
+                               (a_rewritten_property_reference_kind)rprk_none);
         processed = TRUE;
       } else 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

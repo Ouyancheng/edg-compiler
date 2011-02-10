@@ -3609,8 +3609,23 @@ Display the indicated expression node.
         disp_boolean("is_virtual_call", TRUE);
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (ptr->variant.operation.is_rewritten_compound_property_reference) {
-        disp_boolean("is_rewritten_compound_property_reference", TRUE);
+      if (ptr->variant.operation.rewritten_property_reference_kind !=
+                              (a_rewritten_property_reference_kind)rprk_none) {
+        disp_name("rewritten_property_reference_kind");
+        switch (ptr->variant.operation.rewritten_property_reference_kind) {
+          case rprk_compound_assignment:
+            (void)printf("rprk_compound_assignment\n");
+            break;
+          case rprk_pre_incr_decr:
+            (void)printf("rprk_pre_incr_decr\n");
+            break;
+          case rprk_post_incr_decr:
+            (void)printf("rprk_post_incr_decr\n");
+            break;
+          default:
+            (void)printf("**BAD REWRITTEN PROP REF KIND**\n");
+            break;
+        }  /* switch */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       disp_ptr("operands", (char *)ptr->variant.operation.operands,

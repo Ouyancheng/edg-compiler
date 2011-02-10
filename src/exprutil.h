@@ -1344,10 +1344,11 @@ a_symbol_ptr get_property_accessor_symbol(
                                  a_boolean                     put,
                                  a_boolean                     must_be_present,
                                  a_source_position             *pos);
-
-extern void rewrite_property_reference(an_operand *operand,
-                                       an_operand *put_operand,
-                                       a_boolean  is_compound_put);
+extern
+void rewrite_property_reference(
+                              an_operand                          *operand,
+                              an_operand                          *put_operand,
+                              a_rewritten_property_reference_kind kind);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void convert_function_template_to_single_function_if_possible(
