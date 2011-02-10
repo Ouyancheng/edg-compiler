@@ -8926,7 +8926,7 @@ return FALSE and let the caller generate the code normally.
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-static an_expr_node_ptr analyze_property_compound_assignment(
+static void analyze_property_compound_assignment(
                                        a_property_or_event_descr_ptr desc,
                                        an_expr_node_ptr              *obj_expr,
                                        an_expr_node_ptr              *args,
