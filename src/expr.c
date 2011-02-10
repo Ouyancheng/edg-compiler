@@ -8136,12 +8136,14 @@ indication in *rcblock).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      (void)required_token(tok_rparen, ec_exp_rparen);
+      (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
       remove_matching_stop_token(tok_rparen);
       pedep = end_potential_pack_expansion_context(pesep,
                                                    /*is_declarator=*/TRUE);
       any_more = advance_to_next_pack_element(pesep);
     }  /* while */
+    /* Skip over the closing right parenthesis. */
+    if (curr_token == tok_rparen) (void)get_token();
   } else {
     /* Rescanning a previously-scanned sizeof... */
     an_expr_rescan_info_entry_ptr eriep;
