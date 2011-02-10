@@ -2458,10 +2458,10 @@ static a_boolean is_property_or_event_accessor(
                                       a_source_correspondence **parent_scp,
                                       an_il_entry_kind        *parent_kind)
 /*
-Return TRUE if the routine specified by scp and entry_kind is an accessor
-routine for a property or event.  If so, set *parent_scp and *parent_kind to
-the property or event field or variable.   When FALSE is returned,
-*parent_scp and *parent_kind are unchanged.
+Return TRUE if the routine specified by rout is an accessor routine for a
+property or event.  If so, set *parent_scp and *parent_kind to the property
+or event field or variable.  When FALSE is returned, *parent_scp and
+*parent_kind are unchanged.
 */
 {
   a_boolean	result = FALSE;
@@ -6151,6 +6151,60 @@ if the declaration following this one is such a continuation.
 }  /* gen_member_constant_decl */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static void gen_property_or_event_accessors(a_property_or_event_descr_ptr desc)
+/*
+Put out the accessor functions (including indices, if any) for the C++/CLI
+property or event designated by desc.
+*/
+{
+  /* The property/event declaration is followed by the accessor
+     declarations enclosed in braces.  The braces are optionally preceded
+     by a list of indices in the case of a property. */
+  a_property_index_type_ptr index = desc->indices;
+  if (index != NULL) {
+    write_tok_ch('[');
+    for (; index != NULL; index = index->next) {
+      gen_type(index->type);
+      if (index->next != NULL) {
+        write_tok_str(", ");
+      }  /* if */
+    }  /* for */
+    write_tok_ch(']');
+  }  /* if */
+  write_tok_str(" {");
+  /* Generate declarations for each of the accessor functions that was
+     explicitly specified in the source.  (Note that the get, set, add,
+     remove, and raise routines might have been specified in a different
+     order from the tests below; the source sequence lists will reflect
+     the source order, and the tests below just ensure that gen_declaration
+     is called the appropriate number of times to consume the source
+     sequence entries in the property/event definition.) */
+  if (desc->kind == (a_property_or_event_kind)pek_cli_property) {
+    /* C++/CLI property. */
+    if (desc->get_routine.ptr != NULL) {
+      gen_declaration(/*for_init=*/FALSE);
+    }  /* if */
+    if (desc->set_routine.ptr != NULL) {
+      gen_declaration(/*for_init=*/FALSE);
+    }  /* if */
+  } else {
+    /* C++/CLI event. */
+    if (desc->add_routine != NULL) {
+      gen_declaration(/*for_init=*/FALSE);
+    }  /* if */
+    if (desc->remove_routine != NULL) {
+      gen_declaration(/*for_init=*/FALSE);
+    }  /* if */
+    if (desc->raise_routine != NULL) {
+      gen_declaration(/*for_init=*/FALSE);
+    }  /* if */
+  }  /* if */
+  write_tok_str("}");
+}  /* gen_property_or_event_accessors */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 static void gen_field_decl(a_boolean suppress_specifiers,
                            a_boolean *another_decl_in_comma_list)
 /*
@@ -6227,44 +6281,7 @@ declaration following this one is such a continuation.
   if (field_is_property_or_event(field) &&
       !field->property_or_event_descr->is_trivial &&
       !property_or_event_kind_is(field, pek_declspec_property)) {
-    /* The property/event field declaration is followed by the accessor
-       declarations enclosed in braces.  The braces are optionally preceded
-       by a list of indices in the case of a property. */
-    a_property_index_type_ptr  index = field->property_or_event_descr->indices;
-    if (index != NULL) {
-      write_tok_str("[");
-      for (; index != NULL; index = index->next) {
-        gen_type(index->type);
-        if (index->next != NULL) write_tok_str(", ");
-      }  /* for */
-      write_tok_str("]");
-    }  /* if */
-    write_tok_str(" {");
-    /* Render one, two, or three accessor declarations.  If there are more
-       than one, the one rendered by the call to gen_declaration may not
-       correspond to the pointer (get_routine.ptr, etc.) that was just tested,
-       but that is not a problem. */
-    if (property_or_event_kind_is(field, pek_cli_property)) {
-      /* C++/CLI property field. */
-      if (field->property_or_event_descr->get_routine.ptr != NULL) {
-        gen_declaration(/*for_init=*/FALSE);
-      }  /* if */
-      if (field->property_or_event_descr->set_routine.ptr != NULL) {
-        gen_declaration(/*for_init=*/FALSE);
-      }  /* if */
-    } else {
-      /* C++/CLI event field. */
-      if (field->property_or_event_descr->add_routine != NULL) {
-        gen_declaration(/*for_init=*/FALSE);
-      }  /* if */
-      if (field->property_or_event_descr->remove_routine != NULL) {
-        gen_declaration(/*for_init=*/FALSE);
-      }  /* if */
-      if (field->property_or_event_descr->raise_routine != NULL) {
-        gen_declaration(/*for_init=*/FALSE);
-      }  /* if */
-    }  /* if */
-    write_tok_str("}");
+    gen_property_or_event_accessors(field->property_or_event_descr);
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
@@ -7882,9 +7899,10 @@ removed and FALSE otherwise.
   }  /* while */
   if (is_operation_node(node) &&
       node->variant.operation.compiler_generated &&
-      node_operator_is(node, eok_address_of)) {
-    /* We can ignore the (<type>)&" sequence and just process the
-       operand directly. */
+      (node_operator_is(node, eok_address_of) ||
+       node_operator_is(node, eok_handle_to))) {
+    /* We can ignore the "(<type>)&" or "(<type>)%" sequence and just
+       process the operand directly. */
     *expr = node->variant.operation.operands;
     removed_nodes = TRUE;
   }  /* if */
@@ -8906,27 +8924,39 @@ return FALSE and let the caller generate the code normally.
   return handled;
 }  /* handle_operator_call */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_boolean write_compound_assignment_for_property_set(
-                                        a_property_or_event_descr_ptr desc,
-                                        an_expr_node_ptr              obj_expr,
-                                        an_expr_node_ptr              *args)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static an_expr_node_ptr analyze_property_compound_assignment(
+                                       a_property_or_event_descr_ptr desc,
+                                       an_expr_node_ptr              *obj_expr,
+                                       an_expr_node_ptr              *args,
+                                       char                          **opstr)
 /*
 This function is called for a "set" operation on a C++/CLI property,
-described by desc.  If the property is non-static, obj_expr designates the
-expression to be passed as the "this" pointer; otherwise, it is NULL.  *args
-designates the value to be passed to the "set" function.  Analyze the value
-to see if this operation is the expansion of a compound assignment like
-P += 1; if so, write the string for the compound assignment operator,
-updating *args to point to its operand, and return TRUE.  Otherwise, leave
-*args unchanged and return FALSE.
+described by desc, that is the result of decomposing a compound assignment
+operation, e.g., "P+=1" becomes the IL equivalent of "P::set(P::get()+1)".
+If the property is non-static, *obj_expr designates the expression to be
+passed as the "this" pointer; otherwise, it is NULL.  *args designates the
+first value to be passed to the "set" function (after the "this" pointer,
+if any).  Analyze the value and set *opstr to point to a string containing
+the corresponding compound assignment operator and set *args to point to
+the expression that should be put out for the right operand of the compound
+assignment.  If the property is static and was invoked with an object
+expression, set *obj_expr to that object expression (which is found only on
+the call to the "get" function via an eok_points_to_static operation);
+otherwise, leave *obj_expr unchanged.
 */
 {
-  an_expr_node_ptr node = *args;
-  char             *opstr = NULL;
-  a_boolean        processed = FALSE;
+  an_expr_node_ptr          node = *args;
+  a_property_index_type_ptr index;
 
+  /* Skip over any subscripts. */
+  for (index = desc->indices;
+       index != NULL && node != NULL;
+       index = index->next) {
+    node = node->next;
+  }  /* for */
+  check_assertion(node != NULL);
   if (is_operation_node(node) &&
       node->variant.operation.compiler_generated &&
       is_cast_operation_node(node)) {
@@ -8934,162 +8964,163 @@ updating *args to point to its operand, and return TRUE.  Otherwise, leave
        property. */
     node = node->variant.operation.operands;
   }  /* if */
-  if (is_operation_node(node)) {
-    /* A compound assignment is decomposed in the IL to the corresponding
-       simple operation with the first operand being a call to the property's
-       "get" function.  Check to see if this operation could be the result
-       of that decomposition and, if so, make note of the string for the
-       corresponding compound assignment operator. */
-    switch (node->variant.operation.kind) {
-      case eok_add:
-      case eok_padd:
-        opstr = " += ";
-        break;
-      case eok_subtract:
-      case eok_psubtract:
-        opstr = " -= ";
-        break;
-      case eok_multiply:
-        opstr = " *= ";
-        break;
-      case eok_divide:
-        opstr = " /= ";
-        break;
-      case eok_remainder:
-        opstr = " %= ";
-        break;
-      case eok_shiftl:
-        opstr = " <<= ";
-        break;
-      case eok_shiftr:
-        opstr = " >>= ";
-        break;
-      case eok_and:
-        opstr = " &= ";
-        break;
-      case eok_or:
-        opstr = " |= ";
-        break;
-      case eok_xor:
-        opstr = " ^= ";
-        break;
-      default:
-        /* Not an operator with a corresponding compound assignment. */
-        break;
-    }  /* switch */
-  }  /* if */
-  if (opstr != NULL) {
-    /* The operation is consistent with a compound assignment.  Now check
-       its first operand to see if it is a call to the "get" function for
-       the same property. */
-    an_expr_node_ptr opnd2;
+  check_assertion(is_operation_node(node));
+  /* A compound assignment is decomposed in the IL to the corresponding
+     simple operation (to which node now points) with the first operand
+     being a call to the property's "get" function.  Determine the string
+     for the corresponding compound assignment operator. */
+  switch (node->variant.operation.kind) {
+    case eok_add:
+    case eok_padd:
+      *opstr = " += ";
+      break;
+    case eok_subtract:
+    case eok_psubtract:
+      *opstr = " -= ";
+      break;
+    case eok_multiply:
+      *opstr = " *= ";
+      break;
+    case eok_divide:
+      *opstr = " /= ";
+      break;
+    case eok_remainder:
+      *opstr = " %= ";
+      break;
+    case eok_shiftl:
+      *opstr = " <<= ";
+      break;
+    case eok_shiftr:
+      *opstr = " >>= ";
+      break;
+    case eok_and:
+      *opstr = " &= ";
+      break;
+    case eok_or:
+      *opstr = " |= ";
+      break;
+    case eok_xor:
+      *opstr = " ^= ";
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  /* Now look at the operands of the simple operator: the first operand is
+     the call to the "get" function, and the second is the operand of the
+     compound assignment operator. */
+  node = node->variant.operation.operands;
+  *args = node->next;
+  if (is_operation_node(node) &&
+      node->variant.operation.compiler_generated &&
+      is_cast_operation_node(node)) {
+    /* Skip over the conversion from the property type to the type of the
+       operation. */
     node = node->variant.operation.operands;
-    opnd2 = node->next;
-    if (is_operation_node(node) &&
-        node->variant.operation.compiler_generated &&
-        is_cast_operation_node(node)) {
-      /* Skip over the conversion from the property type to the type of the
-         operation. */
-      node = node->variant.operation.operands;
-    }  /* if */
-    if (is_operation_node(node) &&
-        node_operator_is(node, eok_points_to_member_call)) {
-      /* This could be the invocation of a property "get" function.  Check
-         the function being called to see if it is. */
-      a_routine_ptr rout;
-      node = node->variant.operation.operands;
-      rout = routine_from_function_expr(node);
-      node = node->next;
-      if (rout != NULL &&
-          rout->special_kind == (a_special_function_kind)sfk_property_get) {
-        a_property_or_event_descr_ptr desc2 =
-                                         rout->variant.property_or_event_descr;
-        /* The operand is a call to a property "get" function.  Check to see
-           if it's the same property and, if the property is non-static, the
-           object expressions are the same (indicated by enk_reuse_value
-           nodes that designate the same dynamic initialization or
-           enk_variable nodes that designate the same variable). */
-        if (desc == desc2 &&
-            (desc->is_static ||
-             ((obj_expr->kind == (an_expr_node_kind)enk_reuse_value &&
-               node->kind == (an_expr_node_kind)enk_reuse_value &&
-               obj_expr->variant.reused_value_init ==
-                                           node->variant.reused_value_init) ||
-              (obj_expr->kind == (an_expr_node_kind)enk_variable &&
-               node->kind == (an_expr_node_kind)enk_variable &&
-               obj_expr->variant.variable == node->variant.variable)))) {
-          /* We've found a compound assignment.  Write the operation string
-             and update *args to point to the operand expression. */
-          write_tok_str(opstr);
-          *args = opnd2;
-          processed = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
   }  /* if */
-  return processed;
-}  /* write_compound_assignment_for_property_set */
+  check_assertion(is_operation_node(node));
+  if (node_operator_is(node, eok_points_to_static)) {
+    check_assertion(desc->is_static);
+    /* This is a static property that was written using an (ignored) object
+       expression.  In the decomposed IL, the object expression appears
+       only on the call to the "get" function (so that it is evaluated only
+       once), so we set *obj_expr to point to it here so that it can be put
+       out before the left-hand side of the property reference. */
+    *obj_expr = node->variant.operation.operands;
+  }  /* if */
+}  /* analyze_property_compound_assignment */
 
 
-static void gen_cli_property_or_event_call(an_expr_node_ptr args,
-                                           a_routine_ptr    rout)
+static void gen_cli_property_or_event_call(
+                                       an_expr_node_ptr args,
+                                       a_routine_ptr    rout,
+                                       a_boolean        is_compound_assignment)
 /*
 Generate the appropriate operator-notation code to call the C++/CLI
-property or event access routine rout.  args is the first argument in
-the call, i.e., the object expression for a non-static member or the
-actual first argument (if any) for static members.
+property or event access routine rout.  args is the first argument in the
+call, i.e., the object expression for a non-static member or the actual
+first argument (if any) for static members.  If is_compound_assignment is
+TRUE, the expression is the expansion of a compound assignment operation
+(e.g., "P += 1" becomes the IL equivalent of "P::set(P::get() + 1)") and
+must be put out in that form.
 */
 {
   a_property_or_event_descr_ptr desc = rout->variant.property_or_event_descr;
-  an_expr_node_ptr obj_expr;
+  an_expr_node_ptr              obj_expr;
+  an_expr_node_ptr              subscripts;
+  char                          *opstr = " = ";
+  a_boolean                     need_context_pop = FALSE;
 
   if (desc->is_static) {
     obj_expr = NULL;
-    gen_name(&desc->variant.variable->source_corresp, iek_variable,
-             GN_NO_OPTIONS, (a_boolean *)NULL);
   } else {
-    /* A non-static member: check to see if an object expression is needed
-       and generate it if necessary before putting out the property/event
-       name. */
-    a_boolean        need_context_pop = FALSE;
     obj_expr = args;
     args = args->next;
+  }  /* if */
+  subscripts = args;
+  if (is_compound_assignment) {
+    analyze_property_compound_assignment(desc, &obj_expr, &args, &opstr);
+  }  /* if */
+  if (obj_expr != NULL) {
+    /* Check to see if an object expression is needed and generate it if
+       necessary before putting out the property/event name. */
     if (!(is_variable_node(obj_expr) &&
           obj_expr->variant.variable->is_this_parameter)) {
+      a_boolean removed_nodes = strip_lvalue_cast_sequence(&obj_expr);
       gen_expr_with_parens(obj_expr);
       if (!desc->is_default_indexed) {
         /* With a default-indexed property, the property is unnamed and the
            subscripts are applied to the object expression directly, not to
            the property member.  Both the -> and the member name must be
            suppressed. */
-        push_class_name_context(
-                             f_skip_typerefs(type_pointed_to(obj_expr->type)));
+        a_type_ptr class_type;
+        if (is_pointer_or_handle_type(obj_expr->type)) {
+          class_type = f_skip_typerefs(type_pointed_to(obj_expr->type));
+        } else {
+          class_type = skip_typerefs(obj_expr->type);
+        }  /* if */
+        push_class_name_context(class_type);
         need_context_pop = TRUE;
-        write_tok_str("->");
+        if (removed_nodes) {
+          write_tok_ch('.');
+        } else {
+          write_tok_str("->");
+        }  /* if */
       }  /* if */
     }  /* if */
-    if (!desc->is_default_indexed) {
-      /* Write the property name unless this is a default-indexed property,
-         in which case the member name is suppressed. */
+  }  /* if */
+  if (!desc->is_default_indexed) {
+    /* Write the property name unless this is a default-indexed property,
+       in which case the member name is suppressed. */
+    if (desc->is_static) {
+      gen_name(&desc->variant.variable->source_corresp, iek_variable,
+               GN_NO_OPTIONS, (a_boolean *)NULL);
+    } else {
       gen_name(&desc->variant.field->source_corresp, iek_field,
                GN_NO_OPTIONS, (a_boolean *)NULL);
-      if (need_context_pop) {
-        pop_name_context();
-      }  /* if */
     }  /* if */
-    if (desc->indices != NULL) {
-      /* Generate the subscript list for the property reference. */
-      a_property_index_type_ptr idx;
-      write_tok_ch('[');
-      for (idx = desc->indices; idx != NULL; idx = idx->next) {
-        check_assertion(args != NULL);
-        gen_expr_with_parens(args);
-        args = args->next;
-        if (idx->next != NULL) {
-          write_tok_str(", ");
-        }  /* if */
-      }  /* for */
-      write_tok_ch(']');
+    if (need_context_pop) {
+      pop_name_context();
+    }  /* if */
+  }  /* if */
+  if (desc->indices != NULL) {
+    /* Generate the subscript list for the property reference. */
+    a_property_index_type_ptr idx;
+    write_tok_ch('[');
+    for (idx = desc->indices; idx != NULL; idx = idx->next) {
+      check_assertion(subscripts != NULL);
+      gen_expr_with_parens(subscripts);
+      subscripts = subscripts->next;
+      if (idx->next != NULL) {
+        write_tok_str(", ");
+      }  /* if */
+    }  /* for */
+    write_tok_ch(']');
+    if (!is_compound_assignment) {
+      /* Update the args pointer to the value following the subscripts, if
+         any (args was already updated correctly by
+         analyze_property_compound_assignment in the compound assignment
+         case). */
+      args = subscripts;
     }  /* if */
   }  /* if */
   switch (rout->special_kind) {
@@ -9098,9 +9129,7 @@ actual first argument (if any) for static members.
          above. */
       break;
     case sfk_property_set:
-      if (!write_compound_assignment_for_property_set(desc, obj_expr, &args)) {
-        write_tok_str(" = ");
-      }  /* if */
+      write_tok_str(opstr);
       gen_expr_with_parens(args);
       break;
     case sfk_event_add:
@@ -9171,7 +9200,9 @@ call.
         /* This is a call of an accessor function for a C++/CLI property or
            event; it should be generated using the associated operator
            instead of as a function call. */
-        gen_cli_property_or_event_call(args, rout);
+        gen_cli_property_or_event_call(
+             args, rout,
+             expr->variant.operation.is_rewritten_compound_property_reference);
         processed = TRUE;
       } else 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13244,7 +13275,17 @@ declaration following this one is such a continuation.
       check_assertion(*another_decl_in_comma_list || microsoft_mode);
       use_comma_terminator = TRUE;
     }  /* if */
-    write_end_of_declaration_punctuation(use_comma_terminator);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (var_is_property_or_event(var) &&
+        !var->property_or_event_descr->is_trivial &&
+        !property_or_event_kind_is(var, pek_declspec_property)) {
+      gen_property_or_event_accessors(var->property_or_event_descr);
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      write_end_of_declaration_punctuation(use_comma_terminator);
+    }  /* if */
     if (render_braced_extern_c && !*another_decl_in_comma_list) {
       write_tok_ch('}');
       write_space();
@@ -14024,7 +14065,7 @@ handle_as_definition:
          its own class. */
       decl_within_class = TRUE;
       decl_within_function = FALSE;
-      if (rtsp->this_class == NULL) {
+      if (rtsp->this_class == NULL && !rout_is_cli_accessor(rout)) {
         /* Static member function. */
         storage_class = (a_storage_class)sc_static;
       }  /* if */
