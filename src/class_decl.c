@@ -4132,6 +4132,7 @@ information about the function declarator.
   an_override_registry_entry_ptr  *registry_ptr;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_symbol_list_entry_ptr         named_override = decl_info->named_overrides;
+  a_symbol_ptr                    matching_interface_member = NULL;
   a_boolean                       new_okay = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_source_position               *source_pos = &dps->declarator_pos;
@@ -4252,22 +4253,25 @@ next_named_override:
               continue;
             }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (microsoft_bugs && microsoft_version < 1500 &&
-                remove_qualifiers_from_param_types) {
-              /* For earlier Microsoft compilers the functions may still not
-                 match if the top-level type qualifiers on the parameters
-                 (yes, the ones that have been stripped off) do not match. */
-              if (!param_types_are_compatible(rout->type, rp->type,
+            if (microsoft_mode) {
+              if (microsoft_bugs && microsoft_version < 1500 &&
+                  remove_qualifiers_from_param_types) {
+                /* For earlier Microsoft compilers the functions may still not
+                   match if the top-level type qualifiers on the parameters
+                   (yes, the ones that have been stripped off) do not match. */
+                if (!param_types_are_compatible(rout->type, rp->type,
                                      TCF_DONT_IGNORE_PARAM_TYPE_QUALIFIERS)) {
-                /* Keep looking for another match in the current overload
-                   set. */
+                  /* Keep looking for another match in the current overload
+                     set. */
+                  continue;
+                }  /* if */
+              }  /* if */
+              if ((cppcli_enabled ? named_override != NULL
+                                  : rout->overridden_functions != NULL) &&
+                  !may_selectively_override(rout, rp, bcp)) {
+                /* rout is an explicit overrider that doesn't override rp. */
                 continue;
               }  /* if */
-            }  /* if */
-            if (rout->overridden_functions != NULL &&
-                !may_selectively_override(rout, rp, bcp)) {
-              /* rout is an explicit overrider that doesn't override rp. */
-              continue;
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* If rp is virtual, it must be non-static and therefore must
@@ -4338,8 +4342,7 @@ next_named_override:
                    have to check that the type is a managed interface since
                    override specifiers can be omitted for native types, and
                    value types cannot be base classes. */
-                pos_sy_warning(ec_override_for_interface_member, source_pos,
-                               sym);
+                matching_interface_member = sym;
               }  /* if */
               if (func_info->new_member) {
                 new_okay = TRUE;
@@ -4353,7 +4356,18 @@ next_named_override:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             check_virtual_function_override(class_state, decl_info, sym, bcp,
                                             return_adjustment_bcp);
-            dps->override_okay = real_override = TRUE;
+            real_override = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (cppcli_enabled &&
+                cli_class_type_kind_is(bcp->type, cctk_interface)) {
+              /* The "override" modifier cannot be specified to indicate that
+                 an interface member is overridden. */
+            } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            /* Do not insert code here. */
+            {
+              dps->override_okay = TRUE;
+            }  /* if */
             /* If this declaration amounts to an override of a member of an
                overload set, record some information about it in the
                partial-override-registry.  This allows for a diagnostic later
@@ -4387,6 +4401,15 @@ next_base_class:;
       /* We've reached the last of the named override entries: The list can
          now be recycled. */
       free_list_of_symbol_list_entries(decl_info->named_overrides);
+      named_override = NULL;
+      if (!func_info->new_member) {
+        /* If the declaration included named override specifiers but not the
+           "new" modifier, the normal overriding should also be considered.
+           (This is not clear in ECMA-372, but it corresponds to the behavior
+           of Microsoft's compiler.) */
+        sym_header_to_search = rout_sym->header;
+        goto next_named_override;
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4409,9 +4432,17 @@ done:
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (func_info->override && !dps->override_okay) {
-    pos_diagnostic(is_immediate_managed_class_type(class_type) ? es_warning
-                                                               : es_error,
-                   ec_override_member_does_not_override, source_pos);
+    if (matching_interface_member != NULL) {
+      /* "override" was used only to override one or more interface members;
+         this is not normally valid, but Microsoft compilers only issue a
+         warning on such harmless cases. */
+      pos_sy_warning(ec_override_for_interface_member, source_pos,
+                     matching_interface_member);
+    } else {
+      pos_diagnostic(is_immediate_managed_class_type(class_type) ? es_warning
+                                                                 : es_error,
+                     ec_override_member_does_not_override, source_pos);
+    }  /* if */
   } else if (func_info->new_member && !new_okay) {
     /* The member function is marked as "new" but no matching
        member function was found in a base class. */
