@@ -4233,15 +4233,24 @@ next_named_override:
               /* sym does not represent a virtual function, so (if this is
                  an overload set) keep looking. */
               continue;
-            }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (cppcli_enabled && !matching_cli_accessors(rout, rp)) {
-              /* One or both routines is a property accessor and the other one
-                 doesn't match (either because it is not an accessor, or
-                 because it is an accessor for a non-matching property). */
-              continue;
-            }  /* if */
+            } else if (cppcli_enabled &&
+                       is_immediate_managed_class_type(class_type)) {
+              if (!matching_cli_accessors(rout, rp)) {
+                /* One or both routines is a property accessor and the other
+                   one doesn't match (either because it is not an accessor, or
+                   because it is an accessor for a non-matching property). */
+                continue;
+              } else if (rp->source_corresp.access ==
+                                            (an_access_specifier)as_private &&
+                         named_override == NULL) {
+                /* Microsoft compilers appear to ignore private virtual
+                   members (which should be sealed) in managed class types
+                   when determining overriding. */
+                continue;
+              }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            }  /* if */
             any_override_candidates = TRUE;
             /* We are only interested in virtual functions with the same
                type signature.  Check first whether the parameter types are
