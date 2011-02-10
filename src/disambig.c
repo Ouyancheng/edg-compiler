@@ -52,11 +52,10 @@ typedef struct a_disambig_state {
   a_boolean	variadic_prototype_instantiation;
 			/* TRUE if we are in a template dependent context of
 			   a variadic template. */
-  a_boolean	saved_in_variadic_template;
-			/* The value of the scope stack in_variadic_template
-			   field at the start of disambiguation.  Only
-			   set when variadic_prototype_instantiation is
-			   TRUE. */
+  a_pack_expansion_stack_entry_ptr
+		pack_expansion_stack_entry;
+			/* If variadic_prototype_instantiation is TRUE,
+			   this is the pack suppression entry pushed. */
 } a_disambig_state;
 
 
@@ -71,13 +70,11 @@ Initialize a disambiguation state block.
   dsp->terminate = FALSE;
   dsp->set_decl_class_type = FALSE;
   dsp->friend_encountered = FALSE;
-  dsp->variadic_prototype_instantiation = is_template_dependent_context() &&
-                                          is_variadic_template_context();
+  dsp->variadic_prototype_instantiation =
+       is_prototype_instantiation_context() && is_variadic_template_context();
   if (dsp->variadic_prototype_instantiation) {
     /* Disable variadic processing during the prescan. */
-    a_scope_stack_entry_ptr	ssep = &scope_stack_top();
-    dsp->saved_in_variadic_template = ssep->in_variadic_template;
-    ssep->in_variadic_template = FALSE;
+    push_expansion_suppression(&dsp->pack_expansion_stack_entry);
   }  /* if */
 }  /* init_disambig_state */
 
@@ -90,8 +87,7 @@ Perform any operations that must be done to clean up after disambiguation.
 {
   if (dsp->variadic_prototype_instantiation) {
     /* Restore the variadic processing state. */
-    a_scope_stack_entry_ptr	ssep = &scope_stack_top();
-    ssep->in_variadic_template = dsp->saved_in_variadic_template;
+    pop_expansion_suppression(dsp->pack_expansion_stack_entry);
   }  /* if */
 }  /* wrapup_disambig_state */
 
