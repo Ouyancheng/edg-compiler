@@ -6044,7 +6044,9 @@ issue an error and return FALSE.
               }  /* if */
               break;
             case cctk_value:
-              pos_error(ec_invalid_value_class_base, &error_position);
+              if (!identical_types(base_class_type, cli_system_value_type())) {
+                pos_error(ec_invalid_value_class_base, &error_position);
+              }  /* if */
               break;
             case cctk_interface:
               pos_error(ec_invalid_interface_class_base, &error_position);
@@ -6689,6 +6691,37 @@ skip_base_class:
        specifier. */
     remove_stop_token(tok_comma);
   } while (loop_token(tok_comma));
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled &&
+      (cli_class_type_kind_is(type_ptr, cctk_ref) ||
+       cli_class_type_kind_is(type_ptr, cctk_value))) {
+    /* If a ref class or value class does not specify a ref class base, it
+       derives implicitly from System::ObjectType or System::ValueType
+       (respectively). */
+    a_boolean  add_implicit_base = TRUE;
+    for (bcp = base_classes_of(type_ptr); bcp != NULL; bcp = bcp->next) {
+      if (is_ref_class_type(bcp->type)) {
+        add_implicit_base = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+    if (add_implicit_base) {
+      new_direct_bcp = alloc_base_class();
+      new_direct_bcp->type = cli_class_type_kind_is(type_ptr, cctk_ref) ?
+                                                      cli_system_object_type()
+                                                    : cli_system_value_type();
+      complete_type_is_needed(new_direct_bcp->type);
+      new_direct_bcp->orig_type = new_direct_bcp->type;
+      new_direct_bcp->derived_class = type_ptr;
+      new_direct_bcp->direct = TRUE;
+      new_direct_bcp->direct_base_number = direct_base_number+1;
+      add_new_direct_base(new_direct_bcp,
+                          (an_access_specifier)as_public,
+                          &end_of_base_classes_list,
+                          &may_be_first_direct_nonvirtual_base);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if IA64_ABI
   /* Compute the list of base classes in preorder, now that the postorder list
      is complete. */
@@ -16346,8 +16379,8 @@ definition and record it in the IL (as a special-purpose class type).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   initialize_class_def_state(class_type, &class_state);
   /* Add System::MulticastDelegate as a base class. */
-  add_cli_system_base_class(class_type,
-                          cli_symbol_from_kind(csk_system_multicast_delegate));
+  add_cli_system_base_class(
+              class_type, cli_symbol_from_kind(csk_system_multicast_delegate));
   class_state.access = (an_access_specifier)as_public;
   ctsp->assoc_scope =
              push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,

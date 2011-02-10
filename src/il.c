@@ -9241,7 +9241,8 @@ Return the C++/CLI System::Object type.
 {
   a_symbol_ptr sym = cli_symbols[(int)csk_system_object];
 
-  check_assertion(sym != NULL && sym->kind == (a_symbol_kind)sk_type);
+  check_assertion(sym != NULL &&
+                  sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
   return sym->variant.type.ptr;
 }  /* cli_system_object_type */
 
@@ -9253,7 +9254,8 @@ Return the C++/CLI System::ValueType type.
 {
   a_symbol_ptr sym = cli_symbols[(int)csk_system_value_type];
 
-  check_assertion(sym != NULL && sym->kind == (a_symbol_kind)sk_type);
+  check_assertion(sym != NULL &&
+                  sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
   return sym->variant.type.ptr;
 }  /* cli_system_value_type */
 
