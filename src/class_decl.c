@@ -6318,9 +6318,6 @@ or struct definition.  The syntax is
   a_source_position             base_specifier_start_pos;
   a_boolean                     first_base_class = TRUE;
   a_base_class_sequence_number	direct_base_number = 0, proto_base_number = 0;
-#if IA64_ABI
-  a_base_class_ptr              first_indirect_primary_vbase = NULL;
-#endif /* IA64_ABI */
   a_boolean                     may_be_first_direct_nonvirtual_base = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                     interface_definition =
@@ -6691,37 +6688,83 @@ skip_base_class:
        specifier. */
     remove_stop_token(tok_comma);
   } while (loop_token(tok_comma));
+  db_exit();
+}  /* scan_base_specifier_list */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled &&
-      (cli_class_type_kind_is(type_ptr, cctk_ref) ||
-       cli_class_type_kind_is(type_ptr, cctk_value))) {
+
+static void add_implicit_cli_bases(a_type_ptr  class_type)
+/*
+The given class type is being defined in C++/CLI mode and its explicit base
+classes have been scanned.  If the class type is a ref class type or a value
+class type, add an implicit derivation from System::ObjectType or
+System::ValueType (respectively) if appropriate.
+*/
+{
+  if (cli_class_type_kind_is(class_type, cctk_ref) ||
+      cli_class_type_kind_is(class_type, cctk_value)) {
     /* If a ref class or value class does not specify a ref class base, it
        derives implicitly from System::ObjectType or System::ValueType
        (respectively). */
-    a_boolean  add_implicit_base = TRUE;
-    for (bcp = base_classes_of(type_ptr); bcp != NULL; bcp = bcp->next) {
+    a_boolean         add_implicit_base = TRUE;
+    a_base_class_ptr  bcp;
+    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
       if (is_ref_class_type(bcp->type)) {
         add_implicit_base = FALSE;
         break;
       }  /* if */
     }  /* for */
-    if (add_implicit_base) {
+    if (add_implicit_base &&
+        !identical_types(class_type, cli_system_object_type())) {
+      a_base_class_ptr              new_direct_bcp, bcp, last_bcp = NULL;
+      a_boolean                     may_be_first_direct_nonvirtual_base = TRUE;
+      a_base_class_sequence_number  direct_base_number = 0;
+      /* Determine the last base class entry and the last direct base
+         number. */
+      bcp = base_classes_of(class_type);
+      if (bcp != NULL) {
+        for (; bcp != NULL; bcp = bcp->next) {
+          if (bcp->next == NULL) last_bcp = bcp;
+          if (bcp->direct_base_number > direct_base_number) {
+            direct_base_number = bcp->direct_base_number;
+          }  /* if */
+        }  /* for */
+        /* There are no virtual base classes for managed classes.  So if there
+           is already a base class, there must also be a direct nonvirtual
+           base class. */
+        may_be_first_direct_nonvirtual_base = FALSE;
+      }  /* if */
       new_direct_bcp = alloc_base_class();
-      new_direct_bcp->type = cli_class_type_kind_is(type_ptr, cctk_ref) ?
+      new_direct_bcp->type = cli_class_type_kind_is(class_type, cctk_ref) ?
                                                       cli_system_object_type()
                                                     : cli_system_value_type();
       complete_type_is_needed(new_direct_bcp->type);
       new_direct_bcp->orig_type = new_direct_bcp->type;
-      new_direct_bcp->derived_class = type_ptr;
+      new_direct_bcp->derived_class = class_type;
       new_direct_bcp->direct = TRUE;
       new_direct_bcp->direct_base_number = direct_base_number+1;
-      add_new_direct_base(new_direct_bcp,
-                          (an_access_specifier)as_public,
-                          &end_of_base_classes_list,
-                          &may_be_first_direct_nonvirtual_base);
+      add_new_direct_base(new_direct_bcp, (an_access_specifier)as_public,
+                          &last_bcp, &may_be_first_direct_nonvirtual_base);
     }  /* if */
   }  /* if */
+}  /* add_implicit_cli_bases */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+static void wrapup_base_classes(a_class_def_state_ptr  class_state)
+/*
+The base specifier list has been scanned and any implicit base classes have
+been added.  Perform any needed post-processing for the resulting base class
+list (such as computing the preorder list for the IA-64 ABI).
+*/
+{
+  a_type_ptr                   type_ptr = class_state->class_type;
+  a_class_type_supplement_ptr  ctsp = class_type_supp(type_ptr);
+  a_base_class_ptr             bcp;
+#if IA64_ABI
+  a_base_class_ptr             first_indirect_primary_vbase = NULL;
+#endif /* IA64_ABI */
+
 #if IA64_ABI
   /* Compute the list of base classes in preorder, now that the postorder list
      is complete. */
@@ -6808,8 +6851,7 @@ skip_base_class:
   }  /* if */
 #endif /* CHECKING */
 #endif /* DEBUG */
-  db_exit();
-}  /* scan_base_specifier_list */
+}  /* wrapup_base_classes */
 
 
 static a_boolean is_member_decl_start(void)
@@ -18926,8 +18968,10 @@ classes.
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled) add_implicit_cli_bases(class_type);
     check_if_potentially_interface_like(&class_state);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (ctsp->base_classes != NULL) wrapup_base_classes(&class_state);
   }  /* if */
   if (curr_token == tok_lbrace) {
     /* Scan the structure or union definition. */
