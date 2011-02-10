@@ -8948,9 +8948,20 @@ advance to the next pack element for each symbol.
          be used. */
       if (prp->is_variable) {
         a_variable_ptr	vp;
+        a_symbol_ptr	sym;
         vp = find_variable_for_pack(prp->param_num, &elements_for_pack);
-        new_prp->curr_argument.variable = vp;
-        new_prp->primary_var_symbol = vp == NULL ? NULL : symbol_for(vp);
+        /* In some error cases the variable might not have a symbol.
+           treat this as an empty pack (except that elements_for_pack is
+           not changed). */
+        sym = vp == NULL ? NULL : symbol_for(vp);
+        check_assertion((vp == NULL) == (sym == NULL) || total_errors != 0);
+        if (sym != NULL) {
+          new_prp->curr_argument.variable = vp;
+          new_prp->primary_var_symbol = symbol_for(vp);
+          new_prp->primary_var_symbol->variant.variable.ptr = vp;
+        } else {
+          new_prp->primary_var_symbol = NULL;
+        }  /* if */
       } else {
         a_template_arg_ptr	tap;
         tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
