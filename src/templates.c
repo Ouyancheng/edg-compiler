@@ -18560,6 +18560,18 @@ any non-empty template parameter lists that were scanned.
         /* Do the prototype instantiation evaluation of the alias type. */
         alias_prototype_instantiation(sym);
       } else {
+        a_template_symbol_supplement_ptr	proto_tssp;
+        a_symbol_ptr				proto_sym;
+        a_type_ptr				tp;
+        a_type_ptr				proto_tp;
+        proto_sym = prototype_template_of(sym);
+        proto_tssp = template_supplement_for_symbol(proto_sym);
+        /* Use the prototype instantiation from the prototype template. */
+        tp = tssp->variant.class_template.prototype_instantiation->
+                                                              variant.type.ptr;
+        proto_tp = proto_tssp->variant.class_template.prototype_instantiation->
+                                                              variant.type.ptr;
+        tp->variant.typeref.type = proto_tp->variant.typeref.type;
         /* Mark the prototype instantiation type as being complete. */
         tssp->variant.class_template.prototype_instantiation_complete = TRUE;
       }  /* if */
