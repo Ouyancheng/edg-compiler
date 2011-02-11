@@ -6146,18 +6146,29 @@ to FALSE before returning).
   a_derivation_step_ptr          path;
   a_base_class_ptr               bcp;
   a_boolean                      any_base_class_fixup_required = FALSE;
+  a_boolean                      is_value_class = FALSE;
 
   cssp = symbol_supplement_for_class(class_type);
   bcp_cssp = symbol_supplement_for_class(bcp_type);
-  /* A class with base classes is neither an "aggregate" nor a POD. */
-  class_state->class_aggregate_ruled_out = TRUE;
-  class_state->POD_ruled_out = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cli_class_type_kind_is(class_type, cctk_value)) {
+    is_value_class = TRUE;
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    /* A class with base classes is neither an "aggregate" nor a POD.
+       (C++/CLI value class types are the exception.) */
+    class_state->class_aggregate_ruled_out = TRUE;
+    class_state->POD_ruled_out = TRUE;
+  }  /* if */
   /* The implied default constructor of the current class will be
      nontrivial if any of its base classes is virtual or has a nontrivial
      default constructor itself.  The current class requires a destructor
      if any of its base classes has a destructor.  Record such
      requirements, if any, at this time. */
-  if (is_virtual || !has_trivial_default_constructor(bcp_cssp)) {
+  if ((is_virtual || !has_trivial_default_constructor(bcp_cssp)) &&
+      !is_value_class) {
     class_state->default_ctor_is_nontrivial = TRUE;
   }  /* if */
   if (has_nontrivial_destructor(bcp_cssp)) {
@@ -6180,7 +6191,8 @@ to FALSE before returning).
   if (is_virtual) {
     cssp->construction_by_bitwise_copy_allowed = FALSE;
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
-  } else if (!bcp_type->variant.class_struct_union.is_nonreal_class) {
+  } else if (!bcp_type->variant.class_struct_union.is_nonreal_class &&
+             !is_value_class) {
     if (!bcp_cssp->construction_by_bitwise_copy_allowed) {
       cssp->construction_by_bitwise_copy_allowed = FALSE;
     }  /* if */
@@ -10413,13 +10425,23 @@ implicitly declared member functions.
            cases. */
       } else if (check_for_virtual_function(is_virtual, decl_info,
                                             class_state, func_info)) {
-        /* Classes with virtual functions require nontrivial default
-           constructors. */
-        class_state->default_ctor_is_nontrivial = TRUE;
-        /* Classes with virtual functions cannot be constructed or assigned
-           by bitwise copying. */
-        cssp->construction_by_bitwise_copy_allowed = FALSE;
-        cssp->assignment_by_bitwise_copy_allowed = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cli_class_type_kind_is(class_type, cctk_value)) {
+          /* C++/CLI value classes are an exception to the rules implemented
+             below: They're trivially constructible/copyable even when they
+             have virtual member functions. */
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          /* Classes with virtual functions require nontrivial default
+             constructors. */
+          class_state->default_ctor_is_nontrivial = TRUE;
+          /* Classes with virtual functions cannot be constructed or assigned
+             by bitwise copying. */
+          cssp->construction_by_bitwise_copy_allowed = FALSE;
+          cssp->assignment_by_bitwise_copy_allowed = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (!special_kind_is(rtn, sfk_none)) {
