@@ -17273,7 +17273,7 @@ of this determination.  treat_as_potential_rvalue is TRUE in cases where the
 eventual lvalueness of expr is not yet known (and can make a difference in
 determining whether or not the expression is invariant).
 treat_as_potential_rvalue should always be FALSE when called during lowering
-(as lvalueness is known at this time).
+(as lvalueness is known at that time).
 */
 {
   a_boolean is_invariant = FALSE;
@@ -17303,13 +17303,13 @@ treat_as_potential_rvalue should always be FALSE when called during lowering
           /* An lvalue a.b is invariant if a is invariant. */
           /* Likewise for a->b and *a. */
           is_invariant = is_invariant_expr(op1, vars_can_change,
-                                           treat_as_potential_rvalue);
+                                          /*treat_as_potential_rvalue=*/FALSE);
         } else if (node_operator_is(expr, eok_subscript)) {
           /* An lvalue a[b] is invariant if a and b are invariant. */
           is_invariant = is_invariant_expr(op1, vars_can_change,
-                                           treat_as_potential_rvalue) &&
+                                        /*treat_as_potential_rvalue=*/FALSE) &&
                          is_invariant_expr(op2, vars_can_change,
-                                           treat_as_potential_rvalue);
+                                          /*treat_as_potential_rvalue=*/FALSE);
         }  /* if */
       }  /* if */
     } else {
@@ -17331,7 +17331,7 @@ treat_as_potential_rvalue should always be FALSE when called during lowering
           /* Likewise for array decay.  Watch out for array rvalues. */
           if (op1->is_lvalue) {
             is_invariant = is_invariant_expr(op1, vars_can_change,
-                                             treat_as_potential_rvalue);
+                                          /*treat_as_potential_rvalue=*/FALSE);
           }  /* if */
         }  /* if */
       }  /* if */

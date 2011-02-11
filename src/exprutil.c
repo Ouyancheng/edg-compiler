@@ -1888,7 +1888,7 @@ copy.  treat_as_potential_rvalue is TRUE in cases where the eventual
 lvalueness of expr is not yet known (and can make a difference in
 determining whether or not the expression is invariant).
 treat_as_potential_rvalue should always be FALSE when called during
-lowering (as lvalueness is known at this time).
+lowering (as lvalueness is known at that time).
 */
 {
   an_expr_node_ptr   expr_copy, temp_init_expr;
@@ -1997,7 +1997,7 @@ before calling the lower-level copy routine.  treat_as_potential_rvalue
 is TRUE in cases where the eventual lvalueness of expr is not yet known
 (and can make a difference in determining whether or not the expression
 is invariant).  treat_as_potential_rvalue should always be FALSE when
-called during lowering (as lvalueness is known at this time).
+called during lowering (as lvalueness is known at that time).
 */
 {
   an_expr_node_ptr expr_copy;
@@ -2153,7 +2153,7 @@ value is TRUE.  treat_as_potential_rvalue is TRUE in cases where
 the eventual lvalueness of "operand" is not yet known (and can make a
 difference in determining whether or not the expression is invariant).
 treat_as_potential_rvalue should always be FALSE when called during
-lowering (as lvalueness is known at this time).
+lowering (as lvalueness is known at that time).
 */
 {
   *temp_init_used = FALSE;

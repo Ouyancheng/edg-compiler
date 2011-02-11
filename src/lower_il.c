@@ -3339,7 +3339,7 @@ TRUE, the caller must take steps to ensure that expr is evaluated before the
 copy.  treat_as_potential_rvalue is TRUE in cases where the eventual lvalueness
 of expr is not yet known (and can make a difference in determining whether or
 not the expression is invariant).  treat_as_potential_rvalue should always be
-FALSE when called during lowering (as lvalueness is known at this time).
+FALSE when called during lowering (as lvalueness is known at that time).
 See make_expr_reusable_copy for a similar routine used in the front end
 proper.
 */

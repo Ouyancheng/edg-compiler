@@ -12,7 +12,7 @@ about whether the copied expression was invariant were violated, resulting
 in IL that was not properly sequenced.  In the compound assignment in the
 example below, it wasn't guaranteed that the same index arguments would
 be passed to the get and put routines (it depended on the order of
-evaluation by the back end), but these routines are now passed the same
+evaluation by the back end).  Now, these routines are now passed the same
 index values:
 
   extern "C" int printf(const char *, ...);
