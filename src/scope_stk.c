@@ -8828,8 +8828,10 @@ to be part of the function template such as a lambda nested therein.
   a_variable_ptr		vp;
   a_variable_ptr		result_vp = NULL;
 
-  check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
-  ssep = scope_stack_entry_for(depth_innermost_function_scope);
+  /* Find the innermost function scope.  We can't use
+     depth_innermost_function_scope because that is cleared if we are
+     in a local class. */
+  ssep = &scope_stack_top();
   while (ssep->kind != (a_scope_kind)sck_function || ssep->lambda != NULL) {
     check_assertion(ssep->kind != (a_scope_kind)sck_file);
     ssep--;
