@@ -3936,7 +3936,9 @@ Otherwise, return NULL.
 
   if (variable_this_exists(&this_var)) {
     /* An implicit selector can be generated. */
-    implicit_selector_type= make_pointer_type(type_pointed_to(this_var->type));
+    a_type_ptr this_class = type_pointed_to(this_var->type);
+    implicit_selector_type = add_right_pointer_type_to_this(this_class,
+                                                            this_class);
   }  /* if */
   return implicit_selector_type;
 }  /* make_implicit_selector_type */
