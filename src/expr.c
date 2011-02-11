@@ -1638,6 +1638,8 @@ static void scan_ctor_arguments(a_symbol_ptr           constructor_sym,
                                 a_boolean              elision_allowed,
                                 a_rescan_control_block *rcblock,
                                 a_boolean              *trivial_ctor,
+                                a_boolean              *unboxing_conv,
+                                an_operand             *unboxing_conv_operand,
                                 a_dynamic_init_ptr     *p_dip,
                                 an_expr_node_ptr       *p_temp_init_node,
                                 a_source_position      *closing_paren_position)
@@ -1667,9 +1669,14 @@ there's no destructor to be called (either because the class doesn't
 have one or because fill_in_dtor is FALSE), return *trivial_ctor set
 to TRUE, don't construct a dynamic initialization entry, and return
 *p_dip set to NULL.  Otherwise, return *trivial_ctor set to FALSE if
-trivial_ctor is non-NULL.  If closing_paren_position is non-NULL,
-*closing_paren_position is set to the source position of the closing
-parenthesis (but it's not set on a rescan).
+trivial_ctor is non-NULL.  If unboxing_conv is non-NULL, and there
+is a single argument and its conversion to the class type is a
+C++/CLI unboxing conversion, return *unboxing_conv set to TRUE,
+return the argument in *unboxing_conv_operand, don't construct a
+dynamic initialization entry, and return *p_dip set to NULL.  If
+closing_paren_position is non-NULL, *closing_paren_position is set to
+the source position of the closing parenthesis (but it's not set on a
+rescan).
 
 This routine may be called only in C++ mode.  It's used for parenthesis-
 enclosed initializers for classes that have constructors, as in
@@ -1692,8 +1699,8 @@ expression, and return the result as usual (or an error indication in
   a_boolean           is_temp_after_conv = FALSE;
   a_boolean           optimized = FALSE;
   a_boolean           value_initialization = FALSE;
-  a_routine_ptr       routine;
-  a_type_ptr          routine_type, class_type;
+  a_routine_ptr       routine = NULL;
+  a_type_ptr          routine_type = NULL, class_type;
   a_class_symbol_supplement_ptr
                       cssp;
   an_arg_operand_ptr  arg_operand_list;
@@ -1702,13 +1709,27 @@ expression, and return the result as usual (or an error indication in
   an_expr_node_ptr    arg_expr_list;
   a_dynamic_init_ptr  dip = NULL;
   an_expr_node_ptr    temp_init_node = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean           unboxing_conv_should_be_tried = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_ctor_arguments");
   if (trivial_ctor != NULL) *trivial_ctor = FALSE;
+  if (unboxing_conv != NULL) *unboxing_conv = FALSE;
   class_type = sym_parent_class(constructor_sym);
   cssp = symbol_supplement_for_class(class_type);
   /* If the object_class_type is not specified, use the default. */
   if (object_class_type == NULL) object_class_type = class_type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && unboxing_conv != NULL &&
+      is_value_class_type(class_type)) {
+    /* The unboxing conversion is "overloaded" with whatever constructors
+       there are. */
+    overloaded_function_case = TRUE;
+    unboxing_conv_should_be_tried = TRUE;
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
   if (constructor_sym->kind == (a_symbol_kind)sk_member_function) {
     /* Constructor is not overloaded.  In this case, the argument types
        can be checked as the argument list is scanned. */
@@ -1733,8 +1754,6 @@ expression, and return the result as usual (or an error indication in
               "scan_ctor_arguments: sym not function");
     /* Constructor is overloaded or a template. */
     overloaded_function_case = TRUE;
-    routine_type = NULL;
-    routine = NULL;
   }  /* if */
   if (value_initialization_enabled &&
       !cached_expression_present() &&
@@ -1756,6 +1775,21 @@ expression, and return the result as usual (or an error indication in
                       closing_paren_position);
   error_position = *source_pos;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (unboxing_conv_should_be_tried &&
+      arg_operand_list != NULL && arg_operand_list->next == NULL &&
+      unboxing_conversion_possible(arg_operand_list->operand.type,
+                                   class_type,
+                                   (a_std_conv_descr *)NULL)) {
+    /* There's one argument, and its conversion to the class type is a
+       C++/CLI unboxing conversion.  Return the operand to the caller. */
+    *unboxing_conv = TRUE;
+    *unboxing_conv_operand = arg_operand_list->operand;
+    free_arg_operand_list(arg_operand_list);
+    goto end_of_routine;
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
   if (overloaded_function_case) {
     /* The constructors are overloaded.  Select the proper one. */
     /* Note that a special case allows passing have_selector == TRUE and
@@ -1987,7 +2021,9 @@ expression, and return the result as usual (or an error indication in
   if (p_temp_init_node != NULL) {
     /* Note that the code here is very similar to the code at the end of
        determine_dynamic_init_for_class_init. */
-    if (temp_init_node == NULL) {
+    if (trivial_ctor != NULL && *trivial_ctor) {
+      temp_init_node = NULL;
+    } else if (temp_init_node == NULL) {
       if (dip == NULL) {
         /* Some error.  Return an error node. */
         temp_init_node = error_node();
@@ -2010,6 +2046,7 @@ expression, and return the result as usual (or an error indication in
     }  /* if */
     *p_temp_init_node = temp_init_node;
   }  /* if */
+end_of_routine:
   db_exit();
 }  /* scan_ctor_arguments */
 
@@ -13170,6 +13207,8 @@ in *rcblock).
                           /*elision_allowed=*/(new_routine != NULL),
                           rcblock,
                           &trivial_ctor,
+                          /*unboxing_conv=*/(a_boolean *)NULL,
+                          /*unboxing_conv_operand=*/(an_operand *)NULL,
                           &dip, (an_expr_node_ptr *)NULL,
                           (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -16822,6 +16861,7 @@ as the cast in place of rcblock->expr.
   if (ctor_case) {
     /* Converting to a class type.  The contents of the parentheses are
        arguments for a constructor call. */
+    a_boolean         unboxing_conv;
     a_source_position *end_position_arg = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position_arg = &end_position;
@@ -16832,10 +16872,16 @@ as the cast in place of rcblock->expr.
                         /*elision_allowed=*/TRUE,
                         rcblock,
                         /*trivial_ctor=*/(a_boolean *)NULL,
+                        &unboxing_conv,
+                        /*unboxing_conv_operand=*/result,
                         &dip, &temp_init_node,
                         end_position_arg);
     error_position = *start_position;
-    if (err || dip == NULL) {
+    if (unboxing_conv) {
+      /* The cast is actually a C++/CLI unboxing conversion.  Go
+         process it like a non-class cast. */
+      goto non_ctor_case_after_expr_scan;
+    } else if (err || dip == NULL) {
       /* Error of some sort. */
       make_error_operand(result);
     } else {
@@ -17003,6 +17049,7 @@ as the cast in place of rcblock->expr.
         scan_cast_expression(type_cast_to, /*allow_comma=*/FALSE, PREC_LOWEST,
                              result, &local_bound_function_selector);
       }  /* if */
+non_ctor_case_after_expr_scan:
       if (is_array_type(type_cast_to)) {
         /* Catch cast-to-array cases allowed by above. */
         if (!check_array_cast(type_cast_to, result, &type_position)) {
@@ -27824,7 +27871,10 @@ overall errors.
                       object_class_type, (a_type_ptr)NULL,
                       fill_in_dtor, /*elision_allowed=*/TRUE,
                       (a_rescan_control_block *)NULL,
-                      /*trivial_ctor=*/(a_boolean *)NULL, p_dip,
+                      /*trivial_ctor=*/(a_boolean *)NULL,
+                      /*unboxing_conv=*/(a_boolean *)NULL,
+                      /*unboxing_conv_operand=*/(an_operand *)NULL,
+                      p_dip,
                       (an_expr_node_ptr *)NULL,
                       (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
