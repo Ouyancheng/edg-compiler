@@ -6386,7 +6386,7 @@ or struct definition.  The syntax is
   a_type_ptr                    base_class_type;
   a_type_ptr                    orig_base_class_type;
   a_boolean                     ambiguous;
-  a_class_symbol_supplement_ptr cssp, bcp_cssp;
+  a_class_symbol_supplement_ptr cssp;
   a_source_position             base_class_decl_pos;
   a_source_position             base_specifier_start_pos;
   a_boolean                     first_base_class = TRUE;
@@ -6512,7 +6512,6 @@ or struct definition.  The syntax is
                 cssp->any_nonreal_base_classes = ctsp != NULL;
                 base_class_type = proxy_class_for_template_param(tp);
                 orig_base_class_type = base_class_type;
-                bcp_cssp = symbol_supplement_for_class(base_class_type);
               } else {
                 /* Error case.  Ignore the specifier. */
                 error(ec_bad_base_class);
@@ -6546,7 +6545,6 @@ or struct definition.  The syntax is
         if (base_class_type == NULL) {
           /* Get the type entry for the base class name. */
           base_class_type = type_symbol_type(sym);
-          bcp_cssp = symbol_supplement_for_class(base_class_type);
           base_class_type->source_corresp.referenced = TRUE;
           if (!check_base_class_type(type_ptr, base_class_type)) {
             /* The type of the base class is invalid (e.g., incomplete). */
