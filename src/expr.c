@@ -2046,7 +2046,9 @@ expression, and return the result as usual (or an error indication in
     }  /* if */
     *p_temp_init_node = temp_init_node;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
 end_of_routine:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
 }  /* scan_ctor_arguments */
 
