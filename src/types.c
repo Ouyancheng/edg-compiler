@@ -3869,7 +3869,19 @@ point to the same type or constant).  FALSE if only equivalence is required.
           if ((type_1->variant.class_struct_union.is_nonreal_class &&
                type_2->variant.class_struct_union.is_nonreal_class) ||
               error_matches_anything) {
-            an_equiv_templ_arg_options_set    eta_options = ETA_NO_OPTIONS;
+            an_equiv_templ_arg_options_set	eta_options = ETA_NO_OPTIONS;
+            a_symbol_ptr			templ_sym_1;
+            a_symbol_ptr			templ_sym_2;
+            a_template_symbol_supplement_ptr	tssp_1;
+            a_template_symbol_supplement_ptr	tssp_2;
+            templ_sym_1 = cssp_1->class_template;
+            templ_sym_2 = cssp_2->class_template;
+            tssp_1 = templ_sym_1->variant.template_info;
+            tssp_2 = templ_sym_2->variant.template_info;
+            /* If either template is variadic, pass the is_variadic flag. */
+            if (tssp_1->is_variadic || tssp_2->is_variadic) {
+              eta_options |= ETA_IS_VARIADIC;
+            }  /* if */
             if (error_matches_anything) {
               eta_options |= ETA_ERROR_MATCHES_ANYTHING;
             }  /* if */
