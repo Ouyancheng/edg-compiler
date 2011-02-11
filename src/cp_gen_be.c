@@ -8926,25 +8926,28 @@ return FALSE and let the caller generate the code normally.
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-static void analyze_property_compound_assignment(
-                                       a_property_or_event_descr_ptr desc,
-                                       an_expr_node_ptr              *obj_expr,
-                                       an_expr_node_ptr              *args,
-                                       char                          **opstr)
+static void analyze_rewritten_property_reference(
+                                 a_property_or_event_descr_ptr       desc,
+                                 a_rewritten_property_reference_kind rpr_kind,
+                                 an_expr_node_ptr                    *obj_expr,
+                                 an_expr_node_ptr                    *args,
+                                 char                                **opstr)
 /*
 This function is called for a "set" operation on a C++/CLI property,
 described by desc, that is the result of decomposing a compound assignment
-operation, e.g., "P+=1" becomes the IL equivalent of "P::set(P::get()+1)".
-If the property is non-static, *obj_expr designates the expression to be
-passed as the "this" pointer; otherwise, it is NULL.  *args designates the
-first value to be passed to the "set" function (after the "this" pointer,
-if any).  Analyze the value and set *opstr to point to a string containing
-the corresponding compound assignment operator and set *args to point to
-the expression that should be put out for the right operand of the compound
-assignment.  If the property is static and was invoked with an object
-expression, set *obj_expr to that object expression (which is found only on
-the call to the "get" function via an eok_points_to_static operation);
-otherwise, leave *obj_expr unchanged.
+or increment/decrement operation, e.g., "P += 1" becomes the IL equivalent
+of "P::set(P::get() + 1)"; rpr_kind specifies the form of the source
+operation.  If the property is non-static, *obj_expr designates the
+expression to be passed as the "this" pointer; otherwise, it is NULL.
+*args designates the first value to be passed to the "set" function (after
+the "this" pointer, if any).  Analyze the value and set *opstr to point to
+a string containing the corresponding compound assignment or
+increment/decrement operator and set *args to point to the expression that
+should be put out for the right operand of the compound assignment or to
+NULL for an increment/decrement.  If the property is static and was invoked
+with an object expression, set *obj_expr to that object expression (which
+is found only on the call to the "get" function via an eok_points_to_static
+operation); otherwise, leave *obj_expr unchanged.
 */
 {
   an_expr_node_ptr          node = *args;
@@ -8967,16 +8970,27 @@ otherwise, leave *obj_expr unchanged.
   check_assertion(is_operation_node(node));
   /* A compound assignment is decomposed in the IL to the corresponding
      simple operation (to which node now points) with the first operand
-     being a call to the property's "get" function.  Determine the string
-     for the corresponding compound assignment operator. */
+     being a call to the property's "get" function.  Similarly, an
+     increment/decrement operation becomes a plus or minus with a second
+     operand of 1.  Determine the string for the original operator. */
   switch (node->variant.operation.kind) {
     case eok_add:
     case eok_padd:
-      *opstr = " += ";
+      if (rpr_kind ==
+               (a_rewritten_property_reference_kind)rprk_compound_assignment) {
+        *opstr = " += ";
+      } else {
+        *opstr = "++";
+      }  /* if */
       break;
     case eok_subtract:
     case eok_psubtract:
-      *opstr = " -= ";
+      if (rpr_kind ==
+               (a_rewritten_property_reference_kind)rprk_compound_assignment) {
+        *opstr = " -= ";
+      } else {
+        *opstr = "--";
+      }  /* if */
       break;
     case eok_multiply:
       *opstr = " *= ";
@@ -9007,9 +9021,17 @@ otherwise, leave *obj_expr unchanged.
   }  /* switch */
   /* Now look at the operands of the simple operator: the first operand is
      the call to the "get" function, and the second is the operand of the
-     compound assignment operator. */
+     compound assignment operator (or the value 1 in the case of an
+     increment/decrement). */
   node = node->variant.operation.operands;
-  *args = node->next;
+  if (rpr_kind ==
+               (a_rewritten_property_reference_kind)rprk_compound_assignment) {
+    *args = node->next;
+  } else {
+    /* Ignore the second operand (the value 1) because it's implicit in the
+       operation. */
+    *args = NULL;
+  }  /* if */
   if (is_operation_node(node) &&
       node->variant.operation.compiler_generated &&
       is_cast_operation_node(node)) {
@@ -9027,21 +9049,22 @@ otherwise, leave *obj_expr unchanged.
        out before the left-hand side of the property reference. */
     *obj_expr = node->variant.operation.operands;
   }  /* if */
-}  /* analyze_property_compound_assignment */
+}  /* analyze_rewritten_property_reference */
 
 
 static void gen_cli_property_or_event_call(
-                                       an_expr_node_ptr args,
-                                       a_routine_ptr    rout,
-                                       a_boolean        is_compound_assignment)
+                                  an_expr_node_ptr                    args,
+                                  a_routine_ptr                       rout,
+                                  a_rewritten_property_reference_kind rpr_kind)
 /*
 Generate the appropriate operator-notation code to call the C++/CLI
 property or event access routine rout.  args is the first argument in the
 call, i.e., the object expression for a non-static member or the actual
-first argument (if any) for static members.  If is_compound_assignment is
-TRUE, the expression is the expansion of a compound assignment operation
-(e.g., "P += 1" becomes the IL equivalent of "P::set(P::get() + 1)") and
-must be put out in that form.
+first argument (if any) for static members.  rpr_kind specifies the
+original source form if the expression expression is the expansion of a
+compound assignment or increment/decrement operation (e.g., "P += 1"
+becomes the IL equivalent of "P::set(P::get() + 1)") so it can be put out
+in that form.
 */
 {
   a_property_or_event_descr_ptr desc = rout->variant.property_or_event_descr;
@@ -9057,9 +9080,14 @@ must be put out in that form.
     args = args->next;
   }  /* if */
   subscripts = args;
-  if (is_compound_assignment) {
-    analyze_property_compound_assignment(desc, &obj_expr, &args, &opstr);
+  if (rpr_kind != (a_rewritten_property_reference_kind)rprk_none) {
+    analyze_rewritten_property_reference(desc, rpr_kind, &obj_expr, &args,
+                                         &opstr);
   }  /* if */
+  if (rpr_kind == (a_rewritten_property_reference_kind)rprk_pre_incr_decr) {
+    /* This is a prefix operator, so put it out now. */
+    write_tok_str(opstr);
+  }
   if (obj_expr != NULL) {
     /* Check to see if an object expression is needed and generate it if
        necessary before putting out the property/event name. */
@@ -9115,11 +9143,11 @@ must be put out in that form.
       }  /* if */
     }  /* for */
     write_tok_ch(']');
-    if (!is_compound_assignment) {
+    if (rpr_kind == (a_rewritten_property_reference_kind)rprk_none) {
       /* Update the args pointer to the value following the subscripts, if
          any (args was already updated correctly by
-         analyze_property_compound_assignment in the compound assignment
-         case). */
+         analyze_rewritten_property_reference in the compound assignment
+         and increment/decrement cases). */
       args = subscripts;
     }  /* if */
   }  /* if */
@@ -9129,8 +9157,13 @@ must be put out in that form.
          above. */
       break;
     case sfk_property_set:
-      write_tok_str(opstr);
-      gen_expr_with_parens(args);
+      if (rpr_kind !=
+                     (a_rewritten_property_reference_kind)rprk_pre_incr_decr) {
+        write_tok_str(opstr);
+      }  /* if */
+      if (args != NULL) {
+        gen_expr_with_parens(args);
+      }  /* if */
       break;
     case sfk_event_add:
       write_tok_str(" += ");
@@ -9202,8 +9235,7 @@ call.
            instead of as a function call. */
         gen_cli_property_or_event_call(
              args, rout,
-             expr->variant.operation.rewritten_property_reference_kind !=
-                               (a_rewritten_property_reference_kind)rprk_none);
+             expr->variant.operation.rewritten_property_reference_kind);
         processed = TRUE;
       } else 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
