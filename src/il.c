@@ -15961,7 +15961,10 @@ of "*" in the source code.  The returned node is designated an lvalue.
 #if DO_IL_LOWERING
           || (is_reference_type(node->type) && il_lowering_underway)
 #endif /* DO_IL_LOWERING */
-                                                                    ) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          || (cppcli_enabled && is_handle_type(node->type))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                           ) {
         new_type = type_pointed_to(node->type);
       } else if (!C_mode() && is_template_param_type(node->type)) {
         new_type = type_of_unknown_templ_param_nontype;

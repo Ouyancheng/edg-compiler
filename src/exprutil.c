@@ -5704,16 +5704,48 @@ used only in C++ mode.
   an_expr_node_ptr node;
   a_constant       temp_con;
   an_operand       orig_operand;
+  a_boolean        class_object_case =
+                                     !is_pointer_or_handle_type(operand->type);
 
   /* Save the original operand position, etc. */
   orig_operand = *operand;
   if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
   if (qualifiers_model == NULL) {
     qualifiers_model = operand->type;
-    if (is_pointer_or_handle_type(qualifiers_model)) {
+    if (!class_object_case) {
       qualifiers_model = type_pointed_to(qualifiers_model);
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled) {
+    a_type_ptr type = operand->type;
+    if (!class_object_case) type = type_pointed_to(type);
+    if (is_value_class_type(type)) {
+      /* When you cast from a C++/CLI value class type to a base class,
+         the original operand gets boxed, because the base class is a ref
+         class and can only be accessed in a managed heap object.  ECMA 34.5.1
+         suggests that this happens only when calling a member function of
+         the base class, but putting it here at a low level ensures that
+         you never get a ref class object in the wrong place. */
+      an_expr_node_ptr expr;
+      /* Convert the operand to an rvalue. */
+      do_operand_transformations(operand, TOPT_NO_OPTIONS);
+      expr = make_node_from_operand(operand);
+      if (!class_object_case) {
+        /* For the pointer case, get the underlying class object so we can
+           box it. */
+        expr = add_indirection_to_node(expr);
+        expr = rvalue_expr_for_lvalue(expr);
+      }  /* if */
+      expr = add_box_to_expression(expr, /*is_implicit=*/TRUE,
+                                   /*handle_to_form=*/TRUE);
+      if (class_object_case) {
+        expr = add_indirection_to_node(expr);
+      }  /* if */
+      make_lvalue_or_rvalue_expression_operand(expr, operand);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_error_operand(operand)) {
     normalize_error_operand(operand);
   } else {
