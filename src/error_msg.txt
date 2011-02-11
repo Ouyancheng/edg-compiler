@@ -2128,6 +2128,12 @@ ec_override_for_interface_member;;"\"new\" or \"override\" are not valid here be
 ec_new_requires_matching_base_member;;"\"new\" modifier without a matching base class member"
 ec_overriding_reduces_accessibility_in_managed_type;;"%nd overridden with reduced access"
 ec_bad_tracking_ref_init;;"a reference of type %t1 cannot be initialized with a value of type %t2"
+ec_copy_constructor_in_value_class_type;;"a copy constructor cannot be declared in a value class type"
+ec_default_constructor_in_value_class_type;;"a default constructor cannot be declared in a value class type"
+ec_destructor_in_value_class_type;;"a destructor cannot be declared in a value class type"
+ec_finalizer_in_value_class_type;;"a finalizer cannot be declared in a value class type"
+ec_assignment_in_value_class_type;;"an assignment operator cannot be declared in a value class type"
+ec_nonvalue_class_type_cannot_be_value_class_member;;"non-value class type %t cannot be the type of a member of a value class"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

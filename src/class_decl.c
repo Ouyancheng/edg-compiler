@@ -9832,6 +9832,55 @@ conversions.
   return is_implicitly_callable;
 }  /* is_implicitly_callable_conversion_function */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void exclude_special_members_from_value_class_type(
+                                                a_routine_ptr      rtn,
+                                                a_type_ptr         class_type,
+                                                a_source_position  *diag_pos)
+/*
+Check that the given member function of the given C++/CLI value class type is
+not a special member that is prohibited in value class types.  If it is, issue
+an error at the given position.
+*/
+{
+  an_error_code         err_code = ec_no_error;
+  a_type_qualifier_set  tqs;
+
+  switch (rtn->special_kind) {
+    case sfk_constructor:
+      if (is_copy_constructor(rtn, class_type, &tqs,
+                              /*include_move_ctors=*/TRUE,
+                              /*is_declarative_context=*/TRUE)) {
+        err_code = ec_copy_constructor_in_value_class_type;
+      } else if (is_default_constructor(rtn,
+                                        /*is_declarative_context=*/TRUE)) {
+        err_code = ec_default_constructor_in_value_class_type;
+      }  /* if */
+      break;
+    case sfk_destructor:
+      err_code = ec_destructor_in_value_class_type;
+      break;
+    case sfk_finalizer:
+      /* A more general error for finalizers outside ref class types is
+         issued elsewhere. */
+      expect_error();
+      break;
+    case sfk_operator:
+      if (rtn->variant.opname_kind == (an_opname_kind)onk_assign) {
+        err_code = ec_assignment_in_value_class_type;
+      }  /* if */
+      break;
+    default:
+      /* Nothing to do. */
+      break;
+  }  /* switch */
+  if (err_code != ec_no_error) {
+    pos_error(err_code, diag_pos);
+  }  /* if */
+}  /* exclude_special_members_from_value_class_type */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void decl_member_function(a_symbol_locator        *locator,
                                  a_func_info_block_ptr   func_info,
@@ -10044,6 +10093,15 @@ implicitly declared member functions.
       rtn->decl_modifiers |= (ctsp->decl_modifiers & DM_ANY_SUN_LINK_SCOPE);
     }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled) {
+    if (cli_class_type_kind_is(class_type, cctk_value)) {
+      /* Issue an error for a default or copy constructor, a destructor, or an
+         assignment operator. */
+      exclude_special_members_from_value_class_type(rtn, class_type,
+                                                    &locator->source_position);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* The routine name linkage on the function type is also required to be
      C++ no matter what the name linkage of the routine turns out to be. */
@@ -12838,6 +12896,13 @@ declarations.
                                   is_pin_ptr_type(field_type))) {
       /* In C++/CLI, an interior_ptr or pin_ptr cannot be a class member. */
       pos_ty_error(ec_type_cannot_be_class_member, 
+                   &locator->source_position, field_type);
+      field_type = error_type();
+    } else if (cppcli_enabled && is_value_class_type(class_type) &&
+               is_class_struct_union_type(field_type) &&
+               !is_value_class_type(field_type)) {
+      /* Non-value class types cannot be used for value class members. */
+      pos_ty_error(ec_nonvalue_class_type_cannot_be_value_class_member, 
                    &locator->source_position, field_type);
       field_type = error_type();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
