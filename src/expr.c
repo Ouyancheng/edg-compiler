@@ -6385,7 +6385,7 @@ static an_expr_node_ptr make_node_from_property_ref_operand(
                                                            an_operand *operand)
 /*
 Extract an expression node from a property-ref operand and return it.
-This used when the original copy of a cloned property-ref operand must be
+This is used when the original copy of a cloned property-ref operand must be
 evaluated before the copies, e.g., to set one or more temporaries.
 The expression returned concatenates all the pieces that have side
 effects into one comma expression, which will then be inserted early in
@@ -6439,7 +6439,7 @@ early to get the temporary initialized; otherwise, it is set to NULL.
   check_assertion(is_property_ref_operand(operand));
   *temp_init_expr = NULL;
   clone_operand(operand, operand_clone, /*vars_can_change=*/TRUE,
-                &temp_init_used);
+                &temp_init_used, /*treat_as_potential_rvalue=*/FALSE);
   if (temp_init_used) {
     /* The cloning required a temporary.  Arrange for setting the temporary
        before any of the code that uses it (by adding a comma expression
@@ -6456,7 +6456,8 @@ early to get the temporary initialized; otherwise, it is set to NULL.
       a_ref_entry_ptr saved_ref_entries = operand->ref_entries_list;
       operand->ref_entries_list = NULL;
       clone_operand(operand, &temp_operand, /*vars_can_change=*/TRUE,
-                    &dummy_temp_init_used);
+                    &dummy_temp_init_used,
+                    /*treat_as_potential_rvalue=*/FALSE);
       copy_operand(&temp_operand, operand);
       operand->ref_entries_list = saved_ref_entries;
     }  /* if */
@@ -19007,7 +19008,8 @@ that case.
          cloning it. */
       conv_array_operand_to_pointer_operand(operand_1);
     }  /* if */
-    clone_operand(operand_1, &operand_2, vars_can_change, &temp_init_used);
+    clone_operand(operand_1, &operand_2, vars_can_change, &temp_init_used,
+                  /*treat_as_potential_rvalue=*/TRUE);
   }  /* if */
   /* Check the first operand's type. */
   process_boolean_controlling_expression(operand_1);

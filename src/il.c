@@ -17257,7 +17257,8 @@ about the dynamic initialization doing nothing should be suppressed.
 
 
 a_boolean is_invariant_expr(an_expr_node_ptr expr,
-                            a_boolean        vars_can_change)
+                            a_boolean        vars_can_change,
+                            a_boolean        treat_as_potential_rvalue)
 /*
 Return TRUE if the indicated expression is invariant, meaning it has no
 side effects and will give the same value if evaluated more than once.
@@ -17265,7 +17266,11 @@ The expression can be an rvalue or an lvalue; for an lvalue, invariant
 means its address will not change (and it has no side effects).
 vars_can_change indicates whether the values of variables should be
 considered to be changeable between successive evaluations for purposes
-of this determination.
+of this determination.  treat_as_potential_rvalue is TRUE in cases where the
+eventual lvalueness of expr is not yet known (and can make a difference in
+determining whether or not the expression is invariant).
+treat_as_potential_rvalue should always be FALSE when called during lowering
+(as lvalueness is known at this time).
 */
 {
   a_boolean is_invariant = FALSE;
@@ -17276,7 +17281,7 @@ of this determination.
     if (is_constant_node(expr) || is_routine_node(expr)) {
       /* Constants and the address of a function are invariant. */
       is_invariant = TRUE;
-    } else if (expr->is_lvalue) {
+    } else if (expr->is_lvalue && !treat_as_potential_rvalue) {
       /* Lvalue cases. */
       if (is_variable_node(expr) ||
           expr->kind == (an_expr_node_kind)enk_param_ref) {
@@ -17294,11 +17299,14 @@ of this determination.
             node_operator_is(expr, eok_indirect)) {
           /* An lvalue a.b is invariant if a is invariant. */
           /* Likewise for a->b and *a. */
-          is_invariant = is_invariant_expr(op1, vars_can_change);
+          is_invariant = is_invariant_expr(op1, vars_can_change,
+                                           treat_as_potential_rvalue);
         } else if (node_operator_is(expr, eok_subscript)) {
           /* An lvalue a[b] is invariant if a and b are invariant. */
-          is_invariant = is_invariant_expr(op1, vars_can_change) &&
-                         is_invariant_expr(op2, vars_can_change);
+          is_invariant = is_invariant_expr(op1, vars_can_change,
+                                           treat_as_potential_rvalue) &&
+                         is_invariant_expr(op2, vars_can_change,
+                                           treat_as_potential_rvalue);
         }  /* if */
       }  /* if */
     } else {
@@ -17319,7 +17327,8 @@ of this determination.
           /* "&" applied to an invariant lvalue is invariant. */
           /* Likewise for array decay.  Watch out for array rvalues. */
           if (op1->is_lvalue) {
-            is_invariant = is_invariant_expr(op1, vars_can_change);
+            is_invariant = is_invariant_expr(op1, vars_can_change,
+                                             treat_as_potential_rvalue);
           }  /* if */
         }  /* if */
       }  /* if */

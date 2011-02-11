@@ -457,9 +457,10 @@ static void change_node_to_operation(an_expr_node_ptr      node,
                                      an_expr_node_ptr      operand,
                                      a_boolean             is_lvalue);
 static an_expr_node_ptr make_reusable_copy_full(
-                                             an_expr_node_ptr expr,
-                                             a_boolean        vars_can_change,
-                                             a_boolean        *temp_init_used);
+                                   an_expr_node_ptr expr,
+                                   a_boolean        vars_can_change,
+                                   a_boolean        *temp_init_used,
+                                   a_boolean        treat_as_potential_rvalue);
 static void lower_type(a_type_ptr type);
 static void lower_os_constant(a_constant_ptr constant);
 static void lower_variable(a_variable_ptr variable);
@@ -2982,7 +2983,8 @@ new node.
     temp_init_node = NULL;
     /* Get the offset to the virtual base out of the virtual table. */
     second_use = make_reusable_copy_full(node, /*vars_can_change=*/FALSE,
-                                         &temp_init_used);
+                                         &temp_init_used,
+                                         /*treat_as_potential_rvalue=*/FALSE);
     if (temp_init_used) {
       /* The node expression is complex and a temporary was used.
          We will have to use a comma expression to ensure that the
@@ -3317,9 +3319,10 @@ to the temporary.
 
 
 static an_expr_node_ptr make_reusable_copy_full(
-                                              an_expr_node_ptr expr,
-                                              a_boolean        vars_can_change,
-                                              a_boolean        *temp_init_used)
+                                    an_expr_node_ptr expr,
+                                    a_boolean        vars_can_change,
+                                    a_boolean        *temp_init_used,
+                                    a_boolean        treat_as_potential_rvalue)
 /*
 Return a copy of the expression tree pointed to by expr, which can be an
 rvalue or lvalue.  If it is an lvalue, it is one whose address can be taken
@@ -3333,7 +3336,11 @@ original use of the expression and the use of the copy, and such code might
 change the values of (user) variables.  *temp_init_used is returned TRUE if a
 temporary was used, including a reuse of an existing temporary.  When it is
 TRUE, the caller must take steps to ensure that expr is evaluated before the
-copy.  See make_expr_reusable_copy for a similar routine used in the front end
+copy.  treat_as_potential_rvalue is TRUE in cases where the eventual lvalueness
+of expr is not yet known (and can make a difference in determining whether or
+not the expression is invariant).  treat_as_potential_rvalue should always be
+FALSE when called during lowering (as lvalueness is known at this time).
+See make_expr_reusable_copy for a similar routine used in the front end
 proper.
 */
 {
@@ -3347,7 +3354,8 @@ proper.
        the temporary. */
     expr_copy = var_rvalue_expr(temp_var);
     *temp_init_used = TRUE;
-  } else if (is_invariant_expr(expr, vars_can_change)) {
+  } else if (is_invariant_expr(expr, vars_can_change,
+                               treat_as_potential_rvalue)) {
     /* The expression has no side effects and will give the same value if
        evaluated more than once. */
     /* A straight copy will work. */
@@ -3387,15 +3395,16 @@ an_expr_node_ptr make_reusable_copy(an_expr_node_ptr expr,
                                     a_boolean        vars_can_change)
 /*
 Simpler interface to make_reusable_copy_full, without the temp_init_used
-parameter.  The caller must ensure that expr will be evaluated before
-the copy is evaluated.
+and treat_as_potential_rvalue parameters.  The caller must ensure that expr
+will be evaluated before the copy is evaluated.
 */
 {
   a_boolean        temp_init_used;
   an_expr_node_ptr expr_copy;
 
   expr_copy = make_reusable_copy_full(expr, vars_can_change,
-                                      &temp_init_used);
+                                      &temp_init_used,
+                                      /*treat_as_potential_rvalue=*/FALSE);
   return expr_copy;
 }  /* make_reusable_copy */
 
@@ -3420,7 +3429,8 @@ used in the front end proper.
 
   expr_copy = lvalue_expr_reusable_copy(expr, vars_can_change,
                                         make_reusable_copy_full,
-                                        temp_init_used);
+                                        temp_init_used,
+                                        /*treat_as_potential_rvalue=*/FALSE);
   return expr_copy;
 }  /* make_lvalue_reusable_copy_full */
 
@@ -11171,7 +11181,8 @@ that the assignment is performed before the returned expression is executed.
        (temp = object,  <- this is added by the caller
         temp->__vptr[index])
   */
-  if (!is_invariant_expr(*object_node, vars_can_change)) {
+  if (!is_invariant_expr(*object_node, vars_can_change,
+                         /*treat_as_potential_rvalue=*/FALSE)) {
     /* The object node is not invariant, so assign it to a temporary. */
     *assign_node = *object_node;
     *object_node = assign_expr_to_temp_and_make_expr_for_reuse(*object_node);
@@ -12601,7 +12612,8 @@ parent operation.
          the assignment could change something used in the determination
          of the address of child1, though that seems to require something
          very strange like ((i <? j) = 2) = 3. */
-      vars_can_change = !is_invariant_expr(child1, /*vars_can_change=*/TRUE);
+      vars_can_change = !is_invariant_expr(child1, /*vars_can_change=*/TRUE,
+                                          /*treat_as_potential_rvalue=*/FALSE);
       if (child2 != NULL && !vars_can_change) {
         vars_can_change = node_has_side_effects(child2, (a_boolean *)NULL);
       }  /* if */
@@ -16423,7 +16435,8 @@ Lower an stmk_return statement.
        in a constructor (it's "return this;").
     */
     if (return_expr != NULL &&
-        !is_invariant_expr(return_expr, /*vars_can_change=*/TRUE) &&
+        !is_invariant_expr(return_expr, /*vars_can_change=*/TRUE,
+                           /*treat_as_potential_rvalue=*/FALSE) &&
         routine->special_kind != (a_special_function_kind)sfk_constructor) {
       /* There is a nonconstant return expression, so use a temporary.
          Note that the return type cannot call for a copy constructor,

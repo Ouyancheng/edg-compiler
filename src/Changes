@@ -1,5 +1,44 @@
 Version 4.3
 
+2/10/11  [EDGcpfe/11371]
+Use of temporaries in copied expressions
+
+In certain cases (i.e., compound assignment of a Microsoft indexed property,
+and the GNU conditional with omitted operand), the front end had made
+reusable copies of expressions, where the lvalueness of the expression
+had not yet been determined.  In cases where the copied expression was
+originally an lvalue and later changed to an rvalue, assumptions
+about whether the copied expression was invariant were violated, resulting
+in IL that was not properly sequenced.  In the compound assignment in the
+example below, it wasn't guaranteed that the same index arguments would
+be passed to the get and put routines (it depended on the order of
+evaluation by the back end), but these routines are now passed the same
+index values:
+
+  extern "C" int printf(const char *, ...);
+  int i = 0;
+  struct B {
+    __declspec(property(get=get,put=put)) int p[][];
+    int value[3];
+    int get(int s, int t) { return value[t]; }
+    void put(int s, int t, int v) { value[t] = v; }
+  } b;
+  int f() {
+    i++;
+    return 0;
+  }
+  int main () {
+    b.p[0][0] = 0;
+    b.p[0][1] = 1;
+    b.p[0][2] = 2;
+    i = 0;
+    b.p[f()][i] += 100;                     // i is incremented in f()
+    printf("b.p[0][0] = %d\n", b.p[0][0]);  // should print 0
+    printf("b.p[0][1] = %d\n", b.p[0][1]);  // should print 101
+    printf("b.p[0][2] = %d\n", b.p[0][2]);  // should print 2
+  }
+
+
 2/9/11   [EDGcpfe/11349]
 Microsoft compatibility: function template as argument for deduced parameter
 
