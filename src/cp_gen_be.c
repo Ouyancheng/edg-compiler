@@ -6332,10 +6332,12 @@ Put out the list of direct base classes of the class associated with ctsp
     if (bcp->direct_base_number != next_base) {
       /* We're done. */
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (bcp->is_implicit_direct_base) {
       /* System::Object and System::ValueType are usually implicit bases.
          If this is such a case, do not render the derivation explicitly. */
       continue;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* If there are multiple base classes with the same number because of
          a pack expansion, loop to put out all of them.  They will be
