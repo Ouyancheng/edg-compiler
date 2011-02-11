@@ -6980,7 +6980,8 @@ conversion.  std_conv can be NULL if that information is not needed.
     if (is_handle_type(dest_type) &&
         is_cli_value_type(source_type) &&
         !is_pointer_type(source_type)) {
-      a_type_ptr corresp_type;
+      a_base_class_ptr bcp = NULL;
+      a_type_ptr       corresp_type;
       /* cv-qualifiers on the source type are dropped, since the value gets
          copied into the box. */
       source_type = skip_typerefs(source_type);
@@ -6995,11 +6996,18 @@ conversion.  std_conv can be NULL if that information is not needed.
       if (types_are_compatible(source_type, dest_type)) {
         /* A boxing conversion is possible. */
         okay = TRUE;
-        if (std_conv != NULL) {
-          std_conv->nontrivial_conversion = TRUE;
-          std_conv->boxing_conversion = TRUE;
-          std_conv->promotion = TRUE;
-        }  /* if */
+      } else if (is_value_class_type(source_type) &&
+                 is_class_struct_union_type(dest_type) &&
+                 (bcp = find_base_class_of(source_type, dest_type)) != NULL) {
+        /* Boxing to a handle to a type followed by a handle conversion to
+           a base class of that type. */
+        okay = TRUE;
+      }  /* if */
+      if (okay && std_conv != NULL) {
+        std_conv->nontrivial_conversion = TRUE;
+        std_conv->boxing_conversion = TRUE;
+        std_conv->promotion = TRUE;
+        std_conv->cast_base_class = bcp;
       }  /* if */
     }  /* if */
   }  /* if */
