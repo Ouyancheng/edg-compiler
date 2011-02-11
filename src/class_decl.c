@@ -6054,9 +6054,11 @@ issue an error and return FALSE.
               }  /* if */
               break;
             case cctk_value:
-              if (!identical_types(base_class_type, cli_system_value_type())) {
-                pos_error(ec_invalid_value_class_base, &error_position);
-              }  /* if */
+              { a_type_ptr  system_value_type = cli_system_value_type();
+                if (!identical_types(base_class_type, system_value_type)) {
+                  pos_error(ec_invalid_value_class_base, &error_position);
+                }  /* if */
+              }
               break;
             case cctk_interface:
               pos_error(ec_invalid_interface_class_base, &error_position);
@@ -6120,15 +6122,17 @@ issue an error and return FALSE.
                  configurations. */
 #endif /* IA64_ABI */
 static void add_new_direct_base(
-                  a_base_class_ptr     direct_bcp,
-                  an_access_specifier  access,
-                  a_base_class_ptr     *p_last_base,
-                  a_boolean            *p_may_be_first_direct_nonvirtual_base)
+                a_base_class_ptr       direct_bcp,
+                a_class_def_state_ptr  class_state,
+                an_access_specifier    access,
+                a_base_class_ptr       *p_last_base,
+                a_boolean              *p_may_be_first_direct_nonvirtual_base)
 /*
 Add direct_bcp as a base class to direct_bcp->derived_class, and recursively
-add any base classes of direct_bcp->type.  access is the (possibly implicit)
-access specified on the base class.  *p_last_base points to the last base
-currently recorded for the derived class and is updated by this function.
+add any base classes of direct_bcp->type.  class_state describes the class
+definition in progress.  access is the (possibly implicit) access specified on
+the base class.  *p_last_base points to the last base currently recorded for
+the derived class and is updated by this function.
 *p_may_be_first_direct_nonvirtual_base is TRUE if this may be the first direct
 nonvirtual base of the direct base (in which case this function sets the flag
 to FALSE before returning).
@@ -6145,6 +6149,65 @@ to FALSE before returning).
 
   cssp = symbol_supplement_for_class(class_type);
   bcp_cssp = symbol_supplement_for_class(bcp_type);
+  /* The implied default constructor of the current class will be
+     nontrivial if any of its base classes is virtual or has a nontrivial
+     default constructor itself.  The current class requires a destructor
+     if any of its base classes has a destructor.  Record such
+     requirements, if any, at this time. */
+  if (is_virtual || !has_trivial_default_constructor(bcp_cssp)) {
+    class_state->default_ctor_is_nontrivial = TRUE;
+  }  /* if */
+  if (has_nontrivial_destructor(bcp_cssp)) {
+    class_state->base_destruction_required = TRUE;
+  }  /* if */
+  /* Indicate whether an operator new or operate delete is inherited into
+     the current derived class. */
+  if (bcp_cssp->has_operator_new) cssp->has_operator_new = TRUE;
+  if (bcp_cssp->has_operator_array_new) {
+    cssp->has_operator_array_new = TRUE;
+  }  /* if */
+  if (bcp_cssp->has_operator_delete) cssp->has_operator_delete = TRUE;
+  if (bcp_cssp->has_operator_array_delete) {
+    cssp->has_operator_array_delete = TRUE;
+  }  /* if */
+  /* The current derived class cannot be copy-constructed or assigned by
+     bitwise copying if the base class does not allow it or is a virtual
+     base class.  (If the base class is nonreal, assume its type does not
+     affect bitwise copyability.) */
+  if (is_virtual) {
+    cssp->construction_by_bitwise_copy_allowed = FALSE;
+    cssp->assignment_by_bitwise_copy_allowed = FALSE;
+  } else if (!bcp_type->variant.class_struct_union.is_nonreal_class) {
+    if (!bcp_cssp->construction_by_bitwise_copy_allowed) {
+      cssp->construction_by_bitwise_copy_allowed = FALSE;
+    }  /* if */
+    if (!bcp_cssp->assignment_by_bitwise_copy_allowed) {
+      cssp->assignment_by_bitwise_copy_allowed = FALSE;
+    }  /* if */
+  }  /* if */
+  if (bcp_cssp->any_nonstatic_data_members) {
+    cssp->any_nonstatic_data_members = TRUE;
+  }  /* if */
+  /* Update the flag indicating whether there are any virtual base
+     classes. */
+  if (is_virtual ||
+      bcp_type->variant.class_struct_union.any_virtual_base_classes) {
+    class_type->variant.class_struct_union.any_virtual_base_classes = TRUE;
+  }  /* if */
+  if (bcp_type->variant.class_struct_union
+                           .any_virtual_functions_including_in_base_classes) {
+    class_type->variant.class_struct_union
+                      .any_virtual_functions_including_in_base_classes = TRUE;
+  }  /* if */
+  if (bcp_type->variant.class_struct_union.any_volatile_member) {
+    class_type->variant.class_struct_union.any_volatile_member = TRUE;
+  }  /* if */
+  if (bcp_type->variant.class_struct_union.any_mutable_member) {
+    class_type->variant.class_struct_union.any_mutable_member = TRUE;
+  }  /* if */
+  if (bcp_type->variant.class_struct_union.has_operator_ampersand) {
+    class_type->variant.class_struct_union.has_operator_ampersand = TRUE;
+  }
   if (bcp_cssp->any_nonreal_base_classes ||
       (bcp_type->variant.class_struct_union.is_nonreal_class &&
        !(bcp_type->variant.class_struct_union.is_prototype_instantiation ||
@@ -6589,67 +6652,6 @@ or struct definition.  The syntax is
             }  /* if */
           }  /* if */
         }  /* for */
-        /* The implied default constructor of the current class will be
-           nontrivial if any of its base classes is virtual or has a nontrivial
-           default constructor itself.  The current class requires a destructor
-           if any of its base classes has a destructor.  Record such
-           requirements, if any, at this time. */
-        if (is_virtual || !has_trivial_default_constructor(bcp_cssp)) {
-          class_state->default_ctor_is_nontrivial = TRUE;
-        }  /* if */
-        if (has_nontrivial_destructor(bcp_cssp)) {
-          class_state->base_destruction_required = TRUE;
-        }  /* if */
-        /* Indicate whether an operator new or operate delete is inherited into
-           the current derived class. */
-        if (bcp_cssp->has_operator_new) cssp->has_operator_new = TRUE;
-        if (bcp_cssp->has_operator_array_new) {
-          cssp->has_operator_array_new = TRUE;
-        }  /* if */
-        if (bcp_cssp->has_operator_delete) cssp->has_operator_delete = TRUE;
-        if (bcp_cssp->has_operator_array_delete) {
-          cssp->has_operator_array_delete = TRUE;
-        }  /* if */
-        /* The current derived class cannot be copy-constructed or assigned by
-           bitwise copying if the base class does not allow it or is a virtual
-           base class.  (If the base class is nonreal, assume its type does not
-           affect bitwise copyability.) */
-        if (is_virtual) {
-          cssp->construction_by_bitwise_copy_allowed = FALSE;
-          cssp->assignment_by_bitwise_copy_allowed = FALSE;
-        } else if (!base_class_type
-                              ->variant.class_struct_union.is_nonreal_class) {
-          if (!bcp_cssp->construction_by_bitwise_copy_allowed) {
-            cssp->construction_by_bitwise_copy_allowed = FALSE;
-          }  /* if */
-          if (!bcp_cssp->assignment_by_bitwise_copy_allowed) {
-            cssp->assignment_by_bitwise_copy_allowed = FALSE;
-          }  /* if */
-        }  /* if */
-        if (bcp_cssp->any_nonstatic_data_members) {
-          cssp->any_nonstatic_data_members = TRUE;
-        }  /* if */
-        /* Update the flag indicating whether there are any virtual base
-           classes. */
-        if (is_virtual || base_class_type->
-                         variant.class_struct_union.any_virtual_base_classes) {
-          type_ptr->variant.class_struct_union.any_virtual_base_classes = TRUE;
-        }  /* if */
-        if (base_class_type->variant.class_struct_union.
-                         any_virtual_functions_including_in_base_classes) {
-          type_ptr->variant.class_struct_union.
-                       any_virtual_functions_including_in_base_classes = TRUE;
-        }  /* if */
-        if (base_class_type->variant.class_struct_union.any_volatile_member) {
-          type_ptr->variant.class_struct_union.any_volatile_member = TRUE;
-        }  /* if */
-        if (base_class_type->variant.class_struct_union.any_mutable_member) {
-          type_ptr->variant.class_struct_union.any_mutable_member = TRUE;
-        }  /* if */
-        if (base_class_type->
-                           variant.class_struct_union.has_operator_ampersand) {
-          type_ptr->variant.class_struct_union.has_operator_ampersand = TRUE;
-        }
         /* Now create the new base class entry and add it to the end of the
            base classes list. */
         new_direct_bcp = alloc_base_class();
@@ -6670,7 +6672,8 @@ or struct definition.  The syntax is
         if (attributes != NULL) {
           attach_attributes(attributes, (char*)new_direct_bcp, iek_base_class);
         }  /* if */
-        add_new_direct_base(new_direct_bcp, access, &end_of_base_classes_list,
+        add_new_direct_base(new_direct_bcp, class_state, access,
+                            &end_of_base_classes_list,
                             &may_be_first_direct_nonvirtual_base);
 skip_base_class:
         first_base_class = FALSE;
@@ -6703,14 +6706,16 @@ skip_base_class:
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void add_implicit_cli_bases(a_type_ptr  class_type)
+static void add_implicit_cli_bases(a_class_def_state_ptr  class_state)
 /*
-The given class type is being defined in C++/CLI mode and its explicit base
-classes have been scanned.  If the class type is a ref class type or a value
-class type, add an implicit derivation from System::ObjectType or
-System::ValueType (respectively) if appropriate.
+The given class is being defined in C++/CLI mode and its explicit base classes
+have been scanned.  If the class type is a ref class type or a value class
+type, add an implicit derivation from System::ObjectType or System::ValueType
+(respectively) if appropriate.
 */
 {
+  a_type_ptr  class_type = class_state->class_type;
+
   if (cli_class_type_kind_is(class_type, cctk_ref) ||
       cli_class_type_kind_is(class_type, cctk_value)) {
     /* If a ref class or value class does not specify a ref class base, it
@@ -6725,8 +6730,9 @@ System::ValueType (respectively) if appropriate.
       }  /* if */
     }  /* for */
     if (add_implicit_base &&
-        !identical_types(class_type, cli_system_object_type())) {
-      a_base_class_ptr              new_direct_bcp, bcp, last_bcp = NULL;
+        !f_identical_types(class_type, cli_system_object_type(),
+                           ITF_NO_FLAGS)) {
+      a_base_class_ptr              new_direct_bcp, last_bcp = NULL;
       a_boolean                     may_be_first_direct_nonvirtual_base = TRUE;
       a_base_class_sequence_number  direct_base_number = 0;
       /* Determine the last base class entry and the last direct base
@@ -6752,9 +6758,11 @@ System::ValueType (respectively) if appropriate.
       new_direct_bcp->orig_type = new_direct_bcp->type;
       new_direct_bcp->derived_class = class_type;
       new_direct_bcp->direct = TRUE;
+      new_direct_bcp->is_implicit_direct_base = TRUE;
       new_direct_bcp->direct_base_number = direct_base_number+1;
-      add_new_direct_base(new_direct_bcp, (an_access_specifier)as_public,
-                          &last_bcp, &may_be_first_direct_nonvirtual_base);
+      add_new_direct_base(new_direct_bcp, class_state,
+                          (an_access_specifier)as_public, &last_bcp,
+                          &may_be_first_direct_nonvirtual_base);
     }  /* if */
   }  /* if */
 }  /* add_implicit_cli_bases */
@@ -16300,14 +16308,15 @@ delegate definition.  If it is, return TRUE; otherwise, return FALSE.
 }  /* check_for_cli_delegate_definition */
 
 
-static void add_cli_system_base_class(a_type_ptr    class_type,
-                                      a_symbol_ptr  base_type_symbol)
+static void add_cli_system_base_class(a_class_def_state_ptr  class_state,
+                                      a_symbol_ptr           base_type_symbol)
 /*
-Add to the given C++/CLI class type a base class of the type indicated by
-base_type_symbol (which is a System::... type).  The given class type should
-have no other base classes.
+Add to the given C++/CLI class a base class of the type indicated by
+base_type_symbol (which is a System::... type).  The given class should have
+no other base classes.
 */
 {
+  a_type_ptr        class_type = class_state->class_type;
   a_base_class_ptr  bcp = alloc_base_class(), last_base = NULL;
   a_boolean         may_be_first_direct_nonvirtual_base = TRUE;
 
@@ -16320,8 +16329,8 @@ have no other base classes.
   bcp->derived_class = class_type;
   bcp->direct = TRUE;
   bcp->direct_base_number = 1;
-  add_new_direct_base(bcp, (an_access_specifier)as_public, &last_base,
-                      &may_be_first_direct_nonvirtual_base);
+  add_new_direct_base(bcp, class_state, (an_access_specifier)as_public,
+                      &last_base, &may_be_first_direct_nonvirtual_base);
 }  /* add_cli_system_base_class */
 
 
@@ -16432,7 +16441,7 @@ definition and record it in the IL (as a special-purpose class type).
   initialize_class_def_state(class_type, &class_state);
   /* Add System::MulticastDelegate as a base class. */
   add_cli_system_base_class(
-              class_type, cli_symbol_from_kind(csk_system_multicast_delegate));
+            &class_state, cli_symbol_from_kind(csk_system_multicast_delegate));
   class_state.access = (an_access_specifier)as_public;
   ctsp->assoc_scope =
              push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
@@ -18978,7 +18987,7 @@ classes.
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled) add_implicit_cli_bases(class_type);
+    if (cppcli_enabled) add_implicit_cli_bases(&class_state);
     check_if_potentially_interface_like(&class_state);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (ctsp->base_classes != NULL) wrapup_base_classes(&class_state);

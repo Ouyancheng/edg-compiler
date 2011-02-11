@@ -5566,6 +5566,11 @@ Display the indicated base class entry.
     if (ptr->is_pack_expansion) {
       disp_boolean("is_pack_expansion", TRUE);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (ptr->is_implicit_direct_base) {
+      disp_boolean("is_implicit_direct_base", TRUE);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !IA64_ABI
     disp_host_large_unsigned("pointer_offset",
                              (a_host_large_unsigned)ptr->pointer_offset);

@@ -1223,6 +1223,9 @@ to it.
   bcp->offset_is_set                   = FALSE;
 #endif /* IA64_ABI */
   bcp->is_pack_expansion               = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  bcp->is_implicit_direct_base         = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bcp->direct_base_number	       = 0;
   bcp->offset                          = 0;
 #if !IA64_ABI

@@ -5861,6 +5861,13 @@ typedef struct a_base_class {
   a_bit_field	is_pack_expansion:1;
 			/* TRUE if this base class is a variadic template
 			   pack expansion, i.e., it's followed by "...". */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	is_implicit_direct_base:1;
+			/* TRUE if this base class is a direct base class
+			   added implicitly to certain C++/CLI managed class
+			   types (e.g., System::ValueType is usually added
+			   implicitly to value class types). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   a_base_class_sequence_number
 		direct_base_number;
