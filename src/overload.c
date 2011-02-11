@@ -15000,6 +15000,9 @@ direct binding is "possible" and not whether it is "valid".
 */
 {
   a_boolean  direct_binding_possible, type_is_correct_or_derived;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean  type_is_derived = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean  template_case = FALSE, is_rvalue_ref;
   a_type_ptr base_dest_type, unqual_dest_type, unqual_source_type;
                                            
@@ -15039,6 +15042,9 @@ direct binding is "possible" and not whether it is "valid".
                                 unqual_dest_type) != NULL) {
     /* The initializer has a derived type. */
     type_is_correct_or_derived = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    type_is_derived = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if ((any_cfront_mode() || microsoft_bugs) &&
              is_pointer_type(unqual_dest_type) &&
              is_pointer_type(unqual_source_type) &&
@@ -15169,12 +15175,19 @@ direct binding is "possible" and not whether it is "valid".
     direct_binding_possible = FALSE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && direct_binding_possible &&
-      !is_tracking_reference_type(dest_type) &&
-      is_gc_lvalue_operand(source_operand)) {
-    /* C++/CLI does not allow binding a normal (non-tracking) reference
-       to a gc-lvalue. */
-    direct_binding_possible = FALSE;
+  if (cppcli_enabled && direct_binding_possible) {
+    if (is_tracking_reference_type(dest_type)) {
+      if (type_is_derived &&
+          is_value_class_type(unqual_source_type)) {
+        /* A tracking reference can't be bound to a base class of a value
+           type, since that would require boxing (ECMA-372 12.3.5). */
+        direct_binding_possible = FALSE;
+      }  /* if */
+    } else if (is_gc_lvalue_operand(source_operand)) {
+      /* C++/CLI does not allow binding a normal (non-tracking) reference
+         to a gc-lvalue. */
+      direct_binding_possible = FALSE;
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   *p_template_case = template_case;
@@ -15676,9 +15689,15 @@ been found to be acceptable, and *conversion describes it.
                          source_operand);
       } else {
         if (expr_error_should_be_issued()) {
-          pos_ty2_error(ref_to_const_volatile ?
+          an_error_code err_code = ref_to_const_volatile ?
                                        ec_bad_const_volatile_ref_init :
-                                       ec_bad_nonconst_ref_init,
+                                       ec_bad_nonconst_ref_init;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (cppcli_enabled && is_tracking_reference_type(dest_type)) {
+            err_code = ec_bad_tracking_ref_init;
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          pos_ty2_error(err_code,
                         &source_operand->position,
                         dest_type, orig_source_type);
         }  /* if */
