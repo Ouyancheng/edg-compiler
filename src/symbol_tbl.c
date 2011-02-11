@@ -2061,7 +2061,9 @@ It will be NULL for the most derived class.
   sym = find_symbol_list_in_table(&cssp->pointers_block,
                                   hbssp->orig_sym->header);
   for (; sym != NULL; sym = sym->next_in_lookup_table) {
-    if (is_function_or_template_symbol(sym)) {
+    if (sym->is_invisible) {
+      /* Ignore invisible symbols. */
+    } else if (is_function_or_template_symbol(sym)) {
       check_assertion(result_sym == NULL);
       result_sym = sym;
     } else if (sym->kind != (a_symbol_kind)sk_projection ||
