@@ -8796,7 +8796,9 @@ return NULL.  Return the number of actual arguments in *elements.
     if (tpp->param_symbol == sym) {
       result_tap = tap;
       /* Compute the number of pack elements. */
-      while ((tap++)->is_pack_element) (*elements)++;
+      for (; tap != NULL && tap->is_pack_element; tap = tap->next) {
+        (*elements)++;
+      }  /* for */
       break;
     }  /* if */
   }  /* for */
@@ -8915,6 +8917,7 @@ advance to the next pack element for each symbol.
 {
   a_pack_reference_ptr			prp;
   a_pack_reference_ptr			new_pack_list = NULL;
+  a_pack_reference_ptr			new_pack_tail = NULL;
   uint32_t				elements;
   a_boolean				is_first_pack = TRUE;
   a_boolean				any_errors = FALSE;
@@ -8929,10 +8932,12 @@ advance to the next pack element for each symbol.
     /* Create a copy of the pack reference entry and add it to the list of
        entries for this instantiation. */
     new_prp = copy_pack_reference(prp);
-    if (new_pack_list != NULL) {
-      new_pack_list->next = new_prp;
+    if (new_pack_list == NULL) {
+      new_pack_list = new_prp;
+    } else {
+      new_pack_tail->next = new_prp;
     }  /* if */
-    new_pack_list = new_prp;
+    new_pack_tail = new_prp;
     if (is_deduction) {
       a_template_arg_ptr	tap;
       /* In a deduction context, we will deduce zero or more template
