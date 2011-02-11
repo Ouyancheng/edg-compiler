@@ -748,17 +748,17 @@ in parameter types of C++ mode functions.
 static void advance_param_id_and_param_type(
 				a_param_id_ptr		*param_id,
 				a_param_type_ptr	*ptp,
-				a_boolean		is_specialization)
+				a_routine_ptr		rout_ptr)
 /*
 Advance *param_id and *ptp to the next element in their lists.   If *ptp is
 an element of a variadic parameter pack, don't advance *param_id until we
-advance past the pack.  This special processing is suppressed if
-is_specialization is TRUE.
+advance past the pack.  This special processing is suppressed if for
+specializations and lambdas.  rout_ptr is the routine being defined.
 */
 {
   a_param_type_ptr	next_ptp = (*ptp)->next;
 
-  if (!is_specialization &&
+  if (!rout_ptr->is_specialized && !rout_ptr->is_lambda_body &&
       next_ptp != NULL && next_ptp->param_num == (*ptp)->param_num &&
       next_ptp->param_num != 0) {
     /* The next parameter type entry is for the same variadic parameter.
@@ -1128,8 +1128,7 @@ of lambda expressions.
       ptp = NULL;
     }  /* if */
     for (; param_id != NULL && ptp != NULL;
-         advance_param_id_and_param_type(&param_id, &ptp,
-                                         rout_ptr->is_specialized)) {
+         advance_param_id_and_param_type(&param_id, &ptp, rout_ptr)) {
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
