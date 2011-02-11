@@ -5374,6 +5374,9 @@ typedef struct a_routine_type_supplement {
 			   type of a const member function (unless the "const"
 			   attribute is also specified). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  a_bit_field	is_variadic_instance:1;
+			/* TRUE for types of template instances generated from
+			   variadic function templates. */
   bitfield_to_avoid_codecenter_warnings()
   a_lint_varargs_count
 	         lint_varargs_count;

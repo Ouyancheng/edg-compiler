@@ -1685,6 +1685,7 @@ to default values.
       rtsp->result_should_be_used    = FALSE;
       rtsp->is_const                 = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      rtsp->is_variadic_instance     = FALSE;
 #if CENTERLINE_CHECKING
       rtsp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

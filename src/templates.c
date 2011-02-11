@@ -9665,6 +9665,7 @@ the error type is a member, or is NULL for a nonmember.
      should match the parameter list of the original template. */
   for (templ_ptp = templ_rtsp->param_type_list; templ_ptp != NULL;
        templ_ptp = templ_ptp->next) {
+    if (templ_ptp->is_parameter_pack) rtsp->is_variadic_instance = TRUE;
     ptp = alloc_param_type(error_type_ptr);
     if (last_ptp == NULL) {
       rtsp->param_type_list = ptp;
@@ -10558,7 +10559,12 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
        list if it is also explicitly declared by the user. */
     { a_type_ptr	return_type = NULL;
       if (is_function_type(rout_type)) {
-        return_type = skip_typerefs(rout_type)->variant.routine.return_type;
+        a_type_ptr			underlying_rout_type;
+        a_routine_type_supplement_ptr	rtsp;
+        underlying_rout_type = skip_typerefs(rout_type);
+        return_type = underlying_rout_type->variant.routine.return_type;
+        rtsp = underlying_rout_type->variant.routine.extra_info;
+        rtsp->is_variadic_instance = tssp->is_variadic;
       }  /* if */
       sym = make_template_function_symbol(templ_sym, &templ_sym->decl_position,
                                           return_type);
