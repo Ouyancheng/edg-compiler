@@ -3848,7 +3848,7 @@ overriding.
 }  /* is_selectively_overridden_by */
 
 
-static a_boolean may_selectively_override(a_routine_ptr     overrider,
+static a_boolean selective_override_match(a_routine_ptr     overrider,
                                           a_routine_ptr     candidate,
                                           a_base_class_ptr  base_class)
 /*
@@ -3863,18 +3863,8 @@ extension.  For example:
     int B2::f() { return 2; }  // Selectively overrides B2::f (not B1::f).
   };
 
-In C++/CLI, a different (less ambiguous) syntax is used, and a single
-derived-class member can override multiple base class members:
-  interface struct I1 { virtual void f(); };
-  interface struct I2 { virtual void g(); };
-  ref struct S: I1, I2 {
-    virtual void f() = I1::f, I2::g;
-  };
-
-In C++/CLI, a derived member can override a base member with a different name
-(e.g., S::f overrides I2::g in the last example above), but two partial
-overriders cannot have the same unqualified name (unlike the first example
-above with two members f in class D).
+Note: This function is only for use with non-C++/CLI-style selective
+overriding.
 */
 {
   a_boolean         result = FALSE;
@@ -3932,19 +3922,18 @@ above with two members f in class D).
            void C1::f(); // Overides f in both base subobjects.
            void C2::f(); // Error: Redeclaration.
          };
-       This also applies in C++/CLI classes. */
+    */
     an_il_entity_list_entry_ptr  ofep = overrider->overridden_functions;
-    for (; ofep != NULL; ofep = ofep->next) {
-      a_tagged_pointer  ep = ofep->entity;
-      if ((an_il_entry_kind)ep.kind == iek_routine &&
-          (a_routine_ptr)ep.ptr == candidate) {
-        result = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
+    a_tagged_pointer             ep;
+    check_assertion(ofep != NULL && ofep->next == NULL);
+    ep = ofep->entity;
+    if ((an_il_entry_kind)ep.kind == iek_routine &&
+        (a_routine_ptr)ep.ptr == candidate) {
+      result = TRUE;
+    }  /* if */
   }  /* if */
   return result;
-}  /* may_selectively_override */
+}  /* selective_override_match */
 
 
 static a_boolean matching_cli_accessors(a_routine_ptr  overrider,
@@ -4275,11 +4264,32 @@ next_named_override:
                   continue;
                 }  /* if */
               }  /* if */
-              if ((cppcli_enabled ? named_override != NULL
-                                  : rout->overridden_functions != NULL) &&
-                  !may_selectively_override(rout, rp, bcp)) {
-                /* rout is an explicit overrider that doesn't override rp. */
-                continue;
+              if (cppcli_enabled &&
+                  is_immediate_managed_class_type(class_type)) {
+                /* Check for C++/CLI-style named overriding. */
+                if (named_override != NULL) {
+                  if (!identical_types(
+                                     sym_parent_class(named_override->symbol),
+                                     bcp->type)) {
+                    /* named_override does not correspond to the current
+                       base. */
+                    goto next_base_class;
+                  }  /* if */
+                } else if (decl_info->named_overrides != NULL) {
+                  /* A declaration with named overrides, but this pass is for
+                     classic overriding of ref base classes: Ignore interface
+                     base classes. */
+                  if (cli_class_type_kind_is(bcp->type, cctk_interface)) {
+                    goto next_base_class;
+                  }  /* if */
+                }  /* if */
+              } else {
+                /* Check for non-CLI-style selective overriding. */
+                if (rout->overridden_functions != NULL &&
+                    !selective_override_match(rout, rp, bcp)) {
+                  /* rout is an explicit overrider that doesn't override rp. */
+                  continue;
+                }  /* if */
               }  /* if */
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
