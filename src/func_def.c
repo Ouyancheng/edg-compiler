@@ -758,7 +758,7 @@ specializations and lambdas.  rout_ptr is the routine being defined.
 {
   a_param_type_ptr	next_ptp = (*ptp)->next;
 
-  if (!rout_ptr->is_specialized && !rout_ptr->is_lambda_body &&
+  if (rout_ptr->is_template_function && !rout_ptr->is_specialized &&
       next_ptp != NULL && next_ptp->param_num == (*ptp)->param_num &&
       next_ptp->param_num != 0) {
     /* The next parameter type entry is for the same variadic parameter.

@@ -5081,12 +5081,15 @@ curr_routine points to the routine entry; otherwise, it is NULL.
              static int i;  // Referenced through a block-extern declaration.
              int f() { extern int i; return i; }
         */
-        if (sym->referenced) symbol_for(var_ptr)->referenced = TRUE;
-        if (sym->variant.variable.value_has_been_set) {
-          symbol_for(var_ptr)->variant.variable.value_has_been_set = TRUE;
-        } /* if */
-        if (sym->variant.variable.used) {
-          symbol_for(var_ptr)->variant.variable.used = TRUE;
+        a_symbol_ptr	primary_sym = symbol_for(var_ptr);
+        if (primary_sym != NULL) {
+          if (sym->referenced) primary_sym->referenced = TRUE;
+          if (sym->variant.variable.value_has_been_set) {
+            primary_sym->variant.variable.value_has_been_set = TRUE;
+          } /* if */
+          if (sym->variant.variable.used) {
+            primary_sym->variant.variable.used = TRUE;
+          } /* if */
         } /* if */
       }  /* if */
 #if CHECKING
