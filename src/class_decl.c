@@ -6149,6 +6149,9 @@ to FALSE before returning).
 
   cssp = symbol_supplement_for_class(class_type);
   bcp_cssp = symbol_supplement_for_class(bcp_type);
+  /* A class with base classes is neither an "aggregate" nor a POD. */
+  class_state->class_aggregate_ruled_out = TRUE;
+  class_state->POD_ruled_out = TRUE;
   /* The implied default constructor of the current class will be
      nontrivial if any of its base classes is virtual or has a nontrivial
      default constructor itself.  The current class requires a destructor
@@ -18960,9 +18963,6 @@ classes.
       add_stop_token(tok_lbrace);
       scan_base_specifier_list(class_type, &class_state);
       remove_stop_token(tok_lbrace);
-      /* A class with base classes is not an "aggregate" (ARM 8.4.1). */
-      class_state.class_aggregate_ruled_out = TRUE;
-      class_state.POD_ruled_out = TRUE;
       /* If there is a base specifier list and this is a class or struct
          declaration, it has to be definition, which means the next token
          should be a brace. */
