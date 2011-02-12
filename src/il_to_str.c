@@ -4258,6 +4258,7 @@ on every expression.
         octl->output_str("<expression>", octl);
         break;
     }  /* switch */
+    if (expr->is_pack_expansion) octl->output_str("...", octl);
   }  /* if */
 }  /* form_expression */
 

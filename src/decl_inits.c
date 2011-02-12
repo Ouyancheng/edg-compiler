@@ -148,7 +148,7 @@ typedef struct an_aggregate_init_context {
 			   errors. */
   a_field_ptr	field;
 			/* The field currently being initialized.  NULL if
-			   the current context is not struct or if all fields
+			   the current context is not a struct or if all fields
 			   have been initialized. */
   a_constant_ptr
 		constant_list;
@@ -2471,6 +2471,27 @@ this function points to a tree that includes a dynamic-init entry.
         member_con = get_initializer(&member_type, init_info, &context,
                                      &local_nothing_taken,
                                      &local_any_dynamic_init);
+        if (is_variadic_template_context() &&
+            is_prototype_instantiation_context()) {
+          /* If we get a pack expansion in a prototype instantiation, we
+             don't know how many members it initializes, so we have to assume
+             we can't track what the next member is. */
+          an_expr_node_ptr con_expr = NULL;
+          if (member_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+            a_dynamic_init_ptr dyn_dip = member_con->variant.dynamic_init;
+            if (dyn_dip->kind == (a_dynamic_init_kind)dik_expression) {
+              con_expr = dyn_dip->variant.expression;
+            }  /* if */
+          } else if (member_con->kind ==
+                                     (a_constant_repr_kind)ck_template_param &&
+                     member_con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression) {
+            con_expr = member_con->variant.template_param.variant.expr;
+          }  /* if */
+          if (con_expr != NULL && con_expr->is_pack_expansion) {
+            kind = (a_type_kind)tk_template_param;
+          }  /* if */
+        }  /* if */
         if (!is_flexible_array && init_info->has_flexible_array_initializer) {
           /* We just scanned an aggregate initializer for a flexible array
              member. */

@@ -27807,10 +27807,17 @@ to being able to fetch a next expression).
                                               &expr_stack_entry,
                                               static_lifetime,
                                               suppress_object_lifetime);
+scan_more:
     scan_potential_pack_expansion_initializer_expr(dps);
-    if (!anything_cached(&dps->prescanned_initializer_cache) &&
-        curr_token == tok_rbrace) {
-      *empty_expansion_at_closing_brace = TRUE;
+    if (!anything_cached(&dps->prescanned_initializer_cache)) {
+      if (curr_token == tok_rbrace) {
+        *empty_expansion_at_closing_brace = TRUE;
+      } else if (curr_token == tok_comma) {
+        /* If we have a comma, swallow it and scan another expression
+           (empty pack expansion plus a comma is treated as empty). */
+        (void)get_token();
+        goto scan_more;
+      }  /* if */
     }  /* if */
     pop_expr_stack();
     restore_expr_stack(saved_expr_stack);
