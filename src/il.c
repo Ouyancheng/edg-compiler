@@ -1639,6 +1639,7 @@ Dump the contents of the indicated expression node for debug purposes.
   a_throw_supplement_ptr      tsp;
 
   for (a = 0; a < level; a++) fputs(" ", f_debug);
+  if (node->is_pack_expansion) fprintf(f_debug, "[pack expansion] ");
   if (node->is_lvalue) fprintf(f_debug, "[lvalue] ");
   switch ((int)node->kind) {
     case enk_operation:
