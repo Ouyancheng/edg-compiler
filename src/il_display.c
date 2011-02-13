@@ -1032,6 +1032,9 @@ Display the indicated constant entry.
     disp_boolean("is_literal_field", TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (ptr->is_pack_expansion) {
+    disp_boolean("is_pack_expansion", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:

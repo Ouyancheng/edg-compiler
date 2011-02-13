@@ -4427,6 +4427,11 @@ constant is an aggregate the braces around it are suppressed.
         }  /* if */
         /* Determine the type of the entity initialized by the next
            constant. */
+        if (eff_sub_con->is_pack_expansion) {
+          /* If a variadic template pack expansion appears, we can't continue
+             to correlate initializer constants and aggregate elements. */
+          template_dependent_case = TRUE;
+        }  /* if */
         if (template_dependent_case) {
           /* No constraints on the type: use the type of the constant. */
           sub_type = eff_sub_con->type;

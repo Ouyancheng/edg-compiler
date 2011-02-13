@@ -847,6 +847,7 @@ associated variant fields to default values.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cp->is_literal_field = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  cp->is_pack_expansion = FALSE;
 #if CENTERLINE_CHECKING
   cp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

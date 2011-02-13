@@ -2490,6 +2490,7 @@ this function points to a tree that includes a dynamic-init entry.
           }  /* if */
           if (con_expr != NULL && con_expr->is_pack_expansion) {
             kind = (a_type_kind)tk_template_param;
+            member_con->is_pack_expansion = TRUE;
           }  /* if */
         }  /* if */
         if (!is_flexible_array && init_info->has_flexible_array_initializer) {

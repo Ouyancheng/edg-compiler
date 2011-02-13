@@ -3417,6 +3417,12 @@ typedef struct a_constant {
 			   field (i.e., a member declared with the context-
 			   sensitive keyword "literal"). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_bit_field	is_pack_expansion:1;
+			/* TRUE if (in an aggregate initializer list) this
+			   constant represents a variadic template pack
+			   expansion.  When that's the case, the correspondence
+			   between initializer constants and initialized
+			   members can't be maintained. */
   bitfield_to_avoid_codecenter_warnings()
   a_constant_repr_kind
                 kind;
