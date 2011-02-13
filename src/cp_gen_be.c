@@ -4427,9 +4427,10 @@ constant is an aggregate the braces around it are suppressed.
         }  /* if */
         /* Determine the type of the entity initialized by the next
            constant. */
-        if (eff_sub_con->is_pack_expansion) {
+        if (eff_sub_con->is_pack_expansion && !array_case) {
           /* If a variadic template pack expansion appears, we can't continue
-             to correlate initializer constants and aggregate elements. */
+             to correlate initializer constants and aggregate elements,
+             except with arrays where all the elements have the same type. */
           template_dependent_case = TRUE;
         }  /* if */
         if (template_dependent_case) {
