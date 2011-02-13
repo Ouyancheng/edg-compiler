@@ -222,6 +222,7 @@ parenthesized_init is TRUE; otherwise, it's "="-form.
     scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   }  /* if */
   add_operand_to_expression_cache(&operand,
+                                  /*to_front=*/TRUE,
                                   /*preserve_lifetime=*/!dps->is_new_expr_type,
                                   &dps->prescanned_initializer_cache);
   deduce_auto_type_if_necessary(dps);
@@ -12656,6 +12657,7 @@ in *rcblock).
         make_rescan_operand(rcblock->argument_list, rcblock,
                             &auto_operand);
         add_operand_to_expression_cache(&auto_operand,
+                                        /*to_front=*/TRUE,
                                         /*preserve_lifetime=*/FALSE,
                                         &dps.prescanned_initializer_cache);
         dps.declarator_pos = dps.auto_pos = type_position;
@@ -26833,6 +26835,7 @@ expressions being pushed into the cache.
        loop below is not required. */
   } else {    
     /* Note that the code here is very similar to scan_expr_list. */
+    check_assertion(!anything_cached(&dps->prescanned_initializer_cache));
     any_more = begin_potential_pack_expansion_context(&pesep);
     while (any_more) {
       an_operand                 operand;
@@ -26841,6 +26844,7 @@ expressions being pushed into the cache.
       /* Scan the initializer expression and put it into the cache. */
       scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
       add_operand_to_expression_cache(&operand,
+                                      /*to_front=*/FALSE,
                                       preserve_lifetime,
                                       &dps->prescanned_initializer_cache);
       if (has_assoc_lifetime) {
@@ -27658,6 +27662,7 @@ required_type_determined:
     /* We're not going to use the expression at this level, so put it into
        the expression cache for use at some later point. */
     add_operand_to_expression_cache(&result,
+                                    /*to_front=*/TRUE,
                                     /*preserve_lifetime=*/TRUE,
                                     &dps->prescanned_initializer_cache);
   } else if (string_case && whole_string_init != NULL) {
@@ -27665,6 +27670,7 @@ required_type_determined:
        handled in this routine. */
     *whole_string_init = TRUE;
     add_operand_to_expression_cache(&result,
+                                    /*to_front=*/TRUE,
                                     /*preserve_lifetime=*/TRUE,
                                     &dps->prescanned_initializer_cache);
   } else if (is_aggregate_or_union_type(required_type)) {

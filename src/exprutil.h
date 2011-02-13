@@ -1122,6 +1122,7 @@ extern void clear_expression_cache(struct an_expression_cache *cache);
 
 extern void add_operand_to_expression_cache(
                                   an_operand                 *operand,
+                                  a_boolean                  to_front,
                                   a_boolean                  preserve_lifetime,
                                   struct an_expression_cache *cache);
 

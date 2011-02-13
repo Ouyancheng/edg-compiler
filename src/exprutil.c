@@ -602,13 +602,14 @@ Set the fields of an expression cache to default values.
 
 
 void add_operand_to_expression_cache(an_operand          *operand,
+                                     a_boolean           to_front,
                                      a_boolean           preserve_lifetime,
                                      an_expression_cache *cache)
 /*
 Add the indicated operand to the end of the queue of expressions in the
-indicated expression cache.  If preserve_lifetime is TRUE, save the
-current expression stack lifetime for later restoration when the operand
-is removed from the cache.
+indicated expression cache (or the front if to_front is TRUE).  If
+preserve_lifetime is TRUE, save the current expression stack lifetime
+for later restoration when the operand is removed from the cache.
 */
 {
   an_arg_operand_ptr arg_op = alloc_arg_operand();
@@ -621,12 +622,20 @@ is removed from the cache.
     curr_object_lifetime = curr_object_lifetime->parent_lifetime;
     expr_stack->lifetime = NULL;
   }  /* if */
-  if (cache->first_expression == NULL) {
+  if (to_front) {
+    /* Add to the front of the queue. */
+    arg_op->next = cache->first_expression;
     cache->first_expression = arg_op;
+    if (arg_op->next == NULL) cache->last_expression = arg_op;
   } else {
-    cache->last_expression->next = arg_op;
+    /* Add to the end of the queue. */
+    if (cache->first_expression == NULL) {
+      cache->first_expression = arg_op;
+    } else {
+      cache->last_expression->next = arg_op;
+    }  /* if */
+    cache->last_expression = arg_op;
   }  /* if */
-  cache->last_expression = arg_op;
 }  /* add_operand_to_expression_cache */
 
 
