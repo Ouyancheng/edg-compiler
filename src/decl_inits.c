@@ -2206,6 +2206,7 @@ this function points to a tree that includes a dynamic-init entry.
   a_source_position              initializer_pos;
   a_decl_parse_state             *dps;
   a_boolean                      saved_initializer_is_expr_list;
+  a_boolean                      pack_expansion_encountered = FALSE;
 
   db_enter(4, "get_initializer");
   check_assertion(init_info != NULL);
@@ -2489,7 +2490,7 @@ this function points to a tree that includes a dynamic-init entry.
             con_expr = member_con->variant.template_param.variant.expr;
           }  /* if */
           if (con_expr != NULL && con_expr->is_pack_expansion) {
-            kind = (a_type_kind)tk_template_param;
+            pack_expansion_encountered = TRUE;
             member_con->is_pack_expansion = TRUE;
           }  /* if */
         }  /* if */
@@ -2660,27 +2661,34 @@ this function points to a tree that includes a dynamic-init entry.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         } else if (kind == (a_type_kind)tk_class ||
                    kind == (a_type_kind)tk_struct) {
-          /* Advance to the next named field of the class or struct. */
-          curr_field = next_initializable_field(curr_field->next);
-          context.field = curr_field;
-          /* Note that any_more_members might be FALSE and then turn TRUE
-             again because a designator was encountered. */
-          any_more_members = (curr_field != NULL);
-          /* Check for no fields remaining. */
-          if (curr_field == NULL) {
-            /* Nothing to do. */
-          } else if (microsoft_mode || gcc_mode) {
-            /* In GNU C and Microsoft modes, the check for a field of
-               incomplete array type is not made -- such initializations are
-               allowed (but only for top-level fields in GNU C mode). */
-          } else if (curr_field->next == NULL &&
-                     is_incomplete_type(curr_field->type)) {
-            /* Also exit on an incomplete array as the final field of a
-               struct (allowed as an extension, but not allowed to be
-               initialized).  This would come up in a case like
-                 struct {int i; int j[];} = {0, 0};  <-- Error on 2nd 0.
-            */
-            any_more_members = FALSE;
+          if (pack_expansion_encountered) {
+            /* If we encountered a variadic template pack expansion, we
+               don't know how many members it initialized, so we don't
+               know what field is next. */
+            kind = (a_type_kind)tk_template_param;
+          } else {
+            /* Advance to the next named field of the class or struct. */
+            curr_field = next_initializable_field(curr_field->next);
+            context.field = curr_field;
+            /* Note that any_more_members might be FALSE and then turn TRUE
+               again because a designator was encountered. */
+            any_more_members = (curr_field != NULL);
+            /* Check for no fields remaining. */
+            if (curr_field == NULL) {
+              /* Nothing to do. */
+            } else if (microsoft_mode || gcc_mode) {
+              /* In GNU C and Microsoft modes, the check for a field of
+                 incomplete array type is not made -- such initializations are
+                 allowed (but only for top-level fields in GNU C mode). */
+            } else if (curr_field->next == NULL &&
+                       is_incomplete_type(curr_field->type)) {
+              /* Also exit on an incomplete array as the final field of a
+                 struct (allowed as an extension, but not allowed to be
+                 initialized).  This would come up in a case like
+                   struct {int i; int j[];} = {0, 0};  <-- Error on 2nd 0.
+              */
+              any_more_members = FALSE;
+            }  /* if */
           }  /* if */
         } else {
           /* Only the first field in a union is initialized, so having done
