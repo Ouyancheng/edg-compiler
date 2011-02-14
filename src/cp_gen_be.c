@@ -6156,8 +6156,8 @@ if the declaration following this one is such a continuation.
   write_end_of_declaration_punctuation(*another_decl_in_comma_list);
 }  /* gen_member_constant_decl */
 
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
 static void gen_property_or_event_accessors(a_property_or_event_descr_ptr desc)
 /*
 Put out the accessor functions (including indices, if any) for the C++/CLI
@@ -6208,8 +6208,8 @@ property or event designated by desc.
   }  /* if */
   write_tok_str("}");
 }  /* gen_property_or_event_accessors */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_field_decl(a_boolean suppress_specifiers,
                            a_boolean *another_decl_in_comma_list)
