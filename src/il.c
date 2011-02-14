@@ -9260,6 +9260,24 @@ Return the C++/CLI System::ValueType type.
   return sym->variant.type.ptr;
 }  /* cli_system_value_type */
 
+
+a_boolean f_is_member_of_namespace_cli(a_source_correspondence  *scp)
+/*
+Return TRUE if and only if the given entity is a member of the C++/CLI
+namespace "cli".
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (scp_is_namespace_member(scp)) {
+    check_assertion(symbol_for_namespace_cli != NULL);
+    result = scp->parent_scope ==
+                         symbol_for_namespace_cli->variant.namespace_info.ptr
+                                                 ->variant.assoc_scope;
+  }  /* if */
+  return result;
+}  /* f_is_member_of_namespace_cli */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !NEAR_AND_FAR_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED

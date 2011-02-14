@@ -3133,6 +3133,21 @@ the scope being pushed.
     if (is_scanning_generated_code_from_metadata) {
       /* Don't update source_sequence_entries_disallowed when scanning
          a declaration from metadata. */ 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    } else if (symbol_for_namespace_cli != NULL && assoc_type != NULL &&
+               is_member_of_namespace_cli(assoc_type)) {
+      /* Do not generate source sequence entries for members of namespace
+         "cli".  Only generated declarations can live in that namespace;
+         in particular, explicit specializations of templates declared in
+         namespace cli are not permitted.  We should therefore not create
+         source sequence entries for instantiations in that namespace since
+         those would be treated as explicit specializations (which is
+         invalid). */
+      ssep->source_sequence_entries_disallowed = TRUE;
+      source_sequence_entries_disallowed = TRUE;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (instance_sym == NULL) {
       /* If instance_sym is NULL we are pushing the scope for the declaration
          (but not the body) of a template function -- no source sequence

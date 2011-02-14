@@ -5721,10 +5721,20 @@ is returned.
       fputs("\":\n", f_debug);
     }  /* if */
 #endif /* DEBUG */
-    add_source_sequence_entry_for_partial_instantiation(
-                                           (char *)class_type,
-                                           (an_il_entry_kind)iek_type,
-                                           class_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && is_member_of_namespace_cli(class_type)) {
+      /* Members of namespace cli cannot be specialized and should therefore
+         not trigger source sequence entries that would be interpreted as
+         specializations. */
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      add_source_sequence_entry_for_partial_instantiation(
+                                             (char *)class_type,
+                                             (an_il_entry_kind)iek_type,
+                                             class_type);
+    }  /* if */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
