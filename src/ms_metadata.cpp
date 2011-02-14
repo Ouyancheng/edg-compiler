@@ -1941,16 +1941,13 @@ Import a single member of a type.
       }  /* if */
       declaration << decoder.decode_method_signature(
                        member_name, is_constructor, /*is_for_property=*/false);
+      /* FIXME: "sealed" not supported yet. */
       if (IsMdFinal(member_attributes)) {
-        declaration << L" sealed";
+        declaration << L" /* sealed */";
       }  /* if */
+      /* FIXME: "new" not supported yet. */
       if (IsMdNewSlot(member_attributes)) {
-        /* FIXME: this attribute appears to be set spuriously for some
-           mscorlib members.  E.g. for System::Delegate::Clone() (which causes
-           delegate class types to remain abstract when it shouldn't). */
         declaration << L" /* new */";
-      } else if (IsMdVirtual(member_attributes)) {
-        declaration << L" override";
       }  /* if */
     } else {
       /* A field. */
