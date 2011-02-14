@@ -1942,10 +1942,12 @@ Import a single member of a type.
       declaration << decoder.decode_method_signature(
                        member_name, is_constructor, /*is_for_property=*/false);
       if (IsMdFinal(member_attributes)) {
-        /* FIXME: "sealed" not supported yet. */
         declaration << L" sealed";
       }  /* if */
       if (IsMdNewSlot(member_attributes)) {
+        /* FIXME: this attribute appears to be set spuriously for some
+           mscorlib members.  E.g. for System::Delegate::Clone() (which causes
+           delegate class types to remain abstract when it shouldn't). */
         declaration << L" new";
       } else if (IsMdVirtual(member_attributes)) {
         declaration << L" override";
