@@ -1948,7 +1948,7 @@ Import a single member of a type.
         /* FIXME: this attribute appears to be set spuriously for some
            mscorlib members.  E.g. for System::Delegate::Clone() (which causes
            delegate class types to remain abstract when it shouldn't). */
-        declaration << L" new";
+        declaration << L" /* new */";
       } else if (IsMdVirtual(member_attributes)) {
         declaration << L" override";
       }  /* if */
