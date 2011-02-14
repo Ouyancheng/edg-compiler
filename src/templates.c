@@ -8315,8 +8315,9 @@ are looked up, if needed.  The symbol of the new instance is returned.
                                   (a_symbol_ptr)NULL);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled && new_sym != NULL &&
-        !check_cli_internal_template_instantiation(template_sym, new_list,
-                                                   (a_source_position*)NULL)) {
+        !check_cli_internal_template_instantiation(
+                          template_sym, template_arg_list_for_symbol(new_sym),
+                          (a_source_position*)NULL)) {
       new_sym = NULL;
       *copy_error = TRUE;
     }  /* if */
