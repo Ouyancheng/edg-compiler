@@ -4461,9 +4461,15 @@ done:
                      ec_override_member_does_not_override, source_pos);
     }  /* if */
   } else if (func_info->new_member && !new_okay) {
-    /* The member function is marked as "new" but no matching
-       member function was found in a base class. */
-    pos_warning(ec_new_requires_matching_base_member, source_pos);
+    if (cppcli_enabled && class_type_supp(class_type)->assembly_index != 0) {
+      /* The class was loaded from an assembly file.  Because of limitations
+         of the metadata, the code generated from such a file can contain
+         extraneous "new" modifiers; these should just be silently ignored. */
+    } else {
+      /* The member function is marked as "new" but no matching
+         member function was found in a base class. */
+      pos_warning(ec_new_requires_matching_base_member, source_pos);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (rout->is_virtual) {
