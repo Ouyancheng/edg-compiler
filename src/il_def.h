@@ -12596,11 +12596,6 @@ enum an_expr_operator_kind_tag {
   eok_subscript,	/* Subscripting operation.  The operands are the
 			   pointer to the first element of the array and the
 			   integral subscript value, in either order. */
-  eok_cli_subscript,	/* C++/CLI array subscripting operation.  The first
-			   operand is a handle to a CLI array object (a ref
-			   class type), and following arguments are the
-			   subscripts.  The result is an lvalue for the
-			   array element. */
   eok_dot_field,	/* Selection of a nonstatic data member of a class,
 			   source form x.y.  The first operand is an lvalue
 			   or rvalue of class type.  The second operand is
@@ -12691,6 +12686,11 @@ enum an_expr_operator_kind_tag {
 			   function; the second is an rvalue pointer to
 			   class that identifies the selector object;
 			   the remaining operands are the arguments. */
+  eok_cli_subscript,	/* C++/CLI array subscripting operation.  The first
+			   operand is a handle to a CLI array object (a ref
+			   class type), and following arguments are the
+			   subscripts.  The result is an lvalue for the
+			   array element. */
   /* Operators used when the <stdarg.h> macros are treated as builtins: */
   eok_va_start,		/* va_start macro reference.  First operand is an
 			   lvalue variable of type va_list, second is
@@ -15707,7 +15707,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "p+=", "p-=",
    "b=",
    "&&", "||", ",",
-   "[]", "cli[]", ".", "->", ".*", "->*", ".static", "->static",
+   "[]", ".", "->", ".*", "->*", ".static", "->static",
    "virt func ptr",
    "?",
    "call",
@@ -15715,6 +15715,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "-> member call",
    ".* pm call",
    "->* pm call",
+   "cli[]", 
    "va_start", "va_arg", "va_end", "va_copy", "va_start (single op)",
    "lvalue",
    "error", "last"

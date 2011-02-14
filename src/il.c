@@ -21540,8 +21540,6 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_comma: */			LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
   /* eok_subscript: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
-  /* eok_cli_subscript: */		LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
   /* eok_dot_field: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_points_to_field: */		LVRV_OPND1_IS_RVALUE,
   /* eok_pm_field: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
@@ -21559,6 +21557,8 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_points_to_member_call: */	LVRV_OPND1_IS_RVALUE,
   /* eok_dot_pm_call: */		LVRV_OPND1_IS_RVALUE,
   /* eok_points_to_pm_call: */		LVRV_OPND1_IS_RVALUE,
+  /* eok_cli_subscript: */		LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
   /* eok_va_start: */			LVRV_OPND1_IS_LVALUE |
 					LVRV_OPND2_IS_LVALUE |
 					LVRV_VA_LIST_OPERATION,

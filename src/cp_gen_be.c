@@ -600,7 +600,6 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_OR_OR,		/* eok_lor */
   PREC_COMMA,		/* eok_comma */
   PREC_POSTFIX,		/* eok_subscript */
-  PREC_POSTFIX,		/* eok_cli_subscript */
   PREC_POSTFIX,		/* eok_dot_field */
   PREC_POSTFIX,		/* eok_points_to_field */
   PREC_PTR_TO_MEMBER,	/* eok_pm_field */
@@ -614,6 +613,7 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_POSTFIX,		/* eok_points_to_member_call */
   PREC_POSTFIX,		/* eok_dot_pm_call */
   PREC_POSTFIX,		/* eok_points_to_pm_call */
+  PREC_POSTFIX,		/* eok_cli_subscript */
   PREC_POSTFIX,		/* eok_va_start */
   PREC_POSTFIX,		/* eok_va_arg */
   PREC_POSTFIX,		/* eok_va_end */
