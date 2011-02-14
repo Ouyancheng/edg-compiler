@@ -2131,7 +2131,6 @@ ec_bad_tracking_ref_init;;"a reference of type %t1 cannot be initialized with a 
 ec_copy_constructor_in_value_class_type;;"a copy constructor cannot be declared in a value class type"
 ec_default_constructor_in_value_class_type;;"a default constructor cannot be declared in a value class type"
 ec_destructor_in_value_class_type;;"a destructor cannot be declared in a value class type"
-ec_finalizer_in_value_class_type;;"a finalizer cannot be declared in a value class type"
 ec_assignment_in_value_class_type;;"an assignment operator cannot be declared in a value class type"
 ec_nonvalue_class_type_cannot_be_value_class_member;;"non-value class type %t cannot be the type of a member of a value class"
 ###############################################################################
