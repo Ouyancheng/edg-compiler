@@ -8691,6 +8691,7 @@ or NULL otherwise (e.g., for a call through a pointer to function).
   arg_block->curr_param_type = NULL;
   arg_block->prototyped = FALSE;
   arg_block->has_ellipsis = FALSE;
+  arg_block->pack_encountered = FALSE;
   arg_block->arg_list_kind = (a_pragma_kind)pk_none;
   arg_block->varargs_count = NOT_LINT_VARARGS;
   arg_block->arg_ctr = 0;
@@ -8855,11 +8856,23 @@ next parameter.
     /* The routine to be called is not known because it's
        template-dependent. */
     do_default_promotion = FALSE;
+  } else if (arg_block->pack_encountered) {
+    /* We've previously encountered a parameter pack or a pack expansion, so
+       we can't correlate parameters and arguments. */
+    do_default_promotion = FALSE;
+  } else if (operand->pack_expansion_descr != NULL ||
+             (ptp != NULL && ptp->is_parameter_pack)) {
+    /* The current argument is a pack expansion, or the current parameter is
+       a parameter pack, so we can no longer correlate parameters and
+       arguments. */
+    arg_block->pack_encountered = TRUE;
+    do_default_promotion = FALSE;
   } else if (!arg_block->have_param_info) {
     /* We have no information on parameter types. */
   } else if (arg_block->prototyped) {
     /* Prototyped parameter list. */
     if (ptp != NULL) {
+      /* No more parameters; we've probably run off into an ellipsis. */
       do_default_promotion = FALSE;
     } else {
       /* No more formal arguments in the list. */
@@ -8939,6 +8952,9 @@ next parameter.
   } else if (arg_block->unknown_dependent_function) {
     /* Argument of unknown template-dependent function. */
     prep_generic_operand(operand);
+  } else if (arg_block->pack_encountered) {
+    /* We've encountered a parameter pack or pack expansion, so we can't
+       correlate parameters and arguments. */
   } else {
     /* Parameter is prototyped. */
     /* Check the argument for compatibility against the parameter,
@@ -8955,7 +8971,7 @@ next parameter.
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
-  if (ptp != NULL) {
+  if (ptp != NULL && !arg_block->pack_encountered) {
     /* Advance to the next parameter type entry in preparation for the
        next call of this routine. */
     arg_block->curr_param_type = ptp->next;
@@ -9145,6 +9161,10 @@ list checking (e.g., for the presence of too few arguments).
   /* Check for additional parameters not accounted for in the call. */
   if (!arg_block->have_param_info) {
     /* We don't have parameter information (anymore?), so we can't check. */
+  } else if (arg_block->pack_encountered) {
+    /* We encountered a variadic template parameter pack or pack expansion,
+       so we can't correlate parameters and arguments, and therefore we
+       can't check if they ended together. */
   } else if (arg_block->prototyped) {
     /* Prototyped parameter list. */
     if (arg_block->curr_param_type != NULL) {

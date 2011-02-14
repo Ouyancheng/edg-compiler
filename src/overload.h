@@ -429,6 +429,12 @@ typedef struct an_arg_check_block {
 			/* TRUE if the function is prototyped. */
   a_boolean	has_ellipsis;
 			/* TRUE if the function has an ellipsis. */
+  a_boolean	pack_encountered;
+			/* TRUE if in scanning parameters and arguments we
+			   have encountered either a parameter pack parameter
+			   or a pack expansion argument.  In either case, we
+			   can no longer maintain the correspondence between
+			   parameters and arguments. */
   a_pragma_kind	arg_list_kind;
 			/* The kind of any pragma that applies to the
 			   parameter list. */
