@@ -4334,13 +4334,6 @@ next_named_override:
 #if MICROSOFT_EXTENSIONS_ALLOWED
             if (cppcli_enabled) {
               /* Check that required modifiers are specified. */
-#if /*FIXME*/1
-              if (class_type_supp(class_type)->assembly_index != 0) {
-                /* FIXME: The metadata reader currently does not generate
-                   required override modifiers.  For now, we just rely on
-                   standard implicit overriding rules in such cases. */
-              } else
- #endif /*FIXME*/
               if (!func_info->override && !func_info->new_member &&
                   is_ref_class_type(bcp->type) && named_override == NULL) {
                 /* If a match is found in a base ref class, the overriding 
@@ -4451,7 +4444,12 @@ done:
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (func_info->override && !dps->override_okay) {
-    if (matching_interface_member != NULL) {
+    if (cppcli_enabled && class_type_supp(class_type)->assembly_index != 0) {
+      /* The class was loaded from an assembly file.  Because of limitations
+         of the metadata, the code generated from such a file can contain
+         extraneous "override" modifiers; these should just be silently
+         ignored. */
+    } else if (matching_interface_member != NULL) {
       /* "override" was used only to override one or more interface members;
          this is not normally valid, but Microsoft compilers only issue a
          warning on such harmless cases. */

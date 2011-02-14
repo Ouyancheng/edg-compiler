@@ -1941,13 +1941,14 @@ Import a single member of a type.
       }  /* if */
       declaration << decoder.decode_method_signature(
                        member_name, is_constructor, /*is_for_property=*/false);
-      /* FIXME: "sealed" not supported yet. */
       if (IsMdFinal(member_attributes)) {
-        declaration << L" /* sealed */";
+        /* FIXME: "sealed" not supported yet. */
+        declaration << L" sealed";
       }  /* if */
-      /* FIXME: "new" not supported yet. */
       if (IsMdNewSlot(member_attributes)) {
-        declaration << L" /* new */";
+        declaration << L" new";
+      } else if (IsMdVirtual(member_attributes)) {
+        declaration << L" override";
       }  /* if */
     } else {
       /* A field. */
