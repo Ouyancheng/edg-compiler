@@ -2035,7 +2035,7 @@ ec_qualifier_not_allowed_on_managed_member_function;;"a type qualifier is not al
 ec_pointer_to_ref_or_interface_class;;"an ordinary pointer to a C++/CLI ref class type or interface class type is not allowed"
 ec_reference_to_ref_or_interface_class;;"an ordinary reference to a C++/CLI ref class type or interface class type is not allowed"
 ec_override_name_must_be_a_base_class_member_function;;"override specifier does not name a base class member function"
-ec_override_name_nonvirtual;;"override specifier designates a nonvirtual member function %nd"
+ec_override_name_nonvirtual;;"override specifier designates a nonvirtual member %nd"
 ec_multiple_overrides;;"member function overrides %nd1 which is already overridden by %nd2"
 ec_multiple_visibility_specifiers;;"at most one visibility specifier is allowed"
 ec_invalid_delegate_type;;"type %t used for delegate definition is not a function type"
