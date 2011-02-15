@@ -13491,7 +13491,8 @@ is used only in C++ mode.
                      rtsp = routine_type->variant.routine.extra_info;
     a_param_type_ptr param_list = rtsp->param_type_list;
 
-    check_assertion_str(param_list != NULL || rtsp->has_ellipsis,
+    check_assertion_str(param_list != NULL || rtsp->has_ellipsis ||
+                        rtsp->is_variadic_instance,
                         "set_up_for_constructor_call: no first parameter");
     /* Check that the constructor is accessible and mark it as referenced. */
     expr_reference_to_implicitly_invoked_function(symbol_for(ctor_routine),
