@@ -2633,6 +2633,7 @@ this function points to a tree that includes a dynamic-init entry.
                 (array_type->variant.array.is_template_dependent_size_array ||
                  array_type->variant.array.variant.number_of_elements
                                                        > curr_array_element ||
+                 pack_expansion_encountered ||
                  is_template_param_type(
                                   underlying_array_element_type(array_type)));
             } else {
