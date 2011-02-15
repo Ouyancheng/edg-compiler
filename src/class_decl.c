@@ -4371,9 +4371,14 @@ next_named_override:
                    value types cannot be base classes. */
                 matching_interface_member = sym;
               }  /* if */
-              if (func_info->new_member) {
+              if (func_info->new_member &&
+                  cli_class_type_kind_is(bcp->type, cctk_ref)) {
+                /* The C++/CLI "new" modifier indicates that a member does not 
+                   override a virtual base ref class member with the same
+                   signature.  (It does not have an impact on matching
+                   interface members, however.) */
                 new_okay = TRUE;
-                /* Don't establish overriding of a base class member if the 
+                /* Don't establish overriding of a base ref class member if the
                    member function was declared "new".  The exception happens
                    when a named override specifier is also present (e.g.,
                    "virtual void f() new = X::g;"). */
