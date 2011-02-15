@@ -211,13 +211,15 @@ Initialize an entry of type an_aggregrate_init_context.
 
 
 static void set_initialized_array_size(a_type_ptr    *type,
-                                       a_targ_size_t size)
+                                       a_targ_size_t size,
+                                       a_boolean     unknown_dependent)
 /*
 Change *type to point to a new array type that is the same as the current
-*type except that its number of elements is changed to "size".  This is
-used to set the length of an incomplete array when its size becomes known
-because it is initialized.  The original type may be shared, and therefore
-a copy is made and modified.
+*type except that its number of elements is changed to "size".  If
+unknown_dependent is TRUE, the size is dependent but unknown (size is
+ignored).  This is used to set the length of an incomplete array when
+its size becomes known because it is initialized.  The original type
+may be shared, and therefore a copy is made and modified.
 */
 {
   a_type_ptr array_type, incomplete_type = skip_typerefs(*type);
@@ -225,11 +227,16 @@ a copy is made and modified.
   check_assertion(!has_unknown_specified_bound(incomplete_type));
   array_type = alloc_type((a_type_kind)tk_array);
   copy_type(incomplete_type, array_type);
-  array_type->variant.array.variant.number_of_elements = size;
-  if (gnu_mode && size == 0) {
-    /* In GNU C and C++ mode, an empty pair of braces can
-       be a valid initializer for a zero-length array. */
-    array_type->variant.array.bound_is_zero = TRUE;
+  if (unknown_dependent) {
+    array_type->variant.array.is_template_dependent_size_array = TRUE;
+    array_type->variant.array.variant.element_count_constant = NULL;
+  } else {
+    array_type->variant.array.variant.number_of_elements = size;
+    if (gnu_mode && size == 0) {
+      /* In GNU C and C++ mode, an empty pair of braces can
+         be a valid initializer for a zero-length array. */
+      array_type->variant.array.bound_is_zero = TRUE;
+    }  /* if */
   }  /* if */
   set_type_size(array_type);
   *type = array_type;
@@ -302,7 +309,8 @@ standard C behavior of trimming the terminating null character if needed),
     if (is_incomplete_type(array_type)) {
       /* The array type is incomplete, and therefore the array size
          is set from the string length. */
-      set_initialized_array_size(&array_type, num_elems);
+      set_initialized_array_size(&array_type, num_elems,
+                                 /*unknown_dependent=*/FALSE);
       *dst_type = array_type;
     } else if (array_type->variant.array.is_template_dependent_size_array) {
       /* This should only happen during prototype instantiations where the
@@ -2773,7 +2781,8 @@ this function points to a tree that includes a dynamic-init entry.
           /* Note that the size is not necessarily curr_array_element since
              intermediate designations may have implied a larger size. */
           if (!is_error_type(context.type)) {
-            set_initialized_array_size(&context.type, array_size);
+            set_initialized_array_size(&context.type, array_size,
+                                       pack_expansion_encountered);
           }  /* if */
           *type = context.type;
           any_more_members = FALSE;
@@ -3755,7 +3764,8 @@ returned set to TRUE.
             num_elems =
                        constant.type->variant.array.variant.number_of_elements;
           }  /* if */
-          set_initialized_array_size(&array_type, num_elems);
+          set_initialized_array_size(&array_type, num_elems,
+                                     /*unknown_dependent=*/FALSE);
           vp->type = array_type;
         } else if (is_array_type(array_type) && 
                    !has_unknown_specified_bound(array_type) &&
