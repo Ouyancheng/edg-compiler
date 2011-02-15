@@ -1215,7 +1215,7 @@ position following what was demangled.
   unsigned long num_operands, i;
   a_boolean     takes_type, is_new_style_cast, is_postfix;
   a_boolean     has_variable_number_of_operands = FALSE;
-  a_boolean     is_call = FALSE;
+  a_boolean     is_call = FALSE, is_subscript = FALSE;
 
   /* An operation has the form
        Opl2Z1ZZ2ZO <-- "Z1 + Z2", Z1/Z2 indicating nontype template parameters.
@@ -1376,6 +1376,10 @@ position following what was demangled.
         p++;
         write_id_str("::", dctl);
       }  /* if */
+    } else if (strcmp(operator_str, "subscript") == 0) {
+      /* A C++/CLI subscript operation (with a variable number of operands). */
+      has_variable_number_of_operands = TRUE;
+      is_subscript = TRUE;
     }  /* if */
     /* Get the count of operands. */
     p = get_number_with_optional_underscore(p, &num_operands, dctl);
@@ -1398,6 +1402,12 @@ position following what was demangled.
             write_id_str("(", dctl);
             close_str = ")";
             is_call = FALSE;
+          } else if (is_subscript) {
+            /* This is a C++/CLI subscript operation, we've just emitted
+               the array, the remaining operands are subscripts. */
+            write_id_str("[", dctl);
+            close_str = "]";
+            is_subscript = FALSE;
           } else if (i != num_operands) {
             write_id_str(", ", dctl);
           }  /* if */
@@ -1799,6 +1809,8 @@ not an operator encoding, return NULL.
     *takes_type = TRUE;
   } else if (start_of_id_is("ht", ptr, dctl)) {
     s = "%";
+  } else if (start_of_id_is("sb", ptr, dctl)) {
+    s = "subscript";
   } else {
     s = NULL;
   }  /* if */
@@ -5289,6 +5301,13 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
           str[19] = ptr[11];
           *length = 12;
           *num_operands = ptr[1]-'0';
+        } else if (start_of_id_is("9subscript", ptr+2) &&
+                   ptr[1] >= '0' && ptr[1] <= '9') {
+          /* C++/CLI subscript operation with variable number of operands
+             (<= 9).  The caller handles this as a special case. */
+          str = "subscript";
+          *length = 12;
+          *num_operands = ptr[1]-'0';
         }  /* if */
         break;
       default:
@@ -6068,6 +6087,16 @@ The syntax is:
         if (i != num_operands) write_id_str(", ", dctl);
       }  /* for */
       write_id_ch(')', dctl);
+    } else if (strncmp(op_str, "subscript", 9) == 0) {
+      /* C++/CLI subscript operation.  Has a variable number of operands. */
+      int i;
+      ptr = demangle_expression(ptr, dctl);
+      write_id_ch('[', dctl);
+      for (i = 2; i <= num_operands; i++) {
+        ptr = demangle_expression(ptr, dctl);
+        if (i != num_operands) write_id_str(", ", dctl);
+      }  /* for */
+      write_id_ch(']', dctl);
     } else if (num_operands == 1) {
       char cast_close = 0;
       /* Unary operations (old style cast is handled above). */

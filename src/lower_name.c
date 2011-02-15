@@ -289,6 +289,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_FINALIZER "df"
 #define MANGLING_STRING_FOR_MANAGED_NULLPTR "j"
 #define MANGLING_STRING_FOR_OPERATOR_HANDLE_TO "ht"
+#define MANGLING_STRING_FOR_OPERATOR_CLI_SUBSCRIPT "sb"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* IA64_ABI */
@@ -5096,6 +5097,7 @@ is TRUE.
   an_expr_node_ptr operand;
 #if IA64_ABI
   a_boolean        add_address_of;
+  unsigned long    operand_count = 0;
 #else /* !IA64_ABI */
   unsigned long    num_operands;
   a_boolean        need_close = FALSE;
@@ -5242,7 +5244,9 @@ is TRUE.
            is required. */
         num_operands = number_of_operands_in_list(
                                              expr->variant.operation.operands);
+#if ABI_COMPATIBILITY_VERSION < 402
         check_assertion(num_operands <= 9);
+#endif /* ABI_COMPATIBILITY_VERSION < 402 */
         store_digits_and_underscore(num_operands,
 #if ABI_COMPATIBILITY_VERSION >= 402
                                     /*old_form=*/FALSE,
@@ -5268,6 +5272,16 @@ is TRUE.
           {
             mangled_encoding_for_expression(operand, in_dependent_expr, mctl);
           }  /* if */
+#if IA64_ABI
+          if (node_operator_is(expr, eok_cli_subscript) &&
+              ++operand_count >= 9) {
+            /* The mangling for the C++/CLI subscript operator uses the IA-64
+               ABI vendor extended operator mangling, which restricts the
+               number of operands to a single digit, hence any additional
+               subscripts are discarded here. */
+            break;
+          }  /* if */
+#endif /* IA64_ABI */
         }  /* for */
 #if !IA64_ABI
         /* Put out the closing "O". */
@@ -8860,7 +8874,9 @@ If the operator is unrecognized, return *bad_operator TRUE (this can only
 happen when ABI_COMPATIBILITY_VERSION < 402 -- in later versions an assertion
 is triggered if the operator can't be mangled).  If the operator is some type
 of cast (which requires mangling of a type as well as an expression), return
-*is_cast TRUE.
+*is_cast TRUE.  Note that in some cases, the returned string may be a
+pointer to statically allocated storage, so the caller should copy the
+returned string to an appropriate buffer before this routine is invoked again.
 */
 {
   char           *name = NULL;
@@ -9102,6 +9118,22 @@ of cast (which requires mangling of a type as well as an expression), return
     case eok_handle_to:
     case eok_handle_to_box:
       name = MANGLING_STRING_FOR_OPERATOR_HANDLE_TO;
+      break;
+    case eok_cli_subscript:
+#if IA64_ABI
+      { /* The mangling for this operation uses the IA-64 ABI vendor extended
+           operator mangling which imposes a limit that the number of operands
+           must fit in a single digit (i.e., be no greater than 9). */
+        static char buffer[50];
+        num_operands = number_of_operands_in_list(
+                                             expr->variant.operation.operands);
+        if (num_operands > 9) num_operands = 9;
+        (void)sprintf(buffer, "v%u9subscript", num_operands);
+        name = buffer;
+      }
+#else /* !IA64_ABI */
+      name = MANGLING_STRING_FOR_OPERATOR_CLI_SUBSCRIPT;
+#endif /* IA64_ABI */
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case eok_lvalue:                     /* Handled higher up */
