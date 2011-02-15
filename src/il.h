@@ -897,10 +897,12 @@ extern a_type_ptr cli_system_object_type(void);
 
 extern a_type_ptr cli_system_value_type(void);
 
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 extern a_boolean f_is_member_of_namespace_cli(a_source_correspondence  *scp);
 
 #define is_member_of_namespace_cli(ptr)                                      \
   (f_is_member_of_namespace_cli((a_source_correspondence*)ptr))
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_type_ptr make_reference_to_reference(

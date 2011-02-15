@@ -9260,6 +9260,7 @@ Return the C++/CLI System::ValueType type.
   return sym->variant.type.ptr;
 }  /* cli_system_value_type */
 
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
 a_boolean f_is_member_of_namespace_cli(a_source_correspondence  *scp)
 /*
@@ -9278,6 +9279,7 @@ namespace "cli".
   return result;
 }  /* f_is_member_of_namespace_cli */
 
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !NEAR_AND_FAR_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED
