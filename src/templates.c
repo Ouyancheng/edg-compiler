@@ -7583,9 +7583,11 @@ points to the template parameter list.
                            type->variant.array.variant.element_count_constant;
             a_constant_ptr templ_cp =
                      templ_type->variant.array.variant.element_count_constant;
-            match = matches_template_constant(cp, templ_cp,
-                                              templ_arg_list,
-                                              templ_param_list);
+            if (cp != NULL && templ_cp != NULL) {
+              match = matches_template_constant(cp, templ_cp,
+                                                templ_arg_list,
+                                                templ_param_list);
+            }  /* if */
           } else if (
                  templ_type->variant.array.is_template_dependent_size_array) {
             /* The type from the template has a variable size.  If the
@@ -7593,11 +7595,13 @@ points to the template parameter list.
                parameter, then this could be a match. */
             a_constant_ptr cp =
                      templ_type->variant.array.variant.element_count_constant;
-            a_targ_size_t  elements;
-            elements = type->variant.array.variant.number_of_elements;
-            match = matches_template_array_bound(elements, cp,
-                                                 templ_arg_list,
-                                                 templ_param_list);
+            if (cp != NULL) {
+              a_targ_size_t elements =
+                                type->variant.array.variant.number_of_elements;
+              match = matches_template_array_bound(elements, cp,
+                                                   templ_arg_list,
+                                                   templ_param_list);
+            }  /* if */
           } else if (type->variant.array.variant.number_of_elements !=
                       templ_type->variant.array.variant.number_of_elements) {
             /* Both have constant bounds but the number of elements do
@@ -8355,10 +8359,14 @@ on the ck_template_param constant pointed to by the expression.
   if (type->variant.array.is_template_dependent_size_array) {
     /* The array size points to a template-dependent constant. */
     orig_cp = type->variant.array.variant.element_count_constant;
-    new_cp = copy_template_param_con_with_substitution(
-                      orig_cp, templ_arg_list, templ_param_list,
-                      (a_type_ptr)NULL,
-                      source_pos, options, copy_error);
+    if (orig_cp == NULL) {
+      new_cp = NULL;
+    } else {
+      new_cp = copy_template_param_con_with_substitution(
+                        orig_cp, templ_arg_list, templ_param_list,
+                        (a_type_ptr)NULL,
+                        source_pos, options, copy_error);
+    }  /* if */
   }  /* if */
   if (tp == type->variant.array.element_type &&
       orig_cp == new_cp) {
@@ -8383,6 +8391,7 @@ on the ck_template_param constant pointed to by the expression.
       copy_type(type, new_array_type);
       new_array_type->variant.array.element_type = tp;
       if (orig_cp != new_cp) {
+        check_assertion(new_cp != NULL);
         if (new_cp->kind == (a_constant_repr_kind)ck_integer) {
           /* The substituted value is no longer template-dependent.  Extract
              that value and use it as a constant bound.  Note that

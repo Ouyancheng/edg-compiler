@@ -1226,7 +1226,11 @@ Dump the contents of the indicated type entry, for debug purposes.
         } else if (tp->variant.array.is_variable_size_array) {
           fputs("**EXPR**", f_debug);
         } else if (tp->variant.array.is_template_dependent_size_array) {
-          db_constant(tp->variant.array.variant.element_count_constant);
+          if (tp->variant.array.variant.element_count_constant != NULL) {
+            db_constant(tp->variant.array.variant.element_count_constant);
+          } else {
+            fprintf(f_debug, "**DEPENDENT**");
+          }  /* if */
         } else {
           fprintf(f_debug, "%lu",
                   (unsigned long)tp->variant.array.variant.number_of_elements);

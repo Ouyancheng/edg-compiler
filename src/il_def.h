@@ -7401,6 +7401,10 @@ typedef struct a_type {
         /* When is_template_dependent_size_array is TRUE: */
         a_constant_ptr
 		element_count_constant;
+			/* A constant giving the template-dependent number
+			   of elements in the array, or NULL to indicate that
+			   the number of elements is template-dependent but
+			   we know nothing about its value. */
       } variant;
       a_constant_ptr
 		bound_constant;

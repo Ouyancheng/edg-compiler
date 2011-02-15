@@ -1,5 +1,21 @@
 Version 4.3
 
+2/15/11  [EDGcpfe/11384]
+IL representation for array type with dependent but unknown bound (IL CHANGE)
+
+The tk_array variant of an IL type has been extended so that it can
+represent an array with a template-dependent but completely unknown
+number of elements.  This comes up for variadic template cases like
+
+  template <class... T> void f(T ... args) {
+    int x[] = {args...};  // Array type of x has unknown number of elements
+  }
+
+The change is that a tk_array type with is_template_dependent_size_array
+TRUE can have element_count_constant NULL to indicate that we have
+no information on the number of elements.
+
+
 2/15/11  [EDGcpfe/11383]
 Lower asm statements in all modes
 

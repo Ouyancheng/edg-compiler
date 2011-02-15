@@ -3730,9 +3730,13 @@ Return TRUE if the two array types have identical bounds.
   } else if (type_1->variant.array.is_template_dependent_size_array) {
     if (type_2->variant.array.is_template_dependent_size_array) {
       /* Both arrays have unknown (but constant) bounds. */
-      identical = eq_constants(
-                        type_1->variant.array.variant.element_count_constant,
-                        type_2->variant.array.variant.element_count_constant);
+      a_constant_ptr b1 = type_1->variant.array.variant.element_count_constant;
+      a_constant_ptr b2 = type_2->variant.array.variant.element_count_constant;
+      if (b1 == NULL || b2 == NULL) {
+        identical = (b1 == b2);
+      } else {
+        identical = eq_constants(b1, b2);
+      }  /* if */
     } else {
       /* An unknown-bound array and a known-bound array. */
     }  /* if */
@@ -9573,8 +9577,10 @@ based on the specified template parameter constant.
         found = TRUE;
       }  /* if */
     } else if (type_ptr->variant.array.is_template_dependent_size_array) {
-      found = constant_contains_template_param_constant(
+      if (type_ptr->variant.array.variant.element_count_constant != NULL) {
+        found = constant_contains_template_param_constant(
                       type_ptr->variant.array.variant.element_count_constant);
+      }  /* if */
     }  /* if */
   } else if (is_class_struct_union(type_ptr)) {
     /* Examine each template argument, if any. */

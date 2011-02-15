@@ -2193,36 +2193,38 @@ the way described by octl.
     an_expr_node_ptr *expr_ptr = NULL;
     a_constant_ptr   constant =
                             type->variant.array.variant.element_count_constant;
-    if (type->variant.array.constant_bound_expr_in_local_expr_node_ref &&
-        innermost_function_scope != NULL) {
-      /* The expression associated with the element count constant referred
-         to local variables and thus could not be copied into the file
-         scope.  Retrieve it and temporarily restore it to the constant so
-         we can print it. */
-      a_template_param_constant_kind tkind;
-      check_assertion(constant->kind ==
+    if (constant != NULL) {
+      if (type->variant.array.constant_bound_expr_in_local_expr_node_ref &&
+          innermost_function_scope != NULL) {
+        /* The expression associated with the element count constant referred
+           to local variables and thus could not be copied into the file
+           scope.  Retrieve it and temporarily restore it to the constant so
+           we can print it. */
+        a_template_param_constant_kind tkind;
+        check_assertion(constant->kind ==
                                       (a_constant_repr_kind)ck_template_param);
-      tkind = constant->variant.template_param.kind;
-      if (tkind == (a_template_param_constant_kind)tpck_expression) {
-        expr_ptr = &constant->variant.template_param.variant.expr;
-      } else if (tkind == (a_template_param_constant_kind)tpck_cast ||
-                 tkind == (a_template_param_constant_kind)tpck_address) {
-        expr_ptr = &constant->variant.template_param.variant.constant->expr;
-      } else if (tkind == (a_template_param_constant_kind)tpck_sizeof ||
-                 tkind == (a_template_param_constant_kind)tpck_alignof ||
-                 tkind == (a_template_param_constant_kind)tpck_uuidof ||
-                 tkind == (a_template_param_constant_kind)tpck_typeid) {
-        expr_ptr = &constant->variant.template_param.variant.templ_sizeof.expr;
-      }  /* if */
-      check_assertion(expr_ptr != NULL && *expr_ptr == NULL);
-      *expr_ptr = find_local_expr_node(
+        tkind = constant->variant.template_param.kind;
+        if (tkind == (a_template_param_constant_kind)tpck_expression) {
+          expr_ptr = &constant->variant.template_param.variant.expr;
+        } else if (tkind == (a_template_param_constant_kind)tpck_cast ||
+                   tkind == (a_template_param_constant_kind)tpck_address) {
+          expr_ptr = &constant->variant.template_param.variant.constant->expr;
+        } else if (tkind == (a_template_param_constant_kind)tpck_sizeof ||
+                   tkind == (a_template_param_constant_kind)tpck_alignof ||
+                   tkind == (a_template_param_constant_kind)tpck_uuidof ||
+                   tkind == (a_template_param_constant_kind)tpck_typeid) {
+          expr_ptr=&constant->variant.template_param.variant.templ_sizeof.expr;
+        }  /* if */
+        check_assertion(expr_ptr != NULL && *expr_ptr == NULL);
+        *expr_ptr = find_local_expr_node(
                                  (char *)type,
                                  (a_local_expr_node_ref_kind)lerk_array_bound);
-      check_assertion(*expr_ptr != NULL);
-    }  /* if */
-    form_constant(constant, /*need_parens=*/FALSE, octl);
-    if (expr_ptr != NULL) {
-      *expr_ptr = NULL;
+        check_assertion(*expr_ptr != NULL);
+      }  /* if */
+      form_constant(constant, /*need_parens=*/FALSE, octl);
+      if (expr_ptr != NULL) {
+        *expr_ptr = NULL;
+      }  /* if */
     }  /* if */
   } else if (type->variant.array.variant.number_of_elements == 0 &&
              !type->variant.array.bound_is_zero) {

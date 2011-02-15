@@ -8560,31 +8560,33 @@ top_of_loop:
         if (type->variant.array.is_template_dependent_size_array) {
           /* Template-dependent size arrays are possible when putting out
              function prototypes. */
+          a_constant_ptr elem_con =
+                            type->variant.array.variant.element_count_constant;
+          if (elem_con != NULL) {
 #if !IA64_ABI 
-          /* For that case the prefix is "A_". */
+            /* For that case the prefix is "A_". */
 #endif /* !IA64_ABI */
-          check_assertion(distinct_template_signatures);
+            check_assertion(distinct_template_signatures);
 #if !IA64_ABI
-          add_to_mangled_name('_', mctl);
+            add_to_mangled_name('_', mctl);
 #else /* IA64_ABI */
-          if (emulate_gnu_abi_bugs &&
+            if (emulate_gnu_abi_bugs &&
 #if ABI_COMPATIBILITY_VERSION >= 402
-              gnu_abi_version < 30400 &&
+                gnu_abi_version < 30400 &&
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
-              type->variant.array.variant.element_count_constant->kind ==
-                                     (a_constant_repr_kind)ck_template_param) {
-            /* Force bounds under this one to be mangled as expressions
-               to match an early g++ bug (which was fixed in 3.4.0). */
-            mctl->force_dependent_array_mangling = TRUE;
-          }  /* if */
+                elem_con->kind == (a_constant_repr_kind)ck_template_param) {
+              /* Force bounds under this one to be mangled as expressions
+                 to match an early g++ bug (which was fixed in 3.4.0). */
+              mctl->force_dependent_array_mangling = TRUE;
+            }  /* if */
 #endif /* !IA64_ABI */
-          /* Put out an encoding for the bound. */
-          mangled_encoding_for_constant(
-                            type->variant.array.variant.element_count_constant,
-                            /*old_form=*/FALSE,
-                            /*in_dependent_expr=*/FALSE,
-                            /*suppress_address_of=*/FALSE,
-                            mctl);
+            /* Put out an encoding for the bound. */
+            mangled_encoding_for_constant(elem_con,
+                                          /*old_form=*/FALSE,
+                                          /*in_dependent_expr=*/FALSE,
+                                          /*suppress_address_of=*/FALSE,
+                                          mctl);
+          }  /* if */
 #if IA64_ABI
         } else if (!type->variant.array.bound_is_zero && 
                    type->variant.array.variant.number_of_elements == 0) {
