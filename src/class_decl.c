@@ -3636,6 +3636,14 @@ dependent on the use of the C++0x attributes "base_check" and "hiding".)
 
   /* Loop through the registry of overrides. */
   for (; orep != NULL; orep = next_orep) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && is_managed_class_type(class_state->class_type)) {
+      /* In managed class types, lookup is based on "signature": The
+         traditional hiding-instead-of-overriding problems are not an issue
+         in that context. */
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
     if (orep->override_count < orep->virtual_function_count) {
       if (orep->override_count > 0) {
         /* Issue a diagnostic on partial override of an overloaded
