@@ -1448,6 +1448,14 @@ typedef int a_ctws_options_set;
 			   from rescan contexts and the entity being
 			   substituted is the function name in a call (e.g.,
 			   was followed by a "(" in the source). */
+#define CTWS_PRESERVE_DEDUCED_PACKS	0x40
+			/* TRUE if a deduced parameter pack should be
+			   retained in the substituted type if there are no
+			   template arguments associated with the pack.
+			   This is used during the initial substitution of
+			   explicitly supplied template arguments so that
+			   the resulting type will still be usable to deduce
+			   the remaining pack. */
 
 
 extern an_expr_node_ptr copy_template_param_expr(

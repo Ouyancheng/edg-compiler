@@ -7701,40 +7701,46 @@ points to the template parameter list.
 		 the template type for each of the remaining actual parameter
                  types, but a new argument value will be deduced for each
                  one. */
-              if (tptp->is_parameter_pack && pesep == NULL) {
-                begin_pack_deduction_context(tptp->pack_expansion_descr,
-                                             templ_param_list,
-                                             templ_arg_list,
-                                             &pesep);
-              }  /* if */
-              tp = ptp->type;
-              ttp = tptp->type;
-              if (rvalue_references_enabled &&
-                  (flags & MTT_ALLOW_SPECIAL_RVALUE_REF_DEDUCTION) != 0 &&
-                   is_rvalue_reference_type(ttp)) {
-                a_type_ptr	underlying_tp;
-                underlying_tp = type_pointed_to(ttp);
-                if (underlying_tp->kind == (a_type_kind)tk_template_param &&
-                    is_template_param_from_list(
+              if (tptp->is_parameter_pack && tptp->next != NULL) {
+                /* A parameter pack that is not at the end of the parameter
+                   list.  This is a nondeduced context.  Consider it
+                   a match for now. */
+              } else {
+                if (tptp->is_parameter_pack && pesep == NULL) {
+                  begin_pack_deduction_context(tptp->pack_expansion_descr,
+                                               templ_param_list,
+                                               templ_arg_list,
+                                               &pesep);
+                 }  /* if */
+                tp = ptp->type;
+                ttp = tptp->type;
+                if (rvalue_references_enabled &&
+                    (flags & MTT_ALLOW_SPECIAL_RVALUE_REF_DEDUCTION) != 0 &&
+                     is_rvalue_reference_type(ttp)) {
+                  a_type_ptr	underlying_tp;
+                  underlying_tp = type_pointed_to(ttp);
+                  if (underlying_tp->kind == (a_type_kind)tk_template_param &&
+                      is_template_param_from_list(
                           &underlying_tp->variant.template_param.extra_info->
                                               coordinates, templ_param_list) &&
-                    is_lvalue_reference_type(tp)) {
-                  /* If the template type is something like "T&&" and the
-                     actual type is "X&", drop the "&&" from the template type
-                     so that the deduced type for T will be "X&".  This will
-                     cause the substituted "T&&" to end up as an lvalue
-                     reference type.  Note that the template type must be
-                     exactly "T&&", not something like "T*&&". */
-                  ttp = type_pointed_to(ttp);
+                      is_lvalue_reference_type(tp)) {
+                    /* If the template type is something like "T&&" and the
+                       actual type is "X&", drop the "&&" from the template
+                       type so that the deduced type for T will be "X&".  This
+                       will cause the substituted "T&&" to end up as an lvalue
+                       reference type.  Note that the template type must be
+                       exactly "T&&", not something like "T*&&". */
+                    ttp = type_pointed_to(ttp);
+                  }  /* if */
                 }  /* if */
-              }  /* if */
-              if (!matches_template_type(tp, ttp, templ_arg_list,
-                                         templ_param_list,
-                                         new_flags)) {
-                /* The first param type for which there is a mismatch causes
-                   a mismatch for the entire type.  No need to keep
-                   looping. */
-                break;
+                if (!matches_template_type(tp, ttp, templ_arg_list,
+                                           templ_param_list,
+                                           new_flags)) {
+                  /* The first param type for which there is a mismatch causes
+                     a mismatch for the entire type.  No need to keep
+                     looping. */
+                  break;
+                }  /* if */
               }  /* if */
               ptp = ptp->next;
               if (pesep != NULL) {
@@ -9000,14 +9006,21 @@ make_new_type:
              ptp = ptp->next) {
           a_pack_expansion_stack_entry_ptr	pesep;
           a_boolean				any_more;
+          a_boolean				first_element = TRUE;
           any_more = begin_rescan_pack_expansion_context(
                                                      ptp->pack_expansion_descr,
                                                      templ_param_list,
                                                      templ_arg_list,
                                                      &pesep);
-          while (any_more) {
+          /* Loop through the pack elements.  When preserving deduced
+             packs (when they have no arguments) go through the loop once
+             even though any_more is FALSE. */
+          while (any_more ||
+                 (first_element &&
+                  (options & CTWS_PRESERVE_DEDUCED_PACKS) != 0)) {
             a_type_ptr ptype = param_type_restoring_orig_templ_array(ptp);
             a_type_ptr declared_type;
+            first_element = FALSE;
             if (reusable_param_types > 0) {
               /* We have already called copy_type_with_substitution for this
                  parameter and we know we can reuse the existing type. */
@@ -9019,6 +9032,10 @@ make_new_type:
                  we can use that type. */
               tp = first_new_type_for_param_types_list;
               first_new_type_for_param_types_list = NULL;
+            } else if (!any_more) {
+              /* This is a deducible pack for which there are no arguments.
+                 Retain the original type. */
+              tp = ptype;
             } else {
               /* copy_type_with_substitution has not been called yet. */
               tp = copy_type_with_substitution(ptype, templ_arg_list,
@@ -9339,6 +9356,7 @@ during wrapup processing by compare_function_templates.
   a_boolean				copy_error = FALSE;
   a_template_symbol_supplement_ptr	tssp;
   a_type_ptr				templ_rout_type = NULL;
+  a_ctws_options_set			ctws_options = CTWS_NO_OPTIONS;
 
   tssp = template_supplement_for_symbol(templ_sym);
   if (templ_param_list == NULL) {
@@ -9365,6 +9383,9 @@ during wrapup processing by compare_function_templates.
                                            templ_param_list, templ_arg_list,
                                            &templ_sym->decl_position);
     *new_arg_list = templ_arg_list;
+    /* This is a preliminary substitution.   Keep any deduced packs for which
+       way may not yet have arguments. */
+    ctws_options |= CTWS_PRESERVE_DEDUCED_PACKS;
   }  /* if */
   if (templ_arg_list != NULL) {
     /* See whether copy_type_with_substitution has already been done for
@@ -9374,7 +9395,6 @@ during wrapup processing by compare_function_templates.
     if (templ_rout_type == NULL) {
       /* This is the first time this routine has been called for this
          template argument list.  Create a new type. */
-      a_ctws_options_set	ctws_options = CTWS_NO_OPTIONS;
       if (is_partial_order_check) ctws_options |= CTWS_IS_PARTIAL_ORDER_CHECK;
       templ_rout_type = skip_typerefs(tssp->variant.function.routine->type);
       ++(tssp->variant.function.pending_deductions);
