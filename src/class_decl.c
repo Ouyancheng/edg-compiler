@@ -3127,18 +3127,39 @@ appears on a linked list pointed to from base_class.
                                            parent_scope_of(overriding_func) &&
           (ovfp->overriding_function->overridden_functions != NULL ||
            overriding_func->overridden_functions != NULL)) {
+        a_boolean  replace_override = FALSE;
         check_assertion(microsoft_mode);
-        if (!decl_info->multiple_overrides_diagnostic_issued &&
-            !scope_stack_top().in_prototype_instantiation) {
-          /* During prototype instantiations, no diagnostic is issued since
-             the overridden base cannot always be identified reliably. */
-          pos_sy2_error(ec_multiple_overrides, &dps->declarator_pos,
-                        symbol_for(primary_func),
-                        symbol_for(ovfp->overriding_function));
-          decl_info->multiple_overrides_diagnostic_issued = TRUE;
+        if (cppcli_enabled && 
+            cli_class_type_kind_is(base_class->type, cctk_interface)) {
+          /* When overriding C++/CLI interface members, named overriding
+             trumps ordinary (unnamed) overriding. */
+          if (decl_info->named_overrides != NULL &&
+              ovfp->overriding_function->overridden_functions == NULL) {
+            /* The entry currently records an ordinary override and the new
+               declaration is a named override; replace the record by the
+               named override. */
+            replace_override = TRUE;
+          } else if (decl_info->named_overrides == NULL &&
+                     ovfp->overriding_function->overridden_functions != NULL) {
+            /* The entry already records a named override, and the current
+               declaration is an ordinary override: Ignore the overriding
+               implied by the current declaration for the given base class. */
+            goto done;
+          }  /* if */
         }  /* if */
-        ovfp = NULL;
-        break;
+        if (!replace_override) {
+          if (!decl_info->multiple_overrides_diagnostic_issued &&
+              !scope_stack_top().in_prototype_instantiation) {
+            /* During prototype instantiations, no diagnostic is issued since
+               the overridden base cannot always be identified reliably. */
+            pos_sy2_error(ec_multiple_overrides, &dps->declarator_pos,
+                          symbol_for(primary_func),
+                          symbol_for(ovfp->overriding_function));
+            decl_info->multiple_overrides_diagnostic_issued = TRUE;
+          }  /* if */
+          ovfp = NULL;
+          break;
+        }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DEBUG
@@ -3198,6 +3219,9 @@ appears on a linked list pointed to from base_class.
 #endif /* DEBUG */
     insert_in_virtual_function_override_list(base_class, ovfp);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+done:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
 }  /* record_virtual_function_override */
 
