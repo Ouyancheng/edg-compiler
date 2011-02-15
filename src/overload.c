@@ -4365,6 +4365,20 @@ in [over.ics.rank].
       goto have_cmp;
     }  /* if */
   }  /* if */
+  if (conv1->cli_array_covariance_conversion !=
+      conv2->cli_array_covariance_conversion) {
+    /* One has a C++/CLI array covariance conversion and the other does
+       not.  The one with the array covariance conversion is better than
+       the other one (which would have to be something like
+         array<D ^> ^ ==> System::Array ^
+       ).  See ECMA-372 14.2.1. */
+    if (conv1->cli_array_covariance_conversion) {
+      cmp = 1;
+    } else {
+      cmp = -1;
+    }  /* if */
+    goto have_cmp;
+  }  /* if */
   /* A cast to a base class is better than a cast to further along the
      same base class derivation (see rule [3] in ARM 13.2):
        struct A {};

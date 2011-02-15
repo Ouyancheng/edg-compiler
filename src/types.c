@@ -6942,6 +6942,7 @@ is filled out to describe the conversion.
         /* Array covariance conversion is applicable. */
         okay = TRUE;
         std_conv->cli_array_covariance_conversion = TRUE;
+        std_conv->cast_base_class = element_std_conv.cast_base_class;
       }  /* if */
     }  /* if */
   } else if (is_error(source_type)) {
