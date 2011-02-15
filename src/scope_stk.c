@@ -9508,7 +9508,7 @@ that list to pedp.
     /* We found a pack reference after the start of the expansion.  Find any
        that are also before the end of the expansion. */
     last_prp = NULL;
-    for (prp = ssep->packs_referenced; prp != NULL; prp = prp->next) {
+    for (; prp != NULL; prp = prp->next) {
       if (prp->token_sequence_number > pedp->last_token) break;
       last_prp = prp;
     }  /* for */
@@ -9517,6 +9517,24 @@ that list to pedp.
          the scope stack list. */
       pedp->packs_referenced = *p_first_prp;
       *p_first_prp = last_prp->next;
+      last_prp->next = NULL;
+      {
+        /* Make sure the same symbol is not on the extracted list more than
+           once. */
+        a_pack_reference_ptr	prp1;
+        for (prp1 = pedp->packs_referenced; prp1 != NULL; prp1 = prp1->next) {
+          a_pack_reference_ptr	prp2;
+          a_pack_reference_ptr	prev_prp2 = prp1;
+          for (prp2 = prp1->next; prp2 != NULL; prp2 = prp2->next) {
+            if (prp1->symbol == prp2->symbol) {
+              /* Remove the redundant symbol. */
+              prev_prp2->next = prp2->next;
+            } else {
+              prev_prp2 = prp2;
+            }  /* if */
+          }  /* for */
+        }  /* for */
+      }
     }  /* if */
   }  /* if */
 }  /* extract_pack_references_for_context */
@@ -9596,9 +9614,12 @@ effect and returns NULL.
        extract_pack_references_for_context(pedp);
      }  /* if */
      if (pedp->packs_referenced != NULL) {
-        /* There were expanded packs referenced.  This is a pack expansion. */
-        record_pack_expansion(pedp);
-        result_pedp = pedp;
+        if (pedp->ellipsis_seen) {
+          /* There were expanded packs referenced and expanded.  This is a
+             pack expansion. */
+          record_pack_expansion(pedp);
+          result_pedp = pedp;
+        }  /* if */
       } else {
         /* There were no packs referenced.  This is not a pack expansion.
            If a pack expansion ("...") has been seen, issue an error that
@@ -9771,10 +9792,16 @@ source position of the use of the symbols is indicated by position.
          entry. */
       a_pack_reference_ptr		prp;
       a_scope_stack_entry_ptr		ssep;
+      a_pack_reference_ptr		*p_prp;
       ssep = get_current_template_dependent_context();
-      /* Look for an existing expansion of this symbol. */
-      for (prp = ssep->packs_referenced; prp != NULL; prp = prp->next) {
-        if (prp->symbol == pack_symbol) break;
+      p_prp = &ssep->packs_referenced;
+      /* Look for an existing expansion of this symbol at this location. */
+      for (prp = ssep->packs_referenced; prp != NULL;
+           p_prp = &prp->next, prp = prp->next) {
+        if (prp->symbol == pack_symbol &&
+            prp->token_sequence_number == curr_token_sequence_number) {
+          break;
+        }  /* if */
       }  /* for */
       if (prp == NULL) {
         /* An existing entry was not found.  Create a new one. */
@@ -9788,8 +9815,8 @@ source position of the use of the symbols is indicated by position.
         }  /* if */
         prp->position = *position;
         prp->token_sequence_number = curr_token_sequence_number;
-        prp->next = ssep->packs_referenced;
-        ssep->packs_referenced = prp;
+        /* Add this to the end of the list of entries on the scope stack. */
+        *p_prp = prp;
       }  /* if */
     }  /* if */
   }  /* if */
