@@ -1,5 +1,15 @@
 Version 4.3
 
+2/15/11  [EDGcpfe/11383]
+Lower asm statements in all modes
+
+Expressions in asm statements had previously been lowered only when
+gnu_mode was true.  A change has been made to lower them in all modes
+(though the un-modified front end only generates them when gnu_mode is true).
+This is useful in cases where the front end has been locally modified to accept
+GNU asm statements in other modes (i.e., where gnu_mode is false).
+
+
 2/10/11  [EDGcpfe/11371]
 Use of temporaries in copied expressions
 

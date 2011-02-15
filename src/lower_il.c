@@ -16860,13 +16860,11 @@ under it.  Used in both C++ and C mode.
 {
 #if GNU_EXTENSIONS_ALLOWED
   /* GNU asm statements can have expressions under them. */
-  if (gnu_mode) {
-    an_asm_entry_ptr   aep = statement->variant.asm_entry;
-    an_asm_operand_ptr aop;
-    for (aop = aep->operands; aop != NULL; aop = aop->next) {
-      lower_full_expr(aop->expression, statement);
-    }  /* for */
-  }  /* if */
+  an_asm_entry_ptr   aep = statement->variant.asm_entry;
+  an_asm_operand_ptr aop;
+  for (aop = aep->operands; aop != NULL; aop = aop->next) {
+    lower_full_expr(aop->expression, statement);
+  }  /* for */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* lower_asm_statement */
 
