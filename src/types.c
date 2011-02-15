@@ -5448,6 +5448,7 @@ Clear a standard conversion description to default values.
   std_conv->conv_of_string_literal_to_ptr_to_nonconst = FALSE;
   std_conv->warning_suggested = ec_no_error;
   std_conv->is_mild_warning = FALSE;
+  std_conv->cli_array_covariance_conversion = FALSE;
 }  /* clear_std_conv_descr */
 
 
@@ -6862,7 +6863,7 @@ is filled out to describe the conversion.
   a_type_ptr       dest_type_pointed_to, source_type_pointed_to;
   a_type_ptr       unqual_dest_type_pointed_to, unqual_source_type_pointed_to;
   a_base_class_ptr bcp;
-  a_boolean        qualifiers_checked = FALSE;
+  a_boolean        qualifiers_checked = FALSE, source_unknown, dest_unknown;
 
   db_enter(5, "impl_handle_conversion");
 #if DEBUG
@@ -6919,6 +6920,29 @@ is filled out to describe the conversion.
                 is_template_dependent_type(unqual_source_type_pointed_to))) {
       /* Conversions between template-dependent types are always allowed. */
       okay = TRUE;
+    } else if (is_cli_array_type(unqual_source_type_pointed_to) &&
+               is_cli_array_type(unqual_dest_type_pointed_to) &&
+               cli_array_rank(unqual_source_type_pointed_to,
+                                                           &source_unknown) ==
+                cli_array_rank(unqual_dest_type_pointed_to, &dest_unknown) &&
+               source_unknown == dest_unknown) {
+      /* Source and destination are arrays with the same rank; see if there
+         is a handle conversion for the underlying elements. */
+      a_std_conv_descr  element_std_conv;
+      a_type_ptr        source_element_type, dest_element_type;
+      source_element_type = cli_array_element_type(
+                                                unqual_source_type_pointed_to);
+      dest_element_type = cli_array_element_type(unqual_dest_type_pointed_to);
+      clear_std_conv_descr(&element_std_conv);
+      if (is_handle_type(source_element_type) &&
+          is_handle_type(dest_element_type) &&
+          impl_handle_conversion(source_element_type, dest_element_type,
+                                 /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                 &element_std_conv)) {
+        /* Array covariance conversion is applicable. */
+        okay = TRUE;
+        std_conv->cli_array_covariance_conversion = TRUE;
+      }  /* if */
     }  /* if */
   } else if (is_error(source_type)) {
     /* Error --> handle is always allowed. */

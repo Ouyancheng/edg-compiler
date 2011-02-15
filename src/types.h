@@ -859,6 +859,13 @@ typedef struct a_std_conv_descr {
 			/* If TRUE, the warning indicated by warning_suggested
 			   is mild, more an observation than a conformance
 			   issue. */
+  a_byte_boolean
+		cli_array_covariance_conversion;
+			/* TRUE if this conversion is a C++/CLI array
+			   covariance conversion, i.e., from an array of handle
+			   types to a array of handle types where a conversion
+			   exists for the underlying element types and the
+			   arrays have the same rank. */
 } a_std_conv_descr;
 
 
