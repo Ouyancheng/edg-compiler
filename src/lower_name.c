@@ -8600,6 +8600,13 @@ top_of_loop:
                                           /*in_dependent_expr=*/FALSE,
                                           /*suppress_address_of=*/FALSE,
                                           mctl);
+#if !IA64_ABI
+          } else {
+            /* There's no way to mangle "[]" in the Cfront ABI, so mangle this
+               as "[0]" instead. */
+            add_to_mangled_name('_', mctl);
+            add_number_to_mangled_name((unsigned long)0, mctl);
+#endif /* !IA64_ABI */
           }  /* if */
 #if IA64_ABI
         } else if (!type->variant.array.bound_is_zero && 
