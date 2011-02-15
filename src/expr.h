@@ -238,6 +238,7 @@ extern a_boolean scan_aggregate_initializer_expression(
                                    a_boolean          suppress_object_lifetime,
                                    a_decl_parse_state *dps,
                                    a_boolean          *whole_string_init,
+                                   a_boolean          *is_pack_expansion,
                                    a_boolean          *is_constant,
                                    a_dynamic_init_ptr *dip,
                                    a_constant         *constant);

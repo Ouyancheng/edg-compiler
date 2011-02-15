@@ -4443,6 +4443,9 @@ constant is an aggregate the braces around it are suppressed.
           field = next_initializable_field(field->next);
         }  /* if */
         gen_initializer_constant(eff_sub_con, sub_type, local_suppress_braces);
+        if (eff_sub_con->is_pack_expansion) {
+          write_tok_str("...");
+        }  /* if */
 #if CHECKING
         if (sub_con->next == NULL) {
           check_assertion_str(sub_con ==

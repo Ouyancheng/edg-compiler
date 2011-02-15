@@ -1164,6 +1164,7 @@ decl parse state, which otherwise is gotten from init_info->dps.
   a_boolean                      is_whole_object_init = TRUE;
   a_boolean                      is_constant = FALSE;
   a_boolean                      whole_string_init = FALSE;
+  a_boolean                      is_pack_expansion;
   a_constant                     constant;
   a_class_symbol_supplement_ptr  cssp = NULL;
   a_dynamic_init_ptr             dip;
@@ -1191,6 +1192,7 @@ decl parse state, which otherwise is gotten from init_info->dps.
                                   (allow_whole_string_init ?
                                        NULL :
                                        &whole_string_init),
+                                  &is_pack_expansion,
                                   &is_constant, &dip, &constant)) {
     /* The initializer expression doesn't match the aggregate or any of
        its first members.  An error has been issued already. */
@@ -1226,15 +1228,18 @@ decl parse state, which otherwise is gotten from init_info->dps.
         init_info->uses_designated_initializers = TRUE;
       }  /* if */
     }  /* if */
+    if (is_pack_expansion) {
+      (*init_constant)->is_pack_expansion = TRUE;
+    }  /* if */
     if (context != NULL) {
       (*init_constant)->type = rvalue_type(context->type);
       if (!is_constant) {
+        context->any_dynamic_initialization = TRUE;
         /* We should only get here for class types (as opposed to array types).
            If we emulate GNU C++ whole-object initialization using nonconstant
            compound literals, some array cases may get here too, and the
            following should be revised. */
         check_assertion(cssp != NULL);
-        context->any_dynamic_initialization = TRUE;
         if (exceptions_enabled) {
           if (has_nontrivial_destructor(cssp)) {
             /* If appropriate, add a destructor pointer to the dynamic
@@ -2480,27 +2485,8 @@ this function points to a tree that includes a dynamic-init entry.
         member_con = get_initializer(&member_type, init_info, &context,
                                      &local_nothing_taken,
                                      &local_any_dynamic_init);
-        if (is_variadic_template_context() &&
-            is_prototype_instantiation_context()) {
-          /* If we get a pack expansion in a prototype instantiation, we
-             don't know how many members it initializes, so we have to assume
-             we can't track what the next member is. */
-          an_expr_node_ptr con_expr = NULL;
-          if (member_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-            a_dynamic_init_ptr dyn_dip = member_con->variant.dynamic_init;
-            if (dyn_dip->kind == (a_dynamic_init_kind)dik_expression) {
-              con_expr = dyn_dip->variant.expression;
-            }  /* if */
-          } else if (member_con->kind ==
-                                     (a_constant_repr_kind)ck_template_param &&
-                     member_con->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_expression) {
-            con_expr = member_con->variant.template_param.variant.expr;
-          }  /* if */
-          if (con_expr != NULL && con_expr->is_pack_expansion) {
-            pack_expansion_encountered = TRUE;
-            member_con->is_pack_expansion = TRUE;
-          }  /* if */
+        if (member_con->is_pack_expansion) {
+          pack_expansion_encountered = TRUE;
         }  /* if */
         if (!is_flexible_array && init_info->has_flexible_array_initializer) {
           /* We just scanned an aggregate initializer for a flexible array

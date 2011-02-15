@@ -27491,6 +27491,7 @@ a_boolean scan_aggregate_initializer_expression(
                                    a_boolean          suppress_object_lifetime,
                                    a_decl_parse_state *dps,
                                    a_boolean          *whole_string_init,
+                                   a_boolean          *is_pack_expansion,
                                    a_boolean          *is_constant,
                                    a_dynamic_init_ptr *dip,
                                    a_constant         *constant)
@@ -27528,6 +27529,9 @@ levels-down counter and return.
 If whole_string_init is non-NULL, in the case of the initialization of
 an array with a string literal the string is put back into the cache
 for later scanning, and *whole_string_init is returned TRUE.
+
+*is_pack_expansion is returned TRUE if the initializer scanned is
+a variadic template pack expansion.
 
 This routine is called to initialize a sub-aggregate, so the destructor
 pointer in the dynamic initialization is not set.  The caller must set
@@ -27573,6 +27577,7 @@ a thrown exception) if that is appropriate.
   }  /* if */
   /* Scan the expression. */
   scan_initializer_expr_with_potential_pack_expansion(dps, &result);
+  *is_pack_expansion = (result.pack_expansion_descr != NULL);
   /* See whether the expression can initialize the aggregate class.  If not,
      go down to the first member of the class and try again.  Loop until the
      right level is found or until we can go no further. */
@@ -27742,7 +27747,6 @@ required_type_determined:
                              /*is_copy_initialization=*/TRUE,
                              /*nontype_template_arg=*/FALSE,
                              ec_bad_initializer_type);
-    mark_expr_of_operand_as_pack_expansion_if_necessary(&result);
     switch (result.kind) {
       case ok_error:
         /* Some sort of error; message was already issued. */
