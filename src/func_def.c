@@ -2665,12 +2665,10 @@ whose definition has not yet been generated, force the definition now.
            rp->variant.opname_kind == (an_opname_kind)onk_assign)) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
         a_type_ptr  parent_type = parent_class_of(rp);
-        if (cppcli_enabled &&
-            (cli_class_type_kind_is(parent_type, cctk_ref) ||
-             cli_class_type_kind_is(parent_type, cctk_interface))) {
-          /* Do not generate these members for C++/CLI ref classes or
-             interface classes.  (We might get here with the generated
-             constructor of a delegate class.) */
+        if (cppcli_enabled && is_immediate_delegate_type(parent_type) &&
+            skind == (a_special_function_kind)sfk_constructor) {
+          /* The generated constructor declaration of a delegate class type
+             is not one whose body can be generated. */
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
