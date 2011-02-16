@@ -2676,7 +2676,7 @@ the scope being pushed.
   ssep->tmpl_decl_state		 = NULL;
   ssep->pending_templ_arg_lists  = 0;
   ssep->next_nondependent_call   = NULL;
-  ssep->next_pack_expansion      = NULL;
+  ssep->last_pack_expansion_used = NULL;
   ssep->packs_referenced         = NULL;
   ssep->pack_expansion_stack     = NULL;
   ssep->qualified_conversion_operator = FALSE;
@@ -2895,7 +2895,7 @@ the scope being pushed.
       /* Initialize the pointer to the dependent call list for this
          template. */
       ssep->next_nondependent_call = template_decl_info->nondependent_calls;
-      ssep->next_pack_expansion = template_decl_info->pack_expansions;
+      ssep->last_pack_expansion_used = template_decl_info->pack_expansions;
     } else if (kind != (a_scope_kind)sck_file &&
                kind != (a_scope_kind)sck_namespace &&
                kind != (a_scope_kind)sck_namespace_extension) {
@@ -8591,6 +8591,7 @@ to it.
 #endif /* DEBUG */
   }  /* if */
   pedp->next = NULL;
+  pedp->previous = NULL;
   pedp->first_token = NO_TOKEN_SEQUENCE_NUMBER;
   pedp->last_token = NO_TOKEN_SEQUENCE_NUMBER;
   pedp->packs_referenced = NULL;
@@ -8607,6 +8608,8 @@ Return the pack expansion descriptor pedp to the available list.
 */
 {
   pedp->next = avail_pack_expansion_descrs;
+  /* The previous pointer is not maintained on the available list. */
+  pedp->previous = NULL;
   avail_pack_expansion_descrs = pedp;
 }  /* free_pack_expansion_descr */
 
@@ -8716,6 +8719,58 @@ Pop the current entry off of the pack expansion stack.
   avail_pack_expansion_stack_entries = pesep;
 }  /* pop_pack_expansion_stack */
 
+#if DEBUG
+
+void db_pack_tokens(a_pack_expansion_descr_ptr	pedp)
+/*
+Display the tokens that make up a pack expansion, for debugging purposes.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_symbol_ptr			template_sym;
+  a_token_cache_ptr		result_cache = NULL;
+
+  if (is_prototype_instantiation_context()) {
+    ssep = get_current_template_dependent_context();
+  } else {
+    ssep = scope_stack_entry_for(depth_innermost_instantiation_scope);
+    check_assertion(ssep != NULL);
+  }  /* if */
+  template_sym = ssep->template_sym;
+  if (template_sym != NULL) {
+    a_template_symbol_supplement_ptr	tssp;
+    a_token_cache_ptr			cache;
+    tssp = template_supplement_for_symbol(template_sym);
+    /* The tokens could come from the body cache or the declaration cache.
+       They could presumably also come from something like a default
+       argument cache, but that is not supported by this routine. */
+    cache = &tssp->cache.tokens;
+    if (cache->first_token->token_sequence_number <= pedp->first_token &&
+        cache->last_token->token_sequence_number >= pedp->last_token) {
+      /* Use this cache. */
+      result_cache = cache;
+    } else if (is_function_or_template_symbol(template_sym)) {
+      /* Try the declaration cache for a function template. */
+      cache = &tssp->variant.function.decl_cache.tokens;
+      if (cache->first_token->token_sequence_number <= pedp->first_token &&
+          cache->last_token->token_sequence_number >= pedp->last_token) {
+        /* Use this cache. */
+        result_cache = cache;
+      }  /* if */
+    }  /* if */
+    if (result_cache != NULL) {
+      init_token_string(&result_cache->first_token->source_position,
+                       /*keep_spacing=*/FALSE);
+      add_token_cache_segment_to_string(result_cache, pedp->first_token,
+                                        pedp->last_token);
+      put_str_to_temp_text_buffer("\0");
+      fprintf(f_debug, "%s\n", temp_text_buffer);
+    }  /* if */
+  }  /* if */
+}  /* db_pack_tokens */
+
+#endif /* DEBUG */
+
 
 static a_pack_expansion_descr_ptr get_pack_expansion_for_curr_context(void)
 /*
@@ -8729,23 +8784,29 @@ determine whether we are entering a pack expansion context.
   a_scope_stack_entry_ptr	ssep;
 
   ssep = &scope_stack[depth_innermost_instantiation_scope];
-  pedp = ssep->next_pack_expansion;
-  /* If there are any pack expansions that precede this one, discard them
-     now.  This can occur in the instantiation of member functions of a class
-     template. */
+  pedp = ssep->last_pack_expansion_used;
+  /* Move forward or backward in the list of pack expansions to attempt to
+     find one that matches the current token sequence number. */
   for (; pedp != NULL && pedp->first_token < curr_token_sequence_number;
        pedp = pedp->next) {}
+  for (; pedp != NULL && pedp->first_token > curr_token_sequence_number;
+       pedp = pedp->previous) {}
   if (pedp != NULL && pedp->first_token == curr_token_sequence_number) {
-    /* Advance the pointer to the next pack expansion. */
-    ssep->next_pack_expansion = pedp->next;
+    /* Record the most recent pack used. */
+    ssep->last_pack_expansion_used = pedp;
     result_pedp = pedp;
-#if DEBUG
-    if (db_flag_is_set("packs")) {
-      fprintf(f_debug, "Found pack expansion from %ld to %ld\n",
-              (long)pedp->first_token, (long)pedp->last_token);
-    }  /* if */
-#endif /* DEBUG */
   }  /* if */
+#if DEBUG
+  if (db_flag_is_set("packs")) {
+    fprintf(f_debug, "Looking for pack expansion at TSN %ld\n",
+            (long)curr_token_sequence_number);
+    if (result_pedp != NULL) {
+      fprintf(f_debug, "Found pack expansion from %ld to %ld\n",
+            (long)result_pedp->first_token, (long)result_pedp->last_token);
+      db_pack_tokens(result_pedp);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
   return result_pedp;
 }  /* get_pack_expansion_for_curr_context */
 
@@ -9465,22 +9526,33 @@ to expand the pack in real instantiation.
   if (db_flag_is_set("packs")) {
     fprintf(f_debug, "Recording pack expansion from %ld to %ld\n",
             (long)pedp->first_token, (long)pedp->last_token);
+    db_pack_tokens(pedp);
   }  /* if */
 #endif /* DEBUG */
   /* Get the template declaration information entry associated with the
      current context. */
   tdip = get_current_template_decl_info();
-  /* Add the new entry to the end of the list. */
-  if (tdip->pack_expansions == NULL) {
-    tdip->pack_expansions = pedp;
-  } else {
+  /* Insert the new entry to preserve a list sorted by starting token
+     sequence number. */
+  {
     a_pack_expansion_descr_ptr	last_pedp = tdip->last_pack_expansion; 
-    /* Verify that the list is being constructed in ascending token sequence
-       order. */
-    check_assertion(last_pedp->last_token < pedp->last_token);
-    last_pedp->next = pedp;
-  }  /* if */
-  tdip->last_pack_expansion = pedp;
+    a_pack_expansion_descr_ptr	insert_pedp = last_pedp;
+    /* Normally entries will just be added to the end of the list, but
+       for nested expansions we may need to back up in the list. */
+    for (; insert_pedp != NULL &&
+           insert_pedp->first_token > pedp->first_token;
+         insert_pedp = insert_pedp->previous) {}
+    if (insert_pedp == NULL) {
+      tdip->pack_expansions = pedp;
+    } else {
+      if (insert_pedp->next != NULL) insert_pedp->next->previous = pedp;
+      pedp->next = insert_pedp->next;
+      pedp->previous = insert_pedp;
+      insert_pedp->next = pedp;
+    }  /* if */
+    /* If this is the last entry on the list, update the last pointer. */
+    if (pedp->next == NULL) tdip->last_pack_expansion = pedp;
+  }
 }  /* record_pack_expansion */
 
 

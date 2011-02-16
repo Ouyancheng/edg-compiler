@@ -315,6 +315,10 @@ typedef struct a_pack_expansion_descr {
 		next;
 			/* The next entry on a list of pack expansion entries,
 			   or NULL for the last entry on the list. */
+  a_pack_expansion_descr_ptr
+		previous;
+			/* The previous entry on the list, or NULL for the
+			   first entry. */
   a_token_sequence_number
 		first_token;
 			/* Identifies the first token of the range of tokens
@@ -1151,12 +1155,14 @@ typedef struct a_scope_stack_entry {
 			   instantiation this list is used to determine
 			   whether a given call is dependent. */
   a_pack_expansion_descr_ptr
-		next_pack_expansion;
+		last_pack_expansion_used;
 			/* In real instantiation scopes for variadic
-			   templates, this points to the next entry on the
-			   list of pack expansions.  This is used to find
-			   the pack expansion entry for a given point within
-			   the actual instantiation. */
+			   templates, this points to the last entry on the
+			   list of pack expansions that was used.  This is
+			   used to find the pack expansion entry for a given
+			   point within the actual instantiation.  It is
+			   initialized with the first pack expansion for the
+			   template. */
   a_pack_reference_ptr
 		packs_referenced;
 			/* When a variadic parameter pack is referenced, it
