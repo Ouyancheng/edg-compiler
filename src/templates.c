@@ -9073,7 +9073,17 @@ make_new_type:
             new_ptp = make_param_type(tp, &null_source_position);
             new_ptp->declared_type = declared_type;
             new_ptp->param_num = ptp->param_num;
-            new_ptp->is_pack_element = ptp->is_parameter_pack;
+            if (ptp->is_parameter_pack) {
+              /* any_more will be TRUE if we new_ptp is a substituted pack
+                 element.  It will be FALSE if new_ptp is a copy of the
+                 parameter pack from the template declaration. */
+              if (any_more) {
+                new_ptp->is_pack_element = TRUE;
+              } else {
+                new_ptp->is_parameter_pack = TRUE;
+                new_ptp->pack_expansion_descr = ptp->pack_expansion_descr;
+              }  /* if */
+            }  /* if */
             if (ptp->has_default_arg) {
               new_ptp->has_default_arg = TRUE;
               new_ptp->default_arg_appeared_in_class_definition =
@@ -9389,15 +9399,20 @@ during wrapup processing by compare_function_templates.
                                            templ_param_list, templ_arg_list,
                                            &templ_sym->decl_position);
     *new_arg_list = templ_arg_list;
-    /* This is a preliminary substitution.   Keep any deduced packs for which
-       way may not yet have arguments. */
-    ctws_options |= CTWS_PRESERVE_DEDUCED_PACKS;
+    if (tssp->is_variadic) {
+      /* This is a preliminary substitution.   Keep any deduced packs for which
+         way may not yet have arguments. */
+      ctws_options |= CTWS_PRESERVE_DEDUCED_PACKS;
+    }  /* if */
   }  /* if */
   if (templ_arg_list != NULL) {
     /* See whether copy_type_with_substitution has already been done for
        this template argument list.  If so, simply return the type
-       already created. */
-    templ_rout_type = find_substituted_type(tssp, templ_arg_list);
+       already created.  Don't do this when preserving deduced packs as
+       that flag causes a different type to be returned below. */
+    if ((ctws_options & CTWS_PRESERVE_DEDUCED_PACKS) == 0) {
+      templ_rout_type = find_substituted_type(tssp, templ_arg_list);
+    }  /* if */
     if (templ_rout_type == NULL) {
       /* This is the first time this routine has been called for this
          template argument list.  Create a new type. */
@@ -9427,8 +9442,10 @@ during wrapup processing by compare_function_templates.
            parameter contains any template parameters. */
         set_parameter_list_template_param_flags(templ_rout_type);
       }  /* if */
-      /* Add the new type to the list of substituted types. */
-      add_to_substituted_types_list(tssp, templ_arg_list, templ_rout_type);
+      if ((ctws_options & CTWS_PRESERVE_DEDUCED_PACKS) == 0) {
+        /* Add the new type to the list of substituted types. */
+        add_to_substituted_types_list(tssp, templ_arg_list, templ_rout_type);
+      }  /* if */
     }  /* if */
   }  /* if */
   return templ_rout_type;
