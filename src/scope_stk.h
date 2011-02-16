@@ -1774,6 +1774,8 @@ extern void scope_stk_trans_unit_init(void);
 extern void scope_stk_init(void);
 
 #if DEBUG
+extern void db_pack_tokens(a_pack_expansion_descr_ptr	pedp);
+
 extern int db_scope_kind(a_scope_kind sck);
 
 extern void db_scope_stack_entry_at_depth(a_scope_depth  depth);

@@ -86,6 +86,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,db_name_reference)*/
 /*lint -esym(714,f_db_sym_has_traced_name)*/
 /*lint -esym(714,db_top_of_scope_stack)*/
+/*lint -esym(714,db_pack_tokens)*/
 /*lint -esym(714,db_seq_number_lookup_table)*/
 /*lint -esym(714,db_internal_float_value)*/
 /*lint -esym(714,db_context_stack)*/
