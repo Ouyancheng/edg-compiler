@@ -4420,6 +4420,13 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
         type_error(ec_class_type_required, class_type);
         complete_type = error_type();
         err = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (cppcli_enabled && is_managed_class_type(class_type)) {
+        /* Pointer-to-member-of-managed-class types are not allowed. */
+        pos_error(ec_ptr_to_member_of_managed_class, &pos_curr_token);
+        complete_type = error_type();
+        err = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* A valid pointer-to-member declarator. */
         if (complete_type != NULL && !check_pm_member_type(complete_type)) {

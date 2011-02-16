@@ -8891,6 +8891,12 @@ a pointer over a reference type or creating an array of references.
             /* The new type would be invalid. */
             *copy_error = TRUE;
             new_type = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (cppcli_enabled && is_managed_class_type(class_type)) {
+            /* Pointer-to-member-of-managed-class types are not allowed. */
+            *copy_error = TRUE;
+            new_type = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             new_type = ptr_to_member_type(tp, tp2);
           }  /* if */
