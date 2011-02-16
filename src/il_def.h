@@ -13051,7 +13051,15 @@ typedef struct an_expr_node {
 			   permitted in unevaluated operands. */
   a_bit_field	is_pack_expansion:1;
 			/* TRUE if this is a variadic template pack expansion,
-			   i.e., an expression followed by "...". */
+			   i.e., an expression followed by "...".  Note that
+			   a pack expansion is marked only once, and at the
+			   level that actually appears in a list, which might
+			   mean the flag is set on an implicit conversion node
+			   that was added on top of the node that appears
+			   explicitly in the source, or the flag is set in the
+			   constant entry that appears in the initializer list
+			   for an aggregate (there's an is_pack_expansion flag
+			   also in a_constant). */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == enk_error or enk_address_of_ellipsis, no variant fields. */

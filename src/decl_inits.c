@@ -990,6 +990,7 @@ static a_constant_ptr scan_initializer_of_simple_object(
                         a_boolean                     force_object_lifetime,
                         a_boolean                     suppress_object_lifetime,
                         a_boolean                     is_copy_initialization,
+                        a_boolean                     *is_pack_expansion,
                         a_type_ptr                    *p_type,
                         a_dynamic_init_ptr            *dip_ptr)
 /*
@@ -1022,12 +1023,16 @@ constant entry.  Otherwise, if the initializer is a constant value
 then return a pointer to a constant only if *dip_ptr is NULL.  If the
 initializer is nonconstant or *dip_ptr is non-NULL, return a NULL
 constant pointer and build *dip_ptr to represent the initialization.
+If is_pack_expansion is non-NULL, *is_pack_expansion is returned TRUE
+if the initializer expression scanned is a variadic template pack
+expansion.
 */
 {
   an_expr_node_ptr expression;
   a_boolean        is_constant;
   a_constant       constant, *cp = NULL;
 
+  if (is_pack_expansion != NULL) *is_pack_expansion = FALSE;
   if (process_string_constant_initializer(p_type, &cp, dps,
                                           init_info, init_context)) {
     /* The object being initialized has type pointer to (narrow or wide)
@@ -1040,6 +1045,7 @@ constant pointer and build *dip_ptr to represent the initialization.
     scan_initializer_expression(
                          *p_type, dps, static_lifetime, force_object_lifetime,
                          suppress_object_lifetime, is_copy_initialization,
+                         is_pack_expansion,
                          &is_constant, &expression, &constant);
   } else {
     /* Non-constant is not allowed. */
@@ -2018,6 +2024,7 @@ init_info->dps->prescanned_initializer_cache.
   a_boolean           nonconst_allowed, brace_flag, another_brace_next;
   a_boolean           extra_braces_okay = extra_braces;
   a_boolean           microsoft_enum_case = FALSE;
+  a_boolean           is_pack_expansion = FALSE;
   a_dynamic_init_ptr  dip = NULL;
   a_source_position   pos_first_token;
 
@@ -2109,6 +2116,7 @@ init_info->dps->prescanned_initializer_cache.
                                      /*force_object_lifetime=*/FALSE,
                                      (a_boolean)init_info->compound_literal,
                                      /*is_copy_initialization=*/TRUE,
+                                     &is_pack_expansion,
                                      &required_type, &dip);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     init_info->init_end_position = curr_construct_end_position;
@@ -2152,6 +2160,7 @@ init_info->dps->prescanned_initializer_cache.
                                 &error_position);
     }  /* if */
   }  /* if */
+  if (is_pack_expansion) constant->is_pack_expansion = TRUE;
   if (dip != NULL) {
     /* Dynamic initialization. */
     context->any_dynamic_initialization = TRUE;
@@ -3320,6 +3329,7 @@ has static storage duration; vp_type is the type of that entity.
                                             /*force_object_lifetime=*/FALSE,
                                             /*suppress_object_lifetime=*/FALSE,
                                             /*is_copy_initialization=*/TRUE,
+                                            (a_boolean *)NULL,
                                             &vp_type, init_dip);
   if (microsoft_bugs && microsoft_version < 1310) {
     /* Earlier microsoft compilers accept things like "int x = { f(), { 3 } }".
@@ -3666,6 +3676,7 @@ returned set to TRUE.
                                             /*force_object_lifetime=*/FALSE,
                                             /*suppress_object_lifetime=*/FALSE,
                                             /*is_copy_initialization=*/FALSE,
+                                            (a_boolean *)NULL,
                                             &vp_type, &init_dip);
       if (init_con != NULL && vp != NULL &&
           init_con->kind == (a_constant_repr_kind)ck_string &&
@@ -5041,6 +5052,7 @@ scan_paren:
                                             /*force_object_lifetime=*/TRUE,
                                             /*suppress_object_lifetime=*/FALSE,
                                             /*is_copy_initialization=*/FALSE,
+                                            (a_boolean *)NULL,
                                             &init_type, &dip);
             /* If the initializer produced an object lifetime for the full
                expression, remove it temporarily from the object lifetime

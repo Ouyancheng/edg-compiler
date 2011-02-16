@@ -217,6 +217,7 @@ extern void scan_initializer_expression(
                                  a_boolean           force_object_lifetime,
                                  a_boolean           suppress_object_lifetime,
                                  a_boolean           is_copy_initialization,
+                                 a_boolean           *is_pack_expansion,
                                  a_boolean           *is_constant,
                                  an_expr_node_ptr    *expression,
                                  a_constant          *constant);

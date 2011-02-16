@@ -27111,6 +27111,7 @@ void scan_initializer_expression(a_type_ptr          required_type,
                                  a_boolean           force_object_lifetime,
                                  a_boolean           suppress_object_lifetime,
                                  a_boolean           is_copy_initialization,
+                                 a_boolean           *is_pack_expansion,
                                  a_boolean           *is_constant,
                                  an_expr_node_ptr    *expression,
                                  a_constant          *constant)
@@ -27127,7 +27128,9 @@ suppress_object_lifetime is TRUE.  This initialization is copy-initialization
 ("="-form) if is_copy_initialization is TRUE; otherwise, it is
 direct_initialization ("()"-form).  The expression can be constant or
 nonconstant; on return, *is_constant is set accordingly, and the result is
-returned either in *expression or in *constant.  Note that the required_type
+returned either in *expression or in *constant.  If is_pack_expansion
+is non-NULL, *is_pack_expansion is returned TRUE if the initializer expression
+scanned is a variadic template pack expansion.  Note that the required_type
 may not be an array type.  This routine is not used when copy constructor
 elision is possible; see scan_class_initializer_expression and
 scan_aggregate_initializer_expression.
@@ -27177,6 +27180,9 @@ scan_aggregate_initializer_expression.
   }  /* if */
   /* Scan the expression. */
   scan_initializer_expr_with_potential_pack_expansion(dps, &result);
+  if (is_pack_expansion != NULL) {
+    *is_pack_expansion = (result.pack_expansion_descr != NULL);
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Check for a bug related to null pointer constants in Microsoft C mode. */
   process_microsoft_null_pointer_constant_bug(&result, required_type);
@@ -27190,7 +27196,6 @@ scan_aggregate_initializer_expression.
                            is_copy_initialization,
                            /*nontype_template_arg=*/FALSE,
                            ec_bad_initializer_type);
-  mark_expr_of_operand_as_pack_expansion_if_necessary(&result);
   /* Return a constant or expression depending on what was scanned. */
   *is_constant = TRUE;
   switch (result.kind) {
