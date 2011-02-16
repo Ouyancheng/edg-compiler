@@ -8892,7 +8892,7 @@ a pointer over a reference type or creating an array of references.
             *copy_error = TRUE;
             new_type = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          } else if (cppcli_enabled && is_managed_class_type(class_type)) {
+          } else if (cppcli_enabled && is_managed_class_type(tp2)) {
             /* Pointer-to-member-of-managed-class types are not allowed. */
             *copy_error = TRUE;
             new_type = NULL;
