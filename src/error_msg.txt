@@ -2140,6 +2140,7 @@ ec_standard_array_field_in_managed_class;;"a field of a managed class type canno
 ec_nested_class_mixes_standard_and_managed_classes;;"a managed class cannot be nested in a standard class, and vice versa"
 ec_local_class_in_managed_member_function;;"a local class definition is not allowed in a member function of a managed class type"
 ec_local_lambda_in_managed_member_function;;"a local lambda is not allowed in a member function of a managed class type"
+ec_cli_interface_member_function_definition;;"a member function of a C++/CLI interface type can not have a definition"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

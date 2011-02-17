@@ -1470,6 +1470,13 @@ member declaration (allowed in some Microsoft modes only).
                         ec_not_compatible_with_previous_decl,
                    &locator->source_position, locator->specific_symbol);
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled && sym != NULL &&
+               cli_class_type_kind_is(sym_parent_class(sym), cctk_interface)) {
+      pos_error(ec_cli_interface_member_function_definition,
+                &locator->source_position);
+      sym = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (sym->kind == (a_symbol_kind)sk_function_template) {
       /* A case like this:
            class A { template <class T> void f(int); };
