@@ -931,7 +931,7 @@ Return TRUE if the given type is a C++/CLI pin_ptr type.
 
 a_boolean is_cli_array_type(a_type_ptr tp)
 /*
-Return TRUE if the given types is a C++/CLI array type.
+Return TRUE if the given type is a C++/CLI array type.
 */
 {
   tp = skip_typerefs(tp);
