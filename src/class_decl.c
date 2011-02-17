@@ -12931,9 +12931,15 @@ declarations.
       pos_error(ec_field_cannot_be_tracking_reference,
                 &decl_state->declarator_pos);
       field_type = error_type();
-    } else if (cppcli_enabled && is_handle_type(field_type) &&
-               !is_managed_class_type(class_type)) {
-      pos_error(ec_handle_field_in_standard_class,
+    } else if (cppcli_enabled &&
+               is_immediate_managed_class_type(class_type) ?
+                     is_array_type(field_type) : is_handle_type(field_type)) {
+      /* Array types are disallowed in managed class types and handles are
+         disallowed in non-managed (i.e., standard) class types. */
+      
+      pos_error(is_immediate_managed_class_type(class_type) ?
+                  ec_standard_array_field_in_managed_class :
+                  ec_handle_field_in_standard_class,
                 &decl_state->declarator_pos);
       field_type = error_type();
     } else if (cppcli_enabled && (is_interior_ptr_type(field_type) || 

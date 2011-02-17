@@ -2457,11 +2457,18 @@ may be emitted at the given position.
           class_type->source_corresp.access =
                                scope_stack[depth_scope_stack].current_access;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (!class_type_supp(class_type)->is_lambda_closure_class) {
-            if (microsoft_mode &&
-                parent->variant.class_struct_union.is_interface) {
+          if (microsoft_mode &&
+              !class_type_supp(class_type)->is_lambda_closure_class) {
+            if (parent->variant.class_struct_union.is_interface) {
               /* Interface types cannot contain nested class types. */
               pos_error(ec_interface_cannot_have_nested_class, diag_pos);
+            } else if (cppcli_enabled &&
+                       is_immediate_managed_class_type(class_type) !=
+                                    is_immediate_managed_class_type(parent)) {
+              /* Managed class types cannot be nested in standard classes and
+                 vice versa. */
+              pos_error(ec_nested_class_mixes_standard_and_managed_classes,
+                        diag_pos);
             }  /* if */
             /* coverity[dead_error_condition] */
             if (class_type->variant.class_struct_union.is_interface) {
