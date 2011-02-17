@@ -4702,10 +4702,11 @@ flag when is_declaration is TRUE.
                           error_pos, sym);
       }  /* if */
     } else {
-      /* Pre-C++0x behavior: Issue an error (except in cfront or Microsoft
-         compatibility mode). */
+      /* Pre-C++0x behavior: Issue an error (except in cfront, Microsoft, and
+         GNU C++ compatibility modes). */
       if (any_cfront_mode() ||
-          (microsoft_mode && (is_function || microsoft_version < 1200))) {
+          (microsoft_mode && (is_function || microsoft_version < 1200)) ||
+          (gpp_mode && !is_function)) {
         severity = es_warning;
       } else {
         severity = es_error;
