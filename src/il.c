@@ -9274,7 +9274,7 @@ namespace "cli".
 {
   a_boolean  result = FALSE;
 
-  if (scp_is_namespace_member(scp)) {
+  if (scp_is_namespace_member(scp) && cppcli_enabled) {
     check_assertion(symbol_for_namespace_cli != NULL);
     result = scp->parent_scope ==
                          symbol_for_namespace_cli->variant.namespace_info.ptr
