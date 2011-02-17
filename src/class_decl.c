@@ -7469,17 +7469,20 @@ possibility.
   }  /* if */
   if (!is_error_locator(*locator)) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* Friend declarations cannot appear in interface types. */
-    if (microsoft_mode &&
-        class_type->variant.class_struct_union.is_interface) {
-      pos_error(ec_interface_cannot_have_friend, &state->start_pos);
-    }  /* if */
-    /* Microsoft Visual C++ 7.0 and earlier do not seem to instantiate the
-       body of a friend function definition as part of a class template
-       instantiation.  (Visual C++ 7.1. fixed that.) */
-    if (microsoft_mode && microsoft_version < 1310 &&
-        class_state->is_template_instantiation) {
-      func_info->is_definition = FALSE;
+    if (microsoft_mode) {
+      if (cppcli_enabled && is_immediate_managed_class_type(class_type)) {
+        /* Friend declarations cannot appear in C++/CLI managed classes. */
+        pos_error(ec_managed_class_cannot_have_friend, &state->start_pos);
+      } else if (class_type->variant.class_struct_union.is_interface) {
+        /* Friend declarations cannot appear in interface types. */
+        pos_error(ec_interface_cannot_have_friend, &state->start_pos);
+      }  /* if */
+      /* Microsoft Visual C++ 7.0 and earlier do not seem to instantiate the
+         body of a friend function definition as part of a class template
+         instantiation.  (Visual C++ 7.1 fixed that.) */
+      if (microsoft_version < 1310 && class_state->is_template_instantiation) {
+        func_info->is_definition = FALSE;
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     sym = locator->specific_symbol;
@@ -15440,6 +15443,8 @@ Check that this is a valid type and if so make member_type a friend.
   if (is_error_type(member_type)) {
     /* An error was already issued. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && is_immediate_managed_class_type(class_type)) {
+    pos_error(ec_managed_class_cannot_have_friend, &state->start_pos);
   } else if (microsoft_mode &&
              class_type->variant.class_struct_union.is_interface) {
     pos_error(ec_interface_cannot_have_friend, &state->start_pos);
