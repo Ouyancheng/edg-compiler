@@ -8763,7 +8763,6 @@ Display the tokens that make up a pack expansion, for debugging purposes.
                        /*keep_spacing=*/FALSE);
       add_token_cache_segment_to_string(result_cache, pedp->first_token,
                                         pedp->last_token);
-      put_str_to_temp_text_buffer("\0");
       fprintf(f_debug, "%s\n", temp_text_buffer);
     }  /* if */
   }  /* if */
