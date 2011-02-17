@@ -8641,6 +8641,17 @@ enable_microsoft_mode:
     }  /* if */
     cpp0x_sfinae_enabled = FALSE;
   }  /* if */
+#if NEED_NAME_MANGLING
+  if (cppcli_enabled) {
+    /* The ABI previous to 4.2 could not support C++/CLI mangling; silently
+       disable this option unless it was explicitly specified, in which case
+       we give an error. */
+    if (option_kind_used[(int)optk_cppcli]) {
+      command_line_error(ec_cppcli_requires_newer_abi_version);
+    }  /* if */
+    cppcli_enabled = FALSE;
+  }  /* if */
+#endif /* NEED_NAME_MANGLING */
 #endif /* ABI_COMPATIBILITY_VERSION < 402 */
   /* warning_on_for_init_difference may be TRUE only if the new for-init
      scoping rules are in effect. */

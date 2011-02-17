@@ -1215,7 +1215,7 @@ position following what was demangled.
   unsigned long num_operands, i;
   a_boolean     takes_type, is_new_style_cast, is_postfix;
   a_boolean     has_variable_number_of_operands = FALSE;
-  a_boolean     is_call = FALSE, is_subscript = FALSE;
+  a_boolean     is_call = FALSE, is_cli_subscript = FALSE;
 
   /* An operation has the form
        Opl2Z1ZZ2ZO <-- "Z1 + Z2", Z1/Z2 indicating nontype template parameters.
@@ -1379,7 +1379,7 @@ position following what was demangled.
     } else if (strcmp(operator_str, "subscript") == 0) {
       /* A C++/CLI subscript operation (with a variable number of operands). */
       has_variable_number_of_operands = TRUE;
-      is_subscript = TRUE;
+      is_cli_subscript = TRUE;
     }  /* if */
     /* Get the count of operands. */
     p = get_number_with_optional_underscore(p, &num_operands, dctl);
@@ -1402,12 +1402,12 @@ position following what was demangled.
             write_id_str("(", dctl);
             close_str = ")";
             is_call = FALSE;
-          } else if (is_subscript) {
+          } else if (is_cli_subscript) {
             /* This is a C++/CLI subscript operation, we've just emitted
                the array, the remaining operands are subscripts. */
             write_id_str("[", dctl);
             close_str = "]";
-            is_subscript = FALSE;
+            is_cli_subscript = FALSE;
           } else if (i != num_operands) {
             write_id_str(", ", dctl);
           }  /* if */

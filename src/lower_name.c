@@ -5097,7 +5097,7 @@ is TRUE.
   an_expr_node_ptr operand;
 #if IA64_ABI
   a_boolean        add_address_of;
-  unsigned long    operand_count = 0;
+  unsigned long    cli_subscript_op_count = 0;
 #else /* !IA64_ABI */
   unsigned long    num_operands;
   a_boolean        need_close = FALSE;
@@ -5274,7 +5274,7 @@ is TRUE.
           }  /* if */
 #if IA64_ABI
           if (node_operator_is(expr, eok_cli_subscript) &&
-              ++operand_count >= 9) {
+              ++cli_subscript_op_count >= 9) {
             /* The mangling for the C++/CLI subscript operator uses the IA-64
                ABI vendor extended operator mangling, which restricts the
                number of operands to a single digit, hence any additional
