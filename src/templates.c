@@ -8531,7 +8531,10 @@ being looked up is known to be a type.
            ambiguity (at least for now). */
         if (new_sym->ambiguous &&
             is_cli_ref_or_interface_class_type(parent_type)) {
-          if (hide_by_sig_list_for_symbol(new_sym) != NULL) ambiguous = FALSE;
+          if (use_hide_by_sig_lookup(new_sym,
+                                     (a_hide_by_sig_list_entry_ptr*)NULL)) {
+            ambiguous = FALSE;
+          }  /* if */
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

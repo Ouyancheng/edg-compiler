@@ -2052,6 +2052,7 @@ It will be NULL for the most derived class.
   a_class_symbol_supplement_ptr	cssp;
   a_symbol_ptr			sym;
   a_boolean			any_entries_at_next_level = FALSE;
+  a_class_type_supplement_ptr	ctsp;
 
   /* Look for a symbol in the specified type.  Note that the orig_sym is
      never directly entered on the list (although it could be found by the
@@ -2119,7 +2120,15 @@ It will be NULL for the most derived class.
       *p_any_entries_at_level = TRUE;
     }  /* if */
   }  /* if */
-  bcp = type->variant.class_struct_union.extra_info->base_classes;
+  /* Look through the base classes (and possibly interfaces) of this type. */
+  ctsp = class_type_supp(type);
+  if (ctsp->is_hide_by_name) {
+    /* We have encountered a class that is hide-by-name.  Do not inspect
+       its base classes. */
+    bcp = NULL;
+  } else {
+    bcp = type->variant.class_struct_union.extra_info->base_classes;
+  }  /* if */
   for (; bcp != NULL && !hbssp->suppress_hide_by_sig; bcp = bcp->next) {
     a_type_ptr			base_type = bcp->type;
     a_class_type_supplement_ptr	base_ctsp;
@@ -2166,34 +2175,46 @@ done:;
 }  /* add_base_classes_to_hide_by_sig_list */
 
 
-a_hide_by_sig_list_entry_ptr hide_by_sig_list_for_symbol(a_symbol_ptr sym)
+a_boolean use_hide_by_sig_lookup(
+			a_symbol_ptr			sym,
+			a_hide_by_sig_list_entry_ptr	*p_hide_by_sig_list)
 /*
 Determine the set of symbols that should be considered for a call of the
-derived class or interface routine specified by sym.  Return a list
-that identifies the symbols of the functions to be considered, and
-additional information to determine where the symbol fits in the
-derivation hierarchy.
+derived class or interface routine specified by sym.
 
-If the class of which sym is a member is not a ref class or interface, or
-is a hide-by-name ref class, a NULL pointer is returned.  NULL is also
-returned if the lookup encounters an interface with a static method.
+Return TRUE if sym is a symbol for which hide-by-sig lookup should be done,
+or FALSE if a normal lookup should be done (in which case "sym" is the
+symbol that will be used).  Note that FALSE is returned for native
+(i.e., non-C++/CLI) classes.
+
+If hide-by-sig lookup should be done, (and p_hide_by_sig_list is not NULL)
+return a list that identifies the symbols of the functions to be considered,
+and additional information to determine where the symbol fits in the
+derivation hierarchy.  Note that the list can be NULL if no such symbols are
+found.  NULL is also returned if the lookup encounters an interface with a
+static method.  The list is returned in *p_hide_by_sig_list.
 */
 {
   a_hide_by_sig_list_entry_ptr		result_list = NULL;
   a_type_ptr				parent_type;
   a_class_type_supplement_ptr		parent_ctsp;
   a_boolean				is_class;
+  a_boolean				result = FALSE;
 
   parent_type = sym_parent_class(sym);
   parent_ctsp = class_type_supp(parent_type);
   is_class = parent_ctsp->cli_class_type_kind ==
                                                (a_cli_class_type_kind)cctk_ref;
-  if (sym->hide_by_sig_lookup_result != NULL) {
+  if (sym->hide_by_sig_lookup_done) {
+    /* We have already done the hide-by-sig processing.   Return the results
+       from the original lookup. */
     result_list = sym->hide_by_sig_lookup_result;
-  } else if ((is_class ||
-              parent_ctsp->cli_class_type_kind ==
-                                      (a_cli_class_type_kind)cctk_interface) &&
-             !parent_ctsp->is_hide_by_name) {
+    result = !sym->suppress_hide_by_sig_lookup;
+  } else if (parent_ctsp->is_hide_by_name) {
+    /* The derived class is hide-by-name -- return FALSE. */
+  } else if (is_class ||
+             parent_ctsp->cli_class_type_kind ==
+                                      (a_cli_class_type_kind)cctk_interface) {
     a_hide_by_sig_list_entry_ptr	list_tail = NULL;
     a_hide_by_sig_state			hbss;
     a_hide_by_sig_list_entry_ptr	sublist;
@@ -2220,6 +2241,9 @@ returned if the lookup encounters an interface with a static method.
       /* Free all of the allocated entries. */
       free_list_of_hide_by_sig_list_entries(result_list);
       result_list = NULL;
+      sym->suppress_hide_by_sig_lookup = TRUE;
+    } else {
+      result = TRUE;
     }  /* if */
     sym->hide_by_sig_lookup_result = result_list;
     sym->hide_by_sig_lookup_done = TRUE;
@@ -2229,8 +2253,11 @@ returned if the lookup encounters an interface with a static method.
     db_hide_by_sig_list(result_list);
   }  /* if */
 #endif /* DEBUG */
-  return result_list;
-}  /* hide_by_sig_list_for_symbol */
+  /* Return the list if a pointer to the list pointer was provided by
+     the caller. */
+  if (p_hide_by_sig_list != NULL) *p_hide_by_sig_list = result_list;
+  return result;
+}  /* use_hide_by_sig_lookup */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -13586,6 +13613,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.is_super_reference                = FALSE;
   cleared_symbol.is_microsoft_invisible_operator   = FALSE;
   cleared_symbol.hide_by_sig_lookup_done           = FALSE;
+  cleared_symbol.suppress_hide_by_sig_lookup       = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   cleared_symbol.is_alias                          = FALSE;

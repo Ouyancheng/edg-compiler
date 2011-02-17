@@ -163,8 +163,8 @@ returned may be a projection symbol.
     /* In C++/CLI mode, look to see if hide-by-sig lookup applies for this
        symbol.  If so, we'll have a list to traverse to get to all the
        not-hidden symbols, including those in base classes. */
-    a_hide_by_sig_list_entry_ptr list = hide_by_sig_list_for_symbol(sym);
-    if (list != NULL) {
+    a_hide_by_sig_list_entry_ptr list;
+    if (use_hide_by_sig_lookup(sym, &list) && list != NULL) {
       /* There is a hide-by-sig list.  Start with the first symbol on the
          list. */
       while (list->symbol == NULL) {
@@ -254,7 +254,7 @@ If so, the symbol is considered overloaded even if it doesn't look it.
 
   if (cppcli_enabled) {
     if (sym->is_class_member &&
-        hide_by_sig_list_for_symbol(sym) != NULL) {
+        use_hide_by_sig_lookup(sym, (a_hide_by_sig_list_entry_ptr*)NULL)) {
       consider_overloaded = TRUE;
     }  /* if */
   }  /* if */
@@ -1524,7 +1524,7 @@ This applies to projection and namespace projection symbols.
   /* In C++/CLI, a symbol for which hide-by-sig lookup applies is
      not considered ambiguous. */
   if (is_ambiguous && cppcli_enabled &&
-      hide_by_sig_list_for_symbol(symbol) != NULL) {
+      use_hide_by_sig_lookup(symbol, (a_hide_by_sig_list_entry_ptr*)NULL)) {
     is_ambiguous = FALSE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

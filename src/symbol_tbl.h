@@ -2842,6 +2842,11 @@ typedef struct a_symbol {
 			   been done for this symbol, in which case the
 			   hide_by_sig_lookup_field contains the lookup
 			   result to be used. */
+  a_bit_field	suppress_hide_by_sig_lookup:1;
+			/* TRUE if hide_by_sig_lookup_done is TRUE and
+			   the hide-by-sig processing determined that the
+			   original normal lookup result should be used
+			   instead of the hide-by-sig lookup result. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	is_alias:1;
@@ -4014,7 +4019,9 @@ extern void make_predeclared_size_t_symbol(void);
 extern void make_predeclared_bool_symbol(void);
 
 extern
-a_hide_by_sig_list_entry_ptr hide_by_sig_list_for_symbol(a_symbol_ptr sym);
+a_boolean use_hide_by_sig_lookup(
+			a_symbol_ptr			sym,
+			a_hide_by_sig_list_entry_ptr	*p_hide_by_sig_list);
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
