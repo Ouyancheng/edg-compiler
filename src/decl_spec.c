@@ -2508,8 +2508,8 @@ may be emitted at the given position.
     if (!is_local_class) {
       /* Nonlocal class. */
       set_name_linkage_for_type(class_type);
-#if CHECKING
     } else {
+#if CHECKING
       /* For a local class, save information about the enclosing function. */
       a_scope_stack_entry_ptr		ssep;
       if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
@@ -2525,6 +2525,21 @@ may be emitted at the given position.
       }  /* if */
       check_assertion(ssep != NULL && ssep->assoc_routine != NULL);
 #endif /* CHECKING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled && depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+          !class_type_supp(class_type)->is_lambda_closure_class &&
+          !is_immediate_managed_class_type(class_type)) {
+        /* Local class types are not allowed in members of managed classes. */
+        a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
+        check_assertion(rp != NULL);
+        if (rp->source_corresp.is_class_member) {
+          a_type_ptr  parent_class = parent_class_of(rp);
+          if (is_managed_class_type(parent_class)) {
+            pos_error(ec_local_class_in_managed_member_function, diag_pos);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
 }  /* update_membership_of_class */
