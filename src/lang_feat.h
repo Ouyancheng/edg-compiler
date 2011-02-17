@@ -2076,6 +2076,13 @@ EXTERN a_boolean
 			   supported. */
 
 EXTERN a_boolean
+		enable_underscore_decltype_only;
+			/* When TRUE in GNU C++ mode with decltype_enabled set
+			   to TRUE, the C++0x keyword decltype is disabled,
+			   but the alternative __decltype is enabled with the
+			   same meaning as the standard token. */
+
+EXTERN a_boolean
 		nullptr_enabled;
 			/* When TRUE, the C++0x keyword "nullptr" is
 			   enabled. */

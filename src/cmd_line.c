@@ -3526,6 +3526,12 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
     /* g++ 4.4 at least seems to ignore access checking. */
     if (cpp0x_sfinae_enabled) cpp0x_sfinae_ignore_access = TRUE;
   }  /* if */
+  if (!cpp0x_mode && gnu_version >= 40300) {
+    /* g++ 4.3 enabled the decltype feature unconditionally via the __decltype
+       keyword (the decltype keyword is only enabled in C++0x mode. */
+    decltype_enabled = TRUE;
+    enable_underscore_decltype_only = TRUE;
+  }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
 
@@ -9414,6 +9420,7 @@ variables declared in cmd_line.h.
   inline_template_allowed = FALSE;
   standard_form_of_extern_template = FALSE;
   decltype_enabled = FALSE;
+  enable_underscore_decltype_only = FALSE;
   check_concatenations = DEFAULT_CHECK_CONCATENATIONS;
   va_arg_returns_lvalue = FALSE;
   warn_on_try_statement = FALSE;

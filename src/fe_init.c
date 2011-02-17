@@ -726,7 +726,13 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_static_assert, "static_assert");
     }  /* if */
     if (decltype_enabled) {
-      enter_keyword((a_token_kind)tok_decltype, "decltype");
+      /* In some GNU C__ modes, the decltype feature is only available via the
+         alternative spelling "__decltype".  In other GNU C++ modes, both
+         spellings are available. */
+      if (gpp_mode) enter_keyword((a_token_kind)tok_decltype, "__decltype");
+      if (!enable_underscore_decltype_only) {
+        enter_keyword((a_token_kind)tok_decltype, "decltype");
+      }  /* if */
     }  /* if */
     if (nullptr_enabled) {
       enter_keyword((a_token_kind)tok_nullptr, "nullptr");

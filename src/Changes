@@ -1,5 +1,14 @@
 Version 4.3
 
+2/17/11  [EDGcpfe/11338]
+GNU C++ compatibility: __decltype
+
+In GNU C++ modes with gnu_version >= 40300, the front end now accepts the
+C++0x "decltype" feature via the alternative keyword "__decltype".  This is
+the case even in non-C++0x modes.  (In GNU C++0x modes, both the standard
+keyword "decltype" and the GNU alternative "__decltype" are accepted.)
+
+
 2/16/11  [EDGcpfe/11395]
 A template constructor should be usable as a default constructor
 
