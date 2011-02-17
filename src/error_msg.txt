@@ -2134,6 +2134,7 @@ ec_destructor_in_value_class_type;;"a destructor cannot be declared in a value c
 ec_assignment_in_value_class_type;;"an assignment operator cannot be declared in a value class type"
 ec_nonvalue_class_type_cannot_be_value_class_member;;"non-value class type %t cannot be the type of a member of a value class"
 ec_cppcli_requires_newer_abi_version;;"option \"cppcli\" requires a different compiler configuration"
+ec_managed_member_exception_spec;;"exception specifications are not allowed on member functions of C++/CLI managed class types"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

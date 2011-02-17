@@ -1839,7 +1839,8 @@ this is a helper function.
         qualifier_err = TRUE;
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && is_nonstatic_member) {
+    } else if (cppcli_enabled && is_nonstatic_member &&
+               is_managed_class_type(parent_type)) {
       err_code = ec_qualifier_not_allowed_on_managed_member_function;
       qualifier_err = TRUE;
     } else if (microsoft_mode && is_destructor && qualifiers == TQ_RESTRICT) {
@@ -1921,11 +1922,18 @@ this is a helper function.
   esp = scan_exception_specification(func_info, !disallow_exception_spec,
                                      top_level);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if ((microsoft_bugs && microsoft_version <= 1200) ||
-      (microsoft_mode && microsoft_version >= 1300 && esp != NULL &&
-       !((esp->exception_specification_type_list == NULL && !esp->throw_any) ||
-         (rtsp->routine_name_linkage == (a_name_linkage_kind)nlk_external &&
-          esp->throw_any)))) {
+  if (cppcli_enabled && esp != NULL && is_managed_class_type(parent_type)) {
+    /* Exception specifications are not allowed on members of C++/CLI managed
+       class types. */
+    pos_error(ec_managed_member_exception_spec, &func_info->throw_position);
+    esp = NULL;
+  } else if ((microsoft_bugs && microsoft_version <= 1200) ||
+             (microsoft_mode && microsoft_version >= 1300 && esp != NULL &&
+              !((esp->exception_specification_type_list == NULL &&
+                 !esp->throw_any) ||
+                (rtsp->routine_name_linkage ==
+                                         (a_name_linkage_kind)nlk_external &&
+                 esp->throw_any)))) {
     /* Early Microsoft compilers ignored exception specifications entirely.
        Newer versions ignore all exception specifications except "throw()"
        (which is treated in a nonstandard way) and "throw(...)" applied to
