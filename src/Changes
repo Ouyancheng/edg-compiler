@@ -1,5 +1,17 @@
 Version 4.3
 
+2/16/11  [EDGcpfe/11395]
+A template constructor should be usable as a default constructor
+
+A template constructor that can be called with zero arguments should be
+usable as a default constructor.  Now, it is.
+
+  struct A {
+    template <class T = int> A(T = 1){}
+  };
+  A a;  // Formerly an error; now accepted
+
+
 2/15/11  [EDGcpfe/11384]
 IL representation for array type with dependent but unknown bound (IL CHANGE)
 

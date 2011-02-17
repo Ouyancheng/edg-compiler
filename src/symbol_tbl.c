@@ -8006,7 +8006,9 @@ found, set *ambiguous to TRUE and return one of the symbols.  Return NULL
 if no default constructor is found.  For a trivial default constructor that's
 not user-declared, there's no symbol, so return NULL; for a user-declared
 default constructor that's defaulted and trivial, return the symbol.
-In either of those cases, if trivial is non-NULL return *trivial set to TRUE. 
+In either of those cases, if trivial is non-NULL return *trivial set to TRUE.
+This routine does not consider template constructors that can be called
+with zero arguments.
 */
 {
   a_symbol_ptr  sym, ctor_sym = NULL;
@@ -8087,7 +8089,8 @@ unevaluated expression.  If error_detected is non-NULL, return
 *error_detected set to TRUE if there was an error, and do not issue
 any diagnostics (including warnings).  (That return value does not
 quite duplicate the one in *err, because it includes access errors
-and *err does not.)
+and *err does not.)  This routine does consider template constructors
+that can be called with zero arguments.
 */
 {
   a_routine_ptr ctor_routine = NULL;
@@ -8098,6 +8101,12 @@ and *err does not.)
   if (error_detected != NULL) *error_detected = FALSE;
   class_type = skip_typerefs(class_type);
   ctor_sym = find_default_constructor(class_type, &ambiguous, &trivial);
+  if (ctor_sym == NULL && !trivial) {
+    /* Look for a template constructor that can be called with zero
+       arguments. */
+    ctor_sym = find_template_default_constructor(class_type, err_pos,
+                                                 &ambiguous);
+  }  /* if */
   if (ctor_sym == NULL) {
     if (trivial) {
       /* The class has an implicit (not user-declared) trivial default

@@ -28371,6 +28371,41 @@ Return TRUE if the given arg_operand makes use of an error type or constant.
 }  /* arg_operand_involves_error_entity */
 
 
+a_symbol_ptr find_template_default_constructor(a_type_ptr        class_type,
+                                               a_source_position *pos,
+                                               a_boolean         *ambiguous)
+/*
+See if there is a template constructor of the indicated class type
+that can be called with no arguments.  If so, return a pointer to a
+symbol for the instance of the template that can be thus called.  If
+no acceptable template is found, return NULL.  If more than one
+template matches, set *ambiguous to TRUE and return one of the
+symbols.  The source position of the reference is given by pos.  This
+routine does not do access checking on the template constructor.
+Non-template default constructors are ignored (see
+find_default_constructor for those).
+*/
+{
+  a_symbol_ptr            ctor_sym;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
+
+  /* Save the current expr_stack for later restoration, and start over, because
+     this processing is not part of any expression we happen to be inside
+     of. */
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  ctor_sym = select_overloaded_template_default_constructor(class_type,
+                                                            pos,
+                                                            ambiguous);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  return ctor_sym;
+}  /* find_template_default_constructor */
+
+
 a_symbol_ptr find_copy_constructor(a_type_ptr            class_type,
                                    a_type_qualifier_set  required_qualifiers,
                                    a_boolean             source_is_rvalue,

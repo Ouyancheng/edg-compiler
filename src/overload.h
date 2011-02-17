@@ -833,6 +833,11 @@ extern a_boolean conditional_operator_conversion_possible(
                                                    a_conv_descr *conv,
                                                    a_boolean    *ambiguous);
 
+extern a_symbol_ptr select_overloaded_template_default_constructor(
+                                                 a_type_ptr        class_type,
+                                                 a_source_position *pos,
+                                                 a_boolean         *ambiguous);
+
 extern a_symbol_ptr select_overloaded_copy_constructor
                                   (a_type_ptr            class_type,
                                    a_type_qualifier_set  required_qualifiers,

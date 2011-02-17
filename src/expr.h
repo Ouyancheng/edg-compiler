@@ -360,6 +360,11 @@ extern a_boolean arg_operand_is_instantiation_dependent(
 extern a_boolean arg_operand_involves_error_entity(
                                                an_arg_operand_ptr arg_operand);
 
+extern
+a_symbol_ptr find_template_default_constructor(a_type_ptr        class_type,
+                                               a_source_position *pos,
+                                               a_boolean         *ambiguous);
+
 extern a_symbol_ptr find_copy_constructor(
                                    a_type_ptr            class_type,
                                    a_type_qualifier_set  required_qualifiers,
