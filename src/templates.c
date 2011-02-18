@@ -5258,8 +5258,8 @@ non-NULL, issue an error at the given position.
         pos_error(ec_cli_array_invalid_element_type, diag_pos);
       }  /* if */
       is_valid = FALSE; 
-    }  /* if */
-  }  /* if */
+    } /* if */
+  } /* if */
   advance_to_next_template_arg_simple(&tap);
   if (tap != NULL) {
     /* Check the second (optional) argument which specifies the number of
@@ -5279,7 +5279,7 @@ non-NULL, issue an error at the given position.
           pos_error(ec_cli_array_invalid_number_of_dimensions, diag_pos);
         }  /* if */
         is_valid = FALSE;
-      }  /* if */
+      } /* if */
     }  /* if */
   }  /* if */
   return is_valid;
@@ -5740,12 +5740,6 @@ is returned.
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (class_template_sym == symbol_for_cli_array) {
-    /* This is a C++/CLI array type. */
-    ctsp->is_cli_array = TRUE;
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DEBUG
   if (db_sym_trace("instantiations", sym)) {
     fprintf(f_debug, "Partial instantiation of: ");
@@ -12957,12 +12951,6 @@ initially used when processing the declaration of a partial specialization.
       prototype_sym->variant.class_struct_union.type = prototype_type;
       prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
       prototype_ctsp->assoc_template = decl_state->il_template_entry;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (sym == symbol_for_cli_array) {
-        /* This is a C++/CLI array type. */
-        prototype_ctsp->is_cli_array = TRUE;
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     prototype_type->source_corresp.access = access_for_symbol(sym);
     set_source_corresp(&(prototype_type->source_corresp), prototype_sym);

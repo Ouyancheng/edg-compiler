@@ -6441,8 +6441,6 @@ typedef struct a_class_type_supplement {
 			/* TRUE if lookup in this class should follow the
 			   C++/CLI "hidebysig" rules (which is normally the
 			   case for managed class types). */
-  a_bit_field	is_cli_array:1;
-			/* TRUE if this represents a C++/CLI array type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

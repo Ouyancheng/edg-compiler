@@ -5681,9 +5681,6 @@ Display the indicated class type supplement entry.
   if (ptr->is_hide_by_sig) {
     disp_boolean("is_hide_by_sig", TRUE);
   }  /* if */
-  if (ptr->is_cli_array) {
-    disp_boolean("is_cli_array", TRUE);
-  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
