@@ -127,19 +127,21 @@ static a_symbol_ptr set_overload_set_traversal_symbol(
 /*
 Set the current symbol in the overload set traversal block ostblock to sym.
 Return the symbol that was stored (which, for an overloaded function, is
-the first symbol in the overload set).
+the first symbol in the overload set).  If sym is NULL, set up an
+empty traversal and return NULL.
 */
 {
-  a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
-
-  if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    ostblock->is_overloaded_function_list = TRUE;
-    sym = fund_sym->variant.overloaded_function.symbols;
-  } else {
-    check_assertion(fund_sym->kind == (a_symbol_kind)sk_member_function ||
-                    fund_sym->kind == (a_symbol_kind)sk_routine ||
-                    fund_sym->kind == (a_symbol_kind)sk_function_template);
-    ostblock->is_overloaded_function_list = FALSE;
+  if (sym != NULL) {
+    a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
+    if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      ostblock->is_overloaded_function_list = TRUE;
+      sym = fund_sym->variant.overloaded_function.symbols;
+    } else {
+      check_assertion(fund_sym->kind == (a_symbol_kind)sk_member_function ||
+                      fund_sym->kind == (a_symbol_kind)sk_routine ||
+                      fund_sym->kind == (a_symbol_kind)sk_function_template);
+      ostblock->is_overloaded_function_list = FALSE;
+    }  /* if */
   }  /* if */
   return (ostblock->current_symbol = sym);
 }  /* set_overload_set_traversal_symbol */
@@ -159,20 +161,26 @@ returned may be a projection symbol.
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ostblock->hide_by_sig_list = NULL;
-  if (cppcli_enabled && sym->is_class_member) {
+  if (cppcli_enabled) {
     /* In C++/CLI mode, look to see if hide-by-sig lookup applies for this
        symbol.  If so, we'll have a list to traverse to get to all the
        not-hidden symbols, including those in base classes. */
     a_hide_by_sig_list_entry_ptr list;
-    if (use_hide_by_sig_lookup(sym, &list) && list != NULL) {
-      /* There is a hide-by-sig list.  Start with the first symbol on the
-         list. */
-      while (list->symbol == NULL) {
-        list = list->next;
-        check_assertion(list != NULL);
+    if (use_hide_by_sig_lookup(sym, &list)) {
+      if (list != NULL) {
+        /* There is a hide-by-sig list.  Start with the first symbol on the
+           list. */
+        while (list->symbol == NULL) {
+          list = list->next;
+          check_assertion(list != NULL);
+        }  /* if */
+        ostblock->hide_by_sig_list = list;
+        sym = list->symbol;
+      } else {
+        /* Hide-by-sig applies, but the list is empty.  Return a null
+           symbol. */
+        sym = NULL;
       }  /* if */
-      ostblock->hide_by_sig_list = list;
-      sym = list->symbol;
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -250,15 +258,14 @@ Return TRUE if C++/CLI hide-by-sig lookup applies to the given symbol.
 If so, the symbol is considered overloaded even if it doesn't look it.
 */
 {
-  a_boolean consider_overloaded = FALSE;
+  a_boolean hide_by_sig_applies = FALSE;
 
   if (cppcli_enabled) {
-    if (sym->is_class_member &&
-        use_hide_by_sig_lookup(sym, (a_hide_by_sig_list_entry_ptr*)NULL)) {
-      consider_overloaded = TRUE;
+    if (use_hide_by_sig_lookup(sym, (a_hide_by_sig_list_entry_ptr *)NULL)) {
+      hide_by_sig_applies = TRUE;
     }  /* if */
   }  /* if */
-  return consider_overloaded;
+  return hide_by_sig_applies;
 }  /* hide_by_sig_lookup_applies */
    
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1524,7 +1531,7 @@ This applies to projection and namespace projection symbols.
   /* In C++/CLI, a symbol for which hide-by-sig lookup applies is
      not considered ambiguous. */
   if (is_ambiguous && cppcli_enabled &&
-      use_hide_by_sig_lookup(symbol, (a_hide_by_sig_list_entry_ptr*)NULL)) {
+      use_hide_by_sig_lookup(symbol, (a_hide_by_sig_list_entry_ptr *)NULL)) {
     is_ambiguous = FALSE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4019,53 +4026,56 @@ b).
   proj_function_symbol = set_up_overload_set_traversal(
                                                     overloaded_function_symbol,
                                                     &ostblock);
-  /* Remove namespace projections, if any. */
-  function_symbol = fundamental_symbol_of(proj_function_symbol);
-  /* If we have no selector, see if any one of the functions requires one.
-     If so, we will look to see if an implicit "this->" can be generated.
-     Don't do this for the constructor case (the "this" parameter of the
-     constructor is not used in the match). */
-  if (!ctor_conversion_case && !have_selector) {
-    a_routine_ptr routine;
-    a_type_ptr    routine_type;
-    a_boolean     some_function_needs_selector = FALSE;
-    /* Check the first or only function to see whether or not it requires
-       a selector. */
-    if (function_symbol->kind == (a_symbol_kind)sk_function_template) {
-      /* Template -- might be a member function template. */
-      routine=function_symbol->variant.template_info->variant.function.routine;
-    } else {
-      check_assertion(function_symbol->kind == (a_symbol_kind)sk_routine ||
-                      function_symbol->kind ==
-                                            (a_symbol_kind)sk_member_function);
-      routine = function_symbol->variant.routine.ptr;
-    }  /* if */
-    routine_type = skip_typerefs(routine->type);
-    if (routine_type_is_nonstatic_member_function(routine_type)) {
-      some_function_needs_selector = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled &&
-               ostblock.hide_by_sig_list != NULL) {
-      /* If the overload set is formed by C++/CLI hide-by-sig processing,
-         assume it contains a nonstatic member somewhere. */
-      some_function_needs_selector = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else {
-      /* If the first function of a list of functions does not need a selector,
-         and the mixed_static_nonstatic flag says the list contains both static
-         and nonstatic functions, then we know at least one function needs
+  if (proj_function_symbol != NULL) {
+    /* Remove namespace projections, if any. */
+    function_symbol = fundamental_symbol_of(proj_function_symbol);
+    /* If we have no selector, see if any one of the functions requires one.
+       If so, we will look to see if an implicit "this->" can be generated.
+       Don't do this for the constructor case (the "this" parameter of the
+       constructor is not used in the match). */
+    if (!ctor_conversion_case && !have_selector) {
+      a_routine_ptr routine;
+      a_type_ptr    routine_type;
+      a_boolean     some_function_needs_selector = FALSE;
+      /* Check the first or only function to see whether or not it requires
          a selector. */
-      a_symbol_ptr sym = fundamental_symbol_of(overloaded_function_symbol);
-      if (sym->kind == (a_symbol_kind)sk_overloaded_function &&
-          sym->variant.overloaded_function.mixed_static_nonstatic) {
-        some_function_needs_selector = TRUE;
+      if (function_symbol->kind == (a_symbol_kind)sk_function_template) {
+        /* Template -- might be a member function template. */
+        routine =
+              function_symbol->variant.template_info->variant.function.routine;
+      } else {
+        check_assertion(function_symbol->kind == (a_symbol_kind)sk_routine ||
+                        function_symbol->kind ==
+                                            (a_symbol_kind)sk_member_function);
+        routine = function_symbol->variant.routine.ptr;
       }  /* if */
-    }  /* if */
-    if (some_function_needs_selector) {
-      /* We need a selector and we don't have one.  See if a selector
-         can be generated from the "this" pointer of the current function. */
-      if ((implicit_selector_type = make_implicit_selector_type()) != NULL) {
-        have_selector = TRUE;
+      routine_type = skip_typerefs(routine->type);
+      if (routine_type_is_nonstatic_member_function(routine_type)) {
+        some_function_needs_selector = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (cppcli_enabled &&
+                 ostblock.hide_by_sig_list != NULL) {
+        /* If the overload set is formed by C++/CLI hide-by-sig processing,
+           assume it contains a nonstatic member somewhere. */
+        some_function_needs_selector = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      } else {
+        /* If the first function of a list of functions does not need a
+           selector, and the mixed_static_nonstatic flag says the list
+           contains both static and nonstatic functions, then we know at
+           least one function needs a selector. */
+        a_symbol_ptr sym = fundamental_symbol_of(overloaded_function_symbol);
+        if (sym->kind == (a_symbol_kind)sk_overloaded_function &&
+            sym->variant.overloaded_function.mixed_static_nonstatic) {
+          some_function_needs_selector = TRUE;
+        }  /* if */
+      }  /* if */
+      if (some_function_needs_selector) {
+        /* We need a selector and we don't have one.  See if a selector
+           can be generated from the "this" pointer of the current function. */
+        if ((implicit_selector_type = make_implicit_selector_type()) != NULL) {
+          have_selector = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -7635,9 +7645,9 @@ the case where the left operand is a C++/CLI handle.
           a_symbol_ptr sym, fund_sym;
           an_overload_set_traversal_block
                        ostblock;
-          sym = set_up_overload_set_traversal(projection_member_sym,
-                                              &ostblock);
-          for (;;
+          for (sym = set_up_overload_set_traversal(projection_member_sym,
+                                                   &ostblock);
+               ;
                sym = next_symbol_in_overload_set(&ostblock,
                                                  /*curr_sym_viable=*/FALSE)) {
             check_assertion(sym != NULL);
