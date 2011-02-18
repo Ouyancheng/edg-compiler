@@ -8673,10 +8673,12 @@ enum a_special_function_kind_tag {
 			/* A C++/CLI static constructor. */
   sfk_finalizer,	/* A C++/CLI finalizer. */
   sfk_property_get,	/* A "get" accessor function of a C++/CLI property. */
+  sfk_first_accessor = sfk_property_get,
   sfk_property_set,	/* A "set" accessor function of a C++/CLI property. */
   sfk_event_add,	/* An "add" accessor function of a C++/CLI event. */
   sfk_event_remove,	/* A "remove" accessor function of a C++/CLI event. */
   sfk_event_raise,	/* A "raise" accessor function of a C++/CLI event. */
+  sfk_last_accessor = sfk_event_raise,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sfk_last		/* Must be last. */
 };
