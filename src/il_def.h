@@ -6442,6 +6442,8 @@ typedef struct a_class_type_supplement {
 			   "hidebysig".  This flag is TRUE if instead this
 			   ref class or interface should be treated as
 			   "hidebyname". */
+  a_bit_field	is_cli_array:1;
+			/* TRUE if this represents a C++/CLI array type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

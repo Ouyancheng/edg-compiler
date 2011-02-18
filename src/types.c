@@ -935,9 +935,7 @@ Return TRUE if the given type is a C++/CLI array type.
 */
 {
   tp = skip_typerefs(tp);
-  return is_immediate_class_type(tp) && symbol_for_cli_array != NULL &&
-         symbol_supplement_for_class(tp)->class_template ==
-                                                         symbol_for_cli_array;
+  return is_immediate_class_type(tp) && class_type_supp(tp)->is_cli_array;
 }  /* is_cli_array_type */
 
 
