@@ -2141,6 +2141,7 @@ ec_nested_class_mixes_standard_and_managed_classes;;"a managed class cannot be n
 ec_local_class_in_managed_member_function;;"a local class definition is not allowed in a member function of a managed class type"
 ec_local_lambda_in_managed_member_function;;"a local lambda is not allowed in a member function of a managed class type"
 ec_cli_interface_member_function_definition;;"a member function of a C++/CLI interface type can not have a definition"
+ec_missing_get_and_set_accessors;;"a property definition must include at least one accessor (\"get\" or \"set\")"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

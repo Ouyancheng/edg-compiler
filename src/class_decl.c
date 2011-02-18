@@ -16979,21 +16979,27 @@ innermost function being defined.
   if (curr_token == tok_rbrace) {
     /* The closing brace of a nontrivial property or event definition.  Skip
        over the token and update class_state to indicate we're no longer in a
-       property or event definition. */
+       property or event definition.  Also check that any required accessor
+       functions have been declared. */
+    a_source_position_ptr  decl_pos;
+    if (pedp->is_static) {
+      decl_pos = &pedp->variant.variable->source_corresp.decl_position;
+    } else {
+      decl_pos = &pedp->variant.field->source_corresp.decl_position;
+    }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     pedp->definition_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (pedp->kind == (a_property_or_event_kind)pek_cli_event) {
+    if (pedp->kind == (a_property_or_event_kind)pek_cli_property) {
+      /* Check that at least one of the "get" and "set" accessors have been
+         declared. */
+      if (pedp->get_routine.ptr == NULL && pedp->set_routine.ptr == NULL) {
+        pos_error(ec_missing_get_and_set_accessors, decl_pos);
+      }  /* if */
+    } else {
       /* Check that both "add" and "remove" have been declared. */
       if (pedp->add_routine == NULL || pedp->remove_routine == NULL) {
-        a_source_position_ptr  event_decl_pos;
-        if (pedp->is_static) {
-          event_decl_pos =
-                        &pedp->variant.variable->source_corresp.decl_position;
-        } else {
-          event_decl_pos = &pedp->variant.field->source_corresp.decl_position;
-        }  /* if */
-        pos_error(ec_missing_add_or_remove_accessor, event_decl_pos);
+        pos_error(ec_missing_add_or_remove_accessor, decl_pos);
       }  /* if */
     }  /* if */
     (void)get_token();
