@@ -11149,6 +11149,27 @@ if no such base-class symbol is found).
       }  /* if */
     }  /* if */
   }  /* for */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (options & IDL_EXCLUDE_BASE_INTERFACE_MEMBERS) {
+    /* Traverse the set of progenitors that was collected, and remove any
+       that come from an interface base. */
+    a_progenitor_ptr  *p_progenitor = &progenitor_set;
+    check_assertion(cppcli_enabled);
+    while (*p_progenitor != NULL) {
+      a_symbol_ptr  sym = fundamental_symbol_of((*p_progenitor)->sym);
+      a_type_ptr    sym_parent = sym_parent_class(sym);
+      if (cli_class_type_kind_is(sym_parent, cctk_interface)) {
+        /* Discard this entry. */
+        pp = *p_progenitor;
+        *p_progenitor = pp->next;
+        free_progenitor(pp);
+      } else {
+        /* Move on to the next entry (if any). */
+        p_progenitor = &(*p_progenitor)->next;
+      }  /* if */
+    }  /* while */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
   return progenitor_set;
 }  /* find_progenitor */

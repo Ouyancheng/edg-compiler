@@ -192,6 +192,10 @@ represented as a bit set:
 				   considered and static constructors (if any)
 				   are found; otherwise, static constructors
 				   are not considered. */
+#define IDL_EXCLUDE_BASE_INTERFACE_MEMBERS 0x20000000
+				/* TRUE if a lookup in a C++/CLI managed class
+				   should ignore members from a base interface
+				   class. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 

@@ -8756,7 +8756,7 @@ set to FALSE (and FALSE is always returned).
       case sfk_conversion:
       case sfk_operator:
         if (!rtn->compiler_generated) {
-          if (in_interface) {
+          if (type->variant.class_struct_union.is_interface) {
             pos_error(ec_interface_cannot_have_operator,
                       &locator->source_position);
           } else {
@@ -18680,6 +18680,57 @@ next_derived_class_symbol:;
   }  /* for */
 }  /* check_names_reserved_by_cli_properties_and_events */
 
+
+static void check_for_subscript_mechanism_conflict(a_type_ptr  class_type)
+/*
+The given class type is a C++/CLI managed class type whose complete definition
+has just been parsed.  Issue an error if it contains both a member operator[]
+and a default-indexed property.
+*/
+{
+  a_symbol_locator  loc;
+  a_symbol_ptr      sym;
+
+  check_assertion(is_immediate_managed_class_type(class_type));
+  /* Check if this class contains an operator[]. */
+  make_opname_locator((an_opname_kind)onk_subscript, &loc,
+                      &null_source_position);
+  /* Members of interface bases are not considered because they aren't really
+     inherited members for the purpose of this test. */
+  sym = class_qualified_id_lookup(&loc, class_type,
+                                  IDL_EXCLUDE_BASE_INTERFACE_MEMBERS |
+                                  IDL_DO_NOT_CREATE_PROJ_SYM);
+  if (sym != NULL) {
+    /* The class contains an operator[]: A conflict is possible. */
+    a_property_or_event_descr_ptr
+           pedp = class_type_supp(class_type)->default_indexed_property_descr;
+    if (pedp == NULL &&
+        same_entities(sym_parent_class(sym), class_type)) {
+      /* Look for a conflict with a default-indexed property in a base class.
+         (If operator[] were in a base class, this is not needed since a
+         diagnostic would already have been issued a conflict in a base.) */
+      a_base_class_ptr  bcp = base_classes_of(class_type);
+      for (; bcp != NULL; bcp = bcp->next) {
+        if (!cli_class_type_kind_is(bcp->type, cctk_interface)) {
+          pedp = class_type_supp(bcp->type)->default_indexed_property_descr;
+          if (pedp != NULL) break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    if (pedp != NULL) {
+      /* A conflict: Issue an error. */
+      a_source_position_ptr  decl_pos;
+      if (pedp->is_static) {
+        decl_pos = &pedp->variant.variable->source_corresp.decl_position;
+      } else {
+        decl_pos = &pedp->variant.field->source_corresp.decl_position;
+      }  /* if */
+      sym = fundamental_symbol_of(sym);
+      pos_sy_error(ec_subscript_mechanism_conflict, decl_pos, sym);
+    }  /* for */
+  }  /* if */
+}  /* check_for_subscript_mechanism_conflict */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void complete_class_definition(a_type_ptr         class_type,
@@ -18826,8 +18877,9 @@ bits of information that were acquired while parsing.
        type that is a valid base for an __interface type). */
     class_type->variant.class_struct_union.is_interface_like =
                                       class_state->potentially_interface_like;
-    if (cppcli_enabled) {
+    if (cppcli_enabled && is_immediate_managed_class_type(class_type)) {
       check_names_reserved_by_cli_properties_and_events(class_type);
+      check_for_subscript_mechanism_conflict(class_type);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Check for missing or erroneous uses of the "hiding" attribute and
