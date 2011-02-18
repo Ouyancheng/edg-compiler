@@ -16551,6 +16551,14 @@ definition and record it in the IL (as a special-purpose class type).
   if (prev_decl == NULL) {
     /* Create the delegate class type (a sealed ref class). */
     class_type = alloc_type((a_type_kind)tk_struct);
+  }  /* if */
+  ctsp = class_type_supp(class_type);
+  ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
+  class_type->variant.class_struct_union.is_delegate_class = TRUE;
+  class_type->variant.class_struct_union.final = TRUE;
+  if (prev_decl == NULL) {
+    /* Associate a symbol with the new type created above and record
+       membership information. */
     dps->sym = enter_local_symbol((a_symbol_kind)sk_class_or_struct_tag, &loc,
                                   decl_level, /*suppress_redecl_error=*/FALSE);
     dps->sym->variant.class_struct_union.type = class_type;
@@ -16559,10 +16567,6 @@ definition and record it in the IL (as a special-purpose class type).
                                decl_level, &dps->start_pos);
     add_to_types_list(class_type, decl_level);
   }  /* if */
-  ctsp = class_type_supp(class_type);
-  ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
-  class_type->variant.class_struct_union.is_delegate_class = TRUE;
-  class_type->variant.class_struct_union.final = TRUE;
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, dps->sym,
                             &loc.source_position, dps->source_sequence_entry);
   if (cppcli_enabled) {
