@@ -5678,8 +5678,8 @@ Display the indicated class type supplement entry.
   }  /* if */
   disp_assembly_visibility("assembly_visibility", ptr->assembly_visibility);
   disp_cli_class_type_kind("cli_class_type_kind", ptr->cli_class_type_kind);
-  if (ptr->is_hide_by_name) {
-    disp_boolean("is_hide_by_name", TRUE);
+  if (ptr->is_hide_by_sig) {
+    disp_boolean("is_hide_by_sig", TRUE);
   }  /* if */
   if (ptr->is_cli_array) {
     disp_boolean("is_cli_array", TRUE);

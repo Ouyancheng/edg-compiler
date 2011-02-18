@@ -2122,12 +2122,12 @@ It will be NULL for the most derived class.
   }  /* if */
   /* Look through the base classes (and possibly interfaces) of this type. */
   ctsp = class_type_supp(type);
-  if (ctsp->is_hide_by_name) {
+  if (!ctsp->is_hide_by_sig) {
     /* We have encountered a class that is hide-by-name.  Do not inspect
        its base classes. */
     bcp = NULL;
   } else {
-    bcp = type->variant.class_struct_union.extra_info->base_classes;
+    bcp = base_classes_of(type);
   }  /* if */
   for (; bcp != NULL && !hbssp->suppress_hide_by_sig; bcp = bcp->next) {
     a_type_ptr			base_type = bcp->type;
@@ -2219,7 +2219,7 @@ static method.  The list is returned in *p_hide_by_sig_list.
               sym->variant.overloaded_function.symbols->is_invisible)) {
     /* An invisible symbol (probably a property accessor).  Don't attempt
        hide-by-sig lookup and return FALSE. */
-  } else if (parent_ctsp->is_hide_by_name) {
+  } else if (!parent_ctsp->is_hide_by_sig) {
     /* The derived class is hide-by-name -- return FALSE. */
   } else if (is_class ||
              parent_ctsp->cli_class_type_kind ==

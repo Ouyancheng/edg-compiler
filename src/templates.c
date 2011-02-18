@@ -3038,6 +3038,7 @@ loading of classes.
                              class_type_supp(proto_type)->assembly_visibility;
           ctsp->cli_class_type_kind =
                              class_type_supp(proto_type)->cli_class_type_kind;
+          ctsp->is_hide_by_sig = class_type_supp(proto_type)->is_hide_by_sig;
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5667,6 +5668,7 @@ is returned.
       prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       ctsp->cli_class_type_kind = prototype_ctsp->cli_class_type_kind;
+      ctsp->is_hide_by_sig = prototype_ctsp->is_hide_by_sig;
       extended_decl_info.decl_modifiers.flags =
                                   prototype_ctsp->decl_modifiers;
       extended_decl_info.decl_modifiers.uuid_string =
@@ -14449,6 +14451,9 @@ friend_template_checks_done:
                           tssp->variant.class_template.prototype_instantiation
                               ->variant.type.ptr;
       class_type_supp(class_type)->cli_class_type_kind = cli_type_kind;
+      if (cli_type_kind != (a_cli_class_type_kind)cctk_standard) {
+        class_type_supp(class_type)->is_hide_by_sig = TRUE;
+      }  /* if */
       set_cli_visibility(class_type, cli_visibility, &cli_visibility_pos,
                          is_definition);
     }  /* if */

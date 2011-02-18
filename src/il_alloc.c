@@ -1465,7 +1465,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->assembly_visibility               = (an_assembly_visibility)av_none;
   ctsp->cli_class_type_kind               =
                                          (a_cli_class_type_kind)cctk_standard;
-  ctsp->is_hide_by_name                   = FALSE;
+  ctsp->is_hide_by_sig                    = FALSE;
   ctsp->is_cli_array                      = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING

@@ -3570,6 +3570,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
         class_type->variant.class_struct_union.abstract = TRUE;
       }  /* if */
     } else if (cli_type_kind != (a_cli_class_type_kind)cctk_standard) {
+      class_type_supp(class_type)->is_hide_by_sig = TRUE;
       class_type_supp(class_type)->cli_class_type_kind = cli_type_kind;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -6437,11 +6437,10 @@ typedef struct a_class_type_supplement {
 			   modes, it is always cctk_standard.  In C++/CLI mode,
 			   other kinds of classes (e.g., "ref classes") are
 			   possible: See a_cli_class_type_kind. */
-  a_bit_field	is_hide_by_name:1;
-			/* Normally, C++/CLI ref classes and interfaces are
-			   "hidebysig".  This flag is TRUE if instead this
-			   ref class or interface should be treated as
-			   "hidebyname". */
+  a_bit_field	is_hide_by_sig:1;
+			/* TRUE if lookup in this class should follow the
+			   C++/CLI "hidebysig" rules (which is normally the
+			   case for managed class types). */
   a_bit_field	is_cli_array:1;
 			/* TRUE if this represents a C++/CLI array type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

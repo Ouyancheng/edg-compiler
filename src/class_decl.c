@@ -3661,7 +3661,7 @@ dependent on the use of the C++0x attributes "base_check" and "hiding".)
   /* Loop through the registry of overrides. */
   for (; orep != NULL; orep = next_orep) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && is_managed_class_type(class_state->class_type)) {
+    if (class_type_supp(class_state->class_type)->is_hide_by_sig) {
       /* In managed class types, lookup is based on "signature": The
          traditional hiding-instead-of-overriding problems are not an issue
          in that context. */
@@ -16554,6 +16554,7 @@ definition and record it in the IL (as a special-purpose class type).
   }  /* if */
   ctsp = class_type_supp(class_type);
   ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
+  ctsp->is_hide_by_sig = TRUE;
   class_type->variant.class_struct_union.is_delegate_class = TRUE;
   class_type->variant.class_struct_union.final = TRUE;
   if (prev_decl == NULL) {
