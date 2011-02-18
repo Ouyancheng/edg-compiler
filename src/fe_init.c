@@ -726,7 +726,7 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_static_assert, "static_assert");
     }  /* if */
     if (decltype_enabled) {
-      /* In some GNU C__ modes, the decltype feature is only available via the
+      /* In some GNU C++ modes, the decltype feature is only available via the
          alternative spelling "__decltype".  In other GNU C++ modes, both
          spellings are available. */
       if (gpp_mode) enter_keyword((a_token_kind)tok_decltype, "__decltype");
