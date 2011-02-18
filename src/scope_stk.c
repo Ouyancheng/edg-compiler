@@ -8851,21 +8851,77 @@ template that is being instantiated.
 }  /* get_curr_template_params_and_args */
 
 
+static void get_enclosing_template_params_and_args(
+				a_template_arg_ptr	curr_arg_list,
+				a_template_param_ptr	*templ_param_list,
+				a_template_arg_ptr	*templ_arg_list)
+/*
+This routine can be called within a template instantiation context to
+return the template parameter list and template argument list of a
+template that is being instantiated.  The template parameter list and
+argument list are the ones of the instantiation that encloses the
+instantiation for curr_arg_list.  If no such instantiation exists,
+NULL template parameter list and argument lists are returned.
+*/
+{
+  a_template_decl_info_ptr	tdip;
+  a_scope_stack_entry_ptr	ssep;
+  a_boolean			curr_scope_found = FALSE;
+
+  check_assertion(depth_innermost_instantiation_scope != NO_SCOPE_DEPTH);
+  *templ_param_list = NULL;
+  *templ_arg_list = NULL;
+  for (ssep = &scope_stack[depth_innermost_instantiation_scope];
+       ssep != NULL;
+       ssep = previous_scope_of(ssep)) {
+    if (ssep->kind != (a_scope_kind)sck_template_instantiation) {
+      /* We only need to inspect instantiation scopes. */
+      continue;
+    } else if (curr_scope_found) {
+      /* We should return the values for this scope below. */
+    } else if (ssep->template_arg_list == curr_arg_list) {
+      /* We found the scope that was currently being inspected.  We want
+         to return the next one found. */
+      curr_scope_found = TRUE;
+      continue;
+    } else if (!curr_scope_found) {
+      /* This is a scope we have already inspected, and not the most recent
+         one -- ignore it. */
+      continue;
+    }  /* if */
+    tdip = ssep->template_decl_info;
+    *templ_param_list = tdip->parameters;
+    check_assertion(*templ_param_list != NULL);
+    *templ_arg_list = ssep->template_arg_list;
+    check_assertion(*templ_arg_list != NULL);
+    break;
+  }  /* for */
+}  /* get_enclosing_template_params_and_args */
+
+
 static a_template_arg_ptr find_template_arg_for_pack(
 				a_template_param_ptr	templ_param_list,
 				a_template_arg_ptr	templ_arg_list,
 				a_symbol_ptr		sym,
-				uint32_t		*elements)
+				uint32_t		*elements,
+				a_boolean		is_rescan,
+				a_boolean		is_deduction)
 /*
 Find the initial template argument (from templ_arg_list) associated
 with the pack specified by sym, which is a template parameter symbol
 from templ_param_list.  If there are no actual arguments for the pack,
 return NULL.  Return the number of actual arguments in *elements.
+
+is_deduction is TRUE if the pack instantiation is being created as
+part of the deduction of the pack argument values.  is_rescan is TRUE
+if the pack instantiation is being created as part of an expression
+rescan.
 */
 {
   a_template_arg_ptr	result_tap = NULL;
   a_template_arg_ptr	tap;
   a_template_param_ptr	tpp;
+  a_boolean		found = FALSE;
 
   *elements = 0;
   begin_template_arg_list_traversal(templ_param_list, templ_arg_list,
@@ -8873,6 +8929,7 @@ return NULL.  Return the number of actual arguments in *elements.
   for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
     if (tpp->param_symbol == sym) {
       result_tap = tap;
+      found = TRUE;
       /* Compute the number of pack elements. */
       for (; tap != NULL && tap->is_pack_element; tap = tap->next) {
         (*elements)++;
@@ -8880,6 +8937,17 @@ return NULL.  Return the number of actual arguments in *elements.
       break;
     }  /* if */
   }  /* for */
+  if (!found && !is_rescan && !is_deduction) {
+    /* The immediate instantiation context does not have the specified
+       template parameter.  Look in an enclosing context. */
+    get_enclosing_template_params_and_args(templ_arg_list, &templ_param_list,
+                                           &templ_arg_list);
+    if (templ_arg_list != NULL) {
+      result_tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
+                                              sym, elements, is_rescan,
+                                              is_deduction);
+    }  /* if */
+  }  /* if */
   return result_tap;
 }  /* find_template_arg_for_pack */
 
@@ -8978,6 +9046,7 @@ static a_pack_instantiation_descr_ptr create_pack_instantiation_descr(
 		a_pack_expansion_descr_ptr		pedp,
 		a_template_param_ptr			templ_param_list,
 		a_template_arg_ptr			templ_arg_list,
+		a_boolean				is_rescan,
 		a_boolean				is_deduction)
 /*
 We are beginning a real instantiation of the pack expansion specified
@@ -8987,7 +9056,8 @@ whether all of the packs being expanded have the same number of elements.
 templ_param_list and templ_arg_list are the template parameters and
 arguments for the instantiation.  is_deduction is TRUE if the pack
 instantiation is being created as part of the deduction of the pack
-argument values.
+argument values.  is_rescan is TRUE if the pack instantiation is
+being created as part of an expression rescan.
 
 For non-deduction contexts, if this is a valid non-empty expansion,
 establish the initial values of the parameter pack symbols and return
@@ -9050,7 +9120,8 @@ advance to the next pack element for each symbol.
       } else {
         a_template_arg_ptr	tap;
         tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
-                                         prp->symbol, &elements_for_pack);
+                                         prp->symbol, &elements_for_pack,
+                                         is_rescan, is_deduction);
         new_prp->curr_argument.template_arg = tap;
       }  /* if */
       /* Make sure the number of pack elements is consistent. */
@@ -9204,7 +9275,8 @@ instantiation is being pushed as part of template argument deduction
      is invalid, or if there are no pack elements, a NULL instantiation
      entry will be returned. */
   pidp = create_pack_instantiation_descr(pedp, templ_param_list,
-                                         templ_arg_list, is_deduction);
+                                         templ_arg_list, is_rescan,
+                                         is_deduction);
   if (pidp != NULL) {
     pesep = push_pack_expansion_stack();
     pesep->is_rescan = is_rescan;
