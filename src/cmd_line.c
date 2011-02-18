@@ -3528,7 +3528,7 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   }  /* if */
   if (!cpp0x_mode && gnu_version >= 40300) {
     /* g++ 4.3 enabled the decltype feature unconditionally via the __decltype
-       keyword (the decltype keyword is only enabled in C++0x mode. */
+       keyword (the decltype keyword is only enabled in C++0x mode). */
     decltype_enabled = TRUE;
     enable_underscore_decltype_only = TRUE;
   }  /* if */
