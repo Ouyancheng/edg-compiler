@@ -9407,9 +9407,6 @@ care about.
   if (type_ptr->source_corresp.is_local_to_function) {
     check_assertion(type_ptr->kind != (a_type_kind)tk_typeref);
     *force_end_of_traversal = is_local = TRUE;
-  } else if (vla_enabled && is_array(type_ptr) && array_is_vla(type_ptr)) {
-    /* VLA types are considered to be local types. */
-    *force_end_of_traversal = is_local = TRUE;
   }  /* if */
   return is_local;
 }  /* ttt_is_local_type */
