@@ -3439,6 +3439,7 @@ returned set to TRUE.
   a_local_static_variable_init_ptr  local_static_var_init = NULL;
   a_token_kind                      first_token;
   a_source_position                 pos_first_token;
+  a_boolean                         reactivation_pushed = FALSE;
 
   db_enter(3, "initializer");
   dps->has_initializer = TRUE;
@@ -3570,9 +3571,15 @@ returned set to TRUE.
       check_assertion(symbol_ptr->is_error ||
                       !is_file_or_namespace_scope(
                                             &scope_stack[depth_scope_stack]));
-    } else if (!is_template_dependent_context()) {
+    } else if (!is_template_context() || sun_mode ||
+               (microsoft_mode && microsoft_version <= 1300)) {
+      /* For templates, the class was already reactivated when the
+         instantiation scope was pushed.  In older Microsoft modes another
+         scope is pushed because multiple sets of template parameter names
+         are visible in the initializer. */
       push_class_reactivation_scope(sym_parent_class(symbol_ptr),
                                     /*extend_namespace=*/TRUE);
+      reactivation_pushed = TRUE;
     }  /* if */
   } else {
     if (sym_is_namespace_member(symbol_ptr)) {
@@ -3947,7 +3954,7 @@ returned set to TRUE.
        preceding section of code. */
     if (is_incomplete_type(sym_parent_class(symbol_ptr))) {
       check_assertion(symbol_ptr->is_error);
-    } else if (!is_template_dependent_context()) {
+    } else if (reactivation_pushed) {
       pop_class_reactivation_scope();
     }  /* if */
   } else {
