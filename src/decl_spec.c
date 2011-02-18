@@ -2467,8 +2467,14 @@ may be emitted at the given position.
                                     is_immediate_managed_class_type(parent)) {
               /* Managed class types cannot be nested in standard classes and
                  vice versa. */
-              pos_error(ec_nested_class_mixes_standard_and_managed_classes,
-                        diag_pos);
+              if (is_immediate_delegate_type(class_type)) {
+                /* A more specific error is issued elsewhere for delegate
+                   definitions appearing in standard class types. */
+                expect_error();
+              } else {
+                pos_error(ec_nested_class_mixes_standard_and_managed_classes,
+                          diag_pos);
+              }  /* if */
             }  /* if */
             /* coverity[dead_error_condition] */
             if (class_type->variant.class_struct_union.is_interface) {
