@@ -2665,7 +2665,7 @@ after_entry_from_class:
             is_type_templ_arg(ptr->template_arg_list) &&
             ptr->template_arg_list->variant.type != NULL &&
             is_handle_type(ptr->template_arg_list->variant.type)) {
-          a_type_ptr underlying_type = skip_typerefs(
+          a_type_ptr underlying_type = f_skip_typerefs(
                         type_pointed_to(ptr->template_arg_list->variant.type));
           if (is_immediate_class_type(underlying_type)) {
           /* Keep the underlying class type of a handle of a C++/CLI array
