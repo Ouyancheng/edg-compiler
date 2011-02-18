@@ -2201,15 +2201,24 @@ static method.  The list is returned in *p_hide_by_sig_list.
   a_boolean				is_class;
   a_boolean				result = FALSE;
 
-  parent_type = sym_parent_class(sym);
-  parent_ctsp = class_type_supp(parent_type);
-  is_class = parent_ctsp->cli_class_type_kind ==
+  if (sym->is_class_member) {
+    parent_type = sym_parent_class(sym);
+    parent_ctsp = class_type_supp(parent_type);
+    is_class = parent_ctsp->cli_class_type_kind ==
                                                (a_cli_class_type_kind)cctk_ref;
+  }  /* if */
   if (sym->hide_by_sig_lookup_done) {
     /* We have already done the hide-by-sig processing.   Return the results
        from the original lookup. */
     result_list = sym->hide_by_sig_lookup_result;
     result = !sym->suppress_hide_by_sig_lookup;
+  } else if (!sym->is_class_member) {
+    /* This lookup only applies to class members -- return FALSE. */
+  } else if (sym->is_invisible ||
+             (sym->kind == (a_symbol_kind)sk_overloaded_function &&
+              sym->variant.overloaded_function.symbols->is_invisible)) {
+    /* An invisible symbol (probably a property accessor).  Don't attempt
+       hide-by-sig lookup and return FALSE. */
   } else if (parent_ctsp->is_hide_by_name) {
     /* The derived class is hide-by-name -- return FALSE. */
   } else if (is_class ||
