@@ -533,10 +533,10 @@ extern int fileno(FILE *);
 #endif /* ABI_COMPATIBILITY_VERSION >= 306 */
 #if ABI_COMPATIBILITY_VERSION >= 402
 /*lint -esym(769,ec_sfinae_requires_newer_abi_version)*/
-#if !NEED_NAME_MANGLING
-/*lint -esym(769,ec_cppcli_requires_newer_abi_version)*/
-#endif /* !NEED_NAME_MANGLING */
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+#if ABI_COMPATIBILITY_VERSION >= 402 || !NEED_NAME_MANGLING
+/*lint -esym(769,ec_cppcli_requires_newer_abi_version)*/
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 || !NEED_NAME_MANGLING */
 #if !FULLY_RESOLVED_MACRO_POSITIONS
 /*lint -esym(769,ec_in_macro_expansion_at)*/
 #endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
