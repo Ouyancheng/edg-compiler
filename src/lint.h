@@ -73,6 +73,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,db_prefix)*/
 /*lint -esym(714,db_prefix_ptr)*/
 /*lint -esym(757,db_long_double)*/
+/*lint -esym(714,db_long_double)*/
 /*lint -esym(714,db_sym)*/
 /*lint -esym(714,db_corresp)*/
 /*lint -esym(714,db_stop_tokens)*/
@@ -597,6 +598,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_unrecognized_gcc_visibility_pragma)*/
 /*lint -esym(769,ec_gnu_visibility_conflict)*/
 /*lint -esym(769,ec_unrecognized_visibility*/
+/*lint -esym(769,ec_attribute_does_not_apply_to_type*/
 /*lint -esym(769,ec_ELF_visibility_pop_mismatch)*/
 /*lint -esym(769,ec_ELF_visibility_stack_empty)*/
 #endif /* !GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -615,6 +617,9 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_vector_size_must_be_integer_constant)*/
 /*lint -esym(769,ec_vector_element_type_mismatch)*/
 /*lint -esym(769,ec_vector_operation_requires_integer_vector)*/
+/*lint -esym(769,ec_vector_size_attribute_on_enum_type)*/
+/*lint -esym(769,ec_incompatible_vectors_conversion)*/
+/*lint -esym(769,ec_vector_template_parameter)*/
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 /*lint -esym(759,find_local_scope)*/
 /*lint -esym(765,find_local_scope)*/
