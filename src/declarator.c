@@ -1922,7 +1922,8 @@ this is a helper function.
   esp = scan_exception_specification(func_info, !disallow_exception_spec,
                                      top_level);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && esp != NULL && is_managed_class_type(parent_type)) {
+  if (cppcli_enabled && esp != NULL && parent_type != NULL &&
+      is_managed_class_type(parent_type)) {
     /* Exception specifications are not allowed on members of C++/CLI managed
        class types. */
     pos_error(ec_managed_member_exception_spec, &func_info->throw_position);
