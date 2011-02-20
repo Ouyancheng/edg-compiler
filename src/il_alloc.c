@@ -1466,6 +1466,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->cli_class_type_kind               =
                                          (a_cli_class_type_kind)cctk_standard;
   ctsp->is_hide_by_sig                    = FALSE;
+  ctsp->is_cli_array                      = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
   ctsp->compiler_generated                = FALSE;

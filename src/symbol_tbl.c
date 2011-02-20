@@ -6509,12 +6509,22 @@ Declare and define the C++/CLI type "cli::array".  (The definition is lifted
 from ECMA-372, subsection 8.2.3.)
 */
 {
-  symbol_for_cli_array = make_cli_internal_template("array",
-      "namespace cli {"
-      "  template <typename T, int rank = 1>"
-      "  ref class array sealed : System::Array {};"
-      "}"
-    );
+ /* Create cli::array in two parts.  First, declare the template without
+    defining it to ensure symbol_for_cli_array is set before the
+    prototype instantiation of cli::array is done.  Then complete the
+    definition. */
+ symbol_for_cli_array = make_cli_internal_template("array",
+     "namespace cli {"
+     "  template <typename T, int rank = 1>"
+     "  ref class array;"
+     "}"
+   );
+ scan_top_level_metadata_declarations(
+     "namespace cli {"
+     "  template <typename T, int rank>"
+     "  ref class array sealed : System::Array {};"
+     "}"
+   );
 }  /* make_symbol_for_cli_array */
 
 
