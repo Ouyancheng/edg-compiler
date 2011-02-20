@@ -5070,7 +5070,7 @@ available.
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES
   a_portable_assembly_entry *entry;
   FILE                      *file;
-  an_assembly_index         index = 0;
+  an_assembly_index         idx = 0;
   struct stat               stat_buf;
   unsigned int              i;
   
@@ -5084,7 +5084,7 @@ available.
       if (strcmp(assembly_full_name, portable_assembly_table[i].name) == 0) {
         /* We've already opened this assembly, return its index along with
            an indication that the assembly has been previously imported. */
-        index = i;
+        idx = i;
         *is_duplicate = TRUE;
         goto end_of_routine;
       }  /* if */
@@ -5095,8 +5095,8 @@ available.
   if (file != NULL) {
     /* Note: an index of zero is used to indicate an error, so the first
        entry isn't used in the table. */
-    index = ++pa_cur_table_entry;
-    if (index >= pa_table_entries) {
+    idx = ++pa_cur_table_entry;
+    if (idx >= pa_table_entries) {
       /* Dynamically allocate and grow the table as needed. */
       sizeof_t old_size = pa_table_entries * sizeof(a_portable_assembly_entry);
       pa_table_entries += 50;
@@ -5106,7 +5106,7 @@ available.
                                pa_table_entries *
                                             sizeof(a_portable_assembly_entry));
     }  /* if */
-    entry = &portable_assembly_table[index];
+    entry = &portable_assembly_table[idx];
     clear_portable_assembly_entry(entry);
     if (fstat(fileno(file), &stat_buf) != 0) {
       goto close_file_with_error_return;
@@ -5153,10 +5153,10 @@ close_file_with_error_return:
     /* Return this entry in the table and close the file. */
     pa_cur_table_entry--;
     (void)fclose(file);
-    index = 0;
+    idx = 0;
   }  /* if */
 end_of_routine:
-  return index;
+  return idx;
 #else /* !READ_CPPCLI_PORTABLE_ASSEMBLIES */
   return 0;
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES */

@@ -18031,7 +18031,7 @@ done:
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-char *generate_top_level_metadata_code(an_assembly_index index)
+char *generate_top_level_metadata_code(an_assembly_index idx)
 /*
 Generate top level declarations for types being imported and return the
 address of the buffer.  The buffer is reused by each successive call, so
@@ -18054,7 +18054,7 @@ the caller should copy the contents as needed.
   reset_text_buffer(metadata_import_buffer);
   buffer = metadata_import_buffer;
   size = buffer->allocated_size;
-  import_all_types(index, buffer->buffer, &size);
+  import_all_types(idx, buffer->buffer, &size);
   if (size <= buffer->allocated_size) {
     /* The buffer fits.  Mark the size that has been written. */
     buffer->size = size;
@@ -18062,7 +18062,7 @@ the caller should copy the contents as needed.
     /* Expand the buffer */
     reset_text_buffer(buffer);
     expand_text_buffer(buffer, size);
-    import_all_types(index, buffer->buffer, &size);
+    import_all_types(idx, buffer->buffer, &size);
     check_assertion(size <= buffer->allocated_size);
     buffer->size = size;
   }  /* if */
@@ -18071,7 +18071,7 @@ the caller should copy the contents as needed.
 #if DEBUG
   if (db_flag_is_set("dump_metadata")) {
     fprintf(f_debug, "Import types from %x: %.256s%s\n",
-            index, buffer->buffer, buffer->size > 256 ? "..." : "");
+            idx, buffer->buffer, buffer->size > 256 ? "..." : "");
   }  /* if */
 #endif /* DEBUG */
   return buffer->buffer;
