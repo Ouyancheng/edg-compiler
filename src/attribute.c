@@ -4171,9 +4171,11 @@ For example:
       ++n_params;
     }  /* if */
     for (; ptp != NULL; ptp = ptp->next) ++n_params;
-    if (get_attr_arg_integer(ap->arguments, ap, 1, n_params, &p1) &&
+    if (get_attr_arg_integer(ap->arguments, ap,
+                             (a_host_large_integer)1, n_params, &p1) &&
         (ap->arguments->next == NULL ||
-         get_attr_arg_integer(ap->arguments->next, ap, 1, n_params, &p2))) {
+         get_attr_arg_integer(ap->arguments->next, ap,
+                              (a_host_large_integer)1, n_params, &p2))) {
       /* The attribute arguments are valid. */
     } else {
       make_attr_unrecognized(ap);
@@ -4495,7 +4497,8 @@ described by the format string.
   for (k = 0; k<2; ++k) {
     a_host_large_integer  v;
     aap = aap->next;
-    if (get_attr_arg_integer(aap, ap, 0, INT_MAX, &v)) {
+    if (get_attr_arg_integer(aap, ap, (a_host_large_integer)0,
+                             (a_host_large_integer)INT_MAX, &v)) {
       val[k] = (int)v;
     } else {
       known_values = FALSE;
@@ -5061,7 +5064,8 @@ entity.
     } else if (aap->kind != (an_attribute_arg_kind)aak_empty) {
       for (; aap != NULL; aap = aap->next) {
         a_host_large_integer  pnum;
-        if (get_attr_arg_integer(aap, ap, 1, INT_MAX-1, &pnum)) {
+        if (get_attr_arg_integer(aap, ap, (a_host_large_integer)1,
+                                 (a_host_large_integer)(INT_MAX-1), &pnum)) {
           record_nonnull_attr(func_type, (int)pnum, &ap->position);
         }  /* if */
       }  /* for */
@@ -5178,8 +5182,9 @@ Apply the GNU "sentinel" attribute to the given entity and return that entity.
       a_host_large_integer  pnum;
       check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant);
       for (; aap != NULL; aap = aap->next) {
-        if (get_attr_arg_integer(aap, ap, 0, INT_MAX-1, &pnum)) {
-          rtsp->sentinel_pos = pnum+1;
+        if (get_attr_arg_integer(aap, ap, (a_host_large_integer)0,
+                                 (a_host_large_integer)(INT_MAX-1), &pnum)) {
+          rtsp->sentinel_pos = (int)(pnum+1);
         }  /* if */
       }  /* for */
     }  /* if */
