@@ -9976,7 +9976,7 @@ valid UUID.
   /* Pass is_valid_GUID_string the string following an optional brace. */
   begins_with_brace = *ptr == '{';
   if (begins_with_brace) ptr++;  
-  valid = is_valid_GUID_string(ptr, 0);
+  valid = is_valid_GUID_string(ptr, (a_targ_size_t)0);
   /* If the string began with a brace, make sure it ends with one. */
   if (valid && begins_with_brace) valid = ptr[36] == '}';
   return valid;
@@ -10005,7 +10005,7 @@ that look like they should be part of the UUID, those characters are discarded
   char		*end_ptr;
   a_boolean	valid = TRUE;
   a_token_kind	result_token;
-  int		uuid_length = 36;
+  a_targ_size_t	uuid_length = 36;
 
   ptr = curr_char_loc;
   /* Include the opening and closing braces in the length, if present. */
@@ -10027,8 +10027,8 @@ that look like they should be part of the UUID, those characters are discarded
     result_token = tok_uuid;
     /* Allocate space for the UUID string (plus a null terminator) and
        copy the string there. */
-    str = alloc_text_of_string_literal(uuid_length + 1);
-    (void)memcpy(str, ptr, uuid_length);
+    str = alloc_text_of_string_literal((sizeof_t)(uuid_length + 1));
+    (void)memcpy(str, ptr, (sizeof_t)uuid_length);
     /* Add a null terminator. */
     str[uuid_length] = '\0';
     clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_string);
