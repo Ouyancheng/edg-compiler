@@ -5682,6 +5682,9 @@ The syntax is:
        topmost type (an interpretation of the language specification in ARM
        5.3.3).  Set the flag to FALSE for subsequent processing. */
     nonconstant_dimension_allowed = FALSE;
+    if (variadic_templates_enabled && curr_token == tok_ellipsis) {
+      record_pack_expansion_ellipsis();
+    }  /* if */
     /* Check for and get the closing parenthesis. */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
