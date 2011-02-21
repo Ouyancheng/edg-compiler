@@ -1036,7 +1036,7 @@ value to the mangled name.
 
 
 static void add_substitution_index_to_mangled_name(
-                                        a_substitution_index      index,
+                                        a_substitution_index      idx,
                                         a_mangling_control_block  *mctl)
 /*
 Add a representation of the substitution with the given index to the mangled
@@ -1047,8 +1047,8 @@ name.
   /* The substitution number is written in the mangling as a -1-indexed value
      in base 36.  For the first substitution, the number is omitted
      altogether. */
-  if (index > 0) {
-    add_base_36_number_to_mangled_name(index - 1, mctl);
+  if (idx > 0) {
+    add_base_36_number_to_mangled_name(idx - 1, mctl);
   }  /* if */
   add_to_mangled_name('_', mctl);
 }  /* add_substitution_index_to_mangled_name */
@@ -1267,7 +1267,7 @@ is available; do not put it out.
 */
 {
   a_substitution_ptr   sp;
-  a_substitution_index index;
+  a_substitution_index idx;
   a_boolean            result = FALSE;
   char                 *str;
 
@@ -1326,9 +1326,9 @@ is available; do not put it out.
   } else {
     /* Otherwise, see if there is an existing substitution for something
        that appears earlier in the mangled name. */
-    for (sp = mctl->first_substitution, index = 0; 
+    for (sp = mctl->first_substitution, idx = 0; 
          sp != NULL; 
-         sp = sp->next, index++) {
+         sp = sp->next, idx++) {
       if (sp->kind == kind) {
         switch (kind) {
           case iek_type:
@@ -1368,7 +1368,7 @@ is available; do not put it out.
       }  /* if */
       if (result) {
         /* We found a substitution for this entity. */
-        if (!test) add_substitution_index_to_mangled_name(index, mctl);
+        if (!test) add_substitution_index_to_mangled_name(idx, mctl);
         break;
       }  /* if */
     }  /* for */
