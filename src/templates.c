@@ -14962,7 +14962,7 @@ ellipsis, return TRUE in *is_pack.
   if (curr_token == tok_ellipsis && variadic_templates_enabled) {
     /* A "..." indicating a parameter pack declaration. */
     if (is_pack != NULL) *is_pack = TRUE;
-     (void)get_token();
+    (void)get_token();
   }  /* if */
   /* Scan the declarator. */
   declarator((DI_REAL_DECLARATOR_ALLOWED |
