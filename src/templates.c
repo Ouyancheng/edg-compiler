@@ -17003,6 +17003,7 @@ done here.
   a_boolean		is_conversion_operator;
   a_boolean		is_constructor;
   an_error_severity	severity;
+  a_boolean		pack_seen = FALSE;
 
   is_conversion_operator = is_conversion_function_symbol(sym);
   is_constructor = is_constructor_symbol(sym);
@@ -17054,11 +17055,19 @@ done here.
       param_used = template_param_appears_in_param_list(param_sym,
                                                         rout_type);
     }  /* if */
+    if (pack_seen && tpp->is_pack && !param_used) {
+      /* This is a non-initial pack that is not used in the function
+         parameters -- there is no way it can be given a value. */
+      pos_sy2_diagnostic(strict_ansi_discretionary_severity, ec_unusable_pack,
+                         &param_sym->decl_position, param_sym, sym);
+    } else if (tpp->is_pack) {
+      pack_seen = TRUE;
+    }  /* if */
     if (!param_used) {
       a_template_symbol_supplement_ptr	tssp;
       tssp = template_supplement_for_symbol(sym);
       tssp->variant.function.template_param_not_in_function_type = TRUE;
-      if (severity != es_none) {
+      if (severity != es_none && !tpp->is_pack) {
         pos_sy2_diagnostic(severity, ec_not_used_in_template_function_params,
                            &param_sym->decl_position, param_sym, sym);
       }  /* if */
