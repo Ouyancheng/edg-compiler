@@ -5992,6 +5992,8 @@ error type is used.
     db_symbol_name_trans_unit(instance_sym);
     fprintf(f_debug, " based on ");
     db_symbol_name_trans_unit(template_sym);
+    fprintf(f_debug, " type is ");
+    db_type(type->variant.typeref.type);
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
