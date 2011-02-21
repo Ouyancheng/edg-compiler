@@ -12293,31 +12293,18 @@ static a_boolean template_param_is_pack(a_template_param_ptr  tpp)
 Return TRUE if the given template parameter is a template parameter pack.
 */
 {
-  a_boolean  result;
-
-  switch (tpp->param_symbol->kind) {
-    case sk_type:
-      result = tpp->variant.type->variant.template_param.is_pack;
-      break;
-    case sk_constant:
-      result = FALSE;
-      break;
-    case sk_class_template:
-      result = FALSE;
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-  return result;
+  return tpp->is_pack;
 }  /* template_param_is_pack */
 
 
-static void check_template_param_default_args(
+static void check_template_param_default_args_and_packs(
 			a_template_param_ptr	param_list,
 			a_boolean		is_partial_specialization)
 
 /*
-Make sure that any default arguments are at the end of the parameter list.
+Make sure that any default arguments are at the end of the parameter list
+and that if there is a parameter pack it is at the end of the parameter
+list.
 */
 {
   a_template_param_ptr	tpp;
@@ -12340,7 +12327,7 @@ Make sure that any default arguments are at the end of the parameter list.
     /* If there have been parameters with default and this one doesn't have
        a default (and isn't a pack) then issue an error and exit the loop.
        If this one is a pack, check that no parameter follows. */
-    if (template_param_is_pack(tpp)) {
+    if (!is_partial_specialization && template_param_is_pack(tpp)) {
       if (tpp->next != NULL) {
         pos_error(ec_template_param_pack_not_at_end,
                   &tpp->param_symbol->decl_position);
@@ -12351,7 +12338,7 @@ Make sure that any default arguments are at the end of the parameter list.
     }  /* if */
     tpp = tpp->next;
   }  /* while */
-}  /* check_template_param_default_args */
+}  /* check_template_param_default_args_and_packs */
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -14316,9 +14303,10 @@ friend_template_checks_done:
   /* Make sure that the default arguments for the template parameters
      are valid (i.e., that they are at the end of the parameter list).
      This is done now because we have to wait until the parameter lists
-     have been merged to do the test. */
-  check_template_param_default_args(templ_params,
-                                    decl_state->is_partial_specialization);
+     have been merged to do the test.  Also check that a parameter pack,
+     if present, is at the end of the list. */
+  check_template_param_default_args_and_packs(
+                          templ_params, decl_state->is_partial_specialization);
   if (sym == NULL) {
     /* Enter the symbol at the scope indicated by effective_decl_level. */
     a_scope_stack_entry_ptr	ssep =
@@ -15636,9 +15624,10 @@ depends on a another template parameter.
   record_template_param_symbol(sym);
   /* Allocate a template parameter and set its fields based on sym. */
   template_param = alloc_template_param(sym);
-  /* Check the default arguments of the parameter list of the template
-     template parameter. */
-  check_template_param_default_args(local_decl_state.decl_info->parameters,
+  /* Check the default arguments and/or template packs of the parameter list
+     of the template template parameter. */
+  check_template_param_default_args_and_packs(
+                                    local_decl_state.decl_info->parameters,
                                     /*is_partial_specialization=*/FALSE);
   if (is_pack) {
     template_param_is_variadic(sym, template_param, parent_decl_state);
