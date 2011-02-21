@@ -8185,6 +8185,7 @@ associated parameter.
   a_template_arg_ptr	prev_new_tap;
   a_template_param_ptr	tpp;
   a_boolean		have_params = (param_list_for_copy != NULL);
+  a_boolean		added_placeholder = FALSE;
 
   prev_new_tap = new_list = NULL;
   /* Note that this routine does not use the template argument list
@@ -8193,6 +8194,20 @@ associated parameter.
        tap != NULL; tap = tap->next) {
     a_pack_expansion_stack_entry_ptr	pesep = NULL;
     a_boolean				any_more = TRUE;
+    if (have_params && tpp->is_pack && !added_placeholder &&
+        !is_start_of_pack_expansion_templ_arg(tap)) {
+      /* When the template argument list was scanned, the parameter was not
+         a pack.  Add a start of pack placeholder. */
+      new_tap =
+             alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
+      if (new_list == NULL) {
+        new_list = new_tap;
+      } else {
+        prev_new_tap->next = new_tap;
+      }  /* if */
+      prev_new_tap = new_tap;
+      added_placeholder = TRUE;
+    }  /* if */
     if (have_params && tap->pack_expansion_descr != NULL) {
       any_more = begin_rescan_pack_expansion_context(tap->pack_expansion_descr,
                                                      templ_param_list,
@@ -8222,6 +8237,7 @@ associated parameter.
         case tak_start_of_pack_expansion:
           /* Clear the flag on the placeholder, if set above. */
           new_tap->is_pack_element = FALSE;
+          added_placeholder = TRUE;
           break;
         default:
           unexpected_condition();
