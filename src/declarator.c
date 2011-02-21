@@ -5709,8 +5709,8 @@ The syntax is:
         state->has_pack_ellipsis = TRUE;
         record_pack_expansion_ellipsis();
       } else {
-        pos_error(ec_parameter_pack_decl_not_allowed, &pos_curr_token);
-        (void)get_token();
+        /* An error will be issued elsewhere if it turns out we are not
+           in an expansion. */
       }  /* if */
     }  /* if */
     /* An identifier is expected next, but is omitted in the 
