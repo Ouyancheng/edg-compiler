@@ -13018,8 +13018,10 @@ done using the disambiguation routines.
 
   scope_stack_top().in_template_arg_list = TRUE;
   do {
-    a_decl_sequence_number initial_inst_seq_num =
+    a_decl_sequence_number		initial_inst_seq_num =
                                            class_instantiation_sequence_number;
+    a_pack_expansion_stack_entry_ptr	pesep;
+    a_boolean				any_args;
     /* If the current token is a ">" then exit the loop.  This should only be
        possible on the first iteration if we have an empty argument list.
        If it occurs elsewhere, we must have a comma followed by the closing
@@ -13029,78 +13031,85 @@ done using the disambiguation routines.
          consecutive closing angle brackets. */
       replace_right_shift_by_two_closing_angle_brackets();
     }  /* if */
-    if (curr_token == tok_gt) {
-      if (arg_list != NULL) {
-        error(ec_expected_template_arg);
+    any_args = begin_potential_pack_expansion_context(&pesep);
+    while (any_args) {
+      if (curr_token == tok_gt) {
+        if (arg_list != NULL) {
+          error(ec_expected_template_arg);
+        }  /* if */
+        break;
       }  /* if */
-      break;
-    }  /* if */
-    add_stop_token(tok_comma);
-    sym = NULL;
-    /* Determine the kind of template argument. */
-    if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
-                                        GID_IS_EXPR_CONTEXT)) {
-      a_boolean	err;
-      sym = coalesce_and_lookup_generalized_identifier(
+      add_stop_token(tok_comma);
+      sym = NULL;
+      /* Determine the kind of template argument. */
+      if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
+                                          GID_IS_EXPR_CONTEXT)) {
+        a_boolean	err;
+        sym = coalesce_and_lookup_generalized_identifier(
                                  GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
-    }  /* if */
-    if (sym != NULL && is_class_template_symbol(sym)) {
-      arg_kind = (a_templ_arg_kind)tak_template;
-    } else {
-      is_type_param = is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                                       DFS_SINGLE_TYPE_REQUIRED |
-                                       DFS_IS_TEMPLATE_ARGUMENT);
-      arg_kind = is_type_param ? (a_templ_arg_kind)tak_type
-                               : (a_templ_arg_kind)tak_nontype;
-    }  /* if */
-    arg_ptr = alloc_template_arg(arg_kind);
-    /* When is_nonreal is FALSE, we are scanning an explicit function
-       template argument list. */
-    arg_ptr->explicitly_specified = !is_nonreal;
-    if (is_type_templ_arg(arg_ptr)) {
-      arg_ptr->variant.type = scan_template_type_argument();
-    } else if (is_nontype_templ_arg(arg_ptr)) {
-      if (is_nonreal) {
-        /* Scan a constant.  We can't know the type, so pass in a NULL type
-           to indicate this.  (Note: in the !is_nonreal case, we pass
-           initial_inst_seq_num to scan_nontype_template_argument so it can
-           decide whether to keep the backing expression for the argument
-           or not.  Here, in the is_nonreal case, we're in a template
-           declaration and backing expressions are being kept anyway, so we
-           don't have to do anything with initial_inst_seq_num.) */
-        constant = fs_constant((a_constant_repr_kind)ck_error);
-        scan_template_argument_constant_expression((a_type_ptr)NULL, constant);
-        arg_ptr->variant.constant = constant;
-      } else {
-        /* Scan the expression, but retain it in the form of an operand so
-           that the necessary conversions can be done later when the
-           parameter type is known.  (Note: we saved initial_inst_seq_num
-           above, before the call to is_generalized_identifier_start,
-           because that call could result in an instantiation.  We pass
-           that initial value to scan_nontype_template_argument, which
-           compares it against the current value of
-           class_instantiation_sequence_number after all its processing.
-           The decision as to whether the argument caused an instantiation
-           will thus include both the scan of the argument itself and that
-           of any conversion function template instantiated to convert the
-           argument to the parameter type.) */
-        arg_ptr->variant.constant = NULL;
-        arg_ptr->arg_operand =
-                          scan_nontype_template_argument(initial_inst_seq_num);
       }  /* if */
-    } else {
-      /* A template template argument. */
-      a_template_ptr	templ_ptr;
-      check_assertion(is_template_templ_arg(arg_ptr));
-      templ_ptr = scan_template_template_argument((a_template_ptr)NULL,
-                                                   &error_position);
-      arg_ptr->variant.templ.ptr = templ_ptr;
-    }  /* if */
-    /* Link this entry on to the argument list. */
-    if (arg_list == NULL) arg_list = arg_ptr;
-    if (last_arg != NULL) last_arg->next = arg_ptr;
-    last_arg = arg_ptr;
-    remove_stop_token(tok_comma);
+      if (sym != NULL && is_class_template_symbol(sym)) {
+        arg_kind = (a_templ_arg_kind)tak_template;
+      } else {
+        is_type_param = is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                                         DFS_SINGLE_TYPE_REQUIRED |
+                                         DFS_IS_TEMPLATE_ARGUMENT);
+        arg_kind = is_type_param ? (a_templ_arg_kind)tak_type
+                                 : (a_templ_arg_kind)tak_nontype;
+      }  /* if */
+      arg_ptr = alloc_template_arg(arg_kind);
+      /* When is_nonreal is FALSE, we are scanning an explicit function
+         template argument list. */
+      arg_ptr->explicitly_specified = !is_nonreal;
+      if (is_type_templ_arg(arg_ptr)) {
+        arg_ptr->variant.type = scan_template_type_argument();
+      } else if (is_nontype_templ_arg(arg_ptr)) {
+        if (is_nonreal) {
+          /* Scan a constant.  We can't know the type, so pass in a NULL type
+             to indicate this.  (Note: in the !is_nonreal case, we pass
+             initial_inst_seq_num to scan_nontype_template_argument so it can
+             decide whether to keep the backing expression for the argument
+             or not.  Here, in the is_nonreal case, we're in a template
+             declaration and backing expressions are being kept anyway, so we
+             don't have to do anything with initial_inst_seq_num.) */
+          constant = fs_constant((a_constant_repr_kind)ck_error);
+          scan_template_argument_constant_expression((a_type_ptr)NULL,
+                                                     constant);
+          arg_ptr->variant.constant = constant;
+        } else {
+          /* Scan the expression, but retain it in the form of an operand so
+             that the necessary conversions can be done later when the
+             parameter type is known.  (Note: we saved initial_inst_seq_num
+             above, before the call to is_generalized_identifier_start,
+             because that call could result in an instantiation.  We pass
+             that initial value to scan_nontype_template_argument, which
+             compares it against the current value of
+             class_instantiation_sequence_number after all its processing.
+             The decision as to whether the argument caused an instantiation
+             will thus include both the scan of the argument itself and that
+             of any conversion function template instantiated to convert the
+             argument to the parameter type.) */
+          arg_ptr->variant.constant = NULL;
+          arg_ptr->arg_operand =
+                          scan_nontype_template_argument(initial_inst_seq_num);
+        }  /* if */
+      } else {
+        /* A template template argument. */
+        a_template_ptr	templ_ptr;
+        check_assertion(is_template_templ_arg(arg_ptr));
+        templ_ptr = scan_template_template_argument((a_template_ptr)NULL,
+                                                     &error_position);
+        arg_ptr->variant.templ.ptr = templ_ptr;
+      }  /* if */
+      /* Link this entry on to the argument list. */
+      if (arg_list == NULL) arg_list = arg_ptr;
+      if (last_arg != NULL) last_arg->next = arg_ptr;
+      last_arg = arg_ptr;
+      arg_ptr->pack_expansion_descr =
+         end_potential_pack_expansion_context(pesep, /*is_declarator=*/FALSE);
+      any_args = advance_to_next_pack_element(pesep);
+      remove_stop_token(tok_comma);
+    }  /* while */
   } while (loop_token(tok_comma));
   scope_stack_top().in_template_arg_list = saved_in_template_arg_list;
   return arg_list;
