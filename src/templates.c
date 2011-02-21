@@ -17055,7 +17055,7 @@ done here.
       param_used = template_param_appears_in_param_list(param_sym,
                                                         rout_type);
     }  /* if */
-    if (pack_seen && tpp->is_pack && !param_used) {
+    if (pack_seen && !param_used) {
       /* This is a non-initial pack that is not used in the function
          parameters -- there is no way it can be given a value. */
       pos_sy2_diagnostic(strict_ansi_discretionary_severity, ec_unusable_pack,
