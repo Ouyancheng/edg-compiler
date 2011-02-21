@@ -8194,7 +8194,7 @@ associated parameter.
        tap != NULL; tap = tap->next) {
     a_pack_expansion_stack_entry_ptr	pesep = NULL;
     a_boolean				any_more = TRUE;
-    if (have_params && tpp->is_pack && !added_placeholder &&
+    if (have_params && tpp != NULL && tpp->is_pack && !added_placeholder &&
         !is_start_of_pack_expansion_templ_arg(tap)) {
       /* When the template argument list was scanned, the parameter was not
          a pack.  Add a start of pack placeholder. */

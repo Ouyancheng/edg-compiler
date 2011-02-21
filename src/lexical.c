@@ -13193,6 +13193,16 @@ all arguments were explicit.
          information used below is based on the template parameter list of
          the template template parameter (i.e., orig_param_ptr). */
       param_ptr = subst_param_tssp->cache.decl_info->parameters;
+    } else {
+      /* For non-dependent argument lists, use the one from the argument
+         template for param_ptr (except for error cases).  This is needed
+         when the argument template is variadic. */
+      a_symbol_ptr	argument_template;
+      argument_template = tssp->variant.class_template.argument_template;
+      subst_param_tssp = argument_template->variant.template_info;
+      if (!subst_param_tssp->is_error) {
+        param_ptr = subst_param_tssp->cache.decl_info->parameters;
+      }  /* if */
     }  /* if */
   }  /* if */
   arg_number = 0;
