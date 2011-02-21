@@ -597,8 +597,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_unrecognized_gcc_pragma)*/
 /*lint -esym(769,ec_unrecognized_gcc_visibility_pragma)*/
 /*lint -esym(769,ec_gnu_visibility_conflict)*/
-/*lint -esym(769,ec_unrecognized_visibility*/
-/*lint -esym(769,ec_attribute_does_not_apply_to_type*/
+/*lint -esym(769,ec_unrecognized_visibility)*/
+/*lint -esym(769,ec_attribute_does_not_apply_to_type)*/
 /*lint -esym(769,ec_ELF_visibility_pop_mismatch)*/
 /*lint -esym(769,ec_ELF_visibility_stack_empty)*/
 #endif /* !GNU_VISIBILITY_ATTRIBUTE_ALLOWED */

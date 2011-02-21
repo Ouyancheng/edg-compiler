@@ -321,6 +321,7 @@ Flags to be set for any version that uses the C++ generating back end.
 /* Tie the GNU ABI version to the GNU version in the IA-64 test version. */
 #define TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION 1
 #undef MIN_GNU_VERSION
+/*lint -esym(767,MIN_GNU_VERSION)*/
 #define MIN_GNU_VERSION 30200
 /* The IA-64 test version includes embedded C support. */
 #define EMBEDDED_C_ALLOWED 1
