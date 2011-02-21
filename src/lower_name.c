@@ -572,6 +572,9 @@ static void mangled_type_name_full(a_type_ptr               type,
                                    a_boolean                check_for_subst,
                                    a_boolean                ok_to_mangle_type,
                                    a_mangling_control_block *mctl);
+static an_expr_node_ptr skip_compiler_generated_expressions(
+                                        an_expr_node_ptr expr,
+                                        a_boolean        *suppress_address_of);
 
 /*
 Interface to mangled_type_name_full for the usual case, where the
@@ -2173,6 +2176,7 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
 {
   a_template_param_coordinate *coordinates = NULL;
   an_expr_node_ptr            pack_expr = NULL;
+  a_boolean                   suppress_address_of = FALSE;
 
   check_assertion(expr->kind == (an_expression_kind)enk_sizeof_pack);
 #if IA64_ABI
@@ -2216,6 +2220,8 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
     /* An expression.  Non-type template parameter case is handled here,
        function parameter case is handled below. */
     pack_expr = expr->variant.sizeof_pack.variant.expr;
+    pack_expr = skip_compiler_generated_expressions(pack_expr,
+                                                    &suppress_address_of);
     if (is_constant_node(pack_expr) &&
         pack_expr->variant.constant->kind ==
                                      (a_constant_repr_kind)ck_template_param &&
@@ -2239,8 +2245,7 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
 #endif /* !IA64_ABI */
   } else if (pack_expr != NULL) {
     /* Function parameter. */
-    check_assertion(expr->variant.sizeof_pack.variant.expr->kind ==
-                                            (an_expression_kind)enk_param_ref);
+    check_assertion(pack_expr->kind == (an_expression_kind)enk_param_ref);
 #if !IA64_ABI
     add_to_mangled_name('X', mctl);
     store_digits_and_underscore((unsigned long)1, /*old_form=*/FALSE, mctl);
