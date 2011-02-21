@@ -3089,7 +3089,7 @@ succeeds, FALSE if it fails.
 */
 {
   a_boolean            deduction_okay = TRUE;
-  a_type_ptr           param_type = ptp->type;
+  a_type_ptr           param_type;
   an_arg_operand       *arg_operand = NULL;
   an_operand           *operand = NULL;
   a_template_param_ptr templ_params;
@@ -3117,6 +3117,7 @@ succeeds, FALSE if it fails.
       operand = &arg_operand->operand;
       arg_type = operand->type;
     }  /* if */
+    param_type = ptp->type;
     /* Adjust the types (e.g., for references) to prepare for the
        deduction. */
     if (!adjust_deduction_pair(&param_type, &arg_type, operand,
