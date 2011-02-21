@@ -14961,8 +14961,7 @@ ellipsis, return TRUE in *is_pack.
   }  /* if */
   if (curr_token == tok_ellipsis && variadic_templates_enabled) {
     /* A "..." indicating a parameter pack declaration. */
-    check_assertion(is_pack != NULL);
-    *is_pack = TRUE;
+    if (is_pack != NULL) *is_pack = TRUE;
      (void)get_token();
   }  /* if */
   /* Scan the declarator. */
