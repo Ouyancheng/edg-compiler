@@ -15756,6 +15756,8 @@ selection operator, in which case it points to the type of the left operand.
           /* The qualifier symbol is valid. Record the reference on the
              symbol. */
           mark_referenced(qualifier_sym, &locator_for_curr_id.source_position);
+          record_potential_pack_reference(
+                          qualifier_sym, &locator_for_curr_id.source_position);
         }  /* if */
         if (record_name_references_in_context()) {
           /* Create an entry that describes this qualifier.  Find a previously
