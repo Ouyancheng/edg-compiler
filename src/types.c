@@ -7637,6 +7637,7 @@ See conversion_possible.
           if (gnu_version >= 40300 && is_nonreal_floating_type(dest_type)) {
             /* As of g++ 4.3, double -> _Complex double is allowed, but not
                the other way around. */
+            std_conv->promotion = TRUE;
           } else {
             okay = FALSE;
           }  /* if */
