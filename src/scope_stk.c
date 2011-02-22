@@ -9886,7 +9886,7 @@ have encountered something that caused us to discard this context, so the
 pack expansion stack must be popped.
 */
 {
-  if (pesep != NULL) {
+  if (pesep != NULL && !pesep->is_suppression) {
     /* The pack expansion descriptor passed in should be on top of the
        stack. */
     check_assertion(pesep == pack_expansion_stack);
