@@ -18706,11 +18706,11 @@ and a default-indexed property.
     /* The class contains an operator[]: A conflict is possible. */
     a_property_or_event_descr_ptr
            pedp = class_type_supp(class_type)->default_indexed_property_descr;
-    if (pedp == NULL &&
-        same_entities(sym_parent_class(sym), class_type)) {
+    if (pedp == NULL && same_entities(sym_parent_class(sym), class_type)) {
       /* Look for a conflict with a default-indexed property in a base class.
-         (If operator[] were in a base class, this is not needed since a
-         diagnostic would already have been issued a conflict in a base.) */
+         (If operator[] were in a base class, this is not needed because a
+         diagnostic would already have been issued for a conflict in a
+         base.) */
       a_base_class_ptr  bcp = base_classes_of(class_type);
       for (; bcp != NULL; bcp = bcp->next) {
         if (!cli_class_type_kind_is(bcp->type, cctk_interface)) {
