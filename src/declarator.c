@@ -56,6 +56,11 @@ standard-attribute syntax).
   switch (skip_typerefs_not_typedefs(type)->kind) {
     case tk_error:
       expect_error();
+      /* No logical attribute location can be derived for an error type.
+         Ignore any attributes that come up.  (A location is still assigned
+         to avoid diagnostics from compilers and tools.) */
+      skip_over_attributes();
+      syn_loc = al_implicit;
       break;
     case tk_pointer:
     case tk_ptr_to_member:
@@ -79,7 +84,7 @@ standard-attribute syntax).
       } else {
         syn_loc = al_postfix;
       }  /* if */
-  }  /* if */
+  }  /* switch */
   /* Scan the attributes. */
   attributes = scan_attributes(syn_loc);
   /* Reclassify attributes if necessary. */
