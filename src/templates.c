@@ -11971,6 +11971,9 @@ be issued.
       /* One argument is a type and the other is a constant -- this is an
          error. */
       err = TRUE;
+    } else if (old_tpp->is_pack != new_tpp->is_pack) {
+      /* One is a parameter pack and the other is not. */
+      err = TRUE;
     } else if (old_sym->kind == (a_symbol_kind)sk_type) {
       /* Both are types.  No further checking is needed. */
     } else if (old_sym->kind == (a_symbol_kind)sk_constant) {
