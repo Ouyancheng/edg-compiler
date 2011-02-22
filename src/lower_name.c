@@ -3976,9 +3976,6 @@ explicitly dealt with later in expression mangling.
 {
   an_expr_operator_kind op;
   an_expr_node_ptr      prev_expr = NULL;
-#if CHECKING
-  an_expr_node_ptr      orig_expr = expr;
-#endif /* CHECKING */
 
   /* Drop implicit operations. */
   while (expr != prev_expr) {
@@ -4083,7 +4080,6 @@ explicitly dealt with later in expression mangling.
       }  /* if */
     }  /* if */
   }  /* while */
-  check_assertion(orig_expr == expr || !orig_expr->is_pack_expansion);
   return skip_parens(expr);
 }  /* skip_compiler_generated_expressions */
 
@@ -4099,7 +4095,33 @@ expression.
 */
 {
   for (; expr != NULL && !expr->generated_default_arg; expr = expr->next) {
+    if (expr->is_pack_expansion) {
+      /* This expression represents a pack expansion; add the appropriate
+         mangling to indicate such. */
+#if IA64_ABI
+      add_str_to_mangled_name("sp", mctl);
+#else /* !IA64_ABI */
+      /* Pack expansion operation.  Output has the form
+           Osp_1_Z1O <-- "Z1..."
+                   ^---- "O" to end the operation encoding.
+                 ^^----- First (and only) operand.
+              ^^^------- Count of operands (always one).
+            ^^---------- Pack expansion operation.
+           ^------------ "O" for operation.
+      */
+      /* Put out the initial "O". */
+      add_to_mangled_name('O', mctl);
+      add_str_to_mangled_name("sp", mctl);
+      store_digits_and_underscore((unsigned long)1, /*old_form=*/FALSE, mctl);
+      /* Close the operation after the operand is emitted. */
+#endif /* IA64_ABI */
+    }  /* if */
     mangled_encoding_for_expression(expr, in_dependent_expr, mctl);
+#if !IA64_ABI
+    if (expr->is_pack_expansion) {
+      add_to_mangled_name('O', mctl);
+    }  /* if */
+#endif /* !IA64_ABI */
   }  /* for */
 }  /* mangled_expression_list */
 
@@ -5109,28 +5131,6 @@ is TRUE.
 #endif /* IA64_ABI */
 
   expr = skip_compiler_generated_expressions(expr, &suppress_address_of);
-  if (expr->is_pack_expansion) {
-    /* This expression represents a pack expansion; add the appropriate
-       mangling to indicate such. */
-#if IA64_ABI
-    add_str_to_mangled_name("sp", mctl);
-#else /* !IA64_ABI */
-    /* Pack expansion operation.  Output has the form
-         Osp_1_Z1O <-- "Z1..."
-                 ^---- "O" to end the operation encoding.
-               ^^----- First (and only) operand.
-            ^^^------- Count of operands (always one).
-          ^^---------- Pack expansion operation.
-         ^------------ "O" for operation.
-    */
-    /* Put out the initial "O". */
-    add_to_mangled_name('O', mctl);
-    add_str_to_mangled_name("sp", mctl);
-    store_digits_and_underscore((unsigned long)1, /*old_form=*/FALSE, mctl);
-    /* Close the operation after the operand is emitted. */
-    need_close = TRUE;
-#endif /* IA64_ABI */
-  }  /* if */
   switch (expr->kind) {
     case enk_error:
       check_assertion(total_errors != 0);
