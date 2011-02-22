@@ -1,5 +1,16 @@
 Version 4.3
 
+2/22/11  [EDGcpfe/11418]
+Parsing of templates turned on by default in C++0X mode
+
+The parsing of nonclass templates is now on by default in C++0X mode.
+The default can be changed via DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING.
+(The similar DEFAULT_DEPENDENT_NAME_PROCESSING controls the default
+for pre-C++0X modes).  GNU and Microsoft C++ modes continue to do
+what they did previously for the combination of those modes and
+C++0X mode (parsing for GNU, no parsing for Microsoft).
+
+
 2/18/11  [EDGcpfe/11406]
 Incorrect lookup in template static data member initializer
 

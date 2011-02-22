@@ -2517,6 +2517,12 @@ not always enabled in default mode (e.g., exception handling).
   if (!option_kind_used[(int)optk_auto_storage]) {
     auto_storage_class_specifier_enabled = FALSE;
   }  /* if */
+  if (!option_kind_used[(int)optk_dependent_name_processing]) {
+    do_dependent_name_processing = DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING;
+  }  /* if */
+  if (!option_kind_used[(int)optk_parse_nonclass_templates]) {
+    nonclass_prototype_instantiations=DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING;
+  }  /* if */
   extern_template_allowed = TRUE;
   standard_form_of_extern_template = TRUE;
   decltype_enabled = TRUE;
@@ -4380,6 +4386,11 @@ file.
 #else /* !defined(DEFAULT_CPPCLI_ENABLED) */
   comment_undefined_macro_name(DEFAULT_CPPCLI_ENABLED);
 #endif /* defined(DEFAULT_CPPCLI_ENABLED) */
+#if defined(DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING)
+  define_numeric_valued_macro(DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING);
+#else /* !defined(DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING) */
+  comment_undefined_macro_name(DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING);
+#endif /* defined(DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING) */
 #if defined(DEFAULT_CPP0X_MODE)
   define_numeric_valued_macro(DEFAULT_CPP0X_MODE);
 #else /* !defined(DEFAULT_CPP0X_MODE) */

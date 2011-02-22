@@ -376,17 +376,22 @@ do_dependent_name_processing.  This controls whether the 2-phase lookup
 of template names is performed as required by the standard.  It also
 controls whether prototype instantiations of function bodies and default
 arguments are done.  The variable can also be controlled from the command
-line by --[no_]dep_name.
+line by --[no_]dep_name.  There's a separate default for C++0X mode.
 */
 #ifndef DEFAULT_DEPENDENT_NAME_PROCESSING
 #define DEFAULT_DEPENDENT_NAME_PROCESSING FALSE
 #endif /* DEFAULT_DEPENDENT_NAME_PROCESSING */
+#ifndef DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING
+#define DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING TRUE
+#endif /* DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING */
 
 /*
 Flag that is used as the default setting for the global variable
 export_template_allowed.  This controls whether the processing required
 to define and use exported templates should be done.  The variable can
-also be controlled from the command line by --[no_]export.
+also be controlled from the command line by --[no_]export.  Note that
+exported templates were taken out of the C++ language and are turned off
+by default in C++0X mode.
 */
 #ifndef DEFAULT_EXPORT_TEMPLATE_ALLOWED
 #define DEFAULT_EXPORT_TEMPLATE_ALLOWED TRUE
