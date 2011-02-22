@@ -3100,6 +3100,19 @@ succeeds, FALSE if it fails.
                        pesep = NULL;
 
   if (p_arg_operand != NULL) arg_operand = *p_arg_operand;
+  if (!ptp->type_involves_deduced_template_param) {
+    /* For a nondeduced parameter, we advance over the argument, do no
+       deduction, and return TRUE.  However, if the nondeduced parameter is
+       a parameter pack, we fail because there will be no way of ever
+       getting a type for the parameter pack. */
+    if (ptp->is_parameter_pack) {
+      deduction_okay = FALSE;
+    } else {
+      deduction_okay = TRUE;
+      if (arg_operand != NULL) arg_operand = arg_operand->next;
+    }  /* if */
+    goto end_of_routine;
+  }  /* if */
   templ_params = template_supplement_for_symbol(template_sym)
                           ->variant.function.decl_cache.decl_info->parameters;
   if (ptp->is_parameter_pack) {
@@ -3154,6 +3167,7 @@ next_iteration:
   if (pesep != NULL) {
     end_pack_deduction_context(pesep);
   }  /* if */
+end_of_routine:
   if (p_arg_operand != NULL) *p_arg_operand = arg_operand;
   return deduction_okay;
 }  /* deduce_one_parameter */
@@ -3202,17 +3216,11 @@ template arguments, or NULL if deduction failed.
   for (ptp = rtsp->param_type_list, arg_operand = arg_operand_list;
        ptp != NULL && arg_operand != NULL;
        ptp = ptp->next) {
-    if (ptp->type_involves_deduced_template_param) {
-      /* A parameter that requires type deduction.  Do the deduction. */
-      if (!deduce_one_parameter(ptp, &arg_operand,
-                                (a_type_ptr)NULL,
-                                template_sym, template_arg_list)) {
-        /* Deduction failed. */
-        goto done;
-      }  /* if */
-    } else {
-      /* Not a deduced parameter, so just advance to the next one. */
-      arg_operand = arg_operand->next;
+    if (!deduce_one_parameter(ptp, &arg_operand,
+                              (a_type_ptr)NULL,
+                              template_sym, template_arg_list)) {
+      /* Deduction failed. */
+      goto done;
     }  /* if */
   }  /* for */
 #if CHECKING
