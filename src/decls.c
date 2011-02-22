@@ -4690,7 +4690,11 @@ flag when is_declaration is TRUE.
     /* No further processing is done at declaration time in this mode. */
   } else if (uses_local_type) {
     /* A declaration that involves a local type. */
-    if (decls_using_types_without_linkage_allowed) {
+    if (is_variably_modified_type(type)) {
+      /* Variably modified types are "local" in a sense, but their use in
+         declarations with linkage is already diagnosed elsewhere. */
+      expect_error();
+    } else if (decls_using_types_without_linkage_allowed) {
       /* C++0x behavior: An error is issued because programs that get this
          diagnostic would fail at link time.  (Since Microsoft compilers
          accept such cases, only a warning is issued in Microsoft mode.) */
