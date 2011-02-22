@@ -8963,16 +8963,18 @@ be moved.  explicit_overrider is TRUE if the current declaration is an
 explicit overrider (which means this routine will return TRUE).
 */
 {
-  a_boolean  result = FALSE;
+  a_boolean   result = FALSE;
+  a_type_ptr  class_type;
 
-  if (explicit_overrider) {
+  check_assertion(scope_stack_top().kind ==
+                                         (a_scope_kind)sck_class_struct_union);
+  class_type = scope_stack_top().assoc_type;
+  if (explicit_overrider && !is_immediate_managed_class_type(class_type)) {
     /* An explicitly overridden function cannot be defined outside its parent
-       class. */
+       class (except in C++/CLI managed class types, which use a different
+       explicit overriding syntax).  */
     result = TRUE;
   } else {
-    a_type_ptr  class_type = scope_stack[depth_scope_stack].assoc_type;
-    check_assertion(scope_stack[depth_scope_stack].kind ==
-                                         (a_scope_kind)sck_class_struct_union);
     if (class_type->source_corresp.is_class_member) {
       /* A member or friend of a nested class.  If it we are in a delayed
          nested class definition that appears in a class scope, we should not
