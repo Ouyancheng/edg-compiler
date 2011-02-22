@@ -9248,7 +9248,7 @@ Return the C++/CLI System::Object type.
 
   check_assertion(sym != NULL &&
                   sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
-  return sym->variant.type.ptr;
+  return sym->variant.class_struct_union.type;
 }  /* cli_system_object_type */
 
 
@@ -9261,7 +9261,7 @@ Return the C++/CLI System::ValueType type.
 
   check_assertion(sym != NULL &&
                   sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
-  return sym->variant.type.ptr;
+  return sym->variant.class_struct_union.type;
 }  /* cli_system_value_type */
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
