@@ -9215,7 +9215,7 @@ In deduction contexts, if there is no current argument, create one.
   a_template_arg_ptr			result_tap = NULL;
 
   /* The pack expansion stack could be NULL in certain error cases. */
-  if (pesep != NULL) {
+  if (pesep != NULL && !pesep->is_suppression) {
     param_prp = pesep->expansion_descr->packs_referenced;
     arg_prp = pesep->instantiation_descr->pack_status;
   }  /* if */
