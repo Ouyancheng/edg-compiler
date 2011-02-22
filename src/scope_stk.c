@@ -9445,6 +9445,9 @@ expansion.  If p_pedp is non-NULL a pointer to the entry is returned in
         check_assertion(curr_cached_token_handle != NO_CACHED_TOKEN_HANDLE);
         pesep->first_token_handle = curr_cached_token_handle;
         check_assertion(curr_token_sequence_number == pedp->first_token);
+        /* Mark that the current reusable cache is being used for rescan
+           purposes. */
+        increment_variadic_rescans_for_reusable_cache();
       } else {
         /* There are no arguments to be expanded.  Advance to the token
            after the end of the expansion. */
@@ -9857,6 +9860,9 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
       }  /* if */
       pesep->instantiation_descr->after_first_element = TRUE;
     }  /* for */
+    if (done && !pesep->is_rescan) {
+      decrement_variadic_rescans_for_reusable_cache();
+    }  /* if */
   }  /* if */
   if (!done) {
     if (!pesep->is_rescan) {

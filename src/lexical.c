@@ -817,6 +817,59 @@ Initialize a token cache, presumably so tokens can be added to it.
 }  /* clear_token_cache */
 
 
+static void free_reusable_cache_entry(a_reusable_cache_entry_ptr rsep)
+/*
+Free a token cache stack entry, i.e., put it on the avail list to be reused.
+*/
+{
+  rsep->next = avail_reusable_cache_entries;
+  avail_reusable_cache_entries = rsep;
+}  /* free_reusable_cache_entry */
+
+
+static void pop_reusable_cache_stack(void)
+/*
+Restore the cached token rescan list to the state before the current
+reusable cache was pushed onto the stack.  These tokens should be
+rescanned before we resume use of the next entry on the reusable
+stack.
+*/
+{
+  a_reusable_cache_entry_ptr  rcep = reusable_cache_stack;
+  cached_token_rescan_list = rcep->previous_token_rescan_list;
+  reusable_cache_stack = rcep->next;
+  free_reusable_cache_entry(rcep);
+  recalc_any_initial_get_token_tests_needed();
+}  /* pop_reusable_cache_stack */
+
+
+void increment_variadic_rescans_for_reusable_cache(void)
+/*
+Increment the number of variadic rescans in progress for the current
+reusable cache.
+*/
+{
+  reusable_cache_stack->variadic_rescans_in_progress++;
+}  /* increment_variadic_rescans_for_reusable_cache */
+
+
+void decrement_variadic_rescans_for_reusable_cache(void)
+/*
+Decrement the number of variadic rescans in progress for the current
+reusable cache.
+*/
+{
+  check_assertion(reusable_cache_stack->variadic_rescans_in_progress > 0);
+  reusable_cache_stack->variadic_rescans_in_progress--;
+  if (reusable_cache_stack->next_cached_token == NULL &&
+      reusable_cache_stack->variadic_rescans_in_progress == 0) {
+     /* Don't pop this entry of the stack if it is currently being used
+        for a variadic template rescan. */
+     pop_reusable_cache_stack();
+  }  /* if */
+}  /* decrement_variadic_rescans_for_reusable_cache */
+
+
 #if DEBUG
 #define incr_num_cached_tokens_allocated() num_cached_tokens_allocated++;
 #else /* !DEBUG */
@@ -865,6 +918,7 @@ Allocate a reusable cache entry.  Reuse a freed entry if possible.
   rsep->next = NULL;
   rsep->previous_token_rescan_list = NULL;
   rsep->next_cached_token = NULL;
+  rsep->variadic_rescans_in_progress = 0;
   return rsep;
 }  /* alloc_reusable_cache_entry */
 
@@ -1868,16 +1922,6 @@ tok_end_of_source later.
 }  /* rescan_copy_of_cache */
 
 
-static void free_reusable_cache_entry(a_reusable_cache_entry_ptr rsep)
-/*
-Free a token cache stack entry, i.e., put it on the avail list to be reused.
-*/
-{
-  rsep->next = avail_reusable_cache_entries;
-  avail_reusable_cache_entries = rsep;
-}  /* free_reusable_cache_entry */
-
-
 /*ARGSUSED*/ /* <-- "okay_if_not_found" is only used by checking code. */
 void split_token_cache(a_token_cache	       *cache1,
                        a_token_cache	       *cache2,
@@ -2137,6 +2181,14 @@ an equivalent change.
   a_cached_token_ptr ctp;
 
   db_enter(4, "get_token_from_reusable_cache_stack");
+  if (reusable_cache_stack->next_cached_token == NULL) {
+    /* We make sure we don't pop a reusable cache if an error occurs
+       during a rescan. */
+    check_assertion(reusable_cache_stack->variadic_rescans_in_progress);
+    check_assertion(curr_token == tok_end_of_source);
+    ctoken = curr_token;
+    goto done;
+  }  /* if */
   for (;;) {
     /* Remove the first entry from the list. */
     ctp = reusable_cache_stack->next_cached_token;
@@ -2197,17 +2249,13 @@ an equivalent change.
     copy_constant(ctp->variant.constant, &const_for_curr_token);
   }  /* if */
   /* Check whether we have reached the end of this cache. */
-  if (reusable_cache_stack->next_cached_token == NULL) {
-    a_reusable_cache_entry_ptr  rcep = reusable_cache_stack;
-    /* Restore the cached token rescan list to the state before the
-       current reusable cache was pushed onto the stack.  These tokens
-       should be rescanned before we resume use of the next entry on the
-       reusable stack. */
-    cached_token_rescan_list = rcep->previous_token_rescan_list;
-    reusable_cache_stack = rcep->next;
-    free_reusable_cache_entry(rcep);
-    recalc_any_initial_get_token_tests_needed();
+  if (reusable_cache_stack->next_cached_token == NULL &&
+      reusable_cache_stack->variadic_rescans_in_progress == 0) {
+     /* Don't pop this entry of the stack if it is currently being used
+        for a variadic template rescan. */
+     pop_reusable_cache_stack();
   }  /* if */
+done:
   db_exit();
   return ctoken;
 }  /* get_token_from_reusable_cache_stack */

@@ -1761,6 +1761,12 @@ typedef struct a_reusable_cache_entry {
                 next_cached_token;
                         /* Points to the next token in the persistent cache
                            to be rescanned. */
+  uint32_t
+		variadic_rescans_in_progress;
+			/* If this cache is being used for a variadic
+			   template rescan, this is the number of variadic
+			   rescans in use.  This prevents the cache from
+			   being popped during error recovery. */
 } a_reusable_cache_entry;
 
 		
@@ -1830,6 +1836,10 @@ void move_cached_tokens(a_cached_token_ptr	first_token,
 
 extern void update_reusable_cache_rescan_location(
 					a_cached_token_handle	token_handle);
+
+extern void increment_variadic_rescans_for_reusable_cache(void);
+
+extern void decrement_variadic_rescans_for_reusable_cache(void);
 
 extern a_boolean same_string_ignoring_underscores(char  *s1, 
                                                   char  *s2);
