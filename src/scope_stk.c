@@ -9899,7 +9899,8 @@ references and we are in a template definition context.
 {
   a_boolean	result = FALSE;
 
-  if (pack_expansion_stack != NULL) {
+  if (pack_expansion_stack != NULL &&
+      !pack_expansion_stack->is_suppression) {
     a_pack_expansion_stack_entry_ptr	pesep = pack_expansion_stack;
     result = pesep->expansion_descr->packs_referenced != NULL;
     if (!result && is_prototype_instantiation_context()) {
