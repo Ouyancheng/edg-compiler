@@ -8134,6 +8134,9 @@ indication in *rcblock).
     (void)get_token();
     check_assertion(curr_token == tok_ellipsis);
     any_more = begin_potential_pack_expansion_context(&pesep);
+    /* In an expansion of a pack, we're looping here only to count the number
+       of times around the loop.  We step over the tokens but we don't really
+       need to do anything with them. */
     while (any_more) {
       result_count++;
       if (is_variadic_template_context()) {
@@ -8158,8 +8161,10 @@ indication in *rcblock).
                          &pos_curr_token);
           err = TRUE;
         } else {
-          /* Record a reference against the identifier. */
-          (void)ref_entry(sym, &pos_curr_token);
+          if (sym->kind != (a_symbol_kind)sk_overloaded_function) {
+            /* Record a reference against the identifier. */
+            (void)ref_entry(sym, &pos_curr_token);
+          }  /* if */
           if (is_prototype_instantiation_context() &&
               is_variadic_template_context()) {
             /* Check that the identifier is a parameter pack name. */
