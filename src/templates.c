@@ -5212,7 +5212,14 @@ specified by tssp.
 */
 {
   an_equiv_templ_arg_options_set    eta_options = ETA_NO_OPTIONS;
+  a_symbol_ptr	argument_template;
 
+  /* If tssp is from a template template parameter, use the argument
+     template. */
+  argument_template = tssp->variant.class_template.argument_template;
+  if (argument_template != NULL) {
+    tssp = argument_template->variant.template_info;
+  }  /* if */
   if (tssp->is_nonreal_member || tssp->is_error) {
     eta_options |= ETA_IS_NONREAL_MEMBER;
   }  /* if */
@@ -15636,6 +15643,7 @@ depends on a another template parameter.
   templ_ptr->is_pack = is_pack;
   tssp->il_template_entry = templ_ptr;
   tssp->variant.class_template.argument_template = sym;
+  tssp->is_variadic = local_decl_state.is_variadic;
   set_template_cache_info(&tssp->cache,
                           (a_token_cache_ptr)NULL,
                           local_decl_state.decl_info);
