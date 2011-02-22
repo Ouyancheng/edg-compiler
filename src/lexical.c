@@ -13279,6 +13279,7 @@ all arguments were explicit.
          then exit the loop (an empty argument list). */
       if (curr_token == tok_gt &&
           (arg_list == NULL || (in_pack && arg_ptr == last_arg))) {
+        abandon_potential_pack_expansion_context(pesep);
         break;
       }  /* if */
       arg_pos = pos_curr_token;
