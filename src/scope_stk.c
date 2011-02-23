@@ -1900,6 +1900,7 @@ Set param_symbol to refer to an error value.
     case sk_constant:
       param_symbol->variant.constant =
                                    fs_constant((a_constant_repr_kind)ck_error);
+      param_symbol->variant.constant->type = error_type();
       break;
     default:
       unexpected_condition();
