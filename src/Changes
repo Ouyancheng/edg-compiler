@@ -1,5 +1,15 @@
 Version 4.3
 
+2/23/11  [EDGcpfe/11416]
+Memory corruption on error on recursive instantiation of default argument
+
+A bit of IL created when a recursive instantiation error is detected while
+instantiating a template default argument was in the wrong memory region,
+which led to unpredictable behavior later if the storage for the entry
+was reused.  Now fixed.  The problem always followed an error with the text
+"recursive instantiation of default argument".
+
+
 2/22/11  [EDGcpfe/11418]
 Parsing of templates turned on by default in C++0X mode
 

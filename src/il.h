@@ -1397,6 +1397,8 @@ extern void overwrite_node(an_expr_node_ptr node,
 
 extern an_expr_node_ptr error_node(void);
 
+extern an_expr_node_ptr fs_error_node(void);
+
 extern an_expr_node_ptr alloc_node_for_constant(a_constant *constant);
 
 extern an_expr_node_ptr alloc_node_for_allocated_constant(

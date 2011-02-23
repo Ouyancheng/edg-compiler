@@ -9563,14 +9563,14 @@ instantiated.
     /* This default argument (for this instance) is already being instantiated.
        Don't attempt another instantiation. */
     error(ec_recursive_def_arg_instantiation);
-    param->default_arg_expr = error_node();
+    param->default_arg_expr = fs_error_node();
     goto done;
   } else if (num_pending_default_arg_instantiations ==
                                                   max_pending_instantiations) {
     /* There are too many total recursive default argument instantiations.
        Don't attempt another instantiation. */
     error(ec_recursive_def_arg_instantiation);
-    param->default_arg_expr = error_node();
+    param->default_arg_expr = fs_error_node();
     goto done;
   }  /* if */
   /* Indicate that an instantiation of this default argument is pending. */
@@ -9601,7 +9601,7 @@ instantiated.
     /* This default argument instantiation of the prototype instantiation is
        still in progress.  Don't attempt another instantiation. */
     error(ec_recursive_def_arg_instantiation);
-    param->default_arg_expr = error_node();
+    param->default_arg_expr = fs_error_node();
     goto done;
   }  /* if */
   /* Now that we've found the corresponding parameter of the template,

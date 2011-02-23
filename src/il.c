@@ -12931,6 +12931,22 @@ Make and return an expression node indicating an error.
 }  /* error_node */
 
 
+an_expr_node_ptr fs_error_node(void)
+/*
+Make and return an expression node indicating an error.  Allocate it in the
+file scope memory region.
+*/
+{
+  an_expr_node_ptr node;
+  a_memory_region_number region_to_switch_back_to = NULL_region_number;
+
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  node = error_node();
+  switch_back_to_original_region(region_to_switch_back_to);
+  return node;
+}  /* fs_error_node */
+
+
 void overwrite_node(an_expr_node_ptr node,
                     an_expr_node_ptr source_node)
 /*
