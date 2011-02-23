@@ -217,6 +217,12 @@ parenthesized_init is TRUE; otherwise, it's "="-form.
        which means potentially it is a pack expansion. */
     dps->initializer_is_expr_list = TRUE;
     scan_initializer_expr_with_potential_pack_expansion(dps, &operand);
+    if (anything_cached(&dps->prescanned_initializer_cache)) {
+      /* The pack expansion generated more than one expression, which is
+         an error. */
+      expr_pos_error(ec_excess_pack_expansion, &operand.position);
+      clear_expression_cache(&dps->prescanned_initializer_cache);
+    }  /* if */
   } else {
     /* In the non-parenthesized case, it's just a simple expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);

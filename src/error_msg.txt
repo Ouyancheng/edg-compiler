@@ -2042,7 +2042,7 @@ ec_invalid_delegate_type;;"type %t used for delegate definition is not a functio
 ec_delegate_requires_managed_class;;"delegate member types can only be members of managed types"
 ec_tracking_reference_to_delegate;;"a tracking reference to a delegate type is not allowed"
 ec_bad_use_of_delegate_type;;"a delegate type is not allowed here"
-ec_empty_pack_expansion;;"this pack expansion produces an empty list of expressions, and an expression is needed here"
+ec_empty_pack_expansion;;"this pack expansion produced an empty list of expressions, and an expression is needed here"
 ec_virtual_static_event;;"an event cannot be both static and virtual"
 ec_event_requires_managed_class;;"events can only be members of managed types"
 ec_invalid_event_accessor_decl;;"this declaration cannot appear in an event definition"
@@ -2144,6 +2144,7 @@ ec_cli_interface_member_function_definition;;"a member function of a C++/CLI int
 ec_missing_get_and_set_accessors;;"a property definition must include at least one accessor (\"get\" or \"set\")"
 ec_subscript_mechanism_conflict;;"default-indexed property conflicts with %nd"
 ec_unusable_pack;;"%n1 cannot be used because it follows a parameter pack and cannot be deduced from the parameters of %n2"
+ec_excess_pack_expansion;;"this pack expansion produced more than one expression, and a single expression is needed here"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
