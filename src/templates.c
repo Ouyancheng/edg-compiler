@@ -9766,6 +9766,10 @@ the error type is a member, or is NULL for a nonmember.
        templ_ptp = templ_ptp->next) {
     if (templ_ptp->is_parameter_pack) rtsp->is_variadic_instance = TRUE;
     ptp = alloc_param_type(error_type_ptr);
+    if (templ_ptp->has_default_arg) {
+      ptp->has_default_arg = TRUE;
+      ptp->default_arg_expr = fs_error_node();
+    }  /* if */
     if (last_ptp == NULL) {
       rtsp->param_type_list = ptp;
     } else {
