@@ -2022,6 +2022,11 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     }  /* if */
 #endif /* CHECKING */
   }  /* if */
+  if (is_void_type(arg_type)) {
+    /* A void argument matches nothing. */
+    arg_summary->match_level = aml_none;
+    goto have_level;
+  }  /* if */
   orig_arg_operand = arg_operand;
   arg_operand_is_simple_string_literal = FALSE;
   if (arg_operand != NULL) {
