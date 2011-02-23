@@ -3058,7 +3058,8 @@ the scope being pushed.
       ssep->in_template_deduction_context = TRUE;
       /* Record name references in deduction contexts. */
       ssep->record_form_of_name_reference = TRUE;
-    } else if (kind == (a_scope_kind)sck_func_prototype) {
+    } else if (kind == (a_scope_kind)sck_func_prototype ||
+               kind == (a_scope_kind)sck_class_reactivation) {
       ssep->in_template_deduction_context =
                                        (ssep-1)->in_template_deduction_context;
     }  /* if */
