@@ -1025,6 +1025,12 @@ Allow C++/CLI to be enabled if Microsoft extensions are allowed.
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !defined(...) */
 
 /*
+Allow export to be enabled and enable it by default.
+*/
+#define EXPORT_ENABLING_POSSIBLE 1
+#define DEFAULT_EXPORT_TEMPLATE_ALLOWED 1
+
+/*
 If using lint on a non-Sun platform, define some features that are in the
 SUN_TEST_VERSION but not the EDG_TEST_VERSION.
 */

@@ -270,16 +270,26 @@ Flag that is TRUE if the target is a 64-bit x86 platform.
 
 /*
 Flag that is TRUE if support for exported templates can be enabled.
+*/
+#ifndef EXPORT_ENABLING_POSSIBLE
+#define EXPORT_ENABLING_POSSIBLE FALSE
+#endif /* ifndef EXPORT_ENABLING_POSSIBLE */
+
+/*
 Export support requires some name mangling features not present in
 ABIs older that 2.32.
 */
-#ifndef EXPORT_ENABLING_POSSIBLE
-#if ABI_COMPATIBILITY_VERSION < 232
-#define EXPORT_ENABLING_POSSIBLE FALSE
-#else /* !(ABI_COMPATIBILITY_VERSION < 232) */
-#define EXPORT_ENABLING_POSSIBLE TRUE
-#endif /* ABI_COMPATIBILITY_VERSION < 232 */
-#endif /* ifndef EXPORT_ENABLING_POSSIBLE */
+#if ABI_COMPATIBILITY_VERSION < 232 && EXPORT_ENABLING_POSSIBLE
+ #error -- EXPORT_ENABLING_POSSIBLE requires ABI_COMPATIBILITY_VERSION >= 232
+#endif /* ABI_COMPATIBILITY_VERSION < 232 && EXPORT_ENABLING_POSSIBLE */
+
+/*
+Export cannot be enabled by default if enabling is turned off.
+*/
+#if DEFAULT_EXPORT_TEMPLATE_ALLOWED && !EXPORT_ENABLING_POSSIBLE
+ #error -- DEFAULT_EXPORT_TEMPLATE_ALLOWED requires EXPORT_ENABLING_POSSIBLE 
+#endif /* DEFAULT_EXPORT_TEMPLATE_ALLOWED && !EXPORT_ENABLING_POSSIBLE */
+
 
 /*
 Certain C99 and GNU C features require IL constructs not otherwise present.

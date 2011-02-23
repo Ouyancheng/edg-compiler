@@ -1,5 +1,13 @@
 Version 4.3
 
+2/23/11  [EDGcpfe/11419]
+Exported templates disabled by default in all modes
+
+Because export has been removed from the C++0x language, and is not
+generally supported by EDG's customers, EXPORT_ENABLING_POSSIBLE and
+DEFAULT_EXPORT_TEMPLATE_ALLOWED are now FALSE by default.
+
+
 2/23/11  [EDGcpfe/11416]
 Memory corruption on error on recursive instantiation of default argument
 

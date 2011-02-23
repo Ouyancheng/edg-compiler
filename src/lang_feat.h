@@ -394,7 +394,7 @@ exported templates were taken out of the C++ language and are turned off
 by default in C++0X mode.
 */
 #ifndef DEFAULT_EXPORT_TEMPLATE_ALLOWED
-#define DEFAULT_EXPORT_TEMPLATE_ALLOWED TRUE
+#define DEFAULT_EXPORT_TEMPLATE_ALLOWED FALSE
 #endif /* DEFAULT_EXPORT_TEMPLATE_ALLOWED */
 
 /*

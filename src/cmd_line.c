@@ -2556,6 +2556,11 @@ not always enabled in default mode (e.g., exception handling).
       cpp0x_sfinae_ignore_access = DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS;
     }  /* if */
   }  /* if */
+  if (!(option_kind_used[(int)optk_export_template])) {
+    /* If export template processing was not explicitly set by a command line
+       option, disable it in C++0x mode. */
+    export_template_allowed = FALSE;
+  }  /* if */
 }  /* check_and_set_cpp0x_mode_options */
 
 
