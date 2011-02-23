@@ -9946,6 +9946,16 @@ source position of the use of the symbols is indicated by position.
       a_pack_reference_ptr		prp;
       a_scope_stack_entry_ptr		ssep;
       a_pack_reference_ptr		*p_prp;
+      if (!pack_symbol->is_template_param &&
+          pack_symbol->kind == (a_symbol_kind)sk_type) {
+        /* For type symbols, strip off any typerefs.  This is not done for
+           template parameter symbols as you want to use the actual parameter
+           symbol. */
+        a_type_ptr	tp = pack_symbol->variant.type.ptr;
+        tp = skip_typerefs(tp);
+        pack_symbol = symbol_for(tp);
+        check_assertion(pack_symbol != NULL);
+      }  /* if */
       ssep = get_current_template_dependent_context();
       p_prp = &ssep->packs_referenced;
       /* Look for an existing expansion of this symbol at this location. */
