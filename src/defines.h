@@ -1027,8 +1027,10 @@ Allow C++/CLI to be enabled if Microsoft extensions are allowed.
 /*
 Allow export to be enabled and enable it by default.
 */
+#ifndef EXPORT_ENABLING_POSSIBLE
 #define EXPORT_ENABLING_POSSIBLE 1
 #define DEFAULT_EXPORT_TEMPLATE_ALLOWED 1
+#endif /* ifndef EXPORT_ENABLING_POSSIBLE */
 
 /*
 If using lint on a non-Sun platform, define some features that are in the
