@@ -10748,8 +10748,11 @@ used in expression contexts.
     ptp->type_involves_template_param = is_template_dependent_type(ptp->type);
     if (ptp->type_involves_template_param) {
       /* The type can only involve a deduced template parameter if it
-         involves a template parameter in any context. */
-      ptp->type_involves_deduced_template_param = 
+         involves a template parameter in any context.  Parameter packs
+         are nondeduced when they do not appear at the end of the parameter
+         list. */
+      ptp->type_involves_deduced_template_param =
+                              !(ptp->is_parameter_pack && ptp->next != NULL) &&
                               is_or_contains_deduced_template_param(ptp->type);
     }  /* if */
   }  /* for */
