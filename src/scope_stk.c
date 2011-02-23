@@ -7275,18 +7275,21 @@ set correctly.
 
 #endif /* EXPENSIVE_CHECKING */
 
-static void clear_pack_expansion_variables(a_template_decl_info_ptr tdip)
+static void clear_pack_expansion_variables(a_scope_stack_entry_ptr	ssep)
 /*
-Go through the pack expansion entries pointed to by tdip and clear the
+Go through the pack expansion entries pointed to by ssep and clear the
 variable pointers of any variable symbols to prevent references to freed
 memory regions.
 */
 {
+  a_template_decl_info_ptr	tdip = ssep->template_decl_info;
   a_pack_expansion_descr_ptr	pedp = tdip->pack_expansions;
   a_pack_reference_ptr		prp;
 
   for (prp = pedp->packs_referenced; prp != NULL; prp = prp->next) {
-    if (prp->is_variable) {
+    /* Only clear the pointer when the scope containing the variable is
+       being popped. */
+    if (prp->is_variable && prp->symbol->decl_scope == ssep->number) {
       prp->symbol->variant.variable.ptr = NULL;
     }  /* if */
   }  /* for */
@@ -7755,7 +7758,7 @@ End a name scope by popping an entry off the scope stack.
       ssep->template_decl_info->pack_expansions != NULL) {
     /* The variable entries for in pack expansions are cleared to prevent
        references to freed memory regions. */
-    clear_pack_expansion_variables(ssep->template_decl_info);
+    clear_pack_expansion_variables(ssep);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ssep->source_sequence_list != NULL) {
