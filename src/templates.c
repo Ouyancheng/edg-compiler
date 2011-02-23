@@ -1704,6 +1704,8 @@ during wrapup processing by compare_function_templates.
         a_template_param_ptr	param_list_for_arg;
         a_template_symbol_supplement_ptr
 				arg_template;
+        a_template_symbol_supplement_ptr
+				param_tssp;
         param_template = tpp->variant.templ->il_template_entry;
         if (tpp->variant.templ->
                               variant.class_template.involves_template_param) {
@@ -1722,8 +1724,8 @@ during wrapup processing by compare_function_templates.
         }  /* if */
         /* Compare the parameter list of the (potentially) rescanned template
            template parameter with the template supplied as an argument. */
-        param_list_for_param = template_supplement_for_template(param_template)
-                                                 ->cache.decl_info->parameters;
+        param_tssp = template_supplement_for_template(param_template);
+        param_list_for_param = param_tssp->cache.decl_info->parameters;
         arg_template = template_supplement_for_template(
                                                        tap->variant.templ.ptr);
         param_list_for_arg = arg_template->cache.decl_info->parameters;
@@ -25261,8 +25263,11 @@ list.
   check_assertion(tap != NULL);
   for (; *tap != NULL && is_start_of_pack_expansion_templ_arg(*tap);) {
     *tap = (*tap)->next;
-    if (!is_first_arg && tpp != NULL) *tpp = (*tpp)->next;
-    is_first_arg = FALSE;
+    /* If there are no pack elements, advance to the next parameter. */
+    if ((!is_first_arg || (*tap != NULL && !(*tap)->is_pack_element)) &&
+        tpp != NULL) {
+      *tpp = (*tpp)->next;
+    }  /* if */
   }  /* for */
 }  /* skip_start_of_pack_placeholders */
 
