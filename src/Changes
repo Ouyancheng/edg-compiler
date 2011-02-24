@@ -52,7 +52,7 @@ found when the template parameter should have been.  Now fixed.
 2/17/11  [EDGcpfe/11398]
 GNU C++ compatibility: Block-extern declarations involving local types
 
-In GNU C++ mode, block-extern variable declarations involving a local types
+In GNU C++ mode, block-extern variable declarations involving a local type
 are now accepted with a warning (in GNU C++0x mode, as in ordinary C++0x mode,
 such declarations are silently accepted).  Block-extern function declarations
 are still treated as errors in GNU C++ mode (except GNU C++0x mode).
