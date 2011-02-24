@@ -12538,6 +12538,8 @@ in *rcblock).
                     rescan_ndsp = NULL;
   a_decl_parse_state
                     dps;
+  an_expression_cache
+                    *saved_expression_cache = NULL;
 
   db_enter(4, "scan_new_operator");
 
@@ -12729,6 +12731,8 @@ in *rcblock).
     }  /* if */
     /* Activate the prescanned expression cache so the expression will be
        considered pre-scanned for the code below. */
+    saved_expression_cache = expr_stack->expression_cache;
+    expr_stack->expression_cache = NULL;
     set_up_initializer_rescan(&dps);
   }  /* if */
   unqual_new_type = skip_typerefs(new_type);
@@ -13304,7 +13308,8 @@ in *rcblock).
     /* Deactivate the expression cache used for "auto". */
     check_assertion(expr_stack->expression_cache ==
                                             &dps.prescanned_initializer_cache);
-    expr_stack->expression_cache = NULL;
+    expr_stack->expression_cache = saved_expression_cache;
+    saved_expression_cache = NULL;
   }  /* if */
   /* Now build the IL for the operation. */
   if (err || (function_symbol == NULL && !unknown_dependent_new)) {
@@ -13397,6 +13402,8 @@ in *rcblock).
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
+  /* Make sure we restored the expression cache if we saved it. */
+  check_assertion(saved_expression_cache == NULL);
   db_exit();
 }  /* scan_new_operator */
 
