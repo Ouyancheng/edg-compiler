@@ -3252,6 +3252,7 @@ list passed in.  The pointer to the start of the list is returned.
 #endif /* DEBUG */
     }  /* if */
     if (start_found_list != NULL &&
+        ctp->token != tok_end_of_source &&
         (ctp->token_sequence_number == start_found_list->last_token_number ||
          (ctp->next != NULL && ctp->next->token_sequence_number >
                                       start_found_list->last_token_number) ||
@@ -9991,17 +9992,9 @@ declared and before the partial instantiation of the function was done.
       pos_ty2_error(ec_bad_type_from_instantiation, &pos_curr_token,
                     type, templ_rout->type);
     }  /* if */
-#if 0
-#else /* !0 */
-    if (!is_variadic_template_context()) {
-#endif /* if */
-      type = create_error_routine_type(templ_rout, parent_class);
-      rout->type = type;
-      tip->suppress_instantiation = TRUE;
-#if 0
-#else /* !0 */
-    }  /* if */
-#endif /* if */
+    type = create_error_routine_type(templ_rout, parent_class);
+    rout->type = type;
+    tip->suppress_instantiation = TRUE;
   }  /* if */
 }  /* verify_routine_type_matches_template */
 
