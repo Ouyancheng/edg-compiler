@@ -6558,6 +6558,7 @@ constant will be set as well.
           break;
         case bok_is_trivial:
           result = is_object_type(type);
+          break;
         default:
           unexpected_condition();
       }  /* switch */
