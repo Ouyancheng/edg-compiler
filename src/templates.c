@@ -8279,7 +8279,7 @@ associated parameter.
     if (*copy_error) break;
   }  /* for */
   /* If there are too many parameters, the copy should fail. */
-  if (have_params && tpp != NULL && !tpp->is_pack) {
+  if (have_params && tpp != NULL && (!tpp->is_pack || tpp->next != NULL)) {
     *copy_error = TRUE;
   }  /* if */
   return new_list;
