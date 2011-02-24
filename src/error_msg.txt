@@ -2145,6 +2145,7 @@ ec_missing_get_and_set_accessors;;"a property definition must include at least o
 ec_subscript_mechanism_conflict;;"default-indexed property conflicts with %nd"
 ec_unusable_pack;;"%n1 cannot be used because it follows a parameter pack and cannot be deduced from the parameters of %n2"
 ec_excess_pack_expansion;;"this pack expansion produced more than one expression, and a single expression is needed here"
+ec_cli_enum_base_has_no_system_counterpart;;"type must correspond to System::Boolean, System::Byte, System::SByte, System::Int16, System::UInt16, System::Int32, System::UInt32, System::Int64, or System::UInt64"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

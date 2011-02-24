@@ -4148,16 +4148,26 @@ valid value class type in that context (e.g., System::Boolean), replace
 *p_base_type by the associated primitive type.
 */
 {
-  a_boolean  valid = FALSE;
+  a_boolean   valid = FALSE;
+  a_type_ptr  base_type = skip_typerefs(*p_base_type);
 
-  if (!is_integral_type(*p_base_type)) {
-    /* FIXME: Predeclared value types like System::UInt64 are not implemented
-       yet. */
+  if (is_value_class_type(base_type) &&
+      class_type_supp(base_type)->corresponding_basic_type != NULL) {
+    base_type = class_type_supp(base_type)->corresponding_basic_type;
+  }  /* if */
+  if (!is_integral_type(base_type)) {
     pos_error(ec_enum_base_type_must_be_integral, pos_type);
-  } else if (skip_typerefs(*p_base_type)->variant.integer.wchar_t_type) {
+  } else if (base_type->variant.integer.wchar_t_type) {
     pos_error(ec_wchar_t_type_not_allowed, pos_type);
+  } else if (!is_scanning_generated_code_from_metadata &&
+             system_type_from_basic_type(base_type) == NULL) {
+    /* A C++/CLI enum base type must have a corresponding System::xxx value
+       class type.  (This cannot be tested while loading the System::...
+       metadata.) */
+    pos_error(ec_cli_enum_base_has_no_system_counterpart, pos_type);
   } else {
     valid = TRUE;
+    *p_base_type = base_type;
   }  /* if */
   return valid;
 }  /* validate_cppcli_enum_base_type */
