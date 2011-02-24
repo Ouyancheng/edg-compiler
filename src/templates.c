@@ -9762,6 +9762,7 @@ the error type is a member, or is NULL for a nonmember.
   rtsp = rout_type->variant.routine.extra_info;
   rtsp->prototyped = TRUE;
   rout_type->variant.routine.return_type = error_type_ptr;
+  if (templ_rtsp->has_ellipsis) rtsp->has_ellipsis = TRUE;
   /* Create a list of parameters of error type.  The number of parameters
      should match the parameter list of the original template. */
   for (templ_ptp = templ_rtsp->param_type_list; templ_ptp != NULL;
