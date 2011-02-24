@@ -3147,6 +3147,12 @@ succeeds, FALSE if it fails.
            one way.  Keep going without adding anything to the template
            argument list and see if we can resolve this later as a nondeduced
            context. */
+        if (ptp->is_parameter_pack) {
+          /* But if the parameter is a parameter pack there won't be any
+             way to deduce it later so we fail right away. */
+          deduction_okay = FALSE;
+          goto end_of_routine;
+        }  /* if */
         goto next_iteration;
       }  /* if */
       /* Other cases are outright deduction failures. */
