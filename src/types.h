@@ -866,6 +866,11 @@ typedef struct a_std_conv_descr {
 			   types to a array of handle types where a conversion
 			   exists for the underlying element types and the
 			   arrays have the same rank. */
+  a_byte_boolean
+		gpp_conv_of_real_to_complex;
+			/* TRUE if this conversion is from an integer or
+			   real floating type to a complex type, in
+			   g++ mode. */
 } a_std_conv_descr;
 
 

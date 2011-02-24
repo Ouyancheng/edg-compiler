@@ -5447,6 +5447,7 @@ Clear a standard conversion description to default values.
   std_conv->warning_suggested = ec_no_error;
   std_conv->is_mild_warning = FALSE;
   std_conv->cli_array_covariance_conversion = FALSE;
+  std_conv->gpp_conv_of_real_to_complex = FALSE;
 }  /* clear_std_conv_descr */
 
 
@@ -7630,14 +7631,13 @@ See conversion_possible.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
         } else if (gpp_mode &&
-                   is_nonreal_floating_type(source_type) !=
-                                        is_nonreal_floating_type(dest_type)) {
+                   is_complex_type(source_type) !=is_complex_type(dest_type)) {
           /* GNU C++ does not allow _Complex double -> double and vice versa,
              for example.  C99 and GNU C do allow those conversions. */
-          if (gnu_version >= 40300 && is_nonreal_floating_type(dest_type)) {
+          if (gnu_version >= 40300 && is_complex_type(dest_type)) {
             /* As of g++ 4.3, double -> _Complex double is allowed, but not
                the other way around. */
-            std_conv->promotion = TRUE;
+            std_conv->gpp_conv_of_real_to_complex = TRUE;
           } else {
             okay = FALSE;
           }  /* if */

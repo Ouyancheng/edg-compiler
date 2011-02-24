@@ -4403,6 +4403,19 @@ in [over.ics.rank].
     }  /* if */
     goto have_cmp;
   }  /* if */
+  if (gpp_mode &&
+      conv1->gpp_conv_of_real_to_complex !=
+      conv2->gpp_conv_of_real_to_complex) {
+    /* g++ treats something like int --> double as better than
+       int --> double __complex__, possibly with the reasoning that the
+       former is a subsequence of the latter. */
+    if (conv1->gpp_conv_of_real_to_complex) {
+      cmp = -1;
+    } else {
+      cmp = 1;
+    }  /* if */
+    goto have_cmp;
+  }  /* if */
   /* A cast to a base class is better than a cast to further along the
      same base class derivation (see rule [3] in ARM 13.2):
        struct A {};
