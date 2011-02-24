@@ -3252,7 +3252,7 @@ list passed in.  The pointer to the start of the list is returned.
 #endif /* DEBUG */
     }  /* if */
     if (start_found_list != NULL &&
-        ctp->token != tok_end_of_source &&
+        ctp->token != (a_small_token_kind)tok_end_of_source &&
         (ctp->token_sequence_number == start_found_list->last_token_number ||
          (ctp->next != NULL && ctp->next->token_sequence_number >
                                       start_found_list->last_token_number) ||
