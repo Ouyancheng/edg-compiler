@@ -11881,11 +11881,14 @@ structure.
        function instantiation entry, and linking all these appropriately.
        Note that the symbol will not be added to the symbol table, since it
        is accessed through the list of function instantiation entries. */
-    if (template_arg_list_involves_error_entity(*new_list)) {
-      /* If the argument list contains an error entity, don't do the partial
-         instantiation of the template.  Instead, create an error routine
-         that can be used in place of the routine that would normally be
-         returned. */
+    a_routine_ptr	templ_rout;
+    templ_rout = templ_sym->variant.template_info->variant.function.routine;
+    if (template_arg_list_involves_error_entity(*new_list) ||
+        is_or_contains_error_type(templ_rout->type)) {
+      /* If the argument list or the type of the prototype instantiation
+         contains an error entity, don't do the partial instantiation of
+         the template.  Instead, create an error routine that can be used
+         in place of the routine that would normally be returned. */
       is_error_routine = TRUE;
       sym = create_error_routine(templ_sym, 
                                  templ_sym->is_class_member
