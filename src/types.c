@@ -9350,6 +9350,8 @@ the old list.  Only callable in C++ mode.  See ARM 13.
                            new_param->type_involves_deduced_template_param) ||
             (old_param->type_involves_template_param !=
                            new_param->type_involves_template_param) ||
+            (old_param->is_parameter_pack !=
+                           new_param->is_parameter_pack) ||
             !f_types_are_compatible(old_param->type, new_param->type,
                                     TCF_NO_FLAGS)) {
           distinguishable = TRUE;

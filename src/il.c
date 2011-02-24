@@ -1424,6 +1424,7 @@ Dump the contents of the indicated type entry, for debug purposes.
             fputs("] ", f_debug);
           }  /* if */
           db_abbreviated_type(ptp->type);
+          if (ptp->is_parameter_pack) fputs(" ...", f_debug);
           if (ptp->has_default_arg) {
             an_expr_node_ptr expr = ptp->default_arg_expr;
             fputs(" (= ", f_debug);
