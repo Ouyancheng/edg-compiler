@@ -292,11 +292,12 @@ static void enter_type_traits_helpers(void)
 Enter the names of "type trait pseudo-functions" as keywords.  They are
 patterned after the similar extensions introduced by Microsoft's Visual
 C++ 8.0.  They provide direct support for the C++ committee's "Library TR1"
-(ISO/IEC TR 19768).  While only supported when type_traits_helpers_enabled
-is TRUE (normally, in most C++ modes), they are recognized and diagnosed as
-errors in Microsoft C mode when microsoft_version >= 1400.  A few of the
-pseudo-functions do not correspond to any TR 19768 facilities: Those are only
-recognized in Microsoft modes.
+(ISO/IEC TR 19768) and for related features added to C++0x later on.
+While only supported when type_traits_helpers_enabled is TRUE (normally, in
+most C++ modes), they are recognized and diagnosed as errors in Microsoft C
+mode when microsoft_version >= 1400.  A few of the pseudo-functions do not
+correspond to any standard facilities: Those are only recognized in Microsoft
+modes.
 */
 {
   if (microsoft_mode) {
@@ -330,6 +331,7 @@ recognized in Microsoft modes.
   enter_keyword((a_token_kind)tok_is_pod, "__is_pod");
   enter_keyword((a_token_kind)tok_is_polymorphic, "__is_polymorphic");
   enter_keyword((a_token_kind)tok_is_union, "__is_union");
+  enter_keyword((a_token_kind)tok_is_trivial, "__is_trivial");
 }  /* enter_type_traits_helpers */
 
 

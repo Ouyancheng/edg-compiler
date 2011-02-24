@@ -525,6 +525,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_is_pod */
    (an_opname_kind)onk_none,          /* tok_is_polymorphic */
    (an_opname_kind)onk_none,          /* tok_is_union */
+   (an_opname_kind)onk_none,          /* tok_is_trivial */
    (an_opname_kind)onk_none,          /* tok_nullptr */
 #if MICROSOFT_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_native_nullptr */

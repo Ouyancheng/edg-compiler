@@ -1,5 +1,18 @@
 Version 4.3
 
+2/24/11  [EDGcpfe/11319]
+__is_trivial
+
+When type traits helpers are enabled (see entry of 3/21/06), the front end
+now accepts a new type trait pseudo-function "__is_trivial".  Given a
+complete object type (or an array thereof), it produces "true" if that type
+is a scalar type or a class type with a trivial destructor that is trivially
+default-constructible and trivially copyable/movable.
+
+(This supports the implementation of the C++0x class template std::is_trivial
+and matches a facility of GNU compilers.)
+
+
 2/23/11  [EDGcpfe/11419]
 Exported templates disabled by default in all modes
 
