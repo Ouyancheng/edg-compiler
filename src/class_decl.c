@@ -9851,10 +9851,12 @@ conversions.
   rout_type = skip_typerefs(rout_type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
   class_type = rout_type->variant.routine.extra_info->this_class;
-  check_assertion(class_type != NULL);
   /* Note that return_type_of removes references, which is desired. */
   ret_type = f_skip_typerefs(return_type_of(rout_type));
-  if (same_entities(ret_type, class_type)) {
+  if (class_type == NULL) {
+    /* This can happen with severe syntax errors. */
+    expect_error();
+  } else if (same_entities(ret_type, class_type)) {
     /* Converting to same type (possibly qualified) is not allowed. */
     is_implicitly_callable = FALSE;
   } else if (is_immediate_class_type(ret_type)) {
