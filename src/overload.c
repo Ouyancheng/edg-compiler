@@ -9006,6 +9006,7 @@ next parameter.
   } else if (arg_block->pack_encountered) {
     /* We've encountered a parameter pack or pack expansion, so we can't
        correlate parameters and arguments. */
+    prep_generic_operand(operand);
   } else {
     /* Parameter is prototyped. */
     /* Check the argument for compatibility against the parameter,
