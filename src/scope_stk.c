@@ -10003,12 +10003,15 @@ end_potential_pack_expansion_context).
 {
   check_assertion(curr_token == tok_ellipsis);
   if (is_prototype_instantiation_context()) {
-    check_assertion(pack_expansion_stack != NULL);
-    if (!pack_expansion_stack->is_suppression) {
-      a_pack_expansion_descr_ptr	pedp;
-      pedp = pack_expansion_stack->expansion_descr;
-      pedp->ellipsis_seen = TRUE;
-      pedp->ellipsis_position = pos_curr_token;
+    if (pack_expansion_stack == NULL) {
+      pos_error(ec_expansion_contains_no_packs, &pos_curr_token);
+    } else {
+      if (!pack_expansion_stack->is_suppression) {
+        a_pack_expansion_descr_ptr	pedp;
+        pedp = pack_expansion_stack->expansion_descr;
+        pedp->ellipsis_seen = TRUE;
+        pedp->ellipsis_position = pos_curr_token;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Bypass the "...". */
