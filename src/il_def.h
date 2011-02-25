@@ -6838,7 +6838,9 @@ typedef struct an_integer_type_supplement {
 		base_type;
 			/* For enumeration types, the type explicitly set as
 			   the underlying type (if any).  Otherwise NULL.
-			   If non-NULL, has_explicit_enum_base will be TRUE. */
+			   If non-NULL, has_explicit_enum_base will be TRUE.
+			   (In C++/CLI mode this can be a value class type
+			   that maps on an integral type.) */
 } an_integer_type_supplement;
 
 

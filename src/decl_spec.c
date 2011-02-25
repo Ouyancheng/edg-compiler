@@ -4145,7 +4145,8 @@ static a_boolean validate_cppcli_enum_base_type(
 C++/CLI mode.  If that type is valid in that context, return TRUE; otherwise,
 issue an error at the given position and return FALSE.  If *p_base_type is a
 valid value class type in that context (e.g., System::Boolean), replace
-*p_base_type by the associated primitive type.
+*p_base_type by the associated primitive type.  If TRUE is returned, any
+typerefs are dropped from *p_base_type.
 */
 {
   a_boolean   valid = FALSE;
