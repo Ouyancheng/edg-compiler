@@ -1,5 +1,19 @@
 Version 4.3
 
+2/25/11  [EDGcpfe/11370]
+Template-dependent C++0x alignment attribute
+
+In some cases, a C++0x alignment attribute with a template-dependent type
+argument specified on a field or variable with a nondependent type could
+trigger a spurious error.  For example:
+
+  template<typename T> struct S {
+    [[align(T)]] int x;  // Previously triggered a spurious error indicating
+  };                     // a too-small alignment.
+
+This is now fixed.
+
+
 2/24/11  [EDGcpfe/11319]
 __is_trivial
 

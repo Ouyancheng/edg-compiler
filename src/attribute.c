@@ -3464,6 +3464,11 @@ return that entity.
         pos_error(ec_function_type_not_allowed, &aap->position);
         apply_value = FALSE;
         make_attr_unrecognized(ap);
+      } else if (is_template_dependent_type(tp)) {
+        /* Something like "[[align(T)]]" with T a template parameter: The
+           alignment value isn't generally known and should therefore not be
+           recorded. */
+        apply_value = FALSE;
       } else {
         complete_type_is_needed(tp);
         if (is_incomplete_type(tp)) {
