@@ -285,6 +285,10 @@ typedef struct a_pack_reference {
 			/* When is_variable is TRUE in an actual
 			   instantiation, this points to the primary variable
 			   symbol that is found by name lookup. */
+  uint32_t	function_scopes_to_skip;
+			/* When is_variable is TRUE, this indicates the number
+			   of function scopes to be bypassed to look for the
+			   matching parameter variable. */
   union {
     a_variable_ptr
 		variable;

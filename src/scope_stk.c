@@ -8548,6 +8548,7 @@ controls the initialization of fields used only in such cases.
   prp->position = null_source_position;
   prp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   prp->primary_var_symbol = NULL;
+  prp->function_scopes_to_skip = 0;
   if (is_variable) {
     prp->curr_argument.variable = NULL;
   } else {
@@ -8958,12 +8959,12 @@ rescan.
 
 
 static a_variable_ptr find_variable_for_pack(
-				uint32_t	param_num,
-				uint32_t	*elements)
+				a_pack_reference_ptr	prp,
+				uint32_t		*elements)
 /*
 Return the initial function parameter associated with the variadic
-function template currently being instantiated.  param_num indicates
-the parameter number from the prototype instantiation.  If there are no 
+function template currently being instantiated.  prp describes
+the parameter from the prototype instantiation.  If there are no 
 actual arguments for the pack, return NULL.  Return the number of actual
 arguments in *elements.
 
@@ -8975,15 +8976,22 @@ to be part of the function template such as a lambda nested therein.
   a_scope_stack_entry_ptr	ssep;
   a_variable_ptr		vp;
   a_variable_ptr		result_vp = NULL;
+  uint32_t			param_num = prp->param_num;
+  uint32_t			function_scopes_to_skip =
+                                                  prp->function_scopes_to_skip;
 
-  /* Find the innermost function scope.  We can't use
-     depth_innermost_function_scope because that is cleared if we are
-     in a local class. */
-  ssep = &scope_stack_top();
-  while (ssep->kind != (a_scope_kind)sck_function || ssep->lambda != NULL) {
-    check_assertion(ssep->kind != (a_scope_kind)sck_file);
-    ssep--;
-  }  /* while */
+  /* Bypass the number of function scopes indicated by function_scopes_to_skip.
+     We can't start with depth_innermost_function_scope because that is
+     cleared if we are in a local class. */
+  for (ssep = &scope_stack_top(); ssep != NULL;
+       ssep = previous_scope_of(ssep)) {
+    /* Only consider function scopes. */
+    if (ssep->kind == (a_scope_kind)sck_function) {
+      if (function_scopes_to_skip == 0) break;
+      function_scopes_to_skip--;
+    }  /* if */
+  }  /* for */
+  check_assertion(ssep != NULL);
   for (vp = ssep->il_scope->variant.routine.parameters;
        vp != NULL; vp = vp->next) {
     if (vp->assoc_param_type->param_num == param_num) {
@@ -9109,7 +9117,7 @@ advance to the next pack element for each symbol.
       if (prp->is_variable) {
         a_variable_ptr	vp;
         a_symbol_ptr	sym;
-        vp = find_variable_for_pack(prp->param_num, &elements_for_pack);
+        vp = find_variable_for_pack(prp, &elements_for_pack);
         /* In some error cases the variable might not have a symbol.
            treat this as an empty pack (except that elements_for_pack is
            not changed). */
@@ -9976,8 +9984,21 @@ source position of the use of the symbols is indicated by position.
         prp = alloc_pack_reference(is_variable);
         prp->symbol = pack_symbol;
         if (is_variable) {
+          a_scope_stack_entry_ptr	ssep;
+          uint32_t			function_scopes_to_skip = 0;
           prp->param_num = pack_symbol->
                             variant.variable.ptr->assoc_param_type->param_num;
+          /* Find out how many function scopes need to be skipped to find
+             the parameter variable. */
+          for (ssep = &scope_stack_top(); ssep != NULL;
+               ssep = previous_scope_of(ssep)) {
+            /* Only consider function scopes. */
+            if (ssep->kind != (a_scope_kind)sck_function) continue;
+            if (ssep->number == pack_symbol->decl_scope) break;
+            function_scopes_to_skip++;
+          }  /* for */
+          check_assertion(ssep != NULL);
+          prp->function_scopes_to_skip = function_scopes_to_skip;
         }  /* if */
         prp->position = *position;
         prp->token_sequence_number = curr_token_sequence_number;
