@@ -1174,22 +1174,24 @@ decl parse state, which otherwise is gotten from init_info->dps.
   a_constant                     constant;
   a_class_symbol_supplement_ptr  cssp = NULL;
   a_dynamic_init_ptr             dip;
+  a_type_ptr                     entity_type;
 
   if (init_info != NULL) dps = init_info->dps;
+  entity_type = (context != NULL) ? context->type : dps->type;
   check_assertion(dps != NULL);
-  if (is_class_struct_union_type(context->type)) {
-    cssp = symbol_supplement_for_class(context->type);
+  if (is_class_struct_union_type(entity_type)) {
+    cssp = symbol_supplement_for_class(entity_type);
     check_assertion_str(c99_mode || gcc_mode ||
                         cssp->has_copy_constructor ||
                         cssp->construction_by_bitwise_copy_allowed ||
-                        skip_typerefs(context->type)->
+                        skip_typerefs(entity_type)->
                                 variant.class_struct_union.is_nonreal_class,
                         "tentative_aggregate_init: missing copy constructor");
   }  /* if */
   /* See whether we can initialize the entire aggregate with the next
      expression. */
   if (!scan_aggregate_initializer_expression(
-                                  context->type,
+                                  entity_type,
                                   ((init_info != NULL) ?
                                        init_info->static_lifetime : FALSE),
                                   ((init_info != NULL) ?
