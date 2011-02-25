@@ -9984,7 +9984,6 @@ source position of the use of the symbols is indicated by position.
         prp = alloc_pack_reference(is_variable);
         prp->symbol = pack_symbol;
         if (is_variable) {
-          a_scope_stack_entry_ptr	ssep;
           uint32_t			function_scopes_to_skip = 0;
           prp->param_num = pack_symbol->
                             variant.variable.ptr->assoc_param_type->param_num;
