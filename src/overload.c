@@ -6146,14 +6146,18 @@ any member of the set has a dependent parameter or dependent default
 argument expression.
 */
 {
-  a_boolean any_dep = FALSE;
+  a_boolean  any_dep = FALSE;
+  a_type_ptr parent_class;
 
   /* Only block extern functions and members of prototype instantiations
      can have dependent parameters. */
   if (is_block_extern_symbol(sym) ||
       (sym->is_class_member &&
-       sym_parent_class(sym)->variant.class_struct_union.
-                                                 is_prototype_instantiation)) {
+       (parent_class = sym_parent_class(sym),
+        parent_class->variant.class_struct_union.is_prototype_instantiation ||
+        /* Local classes inside template prototype instantiations have
+           is_nonreal_class set instead of is_prototype_instantiation. */
+        parent_class->variant.class_struct_union.is_nonreal_class))) {
     an_overload_set_traversal_block ostblock;
     /* Loop through the symbols in the overload set. */
     for (sym = set_up_overload_set_traversal(sym, &ostblock);
@@ -6181,7 +6185,8 @@ argument expression.
       rtsp = rout_type->variant.routine.extra_info;
       /* Loop through the parameter list looking for dependent types. */
       for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
-        if (ptp->type_involves_template_param) {
+        if (ptp->type_involves_template_param ||
+            ptp->is_parameter_pack) {
           any_dep = TRUE;
           goto end_of_function;
         }  /* if */
