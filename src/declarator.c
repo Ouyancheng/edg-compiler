@@ -2382,7 +2382,8 @@ TRUE if this is the function declarator in a friend function declaration.
                 element. */
              (variadic_templates_enabled &&
               ((curr_token == tok_ellipsis &&
-                any_packs_referenced()) || is_pack_element))) {
+                (next_token() != tok_rparen || any_packs_referenced())) ||
+               is_pack_element))) {
           a_decl_flag_set  di_flags = DI_IS_PARAMETER_DECL |
                                       DI_REAL_DECLARATOR_ALLOWED |
                                       DI_ABSTRACT_DECLARATOR_ALLOWED;
@@ -5711,7 +5712,7 @@ The syntax is:
          template<typename T>     void f(T ...);  // Classic vararg function.
        */
     if (variadic_templates_enabled && curr_token == tok_ellipsis &&
-        any_packs_referenced()) {
+        (next_token() != tok_rparen || any_packs_referenced())) {
       /* An ellipsis at this point can indicate a parameter pack. */
       if (state->pack_ellipsis_allowed) {
         state->has_pack_ellipsis = TRUE;
