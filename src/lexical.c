@@ -8997,11 +8997,11 @@ non-NULL, also append the characters in the comment, through but not including
        is no start_of_curr_token pointer).  Use the initial character of the
        current token. */
     curr_char = start_of_curr_token;
-    prev_asm_stop_char = curr_char;
     if (curr_char == NULL) {
       /* Rare case -- there is no start_of_curr_token pointer. */
       curr_char = stop_char;
     }  /* if */
+    prev_asm_stop_char = curr_char;
   }  /* if */
   while (curr_char != stop_char) {
     switch (*curr_char) {
@@ -9049,7 +9049,7 @@ non-NULL, also append the characters in the comment, through but not including
         go_into_insertion(slmp, next_char);
         break;
       default:
-        /* Normal case:  bump curr_char and keep looping. */
+        /* Normal case: bump curr_char and keep looping. */
         curr_char++;
         continue;
     }  /* switch */
@@ -9069,7 +9069,8 @@ non-NULL, also append the characters in the comment, through but not including
       add_to_asm_func_buffer("\n", len);
     }  /* if */
   }  /* while */
-  if (prev_asm_stop_char != NULL && curr_char > prev_asm_stop_char) {
+  check_assertion(prev_asm_stop_char != NULL);
+  if (curr_char > prev_asm_stop_char) {
     /* Copy the characters from prev_asm_stop_char through (but not including)
        curr_char into the buffer. */
     len = curr_char - prev_asm_stop_char;
