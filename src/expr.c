@@ -5078,13 +5078,24 @@ Do substitution on and rescan the explicit template argument list attached
 to the given locator.
 */
 {
-  a_template_arg_ptr rescan_orig_templ_arg_list = locator->template_arg_list;
-  a_boolean          copy_error = FALSE;
+  a_template_arg_ptr   rescan_orig_templ_arg_list = locator->template_arg_list;
+  a_template_param_ptr rescan_orig_templ_param_list = NULL;
+  a_symbol_ptr         sym = locator->specific_symbol;
+  a_boolean            copy_error = FALSE;
 
+  check_assertion(sym != NULL);
+  if (sym->kind == (a_symbol_kind)sk_function_template) {
+    rescan_orig_templ_param_list = sym->variant.template_info->variant.
+                                     function.decl_cache.decl_info->parameters;
+  } else if (sym->kind == (a_symbol_kind)sk_class_template) {
+    unexpected_condition();
+    rescan_orig_templ_param_list = sym->variant.template_info->
+                                                   cache.decl_info->parameters;
+  }  /* if */
   locator->template_arg_list =
               copy_template_arg_list_with_substitution_rebuilding_arg_operands(
                                              rescan_orig_templ_arg_list,
-                                             (a_template_param_ptr)NULL,
+                                             rescan_orig_templ_param_list,
                                              rcblock->template_arg_list,
                                              rcblock->template_param_list,
                                              &locator->source_position,
