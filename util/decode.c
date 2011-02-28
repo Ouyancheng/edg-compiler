@@ -5933,6 +5933,10 @@ The syntax is:
                               # objectless nonstatic member reference
                ::= sZ <template-param>
                               # size of a parameter pack
+               ::= sZ <function-param>
+                              # size of a function parameter pack
+               ::= sp <expression>
+                              # pack expansion
                ::= <expr-primary>
 
 */
@@ -6050,7 +6054,6 @@ The syntax is:
       /* sizeof...(<template-param>) */
       ptr = demangle_template_param(ptr, dctl);
     } else if (*ptr == 'f' ) {
-      /* FIXME: add comments in header if this proposal is accepted. */
       /* sizeof...(<function-param>) */
       ptr = demangle_parameter_reference(ptr, dctl);
     } else {
@@ -6058,7 +6061,6 @@ The syntax is:
     }  /* if */
     write_id_ch(')', dctl);
   } else if (*ptr == 's' && ptr[1] == 'p') {
-    /* FIXME: add comments in header if this proposal is accepted. */
     /* Pack expansion. */
     ptr+=2;
     ptr = demangle_expression(ptr, dctl);
@@ -6186,8 +6188,7 @@ A <template-args> encodes a template argument list.  The syntax is:
   <template-arg> ::= <type>                     # type or template
                  ::= X <expression> E           # expression
                  ::= <expr-primary>             # simple expressions
-                 ::= I <template-arg>* E        # argument pack
-                 ::= sp <expression>            # pack expansion of (C++0x)
+                 ::= J <template-arg>* E        # argument pack
 
 */
 {
@@ -6204,15 +6205,8 @@ A <template-args> encodes a template argument list.  The syntax is:
       ptr = demangle_expr_primary(ptr, dctl);
     } else if (*ptr == 'J' ||
               (*ptr == 'I' && emulate_gnu_abi_bugs)) {
-      /* FIXME: proposed "J" rather than "I" (change comments in entire
-         routine). */
       /* Template argument pack. */
       ptr = demangle_template_args(ptr, dctl);
-    } else if (*ptr == 's' && ptr[1] == 'p') {
-      /* FIXME: proposed getting rid of this (change comments above). */
-      /* Pack expansion. */
-      ptr = demangle_expression(ptr+2, dctl);
-      write_id_str("...", dctl);
     } else if (*ptr == 'E') {
       /* No template arguments. */
       break;
