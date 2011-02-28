@@ -15732,7 +15732,6 @@ by *buffer.
 */
 {
   a_token_cache     cache;
-  an_error_severity saved_error_threshold;
   a_boolean         saved_is_scanning_generated_code_from_metadata;
   a_boolean         saved_expand_macros;
   a_boolean         saved_next_token_is_top_level_decl_start;
@@ -15746,14 +15745,11 @@ by *buffer.
   source_sequence_entries_disallowed = TRUE;
   scope_stack_top().source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  /* FIXME: Remove the error threshold hack when HidBySig is implemented. */
-  saved_error_threshold = error_threshold;
   saved_expand_macros = expand_macros;
   saved_is_scanning_generated_code_from_metadata 
                                     = is_scanning_generated_code_from_metadata;
   saved_next_token_is_top_level_decl_start =
                                             next_token_is_top_level_decl_start;
-  error_threshold = es_discretionary_error;
   expand_macros = FALSE;
   is_scanning_generated_code_from_metadata = TRUE;
   check_assertion(scope_stack[depth_scope_stack].kind 
@@ -15781,7 +15777,6 @@ by *buffer.
   expand_macros = saved_expand_macros;
   next_token_is_top_level_decl_start =
                                       saved_next_token_is_top_level_decl_start;
-  error_threshold = saved_error_threshold;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   source_sequence_entries_disallowed =
                                       saved_source_sequence_entries_disallowed;
