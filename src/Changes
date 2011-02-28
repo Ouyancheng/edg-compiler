@@ -1,5 +1,25 @@
 Version 4.3
 
+2/28/11  [EDGcpfe/10504]
+Warnings about entities that are declared but not referenced
+
+The front end attempts to diagnose variables and functions that are declared
+but not referenced (with various exceptions; e.g., unused declarations in
+header files are not diagnosed).  However, when template definitions are not
+parsed in their generic forms, this could lead to spurious diagnostics.
+For example:
+
+  int const K = 1;
+  template<typename> int f() { return K; }
+    // Previously, this triggered a "declared but never referenced" warning
+    // in modes that don't parse template definitions (such as default C++
+    // mode).  
+
+Now, a more conservative strategy is used to avoid such spurious diagnostics
+when template definition are not parsed.  (On the flip side, some truly
+extraneous declarations are no longer warned about either.)
+
+
 2/25/11  [EDGcpfe/11376]
 Abort on __asm function body starting with a comment
 

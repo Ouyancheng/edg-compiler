@@ -5071,6 +5071,16 @@ curr_routine points to the routine entry; otherwise, it is NULL.
             /* Initialization has side-effects -- issue a remark. */
             severity = es_remark;
           }  /* if */
+        } else if (!C_mode() && !nonclass_prototype_instantiations &&
+                   (scope_kind == (a_scope_kind)sck_file ||
+                    scope_kind == (a_scope_kind)sck_namespace ||
+                    scope_kind == (a_scope_kind)sck_class_struct_union)) {
+          /* If we are not parsing all template definitions, it is possible
+             that we missed a reference/use from a template to an enclosing
+             scope (which can only be a file scope, namespace scope, or class
+             scope): Don't issue a warning/remark in such cases since it would
+             be unreliable. */
+          severity = es_none;
         }  /* if */
         if (severity != es_none) {
           /* Issue different diagnostics depending on whether the variable
@@ -5250,6 +5260,15 @@ curr_routine points to the routine entry; otherwise, it is NULL.
           /* "asm" functions don't generate any code unless referenced,
              and may appear in header files, so no warning is generated. */
 #endif /* ASM_FUNCTION_ALLOWED */
+        } else if (!C_mode() && !nonclass_prototype_instantiations &&
+                   (scope_kind == (a_scope_kind)sck_file ||
+                    scope_kind == (a_scope_kind)sck_namespace ||
+                    scope_kind == (a_scope_kind)sck_class_struct_union)) {
+          /* If we are not parsing all template definitions, it is possible
+             that we missed a reference/use from a template to an enclosing
+             scope (which can only be a file scope, namespace scope, or class
+             scope): Don't issue a warning/remark in such cases since it would
+             be unreliable. */
         } else if (scope_stack[depth_scope_stack].in_prototype_instantiation &&
                    (scope_kind == (a_scope_kind)sck_function ||
                     scope_kind == (a_scope_kind)sck_block)) {
