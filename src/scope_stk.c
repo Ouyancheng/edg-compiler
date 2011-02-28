@@ -8723,6 +8723,12 @@ Pop the current entry off of the pack expansion stack.
   /* Add the old entry to the list of available stack entries. */
   pesep->next = avail_pack_expansion_stack_entries;
   avail_pack_expansion_stack_entries = pesep;
+  pesep = pack_expansion_stack;
+  /* Restore the values for the pack expansion at the top of the stack. */
+  if (pesep != NULL && !pesep->is_rescan && !pesep->is_deduction &&
+      pesep->instantiation_descr != NULL) {
+    update_parameter_pack_symbol_values(pesep);
+  }  /* if */
 }  /* pop_pack_expansion_stack */
 
 #if DEBUG
@@ -9206,6 +9212,11 @@ pack expansion stack entry for which the symbols are to be updated.
       } else {
         /* There is no argument -- set the symbol to an error value. */
         set_template_param_symbol_to_error(sym);
+      }  /* if */
+    } else {
+      if (arg_prp->primary_var_symbol != NULL) {
+        arg_prp->primary_var_symbol->variant.variable.ptr =
+                                               arg_prp->curr_argument.variable;
       }  /* if */
     }  /* if */
   }  /* for */
@@ -9886,7 +9897,9 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
   } else {
     /* If we have advanced past the last element, pop the pack expansion
        stack. */
-    if (pesep != NULL) pop_pack_expansion_stack();
+    if (pesep != NULL) {
+      pop_pack_expansion_stack();
+    }  /* if */
   }  /* if */
   return !done;
 }  /* advance_to_next_pack_element */
