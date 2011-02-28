@@ -10567,7 +10567,6 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     }  /* if */
     (void)push_template_instantiation_scope(tcp->decl_info,
 				            (a_type_ptr)NULL,
-    /* FIXME: routine pointer might be needed by declarator code. */
 				            (a_routine_ptr)NULL,
 				            (a_symbol_ptr)NULL, templ_sym,
 				            templ_arg_list,
