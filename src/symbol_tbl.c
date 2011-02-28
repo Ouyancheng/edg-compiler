@@ -5200,7 +5200,7 @@ be changed too.
 }  /* enter_symbol */
 
 
-a_symbol_ptr create_symbol_for_non_initial_variadic_param(
+static a_symbol_ptr create_symbol_for_non_initial_variadic_param(
 						a_symbol_locator *location)
 /*
 Create a symbol to represent a non-initial parameter of a variadic
