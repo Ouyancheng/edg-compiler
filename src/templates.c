@@ -8962,9 +8962,6 @@ a pointer over a reference type or creating an array of references.
             /* Check for a function returning a function, a function
                returning an array type, or a function returning an abstract
                class type. */
-            /* FIXME: The following test should be updated for C++/CLI
-               restrictions.  In fact, it would probably be a good idea to
-               modify check_return_type so it can be called here. */
             if (is_array_type(new_return_type) ||
                 is_function_type(new_return_type) ||
                 (!microsoft_mode && !gpp_mode &&

@@ -8307,7 +8307,6 @@ function, set *ambiguous to TRUE.
         qualifiers = get_type_qualifiers(tp);
       }  /* if */
     }  /* if */
-    /* FIXME REFCLASS detect ambiguities when overloading on & and %.*/
     switch (sfkind) {
       case sfk_constructor:
         if (first_param == NULL) {
@@ -11547,7 +11546,6 @@ cfront compatibility case.
   ptp = rtsp->param_type_list;
   check_assertion(ptp != NULL);
   tp = skip_typerefs(ptp->type);
-  /* FIXME : use "any_reference" variants? */
   if (move_assign_okay ? is_reference_type(tp)
                        : is_lvalue_reference_type(tp)) {
     /* Reference argument. */
@@ -16597,8 +16595,6 @@ definition and record it in the IL (as a special-purpose class type).
                         class_type, (a_routine_ptr)NULL);
   scope_stack_top().class_def_state = &class_state;
   /* Add the Invoke member (declaration only). */
-  /* FIXME: Also add BeginInvoke and EndInvoke members (depends on additional
-     System::types). */
   clear_locator(&member_loc, &dps->declarator_pos);
   (void)find_symbol("Invoke", sizeof("Invoke")-1, &member_loc);
   initialize_member_decl_info(&member_info, &dps->specifiers_pos);
@@ -16620,7 +16616,6 @@ definition and record it in the IL (as a special-purpose class type).
                                     /*param4_type=*/(a_type_ptr)NULL);
   decl_member_function(&member_loc, &func_info, &class_state, &member_info,
                        /*compiler_generated=*/TRUE);
-  /* FIXME: Also add the two-argument constructor. */
   /* Wrap up the definition. */
   complete_class_definition(class_type, decl_level, &class_state);
   pop_scope();
