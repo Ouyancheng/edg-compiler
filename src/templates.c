@@ -5023,10 +5023,10 @@ the same constant.
       } else {
         equiv = FALSE;
       }  /* if */
+      if (!equiv) break;
     } else {
       /* A start of pack expansion placeholder. */
       check_assertion(is_start_of_pack_expansion_templ_arg(arg1));
-      equiv = TRUE;
     }  /* if */
     /* Advance to the next arguments in step. */
     arg1 = arg1->next;
