@@ -5088,7 +5088,6 @@ to the given locator.
     rescan_orig_templ_param_list = sym->variant.template_info->variant.
                                      function.decl_cache.decl_info->parameters;
   } else if (sym->kind == (a_symbol_kind)sk_class_template) {
-    unexpected_condition();
     rescan_orig_templ_param_list = sym->variant.template_info->
                                                    cache.decl_info->parameters;
   }  /* if */
