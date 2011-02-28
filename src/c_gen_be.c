@@ -432,6 +432,9 @@ typedef struct an_init_control_block {
 /* Value to use to specify that no name is provided. */
 #define NO_NAME ((char *)NULL)
 
+/* Value to use to specify that no counter is provided. */
+#define NO_COUNTER ((uint32_t)0)
+
 
 /*
 Data structure used to save information about a pending typedef, i.e., a
@@ -530,7 +533,8 @@ static void dump_general_declaration_using_type(
                                       char                    *temp,
                                       char                    *name,
                                       a_type_qualifier_set    added_qualifiers,
-                                      a_boolean               suppress_const);
+                                      a_boolean               suppress_const,
+                                      uint32_t                counter);
 static void dump_enum_definition(a_type_ptr type,
                                  a_boolean  output_final_semi);
 static void dump_struct_union_definition(a_type_ptr type,
@@ -1954,7 +1958,8 @@ is non-NULL, in which case that is the function scope.
                                                 param_var, NO_ROUTINE,
                                                 NO_FIELD, NO_TEMP, NO_NAME,
                                                 TQ_NONE,
-                                                /*suppress_const=*/FALSE);
+                                                /*suppress_const=*/FALSE,
+                                                NO_COUNTER);
 #if GNU_EXTENSIONS_ALLOWED
             /* Output any attributes associated with the variable. */
             (void)form_variable_attributes(param_var,
@@ -1965,8 +1970,10 @@ is non-NULL, in which case that is the function scope.
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
           {
             /* This is just a declaration, so put out the type and no name. */
-            char *temp = NULL;
-            char *name = NULL;
+            char              *temp = NULL;
+            char              *name = NULL;
+            uint32_t          counter = 0;
+            a_param_type_ptr  ptp;
 #if GNU_EXTENSIONS_ALLOWED
             if (param->duplicate_name) {
               /* The name of this parameter is the same as that of an
@@ -1989,6 +1996,11 @@ is non-NULL, in which case that is the function scope.
                 temp = (char *)param;
               }  /* if */
             }  /* if */
+            /* Compute a counter that can be used to distinguish the variadic
+               parameter names based on the number of remaining pack
+               elements. */
+            for (ptp = param ; ptp != NULL && ptp->is_pack_element;
+                 ptp = ptp->next, counter++) {}
             /* If the type was qualified in the original, and the qualifiers
                were removed in C++, restore them here. */
             dump_general_declaration_using_type(param->type, NO_SCP,
@@ -1996,7 +2008,8 @@ is non-NULL, in which case that is the function scope.
                                                 NO_FIELD, temp, name,
                                                 (a_type_qualifier_set)
                                                              param->qualifiers,
-                                                /*suppress_const=*/FALSE);
+                                                /*suppress_const=*/FALSE,
+                                                counter);
 #if GNU_EXTENSIONS_ALLOWED
             if (is_pointer_type(param->type) &&
                 is_function_type(type_pointed_to(param->type))) {
@@ -2085,7 +2098,8 @@ static void dump_general_declaration_using_type(
                                       char                    *temp,
                                       char                    *name,
                                       a_type_qualifier_set    added_qualifiers,
-                                      a_boolean               suppress_const)
+                                      a_boolean               suppress_const,
+                                      uint32_t                counter)
 /*
 Output a declaration built around a type.  "type" gives the type.  The rest
 of the arguments specify the name, if any, to be placed in the middle of
@@ -2099,7 +2113,9 @@ If field is non-NULL, it points to a field being declared (and &scp ==
 IL entry from which a temporary name is to be generated.  If name is not
 NULL, it gives the name to be put out.  If added_qualifiers is not zero,
 the indicated qualifiers are added on top of the type.  If suppress_const
-is TRUE, suppress generation of top-level "const" in ANSI C mode.
+is TRUE, suppress generation of top-level "const" in ANSI C mode.  If
+counter is non-zero, append it to the name.  This is only used when
+name is non-NULL.
 */
 {
   a_form_type_options_set options = FTO_NO_OPTIONS;
@@ -2123,6 +2139,14 @@ is TRUE, suppress generation of top-level "const" in ANSI C mode.
                        added_qualifiers, options, &octl);
   /* Write the name if there is one. */
   if (name != NULL) {
+    /* If a counter was provided, output it before the name. */
+    ensure_enough_room_on_line(strlen(name)+(counter != 0 ? 3 : 0));
+    if (counter != 0) {
+      m_write_ch('_');
+      m_write_ch('_');
+      write_unsigned_num((a_host_large_unsigned)counter);
+      m_write_ch('_');
+    }  /* if */
     write_tok_str(name);
   } else if (scp != NULL) {
     /* Write the name. */
@@ -2153,7 +2177,7 @@ no name.
 {
   dump_general_declaration_using_type(type, scp, NO_VARIABLE, NO_ROUTINE,
                                       NO_FIELD, NO_TEMP, NO_NAME, TQ_NONE,
-                                      /*suppress_const=*/FALSE);
+                                      /*suppress_const=*/FALSE, NO_COUNTER);
 }  /* dump_declaration_using_type */
 
 
@@ -3025,7 +3049,8 @@ padding in the generated code.
                                           &field->source_corresp,
                                           NO_VARIABLE, NO_ROUTINE, field,
                                           NO_TEMP, NO_NAME, TQ_NONE,
-                                          /*suppress_const=*/TRUE);
+                                          /*suppress_const=*/TRUE,
+                                          NO_COUNTER);
 #if GNU_EXTENSIONS_ALLOWED
       (void)form_field_attributes(field, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -3102,7 +3127,8 @@ padding in the generated code.
                                               NO_VARIABLE, NO_ROUTINE,
                                               NO_FIELD, NO_TEMP, NO_NAME,
                                               TQ_NONE,
-                                              /*suppress_const=*/TRUE);
+                                              /*suppress_const=*/TRUE,
+                                              NO_COUNTER);
           write_tok_ch(';');
         }  /* if */
       } else
@@ -6523,7 +6549,8 @@ out in this way to guarantee their alignment.
     dump_general_declaration_using_type(constant->type, NO_SCP,
                                         NO_VARIABLE, NO_ROUTINE, NO_FIELD,
                                         (char *)constant, NO_NAME, TQ_NONE,
-                                        /*suppress_const=*/FALSE);
+                                        /*suppress_const=*/FALSE,
+                                        NO_COUNTER);
     write_tok_str(" = {");
     dump_exploded_wide_string(constant);
     write_tok_str("};");
@@ -7321,7 +7348,8 @@ parameters.
                                             &variable->source_corresp,
                                             variable, NO_ROUTINE, NO_FIELD,
                                             NO_TEMP, NO_NAME, TQ_NONE,
-                                            suppress_const);
+                                            suppress_const,
+                                            NO_COUNTER);
 #if !C_GEN_BE_GENERATES_ANSI_C
       }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
@@ -8260,7 +8288,8 @@ statement expression, i.e., ({...}).
                                                 &param->source_corresp,
                                                 param, NO_ROUTINE, NO_FIELD,
                                                 NO_TEMP,NO_NAME, TQ_NONE,
-                                                /*suppress_const=*/FALSE);
+                                                /*suppress_const=*/FALSE,
+                                                NO_COUNTER);
           }  /* if */
           write_tok_str(")");
           indent += 2;
@@ -8413,7 +8442,8 @@ prescan temporaries in the indicated expression.
         dump_general_declaration_using_type(op1_type, NO_SCP, NO_VARIABLE,
                                             NO_ROUTINE, NO_FIELD, (char *)node,
                                             NO_NAME, TQ_NONE,
-                                            /*suppress_const=*/FALSE);
+                                            /*suppress_const=*/FALSE,
+                                            NO_COUNTER);
         write_tok_ch(';');
       }  /* if */
     }  /* if */
@@ -8526,7 +8556,8 @@ routine whose parameters are being processed.
                                         &param_var->source_corresp,
                                         param_var, NO_ROUTINE, NO_FIELD,
                                         NO_TEMP, NO_NAME, TQ_NONE,
-                                        /*suppress_const=*/FALSE);
+                                        /*suppress_const=*/FALSE,
+                                        NO_COUNTER);
 #if GNU_EXTENSIONS_ALLOWED
     (void)form_variable_attributes(param_var, /*need_leading_space=*/TRUE,
                                    &octl);
@@ -9154,7 +9185,8 @@ if this routine has a body (dump nothing if it has no body).
       dump_general_declaration_using_type(rout->type, &rout->source_corresp,
                                           NO_VARIABLE, rout, NO_FIELD, NO_TEMP,
                                           NO_NAME, TQ_NONE,
-                                          /*suppress_const=*/FALSE);
+                                          /*suppress_const=*/FALSE,
+                                          NO_COUNTER);
 #if GNU_EXTENSIONS_ALLOWED
       form_asm_name(rout->asm_name, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */

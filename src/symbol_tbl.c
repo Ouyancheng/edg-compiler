@@ -5200,6 +5200,25 @@ be changed too.
 }  /* enter_symbol */
 
 
+a_symbol_ptr create_symbol_for_non_initial_variadic_param(
+						a_symbol_locator *location)
+/*
+Create a symbol to represent a non-initial parameter of a variadic
+function.  Such symbols are not entered into the symbol table.
+*/
+{
+  a_symbol_ptr	sym_ptr;
+
+  /* Allocate and initialize the symbol. */
+  sym_ptr = alloc_symbol((a_symbol_kind)sk_parameter, location->symbol_header,
+                         &location->source_position);
+  sym_ptr->is_error = location->is_error;
+  /* Set the locator to point to the symbol entered. */
+  location->specific_symbol = sym_ptr;
+  return sym_ptr;
+}  /* create_symbol_for_non_initial_variadic_param */
+
+
 a_symbol_ptr enter_extern_symbol(a_symbol_kind    sym_kind,
                                  a_symbol_locator *locator)
 /*
@@ -11905,6 +11924,7 @@ storage_class are the type and storage class for the parameter.
   a_symbol_ptr    sym;
   a_boolean       unnamed_param = FALSE, ambiguous = FALSE;
   a_boolean       is_prototype_param_decl = (type_ptr != NULL);
+  a_boolean       non_initial_variadic_param = FALSE;
 
   /* See if this identifier name already appears on the list.  If so, issue
      an error (except in some GNU modes, where duplicate parameter names are
@@ -11914,7 +11934,7 @@ storage_class are the type and storage class for the parameter.
     if (is_non_initial_variadic_param()) {
       /* Only the first copy of a element of a variadic parameter is entered
          into the symbol table. */
-      unnamed_param = TRUE;
+      non_initial_variadic_param = TRUE;
     } else if (param_id_on_list(locator, func_info->param_id_list) != NULL) {
       if ((gpp_mode && gnu_version < 40300) ||
           (gcc_mode && !is_prototype_param_decl)) {
@@ -11953,8 +11973,14 @@ storage_class are the type and storage class for the parameter.
         /* Prototyped parameter list.  The symbol is entered in the function
            prototype scope.  It will later be copied to the function scope
            when it is changed to sk_variable. */
-        sym = enter_symbol((a_symbol_kind)sk_parameter, locator,
-                           depth_scope_stack, ambiguous);
+        if (non_initial_variadic_param) {
+          /* Non-initial variadic parameter are not entered into the symbol
+             table. */
+          sym = create_symbol_for_non_initial_variadic_param(locator);
+        } else {
+          sym = enter_symbol((a_symbol_kind)sk_parameter, locator,
+                             depth_scope_stack, ambiguous);
+        }  /* if */
         if (parameters_visible_late) {
           /* In some GNU C++ modes, the parameters are invisible within the
              prototype scope.  This allows code like:
