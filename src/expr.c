@@ -27859,11 +27859,13 @@ scan_more:
     scan_potential_pack_expansion_initializer_expr(dps);
     if (!anything_cached(&dps->prescanned_initializer_cache)) {
       if (curr_token == tok_rbrace) {
+got_closing_brace:
         *empty_expansion_at_closing_brace = TRUE;
       } else if (curr_token == tok_comma) {
         /* If we have a comma, swallow it and scan another expression
            (empty pack expansion plus a comma is treated as empty). */
         (void)get_token();
+        if (curr_token == tok_rbrace) goto got_closing_brace;
         goto scan_more;
       }  /* if */
     }  /* if */
