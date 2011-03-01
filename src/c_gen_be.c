@@ -2140,7 +2140,7 @@ name is non-NULL.
   /* Write the name if there is one. */
   if (name != NULL) {
     /* If a counter was provided, output it before the name. */
-    ensure_enough_room_on_line(strlen(name)+(counter != 0 ? 3 : 0));
+    ensure_enough_room_on_line(strlen(name)+(counter != 0 ? 8 : 0));
     if (counter != 0) {
       m_write_ch('_');
       m_write_ch('_');
