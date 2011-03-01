@@ -5088,8 +5088,10 @@ to the given locator.
     rescan_orig_templ_param_list = sym->variant.template_info->variant.
                                      function.decl_cache.decl_info->parameters;
   } else if (sym->kind == (a_symbol_kind)sk_class_template) {
-    rescan_orig_templ_param_list = sym->variant.template_info->
+    if (!sym->variant.template_info->is_nonreal_member) {
+      rescan_orig_templ_param_list = sym->variant.template_info->
                                                    cache.decl_info->parameters;
+    }  /* if */
   }  /* if */
   locator->template_arg_list =
               copy_template_arg_list_with_substitution_rebuilding_arg_operands(
