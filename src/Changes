@@ -11,13 +11,15 @@ For example:
 
   int const K = 1;
   template<typename> int f() { return K; }
+  int main() { return f<int>(); }
     // Previously, this triggered a "declared but never referenced" warning
-    // in modes that don't parse template definitions (such as default C++
-    // mode).  
+    // in modes that don't parse template definitions and don't instantiate
+    // used template instances (such as default C++ mode).  
 
 Now, a more conservative strategy is used to avoid such spurious diagnostics
-when template definition are not parsed.  (On the flip side, some truly
-extraneous declarations are no longer warned about either.)
+when template definitions are not parsed and used instances are not fully
+instantiated.  (On the flip side, under such circumstances, some actually
+extraneous declarations may no longer be warned about either.)
 
 
 2/25/11  [EDGcpfe/11376]

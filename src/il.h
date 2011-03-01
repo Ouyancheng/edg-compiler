@@ -165,6 +165,10 @@ EXTERN a_boolean
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN a_boolean
+		any_templates_seen;
+			/* TRUE when a template has been seen in the current
+			   translation unit. */
+EXTERN a_boolean
 		okay_to_eliminate_unneeded_il_entries;
 			/* When TRUE unneeded entities may be pruned from the
 			   IL tree; otherwise, pruning is suppressed even if
