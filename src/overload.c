@@ -3245,6 +3245,11 @@ template arguments, or NULL if deduction failed.
        should have a default argument expression or a parameter pack. */
     check_assertion_str(ptp->has_default_arg || ptp->is_parameter_pack,
         "function_template_call_argument_deduction: missing default arg expr");
+    if (ptp->is_parameter_pack && ptp->next != NULL) {
+      /* A parameter pack can be deduced only if there are no other parameters
+         following it. */
+      goto done;
+    }  /* if */
   }  /* if */
 #endif /* CHECKING */
   /* Make sure that the types of nontype template parameters that depend
