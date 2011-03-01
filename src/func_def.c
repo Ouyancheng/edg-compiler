@@ -75,7 +75,13 @@ Comments in asm functions are saved along with the normal tokens.
     if (curr_token == tok_rbrace && --nbrace == 0) {
       /* This right brace matches the opening left brace, marking the end of
          the asm function body.  Copy white space up to the current token. */
-      copy_from_source_to_asm_func_buffer(start_of_curr_token, (char *)NULL);
+      if (start_of_curr_token != NULL) {
+        copy_from_source_to_asm_func_buffer(start_of_curr_token, (char *)NULL);
+      } else {
+        /* We can get here in severe error situations that caused tokens to be
+           prematurely cached. */
+        check_assertion(total_errors != 0);
+      }  /* if */
       break;
     }  /* if */
     /* Special handling for a left brace embedded within the assembler
@@ -83,7 +89,13 @@ Comments in asm functions are saved along with the normal tokens.
     if (curr_token == tok_lbrace) ++nbrace;
     /* Copy characters from the source line to the buffer, from
        last_stop_char through the end of the current token. */
-    copy_from_source_to_asm_func_buffer(end_of_curr_token + 1, (char *)NULL);
+    if (end_of_curr_token != NULL) {
+      copy_from_source_to_asm_func_buffer(end_of_curr_token + 1, (char *)NULL);
+    } else {
+      /* We can get here in severe error situations that caused tokens to be
+         prematurely cached. */
+      check_assertion(total_errors != 0);
+    }  /* if */
     /* Advance to the next token. */
     (void)get_token();
   }  /* while */
