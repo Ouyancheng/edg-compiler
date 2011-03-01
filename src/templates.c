@@ -20094,7 +20094,7 @@ Add an entry to the can_instantiate list.
 }  /* add_to_can_instantiate_list */
 
 
-static void additional_instantiation_wrapup_processing_needed(void)
+void additional_instantiation_wrapup_processing_needed(void)
 /*
 Something was done that requires that another iteration of instantiation
 wrapup processing be done for the current translation unit.  Set a

@@ -1977,6 +1977,12 @@ Do the fixup for any entries on the deferred friend function fixup list.
   for (rfp = deferred_friend_fixup_list; rfp != NULL; rfp = rfp->next) {
     deferred_friend_function_fixup(rfp);
   }  /* for */
+  if (deferred_friend_fixup_list != NULL) {
+    /* The friend fixups could cause additional instantiations to be done.
+       Notify the instantiation wrapup process that it should check for
+       additional instantiations. */
+    additional_instantiation_wrapup_processing_needed();
+  }  /* if */
   /* Don't use the list for any additional friend fixups that may be
      needed. */
   use_deferred_friend_fixup_list = FALSE;

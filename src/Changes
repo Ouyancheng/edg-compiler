@@ -1,5 +1,19 @@
 Version 4.3
 
+3/1/11   [EDGcpfe/11455]
+Missing instantiations referenced from friend functions defined in classes
+
+Although we don't have an actual example, it is in theory possible that a
+friend function of a class template could require an instantiation and
+because the deferred friend processing is done after instantiations have
+been done, the instantiation might not occur.  This situation should
+actually already work properly, as instantiations that are discovered
+during the wrapup process are performed immediately.  But to guarantee that
+this kind of problem could never occur, process_deferred_friend_fixup_list
+now forces an extra iteration in template_and_inline_function_wrapup if any
+friend functions were processed.
+
+
 2/28/11  [EDGcpfe/10504]
 Warnings about entities that are declared but not referenced
 
