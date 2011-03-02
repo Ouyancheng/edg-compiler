@@ -8,7 +8,7 @@ appearing in brace-enclosed initializers as if the cast weren't there.  Now
 that special treatment is also applied for wide-character string literals.
 For example:
 
-  wchar_t s[] = { (wchar_t*)L"wide"; }  // Now accepted in Microsoft mode.
+  wchar_t s[] = { (wchar_t*)L"wide" };  // Now accepted in Microsoft mode.
 
 (See also entry of 6/16/05.)
 
