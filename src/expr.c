@@ -8279,7 +8279,11 @@ indication in *rcblock).
       expr->variant.sizeof_pack.variant.expr=make_node_from_operand(&operand);
     }  /* if */
     make_expression_operand(expr, result);
-    mark_operand_as_pack_expansion(result, pedep);
+    /* pedep can be NULL when a sizeof... is scanned during disambiguation.
+       We're promised that we won't get back later and do a rescan on the
+       IL created here, so it should be okay not to have a recorded
+       pack expansion description. */
+    if (pedep != NULL) mark_operand_as_pack_expansion(result, pedep);
   } else {
     /* For a real instantiation or a rescan, return the constant size of
        the parameter pack. */
