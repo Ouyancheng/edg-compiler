@@ -1,17 +1,31 @@
 Version 4.3
 
 3/1/11   [EDGcpfe/11455]
-Missing instantiations referenced from friend functions defined in classes
+GNU and Microsoft compatibility: incorrect template information file for
+instantiations from deferred friends
 
-Although we don't have an actual example, it is in theory possible that a
-friend function of a class template could require an instantiation and
-because the deferred friend processing is done after instantiations have
-been done, the instantiation might not occur.  This situation should
-actually already work properly, as instantiations that are discovered
-during the wrapup process are performed immediately.  But to guarantee that
-this kind of problem could never occur, process_deferred_friend_fixup_list
-now forces an extra iteration in template_and_inline_function_wrapup if any
-friend functions were processed.
+In Microsoft mode and g++ mode when gnu_version < 30400 (and only in
+certain configurations) it is possible for incorrect entries to be emitted
+in the template information (.ti) file.  This could occur for instantiations
+that result from friend declarations in class templates, the processing of
+which is deferred to the end of the translation unit in the modes mention
+above.  In the example below, the .ti file contained a "TC" entry for
+A<int>::A where no entry should have been emitted.  This could result in a
+prelinker loop.  Now fixed.  The extra .ti file entry can be observed on
+Linux using the defines.h.linux supplied with the release, although it does
+not result in a prelinker loop on our systems.
+
+  template <class T> struct A {
+    A() { }
+  };
+  template <class T> struct B {
+    friend void f(B b) { A<T> a; }
+  };
+  int main() {
+   B<int> b;
+   f(b);
+   return 0;
+  }
 
 
 2/28/11  [EDGcpfe/10504]
