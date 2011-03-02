@@ -590,6 +590,26 @@ Return TRUE if the type is a character type (signed, unsigned, or "plain").
   return (is_character(tp));
 }  /* is_character_type */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean is_narrow_or_wide_character_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a narrow ("char") or wide ("wchar_t")
+character type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_integral(tp) &&
+         !tp->variant.integer.bool_type &&
+         (tp->variant.integer.int_kind == (an_integer_kind)ik_char ||
+          tp->variant.integer.int_kind == (an_integer_kind)ik_unsigned_char ||
+          tp->variant.integer.int_kind == (an_integer_kind)ik_signed_char ||
+          (!wchar_t_is_keyword &&
+           tp->variant.integer.int_kind == targ_wchar_t_int_kind) ||
+          tp->variant.integer.wchar_t_type);
+}  /* is_narrow_or_wide_character_type */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if FIXED_POINT_ALLOWED
 
 a_boolean is_fixed_point_type(a_type_ptr tp)

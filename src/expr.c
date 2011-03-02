@@ -23266,7 +23266,7 @@ constant.  This comes up in a Microsoft quirk.
   if (is_an_rvalue(operand) &&
       is_constant_operand(operand) &&
       is_pointer_type(operand->type) &&
-      is_character_type(type_pointed_to(operand->type))) {
+      is_narrow_or_wide_character_type(type_pointed_to(operand->type))) {
     if (constant_is_pointer_to_string_literal(&operand->variant.constant,
                                               string_con)) {
       is_cast_string_literal = TRUE;
