@@ -2248,6 +2248,7 @@ to it.
   fp->is_mutable           = FALSE;
   fp->compiler_generated   = FALSE;
   fp->is_captured_this     = FALSE;
+  fp->is_captured_pack_element = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   fp->is_initonly          = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

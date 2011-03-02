@@ -8618,6 +8618,11 @@ typedef struct a_field {
   a_bit_field	is_captured_this:1;
 			/* TRUE if this is a field of a closure type that was
 			   generated to capture a "this" parameter. */
+  a_bit_field	is_captured_pack_element:1;
+			/* TRUE if this is a field of a closure type that was
+			   generated to capture a variadic function template's
+			   parameter pack element.  In such cases, there may
+			   be multiple fields with the same name. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	is_initonly:1;
 			/* TRUE if the "initonly" context-sensitive keyword

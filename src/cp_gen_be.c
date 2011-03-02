@@ -7351,8 +7351,21 @@ Generate the name of the field from the indicated node (an enk_field node).
   check_assertion_str(node->kind == (an_expr_node_kind)enk_field,
                       "gen_field_reference: not enk_field");
   field = node->variant.field;
-  /* Put out the (unqualified) field name. */
-  gen_field_name(field);
+  if (field->is_captured_pack_element) {
+    /* Number captured pack elements in a way that matches the numbering
+       created by gen_param_name. */
+    unsigned long count = 1;
+    a_field_ptr   fp = field;
+    while (fp->next != NULL && fp->next->is_captured_pack_element) {
+      count += 1;
+      fp = fp->next;
+    }  /* while */
+    gen_pack_element_param_name(unmangled_name_of(&field->source_corresp),
+                                count);
+  } else {
+    /* Put out the (unqualified) field name. */
+    gen_field_name(field);
+  }  /* if */
 }  /* gen_field_reference */
 
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS

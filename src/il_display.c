@@ -2588,6 +2588,9 @@ Display the indicated field.
   if (ptr->is_mutable) disp_boolean("is_mutable", TRUE);
   if (ptr->compiler_generated) disp_boolean("compiler_generated", TRUE);
   if (ptr->is_captured_this) disp_boolean("is_captured_this", TRUE);
+  if (ptr->is_captured_pack_element) {
+    disp_boolean("is_captured_pack_element", TRUE);
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->is_initonly) disp_boolean("is_initonly", TRUE);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

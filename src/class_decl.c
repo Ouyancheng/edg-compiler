@@ -921,6 +921,10 @@ typedef struct a_member_decl_info {
   a_bit_field	is_bit_field:1;
 			/* TRUE for a nonstatic data member that is a bit
 			   field. */
+  a_bit_field	is_captured_this:1;
+			/* TRUE for a field that captures a this pointer. */
+  a_bit_field	is_captured_pack_element:1;
+			/* TRUE for a field that captures a pack element. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
 		bit_field_size_pos;
@@ -972,6 +976,8 @@ a class member declaration as it appears.
   mdip->return_type_def_err = FALSE;
   mdip->is_member_template = FALSE;
   mdip->is_bit_field = FALSE;
+  mdip->is_captured_this = FALSE;
+  mdip->is_captured_pack_element = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   mdip->bit_field_size_pos = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -1053,10 +1059,6 @@ the field.
   if (vp->is_this_parameter) {
     is_this = TRUE;
     decl_info.is_unnamed_field = TRUE;
-  } else if (vp->is_pack_element) {
-    /* Elements of variadic template function pack expansions are given
-       no name. */
-    decl_info.is_unnamed_field = TRUE;
   } else {
     a_symbol_ptr var_sym = symbol_for(vp);
     check_assertion(var_sym != NULL);
@@ -1088,11 +1090,12 @@ the field.
        of the captured variable. */
   }  /* if */
   decl_info.decl_state.type = field_type;
+  decl_info.is_captured_this = is_this;
+  decl_info.is_captured_pack_element = vp->is_pack_element;
   /* The field must be private. */
   class_state->access = (an_access_specifier)as_private;
   fp = decl_nonstatic_data_member(&locator, class_state, &decl_info,
                                   closure_scope_depth);
-  fp->is_captured_this = is_this;
   class_state->access = (an_access_specifier)as_public;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Restore the previous state wrt. generating source sequence entries. */
@@ -13111,6 +13114,8 @@ be entered.
   /* Create the field entry. */
   field = alloc_field();
   field->is_bit_field = decl_info->is_bit_field;
+  field->is_captured_this = decl_info->is_captured_this;
+  field->is_captured_pack_element = decl_info->is_captured_pack_element;
   cssp = symbol_supplement_for_class(class_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled) {
@@ -13204,7 +13209,8 @@ be entered.
     } else {
       member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
                                       decl_scope_depth,
-                                      /*suppress_redecl_error=*/FALSE);
+                                      /*suppress_redecl_error=*/
+                                             field->is_captured_pack_element);
       set_source_corresp(&(field->source_corresp), member_sym);
     }  /* if */
     member_sym->variant.field.ptr = field;
