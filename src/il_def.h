@@ -8615,6 +8615,9 @@ typedef struct a_field {
 			/* TRUE for fields that are created by the compiler
 			   and have not been declared in the source,
 			   e.g., the virtual function table pointer. */
+  a_bit_field	is_captured_this:1;
+			/* TRUE if this is a field of a closure type that was
+			   generated to capture a "this" parameter. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	is_initonly:1;
 			/* TRUE if the "initonly" context-sensitive keyword

@@ -7429,7 +7429,6 @@ the expression reflects an implicit member access ("this->y"), so the
   an_expr_operator_kind op;
   a_type_ptr            naming_class, selection_class;
   a_boolean             need_context_pop = FALSE;
-  a_boolean             lambda_closure_field = FALSE;
 
   check_assertion(is_operation_node(expr) &&
                   (node_operator_is(expr, eok_dot_field) ||
@@ -7462,11 +7461,6 @@ the expression reflects an implicit member access ("this->y"), so the
           object_expr->variant.variable->is_this_parameter) {
         /* This is an implicit member access ("this->y"), so nothing should
            be generated for the object expression and operator. */
-        if (class_type_supp(selection_class)->is_lambda_closure_class) {
-          /* Remember that this is a selection of a member of a lambda's
-             closure class. */
-          lambda_closure_field = TRUE;
-        }  /* if */
       } else {
         /* This situation occurs for access to non-static data members
            in unevaluated contexts, such as "sizeof(X::y)", which appears
@@ -7526,8 +7520,7 @@ the expression reflects an implicit member access ("this->y"), so the
       gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
     }  /* if */
   }  /* if */
-  if (lambda_closure_field &&
-      !has_name(field_expr->variant.field)) {
+  if (field_expr->variant.field->is_captured_this) {
     /* A reference to a captured "this" in a lambda's closure class. */
     write_tok_str("this");
   } else {

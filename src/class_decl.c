@@ -1092,6 +1092,7 @@ the field.
   class_state->access = (an_access_specifier)as_private;
   fp = decl_nonstatic_data_member(&locator, class_state, &decl_info,
                                   closure_scope_depth);
+  fp->is_captured_this = is_this;
   class_state->access = (an_access_specifier)as_public;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Restore the previous state wrt. generating source sequence entries. */

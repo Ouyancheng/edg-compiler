@@ -2247,6 +2247,7 @@ to it.
   fp->is_anonymous_parent_object = FALSE;
   fp->is_mutable           = FALSE;
   fp->compiler_generated   = FALSE;
+  fp->is_captured_this     = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   fp->is_initonly          = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
