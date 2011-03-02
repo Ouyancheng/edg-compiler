@@ -591,6 +591,7 @@ Return TRUE if the type is a character type (signed, unsigned, or "plain").
 }  /* is_character_type */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean is_narrow_or_wide_character_type(a_type_ptr tp)
 /*
@@ -609,6 +610,7 @@ character type.
           tp->variant.integer.wchar_t_type);
 }  /* is_narrow_or_wide_character_type */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if FIXED_POINT_ALLOWED
 
