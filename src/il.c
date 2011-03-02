@@ -22567,7 +22567,6 @@ in il_init.)
       pch_array_saved_var_array_elem(named_register_variables),
 #endif /* NAMED_REGISTERS_ALLOWED */
       pch_saved_var_array_elem(shareable_constants_table),
-      pch_saved_var_array_elem(any_templates_seen),
       pch_saved_var_array_elem(curr_object_lifetime),
 #if ORPHAN_PROCESSING_NEEDED
       pch_array_saved_var_array_elem(orphaned_file_scope_il_entries),
@@ -22649,7 +22648,6 @@ in il_init.)
   register_trans_unit_variable(curr_fx_fract_overflow_state),
   register_trans_unit_variable(curr_fx_accum_overflow_state),
 #endif /* FIXED_POINT_ALLOWED */
-  register_trans_unit_variable(any_templates_seen);
   register_trans_unit_variable(curr_object_lifetime);
   register_trans_unit_variable(okay_to_eliminate_unneeded_il_entries);
   /* Not conditional because it's also used by trans_copy.c: */
@@ -22696,7 +22694,6 @@ need initialization for every (primary and secondary) translation unit.
   curr_upc_access_method = (a_upc_access_method)upc_access_unspecified;
 #endif /* UPC_EXTENSIONS_ALLOWED */
   curr_object_lifetime = NULL;
-  any_templates_seen = FALSE;
   /* remove_unneeded_entities is the value, settable from the command line,
      to which okay_to_eliminate_unneeded_il_entries should be initialized
      with each new compilation unit. */

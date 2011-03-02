@@ -1117,6 +1117,7 @@ source file's compilation.
 #endif /* NEAR_AND_FAR_ALLOWED */
   il_header.UCN_identifiers_used = FALSE;
   il_header.vla_used = FALSE;
+  il_header.any_templates_seen = FALSE;
   il_header.prototype_instantiations_in_il = prototype_instantiations_in_il;
   il_header.il_has_all_prototype_instantiations =
                                             prototype_instantiations_in_il &&

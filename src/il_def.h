@@ -15626,6 +15626,10 @@ typedef struct an_il_header {
 			/* TRUE if a variable-length array type was used
 			   anywhere in the translation unit. */
   a_byte_boolean
+		any_templates_seen;
+			/* TRUE if a template was seen in the translation
+			   unit. */
+  a_byte_boolean
 		prototype_instantiations_in_il;
 			/* TRUE if the IL contains some prototype
 			   instantiations.  When this is TRUE, consumers

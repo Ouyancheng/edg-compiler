@@ -5071,7 +5071,8 @@ curr_routine points to the routine entry; otherwise, it is NULL.
             /* Initialization has side-effects -- issue a remark. */
             severity = es_remark;
           }  /* if */
-        } else if (any_templates_seen && !nonclass_prototype_instantiations &&
+        } else if (il_header.any_templates_seen &&
+                   !nonclass_prototype_instantiations &&
                    instantiation_mode == tim_none &&
                    (scope_kind == (a_scope_kind)sck_file ||
                     scope_kind == (a_scope_kind)sck_namespace ||
@@ -5261,7 +5262,8 @@ curr_routine points to the routine entry; otherwise, it is NULL.
           /* "asm" functions don't generate any code unless referenced,
              and may appear in header files, so no warning is generated. */
 #endif /* ASM_FUNCTION_ALLOWED */
-        } else if (any_templates_seen && !nonclass_prototype_instantiations &&
+        } else if (il_header.any_templates_seen &&
+                   !nonclass_prototype_instantiations &&
                    instantiation_mode == tim_none &&
                    (scope_kind == (a_scope_kind)sck_file ||
                     scope_kind == (a_scope_kind)sck_namespace ||
