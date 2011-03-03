@@ -246,6 +246,7 @@ Dump a list of template arguments, enclosed by angle brackets.
         fprintf(f_debug, "[... placeholder] ");
       }  /* if */
       if (tap->is_pack_element) fprintf(f_debug, "+");
+      if (tap->pack_expansion_descr != NULL) fprintf(f_debug, "...");
       tap = tap->next;
       if (tap != NULL) fputs(",", f_debug);
     } while (tap != NULL);
