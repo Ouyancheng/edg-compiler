@@ -2555,6 +2555,12 @@ into the primary translation unit il_header.
                     il_header.main_routine == primary_main);
     il_header.main_routine = primary_main;
   }  /* if */
+  /* Merge some of the IL header flags. */
+  if (tup->il_header.UCN_identifiers_used) {
+    il_header.UCN_identifiers_used = TRUE;
+  }  /* if */
+  if (tup->il_header.vla_used) il_header.vla_used = TRUE;
+  if (tup->il_header.any_templates_seen) il_header.any_templates_seen = TRUE;
   /* Add copied types from the nontag_types_used_in_exception_or_rtti list
      to the corresponding primary IL list. */
   { a_type_ptr eh_type, last_primary_eh_type;
