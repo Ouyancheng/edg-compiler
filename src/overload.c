@@ -6565,7 +6565,7 @@ in_instantiation:
            operator "new" calls as dependent. */
         dependent_call = TRUE;
       }  /* if */
-    } else {
+    } else if (overloaded_function_symbol != NULL) {
       a_nondependent_call_info_ptr ndcall_info;
       ndcall_info = get_nondependent_call_info(paren_tok_seq_number,
                                                (a_nondependent_call_depth)0);
