@@ -1518,6 +1518,10 @@ name generated from the field pointer will be used.
   for (pfxp = name_prefix_components; pfxp != NULL; pfxp = pfxp->next) {
     name_len += (sizeof_t)strlen(pfxp->str) + 1;
   }  /* for */
+  if (field != NULL && field->is_captured_pack_element) {
+    /* Allow for "__" plus numbering for up to 999,999 pack elements. */
+    name_len += 8;
+  }  /* if */
   ensure_enough_room_on_line(name_len);
   /* Dump the component prefixes, followed by the field name. */
   for (pfxp = name_prefix_components; pfxp != NULL; pfxp = pfxp->next) {
@@ -1526,6 +1530,19 @@ name generated from the field pointer will be used.
   }  /* for */
   if (field_name != NULL) {
     write_str(field_name);
+    if (field != NULL && field->is_captured_pack_element) {
+      /* Suffix the name with a number to distinguish the captured pack
+         elements.  The numbering runs from N to 1, where N is the number
+         of elements in the pack. */
+      a_host_large_unsigned count = 1;
+      a_field_ptr           fp;
+      for (fp = field->next; fp != NULL && fp->is_captured_pack_element;
+           fp = fp->next) {
+        count += 1;
+      }  /* for */
+      write_str("__");
+      write_unsigned_num(count);
+    }  /* if */
   } else {
     dump_temp_name((char *)field);
   }  /* if */
