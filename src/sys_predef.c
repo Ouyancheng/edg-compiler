@@ -628,34 +628,37 @@ extensions.)
   a_type_ptr  qi_type = char_type;
   a_type_ptr  hi_type = get_type_with_mode(int_type, tmk_HI, no_pos);
   a_type_ptr  si_type = get_type_with_mode(int_type, tmk_SI, no_pos);
-  /* The type denoted by "di" in the GNU documentation appears to actually be
-     "unsigned long long".  However, that is not so for the "di" in "v2di". */
+  /* The DI mode in GCC is "long"/"unsigned long" in 64-bit configurations.
+     However, the type denoted by "di" in the GNU documentation appears to be
+     "unsigned long long" and the types denoted "v1di" and "v2di" appear to be
+     based on (signed) "long long". */
   a_type_ptr  di_type = unsigned_long_long_type;
   a_type_ptr  v8qi_type = make_vector_type(qi_type, 8);
   a_type_ptr  v4hi_type = make_vector_type(hi_type, 4);
   a_type_ptr  v2si_type = make_vector_type(si_type, 2);
-  a_type_ptr  v1di_type = make_vector_type(
-                             get_type_with_mode(int_type, tmk_DI, no_pos), 1);
+  a_type_ptr  v1di_type = make_vector_type(long_long_type, 1);
   a_type_ptr  v16qi_type = make_vector_type(qi_type, 16);
   a_type_ptr  v8hi_type = make_vector_type(hi_type, 8);
   a_type_ptr  v4si_type = make_vector_type(si_type, 4);
-  a_type_ptr  v2di_type = make_vector_type(
-                             get_type_with_mode(int_type, tmk_DI, no_pos), 2);
+  a_type_ptr  v2di_type = make_vector_type(long_long_type, 2);
   a_type_ptr  di_star_type = make_pointer_type(di_type);
   a_type_ptr  v2si_star_type = make_pointer_type(v2si_type);
   a_type_ptr  v2di_star_type = make_pointer_type(v2di_type);
   a_type_ptr  sf_type = float_type((a_float_kind)fk_float);
   a_type_ptr  df_type = float_type((a_float_kind)fk_double);
-  a_type_ptr  v2sf_type = make_vector_type(sf_type, 2);
-  a_type_ptr  v4sf_type = make_vector_type(sf_type, 4);
-  a_type_ptr  v2df_type = make_vector_type(df_type, 2);
-  a_type_ptr  v4df_type = make_vector_type(df_type, 4);
   a_type_ptr  sf_const_type = make_qualified_type(sf_type, TQ_CONST);
   a_type_ptr  df_const_type = make_qualified_type(df_type, TQ_CONST);
   a_type_ptr  sf_star_type = make_pointer_type(sf_type);
   a_type_ptr  sf_const_star_type = make_pointer_type(sf_const_type);
   a_type_ptr  df_star_type = make_pointer_type(df_type);
   a_type_ptr  df_const_star_type = make_pointer_type(df_const_type);
+  a_type_ptr  v2sf_type = make_vector_type(sf_type, 2);
+  a_type_ptr  v2sf_const_type = make_qualified_type(v2sf_type, TQ_CONST);
+  a_type_ptr  v2sf_star_type = make_pointer_type(v2sf_type);
+  a_type_ptr  v2sf_const_star_type = make_pointer_type(v2sf_const_type);
+  a_type_ptr  v4sf_type = make_vector_type(sf_type, 4);
+  a_type_ptr  v2df_type = make_vector_type(df_type, 2);
+  a_type_ptr  v4df_type = make_vector_type(df_type, 4);
 
   /* MMX functions. */
   enter_gnu_builtin_func2(_ia32_paddb, v8qi, v8qi, v8qi);
@@ -785,10 +788,19 @@ extensions.)
   enter_gnu_builtin_func2(_ia32_storeups, no_return, sf_star, v4sf);
   enter_gnu_builtin_func1(_ia32_loadss, v4sf, sf_const_star);
   enter_gnu_builtin_func2(_ia32_storess, no_return, sf_star, v4sf);
-  enter_gnu_builtin_func2(_ia32_loadhps, v4sf, v4sf, v2si_star);
-  enter_gnu_builtin_func2(_ia32_loadlps, v4sf, v4sf, v2si_star);
-  enter_gnu_builtin_func2(_ia32_storehps, no_return, v2si_star, v4sf);
-  enter_gnu_builtin_func2(_ia32_storelps, no_return, v2si_star, v4sf);
+  /* GCC 4 changed the pointer type in the following partial-vector load/store
+     functions. */
+  if (gnu_version < 40000) {
+    enter_gnu_builtin_func2(_ia32_loadhps, v4sf, v4sf, v2si_star);
+    enter_gnu_builtin_func2(_ia32_loadlps, v4sf, v4sf, v2si_star);
+    enter_gnu_builtin_func2(_ia32_storehps, no_return, v2si_star, v4sf);
+    enter_gnu_builtin_func2(_ia32_storelps, no_return, v2si_star, v4sf);
+  } else {
+    enter_gnu_builtin_func2(_ia32_loadhps, v4sf, v4sf, v2sf_const_star);
+    enter_gnu_builtin_func2(_ia32_loadlps, v4sf, v4sf, v2sf_const_star);
+    enter_gnu_builtin_func2(_ia32_storehps, no_return, v2sf_star, v4sf);
+    enter_gnu_builtin_func2(_ia32_storelps, no_return, v2sf_star, v4sf);
+  }  /* if */
 
   /* SSE2 functions. */
   enter_gnu_builtin_func2(_ia32_comisdeq, int, v2df, v2df);
