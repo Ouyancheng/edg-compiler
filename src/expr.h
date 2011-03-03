@@ -150,6 +150,10 @@ extern void record_start_of_lambda_header(a_lambda_ptr lambda);
 
 extern void record_end_of_lambda_header(a_lambda_ptr lambda);
 
+extern
+void transfer_arg_operand_for_template_arg(a_template_arg_ptr tap,
+                                           a_template_arg_ptr orig_tap);
+
 extern a_template_arg_ptr
 copy_template_arg_list_with_substitution_rebuilding_arg_operands(
 			a_template_arg_ptr	arg_list_to_copy,

@@ -8197,7 +8197,12 @@ associated parameter.
   a_template_param_ptr	tpp;
   a_boolean		have_params = (param_list_for_copy != NULL);
   a_boolean		added_placeholder = FALSE;
+  a_boolean		copy_arg_operands = FALSE;
 
+  if (options & CTWS_COPY_ARG_OPERAND_INFO) {
+    copy_arg_operands = TRUE;
+    options &= ~CTWS_COPY_ARG_OPERAND_INFO;
+  }  /* if */
   prev_new_tap = new_list = NULL;
   /* Note that this routine does not use the template argument list
      traversal routines. */
@@ -8262,6 +8267,9 @@ associated parameter.
                                      source_pos,
                                      options, orig_is_nonreal_template,
                                      copy_error);
+        if (copy_arg_operands && !*copy_error) {
+          transfer_arg_operand_for_template_arg(new_tap, tap);
+        }  /* if */
       }  /* if */
       /* Exit the loop if the substitution failed. */
       if (*copy_error) break;

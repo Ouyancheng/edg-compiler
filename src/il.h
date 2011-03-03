@@ -1455,6 +1455,10 @@ typedef int a_ctws_options_set;
 			   explicitly supplied template arguments so that
 			   the resulting type will still be usable to deduce
 			   the remaining pack. */
+#define CTWS_COPY_ARG_OPERAND_INFO	0x80
+			/* TRUE if arg_operand information on nontype
+			   template arguments should be copied over to the
+			   substituted arguments for use in a rescan. */
 
 
 extern an_expr_node_ptr copy_template_param_expr(

@@ -4994,44 +4994,30 @@ list.
 }  /* symbol_for_template_param_unknown_entity_rescan */
 
 
-static void add_template_arg_list_arg_operands(
-                                     a_template_arg_ptr template_arg_list,
-                                     a_template_arg_ptr orig_template_arg_list)
+void transfer_arg_operand_for_template_arg(a_template_arg_ptr tap,
+                                           a_template_arg_ptr orig_tap)
 /*
-template_arg_list is a template argument list created in a rescan
-by doing substitution on orig_template_arg_list.  For the nontype
-template arguments on template_arg_list, add arg_operand entries based
-on the rescan info recorded in the entries on orig_template_arg_list.
+tap is a template argument created in a rescan by doing substitution
+on orig_tap.  If it is a nontype template argument, add an arg_operand
+entry to it based on the rescan info recorded in orig_tap.  This can
+be called from outside of the expression processing routines.
 */
 {
-  a_template_arg_ptr tap, orig_tap;
-
-  /* This routine must be callable even when there is nothing on the
-     expression stack. */
-  begin_template_arg_list_traversal_simple(template_arg_list, &tap);
-  begin_template_arg_list_traversal_simple(orig_template_arg_list, &orig_tap);
-  for (; tap != NULL;
-       advance_to_next_template_arg_simple(&tap),
-       advance_to_next_template_arg_simple(&orig_tap)) {
-    check_assertion(orig_tap != NULL);
-    if (is_nontype_templ_arg(tap) &&
-        !tap->is_array_bound_of_unknown_type) {
-      an_operand_ptr                operand;
-      an_expr_rescan_info_entry_ptr eriep;
-      check_assertion(is_nontype_templ_arg(orig_tap) &&
-                      !orig_tap->is_array_bound_of_unknown_type);
-      eriep = orig_tap->variant.constant->rescan_info;
-      check_assertion_str(eriep != NULL,
-                          "missing rescan info on explicit template argument");
-      check_assertion(tap->arg_operand == NULL);
-      tap->arg_operand = alloc_arg_operand();
-      operand = &tap->arg_operand->operand;
-      make_constant_operand(tap->variant.constant, operand);
-      restore_operand_info_from_expr_rescan_info_entry(operand, eriep);
-    }  /* if */
-  }  /* for */
-  check_assertion(orig_tap == NULL);
-}  /* add_template_arg_list_arg_operands */
+  if (is_nontype_templ_arg(tap) && !tap->is_array_bound_of_unknown_type) {
+    an_operand_ptr                operand;
+    an_expr_rescan_info_entry_ptr eriep;
+    check_assertion(is_nontype_templ_arg(orig_tap) &&
+                    !orig_tap->is_array_bound_of_unknown_type);
+    eriep = orig_tap->variant.constant->rescan_info;
+    check_assertion_str(eriep != NULL,
+                        "missing rescan info on explicit template argument");
+    check_assertion(tap->arg_operand == NULL);
+    tap->arg_operand = alloc_arg_operand();
+    operand = &tap->arg_operand->operand;
+    make_constant_operand(tap->variant.constant, operand);
+    restore_operand_info_from_expr_rescan_info_entry(operand, eriep);
+  }  /* if */
+}  /* transfer_arg_operand_for_template_arg */
 
 
 a_template_arg_ptr
@@ -5054,6 +5040,7 @@ routines.
 {
   a_template_arg_ptr new_tap;
 
+  options |= CTWS_COPY_ARG_OPERAND_INFO;
   new_tap = copy_template_arg_list_with_substitution(arg_list_to_copy,
                                                      param_list_for_copy,
                                                      templ_arg_list,
@@ -5062,11 +5049,6 @@ routines.
                                                      options,
                                                      orig_is_nonreal_template,
                                                      copy_error);
-  if (!*copy_error) {
-    /* Add the arg_operand representation to the nontype arguments by
-       using the rescan info. */
-    add_template_arg_list_arg_operands(new_tap, arg_list_to_copy);
-  }  /* if */
   return new_tap;
 }  /* copy_template_arg_list_with_substitution_rebuilding_arg_operands */
 
