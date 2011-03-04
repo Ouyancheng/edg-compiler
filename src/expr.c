@@ -10095,7 +10095,6 @@ saved_curr_object_lifetime are the values returned from the push.
 */
 {
   if (tdip != NULL) {
-    pop_template_instantiation_scope();
     free_template_decl_info(tdip);
     restore_expr_stack(saved_expr_stack);
     curr_object_lifetime = saved_curr_object_lifetime;
