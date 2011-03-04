@@ -1499,7 +1499,7 @@ typedef struct a_ctws_state {
 			/* The end of the list of parameters created by
 			   variadic pack expansions during this
 			   substitution. */
-  uint32_t	routine_type_levels;
+  int32_t	routine_type_levels;
 			/* The level of nesting of routine types. */
 } a_ctws_state;
 

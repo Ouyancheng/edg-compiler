@@ -1768,11 +1768,6 @@ a_template_arg_ptr get_curr_variadic_arg_for_param(a_template_param_ptr	tpp);
 
 extern a_boolean any_packs_referenced(void);
 
-/*
-Macro that is TRUE if there are any pack expansions being processed.
-*/
-#define in_pack_expansion_context() (pack_expansion_stack != NULL)
-
 extern a_boolean begin_rescan_pack_expansion_context(
 		a_pack_expansion_descr_ptr		pedp,
 		a_template_param_ptr			templ_param_list,
