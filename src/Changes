@@ -15,6 +15,7 @@ is still the case when gnu_version < 40000).
 
 
 3/1/11   [EDGcpfe/11392]
+Microsoft compatibility: Casts on wide string literals in initializers
 
 In Microsoft mode, the front end previously treated ordinary string literals
 that are explicitly cast to a pointer to the underlying character type
