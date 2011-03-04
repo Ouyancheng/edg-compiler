@@ -393,6 +393,10 @@ static a_partial_order_candidate_ptr
 		avail_partial_order_candidates;
 			/* Previously allocated entries available for reuse. */
 
+static a_variadic_param_info_ptr
+		avail_variadic_param_infos;
+			/* Previously allocated entries available for reuse. */
+
 static a_boolean
 		deferred_instantiations_in_process;
 			/* Flag used by process_deferred_instantiations to
@@ -422,6 +426,7 @@ static unsigned long
                 num_exported_template_files_allocated,
 #endif /* TEMPLATE_LOOKUP_NEEDED */
 		num_tmpl_decl_states_allocated,
+		num_variadic_param_infos_allocated,
 		num_partial_order_candidates_allocated;
 #endif /* DEBUG */
 
@@ -445,7 +450,8 @@ static a_template_ptr copy_template_with_substitution(
 			a_template_param_ptr		templ_param_list,
 			a_source_position		*source_pos,
 			a_ctws_options_set		options,
-			a_boolean			*copy_error);
+			a_boolean			*copy_error,
+			a_ctws_state_ptr		ctws_state);
 
 
 static void init_templ_decl_state(a_tmpl_decl_state_ptr	tdsp)
@@ -509,6 +515,63 @@ Free the token caches that were used while processing a template declaration.
   /* Discard the token cache used to store the template parameter list. */
   discard_token_cache(&decl_state->param_list_cache);
 }  /* wrapup_templ_decl_state */
+
+
+void init_ctws_state(a_ctws_state_ptr	csp)
+/*
+Initialize a template argument substitution state block.
+*/
+{
+  csp->variadic_param_info = NULL;
+  csp->variadic_param_info_tail = NULL;
+  csp->routine_type_levels = -1;
+}  /* init_ctws_state */
+
+
+static a_variadic_param_info_ptr alloc_variadic_param_info(void)
+/*
+Allocate a variadic parameter information entry, initialize it, and return
+a pointer to it.
+*/
+{
+  a_variadic_param_info_ptr vpip;
+
+  if (avail_variadic_param_infos != NULL) {
+    /* Reuse an existing entry. */
+    vpip = avail_variadic_param_infos;
+    avail_variadic_param_infos = avail_variadic_param_infos->next;
+  } else {
+    /* Allocate a new entry. */
+    vpip = alloc_fe_of_type(a_variadic_param_info);
+#if DEBUG
+   num_variadic_param_infos_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  vpip->next = NULL;
+  vpip->param_type = NULL;
+  vpip->orig_param_type = NULL;
+  vpip->level = 0;
+  return vpip;
+}  /* alloc_variadic_param_info */
+
+
+static void free_list_of_variadic_param_info(a_variadic_param_info_ptr vpip)
+/*
+Return a list of variadic parameter information entries to the available list.
+vpip may be NULL, in which case nothing is done.
+*/
+{
+  a_variadic_param_info_ptr	vpip_tail;
+  if (vpip != NULL) {
+    /* Find the last entry on the list. */
+    vpip_tail = vpip;
+    while (vpip_tail->next != NULL) vpip_tail = vpip_tail->next;
+    /* Add the current available list to the end of the list passed by the
+       caller. */
+    vpip_tail->next = avail_variadic_param_infos;
+    avail_variadic_param_infos = vpip;
+  }  /* if */
+}  /* free_list_of_variadic_param_info */
 
 
 /* Forward declaration. */
@@ -1504,7 +1567,8 @@ static void substitute_template_argument(
 			a_source_position	*source_pos,
 			a_ctws_options_set	options,
 			a_boolean		orig_is_nonreal_template,
-			a_boolean		*copy_error);
+			a_boolean		*copy_error,
+			a_ctws_state_ptr	ctws_state);
 
 
 static a_boolean all_templ_params_have_values(
@@ -1550,13 +1614,15 @@ symbol supplement.
            values in case the default depends on one of the previous
            template parameters. */
         a_boolean	copy_error = FALSE;
+        a_ctws_state	ctws_state;
+        init_ctws_state(&ctws_state);
         substitute_template_argument(tap, tpp, templ_arg_list,
                                      templ_param_list,
                                      templ_arg_list, templ_param_list,
                                      &template_sym->decl_position,
                                      CTWS_NO_OPTIONS,
                                      /*orig_is_nonreal_template=*/FALSE,
-                                     &copy_error);
+                                     &copy_error, &ctws_state);
         if (copy_error) {
           result = FALSE;
           break;
@@ -1661,12 +1727,14 @@ during wrapup processing by compare_function_templates.
         if (tpp->variant.constant.type_involves_template_param) {
           /* Create a substituted version of the nontype value. */
           a_boolean	copy_error = FALSE;
+          a_ctws_state	ctws_state;
+          init_ctws_state(&ctws_state);
           constant_type = copy_type_with_substitution(
                                   tpp->variant.constant.ptr->type,
                                   templ_arg_list,
                                   templ_param_list,
                                   &template_sym->decl_position,
-                                  CTWS_NO_OPTIONS, &copy_error);
+                                  CTWS_NO_OPTIONS, &copy_error, &ctws_state);
           if (copy_error) match = FALSE;
         } else {
           constant_type = tpp->variant.constant.ptr->type;
@@ -1715,11 +1783,14 @@ during wrapup processing by compare_function_templates.
              Substitute the template template parameter declaration to create a
              new parameter template. */
           a_boolean	copy_error = FALSE;
+          a_ctws_state	ctws_state;
+          init_ctws_state(&ctws_state);
           param_template = copy_template_with_substitution(
                                                 param_template, templ_arg_list,
                                                 templ_param_list,
                                                 &template_sym->decl_position,
-                                                CTWS_NO_OPTIONS, &copy_error);
+                                                CTWS_NO_OPTIONS, &copy_error,
+                                                &ctws_state);
           tap->variant.templ.substituted_param_template = param_template;
           if (copy_error) match = FALSE;
         }  /* if */
@@ -2235,8 +2306,10 @@ in ps_arg_list.
     if (wrapup_template_argument_deduction(
                         *ps_arg_list, template_sym, templ_param_list,
                         /*is_partial_order_check=*/FALSE)) {
-      a_type_ptr			test_type;
-      a_boolean				copy_error = FALSE;
+      a_type_ptr	test_type;
+      a_boolean		copy_error = FALSE;
+      a_ctws_state	ctws_state;
+      init_ctws_state(&ctws_state);
       /* Substitute the template parameters of the template with the deduced
          arguments.  We should end up with the original type.  This main
          purpose of this test is to make sure that template parameters in
@@ -2245,7 +2318,7 @@ in ps_arg_list.
                                               *ps_arg_list, templ_param_list,
 					      &template_sym->decl_position,
 					      CTWS_PROTOTYPE_ALLOWED,
-					      &copy_error);
+					      &copy_error, &ctws_state);
       if (!copy_error && identical_types(instance_type, test_type)) {
         result = TRUE;
       }  /* if */
@@ -6342,13 +6415,15 @@ another template parameter.
           a_type_ptr		constant_type;
           a_constant_ptr	constant;
           a_boolean		copy_error = FALSE;
+          a_ctws_state		ctws_state;
+          init_ctws_state(&ctws_state);
           check_assertion(specified_tap->arg_operand != NULL);
           constant = fs_constant((a_constant_repr_kind)ck_error);
           constant_type = tpp->param_symbol->variant.constant->type;
           constant_type = copy_type_with_substitution(
                                     constant_type, new_list, templ_param_list,
 				    source_pos,
-                                    CTWS_NO_OPTIONS, &copy_error);
+                                    CTWS_NO_OPTIONS, &copy_error, &ctws_state);
           if (copy_error) {
             /* The substitution of the type of the nontype parameter
                resulted in an invalid type. */
@@ -7908,7 +7983,8 @@ static a_template_ptr copy_template_with_substitution(
 			a_template_param_ptr		templ_param_list,
 			a_source_position		*source_pos,
 			a_ctws_options_set		options,
-			a_boolean			*copy_error)
+			a_boolean			*copy_error,
+			a_ctws_state_ptr		ctws_state)
 /*
 If "templ" is a template associated with a template template parameter
 return the corresponding actual template template argument (if any).
@@ -7929,7 +8005,7 @@ Otherwise, return the original template.
                                              source_pos,
                                              /*is_type=*/FALSE,
                                              options,
-                                             copy_error);
+                                             copy_error, ctws_state);
     if (sym != NULL) sym = fundamental_symbol_of(sym);
     if (sym == NULL || !is_class_template_symbol(sym)) {
       /* The type was specified as something like A<T>::B, but the
@@ -8038,7 +8114,8 @@ static void substitute_template_argument(
 			a_source_position	*source_pos,
 			a_ctws_options_set	options,
 			a_boolean		orig_is_nonreal_template,
-			a_boolean		*copy_error)
+			a_boolean		*copy_error,
+			a_ctws_state_ptr	ctws_state)
 /*
 Perform substitution on the template argument specified by templ_arg.
 templ_param is the parameter associated with templ_arg and may be NULL if
@@ -8068,7 +8145,8 @@ parameters.
     tap->variant.type =
                copy_type_with_substitution(tap->variant.type,
                                            templ_arg_list, templ_param_list,
-					   source_pos, options, copy_error);
+					   source_pos, options, copy_error,
+                                           ctws_state);
   } else if (is_nontype_templ_arg(tap)) {
     /* Perform the substitution on the type of the constant. */
     a_type_ptr	const_type;
@@ -8097,7 +8175,8 @@ parameters.
           const_type =
              copy_type_with_substitution(const_type,
                                          arg_list_to_copy, param_list_for_copy,
-					 source_pos, options, copy_error);
+					 source_pos, options, copy_error,
+                                         ctws_state);
         }  /* if */
       } else {
         const_type = tap->variant.constant->type;
@@ -8106,7 +8185,7 @@ parameters.
                                                    templ_arg_list,
                                                    templ_param_list,
                                                    source_pos, options,
-                                                   copy_error);
+                                                   copy_error, ctws_state);
       /* Make sure the new type is a valid type for a nontype template
          parameter. */
       if (const_type != new_const_type &&
@@ -8129,7 +8208,8 @@ parameters.
                                                    templ_param_list,
 						   new_const_type,
                                                    source_pos,
-                                                   options, copy_error);
+                                                   options, copy_error,
+                                                   ctws_state);
     if (new_const_type != NULL) {
       /* If the constant does not have the required type, see if it can
          be converted. */
@@ -8155,7 +8235,8 @@ parameters.
                                  tap->variant.templ.ptr,
                                  templ_arg_list,
                                  templ_param_list,
-                                 source_pos, options, copy_error);
+                                 source_pos, options, copy_error,
+                                 ctws_state);
   }  /* if */
 }  /* substitute_template_argument */
 
@@ -8168,7 +8249,8 @@ a_template_arg_ptr copy_template_arg_list_with_substitution(
 			a_source_position	*source_pos,
 			a_ctws_options_set	options,
 			a_boolean		orig_is_nonreal_template,
-			a_boolean		*copy_error)
+			a_boolean		*copy_error,
+			a_ctws_state_ptr	ctws_state)
 /*
 Copy the template argument list arg_list_to_copy, and return a pointer
 to the copy.  In the process of copying, replace any template parameters
@@ -8228,7 +8310,7 @@ associated parameter.
       any_more = begin_rescan_pack_expansion_context(tap->pack_expansion_descr,
                                                      templ_param_list,
                                                      templ_arg_list,
-                                                     &pesep);
+                                                     &pesep, ctws_state);
     }  /* if */
     while (any_more) {
       /* If there are too few parameters, the copy should fail. */
@@ -8266,7 +8348,7 @@ associated parameter.
                                      templ_arg_list, templ_param_list,
                                      source_pos,
                                      options, orig_is_nonreal_template,
-                                     copy_error);
+                                     copy_error, ctws_state);
         if (copy_arg_operands && !*copy_error) {
           transfer_arg_operand_for_template_arg(new_tap, tap);
         }  /* if */
@@ -8302,7 +8384,8 @@ static a_symbol_ptr copy_template_class_reference_with_substitution(
 			a_template_param_ptr		templ_param_list,
 			a_source_position		*source_pos,
 			a_ctws_options_set		options,
-			a_boolean			*copy_error)
+			a_boolean			*copy_error,
+			a_ctws_state_ptr		ctws_state)
 /*
 Copy, with substitution, the template argument list from orig_type and
 find the corresponding instance of the template indicated by
@@ -8329,7 +8412,8 @@ are looked up, if needed.  The symbol of the new instance is returned.
     new_templ = template_sym->variant.template_info->il_template_entry;
     new_templ = copy_template_with_substitution(new_templ, templ_arg_list,
                                                 templ_param_list, source_pos,
-                                                options, copy_error);
+                                                options, copy_error,
+                                                ctws_state);
     template_sym = (a_symbol_ptr)new_templ->source_corresp.assoc_info;
   }  /* if */
   tssp = template_sym->variant.template_info;
@@ -8356,7 +8440,7 @@ are looked up, if needed.  The symbol of the new instance is returned.
                                            templ_param_list, 
                                            source_pos, options,
                                            orig_is_nonreal_template,
-                                           copy_error);
+                                           copy_error, ctws_state);
   if (*copy_error) {
     /* If an error occurred earlier, and in particular while creating one
        of the template arguments, don't try to find a matching template
@@ -8388,7 +8472,8 @@ static a_type_ptr copy_array_type_with_substitution(
 			a_template_param_ptr		templ_param_list,
 			a_source_position		*source_pos,
 			a_ctws_options_set		options,
-			a_boolean			*copy_error)
+			a_boolean			*copy_error,
+			a_ctws_state_ptr		ctws_state)
 /*
 type points to an array type.  Copy, with substitution, the element type.
 If the array type has a variable array dimension, do the substitution
@@ -8404,7 +8489,7 @@ on the ck_template_param constant pointed to by the expression.
   tp = copy_type_with_substitution(type->variant.array.element_type,
                                    templ_arg_list, templ_param_list,
                                    source_pos,
-                                   options, copy_error);
+                                   options, copy_error, ctws_state);
   /* Determine whether the number of elements is fixed, or whether
      it requires substitution. */
   if (type->variant.array.is_template_dependent_size_array) {
@@ -8416,7 +8501,7 @@ on the ck_template_param constant pointed to by the expression.
       new_cp = copy_template_param_con_with_substitution(
                         orig_cp, templ_arg_list, templ_param_list,
                         (a_type_ptr)NULL,
-                        source_pos, options, copy_error);
+                        source_pos, options, copy_error, ctws_state);
     }  /* if */
   }  /* if */
   if (tp == type->variant.array.element_type &&
@@ -8518,7 +8603,8 @@ static a_symbol_ptr look_up_member_in_substituted_parent(
 			a_source_position		*source_pos,
 			a_boolean			is_type,
 			a_ctws_options_set		options,
-			a_boolean			*copy_error)
+			a_boolean			*copy_error,
+			a_ctws_state_ptr		ctws_state)
 /*
 parent_type is a class or enum type that has been substituted.  orig_sym is
 the symbol from the original parent type.  is_type is TRUE if the entity
@@ -8536,7 +8622,8 @@ being looked up is known to be a type.
     /* Substitute the any template parameters in the conversion type. */
     conv_type = copy_type_with_substitution(conv_type, templ_arg_list,
                                             templ_param_list,
-                                            source_pos, options, copy_error);
+                                            source_pos, options, copy_error,
+                                            ctws_state);
     if (!is_immediate_class_type(parent_type)) {
       /* If the parent is not a class type (e.g., an enum qualified name),
          this is an error. */
@@ -8599,7 +8686,8 @@ a_symbol_ptr copy_parent_type_with_substitution(
 			a_source_position		*source_pos,
 			a_boolean			is_type,
 			a_ctws_options_set		options,
-			a_boolean			*copy_error)
+			a_boolean			*copy_error,
+			a_ctws_state_ptr		ctws_state)
 /*
 sym points to a member symbol.  parent_type points to the parent type
 of sym.  The parent type is copied using copy_type_with_substitution,
@@ -8634,7 +8722,7 @@ is_type is TRUE if the child entity is known to be a type.
   parent_type = copy_type_with_substitution(parent_type, templ_arg_list,
                                             templ_param_list, source_pos,
                                             options | CTWS_IS_PARENT,
-                                            copy_error);
+                                            copy_error, ctws_state);
   if (*copy_error) goto done;
   if (parent_type == orig_parent_type) {
     /* No change to the parent class, so this is simply a case of A::B --
@@ -8656,7 +8744,7 @@ is_type is TRUE if the child entity is known to be a type.
     new_sym = look_up_member_in_substituted_parent(
                              sym, parent_type, templ_arg_list,
                              templ_param_list, source_pos, is_type,
-                             options, copy_error);
+                             options, copy_error, ctws_state);
     if (new_sym != NULL) fund_sym = fundamental_symbol_of(new_sym);
     if (fund_sym != NULL) {
       a_boolean	do_template_class_subst = FALSE;
@@ -8699,7 +8787,7 @@ is_type is TRUE if the child entity is known to be a type.
         fund_sym = copy_template_class_reference_with_substitution(
                                fund_sym, sym->variant.class_struct_union.type,
                                templ_arg_list, templ_param_list, source_pos,
-                               options, copy_error);
+                               options, copy_error, ctws_state);
         new_sym = fund_sym;
       }  /* if */
     }  /* if */
@@ -8709,13 +8797,45 @@ done:
 }  /* copy_parent_type_with_substitution */
 
 
+static a_type_ptr copy_return_type_with_substitution(
+			a_type_ptr			type,
+			a_template_arg_ptr		templ_arg_list,
+			a_template_param_ptr		templ_param_list,
+			a_source_position		*source_pos,
+			a_ctws_options_set		options,
+			a_boolean			*copy_error,
+			a_ctws_state_ptr		ctws_state)
+/*
+Do substitution on the function return type specified by "type" along with
+the appropriate error checks.  Return the (possibly) substituted type.
+*/
+{
+  a_type_ptr	new_type;
+
+  new_type = copy_type_with_substitution(type,
+                                         templ_arg_list, templ_param_list,
+                                         source_pos, options, copy_error,
+                                         ctws_state);
+  if (new_type != type) {
+    /* Check for a function returning a function, a function returning an
+       array type, or a function returning an abstract class type. */
+    if (is_array_type(new_type) || is_function_type(new_type) ||
+        (!microsoft_mode && !gpp_mode && is_abstract_class_type(new_type))) {
+      *copy_error = TRUE;
+    }  /* if */
+  }  /* if */
+  return new_type;
+}  /* copy_return_type_with_substitution */
+
+
 a_type_ptr copy_type_with_substitution(
 			a_type_ptr			type,
 			a_template_arg_ptr		templ_arg_list,
 			a_template_param_ptr		templ_param_list,
 			a_source_position		*source_pos,
 			a_ctws_options_set		options,
-			a_boolean			*copy_error)
+			a_boolean			*copy_error,
+			a_ctws_state_ptr		ctws_state)
 /*
 If "type", a pointer to a type entry, is a template-parameter type, return
 the corresponding real type, based on the template argument list.  If "type"
@@ -8747,6 +8867,8 @@ a pointer over a reference type or creating an array of references.
   a_class_symbol_supplement_ptr	cssp;
   a_boolean			is_partial_order_check;
   an_expr_node_ptr		expr;
+  a_variadic_param_info_ptr	saved_vpip;
+  a_variadic_param_info_ptr	saved_vpip_tail;
 
   db_enter(5, "copy_type_with_substitution");
 #if DEBUG
@@ -8767,7 +8889,7 @@ a pointer over a reference type or creating an array of references.
                                              source_pos,
                                              /*is_type=*/TRUE,
                                              options,
-                                             copy_error);
+                                             copy_error, ctws_state);
     if (sym != NULL) sym = fundamental_symbol_of(sym);
     if (sym == NULL || !is_type_symbol(sym)) {
       /* The type was specified as something like A<T>::B, but the
@@ -8818,7 +8940,8 @@ a pointer over a reference type or creating an array of references.
            required) of the type pointed to. */
         tp = type->variant.pointer.type;
         tp = copy_type_with_substitution(tp, templ_arg_list, templ_param_list,
-                                         source_pos, options, copy_error);
+                                         source_pos, options, copy_error,
+                                         ctws_state);
         if (!check_cli_type_pointed_to(tp, type->variant.pointer.is_reference,
                                        type->variant.pointer.is_handle,
                                        (a_source_position*)NULL)) {
@@ -8882,7 +9005,7 @@ a pointer over a reference type or creating an array of references.
                                             templ_arg_list,
                                             templ_param_list,
                                             (options | CTWS_NON_CONSTANT_EXPR),
-                                            copy_error);
+                                            copy_error, ctws_state);
         } else {
           /* Make an identically qualified type of a copy (or reuse) of the
              type that underlies the typeref. */
@@ -8902,7 +9025,7 @@ a pointer over a reference type or creating an array of references.
           tp = copy_type_with_substitution(type_without_typerefs,
                                            templ_arg_list,
                                            templ_param_list, source_pos,
-                                           options, copy_error);
+                                           options, copy_error, ctws_state);
           new_type = tp;
           if (qualifiers != TQ_NONE) {
             if (is_function_type(tp)) {
@@ -8921,11 +9044,12 @@ a pointer over a reference type or creating an array of references.
            of each. */
         tp = copy_type_with_substitution(type->variant.ptr_to_member.type,
                                          templ_arg_list, templ_param_list,
-                                         source_pos, options, copy_error);
+                                         source_pos, options, copy_error,
+                                         ctws_state);
         tp2 = copy_type_with_substitution(
                           type->variant.ptr_to_member.class_of_which_a_member,
                           templ_arg_list, templ_param_list, source_pos,
-                          options, copy_error);
+                          options, copy_error, ctws_state);
         if (tp == type->variant.ptr_to_member.type &&
             tp2 == type->variant.ptr_to_member.class_of_which_a_member) {
           /* There was no change -- use the original type. */
@@ -8951,6 +9075,11 @@ a pointer over a reference type or creating an array of references.
         }  /* if */
         break;
       case tk_routine:
+        /* Increment the number of routine types whose substitution is in
+           progress. */
+        ctws_state->routine_type_levels++;
+        saved_vpip = ctws_state->variadic_param_info;
+        saved_vpip_tail = ctws_state->variadic_param_info_tail;
         /* We can reuse "type" as long as we can reuse the return type and all
            its param types.  Otherwise we will need to allocate a new type
            entry. Go through "type" until we find that a new type was returned
@@ -8960,25 +9089,6 @@ a pointer over a reference type or creating an array of references.
         options = options & ~CTWS_IS_PARTIAL_ORDER_CHECK;
         reusable_param_types = 0;
         first_new_type_for_param_types_list = NULL;
-        new_return_type = type->variant.routine.return_type;
-        /* Don't substitute the return type when doing partial ordering. */
-        if (!is_partial_order_check) {
-          new_return_type = copy_type_with_substitution(
-                                        new_return_type,
-                                        templ_arg_list, templ_param_list,
-                                        source_pos, options, copy_error);
-          if (new_return_type != type->variant.routine.return_type) {
-            /* Check for a function returning a function, a function
-               returning an array type, or a function returning an abstract
-               class type. */
-            if (is_array_type(new_return_type) ||
-                is_function_type(new_return_type) ||
-                (!microsoft_mode && !gpp_mode &&
-                 is_abstract_class_type(new_return_type))) {
-              *copy_error = TRUE;
-            }  /* if */
-          }  /* if */
-        }  /* if */
         this_class = type->variant.routine.extra_info->this_class;
         if (this_class == NULL) {
           new_this_class = NULL;
@@ -8986,7 +9096,7 @@ a pointer over a reference type or creating an array of references.
           new_this_class = copy_type_with_substitution(
                                         this_class, templ_arg_list,
                                         templ_param_list, source_pos, options,
-                                        copy_error);
+                                        copy_error, ctws_state);
           /* Drop any typedefs and qualifiers on the class type. */
           new_this_class = skip_typerefs(new_this_class);
           if (new_this_class->kind == (a_type_kind)tk_template_param) {
@@ -8999,8 +9109,7 @@ a pointer over a reference type or creating an array of references.
             *copy_error = TRUE;
           }  /* if */
         }  /* if */
-        if (new_return_type != type->variant.routine.return_type ||
-            new_this_class != this_class) {
+        if (new_this_class != this_class) {
           /* A substitution was made on the return type or the this-param
              type, so a new routine type will be required. */
           goto make_new_type;
@@ -9018,7 +9127,7 @@ a pointer over a reference type or creating an array of references.
             ptype = param_type_restoring_orig_templ_array(ptp);
             tp = copy_type_with_substitution(ptype, templ_arg_list,
                                              templ_param_list, source_pos,
-                                             options, copy_error);
+                                             options, copy_error, ctws_state);
           }  /* if */
           if (tp != ptype || tp == NULL) {
             /* A substitution was made, so a new routine type will be required.
@@ -9031,17 +9140,38 @@ a pointer over a reference type or creating an array of references.
              the existing type is okay. */
           ++reusable_param_types;
         }  /* for */
+        new_return_type = type->variant.routine.return_type;
+        if (is_instantiation_dependent_type(new_return_type)) {
+          /* The return type is dependent.  Assume we need to make a new
+             type.  The return type could contain a decltype that refers
+             to a parameter name (in the late-specified return type case)
+             so we can't substitute a dependent return type until we have
+             created the new parameter list. */
+          goto make_new_type;
+        }  /* if */
+#if EXPENSIVE_CHECKING
+        /* The return type is not substituted when doing partial ordering. */
+        if (!is_partial_order_check) {
+          /* Because we check for a dependent return type above, we should
+             not end up with a different substituted type here. */
+          a_type_ptr	orig_type = skip_typerefs(new_return_type);
+          new_return_type = copy_return_type_with_substitution(
+                                        new_return_type,
+                                        templ_arg_list, templ_param_list,
+                                        source_pos, options, copy_error,
+                                        ctws_state);
+          check_assertion(new_return_type == orig_type);
+        }  /* if */
+#endif /* EXPENSIVE_CHECKING */
         /* Falling through to here means that no substitutions are required
            for this type.  Therefore it can simply be reused. */
         new_type = type;
-        break;
+        goto done_with_routine;
 make_new_type:
         /* Make a routine type based on "type".  Checking for reusable types
            has already been done for the return type and possibly for some of
            the parameter types. */
         new_type = alloc_type((a_type_kind)tk_routine);
-        /* Fill in the return type.  It has already been determined. */
-        new_type->variant.routine.return_type = new_return_type;
         /* Clone the routine type supplement, except for the pointers. */
         *(new_type->variant.routine.extra_info) =
                                          *(type->variant.routine.extra_info);
@@ -9057,21 +9187,22 @@ make_new_type:
              ptp = ptp->next) {
           a_pack_expansion_stack_entry_ptr	pesep;
           a_boolean				any_more;
-          a_boolean				first_element = TRUE;
+          uint32_t				elements = 0;
+          a_param_type_ptr			first_element = NULL;
           any_more = begin_rescan_pack_expansion_context(
                                                      ptp->pack_expansion_descr,
                                                      templ_param_list,
                                                      templ_arg_list,
-                                                     &pesep);
+                                                     &pesep, ctws_state);
           /* Loop through the pack elements.  When preserving deduced
              packs (when they have no arguments) go through the loop once
              even though any_more is FALSE. */
           while (any_more ||
-                 (first_element &&
+                 (elements == 0 &&
                   (options & CTWS_PRESERVE_DEDUCED_PACKS) != 0)) {
             a_type_ptr ptype = param_type_restoring_orig_templ_array(ptp);
             a_type_ptr declared_type;
-            first_element = FALSE;
+            elements++;
             if (reusable_param_types > 0) {
               /* We have already called copy_type_with_substitution for this
                  parameter and we know we can reuse the existing type. */
@@ -9091,7 +9222,8 @@ make_new_type:
               /* copy_type_with_substitution has not been called yet. */
               tp = copy_type_with_substitution(ptype, templ_arg_list,
                                                templ_param_list, source_pos,
-                                               options, copy_error);
+                                               options, copy_error,
+                                               ctws_state);
             }  /* if */
             declared_type = tp;
             if (tp != ptype) {
@@ -9119,7 +9251,7 @@ make_new_type:
             new_ptp->declared_type = declared_type;
             new_ptp->param_num = ptp->param_num;
             if (ptp->is_parameter_pack) {
-              /* any_more will be TRUE if we new_ptp is a substituted pack
+              /* any_more will be TRUE if new_ptp is a substituted pack
                  element.  It will be FALSE if new_ptp is a copy of the
                  parameter pack from the template declaration. */
               if (any_more) {
@@ -9145,18 +9277,63 @@ make_new_type:
             } else {
               prev_ptp->next = new_ptp;
             }  /* if */
+            if (first_element == NULL) first_element = new_ptp;
             prev_ptp = new_ptp;
             (void)end_potential_pack_expansion_context(
                                                pesep, /*is_declarator=*/FALSE);
             any_more = advance_to_next_pack_element(pesep);
           }  /* while */
+          if (ptp->is_parameter_pack) {
+            /* Add this entry to the variadic param info list.  The
+               new entries are added to the end of the list pointed
+               to by ctws_state. */
+            a_variadic_param_info_ptr	vpip;
+            vpip = alloc_variadic_param_info();
+            vpip->param_type = first_element;
+            vpip->orig_param_type = ptp;
+            vpip->level = ctws_state->routine_type_levels;
+            if (ctws_state->variadic_param_info == NULL) {
+              vpip->next = ctws_state->variadic_param_info;
+              ctws_state->variadic_param_info = vpip;
+            } else {
+              vpip->next = ctws_state->variadic_param_info_tail->next;
+              ctws_state->variadic_param_info_tail->next = vpip;
+             }  /* if */
+            ctws_state->variadic_param_info_tail = vpip;
+          }  /* if */
         }  /* for */
+        new_return_type = type->variant.routine.return_type;
+        /* Don't substitute the return type when doing partial ordering. */
+        if (!is_partial_order_check) {
+          new_return_type = copy_return_type_with_substitution(
+                                        new_return_type,
+                                        templ_arg_list, templ_param_list,
+                                        source_pos, options, copy_error,
+                                        ctws_state);
+        }  /* if */
+        new_type->variant.routine.return_type = new_return_type;
         set_routine_calling_method_flag(new_type, &null_source_position);
+        /* Decrement the number of routine types whose substitution is in
+           progress. */
+        ctws_state->routine_type_levels--;
+        ctws_state->variadic_param_info = saved_vpip;
+        ctws_state->variadic_param_info_tail = saved_vpip_tail;
+        if (saved_vpip_tail != NULL) {
+          /* Free any entries allocated by this routine. */
+          free_list_of_variadic_param_info(saved_vpip_tail->next);
+          saved_vpip_tail->next = NULL;
+        }  /* if */
+        break;
+done_with_routine:
+        /* Decrement the number of routine types whose substitution is in
+           progress. */
+        ctws_state->routine_type_levels--;
         break;
       case tk_array:
         new_type = copy_array_type_with_substitution(
                                       type, templ_arg_list, templ_param_list,
-                                      source_pos, options, copy_error);
+                                      source_pos, options, copy_error,
+                                      ctws_state);
         break;
       case tk_class:
       case tk_struct:
@@ -9174,7 +9351,7 @@ make_new_type:
                                                  templ_arg_list,
                                                  templ_param_list,
                                                  source_pos, options,
-                                                 copy_error);
+                                                 copy_error, ctws_state);
           /* If the template parameter is not substituted, retain the
              original proxy class type. */
           if (new_type == templ_param_for_type) new_type = type;
@@ -9188,7 +9365,8 @@ make_new_type:
             /* Substitute the template arguments. */
             new_sym = copy_template_class_reference_with_substitution(
                             cssp->class_template, type, templ_arg_list,
-                            templ_param_list, source_pos, options, copy_error);
+                            templ_param_list, source_pos, options, copy_error,
+                            ctws_state);
             if (new_sym == NULL || !is_type_symbol(new_sym)) {
               /* The type was specified as something like A<T>::B, but the
                  substituted "A<T>" does not contain a B, or the B found is not
@@ -9239,7 +9417,8 @@ static a_boolean equiv_substituted_templ_param_lists(
 				a_template_arg_ptr	templ_arg_list,
 				a_template_param_ptr	templ_param_list,
 				a_source_position	*source_pos,
-				a_boolean		*copy_error)
+				a_boolean		*copy_error,
+				a_ctws_state_ptr	ctws_state)
 /*
 "tpp" and "templ_tpp" are corresponding lists of template parameters.  For
 each parameter in "templ_tpp" substitute the template parameter values
@@ -9265,7 +9444,8 @@ from "tpp".  Return TRUE if the lists match.
       templ_type = templ_tpp->variant.constant.ptr->type;
       templ_type = copy_type_with_substitution(templ_type, templ_arg_list,
                                                templ_param_list, source_pos,
-                                               CTWS_NO_OPTIONS, copy_error);
+                                               CTWS_NO_OPTIONS, copy_error,
+                                               ctws_state);
       if (!f_types_are_compatible(tpp->variant.constant.ptr->type,
                                   templ_type, TCF_REDECLARATION) ||
           *copy_error) {
@@ -9279,7 +9459,7 @@ from "tpp".  Return TRUE if the lists match.
                          tpp->variant.templ->cache.decl_info->parameters,
                          templ_tpp->variant.templ->cache.decl_info->parameters,
                          templ_arg_list, templ_param_list,
-                         source_pos, copy_error) || *copy_error) {
+                         source_pos, copy_error, ctws_state) || *copy_error) {
         /* The template template parameters do not have matching template
            parameter lists. */
         err = TRUE;
@@ -9294,7 +9474,8 @@ static void check_template_template_argument_types(
 				a_template_arg_ptr	templ_arg_list,
 				a_template_param_ptr	templ_param_list,
 				a_source_position	*source_pos,
-				a_boolean		*copy_error)
+				a_boolean		*copy_error,
+				a_ctws_state_ptr	ctws_state)
 /*
 For any template template parameters in templ_param_list that depend on
 other template parameters, go through the template parameters of the
@@ -9335,7 +9516,8 @@ do not match, copy_error is set to TRUE.
     templ_param = tpp->variant.templ->cache.decl_info->parameters;
     if (!equiv_substituted_templ_param_lists(param, templ_param,
                                              templ_arg_list, templ_param_list,
-                                             source_pos, copy_error)) {
+                                             source_pos, copy_error,
+                                             ctws_state)) {
       /* The template parameter list don't match.  Report a copy error. */
       *copy_error = TRUE;
       break;
@@ -9461,6 +9643,8 @@ during wrapup processing by compare_function_templates.
     if (templ_rout_type == NULL) {
       /* This is the first time this routine has been called for this
          template argument list.  Create a new type. */
+      a_ctws_state	ctws_state;
+      init_ctws_state(&ctws_state);
       if (is_partial_order_check) ctws_options |= CTWS_IS_PARTIAL_ORDER_CHECK;
       templ_rout_type = skip_typerefs(tssp->variant.function.routine->type);
       ++(tssp->variant.function.pending_deductions);
@@ -9469,17 +9653,18 @@ during wrapup processing by compare_function_templates.
                                                     templ_param_list,
 	       					    &templ_sym->decl_position,
 						    ctws_options,
-						    &copy_error);
+						    &copy_error, &ctws_state);
       --(tssp->variant.function.pending_deductions);
       if (!copy_error) {
         /* If possible, check that any template template parameters that
            depend on other template parameters match the argument
            templates (all prior template arguments must have values before
            this can be done). */
+        init_ctws_state(&ctws_state);
         check_template_template_argument_types(templ_arg_list,
                                                templ_param_list,
                                                &templ_sym->decl_position,
-                                               &copy_error);
+                                               &copy_error, &ctws_state);
       }  /* if */
       if (copy_error) templ_rout_type = NULL;
       if (templ_rout_type != NULL) {
@@ -10346,6 +10531,7 @@ do nothing.
   a_template_param_ptr		templ_param_list;
   a_type_ptr			new_rout_type;
   a_boolean			copy_error = FALSE;
+  a_ctws_state			ctws_state;
 
   class_type = class_sym->variant.class_struct_union.type;
   ctsp = class_type->variant.class_struct_union.extra_info;
@@ -10353,12 +10539,13 @@ do nothing.
   templ_param_list = class_tssp->cache.decl_info->parameters;
   /* Create a substituted version of the routine type from the prototype
      instantiation based on the template arguments of the specialization. */
+  init_ctws_state(&ctws_state);
   new_rout_type = copy_type_with_substitution(rout->type,
                                               templ_arg_list,
                                               templ_param_list,
                                               &template_sym->decl_position,
                                               CTWS_NO_OPTIONS,
-                                              &copy_error);
+                                              &copy_error, &ctws_state);
   /* If the substitution succeeded, look for a member with that type
      in the specialization. */
   if (!copy_error) {
@@ -10941,6 +11128,7 @@ matching process.
   a_routine_type_supplement_ptr	    curr_rtsp;
   a_routine_type_supplement_ptr	    templ_rtsp;
   an_mtt_flag_set                   mtt_flags;
+  a_boolean                         rescan_scope_pushed = FALSE;
 
   db_enter(3, "is_match_for_function_template");
   curr_type = skip_typerefs(curr_type);
@@ -10983,6 +11171,10 @@ matching process.
        This cannot be a match. */
     goto done;
   }  /* if */
+  /* Push an instantiation scope that can be used by the substitution and
+     deduction process to find information about the template. */
+  push_instantiation_scope_for_rescan(templ_sym);
+  rescan_scope_pushed = TRUE;
   if (explicit_arg_list != NULL) {
     /* Substitute the explicitly specified template arguments and
        produce an updated template routine type. */
@@ -11068,6 +11260,8 @@ matching process.
     }  /* for */
   }  /* if */
 done:
+  /* If we pushed an instantiation rescan scope above, pop it now. */
+  if (rescan_scope_pushed) pop_instantiation_scope_for_rescan();
   if (!match && *templ_arg_list != NULL) {
     /* If there was not a match but a template argument list was created, the
        latter will not be used and may be returned for reuse. */
@@ -11212,6 +11406,7 @@ matches, a new argument list is returned in *new_arg_list.
                                            &template_sym->decl_position);
   /* Start by making sure all of the template parameters have values.  This
      will fill in default values, if needed. */
+  push_instantiation_scope_for_rescan(template_sym);
   if (*new_arg_list != NULL &&
       all_templ_params_have_values(*new_arg_list, templ_param_list,
                                    /*is_partial_order_check=*/FALSE,
@@ -11222,6 +11417,7 @@ matches, a new argument list is returned in *new_arg_list.
                            (a_template_arg_ptr*)NULL,
                            templ_param_list, /*is_partial_order_check=*/FALSE);
   }  /* if */
+  pop_instantiation_scope_for_rescan();
   /* If there was no match, free the new template argument list, if any. */
   if (result_type == NULL && *new_arg_list != NULL) {
     free_template_arg_list(*new_arg_list);
@@ -25404,6 +25600,9 @@ routines is reported as part of the symbol table memory used.
   db_space_used("template decl states",
                  num_tmpl_decl_states_allocated,
                  a_tmpl_decl_state);
+  db_space_used("variadic param infos",
+                 num_variadic_param_infos_allocated,
+                 a_variadic_param_info);
 #if TEMPLATE_LOOKUP_NEEDED
   db_space_used("template lookup entries", 
                  num_template_lookup_entries_allocated,
@@ -25435,6 +25634,7 @@ One-time initialization for templates.c static variables.
       pch_saved_var_array_elem(can_instantiate_list),
       pch_saved_var_array_elem(inline_function_list),
       pch_saved_var_array_elem(avail_partial_order_candidates),
+      pch_saved_var_array_elem(avail_variadic_param_infos),
       pch_saved_var_array_elem(type_of_unknown_templ_param_nontype),
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
       pch_saved_var_array_elem(local_type_used_as_template_type_argument),
@@ -25442,6 +25642,7 @@ One-time initialization for templates.c static variables.
 #if DEBUG
       pch_saved_var_array_elem(num_partial_order_candidates_allocated),
       pch_saved_var_array_elem(num_tmpl_decl_states_allocated),
+      pch_saved_var_array_elem(num_variadic_param_infos_allocated),
 #if TEMPLATE_LOOKUP_NEEDED
       pch_saved_var_array_elem(num_template_lookup_entries_allocated),
       pch_saved_var_array_elem(num_exported_template_files_allocated),
@@ -25505,6 +25706,7 @@ Initializations for template.
   deferred_instantiations = NULL;
   deferred_instantiations_tail = NULL;
   avail_partial_order_candidates = NULL;
+  avail_variadic_param_infos = NULL;
   deferred_instantiations_in_process = FALSE;
   num_total_pending_instantiations = 0;
   num_pending_default_arg_instantiations = 0;
@@ -25520,6 +25722,7 @@ Initializations for template.
 #if DEBUG
   num_partial_order_candidates_allocated = 0;
   num_tmpl_decl_states_allocated = 0;
+  num_variadic_param_infos_allocated = 0;
 #if TEMPLATE_LOOKUP_NEEDED
   num_template_lookup_entries_allocated = 0;
   num_exported_template_files_allocated = 0;

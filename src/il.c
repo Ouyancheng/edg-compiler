@@ -13361,6 +13361,7 @@ static a_constant_ptr copy_template_param_con(
                                   a_source_position        *source_pos,
                                   a_ctws_options_set       options,
                                   a_boolean                *copy_error,
+                                  a_ctws_state_ptr         ctws_state,
                                   a_constant_ptr           constant);
 
 
@@ -13486,7 +13487,8 @@ static an_expr_node_ptr copy_template_param_expr_as_lvalue(
                                   a_type_ptr               guide_type,
                                   a_source_position        *source_pos,
                                   a_ctws_options_set       options,
-                                  a_boolean                *copy_error)
+                                  a_boolean                *copy_error,
+                                  a_ctws_state_ptr         ctws_state)
 /*
 Copy the expression expr, doing substitution for template parameters, and
 return a pointer to the copy.  The expression will be used as an lvalue, so
@@ -13513,6 +13515,7 @@ in these template-parameter-substitution routines.
                                          source_pos,
                                          options,
                                          copy_error,
+                                         ctws_state,
                                          &constant,
                                          &alloc_con);
     /* Force the copy to expression form. */
@@ -13540,6 +13543,7 @@ static an_expr_node_ptr copy_template_param_expr_as_rvalue(
                                   a_source_position        *source_pos,
                                   a_ctws_options_set       options,
                                   a_boolean                *copy_error,
+                                  a_ctws_state_ptr         ctws_state,
                                   a_constant_ptr           constant,
                                   a_constant_ptr           *alloc_con)
 /*
@@ -13563,6 +13567,7 @@ produced.  See copy_template_param_expr for the parameter descriptions.
                                          source_pos,
                                          options,
                                          copy_error,
+                                         ctws_state,
                                          constant,
                                          alloc_con);
     if (expr_copy != NULL && expr_copy->is_lvalue) {
@@ -13618,6 +13623,7 @@ static an_expr_node_ptr copy_template_param_builtin_operation(
                                   a_source_position        *source_pos,
                                   a_ctws_options_set       options,
                                   a_boolean                *copy_error,
+                                  a_ctws_state_ptr         ctws_state,
                                   a_constant_ptr           constant)
 /*
 Copy the expression expr, which has an enk_builtin_operation on top, and
@@ -13636,7 +13642,7 @@ expression.  See copy_template_param_expr for the parameter descriptions.
     *new_arg =  copy_template_param_expr(
                             arg, template_arg_list, template_param_list,
                             (a_type_ptr)NULL,
-                            source_pos, options, copy_error,
+                            source_pos, options, copy_error, ctws_state,
                             &const_result, &alloc_const_result);
     if (*copy_error) break;
     *new_arg = alloc_copied_template_param_expr(*new_arg, &const_result,
@@ -13830,6 +13836,7 @@ an_expr_node_ptr copy_template_param_expr(
                                   a_source_position        *source_pos,
                                   a_ctws_options_set       options,
                                   a_boolean                *copy_error,
+                                  a_ctws_state_ptr         ctws_state,
                                   a_constant_ptr           constant,
                                   a_constant_ptr           *alloc_con)
 /*
@@ -13894,6 +13901,7 @@ options is a set of name lookup options.
                                            source_pos,
                                            options,
                                            copy_error,
+                                           ctws_state,
                                            constant);
       break;
     case enk_operation:
@@ -13907,7 +13915,8 @@ options is a set of name lookup options.
                                                        guide_type,
                                                        source_pos,
                                                        options,
-                                                       copy_error);
+                                                       copy_error,
+                                                       ctws_state);
       } else if (!operator_is_foldable(expr)) {
         /* For operators we can't ever fold (e.g., calls), give up on
            deduction.  Note that this implements old rules for deduction.
@@ -13939,7 +13948,8 @@ options is a set of name lookup options.
                                                          template_param_list,
                                                          source_pos,
                                                          options,
-                                                         copy_error);
+                                                         copy_error,
+                                                         ctws_state);
           if (*copy_error) break;
         }  /* if */
         /* Do substitution on the operands. */
@@ -13950,6 +13960,7 @@ options is a set of name lookup options.
                                                  source_pos,
                                                  options,
                                                  copy_error,
+                                                 ctws_state,
                                                  &constant_1,
                                                  &alloc_con_1);
         if (!*copy_error) {
@@ -13965,6 +13976,7 @@ options is a set of name lookup options.
                                                    source_pos,
                                                    options,
                                                    copy_error,
+                                                   ctws_state,
                                                    &constant_2,
                                                    &alloc_con_2);
           if (!*copy_error) {
@@ -13981,6 +13993,7 @@ options is a set of name lookup options.
                                                      source_pos,
                                                      options,
                                                      copy_error,
+                                                     ctws_state,
                                                      &constant_3,
                                                      &alloc_con_3);
             if (!*copy_error) {
@@ -14181,7 +14194,8 @@ options is a set of name lookup options.
           a_type_ptr new_type = copy_type_with_substitution(
                                         expr->type,
                                         template_arg_list, template_param_list,
-                                        source_pos, options, copy_error);
+                                        source_pos, options, copy_error,
+                                        ctws_state);
           if (!*copy_error &&
               !is_bad_type_for_template_arg_operand(new_type) &&
               !is_template_param_type(new_type)) {
@@ -14202,7 +14216,8 @@ options is a set of name lookup options.
       { a_type_ptr  new_type = copy_type_with_substitution(
                                         expr->variant.type_operand.type,
                                         template_arg_list, template_param_list,
-                                        source_pos, options, copy_error);
+                                        source_pos, options, copy_error,
+                                        ctws_state);
         if (!*copy_error) {
           expr_copy = copy_node(expr);
           expr_copy->variant.type_operand.type = new_type;
@@ -14212,7 +14227,8 @@ options is a set of name lookup options.
     case enk_builtin_operation:
       expr_copy = copy_template_param_builtin_operation(
                                   expr, template_arg_list, template_param_list,
-                                  source_pos, options, copy_error, constant);
+                                  source_pos, options, copy_error, ctws_state,
+                                  constant);
       break;
     case enk_param_ref:
       /* A reference to a parameter.  Copy the expression node, but apply
@@ -14220,7 +14236,8 @@ options is a set of name lookup options.
       { a_type_ptr new_type = copy_type_with_substitution(
                                         expr->type,
                                         template_arg_list, template_param_list,
-                                        source_pos, options, copy_error);
+                                        source_pos, options, copy_error,
+                                        ctws_state);
         if (!*copy_error) {
           expr_copy = copy_node(expr);
           expr_copy->type = new_type;
@@ -14254,7 +14271,8 @@ a_type_ptr type_of_decltype_expr_with_substitution(
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_param_ptr     template_param_list,
                                   a_ctws_options_set       options,
-                                  a_boolean                *copy_error)
+                                  a_boolean                *copy_error,
+                                  a_ctws_state_ptr         ctws_state)
 /*
 type is a decltype type, and expr is the expression that underlies it. 
 Make a copy of the expression, doing template substitution according
@@ -14273,7 +14291,8 @@ Also used for typeof cases; "type" can be consulted to tell the difference.
                                                   template_arg_list,
                                                   template_param_list,
                                                   options,
-                                                  copy_error);
+                                                  copy_error,
+                                                  ctws_state);
   } else {
     /* Pre-C++0x SFINAE rules apply, so deduction fails. */
     *copy_error = TRUE;
@@ -14303,6 +14322,7 @@ for the copy/substitution.
   a_symbol_ptr   sym;
   a_type_ptr     parent_type;
   a_boolean      copy_error = FALSE;
+  a_ctws_state   ctws_state;
 
   check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
                   (con->variant.template_param.kind ==
@@ -14339,13 +14359,15 @@ for the copy/substitution.
          was unqualified.  Leave the constant as it is. */
       sym = orig_sym;
     } else {
+      init_ctws_state(&ctws_state);
       sym = copy_parent_type_with_substitution(orig_sym, parent_type,
                                                template_arg_list,
                                                template_param_list,
                                                source_pos,
                                                /*is_type=*/FALSE,
                                                options,
-                                               &copy_error);
+                                               &copy_error,
+                                               &ctws_state);
       if (sym != NULL) sym = fundamental_symbol_of(sym);
       if (sym == orig_sym) {
         /* A reference like "X::operator T" will not be substituted by the call
@@ -14355,10 +14377,12 @@ for the copy/substitution.
         conv_type = type_if_unknown_conversion_function_symbol(orig_sym);
         if (conv_type != NULL) {
           /* Substitute any template parameters in the conversion type. */
+          init_ctws_state(&ctws_state);
           conv_type = copy_type_with_substitution(conv_type, template_arg_list,
                                                   template_param_list,
                                                   source_pos,
-                                                  options, &copy_error);
+                                                  options, &copy_error,
+                                                  &ctws_state);
           /* Look for a conversion function that converts to the new type. */
           sym = look_up_conversion_function(parent_type, conv_type,
                                             source_pos);
@@ -14532,6 +14556,7 @@ static a_constant_ptr copy_template_param_con(
                                   a_source_position        *source_pos,
                                   a_ctws_options_set       options,
                                   a_boolean                *copy_error,
+                                  a_ctws_state_ptr         ctws_state,
                                   a_constant_ptr           constant)
 /*
 Copy a ck_template_param constant, replacing any occurrences of
@@ -14611,7 +14636,8 @@ name lookup options.
                                                template_param_list,
                                                source_pos,
                                                options,
-                                               copy_error);
+                                               copy_error,
+                                               ctws_state);
         other_con = copy_template_param_con(
                                  con->variant.template_param.variant.constant,
                                  template_arg_list,
@@ -14620,6 +14646,7 @@ name lookup options.
                                  source_pos,
                                  options,
                                  copy_error,
+                                 ctws_state,
                                  constant);
         /* Get the type of the copied constant from either other_con or
            constant, as appropriate. */
@@ -14697,6 +14724,7 @@ name lookup options.
                                             source_pos,
                                             options | CTWS_NON_CONSTANT_EXPR,
                                             copy_error,
+                                            ctws_state,
                                             &sizeof_expr_con,
                                             &alloc_sizeof_expr_con);
             if (expr == NULL) {
@@ -14717,7 +14745,8 @@ name lookup options.
                                                    template_param_list,
                                                    source_pos,
                                                    options,
-                                                   copy_error);
+                                                   copy_error,
+                                                   ctws_state);
             if (is_any_reference_type(new_type)) {
               new_type = type_pointed_to(new_type);
             }  /* if */
@@ -14786,7 +14815,8 @@ name lookup options.
                                              source_pos,
                                              options,
                                              /*orig_is_nonreal_template=*/TRUE,
-                                             copy_error);
+                                             copy_error,
+                                             ctws_state);
           /* Apply the template argument list to the template. */
           con_copy = copy_template_param_unknown_entity_con(
                                  templ_con,
@@ -14812,6 +14842,7 @@ name lookup options.
                                                          source_pos,
                                                          options,
                                                          copy_error,
+                                                         ctws_state,
                                                          constant,
                                                          &con_copy);
           if (expr_copy == NULL) {
@@ -14835,7 +14866,8 @@ name lookup options.
                                            template_param_list,
                                            source_pos,
                                            options,
-                                           copy_error);
+                                           copy_error,
+                                           ctws_state);
     if (!*copy_error) {
       copy_constant(con, constant);
       constant->type = new_type;
@@ -14858,7 +14890,8 @@ a_constant_ptr copy_template_param_con_with_substitution(
                                   a_type_ptr               template_param_type,
                                   a_source_position        *source_pos,
                                   a_ctws_options_set       options,
-                                  a_boolean                *copy_error)
+                                  a_boolean                *copy_error,
+                                  a_ctws_state_ptr         ctws_state)
 /*
 Copy a ck_template_param constant, and return a pointer to the copy.
 In the process of copying, replace any template parameters with the
@@ -14901,7 +14934,8 @@ lookup options.
                                                      template_param_type,
                                                      source_pos,
                                                      options,
-                                                     copy_error);
+                                                     copy_error,
+                                                     ctws_state);
       if (!*copy_error) {
         check_assertion(expr_copy != NULL);
         if (expr_copy->is_lvalue) {
@@ -14932,6 +14966,7 @@ lookup options.
                                                      source_pos,
                                                      options,
                                                      copy_error,
+                                                     ctws_state,
                                                      &constant,
                                                      &con_copy);
       if (!*copy_error && expr_copy != NULL) {
@@ -14958,6 +14993,7 @@ lookup options.
                                        source_pos,
                                        options,
                                        copy_error,
+                                       ctws_state,
                                        &constant);
   }  /* if */
   if (con_copy == NULL) {

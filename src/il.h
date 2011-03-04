@@ -1460,6 +1460,49 @@ typedef int a_ctws_options_set;
 			   template arguments should be copied over to the
 			   substituted arguments for use in a rescan. */
 
+/*
+Structure used to represent a set of function parameters that resulted from
+a pack expansion during the type substitution process.
+*/
+typedef struct a_variadic_param_info *a_variadic_param_info_ptr;
+typedef struct a_variadic_param_info {
+  a_variadic_param_info_ptr
+		next;
+			/* The next element on the list of entries, or NULL
+			   for the last entry. */
+  a_param_type_ptr
+		param_type;
+			/* The parameter type entry resulting from the
+			   variadic expansion. */
+  a_param_type_ptr
+		orig_param_type;
+			/* The parameter type entry for the parameter pack
+			   representing the variadic expansion. */
+   int		level;
+			/* The value of routine_type_levels when this entry
+			   was created. */
+} a_variadic_param_info;
+
+
+/*
+Structure used to pass information between the routines that do template
+argument substitution (primarily copy_type_with_substitution).
+*/
+typedef struct a_ctws_state *a_ctws_state_ptr;
+typedef struct a_ctws_state {
+  a_variadic_param_info_ptr
+		variadic_param_info;
+			/* A list of parameters created by variadic
+			   pack expansions during this substitution. */
+  a_variadic_param_info_ptr
+		variadic_param_info_tail;
+			/* The end of the list of parameters created by
+			   variadic pack expansions during this
+			   substitution. */
+  uint32_t	routine_type_levels;
+			/* The level of nesting of routine types. */
+} a_ctws_state;
+
 
 extern an_expr_node_ptr copy_template_param_expr(
                                  an_expr_node_ptr         expr,
@@ -1469,6 +1512,7 @@ extern an_expr_node_ptr copy_template_param_expr(
                                  a_source_position        *source_pos,
                                  a_ctws_options_set       options,
                                  a_boolean                *copy_error,
+                                 a_ctws_state_ptr         ctws_state,
                                  a_constant_ptr           constant,
                                  a_constant_ptr           *alloc_con);
 
@@ -1478,7 +1522,9 @@ extern a_type_ptr type_of_decltype_expr_with_substitution(
                                  a_template_arg_ptr       template_arg_list,
                                  struct a_template_param  *template_param_list,
                                  a_ctws_options_set       options,
-                                 a_boolean                *copy_error);
+                                 a_boolean                *copy_error,
+                                 a_ctws_state_ptr         ctws_state);
+
 
 typedef struct a_symbol a_symbol_il_h_dummy_typedef;
 extern struct a_symbol *
@@ -1496,7 +1542,8 @@ extern a_constant_ptr copy_template_param_con_with_substitution(
                                  a_type_ptr               template_param_type,
                                  a_source_position        *source_pos,
                                  a_ctws_options_set       options,
-                                 a_boolean                *copy_error);
+                                 a_boolean                *copy_error,
+                                 a_ctws_state_ptr         ctws_state);
 
 extern void increment_template_dependent_enum_constant(a_constant_ptr  con);
 

@@ -42,6 +42,7 @@ typedef struct an_exception_spec_error_descr
 typedef struct a_gnu_attribute  a_gnu_attribute_dummy_typedef;
 typedef struct a_symbol_list_entry *a_symbol_list_entry_ptr;
 typedef struct a_hash_table *a_hash_table_ptr;
+typedef struct a_param_id *a_param_id_ptr;
 
 /* The pointer to a_routine_fixup is declared here even though the struct
    itself is defined in class_decl.c.  This allows the pointer to be made
@@ -1212,7 +1213,6 @@ typedef struct an_enum_symbol_supplement {
 Data structure used to pass information about function declarations back
 from the scanning of the function declarator.
 */
-typedef struct a_param_id *a_param_id_ptr;
 typedef struct a_param_id {
   /* Entry giving the name of one parameter in a function declarator.
      The type of the parameter does not appear here; it is in an
@@ -1259,6 +1259,11 @@ typedef struct a_param_id {
 			/* TRUE for the parameter of a template definition of
 			   a variadic template for the function parameter
 			   pack. */
+  a_bit_field	is_pack_element:1;
+			/* TRUE for parameters of an actual instantiation of
+			   a variadic template for those parameters that are
+			   associated with a parameter pack of the original
+			   variadic template. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_byte_boolean
 		is_decl_after_first_in_comma_list;
@@ -4407,8 +4412,16 @@ extern a_master_instance_ptr alloc_master_instance(void);
 extern void free_param_id_list(a_param_id_ptr *pidlist);
 extern void clear_func_info(a_func_info_block *func_info);
 
-#define done_with_func_info(func_info)                                 \
-  free_param_id_list(&((func_info).param_id_list))
+/*
+Free any param_id entries that may have been allocated for the given
+func_info block.  This is suppressed for variadic template definition
+contexts because those param_ids might be reference by pack expansion
+descriptions.
+*/
+#define done_with_func_info(func_info)					\
+  if (!is_variadic_definition_context()) {				\
+    free_param_id_list(&((func_info).param_id_list));			\
+  }  /* if */
 
 extern void clear_decl_modifiers_block(a_decl_modifiers_block *decl_modifiers);
 

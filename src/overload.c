@@ -3222,6 +3222,9 @@ template arguments, or NULL if deduction failed.
   if (tssp->variant.function.pending_deductions >
                                          max_pending_instantiations) goto skip;
   ++(tssp->variant.function.pending_deductions);
+  /* Push an instantiation scope that can be used by the substitution and
+     deduction process to find information about the template. */
+  push_instantiation_scope_for_rescan(template_sym);
   /* Look through the arguments/parameters to do template argument
      deduction. */
   for (ptp = rtsp->param_type_list, arg_operand = arg_operand_list;
@@ -3292,6 +3295,7 @@ template arguments, or NULL if deduction failed.
     }  /* if */
   }  /* if */
 done:
+  pop_instantiation_scope_for_rescan();
   /* Decrement the pending deduction count used to detect recursion. */
   --(tssp->variant.function.pending_deductions);
 skip:;
@@ -3594,11 +3598,13 @@ the point of call.
         if (tssp->variant.function.pending_deductions >
                               max_pending_instantiations) goto reject_function;
         ++(tssp->variant.function.pending_deductions);
+        push_instantiation_scope_for_rescan(function_symbol);
         routine_type = substitute_template_arguments(
                          function_symbol, template_arg_list,
                          &local_template_arg_list, (a_template_param_ptr)NULL,
                          /*is_partial_order_check=*/FALSE);
         --(tssp->variant.function.pending_deductions);
+        pop_instantiation_scope_for_rescan();
         /* Bail out if there is a mismatch. */
         if (routine_type == NULL) goto reject_function;
       }  /* if */
@@ -17084,6 +17090,7 @@ Deduction failures are diagnosed as errors.
   a_type_ptr            qc_param_type = NULL;
   a_type_ptr            qc_arg_type = NULL;
   a_boolean             subst_error = FALSE;
+  a_ctws_state          ctws_state;
 
   check_assertion(dps->auto_type_specifier_seen && dps->auto_type != NULL);
   auto_arg_operand = dps->prescanned_initializer_cache.first_expression;
@@ -17121,9 +17128,11 @@ Deduction failures are diagnosed as errors.
   check_assertion(templ_arg->kind == (a_templ_arg_kind)tak_type);
   /* Substitute the deduced type to obtain the actual type for the current
      declaration.  A substitution failure is an error. */
+  init_ctws_state(&ctws_state);
   dps->type = copy_type_with_substitution(orig_type, templ_arg, templ_param,
                                           &dps->declarator_pos,
-                                          CTWS_NO_OPTIONS, &subst_error);
+                                          CTWS_NO_OPTIONS, &subst_error,
+                                          &ctws_state);
   if (subst_error) {
     /* Substitution failed. */
     expr_pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);

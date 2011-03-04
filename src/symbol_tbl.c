@@ -11829,6 +11829,7 @@ locator_for_curr_id.
   pip->storage_class = (a_storage_class)sc_unspecified;
   pip->implicitly_declared = FALSE;
   pip->is_parameter_pack = FALSE;
+  pip->is_pack_element = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   pip->is_decl_after_first_in_comma_list = FALSE;
   pip->source_sequence_entry = NULL;
@@ -12006,6 +12007,7 @@ storage_class are the type and storage class for the parameter.
     /* Put this entry on the end of the list of param ids. */
     if (func_info->param_id_list == NULL) {
       func_info->param_id_list = new_param_id;
+      scope_stack_top().param_id_list = new_param_id;
     } else {
       (*last_param_id)->next = new_param_id;
     }  /* if */

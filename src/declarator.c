@@ -2550,6 +2550,7 @@ TRUE if this is the function declarator in a friend function declaration.
                               local_decl_pos_block.identifier_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           last_param_id->param_num = param_number;
+          last_param_id->is_pack_element = ptp->is_pack_element;
           ptp->param_num = param_number;
 #if GNU_EXTENSIONS_ALLOWED
           if (last_param_id->symbol != NULL) {

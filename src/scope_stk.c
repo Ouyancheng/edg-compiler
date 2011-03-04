@@ -55,10 +55,6 @@ static a_function_shareable_constants_table_ptr
 			   that have been freed and are available for
 			   reuse. */
 
-static a_pack_expansion_stack_entry_ptr
-		pack_expansion_stack;
-			/* Pointer to the top of the pack expansion stack. */
-
 static a_pack_reference_ptr
 		avail_pack_references;
 			/* A list of pack reference entries that have
@@ -2569,6 +2565,7 @@ the scope being pushed.
   ssep->ignore_during_normal_lookup = FALSE;
   ssep->force_decl_seq_check = (options & PS_FORCE_DECL_SEQ_CHECK) != 0;
   ssep->outside_parameter_list = FALSE;
+  ssep->trans_unit_pushed = FALSE;
   /* The in_template_arg_list flag indicates whether we're currently scanning
      tokens inside angle brackets.  If we push a scope that implies a new
      source of tokens (e.g., a template instantiation), clear the flag. */
@@ -2709,6 +2706,7 @@ the scope being pushed.
   ssep->class_fixup_header.def_arg_list_tail = NULL;
   ssep->class_fixup_header.inline_function_list = NULL;
   ssep->class_fixup_header.inline_function_list_tail = NULL;
+  ssep->param_id_list = NULL;
   if (sp != NULL) {
     if (new_il_scope) {
       /* Set the parent scope. */
@@ -4475,6 +4473,51 @@ push_template_instantiation_scope.
                                      /*set_value=*/TRUE,
                                      get_effective_decl_seq());
 }  /* pop_template_instantiation_scope */
+
+
+void push_instantiation_scope_for_rescan(a_symbol_ptr	template_sym)
+/*
+Push an instantiation scope for the rescan of the template specified by
+template_sym.
+*/
+{
+  a_template_decl_info_ptr		tdip;
+  a_boolean				trans_unit_pushed;
+
+  check_assertion(template_sym->kind == (a_symbol_kind)sk_function_template);
+  tdip = alloc_template_decl_info();
+  /* Switch to the translation unit containing the template, if needed. */
+  trans_unit_pushed = push_translation_unit_if_needed(template_sym);
+  (void)push_template_instantiation_scope(
+                              tdip, (a_type_ptr)NULL, (a_routine_ptr)NULL,
+                              (a_symbol_ptr)NULL, template_sym,
+                              (a_template_arg_ptr)NULL,
+                              /*push_lex_state=*/TRUE,
+                              PS_NONREAL_INSTANTIATION);
+  /* Record whether a translation unit was pushed above. */
+  scope_stack_top().trans_unit_pushed = trans_unit_pushed;
+  /* Don't include this scope in any diagnostic output that may be produced. */
+  scope_stack[depth_innermost_instantiation_scope].
+                                            exclude_from_context_output = TRUE;
+}  /* push_instantiation_scope_for_rescan */
+
+
+void pop_instantiation_scope_for_rescan(void)
+/*
+Pop the template instantiation scope pushed by
+push_instantiation_scope_for_rescan.
+*/
+{
+  a_template_decl_info_ptr	tdip;
+  a_boolean			trans_unit_pushed;
+
+  trans_unit_pushed = scope_stack_top().trans_unit_pushed;
+  tdip = scope_stack[depth_innermost_instantiation_scope].template_decl_info;
+  pop_template_instantiation_scope();
+  free_template_decl_info(tdip);
+  /* If a translation unit was pushed earlier, pop it now. */
+  if (trans_unit_pushed) pop_translation_unit_stack();
+}  /* pop_instantiation_scope_for_rescan */
 
 
 void push_template_declaration_scope(
@@ -7314,7 +7357,7 @@ memory regions.
   for (prp = pedp->packs_referenced; prp != NULL; prp = prp->next) {
     /* Only clear the pointer when the scope containing the variable is
        being popped. */
-    if (prp->is_variable && prp->symbol->decl_scope == ssep->number) {
+    if (prp->kind == prk_variable && prp->symbol->decl_scope == ssep->number) {
       prp->symbol->variant.variable.ptr = NULL;
     }  /* if */
   }  /* for */
@@ -8542,13 +8585,13 @@ Note that such a scope is required to exist when this routine is called.
 }  /* get_current_template_decl_info */
 
 
-static a_pack_reference_ptr alloc_pack_reference(a_symbol_kind	is_variable)
+static a_pack_reference_ptr alloc_pack_reference(a_pack_reference_kind	kind)
 /*
 Allocate a new pack reference entry, initialize it, and return a pointer
-to it.  is_variable is TRUE if this entry is being used to represent
-a parameter pack that is a parameter variable.  This is really only
-meaningful for entries created for actual instantiations because it
-controls the initialization of fields used only in such cases.
+to it.  kind indicates the kind of entity to which this pack reference
+refers.  This is really only meaningful for entries created for actual
+instantiations because it controls the initialization of fields used only
+in such cases.
 */
 {
   a_pack_reference_ptr	prp;
@@ -8566,17 +8609,22 @@ controls the initialization of fields used only in such cases.
   }  /* if */
   prp->next = NULL;
   prp->symbol = NULL;
-  prp->is_variable = is_variable;
+  prp->kind = kind;
   prp->param_num = 0;
   prp->position = null_source_position;
   prp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
-  prp->primary_var_symbol = NULL;
+  prp->primary_var_or_param_symbol = NULL;
+  prp->param_info = NULL;
   prp->function_scopes_to_skip = 0;
-  if (is_variable) {
-    prp->curr_argument.variable = NULL;
-  } else {
-    prp->curr_argument.template_arg = NULL;
-  }  /* if */
+  switch (kind) {
+    case prk_variable:       prp->curr_argument.variable = NULL;     break;
+    case prk_template_param: prp->curr_argument.template_arg = NULL; break;
+    case prk_parameter:
+      /* Both entries are initialized to handle union-as-struct testing. */
+      prp->curr_argument.param_id = NULL;
+      prp->curr_argument.param_type = NULL;
+      break;
+  }  /* switch */
   prp->prev_template_arg = NULL;
   return prp;
 }  /* alloc_pack_reference */
@@ -8599,6 +8647,7 @@ be NULL, in which case nothing is done.
     avail_pack_references = prp;
   }  /* if */
 }  /* free_list_of_pack_references */
+
 
 static a_pack_expansion_descr_ptr alloc_pack_expansion_descr(void)
 /*
@@ -8987,6 +9036,47 @@ rescan.
 }  /* find_template_arg_for_pack */
 
 
+static a_param_id_ptr find_parameter_for_pack(
+				a_pack_reference_ptr	prp,
+				uint32_t		*elements)
+/*
+Return the initial function parameter associated with the variadic
+function template currently being instantiated.  prp describes
+the parameter from the prototype instantiation.  If there are no 
+actual arguments for the pack, return NULL.  Return the number of actual
+arguments in *elements.
+*/
+{
+  a_param_id_ptr		result_param_id = NULL;
+  a_scope_stack_entry_ptr	ssep;
+  uint32_t			param_num = prp->param_num;
+  a_param_id_ptr		param_id = NULL;
+
+  /* Look through any enclosing function prototype scopes for the
+     parameter. */
+  ssep = &scope_stack_top();
+  check_assertion(ssep->kind == (a_scope_kind)sck_func_prototype);
+  for (; ssep != NULL && ssep->kind == (a_scope_kind)sck_func_prototype;
+       ssep = previous_scope_of(ssep)) {
+    for (param_id = ssep->param_id_list;
+         param_id != NULL; param_id = param_id->next) {
+      if (param_id->param_num == param_num) {
+        result_param_id = param_id;
+        break;
+      }  /* if */
+    }  /* for */
+    if (result_param_id != NULL) break;
+  }  /* for */
+  *elements = 0;
+  /* Count the number of pack elements. */
+  for (; param_id != NULL && param_id->is_pack_element;
+       param_id = param_id->next) {
+    (*elements)++;
+  }  /* for */
+  return result_param_id;
+}  /* find_parameter_for_pack */
+
+
 static a_variable_ptr find_variable_for_pack(
 				a_pack_reference_ptr	prp,
 				uint32_t		*elements)
@@ -9067,6 +9157,49 @@ from templ_param_list.
 }  /* find_placeholder_arg_for_pack */
 
 
+static a_variadic_param_info_ptr find_variadic_param_info_for_pack(
+				a_pack_reference_ptr	prp,
+				a_ctws_state_ptr	ctws_state,
+				uint32_t		*elements)
+/*
+Go through the variadic parameter info in ctws_state and return the
+entry that corresponds to the function parameter represented by prp.
+ctws_state is a substitution state block pointer, and can be NULL.
+Return the number of actual arguments in *elements.
+*/
+{
+  a_variadic_param_info_ptr	result_vpip = NULL;
+  a_param_type_ptr		result_ptp = NULL;
+  a_param_type_ptr		ptp;
+  uint32_t			param_num;
+  uint32_t			level;
+
+  *elements = 0;
+  /* ctws_state should only be NULL in contexts in which it is not possible
+     to reference the parameter, so NULL is returned in that case. */
+  if (ctws_state != NULL) {
+    a_variadic_param_info_ptr	vpip;
+    param_num = prp->symbol->variant.param_id->param_num;
+    level = ctws_state->routine_type_levels;
+    for (vpip = ctws_state->variadic_param_info; vpip != NULL;
+         vpip = vpip->next) {
+      if (vpip->orig_param_type->param_num == param_num &&
+          vpip->level == level) {
+        result_vpip = vpip;
+        result_ptp = vpip->param_type;
+        break;
+      }  /* if */
+    }  /* if */
+    /* Count the number of pack elements. */
+    for (ptp = result_ptp; ptp != NULL && ptp->param_num == param_num;
+         ptp = ptp->next) {
+      (*elements)++;
+    }  /* for */
+  }  /* for */
+  return result_vpip;
+}  /* find_variadic_param_info_for_pack */
+
+
 static a_pack_reference_ptr copy_pack_reference(a_pack_reference_ptr	prp)
 /*
 Make a copy of prp, which is a pack reference from a prototype instantiation.
@@ -9075,7 +9208,7 @@ Return a pointer to the copy.
 {
   a_pack_reference_ptr	new_prp;
 
-   new_prp = alloc_pack_reference(prp->is_variable);
+   new_prp = alloc_pack_reference(prp->kind);
    /* Copy the entire entry then clear the fields that should not be
       inherited. */
    *new_prp = *prp;
@@ -9089,7 +9222,8 @@ static a_pack_instantiation_descr_ptr create_pack_instantiation_descr(
 		a_template_param_ptr			templ_param_list,
 		a_template_arg_ptr			templ_arg_list,
 		a_boolean				is_rescan,
-		a_boolean				is_deduction)
+		a_boolean				is_deduction,
+		a_ctws_state_ptr			ctws_state)
 /*
 We are beginning a real instantiation of the pack expansion specified
 by "pedp".  Determine whether this is a non-empty expansion context and
@@ -9099,7 +9233,8 @@ templ_param_list and templ_arg_list are the template parameters and
 arguments for the instantiation.  is_deduction is TRUE if the pack
 instantiation is being created as part of the deduction of the pack
 argument values.  is_rescan is TRUE if the pack instantiation is
-being created as part of an expression rescan.
+being created as part of an expression rescan.  ctws_state is a
+substitution state block pointer, and can be NULL.
 
 For non-deduction contexts, if this is a valid non-empty expansion,
 establish the initial values of the parameter pack symbols and return
@@ -9110,7 +9245,7 @@ advance to the next pack element for each symbol.
   a_pack_reference_ptr			prp;
   a_pack_reference_ptr			new_pack_list = NULL;
   a_pack_reference_ptr			new_pack_tail = NULL;
-  uint32_t				elements;
+  uint32_t				elements = 0;
   a_boolean				is_first_pack = TRUE;
   a_boolean				any_errors = FALSE;
   a_pack_instantiation_descr_ptr	result_pidp = NULL;
@@ -9136,14 +9271,16 @@ advance to the next pack element for each symbol.
          argument values.  The curr_argument field of the pack element will
          be NULL until a value is deduced.   It is then cleared when
          the deduction of a given function argument has been completed. */
-      check_assertion(!prp->is_variable);
-      tap = find_placeholder_arg_for_pack(templ_param_list, templ_arg_list,
-                                          prp->symbol);
-      new_prp->prev_template_arg = tap;
+      if (prp->kind == prk_template_param) {
+        tap = find_placeholder_arg_for_pack(templ_param_list, templ_arg_list,
+                                            prp->symbol);
+        new_prp->prev_template_arg = tap;
+      } else if (prp->kind == prk_parameter) {
+      }  /* if */
     } else {
       /* In non-deduction contexts, find the current pack element to
          be used. */
-      if (prp->is_variable) {
+      if (prp->kind == prk_variable) {
         a_variable_ptr	vp;
         a_symbol_ptr	sym;
         vp = find_variable_for_pack(prp, &elements_for_pack);
@@ -9154,17 +9291,42 @@ advance to the next pack element for each symbol.
         check_assertion((vp == NULL) == (sym == NULL) || total_errors != 0);
         if (sym != NULL) {
           new_prp->curr_argument.variable = vp;
-          new_prp->primary_var_symbol = symbol_for(vp);
-          new_prp->primary_var_symbol->variant.variable.ptr = vp;
+          new_prp->primary_var_or_param_symbol = symbol_for(vp);
+          new_prp->primary_var_or_param_symbol->variant.variable.ptr = vp;
         } else {
-          new_prp->primary_var_symbol = NULL;
+          new_prp->primary_var_or_param_symbol = NULL;
         }  /* if */
-      } else {
+      } else if (prp->kind == prk_template_param) {
         a_template_arg_ptr	tap;
         tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
                                          prp->symbol, &elements_for_pack,
                                          is_rescan, is_deduction);
         new_prp->curr_argument.template_arg = tap;
+      } else {
+        check_assertion(prp->kind == prk_parameter);
+        /* A parameter from a function prototype scope. */
+        if (is_rescan) {
+          /* In rescan contexts we look for the corresponding actual
+             parameter in information saved by copy_type_with_substitution. */
+          if (ctws_state != NULL) {
+            a_variadic_param_info_ptr	vpip;
+            vpip = find_variadic_param_info_for_pack(prp, ctws_state,
+                                           &elements_for_pack);
+            new_prp->curr_argument.param_type = vpip->param_type;
+            new_prp->param_info = vpip;
+          }  /* if */
+        } else {
+          /* When scanning from tokens, we look in the enclosing function
+             prototype scopes. */
+          a_param_id_ptr	param_id;
+          param_id = find_parameter_for_pack(prp, &elements_for_pack);
+          if (param_id != NULL) {
+            new_prp->curr_argument.param_id = param_id;
+            new_prp->primary_var_or_param_symbol = param_id->symbol;
+          } else {
+            new_prp->primary_var_or_param_symbol = NULL;
+          }  /* if */
+        }  /* if */
       }  /* if */
       /* Make sure the number of pack elements is consistent. */
       if (is_first_pack) {
@@ -9228,7 +9390,7 @@ pack expansion stack entry for which the symbols are to be updated.
        param_prp != NULL;
        param_prp = param_prp->next, arg_prp = arg_prp->next) {
     a_symbol_ptr	sym = param_prp->symbol;
-    if (!param_prp->is_variable) {
+    if (param_prp->kind == prk_template_param) {
       if (arg_prp->curr_argument.template_arg != NULL) {
         /* A template argument. */
         update_template_param_symbol(sym, arg_prp->curr_argument.template_arg);
@@ -9236,14 +9398,58 @@ pack expansion stack entry for which the symbols are to be updated.
         /* There is no argument -- set the symbol to an error value. */
         set_template_param_symbol_to_error(sym);
       }  /* if */
-    } else {
-      if (arg_prp->primary_var_symbol != NULL) {
-        arg_prp->primary_var_symbol->variant.variable.ptr =
+    } else if (param_prp->kind == prk_variable) {
+      if (arg_prp->primary_var_or_param_symbol != NULL) {
+        arg_prp->primary_var_or_param_symbol->variant.variable.ptr =
                                                arg_prp->curr_argument.variable;
+      }  /* if */
+    } else {
+      check_assertion(param_prp->kind == prk_parameter);
+      if (arg_prp->primary_var_or_param_symbol != NULL) {
+        arg_prp->primary_var_or_param_symbol->variant.param_id =
+                                               arg_prp->curr_argument.param_id;
       }  /* if */
     }  /* if */
   }  /* for */
 }  /* update_parameter_pack_symbol_values */
+
+
+a_type_ptr get_curr_variadic_param_type(an_expr_node_ptr	expr)
+/*
+This routine is called during rescan contexts to find the current type
+for the enk_param_ref specified by expr.  If no matching parameter
+is found, NULL is returned.
+*/
+{
+  a_pack_reference_ptr			arg_prp = NULL;
+  a_pack_expansion_stack_entry_ptr	pesep;
+  a_type_ptr				result_type = NULL;
+
+  /* Look up through the pack expansion stack to find a patching
+     parameter. */
+  for (pesep = pack_expansion_stack;
+       pesep != NULL && !pesep->is_suppression &&
+         pesep->instantiation_descr != NULL; pesep = pesep->next) {
+    /* Only rescan contexts are considered. */
+    if (!pesep->is_rescan) continue;
+    for (arg_prp = pesep->instantiation_descr->pack_status;
+         arg_prp != NULL; arg_prp = arg_prp->next) {
+      if (arg_prp->kind == prk_parameter) {
+        a_variadic_param_info_ptr	vpip;
+        vpip = arg_prp->param_info;
+        if (vpip != NULL &&
+            vpip->orig_param_type->param_num ==
+                                 (uint32_t)expr->variant.param_ref.param_num &&
+            vpip->level == expr->variant.param_ref.levels_up) {
+            result_type = arg_prp->curr_argument.param_type->type;
+            break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (result_type != NULL) break;
+  }  /* for */
+  return result_type;
+}  /* get_curr_variadic_param_type */
 
 
 a_template_arg_ptr get_curr_variadic_arg_for_param(a_template_param_ptr	tpp)
@@ -9303,7 +9509,8 @@ static a_pack_expansion_stack_entry_ptr push_pack_instantiation(
 		a_template_param_ptr			templ_param_list,
 		a_template_arg_ptr			templ_arg_list,
 		a_boolean				is_rescan,
-		a_boolean				is_deduction)
+		a_boolean				is_deduction,
+		a_ctws_state_ptr			ctws_state)
 /*
 Create a pack instantiation description entry based on the expansion described
 by pedp and push it on the pack expansion stack.  templ_param_list and
@@ -9312,7 +9519,8 @@ instantiation. Return a pointer to the pack expansion stack entry.  If
 this is an invalid expansion or there are no arguments to be expanded,
 return NULL.  is_rescan is TRUE if the pack instantiation is being pushed
 as part of processing a rescan context.   is_deduction is TRUE if the pack
-instantiation is being pushed as part of template argument deduction
+instantiation is being pushed as part of template argument deduction.
+ctws_state is a substitution state block pointer, and can be NULL.
 */
 {
   a_pack_expansion_stack_entry_ptr	pesep = NULL;
@@ -9324,7 +9532,7 @@ instantiation is being pushed as part of template argument deduction
      entry will be returned. */
   pidp = create_pack_instantiation_descr(pedp, templ_param_list,
                                          templ_arg_list, is_rescan,
-                                         is_deduction);
+                                         is_deduction, ctws_state);
   if (pidp != NULL) {
     pesep = push_pack_expansion_stack();
     pesep->is_rescan = is_rescan;
@@ -9488,7 +9696,8 @@ expansion.  If p_pedp is non-NULL a pointer to the entry is returned in
       get_curr_template_params_and_args(&templ_param_list, &templ_arg_list);
       pesep = push_pack_instantiation(pedp, templ_param_list, templ_arg_list,
                                       /*is_rescan=*/FALSE,
-                                      /*is_deduction=*/FALSE);
+                                      /*is_deduction=*/FALSE,
+                                      (a_ctws_state_ptr)NULL);
       if (pesep != NULL) {
         check_assertion(curr_cached_token_handle != NO_CACHED_TOKEN_HANDLE);
         pesep->first_token_handle = curr_cached_token_handle;
@@ -9533,7 +9742,8 @@ a_boolean begin_rescan_pack_expansion_context(
 		a_pack_expansion_descr_ptr		pedp,
 		a_template_param_ptr			templ_param_list,
 		a_template_arg_ptr			templ_arg_list,
-		a_pack_expansion_stack_entry_ptr	*p_pesep)
+		a_pack_expansion_stack_entry_ptr	*p_pesep,
+		a_ctws_state_ptr			ctws_state)
 
 /*
 This routine is similar to begin_potential_pack_expansion_context (see
@@ -9544,7 +9754,8 @@ be an actual pack expansion (unlike begin_potential_pack_expansion_context).
 pedp is the pack expansion descriptor created when the pack expansion
 was initially scanned, and can be NULL in which case this routine simply
 returns a NULL value in *p_pesep.  templ_param_list and templ_arg_list are the
-template parameters and arguments for the instantiation.
+template parameters and arguments for the instantiation.  ctws_state
+is a substitution state block pointer, and can be NULL.
 
 See begin_potential_pack_expansion_context for a description of the
 return value and the setting of *p_pesep (note that this routine is
@@ -9557,7 +9768,7 @@ returns TRUE if pedp was passed in as NULL.
   if (pedp != NULL) {
     pesep = push_pack_instantiation(pedp, templ_param_list, templ_arg_list,
                                     /*is_rescan=*/TRUE,
-                                    /*is_deduction=*/FALSE);
+                                    /*is_deduction=*/FALSE, ctws_state);
   }  /* if */
   *p_pesep = pesep;
   return pesep != NULL || pedp == NULL;
@@ -9591,8 +9802,8 @@ entry and returns a pointer to that entry in *p_pesep.
                                 (a_source_position*)NULL);
   }  /* if */
   pesep = push_pack_instantiation(pedp, templ_param_list, *templ_arg_list,
-                                  /*is_rescan=*/FALSE,
-                                  /*is_deduction=*/TRUE);
+                                  /*is_rescan=*/FALSE, /*is_deduction=*/TRUE,
+                                  (a_ctws_state_ptr)NULL);
   *p_pesep = pesep;
 }  /* begin_pack_deduction_context */
 
@@ -9617,9 +9828,10 @@ argument.  pesep describes the current pack deduction context.
          arg_prp = pesep->instantiation_descr->pack_status;
        param_prp != NULL;
        param_prp = param_prp->next, arg_prp = arg_prp->next) {
-    check_assertion(!param_prp->is_variable);
-    /* Clear the current argument value. */
-    arg_prp->curr_argument.template_arg = NULL;
+    if (param_prp->kind == prk_template_param) {
+      /* Clear the current argument value. */
+      arg_prp->curr_argument.template_arg = NULL;
+    }  /* if */
   }  /* for */
 }  /* advance_to_next_deduced_element */
 
@@ -9877,19 +10089,19 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
          param_prp != NULL;
          param_prp = param_prp->next, arg_prp = arg_prp->next) {
       a_symbol_ptr	sym = param_prp->symbol;
-      if (param_prp->is_variable) {
+      if (param_prp->kind == prk_variable) {
         /* The symbol for the first pack element is found by lookup.  Update
-           that symbol (pointed to by primary_var_symbol) o point to the
-           current variable to be used. */
+           that symbol (pointed to by primary_var_or_param_symbol) to point
+           to the current variable to be used. */
         a_variable_ptr	vp = arg_prp->curr_argument.variable;
         vp = vp->next;
         arg_prp->curr_argument.variable = vp;
         if (vp == NULL) {
           done = TRUE;
         } else {
-          arg_prp->primary_var_symbol->variant.variable.ptr = vp;
+          arg_prp->primary_var_or_param_symbol->variant.variable.ptr = vp;
         }  /* if */
-      } else {
+      } else if (param_prp->kind == prk_template_param) {
         /* A template argument. */
         a_template_arg_ptr	tap = arg_prp->curr_argument.template_arg;
         /* Advance to the next argument, if any.  If the argument is not
@@ -9903,6 +10115,37 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
             /* The symbols only need to be updated in actual instantiation
                contexts. */
             update_template_param_symbol(sym, tap);
+          }  /* if */
+        }  /* if */
+      } else {
+        /* A parameter from a function prototype scope. */
+        check_assertion(param_prp->kind == prk_parameter);
+        if (pesep->is_rescan) {
+          a_param_type_ptr	ptp;
+          a_param_type_ptr	next_ptp;
+          /* Advance to the next element on the list if the parameter number
+             and level match the current value. */
+          ptp = arg_prp->curr_argument.param_type;
+          next_ptp = ptp->next;
+          if (next_ptp == NULL ||
+              ptp->param_num != next_ptp->param_num) {
+            next_ptp = NULL;
+            done = TRUE;
+          }  /* if */
+          arg_prp->curr_argument.param_type = next_ptp;
+        } else {
+          /* The symbol for the first pack element is found by lookup.  Update
+             that symbol (pointed to by primary_var_or_param_symbol) to point
+             to the current param_id to be used. */
+          a_param_id_ptr	param_id = arg_prp->curr_argument.param_id;
+          a_param_id_ptr	next_param_id = param_id->next;
+          arg_prp->curr_argument.param_id = next_param_id;
+          if (next_param_id == NULL ||
+              param_id->param_num != next_param_id->param_num) {
+            done = TRUE;
+          } else {
+            arg_prp->primary_var_or_param_symbol->variant.param_id =
+                                                                 next_param_id;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -10015,11 +10258,18 @@ source position of the use of the symbols is indicated by position.
       }  /* for */
       if (prp == NULL) {
         /* An existing entry was not found.  Create a new one. */
-        a_boolean	is_variable;
-        is_variable = pack_symbol->kind == (a_symbol_kind)sk_variable;
-        prp = alloc_pack_reference(is_variable);
+        a_pack_reference_kind	kind;
+        /* Determine the kind of entity being represented. */
+        if (pack_symbol->kind == (a_symbol_kind)sk_variable) {
+          kind = prk_variable;
+        } else if (pack_symbol->kind == (a_symbol_kind)sk_parameter) {
+          kind = prk_parameter;
+        } else {
+          kind = prk_template_param;
+        }  /* if */
+        prp = alloc_pack_reference(kind);
         prp->symbol = pack_symbol;
-        if (is_variable) {
+        if (kind == prk_variable) {
           uint32_t			function_scopes_to_skip = 0;
           prp->param_num = pack_symbol->
                             variant.variable.ptr->assoc_param_type->param_num;
@@ -10034,6 +10284,8 @@ source position of the use of the symbols is indicated by position.
           }  /* for */
           check_assertion(ssep != NULL);
           prp->function_scopes_to_skip = function_scopes_to_skip;
+        } else if (kind == prk_parameter) {
+          prp->param_num = pack_symbol->variant.param_id->param_num;
         }  /* if */
         prp->position = *position;
         prp->token_sequence_number = curr_token_sequence_number;

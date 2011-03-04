@@ -243,6 +243,18 @@ typedef struct a_scope_pointers_block {
 
 
 /*
+Value that identifies the kind of entity represented by a pack reference.
+*/
+typedef enum /* a_pack_reference_kind */ {
+  prk_template_param,	/* A template parameter pack */
+  prk_variable,		/* An argument pack represented by a parameter
+			   variable. */
+  prk_parameter		/* An argument pack represented by a parameter
+			   symbol. */
+} a_pack_reference_kind;
+
+
+/*
 Entry used to construct a list of pack symbols that have been referenced
 in a variadic pack expansion context.  This entry is used both during
 the prototype instantiation and during a real instantiation.  During
@@ -275,28 +287,47 @@ typedef struct a_pack_reference {
 		token_sequence_number;
 			/* The token sequence number associated with the
 			   pack reference. */
-  a_byte_boolean
-		is_variable;
-			/* TRUE if this entry is for a reference to a
-			   function parameter pack (i.e., the symbol
-			   on which the entry was created was an
-			   sk_variable symbol). */
-  a_symbol_ptr	primary_var_symbol;
-			/* When is_variable is TRUE in an actual
-			   instantiation, this points to the primary variable
-			   symbol that is found by name lookup. */
+  a_pack_reference_kind
+		kind;
+			/* Specifies the kind of entity to which this
+			   entry refers. */
+  a_symbol_ptr	primary_var_or_param_symbol;
+			/* When kind == prk_variable or prk_parameter in
+			   an actual instantiation, this points to the primary
+			   variable symbol that is found by name lookup. */
   uint32_t	function_scopes_to_skip;
-			/* When is_variable is TRUE, this indicates the number
+			/* When kind == prk_variable, this indicates the number
 			   of function scopes to be bypassed to look for the
 			   matching parameter variable. */
+  a_variadic_param_info_ptr
+		param_info;
+			/* When kind == prk_parameter and this is a rescan
+			   context, this points to the variadic parameter
+			   information entry to be used for the current
+			   expansion.  This can be NULL in contexts in which
+			   it is not possible to refer to the parameter
+			   (e.g., deduction contexts). */
   union {
     a_variable_ptr
 		variable;
-			/* When symbol is a variable, this points to the
+			/* When kind == prk_variable, this points to the
 			   variable to be used for the current expansion. */
+    a_param_type_ptr
+		param_type;
+			/* When kind == prk_parameter and this is a rescan
+			   context, this points to the param type
+			   to be used for the current expansion.  This can
+			   be NULL in contexts in which it is not possible
+			   to refer to the parameter (e.g., deduction
+			   contexts). */
+    a_param_id_ptr
+		param_id;
+			/* When kind == prk_parameter and this is not a rescan
+			   context, this points to the parameter to
+			   be used for the current expansion. */
     a_template_arg_ptr
 		template_arg;
-			/* When symbol is not a variable, this points to the
+			/* When kind == prk_template_param, this points to the
 			   template argument entry to be used for the current
 			   expansion. */
   } curr_argument;
@@ -780,6 +811,10 @@ typedef struct a_scope_stack_entry {
 			   flag is inherited by most scopes pushed on the
 			   stack, except template instantiation and
 			   instantiation context scopes. */
+  a_bit_field	trans_unit_pushed:1;
+			/* For instantiation scopes pushed for template
+			   rescans, this indicates whether or not a
+			   translation unit was pushed. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
@@ -1177,7 +1212,7 @@ typedef struct a_scope_stack_entry {
 			   scope is reached, otherwise a diagnostic is
 			   issued. */
   a_pack_expansion_stack_entry_ptr
-			pack_expansion_stack;
+		pack_expansion_stack;
 			/* The saved value of the pack expansion stack when
 			   a template declaration or template instantiation
 			   scope is pushed. */
@@ -1239,6 +1274,10 @@ typedef struct a_scope_stack_entry {
 		class_fixup_header;
 			/* Class fixup information for the scope.  Only used
 			   for the global scope and function scope. */
+  a_param_id_ptr
+		param_id_list;
+			/* In function prototype scopes, this points to the
+			   param_id_list for the function, if any. */
 } a_scope_stack_entry;
 
 /*
@@ -1324,6 +1363,12 @@ when the original template is scanned and during a real instantiation.
 #define is_variadic_template_context()					\
   (depth_scope_stack != NO_SCOPE_DEPTH ?				\
    scope_stack[depth_scope_stack].in_variadic_template : FALSE)
+
+/*
+TRUE if we are in the context of the definition of a variadic template.
+*/
+#define is_variadic_definition_context()				\
+  (is_variadic_template_context() && is_prototype_instantiation_context())
 
 /*
 Safe version of is_template_dependent_context that can be used in
@@ -1544,6 +1589,10 @@ EXTERN a_boolean
 			   was delayed for some function in the primary IL. */
 
 
+EXTERN a_pack_expansion_stack_entry_ptr
+		pack_expansion_stack;
+			/* Pointer to the top of the pack expansion stack. */
+
 #if NEED_NAME_MANGLING
 extern void compute_name_collision_discriminator(a_symbol_ptr   sym,
                                                  a_scope_depth  scope_depth);
@@ -1602,6 +1651,10 @@ extern a_boolean push_template_instantiation_scope(
                             a_template_arg_ptr		template_arg_list,
 			    a_boolean			push_stop_tokens,
 			    a_push_scope_options_set	options);
+
+extern void push_instantiation_scope_for_rescan(a_symbol_ptr	template_sym);
+
+extern void pop_instantiation_scope_for_rescan(void);
 
 extern void push_instantiation_scope_for_templ_param_rescan(
                             a_template_decl_info_ptr	decl_info,
@@ -1706,6 +1759,8 @@ void wrapup_scope(a_scope_ptr			scope_ptr,
                   a_scope_pointers_block_ptr	pointers_block,
                   a_boolean 	                is_namespace_wrapup);
 
+extern a_type_ptr get_curr_variadic_param_type(an_expr_node_ptr	expr);
+
 extern a_template_decl_info_ptr get_current_template_decl_info(void);
 
 extern
@@ -1713,11 +1768,17 @@ a_template_arg_ptr get_curr_variadic_arg_for_param(a_template_param_ptr	tpp);
 
 extern a_boolean any_packs_referenced(void);
 
+/*
+Macro that is TRUE if there are any pack expansions being processed.
+*/
+#define in_pack_expansion_context() (pack_expansion_stack != NULL)
+
 extern a_boolean begin_rescan_pack_expansion_context(
 		a_pack_expansion_descr_ptr		pedp,
 		a_template_param_ptr			templ_param_list,
 		a_template_arg_ptr			templ_arg_list,
-		a_pack_expansion_stack_entry_ptr	*p_pesep);
+		a_pack_expansion_stack_entry_ptr	*p_pesep,
+		a_ctws_state_ptr			ctws_state);
 
 extern void begin_pack_deduction_context(
 		a_pack_expansion_descr_ptr		pedp,

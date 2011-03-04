@@ -1297,7 +1297,8 @@ to be done.
   any_more = begin_rescan_pack_expansion_context(pedep,
                                                  rcblock->template_param_list,
                                                  rcblock->template_arg_list,
-                                                 &pesep);
+                                                 &pesep,
+                                                 rcblock->ctws_state);
   while (any_more) {
     /* Rescan one iteration of the pack expansion and add the resulting
        expression to the argument operand list. */
@@ -5029,7 +5030,8 @@ copy_template_arg_list_with_substitution_rebuilding_arg_operands(
 			a_source_position	*source_pos,
 			a_ctws_options_set	options,
 			a_boolean		orig_is_nonreal_template,
-			a_boolean		*copy_error)
+			a_boolean		*copy_error,
+			a_ctws_state_ptr	ctws_state)
 /*
 Wrapper for copy_template_arg_list_with_substitution that additionally
 rebuilds the arg_operand information in the copied template argument list,
@@ -5048,7 +5050,8 @@ routines.
                                                      source_pos,
                                                      options,
                                                      orig_is_nonreal_template,
-                                                     copy_error);
+                                                     copy_error,
+                                                     ctws_state);
   return new_tap;
 }  /* copy_template_arg_list_with_substitution_rebuilding_arg_operands */
 
@@ -5064,6 +5067,7 @@ to the given locator.
   a_template_param_ptr rescan_orig_templ_param_list = NULL;
   a_symbol_ptr         sym = locator->specific_symbol;
   a_boolean            copy_error = FALSE;
+  a_ctws_state	ctws_state;
 
   check_assertion(sym != NULL);
   if (sym->kind == (a_symbol_kind)sk_function_template) {
@@ -5075,6 +5079,7 @@ to the given locator.
                                                    cache.decl_info->parameters;
     }  /* if */
   }  /* if */
+  init_ctws_state(&ctws_state);
   locator->template_arg_list =
               copy_template_arg_list_with_substitution_rebuilding_arg_operands(
                                              rescan_orig_templ_arg_list,
@@ -5084,7 +5089,8 @@ to the given locator.
                                              &locator->source_position,
                                              rcblock->options,
                                              /*orig_is_nonreal_template=*/TRUE,
-                                             &copy_error);
+                                             &copy_error,
+                                             &ctws_state);
   if (copy_error) {
     locator->is_error = TRUE;
     record_suppressed_error();
@@ -8214,7 +8220,8 @@ indication in *rcblock).
     any_more = begin_rescan_pack_expansion_context(pedep,
                                                   rcblock->template_param_list,
                                                    rcblock->template_arg_list,
-                                                   &pesep);
+                                                   &pesep,
+                                                   rcblock->ctws_state);
     /* Again, we loop only to count the number of times around. */
     while (any_more) {
       result_count++;
@@ -10042,32 +10049,33 @@ outside of the expression-processing routines.
 
 
 static void push_expr_rescan_context_if_necessary(
-                                    a_rescan_control_block   *rcblock,
-                                    a_template_decl_info_ptr *tdip,
-                                    an_expr_stack_entry_ptr  *saved_expr_stack)
+                         a_rescan_control_block   *rcblock,
+                         a_template_decl_info_ptr *tdip,
+                         an_expr_stack_entry_ptr  *saved_expr_stack,
+                         an_object_lifetime_ptr   *saved_curr_object_lifetime)
 /*
 We're starting on processing the rescanning of an expression.  If we're
 at the top level, push a template instantiation scope and restart the
 expression stack.  rcblock gives the rescan information, including a
 flag that can tell us whether we're at the top level.  *tdip is returned
 non-NULL if a context was pushed; it can be passed later to
-pop_expr_rescan_context_if_necessary.  *saved_expr_stack provides a
-place to save the current expression stack pointer, for restoration
-when the context pop is done.
+pop_expr_rescan_context_if_necessary.  *saved_expr_stack and
+*saved_curr_object_lifetime provide a place to save the current expression
+stack pointer and current object lifetime pointer, for restoration when
+the context pop is done.
 */
 {
   *tdip = NULL;
   *saved_expr_stack = NULL;
+  *saved_curr_object_lifetime = NULL;
   if (!(rcblock->options & CTWS_INSIDE_EXPR_RESCAN)) {
     rcblock->options |= CTWS_INSIDE_EXPR_RESCAN;
     save_expr_stack(saved_expr_stack);
+    *saved_curr_object_lifetime = curr_object_lifetime;
+    curr_object_lifetime =
+                   scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
     *tdip = alloc_template_decl_info();
-    (void)push_template_instantiation_scope(
-                              *tdip, (a_type_ptr)NULL, (a_routine_ptr)NULL,
-                              (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
-                              (a_template_arg_ptr)NULL,
-                              /*push_lex_state=*/TRUE,
-                              PS_NONREAL_INSTANTIATION);
+    expr_stack = NULL;
   } else {
     /* We're already inside an expression rescan, so there should be an
        expression stack already. */
@@ -10077,18 +10085,20 @@ when the context pop is done.
 
 
 static void pop_expr_rescan_context_if_necessary(
-                                     a_template_decl_info_ptr tdip,
-                                     an_expr_stack_entry_ptr  saved_expr_stack)
+                         a_template_decl_info_ptr tdip,
+                         an_expr_stack_entry_ptr  saved_expr_stack,
+                         an_object_lifetime_ptr   saved_curr_object_lifetime)
 /*
 Pop a context for an expression rescan if one was pushed by
-push_expr_rescan_context_if_necessary.  tdip and saved_expr_stack are the
-values returned from the push.
+push_expr_rescan_context_if_necessary.  tdip, saved_expr_stack, and
+saved_curr_object_lifetime are the values returned from the push.
 */
 {
   if (tdip != NULL) {
     pop_template_instantiation_scope();
     free_template_decl_info(tdip);
     restore_expr_stack(saved_expr_stack);
+    curr_object_lifetime = saved_curr_object_lifetime;
   }  /* if */
 }  /* pop_expr_rescan_context_if_necessary */
 
@@ -10119,15 +10129,17 @@ a_type_ptr decltype_of_expr_with_substitution(
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_param_ptr     template_param_list,
                                   a_ctws_options_set       options,
-                                  a_boolean                *copy_error)
+                                  a_boolean                *copy_error,
+                                  a_ctws_state_ptr         ctws_state)
 /*
 type is a decltype type, and expr is the previously-scanned operand
 expression of the decltype.  Do template deduction substitution on it
 using template_arg_list, template_param_list, and options.  Return the
 type of decltype applied to the resulting expression, or *copy_error
-set to TRUE if there was an error.  Also used for typeof cases; "type"
-can be consulted to tell the difference.  This routine is intended to be
-called from outside of the expression-processing routines.
+set to TRUE if there was an error.  ctws_state is the substitution state
+block.  Also used for typeof cases; "type" can be consulted to tell the
+difference.  This routine is intended to be called from outside of the
+expression-processing routines.
 */
 {
   a_type_ptr               new_type;
@@ -10135,6 +10147,7 @@ called from outside of the expression-processing routines.
   a_template_decl_info_ptr tdip;
   an_expr_stack_entry_ptr  saved_expr_stack;
   an_expr_stack_entry      expr_stack_entry;
+  an_object_lifetime_ptr   saved_curr_object_lifetime;
   a_boolean                is_typeof = FALSE;
 
   check_assertion(type->kind == (a_type_kind)tk_typeref);
@@ -10145,8 +10158,10 @@ called from outside of the expression-processing routines.
   rcblock.template_arg_list = template_arg_list;
   rcblock.template_param_list = template_param_list;
   rcblock.options = options;
+  rcblock.ctws_state = ctws_state;
   rcblock.expr = expr;
-  push_expr_rescan_context_if_necessary(&rcblock, &tdip, &saved_expr_stack);
+  push_expr_rescan_context_if_necessary(&rcblock, &tdip, &saved_expr_stack,
+                                        &saved_curr_object_lifetime);
   push_expr_stack_for_expr_rescan((an_expression_kind)ek_sizeof,
                                   &expr_stack_entry);
   if (!is_typeof) {
@@ -10160,7 +10175,8 @@ called from outside of the expression-processing routines.
   }  /* if */
   if (rcblock.error_detected) *copy_error = TRUE;
   pop_expr_stack();
-  pop_expr_rescan_context_if_necessary(tdip, saved_expr_stack);
+  pop_expr_rescan_context_if_necessary(tdip, saved_expr_stack,
+                                       saved_curr_object_lifetime);
   return new_type;
 }  /* decltype_of_expr_with_substitution */
 
@@ -25929,6 +25945,7 @@ is TRUE if the expression is the immediate operand of an "&" operator.
   a_symbol_ptr                  sym = NULL;
   a_boolean                     is_template_id = FALSE;
   a_template_arg_ptr            expl_templ_arg_list = NULL;
+  a_type_ptr                    new_type = NULL;
 
   /* We pass the second argument as NULL because we require explicit
      rescan information on this node. */
@@ -25937,8 +25954,15 @@ is TRUE if the expression is the immediate operand of an "&" operator.
     /* A reference to a parameter name within the header of the function,
        where a parameter variable is not available. */
     an_expr_node_ptr expr_copy = copy_node(expr);
-    expr_copy->type = do_type_substitution_for_rescan(expr->type, rcblock,
-                                                      eriep);
+    /* See if this is a reference to a pack element.  This routine will
+       return NULL if this is not a pack reference. */
+    new_type = get_curr_variadic_param_type(expr_copy);
+    if (new_type == NULL) {
+      /* If no type was returned above, do substitution on the original
+         type. */
+      new_type = do_type_substitution_for_rescan(expr->type, rcblock, eriep);
+    }  /* if */
+    expr_copy->type = new_type;
     make_lvalue_or_rvalue_expression_operand(expr_copy, result);
     if (is_any_reference_type(result->type)) {
       add_reference_indirection(result);
@@ -26447,6 +26471,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
   an_operand                    local_bound_function_selector;
   a_template_decl_info_ptr      tdip;
   an_expr_stack_entry_ptr       saved_expr_stack;
+  an_object_lifetime_ptr        saved_curr_object_lifetime;
 
   if (bound_function_selector == NULL) {
     bound_function_selector = &local_bound_function_selector;
@@ -26458,7 +26483,8 @@ alternative callable from outside, see rescan_expr_with_substitution.
   if (eriep == NULL) {
     eriep = get_expr_rescan_info(expr, &rescan_info);
   }  /* if */
-  push_expr_rescan_context_if_necessary(rcblock, &tdip, &saved_expr_stack);
+  push_expr_rescan_context_if_necessary(rcblock, &tdip, &saved_expr_stack,
+                                        &saved_curr_object_lifetime);
   /* Push an expression stack entry if the stack is empty or if the kind of
      top stack entry we have is not what we need. */
   if (expr_stack == NULL ||
@@ -26711,7 +26737,8 @@ alternative callable from outside, see rescan_expr_with_substitution.
   }  /* if */
   expr_stack->default_rescan_info = saved_default_rescan_info;
   if (stack_pop_needed) pop_expr_stack();
-  pop_expr_rescan_context_if_necessary(tdip, saved_expr_stack);
+  pop_expr_rescan_context_if_necessary(tdip, saved_expr_stack,
+                                       saved_curr_object_lifetime);
   rcblock->expr = saved_expr;
   rcblock->options = saved_rcblock_options;
 }  /* rescan_expr_with_substitution_internal */
@@ -26736,9 +26763,11 @@ expression-processing routines.
   an_operand               result;
   a_template_decl_info_ptr tdip;
   an_expr_stack_entry_ptr  saved_expr_stack;
+  an_object_lifetime_ptr   saved_curr_object_lifetime;
   an_expr_stack_entry      expr_stack_entry;
 
-  push_expr_rescan_context_if_necessary(rcblock, &tdip, &saved_expr_stack);
+  push_expr_rescan_context_if_necessary(rcblock, &tdip, &saved_expr_stack,
+                                        &saved_curr_object_lifetime);
   /* We push our own stack entry at this level, instead of just letting
      rescan_expr_with_substitution_internal handle it, because we
      want to have the entry on the stack still at the end of this
@@ -26769,7 +26798,8 @@ expression-processing routines.
     expr = make_node_from_operand(&result);
   }  /* if */
   pop_expr_stack();
-  pop_expr_rescan_context_if_necessary(tdip, saved_expr_stack);
+  pop_expr_rescan_context_if_necessary(tdip, saved_expr_stack,
+                                       saved_curr_object_lifetime);
   return expr;
 }  /* rescan_expr_with_substitution */
 

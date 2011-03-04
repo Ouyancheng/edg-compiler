@@ -104,6 +104,9 @@ typedef struct a_rescan_control_block {
   a_ctws_options_set
 		options;
 			/* Options for copy_template_param_expr. */
+  a_ctws_state_ptr
+		ctws_state;
+			/* The template argument substitution state. */
   a_byte_boolean
 		error_detected;
 			/* TRUE if an error was detected in the rescan, which
@@ -163,7 +166,8 @@ copy_template_arg_list_with_substitution_rebuilding_arg_operands(
 			a_source_position	*source_pos,
 			a_ctws_options_set	options,
 			a_boolean		orig_is_nonreal_template,
-			a_boolean		*copy_error);
+			a_boolean		*copy_error,
+			a_ctws_state_ptr	ctws_state);
 
 extern an_expr_node_ptr scan_integer_expression(a_boolean is_switch_expr);
 
@@ -333,7 +337,8 @@ extern a_type_ptr decltype_of_expr_with_substitution(
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_param_ptr     template_param_list,
                                   a_ctws_options_set       options,
-                                  a_boolean                *copy_error);
+                                  a_boolean                *copy_error,
+                                  a_ctws_state_ptr         ctws_state);
 
 #if GNU_EXTENSIONS_ALLOWED 
 

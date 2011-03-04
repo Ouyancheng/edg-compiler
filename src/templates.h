@@ -539,6 +539,8 @@ extern a_boolean is_template_param_from_list(
 		        a_template_param_coordinate_ptr	coordinates,
 			a_template_param_ptr		templ_param_list);
 
+extern void init_ctws_state(a_ctws_state_ptr	csp);
+
 extern a_template_arg_ptr copy_template_arg_list_with_substitution(
 			a_template_arg_ptr	arg_list_to_copy,
 			a_template_param_ptr	param_list_for_copy,
@@ -547,7 +549,8 @@ extern a_template_arg_ptr copy_template_arg_list_with_substitution(
 			a_source_position	*source_pos,
 			a_ctws_options_set	options,
 			a_boolean		orig_is_nonreal_template,
-			a_boolean		*copy_error);
+			a_boolean		*copy_error,
+			a_ctws_state_ptr	ctws_state);
 
 extern a_symbol_ptr copy_parent_type_with_substitution(
 			a_symbol_ptr			sym,
@@ -557,7 +560,8 @@ extern a_symbol_ptr copy_parent_type_with_substitution(
 			a_source_position		*source_pos,
 			a_boolean			is_type,
 			a_ctws_options_set		options,
-			a_boolean			*copy_error);
+			a_boolean			*copy_error,
+			a_ctws_state_ptr		ctws_state);
 
 extern a_type_ptr copy_type_with_substitution(
 			a_type_ptr			type,
@@ -565,7 +569,9 @@ extern a_type_ptr copy_type_with_substitution(
 			a_template_param_ptr		templ_param_list,
 			a_source_position		*source_pos,
 			a_ctws_options_set		options,
-			a_boolean			*copy_error);
+			a_boolean			*copy_error,
+			a_ctws_state_ptr		ctws_state);
+
 
 extern a_boolean equiv_template_arg_lists(
 				a_template_arg_ptr list1,

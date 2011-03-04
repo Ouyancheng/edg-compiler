@@ -2639,6 +2639,7 @@ Clear a rescan control block to default values.
   rcblock->template_arg_list = NULL;
   rcblock->template_param_list = NULL;
   rcblock->options = CTWS_NO_OPTIONS;
+  rcblock->ctws_state = NULL;
   rcblock->error_detected = FALSE;
 }  /* clear_rescan_control_block */
 
@@ -2803,6 +2804,7 @@ in *bound_function_selector.
   an_expr_node_ptr              orig_expr = expr;
   an_expr_node_ptr              expr_copy;
   a_boolean                     copy_error = FALSE, rescanned_case = FALSE;
+  a_ctws_state                  ctws_state;
   a_constant                    constant;
   a_constant_ptr                alloc_con;
   an_expr_rescan_info_entry_ptr eriep;
@@ -2831,6 +2833,7 @@ in *bound_function_selector.
     rescanned_case = TRUE;
   } else {
     /* Copy the expression with substitution. */
+    init_ctws_state(&ctws_state);
     expr_copy = copy_template_param_expr(expr,
                                          rcblock->template_arg_list,
                                          rcblock->template_param_list,
@@ -2838,6 +2841,7 @@ in *bound_function_selector.
                                          &eriep->saved_operand.position,
                                          rcblock->options,
                                          &copy_error,
+                                         &ctws_state,
                                          &constant,
                                          &alloc_con);
   }  /* if */
@@ -3123,15 +3127,17 @@ by rcblock, and with additional information from *eriep, and return the
 substituted type, or an error indication in rcblock.
 */
 {
-  a_type_ptr new_type;
-  a_boolean  copy_error = FALSE;
+  a_type_ptr   new_type;
+  a_boolean    copy_error = FALSE;
+  a_ctws_state ctws_state;
 
+  init_ctws_state(&ctws_state);
   new_type = copy_type_with_substitution(type,
                                          rcblock->template_arg_list,
                                          rcblock->template_param_list,
                                          &eriep->saved_operand.position,
                                          CTWS_NON_CONSTANT_EXPR,
-                                         &copy_error);
+                                         &copy_error, &ctws_state);
   if (copy_error) {
     rcblock->error_detected = TRUE;
   }  /* if */

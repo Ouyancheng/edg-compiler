@@ -3112,10 +3112,12 @@ TRUE if a substitution error occurs.
   }  /* if */
   if (!*p_error && t_args != NULL &&
       aap->variant.constant->kind == (a_constant_repr_kind)ck_template_param) {
+    a_ctws_state		ctws_state;
+    init_ctws_state(&ctws_state);
     aap->variant.constant = copy_template_param_con_with_substitution(
                                    aap->variant.constant, t_args, t_params,
                                    (a_type_ptr)NULL, &aap->position,
-                                   CTWS_NO_OPTIONS, p_error);
+                                   CTWS_NO_OPTIONS, p_error, &ctws_state);
   }  /* if */
 }  /* substitute_attribute_arg_constant */
 
@@ -3149,9 +3151,12 @@ is a class member, parent_class points to the entry for its parent class
                                   parent_class_or_null(parent_class), p_error);
   }  /* if */
   if (!*p_error && t_args != NULL) {
+    a_ctws_state		ctws_state;
+    init_ctws_state(&ctws_state);
     aap->variant.type = copy_type_with_substitution(
                                     aap->variant.type, t_args, t_params,
-                                    &aap->position, CTWS_NO_OPTIONS, p_error);
+                                    &aap->position, CTWS_NO_OPTIONS, p_error,
+                                    &ctws_state);
   }  /* if */
 }  /* substitute_attribute_arg_type */
 
