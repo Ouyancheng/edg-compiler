@@ -6,7 +6,7 @@ GNU-mode built-in vector function corrections
 A few corrections have been made to the types of built-in GNU vector functions
 (like __builtin_ia32_paddq).  Vectors of one or two 64-bit integers were
 previously typed as vectors of type "long" in configurations where "long" is a
-64-bit type: Now they're always types as vectors of type "long long".  In
+64-bit type: Now they're always typed as vectors of type "long long".  In
 addition, the functions __builtin_ia32_loadhps, __builtin_ia32_loadlps,
 __builtin_ia32_storehps, and __builtin_ia32_store_lps now take a pointer to a
 vector of floating-point entities when gnu_version >= 40000 instead of a
