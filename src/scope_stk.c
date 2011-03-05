@@ -9324,8 +9324,9 @@ advance to the next pack element for each symbol.
         elements = elements_for_pack;
         is_first_pack = FALSE;
       } else if (elements != elements_for_pack) {
-        pos_sy2_error(ec_pack_length_mismatch, &prp->position, prp->symbol,
-                      pedp->packs_referenced->symbol);
+        pos_st2_error(ec_pack_length_mismatch, &prp->position,
+                      prp->symbol->header->identifier,
+                      pedp->packs_referenced->symbol->header->identifier);
         any_errors = TRUE;
       }  /* if */
     }  /* if */
