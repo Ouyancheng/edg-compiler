@@ -10181,7 +10181,10 @@ declared and before the partial instantiation of the function was done.
       !f_types_are_compatible(substituted_type, type,
                               TCF_CHECKING_DEDUCTION_RESULT)) {
     if (!is_or_contains_error_type(type) &&
-        !is_or_contains_error_type(templ_rout->type)) {
+        !is_or_contains_error_type(templ_rout->type) &&
+        !f_types_are_compatible(substituted_type, type,
+                                TCF_CHECKING_DEDUCTION_RESULT ||
+                                TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
       /* If the type contains an error type it is likely that the current
          routine type is already an error routine type produced earlier.
          Don't issue a diagnostic in this case, but still create an
