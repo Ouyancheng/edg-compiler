@@ -9160,7 +9160,7 @@ a pointer over a reference type or creating an array of references.
                                         templ_arg_list, templ_param_list,
                                         source_pos, options, copy_error,
                                         ctws_state);
-          check_assertion(new_return_type == orig_type);
+          check_assertion(identical_types(new_return_type,orig_type));
         }  /* if */
 #endif /* EXPENSIVE_CHECKING */
         /* Falling through to here means that no substitutions are required
