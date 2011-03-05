@@ -4431,7 +4431,8 @@ extern void add_to_param_id_list(a_symbol_locator            *locator,
                                  a_storage_class             storage_class,
                                  a_func_info_block_ptr       func_info,
                                  a_source_sequence_entry_ptr param_ssep,
-                                 a_param_id_ptr              *last_param_id);
+                                 a_param_id_ptr              *last_param_id,
+                                 a_boolean                   is_pack_element);
 
 extern a_param_id_ptr param_id_on_list(a_symbol_locator *locator,
                                        a_param_id_ptr    param_id_list);

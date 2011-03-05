@@ -11913,12 +11913,14 @@ void add_to_param_id_list(a_symbol_locator            *locator,
                           a_storage_class             storage_class,
                           a_func_info_block_ptr       func_info,
                           a_source_sequence_entry_ptr param_ssep,
-                          a_param_id_ptr              *last_param_id)
+                          a_param_id_ptr              *last_param_id,
+                          a_boolean                   is_pack_element)
 /*
 Create a new param_id entry and an sk_parameter symbol to go with it,
 and add the former to the parameter id list pointed to by func_info;
 *last_param_id points to the last entry on it.  type_ptr and
 storage_class are the type and storage class for the parameter.
+is_pack_element is TRUE if the parameter is a pack element.
 */
 {
   a_param_id_ptr  new_param_id;
@@ -11932,7 +11934,7 @@ storage_class are the type and storage class for the parameter.
      only diagnosed in function definitions).  Create a param_id entry if this
      is a prototype parameter list, but not otherwise. */
   if (!is_error_locator(*locator)) {
-    if (is_non_initial_variadic_param()) {
+    if (is_pack_element && is_non_initial_variadic_param()) {
       /* Only the first copy of a element of a variadic parameter is entered
          into the symbol table. */
       non_initial_variadic_param = TRUE;

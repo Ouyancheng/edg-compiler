@@ -2539,7 +2539,7 @@ TRUE if this is the function declarator in a friend function declaration.
           add_to_param_id_list(&param_locator, param_id_type, &param_type_pos,
                                param_storage_class, func_info,
                                param_state.source_sequence_entry,
-                               &last_param_id);
+                               &last_param_id, is_pack_element);
           last_param_id->declared_type = param_state.declared_type;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           last_param_id->specifiers_range =
@@ -2966,7 +2966,7 @@ TRUE if this is the function declarator in a friend function declaration.
                              (a_source_position*)NULL,
                              (a_storage_class)sc_unspecified, 
                              func_info, (a_source_sequence_entry_ptr)NULL,
-                             &last_param_id);
+                             &last_param_id, /*is_pack_element=*/FALSE);
         /* Update the param-id entry just created with the source position
            of the identifier. */
         last_param_id->old_style_id_pos = locator_for_curr_id.source_position;
