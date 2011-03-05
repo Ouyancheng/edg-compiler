@@ -2565,7 +2565,6 @@ the scope being pushed.
   ssep->ignore_during_normal_lookup = FALSE;
   ssep->force_decl_seq_check = (options & PS_FORCE_DECL_SEQ_CHECK) != 0;
   ssep->outside_parameter_list = FALSE;
-  ssep->trans_unit_pushed = FALSE;
   /* The in_template_arg_list flag indicates whether we're currently scanning
      tokens inside angle brackets.  If we push a scope that implies a new
      source of tokens (e.g., a template instantiation), clear the flag. */
@@ -4475,27 +4474,23 @@ push_template_instantiation_scope.
 }  /* pop_template_instantiation_scope */
 
 
+/*ARGSUSED*/ /* <-- Because "template_sym" is not used. */
 void push_instantiation_scope_for_rescan(a_symbol_ptr	template_sym)
 /*
-Push an instantiation scope for the rescan of the template specified by
-template_sym.
+Push an instantiation scope for expression rescan.  template_sym is
+currently unused.
 */
 {
   a_template_decl_info_ptr		tdip;
-  a_boolean				trans_unit_pushed;
 
   check_assertion(template_sym->kind == (a_symbol_kind)sk_function_template);
   tdip = alloc_template_decl_info();
-  /* Switch to the translation unit containing the template, if needed. */
-  trans_unit_pushed = push_translation_unit_if_needed(template_sym);
   (void)push_template_instantiation_scope(
                               tdip, (a_type_ptr)NULL, (a_routine_ptr)NULL,
-                              (a_symbol_ptr)NULL, template_sym,
+                              (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                               (a_template_arg_ptr)NULL,
                               /*push_lex_state=*/TRUE,
                               PS_NONREAL_INSTANTIATION);
-  /* Record whether a translation unit was pushed above. */
-  scope_stack_top().trans_unit_pushed = trans_unit_pushed;
   /* Don't include this scope in any diagnostic output that may be produced. */
   scope_stack[depth_innermost_instantiation_scope].
                                             exclude_from_context_output = TRUE;
@@ -4509,14 +4504,10 @@ push_instantiation_scope_for_rescan.
 */
 {
   a_template_decl_info_ptr	tdip;
-  a_boolean			trans_unit_pushed;
 
-  trans_unit_pushed = scope_stack_top().trans_unit_pushed;
   tdip = scope_stack[depth_innermost_instantiation_scope].template_decl_info;
   pop_template_instantiation_scope();
   free_template_decl_info(tdip);
-  /* If a translation unit was pushed earlier, pop it now. */
-  if (trans_unit_pushed) pop_translation_unit_stack();
 }  /* pop_instantiation_scope_for_rescan */
 
 

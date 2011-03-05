@@ -811,10 +811,6 @@ typedef struct a_scope_stack_entry {
 			   flag is inherited by most scopes pushed on the
 			   stack, except template instantiation and
 			   instantiation context scopes. */
-  a_bit_field	trans_unit_pushed:1;
-			/* For instantiation scopes pushed for template
-			   rescans, this indicates whether or not a
-			   translation unit was pushed. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
