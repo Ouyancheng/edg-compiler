@@ -1967,7 +1967,7 @@ ec_cppcli_enumerator_requires_explicit_value;;"an explicit enumerator value is r
 ec_wchar_t_type_not_allowed;;"wchar_t type is not allowed"
 ec_pack_not_expanded;;"parameter pack %no was referenced but not expanded"
 ec_expansion_contains_no_packs;;"pack expansion does not make use of any argument packs"
-ec_pack_length_mismatch;;"pack %s does not have the same number of elements as %s2"
+ec_pack_length_mismatch;;"pack %sq does not have the same number of elements as %sq2"
 REMOVED;ec_pack_not_at_end;;"parameter pack must be the final parameter"
 ec_vector_size_attribute_on_enum_type;;"vector_size attribute is not allowed with an enumeration type"
 ec_virtual_static_property;;"a property cannot be both static and virtual"
