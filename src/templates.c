@@ -9154,7 +9154,7 @@ a pointer over a reference type or creating an array of references.
         if (!is_partial_order_check) {
           /* Because we check for a dependent return type above, we should
              not end up with a different substituted type here. */
-          a_type_ptr	orig_type = skip_typerefs(new_return_type);
+          a_type_ptr	orig_type = skip_typedefs(new_return_type);
           new_return_type = copy_return_type_with_substitution(
                                         new_return_type,
                                         templ_arg_list, templ_param_list,
