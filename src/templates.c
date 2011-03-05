@@ -6332,7 +6332,9 @@ another template parameter.
          tpp != NULL && tap != NULL;
          tpp = tpp->is_pack ? tpp : tpp->next, tap = tap->next) {
       a_symbol_kind		sym_kind = tpp->param_symbol->kind;
-      if (templ_arg_kind_for_symbol_kind(sym_kind) != tap->kind) {
+      if (is_start_of_pack_expansion_templ_arg(tap)) {
+        /* Skip this entry. */
+      } else if (templ_arg_kind_for_symbol_kind(sym_kind) != tap->kind) {
         arg_kind_mismatch = TRUE;
         break;
       }  /* if */
@@ -6361,6 +6363,11 @@ another template parameter.
                                  : (is_parameter_pack = FALSE, tpp->next)) {
       a_symbol_kind		sym_kind = tpp->param_symbol->kind;
       a_templ_arg_kind		arg_kind;
+      if (specified_tap != NULL &&
+          is_start_of_pack_expansion_templ_arg(specified_tap)) {
+        /* If we encounter a placeholder, set the pack flag. */
+        is_parameter_pack = TRUE;
+      }  /* if */
       if (tpp->is_pack && !is_parameter_pack) {
         /* There was no parameter list available when the specified template
            argument list was created.  As a result, we need to add the
@@ -6380,9 +6387,16 @@ another template parameter.
       /* Don't create a template an empty argument for a parameter pack with
          no specified arguments. */
       if (tpp->is_pack && specified_tap == NULL) continue;
-      arg_kind = templ_arg_kind_for_symbol_kind(sym_kind);
-      tap = alloc_template_arg(arg_kind);
-      if (specified_tap != NULL) {
+      if (specified_tap != NULL &&
+          is_start_of_pack_expansion_templ_arg(specified_tap)) {
+        tap =
+             alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
+      } else {
+        arg_kind = templ_arg_kind_for_symbol_kind(sym_kind);
+        tap = alloc_template_arg(arg_kind);
+      }  /* if */
+      if (specified_tap != NULL &&
+          !is_start_of_pack_expansion_templ_arg(specified_tap)) {
         /* An argument value was supplied.  Copy it to the newly created
            template argument. */
         tap->explicitly_specified = specified_tap->explicitly_specified;
