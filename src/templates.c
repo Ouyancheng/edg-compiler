@@ -5023,6 +5023,11 @@ the same constant.
                           (options & ETA_IS_VARIADIC) != 0,
                           "equiv_template_arg_lists: arg inconsistency");
       break;
+    } else if (!is_prototype && (arg1->pack_expansion_descr != NULL) !=
+               (arg2->pack_expansion_descr != NULL)) {
+      /* Two nonreal instantiations one with and one without an expansion
+         description.  Don't share the types. */
+      equiv = FALSE;
     } else if (is_nontype_templ_arg(arg1)) {
       /* Both are constant arguments.  If they are not identical, this is a
          mismatch. */
