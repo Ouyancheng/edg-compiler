@@ -9930,6 +9930,20 @@ that list to pedp.
               prev_prp2 = prp2;
             }  /* if */
           }  /* for */
+          if (prp1->kind == prk_variable) {
+            uint32_t			function_scopes_to_skip = 0;
+            /* Find out how many function scopes need to be skipped to find
+              the parameter variable. */
+            for (ssep = &scope_stack_top(); ssep != NULL;
+                 ssep = previous_scope_of(ssep)) {
+              /* Only consider function scopes. */
+              if (ssep->kind != (a_scope_kind)sck_function) continue;
+              if (ssep->number == prp1->symbol->decl_scope) break;
+              function_scopes_to_skip++;
+            }  /* for */
+            check_assertion(ssep != NULL);
+            prp1->function_scopes_to_skip = function_scopes_to_skip;
+          }  /* if */
         }  /* for */
       }
     }  /* if */
@@ -10261,20 +10275,8 @@ source position of the use of the symbols is indicated by position.
         prp = alloc_pack_reference(kind);
         prp->symbol = pack_symbol;
         if (kind == prk_variable) {
-          uint32_t			function_scopes_to_skip = 0;
           prp->param_num = pack_symbol->
                             variant.variable.ptr->assoc_param_type->param_num;
-          /* Find out how many function scopes need to be skipped to find
-             the parameter variable. */
-          for (ssep = &scope_stack_top(); ssep != NULL;
-               ssep = previous_scope_of(ssep)) {
-            /* Only consider function scopes. */
-            if (ssep->kind != (a_scope_kind)sck_function) continue;
-            if (ssep->number == pack_symbol->decl_scope) break;
-            function_scopes_to_skip++;
-          }  /* for */
-          check_assertion(ssep != NULL);
-          prp->function_scopes_to_skip = function_scopes_to_skip;
         } else if (kind == prk_parameter) {
           prp->param_num = pack_symbol->variant.param_id->param_num;
         }  /* if */
