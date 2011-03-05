@@ -9160,7 +9160,14 @@ a pointer over a reference type or creating an array of references.
                                         templ_arg_list, templ_param_list,
                                         source_pos, options, copy_error,
                                         ctws_state);
-          check_assertion(identical_types(new_return_type,orig_type));
+          if (!identical_types(new_return_type,orig_type)) {
+            fprintf(f_debug, "orig_type: ");
+            db_type(orig_type);
+            fprintf(f_debug, "new_return_type: ");
+            db_type(new_return_type);
+            unexpected_condition_str2("copy_type_with_substitution:",
+                                      "unexpected difference in return type");
+          }  /* if */
         }  /* if */
 #endif /* EXPENSIVE_CHECKING */
         /* Falling through to here means that no substitutions are required
