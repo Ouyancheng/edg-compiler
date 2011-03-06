@@ -2301,8 +2301,13 @@ nested class.
 #endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-          /* Let get_token know about the cache. */
-          rescan_cached_tokens(&rfp->function_body_token_cache);
+          /* If the cache was scanned as reusable, rescan it as reusable and
+             discard it below.  Otherwise, just rescan it as non-reusable. */
+          if (rfp->function_body_token_cache.is_reusable) {
+            rescan_reusable_cache(&rfp->function_body_token_cache);
+          } else {
+            rescan_cached_tokens(&rfp->function_body_token_cache);
+          }  /* if */
           /* Scan the function body. */
           scan_function_body(rp, &rfp->func_info,
                              (SFB_NO_CLASS_REACTIVATION |
@@ -2310,6 +2315,9 @@ nested class.
                               SFB_PRAGMA_PACK_IS_LOCAL));
           /* scan_function_body does not scan past the right brace. */
           if (curr_token == tok_rbrace) (void)get_token();
+          if (rfp->function_body_token_cache.is_reusable) {
+            discard_token_cache(&rfp->function_body_token_cache);
+          }  /* if */
           /* In the normal case the current token should be end_of_source,
              which was inserted to mark the end of the cached token stream.
              If necessary, keep flushing until end-of-source is found. */
