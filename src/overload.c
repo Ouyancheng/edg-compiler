@@ -4235,7 +4235,8 @@ Find any candidate surrogate functions and add them to the candidate_functions
 list.  Look for conversion functions that convert the class object indicated
 by class_object to pointer to function.  Each function pointed to
 is considered a surrogate function, and its parameters are compared to the
-arguments of the call (given by arg_operand_list).
+arguments of the call (given by arg_operand_list).  In C++/CLI mode,
+the class_object can be a handle to an object.
 */
 {
   a_symbol_list_entry_ptr slep;
@@ -4244,8 +4245,19 @@ arguments of the call (given by arg_operand_list).
   a_type_ptr              class_type, conversion_type, routine_type;
   a_boolean               matched_except_for_missing_selector = FALSE;
   a_boolean               matched_except_for_selector = FALSE;
+  a_boolean               handle_case = FALSE;
 
-  class_type = skip_typerefs(class_object->type);
+  class_type = class_object->type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (class_object->selector_is_object_pointer) {
+    /* In C++/CLI, the object can be a handle. */
+    class_type = type_pointed_to(class_type);
+    handle_case = TRUE;
+  }  /* if */
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+  check_assertion(!class_object->selector_is_object_pointer);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  class_type = skip_typerefs(class_type);
   check_assertion(is_immediate_class_type(class_type));
   /* Look at all conversion functions.  (The standard calls for conversion
      functions in accessible base classes, but that seems wrong.) */
@@ -4288,7 +4300,8 @@ arguments of the call (given by arg_operand_list).
                                                   surrogate_function_conv_sym,
                                                   /*is_conv_func=*/TRUE);
         determine_selector_match_level(class_object->type,
-                                       /*selector_is_object_pointer=*/FALSE,
+                                       /*selector_is_object_pointer=*/
+                                                                   handle_case,
                                        this_param_type,
                                        &match);
         /* coverity[uninit_use] */ /* Coverity bug */
@@ -6777,7 +6790,16 @@ in_instantiation:
       /* Call of class object, no operator() or appropriate conversion
          functions to pointer to function type. */
       check_assertion(surrogate_function_conv_sym != NULL);
-      expr_pos_error(ec_bad_call_of_class_object, call_position);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled && have_selector &&
+          is_handle_type(bound_function_selector->type)) {
+        expr_pos_error(ec_bad_call_of_handle, call_position);
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        expr_pos_error(ec_bad_call_of_class_object, call_position);
+      }  /* if */
     } else {
       /* Normal case. */
       a_type_ptr object_type = NULL;
@@ -11528,7 +11550,20 @@ for a bitwise assignment) instead of passed to a member function, so
 this routine does not assume that the selector address will be taken.
 */
 {
-  if (is_class_struct_union_type(operand->type)) {
+  a_type_ptr operand_type = operand->type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean  handle_case = FALSE;
+
+  if (operand->selector_is_object_pointer) {
+    /* In C++/CLI, the selector can be a handle. */
+    check_assertion(cppcli_enabled && is_handle_type(operand_type));
+    operand_type = type_pointed_to(operand_type);
+    handle_case = TRUE;
+  }  /* if */
+#else /* MICROSOFT_EXTENSIONS_ALLOWED */
+  check_assertion(!operand->selector_is_object_pointer);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (is_class_struct_union_type(operand_type)) {
     a_type_ptr       this_param_type, this_class_type, operand_class_type;
     a_type_ptr       qual_this_class_type;
     a_base_class_ptr bcp;
@@ -11536,7 +11571,7 @@ this routine does not assume that the selector address will be taken.
     this_param_type = implicit_this_param_type_of(routine_type);
     qual_this_class_type = type_pointed_to(this_param_type);
     this_class_type = skip_typerefs(qual_this_class_type);
-    operand_class_type = skip_typerefs(operand->type);
+    operand_class_type = skip_typerefs(operand_type);
     if (!same_entities(operand_class_type, this_class_type) &&
         (bcp = find_base_class_of(operand_class_type, this_class_type))!=NULL){
       /* Do the cast to a base class.  Access checking is suppressed on this
@@ -11548,6 +11583,12 @@ this routine does not assume that the selector address will be taken.
                               /*is_implicit_cast=*/TRUE,
                               /*implicit_in_naming=*/FALSE,
                               /*is_object_pointer=*/TRUE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (handle_case) {
+      /* The selector is a handle.  Adjust cv-qualifiers if necessary. */
+      cast_operand(make_handle_type(qual_this_class_type), operand,
+                   /*is_implicit_cast=*/TRUE);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* Adjust cv-qualifiers if necessary. */
       adjust_class_object_type(operand, qual_this_class_type,
@@ -11555,8 +11596,8 @@ this routine does not assume that the selector address will be taken.
     }  /* if */
   } else {
     /* The selector does not have a class type. */
-    check_assertion(is_error_type(operand->type) ||
-                    is_template_param_type(operand->type));
+    check_assertion(is_error_type(operand_type) ||
+                    is_template_param_type(operand_type));
   }  /* if */
 }  /* prep_special_selector_operand */
 
@@ -11899,6 +11940,7 @@ apply, but we can't tell).
   a_symbol_ptr             member_functions_symbol;
   a_symbol_ptr             function_symbol, proj_function_symbol;
   a_boolean                operand_1_is_class;
+  a_type_ptr               eff_operand_1_type;
   an_operand               function_operand;
   a_candidate_function_ptr candidate_functions;
   an_arg_match_summary_ptr arg_match;
@@ -11915,6 +11957,9 @@ apply, but we can't tell).
   a_boolean                dependent_call = FALSE;
   a_boolean                defer_overload_resolution = FALSE;
   a_boolean                found_through_adl = FALSE;
+  a_boolean                selector_is_object_pointer = FALSE;
+  a_boolean                saved_selector_is_object_pointer =
+                                         operand_1->selector_is_object_pointer;
 
   db_enter(4, "check_for_operator_overloading");
 #if DEBUG
@@ -11939,13 +11984,30 @@ apply, but we can't tell).
     *processed = TRUE;
   } else if (!curr_expr_kind_is_const()) {
     /* Check for operator overloading (but not in constant expressions). */
+    eff_operand_1_type = operand_1->type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && is_handle_type(eff_operand_1_type)) {
+      /* In C++/CLI, if the first operand is a handle to a class we can look
+         for operator functions in the class underlying the handle. */
+      if (kind == (an_opname_kind)onk_eq ||
+          kind == (an_opname_kind)onk_assign) {
+        /* This trick is not allowed for certain operators. */
+      } else {
+        a_type_ptr under_type = type_pointed_to(eff_operand_1_type);
+        if (is_class_struct_union_type(under_type)) {
+          eff_operand_1_type = under_type;
+          selector_is_object_pointer = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (is_error_operand(operand_1) || 
         (!unary_operator && is_error_operand(operand_2))) {
       /* One or both of the operands is an error operand. */
       if ((any_opname_function_symbol(kind) &&
            (!must_be_member_function ||
             is_error_operand(operand_1) ||
-            is_class_struct_union_type(operand_1->type))) ||
+            is_class_struct_union_type(eff_operand_1_type))) ||
           !has_predef_meaning) {
         /* There exists a function that overloads the operator.  Therefore,
            a match might have been possible.  However, we cannot tell.
@@ -11964,10 +12026,10 @@ apply, but we can't tell).
     } else {
       /* At least one operand must have a class type or enum type.
          An error operand for the second operand counts as a class operand. */
-      operand_1_is_class = is_class_struct_union_type(operand_1->type);
+      operand_1_is_class = is_class_struct_union_type(eff_operand_1_type);
       if (operand_1_is_class ||
           (operator_overloading_on_enums_enabled &&
-           is_enum_type(operand_1->type)) ||
+           is_enum_type(eff_operand_1_type)) ||
           (!unary_operator &&
            (is_class_struct_union_type(operand_2->type) ||
             (operator_overloading_on_enums_enabled &&
@@ -11994,7 +12056,7 @@ apply, but we can't tell).
              the code above should have spotted that and generated a generic
              expression operator.  Note that nonreal instantiations are
              excluded. */
-          check_assertion_str(!is_template_dependent_type(operand_1->type) &&
+          check_assertion_str(!is_template_dependent_type(eff_operand_1_type)&&
                               (unary_operator ||
                                !is_template_dependent_type(operand_2->type)),
                               "check_for_operator_overloading: dep operand");
@@ -12023,6 +12085,8 @@ apply, but we can't tell).
                                          routine_symbol_type(function_symbol));
             if (is_member) {
               member_functions_symbol = proj_function_symbol;
+              operand_1->selector_is_object_pointer =
+                                                    selector_is_object_pointer;
             } else {
               nonmember_functions_symbol = proj_function_symbol;
             }  /* if */
@@ -12048,6 +12112,8 @@ apply, but we can't tell).
                                          &candidate_functions,
                                          &matched_except_for_missing_selector,
                                          &matched_except_for_selector);
+            operand_1->selector_is_object_pointer =
+                                              saved_selector_is_object_pointer;
             goto select_best_function;
           }  /* if */
         }  /* if */
@@ -12055,9 +12121,9 @@ apply, but we can't tell).
         if (operand_1_is_class) {
           /* Instantiate the type if it is a template class.  This ensures that
              member operator functions that could apply are declared. */
-          instantiate_template_class(operand_1->type);
+          instantiate_template_class(eff_operand_1_type);
           member_functions_symbol = opname_member_function_symbol(kind,
-                                               skip_typerefs(operand_1->type));
+                                            skip_typerefs(eff_operand_1_type));
           if (member_functions_symbol != NULL) {
             /* There are member functions for this class type.  See how well
                they match up. */
@@ -12069,6 +12135,7 @@ apply, but we can't tell).
 #endif /* CHECKING */
             /* Use the first operand as the selector expression, and
                the second operand as the first actual argument . */
+            operand_1->selector_is_object_pointer = selector_is_object_pointer;
             try_overloaded_function_match(
                                          member_functions_symbol,
                                          /*is_template_id=*/FALSE,
@@ -12089,6 +12156,8 @@ apply, but we can't tell).
                                          &candidate_functions,
                                          &matched_except_for_missing_selector,
                                          &matched_except_for_selector);
+            operand_1->selector_is_object_pointer =
+                                              saved_selector_is_object_pointer;
           }  /* if */
         }  /* if */
         /* Find any non-member function for the operator. */
@@ -12379,6 +12448,12 @@ select_best_function:
                  Therefore, the first argument is to be used as the selector
                  object. */
               bound_function_selector = &arg_operand_list->operand;
+              if (selector_is_object_pointer) {
+                /* Convert the handle to an rvalue. */
+                do_operand_transformations(bound_function_selector,
+                                           TOPT_NO_OPTIONS);
+                bound_function_selector->selector_is_object_pointer = TRUE;
+              }  /* if */
               /* Issue any warning about the "this" parameter detected while
                  evaluating the alternatives. */
               issue_warning_from_arg_match_summary(
@@ -12397,6 +12472,7 @@ select_best_function:
 
               /* Make a pointer for the selector, and adjust its type if
                  necessary. */
+              check_assertion(!selector_is_object_pointer);
               /* coverity[var_deref_model] */
               prep_special_selector_operand(bound_function_selector,
                                             routine_type);

@@ -619,14 +619,35 @@ we want to go to check_for_operator_overloading to handle that).
      ones that could be class or enum types.  That allows us to generate
      a generic operation in check_for_operator_overloading and
      avoid testing for template cases in each place that calls it. */
-  a_boolean is_overloadable = is_error_operand(operand) ||
-                              is_class_struct_union_type(operand->type) ||
-                              (operator_overloading_on_enums_enabled &&
-                               is_enum_type(operand->type)) ||
+  a_boolean is_overloadable = is_overloadable_type(operand->type) ||
+                              is_error_operand(operand) ||
                               (is_template_dependent_context() &&
                                is_template_dependent_type(operand->type));
   return is_overloadable;
 }  /* is_overloadable_type_operand */
+
+
+static a_boolean is_overloadable_type_first_operand(an_operand *operand)
+/*
+Return TRUE if the given operand has a type for which operator
+overloading should be considered, specifically on the first operand of
+an operation (there are some special rules for that in C++/CLI mode).
+Also return TRUE for template-dependent operands in a prototype
+instantiation, because they might be overloadable (and we want to go
+to check_for_operator_overloading to handle that).
+*/
+{
+  /* Note that we check for all dependent types and not just
+     ones that could be class or enum types.  That allows us to generate
+     a generic operation in check_for_operator_overloading and
+     avoid testing for template cases in each place that calls it. */
+  a_boolean is_overloadable =
+                           is_overloadable_first_operand_type(operand->type) ||
+                           is_error_operand(operand) ||
+                           (is_template_dependent_context() &&
+                            is_template_dependent_type(operand->type));
+  return is_overloadable;
+}  /* is_overloadable_type_first_operand */
 
 
 static void set_pointer_operand_is_second_flag(an_operand *operand)
@@ -989,7 +1010,7 @@ This routine is also used when scanning __builtin_offsetof constructs.
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         !subscript_is_expr_list &&
-        (is_overloadable_type_operand(operand_1) ||
+        (is_overloadable_type_first_operand(operand_1) ||
          is_overloadable_type_operand(&operand_2))) {
       /* Look for C++ operator overloading cases. */
       check_for_operator_overloading((an_opname_kind)onk_subscript,
@@ -3636,6 +3657,7 @@ are expected to be NULL in that case.
   a_boolean         unknown_dependent_function = FALSE;
   a_symbol_ptr      member_func_sym = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean         handle_case = FALSE;
   a_boolean         ignore_call = FALSE;
   a_boolean         saved_evaluated, saved_potentially_evaluated;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3762,11 +3784,17 @@ are expected to be NULL in that case.
     }  /* if */
     already_after_left_paren = TRUE;
   } else if (!C_mode() &&
-             is_class_struct_union_type(operand->type)) {
+             (is_class_struct_union_type(operand->type)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              || (handle_case = (cppcli_enabled && /*lint --e(820)*/
+                                 is_overloadable_handle_type(operand->type)))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                           )) {
     /* The "called function" is a class object.  Look for operator() and
        surrogate functions. */
     a_symbol_ptr member_function_symbol;
-    a_type_ptr   class_type = operand->type;
+    a_type_ptr   class_type = handle_case ? type_pointed_to(operand->type) :
+                                            operand->type;
     class_type = skip_typerefs(class_type);
     check_assertion(!operand->bound_function);
     if (class_type->variant.class_struct_union.is_nonreal_class) {
@@ -3785,6 +3813,10 @@ are expected to be NULL in that case.
       /* The operand becomes the selector object. */
       check_assertion(!operand->bound_function);
       copy_operand(operand, bound_function_selector);
+      if (handle_case) {
+        do_operand_transformations(bound_function_selector, TOPT_NO_OPTIONS);
+        bound_function_selector->selector_is_object_pointer = TRUE;
+      }  /* if */
       /* See if the class has an operator(). */
       member_function_symbol = opname_member_function_symbol(
                                         (an_opname_kind)onk_function_call,
@@ -3802,7 +3834,8 @@ are expected to be NULL in that case.
         overloaded_function_symbol = member_function_symbol;
         bind_member_function_operand_to_selector(
                                           bound_function_selector,
-                                          /*selector_is_object_pointer=*/FALSE,
+                                          /*selector_is_object_pointer=*/
+                                                                   handle_case,
                                           operand);
       }  /* if */
     }  /* if */
@@ -4545,15 +4578,28 @@ to a list of blocks indicating transformations done so far on this
 operand, as a way to catch loops.
 */
 {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean handle_case = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
   /* Note that we do not use "is_overloadable_type_operand" here.  That's
      deliberate: doing so could cause infinite loops. */
-  if (is_class_struct_union_type(operand->type)) {
+  if (is_class_struct_union_type(operand->type)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      || (handle_case = (cppcli_enabled &&  /*lint --e(820)*/
+                         is_overloadable_handle_type(operand->type)))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                     ) {
     an_operand                  result;
     a_boolean                   processed = FALSE;
     a_type_ptr                  qual_class_type = operand->type;
-    a_type_ptr                  class_type = skip_typerefs(qual_class_type);
+    a_type_ptr                  class_type;
     an_operator_arrow_block_ptr aobp;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (handle_case) qual_class_type = type_pointed_to(qual_class_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    class_type = skip_typerefs(qual_class_type);
     /* See whether the class type has been encountered previously.
        If so, we have a loop.  Note that cv-qualifiers are not
        ignored, because they can make a difference in which operator->
@@ -6184,6 +6230,8 @@ the selection, not an operator token for the call.
     processed = TRUE;
   } else {
     if (is_arrow_operator &&
+        /* Note -- not is_overloadable_type_first_operand on purpose.  C++/CLI
+           does not allow overloading of ->* in ref classes. */
         (is_overloadable_type_operand(operand_1) ||
          is_overloadable_type_operand(&operand_2))) {
       /* Look for C++ operator overloading cases ("->*" only). */
@@ -6541,7 +6589,7 @@ it is set to NULL.
   /* Transform the operand to a call of the appropriate "get" function. */
   rewrite_property_reference(operand, (an_operand *)NULL,
                              (a_rewritten_property_reference_kind)rprk_none);
-  if (is_overloadable_type_operand(operand)) {
+  if (is_overloadable_type_first_operand(operand)) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading((an_opname_kind)(is_increment ?
                                                          onk_plus : onk_minus),
@@ -6718,7 +6766,7 @@ case.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (C_dialect == C_dialect_cplusplus && !property_ref_case &&
-        is_overloadable_type_operand(operand)) {
+        is_overloadable_type_first_operand(operand)) {
       a_boolean allow_one_arg = (allow_anachronisms || microsoft_mode);
       a_boolean has_predef_meaning = is_enum_type(operand->type);
       /* Look for C++ operator overloading cases. */
@@ -7020,7 +7068,7 @@ and return the result in *result (or an error indication in *rcblock).
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (C_dialect == C_dialect_cplusplus && !property_ref_case &&
-        is_overloadable_type_operand(&operand)) {
+        is_overloadable_type_first_operand(&operand)) {
       /* Look for C++ operator overloading cases. */
       check_for_operator_overloading(opname_kind_for_token[
                                                           (int)operator_token],
@@ -7270,7 +7318,7 @@ error indication in *rcblock).
       operand_will_not_be_used_because_of_error(&operand);
     } else {
       if (C_dialect == C_dialect_cplusplus &&
-          is_overloadable_type_operand(&operand) &&
+          is_overloadable_type_first_operand(&operand) &&
           !is_sym_for_member_operand(&operand)) {
         /* Look for C++ operator overloading cases. */
         check_for_operator_overloading((an_opname_kind)onk_ampersand,
@@ -7764,15 +7812,23 @@ error indication in *rcblock).
     operand_will_not_be_used_because_of_error(&operand);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
-        /* Note: not is_overloadable_type_operand on purpose; we want
+        /* Note: not is_overloadable_type_first_operand on purpose; we want
            to handle pointer-to-template-param better than the generic way. */
-        is_overloadable_type(operand.type)) {
+        is_overloadable_first_operand_type(operand.type)) {
+      a_boolean has_predef_meaning = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* C++/CLI allows overloading on a handle, but it also allows the
+         predefined meaning of "*" on that handle. */
+      if (cppcli_enabled && is_handle_type(operand.type)) {
+        has_predef_meaning = TRUE;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Look for C++ operator overloading cases. */
       check_for_operator_overloading((an_opname_kind)onk_star,
                                      /*unary_operator=*/TRUE,
                                      /*must_be_member_function=*/FALSE,
                                      /*try_conversions=*/TRUE,
-                                     /*has_predef_meaning=*/FALSE,
+                                     has_predef_meaning,
                                      &operand, (an_operand *)NULL,
                                      &operator_position,
                                      operator_tok_seq_number,
@@ -7918,7 +7974,7 @@ analysis on a previously-scanned expression, and return the result in
   }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
-      is_overloadable_type_operand(&operand)) {
+      is_overloadable_type_first_operand(&operand)) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
                                    /*unary_operator=*/TRUE,
@@ -17227,7 +17283,7 @@ that case.
   }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
-      (is_overloadable_type_operand(operand_1) ||
+      (is_overloadable_type_first_operand(operand_1) ||
        is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
@@ -17370,7 +17426,7 @@ that case.
   }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
-      (is_overloadable_type_operand(operand_1) ||
+      (is_overloadable_type_first_operand(operand_1) ||
        is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
@@ -17715,7 +17771,7 @@ expression, and return the result in *result (or an error indication in
   }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
-      (is_overloadable_type_operand(operand_1) ||
+      (is_overloadable_type_first_operand(operand_1) ||
        is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
@@ -17910,7 +17966,7 @@ that case.
   }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
-      (is_overloadable_type_operand(operand_1) ||
+      (is_overloadable_type_first_operand(operand_1) ||
        is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
@@ -18136,14 +18192,24 @@ that case.
   }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
+      /* Note -- not is_overloadable_type_first_operand on purpose.  C++/CLI
+         does not allow a handle as first operand to be treated as if it
+         were a class operand, since what we really want is to compare
+         handles for equality. */
       (is_overloadable_type_operand(operand_1) ||
        is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
+    a_boolean has_predef_meaning = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && is_handle_type(operand_1->type)) {
+      has_predef_meaning = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
                                    /*unary_operator=*/FALSE,
                                    /*must_be_member_function=*/FALSE,
                                    /*try_conversions=*/TRUE,
-                                   /*has_predef_meaning=*/FALSE,
+                                   has_predef_meaning,
                                    operand_1, &operand_2,
                                    &operator_position,
                                    operator_tok_seq_number,
@@ -18309,7 +18375,7 @@ is expected to be NULL in that case.
     scan_expr(&operand_2, PREC_GNU_MIN_MAX, EOPT_NO_OPTIONS);
   }  /* if */
 
-  if (is_overloadable_type_operand(operand_1) ||
+  if (is_overloadable_type_first_operand(operand_1) ||
       is_overloadable_type_operand(&operand_2)) {
     /* Look for C++ operator overloading cases. */
     an_opname_kind  onk = (an_opname_kind)(operator_token == tok_gnu_min ?
@@ -18511,7 +18577,7 @@ that case.
   }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
-      (is_overloadable_type_operand(operand_1) ||
+      (is_overloadable_type_first_operand(operand_1) ||
        is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
@@ -18705,7 +18771,7 @@ that case.
   }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
-      (is_overloadable_type_operand(operand_1) ||
+      (is_overloadable_type_first_operand(operand_1) ||
        is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     /* Note that we do not test might_be_overloaded here, because we want
@@ -19888,6 +19954,10 @@ that case.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     if (C_dialect == C_dialect_cplusplus &&
+        /* Note -- not is_overloadable_type_first_operand on purpose.  C++/CLI
+           does not allow a handle as first operand to be treated as if it
+           were a class operand, since what we really want is to do
+           assignment to the handle. */
         (is_overloadable_type_operand(operand_1) ||
          is_overloadable_type_operand(&operand_2))) {
       /* Look for C++ operator overloading cases. */
@@ -20097,7 +20167,7 @@ is expected to be NULL in that case.
     operand_will_not_be_used_because_of_error(&operand_2);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
-        (is_overloadable_type_operand(operand_1) ||
+        (is_overloadable_type_first_operand(operand_1) ||
          is_overloadable_type_operand(&operand_2))) {
       /* Look for C++ operator overloading cases. */
       check_for_operator_overloading(opname_kind_for_token[
@@ -20866,7 +20936,7 @@ expression, and return the result in *result (or an error indication in
     operand_will_not_be_used_because_of_error(&operand_2);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
-        (is_overloadable_type_operand(operand_1) ||
+        (is_overloadable_type_first_operand(operand_1) ||
          is_overloadable_type_operand(&operand_2))) {
       /* Look for C++ operator overloading cases. */
       check_for_operator_overloading((an_opname_kind)onk_comma,

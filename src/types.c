@@ -11267,6 +11267,47 @@ could be such a type (an error type or a template parameter type).
   return is_overloadable;
 }  /* is_overloadable_type */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean is_overloadable_handle_type(a_type_ptr type)
+/*
+C++/CLI treats a handle as the first operand of an operator as similar to
+a class object with regard to overloading.  Return TRUE if the given type
+(the type of a first operand) is a handle that can be so used.
+*/
+{
+  a_boolean is_overloadable_handle = FALSE;
+
+  if (is_handle_type(type) &&
+      is_class_struct_union_type(type_pointed_to(type))) {
+    is_overloadable_handle = TRUE;
+  }  /* if */
+  return is_overloadable_handle;
+}  /* is_overloadable_handle_type */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+a_boolean is_overloadable_first_operand_type(a_type_ptr type)
+/*
+Return TRUE if the given type is one for which operator overloading
+should be considered, i.e., a class or enum type or something that
+could be such a type (an error type or a template parameter type).
+The operand in question is the first operand of an operation (C++/CLI
+has some special rules for overloading on such operands).
+*/
+{
+  a_boolean is_overloadable = is_overloadable_type(type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* C++/CLI treats a first operand that is a handle similarly to
+     an operand of the class under the handle. */
+  if (cppcli_enabled && !is_overloadable &&
+      is_overloadable_handle_type(type)) {
+    is_overloadable = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return is_overloadable;
+}  /* is_overloadable_first_operand_type */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_directly_variably_modified_type(a_type_ptr  tp)

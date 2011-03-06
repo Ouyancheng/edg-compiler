@@ -997,7 +997,9 @@ same test: template parameter type or nonreal class type.
   could_be_dependent_class_type(tp)
 
 #if !STANDALONE_UTILITY_PROGRAM
-a_boolean is_overloadable_type(a_type_ptr type);
+extern a_boolean is_overloadable_type(a_type_ptr type);
+extern a_boolean is_overloadable_handle_type(a_type_ptr type);
+extern a_boolean is_overloadable_first_operand_type(a_type_ptr type);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
