@@ -3656,8 +3656,8 @@ are expected to be NULL in that case.
                     opening_paren_tok_seq_number;
   a_boolean         unknown_dependent_function = FALSE;
   a_symbol_ptr      member_func_sym = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean         handle_case = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean         ignore_call = FALSE;
   a_boolean         saved_evaluated, saved_potentially_evaluated;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
