@@ -148,6 +148,23 @@ static a_boolean
                            arguments.  Used to suppress typedefs in template
                            arguments in is_typedef_invisible_in_cp_gen_be. */
 
+static a_boolean
+		in_parameter_pack_declaration;
+			/* TRUE if we are currently processing the
+			   declaration of a function parameter that is a
+			   pack expansion.  Used to force display of
+			   template arguments in a reference to a class
+			   template that would otherwise itself be a pack
+			   expansion.  For example, inside the definition
+			   of
+
+			       template<typename ... T> struct S { ... };
+
+			   the bare name S means S<T...>; when this flag
+			   is TRUE, a reference to S is generated as S<T>,
+			   allowing it to be used as a type in a function
+			   parameter pack. */
+
 static a_source_sequence_entry_ptr
 		curr_source_sequence_entry;
 			/* The current source sequence entry. */
@@ -4917,7 +4934,20 @@ A reference is not the definition.
               unnamed = !has_name_before_mangling(arg->variant.templ.ptr);
               break;
             case tak_start_of_pack_expansion:
-              unnamed = TRUE;
+              /* In general, inside the definition of a class template like
+
+                     template<typename ... T> struct S { ... };
+
+                 we want references to the current instantiation to be
+                 generated as just S, which means S<T...>, so we treat a
+                 pack expansion as being unnamed.  When the type is used in
+                 the declaration of a parameter pack, however, that would
+                 make such a declaration effectively the equivalent of
+                 "S<T...> ...s", which is an error.  We therefore ignore
+                 the fact that the template argument is a pack expansion in
+                 such cases, causing the parameter declaration to be
+                 generated as "S<T> ...s". */
+              unnamed = !in_parameter_pack_declaration;
               break;
             default:
               unexpected_condition();
@@ -5291,6 +5321,8 @@ default arguments should be suppressed (needed for template specializations).
   a_param_type_ptr              param;
   a_variable_ptr                param_var;
   a_func_prototype_stack_entry  fpse;
+  a_boolean                     saved_in_parameter_pack_declaration =
+                                                 in_parameter_pack_declaration;
 
   /* Push an entry onto the function prototype stack. */
   fpse.function_type = type;
@@ -5383,6 +5415,7 @@ default arguments should be suppressed (needed for template specializations).
             gdo_flags |= GDO_PARAMETER_PACK;
           }  /* if */
           /* Watch out for unnamed parameters in C++. */
+          in_parameter_pack_declaration = param->is_parameter_pack;
           gen_general_declaration_using_type(
                                           param_var->declared_type,
                                           has_name(param_var) ?
@@ -5393,6 +5426,7 @@ default arguments should be suppressed (needed for template specializations).
                                           /*suppress_specifiers=*/FALSE,
                                           gdo_flags,
                                           (a_name_reference_ptr)NULL);
+          in_parameter_pack_declaration = saved_in_parameter_pack_declaration;
           param_var = param_var->next;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (msvc_is_generated_code_target &&
@@ -5406,6 +5440,7 @@ default arguments should be suppressed (needed for template specializations).
 #if MICROSOFT_EXTENSIONS_ALLOWED
           gen_ms_attribute_block(param->ms_attributes);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          in_parameter_pack_declaration = param->is_parameter_pack;
           form_type_first_part_simple(param->type,
                                       /*under_lhs_declarator=*/FALSE,
                                       /*need_trailing_space=*/TRUE,
@@ -5421,6 +5456,7 @@ default arguments should be suppressed (needed for template specializations).
           form_type_second_part_simple(param->type,
                                        /*under_lhs_declarator=*/FALSE,
                                        &octl);
+          in_parameter_pack_declaration = saved_in_parameter_pack_declaration;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           /* This is just a declaration, so put out the type and the name
@@ -5432,6 +5468,7 @@ default arguments should be suppressed (needed for template specializations).
 #if MICROSOFT_EXTENSIONS_ALLOWED
           gen_ms_attribute_block(param->ms_attributes);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          in_parameter_pack_declaration = param->is_parameter_pack;
           form_type_first_part(param_type, /*under_lhs_declarator=*/FALSE,
                                /*need_trailing_space=*/FALSE,
                                extra_qual, FTO_NO_OPTIONS, &octl);
@@ -5446,6 +5483,7 @@ default arguments should be suppressed (needed for template specializations).
           }  /* if */
           form_type_second_part_simple(param_type,
                                        /*under_lhs_declarator=*/FALSE, &octl);
+          in_parameter_pack_declaration = saved_in_parameter_pack_declaration;
         }  /* if */
         if (!suppress_def_args) {
           /* Put out a default argument expression if there is one. */
@@ -14812,6 +14850,7 @@ Initialize for the C++/C-generating back end.
      underlying _Bool. */
   octl.render_c99_bool = c99_mode || gcc_mode;
   in_template_argument_list = FALSE;
+  in_parameter_pack_declaration = FALSE;
 #if USER_CONTROL_OF_STRUCT_PACKING
   pending_pragma_pack = NULL;
   curr_pack_alignment = 0;
