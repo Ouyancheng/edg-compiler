@@ -5851,7 +5851,8 @@ The syntax is:
            pack, we should rely on the value of is_function_declarator saved
            during the prototype instantiation to determine whether or not
            this is a function. */
-        any_args = begin_potential_pack_expansion_context_full(&pesep, &pedp);
+        any_args = begin_potential_pack_expansion_context_full(
+                                         &pesep, &pedp, /*is_lookahead=*/TRUE);
         if (!is_template_dependent_context() && pedp != NULL) {
           /* This is a real instantiation.  If we found a function declarator
              in the prototype instantiation, treat this as one now. */

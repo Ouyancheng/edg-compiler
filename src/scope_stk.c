@@ -8750,6 +8750,7 @@ to it.
   pesep->is_deduction = FALSE;
   pesep->is_suppression = FALSE;
   pesep->expansion_with_no_packs_diagnostic_issued = FALSE;
+  pesep->is_lookahead = FALSE;
   return pesep;
 }  /* alloc_pack_expansion_stack_entry */
 
@@ -9590,7 +9591,8 @@ will be NULL outside of template dependent contexts.
 
 a_boolean begin_potential_pack_expansion_context_full(
 			a_pack_expansion_stack_entry_ptr	*p_pesep,
-			a_pack_expansion_descr_ptr		*p_pedp)
+			a_pack_expansion_descr_ptr		*p_pedp,
+			a_boolean				is_lookahead)
 /*
 This is called at the start of a construct that could be a variadic template
 pack expansion.  Such pack expansions occur only within the declarations
@@ -9641,6 +9643,11 @@ will be set to NULL.
 *p_pedp is a pointer to the pack expansion descriptor for this pack
 expansion.  If p_pedp is non-NULL a pointer to the entry is returned in
 *p_pedp;
+
+is_lookahead is TRUE if this context is being pushed to distinguish between
+two contexts.  When this is TRUE, it is assumed that another begin...
+call will be done for the same starting position, and that context
+will be responsible for the end... and advance... calls.
 */
 {
   a_boolean				any_args = FALSE;
@@ -9661,13 +9668,14 @@ expansion.  If p_pedp is non-NULL a pointer to the entry is returned in
     pesep = pack_expansion_stack;
     any_args = TRUE;
   } else if (pack_expansion_stack != NULL &&
+             pack_expansion_stack->is_lookahead &&
              pack_expansion_stack->expansion_descr->first_token ==
                                                   curr_token_sequence_number) {
     /* This is a redundant push of the same starting location.  Just return
        the previously created entry. */
     pesep = pack_expansion_stack;
-    any_args = TRUE;
     pedp = pesep->expansion_descr;
+    any_args = TRUE;
   } else if (is_prototype_instantiation_context()) {
     any_args = TRUE;
     pesep = push_pack_expansion_stack();
@@ -9675,6 +9683,7 @@ expansion.  If p_pedp is non-NULL a pointer to the entry is returned in
     pesep->expansion_descr = alloc_pack_expansion_descr();
     /* Save the start of the token range for the pack. */
     pesep->expansion_descr->first_token = curr_token_sequence_number;
+    if (is_lookahead) pesep->is_lookahead = TRUE;
     pedp = pesep->expansion_descr;
   } else if (is_real_instantiation_context()) {
     /* This is a real instantiation.  See if there is a corresponding
@@ -9697,6 +9706,7 @@ expansion.  If p_pedp is non-NULL a pointer to the entry is returned in
         /* Mark that the current reusable cache is being used for rescan
            purposes. */
         increment_variadic_rescans_for_reusable_cache();
+        if (is_lookahead) pesep->is_lookahead = TRUE;
       } else {
         /* There are no arguments to be expanded.  Advance to the token
            after the end of the expansion. */
@@ -9725,7 +9735,8 @@ a default p_pedp argument.  See that routine for more information.
   a_boolean				any_args;
 
   any_args = begin_potential_pack_expansion_context_full(
-                                   p_pesep, (a_pack_expansion_descr_ptr*)NULL);
+                                   p_pesep, (a_pack_expansion_descr_ptr*)NULL,
+                                   /*is_lookahead=*/FALSE);
   return any_args;
 }  /* begin_potential_pack_expansion_context */
 

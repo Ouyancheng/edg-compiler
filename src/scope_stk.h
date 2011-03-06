@@ -465,6 +465,15 @@ typedef struct a_pack_expansion_stack_entry {
 			   was called to indicate that the caller already
 			   issued a diagnostic for an expansion with no
 			   packs. */
+  a_byte_boolean
+		is_lookahead;
+			/* TRUE if this context is being pushed to
+			   distinguish between two contexts.  When this
+			   is TRUE, it is assumed that another begin...
+			   call will be done for the same starting position,
+			   and that context will be responsible for the
+			   end... and advance... calls. */
+
 } a_pack_expansion_stack_entry;
 
 
@@ -1785,7 +1794,8 @@ extern void pop_expansion_suppression(
 
 extern a_boolean begin_potential_pack_expansion_context_full(
 			a_pack_expansion_stack_entry_ptr	*p_pesep,
-			a_pack_expansion_descr_ptr		*p_pedp);
+			a_pack_expansion_descr_ptr		*p_pedp,
+			a_boolean				is_lookahead);
 
 extern a_boolean begin_potential_pack_expansion_context(
 			a_pack_expansion_stack_entry_ptr	*p_pesep);

@@ -2185,8 +2185,7 @@ an equivalent change.
     /* We make sure we don't pop a reusable cache if an error occurs
        during a rescan. */
     check_assertion(reusable_cache_stack->variadic_rescans_in_progress);
-    check_assertion(curr_token == tok_end_of_source);
-    ctoken = curr_token;
+    ctoken = tok_end_of_source;
     goto done;
   }  /* if */
   for (;;) {
