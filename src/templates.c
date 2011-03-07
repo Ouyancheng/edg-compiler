@@ -7146,8 +7146,14 @@ partial specialization.
        list. */
     templ_tap = NULL;
   }  /* if */
-  /* If either list has arguments remaining, this is not a match. */
-  if ((tap == NULL) != (templ_tap == NULL)) match = FALSE;
+  /* If either list has arguments remaining, this is not a match.  It is
+     okay for the template list to have another parameter if it is a
+     parameter pack. */
+  if ((tap == NULL) !=
+      (templ_tap == NULL ||
+       templ_tap->pack_expansion_descr != NULL)) {
+    match = FALSE;
+  }  /* if */
   return match;
 }  /* matches_template_arg_list */
 
