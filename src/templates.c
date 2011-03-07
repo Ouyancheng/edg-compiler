@@ -7832,7 +7832,7 @@ points to the template parameter list.
                                                templ_param_list,
                                                templ_arg_list,
                                                &pesep);
-                 }  /* if */
+                }  /* if */
                 tp = ptp->type;
                 ttp = tptp->type;
                 if (rvalue_references_enabled &&
@@ -8332,10 +8332,14 @@ associated parameter.
       added_placeholder = TRUE;
     }  /* if */
     if (have_params && tap->pack_expansion_descr != NULL) {
+      a_boolean	err;
       any_more = begin_rescan_pack_expansion_context(tap->pack_expansion_descr,
                                                      templ_param_list,
                                                      templ_arg_list,
-                                                     &pesep, ctws_state);
+                                                     &pesep, ctws_state, &err);
+      /* Check if an error occurred (such as mismatched parameter pack
+         lengths). */
+      if (err) *copy_error = TRUE;
     }  /* if */
     while (any_more) {
       /* If there are too few parameters, the copy should fail. */
@@ -9221,11 +9225,15 @@ make_new_type:
           a_boolean				any_more;
           uint32_t				elements = 0;
           a_param_type_ptr			first_element = NULL;
+          a_boolean				err;
           any_more = begin_rescan_pack_expansion_context(
                                                      ptp->pack_expansion_descr,
                                                      templ_param_list,
                                                      templ_arg_list,
-                                                     &pesep, ctws_state);
+                                                     &pesep, ctws_state, &err);
+          /* Check if an error occurred (such as mismatched parameter pack
+             lengths). */
+          if (err) *copy_error = TRUE;
           /* Loop through the pack elements.  When preserving deduced
              packs (when they have no arguments) go through the loop once
              even though any_more is FALSE. */

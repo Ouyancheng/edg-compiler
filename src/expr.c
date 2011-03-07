@@ -1311,6 +1311,7 @@ to be done.
   an_expr_rescan_info_entry_ptr    eriep;
   a_pack_expansion_descr_ptr       pedep;
   a_pack_expansion_stack_entry_ptr pesep;
+  a_boolean                        err;
 
   eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
   pedep = eriep->saved_operand.pack_expansion_descr;
@@ -1319,7 +1320,9 @@ to be done.
                                                  rcblock->template_param_list,
                                                  rcblock->template_arg_list,
                                                  &pesep,
-                                                 rcblock->ctws_state);
+                                                 rcblock->ctws_state, &err);
+  /* Check if an error occurred (such as mismatched parameter pack lengths). */
+  if (err) rcblock->error_detected = TRUE;
   while (any_more) {
     /* Rescan one iteration of the pack expansion and add the resulting
        expression to the argument operand list. */
@@ -8263,6 +8266,7 @@ indication in *rcblock).
   } else {
     /* Rescanning a previously-scanned sizeof... */
     an_expr_rescan_info_entry_ptr eriep;
+    a_boolean                     err;
 
     check_assertion(rcblock->expr->kind == (an_expr_node_kind)enk_sizeof_pack);
     eriep = get_expr_rescan_info(rcblock->expr,
@@ -8277,7 +8281,10 @@ indication in *rcblock).
                                                   rcblock->template_param_list,
                                                    rcblock->template_arg_list,
                                                    &pesep,
-                                                   rcblock->ctws_state);
+                                                   rcblock->ctws_state, &err);
+    /* Check if an error occurred (such as mismatched parameter pack
+       lengths). */
+    if (err) rcblock->error_detected = TRUE;
     /* Again, we loop only to count the number of times around. */
     while (any_more) {
       result_count++;

@@ -9215,7 +9215,8 @@ static a_pack_instantiation_descr_ptr create_pack_instantiation_descr(
 		a_template_arg_ptr			templ_arg_list,
 		a_boolean				is_rescan,
 		a_boolean				is_deduction,
-		a_ctws_state_ptr			ctws_state)
+		a_ctws_state_ptr			ctws_state,
+		a_boolean				*err)
 /*
 We are beginning a real instantiation of the pack expansion specified
 by "pedp".  Determine whether this is a non-empty expansion context and
@@ -9232,6 +9233,9 @@ For non-deduction contexts, if this is a valid non-empty expansion,
 establish the initial values of the parameter pack symbols and return
 a pack expansion instantiation descriptor that can be used later to
 advance to the next pack element for each symbol.
+
+If the pack expansion is invalid (e.g., because there are packs of different
+lengths) *err is set to TRUE, FALSE otherwise.
 */
 {
   a_pack_reference_ptr			prp;
@@ -9343,6 +9347,7 @@ advance to the next pack element for each symbol.
        have been allocated. */
     free_list_of_pack_references(new_pack_list);
   }  /* if */
+  *err = any_errors;
   return result_pidp;
 }  /* create_pack_instantiation_descr */
 
@@ -9503,7 +9508,8 @@ static a_pack_expansion_stack_entry_ptr push_pack_instantiation(
 		a_template_arg_ptr			templ_arg_list,
 		a_boolean				is_rescan,
 		a_boolean				is_deduction,
-		a_ctws_state_ptr			ctws_state)
+		a_ctws_state_ptr			ctws_state,
+		a_boolean				*err)
 /*
 Create a pack instantiation description entry based on the expansion described
 by pedp and push it on the pack expansion stack.  templ_param_list and
@@ -9514,18 +9520,22 @@ return NULL.  is_rescan is TRUE if the pack instantiation is being pushed
 as part of processing a rescan context.   is_deduction is TRUE if the pack
 instantiation is being pushed as part of template argument deduction.
 ctws_state is a substitution state block pointer, and can be NULL.
+
+If the pack expansion is invalid (e.g., because there are packs of different
+lengths) *err is set to TRUE, FALSE otherwise.
 */
 {
   a_pack_expansion_stack_entry_ptr	pesep = NULL;
   a_pack_instantiation_descr_ptr	pidp;
 
+  *err = FALSE;
   /* Construct the pack instantiation information based on the pack
      expansion information and the current context.  If the instantiation
      is invalid, or if there are no pack elements, a NULL instantiation
      entry will be returned. */
   pidp = create_pack_instantiation_descr(pedp, templ_param_list,
                                          templ_arg_list, is_rescan,
-                                         is_deduction, ctws_state);
+                                         is_deduction, ctws_state, err);
   if (pidp != NULL) {
     pesep = push_pack_expansion_stack();
     pesep->is_rescan = is_rescan;
@@ -9694,11 +9704,12 @@ will be responsible for the end... and advance... calls.
          the current instantiation. */
       a_template_param_ptr	templ_param_list;
       a_template_arg_ptr	templ_arg_list;
+      a_boolean			err;
       get_curr_template_params_and_args(&templ_param_list, &templ_arg_list);
       pesep = push_pack_instantiation(pedp, templ_param_list, templ_arg_list,
                                       /*is_rescan=*/FALSE,
                                       /*is_deduction=*/FALSE,
-                                      (a_ctws_state_ptr)NULL);
+                                      (a_ctws_state_ptr)NULL, &err);
       if (pesep != NULL) {
         check_assertion(curr_cached_token_handle != NO_CACHED_TOKEN_HANDLE);
         pesep->first_token_handle = curr_cached_token_handle;
@@ -9746,7 +9757,8 @@ a_boolean begin_rescan_pack_expansion_context(
 		a_template_param_ptr			templ_param_list,
 		a_template_arg_ptr			templ_arg_list,
 		a_pack_expansion_stack_entry_ptr	*p_pesep,
-		a_ctws_state_ptr			ctws_state)
+		a_ctws_state_ptr			ctws_state,
+		a_boolean				*err)
 
 /*
 This routine is similar to begin_potential_pack_expansion_context (see
@@ -9763,15 +9775,19 @@ is a substitution state block pointer, and can be NULL.
 See begin_potential_pack_expansion_context for a description of the
 return value and the setting of *p_pesep (note that this routine is
 never called in prototype instantiation contexts).  This routine
-returns TRUE if pedp was passed in as NULL.
+returns TRUE if pedp was passed in as NULL.  If the pack expansion is
+invalid (e.g., because there are packs of different lengths) *err is
+set to TRUE, FALSE otherwise.
 */
 {
   a_pack_expansion_stack_entry_ptr	pesep = NULL;
 
+  *err = FALSE;
   if (pedp != NULL) {
     pesep = push_pack_instantiation(pedp, templ_param_list, templ_arg_list,
                                     /*is_rescan=*/TRUE,
-                                    /*is_deduction=*/FALSE, ctws_state);
+                                    /*is_deduction=*/FALSE, ctws_state,
+                                    err);
   }  /* if */
   *p_pesep = pesep;
   return pesep != NULL || pedp == NULL;
@@ -9795,6 +9811,7 @@ entry and returns a pointer to that entry in *p_pesep.
 */
 {
   a_pack_expansion_stack_entry_ptr	pesep;
+  a_boolean				err;
 
   check_assertion(pedp != NULL);
   if (*templ_arg_list == NULL) {
@@ -9806,7 +9823,7 @@ entry and returns a pointer to that entry in *p_pesep.
   }  /* if */
   pesep = push_pack_instantiation(pedp, templ_param_list, *templ_arg_list,
                                   /*is_rescan=*/FALSE, /*is_deduction=*/TRUE,
-                                  (a_ctws_state_ptr)NULL);
+                                  (a_ctws_state_ptr)NULL, &err);
   *p_pesep = pesep;
 }  /* begin_pack_deduction_context */
 
