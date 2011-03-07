@@ -5023,10 +5023,9 @@ the same constant.
                           (options & ETA_IS_VARIADIC) != 0,
                           "equiv_template_arg_lists: arg inconsistency");
       break;
-    } else if (!is_prototype && (arg1->pack_expansion_descr != NULL) !=
-               (arg2->pack_expansion_descr != NULL)) {
-      /* Two nonreal instantiations one with and one without an expansion
-         description.  Don't share the types. */
+    } else if (arg1->is_pack != arg2->is_pack) {
+      /* Two instantiations one with and one without an expansion.
+         Don't share the types. */
       equiv = FALSE;
     } else if (is_nontype_templ_arg(arg1)) {
       /* Both are constant arguments.  If they are not identical, this is a
@@ -13119,6 +13118,7 @@ to the newly created list.
       tap->variant.templ.ptr = param_sym->
                                       variant.template_info->il_template_entry;
     }  /* if */
+    tap->is_pack = tpp->is_pack;
     tap->is_pack_element = tpp->is_pack;
     if (list_head == NULL) list_head = tap;
     if (list_tail != NULL) list_tail->next = tap;

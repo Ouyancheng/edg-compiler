@@ -5517,6 +5517,10 @@ typedef struct a_template_arg {
 			   will have been encountered.  Note that the set of
 			   elements associated with a pack expansion may be
 			   empty. */
+  a_bit_field	is_pack:1;
+			/* If this is an element of a nonreal instantiation
+			   argument list, this is TRUE if the associated
+			   template parameter is a pack. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == tak_type. */

@@ -13155,6 +13155,7 @@ done using the disambiguation routines.
       last_arg = arg_ptr;
       arg_ptr->pack_expansion_descr =
          end_potential_pack_expansion_context(pesep, /*is_declarator=*/FALSE);
+      if (arg_ptr->pack_expansion_descr != NULL) arg_ptr->is_pack = TRUE;
       any_args = advance_to_next_pack_element(pesep);
       remove_stop_token(tok_comma);
     }  /* while */
@@ -13373,6 +13374,7 @@ all arguments were explicit.
       ++arg_number;
       arg_ptr->pack_expansion_descr =
          end_potential_pack_expansion_context(pesep, /*is_declarator=*/FALSE);
+      if (arg_ptr->pack_expansion_descr != NULL) arg_ptr->is_pack = TRUE;
       any_args = advance_to_next_pack_element(pesep);
     }  /* while */
   } while (param_ptr != NULL && loop_token(tok_comma));

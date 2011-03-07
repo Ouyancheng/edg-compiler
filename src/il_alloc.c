@@ -1071,6 +1071,7 @@ allocated.
   tap->explicitly_specified = FALSE;
   tap->template_template_param_checked = FALSE;
   tap->is_pack_element = FALSE;
+  tap->is_pack = FALSE;
 #if CENTERLINE_CHECKING
   tap->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
