@@ -10568,34 +10568,40 @@ void ensure_underlying_function_type_is_modifiable(a_type_ptr  *p_type,
                                                    a_type_ptr  *func_type)
 /*
 The type *p_type should be a function type or a function type under tk_typeref,
-tk_pointer, and/or tk_ptr_to_member nodes.  If none of the tk_typeref
+tk_pointer, and/or tk_ptr_to_member entries.  If none of the tk_typeref
 involved are typedefs or typeof/decltype nodes, leave *p_type unchanged and set
 *func_type to the underlying function type.  Otherwise, create a new function
 type (returned through func_type) and replace *p_type by an equivalent type
-that doesn't involve typedefs or typeof/decltype nodes.
+that doesn't involve typedefs or typeof/decltype nodes on top of the underlying
+function type (in some cases, *p_type is not changed, but a type along the
+chain of entries from *p_type to the underlying function type).
 */
 {
   a_boolean   make_new_type = FALSE;
   a_type_ptr  tp = *p_type;
 
   /* First go down the chain of type entries looking for typedefs and/or
-     decltype entries. */
+     decltype entries.  Update p_type so it will point to the pointer that
+     points to such a typedef or decltype entry. */
   do {
     switch (tp->kind) {
       case tk_routine:
         *func_type = tp;
         break;
       case tk_pointer:
-        tp = tp->variant.pointer.type;
+        p_type = &tp->variant.pointer.type;
+        tp = *p_type;
         break;
       case tk_ptr_to_member:
-        tp = tp->variant.ptr_to_member.type;
+        p_type = &tp->variant.ptr_to_member.type;
+        tp = *p_type;
         break;
       case tk_typeref:
         if (typeref_is_typedef(tp) || typeref_is_decltype_or_typeof(tp)) {
           make_new_type = TRUE;
         } else {
-          tp = tp->variant.typeref.type;
+          p_type = &tp->variant.typeref.type;
+          tp = *p_type;
         }  /* if */
         break;
       default:

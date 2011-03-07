@@ -1,5 +1,23 @@
 Version 4.3
 
+3/7/11   [EDGcpfe/11463]
+Internal error on certain GNU attributes applied to a typedef in a cast
+
+The front end previously aborted with an internal error in attach_attributes
+(attributes.c) when certain GNU attributes applicable to functions (like
+"format") were applied to a typedef for a function type appearing in a cast.
+For example:
+
+  typedef void F(char const*, ...);
+  int main() {
+    (F __attribute((format(printf, 1, 2)))*)0;  // Previously triggered an
+  }                                             // internal error.
+
+This is now fixed.  In addition, when the "const" attribute (which was one of
+the attributes that triggered the internal error described above) is applied
+to a type, it is now ignored with a warning (to match the behavior of GCC).
+
+
 3/6/11   [EDGcpfe/11464]
 C++-generating back end: non-dependent qualifiers in dependent member access
 expressions

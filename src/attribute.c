@@ -576,7 +576,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_cleanup, "v|Wp", apply_cleanup_attr },
   { ak_cold, "r", NO_APPL_FN },
   { ak_common, "v:-a|Wr", apply_common_attr },
-  { ak_const, "t|r|v|d", apply_const_attr },
+  { ak_const, "Wt|r|v|d", apply_const_attr },
   { ak_constructor, "r", apply_constructor_attr },
   { ak_destructor, "r", apply_destructor_attr },
   { ak_error, "r", NO_APPL_FN },
