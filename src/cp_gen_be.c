@@ -7496,6 +7496,17 @@ the expression reflects an implicit member access ("this->y"), so the
       selection_class = object_expr->type;
     }  /* if */
     selection_class = skip_typerefs(selection_class);
+    if (selection_class->kind == (a_type_kind)tk_template_param) {
+      /* We need special handling for a case like
+
+             struct S { int i; };
+             template<typename T> auto f(T* p)->decltype(p->S::i);
+
+         We set the naming class to reflect the parent of the field to
+         ensure that the qualified name is used. */
+      check_assertion(field_expr->kind == (an_expr_node_kind)enk_field);
+      naming_class = parent_class_of(field_expr->variant.field);
+    }  /* if */
   }  /* if */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   object_expr=remove_nonstandard_anonymous_union_field_selections(object_expr,
@@ -7563,11 +7574,14 @@ the expression reflects an implicit member access ("this->y"), so the
         }  /* if */
       }  /* if */
     } else if (selection_class != naming_class) {
-      /* Push a name context so that the qualifier will be properly
-         qualified. */
-      push_class_name_context(selection_class);
-      curr_name_context->field_selection_context = TRUE;
-      need_context_pop = TRUE;
+      if (is_immediate_class_type(selection_class)) {
+        /* Push a name context so that the qualifier will be properly
+           qualified.  (Avoid the case where the selection class is a
+           template parameter, i.e., not a class type.) */
+        push_class_name_context(selection_class);
+        curr_name_context->field_selection_context = TRUE;
+        need_context_pop = TRUE;
+      }  /* if */
       gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
     }  /* if */
   }  /* if */
