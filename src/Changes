@@ -1,5 +1,20 @@
 Version 4.3
 
+3/6/11   [EDGcpfe/11464]
+C++-generating back end: non-dependent qualifiers in dependent member access
+expressions
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, a member
+access expression in a function template in which the object expression is
+dependent but the member name is qualified by a non-dependent class name
+was generated without that qualifier.  This is now fixed.  For example:
+
+  struct S { int i; };
+  template<typename T> int f(T* p) {
+    return p->S::i;  // Previously generated as p->i
+  }
+
+
 3/3/11   [EDGcpfe/11429]
 GNU-mode built-in vector function corrections
 
