@@ -1,0 +1,542 @@
+/*
+Determine target parameters for C/C++ Front End configuration.
+Writes C #defines for the target parameters to stdout.
+Those #defines can then be placed in the defines.h used when the
+Front End is built.
+
+Currently, handles only two's complement machines.
+
+Copyright 1991, 1999-2004, Edison Design Group, Inc.
+*/
+
+/*
+HAVE_LONG_DOUBLE can be set (to 0 or 1) to indicate whether the host
+C compiler supports long double.  If it is not set, the default is
+based on __STDC__.
+*/
+#ifndef HAVE_LONG_DOUBLE
+#ifdef __STDC__
+#define HAVE_LONG_DOUBLE 1
+#else /* !defined(__STDC__) */
+#define HAVE_LONG_DOUBLE 0
+#endif /* ifdef __STDC__ */
+#endif /* ifndef HAVE_LONG_DOUBLE */
+
+/*
+HAVE_WCHAR_T can be set (to 0 or 1) to indicate whether the host
+C compiler supports wchar_t.  If it is not set, the default is
+based on __STDC__.
+*/
+#ifndef HAVE_WCHAR_T
+#ifdef __STDC__
+#define HAVE_WCHAR_T 1
+#else /* !defined(__STDC__) */
+#define HAVE_WCHAR_T 0
+#endif /* ifdef __STDC__ */
+#endif /* ifndef HAVE_WCHAR_T */
+
+/*
+HAVE_SIZE_T can be set (to 0 or 1) to indicate whether the host
+C compiler supports size_t.  If it is not set, the default is
+based on __STDC__.
+*/
+#ifndef HAVE_SIZE_T
+#ifdef __STDC__
+#define HAVE_SIZE_T 1
+#else /* !defined(__STDC__) */
+#define HAVE_SIZE_T 0
+#endif /* ifdef __STDC__ */
+#endif /* ifndef HAVE_SIZE_T */
+
+/*
+HAVE_PTRDIFF_T can be set (to 0 or 1) to indicate whether the host
+C compiler supports ptrdiff_t.  If it is not set, the default is
+based on __STDC__.
+*/
+#ifndef HAVE_PTRDIFF_T
+#ifdef __STDC__
+#define HAVE_PTRDIFF_T 1
+#else /* !defined(__STDC__) */
+#define HAVE_PTRDIFF_T 0
+#endif /* ifdef __STDC__ */
+#endif /* ifndef HAVE_PTRDIFF_T */
+
+/*
+HAVE_LONG_LONG can be set (to 0 or 1) to indicate whether the host C
+compiler supports long long.  If it is not set, the default is based on
+C99 support.
+*/
+#ifndef HAVE_LONG_LONG
+#ifndef __STDC_VERSION__
+#define HAVE_LONG_LONG 0
+#else /* defined(__STDC_VERSION__) */
+#if __STDC_VERSION__ < 199901L
+#define HAVE_LONG_LONG 0
+#else /* !(__STDC_VERSION__ < 199901L) */
+#define HAVE_LONG_LONG 1
+#endif /* __STDC_VERSION__ < 199901L */
+#endif /* ifndef __STDC_VERSION__ */
+#endif /* ifndef HAVE_LONG_LONG */
+
+#include <stdio.h>
+#include <setjmp.h>
+#if HAVE_WCHAR_T
+#include <stddef.h>
+#endif /* HAVE_WCHAR_T */
+#if HAVE_SIZE_T
+#include <stddef.h>
+#endif /* HAVE_SIZE_T */
+#if HAVE_PTRDIFF_T
+#include <stddef.h>
+#endif /* HAVE_PTRDIFF_T */
+
+extern void exit();
+
+unsigned long targ_sizeof_short;
+unsigned long targ_sizeof_int;
+unsigned long targ_sizeof_long;
+unsigned long targ_sizeof_float;
+unsigned long targ_sizeof_double;
+unsigned long targ_sizeof_pointer;
+unsigned long targ_alignof_short;
+unsigned long targ_alignof_int;
+unsigned long targ_alignof_long;
+unsigned long targ_alignof_float;
+unsigned long targ_alignof_double;
+unsigned long targ_alignof_pointer;
+#if HAVE_LONG_DOUBLE
+unsigned long targ_sizeof_long_double;
+unsigned long targ_alignof_long_double;
+#endif /* HAVE_LONG_DOUBLE */
+#if HAVE_WCHAR_T
+unsigned long targ_sizeof_wchar_t;
+unsigned long targ_alignof_wchar_t;
+#endif /* HAVE_WCHAR_T */
+#if HAVE_SIZE_T
+unsigned long targ_sizeof_size_t;
+unsigned long targ_alignof_size_t;
+#endif /* HAVE_SIZE_T */
+#if HAVE_PTRDIFF_T
+unsigned long targ_sizeof_ptrdiff_t;
+unsigned long targ_alignof_ptrdiff_t;
+#endif /* HAVE_PTRDIFF_T */
+#if HAVE_LONG_LONG
+unsigned long targ_sizeof_long_long;
+unsigned long targ_alignof_long_long;
+#endif /* HAVE_LONG_LONG */
+
+static int	targ_char_bit;
+			/* The number of bits in a char. */
+
+
+static unsigned long bit_mask(int nbits)
+/* Return a bit-mask of nbits bits. */
+{
+  unsigned long i, j;
+  i = 1;
+  i <<= nbits - 1;  /* Top bit. */
+  j = i - 1;  /* All bits except top. */
+  i |= j;  /* All bits. */
+  return i;
+}  /* bit_mask */
+
+
+static unsigned long alignment(char *p2, char *p1)
+/* Determine an alignment value based on the difference between p2 and p1. */
+{
+  unsigned long align;
+  unsigned long diff = p2 - p1;
+
+  for (align = 1; (diff & align) == 0; align *= 2) {}
+  return align;
+}  /* alignment */
+
+
+static char *int_kind_for_integral_type(unsigned long size,
+                                        unsigned long alignment,
+                                        int           is_signed,
+                                        int           favor_long,
+                                        int           *error)
+/*
+Return a string for the integer kind that matches the given size and
+alignment, and is signed or unsigned according to is_signed (is_signed
+can be -1 to indicate "don't care").  If favor_long is TRUE, choose long
+over int if long and int have the same size.  Return *error set to TRUE
+if no such integer kind exists.
+*/
+{
+  char *s;
+
+  *error = 0;
+  if (size == 1 && alignment == 1) {
+    if (is_signed == -1) {
+      s = "ik_char";
+    } else if (is_signed) {
+      s = "ik_signed_char";
+    } else {
+      s = "ik_unsigned_char";
+    }  /* if */
+  } else if (size == targ_sizeof_short && alignment == targ_alignof_short) {
+    if (is_signed) {
+      s = "ik_short";
+    } else {
+      s = "ik_unsigned_short";
+    }  /* if */
+  } else if (favor_long &&
+             size == targ_sizeof_long && alignment == targ_alignof_long) {
+    if (is_signed) {
+      s = "ik_long";
+    } else {
+      s = "ik_unsigned_long";
+    }  /* if */
+  } else if (size == targ_sizeof_int && alignment == targ_alignof_int) {
+    if (is_signed) {
+      s = "ik_int";
+    } else {
+      s = "ik_unsigned_int";
+    }  /* if */
+  } else if (size == targ_sizeof_long && alignment == targ_alignof_long) {
+    if (is_signed) {
+      s = "ik_long";
+    } else {
+      s = "ik_unsigned_long";
+    }  /* if */
+  } else {
+    *error = 1;
+    s = "";
+  }  /* if */
+  return s;
+}  /* int_kind_for_integral_type */
+
+
+static char *type_for_integer_size(int  size,
+                                   int  is_signed)
+/*
+Return the C data type for an integer data type of size bits.  Return the
+signed version if is_signed is TRUE, the unsigned one otherwise.  Return
+NULL if no suitable type is found.
+*/
+{
+  char	*result = NULL;
+
+  if (size == sizeof(char) * targ_char_bit ) {
+    result = is_signed ? "signed char" : "unsigned char";
+  } else if (size == sizeof(short) * targ_char_bit ) {
+    result = is_signed ? "short" : "unsigned short";
+  } else if (size == sizeof(int) * targ_char_bit ) {
+    result = is_signed ? "int" : "unsigned int";
+  } else if (size == sizeof(long) * targ_char_bit ) {
+    result = is_signed ? "long" : "unsigned long";
+  }  /* if */
+  return result;
+}  /* type_for_integer_size */
+
+
+int main() {
+  long i;
+  unsigned long ui;
+  unsigned char uch;
+  unsigned long targ_uchar_max;
+  unsigned long targ_minimum_struct_alignment;
+  char ch;
+
+  printf("/* Configuration definitions determined by dettarg.c: */\n");
+  /* Determine endian-ness. */
+  i = 1;
+  if (*((char *)&i) == 1) {
+    printf("#define TARG_LITTLE_ENDIAN TRUE\n");
+  } else {
+    printf("#define TARG_LITTLE_ENDIAN FALSE\n");
+  }  /* if */
+  /* Determine number of bits in a character. */
+  for (targ_char_bit = 1;
+       ;
+       targ_char_bit++) {
+    ui = (unsigned long)1L << (unsigned long)targ_char_bit;
+    uch = ui;
+    if (uch != ui) break;
+  }  /* for */
+  printf("#define TARG_CHAR_BIT %d\n", targ_char_bit);
+  targ_uchar_max = bit_mask(targ_char_bit);
+  ch = targ_uchar_max;
+  if (ch < 0) {
+    /* Signed char. */
+    printf("#define TARG_HAS_SIGNED_CHARS TRUE\n");
+  } else {
+    /* Unsigned char. */
+    printf("#define TARG_HAS_SIGNED_CHARS FALSE\n");
+  }  /* if */
+  /* Find out ordering in multi-character constants. */
+  i = 'ab';
+  if (i == (('a' << targ_char_bit) | 'b')) {
+    printf("#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT TRUE\n");
+  } else {
+    printf("#define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT FALSE\n");
+  }  /* if */
+  /* Determine size and alignment for integral types. */
+  { struct {char c; short s;} v;
+    targ_sizeof_short = sizeof(short);
+    targ_alignof_short = alignment((char *)&v.s, (char *)&v);
+    printf("#define TARG_SIZEOF_SHORT %lu\n", targ_sizeof_short);
+    printf("#define TARG_ALIGNOF_SHORT %lu\n", targ_alignof_short);
+  }
+  { struct {char c; int s;} v;
+    targ_sizeof_int = sizeof(int);
+    targ_alignof_int = alignment((char *)&v.s, (char *)&v);
+    printf("#define TARG_SIZEOF_INT %lu\n", targ_sizeof_int);
+    printf("#define TARG_ALIGNOF_INT %lu\n", targ_alignof_int);
+  }
+  { struct {char c; long s;} v;
+    targ_sizeof_long = sizeof(long);
+    targ_alignof_long = alignment((char *)&v.s, (char *)&v);
+    printf("#define TARG_SIZEOF_LONG %lu\n", targ_sizeof_long);
+    printf("#define TARG_ALIGNOF_LONG %lu\n", targ_alignof_long);
+  }
+  /* Pointer size and alignment. */
+  { struct {char c; char *s;} v;
+    targ_sizeof_pointer = sizeof(char *);
+    targ_alignof_pointer = alignment((char *)&v.s, (char *)&v);
+    printf("#define TARG_SIZEOF_POINTER %lu\n", targ_sizeof_pointer);
+    printf("#define TARG_ALIGNOF_POINTER %lu\n", targ_alignof_pointer);
+  }
+  /* Floating types size and alignment. */
+  { struct {char c; float s;} v;
+    targ_sizeof_float = sizeof(float);
+    targ_alignof_float = alignment((char *)&v.s, (char *)&v);
+    printf("#define TARG_SIZEOF_FLOAT %lu\n", targ_sizeof_float);
+    printf("#define TARG_ALIGNOF_FLOAT %lu\n", targ_alignof_float);
+  }
+  { struct {char c; double s;} v;
+    targ_sizeof_double = sizeof(double);
+    targ_alignof_double = alignment((char *)&v.s, (char *)&v);
+    printf("#define TARG_SIZEOF_DOUBLE %lu\n", targ_sizeof_double);
+    printf("#define TARG_ALIGNOF_DOUBLE %lu\n", targ_alignof_double);
+  }
+#if HAVE_LONG_DOUBLE
+  { struct {char c; long double s;} v;
+    targ_sizeof_long_double = sizeof(long double);
+    targ_alignof_long_double = alignment((char *)&v.s, (char *)&v);
+    printf("#define TARG_SIZEOF_LONG_DOUBLE %lu\n", targ_sizeof_long_double);
+    printf("#define TARG_ALIGNOF_LONG_DOUBLE %lu\n", targ_alignof_long_double);
+  }
+#else /* !HAVE_LONG_DOUBLE */
+  /* No long double; use double for long double. */
+  printf("#define TARG_SIZEOF_LONG_DOUBLE %lu\n", targ_sizeof_double);
+  printf("#define TARG_ALIGNOF_LONG_DOUBLE %lu\n", targ_alignof_double);
+  printf("#define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C 1\n");
+#endif /* HAVE_LONG_DOUBLE */
+#if HAVE_WCHAR_T
+  { struct {char c; wchar_t s;} v;
+    char                        *targ_wchar_t_int_kind;
+    int                         is_signed, error;
+    targ_sizeof_wchar_t = sizeof(wchar_t);
+    targ_alignof_wchar_t = alignment((char *)&v.s, (char *)&v);
+    is_signed = ((wchar_t)(-1) < 0);
+    targ_wchar_t_int_kind = int_kind_for_integral_type(targ_sizeof_wchar_t,
+                                                       targ_alignof_wchar_t,
+                                                       is_signed,
+                                                       /*favor_long=*/1,
+                                                       &error);
+    if (error) {
+      fprintf(stderr, "Unable to determine TARG_WCHAR_T_INT_KIND.\n");
+      fprintf(stderr, "(It will have to be done manually.)\n");
+    } else {
+      printf("#define TARG_WCHAR_T_INT_KIND ((an_integer_kind)%s)\n",
+             targ_wchar_t_int_kind);
+    }  /* if */
+  }
+#endif /* HAVE_WCHAR_T */
+#if HAVE_SIZE_T
+  { struct {char c; size_t s;} v;
+    char                        *targ_size_t_int_kind;
+    int                         error;
+    targ_sizeof_size_t = sizeof(size_t);
+    targ_alignof_size_t = alignment((char *)&v.s, (char *)&v);
+    targ_size_t_int_kind = int_kind_for_integral_type(targ_sizeof_size_t,
+                                                      targ_alignof_size_t,
+                                                      /*is_signed=*/0,
+                                                      /*favor_long=*/0,
+                                                      &error);
+    if (error) {
+      fprintf(stderr, "Unable to determine TARG_SIZE_T_INT_KIND.\n");
+      fprintf(stderr, "(It will have to be done manually.)\n");
+    } else {
+      printf("#define TARG_SIZE_T_INT_KIND ((an_integer_kind)%s)\n",
+             targ_size_t_int_kind);
+    }  /* if */
+  }
+#endif /* HAVE_SIZE_T */
+#if HAVE_PTRDIFF_T
+  { struct {char c; ptrdiff_t s;} v;
+    char                        *targ_ptrdiff_t_int_kind;
+    int                         error;
+    targ_sizeof_ptrdiff_t = sizeof(ptrdiff_t);
+    targ_alignof_ptrdiff_t = alignment((char *)&v.s, (char *)&v);
+    targ_ptrdiff_t_int_kind = int_kind_for_integral_type(
+                                                        targ_sizeof_ptrdiff_t,
+                                                        targ_alignof_ptrdiff_t,
+                                                        /*is_signed=*/1,
+                                                        /*favor_long=*/0,
+                                                        &error);
+    if (error) {
+      fprintf(stderr, "Unable to determine TARG_PTRDIFF_T_INT_KIND.\n");
+      fprintf(stderr, "(It will have to be done manually.)\n");
+    } else {
+      printf("#define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)%s)\n",
+             targ_ptrdiff_t_int_kind);
+    }  /* if */
+  }
+#endif /* HAVE_PTRDIFF_T */
+#if HAVE_LONG_LONG
+  { struct {char c; long long s;} v;
+    targ_sizeof_long_long = sizeof(long long);
+    targ_alignof_long_long = alignment((char *)&v.s, (char *)&v);
+    printf("#define TARG_SIZEOF_LONG_LONG %lu\n", targ_sizeof_long_long);
+    printf("#define TARG_ALIGNOF_LONG_LONG %lu\n", targ_alignof_long_long);
+  }
+#endif /* HAVE_LONG_LONG */
+  { unsigned long max_alignment = 1;
+    if (max_alignment < targ_alignof_short) max_alignment = targ_alignof_short;
+    if (max_alignment < targ_alignof_int)   max_alignment = targ_alignof_int;
+    if (max_alignment < targ_alignof_long)  max_alignment = targ_alignof_long;
+    if (max_alignment < targ_alignof_pointer) {
+      max_alignment = targ_alignof_pointer;
+    }  /* if */
+#if HAVE_LONG_LONG
+    if (max_alignment < targ_alignof_long_long) {
+      max_alignment = targ_alignof_long_long;
+    }  /* if */
+#endif /* HAVE_LONG_LONG */
+    /* The floating types are not considered because, with the default
+       float_pt.c, an_internal_float_value is a string of bytes of the
+       proper length, and therefore has no effect on the alignment
+       requirement. */
+    printf("#define HOST_ALIGNMENT_REQUIRED %lu\n", max_alignment);
+  }
+  /* Right shift is arithmetic? */
+  if (((-1) >> 1) > 0) {
+    /* No. */
+    printf("#define TARG_RIGHT_SHIFT_IS_ARITHMETIC FALSE\n");
+  } else {
+    printf("#define TARG_RIGHT_SHIFT_IS_ARITHMETIC TRUE\n");
+  }  /* if */
+  /* Too-large shift count is masked to right number of bits? */
+  { int i = 16;
+    int j = targ_sizeof_int*targ_char_bit + 1;
+    if (j == 33) {
+      /* Try to fold at compile time, because compilers usually fold shifts
+         differently at compile time than the way they are done at runtime. */
+      i = 16 >> 33;
+    } else {
+      i = i >> j;
+    }  /* if */
+    if (i == 8) {
+      /* Yes, the shift count gets truncated to the right number of bits. */
+      printf("#define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE TRUE\n");
+    } else {
+      /* No, the shift count is treated as if we really shift that many
+         places. */
+      printf(
+            "#define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE FALSE\n");
+    }  /* if */
+  }
+  { struct { char c; struct { char d; } s; } v;
+    targ_minimum_struct_alignment = alignment((char *)&v.s, (char *)&v);
+    printf("#define TARG_MINIMUM_STRUCT_ALIGNMENT %lu\n",
+           targ_minimum_struct_alignment);
+  }
+  { struct { char c; jmp_buf s; } v;
+    unsigned long targ_alignof_jmp_buf_element =
+                                            alignment((char *)v.s, (char *)&v);
+    jmp_buf       jb;
+    unsigned long targ_sizeof_jmp_buf_element = sizeof(jb[0]);
+    unsigned long targ_jmp_buf_num_elements = sizeof(jb) / sizeof(jb[0]);
+    char          *targ_jmp_buf_element_int_kind;
+    int           error;
+
+    printf("#define TARG_JMP_BUF_NUM_ELEMENTS %lu\n",
+           targ_jmp_buf_num_elements);
+    /* Find an integral type with the same size and alignment as the
+       jmp_buf element type. */
+    targ_jmp_buf_element_int_kind =
+                      int_kind_for_integral_type(targ_sizeof_jmp_buf_element,
+                                                 targ_alignof_jmp_buf_element,
+                                                 /*is_signed=*/-1,
+                                                 /*favor_long=*/0,
+                                                 &error);
+    if (error) {
+      fprintf(stderr, "Unable to determine TARG_JMP_BUF_ELEMENT_INT_KIND.\n");
+      fprintf(stderr, "(It will have to be done manually.)\n");
+    } else {
+      printf("#define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)%s)\n",
+             targ_jmp_buf_element_int_kind);
+    }  /* if */
+  }
+  { char *type_string;
+    type_string = type_for_integer_size(8, /*is_signed=*/1);
+    if (type_string == NULL) {
+      fprintf(stderr, "Unable to determine EDG_INT8_T.\n");
+      fprintf(stderr, "(It will have to be done manually.)\n");
+    } else if (strcmp(type_string, "signed char") == 0) {
+      /* The default value can be used. */
+    } else {
+      printf("#define EDG_INT8_T %s\n", type_string);
+    }  /* if */
+  }
+  { char *type_string;
+    type_string = type_for_integer_size(8, /*is_signed=*/0);
+    if (type_string == NULL) {
+      fprintf(stderr, "Unable to determine EDG_UINT8_T.\n");
+      fprintf(stderr, "(It will have to be done manually.)\n");
+    } else if (strcmp(type_string, "unsigned char") == 0) {
+      /* The default value can be used. */
+    } else {
+      printf("#define EDG_UINT8_T %s\n", type_string);
+    }  /* if */
+  }
+  { char *type_string;
+    type_string = type_for_integer_size(16, /*is_signed=*/1);
+    if (type_string == NULL) {
+      fprintf(stderr, "Unable to determine EDG_INT16_T.\n");
+      fprintf(stderr, "(It will have to be done manually.)\n");
+    } else if (strcmp(type_string, "short") == 0) {
+      /* The default value can be used. */
+    } else {
+      printf("#define EDG_INT16_T %s\n", type_string);
+    }  /* if */
+  }
+  { char *type_string;
+    type_string = type_for_integer_size(16, /*is_signed=*/0);
+    if (type_string == NULL) {
+      fprintf(stderr, "Unable to determine EDG_UINT16_T.\n");
+      fprintf(stderr, "(It will have to be done manually.)\n");
+    } else if (strcmp(type_string, "unsigned short") == 0) {
+      /* The default value can be used. */
+    } else {
+      printf("#define EDG_UINT16_T %s\n", type_string);
+    }  /* if */
+  }
+  { char *type_string;
+    type_string = type_for_integer_size(32, /*is_signed=*/1);
+    if (type_string == NULL) {
+      fprintf(stderr, "Unable to determine EDG_INT32_T.\n");
+      fprintf(stderr, "(It will have to be done manually.)\n");
+    } else if (strcmp(type_string, "int") == 0) {
+      /* The default value can be used. */
+    } else {
+      printf("#define EDG_INT32_T %s\n", type_string);
+    }  /* if */
+  }
+  { char *type_string;
+    type_string = type_for_integer_size(32, /*is_signed=*/0);
+    if (type_string == NULL) {
+      fprintf(stderr, "Unable to determine EDG_UINT32_T.\n");
+      fprintf(stderr, "(It will have to be done manually.)\n");
+    } else if (strcmp(type_string, "unsigned int") == 0) {
+      /* The default value can be used. */
+    } else {
+      printf("#define EDG_UINT32_T %s\n", type_string);
+    }  /* if */
+  }
+  return 0;
+}  /* main */
