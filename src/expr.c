@@ -8266,7 +8266,7 @@ indication in *rcblock).
   } else {
     /* Rescanning a previously-scanned sizeof... */
     an_expr_rescan_info_entry_ptr eriep;
-    a_boolean                     err;
+    a_boolean                     rescan_err;
 
     check_assertion(rcblock->expr->kind == (an_expr_node_kind)enk_sizeof_pack);
     eriep = get_expr_rescan_info(rcblock->expr,
@@ -8281,10 +8281,11 @@ indication in *rcblock).
                                                   rcblock->template_param_list,
                                                    rcblock->template_arg_list,
                                                    &pesep,
-                                                   rcblock->ctws_state, &err);
+                                                   rcblock->ctws_state,
+                                                   &rescan_err);
     /* Check if an error occurred (such as mismatched parameter pack
        lengths). */
-    if (err) rcblock->error_detected = TRUE;
+    if (rescan_err) rcblock->error_detected = TRUE;
     /* Again, we loop only to count the number of times around. */
     while (any_more) {
       result_count++;
