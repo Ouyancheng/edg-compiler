@@ -1316,7 +1316,7 @@ the fields implied by the lambda's capture list).
   class_type_supp(type)->is_lambda_closure_class = TRUE;
   set_source_corresp(&(type->source_corresp), sym);
   sym->variant.class_struct_union.type = type;
-  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+  if (is_template_dependent_context()) {
     /* If the lambda appears in a prototype instantiation context, mark it
        as a nonreal class.  Local classes in such contexts are not marked
        as prototype instantiations. */
