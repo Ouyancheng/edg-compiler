@@ -2301,6 +2301,9 @@ in ps_arg_list.
     local_arg_list = NULL;
     local_arg_list_used = TRUE;
   }  /* if */
+  *ps_arg_list = create_initial_template_arg_list(templ_param_list,
+                                                  *ps_arg_list,
+                                                  &null_source_position);
   if (matches_template_type(instance_type, prototype_type, ps_arg_list,
                             templ_param_list, MTT_NO_FLAGS)) {
     if (wrapup_template_argument_deduction(
@@ -2336,19 +2339,62 @@ in ps_arg_list.
 }  /* matches_partial_specialization */
 
 
-static a_boolean is_more_specialized(
+static int compare_variadic_template_arg_lists(
+				a_template_arg_ptr	templ_arg_list1,
+				a_template_arg_ptr	templ_arg_list2)
+/*
+templ_arg_list1 and templ_arg_list2 are template argument lists of
+variadic class or function templates.  Determine which of the argument
+lists should be considered more specialized for partial specialization
+or partial ordering purposes.  Return 1 if templ_arg_list1 is more
+specialized than templ_arg_list2, return -1 if templ_arg_list2 is more
+specialized than templ_arg_list1, and return 0 if they are unordered.
+*/
+{
+  int			non_variadic_args1 = 0;
+  int			non_variadic_args2 = 0;
+  a_template_arg_ptr	tap;
+  int			result = 0;
+
+  /* Count the number of non-variadic arguments for each of the
+     argument lists. */
+  for (tap = templ_arg_list1; tap != NULL;
+       tap = tap->next, non_variadic_args1++) {
+    if (tap->is_pack) break;
+  }  /* for */
+  for (tap = templ_arg_list2; tap != NULL;
+       tap = tap->next, non_variadic_args2++) {
+    if (tap->is_pack) break;
+  }  /* for */
+  /* The list with more non-variadic arguments is more specialized. */
+  if (non_variadic_args1 > non_variadic_args2) {
+    result = 1;
+  } else if (non_variadic_args2 > non_variadic_args1) {
+    result = -1;
+  }  /* if */
+  return result;
+}  /* compare_variadic_template_arg_lists */
+
+
+static int compare_partial_specializations(
 				a_symbol_ptr 		template_sym1,
 				a_symbol_ptr		template_sym2)
 /*
 templ_sym1 and templ_sym2 are class template symbols for partial
-specializations of a template.  Return TRUE if templ_sym1 is more
-specialized than templ_sym2.  This means that, for an instance that
-matches both templates, templ_sym1 should be preferred over templ_sym2.
+specializations of a template.  Return 1 if templ_sym1 is more
+specialized than templ_sym2, return -1 if templ_sym2 is more
+specialized than templ_sym1, and return 0 if they are unordered.  This
+means that, for an instance that matches both templates, templ_sym1
+should be preferred over templ_sym2.
 */
 {
-  a_boolean				result;
+  int					result;
+  a_boolean				match1;
+  a_boolean				match2;
   a_symbol_ptr				prototype_sym1;
   a_template_symbol_supplement_ptr	tssp1;
+  a_symbol_ptr				prototype_sym2;
+  a_template_symbol_supplement_ptr	tssp2;
  
   /* Use the argument deduction routines to determine whether the template
      parameters used in template2 can be deduced from the values used in
@@ -2361,10 +2407,40 @@ matches both templates, templ_sym1 should be preferred over templ_sym2.
      template1. */
   tssp1 = template_sym1->variant.template_info;
   prototype_sym1 = tssp1->variant.class_template.prototype_instantiation;
-  result = matches_partial_specialization(template_sym2, prototype_sym1,
+  match1 = matches_partial_specialization(template_sym2, prototype_sym1,
                                           (a_template_arg_ptr*)NULL);
+  /* Attempt the deduction in the other direction. */
+  tssp2 = template_sym2->variant.template_info;
+  prototype_sym2 = tssp2->variant.class_template.prototype_instantiation;
+  match2 = matches_partial_specialization(template_sym1, prototype_sym2,
+                                           (a_template_arg_ptr*)NULL);
+  if (match1 && !match2) {
+    result = 1;
+  } else if (match2 && !match1) {
+    result = -1;
+  } else {
+    /* They are unordered by deduction.  Compare the template argument
+       lists to see if one should be preferred based on the use of
+       variadic parameters. */
+    if (tssp1->is_variadic && tssp2->is_variadic) {
+      a_class_type_supplement_ptr		ctsp1;
+      a_class_type_supplement_ptr		ctsp2;
+      ctsp1 = prototype_sym1->variant.class_struct_union.type->
+                                        variant.class_struct_union.extra_info;
+      ctsp2 = prototype_sym2->variant.class_struct_union.type->
+                                        variant.class_struct_union.extra_info;
+      result = compare_variadic_template_arg_lists(ctsp1->template_arg_list,
+                                                   ctsp2->template_arg_list);
+    } else if (tssp2->is_variadic) {
+      result = 1;
+    } else if (tssp1->is_variadic) {
+      result = -1;
+    } else {
+      result = 0;
+    }  /* if */
+  }  /* if */
   return result;
-}  /* is_more_specialized */
+}  /* compare_partial_specializations */
 
 
 void add_to_partial_order_candidates_list(
@@ -2392,22 +2468,19 @@ templates being ordered are class template partial specializations.
   for (pscp = *psc_list; pscp != NULL;  pscp = next_pscp) {
     a_boolean	new_is_more_specialized;
     a_boolean	curr_is_more_specialized;
+    int		result;
     next_pscp = pscp->next;
     fund_curr_sym = fundamental_symbol_of(pscp->symbol);
     if (fund_new_sym->kind == (a_symbol_kind)sk_class_template) {
-      new_is_more_specialized = is_more_specialized(fund_new_sym,
-                                                    fund_curr_sym);
-      curr_is_more_specialized = is_more_specialized(fund_curr_sym,
-                                                     fund_new_sym);
+      result = compare_partial_specializations(fund_new_sym, fund_curr_sym);
     } else {
-      int	result;
       check_assertion(fund_new_sym->kind ==
                                          (a_symbol_kind)sk_function_template);
       result = compare_function_templates(fund_new_sym, fund_curr_sym,
                                           /*entire_type=*/TRUE);
-      new_is_more_specialized = result == 1;
-      curr_is_more_specialized = result == -1;
     }  /* if */
+    new_is_more_specialized = result == 1;
+    curr_is_more_specialized = result == -1;
 #if DEBUG
     if (db_flag_is_set("partial_ord")) {
       fprintf(f_debug, "atpoc: comparing\n  sym_1:");
@@ -13499,16 +13572,13 @@ subordinate templates.
       } else {
         /* The instance was generated by another partial specialization.
            See which is a better match. */
-        a_boolean	new_is_more_specialized;
-        a_boolean	curr_is_more_specialized;
-        new_is_more_specialized = is_more_specialized(ps_sym, instance_ct_sym);
-        curr_is_more_specialized = is_more_specialized(instance_ct_sym,
-                                                       ps_sym);
-        if (new_is_more_specialized && !curr_is_more_specialized) {
+        int	result;
+        result = compare_partial_specializations(ps_sym, instance_ct_sym);
+        if (result > 0) {
           /* The new instance is better.  Issue an error. */
           pos_sy_diagnostic(severity, ec_partial_spec_after_instantiation,
                             &ps_sym->decl_position, sym);
-        } else if (curr_is_more_specialized && !new_is_more_specialized) {
+        } else if (result < 0) {
           /* The template used for the instantiation is a better match than
              this one.  This is okay. */
         } else {
