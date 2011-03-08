@@ -1255,7 +1255,8 @@ resulting operand list is returned.
       /* Each expression on the list is potentially a pack expansion
          ended by "...". */
       /* Note that the code here is very similar to
-         scan_potential_pack_expansion_initializer_expr. */
+         scan_potential_pack_expansion_initializer_expr and
+         scan_expression_list_context_expr. */
       any_more = begin_potential_pack_expansion_context(&pesep);
       while (any_more) {
         /* Add an entry to the argument operand list. */
@@ -1291,6 +1292,74 @@ resulting operand list is returned.
 }  /* scan_expr_list */
 
 
+static void scan_expression_list_context_expr(
+                             a_local_expr_options_set options,
+                             an_operand               *operand,
+                             an_operand               *bound_function_selector,
+                             a_boolean                *expr_not_present)
+/*
+Scan a single expression that happens to be in a context that syntactically
+is considered an expression list, and return the expression in *operand.
+Because the context is nominally an expression list, allow pack expansions
+and disallow top-level comma operators.  If an expression is present but
+an empty pack expansion produces no result expression, return
+*expr_not_present TRUE (and nothing in *operand).  If bound_function_selector
+is non-NULL, the expression is allowed to be a bound function, and if it
+is, the selector part is returned in *bound_function_selector.  options is
+a set of expression-scanning options in case the caller wants to provide some
+additional ones over the basic ones implied for this case.
+*/
+{
+  a_pack_expansion_stack_entry_ptr pesep;
+  a_boolean                        any_more, first_time = TRUE;
+  a_boolean                        error_issued = FALSE;
+  
+  *expr_not_present = TRUE;
+  options |= EOPT_DISALLOW_COMMA_OPERATOR;
+  if (!C_mode() && bound_function_selector != NULL) {
+    options |= EOPT_ALLOW_BOUND_FUNCTION;
+  }  /* if */
+  /* Note that the code here is very similar to scan_expr_list and
+     scan_potential_pack_expansion_initializer_expr. */
+  any_more = begin_potential_pack_expansion_context(&pesep);
+  while (any_more) {
+    an_operand                 local_operand, local_bound_function_selector;
+    a_pack_expansion_descr_ptr pedep;
+
+    scan_expr_full(&local_operand, &local_bound_function_selector,
+                   PREC_LOWEST, options);
+    if (first_time) {
+      copy_operand(&local_operand, operand);
+      if (bound_function_selector != NULL) {
+        copy_operand(&local_bound_function_selector, bound_function_selector);
+      }  /* if */
+      *expr_not_present = FALSE;
+    } else {
+      /* More than one expression from a pack expansion.  Issue one error. */
+      if (!error_issued) {
+        expr_pos_error(ec_excess_pack_expansion, &local_operand.position);
+        error_issued = TRUE;
+      }  /* if */
+      operand_will_not_be_used_because_of_error(&local_operand);
+    }  /* if */
+    /* If this is a pack expansion, swallow the trailing "..." and
+       loop for the next iteration of the expansion. */
+    pedep = end_potential_pack_expansion_context(pesep,
+                                                 /*is_declarator=*/FALSE);
+    if (pedep != NULL) {
+      /* This expression is a variadic template pack expansion, i.e.,
+         it's followed by "...".  Furthermore, we're in the prototype
+         instantiation, so we record the expansion information on the
+         expression. */
+      check_assertion(first_time);
+      mark_operand_as_pack_expansion(operand, pedep);
+    }  /* if */
+    any_more = advance_to_next_pack_element(pesep);
+    first_time = FALSE;
+  }  /* while */
+}  /* scan_expression_list_context_expr */
+
+
 static void rescan_pack_expansion(an_expr_node_ptr       expr,
                                   an_arg_operand_ptr     *arg_operand_list,
                                   an_arg_operand_ptr     *end_arg_operand_list,
@@ -1313,6 +1382,7 @@ to be done.
   a_pack_expansion_stack_entry_ptr pesep;
   a_boolean                        err;
 
+  /* Note this is similar to rescan_expression_list_context_expr. */
   eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
   pedep = eriep->saved_operand.pack_expansion_descr;
   check_assertion(expr->is_pack_expansion && pedep != NULL);
@@ -1394,10 +1464,82 @@ template pack expansions into multiple expressions as necessary.
         }  /* if */
         end_arg_operand_list = arg_op;
       }  /* if */
-    }  /* while */
+    }  /* for */
   }  /* if */
   return arg_operand_list;
 }  /* rescan_expr_list */
+
+
+static void rescan_expression_list_context_expr(
+                             an_expr_node_ptr         expr,
+                             a_rescan_control_block   *rcblock,
+                             a_local_expr_options_set options,
+                             an_operand               *operand,
+                             an_operand               *bound_function_selector,
+                             a_boolean                *expr_not_present)
+/*
+Redo semantic analysis on a single expression that happens to be in a
+context that syntactically is considered an expression list,
+substituting for template parameters as described by rcblock, and
+return the expression in *operand.  Expand variadic template pack
+expansions as necessary.  If an expression is present but an empty
+pack expansion produces no result expression, return *expr_not_present
+TRUE (and nothing in *operand).  If bound_function_selector is
+non-NULL, the expression is allowed to be a bound function, and if it
+is, the selector part is returned in *bound_function_selector.  options
+is a set of expression-scanning options in case the caller wants to
+provide some additional ones over the basic ones implied for this case.
+*/
+{
+  *expr_not_present = FALSE;
+  if (expr->is_pack_expansion) {
+    /* A variadic template pack expansion. */
+    a_boolean                        any_more;
+    an_expr_rescan_info_entry_ptr    eriep;
+    a_pack_expansion_descr_ptr       pedep;
+    a_pack_expansion_stack_entry_ptr pesep;
+    a_boolean                        err, first_time = TRUE;
+
+    /* Note this is similar to rescan_pack_expansion. */
+    eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
+    pedep = eriep->saved_operand.pack_expansion_descr;
+    check_assertion(pedep != NULL);
+    any_more = begin_rescan_pack_expansion_context(pedep,
+                                                  rcblock->template_param_list,
+                                                   rcblock->template_arg_list,
+                                                   &pesep,
+                                                   rcblock->ctws_state, &err);
+    /* Check if an error occurred (such as mismatched parameter pack
+       lengths). */
+    if (err) rcblock->error_detected = TRUE;
+    *expr_not_present = TRUE;
+    while (any_more) {
+      an_operand local_operand, local_bound_function_selector;
+      make_rescan_operand_full(expr, rcblock, options, &local_operand,
+                               &local_bound_function_selector);
+      if (first_time) {
+        copy_operand(&local_operand, operand);
+        if (bound_function_selector != NULL) {
+          copy_operand(&local_bound_function_selector,
+                       bound_function_selector);
+        }  /* if */
+        *expr_not_present = FALSE;
+      } else {
+        /* More than one expression from a pack expansion. */
+        rcblock->error_detected = TRUE;
+        /* It seems safest to allow the loop to run to its normal end. */
+      }  /* if */
+      (void)end_potential_pack_expansion_context(pesep,
+                                                 /*is_declarator=*/FALSE);
+      any_more = advance_to_next_pack_element(pesep);
+      first_time = FALSE;
+    }  /* while */
+  } else {
+    /* Normal case, not a pack expansion. */
+    make_rescan_operand_full(expr, rcblock, options,
+                             operand, bound_function_selector);
+  }  /* if */
+}  /* rescan_expression_list_context_expr */
 
 
 static void scan_call_arguments(
@@ -12120,11 +12262,14 @@ an acceptable result.
 }  /* is_okay_integral_constant_expression_result */
 
 
-static void scan_extended_integral_constant_expression(a_boolean  allow_comma,
-                                                       a_boolean  will_cast,
-                                                       a_boolean  top_level,
-                                                       int        prec_level,
-                                                       an_operand *operand)
+static void scan_extended_integral_constant_expression(
+                                                  a_boolean  allow_comma,
+                                                  a_boolean  is_expr_list,
+                                                  a_boolean  will_cast,
+                                                  a_boolean  top_level,
+                                                  int        prec_level,
+                                                  an_operand *operand,
+                                                  a_boolean  *expr_not_present)
 /*
 Scan a constant expression that is an extended form of an integral constant
 expression.  It is extended in that it allows addressing expressions that
@@ -12134,16 +12279,20 @@ expression is scanned as an initializer constant expression, then checked
 to see if it is a constant with integer or floating-point representation.
 If not, an error is issued and the constant is changed to an error
 constant.  The constant is returned in *operand.  If allow_comma is TRUE,
-a top-level comma is allowed in the expression.  If will_cast is TRUE,
-the result will be cast to an integral type (and therefore it can, for
-example, be a floating-point constant).  If top_level is TRUE, this
-is a call from outside the expression routines and the expression stack
-should be saved/cleared/restored.  prec_level is the precedence
-level to be used in scanning the expression.  The constant returned
-might be an error constant or a template parameter constant.  This
-routine exists mainly to allow the sorts of constant expressions used
-in the implementation of offsetof, but it also deals with the fact that
-some dialects (GNU, Microsoft, Sun) allow extended forms of integer constants.
+a top-level comma is allowed in the expression.  If is_expr_list is
+TRUE, the expression is nominally part of an expression list (in that
+case, if an expression is present but it's a pack expansion that expands
+to nothing, *expr_not_present is returned TRUE).  If will_cast is
+TRUE, the result will be cast to an integral type (and therefore it
+can, for example, be a floating-point constant).  If top_level is
+TRUE, this is a call from outside the expression routines and the
+expression stack should be saved/cleared/restored.  prec_level is the
+precedence level to be used in scanning the expression.  The constant
+returned might be an error constant or a template parameter constant.
+This routine exists mainly to allow the sorts of constant expressions
+used in the implementation of offsetof, but it also deals with the
+fact that some dialects (GNU, Microsoft, Sun) allow extended forms of
+integer constants.
 */
 {
   an_expr_stack_entry expr_stack_entry;
@@ -12157,8 +12306,14 @@ some dialects (GNU, Microsoft, Sun) allow extended forms of integer constants.
                   /*suppress_object_lifetime=*/FALSE);
   if (top_level) transfer_expr_context_if_applicable(saved_expr_stack);
   /* Scan the expression. */
-  scan_expr(operand, prec_level, allow_comma ? EOPT_NO_OPTIONS :
-                                               EOPT_DISALLOW_COMMA_OPERATOR);
+  if (is_expr_list) {
+    scan_expression_list_context_expr(EOPT_NO_OPTIONS, operand,
+                                      (an_operand *)NULL,
+                                      expr_not_present);
+  } else {
+    scan_expr(operand, prec_level, allow_comma ? EOPT_NO_OPTIONS :
+                                                 EOPT_DISALLOW_COMMA_OPERATOR);
+  }  /* if */
   do_operand_transformations(operand, TOPT_NO_OPTIONS);
   /* Make a constant from the operand. */
   extract_constant_from_operand(operand, &con);
@@ -12247,9 +12402,12 @@ indication in *rcblock).
     add_matching_stop_token(tok_rparen);
     /* Scan the address expression. */
     scan_extended_integral_constant_expression(/*allow_comma=*/TRUE,
+                                               /*is_expr_list=*/FALSE,
                                                /*will_cast=*/TRUE,
                                                /*top_level=*/FALSE,
-                                               PREC_LOWEST, &operand);
+                                               PREC_LOWEST,
+                                               &operand,
+                                               (a_boolean *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -16123,17 +16281,20 @@ indication in *rcblock).
 
 
 static void scan_cast_expression(a_type_ptr type_cast_to,
-                                 a_boolean  allow_comma,
+                                 a_boolean  is_expr_list,
                                  int        prec_level,
                                  an_operand *operand,
-                                 an_operand *bound_function_selector)
+                                 an_operand *bound_function_selector,
+                                 a_boolean  *expr_not_present)
 /*
 Scan an expression that is the operand of a cast.  type_cast_to is the
-type to which the expression will be cast.  allow_comma is TRUE if a
-top-level comma should be allowed in the expression.  prec_level is
-the precedence level for the expression scan.  Return the expression
-in *operand, and if a bound function is scanned, return the selector
-in *bound_function_selector.
+type to which the expression will be cast.  is_expr_list is TRUE if the
+expression is syntactically considered an expression list, even though
+it's only one expression; in that case, if the expression is present
+but is a pack expansion that expands to nothing, *expr_not_present is
+returned TRUE.  prec_level is the precedence level for the expression
+scan.  Return the expression in *operand, and if a bound function is
+scanned, return the selector in *bound_function_selector.
 */
 {
   /* In non-strict mode, scan the operand of a cast to an integral type
@@ -16144,20 +16305,32 @@ in *bound_function_selector.
       (curr_expr_kind_is(ek_integral_constant) ||
        curr_expr_kind_is(ek_template_arg)) &&
       is_integral_type(type_cast_to)) {
-    scan_extended_integral_constant_expression(allow_comma,
+    scan_extended_integral_constant_expression(/*allow_comma=*/!is_expr_list,
+                                               is_expr_list,
                                                /*will_cast=*/TRUE,
                                                /*top_level=*/FALSE,
                                                prec_level,
-                                               operand);
+                                               operand,
+                                               expr_not_present);
   } else {
     /* Normal case. */
     a_local_expr_options_set cast_options = EOPT_OPERAND_OF_CAST;
-    if (!C_mode()) {
-      /* In C++, allow a bound function as the operand of a cast. */
-      cast_options |= EOPT_ALLOW_BOUND_FUNCTION;
+    if (is_expr_list) {
+      scan_expression_list_context_expr(cast_options, operand,
+                                        bound_function_selector,
+                                        expr_not_present);
+    } else {
+      if (!C_mode()) {
+        /* In C++, allow a bound function as the operand of a cast. */
+        cast_options |= EOPT_ALLOW_BOUND_FUNCTION;
+      }  /* if */
+      cast_options |= EOPT_DISALLOW_COMMA_OPERATOR;
+      scan_expr_full(operand, bound_function_selector, prec_level,
+                     cast_options);
     }  /* if */
-    if (!allow_comma) cast_options |= EOPT_DISALLOW_COMMA_OPERATOR;
-    scan_expr_full(operand, bound_function_selector, prec_level, cast_options);
+  }  /* if */
+  if (is_expr_list && !*expr_not_present) {
+    mark_expr_of_operand_as_pack_expansion_if_necessary(operand);
   }  /* if */
 }  /* scan_cast_expression */
 
@@ -16662,8 +16835,10 @@ Also scans GNU statement expressions:
         }  /* if */
         set_err_pos_to_curr_token();
         /* Scan the expression to be cast. */
-        scan_cast_expression(type_cast_to, /*allow_comma=*/TRUE, PREC_CAST,
-                             result, &local_bound_function_selector);
+        scan_cast_expression(type_cast_to,
+                             /*is_expr_list=*/FALSE, PREC_CAST,
+                             result, &local_bound_function_selector,
+                             (a_boolean *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         end_position = result->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -17044,6 +17219,7 @@ as the cast in place of rcblock->expr.
                             (rcblock->argument_list == NULL)) {
       /* Empty parentheses (or no expressions in the argument list, on
          a rescan). */
+empty_parentheses:
       if (err) {
         /* Some previous error. */
         make_error_operand(result);
@@ -17131,6 +17307,7 @@ as the cast in place of rcblock->expr.
       }  /* if */
     } else {
       /* Non-empty parentheses. */
+      a_boolean expr_not_present = FALSE;
       if (rcblock != NULL) {
         if (rcblock->argument_list->next != NULL) {
           /* Multiple operand expressions in a cast that can only take one. */
@@ -17138,16 +17315,26 @@ as the cast in place of rcblock->expr.
           make_error_operand(result);
         } else {
           /* Rescan the operand expression. */
-          make_rescan_operand_full(rcblock->argument_list, rcblock,
-                                   EOPT_OPERAND_OF_CAST,
-                                   result, &local_bound_function_selector);
+          rescan_expression_list_context_expr(rcblock->argument_list, rcblock,
+                                              EOPT_OPERAND_OF_CAST,
+                                              result,
+                                              &local_bound_function_selector,
+                                              &expr_not_present);
         }  /* if */
       } else {
         /* Scan the expression inside the parentheses. */
         /* Since the expression in parentheses is syntactically an
            expression list, a top-level comma is not allowed. */
-        scan_cast_expression(type_cast_to, /*allow_comma=*/FALSE, PREC_LOWEST,
-                             result, &local_bound_function_selector);
+        scan_cast_expression(type_cast_to,
+                             /*is_expr_list=*/TRUE, PREC_LOWEST,
+                             result, &local_bound_function_selector,
+                             &expr_not_present);
+      }  /* if */
+      if (expr_not_present) {
+        /* There is an expression, but it's a pack expansion that expanded
+           to no expressions, so go to the handling for an empty set
+           of parentheses. */
+        goto empty_parentheses;
       }  /* if */
 non_ctor_case_after_expr_scan:
       if (is_array_type(type_cast_to)) {
@@ -25446,10 +25633,12 @@ and [expr.const] in the ISO C++98 standard.
       microsoft_mode) {
     /* Sun, GNU and Microsoft C and C++ allow more than the standard allows. */
     scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
+                                               /*is_expr_list=*/FALSE,
                                                /*will_cast=*/FALSE,
                                                /*top_level=*/TRUE,
                                                PREC_LOWEST,
-                                               &result);
+                                               &result,
+                                               (a_boolean *)NULL);
     extract_constant_from_operand(&result, constant);
   } else {
     /* Standard integral constant expression. */
@@ -26960,7 +27149,8 @@ expressions being pushed into the cache.
        expression is already on the other side of pack expansion and the
        loop below is not required. */
   } else {    
-    /* Note that the code here is very similar to scan_expr_list. */
+    /* Note that the code here is very similar to scan_expr_list and
+       scan_expression_list_context_expr. */
     check_assertion(!anything_cached(&dps->prescanned_initializer_cache));
     any_more = begin_potential_pack_expansion_context(&pesep);
     while (any_more) {
@@ -28098,10 +28288,12 @@ things like (void *)1 as case constants.
 
   db_enter(3, "scan_microsoft_case_label_constant_expression");
   scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
+                                             /*is_expr_list=*/FALSE,
                                              /*will_cast=*/TRUE,
                                              /*top_level=*/TRUE,
                                              PREC_LOWEST,
-                                             &result);
+                                             &result,
+                                             (a_boolean *)NULL);
   extract_constant_from_operand(&result, constant);
   if (!is_integral_or_enum_type(constant->type)) {
     /* MSVC++ allows some weird cases like (void *)1.  Warn on those. */
