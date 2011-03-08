@@ -9113,7 +9113,7 @@ to be part of the function template such as a lambda nested therein.
   *elements = 0;
   /* Count the number of pack elements. */
   for (; vp != NULL; vp = vp->next) {
-    check_assertion(vp->assoc_param_type->is_pack_element);
+    if (!vp->assoc_param_type->is_pack_element) break;
     (*elements)++;
   }  /* for */
   return result_vp;
@@ -10128,12 +10128,16 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
            that symbol (pointed to by primary_var_or_param_symbol) to point
            to the current variable to be used. */
         a_variable_ptr	vp = arg_prp->curr_argument.variable;
-        vp = vp->next;
-        arg_prp->curr_argument.variable = vp;
-        if (vp == NULL) {
+        a_variable_ptr	next_vp = vp->next;
+        if (next_vp == NULL ||
+            next_vp->assoc_param_type == NULL ||
+            vp->assoc_param_type->param_num !=
+                                        next_vp->assoc_param_type->param_num) {
+          arg_prp->curr_argument.variable = NULL;
           done = TRUE;
         } else {
-          arg_prp->primary_var_or_param_symbol->variant.variable.ptr = vp;
+          arg_prp->curr_argument.variable = next_vp;
+          arg_prp->primary_var_or_param_symbol->variant.variable.ptr = next_vp;
         }  /* if */
       } else if (param_prp->kind == prk_template_param) {
         /* A template argument. */
