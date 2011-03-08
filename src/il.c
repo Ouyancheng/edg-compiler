@@ -10580,28 +10580,37 @@ chain of entries from *p_type to the underlying function type).
   a_boolean   make_new_type = FALSE;
   a_type_ptr  tp = *p_type;
 
-  /* First go down the chain of type entries looking for typedefs and/or
-     decltype entries.  Update p_type so it will point to the pointer that
-     points to such a typedef or decltype entry. */
+  /* Go down the chain of type entries looking for typedefs and/or decltype
+     entries.  (The typedef-like entry is not modifiable since it is likely
+     used in other contexts, and the chain of pointer and qualifier qualifier
+     entries that precede it may be shared through the base_types lists.  In
+     such cases, the chain must therefore be copied before the underlying
+     function type is modified.)  */
+  if (tp->kind == (a_type_kind)tk_typeref &&
+      tp->variant.typeref.for_type_attributes) {
+    /* The first type entry of the chain is to hold attributes.  These are not
+       shared via the based_types list (so it is safe to modify them) and the
+       caller may expect that entry to be preserved even if the underlying
+       chain must be duplicated. */
+    p_type = &tp->variant.typeref.type;
+    tp = *p_type;
+  }  /* if */
   do {
     switch (tp->kind) {
       case tk_routine:
         *func_type = tp;
         break;
       case tk_pointer:
-        p_type = &tp->variant.pointer.type;
-        tp = *p_type;
+        tp = tp->variant.pointer.type;
         break;
       case tk_ptr_to_member:
-        p_type = &tp->variant.ptr_to_member.type;
-        tp = *p_type;
+        tp = tp->variant.ptr_to_member.type;
         break;
       case tk_typeref:
         if (typeref_is_typedef(tp) || typeref_is_decltype_or_typeof(tp)) {
           make_new_type = TRUE;
         } else {
-          p_type = &tp->variant.typeref.type;
-          tp = *p_type;
+          tp = tp->variant.typeref.type;
         }  /* if */
         break;
       default:

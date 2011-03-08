@@ -576,7 +576,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_cleanup, "v|Wp", apply_cleanup_attr },
   { ak_cold, "r", NO_APPL_FN },
   { ak_common, "v:-a|Wr", apply_common_attr },
-  { ak_const, "Wt|r|v|d", apply_const_attr },
+  { ak_const, "t|r|v|d", apply_const_attr },
   { ak_constructor, "r", apply_constructor_attr },
   { ak_destructor, "r", apply_destructor_attr },
   { ak_error, "r", NO_APPL_FN },
@@ -4342,7 +4342,11 @@ Apply the GNU "const" attribute to the given entity and return that entity.
   a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
 
   if (func_type != NULL) {
-    func_type->variant.routine.extra_info->is_const = TRUE;
+    if (entity_kind == iek_type) {
+      report_bad_attribute_target(es_warning, ap);
+    } else {
+      func_type->variant.routine.extra_info->is_const = TRUE;
+    }  /* if */
   }  /* if */
   return entity;
 }  /* apply_const_attr */
