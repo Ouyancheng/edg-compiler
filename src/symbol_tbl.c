@@ -1696,18 +1696,14 @@ Return TRUE if sym is a template parameter pack or function parameter pack.
          a pack. */
       { a_type_ptr	tp = sym->variant.type.ptr;
         tp = skip_typerefs(tp);
-        if (tp->kind == (a_type_kind)tk_template_param) {
-          result = tp->variant.template_param.is_pack;
-        }  /* if */
+        result = type_is_pack(tp);
       }
       break;
     case sk_constant:
       /* For a constant, check for a template parameter constant that is
          marked as a pack. */
       { a_constant_ptr	cp = sym->variant.constant;
-        if (cp->kind == (a_type_kind)ck_template_param) {
-          result = cp->variant.template_param.is_pack;
-        }  /* if */
+        result = constant_is_pack(cp);
       }
       break;
     case sk_class_template:

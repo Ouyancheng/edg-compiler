@@ -433,6 +433,22 @@ member, and NULL otherwise.
   ((ptr)->source_corresp.is_class_member ? parent_class_of(ptr)             \
                                          : (a_type_ptr)NULL)
 
+/*
+Return TRUE if tp is a template type parameter pack.
+*/
+#define type_is_pack(tp)						\
+  ((tp)->kind == (a_type_kind)tk_template_param &&			\
+   (tp)->variant.template_param.is_pack)
+
+
+/*
+Return TRUE if cp is a template nontype parameter pack.
+*/
+#define constant_is_pack(cp)						\
+  ((cp)->kind == (a_constant_repr_kind)ck_template_param &&		\
+   (cp)->variant.template_param.is_pack)
+
+
 extern a_routine_ptr lambda_body_for_closure(a_type_ptr	type);
 
 extern a_lambda_ptr get_current_lambda(void);

@@ -2320,7 +2320,8 @@ in ps_arg_list.
       test_type = copy_type_with_substitution(prototype_type,
                                               *ps_arg_list, templ_param_list,
 					      &template_sym->decl_position,
-					      CTWS_PROTOTYPE_ALLOWED,
+					      CTWS_PROTOTYPE_ALLOWED |
+                                              CTWS_PRESERVE_DEDUCED_PACKS,
 					      &copy_error, &ctws_state);
       if (!copy_error && identical_types(instance_type, test_type)) {
         result = TRUE;
@@ -6692,6 +6693,7 @@ match is found.
             /* No template has been bound to this template argument yet, so
                just the current template. */
             tap->variant.templ.ptr = templ_ptr;
+            tap->is_pack = templ_ptr->is_pack;
             match = TRUE;
           } else {
             /* A template was already bound to this template argument.  We
@@ -6959,6 +6961,7 @@ list of a template function.  Returns TRUE if a match is found.
             /* No constant has been bound to this template argument yet, so
                just use "constant".  This counts as a match. */
             tap->variant.constant = constant;
+            tap->is_pack = constant_is_pack(constant);
           } else {
             /* A constant was already bound to this template argument.  We
                have a match if and only if the new constant is the same as
@@ -7572,6 +7575,8 @@ points to the template parameter list.
                types that are part of "type". */
             type = strip_qualifiers_from_param_types(type);
             tap->variant.type = type;
+            /* If the new type is a pack, copy over the flag. */
+            tap->is_pack = type_is_pack(type);
             match = TRUE;
           } else {
             /* A type was already bound to this template argument.  We have a
@@ -8244,6 +8249,7 @@ parameters.
                                            templ_arg_list, templ_param_list,
 					   source_pos, options, copy_error,
                                            ctws_state);
+    tap->is_pack = type_is_pack(tap->variant.type);
   } else if (is_nontype_templ_arg(tap)) {
     /* Perform the substitution on the type of the constant. */
     a_type_ptr	const_type;
@@ -8307,6 +8313,7 @@ parameters.
                                                    source_pos,
                                                    options, copy_error,
                                                    ctws_state);
+    tap->is_pack = constant_is_pack(tap->variant.constant);
     if (new_const_type != NULL) {
       /* If the constant does not have the required type, see if it can
          be converted. */
@@ -8334,6 +8341,7 @@ parameters.
                                  templ_param_list,
                                  source_pos, options, copy_error,
                                  ctws_state);
+    tap->is_pack = tap->variant.templ.ptr->is_pack;
   }  /* if */
 }  /* substitute_template_argument */
 
