@@ -9250,7 +9250,7 @@ lengths) *err is set to TRUE, FALSE otherwise.
      of arguments for each.  Create a copy of the list to record information
      about the instantiation. */
   for (prp = pedp->packs_referenced; prp != NULL; prp = prp->next) {
-    uint32_t			elements_for_pack;
+    uint32_t			elements_for_pack = 0;
     a_pack_reference_ptr	new_prp;
     /* Create a copy of the pack reference entry and add it to the list of
        entries for this instantiation. */
