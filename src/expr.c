@@ -17076,6 +17076,7 @@ as the cast in place of rcblock->expr.
   a_dynamic_init_ptr            dip;
   an_expr_node_ptr              temp_init_node, orig_operand_expression = NULL;
   a_source_position             local_start_position, type_position;
+  a_boolean                     expr_not_present = FALSE;
 
   db_enter(4, "scan_functional_notation_type_conversion");
 
@@ -17307,7 +17308,6 @@ empty_parentheses:
       }  /* if */
     } else {
       /* Non-empty parentheses. */
-      a_boolean expr_not_present = FALSE;
       if (rcblock != NULL) {
         if (rcblock->argument_list->next != NULL) {
           /* Multiple operand expressions in a cast that can only take one. */
