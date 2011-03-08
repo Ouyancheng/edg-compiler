@@ -1816,7 +1816,13 @@ appear.
         pedep = end_potential_pack_expansion_context(pesep,
                                                      /*is_declarator=*/FALSE);
         if (pedep != NULL) {
-          (*p_attribute)->is_pack_expansion = TRUE;
+          if (*p_attribute == NULL) {
+            /* In error cases, scan_attribute may not have produced an 
+               attribute entry. */
+            expect_error();
+          } else {
+            (*p_attribute)->is_pack_expansion = TRUE;
+          }  /* if */
         }  /* if */
       }
       any_more = advance_to_next_pack_element(pesep);
