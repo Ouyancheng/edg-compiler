@@ -7167,7 +7167,7 @@ partial specialization.
 
   begin_template_arg_list_traversal_simple(tap, &tap);
   begin_template_arg_list_traversal_simple(templ_tap, &templ_tap);
-  do {
+  for (match = TRUE; match && tap != NULL && templ_tap != NULL; ) {
     if (pesep == NULL && templ_tap->pack_expansion_descr != NULL) {
       /* The argument from the template is of the form "T...".  This
          is a template parameter pack deduction context. */
@@ -7209,7 +7209,7 @@ partial specialization.
     } else {
       advance_to_next_template_arg_simple(&templ_tap);
     }  /* if */
-  } while (match && tap != NULL && templ_tap != NULL);
+  }  /* for */
   if (pesep != NULL) {
     /* If this is a pack deduction, indicate we have reached the end of
        the deduction this parameter. */
