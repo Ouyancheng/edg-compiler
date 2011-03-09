@@ -1640,6 +1640,7 @@ to TRUE.
       arg_operand_list != NULL && arg_operand_list->next == NULL) {
     /* Return a single operand through *single_operand. */
     copy_operand(&arg_operand_list->operand, single_operand);
+    mark_expr_of_operand_as_pack_expansion_if_necessary(single_operand);
     free_arg_operand_list(arg_operand_list);
     check_assertion(single_operand_returned != NULL);
     *single_operand_returned = TRUE;
