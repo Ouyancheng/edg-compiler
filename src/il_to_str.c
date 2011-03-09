@@ -351,6 +351,7 @@ Output the indicated template argument in the way described by octl.
       unexpected_condition();
       break;
   }  /* switch */
+  if (tap->is_pack) octl->output_str("...", octl);
 }  /* form_a_template_arg */
 
 
@@ -1544,11 +1545,6 @@ by octl.
           } else {
             form_name(scp, (an_il_entry_kind)scp_kind, octl);
           }  /* if */
-          if (type->variant.template_param.is_pack &&
-              !octl->gen_compilable_code) {
-            /* Output an indication that this is a template parameter pack. */
-            octl->output_str("...", octl);
-          }  /* if */
         }  /* if */
       }
       break;
@@ -2075,6 +2071,7 @@ in the way described by octl.
           if (param->is_cli_param_array) octl->output_str("... ", octl);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           form_type(param->type, octl);
+          if (param->is_parameter_pack) octl->output_str("...", octl);
           /* Default argument expressions are not put out. */
           param = param->next;
           if (param == NULL) break;
