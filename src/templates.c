@@ -1804,7 +1804,7 @@ during wrapup processing by compare_function_templates.
         if (!equiv_template_param_lists(param_list_for_param,
                                         param_list_for_arg,
                                         /*issue_errors=*/FALSE,
-				        ETP_NO_OPTIONS,
+				        ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
                                         (a_source_position*)NULL,
                                         es_error)) {
           match = FALSE;
@@ -6355,7 +6355,7 @@ parameters are not checked at this point.
     /* Not a dependent template -- do the full comparison. */
     result = equiv_template_param_lists(list1, list2, 
                                        /*issue_errors=*/FALSE,
- 				       ETP_NO_OPTIONS,
+ 				       ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
                                        (a_source_position*)NULL, es_error);
   } else {
     /* A dependent template -- just compare the number and kind of
@@ -8422,10 +8422,19 @@ associated parameter.
       if (err) *copy_error = TRUE;
     }  /* if */
     while (any_more) {
-      /* If there are too few parameters, the copy should fail. */
-      if (have_params && tpp == NULL) {
-        *copy_error = TRUE;
-        break;
+      /* If there are too few parameters, the copy should fail.  Don't
+         fail on a start of pack expansion as there may not be any actual
+         arguments that follow.  Also, don't copy the placeholder if the
+         parameter is not a pack. */
+      if (have_params) {
+        if (is_start_of_pack_expansion_templ_arg(tap) &&
+            (tpp == NULL || !tpp->is_pack)) {
+          goto end_of_loop;
+        }  /* if */
+        if (tpp == NULL) {
+          *copy_error = TRUE;
+          break;
+        }  /* if */
       }  /* if */
       new_tap = alloc_template_arg(tap->kind);
       new_tap->is_pack_element = have_params && tpp->is_pack;
@@ -8471,6 +8480,7 @@ associated parameter.
       }  /* if */
       prev_new_tap = new_tap;
       if (have_params && !tpp->is_pack) tpp = tpp->next;
+end_of_loop:
       (void)end_potential_pack_expansion_context(
                                                pesep, /*is_declarator=*/FALSE);
       any_more = advance_to_next_pack_element(pesep);
@@ -12276,7 +12286,10 @@ and nontype parameters must be of the same type.  Return TRUE if the
 lists are equivalent.  If issue_errors is TRUE, errors are issued
 describing any incompatibilities.  "options" is a set of option flags
 to be used.  error_severity is the severity at which any diagnostics should
-be issued.
+be issued.  When ETP_TEMPLATE_TEMPLATE_PARAM_MATCH is TRUE, the old list
+is from a template template parameter and additional flexibility in the
+matching process is provided.   For example, a parameter pack in old_list
+can match zero or more parameters from new_list.
 */
 {
   a_template_param_ptr		new_tpp;
@@ -12284,7 +12297,10 @@ be issued.
   a_boolean			any_errors = FALSE;
   a_template_param_ptr		prev_new_tpp = NULL;
   a_template_param_ptr		prev_old_tpp = NULL;
+  a_boolean			is_templ_templ_param_match;
 
+  is_templ_templ_param_match = (options &
+                                ETP_TEMPLATE_TEMPLATE_PARAM_MATCH) != 0;
   if ((options & ETP_NESTING_DEPTH_MISMATCH_OKAY) == 0) {
     a_template_nesting_depth	old_depth;
     a_template_nesting_depth	new_depth;
@@ -12306,8 +12322,11 @@ be issued.
       /* One argument is a type and the other is a constant -- this is an
          error. */
       err = TRUE;
-    } else if (old_tpp->is_pack != new_tpp->is_pack) {
-      /* One is a parameter pack and the other is not. */
+    } else if (old_tpp->is_pack != new_tpp->is_pack &&
+               (!old_tpp->is_pack || !is_templ_templ_param_match)) {
+      /* One is a parameter pack and the other is not.  It is okay for
+         only the old list to be a pack when doing template template
+         parameter matching. */
       err = TRUE;
     } else if (old_sym->kind == (a_symbol_kind)sk_type) {
       /* Both are types.  No further checking is needed. */
@@ -12343,12 +12362,16 @@ be issued.
       }  /* if */
       any_errors = TRUE;
     }  /* if */
-    prev_old_tpp = old_tpp;
-    old_tpp = old_tpp->next;
+    if (!old_tpp->is_pack || !is_templ_templ_param_match) {
+      prev_old_tpp = old_tpp;
+      old_tpp = old_tpp->next;
+    }  /* if */
     prev_new_tpp = new_tpp;
     new_tpp = new_tpp->next;
   }  /* while */
-  if (old_tpp != NULL || new_tpp != NULL) {
+  if ((old_tpp != NULL &&
+       !(is_templ_templ_param_match && old_tpp->is_pack)) ||
+      new_tpp != NULL) {
     /* The lists differ in the number of parameters. */
     any_errors = TRUE;
     if (issue_errors) {

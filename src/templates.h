@@ -245,6 +245,12 @@ typedef int an_equiv_templ_param_options_set;
 #define ETP_NESTING_DEPTH_MISMATCH_OKAY	0x2
 			/* TRUE if the comparison of nesting depths should be
 			   suppressed. */
+#define ETP_TEMPLATE_TEMPLATE_PARAM_MATCH 0x4
+			/* TRUE if the comparison is being done to determine
+			   whether a template matches the parameter list of
+			   a template template parameter.  Some flexibility
+			   is provided in such cases (e.g., for matching
+			   parameter packs). */
 
 /*
 Flags used to specify options to set_instance_requried and
