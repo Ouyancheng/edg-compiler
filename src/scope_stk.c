@@ -5106,7 +5106,8 @@ curr_routine points to the routine entry; otherwise, it is NULL.
             severity = es_remark;
           }  /* if */
         } else if (il_header.any_templates_seen &&
-                   !nonclass_prototype_instantiations &&
+                   (!nonclass_prototype_instantiations ||
+                    defer_function_prototype_instantiations) &&
                    instantiation_mode == tim_none &&
                    (scope_kind == (a_scope_kind)sck_file ||
                     scope_kind == (a_scope_kind)sck_namespace ||
@@ -5297,7 +5298,8 @@ curr_routine points to the routine entry; otherwise, it is NULL.
              and may appear in header files, so no warning is generated. */
 #endif /* ASM_FUNCTION_ALLOWED */
         } else if (il_header.any_templates_seen &&
-                   !nonclass_prototype_instantiations &&
+                   (!nonclass_prototype_instantiations ||
+                    defer_function_prototype_instantiations) &&
                    instantiation_mode == tim_none &&
                    (scope_kind == (a_scope_kind)sck_file ||
                     scope_kind == (a_scope_kind)sck_namespace ||
