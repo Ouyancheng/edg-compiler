@@ -13893,7 +13893,8 @@ options is a set of name lookup options.
     rcblock.template_arg_list = template_arg_list;
     rcblock.template_param_list = template_param_list;
     rcblock.options = options;
-    expr_copy = rescan_expr_with_substitution(expr, &rcblock, constant);
+    expr_copy = rescan_expr_with_substitution(expr, guide_type,
+                                              &rcblock, constant);
     if (rcblock.error_detected) {
       /* There was an error, so deduction fails. */
       *copy_error = TRUE;
@@ -14989,6 +14990,12 @@ lookup options.
            a tpck_expression constant). */
         if (is_error_node(expr_copy)) {
           set_error_constant(&constant);
+        } else if (is_pointer_type(expr_copy->type) &&
+                   constant_rvalue_pointer(expr_copy, &constant,
+                                           /*address_escapes=*/TRUE,
+                                           (a_boolean *)NULL)) {
+          /* The expression has constant pointer value (possibly
+             template-dependent), so return that constant. */
         } else {
           make_template_param_expr_constant(expr_copy, &constant);
         }  /* if */

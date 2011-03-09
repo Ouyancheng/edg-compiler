@@ -295,6 +295,7 @@ extern void rescan_expr_with_substitution_internal(
 
 extern an_expr_node_ptr rescan_expr_with_substitution(
                                              an_expr_node_ptr       expr,
+                                             a_type_ptr             guide_type,
                                              a_rescan_control_block *rcblock,
                                              a_constant             *constant);
 

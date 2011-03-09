@@ -27012,9 +27012,10 @@ alternative callable from outside, see rescan_expr_with_substitution.
 
 
 an_expr_node_ptr rescan_expr_with_substitution(
-                                              an_expr_node_ptr       expr,
-                                              a_rescan_control_block *rcblock,
-                                              a_constant             *constant)
+                                             an_expr_node_ptr       expr,
+                                             a_type_ptr             guide_type,
+                                             a_rescan_control_block *rcblock,
+                                             a_constant             *constant)
 /*
 Redo the semantic analysis on the expression expr as part of doing
 template deduction.  rcblock provides the deduction context, e.g., the
@@ -27024,7 +27025,9 @@ the rescan.  If there is no error, a copy of the expression, with
 appropriate substitution done, is returned.  If the result is a
 constant, *constant (not in the IL) is set to the constant value, and
 NULL is returned.  This is intended for calls from outside of the
-expression-processing routines.
+expression-processing routines.  If guide_type is non-NULL, it is
+a guide type that can be used to resolve the instance of an overloaded
+function or template.
 */
 {
   an_operand               result;
@@ -27045,6 +27048,14 @@ expression-processing routines.
                                          EOPT_NO_OPTIONS,
                                          &result,
                                          (an_operand *)NULL);
+  if (!rcblock->error_detected &&
+      is_indefinite_function_operand(&result) &&
+      guide_type != NULL) {
+    /* Resolve the instance of an overloaded function or template based
+       on the destination guide type. */
+    cast_overloaded_function(guide_type, &result, /*is_cast=*/FALSE,
+                             /*is_static_cast=*/FALSE);
+  }  /* if */
   if (rcblock->error_detected) {
     set_error_constant(constant);
     expr = NULL;

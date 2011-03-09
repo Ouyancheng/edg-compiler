@@ -1,5 +1,23 @@
 Version 4.3
 
+3/9/11   [EDGcpfe/11481]
+Template deduction rescan of overloaded function or template
+
+The new-style SFINAE changes (see entry of 4/26/10) did not handle
+an overloaded function or template quite right in some cases where
+the context provides a guide type that can select the instance of
+the function, specifically in a non-deduced template argument.
+Now fixed.
+
+  template<typename T> int cmp1(T a, T b);
+  template<typename T, int (*cmp)(T, T)> struct A { };
+  template <typename T> void f (A<T,cmp1> &);
+  void g() {
+    A<char,cmp1> a;  // Now accepted in --c++0x mode
+    f(a);
+  }
+
+
 3/7/11   [EDGcpfe/11463]
 Internal error on certain GNU attributes applied to a typedef in a cast
 
