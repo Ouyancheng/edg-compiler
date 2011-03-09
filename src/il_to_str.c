@@ -5713,19 +5713,16 @@ stack associated with octl.
 }  /* pop_function_prototype */
 
 
-void form_param_ref(an_expr_node_ptr                       expr,
-                    an_il_to_str_output_control_block_ptr  octl)
+a_param_type_ptr get_param_for_param_ref(
+                                      an_expr_node_ptr                  expr,
+                                      a_func_prototype_stack_entry_ptr  fpsep)
 /*
-Render the name of the parameter described by the given enk_param_ref node.
-The node itself only indicates the position and "level" of the parameter in
-the function prototype stack.  Callers must therefore ensure that the stack
-is properly maintained.  Do the output as indicated by octl.
+Return the a_param_type entry indicated by the given enk_param_ref node expr
+for the function prototype scope context described by fpsep.
 */
 {
-  unsigned               k, levels_up = expr->variant.param_ref.levels_up;
-  a_func_prototype_stack_entry_ptr
-                         fpsep = octl->func_prototype_stack;
-  a_param_type_ptr       ptp;
+  unsigned          k, levels_up = expr->variant.param_ref.levels_up;
+  a_param_type_ptr  ptp;
 
   check_assertion(fpsep != NULL);
   if (!fpsep->outside_parameter_list) levels_up -= 1;
@@ -5740,6 +5737,22 @@ is properly maintained.  Do the output as indicated by octl.
     ptp = ptp->next;
     check_assertion(ptp != NULL);
   }  /* for */
+  return ptp;
+}  /* get_param_for_param_ref */
+
+
+void form_param_ref(an_expr_node_ptr                       expr,
+                    an_il_to_str_output_control_block_ptr  octl)
+/*
+Render the name of the parameter described by the given enk_param_ref node.
+The node itself only indicates the position and "level" of the parameter in
+the function prototype stack.  Callers must therefore ensure that the stack
+is properly maintained.  Do the output as indicated by octl.
+*/
+{
+  a_param_type_ptr       ptp = get_param_for_param_ref(
+                                            expr, octl->func_prototype_stack);
+
   check_assertion(ptp->name != NULL);
   octl->output_str(ptp->name, octl);
 }  /* form_param_ref */

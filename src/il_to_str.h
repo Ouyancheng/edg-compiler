@@ -79,6 +79,10 @@ typedef struct a_func_prototype_stack_entry {
 			   parameters for this function prototype scope. */
 } a_func_prototype_stack_entry;
   
+extern a_param_type_ptr get_param_for_param_ref(
+                                     an_expr_node_ptr                  expr,
+                                     a_func_prototype_stack_entry_ptr  fpsep);
+
 extern void form_param_ref(an_expr_node_ptr                       expr,
                            an_il_to_str_output_control_block_ptr  octl);
 

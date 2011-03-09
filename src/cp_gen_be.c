@@ -10642,7 +10642,8 @@ done_with_operation_after_parens:
     case enk_param_ref:
       /* A reference to a parameter in a function signature (e.g., in a
          decltype argument). */
-      form_param_ref(expr, &octl);
+      gen_param_name_from_param_type(
+                   get_param_for_param_ref(expr, octl.func_prototype_stack));
       break;
     default:
       unexpected_condition_str("gen_expr: bad expr node kind");
