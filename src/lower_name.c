@@ -315,8 +315,15 @@ typedef struct a_substitution {
 			   substitution candidate. */
   union {
     /* When kind == iek_type: */
-    a_type_ptr	type;
-			/* The type to which this substitution applies.	 */
+    struct {
+      a_type_ptr
+		type;   /* The type to which this substitution applies. */
+      a_boolean is_pack_expansion;
+			/* TRUE if this substitution represents a pack
+			   expansion for the indicated type.  A type can be
+			   on the substitution list twice (once with this
+			   flag TRUE, and once FALSE). */
+    } type_sub;
     /* When kind == iek_namespace */
     a_namespace_ptr
 		namespace_ptr;
@@ -329,10 +336,6 @@ typedef struct a_substitution {
     a_variable_ptr
 		variable_ptr;
 			/* The variable to which this substitution applies. */
-    /* When kind == iek_param_type */
-    a_param_type_ptr
-		param_type_ptr;
-			/* The parameter to which this substitution applies. */
   } variant;
 } a_substitution;
 
@@ -444,6 +447,10 @@ static a_boolean
 
 static void mangled_encoding_for_type(a_type_ptr               type,
                                       a_mangling_control_block *mctl);
+static void mangled_encoding_for_type_with_pack_expansion(
+                                    a_type_ptr               type,
+                                    a_boolean                is_pack_expansion,
+                                    a_mangling_control_block *mctl);
 static void mangled_function_base_name(
                                       a_source_correspondence  *scp,
                                       a_special_function_kind  special_kind,
@@ -662,15 +669,21 @@ static a_substitution_ptr
 
 static void alloc_substitution(char                         *entity,
                                an_il_entry_kind             kind,
+                               a_boolean                    is_pack_expansion,
                                a_mangling_control_block_ptr mctl)
 /*
 Allocate a substitution entry for entity, which has the indicated kind,
 and add it to the list of substitutions pointed to by
-mctl->first_substitution/mctl->last_substitution.
+mctl->first_substitution/mctl->last_substitution.  is_pack_expansion is TRUE
+when the substitution represents the pack expanded version of the specified
+type and should be FALSE otherwise.  Because of the way pack expanded types
+are mangled, a type entry can be on the substitution list two times, once
+with is_pack_expansion set to FALSE and once with it set to TRUE.
 */
 {
   a_substitution_ptr sp;
 
+  check_assertion(!is_pack_expansion || kind == iek_type);
   if (mctl->suppress_substitutions == 0) {
     /* If the entity is a proxy class for a template parameter, use the
        template parameter. */
@@ -684,7 +697,8 @@ mctl->first_substitution/mctl->last_substitution.
     sp->kind = kind;
     switch (kind) {
       case iek_type:
-        sp->variant.type = (a_type_ptr)entity;
+        sp->variant.type_sub.type = (a_type_ptr)entity;
+        sp->variant.type_sub.is_pack_expansion = is_pack_expansion;
         break;
       case iek_namespace:
         sp->variant.namespace_ptr = (a_namespace_ptr)entity;
@@ -694,9 +708,6 @@ mctl->first_substitution/mctl->last_substitution.
         break;
       case iek_variable:
         sp->variant.variable_ptr = (a_variable_ptr)entity;
-        break;
-      case iek_param_type:
-        sp->variant.param_type_ptr = (a_param_type_ptr)entity;
         break;
       default:
         unexpected_condition();
@@ -1258,15 +1269,18 @@ and thus is eligible for a special substitution.
 
 
 static a_boolean add_substitution_if_available_full(
-                                             char                     *entity,
-                                             an_il_entry_kind         kind,
-                                             a_boolean                test,
-                                             a_mangling_control_block *mctl)
+                                    char                     *entity,
+                                    an_il_entry_kind         kind,
+                                    a_boolean                is_pack_expansion,
+                                    a_boolean                test,
+                                    a_mangling_control_block *mctl)
 /*
 If there is a substitution available for entity, add it to the mangled name
 and return TRUE.  Otherwise return FALSE.  The kind indicates the kind of
-entity processed.  If test is TRUE, just determine whether a substitution
-is available; do not put it out.
+entity processed.  is_pack_expansion specifies whether the caller desires
+a substitution for the pack expanded type or the non-pack expanded type (and
+should be FALSE for non-type entities).  If test is TRUE, just determine
+whether a substitution is available; do not put it out.
 */
 {
   a_substitution_ptr   sp;
@@ -1335,7 +1349,9 @@ is available; do not put it out.
       if (sp->kind == kind) {
         switch (kind) {
           case iek_type:
-            if (f_identical_types((a_type_ptr)entity, sp->variant.type,
+            if (is_pack_expansion == sp->variant.type_sub.is_pack_expansion &&
+                f_identical_types((a_type_ptr)entity,
+                                  sp->variant.type_sub.type,
                                   ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
               result = TRUE;
             }  /* if */
@@ -1358,13 +1374,6 @@ is available; do not put it out.
               result = TRUE;
             }  /* if */
             break;
-          case iek_param_type:
-            /* Note that we don't use same_entities because a_param_type
-               doesn't have an a_source_correspondence. */
-            if ((a_param_type_ptr)entity == sp->variant.param_type_ptr) {
-              result = TRUE;
-            }  /* if */
-            break;
           default:
             unexpected_condition();
         }  /* switch */
@@ -1382,29 +1391,35 @@ end_of_routine:;
 
 
 static a_boolean add_substitution_if_available(
-                                             char                     *entity,
-                                             an_il_entry_kind         kind,
-                                             a_mangling_control_block *mctl)
+                                    char                     *entity,
+                                    an_il_entry_kind         kind,
+                                    a_boolean                is_pack_expansion,
+                                    a_mangling_control_block *mctl)
 /*
 If there is a substitution available for entity, add it to the mangled name
 and return TRUE.  Otherwise return FALSE.  The kind indicates the kind of
-entity processed.
+entity processed.  is_pack_expansion specifies whether the caller desires
+a substitution for the pack expanded type or the non-pack expanded type (and
+should be FALSE for non-type entities).
 */
 {
-  return add_substitution_if_available_full(entity, kind,
+  return add_substitution_if_available_full(entity, kind, is_pack_expansion,
                                             /*test=*/FALSE, mctl);
 }  /* add_substitution_if_available */
 
 
-static a_boolean substitution_available(char                     *entity,
-                                        an_il_entry_kind         kind,
-                                        a_mangling_control_block *mctl)
+static a_boolean substitution_available(
+                                    char                     *entity,
+                                    an_il_entry_kind         kind,
+                                    a_boolean                is_pack_expansion,
+                                    a_mangling_control_block *mctl)
 /*
-If there is a substitution available for entity (which has kind "kind"),
-return TRUE.  Do not add the substitution to the mangled name.
+If there is a substitution available for entity (which has kind "kind", and
+matching is_pack_expansion value for types), return TRUE.  Do not add the
+substitution to the mangled name.
 */
 {
-  return add_substitution_if_available_full(entity, kind,
+  return add_substitution_if_available_full(entity, kind, is_pack_expansion,
                                             /*test=*/TRUE, mctl);
 }  /* substitution_available */
 
@@ -1718,27 +1733,15 @@ type "type".
         }  /* if */
       }  /* for */
 #endif /* !IA64_ABI */
-      if (param->pack_expansion_descr != NULL) {
-        /* This parameter is a pack expansion. */
-#if IA64_ABI
-        /* Allocate a substitution if we've previously seen this parameter
-           before. */
-        if (!add_substitution_if_available((char *)param, iek_param_type,
-                                                                       mctl)) {
-          /* Mangle the underlying parameter type as a pack expansion. */
-          add_str_to_mangled_name("Dp", mctl);
-          mangled_encoding_for_type(param->type, mctl);
-          alloc_substitution((char *)param, iek_param_type, mctl);
-        }  /* if */
-        goto arg_done;
-#else /* !IA64_ABI */
-        add_str_to_mangled_name("Dp", mctl);
-#endif /* !IA64_ABI */
-      }  /* if */
       /* The parameter type does not match any of the previous parameter
-         types, so just put it out. */
-      mangled_encoding_for_type(param->type, mctl);
+         types, so just put it out.  Include an indication of whether the
+         parameter represents a pack expansion. */
+      mangled_encoding_for_type_with_pack_expansion(param->type,
+                              (a_boolean)(param->pack_expansion_descr != NULL),
+                              mctl);
+#if !IA64_ABI
 arg_done:;
+#endif /* !IA64_ABI */
     }  /* for */
   }  /* if */
   /* Output the final "e" (or "z" in the IA64 ABI) for an ellipsis. */
@@ -6116,7 +6119,8 @@ given by tap.
     }  /* if */
     fill_in_length(&length_reservation, mctl);
 #else /* IA64_ABI */
-    if (!add_substitution_if_available((char *)temp, iek_template, mctl)) {
+    if (!add_substitution_if_available((char *)temp, iek_template,
+                                       /*is_pack_expansion=*/FALSE, mctl)) {
       a_boolean need_nested_name_close = FALSE;
       a_source_correspondence *discriminator_scp;
       /* Add a parent qualifier if needed. */
@@ -6128,7 +6132,8 @@ given by tap.
       /* Add the name for the template itself. */
       mangled_name_with_length(scp->name, mctl);
       close_ia64_nested_name(need_nested_name_close, discriminator_scp, mctl);
-      alloc_substitution((char *)temp, iek_template, mctl);
+      alloc_substitution((char *)temp, iek_template,
+                         /*is_pack_expansion=*/FALSE, mctl);
     }  /* if */
 #endif /* IA64_ABI */
   }  /* if */
@@ -6232,7 +6237,11 @@ last argument in the list).
       /* Avoid problems on weird case of missing type in Microsoft mode
          prototype instantiations. */
       if (tap->variant.type != NULL) {
-        mangled_encoding_for_type(tap->variant.type, mctl);
+        /* Mangle the type for the template argument, including an indication
+           of whether or not the type is a pack expansion. */
+        mangled_encoding_for_type_with_pack_expansion(tap->variant.type,
+                                (a_boolean)(tap->pack_expansion_descr != NULL),
+                                mctl);
       }  /* if */
     } else if (is_template_templ_arg(tap)) {
       /* A template template argument. */
@@ -7339,7 +7348,8 @@ static data member is used as the parent entity for mangling purposes.
     /* Lambda in initializer list.  Simply add the name of the static data
        member along with its length. */
 #if IA64_ABI
-    if (add_substitution_if_available((char *)var, iek_variable, mctl)) {
+    if (add_substitution_if_available((char *)var, iek_variable,
+                                      /*is_pack_expansion=*/FALSE, mctl)) {
       goto done;
     } else {
       if (more_levels) {
@@ -7358,18 +7368,21 @@ static data member is used as the parent entity for mangling purposes.
     /* Mangling for lambda in initializer. */
     add_to_mangled_name('M', mctl);
     /* Add a substitution for this variable. */
-    alloc_substitution((char *)var, iek_variable, mctl);
+    alloc_substitution((char *)var, iek_variable,
+                       /*is_pack_expansion=*/FALSE, mctl);
 #endif /* IA64_ABI */
   } else if (scp->is_class_member) {
     /* Class name. */
 #if IA64_ABI
-    if (add_substitution_if_available((char *)type, iek_type, mctl)) {
+    if (add_substitution_if_available((char *)type, iek_type,
+                                      /*is_pack_expansion=*/FALSE, mctl)) {
       goto done;
     } else {
       a_template_ptr              tmpl;
       tmpl = class_template_of(type);
       if (tmpl != NULL &&
-          add_substitution_if_available((char *)tmpl, iek_template, mctl)) {
+          add_substitution_if_available((char *)tmpl, iek_template,
+                                        /*is_pack_expansion=*/FALSE, mctl)) {
         mangled_template_arguments(ctsp->template_arg_list,
                                    /*partial_spec=*/FALSE,
                                    /*old_form=*/FALSE,
@@ -7384,7 +7397,10 @@ static data member is used as the parent entity for mangling purposes.
                                    needs_to_be_individuated, discriminator_scp,
                                    mctl);
       }  /* if */
-      if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
+      if (tmpl != NULL) {
+        alloc_substitution((char *)tmpl, iek_template,
+                           /*is_pack_expansion=*/FALSE, mctl);
+      }  /* if */
     }  /* if */
     if (emulate_gnu_abi_bugs && gnu_abi_version < 30400) {
       /* g++ versions prior to 3.4.0 had a bug with template parameters as
@@ -7406,12 +7422,14 @@ static data member is used as the parent entity for mangling purposes.
 #if IA64_ABI
 new_substitution:
     /* Add a substitution for this type. */
-    alloc_substitution((char *)type, iek_type, mctl);
+    alloc_substitution((char *)type, iek_type,
+                       /*is_pack_expansion=*/FALSE, mctl);
 #endif /* IA64_ABI */
   } else if (scp_is_enum_member(scp)) {
     /* Scoped enumerator. */
 #if IA64_ABI
-    if (add_substitution_if_available((char *)type, iek_type, mctl)) {
+    if (add_substitution_if_available((char *)type, iek_type,
+                                      /*is_pack_expansion=*/FALSE, mctl)) {
       goto done;
     } else {
       if (more_levels) {
@@ -7424,7 +7442,8 @@ new_substitution:
     }  /* if */
     mangled_encoding_for_class_or_enum_type(type, mctl);
     /* Add a substitution for this type. */
-    alloc_substitution((char *)type, iek_type, mctl);
+    alloc_substitution((char *)type, iek_type,
+                       /*is_pack_expansion=*/FALSE, mctl);
 #else /* !IA64_ABI */
     a_length_reservation  length_reservation;
     /* Put out the enum name (and optional unique indicator) along with its
@@ -7461,7 +7480,8 @@ new_substitution:
     }  /* if */
 #if IA64_ABI
     if (needs_to_be_individuated &&
-        substitution_available((char *)nsp, iek_namespace, mctl) &&
+        substitution_available((char *)nsp, iek_namespace,
+                               /*is_pack_expansion=*/FALSE, mctl) &&
         is_namespace_std(nsp)) {
       /* This is an entity in the std namespace that needs to be individuated
          (e.g., "namespace std { enum {} e; }").  The "St" substitution is
@@ -7477,7 +7497,8 @@ new_substitution:
                                                         &insp->source_corresp),
                                mctl);
     }  /* if */
-    if (add_substitution_if_available((char *)nsp, iek_namespace, mctl)) {
+    if (add_substitution_if_available((char *)nsp, iek_namespace,
+                                      /*is_pack_expansion=*/FALSE, mctl)) {
       goto done;
     } else if (more_levels) {
       /* This level is nested inside something else.  Do a recursive call to
@@ -7498,7 +7519,8 @@ new_substitution:
     mangled_name_with_length(name, mctl);
 #if IA64_ABI
     /* Add a substitution for this namespace. */
-    alloc_substitution((char *)nsp, iek_namespace, mctl);
+    alloc_substitution((char *)nsp, iek_namespace, /*is_pack_expansion=*/FALSE,
+                       mctl);
 #endif /* IA64_ABI */
   }  /* if */
 done:;
@@ -7754,7 +7776,8 @@ potential performance improvement, allowing re-use of a mangled name).
     if (check_for_subst) {
       /* Check whether a substitution is available for this entire type.
          Do not do this if the caller has already done it. */
-      if (add_substitution_if_available((char *)type, iek_type, mctl)) {
+      if (add_substitution_if_available((char *)type, iek_type,
+                                        /*is_pack_expansion=*/FALSE, mctl)) {
         goto done;
       }  /* if */
     }  /* if */
@@ -7765,7 +7788,8 @@ potential performance improvement, allowing re-use of a mangled name).
     if (tmpl != NULL &&
         /* Test done separately from output to allow the opportunity to
            put out "N...E" below. */
-        substitution_available((char *)tmpl, iek_template, mctl)) {
+        substitution_available((char *)tmpl, iek_template,
+                               /*is_pack_expansion=*/FALSE, mctl)) {
       a_boolean need_close = FALSE;
       if (is_class_or_namespace_member(tmpl) && !is_in_namespace_std(tmpl)) {
         /* The template is nested, so put "N...E" around the substitution
@@ -7775,7 +7799,8 @@ potential performance improvement, allowing re-use of a mangled name).
         add_to_mangled_name('N', mctl);
         need_close = TRUE;
       }  /* if */
-      (void)add_substitution_if_available((char *)tmpl, iek_template, mctl);
+      (void)add_substitution_if_available((char *)tmpl, iek_template,
+                                          /*is_pack_expansion=*/FALSE, mctl);
       ctsp = type->variant.class_struct_union.extra_info;
       mangled_template_arguments(ctsp->template_arg_list,
                                  /*partial_spec=*/FALSE,
@@ -7791,7 +7816,10 @@ potential performance improvement, allowing re-use of a mangled name).
                                 &discriminator_scp,
                                 /*force_individuation=*/FALSE,
                                 mctl);
-  if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
+  if (tmpl != NULL) {
+    alloc_substitution((char *)tmpl, iek_template, /*is_pack_expansion=*/FALSE,
+                       mctl);
+  }  /* if */
 #else /* !IA64_ABI */
   /* The mangled name/encoding includes partial specialization arguments on
      parents of the type, so it can be reused only if we want those
@@ -8068,6 +8096,41 @@ specified type.  Substitutions are not allocated for <builtin-type>s
 
 #endif /* IA64_ABI */
 
+static void mangled_encoding_for_type_with_pack_expansion(
+                                    a_type_ptr               type,
+                                    a_boolean                is_pack_expansion,
+                                    a_mangling_control_block *mctl)
+/*
+Add to the mangled name the encoding for the type "type", which may or may not
+be used in the context of a pack expansion (as specified by is_pack_expansion).
+*/
+{
+  if (is_pack_expansion) {
+    /* Mangle the type as a pack expansion. */
+#if IA64_ABI
+    if (add_substitution_if_available((char *)type, iek_type,
+                                      /*is_pack_expansion=*/TRUE, mctl)) {
+      /* A substitution has been used for the pack expansion type. */
+    } else
+#endif /* !IA64_ABI */
+    /* Do not insert code here. */
+    {
+      /* Add the pack expansion indication, then mangle the underlying type.
+         The same encoding is used for both ABIs. */
+      add_str_to_mangled_name("Dp", mctl);
+      mangled_encoding_for_type(type, mctl);
+#if IA64_ABI
+      alloc_substitution((char *)type, iek_type, /*is_pack_expansion=*/TRUE,
+                         mctl);
+#endif /* !IA64_ABI */
+    }  /* if */
+  } else {
+    /* No pack expansion, do normal mangling for the type. */
+    mangled_encoding_for_type(type, mctl);
+  }  /* if */
+}  /* mangled_encoding_for_type_with_pack_expansion */
+
+
 static void mangled_encoding_for_type(a_type_ptr               type,
                                       a_mangling_control_block *mctl)
 /*
@@ -8095,7 +8158,8 @@ Add to the mangled name the encoding for the type "type".
   }  /* if */
 #if IA64_ABI
   /* If the type has appeared previously, use a substitution for it. */
-  if (add_substitution_if_available((char *)type, iek_type, mctl)) {
+  if (add_substitution_if_available((char *)type, iek_type,
+                                    /*is_pack_expansion=*/FALSE, mctl)) {
     goto end_of_routine;
   }  /* if */
 #endif /* IA64_ABI */
@@ -8187,7 +8251,8 @@ top_of_loop:
     mangled_encoding_for_type_qualifiers(qualifiers, mctl);
 #if IA64_ABI
     /* Check for another substitution for the unqualified type. */
-    if (add_substitution_if_available((char *)type, iek_type, mctl)) {
+    if (add_substitution_if_available((char *)type, iek_type,
+                                      /*is_pack_expansion=*/FALSE, mctl)) {
       goto add_substitution_for_qualified_type;
     }  /* if */
 #endif /* IA64_ABI */
@@ -8671,12 +8736,14 @@ have_whole_mangled_name:;
      created for <builtin-type>s (with the exception of vendor extended
      types). */
   if (record_substitution_for_type(type)) {
-    alloc_substitution((char *)type, iek_type, mctl);
+    alloc_substitution((char *)type, iek_type, /*is_pack_expansion=*/FALSE,
+                       mctl);
   }  /* if */
 add_substitution_for_qualified_type:
   /* Create a substitution for the original type, if it was qualified. */
   if (qualifiers != TQ_NONE) {
-    alloc_substitution((char *)qualified_type, iek_type, mctl);
+    alloc_substitution((char *)qualified_type, iek_type,
+                       /*is_pack_expansion=*/FALSE, mctl);
   }  /* if */
 #endif /* IA64_ABI */
 end_of_routine:;
@@ -9364,7 +9431,8 @@ determination is made by the callee.
       routine_type = skip_typerefs(routine_type);
 #if IA64_ABI
       tmpl = tssp->il_template_entry;
-      if (add_substitution_if_available((char *)tmpl, iek_template, mctl)) {
+      if (add_substitution_if_available((char *)tmpl, iek_template,
+                                        /*is_pack_expansion=*/FALSE, mctl)) {
         goto mangle_template;
       }  /* if */
 #endif /* IA64_ABI */
@@ -9386,7 +9454,10 @@ determination is made by the callee.
                                   force_individuation,
                                   mctl);
   }  /* if */
-  if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
+  if (tmpl != NULL) {
+    alloc_substitution((char *)tmpl, iek_template, /*is_pack_expansion=*/FALSE,
+                       mctl);
+  }  /* if */
 #endif /* IA64_ABI */
   /* Put out the base name of the function. */
   conversion_type = NULL;
