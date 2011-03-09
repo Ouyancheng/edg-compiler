@@ -10344,6 +10344,11 @@ modification will be added to restore the first token to the current line.
     curr_char_loc = kwd->end_of_insertion;
     len_of_curr_token = start_of_curr_token - curr_char_loc;
     end_of_curr_token = curr_char_loc - 1;
+  } else {
+    /* The second word was on the same line, so we just restore the
+       original token pointer (which was set to NULL by the call to
+       skip_white_space above). */
+    start_of_curr_token = orig_loc;
   }  /* if */
   return return_token;
 }  /* scan_whitespace_keyword */
