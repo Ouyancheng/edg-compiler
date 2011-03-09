@@ -8204,9 +8204,7 @@ is_reinterpret_cast indicate it.
     write_tok_ch(')');
   } else if (operand_1->is_pack_expansion) {
     /* This is something like "int(x...)", which cannot be generated as an
-       old-style cast.  Use a function-style cast instead.  We assume that
-       the type must have had a name in the original source to have gotten
-       here. */
+       old-style cast.  Use a function-style cast instead. */
     gen_type(dest_type);
     write_tok_ch('(');
     gen_expression(operand_1);
