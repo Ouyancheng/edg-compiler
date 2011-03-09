@@ -12656,7 +12656,7 @@ source and the expression is generated in that form.
     if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
       /* See whether the initialization has one argument. */
       an_expr_node_ptr cexpr = dip->variant.constructor.args;
-      if (cexpr != NULL &&
+      if (cexpr != NULL && !cexpr->is_pack_expansion &&
           !cexpr->generated_default_arg &&
           (cexpr->next == NULL || cexpr->next->generated_default_arg)) {
         has_one_argument = TRUE;
