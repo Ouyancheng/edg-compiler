@@ -2935,7 +2935,7 @@ the scope being pushed.
             ssep->depth_innermost_function_scope = depth_scope_stack;
     innermost_function_scope = sp;
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
-    if (!C_mode() && !ssep->in_prototype_instantiation) {
+    if (!C_mode() && !is_template_dependent_context()) {
       /* Determine whether this is a function for which we need to
          compute string literal sequence numbers.  These are computed for
          routines for which there is the potential of having multiple copies
