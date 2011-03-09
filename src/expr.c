@@ -8440,7 +8440,7 @@ indication in *rcblock).
   if (err) {
     /* Some previous error. */
     make_error_operand(result);
-  } else if (is_prototype_instantiation_context()) {
+  } else if (rcblock == NULL && is_prototype_instantiation_context()) {
     /* For the prototype instantiation, return an enk_sizeof_pack
        expression as a template constant. */
     an_expr_node_ptr expr =alloc_expr_node((an_expr_node_kind)enk_sizeof_pack);
