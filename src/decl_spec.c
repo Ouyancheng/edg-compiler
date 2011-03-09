@@ -3014,6 +3014,12 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       }  /* while */
     }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
+    if (curr_token == tok_ellipsis) {
+      /* A misplaced "..." -- issue an error and discard the token for better
+         error recovery. */
+      pos_error(ec_ellipsis_not_allowed, &pos_curr_token);
+      (void)get_token();
+    }  /* if */
     /* If there is an identifier next, it is a tag.  It can be the declaration
        of a new tag or a reference to an existing tag.  Although it is an
        error, also be on the lookout for a qualified name. */
