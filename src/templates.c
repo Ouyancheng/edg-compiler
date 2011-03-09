@@ -11841,7 +11841,8 @@ and create a function instantiation entry to bind the two symbols together.
        instantiation.  If the symbol is not an overloaded function, make
        sure that it matches the rout_sym. */
     for (; sym != NULL; sym = is_list ? sym->next : NULL) {
-      if (sym->kind == (a_symbol_kind)sk_member_function) {
+      if (sym->kind == (a_symbol_kind)sk_member_function &&
+          sym->variant.routine.instance_ptr != NULL) {
         a_template_symbol_supplement_ptr	tssp;
         tssp = sym->variant.routine.instance_ptr->template_info;
         if (tssp->token_sequence_number == curr_token_sequence_number) {
