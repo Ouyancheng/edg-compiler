@@ -8411,7 +8411,7 @@ associated parameter.
       prev_new_tap = new_tap;
       added_placeholder = TRUE;
     }  /* if */
-    if (have_params && tap->pack_expansion_descr != NULL) {
+    if (tap->pack_expansion_descr != NULL) {
       a_boolean	err;
       any_more = begin_rescan_pack_expansion_context(tap->pack_expansion_descr,
                                                      templ_param_list,
