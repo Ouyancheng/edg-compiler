@@ -1,5 +1,24 @@
 Version 4.3
 
+3/10/11  [EDGcpfe/11471]
+Incorrect folding of dependent function call in template in Microsoft mode
+
+In Microsoft mode when prototype instantiations are done (an unusual
+combination, since MSVC doesn't parse templates), a function call
+where the left operand of the bound function is not dependent but
+the right is was improperly folded to a constant.  As a result,
+the generated code from the C++-generating back end did not include
+the left operand and did not compile correctly.  Now fixed.
+
+  struct Foo {
+    template <typename T> void Bar(T val) {}
+  };
+  template <typename T> void Baz(T val) {
+    Foo f;
+    f.template Bar<T>(val);  // Output was Foo::Bar< T> (val); now
+                             // f.Bar< T> (val)
+  }
+
 3/9/11   [EDGcpfe/11483]
 Invalid reference to memory preceding a constant entry on the stack
 

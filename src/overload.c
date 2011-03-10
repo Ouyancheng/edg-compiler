@@ -7499,6 +7499,8 @@ TRUE if the operator is "->", FALSE if it is ".".
     template_constant = TRUE;
   } else if (!stripped_orig_expr->is_lvalue &&
              is_constant_node(stripped_orig_expr) &&
+             stripped_orig_expr->variant.constant->kind !=
+                                   (a_constant_repr_kind)ck_template_param &&
              current_mode_allows_dot_static_folding(stripped_selector_expr) &&
              !is_dependent_selection_first_operand(is_arrow_operator,
                                                    selector_expr)) {
