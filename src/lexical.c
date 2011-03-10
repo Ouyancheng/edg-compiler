@@ -13374,6 +13374,9 @@ all arguments were explicit.
       } else {
         /* Don't advance to the next parameter if this is a pack. */
         param_ptr = param_ptr->next;
+      }  /* if */
+      if (!orig_param_ptr->is_pack) {
+        /* Don't advance to the next parameter if this is a pack. */
         orig_param_ptr = orig_param_ptr->next;
       }  /* if */
       ++arg_number;
@@ -13382,7 +13385,8 @@ all arguments were explicit.
       if (arg_ptr->pack_expansion_descr != NULL) arg_ptr->is_pack = TRUE;
       any_args = advance_to_next_pack_element(pesep);
     }  /* while */
-  } while (param_ptr != NULL && loop_token(tok_comma));
+  } while (param_ptr != NULL && orig_param_ptr != NULL &&
+           loop_token(tok_comma));
 
   /* If we were processing arguments associated with a parameter pack,
      advance past the parameter pack now that we have reached the end
@@ -13393,7 +13397,7 @@ all arguments were explicit.
   }  /* if */
   /* All arguments should have been processed and the current token should
      be the closing angle bracket. */
-  for (; param_ptr != NULL;
+  for (; param_ptr != NULL && orig_param_ptr != NULL;
          param_ptr = param_ptr->next, orig_param_ptr = orig_param_ptr->next) {
     /* There are still entries on the formal parameters list -- see if
        the remaining parameters have default values or are parameter packs. */

@@ -8402,24 +8402,10 @@ associated parameter.
   /* Note that this routine does not use the template argument list
      traversal routines. */
   for (tap = arg_list_to_copy, tpp = param_list_for_copy;
-       tap != NULL; tap = tap->next) {
+       ; tap = tap->next) {
     a_pack_expansion_stack_entry_ptr	pesep = NULL;
     a_boolean				any_more = TRUE;
-    if (have_params && tpp != NULL && tpp->is_pack && !added_placeholder &&
-        !is_start_of_pack_expansion_templ_arg(tap)) {
-      /* When the template argument list was scanned, the parameter was not
-         a pack.  Add a start of pack placeholder. */
-      new_tap =
-             alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
-      if (new_list == NULL) {
-        new_list = new_tap;
-      } else {
-        prev_new_tap->next = new_tap;
-      }  /* if */
-      prev_new_tap = new_tap;
-      added_placeholder = TRUE;
-    }  /* if */
-    if (tap->pack_expansion_descr != NULL) {
+    if (tap != NULL && tap->pack_expansion_descr != NULL) {
       a_boolean	err;
       any_more = begin_rescan_pack_expansion_context(tap->pack_expansion_descr,
                                                      templ_param_list,
@@ -8430,6 +8416,22 @@ associated parameter.
       if (err) *copy_error = TRUE;
     }  /* if */
     while (any_more) {
+      if (have_params && tpp != NULL && tpp->is_pack && !added_placeholder &&
+          (tap == NULL || !is_start_of_pack_expansion_templ_arg(tap))) {
+        /* When the template argument list was scanned, the parameter was not
+           a pack.  Add a start of pack placeholder. */
+        new_tap =
+             alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
+        if (new_list == NULL) {
+          new_list = new_tap;
+        } else {
+          prev_new_tap->next = new_tap;
+        }  /* if */
+        prev_new_tap = new_tap;
+        added_placeholder = TRUE;
+      }  /* if */
+      /* Exit the loop if we have run out of template arguments. */
+      if (tap == NULL) break;
       /* If there are too few parameters, the copy should fail.  Don't
          fail on a start of pack expansion as there may not be any actual
          arguments that follow.  Also, don't copy the placeholder if the
@@ -8493,6 +8495,7 @@ end_of_loop:
                                                pesep, /*is_declarator=*/FALSE);
       any_more = advance_to_next_pack_element(pesep);
     }  /* while */
+    if (tap == NULL) break;
     /* Exit the loop if the substitution failed. */
     if (*copy_error) break;
   }  /* for */
