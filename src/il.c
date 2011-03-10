@@ -10582,8 +10582,9 @@ involved are typedefs or typeof/decltype nodes, leave *p_type unchanged and set
 *func_type to the underlying function type.  Otherwise, create a new function
 type (returned through func_type) and replace *p_type by an equivalent type
 that doesn't involve typedefs or typeof/decltype nodes on top of the underlying
-function type (in some cases, *p_type is not changed, but a type along the
-chain of entries from *p_type to the underlying function type).
+function type (in some cases, the *p_type entry itself is not replaced, but
+instead a type entry along the chain of entries from *p_type to the underlying
+function type is replaced).
 */
 {
   a_boolean   make_new_type = FALSE;
