@@ -14624,7 +14624,8 @@ name lookup options.
                                             template_param_list,
                                             &template_arg_list,
                                             con->variant.template_param.
-                                                 variant.coordinates.position);
+                                                 variant.coordinates.position,
+                                            /*is_rescan=*/TRUE);
           check_assertion(is_nontype_templ_arg(tap) &&
                           !tap->is_array_bound_of_unknown_type);
           if (tap->variant.constant != NULL) {

@@ -1769,7 +1769,9 @@ extern a_type_ptr get_curr_variadic_param_type(an_expr_node_ptr	expr);
 extern a_template_decl_info_ptr get_current_template_decl_info(void);
 
 extern
-a_template_arg_ptr get_curr_variadic_arg_for_param(a_template_param_ptr	tpp);
+a_template_arg_ptr get_curr_variadic_arg_for_param(
+					a_template_param_ptr	tpp,
+					a_boolean		is_rescan);
 
 extern a_boolean any_packs_referenced(void);
 

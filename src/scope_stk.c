@@ -9454,13 +9454,16 @@ is found, NULL is returned.
 }  /* get_curr_variadic_param_type */
 
 
-a_template_arg_ptr get_curr_variadic_arg_for_param(a_template_param_ptr	tpp)
+a_template_arg_ptr get_curr_variadic_arg_for_param(
+					a_template_param_ptr	tpp,
+					a_boolean		is_rescan)
 /*
 This routine is called during rescan and deduction contexts.  We need the
 current template argument value for the pack specified by tpp.  Go through
 the pack references for the current expansion and look for one that
 matches tpp.  Return the current template argument value for that parameter.
-In deduction contexts, if there is no current argument, create one.
+is_rescan is TRUE if this is called from a rescan/substitution context.
+n deduction contexts, if there is no current argument, create one.
 */
 {
   a_pack_reference_ptr			param_prp = NULL;
@@ -9498,6 +9501,12 @@ In deduction contexts, if there is no current argument, create one.
     /* If not found above, just return an empty template argument. */
     result_tap = alloc_template_arg(
                                 templ_arg_kind_for_symbol_kind(tpp_sym->kind));
+    if (is_rescan) {
+      /* In error cases we may not find an argument.  Create an error
+         argument. */
+      expect_error();
+      set_template_arg_to_error(result_tap);
+    }  /* if */
   }  /* if */
   return result_tap;
 }  /* get_curr_variadic_arg_for_param */

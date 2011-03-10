@@ -6577,14 +6577,16 @@ another template parameter.
 a_template_arg_ptr get_template_arg_by_list_pos(
                                     a_template_param_ptr      templ_param_list,
                                     a_template_arg_ptr        *templ_arg_list,
-                                    a_template_param_list_pos pos)
+                                    a_template_param_list_pos pos,
+                                    a_boolean	              is_rescan)
 /*
 Given a template parameter list position, return a pointer to the template
 argument list element that corresponds to that parameter.  If the template
 argument list has not yet been created, create one.  When the list
 is initially created, the template arguments will contain NULL type
 or constant pointers.  These will be filled in as the argument types
-are deduced.
+are deduced.  is_rescan is TRUE if this is called from a rescan/substitution
+context.
 */
 {
   a_template_arg_ptr	tap;
@@ -6605,7 +6607,7 @@ are deduced.
     special_variadic_advance_to_next_template_arg(&tpp, &tap);
   }  /* if */
   if (tpp->is_pack) {
-    tap = get_curr_variadic_arg_for_param(tpp);
+    tap = get_curr_variadic_arg_for_param(tpp, is_rescan);
   }  /* if */
   return tap;
 }  /* get_template_arg_by_list_pos */
@@ -6696,7 +6698,7 @@ match is found.
           /* Get the template argument that corresponds with this parameter. */
           list_pos = templ_tssp->il_template_entry->coordinates.position;
           tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
-                                             list_pos);
+                                             list_pos, /*is_rescan=*/FALSE);
           check_assertion(tap->kind == (a_templ_arg_kind)tak_template);
           templ_ptr = tssp->il_template_entry;
           if (tap->variant.templ.ptr == NULL) {
@@ -6930,7 +6932,7 @@ list of a template function.  Returns TRUE if a match is found.
       list_pos =
            templ_constant->variant.template_param.variant.coordinates.position;
       tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
-                                         list_pos);
+                                         list_pos, /*is_rescan=*/FALSE);
       /* Now we have the nth template argument, which should correspond to
          the nth template parameter, whose constant is templ_constant. */
       if (tap->is_array_bound_of_unknown_type) {
@@ -7100,7 +7102,7 @@ of types after all of the function arguments have been processed.
     list_pos =
            templ_constant->variant.template_param.variant.coordinates.position;
     tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
-                                       list_pos);
+                                       list_pos, /*is_rescan=*/FALSE);
     /* Now we have the nth template argument, which should correspond to
        the nth template parameter, whose constant is templ_constant. */
     if (tap->is_array_bound_of_unknown_type || tap->variant.constant == NULL) {
@@ -7570,7 +7572,7 @@ points to the template parameter list.
           list_pos = templ_type->
                       variant.template_param.extra_info->coordinates.position;
           tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
-                                             list_pos);
+                                             list_pos, /*is_rescan=*/FALSE);
           /* Now we have the nth template argument, which should correspond to
              the nth template parameter, whose type is templ_type. */
           if (tap->variant.type == NULL) {
@@ -8147,7 +8149,8 @@ Otherwise, return the original template.
       a_template_arg_ptr	tap;
       tap = get_template_arg_by_list_pos(templ_param_list,
                                          &templ_arg_list,
-                                         coordinates->position);
+                                         coordinates->position,
+                                         /*is_rescan=*/TRUE);
       if (tap->variant.templ.ptr == NULL) {
         /* No value has been provided for this template parameter yet.
            Don't do the substitution, but don't consider this to be
@@ -9055,7 +9058,8 @@ a pointer over a reference type or creating an array of references.
           } else {
             tap = get_template_arg_by_list_pos(templ_param_list,
                                                &templ_arg_list,
-                                               coordinates->position);
+                                               coordinates->position,
+                                               /*is_rescan=*/TRUE);
             if (!is_type_templ_arg(tap) || tap->variant.type == NULL) {
               /* No value has been provided for this template parameter yet.
                  Don't do the substitution, but don't consider this to be
@@ -10123,7 +10127,7 @@ the error type is a member, or is NULL for a nonmember.
 }  /* create_error_routine_type */
 
 
-static void set_template_arg_to_error(a_template_arg_ptr	tap)
+void set_template_arg_to_error(a_template_arg_ptr	tap)
 /*
 Set the template argument specified by tap to refer to an error entity.
 */
