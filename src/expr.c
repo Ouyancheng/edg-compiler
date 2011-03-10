@@ -5259,7 +5259,6 @@ to the given locator.
   a_template_param_ptr rescan_orig_templ_param_list = NULL;
   a_symbol_ptr         sym = locator->specific_symbol;
   a_boolean            copy_error = FALSE;
-  a_ctws_state	ctws_state;
 
   check_assertion(sym != NULL);
   if (sym->kind == (a_symbol_kind)sk_function_template) {
@@ -5271,7 +5270,6 @@ to the given locator.
                                                    cache.decl_info->parameters;
     }  /* if */
   }  /* if */
-  init_ctws_state(&ctws_state);
   locator->template_arg_list =
               copy_template_arg_list_with_substitution_rebuilding_arg_operands(
                                              rescan_orig_templ_arg_list,
@@ -5282,7 +5280,7 @@ to the given locator.
                                              rcblock->options,
                                              /*orig_is_nonreal_template=*/TRUE,
                                              &copy_error,
-                                             &ctws_state);
+                                             rcblock->ctws_state);
   if (copy_error) {
     locator->is_error = TRUE;
     record_suppressed_error();

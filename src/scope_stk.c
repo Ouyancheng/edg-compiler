@@ -9309,7 +9309,8 @@ lengths) *err is set to TRUE, FALSE otherwise.
           if (ctws_state != NULL) {
             a_variadic_param_info_ptr	vpip;
             vpip = find_variadic_param_info_for_pack(prp, ctws_state,
-                                           &elements_for_pack);
+                                                     &elements_for_pack);
+            check_assertion(vpip != NULL);
             new_prp->curr_argument.param_type = vpip->param_type;
             new_prp->param_info = vpip;
           }  /* if */
