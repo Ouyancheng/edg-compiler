@@ -1178,6 +1178,10 @@ typedef int an_expr_copy_options_set;
 #define CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER 0x400
 			/* TRUE if the copy is from one function scope
 			   memory region into another. */
+#define CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL 0x800
+			/* TRUE if the source address provided to
+			   copy_constant_full might not be an IL address (e.g.,
+			   it's the address of a stack variable). */
 
 a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
                                   a_constant_ptr           new_constant,

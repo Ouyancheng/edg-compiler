@@ -4992,14 +4992,16 @@ of the constant is not copied unless memory region issues force that;
 in general, it is assumed that this routine can allocate a new constant
 entry, do a shallow copy into it, and use any subtree without copying
 (either it's unshared already, or it can be pointed to by multiple
-constants).
+constants).  The source constant is not assumed to be an allocated IL
+constant; it can be on the stack.
 */
 {
   a_constant_ptr ucp;
 
   if (curr_il_region_number == file_scope_region_number &&
       has_non_file_scope_ref(cp)) {
-    ucp = copy_constant_full(cp, (a_constant *)NULL, CE_NO_OPTIONS);
+    ucp = copy_constant_full(cp, (a_constant *)NULL,
+                             CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL);
   } else {
     ucp = alloc_constant(cp->kind);
     copy_constant(cp, ucp);
@@ -5034,6 +5036,8 @@ copy_constant_full should be called to start a copy.
   a_boolean      may_be_shared =
                             (options & CE_COPIED_CONSTANTS_MAY_BE_SHARED) != 0;
   a_boolean      new_constant_in_il;
+  a_boolean      old_constant_in_il =
+                               !(options & CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL);
   a_constant     local_constant;
   an_expr_copy_options_set
                  options_unshared;
@@ -5056,7 +5060,8 @@ copy_constant_full should be called to start a copy.
     new_constant_in_il = TRUE;
   }  /* if */
   options = (options &
-             ~(an_expr_copy_options_set)CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL);
+             ~(an_expr_copy_options_set)(CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL |
+                                         CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL));
   /* Create a version of the options set with the may-be-shared bit dropped. */
   options_unshared = (options &
                       ~(an_expr_copy_options_set)
@@ -5204,10 +5209,13 @@ copy_constant_full should be called to start a copy.
     new_constant = alloc_shareable_constant(new_constant);
   } else if (new_constant_in_il) {
     fix_memory_region_problems_in_copied_constant(new_constant);
-    /* Copy the value of the il_lowering_flag from one constant to the other
-       (otherwise, when initial_value_for_il_lowering_flag is TRUE, it appears
-       that a copied constant has become lowered and this isn't the case). */
-    copy_il_lowering_flag(old_constant, new_constant);
+    if (old_constant_in_il) {
+      /* Copy the value of the il_lowering_flag from one constant to the other
+         (otherwise, when initial_value_for_il_lowering_flag is TRUE, it
+         appears that a copied constant has become lowered and this isn't
+         the case). */
+      copy_il_lowering_flag(old_constant, new_constant);
+    }  /* if */
   }  /* if */
   return new_constant; /*lint !e809*/
 }  /* i_copy_constant_full */
@@ -5241,7 +5249,8 @@ for a simple interface to this routine for the usual case.
 
 a_constant_ptr copy_unshared_constant(a_constant_ptr old_constant)
 /*
-Simple interface to copy_constant_full for the usual case.
+Simple interface to copy_constant_full for the usual case.  The source
+constant is assumed to be an allocated IL constant.
 */
 {
   return copy_constant_full(old_constant, (a_constant *)NULL, CE_NO_OPTIONS);

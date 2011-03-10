@@ -1,5 +1,18 @@
 Version 4.3
 
+3/9/11   [EDGcpfe/11483]
+Invalid reference to memory preceding a constant entry on the stack
+
+In some cases, the front end erroneously referred to memory preceding
+a constant entry on the stack to copy a bit from there to the IL lowering
+flag of a newly-created constant entry.  We're not sure if there are any
+observable consequences of this problem; it was observed while stepping
+through a test case in a debugger.  It's possible that in some cases a
+constant in an initializer might not get lowered, which could cause
+aborts further on in a back end, but we don't have an example that
+demonstrates that.  In any case, it's now fixed.
+
+
 3/9/11   [EDGcpfe/11481]
 Template deduction rescan of overloaded function or template
 
