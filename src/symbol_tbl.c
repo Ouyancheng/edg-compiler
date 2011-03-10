@@ -11980,6 +11980,7 @@ is_pack_element is TRUE if the parameter is a pack element.
           sym = enter_symbol((a_symbol_kind)sk_parameter, locator,
                              depth_scope_stack, ambiguous);
         }  /* if */
+        sym->is_pack_element = is_pack_element;
         if (parameters_visible_late) {
           /* In some GNU C++ modes, the parameters are invisible within the
              prototype scope.  This allows code like:
