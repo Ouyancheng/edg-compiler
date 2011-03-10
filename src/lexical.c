@@ -13017,7 +13017,7 @@ err_pos is the position to be used to report any errors.
       if (!equiv_template_param_lists(tssp1->cache.decl_info->parameters,
                                       tssp2->cache.decl_info->parameters,
 		 		      /*issue_errors=*/FALSE,
-				      ETP_NO_OPTIONS,
+                                      ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
 				      (a_source_position*)NULL, es_error)) {
         a_symbol_ptr	param_sym;
         param_sym = (a_symbol_ptr)param_template->source_corresp.assoc_info;

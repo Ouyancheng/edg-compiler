@@ -1206,6 +1206,10 @@ typedef int a_compare_constants_options_set;
 			/* TRUE if, when checking that the types of expressions
 			   match, one should check for an exact match of the
 			   expressions under any dependent decltypes. */
+#define CC_COORDINATE_MISMATCH_OKAY 0x8
+			/* TRUE if, when comparing template parameter of
+			   tpck_param kind, the coordinates are not
+			   required to match. */
 
 extern a_boolean compare_constants(a_constant_ptr                   cp1,
                                    a_constant_ptr                   cp2,

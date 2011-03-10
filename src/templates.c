@@ -12339,9 +12339,16 @@ can match zero or more parameters from new_list.
     } else if (old_sym->kind == (a_symbol_kind)sk_type) {
       /* Both are types.  No further checking is needed. */
     } else if (old_sym->kind == (a_symbol_kind)sk_constant) {
-      /* Both are constants.  Make sure the values are the same. */
-      err = !eq_constants(old_tpp->variant.constant.ptr,
-                          new_tpp->variant.constant.ptr);
+      a_compare_constants_options_set	cc_options = CC_NO_OPTIONS;
+      /* Both are constants.  Make sure the values are the same.  The
+         coordinates need not match when comparing with a template
+         parameter pack. */
+      if (old_tpp->is_pack && is_templ_templ_param_match) {
+        cc_options |= CC_COORDINATE_MISMATCH_OKAY;
+      }  /* if */
+      err = !compare_constants(old_tpp->variant.constant.ptr,
+                               new_tpp->variant.constant.ptr,
+                               cc_options);
       if (err && (options & ETP_BAD_PARAM_TYPE_OKAY) != 0) {
         /* The ETP_BAD_PARAM_TYPE is used to indicate a context in which
            an incompatible nontype template parameter declaration should be
