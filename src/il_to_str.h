@@ -79,13 +79,6 @@ typedef struct a_func_prototype_stack_entry {
 			   parameters for this function prototype scope. */
 } a_func_prototype_stack_entry;
   
-extern a_param_type_ptr get_param_for_param_ref(
-                                     an_expr_node_ptr                  expr,
-                                     a_func_prototype_stack_entry_ptr  fpsep);
-
-extern void form_param_ref(an_expr_node_ptr                       expr,
-                           an_il_to_str_output_control_block_ptr  octl);
-
 extern void push_function_prototype(
                                  a_func_prototype_stack_entry_ptr       fpsep,
                                  an_il_to_str_output_control_block_ptr  octl);
@@ -93,7 +86,15 @@ extern void push_function_prototype(
 extern void pop_function_prototype(
                                  an_il_to_str_output_control_block_ptr  octl);
 
+extern a_param_type_ptr get_param_for_param_ref(
+                                     an_expr_node_ptr                  expr,
+                                     a_func_prototype_stack_entry_ptr  fpsep);
+
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#if BACK_END_IS_C_GEN_BE
+extern void form_param_ref(an_expr_node_ptr                       expr,
+                           an_il_to_str_output_control_block_ptr  octl);
+#endif /* BACK_END_IS_C_GEN_BE */
 
 
 /* If you add a field here, add it also to

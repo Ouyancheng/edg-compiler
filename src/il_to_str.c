@@ -5740,6 +5740,8 @@ for the function prototype scope context described by fpsep.
   return ptp;
 }  /* get_param_for_param_ref */
 
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#if BACK_END_IS_C_GEN_BE
 
 void form_param_ref(an_expr_node_ptr                       expr,
                     an_il_to_str_output_control_block_ptr  octl)
@@ -5757,7 +5759,7 @@ is properly maintained.  Do the output as indicated by octl.
   octl->output_str(ptp->name, octl);
 }  /* form_param_ref */
 
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#endif /* BACK_END_IS_C_GEN_BE */
 
 void il_to_str_one_time_init(void)
 /*
