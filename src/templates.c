@@ -2314,6 +2314,7 @@ in ps_arg_list.
                                                   &null_source_position);
   if (matches_template_type(instance_type, prototype_type, ps_arg_list,
                             templ_param_list, MTT_NO_FLAGS)) {
+    push_instantiation_scope_for_rescan(template_sym);
     if (wrapup_template_argument_deduction(
                         *ps_arg_list, template_sym, templ_param_list,
                         /*is_partial_order_check=*/FALSE)) {
@@ -2335,6 +2336,7 @@ in ps_arg_list.
         result = TRUE;
       }  /* if */
     }  /* if */
+    pop_instantiation_scope_for_rescan();
   }  /* if */
   if (!result || local_arg_list_used) {
     /* If no match was found, free the template argument list that was

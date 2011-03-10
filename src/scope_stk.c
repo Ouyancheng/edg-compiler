@@ -4483,7 +4483,8 @@ currently unused.
 {
   a_template_decl_info_ptr		tdip;
 
-  check_assertion(template_sym->kind == (a_symbol_kind)sk_function_template);
+  check_assertion(template_sym->kind == (a_symbol_kind)sk_class_template ||
+                  template_sym->kind == (a_symbol_kind)sk_function_template);
   tdip = alloc_template_decl_info();
   (void)push_template_instantiation_scope(
                               tdip, (a_type_ptr)NULL, (a_routine_ptr)NULL,
