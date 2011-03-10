@@ -3038,8 +3038,8 @@ use of parentheses around parts of the declarator.)
     if (kind == 'p') {
       /* A pack expansion. */
       p++;
-      demangle_type_second_part(p, /*under_lhs_declarator=*/FALSE, dctl);
       write_id_str("...", dctl);
+      demangle_type_second_part(p, /*under_lhs_declarator=*/FALSE, dctl);
     } else {
       bad_mangled_name(dctl);
     }  /* if */
@@ -3794,13 +3794,15 @@ static void demangle_type_second_part(
                                a_decode_control_block_ptr dctl);
 static char *full_demangle_type(char                       *ptr,
                                 a_boolean                  parse_template_args,
+                                a_boolean                  is_pack_expansion,
                                 a_decode_control_block_ptr dctl);
 /*
 Macro to invoke full_demangle_type in the usual case where parse_template_args
-is TRUE.
+is TRUE and is_pack_expansion is FALSE.
 */
-#define demangle_type(ptr, dctl)  \
-  full_demangle_type(ptr, /*parse_template_args=*/TRUE, dctl)
+#define demangle_type(ptr, dctl)                                          \
+  full_demangle_type(ptr, /*parse_template_args=*/TRUE,                   \
+                     /*is_pack_expansion=*/FALSE, dctl)
 
 static char *demangle_template_args(char                       *ptr,
                                     a_decode_control_block_ptr dctl);
@@ -4482,8 +4484,8 @@ demangled as part of the template function instead).
       }  /* if */
     } else if (*p == 'D' && p[1] == 'p') {
       /* A pack expansion. */
-      p = demangle_type(p+2, dctl);
-      write_id_str("...", dctl);
+      p = full_demangle_type(p+2, /*parse_template_args=*/TRUE,
+                             /*is_pack_expansion=*/TRUE, dctl);
     } else if (*p == 'D' && 
                (p[1] == 't' || p[1] == 'T')) {
       /* decltype:
@@ -4951,6 +4953,7 @@ to be on top of the type.
 
 static char *full_demangle_type(char                       *ptr,
                                 a_boolean                  parse_template_args,
+                                a_boolean                  is_pack_expansion,
                                 a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <type> and output the demangled form.  Return a pointer
@@ -4975,7 +4978,8 @@ a type.  The syntax is:
   <pointer-to-member-type> ::= M <class type> <member type>
 
 If parse_template_args is TRUE then any <template-args> in the type should be
-parsed as part of the type.
+parsed as part of the type.  When is_pack_expansion is TRUE, emit an
+indication that the type is a pack expansion.
 */
 {
   char *p;
@@ -4984,6 +4988,12 @@ parsed as part of the type.
   p = demangle_type_first_part(ptr, CVQ_NONE, /*under_lhs_declarator=*/FALSE,
                                /*need_trailing_space=*/FALSE, 
                                parse_template_args, dctl);
+  if (is_pack_expansion) {
+    /* Emit the pack expansion indication between processing the two type
+       parts so that function and pointer to member function types are handled
+       properly. */
+    write_id_str("...", dctl);
+  }  /* if */
   /* Generate the declarator part of the type. */
   demangle_type_second_part(ptr, CVQ_NONE, /*under_lhs_declarator=*/FALSE,
                             dctl);
@@ -5520,6 +5530,7 @@ caller does not need the value.
          case. */
       ptr = full_demangle_type(ptr+2,
                            dctl->parse_template_args_after_conversion_operator,
+                               /*is_pack_expansion=*/FALSE,
                                dctl);
       dctl->contains_conversion_operator = TRUE;
     } else {
