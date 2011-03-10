@@ -17986,7 +17986,7 @@ passed via template_decl.
     } else if (curr_token == tok_assign && !C_mode() &&
                ((is_scalar_type(decl_state->type) && !mutable_specified &&
                  (get_type_qualifiers(decl_state->type) == TQ_CONST)) ||
-                is_or_contains_template_param(decl_state->type)) &&
+                is_template_param_type(decl_state->type)) &&
                decl_state->storage_class == (a_storage_class)sc_unspecified &&
                !decl_state->has_cli_literal_keyword) {
       /* Provide support for the nonstandard declaration of a member constant

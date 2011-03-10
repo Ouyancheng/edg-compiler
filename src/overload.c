@@ -13382,7 +13382,12 @@ NULL, the operand is not a parameter.
                                        &failed)) {
     /* A user-defined conversion can be done. */
     okay = TRUE;
-  } else if (!failed) {
+  } else if (failed ||
+             (curr_expr_kind_is_const() && !C_mode() &&
+              (is_class_struct_union_type(dest_type) ||
+               is_class_struct_union_type(source_operand->type)))) {
+    /* A user-defined conversion was our only hope, and it failed. */
+  } else {
     a_boolean      source_is_constant;
     a_constant_ptr source_constant;
 
