@@ -562,6 +562,7 @@ check_abbreviation()
 --c++0x
 --c++0x_sfinae
 --c++0x_sfinae_ignore_access
+--c++cli
 --c_to_obj_lib
 --cfront_2.1
 --cfront_3.0
@@ -673,6 +674,7 @@ check_abbreviation()
 --no_c++0x
 --no_c++0x_sfinae
 --no_c++0x_sfinae_ignore_access
+--no_c++cli
 --no_check_concatenations
 --no_class_name_injection
 --no_code_gen
@@ -1205,6 +1207,8 @@ process_option()
 	 --microsoft_16 | \
 	 --cppcli | \
 	 --no_cppcli | \
+	 --c++cli | \
+	 --no_c++cli | \
 	 --far_data_pointers | \
 	 --near_data_pointers | \
 	 --far_code_pointers | \

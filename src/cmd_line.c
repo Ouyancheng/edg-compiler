@@ -498,6 +498,12 @@ Initialize the option information table.
   add_option_description(optk_cppcli, "no_cppcli",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_cppcli, "c++cli",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_cppcli, "no_c++cli",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_preusing, "preusing",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
