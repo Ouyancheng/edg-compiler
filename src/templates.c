@@ -1941,6 +1941,8 @@ static void parameter_is_more_specialized(
 				a_template_arg_ptr	*templ_arg_list2,
 				a_template_param_ptr	templ_param_list1,
 				a_template_param_ptr	templ_param_list2,
+				a_boolean		is_pack1,
+				a_boolean		is_pack2,
 				a_boolean		entire_type,
 				a_boolean	        *match1,
 				a_boolean	        *match2)
@@ -1954,10 +1956,11 @@ partial ordering comparison (such as top level references).
 match1 is set TRUE if param_type1 is more specialized than param_type2;
 Likewise for match2.  templ_arg_list1 and templ_arg_list2 are the
 template argument lists of the first and second templates and templ_param_list1
-and templ_param_list2 are the respective template parameter lists.  entire_type
-is TRUE if this call is part of a check of the entire routine type (as is
-done in declarative contexts and when taking the address of an overloaded
-function).
+and templ_param_list2 are the respective template parameter lists.  is_pack1
+and is_pack2 indicate whether the parameters are parameter packs.
+entire_type is TRUE if this call is part of a check of the entire routine
+type (as is done in declarative contexts and when taking the address of an
+overloaded function).
 */
 {
   a_boolean	type_1_is_reference;
@@ -2048,11 +2051,13 @@ function).
   }  /* if */
   /* Only check a parameter if no mismatch for that routine has been found. */
   if (*match1) {
-    *match1 = matches_template_type(param_type1, param_type2, templ_arg_list1,
+    *match1 = !(is_pack1 && !is_pack2) &&
+              matches_template_type(param_type1, param_type2, templ_arg_list1,
                                     templ_param_list1, MTT_NO_FLAGS);
   }  /* if */
   if (*match2) {
-    *match2 = matches_template_type(param_type2, param_type1, templ_arg_list2,
+    *match2 = !(is_pack2 && !is_pack1) &&
+              matches_template_type(param_type2, param_type1, templ_arg_list2,
                                     templ_param_list2, MTT_NO_FLAGS);
   }  /* if */
   /* If both comparisons match, prefer the direction that is more qualified. */
@@ -2155,6 +2160,7 @@ which the entire function type should be considered.
                                   rout_type2->variant.routine.return_type,
                                   &dummy_arg_list1, &dummy_arg_list2,
                                   templ_param_list1, templ_param_list2,
+                                  /*is_pack1=*/FALSE, /*is_pack2=*/FALSE,
                                   entire_type,
                                   &match1, &match2);
   }  /* if */
@@ -2173,6 +2179,8 @@ which the entire function type should be considered.
       parameter_is_more_specialized(ptp1->type, ptp2->type,
                                     &dummy_arg_list1, &dummy_arg_list2,
                                     templ_param_list1, templ_param_list2,
+                                    ptp1->is_parameter_pack,
+                                    ptp2->is_parameter_pack,
                                     entire_type,
                                     &match1, &match2);
       if (!match1 && !match2) {

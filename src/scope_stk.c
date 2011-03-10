@@ -9494,12 +9494,9 @@ In deduction contexts, if there is no current argument, create one.
     break;
   }  /* for */
   if (result_tap == NULL) {
-    /* In error cases, we may not find an argument.  Create an error
-       argument. */
-    check_assertion(total_errors != 0);
+    /* If not found above, just return an empty template argument. */
     result_tap = alloc_template_arg(
                                 templ_arg_kind_for_symbol_kind(tpp_sym->kind));
-    set_template_arg_to_error(result_tap);
   }  /* if */
   return result_tap;
 }  /* get_curr_variadic_arg_for_param */
