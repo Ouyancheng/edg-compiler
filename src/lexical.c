@@ -719,6 +719,12 @@ initialized by init_whitespace_keywords.
 */
 static a_whitespace_keyword_ptr
 		whitespace_keywords;
+
+static a_boolean
+		scanning_for_whitespace_keyword;
+			/* TRUE when skip_white_space() is being called to
+			   find the second word in a potential whitespace
+			   keyword. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if DEBUG
@@ -7105,6 +7111,12 @@ white_space_loop:
         curr_char_loc += LE_ESCAPE_LEN;
       } else if (ch == LE_END_OF_LINE || ch == LE_END_OF_INSERTION) {
         /* End of source line or end of macro insertion. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (ch == LE_END_OF_INSERTION && scanning_for_whitespace_keyword) {
+          /* A whitespace keyword cannot span the end of a macro insertion. */
+          goto end_skip;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Check to see if the hanging deletion flag is set. */
         if ((delete_from = delete_source_from_loc) != NULL) {
           /* Source from the indicated position to the end of the line or
@@ -10237,7 +10249,9 @@ modification will be added to restore the first token to the current line.
     curr_ise->do_not_advance_past_end_of_file = TRUE;
   }  /* if */
   delete_source_from_loc = orig_loc;
+  scanning_for_whitespace_keyword = TRUE;
   skip_white_space();
+  scanning_for_whitespace_keyword = FALSE;
   if (curr_ise != NULL) {
     curr_ise->do_not_advance_past_end_of_file =
                                          saved_do_not_advance_past_end_of_file;
@@ -18714,6 +18728,7 @@ of the front end.
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   metadata_import_buffer = NULL;
+  scanning_for_whitespace_keyword = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   in_token_insertion_from_string = FALSE;
   token_insertion_position = null_source_position;
