@@ -3129,15 +3129,13 @@ substituted type, or an error indication in rcblock.
 {
   a_type_ptr   new_type;
   a_boolean    copy_error = FALSE;
-  a_ctws_state ctws_state;
 
-  init_ctws_state(&ctws_state);
   new_type = copy_type_with_substitution(type,
                                          rcblock->template_arg_list,
                                          rcblock->template_param_list,
                                          &eriep->saved_operand.position,
                                          CTWS_NON_CONSTANT_EXPR,
-                                         &copy_error, &ctws_state);
+                                         &copy_error, rcblock->ctws_state);
   if (copy_error) {
     rcblock->error_detected = TRUE;
   }  /* if */
