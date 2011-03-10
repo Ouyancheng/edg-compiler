@@ -10118,7 +10118,7 @@ the error type is a member, or is NULL for a nonmember.
 }  /* create_error_routine_type */
 
 
-void set_template_arg_to_error(a_template_arg_ptr	tap)
+static void set_template_arg_to_error(a_template_arg_ptr	tap)
 /*
 Set the template argument specified by tap to refer to an error entity.
 */
