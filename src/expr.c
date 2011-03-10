@@ -8412,18 +8412,24 @@ indication in *rcblock).
     check_assertion(rcblock->expr->kind == (an_expr_node_kind)enk_sizeof_pack);
     eriep = get_expr_rescan_info(rcblock->expr,
                                  (an_expr_rescan_info_entry *)NULL);
-    pedep = eriep->saved_operand.pack_expansion_descr;
-    check_assertion(pedep != NULL);
     start_position = eriep->saved_operand.position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = eriep->saved_operand.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    any_more = begin_rescan_pack_expansion_context(pedep,
+    pedep = eriep->saved_operand.pack_expansion_descr;
+    if (pedep == NULL) {
+      /* In some error cases, pedep can be NULL. */
+      rescan_err = TRUE;
+      any_more = FALSE;
+    } else {
+      any_more = begin_rescan_pack_expansion_context(
+                                                  pedep,
                                                   rcblock->template_param_list,
-                                                   rcblock->template_arg_list,
-                                                   &pesep,
-                                                   rcblock->ctws_state,
-                                                   &rescan_err);
+                                                  rcblock->template_arg_list,
+                                                  &pesep,
+                                                  rcblock->ctws_state,
+                                                  &rescan_err);
+    }  /* if */
     /* Check if an error occurred (such as mismatched parameter pack
        lengths). */
     if (rescan_err) rcblock->error_detected = TRUE;
