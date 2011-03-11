@@ -1098,7 +1098,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
       if (curr_token == tok_rparen ||
           is_decl_start(IDS_MS_ATTRIB_NOT_ALLOWED |
                         IDS_REAL_DECLARATOR_ALLOWED) ||
-                        curr_token == tok_ellipsis) {
+          (curr_token == tok_ellipsis && next_token() == tok_rparen)) {
         /* Function declarator rather than a nested declarator. */
         goto function_lparen;
       }  /* if */

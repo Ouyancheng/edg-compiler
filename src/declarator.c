@@ -5542,8 +5542,9 @@ The syntax is:
     /* Left parenthesis indicating nested declarator.  For the abstract
        declarator case, this might be a parenthesis indicating a function.
        We can differentiate the two cases because in the case of a nested
-       declarator the next token must be a "*", "(", or "[", whereas in the
-       function case it is ")", "...", or a declaration specifier. */
+       declarator the next tokens must be "*", "(", "[", or "... <id>" whereas
+       the function case is followed by ")", "...)", or a declaration
+       specifier. */
     a_decl_flag_set       local_do_flags;
     a_type_qualifier_set  saved_qualifiers = state->qualifiers;
     a_source_position     saved_qualifiers_pos;
@@ -5564,7 +5565,7 @@ The syntax is:
       if (curr_token == tok_rparen ||
           is_decl_start(IDS_REAL_DECLARATOR_ALLOWED |
                         IDS_MS_ATTRIB_NOT_ALLOWED) ||
-          curr_token == tok_ellipsis) {
+          (curr_token == tok_ellipsis && next_token() == tok_rparen)) {
         /* Function declarator rather than a nested declarator. */
         goto function_lparen;
       }  /* if */
@@ -5669,12 +5670,8 @@ The syntax is:
       *output_flags |= DO_SCOPE_DEACTIVATION_REQUIRED;
     }  /* if */
     /* A nonconstant dimension, if allowed at all, is allowed only on the
-       topmost type (an interpretation of the language specification in ARM
-       5.3.3).  Set the flag to FALSE for subsequent processing. */
+       topmost type.  Set the flag to FALSE for subsequent processing. */
     nonconstant_dimension_allowed = FALSE;
-    if (variadic_templates_enabled && curr_token == tok_ellipsis) {
-      record_pack_expansion_ellipsis();
-    }  /* if */
     /* Check for and get the closing parenthesis. */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
@@ -5700,7 +5697,14 @@ The syntax is:
       /* An ellipsis at this point can indicate a parameter pack. */
       if (state->pack_ellipsis_allowed) {
         state->has_pack_ellipsis = TRUE;
-        record_pack_expansion_ellipsis();
+        /* For function parameter pack declarations, the ellipsis is a sort of
+           expansion (the type of the parameter must be a "pattern"), but for
+           template parameter declarations that is not the case. */
+        if (input_flags & DI_IS_TEMPLATE_PARAM_DECL) {
+          (void)get_token();
+        } else {
+          record_pack_expansion_ellipsis();
+        }  /* if */
       } else {
         /* An error will be issued elsewhere if it turns out we are not
            in an expansion. */

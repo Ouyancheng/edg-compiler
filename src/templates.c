@@ -15345,6 +15345,7 @@ ellipsis, return TRUE in *is_pack.
   clear_decl_pos_block(&decl_pos_block);
   init_decl_parse_state(&state);
   state.trailing_return_type_allowed = trailing_return_types_enabled;
+  state.pack_ellipsis_allowed = variadic_templates_enabled;
   decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_TEMPLATE_PARAMETER),
                   &state, &decl_pos_block);
   if (state.dso_flags & DSO_DEFINES_SOMETHING) {
@@ -15358,17 +15359,13 @@ ellipsis, return TRUE in *is_pack.
         /*function_def_present=*/FALSE, /*is_main_function=*/FALSE,
         (state.dso_flags & DSO_NO_DECL_SPECIFIERS) == 0);
   }  /* if */
-  if (curr_token == tok_ellipsis && variadic_templates_enabled) {
-    /* A "..." indicating a parameter pack declaration. */
-    if (is_pack != NULL) *is_pack = TRUE;
-    (void)get_token();
-  }  /* if */
   /* Scan the declarator. */
   declarator((DI_REAL_DECLARATOR_ALLOWED |
               DI_ABSTRACT_DECLARATOR_ALLOWED |
               DI_IS_TEMPLATE_PARAM_DECL),
              &state, /*member_parent_type=*/(a_type_ptr)NULL, param_locator,
              (a_func_info_block_ptr)NULL, &decl_pos_block);
+  if (is_pack != NULL) *is_pack = state.has_pack_ellipsis;
   if (is_unnamed != NULL) {
     /* Return a flag indicating whether the parameter is unnamed. */
     *is_unnamed = (state.do_flags & DO_REAL_DECLARATOR_SCANNED) == 0;
