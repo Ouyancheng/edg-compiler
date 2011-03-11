@@ -1934,6 +1934,43 @@ compare_function_templates.
 }  /* wrapup_function_template_argument_deduction */
 
 
+static int compare_variadic_template_arg_lists(
+				a_template_arg_ptr	templ_arg_list1,
+				a_template_arg_ptr	templ_arg_list2)
+/*
+templ_arg_list1 and templ_arg_list2 are template argument lists of
+variadic class or function templates.  Determine which of the argument
+lists should be considered more specialized for partial specialization
+or partial ordering purposes.  Return 1 if templ_arg_list1 is more
+specialized than templ_arg_list2, return -1 if templ_arg_list2 is more
+specialized than templ_arg_list1, and return 0 if they are unordered.
+*/
+{
+  int			non_variadic_args1 = 0;
+  int			non_variadic_args2 = 0;
+  a_template_arg_ptr	tap;
+  int			result = 0;
+
+  /* Count the number of non-variadic arguments for each of the
+     argument lists. */
+  for (tap = templ_arg_list1; tap != NULL;
+       tap = tap->next, non_variadic_args1++) {
+    if (tap->is_pack) break;
+  }  /* for */
+  for (tap = templ_arg_list2; tap != NULL;
+       tap = tap->next, non_variadic_args2++) {
+    if (tap->is_pack) break;
+  }  /* for */
+  /* The list with more non-variadic arguments is more specialized. */
+  if (non_variadic_args1 > non_variadic_args2) {
+    result = 1;
+  } else if (non_variadic_args2 > non_variadic_args1) {
+    result = -1;
+  }  /* if */
+  return result;
+}  /* compare_variadic_template_arg_lists */
+
+
 static void parameter_is_more_specialized(
 				a_type_ptr		param_type1,
 				a_type_ptr		param_type2,
@@ -2209,17 +2246,26 @@ which the entire function type should be considered.
       match2 = TRUE;
     }  /* if */
   }  /* if */
-  /* Free the template argument list produced by the deduction process. */
-  if (dummy_arg_list1 != NULL) free_template_arg_list(dummy_arg_list1);
-  /* Free the template argument list produced by the deduction process. */
-  if (dummy_arg_list2 != NULL) free_template_arg_list(dummy_arg_list2);
   if (match1 && !match2) {
     result = 1;
   } else if (match2 && !match1) {
     result = -1;
   } else {
-    result = 0;
+    if (tssp1->is_variadic && tssp2->is_variadic) {
+      result = compare_variadic_template_arg_lists(dummy_arg_list1,
+                                                   dummy_arg_list2);
+    } else if (tssp2->is_variadic) {
+      result = 1;
+    } else if (tssp1->is_variadic) {
+      result = -1;
+    } else {
+      result = 0;
+    }  /* if */
   }  /* if */
+  /* Free the template argument list produced by the deduction process. */
+  if (dummy_arg_list1 != NULL) free_template_arg_list(dummy_arg_list1);
+  /* Free the template argument list produced by the deduction process. */
+  if (dummy_arg_list2 != NULL) free_template_arg_list(dummy_arg_list2);
 #if DEBUG
   if (db_flag_is_set("cft")) {
     fprintf(f_debug, "compare_function_template:\n");
@@ -2348,43 +2394,6 @@ in ps_arg_list.
     not used (LINTBUG). */
   return result;
 }  /* matches_partial_specialization */
-
-
-static int compare_variadic_template_arg_lists(
-				a_template_arg_ptr	templ_arg_list1,
-				a_template_arg_ptr	templ_arg_list2)
-/*
-templ_arg_list1 and templ_arg_list2 are template argument lists of
-variadic class or function templates.  Determine which of the argument
-lists should be considered more specialized for partial specialization
-or partial ordering purposes.  Return 1 if templ_arg_list1 is more
-specialized than templ_arg_list2, return -1 if templ_arg_list2 is more
-specialized than templ_arg_list1, and return 0 if they are unordered.
-*/
-{
-  int			non_variadic_args1 = 0;
-  int			non_variadic_args2 = 0;
-  a_template_arg_ptr	tap;
-  int			result = 0;
-
-  /* Count the number of non-variadic arguments for each of the
-     argument lists. */
-  for (tap = templ_arg_list1; tap != NULL;
-       tap = tap->next, non_variadic_args1++) {
-    if (tap->is_pack) break;
-  }  /* for */
-  for (tap = templ_arg_list2; tap != NULL;
-       tap = tap->next, non_variadic_args2++) {
-    if (tap->is_pack) break;
-  }  /* for */
-  /* The list with more non-variadic arguments is more specialized. */
-  if (non_variadic_args1 > non_variadic_args2) {
-    result = 1;
-  } else if (non_variadic_args2 > non_variadic_args1) {
-    result = -1;
-  }  /* if */
-  return result;
-}  /* compare_variadic_template_arg_lists */
 
 
 static int compare_partial_specializations(
