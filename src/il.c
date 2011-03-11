@@ -13906,6 +13906,7 @@ options is a set of name lookup options.
     rcblock.template_arg_list = template_arg_list;
     rcblock.template_param_list = template_param_list;
     rcblock.options = options;
+    rcblock.ctws_state = ctws_state;
     expr_copy = rescan_expr_with_substitution(expr, guide_type,
                                               &rcblock, constant);
     if (rcblock.error_detected) {
