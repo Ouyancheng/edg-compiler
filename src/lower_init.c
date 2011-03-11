@@ -3351,7 +3351,17 @@ a parameter in expr (if one exists) with a corresponding parameter.
          orig_ptr != NULL && new_ptr != NULL;
          orig_ptr = orig_ptr->next, new_ptr = new_ptr->next) {
       if (expr->variant.variable == orig_ptr) {
-        check_assertion(identical_types(orig_ptr->type, new_ptr->type));
+        check_assertion(identical_types(orig_ptr->type, new_ptr->type) &&
+                    orig_ptr->is_parameter &&
+                    new_ptr->is_parameter &&
+                    (orig_ptr->is_this_parameter ||
+                     orig_ptr->assoc_param_type != NULL) &&
+                    (new_ptr->is_this_parameter ||
+                     new_ptr->assoc_param_type != NULL) &&
+                    (orig_ptr->assoc_param_type == NULL ||
+                     new_ptr->assoc_param_type == NULL ||
+                     orig_ptr->assoc_param_type->passed_via_copy_constructor ==
+                      new_ptr->assoc_param_type->passed_via_copy_constructor));
         expr->variant.variable = new_ptr;
         break;
       }  /* if */
@@ -3369,7 +3379,17 @@ a parameter in expr (if one exists) with a corresponding parameter.
            orig_ptr != NULL && new_ptr != NULL;
            orig_ptr = orig_ptr->next, new_ptr = new_ptr->next) {
         if (ptr->variable == orig_ptr) {
-          check_assertion(identical_types(ptr->variable->type, new_ptr->type));
+          check_assertion(identical_types(orig_ptr->type, new_ptr->type) &&
+                    orig_ptr->is_parameter &&
+                    new_ptr->is_parameter &&
+                    (orig_ptr->is_this_parameter ||
+                     orig_ptr->assoc_param_type != NULL) &&
+                    (new_ptr->is_this_parameter ||
+                     new_ptr->assoc_param_type != NULL) &&
+                    (orig_ptr->assoc_param_type == NULL ||
+                     new_ptr->assoc_param_type == NULL ||
+                     orig_ptr->assoc_param_type->passed_via_copy_constructor ==
+                      new_ptr->assoc_param_type->passed_via_copy_constructor));
           ptr->variable = new_ptr;
           break;
         }  /* if */
@@ -3413,6 +3433,7 @@ static a_constructor_init_ptr copy_ctor_init(
 /*
 Return a copy of the specified constructor init.  ctor_init is being copied
 from from_scope to to_scope.  options is a set of options for the copy.
+Assumes ctor_init has not been lowered yet.
 */
 {
   a_constructor_init_ptr  copy;
@@ -3723,7 +3744,6 @@ action is necessary (since the routine has already been defined).
        form as a normal parameter). */
     new_routine_scope->variant.routine.parameters = this_param_var =
                                   make_lowered_param_variable(this_param_type);
-    this_param_var->assoc_param_type = new_rtsp->param_type_list;
     this_param_var->is_this_parameter = TRUE;
     last_param_var = this_param_var;
     /* Make expression lists for constructor or destructor implied
@@ -4071,9 +4091,11 @@ modified; if not, only the new parameters are modified.
       }  /* if */
     }  /* if */
     param_type = alloc_param_type(pass_through_param_type);
-    param_type->has_default_arg = src_param_type->has_default_arg;
-    param_type->default_arg_appeared_in_class_definition =
-                     src_param_type->default_arg_appeared_in_class_definition;
+    /* Copy the entire parameter type (there shouldn't be any memory region
+       issues since both are in the file scope). */
+    *param_type = *src_param_type;
+    param_type->next = NULL;
+    param_type->type = pass_through_param_type;
     /* It is not necessary to clear il_lowering_flag; the entry does not need
        to be lowered.  Also note that the parameter types will be lowered
        when the original function is lowered, and do not need to be
@@ -12237,7 +12259,8 @@ constructor scope, and also lower the user code.
                                           (a_ctor_or_dtor_kind)cdk_subobject) {
       /* Create the complete object constructor early so that we can move
          (or copy) any virtual base constructor inits into the complete
-         object constructor scope. */
+         object constructor scope.  This must be done before the constructor
+         inits are lowered below. */
       (void)alternate_entry_point(scope->variant.routine.ptr,
                                   (a_ctor_or_dtor_kind)cdk_complete,
                                   /*define_now=*/TRUE);
