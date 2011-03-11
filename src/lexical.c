@@ -13407,7 +13407,7 @@ all arguments were explicit.
      of the explicitly supplied arguments. */
   if (param_ptr != NULL && in_pack) {
     param_ptr = param_ptr->next;
-    orig_param_ptr = orig_param_ptr->next;
+    if (orig_param_ptr != NULL) orig_param_ptr = orig_param_ptr->next;
   }  /* if */
   /* All arguments should have been processed and the current token should
      be the closing angle bracket. */
