@@ -1,5 +1,23 @@
 Version 4.3
 
+3/10/11  [EDGcpfe/11434]
+Dependent calls now find static functions
+
+In accordance with core issue 561, the front end in C++0X mode now
+sees static functions when processing a dependent call in a template.
+Previously, in accordance with the C++03 standard, such functions
+were considered to be invisible to dependent calls.
+
+  namespace N {
+    static int sf(int);
+  };
+  using namespace N;
+  template <class T> auto psf1(T p1) -> decltype(p1+sf(p1));
+  int main() {
+    psf1(0);  // Now accepted in C++0X mode
+  }
+
+
 3/10/11  [EDGcpfe/11471]
 Incorrect folding of dependent function call in template in Microsoft mode
 

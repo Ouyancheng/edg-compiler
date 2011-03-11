@@ -3420,11 +3420,12 @@ point of call, FALSE otherwise.
     /* The symbol is a function template. */
     routine = function_symbol->variant.template_info->variant.function.routine;
   }  /* if */
-  if (dependent_call &&
+  if (!cpp0x_mode && dependent_call &&
       routine->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal) {
     /* Functions with internal linkage are invisible in the template-
-       dependent name lookup. */
+       dependent name lookup.  Core issue 561 undid this in the C++0X
+       standard. */
     if (gpp_mode && gnu_version >= 30400) {
       /* g++ 3.4 does not ignore static functions. */
     } else {
