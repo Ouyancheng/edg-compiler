@@ -9689,6 +9689,7 @@ will be responsible for the end... and advance... calls.
     any_args = TRUE;
   } else if (pack_expansion_stack != NULL &&
              pack_expansion_stack->is_lookahead &&
+             pack_expansion_stack->expansion_descr != NULL &&
              pack_expansion_stack->expansion_descr->first_token ==
                                                   curr_token_sequence_number) {
     /* This is a redundant push of the same starting location.  Just return

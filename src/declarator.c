@@ -2465,6 +2465,11 @@ TRUE if this is the function declarator in a friend function declaration.
         } else {
           ptp->is_pack_element = is_pack_element;
           ptp->duplicate_name = is_non_initial_pack_element;
+          /* Default arguments are not allowed on packs, so disallow them
+             on instantiations. */
+          if (is_pack_element) {
+            default_arg_allowed_on_curr_param = FALSE;
+          }  /* if */
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (param_state.ms_attributes != NULL) {
@@ -2584,8 +2589,10 @@ TRUE if this is the function declarator in a friend function declaration.
           last_default_arg_pos = pos_curr_token;
           /* Check the scope immediately containing the current scope, which
              is a function prototype scope.  We may have to cache the
-             default argument tokens and rescan them later. */
-          cache_default_arg = FALSE;
+             default argument tokens and rescan them later.  If we are in
+             a pack where default arguments are not allowed, cache them
+             instead of evaluating them, which could lead to errors. */
+          cache_default_arg = pesep != NULL;
           is_member_or_friend_function = FALSE;
           ignore_default_arg_expr = !default_arg_allowed_on_curr_param;
           parent_ssep = &scope_stack[depth_scope_stack-1];
