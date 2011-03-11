@@ -5086,6 +5086,7 @@ empty_parens_mem_initializer:
               /* There was an expression, but it's a pack expansion that
                  expanded to zero expressions, so go handle the mem-initializer
                  as if it was "()". */
+              remove_stop_token(tok_rparen);
               goto empty_parens_mem_initializer;
             }  /* if */
             /* If the initializer produced an object lifetime for the full
