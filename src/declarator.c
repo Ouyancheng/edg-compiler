@@ -1974,30 +1974,6 @@ this is a helper function.
   }  /* if */
 }  /* cplusplus_function_declarator_trailer */
 
-#if 0
-
-static a_param_type_ptr get_param_types_for_variadic_template(void)
-/*
-We are scanning the function template of an instantiation of a variadic
-template.  Get the parameter type list from the template that is being
-instantiated.
-*/
-{
-  a_routine_ptr		rp;
-  a_param_type_ptr	ptp;
-  a_type_ptr		rout_type;
-
-  rp = scope_stack[depth_innermost_instantiation_scope].assoc_routine;
-  if (rp != NULL) {
-    rout_type = skip_typerefs(rp->type);
-    ptp = rout_type->variant.routine.extra_info->param_type_list;
-    check_assertion(ptp != NULL);
-  }  /* if */
-  return ptp;
-}  /* get_param_types_for_variadic_template */
-
-#endif /* 0 */
-
 
 static void function_declarator(a_decl_parse_state  *state,
                                 a_type_ptr          *new_type_ptr,
