@@ -991,48 +991,53 @@ static a_constant_ptr scan_initializer_of_simple_object(
                         a_boolean                     suppress_object_lifetime,
                         a_boolean                     is_copy_initialization,
                         a_boolean                     *is_pack_expansion,
+                        a_boolean                     *expr_not_present,
                         a_type_ptr                    *p_type,
                         a_dynamic_init_ptr            *dip_ptr)
 /*
 Scan a nonaggregate initializer (i.e., not a brace-enclosed expression
-list).  *dps describes the declaration directly associated with this
-initializer (if any; dps is NULL for ctor-initializers, for example).
-If the initializer is an element in an aggregate initialization,
-init_info and init_context give context information on the aggregate
-initialization; otherwise, they are NULL.  If nonconst_allowed is TRUE
-(always the case in C++, sometimes otherwise) a nonconstant expression
-is allowed; if not, a constant is required.  If static_lifetime is
-TRUE, the underlying entity has static storage duration.
-force_object_lifetime is TRUE only in C++ mode and only when this
-function is called in scanning an entry in a ctor initializer list; it
-is passed on to scan_initializer_expression to force creation of an
-object lifetime for expression temporaries even if long_lifetime_temps
-is TRUE.  Conversely, suppress_object_lifetime is TRUE when no object
-lifetime entry should be generated (used when parsing compound
-literals in C++ mode).  If is_copy_initialization is TRUE, this is
-copy-initialization ("="-form); otherwise, it's direct-initialization
-("()"-form).  *p_type is the data type of the object being
-initialized.  It may be updated if it is an incomplete string type and
-the initializer is a string constant.  dip_ptr is a pointer to a
-dynamic init pointer; if the latter is NULL, a dynamic init entry may
-be allocated and returned, but if *dip_ptr is non-NULL, build the
-initialization information into the object it points to.  A (possibly
-NULL) constant pointer is returned; iff *dip_ptr is updated, NULL is
-returned.  Thus, if nonconst_allowed is FALSE, return a pointer to a
-constant entry.  Otherwise, if the initializer is a constant value
-then return a pointer to a constant only if *dip_ptr is NULL.  If the
-initializer is nonconstant or *dip_ptr is non-NULL, return a NULL
-constant pointer and build *dip_ptr to represent the initialization.
-If is_pack_expansion is non-NULL, *is_pack_expansion is returned TRUE
-if the initializer expression scanned is a variadic template pack
-expansion.
+list).  dps describes the declaration directly associated with this
+initializer (it's always non-NULL, but it may be fabricated, e.g., for
+ctor-initializers).  If the initializer is an element in an aggregate
+initialization, init_info and init_context give context information on
+the aggregate initialization; otherwise, they are NULL.  If
+nonconst_allowed is TRUE (always the case in C++, sometimes otherwise)
+a nonconstant expression is allowed; if not, a constant is required.
+If static_lifetime is TRUE, the underlying entity has static storage
+duration.  force_object_lifetime is TRUE only in C++ mode and only
+when this function is called in scanning an entry in a ctor
+initializer list; it is passed on to scan_initializer_expression to
+force creation of an object lifetime for expression temporaries even
+if long_lifetime_temps is TRUE.  Conversely, suppress_object_lifetime
+is TRUE when no object lifetime entry should be generated (used when
+parsing compound literals in C++ mode).  If is_copy_initialization is
+TRUE, this is copy-initialization ("="-form); otherwise, it's
+direct-initialization ("()"-form).  *p_type is the data type of the
+object being initialized.  It may be updated if it is an incomplete
+string type and the initializer is a string constant.  dip_ptr is a
+pointer to a dynamic init pointer; if the latter is NULL, a dynamic
+init entry may be allocated and returned, but if *dip_ptr is non-NULL,
+build the initialization information into the object it points to.  A
+(possibly NULL) constant pointer is returned; iff *dip_ptr is updated,
+NULL is returned.  Thus, if nonconst_allowed is FALSE, return a
+pointer to a constant entry.  Otherwise, if the initializer is a
+constant value then return a pointer to a constant only if *dip_ptr is
+NULL.  If the initializer is nonconstant or *dip_ptr is non-NULL,
+return a NULL constant pointer and build *dip_ptr to represent the
+initialization.  If is_pack_expansion is non-NULL, *is_pack_expansion
+is returned TRUE if the initializer expression scanned is a variadic
+template pack expansion.  If expr_not_present is non-NULL, and an
+expression is present but it's a pack expansion that expands to zero
+expressions, return NULL and *expr_not_present TRUE.
 */
 {
   an_expr_node_ptr expression;
   a_boolean        is_constant;
   a_constant       constant, *cp = NULL;
 
+  check_assertion(dps != NULL);
   if (is_pack_expansion != NULL) *is_pack_expansion = FALSE;
+  if (expr_not_present != NULL) *expr_not_present = FALSE;
   if (process_string_constant_initializer(p_type, &cp, dps,
                                           init_info, init_context)) {
     /* The object being initialized has type pointer to (narrow or wide)
@@ -1045,15 +1050,17 @@ expansion.
     scan_initializer_expression(
                          *p_type, dps, static_lifetime, force_object_lifetime,
                          suppress_object_lifetime, is_copy_initialization,
-                         is_pack_expansion,
+                         is_pack_expansion, expr_not_present,
                          &is_constant, &expression, &constant);
   } else {
     /* Non-constant is not allowed. */
     scan_constant_initializer_expression(*p_type, dps, &constant);
     is_constant = TRUE;
   }  /* if */
-  /* See if the scanned expression was constant or not. */
-  if (is_constant) {
+  if (expr_not_present != NULL && *expr_not_present) {
+    /* No expression or constant to return. */
+    cp = NULL;
+  } else if (is_constant) {
     /* Constant. */
     if (cp == NULL) cp = alloc_unshared_constant(&constant);
     if (*dip_ptr == NULL) {
@@ -2119,6 +2126,7 @@ init_info->dps->prescanned_initializer_cache.
                                      (a_boolean)init_info->compound_literal,
                                      /*is_copy_initialization=*/TRUE,
                                      &is_pack_expansion,
+                                     (a_boolean *)NULL,
                                      &required_type, &dip);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     init_info->init_end_position = curr_construct_end_position;
@@ -3332,6 +3340,7 @@ has static storage duration; vp_type is the type of that entity.
                                             /*suppress_object_lifetime=*/FALSE,
                                             /*is_copy_initialization=*/TRUE,
                                             (a_boolean *)NULL,
+                                            (a_boolean *)NULL,
                                             &vp_type, init_dip);
   if (microsoft_bugs && microsoft_version < 1310) {
     /* Earlier microsoft compilers accept things like "int x = { f(), { 3 } }".
@@ -3685,6 +3694,7 @@ returned set to TRUE.
                                             /*force_object_lifetime=*/FALSE,
                                             /*suppress_object_lifetime=*/FALSE,
                                             /*is_copy_initialization=*/FALSE,
+                                            (a_boolean *)NULL,
                                             (a_boolean *)NULL,
                                             &vp_type, &init_dip);
       if (init_con != NULL && vp != NULL &&
@@ -4995,6 +5005,8 @@ scan_paren:
       } else {
         /* A field whose initialization does not involve a constructor. */
         if (curr_token == tok_rparen) {
+          /* An empty initializer, "()", indicating value initialization. */
+empty_parens_mem_initializer:
           if (is_any_reference_type(init_type)) {
             /* Error.  A reference type may not be default-initialized. */
             a_constant_ptr  cp;
@@ -5049,11 +5061,17 @@ scan_paren:
                nontrivial copy constructor. */
             dip = scan_array_mem_initializer(new_cip);
           } else {
+            a_boolean          expr_not_present;
+            a_decl_parse_state dps;
+            init_decl_parse_state(&dps);
+            dps.type = init_type;
+            dps.initializer_is_expr_list = TRUE;
+            dps.initializer_is_single_expr = TRUE;
             /* Allocate a new dynamic init entry, setting the kind to
                dik_none for now.  It will be adjusted after the scan. */
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
             (void)scan_initializer_of_simple_object(
-                                            (a_decl_parse_state*)NULL,
+                                            &dps,
                                             (an_aggregate_init_info *)NULL,
                                             (an_aggregate_init_context *)NULL,
                                             /*nonconst_allowed=*/TRUE,
@@ -5062,7 +5080,14 @@ scan_paren:
                                             /*suppress_object_lifetime=*/FALSE,
                                             /*is_copy_initialization=*/FALSE,
                                             (a_boolean *)NULL,
+                                            &expr_not_present,
                                             &init_type, &dip);
+            if (expr_not_present) {
+              /* There was an expression, but it's a pack expansion that
+                 expanded to zero expressions, so go handle the mem-initializer
+                 as if it was "()". */
+              goto empty_parens_mem_initializer;
+            }  /* if */
             /* If the initializer produced an object lifetime for the full
                expression, remove it temporarily from the object lifetime
                tree and restore it in the correct position later. */

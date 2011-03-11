@@ -574,6 +574,11 @@ typedef struct a_decl_parse_state {
 			   scanned now is an element on an expression list.
 			   If so, variadic template pack expansions are
 			   allowed. */
+  a_bit_field	initializer_is_single_expr:1;
+			/* Used in conjunction with initializer_is_expr_list
+			   TRUE to indicate a context where, though the
+			   initializer is syntactically an expression list,
+			   in actuality there must be a single expression. */
   a_bit_field	no_special_cli_class_type_check:1;
 			/* Some special C++/CLI class types (like cli::array
 			   instances) can ordinarily not be used as top-level
