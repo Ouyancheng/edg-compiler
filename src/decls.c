@@ -113,6 +113,7 @@ reflected in start_secondary_declarator.
   ps->has_trailing_return_type = FALSE;
   ps->pack_ellipsis_allowed = FALSE;
   ps->has_pack_ellipsis = FALSE;
+  ps->is_pack_element = FALSE;
   ps->is_new_expr_type = FALSE;
   ps->is_evaluated_sizeof_type_arg = FALSE;
   ps->disallow_variably_modified_type = FALSE;
