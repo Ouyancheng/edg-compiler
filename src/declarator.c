@@ -2352,7 +2352,7 @@ TRUE if this is the function declarator in a friend function declaration.
                 not handled by the is_abstract_or_real_declarator_start macro
                 because the specifiers type may be required for
                 disambiguation: If the next two tokens are "... )", the
-                ellipsis declare a parameter pack only if the specifiers type
+                ellipsis declares a parameter pack only if the specifiers type
                 is a pattern type (i.e., contains an unexpanded template
                 parameter pack) or if we are in an instantiation of a pack
                 element. */
