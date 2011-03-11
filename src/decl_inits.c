@@ -2707,9 +2707,6 @@ this function points to a tree that includes a dynamic-init entry.
         if (local_nothing_taken) {
           /* The initializer was not scanned, so we don't want to look for
              a comma.  any_more_initializers remains TRUE. */
-        } else if (anything_cached(&dps->prescanned_initializer_cache)) {
-          /* There is at least one expression cached, so go around again. */
-          any_more_initializers = TRUE;
         } else if (!brace_flag && top_level) {
           /* If this is a top-level list that is not brace-enclosed
              (an error or extension, except in pcc mode) we must stop now,
@@ -2724,6 +2721,9 @@ this function points to a tree that includes a dynamic-init entry.
           /* There are no more members and this is not a brace-enclosed
              list, so take no more initializers. */
           any_more_initializers = FALSE;
+        } else if (anything_cached(&dps->prescanned_initializer_cache)) {
+          /* There is at least one expression cached, so go around again. */
+          any_more_initializers = TRUE;
         } else {
           /* Skip a comma separating initializers.  This might be an extra
              comma at the end of the list.  The comma might already have been
