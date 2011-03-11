@@ -2762,6 +2762,11 @@ TRUE if this is the function declarator in a friend function declaration.
           last_param_id->is_parameter_pack = ptp->is_parameter_pack;
         }  /* if */
         any_variadic_params = advance_to_next_pack_element(pesep);
+        if (!any_variadic_params && !done) {
+          is_new_param = TRUE;
+          any_variadic_params = begin_potential_pack_expansion_context(&pesep);
+          if (!any_variadic_params) done = TRUE;
+        }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         param_array_next = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2787,6 +2792,11 @@ TRUE if this is the function declarator in a friend function declaration.
           {
             extra_info->has_ellipsis = TRUE;
             done = TRUE;
+            /* The call to begin_potential_pack_expansion_context above may
+               have mistakenly concluded that more parameters are ahead, but
+               we now know that the ellipsis terminates the parameter list.
+               E.g., template<class ...T> void f(T..., ...) {} */
+            any_variadic_params = FALSE;
           }  /* if */
         }  /* if */
         if (is_constructor) {
@@ -2874,11 +2884,6 @@ TRUE if this is the function declarator in a friend function declaration.
               }  /* if */
             }  /* if */
           }  /* if */
-        }  /* if */
-        if (!any_variadic_params && !done) {
-          is_new_param = TRUE;
-          any_variadic_params = begin_potential_pack_expansion_context(&pesep);
-          if (!any_variadic_params) done = TRUE;
         }  /* if */
       } while (!done || any_variadic_params);
     }  /* if */
