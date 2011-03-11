@@ -3805,10 +3805,18 @@ next_argument:;
     routine_type = skip_typerefs(routine_type);
     rtsp = routine_type->variant.routine.extra_info;
   }  /* for */
-  /* If param != NULL here, there are default arguments or a parameter pack
-     (because we got past the argument-count check above). */
-  check_assertion_str(param == NULL || param->has_default_arg ||
-                      param->is_parameter_pack,
+  if (param != NULL && function_template_case &&
+      param_before_deduction->is_parameter_pack) {
+    /* The substituted routine type doesn't have the expected number of
+       parameters to match the arguments we have, so some parameter pack
+       must have been deduced one way but it's also used at the end as
+       matching zero arguments, which implies an empty expansion.
+       Deduction fails. */
+    goto reject_function;
+  }  /* if */
+  /* If param != NULL here, there are default arguments (because we got past
+     the argument-count check above). */
+  check_assertion_str(param == NULL || param->has_default_arg,
                      "determine_function_viability: no param, no default arg");
   /* All the arguments can be made to match the parameters. */
   /* See if the "this" parameter, if any, matches. */
