@@ -79,7 +79,6 @@ Initialize a disambiguation state block.
 }  /* init_disambig_state */
 
 
-/*ARGSUSED*/ /* dsp not currently used */
 static void wrapup_disambig_state(a_disambig_state_ptr dsp)
 /*
 Perform any operations that must be done to clean up after disambiguation.
