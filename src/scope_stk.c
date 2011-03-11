@@ -9167,7 +9167,6 @@ Return the number of actual arguments in *elements.
   a_param_type_ptr		result_ptp = NULL;
   a_param_type_ptr		ptp;
   uint32_t			param_num;
-  uint32_t			level;
 
   *elements = 0;
   /* ctws_state should only be NULL in contexts in which it is not possible
@@ -9175,11 +9174,11 @@ Return the number of actual arguments in *elements.
   if (ctws_state != NULL) {
     a_variadic_param_info_ptr	vpip;
     param_num = prp->symbol->variant.param_id->param_num;
-    level = ctws_state->routine_type_levels;
     for (vpip = ctws_state->variadic_param_info; vpip != NULL;
          vpip = vpip->next) {
       if (vpip->orig_param_type->param_num == param_num &&
-          vpip->level == level) {
+          strcmp(vpip->orig_param_type->name,
+                 prp->symbol->header->identifier) == 0) {
         result_vpip = vpip;
         result_ptp = vpip->param_type;
         break;
