@@ -2795,7 +2795,7 @@ TRUE if this is the function declarator in a friend function declaration.
             /* The call to begin_potential_pack_expansion_context above may
                have mistakenly concluded that more parameters are ahead, but
                we now know that the ellipsis terminates the parameter list.
-               E.g., template<class ...T> void f(T..., ...) {} */
+               E.g., template<class ...T> void f(int, T..., ...) {} */
             any_variadic_params = FALSE;
           }  /* if */
         }  /* if */
