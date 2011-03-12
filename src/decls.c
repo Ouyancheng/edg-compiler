@@ -10217,13 +10217,6 @@ common cases.
       process_type_name_attributes(dps);
     }  /* if */
   }  /* if */
-  /* If the type has an associated symbol, check to see if it is a pack
-     reference. */
-  { a_symbol_ptr sym = symbol_for(dps->type);
-    if (sym != NULL) {
-      record_potential_pack_reference(sym, &dps->start_pos);
-    }  /* if */
-  }
   copy_source_position(dps->start_pos, error_position);
   db_exit();
 }  /* type_name_full */
