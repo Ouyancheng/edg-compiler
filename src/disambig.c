@@ -59,9 +59,12 @@ typedef struct a_disambig_state {
 } a_disambig_state;
 
 
-static void init_disambig_state(a_disambig_state_ptr dsp)
+static void init_disambig_state(a_disambig_state_ptr	dsp,
+				a_boolean		suppress_packs)
 /*
-Initialize a disambiguation state block.
+Initialize a disambiguation state block.  If suppress_packs is TRUE
+and we are in the prototype instantiation of a variadic template,
+push a pack expansion suppression.
 */
 {
   clear_token_cache(&dsp->cache, /*reusable=*/FALSE);
@@ -70,7 +73,7 @@ Initialize a disambiguation state block.
   dsp->terminate = FALSE;
   dsp->set_decl_class_type = FALSE;
   dsp->friend_encountered = FALSE;
-  dsp->variadic_prototype_instantiation =
+  dsp->variadic_prototype_instantiation = suppress_packs &&
        is_prototype_instantiation_context() && is_variadic_template_context();
   if (dsp->variadic_prototype_instantiation) {
     /* Disable variadic processing during the prescan. */
@@ -1472,7 +1475,7 @@ types separated by commas (when single_type_required is FALSE).
                 is_implicit_template_type)) &&
               is_start_of_type)) {
     /* Initialize the token cache. */
-    init_disambig_state(&state);
+    init_disambig_state(&state, /*suppress_packs=*/TRUE);
     if (curr_token == tok_identifier) {
       /* The prescanning process clears the specific symbol field of the
          locator to prevent the prescanning process from biasing
@@ -1612,7 +1615,7 @@ cache passed by the caller are flushed.
   a_disambig_state    state;
 
   /* Initialize the disambiguation state block. */
-  init_disambig_state(&state);
+  init_disambig_state(&state, /*suppress_packs=*/FALSE);
   state.set_decl_class_type = TRUE;
   rescan_reusable_cache(decl_token_cache_ptr);
   prescan_declaration(&state,
