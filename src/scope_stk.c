@@ -9265,15 +9265,24 @@ lengths) *err is set to TRUE, FALSE otherwise.
     new_pack_tail = new_prp;
     if (is_deduction) {
       a_template_arg_ptr	tap;
+      a_template_arg_ptr	prev_tap;
       /* In a deduction context, we will deduce zero or more template
          argument values.  The curr_argument field of the pack element will
          be NULL until a value is deduced.   It is then cleared when
-         the deduction of a given function argument has been completed. */
+         the deduction of a given function argument has been completed.
+         If an explicit argument list has been specified, deduction can
+         be used to deduce additional elements of the pack. */
       if (prp->kind == prk_template_param) {
         tap = find_placeholder_arg_for_pack(templ_param_list, templ_arg_list,
                                             prp->symbol);
-        new_prp->prev_template_arg = tap;
-      } else if (prp->kind == prk_parameter) {
+        prev_tap = tap;
+        tap = tap->next;
+        while (tap != NULL && tap->explicitly_specified) {
+          prev_tap = tap;
+          tap = tap->next;
+        }  /* while */
+        new_prp->prev_template_arg = prev_tap;
+        new_prp->curr_argument.template_arg = tap;
       }  /* if */
     } else {
       /* In non-deduction contexts, find the current pack element to
@@ -9483,16 +9492,24 @@ n deduction contexts, if there is no current argument, create one.
     if (sym != tpp_sym) continue;
     check_assertion(sym->kind != (a_symbol_kind)sk_variable);
     result_tap = arg_prp->curr_argument.template_arg;
-    if (result_tap == NULL && pesep->is_deduction) {
-      /* We are deducing the value for a new pack element.  Create the
-         argument now and link it into the argument list. */
-      result_tap = alloc_template_arg(
+    if (pesep->is_deduction) {
+      if (result_tap != NULL &&
+          !is_start_of_pack_expansion_templ_arg(result_tap)) {
+        /* We are deducing an existing element.  Return the current
+           element and advance the position in the element list. */
+        arg_prp->prev_template_arg = result_tap;
+        arg_prp->curr_argument.template_arg = result_tap->next;
+      } else {
+        /* We are deducing the value for a new pack element.  Create the
+           argument now and link it into the argument list. */
+        result_tap = alloc_template_arg(
                                 templ_arg_kind_for_symbol_kind(tpp_sym->kind));
-      result_tap->is_pack_element = TRUE;
-      result_tap->next = arg_prp->prev_template_arg->next;
-      arg_prp->prev_template_arg->next = result_tap;
-      arg_prp->prev_template_arg = result_tap;
-      arg_prp->curr_argument.template_arg = result_tap;
+        result_tap->is_pack_element = TRUE;
+        result_tap->next = arg_prp->prev_template_arg->next;
+        arg_prp->prev_template_arg->next = result_tap;
+        arg_prp->prev_template_arg = result_tap;
+        arg_prp->curr_argument.template_arg = result_tap;
+      }  /* if */
     }  /* if */
     break;
   }  /* for */

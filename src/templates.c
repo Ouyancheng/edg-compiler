@@ -2375,8 +2375,7 @@ in ps_arg_list.
       test_type = copy_type_with_substitution(prototype_type,
                                               *ps_arg_list, templ_param_list,
 					      &template_sym->decl_position,
-					      CTWS_PROTOTYPE_ALLOWED |
-                                              CTWS_PRESERVE_DEDUCED_PACKS,
+					      CTWS_PROTOTYPE_ALLOWED,
 					      &copy_error, &ctws_state);
       if (!copy_error && identical_types(instance_type, test_type)) {
         result = TRUE;
@@ -9350,12 +9349,8 @@ make_new_type:
           /* Check if an error occurred (such as mismatched parameter pack
              lengths). */
           if (err) *copy_error = TRUE;
-          /* Loop through the pack elements.  When preserving deduced
-             packs (when they have no arguments) go through the loop once
-             even though any_more is FALSE. */
-          while (any_more ||
-                 (elements == 0 &&
-                  (options & CTWS_PRESERVE_DEDUCED_PACKS) != 0)) {
+          /* Loop through the pack elements. */
+          while (any_more) {
             a_type_ptr ptype = param_type_restoring_orig_templ_array(ptp);
             a_type_ptr declared_type;
             elements++;
@@ -9439,6 +9434,17 @@ make_new_type:
                                                pesep, /*is_declarator=*/FALSE);
             any_more = advance_to_next_pack_element(pesep);
           }  /* while */
+          if (ptp->is_parameter_pack &&
+              (options & CTWS_PRESERVE_DEDUCED_PACKS) != 0) {
+            new_ptp = make_param_type(ptp->type, &null_source_position);
+            *new_ptp = *ptp;
+            /* Add the new param type entry to the param types list. */
+            if (prev_ptp == NULL) {
+              new_type->variant.routine.extra_info->param_type_list = new_ptp;
+            } else {
+              prev_ptp->next = new_ptp;
+            }  /* if */
+          }  /* if */
           if (ptp->is_parameter_pack) {
             /* Add this entry to the variadic param info list.  The
                new entries are added to the end of the list pointed
