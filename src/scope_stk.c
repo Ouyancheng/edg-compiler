@@ -10155,7 +10155,7 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
            that symbol (pointed to by primary_var_or_param_symbol) to point
            to the current variable to be used. */
         a_variable_ptr	vp = arg_prp->curr_argument.variable;
-        a_variable_ptr	next_vp = vp->next;
+        a_variable_ptr	next_vp = vp == NULL ? NULL : vp->next;
         if (next_vp == NULL ||
             next_vp->assoc_param_type == NULL ||
             vp->assoc_param_type->param_num !=
