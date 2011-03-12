@@ -9304,7 +9304,8 @@ a pointer over a reference type or creating an array of references.
                                         templ_arg_list, templ_param_list,
                                         source_pos, options, copy_error,
                                         ctws_state);
-          if (!identical_types(new_return_type,orig_type)) {
+          if (!identical_types(new_return_type, orig_type) &&
+              !is_or_contains_error_type(new_return_type)) {
             fprintf(f_debug, "orig_type: ");
             db_type(orig_type);
             fprintf(f_debug, "new_return_type: ");
