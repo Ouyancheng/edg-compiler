@@ -13740,7 +13740,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
   current_instantiation_sym = template_sym;
   if (template_sym != NULL) {
     a_template_symbol_supplement_ptr	tssp;
-    record_potential_pack_reference(template_sym, &start_position);
     class_is_being_instantiated =
             current_class_symbol_if_class_template(&current_instantiation_sym);
     tssp = template_supplement_for_symbol(template_sym);
@@ -13833,6 +13832,9 @@ a routine to lookup the appropriate instance (or generate one if needed).
        followed by a template argument list, we need to substitute the
        class template symbol for the injected symbol. */
     template_sym = class_template_for_injected_template_symbol(template_sym);
+  }  /* if */
+  if (template_sym != NULL) {
+    record_potential_pack_reference(template_sym, &start_position);
   }  /* if */
   /* Always allocate template arguments at the file scope. */
   switch_to_file_scope_region(&region_to_switch_back_to);
@@ -14082,6 +14084,9 @@ normal_exit:
 #endif /* DEBUG */
 
 skip_processing:
+  if (!arg_list_processed && !any_errors && template_sym != NULL) {
+    record_potential_pack_reference(template_sym, &start_position);
+  }  /* if */
   *err = any_errors;
   db_exit();
   return new_sym;
