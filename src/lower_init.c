@@ -4091,11 +4091,11 @@ modified; if not, only the new parameters are modified.
       }  /* if */
     }  /* if */
     param_type = alloc_param_type(pass_through_param_type);
-    /* Copy the entire parameter type (there shouldn't be any memory region
-       issues since both are in the file scope). */
-    *param_type = *src_param_type;
-    param_type->next = NULL;
-    param_type->type = pass_through_param_type;
+    param_type->has_default_arg = src_param_type->has_default_arg;
+    param_type->default_arg_appeared_in_class_definition =
+                      src_param_type->default_arg_appeared_in_class_definition;
+    param_type->passed_via_copy_constructor =
+                                   src_param_type->passed_via_copy_constructor;
     /* It is not necessary to clear il_lowering_flag; the entry does not need
        to be lowered.  Also note that the parameter types will be lowered
        when the original function is lowered, and do not need to be
