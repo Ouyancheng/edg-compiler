@@ -10856,6 +10856,10 @@ TRUE if this is a constructor declaration rather than a constructor reference.
         }  /* if */
       }  /* for */
     }  /* if */
+  } else if (ptp->is_parameter_pack && ptp->next == NULL) {
+    /* A parameter pack can be expanded with zero types to produce a
+       default constructor. */
+    is_def_ctor = TRUE;
   }  /* if */
   return is_def_ctor;
 }  /* is_default_constructor */
@@ -15770,7 +15774,8 @@ an_expr_node_ptr copy_default_arg_expr_list(
 Make an expression list containing copies of the default argument
 expressions for the parameter indicated by ptp, which is a parameter
 of rout, and all parameters following that.  If ptp is non-NULL, it
-must point to a parameter with a default argument expression.
+must point to a parameter with a default argument expression (or
+a parameter pack, in which case no copies are made).
 inside_conditional_expression is TRUE if the default argument
 expression copies will be inside a conditional part of an expression.
 potentially_evaluated is TRUE if the expression is potentially evaluated.
@@ -15778,7 +15783,7 @@ potentially_evaluated is TRUE if the expression is potentially evaluated.
 {
   an_expr_node_ptr first_node = NULL, last_node = NULL, arg_node;
 
-  if (ptp != NULL) {
+  if (ptp != NULL && !ptp->is_parameter_pack) {
 #if CHECKING
     if (ptp->default_arg_expr == NULL &&
         !ptp->has_unevaluated_template_default) {
