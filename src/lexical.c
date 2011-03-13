@@ -2192,6 +2192,7 @@ an equivalent change.
        during a rescan. */
     check_assertion(reusable_cache_stack->variadic_rescans_in_progress);
     ctoken = tok_end_of_source;
+    curr_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
     goto done;
   }  /* if */
   for (;;) {

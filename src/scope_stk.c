@@ -9737,18 +9737,19 @@ will be responsible for the end... and advance... calls.
                                       /*is_rescan=*/FALSE,
                                       /*is_deduction=*/FALSE,
                                       (a_ctws_state_ptr)NULL, &err);
+      increment_variadic_rescans_for_reusable_cache();
       if (pesep != NULL) {
         check_assertion(curr_cached_token_handle != NO_CACHED_TOKEN_HANDLE);
         pesep->first_token_handle = curr_cached_token_handle;
         check_assertion(curr_token_sequence_number == pedp->first_token);
         /* Mark that the current reusable cache is being used for rescan
            purposes. */
-        increment_variadic_rescans_for_reusable_cache();
         if (is_lookahead) pesep->is_lookahead = TRUE;
       } else {
         /* There are no arguments to be expanded.  Advance to the token
            after the end of the expansion. */
         skip_pack_expansion_tokens(pedp);
+        decrement_variadic_rescans_for_reusable_cache();
       }  /* if */
     }  /* if */
     any_args = pedp == NULL || pesep != NULL;
