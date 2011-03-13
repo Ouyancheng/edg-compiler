@@ -13104,6 +13104,7 @@ done using the disambiguation routines.
         if (arg_list != NULL) {
           error(ec_expected_template_arg);
         }  /* if */
+        abandon_potential_pack_expansion_context(pesep);
         break;
       }  /* if */
       add_stop_token(tok_comma);
