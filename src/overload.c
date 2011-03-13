@@ -13939,7 +13939,8 @@ the temporary.
     }  /* if */
   }  /* if */
   /* Restore the original source position, etc. */
-  restore_operand_details(operand, &orig_operand);
+  restore_operand_details_for_cast(operand, &orig_operand, !is_explicit_cast,
+                                   /*incl_ref=*/FALSE);
 }  /* user_convert_operand */
 
 

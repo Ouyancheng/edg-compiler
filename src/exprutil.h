@@ -1926,6 +1926,11 @@ extern void restore_operand_details(an_operand *operand,
 extern void restore_operand_details_incl_ref(an_operand *operand,
                                              an_operand *orig_operand);
 
+extern void restore_operand_details_for_cast(an_operand *operand,
+                                             an_operand *orig_operand,
+                                             a_boolean  is_implicit_cast,
+                                             a_boolean  incl_ref);
+
 extern void restore_operand_id_details(an_operand *operand,
                                        an_operand *orig_operand);
 

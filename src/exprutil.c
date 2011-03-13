@@ -3780,6 +3780,35 @@ Restore the ref_entries_list too (not usually wanted).
 }  /* restore_operand_details_incl_ref */
 
 
+void restore_operand_details_for_cast(an_operand *operand,
+                                      an_operand *orig_operand,
+                                      a_boolean  is_implicit_cast,
+                                      a_boolean  incl_ref)
+/*
+Version of restore_operand_details customized for the result of cast
+operations.  is_implicit_cast indicates whether the cast is implicit.
+incl_ref, if TRUE, requests restoration of the ref_entries_list also.
+*/
+{
+  if (incl_ref) {
+    restore_operand_details_incl_ref(operand, orig_operand);
+  } else {
+    restore_operand_details(operand, orig_operand);
+  }  /* if */
+  if (operand->pack_expansion_descr != NULL && !is_implicit_cast) {
+    /* For explicit casts, make sure the pack expansion indication is
+       cleared, because it was picked up on the operand. */
+    /* If some modes and configurations, an explicit cast can be elided.
+       If that has happened in this case, keep the pack expansion information
+       in the operand because it hasn't been recorded on the operand yet. */
+    an_expr_node_ptr expr = expr_node_from_operand(operand);
+    if (expr == NULL || expr != expr_node_from_operand(orig_operand)) {
+      operand->pack_expansion_descr = NULL;
+    }  /* if */
+  }  /* if */
+}  /* restore_operand_details_for_cast */
+
+
 void restore_operand_id_details(an_operand *operand,
                                 an_operand *orig_operand)
 /*
@@ -5605,7 +5634,8 @@ user-defined conversions.
      information (useful when this is a pointer to a class being cast to
      a base class, or a pointer to an array being cast to a pointer to
      the first element). */
-  restore_operand_details_incl_ref(operand, &orig_operand);
+  restore_operand_details_for_cast(operand, &orig_operand, is_implicit_cast,
+                                   /*incl_ref=*/TRUE);
 }  /* cast_operand_full */
 
 
@@ -5810,7 +5840,8 @@ used only in C++ mode.
     }  /* if */
   }  /* if */
   /* Restore the original source position, etc. */
-  restore_operand_details_incl_ref(operand, &orig_operand);
+  restore_operand_details_for_cast(operand, &orig_operand, is_implicit_cast,
+                                   /*incl_ref=*/TRUE);
 }  /* base_class_cast_operand */
 
 
@@ -6074,11 +6105,8 @@ is an lvalue reference to const.
         conv_rvalue_reference_result_to_rvalue(operand);
       }  /* if */
     }  /* if */
-    if (is_an_lvalue(operand)) {
-      restore_operand_details_incl_ref(operand, &orig_operand);
-    } else {
-      restore_operand_details(operand, &orig_operand);
-    }  /* if */
+    restore_operand_details_for_cast(operand, &orig_operand, is_implicit_cast,
+                                     /*incl_ref=*/is_an_lvalue(operand));
   }  /* if */
 }  /* cast_operand_for_reference_cast */
 
@@ -9791,7 +9819,8 @@ e.g., if the source operand is an lvalue.
       }  /* if */
     }  /* if */
   }  /* if */
-  restore_operand_details_incl_ref(operand, &orig_operand);
+  restore_operand_details_for_cast(operand, &orig_operand, is_implicit_cast,
+                                   /*incl_ref=*/TRUE);
   operand->is_id_expression = FALSE;
 }  /* generic_cast_operand */
 
@@ -12588,8 +12617,9 @@ explicit "&" operator in the source and *operator_position gives its position.
 {
   a_source_position *err_pos = &operand->position;
   an_expr_node_ptr  expr = NULL;
+  a_boolean         is_implicit = (operator_position == NULL);
 
-  check_assertion(!reference_case || operator_position == NULL);
+  check_assertion(!reference_case || is_implicit);
   if (operator_position != NULL) err_pos = operator_position;
   if (is_error_operand(operand)) {
     /* Leave an error operand mostly alone.  Mark the address as being taken
@@ -12692,7 +12722,7 @@ explicit "&" operator in the source and *operator_position gives its position.
               /* Use the "%" operator to create a handle as the address. */
               expr = make_operator_node((an_expr_operator_kind)eok_handle_to,
                                         make_handle_type(expr->type), expr);
-              if (operator_position == NULL) {
+              if (is_implicit) {
                 expr->variant.operation.compiler_generated = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
               } else {
@@ -12702,7 +12732,7 @@ explicit "&" operator in the source and *operator_position gives its position.
             } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* Do not insert code here. */
-            if (operator_position == NULL) {
+            if (is_implicit) {
               /* An implicit "&" operator. */
               expr = add_address_of_to_node(expr);
             } else {

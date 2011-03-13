@@ -27516,6 +27516,7 @@ scan_class_initializer_expression and scan_aggregate_initializer_expression.
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
   a_variable_ptr      sdm_var = NULL;
+  a_boolean           local_is_pack_expansion;
 
   db_enter(3, "scan_initializer_expression");
   check_assertion(dps != NULL);
@@ -27561,9 +27562,6 @@ scan_class_initializer_expression and scan_aggregate_initializer_expression.
        expressions, so we have no operand to process. */
     goto end_of_routine;
   }  /* if */
-  if (is_pack_expansion != NULL) {
-    *is_pack_expansion = (result.pack_expansion_descr != NULL);
-  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Check for a bug related to null pointer constants in Microsoft C mode. */
   process_microsoft_null_pointer_constant_bug(&result, required_type);
@@ -27577,6 +27575,7 @@ scan_class_initializer_expression and scan_aggregate_initializer_expression.
                            is_copy_initialization,
                            /*nontype_template_arg=*/FALSE,
                            ec_bad_initializer_type);
+  local_is_pack_expansion = (result.pack_expansion_descr != NULL);
   /* Return a constant or expression depending on what was scanned. */
   *is_constant = TRUE;
   switch (result.kind) {
@@ -27616,6 +27615,19 @@ scan_class_initializer_expression and scan_aggregate_initializer_expression.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (is_pack_expansion != NULL) {
+    *is_pack_expansion = local_is_pack_expansion;
+  } else {
+    /* The caller doesn't want to handle the pack expansion flag, so mark
+       it at this level. */
+    if (local_is_pack_expansion) {
+      if (*is_constant) {
+        constant->is_pack_expansion = TRUE;
+      } else {
+        (*expression)->is_pack_expansion = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
 end_of_routine:;
   if (sdm_var != NULL) {
     /* Stop the recording of entities defined in the expression (not strictly
