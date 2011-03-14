@@ -1,5 +1,17 @@
 Version 4.3
 
+3/14/11  [EDGcpfe/11494]
+const/volatile on function types in template arguments
+
+The front end now accepts const- and/or volatile function types in template
+arguments.  For example:
+
+  template<typename T> struct X {};
+  X<void()const> x;  // Now accepted
+
+This agrees with the pending resolution of core issue 547.
+
+
 3/11/11  [EDGcpfe/11490]
 Invalid IL when HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS is TRUE
 

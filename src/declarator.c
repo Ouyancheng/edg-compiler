@@ -1771,6 +1771,7 @@ this is a helper function.
   a_type_qualifier_set            qualifiers = TQ_NONE;
   a_boolean                       qualifier_err = FALSE;
   a_boolean                       is_lambda_decl = (func_info->lambda != NULL);
+  a_boolean                       cv_qualifier_with_no_this_class_okay = FALSE;
   an_exception_specification_ptr  esp;
   an_attribute_ptr                attributes = NULL;
 
@@ -1779,6 +1780,15 @@ this is a helper function.
      for member function declarations outside a class definition when
      a function qualifier is present.  If there is a function qualifier,
      it is applied to the type pointed to by the this param type. */
+  if (is_typedef_decl || state->template_type_argument) {
+    /* Typedefs for function types can have a cv-qualifier even though there
+       is no "parent class" in those cases.  The same is true for type-ids
+       denoting function type arguments for template type parameters.  (This
+       is only possible when the declarator type is a function type; if, e.g.,
+       a pointer-to-function type is being formed, a diagnostic will be issued
+       later.) */
+    cv_qualifier_with_no_this_class_okay = TRUE;
+  }  /* if */
   if (is_lambda_decl) {
     /* Lambdas don't allow a cv-qualifier here, but they are "const" by
        default.  "mutable", however, is allowed here, and means the lambda is
@@ -1825,11 +1835,12 @@ this is a helper function.
       /* Operator new and delete can never be qualified. */
       err_code = ec_function_qualifier_on_new_or_delete;
       qualifier_err = TRUE;
-    } else if (parent_type == NULL && !is_typedef_decl) {
+    } else if (parent_type == NULL && !cv_qualifier_with_no_this_class_okay) {
       /* Cv-qualifier is allowed on a member function only. */
       err_code = ec_function_qualifier_on_nonmember;
       qualifier_err = TRUE;
-    } else if (!is_nonstatic_member && !is_typedef_decl &&
+    } else if (!is_nonstatic_member &&
+               !cv_qualifier_with_no_this_class_okay &&
                (function_prototype_scope_is_in_class(parent_type) ||
                 is_static_constructor)) {
       /* This must be the declaration of a static member function inside its
@@ -1909,8 +1920,8 @@ this is a helper function.
   /* The implicit "this" param type will be either "pointer to class-type"
      or, if there was a const qualifier on the function, "pointer to const
      class-type".  However, it is possible to have a cv-qualified function
-     type in a typedef declaration.  So the qualifiers and the class type
-     are encoded separately.  E.g. in
+     type in a typedef declaration or a a type-id.  So the qualifiers and
+     the class type are encoded separately.  E.g. in
         typedef void CF() const;
      this_class == NULL but qualifiers != TQ_NONE. */
   rtsp->this_class = this_class;
@@ -6069,6 +6080,25 @@ function_lparen:
           local_func_info->any_default_args) {
         pos_warning(ec_nonstd_default_arg, &locator->source_position);
       }  /* if */
+      /* Check that we do not create a typedef for a pointer or reference to a
+         qualified function type.  (We don't check C++/CLI handles and tracking
+         references here because they cannot refer to function types;
+         additional diagnostics would not be helpful.) */
+      if (new_type_ptr->kind == (a_type_kind)tk_routine &&
+          derived_type != NULL && is_ptr_or_ref_type(derived_type)) {
+        a_routine_type_supplement_ptr  rtsp =
+                                     new_type_ptr->variant.routine.extra_info;
+        if (rtsp->this_class == NULL &&
+            (rtsp->qualifiers | rtsp->this_qualifiers) != TQ_NONE) {
+          /* Catch the following:
+                typedef void (*PF)() const;
+             Qualified function types are only allowed to declare members,
+             pointer-to-members and synonym typedefs. */
+          pos_error(ec_ptr_or_ref_to_qualified_function_type,
+                    locator != NULL ? &locator->source_position
+                                    : &lparen_pos);
+        }  /* if */
+      }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (func_info != NULL) {
         /* Record the source sequence entry in func_info even if there was
@@ -6135,24 +6165,6 @@ function_lparen:
       }  /* if */
     }  /* if */
 #endif  /* NEAR_AND_FAR_ALLOWED */
-    /* Check that we do not create a typedef for a pointer or reference to a
-       qualified function type.  (We don't check C++/CLI handles and tracking
-       references here because they cannot refer to function types; additional
-       diagnostics would not be helpful.) */
-    if (new_type_ptr->kind == (a_type_kind)tk_routine &&
-        derived_type != NULL && is_ptr_or_ref_type(derived_type)) {
-      a_routine_type_supplement_ptr  rtsp =
-                                     new_type_ptr->variant.routine.extra_info;
-      if (rtsp->this_class == NULL &&
-          (rtsp->qualifiers | rtsp->this_qualifiers) != TQ_NONE) {
-        /* Catch the following:
-              typedef void (*PF)() const;
-           Qualified function types are only allowed to declare members,
-           pointer-to-members and synonym typedefs. */
-        pos_error(ec_ptr_or_ref_to_qualified_function_type,
-                  &locator->source_position);
-      }  /* if */
-    }  /* if */
     /* Type attributes may have changed state->declared_type, which should
        stay in sync with complete_type in non-nested contexts. */
     if (!state->in_nested_declarator) {

@@ -416,6 +416,12 @@ typedef struct a_decl_parse_state {
 			/* TRUE if this information block is one created for a
 			   call to type_name_full. */
   a_bit_field
+		is_template_type_argument:1;
+			/* TRUE if this information block is one created for a
+			   call to scan_template_type_argument (which in turn
+			   calls type_name_full; so is_type_name will also be
+			   TRUE in that case). */
+  a_bit_field
 		trailing_return_type_allowed:1;
 			/* TRUE if the current context allows a trailing
 			   return type. */

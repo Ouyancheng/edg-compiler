@@ -109,6 +109,7 @@ reflected in start_secondary_declarator.
   ps->in_nested_declarator = FALSE;
   ps->is_trailing_return_type = FALSE;
   ps->is_type_name = FALSE;
+  ps->is_template_type_argument = FALSE;
   ps->trailing_return_type_allowed = FALSE;
   ps->has_trailing_return_type = FALSE;
   ps->pack_ellipsis_allowed = FALSE;
@@ -10316,6 +10317,7 @@ type_name_full.
   a_decl_parse_state  dps;
 
   init_decl_parse_state(&dps);
+  dps.is_template_type_argument = TRUE;
   dps.disallow_variably_modified_type = TRUE;
   type_name_full(&dps);
   check_type_definition_in_type_name(&dps);
