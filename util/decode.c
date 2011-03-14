@@ -5108,12 +5108,6 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
           str = ">";
         }  /* if */
         break;
-      case 'h':
-        if (ch2 == 't') {
-          str = "%";
-          *num_operands = 1;
-        }  /* if */
-        break;
       case 'i':
         if (ch2 == 'x') {
           str = "[";
@@ -5302,6 +5296,11 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
           str = "__imag(";
           *close_str = ")";
           *length = 11;
+          *num_operands = 1;
+        } else if (start_of_id_is("v12ht", ptr)) {
+          /* C++/CLI handle-to */
+          str = "%";
+          *length = 5;
           *num_operands = 1;
         } else if (start_of_id_is("9builtin", ptr+2)) {
           /* Builtin operation.  Name is
