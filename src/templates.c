@@ -2194,6 +2194,7 @@ the count of parameters to be compared when entire_type is FALSE.
   templ_param_list1 = tssp2->variant.function.decl_cache.decl_info->parameters;
   templ_param_list2 = tssp1->variant.function.decl_cache.decl_info->parameters;
   is_conversion_operator = is_conversion_function_symbol(templ_sym1);
+  push_instantiation_scope_for_rescan(templ_sym1);
   if (is_conversion_operator ||
       (entire_type && !microsoft_mode && !gpp_mode)) {
     /* For conversion templates, the processing is only done on the return
@@ -2254,6 +2255,7 @@ the count of parameters to be compared when entire_type is FALSE.
       match2 = TRUE;
     }  /* if */
   }  /* if */
+  pop_instantiation_scope_for_rescan();
   if (match1 && !match2) {
     result = 1;
   } else if (match2 && !match1) {
