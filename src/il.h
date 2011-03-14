@@ -1207,7 +1207,7 @@ typedef int a_compare_constants_options_set;
 			   match, one should check for an exact match of the
 			   expressions under any dependent decltypes. */
 #define CC_COORDINATE_MISMATCH_OKAY 0x8
-			/* TRUE if, when comparing template parameter of
+			/* TRUE if, when comparing template parameters of
 			   tpck_param kind, the coordinates are not
 			   required to match. */
 
