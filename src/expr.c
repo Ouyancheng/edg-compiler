@@ -10299,7 +10299,6 @@ the context pop is done.
     curr_object_lifetime =
                    scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
     *tdip = alloc_template_decl_info();
-    expr_stack = NULL;
   } else {
     /* We're already inside an expression rescan, so there should be an
        expression stack already. */
