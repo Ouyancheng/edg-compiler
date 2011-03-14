@@ -2715,7 +2715,8 @@ this function points to a tree that includes a dynamic-init entry.
         if (local_nothing_taken) {
           /* The initializer was not scanned, so we don't want to look for
              a comma.  any_more_initializers remains TRUE. */
-        } else if (!brace_flag && top_level) {
+        } else if (!brace_flag && top_level &&
+                   !anything_cached(&dps->prescanned_initializer_cache)) {
           /* If this is a top-level list that is not brace-enclosed
              (an error or extension, except in pcc mode) we must stop now,
              having taken only one value.  Do not check for a comma,
