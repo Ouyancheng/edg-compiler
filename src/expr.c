@@ -29002,7 +29002,6 @@ of this where the source should be considered an rvalue.
        handles destination types that are references. */
     determine_arg_match_level(&src_op, (a_type_ptr)NULL,
                               dst_type,
-                              (a_param_type_ptr)NULL,
                               /*param_type_is_deduced=*/FALSE,
                               /*try_user_conversions=*/TRUE,
                               &arg_match);

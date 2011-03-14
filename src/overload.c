@@ -916,7 +916,6 @@ values.
   amsp->is_match_for_this_param    = FALSE;
   amsp->arg_is_constant            = FALSE;
   amsp->lvalue_to_rvalue_conversion_used = FALSE;
-  amsp->param_num                  = 0;
   amsp->param_type                 = NULL;
   amsp->guide_type                 = NULL;
   clear_conv_descr(&amsp->conversion);
@@ -1960,7 +1959,6 @@ null pointer constant but not a known null pointer constant.
 void determine_arg_match_level(an_operand           *arg_operand,
                                a_type_ptr           arg_type,
                                a_type_ptr           param_type,
-                               a_param_type_ptr     ptp,
                                a_boolean            param_type_is_deduced,
                                a_boolean            try_user_conversions,
                                an_arg_match_summary *arg_summary)
@@ -1972,9 +1970,7 @@ about which nothing else is known (and arg_operand is ignored; this can
 only be used for operands that don't require user-defined conversions,
 e.g., those being matched up with a "this" parameter).  arg_summary is
 set to indicate the level of match.  This is used in resolving overloaded
-function calls.  See ARM 13.2.  If ptp is non-NULL, it provides the
-param type entry for the parameter (it's NULL, for example, for
-the "this" parameter match).   param_type_is_deduced is TRUE if
+function calls.  See ARM 13.2.  param_type_is_deduced is TRUE if
 the parameter type involved template parameters and was deduced.
 User-defined conversions will be attempted only if try_user_conversions
 is TRUE; it must be FALSE if arg_type is non-NULL.
@@ -2012,7 +2008,6 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   param_is_rvalue_reference = is_rvalue_reference_type(param_type);
   clear_arg_match_summary(arg_summary);
   arg_summary->param_type = param_type;
-  if (ptp != NULL) arg_summary->param_num = ptp->param_num;
   if (arg_type == NULL) {
     /* Get the actual argument type from arg_operand. */
     arg_type = arg_operand->type;
@@ -2702,7 +2697,6 @@ selector is enabled, allow that kind of mismatch here.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   determine_arg_match_level((an_operand *)NULL, arg_type, param_type,
-                            (a_param_type_ptr)NULL,
                             /*param_type_is_deduced=*/FALSE,
                             /*try_user_conversions=*/FALSE, match_summary);
   match_summary->is_match_for_this_param = TRUE;
@@ -2723,7 +2717,6 @@ selector is enabled, allow that kind of mismatch here.
                                                 TQ_CONST);
     determine_arg_match_level((an_operand *)NULL, arg_type,
                               const_this_param_type,
-                              (a_param_type_ptr)NULL,
                               /*param_type_is_deduced=*/FALSE,
                               /*try_user_conversions=*/FALSE,
                               match_summary);
@@ -3772,7 +3765,6 @@ the point of call.
         /* See how well the argument matches the parameter. */
         determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
                                   param->type,
-                                  param,
                                   param_type_is_deduced,
                                   /*try_user_conversions=*/
                                                         allow_udc_on_arguments,
@@ -5081,21 +5073,20 @@ otherwise equivalent.  This is nonstandard, but it's what some compilers
 }  /* compare_late_tiebreakers */
 
 
-static uint32_t max_param_num_for_candidate_function(
-                                                  a_candidate_function_ptr cfp)
+static uint32_t arg_count_for_candidate_function(a_candidate_function_ptr cfp)
 /*
-Return the number of the highest-numbered parameter matched against an argument
-in the indicated candidate function match-up.
+Return the count of arguments for the indicated candidate function, ignoring
+the "this" parameter.
 */
 {
-  uint32_t                 max_param = 0;
+  uint32_t                 count = 0;
   an_arg_match_summary_ptr arg_match = cfp->arg_matches;
 
   for (; arg_match != NULL; arg_match = arg_match->next) {
-    if (arg_match->param_num > max_param) max_param = arg_match->param_num;
+    if (!arg_match->is_match_for_this_param) count++;
   }  /* for */
-  return max_param;
-}  /* max_param_num_for_candidate_function */
+  return count;
+}  /* arg_count_for_candidate_function */
 
 
 static int compare_copy_constructors_for_microsoft(
@@ -5305,13 +5296,11 @@ other.  Return
   } else if (cfp1->is_function_template && cfp2->is_function_template) {
     /* cfp1 and cfp2 are function templates.  Determine whether either of
        the templates is more specialized than the other. */
-    uint32_t max1 = max_param_num_for_candidate_function(cfp1);
-    uint32_t max2 = max_param_num_for_candidate_function(cfp2);
-    uint32_t maxn = (max1 > max2) ? max1 : max2;
+    uint32_t arg_count = arg_count_for_candidate_function(cfp1);
     cmp = compare_function_templates(cfp1->function_symbol,
                                      cfp2->function_symbol,
                                      /*entire_type=*/FALSE,
-                                     maxn);
+                                     arg_count);
   }  /* if */
   return cmp;
 }  /* compare_candidate_functions */
@@ -16506,7 +16495,6 @@ if so.
   an_arg_match_summary arg_summary;
 
   determine_arg_match_level(operand, (a_type_ptr)NULL, param_type,
-                            (a_param_type_ptr)NULL,
                             /*param_type_is_deduced=*/FALSE,
                             /*try_user_conversions=*/FALSE,
                             &arg_summary);
@@ -16966,7 +16954,7 @@ constructor.
       check_assertion(is_any_reference_type(param_type));
       arg_match = alloc_arg_match_summary();
       determine_arg_match_level((an_operand *)NULL, arg_type,
-                                param_type, ptp,
+                                param_type,
                                 /*param_type_is_deduced=*/FALSE,
                                 /*try_user_conversions=*/FALSE,
                                 arg_match);
