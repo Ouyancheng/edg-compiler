@@ -499,7 +499,7 @@ static void decl_parameter(a_param_id_ptr    param_id,
                            a_type_ptr        declared_type,
                            a_param_type_ptr  ptp,
                            a_boolean         function_instantiation,
-			   a_boolean         non_initial_variadic_param)
+                           a_boolean         non_initial_variadic_param)
 /*
 Enter the declaration of an identifier for a parameter.  The param_id
 points to an sk_parameter symbol, which under ordinary circumstances, is
@@ -764,7 +764,7 @@ static void advance_param_id_and_param_type(
 /*
 Advance *param_id and *ptp to the next element in their lists.   If *ptp is
 an element of a variadic parameter pack, don't advance *param_id until we
-advance past the pack.  This special processing is suppressed if for
+advance past the pack.  This special processing is suppressed for
 specializations and lambdas.  rout_ptr is the routine being defined.
 */
 {
