@@ -3900,6 +3900,8 @@ point to the same type or constant).  FALSE if only equivalence is required.
             a_template_symbol_supplement_ptr	tssp_2;
             templ_sym_1 = cssp_1->class_template;
             templ_sym_2 = cssp_2->class_template;
+            templ_sym_1 = primary_template_of(templ_sym_1);
+            templ_sym_2 = primary_template_of(templ_sym_2);
             tssp_1 = templ_sym_1->variant.template_info;
             tssp_2 = templ_sym_2->variant.template_info;
             /* If either template is variadic, pass the is_variadic flag. */
