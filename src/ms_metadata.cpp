@@ -18,7 +18,7 @@ In addition, the C++ code makes use of C++0x features, so it must be
 compiled by at least the Microsoft VC10 compiler or version 4.2 of the
 EDG front end.
 
-If you have DEFAULT_CPPCLI_ENABLED set to FALSE (the default), you
+If you have CPPCLI_ENABLING_POSSIBLE set to FALSE (the default), you
 don't need this file.  You don't need to compile it, and you don't
 need to link it in.  You can stick with the traditional C-only build
 process.
