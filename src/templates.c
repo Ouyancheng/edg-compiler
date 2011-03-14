@@ -2139,15 +2139,19 @@ overloaded function).
 }  /* parameter_is_more_specialized */
 
 
+/*FIXME*/
+/*ARGSUSED*/
 int compare_function_templates(a_symbol_ptr 		templ_sym1,
 			       a_symbol_ptr		templ_sym2,
-			       a_boolean		entire_type)
+			       a_boolean		entire_type,
+			       uint32_t			arg_count)
 /*
 templ_sym1 and templ_sym2 are function template symbols.  Return 1 if
 templ_sym1 is more specialized than templ_sym2, return -1 if templ_sym2 is
 more specialized than templ_sym1, and return 0 if they are unordered.
 entire_type is TRUE if the partial ordering is being done in a context in
-which the entire function type should be considered.
+which the entire function type should be considered.  arg_count provides
+the argument count when entire_type is FALSE.
 */
 {
   int					result;
@@ -2496,7 +2500,8 @@ templates being ordered are class template partial specializations.
       check_assertion(fund_new_sym->kind ==
                                          (a_symbol_kind)sk_function_template);
       result = compare_function_templates(fund_new_sym, fund_curr_sym,
-                                          /*entire_type=*/TRUE);
+                                          /*entire_type=*/TRUE,
+                                          (uint32_t)0);
     }  /* if */
     new_is_more_specialized = result == 1;
     curr_is_more_specialized = result == -1;

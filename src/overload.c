@@ -5073,6 +5073,22 @@ otherwise equivalent.  This is nonstandard, but it's what some compilers
 }  /* compare_late_tiebreakers */
 
 
+static uint32_t arg_count_for_candidate_function(a_candidate_function_ptr cfp)
+/*
+Return the count of arguments for the indicated candidate function, ignoring
+the "this" parameter.
+*/
+{
+  uint32_t                 count = 0;
+  an_arg_match_summary_ptr arg_match = cfp->arg_matches;
+
+  for (; arg_match != NULL; arg_match = arg_match->next) {
+    if (!arg_match->is_match_for_this_param) count++;
+  }  /* for */
+  return count;
+}  /* arg_count_for_candidate_function */
+
+
 static int compare_copy_constructors_for_microsoft(
                                                  a_candidate_function_ptr cfp1,
                                                  a_candidate_function_ptr cfp2)
@@ -5280,9 +5296,11 @@ other.  Return
   } else if (cfp1->is_function_template && cfp2->is_function_template) {
     /* cfp1 and cfp2 are function templates.  Determine whether either of
        the templates is more specialized than the other. */
+    uint32_t arg_count = arg_count_for_candidate_function(cfp1);
     cmp = compare_function_templates(cfp1->function_symbol,
                                      cfp2->function_symbol,
-                                     /*entire_type=*/FALSE);
+                                     /*entire_type=*/FALSE,
+                                     arg_count);
   }  /* if */
   return cmp;
 }  /* compare_candidate_functions */
