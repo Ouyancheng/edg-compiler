@@ -9277,10 +9277,18 @@ lengths) *err is set to TRUE, FALSE otherwise.
                                             prp->symbol);
         prev_tap = tap;
         tap = tap->next;
-        while (tap != NULL && tap->explicitly_specified) {
-          prev_tap = tap;
-          tap = tap->next;
-        }  /* while */
+        if (tap != NULL && !tap->is_pack_element) {
+          /* The next argument is not from the pack (i.e., the pack is
+             empty) but there is some other argument that follows. */
+          tap = NULL;
+        } else {
+          /* Skip over any explicitly specified pack elements. */
+          while (tap != NULL && tap->is_pack_element &&
+                 tap->explicitly_specified) {
+            prev_tap = tap;
+            tap = tap->next;
+          }  /* while */
+        }  /* if */
         new_prp->prev_template_arg = prev_tap;
         new_prp->curr_argument.template_arg = tap;
       }  /* if */
@@ -9878,8 +9886,13 @@ current pack deduction context.
        param_prp != NULL;
        param_prp = param_prp->next, arg_prp = arg_prp->next) {
     if (param_prp->kind == prk_template_param) {
-      a_template_arg_ptr tap = arg_prp->curr_argument.template_arg;
-      if (tap != NULL) arg_prp->curr_argument.template_arg = tap->next;
+      a_template_arg_ptr	tap = arg_prp->curr_argument.template_arg;
+      a_template_arg_ptr	next_tap = NULL;
+      
+      if (tap != NULL && tap->next != NULL && tap->next->is_pack_element) {
+        next_tap = tap->next;
+      }  /* if */
+      arg_prp->curr_argument.template_arg = next_tap;
     }  /* if */
   }  /* for */
 }  /* advance_to_next_deduced_element */
