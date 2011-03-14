@@ -1957,7 +1957,13 @@ extern void free_source_line_modif(a_source_line_modif_ptr *slmp);
 extern void rem_source_line_modif(a_source_line_modif_ptr slmp);
 /* Find the source line modification entry associated with a given source
    location. */
-extern a_source_line_modif_ptr assoc_source_line_modif(char *loc_in_line);
+extern a_source_line_modif_ptr assoc_source_line_modif_full(
+                                                    char      *loc_in_line,
+                                                    a_boolean failure_allowed);
+/* Interface for assoc_source_line_modif_full that assumes a matching
+   source line modification will be found. */
+#define assoc_source_line_modif(loc_in_line)                          \
+  assoc_source_line_modif_full((loc_in_line), /*failure_allowed=*/FALSE)
 /* Find the parent modification of a given source line modification. */
 #define parent_source_line_modif(slmp)                                \
   ((slmp)->parent_modif_determined ? (slmp)->parent_modif :           \

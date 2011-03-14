@@ -2764,24 +2764,20 @@ source_line_modif_list.  The entry is not freed.
 }  /* rem_source_line_modif */
 
 
-a_source_line_modif_ptr assoc_source_line_modif(char *loc_in_line)
+a_source_line_modif_ptr assoc_source_line_modif_full(char      *loc_in_line,
+                                                     a_boolean failure_allowed)
 /*
 Find the source line modification entry that defines the character location
-loc_in_line.  The location must be one that appears in a source modification
-(i.e., the caller probably has had to check already that
-within_curr_source_line(loc_in_line) == FALSE).
+loc_in_line.  If failure_allowed is FALSE, the location must be one that
+appears in a source modification (i.e., the caller probably has had to
+check already that within_curr_source_line(loc_in_line) == FALSE).
 */
 {
   register a_source_line_modif_ptr slmp, prev_slmp;
 
   for (prev_slmp = NULL, slmp = source_line_modif_list;
-       ;
+       slmp != NULL;
        prev_slmp = slmp, slmp = slmp->next) {
-#if CHECKING
-    if (slmp == NULL) {
-      internal_error("assoc_source_line_modif: bad address");
-    }  /* if */
-#endif /* CHECKING */
     if (ptr_in_range(loc_in_line, slmp->inserted_text,
                                   slmp->end_inserted_text+1)) {
       /* loc_in_line falls within this entry's text.  Move the entry to 
@@ -2794,9 +2790,13 @@ within_curr_source_line(loc_in_line) == FALSE).
       break;
     }  /* if */
   }  /* for */
-
+#if CHECKING
+  if (slmp == NULL && !failure_allowed) {
+    internal_error("assoc_source_line_modif: bad address");
+  }  /* if */
+#endif /* CHECKING */
   return(slmp);
-}  /* assoc_source_line_modif */
+}  /* assoc_source_line_modif_full */
 
 
 a_source_line_modif_ptr f_parent_source_line_modif(
@@ -9933,22 +9933,26 @@ operation in a macro expansion ("a ## b") did not result in a valid token.
   /* Check to see if the current token begins at a point where a
      concatenation was done and thus represents an attempt to create an
      invalid token. */
-  a_source_line_modif_ptr slmp = assoc_source_line_modif(start_of_curr_token);
-  while (slmp->concatenations != NULL &&
-         slmp->concatenations->line_loc <= start_of_curr_token) {
-    if (slmp->concatenations->line_loc == start_of_curr_token) {
-      /* The right operand of the concatenation formed a new token instead
-         of becoming part of the one at the end of the left operand, which
-         is undefined behavior according to the language standards.  Issue
-         a diagnostic of the appropriate severity. */
-      pos_stsy_diagnostic(strict_ansi_mode ?
+  a_source_line_modif_ptr slmp =
+                        assoc_source_line_modif_full(start_of_curr_token,
+                                                     /*failure_allowed=*/TRUE);
+  if (slmp != NULL) {
+    while (slmp->concatenations != NULL &&
+           slmp->concatenations->line_loc <= start_of_curr_token) {
+      if (slmp->concatenations->line_loc == start_of_curr_token) {
+        /* The right operand of the concatenation formed a new token instead
+           of becoming part of the one at the end of the left operand, which
+           is undefined behavior according to the language standards.  Issue
+           a diagnostic of the appropriate severity. */
+        pos_stsy_diagnostic(strict_ansi_mode ?
                                strict_ansi_discretionary_severity : es_warning,
-                          ec_concat_yields_invalid_token, &pos_curr_token,
-                          slmp->concatenations->line_loc,
-                          slmp->concatenations->macro_sym);
-    }  /* if */
-    free_concatenation_record(&slmp->concatenations);
-  }  /* while */
+                            ec_concat_yields_invalid_token, &pos_curr_token,
+                            slmp->concatenations->line_loc,
+                            slmp->concatenations->macro_sym);
+      }  /* if */
+      free_concatenation_record(&slmp->concatenations);
+    }  /* while */
+  }  /* if */
 }  /* check_for_invalid_macro_concatenation */
 
 
