@@ -1991,16 +1991,12 @@ is non-NULL, in which case that is the function scope.
             char              *name = NULL;
             uint32_t          counter = 0;
             a_param_type_ptr  ptp;
-#if GNU_EXTENSIONS_ALLOWED
-            if (param->duplicate_name) {
+            if (param->duplicate_name && !param->is_pack_element) {
               /* The name of this parameter is the same as that of an
                  earlier one.  Use a temporary name instead to avoid
                  invalid generated code. */
               temp = (char *)param;
-            } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-            /* Do not insert code here. */
-            {
+            } else {
               /* If we have the name, put it out (unless it is reserved). */
               if (param->name != NULL && !is_C_reserved_word(param->name)) {
                 name = param->name;
