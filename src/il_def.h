@@ -4548,8 +4548,9 @@ typedef struct a_param_type {
   struct a_pack_expansion_descr
 		*pack_expansion_descr;
 			/* If non-NULL, this parameter is a pack expansion
-			   (it contains a "..." somewhere in the type), and
-			   this points to the expansion description. */
+			   (it contains a "..." next to the parameter name
+			   in the declarator), and this points to the
+			   expansion description. */
 } a_param_type;
 
 
@@ -5472,6 +5473,9 @@ enum a_templ_arg_kind_tag {
   tak_nontype,
   tak_template,
   tak_start_of_pack_expansion
+			/* tak_start_of_pack_expansion marks the beginning
+			   of a (possibly empty) sequence of template arguments
+			   provided for a parameter pack. */
 };
 
 /* Define as "a_byte" to explicitly control storage size. */

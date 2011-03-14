@@ -1316,6 +1316,7 @@ Display a_param_type entry.
                       &ptr->decl_pos_info->variant.declarator_range);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* pack_expansion_descr is not displayed because it is front end only. */
 }  /* disp_param_type */
 
 
@@ -2394,6 +2395,14 @@ Display the indicated variable.
   if (ptr->is_parameter) {
     disp_boolean("is_parameter", TRUE);
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (ptr->embedded_source_sequence_entries) {
+    disp_boolean("embedded_source_sequence_entries", TRUE);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (ptr->declared_using_type_without_linkage) {
+    disp_boolean("declared_using_type_without_linkage", TRUE);
+  }  /* if */
   if (ptr->is_parameter_pack) {
     disp_boolean("is_parameter_pack", TRUE);
   }  /* if */
@@ -2405,14 +2414,6 @@ Display the indicated variable.
     disp_boolean("is_initonly", TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (ptr->embedded_source_sequence_entries) {
-    disp_boolean("embedded_source_sequence_entries", TRUE);
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (ptr->declared_using_type_without_linkage) {
-    disp_boolean("declared_using_type_without_linkage", TRUE);
-  }  /* if */
   disp_initializer(ptr->init_kind, &ptr->initializer);
   if (ptr->entities_defined_in_initializer != NULL) {
     disp_entity_list("entities_defined_in_initializer",
@@ -2779,16 +2780,21 @@ Display the indicated name and template arg list.
       } else if (is_template_templ_arg(ptr)) {
         /* A template template argument. */
         disp_ptr("  template", (char *)ptr->variant.templ.ptr, iek_template);
+      } else if (is_start_of_pack_expansion_templ_arg(ptr)) {
+        disp_name("pack expansion placeholder");
+        (void)printf("\n");
       } else {
-        /* A start of pack expansion placeholder. */
+        disp_name("**BAD TEMPLATE ARG KIND**");
+        (void)printf("\n");
       }  /* if */
       if (ptr->explicitly_specified) {
-        disp_boolean("  explicitly_specified",
-                     (a_boolean)ptr->explicitly_specified);
+        disp_boolean("  explicitly_specified", TRUE);
       }  /* if */
       if (ptr->is_pack_element) {
-        disp_boolean("  is_pack_element",
-                     (a_boolean)ptr->is_pack_element);
+        disp_boolean("  is_pack_element", TRUE);
+      }  /* if */
+      if (ptr->is_pack) {
+        disp_boolean("  is_pack", TRUE);
       }  /* if */
     }  /* for */
   }  /* if */

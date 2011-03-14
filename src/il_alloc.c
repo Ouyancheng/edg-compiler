@@ -654,9 +654,9 @@ ck_template_param constant.
                     "set_template_param_constant_kind: not ck_template_param");
   cp->variant.template_param.kind = kind;
   cp->variant.template_param.is_qualified_name = FALSE;
+  cp->variant.template_param.is_pack = FALSE;
   switch (kind) {
     case tpck_param:
-      cp->variant.template_param.is_pack = FALSE;
       cp->variant.template_param.variant.coordinates.position = 0;
       cp->variant.template_param.variant.coordinates.depth = NO_NESTING_DEPTH;
       break;
@@ -4062,6 +4062,7 @@ fields, and return a pointer to it.
   tp->kind = (a_template_kind)templk_none;
   tp->is_exported = FALSE;
   tp->ignore_export = FALSE;
+  tp->is_pack = FALSE;
 #if RECORD_TEMPLATE_STRINGS
   tp->text = NULL;
 #endif /* RECORD_TEMPLATE_STRINGS */
@@ -4072,7 +4073,6 @@ fields, and return a pointer to it.
   tp->template_info = NULL;
   tp->coordinates.position = 0;
   tp->coordinates.depth = NO_NESTING_DEPTH;
-  tp->is_pack = FALSE;
   tp->template_decl = NULL;
   tp->prototype_instantiation.type = NULL;
   tp->prototype_instantiation.routine = NULL;
