@@ -231,6 +231,10 @@ typedef struct an_arg_match_summary {
 			   to an rvalue.  This follows the C++ standard
 			   definition, which includes function --> pointer
 			   and array --> pointer. */
+  uint32_t	param_num;
+			/* The parameter number of the parameter matched
+			   against the argument.  Zero for the "this"
+			   parameter. */
   a_type_ptr	param_type;
 			/* The type of the parameter.  Used in looking
 			   for conversion subsequences involving addition
@@ -758,6 +762,7 @@ extern void determine_arg_match_level(
                                an_operand           *arg_operand,
                                a_type_ptr           arg_type,
                                a_type_ptr           param_type,
+                               a_param_type_ptr     ptp,
                                a_boolean            param_type_is_deduced,
                                a_boolean            try_user_conversions,
                                an_arg_match_summary *arg_summary);
