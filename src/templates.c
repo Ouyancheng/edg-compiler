@@ -2088,13 +2088,11 @@ overloaded function).
   }  /* if */
   /* Only check a parameter if no mismatch for that routine has been found. */
   if (*match1) {
-    *match1 = !(is_pack1 && !is_pack2) &&
-              matches_template_type(param_type1, param_type2, templ_arg_list1,
+    *match1 = matches_template_type(param_type1, param_type2, templ_arg_list1,
                                     templ_param_list1, MTT_NO_FLAGS);
   }  /* if */
   if (*match2) {
-    *match2 = !(is_pack2 && !is_pack1) &&
-              matches_template_type(param_type2, param_type1, templ_arg_list2,
+    *match2 = matches_template_type(param_type2, param_type1, templ_arg_list2,
                                     templ_param_list2, MTT_NO_FLAGS);
   }  /* if */
   /* If both comparisons match, prefer the direction that is more qualified. */
@@ -2114,6 +2112,12 @@ overloaded function).
       *match2 = FALSE;
     } else if (qualifiers_dropped2 && !qualifiers_dropped1) {
       *match1 = FALSE;
+    } else if (is_pack1 && !is_pack2) {
+      /* A parameter that is not a pack is more specialized than one that
+         is. */
+      *match1 = FALSE;
+    } else if (is_pack2 && !is_pack1) {
+      *match2 = FALSE;
     }  /* if */
   }  /* if */
   /* If both comparisons still match and the comparison is of the
@@ -2254,6 +2258,8 @@ the argument count when entire_type is FALSE.
     result = 1;
   } else if (match2 && !match1) {
     result = -1;
+  } else if (!match1 && !match2) {
+    result = 0;
   } else {
     if (tssp1->is_variadic && tssp2->is_variadic) {
       result = compare_variadic_template_arg_lists(dummy_arg_list1,
