@@ -7909,9 +7909,11 @@ points to the template parameter list.
             for (;;) {
               if (ptp == NULL || tptp == NULL) {
                 /* One or both of the param type lists is exhausted.  It's a
-                   match only if they're both done. */
+                   match only if they're both done.  If the template
+                   type is deduced pack it is okay. */
                 match = ptp == tptp ||
-                        (tptp != NULL && tptp->is_parameter_pack);
+                        (tptp != NULL && tptp->is_parameter_pack &&
+                         tptp->next == NULL);
                 break;
               }  /* if */
               /* If the parameter from the template is a pack, enter a pack
