@@ -9495,10 +9495,7 @@ n deduction contexts, if there is no current argument, create one.
     if (pesep->is_deduction) {
       if (result_tap != NULL &&
           !is_start_of_pack_expansion_templ_arg(result_tap)) {
-        /* We are deducing an existing element.  Return the current
-           element and advance the position in the element list. */
-        arg_prp->prev_template_arg = result_tap;
-        arg_prp->curr_argument.template_arg = result_tap->next;
+        /* We are deducing an existing element. */
       } else {
         /* We are deducing the value for a new pack element.  Create the
            argument now and link it into the argument list. */
@@ -9861,9 +9858,13 @@ void advance_to_next_deduced_element(
 /*
 Unlike other pack contexts, this "advance" routine is called before
 the end-of-context routine (end_pack_deduction_context in this case).
-It clears the current template argument information so that any
+It advances the current template argument information.  Typically the
+pack elements are being deduced for the first time, so that any
 subsequent deductions will result in the creation of a new deduced
-argument.  pesep describes the current pack deduction context.
+argument.  But if this is a subsequent deduction of the same pack, this
+routine will advance through the existing list of elements, and then
+additional elements can be deduced at the end.   pesep describes the
+current pack deduction context.
 */
 {
    a_pack_reference_ptr	param_prp;
@@ -9877,8 +9878,8 @@ argument.  pesep describes the current pack deduction context.
        param_prp != NULL;
        param_prp = param_prp->next, arg_prp = arg_prp->next) {
     if (param_prp->kind == prk_template_param) {
-      /* Clear the current argument value. */
-      arg_prp->curr_argument.template_arg = NULL;
+      a_template_arg_ptr tap = arg_prp->curr_argument.template_arg;
+      if (tap != NULL) arg_prp->curr_argument.template_arg = tap->next;
     }  /* if */
   }  /* for */
 }  /* advance_to_next_deduced_element */
