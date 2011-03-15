@@ -1463,10 +1463,11 @@ Print the name of the indicated variable.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   } else if (variable->is_pack_element) {
     uint32_t		counter = 0;
-    a_variable_ptr	vp = variable->next;
+    a_variable_ptr	vp;
     /* Compute a counter that can be used to distinguish the variadic
        parameter names based on the number of remaining pack elements. */
-    for (; vp != NULL && vp->is_pack_element; vp = vp->next, counter++) {}
+    for (vp = variable; vp != NULL && vp->is_pack_element;
+         vp = vp->next, counter++) {}
     dump_name_full(&variable->source_corresp, counter);
   } else {
     /* Nothing special about this case. */
