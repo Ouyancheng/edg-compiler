@@ -1061,9 +1061,16 @@ the field.
     decl_info.is_unnamed_field = TRUE;
   } else {
     a_symbol_ptr var_sym = symbol_for(vp);
-    check_assertion(var_sym != NULL);
-    /* Create a symbol locator that can be used to declare the field. */
-    locator.symbol_header = var_sym->header;
+    if (var_sym != NULL) {
+      /* Create a symbol locator that can be used to declare the field. */
+      locator.symbol_header = var_sym->header;
+    } else {
+      /* This is a rare error situation that can occur when capturing an
+         element of a function parameter pack.  Use an error locator to
+         proceed. */
+      expect_error();
+      set_to_error_locator(locator);
+    }  /* if */
   }  /* if */
   orig_field_type = field_type = vp->type;
   /* If the variable is a reference, drop the reference. */

@@ -2203,8 +2203,9 @@ check_label_decl_seq:
                int f() { extern int i; return i; }
              and it is necessary for the file-scope symbol to be marked
              "used" too. */
-          if ((a_symbol_ptr)scptr->assoc_info != sym_ptr) {
-            ((a_symbol_ptr)scptr->assoc_info)->variant.variable.used = TRUE;
+          a_symbol_ptr  other_sym = (a_symbol_ptr)scptr->assoc_info;
+          if (other_sym != sym_ptr && other_sym != NULL) {
+            other_sym->variant.variable.used = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */
