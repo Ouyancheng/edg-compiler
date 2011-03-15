@@ -520,7 +520,7 @@ extern int compare_function_templates(
 				a_symbol_ptr 		templ_sym1,
 				a_symbol_ptr		templ_sym2,
 			        a_boolean		entire_type,
-			        uint32_t		param_count);
+			        uint32_t		arg_count);
 
 extern void record_predeclared_template_function(
                                        a_symbol_ptr         templ_sym,

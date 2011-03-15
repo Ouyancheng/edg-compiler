@@ -2143,17 +2143,19 @@ overloaded function).
 }  /* parameter_is_more_specialized */
 
 
+/*FIXME*/
+/*ARGSUSED*/
 int compare_function_templates(a_symbol_ptr 		templ_sym1,
 			       a_symbol_ptr		templ_sym2,
 			       a_boolean		entire_type,
-			       uint32_t			param_count)
+			       uint32_t			arg_count)
 /*
 templ_sym1 and templ_sym2 are function template symbols.  Return 1 if
 templ_sym1 is more specialized than templ_sym2, return -1 if templ_sym2 is
 more specialized than templ_sym1, and return 0 if they are unordered.
 entire_type is TRUE if the partial ordering is being done in a context in
-which the entire function type should be considered.  param_count provides
-the count of parameters to be compared when entire_type is FALSE.
+which the entire function type should be considered.  arg_count provides
+the argument count when entire_type is FALSE.
 */
 {
   int					result;
@@ -2214,13 +2216,11 @@ the count of parameters to be compared when entire_type is FALSE.
     ptp1 = rtsp1->param_type_list;
     ptp2 = rtsp2->param_type_list;
     /* Do the argument deduction on each function parameter.  The loop will
-       terminate when one of the parameter lists has been exhausted.  When
-       we are not comparing the entire type, we only consider parameters
-       up to the parameter count specified by the caller. */
-    for (; ptp1 != NULL && ptp2 != NULL &&
-           (entire_type || (microsoft_mode && microsoft_version < 1600) ||
-            (ptp1->param_num <= param_count &&
-             ptp2->param_num <= param_count));
+       terminate when one of the parameter lists has been exhausted.  If
+       the two functions differ in the number of parameters, which can
+       occur if one of the functions has default arguments, base
+       the decision on the common parameters. */
+    for (; ptp1 != NULL && ptp2 != NULL;
            ptp1 = ptp1->next, ptp2 = ptp2->next) {
       parameter_is_more_specialized(ptp1->type, ptp2->type,
                                     &dummy_arg_list1, &dummy_arg_list2,
