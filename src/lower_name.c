@@ -161,7 +161,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_STATIC_CONSTRUCTOR "C8"
 #define MANGLING_STRING_FOR_FINALIZER "D7"
 #define MANGLING_STRING_FOR_MANAGED_NULLPTR "DN"
-#define MANGLING_STRING_FOR_OPERATOR_HANDLE_TO "v12ht"
+#define MANGLING_STRING_FOR_OPERATOR_HANDLE_TO "v19clihandle"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #else /* !IA64_ABI */
@@ -9207,7 +9207,7 @@ returned string to an appropriate buffer before this routine is invoked again.
         num_operands = number_of_operands_in_list(
                                              expr->variant.operation.operands);
         if (num_operands > 9) num_operands = 9;
-        (void)sprintf(buffer, "v%u9subscript", num_operands);
+        (void)sprintf(buffer, "v%u12clisubscript", num_operands);
         name = buffer;
       }
 #else /* !IA64_ABI */

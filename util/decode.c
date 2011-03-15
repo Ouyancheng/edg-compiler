@@ -5297,10 +5297,10 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
           *close_str = ")";
           *length = 11;
           *num_operands = 1;
-        } else if (start_of_id_is("v12ht", ptr)) {
+        } else if (start_of_id_is("v19clihandle", ptr)) {
           /* C++/CLI handle-to */
           str = "%";
-          *length = 5;
+          *length = 12;
           *num_operands = 1;
         } else if (start_of_id_is("9builtin", ptr+2)) {
           /* Builtin operation.  Name is
@@ -5314,12 +5314,12 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
           str[19] = ptr[11];
           *length = 12;
           *num_operands = ptr[1]-'0';
-        } else if (start_of_id_is("9subscript", ptr+2) &&
+        } else if (start_of_id_is("12clisubscript", ptr+2) &&
                    ptr[1] >= '0' && ptr[1] <= '9') {
           /* C++/CLI subscript operation with variable number of operands
              (<= 9).  The caller handles this as a special case. */
           str = "subscript";
-          *length = 12;
+          *length = 16;
           *num_operands = ptr[1]-'0';
         }  /* if */
         break;
