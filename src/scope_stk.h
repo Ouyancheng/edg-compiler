@@ -1436,11 +1436,13 @@ scope.
    depth_template_declaration_scope != NO_SCOPE_DEPTH)
 
 /*
-TRUE if we are in an instantiation that is not a prototype instantiation.
+TRUE if we are in an instantiation that is not a prototype or nonreal
+instantiation.
 */
 #define is_real_instantiation_context()					\
   (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&		\
-   !scope_stack[depth_scope_stack].in_prototype_instantiation)
+   !scope_stack[depth_scope_stack].in_prototype_instantiation &&	\
+   !scope_stack[depth_scope_stack].in_nonreal_instantiation)
 
 /*
 TRUE if we are in the instantiation of a template in a translation unit
