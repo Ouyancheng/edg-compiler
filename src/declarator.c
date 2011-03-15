@@ -1920,8 +1920,8 @@ this is a helper function.
   /* The implicit "this" param type will be either "pointer to class-type"
      or, if there was a const qualifier on the function, "pointer to const
      class-type".  However, it is possible to have a cv-qualified function
-     type in a typedef declaration or a a type-id.  So the qualifiers and
-     the class type are encoded separately.  E.g. in
+     type in a typedef declaration or a type-id.  So the qualifiers and the
+     class type are encoded separately.  E.g. in
         typedef void CF() const;
      this_class == NULL but qualifiers != TQ_NONE. */
   rtsp->this_class = this_class;
