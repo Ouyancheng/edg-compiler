@@ -1,7 +1,7 @@
 Version 4.3
 
 3/15/11  [EDGcpfe/4477]
-Only used parameters for which arguments were provided for partial ordering
+Only use parameters for which arguments were provided for partial ordering
 
 When function templates contain default arguments, only the parameters
 corresponding to actual arguments of the call should be used for partial
