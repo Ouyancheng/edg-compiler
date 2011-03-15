@@ -2781,9 +2781,11 @@ Display the indicated name and template arg list.
         /* A template template argument. */
         disp_ptr("  template", (char *)ptr->variant.templ.ptr, iek_template);
       } else if (is_start_of_pack_expansion_templ_arg(ptr)) {
-        disp_name(" pack expansion placeholder");
+        disp_name("  pack exp placeholder");
+        (void)printf("\n");
       } else {
-        disp_name("  **BAD TEMPLATE ARG KIND**");
+        disp_name("  **BAD TMP ARG KIND**");
+        (void)printf("\n");
       }  /* if */
       if (ptr->explicitly_specified) {
         disp_boolean("  explicitly_specified", TRUE);
