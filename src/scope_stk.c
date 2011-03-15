@@ -9105,7 +9105,10 @@ to be part of the function template such as a lambda nested therein.
       function_scopes_to_skip--;
     }  /* if */
   }  /* for */
-  check_assertion(ssep != NULL);
+  if (ssep == NULL) {
+    expect_error();
+    goto done;
+  }  /* if */
   for (vp = ssep->il_scope->variant.routine.parameters;
        vp != NULL; vp = vp->next) {
     if (vp->assoc_param_type->param_num == param_num) {
@@ -9119,6 +9122,7 @@ to be part of the function template such as a lambda nested therein.
     if (!vp->assoc_param_type->is_pack_element) break;
     (*elements)++;
   }  /* for */
+done:
   return result_vp;
 }  /* find_variable_for_pack */
 
