@@ -2183,14 +2183,10 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
 
   check_assertion(expr->kind == (an_expression_kind)enk_sizeof_pack);
 #if IA64_ABI
-  if (emulate_gnu_abi_bugs &&
-      !expr->variant.sizeof_pack.is_template_template) {
-    /* GNU appears to use the encodings for sizeof rather than for
-       sizeof... (at least in current versions).  We'd try to emulate that
-       here, but we'd get the substitution wrong for the type (since our
-       pack expansion substitution requires an iek_param_type and we don't
-       have one here).  Instead, just use the proper mangling for sizeof... */
-  }  /* if */
+  /* GNU appears to use the encodings for sizeof rather than for sizeof...
+     (at least in current versions).  We'd try to emulate that here, but we'd
+     get the substitution wrong for the type.  Instead, just use the proper
+     mangling for sizeof... */
   add_str_to_mangled_name("sZ", mctl);
 #else /* !IA64_ABI */
   /* Mangling for sizeof...():
