@@ -7831,17 +7831,20 @@ do_assignment:;
 }  /* lower_dynamic_init */
 
 
-void lower_constant_init_of_static_in_extern_inline(a_variable_ptr variable)
+void lower_constant_init_of_promoted_static(a_variable_ptr variable,
+                                            a_constant_ptr constant)
 /*
-The given variable is a local static variable of an extern inline function
-(or a template instantiated wherever used) that is initialized to a constant.
-Rewrite its initialization as executable code so that the variable (already
-promoted to the file scope and made external) can be a tentative definition
-(i.e., uninitialized).  The executable code is placed at the beginning of
-the block associated with the innermost function scope.
+The given variable is a local static variable that is initialized to the
+specified constant.  The initialization must be rewritten because the variable
+is in an extern inline function (or a template instantiated wherever used), or
+the constant cannot be copied to the file scope (i.e., it contains a reference
+to a GNU address label).  Rewrite the initialization as executable code so that
+the variable (already promoted to the file scope and made external) can be a
+tentative definition (i.e., uninitialized).  The executable code is placed at
+the beginning of the block associated with the innermost function scope.  The
+constant can be either in the file or function scope.
 */
 {
-  a_constant_ptr        constant;
   an_insert_location    insert_location;
   an_expr_operator_kind op;
   an_expr_node_ptr      source_node;
@@ -7849,17 +7852,19 @@ the block associated with the innermost function scope.
   a_variable_ptr        test_var;
   a_source_position     saved_error_position, saved_code_pos;
 
-  check_assertion(variable->storage_class == (a_storage_class)sc_unspecified &&
-                  variable->init_kind == (an_init_kind)initk_static);
+  check_assertion(variable->init_kind == (an_init_kind)initk_static);
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
   code_pos_for_lowering = error_position =
                                         variable->source_corresp.decl_position;
-  constant = variable->initializer.constant;
-  /* Make sure pointers-to-members in the constant get lowered when the
-     file scope is lowered. */
-  possibly_add_orphaned_file_scope_il_entry((char *)constant, iek_constant);
+  check_assertion(constant != NULL);
+  if (in_file_scope(constant)) {
+    /* Make sure pointers-to-members in the constant get lowered when the
+       file scope is lowered. */
+    possibly_add_orphaned_file_scope_il_entry((char *)constant, iek_constant);
+  }  /* if */
   variable->init_kind = (an_init_kind)initk_none;
+  variable->initializer.constant = NULL;
   /* The general strategy is to add an assignment that copies the constant
      value into the variable. */
   if (constant->kind != (a_constant_repr_kind)ck_aggregate &&
@@ -7874,7 +7879,12 @@ the block associated with the innermost function scope.
        copy that to the initial variable.  This avoids taking the
        address of an aggregate constant, which is not allowed in the
        IL (except for string literals). */
-    a_variable_ptr temp_var = make_file_scope_temporary(variable->type);
+    a_variable_ptr temp_var;
+    if (in_file_scope(constant)) {
+      temp_var = make_file_scope_temporary(variable->type);
+    } else {
+      temp_var = make_local_temporary(variable->type);
+    }  /* if */
     temp_var->init_kind = (an_init_kind)initk_static;
     temp_var->initializer.constant = constant;
     op = (an_expr_operator_kind)eok_bassign;
@@ -7903,7 +7913,7 @@ the block associated with the innermost function scope.
   variable->initialization_rewritten_as_assignment = TRUE;
   error_position = saved_error_position;
   code_pos_for_lowering = saved_code_pos;
-}  /* lower_constant_init_of_static_in_extern_inline */
+}  /* lower_constant_init_of_promoted_static */
 
 
 static void lower_destructor_dynamic_init(

@@ -18010,6 +18010,46 @@ is instantiated in more than one translation unit.
 }  /* routine_might_exist_in_multiple_copies */
 
 
+static void examine_constant_for_function_scope_limitation(
+                                    a_constant_ptr                      con,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Returns TRUE if the constant contains some piece that forces it to remain
+in the function scope.  Currently this means that it contains a reference
+to a GNU address label.  The utility has_non_file_scope_ref is similar in
+some respects, but this is specific to constants that cannot ever be moved
+to the file scope.
+*/
+{
+  if (con->kind == (a_constant_repr_kind)ck_address &&
+      con->variant.address.kind == (an_address_base_kind)abk_label) {
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* examine_constant_for_function_scope_limitation */
+
+
+static a_boolean constant_must_remain_in_function_scope(
+                                                      a_constant_ptr  constant)
+/*
+Returns TRUE if the constant (or some portion of it) contains some piece that
+forces it to remain in the function scope.  Currently this means that it
+contains a reference to a GNU address label.
+*/
+{
+  a_boolean                       result = FALSE;
+  an_expr_or_stmt_traversal_block tblock;
+
+  if (gnu_mode) {
+    clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_constant = examine_constant_for_function_scope_limitation;
+    traverse_constant(constant, &tblock);
+    result = tblock.result;
+  }  /* if */
+  return result;
+}  /* constant_must_remain_in_function_scope */
+
+
 static void promote_static_variable_out_of_function(
                                                a_variable_ptr variable,
                                                a_scope_ptr    scope,
@@ -18093,28 +18133,48 @@ been removed from the scope variables list).
       case initk_zero:
         break;
       case initk_static:
-        /* For a static initial value, copy the constant to file scope.
-           This might be expensive space-wise, since this might be
+        /* The promoted static variable has a constant initialization.  This
+           occurs for aggregates as well as for constants that refer to
+           non-file scope entities (see has_non_file_scope_ref).  In most
+           such cases (e.g., strings with sequence numbers or constants with
+           backing expressions), copying the constant to the file scope (with
+           CE_REPLACE_STRINGS_BY_VARIABLES) will result in a constant with only
+           file-scope entities, but in the case of a constant that refers to
+           a GNU address label, the constant cannot be copied into the file
+           scope (but needs to be copied so that any strings are properly
+           replaced).  In that case, copy the constant to the function scope
+           and rewrite the initialization as executable code. */
+        /* This might be expensive space-wise, since this might be
            an aggregate, but there are no good alternatives. */
         { a_memory_region_number region_to_switch_back_to = NULL_region_number;
-          switch_to_file_scope_region(&region_to_switch_back_to);
+          a_boolean keep_in_function_scope =
+           constant_must_remain_in_function_scope(lsvip->initializer.constant);
+
+          if (!keep_in_function_scope) {
+            switch_to_file_scope_region(&region_to_switch_back_to);
+          }  /* if */
           variable->initializer.constant =
                            copy_constant_full(lsvip->initializer.constant,
                                               (a_constant_ptr)NULL,
                                               CE_REPLACE_STRINGS_BY_VARIABLES);
-          switch_back_to_original_region(region_to_switch_back_to);
-        }
-        if (variable->storage_class == (a_storage_class)sc_unspecified
+          if (!keep_in_function_scope) {
+            switch_back_to_original_region(region_to_switch_back_to);
+          }  /* if */
+          if (keep_in_function_scope ||
+              (variable->storage_class == (a_storage_class)sc_unspecified
 #if IA64_ABI
-            && variable->comdat_group == NULL
+               && variable->comdat_group == NULL
 #endif /* IA64_ABI */
-                                             ) {
-          /* A static variable of an extern inline function initialized
-             to a constant.  Rewrite the initialization as executable code
-             because we want the variable to be a tentative definition
-             (and therefore it cannot be statically initialized). */
-          lower_constant_init_of_static_in_extern_inline(variable);
-        }  /* if */
+                                                )) {
+            /* A constant initialization that can't be done in the file scope
+               or a static variable of an extern inline function initialized
+               to a constant.  Rewrite the initialization as executable code
+               because we want the variable to be a tentative definition
+               (and therefore it cannot be statically initialized). */
+            lower_constant_init_of_promoted_static(variable,
+                                               variable->initializer.constant);
+          }  /* if */
+        }
         break;
       case initk_dynamic:
         /* This dynamic initialization will be rewritten when the
@@ -18136,7 +18196,8 @@ been removed from the scope variables list).
        to a constant.  Rewrite the initialization as executable code
        because we want the variable to be a tentative definition
        (and therefore it cannot be statically initialized). */
-    lower_constant_init_of_static_in_extern_inline(variable);
+    lower_constant_init_of_promoted_static(variable,
+                                           variable->initializer.constant);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if ((variable->decl_modifiers & DM_DLLIMPORT) != 0) {
