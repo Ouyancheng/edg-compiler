@@ -15783,7 +15783,16 @@ potentially_evaluated is TRUE if the expression is potentially evaluated.
 {
   an_expr_node_ptr first_node = NULL, last_node = NULL, arg_node;
 
-  if (ptp != NULL && !ptp->is_parameter_pack) {
+  if (ptp == NULL) {
+    /* Nothing to copy. */
+  } else if (ptp->is_parameter_pack) {
+    /* Assume this parameter will be instantiated as an empty pack; it cannot
+       have a default in any case. */
+  } else if (ptp->is_pack_element) {
+    /* This is only possible in error cases. */
+    check_assertion(is_error_type(ptp->type));
+    expect_error();
+  } else {
 #if CHECKING
     if (ptp->default_arg_expr == NULL &&
         !ptp->has_unevaluated_template_default) {
