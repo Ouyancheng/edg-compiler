@@ -19222,6 +19222,17 @@ classes.
                            NO_SCOPE_NUMBER, class_type, (a_routine_ptr)NULL);
     scope_stack_top().class_def_state = &class_state;
     class_is_in_valid_scope = !is_invalid_scope_for_class();
+    if (!class_is_in_valid_scope &&
+        is_template_dependent_context()) {
+      /* We've got a class in an invalid context (e.g., a lambda in a function
+         prototype scope), and template parameters will be visible in the
+         body of the class, so mark the class as nonreal.  This tells
+         overload resolution that there might be member functions that have
+         template parameters in their signatures and therefore for which
+         overload resolution should be suppressed. */
+      expect_error();
+      class_type->variant.class_struct_union.is_nonreal_class = TRUE;
+    }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     if (!C_mode()) {
       scope_stack_top().ELF_visibility = ctsp->ELF_visibility;
