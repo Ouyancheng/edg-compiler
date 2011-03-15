@@ -5700,6 +5700,7 @@ The syntax is:
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } else {
     /* Not a nested declarator. */
+    a_source_position  ellipsis_pos;
     /* Check for a declarator-id or abstract declarator that starts with an
        ellipsis indicating a parameter pack.  There is an ambiguity in this
        context where the ellipsis can either indicate a parameter pack for an
@@ -5713,6 +5714,7 @@ The syntax is:
       /* An ellipsis at this point can indicate a parameter pack. */
       if (state->pack_ellipsis_allowed) {
         state->has_pack_ellipsis = TRUE;
+        ellipsis_pos = pos_curr_token;
         /* For function parameter pack declarations, the ellipsis is a sort of
            expansion (the type of the parameter must be a "pattern"), but for
            template parameter declarations that is not the case. */
@@ -5738,6 +5740,21 @@ The syntax is:
         (abstract_declarator_allowed && !is_name_start)) {
       /* Identifier is omitted in an abstract declarator.  Be sure it is not a
          tk_unknown type. */
+      if (state->has_pack_ellipsis) {
+        /* A pack ellipsis is only allowed in limited ways in an abstract
+           declarator: It cannot be nested, and it cannot be combined with
+           any declarator operators. */
+        if (specifiers_type == NULL) {
+          pos_error(ec_abstract_declarator_pack_is_nested, &ellipsis_pos);
+        } else if (curr_token == tok_lbracket || curr_token == tok_lparen) {
+          pos_error(
+                  ec_abstract_declarator_pack_is_function_or_array_declarator,
+                  &ellipsis_pos);
+        } else if (*output_flags & DO_HAS_PTR_OR_REF_COMPONENT) {
+          pos_error(ec_abstract_declarator_pack_is_ptr_or_ref_declarator,
+                    &ellipsis_pos);
+        }  /* if */
+      }  /* if */
       check_assertion(specifiers_type == NULL ||
                       !is_unknown_type(specifiers_type) ||
                       (complete_type != NULL &&
