@@ -1,5 +1,21 @@
 Version 4.3
 
+3/15/11  [EDGcpfe/4477]
+Only used parameters for which arguments were provided for partial ordering
+
+When function templates contain default arguments, only the parameters
+corresponding to actual arguments of the call should be used for partial
+ordering purposes.  The front end now implements this rule in all modes
+except Microsoft mode when microsoft_version < 1400.
+
+  template <class T> void f(T, int = 1){}   // #1
+  template <class T> void f(T*, char = 0){} // #2
+  int main() {
+    int *p = 0;
+    f(p);  // calls #2, formerly ambiguous
+  }
+
+
 3/14/11  [EDGcpfe/11494]
 const/volatile on function types in template arguments
 
