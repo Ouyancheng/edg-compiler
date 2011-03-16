@@ -50,7 +50,6 @@ instead of K&R C.
 
 /* Additional header files. */
 #include "c_gen_be.h"
-#include "layout.h"
 
 #include "il_walk.h"
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
