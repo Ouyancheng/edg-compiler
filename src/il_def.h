@@ -40,9 +40,9 @@ and protected by the ifndef there.
 #ifndef MEM_TABLES_H
 #include "mem_tables.h"
 #endif /* ifndef MEM_TABLES_H */
-#if MICROSOFT_EXTENSIONS_ALLOWED && CPPCLI_ENABLING_POSSIBLE
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_metadata.h"
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && CPPCLI_ENABLING_POSSIBLE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Specify the version stamp of the IL being generated.
