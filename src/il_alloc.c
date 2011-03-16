@@ -4665,7 +4665,7 @@ Display and return the amount of space used for various IL tables.
                 an_ms_attribute_arg);
   db_space_used("property index types", num_property_index_types_allocated,
                 a_property_index_type);
-  db_space_used("property/event descriptions",
+  db_space_used("property/event descrs",
                 num_property_or_event_descriptions_allocated,
                 a_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
