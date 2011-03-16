@@ -16123,6 +16123,9 @@ the context stack.
 }  /* pop_scopeless_compound_stmt */
 
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- saved_curr_context is unused in that case. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static void pop_block_statement_context(
                                    a_statement_ptr    block_statement,
                                    a_statement_ptr    last_statement,

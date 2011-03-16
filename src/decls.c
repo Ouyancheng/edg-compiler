@@ -2707,6 +2707,9 @@ only.
 }  /* has_linkage_within_innermost_namespace_scope */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- dps is unused in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void id_linkage(an_id_linkage_block  *idlbp,
                        a_decl_parse_state   *dps)
 /*

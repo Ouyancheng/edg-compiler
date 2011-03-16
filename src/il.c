@@ -15915,6 +15915,9 @@ object or an rvalue that is a pointer or handle to an object.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- expr is unused in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_boolean is_gc_lvalue_expr(an_expr_node_ptr expr)
 /*
 Return TRUE if the given expression is a gc-lvalue for C++/CLI.  Roughly,

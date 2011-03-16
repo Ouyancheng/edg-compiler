@@ -12592,6 +12592,9 @@ we test for a limited set of cases, and only lvalues.
 }  /* is_possible_nonstatic_selection_masquerading_as_static */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- use_handle_for_ref_class is unused in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void take_address_of_or_reference_to_lvalue(
                                     an_operand        *operand,
                                     a_boolean         reference_case,

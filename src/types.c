@@ -3638,6 +3638,9 @@ can be a handle.
 }  /* pointer_expr_complete_object_type */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- class_type is unused in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_type_ptr add_right_pointer_type_to_this(a_type_ptr type,
                                           a_type_ptr class_type)
 /*

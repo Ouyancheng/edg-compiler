@@ -1818,6 +1818,9 @@ indication in *rcblock).
 }  /* scan_parenthesized_initializer_expression */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- unboxing_conv_operand is unused in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void scan_ctor_arguments(a_symbol_ptr           constructor_sym,
                                 a_source_position      *source_pos,
                                 a_type_ptr             object_class_type,

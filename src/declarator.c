@@ -4606,6 +4606,9 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
 }  /* pointer_declarator */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- opname and parent_type are unused in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean is_microsoft_static_operator(an_opname_kind  opname,
                                               a_type_ptr      parent_type)
 /*
@@ -4618,20 +4621,18 @@ if microsoft bugs mode and C++/CLI modes are disabled).
 {
   a_boolean  result = FALSE;
 
-  if (microsoft_bugs || cppcli_enabled) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_bugs || cppcli_enabled) {
     if (cppcli_enabled && !is_managed_class_type(parent_type)) {
       result = FALSE;
-    } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    {
+    } else {
       result = opname != (an_opname_kind)onk_assign &&
                opname != (an_opname_kind)onk_function_call &&
                opname != (an_opname_kind)onk_subscript &&
                opname != (an_opname_kind)onk_arrow;
     }  /* if */
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* is_microsoft_static_operator */
 

@@ -3210,11 +3210,13 @@ Also, in Microsoft mode we must skip over property fields.
 {
 #if TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
   a_field_ptr  result = class_type->variant.class_struct_union.field_list;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     while (result && field_is_nontrivial_property_or_event(result)) {
       result = result->next;
     }  /* while */
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #else /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
   /* Public fields are allocated first, then the protected ones and finally
      the private ones; so fetch the first allocated one. */

@@ -9858,11 +9858,11 @@ otherwise, it is NULL.
          supplement. */
       cssp->finalizer = sym;
       break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:
       /* Nothing to do. */
       break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  }  /* if */
+  }  /* switch */
 }  /* update_class_for_special_member */
 
 
