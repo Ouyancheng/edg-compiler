@@ -1020,7 +1020,9 @@ Allow C++/CLI to be enabled if Microsoft extensions are allowed.
 #endif /* !defined(READ_CPPCLI_PORTABLE_ASSEMBLIES) && !defined(_WIN32) */
 #endif /* defined(MICROSOFT_EXTENSIONS_ALLOWED) &&
           MICROSOFT_EXTENSIONS_ALLOWED */
-#if READ_CPPCLI_PORTABLE_ASSEMBLIES && !defined(CPPCLI_PORTABLE_ASSEMBLY_PATH)
+#if defined(READ_CPPCLI_PORTABLE_ASSEMBLIES) && \
+    READ_CPPCLI_PORTABLE_ASSEMBLIES && \
+    !defined(CPPCLI_PORTABLE_ASSEMBLY_PATH)
 #define CPPCLI_PORTABLE_ASSEMBLY_PATH "/edg/cpfe/ms_assemblies"
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !defined(...) */
 
