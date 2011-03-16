@@ -5840,7 +5840,7 @@ done:
   (position_var).orig_column = (position_var).column;
 /* Test for whether the current macro position should be used for the
    current position (always FALSE for FULLY_RESOLVED_MACRO_POSITIONS). */
-#define should_use_pos_of_macro_invocation() FALSE
+#define should_use_pos_of_macro_invocation() /*lint --e(506)*/FALSE
 /* Macro to copy pos_of_macro_invocation to the specified position
    variable (not done for FULLY_RESOLVED_MACRO_POSITIONS). */
 #define copy_pos_of_macro_invocation_to(position_var) /* nothing */
