@@ -22503,6 +22503,129 @@ by back ends.
   ref_type->variant.pointer.type = dest_type;
 }  /* destination_type_for_reference_cast */
 
+#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
+/*
+GNU C and C++ distinguishes between two alignments for fundamental types:
+The intrinsic alignment (returned by __alignof__ in most cases, and imbued on
+complete objects of that type), and the field alignment (used to align fields
+of that type).  For example, on some Intel-based configurations, long long is
+normally 8-byte aligned, but a struct containing a long long need only be
+4-byte aligned.  The a_type entry contains the intrinsic alignment.  The
+field alignment is accessed through the following arrays.
+
+(Note: one would ordinarily expect this facility to be found in layout.c.
+However, it is needed by the C-generating back end, and layout.c is not
+present in standalone C-generating back end executables.)
+*/
+static a_targ_alignment  int_field_alignments[(int)ik_last];
+static a_targ_alignment  float_field_alignments[(int)fk_last];
+
+
+static void init_field_alignment_tables(void)
+/*
+Set up tables containing the field alignments for the various integer and
+floating point types.
+*/
+{
+#if CHECKING
+  int k;
+#endif /* CHECKING */
+
+  int_field_alignments[(int)ik_char] = 1;
+  int_field_alignments[(int)ik_signed_char] = 1;
+  int_field_alignments[(int)ik_unsigned_char] = 1;
+  int_field_alignments[(int)ik_short] = targ_short_field_alignment;
+  int_field_alignments[(int)ik_unsigned_short] = targ_short_field_alignment;
+  int_field_alignments[(int)ik_int] = targ_int_field_alignment;
+  int_field_alignments[(int)ik_unsigned_int] = targ_int_field_alignment;
+  int_field_alignments[(int)ik_long] = targ_long_field_alignment;
+  int_field_alignments[(int)ik_unsigned_long] = targ_long_field_alignment;
+#if LONG_LONG_ALLOWED
+  int_field_alignments[(int)ik_long_long] = targ_long_long_field_alignment;
+  int_field_alignments[(int)ik_unsigned_long_long] =
+                                               targ_long_long_field_alignment;
+#endif /* LONG_LONG_ALLOWED */
+#if CHECKING
+  for (k = 0; k<(int)ik_last; ++k) {
+    if (int_field_alignments[k] == 0) {
+      unexpected_condition();
+    }  /* if */
+  }  /* for */
+#endif /* CHECKING */
+  float_field_alignments[(int)fk_float] = targ_float_field_alignment;
+  float_field_alignments[(int)fk_double] = targ_double_field_alignment;
+  float_field_alignments[(int)fk_long_double] =
+                                             targ_long_double_field_alignment;
+#if CHECKING
+  for (k = 0; k<(int)fk_last; ++k) {
+    if (float_field_alignments[k] == 0) {
+      unexpected_condition();
+    }  /* if */
+  }  /* for */
+#endif /* CHECKING */
+}  /* init_field_alignment_tables */
+
+
+a_targ_alignment field_alignment_for(a_type_ptr  type)
+/*
+Return the field alignment for the given type.
+*/
+{
+  a_targ_alignment  result;
+
+  switch (type->kind) {
+    case tk_integer:
+      result = int_field_alignments[type->variant.integer.int_kind];
+      break;
+    case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+    case tk_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      result = float_field_alignments[type->variant.float_kind];
+      break;
+    case tk_typeref:
+#if USER_CONTROL_OF_STRUCT_PACKING
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+      if (type->alignment_set_explicitly) {
+        result = type->alignment;
+      } else if (gnu_mode && gnu_version/100 != 303) {
+        /* In a chain of typedefs, the last one with attribute "aligned"
+           normally determines the alignment.  However, gcc/g++ 3.3.x appears
+           to ignore any "intermediate" typedefs. */
+        result = field_alignment_for(type->variant.typeref.type);
+      } else
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+      /* Do not insert code here. */
+      {
+        result = field_alignment_for(skip_typerefs(type));
+      }  /* if */
+      break;
+    case tk_array:
+#if USER_CONTROL_OF_STRUCT_PACKING
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+      if (type->alignment_set_explicitly) {
+        /* The alignment cannot be set directly for an array type, but when
+           applying cv-qualifiers to a typedef for an array, an alignment
+           attribute on the typedef may need to be copied to the array type. */
+        result = type->alignment;
+      } else
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+      /* Do not insert code here. */
+      {
+        result = field_alignment_for(underlying_array_element_type(type));
+      }  /* if */
+      break;
+    default:
+      result = type->alignment;
+  }  /* switch */
+  return result;
+}  /* field_alignment_for */
+
+#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 void il_one_time_init(void)
@@ -22753,6 +22876,9 @@ in il_init.)
   register_trans_unit_variable(n_scheduled_routine_moves);
 
   il_alloc_one_time_init();
+#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
+  init_field_alignment_tables();
+#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
 }  /* il_one_time_init */
 
 

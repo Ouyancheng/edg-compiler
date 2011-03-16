@@ -69,15 +69,6 @@ extern a_targ_alignment current_max_alignment_for_class_members(void);
 extern a_targ_alignment current_pack_pragma_value(void);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
-#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
-extern a_targ_alignment field_alignment_for(a_type_ptr  type);
-#else /* !TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
-/*
-The field alignment is equal to the intrinsic alignment of the type.
-*/
-#define field_alignment_for(tp) (alignment_of_type(tp))
-#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
-
 extern a_targ_alignment alignment_of_field_full(a_field_ptr  field,
                                                 a_boolean    for_alignof);
 
