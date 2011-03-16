@@ -9370,8 +9370,7 @@ operand list is deallocated).  Some state information is recorded in *arg_block
        arg_operand != NULL;
        arg_operand = arg_operand->next) {
     an_expr_node_ptr arg_expr;
-    mark_expr_of_operand_as_pack_expansion_if_necessary(&arg_operand->operand);
-    arg_expr = make_node_from_operand(&arg_operand->operand);
+    arg_expr = make_node_from_operand_for_expr_list(&arg_operand->operand);
     if (arg_block->argument_head == NULL) {
       arg_block->argument_head = arg_expr;
     } else {
@@ -9468,9 +9467,7 @@ specific function being called.
       /* Cast the argument to the right type. */
       prep_possible_ellipsis_argument_operand(&arg_operand->operand, param,
                                               &arg_match->conversion);
-      mark_expr_of_operand_as_pack_expansion_if_necessary(
-                                                        &arg_operand->operand);
-      arg = make_node_from_operand(&arg_operand->operand);
+      arg = make_node_from_operand_for_expr_list(&arg_operand->operand);
     }  /* if */
   }  /* if */
   return arg;

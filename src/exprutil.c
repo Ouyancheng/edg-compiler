@@ -3565,6 +3565,24 @@ that extra work.
 }  /* make_node_from_operand */
 
 
+an_expr_node_ptr make_node_from_operand_for_expr_list(an_operand *operand)
+/*
+Return an expression node to represent the given operand, creating one
+if necessary.  The resulting expression will be linked into an
+expression list, e.g., an argument list for a call.  (That is
+significant if the operand is a pack expansion, because we will set
+the is_pack_expansion flag in the expression now that we know it will
+be at the top level in the list.)
+*/
+{
+  an_expr_node_ptr expr = make_node_from_operand(operand);
+  if (operand->pack_expansion_descr != NULL) {
+    expr->is_pack_expansion = TRUE;
+  }  /* if */
+  return expr;
+}  /* make_node_from_operand_for_expr_list */
+
+
 void mark_expr_of_operand_as_pack_expansion_if_necessary(an_operand *operand)
 /*
 If the given operand is a variadic template pack expansion, mark its
@@ -9841,8 +9859,7 @@ Return a list of argument expressions.
        arg_operand != NULL;
        arg_operand = arg_operand->next) {
     prep_generic_operand(&arg_operand->operand);
-    mark_expr_of_operand_as_pack_expansion_if_necessary(&arg_operand->operand);
-    arg = make_node_from_operand(&arg_operand->operand);
+    arg = make_node_from_operand_for_expr_list(&arg_operand->operand);
     /* Add this argument to the end of the expression-form argument list
        being built up. */
     if (prev_arg == NULL) {

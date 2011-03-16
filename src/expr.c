@@ -1806,8 +1806,7 @@ indication in *rcblock).
       curr_construct_end_position = end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
-    mark_expr_of_operand_as_pack_expansion_if_necessary(&result);
-    expr = make_node_from_operand(&result);
+    expr = make_node_from_operand_for_expr_list(&result);
   } else {
     /* No result because the expression is a pack expansion that expanded
        to zero expressions. */
@@ -3755,8 +3754,7 @@ that the final call needs to be cast to the indicated type.
           prep_argument_operand(&ap->operand, ptp, (a_conv_descr *)NULL,
                                 ec_incompatible_param);
         }  /* if */
-        mark_expr_of_operand_as_pack_expansion_if_necessary(&ap->operand);
-        expr_arg = make_node_from_operand(&ap->operand);
+        expr_arg = make_node_from_operand_for_expr_list(&ap->operand);
         if (*arg_list == NULL) {
           *arg_list = expr_arg;
         } else {
