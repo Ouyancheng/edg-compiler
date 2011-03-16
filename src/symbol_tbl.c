@@ -13404,7 +13404,7 @@ for space tracking purposes.
   db_space_used("conversion header", num_conversion_headers_allocated,
                 a_conversion_header);
   db_space_used("Name strings", symbol_name_string_space, char);
-  db_space_used("symbol header lookup entries",
+  db_space_used("symbol header lookup ents",
                 num_symbol_header_lookup_entries_allocated,
                 a_symbol_header_lookup_entry);
   db_space_used("extern symbol descr", num_extern_symbol_descrs_allocated,
