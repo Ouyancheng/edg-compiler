@@ -5741,18 +5741,9 @@ The syntax is:
       /* Identifier is omitted in an abstract declarator.  Be sure it is not a
          tk_unknown type. */
       if (state->has_pack_ellipsis) {
-        /* A pack ellipsis is only allowed in limited ways in an abstract
-           declarator: It cannot be nested, and it cannot be combined with
-           any declarator operators. */
+        /* Disallow a pack ellipsis in a nested abstract declarator. */
         if (specifiers_type == NULL) {
           pos_error(ec_abstract_declarator_pack_is_nested, &ellipsis_pos);
-        } else if (curr_token == tok_lbracket || curr_token == tok_lparen) {
-          pos_error(
-                  ec_abstract_declarator_pack_is_function_or_array_declarator,
-                  &ellipsis_pos);
-        } else if (*output_flags & DO_HAS_PTR_OR_REF_COMPONENT) {
-          pos_error(ec_abstract_declarator_pack_is_ptr_or_ref_declarator,
-                    &ellipsis_pos);
         }  /* if */
       }  /* if */
       check_assertion(specifiers_type == NULL ||
