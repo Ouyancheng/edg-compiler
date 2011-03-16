@@ -32,7 +32,11 @@ kind == tak_start_of_pack_expansion, and therefore customer code
 that traverses template argument lists should consider using the
 new begin_template_arg_list_traversal, advance_to_next_template_arg,
 and the "...simple" versions of those routines, to skip over the
-start-of-pack-expansion entries.
+start-of-pack-expansion entries.  (IL CHANGE)
+
+Also note that in instantiations of functions that have parameter packs
+it is now possible for mutiple parameter variables to have the same
+name.  (IL CHANGE)
 
 
 3/15/11  [EDGcpfe/4477]
