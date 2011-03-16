@@ -9848,6 +9848,7 @@ indication in *rcblock).
       case tok_is_polymorphic:          bok = bok_is_polymorphic; break;
       case tok_is_union:                bok = bok_is_union; break;
       case tok_is_trivial:              bok = bok_is_trivial; break;
+      case tok_is_standard_layout:      bok = bok_is_standard_layout; break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -20831,6 +20832,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_polymorphic:
     case tok_is_union:
     case tok_is_trivial:
+    case tok_is_standard_layout:
     case tok_dynamic_cast:
     case tok_const_cast:
     case tok_static_cast:
@@ -24323,6 +24325,7 @@ see expr.h).
     case tok_is_polymorphic:
     case tok_is_union:
     case tok_is_trivial:
+    case tok_is_standard_layout:
       /* Various single-type unary traits helpers. */
       scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);

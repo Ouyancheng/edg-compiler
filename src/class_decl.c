@@ -6281,11 +6281,15 @@ to FALSE before returning).
   if (is_virtual ||
       bcp_type->variant.class_struct_union.any_virtual_base_classes) {
     class_type->variant.class_struct_union.any_virtual_base_classes = TRUE;
+    cssp->standard_layout = FALSE;
   }  /* if */
   if (bcp_type->variant.class_struct_union
                            .any_virtual_functions_including_in_base_classes) {
     class_type->variant.class_struct_union
                       .any_virtual_functions_including_in_base_classes = TRUE;
+  }  /* if */
+  if (!bcp_cssp->standard_layout) {
+    cssp->standard_layout = FALSE;
   }  /* if */
   if (bcp_type->variant.class_struct_union.any_volatile_member) {
     class_type->variant.class_struct_union.any_volatile_member = TRUE;
@@ -13342,6 +13346,8 @@ be entered.
   /* Check validity of __declspec. */
   check_declspec_for_field(decl_info, locator, class_type, member_type);
 #endif /* DECL_MODIFIERS_IN_USE */
+  member_element_type = is_array_type(member_type) ?
+                     underlying_array_element_type(member_type) : member_type;
   /* Remember if any member of the class, struct, or union is const-
      qualified, including recursively the members of any contained
      classes, structs, or unions.  This is useful for determination of
@@ -13349,8 +13355,6 @@ be entered.
      from C99 and C++ in this regard: C89 does not consider the qualification
      of array element types (though it does consider the qualification of
      members of those element types). */
-  member_element_type = is_array_type(member_type) ?
-                     underlying_array_element_type(member_type) : member_type;
   { a_type_ptr  type_to_check = (!C_mode() || (c99_mode && strict_ansi_mode)) ?
                                    member_element_type : member_type;
     if (is_const_qualified_type(type_to_check) ||
@@ -13365,6 +13369,11 @@ be entered.
       }  /* if */
     }  /* if */
   }
+  if (cssp->standard_layout &&
+      is_class_struct_union_type(member_element_type)) {
+    cssp->standard_layout =
+            symbol_supplement_for_class(member_element_type)->standard_layout;
+  }  /* if */
   /* Note if any member (or member of a member, recursively) has a
      volatile-qualified type, to handle side effects and warnings
      correctly. */
@@ -18767,6 +18776,65 @@ and a default-indexed property.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void wrapup_standard_layout_flag(a_type_ptr  class_type)
+/*
+Determine the final value of the "standard_layout" flag in the symbol
+supplement for the given class type.  This routine can only change the flag
+from TRUE to FALSE.
+*/
+{
+  a_symbol_ptr      class_sym = symbol_for(class_type);
+  a_class_symbol_supplement_ptr
+                    cssp = class_sym->variant.class_struct_union.extra_info;
+
+  if (class_type->variant.class_struct_union
+                           .any_virtual_functions_including_in_base_classes) {
+    cssp->standard_layout = FALSE;
+  }  /* if */
+  if (cssp->standard_layout &&
+      !class_type->variant.class_struct_union.is_prototype_instantiation) {
+    a_base_class_ptr  bcp = base_classes_of(class_type), bcp_with_data = NULL;
+    a_field_ptr       first_field = 
+                            class_type->variant.class_struct_union.field_list;
+    for (; bcp != NULL; bcp = bcp->next) {
+      a_class_symbol_supplement_ptr  bcssp = symbol_for(bcp->type)
+                                      ->variant.class_struct_union.extra_info;
+      if (bcssp->any_nonstatic_data_members) {
+        if (first_field != NULL || bcp_with_data != NULL) {
+          /* If the derivation includes nonstatic data members, a base class
+             cannot.  Otherwise, at most one base class can do so. */
+          cssp->standard_layout = FALSE;
+          break;
+        } else {
+          bcp_with_data = bcp;
+        }  /* if */
+      }  /* if */
+      if (first_field != NULL) {
+        /* The first field of a standard layout type cannot have the same type
+           as a base class. */
+        a_type_ptr  etype = skip_array_types(first_field->type);
+        if (identical_types(bcp->type, etype)) {
+          cssp->standard_layout = FALSE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (first_field != NULL) {
+      /* All fields of a standard layout type must be declared with the same
+         access. */
+      an_access_specifier  access = first_field->source_corresp.access;
+      a_field_ptr          fp = first_field->next;
+      for (; fp != NULL; fp = fp->next) {
+        if (fp->source_corresp.access != access) {
+          cssp->standard_layout = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* wrapup_standard_layout_flag */
+
+
 static void complete_class_definition(a_type_ptr         class_type,
                                       a_scope_depth      effective_decl_level,
                                       a_class_def_state  *class_state)
@@ -18919,6 +18987,8 @@ bits of information that were acquired while parsing.
     /* Check for missing or erroneous uses of the "hiding" attribute and
        for incomplete overriding of virtual functions. */
     check_base_member_hiding(class_state);
+    /* Add final checks for the "standard_layout" flag. */
+    wrapup_standard_layout_flag(class_type);
   }  /* if */
   error_position = saved_error_position;
 }  /* complete_class_definition */

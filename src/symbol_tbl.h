@@ -1173,6 +1173,9 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE if this class has a field with an attribute
 			   whose must_be_preserved_in_trans_unit_copy flag is
 			   TRUE. */
+  a_bit_field	standard_layout:1;
+			/* TRUE if this is a "standard layout" class as
+			   defined by C++0x. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block
 		pointers_block;

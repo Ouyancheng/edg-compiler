@@ -6517,7 +6517,8 @@ constant will be set as well.
     a_symbol_ptr              sym = NULL;
     a_class_symbol_supplement_ptr
                               cssp = NULL;
-    if (kind == (a_builtin_operation_kind)bok_is_trivial) {
+    if (kind == (a_builtin_operation_kind)bok_is_trivial ||
+        kind == (a_builtin_operation_kind)bok_is_standard_layout) {
       type = skip_array_types(type);
     }  /* if */
     type = skip_typerefs(type);
@@ -6557,6 +6558,7 @@ constant will be set as well.
           result = is_immediate_enum_type(type);
           break;
         case bok_is_trivial:
+        case bok_is_standard_layout:
           result = is_object_type(type);
           break;
         default:
@@ -6779,6 +6781,10 @@ constant will be set as well.
                  cssp->construction_by_bitwise_copy_allowed &&
                  cssp->assignment_by_bitwise_copy_allowed;
         break;
+      case bok_is_standard_layout:
+        check_assertion(cssp != NULL);  /* For Coverity. */
+        result = cssp->standard_layout;
+        break;
       default:
         unexpected_condition();
     }  /* if */
@@ -6907,6 +6913,7 @@ constant is set as well.
       case bok_is_pod:
       case bok_is_polymorphic:
       case bok_is_trivial:
+      case bok_is_standard_layout:
         /* Various type trait helpers that require their single argument to be
            a complete class type. */
         fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,

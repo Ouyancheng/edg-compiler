@@ -1082,6 +1082,7 @@ typedef enum /*a_token_kind*/ {
   tok_is_polymorphic,
   tok_is_union,
   tok_is_trivial,
+  tok_is_standard_layout,
   tok_nullptr,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_native_nullptr,
@@ -1194,6 +1195,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__is_polymorphic",
    "__is_union",
    "__is_trivial",
+   "__is_standard_layout",
    "nullptr",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__nullptr",
@@ -12809,7 +12811,9 @@ typedef enum a_builtin_operation_kind_tag {
   bok_intaddr,		/* EDG extension __INTADDR__ (used for offsetof).
 			   Effectively, a cast from address constant to
 			   size_t. */
-  bok_is_trivial,	/* __it_trivial. One operand: A type. */
+  bok_is_trivial,	/* __is_trivial. One operand: A type. */
+  bok_is_standard_layout,
+			/* __is_standard_layout. One operand: A type. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
@@ -15795,6 +15799,7 @@ EXTERN char     *builtin_operation_names[(int)bok_last+1]
   "__builtin_types_compatible",
   "__INTADDR__",
   "__is_trivial",
+  "__is_standard_layout",
   "last"
 }
 #endif /* VAR_INITIALIZERS */

@@ -332,6 +332,7 @@ modes.
   enter_keyword((a_token_kind)tok_is_polymorphic, "__is_polymorphic");
   enter_keyword((a_token_kind)tok_is_union, "__is_union");
   enter_keyword((a_token_kind)tok_is_trivial, "__is_trivial");
+  enter_keyword((a_token_kind)tok_is_standard_layout, "__is_standard_layout");
 }  /* enter_type_traits_helpers */
 
 
