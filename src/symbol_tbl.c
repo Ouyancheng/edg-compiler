@@ -11932,7 +11932,7 @@ is_pack_element is TRUE if the parameter is a pack element.
      only diagnosed in function definitions).  Create a param_id entry if this
      is a prototype parameter list, but not otherwise. */
   if (!is_error_locator(*locator)) {
-    if (is_pack_element && is_non_initial_variadic_param()) {
+    if (is_pack_element && is_non_initial_variadic_element()) {
       /* Only the first copy of a element of a variadic parameter is entered
          into the symbol table. */
       non_initial_variadic_param = TRUE;
@@ -11975,7 +11975,7 @@ is_pack_element is TRUE if the parameter is a pack element.
            prototype scope.  It will later be copied to the function scope
            when it is changed to sk_variable. */
         if (non_initial_variadic_param) {
-          /* Non-initial variadic parameter are not entered into the symbol
+          /* Non-initial variadic parameters are not entered into the symbol
              table. */
           sym = create_symbol_for_non_initial_variadic_param(locator);
         } else {

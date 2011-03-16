@@ -271,7 +271,7 @@ typedef struct a_pack_reference {
   a_symbol_ptr	symbol;
 			/* The symbol of the pack that was referenced.  For
 			   references to function parameter packs (i.e., when
-			   the symbol points to a variable, this variable
+			   the symbol points to a variable), this variable
 			   pointer is cleared when the end of the prototype
 			   instantiation of the function is reached
 			   because the variable pointed to will be in the
@@ -382,7 +382,7 @@ typedef struct a_pack_expansion_descr {
   a_byte_boolean
 		ellipsis_seen;
 			/* TRUE if the ellipsis marking a pack expansion
-			   as been encountered.  This is primarily used for
+			   has been encountered.  This is primarily used for
 			   the declarator case where the "..." is not
 			   necessarily at the end. */
   a_byte_boolean
@@ -1833,7 +1833,7 @@ extern a_pack_expansion_descr_ptr end_potential_pack_expansion_context(
 extern void suppress_expansion_with_no_packs_diagnostic(
 			a_pack_expansion_stack_entry_ptr	pesep);
 
-extern a_boolean is_non_initial_variadic_param(void);
+extern a_boolean is_non_initial_variadic_element(void);
 
 extern
 a_boolean advance_to_next_pack_element(a_pack_expansion_stack_entry_ptr	pesep);

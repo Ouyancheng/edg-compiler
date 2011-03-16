@@ -4415,7 +4415,7 @@ extern void clear_func_info(a_func_info_block *func_info);
 /*
 Free any param_id entries that may have been allocated for the given
 func_info block.  This is suppressed for variadic template definition
-contexts because those param_ids might be reference by pack expansion
+contexts because those param_ids might be referenced by pack expansion
 descriptions.
 */
 #define done_with_func_info(func_info)					\

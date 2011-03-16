@@ -7818,7 +7818,7 @@ End a name scope by popping an entry off the scope stack.
   }  /* if */
   if (ssep->template_decl_info != NULL &&
       ssep->template_decl_info->pack_expansions != NULL) {
-    /* The variable entries for in pack expansions are cleared to prevent
+    /* The variable entries in pack expansions are cleared to prevent
        references to freed memory regions. */
     clear_pack_expansion_variables(ssep);
   }  /* if */
@@ -8936,9 +8936,9 @@ determine whether we are entering a pack expansion context.
 }  /* get_pack_expansion_for_curr_context */
 
 
-a_boolean is_non_initial_variadic_param(void)
+a_boolean is_non_initial_variadic_element(void)
 /*
-Return TRUE if we are currently in the 2nd through Nth expansion of
+Return TRUE if we are currently in the 2nd through Nth element of
 the current pack.
 */
 {
@@ -8952,7 +8952,7 @@ the current pack.
     }  /* if */
   }  /* if */
   return result;
-}  /* is_non_initial_variadic_param */
+}  /* is_non_initial_variadic_element */
 
 
 static void get_curr_template_params_and_args(
@@ -9530,7 +9530,7 @@ current template argument value for the pack specified by tpp.  Go through
 the pack references for the current expansion and look for one that
 matches tpp.  Return the current template argument value for that parameter.
 is_rescan is TRUE if this is called from a rescan/substitution context.
-n deduction contexts, if there is no current argument, create one.
+In deduction contexts, if there is no current argument, create one.
 */
 {
   a_pack_reference_ptr			param_prp = NULL;
@@ -9909,7 +9909,7 @@ entry and returns a pointer to that entry in *p_pesep.
   check_assertion(pedp != NULL);
   if (*templ_arg_list == NULL) {
     /* The template argument list does not exist yet.  Create an argument
-       list with out any values filled in. */
+       list without any values filled in. */
     *templ_arg_list = create_initial_template_arg_list(
 				templ_param_list, (a_template_arg_ptr)NULL,
                                 (a_source_position*)NULL);
@@ -9973,7 +9973,7 @@ static void record_pack_expansion(a_pack_expansion_descr_ptr	pedp)
 /*
 We have reached the end of a potential pack expansion context and
 there were parameter packs referenced.  Save the information needed
-to expand the pack in real instantiation.
+to expand the pack in a real instantiation.
 */
 {
   a_template_decl_info_ptr	tdip;
@@ -10158,10 +10158,10 @@ effect and returns NULL.
      /* Get the pack references for this context from the scope stack.  This
         is only done if the we have seen an ellipsis or if we know there
         is no enclosing expansion. */
-     if (pedp->ellipsis_seen || pesep->next == NULL) {
-       extract_pack_references_for_context(pedp);
-     }  /* if */
-     if (pedp->packs_referenced != NULL) {
+      if (pedp->ellipsis_seen || pesep->next == NULL) {
+        extract_pack_references_for_context(pedp);
+      }  /* if */
+      if (pedp->packs_referenced != NULL) {
         if (pedp->ellipsis_seen) {
           /* There were expanded packs referenced and expanded.  This is a
              pack expansion. */
@@ -10321,7 +10321,7 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
 void abandon_potential_pack_expansion_context(
 				a_pack_expansion_stack_entry_ptr	pesep)
 /*
-A call was been made to begin_potential_pack_expansion_context, but we
+A call has been made to begin_potential_pack_expansion_context, but we
 have encountered something that caused us to discard this context, so the
 pack expansion stack must be popped.
 */
@@ -10366,9 +10366,9 @@ This routine is called to determine whether pack_symbol is a reference
 to a parameter pack, and if so, make a record that the particular
 parameter pack has been referenced in the current variadic context.
 The symbol passed in can be of any kind (but, an actual pack can only
-be a template parameter symbol for a template parameter pack, or a variable
-symbol for the parameter variable for a function parameter pack).  The
-source position of the use of the symbols is indicated by position.
+be a template parameter symbol for a template parameter pack, or a
+parameter or variable symbol for the parameter of a function parameter pack).
+The source position of the use of the symbol is indicated by position.
 */
 {
   /* It is only possible to reference a pack expansion in a template

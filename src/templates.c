@@ -7248,7 +7248,7 @@ partial specialization.
   }  /* for */
   if (pesep != NULL) {
     /* If this is a pack deduction, indicate we have reached the end of
-       the deduction this parameter. */
+       the deduction of this parameter. */
     end_pack_deduction_context(pesep);
     /* Set templ_tap to NULL to indicate that we reached the end of the
        list. */
@@ -9314,17 +9314,18 @@ a pointer over a reference type or creating an array of references.
           /* Because we check for a dependent return type above, we should
              not end up with a different substituted type here. */
           a_type_ptr	orig_type = skip_typedefs(new_return_type);
-          new_return_type = copy_return_type_with_substitution(
+          a_type_ptr	test_type;
+          test_type = copy_return_type_with_substitution(
                                         new_return_type,
                                         templ_arg_list, templ_param_list,
                                         source_pos, options, copy_error,
                                         ctws_state);
-          if (!identical_types(new_return_type, orig_type) &&
-              !is_or_contains_error_type(new_return_type)) {
+          if (!identical_types(test_type, orig_type) &&
+              !is_or_contains_error_type(test_type)) {
             fprintf(f_debug, "orig_type: ");
             db_type(orig_type);
-            fprintf(f_debug, "new_return_type: ");
-            db_type(new_return_type);
+            fprintf(f_debug, "\nsubstituted return type: ");
+            db_type(test_type);
             unexpected_condition_str2("copy_type_with_substitution:",
                                       "unexpected difference in return type");
           }  /* if */
@@ -9806,7 +9807,7 @@ during wrapup processing by compare_function_templates.
     *new_arg_list = templ_arg_list;
     if (tssp->is_variadic) {
       /* This is a preliminary substitution.   Keep any deduced packs for which
-         way may not yet have arguments. */
+         we may not yet have arguments. */
       ctws_options |= CTWS_PRESERVE_DEDUCED_PACKS;
     }  /* if */
   }  /* if */
@@ -11423,7 +11424,7 @@ matching process.
          tip = tip->next) {
       a_routine_ptr			rout;
       an_equiv_templ_arg_options_set	eta_options;
-    /* We used to skip entries that represent specific declarations.
+      /* We used to skip entries that represent specific declarations.
          This is no longer done because these entries must be examined this
          routine is called during instantiation pragma processing. */
       sym = tip->instance_sym;
@@ -15707,7 +15708,7 @@ parameter entry for the parameter.
     a_boolean      ignore_default = FALSE;
     /* Scan the default value for a type argument. */
     if (is_pack) {
-      /* A parameter pack cannot have default argument.  Issue an error and
+      /* A parameter pack cannot have a default argument.  Issue an error and
          ignore the default. */
       pos_error(ec_param_pack_cannot_have_default, &pos_curr_token);
       ignore_default = TRUE;
@@ -15839,7 +15840,7 @@ parameter depends on a template parameter.
     a_token_cache	def_arg_cache;
     a_boolean		ignore_default = FALSE;
     if (is_pack) {
-      /* A parameter pack cannot have default argument.  Issue an error and
+      /* A parameter pack cannot have a default argument.  Issue an error and
          ignore the default. */
       pos_error(ec_param_pack_cannot_have_default, &pos_curr_token);
       ignore_default = TRUE;
@@ -16065,7 +16066,7 @@ depends on a another template parameter.
     a_boolean				ignore_default = FALSE;
     /* Scan the default value for a type argument. */
     if (is_pack) {
-      /* A parameter pack cannot have default argument.  Issue an error and
+      /* A parameter pack cannot have a default argument.  Issue an error and
          ignore the default. */
       pos_error(ec_param_pack_cannot_have_default, &pos_curr_token);
       ignore_default = TRUE;
