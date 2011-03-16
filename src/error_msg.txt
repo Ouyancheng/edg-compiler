@@ -1965,7 +1965,7 @@ ec_cl_cppcli_only_in_microsoft_cplusplus;;"C++/CLI can be enabled only in Micros
 ec_reserved_enumerator_name;;"\"value__\" cannot be used as the name of an enumerator constant (it is a reserved name in this context)"
 ec_cppcli_enumerator_requires_explicit_value;;"an explicit enumerator value is required in an enumeration type with boolean underlying type"
 ec_wchar_t_type_not_allowed;;"wchar_t type is not allowed"
-ec_pack_not_expanded;;"parameter pack %no was referenced but not expanded"
+ec_pack_not_expanded;;"parameter pack %sq was referenced but not expanded"
 ec_expansion_contains_no_packs;;"pack expansion does not make use of any argument packs"
 ec_pack_length_mismatch;;"pack %sq does not have the same number of elements as %sq2"
 REMOVED;ec_pack_not_at_end;;"parameter pack must be the final parameter"

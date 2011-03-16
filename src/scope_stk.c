@@ -10096,7 +10096,8 @@ by prp.
 */
 {
   for (; prp != NULL; prp = prp->next) {
-    pos_sy_error(ec_pack_not_expanded, &prp->position, prp->symbol);
+    pos_st_error(ec_pack_not_expanded, &prp->position,
+                 prp->symbol->header->identifier);
   }  /* for */
 }  /* issue_pack_not_expanded_diagnostics */
 
