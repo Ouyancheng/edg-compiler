@@ -2878,7 +2878,7 @@ on tsn if non-zero.
 
   /* Get the template declaration information entry associated with the
      current context. */
-  tdip = get_current_template_decl_info();
+  tdip = get_specified_template_decl_info(/*innermost=*/TRUE);
 #if DEBUG
   if (db_flag_is_set("nondep_call")) {
     fprintf(f_debug, "Recording nondependent call at %ld ", (long)tsn);

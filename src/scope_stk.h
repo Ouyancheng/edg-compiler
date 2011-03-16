@@ -338,6 +338,12 @@ typedef struct a_pack_reference {
 			   parameter pack.  Initially, this points to the
 			   placeholder.  Later it points to the last of the
 			   arguments deduced so far. */
+  a_byte_boolean
+		uses_enclosing_pack;
+			/* TRUE if this is a reference to a pack from an
+			   enclosing template context.  This is the case
+			   when, for example, a template parameter from
+			   an outer template is used in a nested template. */
 } a_pack_reference;
 
 
@@ -368,22 +374,29 @@ typedef struct a_pack_expansion_descr {
 			   expansion.  This will include template parameter
 			   symbols for template parameter packs as well as
 			   variable symbols for function parameter packs. */
-  a_boolean	ellipsis_seen;
-			/* TRUE if the ellipsis marking a pack expansion
-			   as been encountered.  This is primarily used for
-			   the declarator case where the "..." is not
-			   necessarily at the end. */
   a_source_position
 		ellipsis_position;
 			/* If ellipsis_seen is TRUE, this is the position of
 			   the ellipsis token; null_source_position
 			   otherwise. */
-  a_boolean	is_function_declarator;
+  a_byte_boolean
+		ellipsis_seen;
+			/* TRUE if the ellipsis marking a pack expansion
+			   as been encountered.  This is primarily used for
+			   the declarator case where the "..." is not
+			   necessarily at the end. */
+  a_byte_boolean
+		is_function_declarator;
 			/* This field is used by declarator processing to
 			   save the disambiguation result between a function
 			   declarator and a parenthesized initializer so that
 			   during an actual instantiation the zero-trip case
 			   can be handled properly. */
+  a_byte_boolean
+		uses_only_enclosing_packs;
+			/* TRUE if all of the pack references are to packs
+			   from enclosing templates.  These must be expanded
+			   during the declaration of a nested template. */
 } a_pack_expansion_descr;
 
 
@@ -1768,9 +1781,10 @@ void wrapup_scope(a_scope_ptr			scope_ptr,
 
 extern a_type_ptr get_curr_variadic_param_type(an_expr_node_ptr	expr);
 
-extern a_template_decl_info_ptr get_current_template_decl_info(void);
-
 extern
+a_template_decl_info_ptr get_specified_template_decl_info(
+					a_boolean	innermost);
+
 a_template_arg_ptr get_curr_variadic_arg_for_param(
 					a_template_param_ptr	tpp,
 					a_boolean		is_rescan);

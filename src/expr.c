@@ -8387,8 +8387,12 @@ indication in *rcblock).
             /* Record a reference against the identifier. */
             (void)ref_entry(sym, &pos_curr_token);
           }  /* if */
+          /* When the instantiation_descr is non-NULL this is a nondependent
+             expansion occurring in a prototype instantiation context
+             (for example a template declaration inside a real instantiation
+             of a class). */
           if (is_prototype_instantiation_context() &&
-              is_variadic_template_context()) {
+              pesep != NULL && pesep->instantiation_descr == NULL) {
             /* Check that the identifier is a parameter pack name. */
             if (!symbol_is_pack(sym)) {
               expr_pos_error(ec_sizeof_operand_not_parameter_pack,
@@ -8460,9 +8464,11 @@ indication in *rcblock).
   if (err) {
     /* Some previous error. */
     make_error_operand(result);
-  } else if (rcblock == NULL && is_prototype_instantiation_context()) {
+  } else if (rcblock == NULL && pedep != NULL &&
+             is_prototype_instantiation_context()) {
     /* For the prototype instantiation, return an enk_sizeof_pack
-       expression as a template constant. */
+       expression as a template constant.  When pedep is NULL, this is
+       a nondependent expansion in a prototype instantiation context. */
     an_expr_node_ptr expr =alloc_expr_node((an_expr_node_kind)enk_sizeof_pack);
     expr->type = integer_type(targ_size_t_int_kind);
     if (is_type_symbol(sym)) {

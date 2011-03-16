@@ -1765,6 +1765,11 @@ typedef struct a_reusable_cache_entry {
 			   template rescan, this is the number of variadic
 			   rescans in use.  This prevents the cache from
 			   being popped during error recovery. */
+  a_byte_boolean
+		skip_terminator;
+			/* TRUE if the tok_end_of_source terminator on the
+			   cache should be bypassed instead of being
+			   returned. */
 } a_reusable_cache_entry;
 
 		
@@ -1812,6 +1817,8 @@ extern a_token_kind get_token_to_be_cached(void);
 extern void rescan_cached_tokens(a_token_cache *cache);
 /* Push a reusable cache on to the reusable cache stack. */
 extern void rescan_reusable_cache(a_token_cache *cache);
+extern void rescan_reusable_cache_full(a_token_cache	*cache,
+				       a_boolean	skip_terminator);
 /* Rescan a copy of a token cache. */
 extern void rescan_copy_of_cache(a_token_cache *cache);
 

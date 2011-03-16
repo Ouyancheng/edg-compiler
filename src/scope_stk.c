@@ -8535,7 +8535,7 @@ is called only in C++.
 }  /* pop_class_reactivation_scope */
 
 
-static a_scope_stack_entry_ptr get_current_template_dependent_context(void)
+static a_scope_stack_entry_ptr get_innermost_template_dependent_context(void)
 /*
 Return the scope stack entry for the innermost template declaration
 scope or template instantiation scope for a prototype instantiation.
@@ -8557,26 +8557,66 @@ scope or template instantiation scope for a prototype instantiation.
   check_assertion(depth_to_use != NO_SCOPE_DEPTH);
   ssep = &scope_stack[depth_to_use];
   return ssep;
-}  /* get_current_template_dependent_context */
+}  /* get_innermost_template_dependent_context */
 
 
-a_template_decl_info_ptr get_current_template_decl_info(void)
+static a_scope_stack_entry_ptr get_outermost_template_dependent_context(void)
+/*
+Return the scope stack entry for the outermost template declaration
+scope or template instantiation scope for a prototype instantiation.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_scope_depth			depth_to_use;
+
+  /* Find the outermost of the innermost template declaration or
+     template instantiation scope. */
+  depth_to_use = depth_innermost_instantiation_scope;
+  if (depth_to_use < depth_template_declaration_scope) {
+    depth_to_use = depth_template_declaration_scope;
+  }  /* if */
+  /* Loop outward looking for the outermost template declaration or
+     prototype instantiation scope. */
+  for (ssep = scope_stack_entry_for(depth_to_use); ssep != NULL;
+       ssep = previous_scope_of(ssep)) {
+    if (ssep->kind == (a_scope_kind)sck_template_declaration ||
+        (ssep->kind == (a_scope_kind)sck_template_instantiation &&
+         ssep->in_prototype_instantiation)) {
+      depth_to_use = scope_depth_of(ssep);
+    }  /* if */
+  }  /* for */
+  ssep = &scope_stack[depth_to_use];
+  /* A template instantiation scope must be for a prototype instantiation. */
+  check_assertion(depth_to_use != NO_SCOPE_DEPTH);
+  check_assertion(ssep->kind == (a_scope_kind)sck_template_declaration ||
+                  ssep->in_prototype_instantiation);
+  return ssep;
+}  /* get_outermost_template_dependent_context */
+
+
+a_template_decl_info_ptr get_specified_template_decl_info(
+					a_boolean	innermost)
 /*
 Return a pointer to the template declaration information entry associated
-with the innermost template instantiation or template declaration scope.
+with the either the innermost (when innermost is TRUE) or outermost (when
+innermost is FALSE) template instantiation or template declaration scope.
 Note that such a scope is required to exist when this routine is called.
 */
 {
   a_scope_stack_entry_ptr	ssep;
   a_template_decl_info_ptr	tdip;
 
-  /* Get the innermost template declaration or template instantiation
-     scope for a prototype instantiation. */
-  ssep = get_current_template_dependent_context();
+  /* Get the template declaration or template instantiation scope for a
+     prototype instantiation. */
+  if (innermost) {
+    ssep = get_innermost_template_dependent_context();
+  } else {
+    ssep = get_outermost_template_dependent_context();
+  }  /* if */
   tdip = ssep->template_decl_info;
   check_assertion(tdip != NULL);
   return tdip;
-}  /* get_current_template_decl_info */
+}  /* get_specified_template_decl_info */
 
 
 static a_pack_reference_ptr alloc_pack_reference(a_pack_reference_kind	kind)
@@ -8620,6 +8660,7 @@ in such cases.
       break;
   }  /* switch */
   prp->prev_template_arg = NULL;
+  prp->uses_enclosing_pack = FALSE;
   return prp;
 }  /* alloc_pack_reference */
 
@@ -8667,9 +8708,10 @@ to it.
   pedp->first_token = NO_TOKEN_SEQUENCE_NUMBER;
   pedp->last_token = NO_TOKEN_SEQUENCE_NUMBER;
   pedp->packs_referenced = NULL;
-  pedp->ellipsis_seen = FALSE;
   pedp->ellipsis_position = null_source_position;
+  pedp->ellipsis_seen = FALSE;
   pedp->is_function_declarator = FALSE;
+  pedp->uses_only_enclosing_packs = FALSE;
   return pedp;
 }  /* alloc_pack_expansion_descr */
 
@@ -8810,7 +8852,7 @@ Display the tokens that make up a pack expansion, for debugging purposes.
   a_token_cache_ptr		result_cache = NULL;
 
   if (is_prototype_instantiation_context()) {
-    ssep = get_current_template_dependent_context();
+    ssep = get_innermost_template_dependent_context();
   } else {
     ssep = scope_stack_entry_for(depth_innermost_instantiation_scope);
     check_assertion(ssep != NULL);
@@ -8861,19 +8903,24 @@ determine whether we are entering a pack expansion context.
   a_pack_expansion_descr_ptr	pedp;
   a_scope_stack_entry_ptr	ssep;
 
-  ssep = &scope_stack[depth_innermost_instantiation_scope];
-  pedp = ssep->last_pack_expansion_used;
-  /* Move forward or backward in the list of pack expansions to attempt to
-     find one that matches the current token sequence number. */
-  for (; pedp != NULL && pedp->first_token < curr_token_sequence_number;
-       pedp = pedp->next) {}
-  for (; pedp != NULL && pedp->first_token > curr_token_sequence_number;
-       pedp = pedp->previous) {}
-  if (pedp != NULL && pedp->first_token == curr_token_sequence_number) {
-    /* Record the most recent pack used. */
-    ssep->last_pack_expansion_used = pedp;
-    result_pedp = pedp;
-  }  /* if */
+  for (ssep = scope_stack_entry_for(depth_innermost_instantiation_scope);
+       ssep != NULL; ssep = previous_scope_of(ssep)) {
+    if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
+      pedp = ssep->last_pack_expansion_used;
+      /* Move forward or backward in the list of pack expansions to attempt to
+         find one that matches the current token sequence number. */
+      for (; pedp != NULL && pedp->first_token < curr_token_sequence_number;
+           pedp = pedp->next) {}
+      for (; pedp != NULL && pedp->first_token > curr_token_sequence_number;
+           pedp = pedp->previous) {}
+      if (pedp != NULL && pedp->first_token == curr_token_sequence_number) {
+        /* Record the most recent pack used. */
+        ssep->last_pack_expansion_used = pedp;
+        result_pedp = pedp;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
 #if DEBUG
   if (db_flag_is_set("packs")) {
     fprintf(f_debug, "Looking for pack expansion at TSN %ld\n",
@@ -9722,19 +9769,14 @@ will be responsible for the end... and advance... calls.
     pesep = pack_expansion_stack;
     pedp = pesep->expansion_descr;
     any_args = TRUE;
-  } else if (is_prototype_instantiation_context()) {
-    any_args = TRUE;
-    pesep = push_pack_expansion_stack();
-    /* Allocate an expansion descriptor for this stack entry. */
-    pesep->expansion_descr = alloc_pack_expansion_descr();
-    /* Save the start of the token range for the pack. */
-    pesep->expansion_descr->first_token = curr_token_sequence_number;
-    if (is_lookahead) pesep->is_lookahead = TRUE;
-    pedp = pesep->expansion_descr;
-  } else if (is_real_instantiation_context()) {
+  } else if (is_real_instantiation_context() &&
+             (pedp = get_pack_expansion_for_curr_context()) != NULL &&
+              (pedp->uses_only_enclosing_packs ||
+               !is_prototype_instantiation_context())) {
     /* This is a real instantiation.  See if there is a corresponding
-       parameter pack from the template definition. */
-    pedp = get_pack_expansion_for_curr_context();
+       parameter pack from the template definition.  In a prototype
+       instantiation context we want to treat this as a real instantiation
+       if it uses only enclosing packs. */
     if (pedp != NULL) {
       /* Get the template parameter list and template argument associated with
          the current instantiation. */
@@ -9761,7 +9803,16 @@ will be responsible for the end... and advance... calls.
         decrement_variadic_rescans_for_reusable_cache();
       }  /* if */
     }  /* if */
-    any_args = pedp == NULL || pesep != NULL;
+    any_args = pesep != NULL;
+  } else if (is_prototype_instantiation_context()) {
+    any_args = TRUE;
+    pesep = push_pack_expansion_stack();
+    /* Allocate an expansion descriptor for this stack entry. */
+    pesep->expansion_descr = alloc_pack_expansion_descr();
+    /* Save the start of the token range for the pack. */
+    pesep->expansion_descr->first_token = curr_token_sequence_number;
+    if (is_lookahead) pesep->is_lookahead = TRUE;
+    pedp = pesep->expansion_descr;
   } else {
     /* Some other context -- assumed to have a single nonvariadic argument. */
     any_args = TRUE;
@@ -9931,7 +9982,7 @@ to expand the pack in real instantiation.
 #endif /* DEBUG */
   /* Get the template declaration information entry associated with the
      current context. */
-  tdip = get_current_template_decl_info();
+  tdip = get_specified_template_decl_info(/*innermost=*/FALSE);
   /* Insert the new entry to preserve a list sorted by starting token
      sequence number. */
   {
@@ -9969,7 +10020,10 @@ that list to pedp.
   a_pack_reference_ptr		last_prp;
   a_pack_reference_ptr		prp;
 
-  ssep = get_current_template_dependent_context();
+  /* Set this to TRUE now -- it will be cleared later if we extract a
+     reference to a non-enclosing pack. */
+  pedp->uses_only_enclosing_packs = TRUE;
+  ssep = get_outermost_template_dependent_context();
   p_first_prp = &ssep->packs_referenced;
   /* Find the first pack reference, if any, of the expansion range. */
   for (prp = ssep->packs_referenced; prp != NULL; prp = prp->next) {
@@ -9997,6 +10051,10 @@ that list to pedp.
         for (prp1 = pedp->packs_referenced; prp1 != NULL; prp1 = prp1->next) {
           a_pack_reference_ptr	prp2;
           a_pack_reference_ptr	prev_prp2 = prp1;
+          if (!prp1->uses_enclosing_pack) {
+            /* Record that this expansion uses a non-enclosing pack. */
+            pedp->uses_only_enclosing_packs = FALSE;
+          }  /* if */
           for (prp2 = prp1->next; prp2 != NULL; prp2 = prp2->next) {
             if (prp1->symbol == prp2->symbol) {
               /* Remove the redundant symbol. */
@@ -10088,9 +10146,7 @@ effect and returns NULL.
       /* Record the fact that the "..." has been seen. */
       record_pack_expansion_ellipsis();
     }  /* if */ 
-    if (is_prototype_instantiation_context()) {
-      /* The pack expansion descriptor passed in should be on top of the
-         stack. */
+    if (pesep->instantiation_descr == NULL) {
       /* Save the end of the token range for the pack. */
      pedp->last_token = curr_token_sequence_number;
      /* Get the pack references for this context from the scope stack.  This
@@ -10112,7 +10168,8 @@ effect and returns NULL.
            no packs were encountered. */
         if (pedp->ellipsis_seen &&
             !pesep->expansion_with_no_packs_diagnostic_issued) {
-          pos_error(ec_expansion_contains_no_packs, &pedp->ellipsis_position);
+          pos_error(ec_expansion_contains_no_packs,
+                    &pedp->ellipsis_position);
         }  /* if */
         /* Free the expansion descriptor entry. */
         free_pack_expansion_descr(pedp);
@@ -10288,7 +10345,7 @@ references and we are in a template definition context.
     result = pesep->expansion_descr->packs_referenced != NULL;
     if (!result && is_prototype_instantiation_context()) {
       a_scope_stack_entry_ptr	ssep;
-      ssep = get_current_template_dependent_context();
+      ssep = get_outermost_template_dependent_context();
       result = ssep->packs_referenced != NULL;
     }  /* if */
   }  /* if */
@@ -10330,7 +10387,7 @@ source position of the use of the symbols is indicated by position.
         pack_symbol = symbol_for(tp);
         check_assertion(pack_symbol != NULL);
       }  /* if */
-      ssep = get_current_template_dependent_context();
+      ssep = get_outermost_template_dependent_context();
       p_prp = &ssep->packs_referenced;
       /* Look for an existing expansion of this symbol at this location. */
       for (prp = ssep->packs_referenced; prp != NULL;
@@ -10358,6 +10415,16 @@ source position of the use of the symbols is indicated by position.
                             variant.variable.ptr->assoc_param_type->param_num;
         } else if (kind == prk_parameter) {
           prp->param_num = pack_symbol->variant.param_id->param_num;
+        } else {
+          /* Determine whether the template parameter referenced is from
+             an enclosing pack. */
+          a_scope_depth	depth = depth_innermost_instantiation_scope;
+          if (depth < depth_template_declaration_scope) {
+            depth = depth_template_declaration_scope;
+          }  /* if */
+          check_assertion(depth != NO_SCOPE_DEPTH);
+          prp->uses_enclosing_pack = pack_symbol->decl_scope !=
+                                                     scope_stack[depth].number;
         }  /* if */
         prp->position = *position;
         prp->token_sequence_number = curr_token_sequence_number;
@@ -10386,7 +10453,10 @@ end_potential_pack_expansion_context).
     if (pack_expansion_stack == NULL) {
       pos_error(ec_expansion_contains_no_packs, &pos_curr_token);
     } else {
-      if (!pack_expansion_stack->is_suppression) {
+      /* The instantiation_descr will be non-NULL for nondependent pack
+         expansions in prototype instantiation contexts. */
+      if (!pack_expansion_stack->is_suppression &&
+          pack_expansion_stack->instantiation_descr == NULL) {
         a_pack_expansion_descr_ptr	pedp;
         pedp = pack_expansion_stack->expansion_descr;
         pedp->ellipsis_seen = TRUE;

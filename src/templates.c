@@ -15243,13 +15243,11 @@ cache the expected tokens.
   /* Do an initial scan of the template declaration to determine whether
      it is a full specialization and/or a friend declaration. */
   prescan_template_declaration(decl_state, skip_params);
-  /* Rescan a copy of the cached tokens from this cache.  This is done so that
-     when the original template declaration is scanned the last token of
-     the cache is followed by the token that followed it in the original
-     source program with no intervening tok_end_of_source.  This also
-     allows the reusable token cache to be discarded if it turns out that
-     this is not a function declaration. */
-  rescan_copy_of_cache(p_cache);
+  /* Rescan the cached tokens from this cache.  The skip_terminator flag
+     is used so that when the original template declaration is scanned the
+     last token of the cache is followed by the token that followed it in
+     the original source program with no intervening tok_end_of_source. */
+  rescan_reusable_cache_full(p_cache, /*skip_terminator=*/TRUE);
   db_exit();
 }  /* cache_template_declaration */
 
