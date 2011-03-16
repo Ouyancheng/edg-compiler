@@ -13420,7 +13420,7 @@ all arguments were explicit.
         /* Don't advance to the next parameter if this is a pack. */
         param_ptr = param_ptr->next;
       }  /* if */
-      if (!orig_param_ptr->is_pack) {
+      if (orig_param_ptr != NULL && !orig_param_ptr->is_pack) {
         /* Don't advance to the next parameter if this is a pack. */
         orig_param_ptr = orig_param_ptr->next;
       }  /* if */
