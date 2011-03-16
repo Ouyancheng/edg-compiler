@@ -67,7 +67,9 @@ This version for UNIX, MS-DOS, VAX/VMS, and Windows NT.
 #define NOCRYPT
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#if CPPCLI_ENABLING_POSSIBLE
 #include <metahost.h>
+#endif /* CPPCLI_ENABLING_POSSIBLE */
 #endif /* EDG_WIN32 */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
