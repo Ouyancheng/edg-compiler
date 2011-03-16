@@ -1812,9 +1812,10 @@ extern void pop_expansion_suppression(
 			a_pack_expansion_stack_entry_ptr	pesep);
 
 extern a_boolean begin_potential_pack_expansion_context_full(
-			a_pack_expansion_stack_entry_ptr	*p_pesep,
-			a_pack_expansion_descr_ptr		*p_pedp,
-			a_boolean				is_lookahead);
+		a_pack_expansion_stack_entry_ptr	*p_pesep,
+		a_pack_expansion_descr_ptr		*p_pedp,
+		a_boolean				is_lookahead,
+		a_boolean				ignore_suppression);
 
 extern a_boolean begin_potential_pack_expansion_context(
 			a_pack_expansion_stack_entry_ptr	*p_pesep);

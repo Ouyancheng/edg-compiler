@@ -13122,7 +13122,10 @@ done using the disambiguation routines.
          consecutive closing angle brackets. */
       replace_right_shift_by_two_closing_angle_brackets();
     }  /* if */
-    any_args = begin_potential_pack_expansion_context(&pesep);
+    any_args = begin_potential_pack_expansion_context_full(
+                                    &pesep, (a_pack_expansion_descr_ptr*)NULL,
+                                    /*is_lookahead=*/FALSE,
+                                    /*ignore_suppression=*/TRUE);
     while (any_args) {
       if (curr_token == tok_gt) {
         if (arg_list != NULL) {
@@ -13303,7 +13306,10 @@ all arguments were explicit.
     a_source_position			arg_pos;
     a_pack_expansion_stack_entry_ptr	pesep;
     a_boolean				any_args;
-    any_args = begin_potential_pack_expansion_context(&pesep);
+    any_args = begin_potential_pack_expansion_context_full(
+                                    &pesep, (a_pack_expansion_descr_ptr*)NULL,
+                                    /*is_lookahead=*/FALSE,
+                                    /*ignore_suppression=*/TRUE);
     while (any_args) {
       if (!in_pack && param_ptr != NULL && param_ptr->is_pack) {
         /* Create a start of parameter pack placeholder. */

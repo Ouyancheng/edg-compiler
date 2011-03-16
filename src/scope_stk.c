@@ -9682,9 +9682,10 @@ will be NULL outside of template dependent contexts.
 
 
 a_boolean begin_potential_pack_expansion_context_full(
-			a_pack_expansion_stack_entry_ptr	*p_pesep,
-			a_pack_expansion_descr_ptr		*p_pedp,
-			a_boolean				is_lookahead)
+		a_pack_expansion_stack_entry_ptr	*p_pesep,
+		a_pack_expansion_descr_ptr		*p_pedp,
+		a_boolean				is_lookahead,
+		a_boolean				ignore_suppression)
 /*
 This is called at the start of a construct that could be a variadic template
 pack expansion.  Such pack expansions occur only within the declarations
@@ -9740,6 +9741,9 @@ is_lookahead is TRUE if this context is being pushed to distinguish between
 two contexts.  When this is TRUE, it is assumed that another begin...
 call will be done for the same starting position, and that context
 will be responsible for the end... and advance... calls.
+
+If ignore_suppression is TRUE, a new entry will be pushed even if a
+suppression is on the stack.
 */
 {
   a_boolean				any_args = FALSE;
@@ -9753,7 +9757,7 @@ will be responsible for the end... and advance... calls.
   } else if (!is_variadic_template_context()) {
     /* We are not in the definition or instantiation of a variadic template. */
     any_args = TRUE;
-  } else if (pack_expansion_stack != NULL &&
+  } else if (!ignore_suppression && pack_expansion_stack != NULL &&
              pack_expansion_stack->is_suppression) {
     /* We are suppressing the recording of pack expansions.  Return the pack
        expansion stack entry for the suppression entry. */
@@ -9828,14 +9832,15 @@ a_boolean begin_potential_pack_expansion_context(
 			a_pack_expansion_stack_entry_ptr	*p_pesep)
 /*
 Interface to begin_potential_pack_expansion_context_full that supplies
-a default p_pedp argument.  See that routine for more information.
+default values for certain arguments.  See that routine for more information.
 */
 {
   a_boolean				any_args;
 
   any_args = begin_potential_pack_expansion_context_full(
                                    p_pesep, (a_pack_expansion_descr_ptr*)NULL,
-                                   /*is_lookahead=*/FALSE);
+                                   /*is_lookahead=*/FALSE,
+                                   /*ignore_suppression=*/FALSE);
   return any_args;
 }  /* begin_potential_pack_expansion_context */
 

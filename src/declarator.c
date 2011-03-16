@@ -5864,7 +5864,8 @@ The syntax is:
            during the prototype instantiation to determine whether or not
            this is a function. */
         any_args = begin_potential_pack_expansion_context_full(
-                                         &pesep, &pedp, /*is_lookahead=*/TRUE);
+                                         &pesep, &pedp, /*is_lookahead=*/TRUE,
+                                         /*ignore_suppression=*/FALSE);
         if (!is_template_dependent_context() && pedp != NULL) {
           /* This is a real instantiation.  If we found a function declarator
              in the prototype instantiation, treat this as one now. */
