@@ -11,6 +11,19 @@
 #ifndef MS_METADATA
 #define MS_METADATA 1
 
+/*
+These types are always defined, even when CPPCLI enabling is not
+possible.
+*/
+typedef unsigned int
+                a_cpp_cli_token;
+                        /* A metadata token */
+typedef unsigned int
+                an_assembly_index;
+                        /* An assembly index */
+
+typedef unsigned int a_cpp_cli_feature_set;
+
 #if CPPCLI_ENABLING_POSSIBLE
 
 enum a_cpp_cli_feature_tag {
@@ -32,15 +45,6 @@ enum a_cpp_cli_feature_tag {
   cpp_cli_define_all_types       = 0x4000
 };
 
-
-typedef unsigned int
-                a_cpp_cli_token;
-                        /* A metadata token */
-typedef unsigned int
-                an_assembly_index;
-                        /* An assembly index */
-
-typedef unsigned int a_cpp_cli_feature_set;
 
 EXTERN a_cpp_cli_feature_set 
                 edg_supported_features;
