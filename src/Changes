@@ -1,5 +1,20 @@
 Version 4.3
 
+3/16/11  [EDGcpfe/11495,EDGcpfe/11515]
+__is_standard_layout
+
+When type traits helpers are enabled (see entry of 3/21/06), the front end
+now accepts a new type trait pseudo-function "__is_standard_layout".  Given a
+complete object type (or an array thereof), it produces "true" if that type
+is a scalar type or a standard layout class type.  (A "standard layout" class
+type is a class type with no virtual functions or base classes, no fields or
+bases that are non-standard-layout classes, and a few other constraints that
+ensure that the class' memory layout can be modeled using a C-style struct.)
+
+(This supports the implementation of the C++0x class template
+std::is_standard_layout and matches a facility of GNU compilers.)
+
+
 3/16/11  [EDGcpfe/11453, EDGcpfe/11492]
 Invalid IL when promoting a static variable that refers to a GNU address label
 
