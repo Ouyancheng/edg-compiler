@@ -15710,7 +15710,7 @@ EXTERN an_il_header il_header;
 #define near_and_far_enabled() (il_header.near_and_far_are_enabled)
 #define or_near_and_far_enabled() || near_and_far_enabled()
 #else /* !NEAR_AND_FAR_ALLOWED */
-#define near_and_far_enabled() FALSE
+#define near_and_far_enabled() /*lint --e(506)*/FALSE
 #define or_near_and_far_enabled() /* Nothing */
 #endif /* NEAR_AND_FAR_ALLOWED */
 

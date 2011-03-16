@@ -35,7 +35,7 @@ calling convention.
     (tok) == tok_thiscall))
 #else /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* When Microsoft keywords are not allowed simply return FALSE. */
-#define is_microsoft_calling_convention(tok) FALSE
+#define is_microsoft_calling_convention(tok) /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -44,7 +44,7 @@ Macro that is TRUE if the current token is "near" or "far".
 #if NEAR_AND_FAR_ALLOWED
 #define is_near_or_far() (curr_token == tok_near || curr_token == tok_far)
 #else /* !NEAR_AND_FAR_ALLOWED */
-#define is_near_or_far() FALSE
+#define is_near_or_far() /*lint --e(506)*/FALSE
 #endif /* NEAR_AND_FAR_ALLOWED */
 
 /*
@@ -363,7 +363,8 @@ extern a_boolean f_check_cli_type_pointed_to(a_type_ptr         tp,
   (!cppcli_enabled ||                                                        \
    f_check_cli_type_pointed_to((tp), (is_ref), (is_handle), (pos)))
 #else /* MICROSOFT_EXTENSIONS_ALLOWED */
-#define check_cli_type_pointed_to(tp, is_ref, is_handle, pos)  TRUE
+#define check_cli_type_pointed_to(tp, is_ref, is_handle, pos)  \
+  /*lint --e(506)*/TRUE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void scan_lambda_declarator(a_lambda_ptr        lambda,

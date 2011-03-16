@@ -4562,7 +4562,7 @@ be used as a qualifier in a qualified name.
 				property_or_event_descr->kind !=	\
                         (a_property_or_event_kind)pek_declspec_property)))
 #else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_cppcli_property_or_event(sym) (FALSE)
+#define is_cppcli_property_or_event(sym) /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -4865,8 +4865,8 @@ extern a_type_ptr underlying_function_type(a_symbol_ptr  sym);
   is_special_function_symbol(sym,                                     \
                              (a_special_function_kind)sfk_finalizer)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_static_constructor_symbol(sym) FALSE
-#define is_finalizer_symbol(sym) FALSE
+#define is_static_constructor_symbol(sym) /*lint --e(506)*/FALSE
+#define is_finalizer_symbol(sym) /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Return TRUE if a class symbol supplement is for a class with a nontrivial

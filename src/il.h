@@ -792,7 +792,7 @@ the macro expands to FALSE).
 #define var_has_named_register_storage_class(var)                            \
   ((var)->has_named_register_storage_class)
 #else /* !NAMED_REGISTERS_ALLOWED */
-#define var_has_named_register_storage_class(var)  /*lint --e(506)*/ FALSE
+#define var_has_named_register_storage_class(var)  /*lint --e(506)*/FALSE
 #endif /* NAMED_REGISTERS_ALLOWED */
 
 extern a_boolean may_be_added_to_types_list(a_type_ptr     type_ptr,
@@ -1354,9 +1354,9 @@ Macros to examine property and event members (and their accessor functions).
   ((rp)->special_kind >= (int)sfk_first_accessor && \
    (rp)->special_kind <= (int)sfk_last_accessor)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define field_is_property_or_event(fp)  (FALSE)
-#define field_is_nontrivial_property_or_event(fp)  (FALSE)
-#define rout_is_cli_accessor(rp)  (FALSE)
+#define field_is_property_or_event(fp)  /*lint --e(506)*/FALSE
+#define field_is_nontrivial_property_or_event(fp)  /*lint --e(506)*/FALSE
+#define rout_is_cli_accessor(rp)  /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean is_compound_assignment_operator(an_expr_operator_kind op);

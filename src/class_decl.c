@@ -12086,7 +12086,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
         sym->kind == (a_symbol_kind)sk_field ||
         (sym->kind == (a_symbol_kind)sk_member_function &&
          sym->variant.routine.ptr->compiler_generated) ||
-        (/*lint --e(506)*/ near_and_far_enabled() && sym->is_class_member &&
+        (near_and_far_enabled() && sym->is_class_member &&
          sym->kind == (a_symbol_kind)sk_overloaded_function),
         "check_anonymous_union_symbols: unexpected symbol kind");
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
