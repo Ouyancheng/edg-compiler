@@ -10227,11 +10227,13 @@ void check_type_definition_in_type_name(a_decl_parse_state  *dps)
 /*
 dps describes a type-name scanned by type_name_full.  In C++ mode, issue an
 error if the specifiers in the type-name defined a class or enum type.  (Early
-GNU C++ modes are an exception: They do allow such definitions.)
+GNU C++ modes are an exception: They do allow such definitions.  However, if
+lambdas are enabled in such a mode, we do not emulate that g++ extension to
+avoid problems with closure types in function prototype scopes.)
 */
 {
-  if ((dps->dso_flags & DSO_DEFINES_SOMETHING) != 0 &&
-      !C_mode() && (!gpp_mode || gnu_version >= 30400)) {
+  if ((dps->dso_flags & DSO_DEFINES_SOMETHING) != 0 && !C_mode() &&
+      !(gpp_mode && gnu_version < 30400 && !lambdas_enabled)) {
     pos_error(ec_type_definition_not_allowed, &dps->start_pos);
   }  /* if */
 }  /* check_type_definition_in_type_name */

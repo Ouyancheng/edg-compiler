@@ -295,7 +295,7 @@ static a_boolean is_invalid_scope_for_class(void)
 /*
 Determine whether the current scope is valid for a class definition.  This
 is used to suppress the fixup of routines declared in the class for classes
-found in unexpected locations.
+found in unexpected locations.  (It is also used for error recovery purposes.)
 */
 {
   a_boolean            result = FALSE;
@@ -328,10 +328,17 @@ found in unexpected locations.
     /* So far it is valid.  Check the scope we found. */
     switch (ssep->kind) {
       case sck_template_declaration:
-      case sck_func_prototype:
       case sck_enum:
         /* An invalid scope for a class definition. */
         result = TRUE;
+        break;
+      case sck_func_prototype:
+        /* Classes normally aren't members of function prototype scopes, but
+           in early GNU C++ modes they can be.  Allowing closure types (which
+           early GCC versions don't support) in function prototype scopes
+           causes other difficulties, so we don't emulate that GNU extension
+           when lambdas are enabled. */
+        result = !(gpp_mode && gnu_version < 30400 && !lambdas_enabled);
         break;
       default:
        break;
@@ -19229,8 +19236,7 @@ classes.
                            NO_SCOPE_NUMBER, class_type, (a_routine_ptr)NULL);
     scope_stack_top().class_def_state = &class_state;
     class_is_in_valid_scope = !is_invalid_scope_for_class();
-    if (!class_is_in_valid_scope &&
-        is_template_dependent_context()) {
+    if (!class_is_in_valid_scope && is_template_dependent_context()) {
       /* We've got a class in an invalid context (e.g., a lambda in a function
          prototype scope), and template parameters will be visible in the
          body of the class, so mark the class as nonreal.  This tells
