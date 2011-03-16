@@ -11,6 +11,8 @@
 #ifndef MS_METADATA
 #define MS_METADATA 1
 
+#if CPPCLI_ENABLING_POSSIBLE
+
 enum a_cpp_cli_feature_tag {
   cpp_cli_none                   = 0x0000,
   cpp_cli_ref_classes            = 0x0001,
@@ -95,6 +97,7 @@ typedef struct a_portable_assembly_table_entry {
 } a_portable_assembly_table_entry;
 
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES || WRITE_CPPCLI_PORTABLE_ASSEMBLIES*/
+#endif /* CPPCLI_ENABLING_POSSIBLE */
 
 #endif /* MS_METADATA */
 

@@ -30,6 +30,8 @@ http://code.msdn.microsoft.com/alink
 
 */
 
+#if CPPCLI_ENABLING_POSSIBLE
+
 #include <windows.h>
 #include <metahost.h>
 #include <cor.h>
@@ -3580,6 +3582,8 @@ a_cpp_cli_feature_set
                                          cpp_cli_delegates |
 //                                       cpp_cli_define_all_types |
                                          cpp_cli_declspec_assemby_info;
+
+#endif /* CPPCLI_ENABLING_POSSIBLE */
 
 /******************************************************************************
 *                                                             \  ___  /       *
