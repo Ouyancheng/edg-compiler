@@ -7433,7 +7433,7 @@ Process the arguments on the command line that invoked the compiler.
         fprintf(f_error,
                 "Edison Design Group C/C++ Front End, version %s (%s %s)\n",
                 VERSION_NUMBER, build_date, build_time);
-        fprintf(f_error, "Copyright 1988-2010 Edison Design Group, Inc.\n");
+        fprintf(f_error, "Copyright 1988-2011 Edison Design Group, Inc.\n");
 #ifdef DEMO_VERSION_ID
         fprintf(f_error, "Demonstration version for %s\n", DEMO_VERSION_ID);
 #endif /* ifdef DEMO_VERSION_ID */
