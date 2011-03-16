@@ -8569,8 +8569,8 @@ scope or template instantiation scope for a prototype instantiation.
   a_scope_stack_entry_ptr	ssep;
   a_scope_depth			depth_to_use;
 
-  /* Find the outermost of the innermost template declaration or
-     template instantiation scope. */
+  /* Start with the innermost template declaration or template instantiation
+     scope. */
   depth_to_use = depth_innermost_instantiation_scope;
   if (depth_to_use < depth_template_declaration_scope) {
     depth_to_use = depth_template_declaration_scope;
