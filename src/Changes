@@ -1,5 +1,12 @@
 Version 4.4
 
+3/17/11  [EDGcpfe/11521]
+IL display build problem on Windows without CPPCLI_ENABLING_POSSIBLE
+
+The IL display program did not build properly on Windows when
+CPPCLI_ENABLING_POSSIBLE was FALSE.  Now fixed.
+
+
 3/17/11  [EDGcpfe/11520]
 Access checking regression in template argument substitution
 

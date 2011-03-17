@@ -3274,8 +3274,8 @@ extern "C".  This flag must not be TRUE when compiling in C mode.
 extern void open_mapped_input_file(char *file_name);
 extern void close_mapped_input_file(void);
 extern char *conv_wide_to_utf8(wchar_t *wide_str);
-#if !STANDALONE_UTILITY_PROGRAM
 typedef unsigned long an_ms_dword;
+#if !STANDALONE_UTILITY_PROGRAM
 extern char *com_error_to_str(void);
 extern char *win32_error_to_str(an_ms_dword error_code);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
