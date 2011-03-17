@@ -279,6 +279,7 @@ typedef enum /*an_option_kind*/ {
   optk_token_separators_in_pp_output,
   optk_cpp0x_sfinae,
   optk_cpp0x_sfinae_ignore_access,
+  optk_variadic_templates,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   optk_cppcli,
   optk_preusing,

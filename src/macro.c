@@ -8243,6 +8243,16 @@ command line -D options.
               /*cannot_be_redefined=*/TRUE, /*ref_suppresses_pch_file=*/FALSE);
 
   }  /* if */
+#if DEFINE_MACRO_WHEN_VARIADIC_TEMPLATES_ENABLED
+  /* Enter a predefined macro that can be used to determine that variadic
+     templates are enabled. */
+  if (variadic_templates_enabled) {
+    (void)enter_predef_macro(
+                            "1", MACRO_DEFINED_WHEN_VARIADIC_TEMPLATES_ENABLED,
+                            /*cannot_be_redefined=*/TRUE,
+                            /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
+#endif /* DEFINE_MACRO_WHEN_VARIADIC_TEMPLATES_ENABLED */
   /* Enter a predefined macro that can be used to determine that the
      EDG front end is being used. */
   (void)enter_predef_macro("1", "__EDG__",

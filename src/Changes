@@ -48,9 +48,12 @@ numbers of arguments, as in
     f(1, 2, 3, 4);
   }
 
-Variadic templates are enabled in C++0X mode; there is no separate
-command-line option or default macro for them.  There is a controlling
-variable, variadic_templates_allowed.
+Variadic templates are enabled by default in C++0X mode; they can also be
+controlled independently of C++0x mode via the --[no_]variadic_templates
+command-line options.  There is a controlling global variable,
+variadic_templates_allowed, and a feature macro is optionally defined as
+specified by the DEFINE_MACRO_WHEN_VARIADIC_TEMPLATES_ENABLED and
+MACRO_DEFINED_WHEN_VARIADIC_TEMPLATES_ENABLED configuration macros.
 
 Pack expansions are supported in parameter lists, argument lists,
 brace-enclosed initializers, base class specifiers, mem-initializers,

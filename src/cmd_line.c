@@ -1241,6 +1241,14 @@ Initialize the option information table.
                          "no_c++0x_sfinae_ignore_access", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_variadic_templates,
+                         "variadic_templates", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_variadic_templates,
+                         "no_variadic_templates", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
   add_option_description(optk_list_macros, "list_macros", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE, pchek_none);
@@ -2550,7 +2558,9 @@ not always enabled in default mode (e.g., exception handling).
   trailing_return_types_enabled = TRUE;
   std_attributes_enabled = TRUE;
   alias_declarations_enabled = TRUE;
-  variadic_templates_enabled = TRUE;
+  if (!option_kind_used[(int)optk_variadic_templates]) {
+    variadic_templates_enabled = TRUE;
+  }  /* if */
   if (!option_kind_used[(int)optk_nullptr]) {
     nullptr_enabled = TRUE;
   }  /* if */
@@ -4969,6 +4979,11 @@ file.
 #else /* !defined(DEFINE_MACRO_WHEN_RTTI_ENABLED) */
   comment_undefined_macro_name(DEFINE_MACRO_WHEN_RTTI_ENABLED);
 #endif /* defined(DEFINE_MACRO_WHEN_RTTI_ENABLED) */
+#if defined(DEFINE_MACRO_WHEN_VARIADIC_TEMPLATES_ENABLED)
+  define_numeric_valued_macro(DEFINE_MACRO_WHEN_VARIADIC_TEMPLATES_ENABLED);
+#else /* !defined(DEFINE_MACRO_WHEN_VARIADIC_TEMPLATES_ENABLED) */
+  comment_undefined_macro_name(DEFINE_MACRO_WHEN_VARIADIC_TEMPLATES_ENABLED);
+#endif /* defined(DEFINE_MACRO_WHEN_VARIADIC_TEMPLATES_ENABLED) */
 #if defined(DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD)
   define_numeric_valued_macro(DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD);
 #else /* !defined(DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD) */
@@ -5676,6 +5691,11 @@ file.
 #else /* !defined(MACRO_DEFINED_WHEN_TYPE_TRAITS_HELPERS_ENABLED) */
   comment_undefined_macro_name(MACRO_DEFINED_WHEN_TYPE_TRAITS_HELPERS_ENABLED);
 #endif /* defined(MACRO_DEFINED_WHEN_TYPE_TRAITS_HELPERS_ENABLED) */
+#if defined(MACRO_DEFINED_WHEN_VARIADIC_TEMPLATES_ENABLED)
+  define_string_valued_macro(MACRO_DEFINED_WHEN_VARIADIC_TEMPLATES_ENABLED);
+#else /* !defined(MACRO_DEFINED_WHEN_VARIADIC_TEMPLATES_ENABLED) */
+  comment_undefined_macro_name(MACRO_DEFINED_WHEN_VARIADIC_TEMPLATES_ENABLED);
+#endif /* defined(MACRO_DEFINED_WHEN_VARIADIC_TEMPLATES_ENABLED) */
 #if defined(MACRO_DEFINED_WHEN_WCHAR_T_IS_KEYWORD)
   define_string_valued_macro(MACRO_DEFINED_WHEN_WCHAR_T_IS_KEYWORD);
 #else /* !defined(MACRO_DEFINED_WHEN_WCHAR_T_IS_KEYWORD) */
@@ -8348,6 +8368,9 @@ enable_microsoft_mode:
       case optk_cpp0x_sfinae_ignore_access:
         cpp0x_sfinae_ignore_access = opt_value;
         break;
+      case optk_variadic_templates:
+        variadic_templates_enabled = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -8515,9 +8538,10 @@ enable_microsoft_mode:
     local_types_as_template_args_enabled = TRUE;
     decls_using_types_without_linkage_allowed = TRUE;
   }  /* if */
-  if (trailing_return_types_enabled || decltype_enabled) {
-    /* Turn on c++0x SFINAE if trailing return types or decltype are enabled,
-       since we're likely to need it. */
+  if (trailing_return_types_enabled || decltype_enabled ||
+      variadic_templates_enabled) {
+    /* Turn on c++0x SFINAE if trailing return types, decltype, or variadic
+       templates are enabled, since we're likely to need it. */
     if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
         !option_kind_used[(int)optk_cpp0x_sfinae_ignore_access]) {
       cpp0x_sfinae_enabled = TRUE;

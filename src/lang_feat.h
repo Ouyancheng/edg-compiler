@@ -1422,6 +1422,25 @@ accepted (with slight semantic differences in some cases).
 #endif /* ifndef MACRO_DEFINED_WHEN_TYPE_TRAITS_HELPERS_ENABLED */
 
 /*
+Flag that is TRUE if, when variadic templates are enabled, a preprocessing
+symbol should be defined.
+*/
+#ifndef DEFINE_MACRO_WHEN_VARIADIC_TEMPLATES_ENABLED
+#define DEFINE_MACRO_WHEN_VARIADIC_TEMPLATES_ENABLED TRUE
+#endif /* ifndef DEFINE_MACRO_WHEN_VARIADIC_TEMPLATES_ENABLED */
+
+/*
+The name of the macro to be defined when variadic templates are enabled.
+This is only used when DEFINE_MACRO_WHEN_VARIADIC_TEMPLATES_ENABLED is
+TRUE.
+*/
+#if DEFINE_MACRO_WHEN_VARIADIC_TEMPLATES_ENABLED
+#ifndef MACRO_DEFINED_WHEN_VARIADIC_TEMPLATES_ENABLED
+#define MACRO_DEFINED_WHEN_VARIADIC_TEMPLATES_ENABLED "__VARIADIC_TEMPLATES"
+#endif /* ifndef MACRO_DEFINED_WHEN_VARIADIC_TEMPLATES_ENABLED */
+#endif /* DEFINE_MACRO_WHEN_VARIADIC_TEMPLATES_ENABLED */
+
+/*
 Flag that is TRUE if, in C++ mode, operator keywords (e.g., bitand, compl)
 and digraphs are recognized.  This is the default value for the global
 flag alternative_tokens_allowed, the value of which may also be modified
