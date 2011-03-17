@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2010 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2011 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -72,6 +72,6 @@ extern void read_memory_region(a_memory_region_number region_number);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2010 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2011 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

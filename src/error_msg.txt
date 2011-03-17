@@ -4,7 +4,7 @@
 # Edison Design Group C++/C Front End                        - | \^/ | -      #
 #                                                               \   /         #
 # Proprietary information of Edison Design Group Inc.         /  | |  \       #
-# Copyright 1988-2010 Edison Design Group Inc.                   [_]          #
+# Copyright 1988-2011 Edison Design Group Inc.                   [_]          #
 #                                                                             #
 ###############################################################################
 #
@@ -2155,6 +2155,6 @@ ec_cl_variadic_templates_only_in_cplusplus;;"variadic templates can be enabled o
 # Edison Design Group C++/C Front End                        - | \^/ | -      #
 #                                                               \   /         #
 # Proprietary information of Edison Design Group Inc.         /  | |  \       #
-# Copyright 1988-2010 Edison Design Group Inc.                   [_]          #
+# Copyright 1988-2011 Edison Design Group Inc.                   [_]          #
 #                                                                             #
 ###############################################################################

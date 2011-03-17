@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2010 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2011 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -2024,6 +2024,6 @@ Initialize static variables related to const_ints.c.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2010 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2011 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -2,7 +2,7 @@
 *                                                             \  ___  /       *
 * Edison Design Group C++ Runtime                               /   \         *
 *                                                            - | \^/ | -      *
-* Copyright 1992-2010 Edison Design Group, Inc.                 \   /         *
+* Copyright 1992-2011 Edison Design Group, Inc.                 \   /         *
 * All rights reserved.  Consult your license                  /  | |  \       *
 * regarding permissions and restrictions.                        [_]          *
 *                                                                             *
@@ -26,7 +26,7 @@ defines.h -- Defines configuration parameters for a given version of the
 *                                                             \  ___  /       *
 * Edison Design Group C++ Runtime                               /   \         *
 *                                                            - | \^/ | -      *
-* Copyright 1992-2010 Edison Design Group, Inc.                 \   /         *
+* Copyright 1992-2011 Edison Design Group, Inc.                 \   /         *
 * All rights reserved.  Consult your license                  /  | |  \       *
 * regarding permissions and restrictions.                        [_]          *
 *                                                                             *

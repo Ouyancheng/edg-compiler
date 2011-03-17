@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2010 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2011 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -388,6 +388,6 @@ extern an_il_entry_prefix_ptr db_prefix_ptr(char  *entry);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2010 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2011 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

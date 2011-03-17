@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2010 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2011 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -2466,6 +2466,6 @@ extern char *generate_top_level_metadata_code(an_assembly_index index);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2010 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2011 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

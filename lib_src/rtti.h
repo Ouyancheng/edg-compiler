@@ -2,7 +2,7 @@
 *                                                             \  ___  /       *
 * Edison Design Group C++ Runtime                               /   \         *
 *                                                            - | \^/ | -      *
-* Copyright 1992-2010 Edison Design Group, Inc.                 \   /         *
+* Copyright 1992-2011 Edison Design Group, Inc.                 \   /         *
 * All rights reserved.  Consult your license                  /  | |  \       *
 * regarding permissions and restrictions.                        [_]          *
 *                                                                             *
@@ -208,7 +208,7 @@ a_boolean __derived_to_base_conversion(void**		   p_ptr,
 *                                                             \  ___  /       *
 * Edison Design Group C++ Runtime                               /   \         *
 *                                                            - | \^/ | -      *
-* Copyright 1992-2010 Edison Design Group, Inc.                 \   /         *
+* Copyright 1992-2011 Edison Design Group, Inc.                 \   /         *
 * All rights reserved.  Consult your license                  /  | |  \       *
 * regarding permissions and restrictions.                        [_]          *
 *                                                                             *

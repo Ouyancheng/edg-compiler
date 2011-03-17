@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2001-2010 Edison Design Group Inc.                   [_]          *
+* Copyright 2001-2011 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 
@@ -303,6 +303,6 @@ extern void db_translation_unit_stack(void);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2001-2010 Edison Design Group Inc.                   [_]          *
+* Copyright 2001-2011 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
