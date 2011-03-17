@@ -2148,6 +2148,7 @@ ec_excess_pack_expansion;;"this pack expansion produced more than one expression
 ec_cli_enum_base_has_no_system_counterpart;;"type must correspond to System::Boolean, System::Byte, System::SByte, System::Int16, System::UInt16, System::Int32, System::UInt32, System::Int64, or System::UInt64"
 ec_bad_call_of_handle;;"call of an object of a handle type without appropriate operator() or conversion functions to pointer-to-function type"
 ec_abstract_declarator_pack_is_nested;;"an unnamed parameter pack declaration cannot be parenthesized"
+ec_cl_variadic_templates_only_in_cplusplus;;"variadic templates can be enabled only when compiling C++"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

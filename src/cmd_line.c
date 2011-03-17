@@ -2336,6 +2336,7 @@ process.
   nullptr_enabled = FALSE;
   cpp0x_sfinae_enabled = FALSE;
   cpp0x_sfinae_ignore_access = FALSE;
+  variadic_templates_enabled = FALSE;
 #if DO_IL_LOWERING
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
@@ -2486,6 +2487,9 @@ setting is used, and to set various unmentioned settings as needed.
   }  /* if */
   if (option_kind_used[(int)optk_nullptr]) {
     command_line_error(ec_cl_nullptr_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_variadic_templates]) {
+    command_line_error(ec_cl_variadic_templates_only_in_cplusplus);
   }  /* if */
 #if SUN_EXTENSIONS_ALLOWED
   if (!(option_kind_used[(int)optk_sun_linker_scope]) &&
@@ -2678,6 +2682,10 @@ setting is used, and to set various unmentioned settings as needed.
   /* Universal character names are allowed. */
   universal_character_names_allowed = TRUE;
   elab_type_lookup_finds_typedefs = TRUE;
+  if (!option_kind_used[(int)optk_variadic_templates] && !gpp_mode &&
+      !microsoft_mode) {
+    variadic_templates_enabled = DEFAULT_VARIADIC_TEMPLATES_ENABLED;
+  }  /* if */
   if (cpp0x_mode) {
     check_and_set_cpp0x_mode_options();
   } else {
@@ -4924,6 +4932,11 @@ file.
 #else /* !defined(DEFAULT_VARIADIC_MACROS_ALLOWED) */
   comment_undefined_macro_name(DEFAULT_VARIADIC_MACROS_ALLOWED);
 #endif /* defined(DEFAULT_VARIADIC_MACROS_ALLOWED) */
+#if defined(DEFAULT_VARIADIC_TEMPLATES_ENABLED)
+  define_numeric_valued_macro(DEFAULT_VARIADIC_TEMPLATES_ENABLED);
+#else /* !defined(DEFAULT_VARIADIC_TEMPLATES_ALLOWED) */
+  comment_undefined_macro_name(DEFAULT_VARIADIC_TEMPLATES_ENABLED);
+#endif /* defined(DEFAULT_VARIADIC_TEMPLATES_ENABLED) */
 #if defined(DEFAULT_VA_LIST_IN_STD_NAMESPACE)
   define_numeric_valued_macro(DEFAULT_VA_LIST_IN_STD_NAMESPACE);
 #else /* !defined(DEFAULT_VA_LIST_IN_STD_NAMESPACE) */

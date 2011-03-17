@@ -2123,6 +2123,15 @@ EXTERN a_boolean
 			   deduction failure. */
 
 /*
+Flag that determines the value of variadic_templates_enabled in C++ modes
+other than C++0x (where it is by default TRUE).  Does not affect the value
+of the flag in Microsoft and GNU modes.
+*/
+#ifndef DEFAULT_VARIADIC_TEMPLATES_ENABLED
+#define DEFAULT_VARIADIC_TEMPLATES_ENABLED FALSE
+#endif /* DEFAULT_VARIADIC_TEMPLATES_ENABLED */
+
+/*
 Check that no mutually exclusive dialect emulations are simultaneously
 enabled.
 */
