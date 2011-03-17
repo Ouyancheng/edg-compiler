@@ -1,5 +1,20 @@
 Version 4.4
 
+3/17/11  [EDGcpfe/11520]
+Access checking regression in template argument substitution
+
+Version 4.3 introduced a regression that could cause spurious access
+errors during template argument substitution.  Now fixed.
+
+  class A {
+    typedef int (A::*pmf)(int);
+    template <int I> int f(int arg);
+    template<pmf mf> int Cat(int arg);
+    void g() {
+      pmf x = &A::Cat<&A::f<1> >;  // spurious A::f<1>(int) not accessible
+    }
+  };
+
 
 ------------------------------------------------------------------------------
 Version 4.3, March 17, 2011
