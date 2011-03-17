@@ -752,6 +752,7 @@ check_abbreviation()
 --no_using_framework_directory
 --no_using_std
 --no_variadic_macros
+--no_variadic_templates
 --no_vla
 --no_warnings
 --no_wchar_t_keyword
@@ -844,6 +845,7 @@ check_abbreviation()
 --using_framework_directory
 --using_std
 --variadic_macros
+--variadic_templates
 --version
 --vla
 --wchar_t_keyword
@@ -1381,6 +1383,8 @@ process_option()
          --no_c++0x_sfinae | \
          --c++0x_sfinae_ignore_access | \
          --no_c++0x_sfinae_ignore_access | \
+         --variadic_templates | \
+         --no_variadic_templates | \
          --using_framework_directory | \
          --no_using_framework_directory | \
          --force_vtbl)
