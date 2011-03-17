@@ -1,9 +1,9 @@
-Version 4.3
+Version 4.3, March 17, 2011
 
 1/27/11  [EDGcpfe/11316]
 Unneeded include in throw.c
 
-throw.c included vla_alloc, but should not have.  Now fixed.
+throw.c included vla_alloc.h, but should not have.  Now fixed.
 
 
 10/12/10 [EDGcpfe/11068]
