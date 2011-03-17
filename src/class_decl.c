@@ -6867,7 +6867,9 @@ list (such as computing the preorder list for the IA-64 ABI).
 */
 {
   a_type_ptr                   type_ptr = class_state->class_type;
+#if IA64_ABI || CHECKING
   a_class_type_supplement_ptr  ctsp = class_type_supp(type_ptr);
+#endif /* IA64_ABI || CHECKING */
   a_base_class_ptr             bcp;
 #if IA64_ABI
   a_base_class_ptr             first_indirect_primary_vbase = NULL;
