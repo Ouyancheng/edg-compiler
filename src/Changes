@@ -1,4 +1,8 @@
-Version 4.3
+Version 4.3, March 17, 2011
+
+3/17/11
+Version number and IL version number changed to 4.3
+
 
 3/16/11  [EDGcpfe/11495,EDGcpfe/11515]
 __is_standard_layout
