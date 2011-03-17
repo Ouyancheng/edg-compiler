@@ -86,7 +86,7 @@ and the "...simple" versions of those routines, to skip over the
 start-of-pack-expansion entries.  (IL CHANGE)
 
 Also note that in instantiations of functions that have parameter packs
-it is now possible for mutiple parameter variables to have the same
+it is now possible for multiple parameter variables to have the same
 name.  (IL CHANGE)
 
 
