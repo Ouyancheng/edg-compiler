@@ -411,15 +411,9 @@ caller handle it.
                                     /*allow_whole_string_init=*/TRUE,
                                     &con_from_expr_scan)) {
         /* The initializer expression initializes the first character of
-           the string, so leave it in the cache and return FALSE.
-           However, if we're not in an aggregate initializer go on to
-           check the constant value against the string type below (and
-           get an error), since the expression can't initialize a member
-           of the string in that case. */
-        if (init_info != NULL) {
-          is_string_init = FALSE;
-          goto done;
-        }  /* if */
+           the string, so leave it in the cache and return FALSE. */
+        is_string_init = FALSE;
+        goto done;
       }  /* if */
       /* The expression initializes the string itself, so go on and use
          the constant below. */
