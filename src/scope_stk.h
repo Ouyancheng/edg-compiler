@@ -69,6 +69,9 @@ typedef int a_push_scope_options_set;
 			/* TRUE if the in_template_deduction_context flag
 			   should be set for the instantiation scope being
 			   pushed. */
+#define PS_IS_RESCAN			0x1000
+			/* TRUE if the scope being pushed is an instantiation
+			   scope for template rescan purposes. */
 
 #define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
 			/* Size of the shareable constants hash table for

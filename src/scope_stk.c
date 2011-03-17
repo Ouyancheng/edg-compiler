@@ -2288,14 +2288,16 @@ done:;
 
 
 /*
-Return TRUE if the scope stack entry kind given by kind is for something
-that has an effect on access control (a class, class reactivation, or
-function).  Access control only exists in C++.
+Return TRUE if the scope stack entry kind given by kind, and with the
+specified push_scope options is for something that has an effect on
+access control (a class, class reactivation, or function).  Access control
+only exists in C++.
 */
-#define is_scope_kind_that_affects_access_control(kind)               \
+#define is_scope_kind_that_affects_access_control(kind, options)       \
    ((kind) == (a_scope_kind)sck_class_struct_union ||                 \
     (kind) == (a_scope_kind)sck_class_reactivation ||                 \
-    (kind) == (a_scope_kind)sck_template_instantiation ||	      \
+    ((kind) == (a_scope_kind)sck_template_instantiation &&	      \
+     ((options) & PS_IS_RESCAN) == 0) ||			      \
     (kind) == (a_scope_kind)sck_function ||			      \
     (kind) == (a_scope_kind)sck_function_access)
 
@@ -2993,7 +2995,7 @@ the scope being pushed.
     /* Maintain the depth of the innermost stack entry that affects access
        control.  Special handing for template instantiation scopes is done
        in fixup_instantiation_scopes. */
-    if (is_scope_kind_that_affects_access_control(kind)) {
+    if (is_scope_kind_that_affects_access_control(kind, options)) {
       depth_of_innermost_scope_that_affects_access_control = depth_scope_stack;
     }  /* if */
     /* Determine whether this scope affects whether access checks can
@@ -4049,7 +4051,7 @@ The following fixups need to be performed:
                                           exclude_from_context_output;
       exclude_from_context_output = TRUE;
     }  /* if */
-    if (is_scope_kind_that_affects_access_control(ssep->kind)) {
+    if (is_scope_kind_that_affects_access_control(ssep->kind, options)) {
       /* If the next_scope_that_affects_access_control field points to
          a scope that is not part of the instantiation context, set it
          to NO_SCOPE_DEPTH because it should not be considered for purposes
@@ -4491,7 +4493,7 @@ currently unused.
                               (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                               (a_template_arg_ptr)NULL,
                               /*push_lex_state=*/TRUE,
-                              PS_NONREAL_INSTANTIATION);
+                              PS_NONREAL_INSTANTIATION | PS_IS_RESCAN);
   /* Don't include this scope in any diagnostic output that may be produced. */
   scope_stack[depth_innermost_instantiation_scope].
                                             exclude_from_context_output = TRUE;
