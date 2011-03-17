@@ -24,7 +24,9 @@ typedef unsigned int
 
 typedef unsigned int a_cpp_cli_feature_set;
 
-#if CPPCLI_ENABLING_POSSIBLE
+EXTERN a_cpp_cli_feature_set 
+                edg_supported_features;
+                        /* Current features supported by EDG. */
 
 enum a_cpp_cli_feature_tag {
   cpp_cli_none                   = 0x0000,
@@ -46,10 +48,6 @@ enum a_cpp_cli_feature_tag {
 };
 
 
-EXTERN a_cpp_cli_feature_set 
-                edg_supported_features;
-                        /* Current features supported by EDG. */
-
 extern an_assembly_index import_metadata_file(
                           char                  *assembly_full_name,
                           a_cpp_cli_feature_set supported_features,
@@ -65,6 +63,7 @@ extern void ms_metadata_trans_unit_init(char *trans_unit_file_name);
 extern void ms_metadata_trans_unit_wrapup(void);
 extern void ms_metadata_cleanup(void);
 
+#if CPPCLI_ENABLING_POSSIBLE
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES || WRITE_CPPCLI_PORTABLE_ASSEMBLIES
 
 typedef struct a_portable_assembly_header {
