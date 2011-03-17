@@ -63,10 +63,20 @@ Pack expansions are supported in parameter lists, argument lists,
 brace-enclosed initializers, base class specifiers, mem-initializers,
 exception specifications, attributes, and capture lists.
 
-Implementing them required enhancements to name mangling and demangling
-to support parameter packs in parameter lists and template argument lists,
-and some new operators (e.g., sizeof...()).  The IA-64 ABI version
-of the changes has been submitted to the ABI spec group.
+The bodies of variadic template functions are always parsed ("prototype
+instantiations" are done); this is necessary in order to discover and
+record the pack expansions.  Such prototype instantiations are done
+regardless of whether they are usually done for templates in the
+current mode and configuration.  Note, therefore, that converting
+an existing template to a variadic version might produce errors for
+pre-existing nonstandard or erroneous code that previously went
+undiagnosed.
+
+Implementing variadic templates required enhancements to name mangling
+and demangling to support parameter packs in parameter lists and
+template argument lists, and some new operators (e.g., sizeof...()).
+The IA-64 ABI version of the changes has been submitted to the ABI
+spec group.
 
 Template argument lists can now contain a new kind of entry, with
 kind == tak_start_of_pack_expansion, and therefore customer code
