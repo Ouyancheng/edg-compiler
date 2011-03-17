@@ -53,7 +53,7 @@ numbers of arguments, as in
   }
 
 Variadic templates are enabled by default in C++0X mode; they can also be
-controlled independently of C++0x mode via the --[no_]variadic_templates
+controlled independently of C++0X mode via the --[no_]variadic_templates
 command-line options.  There is a controlling global variable,
 variadic_templates_allowed, and a feature macro is optionally defined as
 specified by the DEFINE_MACRO_WHEN_VARIADIC_TEMPLATES_ENABLED and
