@@ -2683,7 +2683,7 @@ setting is used, and to set various unmentioned settings as needed.
   universal_character_names_allowed = TRUE;
   elab_type_lookup_finds_typedefs = TRUE;
   if (!option_kind_used[(int)optk_variadic_templates] && !gpp_mode &&
-      !microsoft_mode) {
+      !microsoft_mode && !sun_mode) {
     variadic_templates_enabled = DEFAULT_VARIADIC_TEMPLATES_ENABLED;
   }  /* if */
   if (cpp0x_mode) {
