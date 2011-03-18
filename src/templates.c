@@ -18002,12 +18002,13 @@ caller.
                               &local_token_cache,
                               decl_state->decl_info);
     } /* if */
-    if (decl_state->class_declared_in != NULL &&
-        nonclass_prototype_instantiations) {
+    if (decl_state->class_declared_in != NULL) {
       /* Create a routine fixup entry so that the body of this template
-         (if present) and any default arguments will have their prototype
+         (if present) and any default arguments can have their prototype
          instantiations done at the completion of the prototype instantiation
-         of the enclosing class. */
+         of the enclosing class.  This does not guarantee that prototype
+         instantiations will be done.  That depends on the compilation
+         mode and the kind of function being processed. */
       add_routine_fixup_for_template_decl(sym,
                                           decl_state->prototype_scope_symbols,
                                           decl_state->class_declared_in,

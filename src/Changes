@@ -1,5 +1,26 @@
 Version 4.4
 
+3/18/11  [EDGcpfe/11524]
+Variadic member template problem when not doing nonclass prototype
+instantiation
+
+Variadic templates must have their prototype instantiations done in order
+for real instantiations to be processed correctly.  Prototype instantiations
+of member function templates were not being done in modes in which
+nonclass prototype instantiations was not enabled.  Now fixed.
+
+  template <class ... T> void g(T... args) {}
+  template <class T> struct A {
+    template <class ... U> void f(U... args) {
+      g(args...);  // Spurious error when f was instantiated
+    }
+  };
+  int main() {
+    A<int> a;
+    a.f(1,2,3);
+  }
+
+
 3/17/11  [EDGcpfe/11521]
 IL display build problem on Windows without CPPCLI_ENABLING_POSSIBLE
 
