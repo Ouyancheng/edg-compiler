@@ -7,7 +7,7 @@ instantiation
 Variadic templates must have their prototype instantiations done in order
 for real instantiations to be processed correctly.  Prototype instantiations
 of member function templates were not being done in modes in which
-nonclass prototype instantiations was not enabled.  Now fixed.
+nonclass prototype instantiations were not enabled.  Now fixed.
 
   template <class ... T> void g(T... args) {}
   template <class T> struct A {
