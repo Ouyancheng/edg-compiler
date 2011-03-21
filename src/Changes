@@ -1,5 +1,30 @@
 Version 4.4
 
+3/21/11  [EDGcpfe/11528]
+Microsoft compatibility: Internal error with default template arguments
+and new-style SFINAE in Microsoft mode
+
+Version 4.3 introduced a problem that could result in an internal error
+(in get_expr_rescan_info) on default templates arguments of function
+templates in Microsoft mode when using new-style SFINAE (e.g., in C++0x mode).
+Now fixed.
+
+  template <bool b, class T> struct enable_if {
+    typedef T type;
+  };
+  template <class T, class T2> struct is_same {
+    static const bool value = true;
+  };
+  template <class T, class T2> struct A {
+    template<class U, class... V,
+           class = typename enable_if<!is_same<U, T2&>::value, void>::type>
+               A(U&& u, V&&... v) { }
+  };
+  int main() {
+    A<int, int>(1, 2);
+  }
+
+
 3/18/11  [EDGcpfe/11524]
 Variadic member template problem when not doing nonclass prototype
 instantiation

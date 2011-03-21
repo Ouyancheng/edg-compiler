@@ -16263,7 +16263,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
   if (param_ptr->def_arg_has_not_been_scanned) {
     /* If the default argument has not yet been scanned, this is the
        initial scan and should be treated as a prototype instantiation. */
-    ps_options |= PS_PROTOTYPE_INSTANTIATION;
+    ps_options |= PS_PROTOTYPE_INSTANTIATION | PS_DEDUCTION_CONTEXT;;
     param_ptr->def_arg_has_not_been_scanned = FALSE;
   } else if (dependent_arg_list) {
     /* If the argument list is dependent, flag this as a nonreal
@@ -16517,7 +16517,7 @@ existing type is simply used.
       if (param_ptr->def_arg_has_not_been_scanned) {
         /* If the default argument has not yet been scanned, this is the
            initial scan and should be treated as a prototype instantiation. */
-        ps_options |= PS_PROTOTYPE_INSTANTIATION;
+        ps_options |= PS_PROTOTYPE_INSTANTIATION | PS_DEDUCTION_CONTEXT;
         param_ptr->def_arg_has_not_been_scanned = FALSE;
       } else if (dependent_arg_list) {
         /* If the argument list is dependent, flag this as a nonreal
