@@ -9,7 +9,7 @@
 ******************************************************************************/
 /*
 
-lower_name.c -- Do name mangling for IL lowering.
+lower_name.c -- Do name mangling for IL lowering
 
 */
 
