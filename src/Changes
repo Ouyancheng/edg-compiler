@@ -1,5 +1,29 @@
 Version 4.4
 
+3/21/11  [EDGcpfe/11529]
+Spurious error on variadic expansion starting with complex identifier
+
+Under some complex conditions, including the fact that the start of a
+pack expansion is an identifier that is a qualified name and/or
+contusions a template argument list, a spurious error could result
+during an instantiation.  Now fixed.
+
+  namespace N {
+    template<class T> T&& f(T& _Arg);
+    template<class... U> class A;
+    template<class T, class... U> struct A<T, U...> {
+      template<class... V> A(V&& ...t) {}
+    };
+    template<class... U> A<U &&...> g(U &&... _Args) {	
+      return (A<U &&...>(::N::f<U>(_Args)...));
+//                               ^ expected an expression
+    }
+  }
+  int main() {
+    N::g(1,2);
+  }
+
+
 3/21/11  [EDGcpfe/11528]
 Microsoft compatibility: Internal error with default template arguments
 and new-style SFINAE in Microsoft mode

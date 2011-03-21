@@ -15407,6 +15407,7 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean			qualifier_type_is_class = FALSE;
   a_namespace_ptr		qualifier_namespace = NULL;
   a_token_sequence_number	start_seq_number;
+  a_cached_token_handle		start_cached_token_handle;
   a_boolean			follows_template;
   a_boolean			qualifier_is_super = FALSE;
   a_boolean			is_super_qualified = FALSE;
@@ -15434,6 +15435,7 @@ selection operator, in which case it points to the type of the left operand.
   }  /* if */
   start_position = pos_curr_token;
   start_seq_number = curr_token_sequence_number;
+  start_cached_token_handle = curr_cached_token_handle;
   orig_error_position = error_position;
   if (C_dialect != C_dialect_cplusplus) {
     /* Skip qualifier, destructor, finalizer, and operator processing if not
@@ -16305,6 +16307,7 @@ selection operator, in which case it points to the type of the left operand.
     /* Since we're returning a pseudo-token, set pos_curr_token. */
     pos_curr_token = start_position;
     curr_token_sequence_number = start_seq_number;
+    curr_cached_token_handle = start_cached_token_handle;
     /* Restore the original error position. */
     error_position = orig_error_position;
   } else if (is_identifier) {
@@ -16625,6 +16628,7 @@ wrapup:
     /* The ending position should already be set correctly. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     curr_token_sequence_number = start_seq_number;
+    curr_cached_token_handle = start_cached_token_handle;
     /* Restore the original error position. */
     error_position = orig_error_position;
     /* Perform error checks as specified in "options". */
