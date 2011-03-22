@@ -5,7 +5,7 @@ Spurious error on variadic expansion starting with complex identifier
 
 Under some complex conditions, including the fact that the start of a
 pack expansion is an identifier that is a qualified name and/or
-contusions a template argument list, a spurious error could result
+contains a template argument list, a spurious error could result
 during an instantiation.  Now fixed.
 
   namespace N {
