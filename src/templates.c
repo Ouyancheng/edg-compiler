@@ -9418,7 +9418,9 @@ make_new_type:
               /* If the type is a pack, make the new parameter a pack
                  as well, otherwise make the new parameter a pack
                  element. */
-              if (!type_is_pack(find_bottom_of_type(tp))) {
+              a_type_ptr	bottom_tp;
+              bottom_tp = find_bottom_of_type(tp);
+              if (!type_is_pack(bottom_tp)) {
                 new_ptp->is_pack_element = TRUE;
               } else {
                 new_ptp->is_parameter_pack = TRUE;
