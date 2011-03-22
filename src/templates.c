@@ -9382,10 +9382,6 @@ make_new_type:
                  we can use that type. */
               tp = first_new_type_for_param_types_list;
               first_new_type_for_param_types_list = NULL;
-            } else if (!any_more) {
-              /* This is a deducible pack for which there are no arguments.
-                 Retain the original type. */
-              tp = ptype;
             } else {
               /* copy_type_with_substitution has not been called yet. */
               tp = copy_type_with_substitution(ptype, templ_arg_list,
@@ -9419,10 +9415,10 @@ make_new_type:
             new_ptp->declared_type = declared_type;
             new_ptp->param_num = ptp->param_num;
             if (ptp->is_parameter_pack) {
-              /* any_more will be TRUE if new_ptp is a substituted pack
-                 element.  It will be FALSE if new_ptp is a copy of the
-                 parameter pack from the template declaration. */
-              if (any_more) {
+              /* If the type is a pack, make the new parameter a pack
+                 as well, otherwise make the new parameter a pack
+                 element. */
+              if (!type_is_pack(find_bottom_of_type(tp))) {
                 new_ptp->is_pack_element = TRUE;
               } else {
                 new_ptp->is_parameter_pack = TRUE;

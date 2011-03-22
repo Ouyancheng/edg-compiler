@@ -1,5 +1,24 @@
 Version 4.4
 
+3/22/11  [EDGcpfe/11531]
+Spurious ambiguity on partial specialization of variadic template
+
+A spurious ambiguity in selecting a partial specialization could occur
+if the partial specializations contained a function type in which the
+function parameter list contained a function parameter pack.  Now fixed.
+
+  template <class T> struct A {};
+  template <class T, class ... args> struct B;
+  template<class T, class... args> struct B<T(args*...)> {
+    typedef int type;
+  };
+  template<class T, class... args> struct B<A<T>(args*...)> {
+    typedef int type;
+  };
+  typedef int (*fp)();
+  B<A<fp>()>::type x;
+
+
 3/21/11  [EDGcpfe/11529]
 Spurious error on variadic expansion starting with complex identifier
 
