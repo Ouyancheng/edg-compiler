@@ -29,7 +29,7 @@ Microsoft compatibility: Internal error with default template arguments
 and new-style SFINAE in Microsoft mode
 
 Version 4.3 introduced a problem that could result in an internal error
-(in get_expr_rescan_info) on default templates arguments of function
+(in get_expr_rescan_info) on default template arguments of function
 templates in Microsoft mode when using new-style SFINAE (e.g., in C++0x mode).
 Now fixed.
 
