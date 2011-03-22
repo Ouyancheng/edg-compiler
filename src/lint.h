@@ -292,7 +292,9 @@ Included from basic_hdrs.h in every compilation.
 #ifdef __sun
 /* Solaris stdio.h doesn't define fileno in strict mode (fileno is not
    ANSI/ISO C; it's in POSIX). */
+#ifndef __linux__
 extern int fileno(FILE *);
+#endif /* ifndef __linux__ */
 /*lint -esym(526,fileno)*/
 /*lint -esym(526,isnan)*/
 /*lint -esym(526,finite)*/

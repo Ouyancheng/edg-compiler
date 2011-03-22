@@ -383,6 +383,7 @@ typedef unsigned int a_bit_field;
 
 #if __ANSIC__
 #include <limits.h>
+/*lint -e(451) */
 #include <stddef.h>
 /* sizeof_t is used instead of size_t within the front end.  It is the same
    as size_t except on systems where that is too small, e.g., it's 16 bits.
