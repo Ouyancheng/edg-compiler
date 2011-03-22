@@ -6208,12 +6208,12 @@ property or event designated by desc.
   /* The property/event declaration is followed by the accessor
      declarations enclosed in braces.  The braces are optionally preceded
      by a list of indices in the case of a property. */
-  a_property_index_type_ptr index = desc->indices;
-  if (index != NULL) {
+  a_property_index_type_ptr idx = desc->indices;
+  if (idx != NULL) {
     write_tok_ch('[');
-    for (; index != NULL; index = index->next) {
-      gen_type(index->type);
-      if (index->next != NULL) {
+    for (; idx != NULL; idx = idx->next) {
+      gen_type(idx->type);
+      if (idx->next != NULL) {
         write_tok_str(", ");
       }  /* if */
     }  /* for */
@@ -9031,12 +9031,12 @@ operation); otherwise, leave *obj_expr unchanged.
 */
 {
   an_expr_node_ptr          node = *args;
-  a_property_index_type_ptr index;
+  a_property_index_type_ptr idx;
 
   /* Skip over any subscripts. */
-  for (index = desc->indices;
-       index != NULL && node != NULL;
-       index = index->next) {
+  for (idx = desc->indices;
+       idx != NULL && node != NULL;
+       idx = idx->next) {
     node = node->next;
   }  /* for */
   check_assertion(node != NULL);
