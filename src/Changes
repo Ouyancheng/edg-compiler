@@ -1,5 +1,21 @@
 Version 4.4
 
+3/23/11  [EDGcpfe/11522]
+Variadic failure to deduce additional elements of explicit argument list
+
+When an explicit argument list is provided for a variadic template
+argument, additional elements can be deduced from the call arguments.
+This did not work correctly when the deduction was from a template
+argument list in the call.  Now fixed.
+
+  template<typename... T> class A {};
+  template<int I, typename... T> void f(A<T...>&);
+  int main() {
+    A<int, double> t;
+    f<0>(t);
+  }
+
+
 3/22/11  [EDGcpfe/11531]
 Spurious ambiguity on partial specialization of variadic template
 

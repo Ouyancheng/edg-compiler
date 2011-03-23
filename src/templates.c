@@ -8421,6 +8421,7 @@ associated parameter.
   a_boolean		have_params = (param_list_for_copy != NULL);
   a_boolean		added_placeholder = FALSE;
   a_boolean		copy_arg_operands = FALSE;
+  a_template_arg_ptr	pack_tap = NULL;
 
   if (options & CTWS_COPY_ARG_OPERAND_INFO) {
     copy_arg_operands = TRUE;
@@ -8439,6 +8440,7 @@ associated parameter.
                                                      templ_param_list,
                                                      templ_arg_list,
                                                      &pesep, ctws_state, &err);
+      pack_tap = tap;
       /* Check if an error occurred (such as mismatched parameter pack
          lengths). */
       if (err) *copy_error = TRUE;
@@ -8530,6 +8532,20 @@ end_of_loop:
   /* If there are too many parameters, the copy should fail. */
   if (have_params && tpp != NULL && (!tpp->is_pack || tpp->next != NULL)) {
     *copy_error = TRUE;
+  }  /* if */
+  if (!*copy_error && pack_tap != NULL &&
+      (options & CTWS_PRESERVE_DEDUCED_PACKS) != 0) {
+    /* When we are preserving deduced packs, append a template argument
+       representing the pack to the end of the argument list so that
+       additional arguments can be deduced. */
+    new_tap = alloc_template_arg(pack_tap->kind);
+    *new_tap = *pack_tap;
+    new_tap->next = NULL;
+    if (new_list == NULL) {
+      new_list = new_tap;
+    } else {
+      prev_new_tap->next = new_tap;
+    }  /* if */
   }  /* if */
   return new_list;
 }  /* copy_template_arg_list_with_substitution */
