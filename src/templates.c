@@ -20298,6 +20298,7 @@ differs between function and nonfunction declarations.
        save a pointer to the class in which the definition appears. */
     decl_state->class_declared_in = ssep->assoc_type;
     decl_state->access = ssep->current_access;
+    decl_state->is_variadic = ssep->in_variadic_template;
   }  /* if */
   if (decl_state->is_member_decl) {
     /* A member template cannot be declared in a local class. */
