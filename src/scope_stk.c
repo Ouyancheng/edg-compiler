@@ -2569,14 +2569,18 @@ the scope being pushed.
   ssep->outside_parameter_list = FALSE;
   /* The in_template_arg_list flag indicates whether we're currently scanning
      tokens inside angle brackets.  If we push a scope that implies a new
-     source of tokens (e.g., a template instantiation), clear the flag. */
+     source of tokens (e.g., a template instantiation), clear the flag.
+     The implicit_typename flag is set to the value of the global variable
+     for each new context.  It may then be reset by the caller, if needed. */
   if (kind == (a_scope_kind)sck_file ||
       kind == (a_scope_kind)sck_template_instantiation ||
       kind == (a_scope_kind)sck_instantiation_context ||
       kind == (a_scope_kind)sck_pragma) {
     ssep->in_template_arg_list = FALSE;
+    ssep->implicit_typename = implicit_typename_enabled;
   } else {
     ssep->in_template_arg_list = (ssep-1)->in_template_arg_list;
+    ssep->implicit_typename = (ssep-1)->implicit_typename;
   }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
   ssep->pragma_pack_is_local     = FALSE;

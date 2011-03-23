@@ -5872,7 +5872,7 @@ The syntax is:
           if (pedp->is_function_declarator) goto function_lparen;
         }  /* if */
         if ((!any_args && pedp != NULL && !pedp->is_function_declarator) ||
-            (not_a_function_declarator && implicit_typename_enabled &&
+            (not_a_function_declarator && use_implicit_typename() &&
              is_template_dependent_context()) ||
             !is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                               DFS_REAL_DECLARATOR_ALLOWED)) {

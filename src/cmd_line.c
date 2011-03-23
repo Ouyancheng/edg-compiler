@@ -7883,6 +7883,7 @@ enable_microsoft_mode:
         /* Enable/disable implicit determination of whether a template
            dependent name is a type or nontype. */
         implicit_typename_enabled = opt_value;
+        force_implicit_typename = opt_value;
         break;
       case optk_special_subscript_cost:
         /* Enable/disable a special weighting for the conversion to the

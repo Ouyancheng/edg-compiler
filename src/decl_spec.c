@@ -8575,7 +8575,7 @@ process_enum_specifier:
         if (!type_specifier_allowed) {
           error(ec_type_specifier_not_allowed);
           err = TRUE;
-        } else if (sun_mode && implicit_typename_enabled) {
+        } else if (sun_mode && use_implicit_typename()) {
           /* typename is ignored in Sun mode.  Simply discard the token
              unless the user has disabled implicit typename mode. */
         } else if (basic_type != bt_none) {

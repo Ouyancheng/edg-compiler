@@ -769,7 +769,8 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         if (is_typename &&
             sun_mode && implicit_typename_enabled) break;
         /* The Microsoft compiler allows the typename specifier to be
-           repeated. */
+           repeated.  Note that use_implicit_typename() is not used in this
+           case. */
         do {
           cache_curr_token(&state->cache);
           f_get_token_and_coalesce_if_identifier(
@@ -1405,7 +1406,7 @@ types separated by commas (when single_type_required is FALSE).
      syntax really looks like a cast, because we can't be positive that
      the identifier was really intended to be a type. */
   is_implicit_template_type = 
-        curr_token == tok_identifier && implicit_typename_enabled &&
+        curr_token == tok_identifier && use_implicit_typename() &&
         specific_sym != NULL && specific_sym->kind == (a_symbol_kind)sk_type &&
         specific_sym->variant.type.ptr->kind ==
                                        (a_type_kind)tk_template_param &&

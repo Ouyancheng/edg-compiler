@@ -14250,7 +14250,7 @@ otherwise the original "sym" is returned.
       type_wanted = TRUE;
     } else if (next_token() == tok_colon_colon) {
       type_wanted = TRUE;
-    } else if ((implicit_typename_enabled ||
+    } else if ((use_implicit_typename() ||
                 (gpp_mode && gnu_version <= 40100)) &&
                (options & GID_IS_EXPR_CONTEXT) == 0) {
       type_wanted = TRUE;
@@ -16025,10 +16025,10 @@ selection operator, in which case it points to the type of the left operand.
                  argument list. */
               lookup_options |= IDL_TYPENAME_LOOKUP;
               if ((next_tok == tok_lt || is_template) &&
-                  implicit_typename_enabled) {
+                  use_implicit_typename()) {
                 lookup_options |= IDL_TREAT_AS_TEMPLATE_ID;
               }  /* if */
-            } else if ((implicit_typename_enabled ||
+            } else if ((use_implicit_typename() ||
                               (gpp_mode && gnu_version <= 40100 &&
                                qualifier_is_type &&
                                gpp_omitted_template_okay(qualifier_type))) &&
@@ -17020,7 +17020,7 @@ scanned is, in fact, an identifier).
           ilm == ilm_class ||
           ilm == ilm_using_typename ||
           ilm == ilm_qualified_ctor_initializer_name ||
-          (ilm == ilm_tentative_type && implicit_typename_enabled)) {
+          (ilm == ilm_tentative_type && use_implicit_typename())) {
         a_template_arg_ptr	arg_list;
         arg_list = locator_for_curr_id.template_arg_list;
         symbol = find_template_class(symbol, &arg_list,

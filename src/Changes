@@ -1,5 +1,18 @@
 Version 4.4
 
+3/23/11  [EDGcpfe/11533]
+Implicit typename not disabled during variadic prototype instantiations
+
+Prototype instantiations are done for variadic functions even in
+modes when nonclass prototype instantiations are not enabled.  Implicit
+typename processing was not disabled during such prototype instantiations,
+resulting in spurious errors.  Now fixed.
+
+  template <class ... T, class U> void f(U p, T... args) {
+    U::V * p;  // spurious "redeclaration of p" error
+  }
+
+
 3/23/11  [EDGcpfe/11522]
 Variadic failure to deduce additional elements of explicit argument list
 

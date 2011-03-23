@@ -954,6 +954,13 @@ of lambda expressions.
   scope_ptr = push_scope((a_scope_kind)sck_function, scope_number,
                          (a_type_ptr)NULL, rout_ptr);
   scope_stack_top().lambda = func_info->lambda;
+  /* Make sure the implicit_typename flag is FALSE during prototype
+     instantiations.  It could be set if we are in a mode where
+     nonclass prototype instantiations are not normally done, but we
+     are processing a variadic template. */
+  if (rout_ptr->is_prototype_instantiation && !force_implicit_typename) {
+    scope_stack_top().implicit_typename = FALSE;
+  }  /* if */
   /* Associate the scope to the routine entry and the routine entry to its
      type entry. */
   rout_ptr->assoc_scope = curr_il_region_number;

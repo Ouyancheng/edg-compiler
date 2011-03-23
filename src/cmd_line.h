@@ -504,6 +504,12 @@ EXTERN a_boolean
 			   type or nontype.  Significant only in C++ mode. */
 
 EXTERN a_boolean
+		force_implicit_typename;
+			/* TRUE if implicit typename was explicitly requested
+			   on the command-line and so should not be disabled
+			   in some contexts. */
+
+EXTERN a_boolean
 		extern_inline_allowed;
 			/* TRUE if inline functions are allowed to have
 			   external linkage (as specified by the standard) and

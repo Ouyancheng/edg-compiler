@@ -836,6 +836,9 @@ typedef struct a_scope_stack_entry {
 			   flag is inherited by most scopes pushed on the
 			   stack, except template instantiation and
 			   instantiation context scopes. */
+  a_bit_field	implicit_typename:1;
+			/* TRUE if, in this scope, implicit typename processing
+			   should be done. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
@@ -1390,6 +1393,14 @@ TRUE if we are in the context of the definition of a variadic template.
 */
 #define is_variadic_definition_context()				\
   (is_variadic_template_context() && is_prototype_instantiation_context())
+
+/*
+TRUE if implicit typename processing should be done.
+*/
+#define use_implicit_typename()						\
+  (depth_scope_stack != NO_SCOPE_DEPTH ?				\
+   scope_stack[depth_scope_stack].implicit_typename : FALSE)
+
 
 /*
 Safe version of is_template_dependent_context that can be used in
