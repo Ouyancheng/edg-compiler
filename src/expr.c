@@ -28973,6 +28973,8 @@ of this where the source should be considered an rvalue.
        the source type (the standard doesn't say), but we ignore it. */
     src_type = type_pointed_to(src_type);
   }  /* if */
+  complete_type_is_needed(src_type);
+  complete_type_is_needed(dst_type);
   if (is_void_type(dst_type)) {
     /* Any type can be converted to void. */
     result = TRUE;

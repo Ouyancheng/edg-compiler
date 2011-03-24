@@ -1,5 +1,21 @@
 Version 4.4
 
+3/24/11  [EDGcpfe/11539]
+__is_convertible_to failed to instantiate its argument types
+
+The type trait function __is_convertible_to failed to instantiate its
+argument types when they are templates, and therefore in some cases
+failed to correctly determine whether one type could be converted
+to another.  Now fixed.
+
+  template <class T> struct A {
+    operator A<int>() { return A<int>(); }
+  };
+  int main() {
+    int a[__is_convertible_to(A<char>, A<int>)];  // Formerly an error
+  }
+
+
 3/23/11  [EDGcpfe/11533]
 Implicit typename not disabled during variadic prototype instantiations
 
