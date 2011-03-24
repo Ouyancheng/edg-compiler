@@ -1,5 +1,13 @@
 Version 4.4
 
+3/24/11  [EDGcpfe/11544]
+Default temporary directory changed to /tmp
+
+On non-Windows systems the default temporary directory has been changed
+from /var/tmp to /tmp, which is more likely to have faster performance
+on some Unix systems (i.e., because it is a tmpfs file system based in RAM).
+
+
 3/24/11  [EDGcpfe/11539]
 __is_convertible_to failed to instantiate its argument types
 

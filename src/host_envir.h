@@ -1554,7 +1554,8 @@ for a feature that is not required by most users.
 #endif /* ifndef ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
 
 /*
-Default temporary file directory.
+Default temporary file directory.  Use /tmp on non-Microsoft systems as it's
+more likely to be faster (i.e., a tmpfs file system).
 */
 #if __MICROSOFT_OS__
 #ifndef DEFAULT_TMPDIR
@@ -1562,7 +1563,7 @@ Default temporary file directory.
 #endif /* ifndef DEFAULT_TMPDIR */
 #else /* !__MICROSOFT_OS__ */
 #ifndef DEFAULT_TMPDIR
-#define DEFAULT_TMPDIR "/var/tmp"
+#define DEFAULT_TMPDIR "/tmp"
 #endif /* ifndef DEFAULT_TMPDIR */
 #endif /* !__MICROSOFT_OS__ */
 
