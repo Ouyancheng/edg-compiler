@@ -1,5 +1,23 @@
 Version 4.4
 
+3/25/11  [EDGcpfe/11473]
+Internal error when "delete []" called with pointer to array
+
+In GNU and Microsoft emulation modes, an attempt to call "delete []" with a
+pointer to an array of a class with a virtual destructor had resulted in an
+internal error ("make_vptr_field_lvalue: not class type") in configurations
+that use IL lowering.  This regression was introduced in 4.2 (EDGcpfe/10873)
+and is now fixed.  For example:
+
+  struct A {
+    virtual ~A();
+  };
+  typedef A Arr[2];
+  void f(Arr *a) {
+    delete [] a;
+  }
+
+
 3/25/11  [EDGcpfe/11538]
 "No side effect" warning suppressed inside decltype expressions
 

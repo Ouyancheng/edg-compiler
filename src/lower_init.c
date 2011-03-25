@@ -8464,6 +8464,12 @@ i.e., arrays with class elements.
          GNU and Microsoft use the destructor address found in the
          virtual function table.  This can cause errors at runtime if the
          sizes of the base and derived classes are not the same. */
+      /* Cast the expression to a pointer-to-element type (it typically
+         already is, but may be a pointer-to-array type in some non-standard
+         cases). */
+      ptr_node = add_cast_if_necessary(ptr_node, make_pointer_type(
+                                      new_delete_base_type_from_operation_type(
+                                            type_pointed_to(ptr_node->type))));
       dtor_addr_node = get_virtual_function_address(
                                         function_addr_expr(dtor_routine),
                                         &ptr_node,
