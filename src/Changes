@@ -1,5 +1,19 @@
 Version 4.4
 
+3/25/11  [EDGcpfe/11538]
+"No side effect" warning suppressed inside decltype expressions
+
+Warnings that an expression has no side effect are now suppressed
+inside decltype expressions, because decltype expressions are now
+used to test SFINAE conditions, and such tests may indeed have
+a SFINAE purpose even though they have no side effects.
+
+  template <class T> auto f(T p) -> decltype((p > 0), p) { return 0; }
+  int main() {
+    f(1);
+  }
+
+
 3/24/11  [EDGcpfe/11544]
 Default temporary directory changed to /tmp
 

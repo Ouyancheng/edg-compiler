@@ -334,7 +334,11 @@ C++).  Other transformations are done in all cases.
   /* Do lvalue-to-rvalue transformations, etc. as appropriate. */
   do_void_operand_transformations(operand,
                                   /*force_lvalue_to_rvalue=*/FALSE);
-  if (!is_expression_operand(operand)) {
+  if (expr_stack->is_decltype_or_typeof_arg_expression) {
+    /* decltype expressions are sometimes written to check SFINAE
+       conditions, so do not warn inside them. */
+    suppress_warning = TRUE;
+  } else if (!is_expression_operand(operand)) {
     /* An operand that is not an expression cannot have side effects.
        For error operands, assume that the original form might have had
        an effect, and suppress the warning.  Likewise for template-dependent
