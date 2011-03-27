@@ -1826,6 +1826,17 @@ extern void rescan_copy_of_cache(a_token_cache *cache);
 extern void free_tokens_from_reusable_cache(a_cached_token_ptr	ctp,
 					    a_token_cache	*cache);
 
+extern void begin_caching_fetched_tokens(a_boolean	include_curr_token);
+
+extern void end_caching_fetched_tokens(void);
+
+extern
+void copy_tokens_from_cache(a_token_cache_ptr	       src_cache,
+                            a_token_sequence_number    first_tsn,
+                            a_token_sequence_number    last_tsn,
+			    a_boolean                  include_last_token,
+                            a_token_cache_ptr	       dest_cache);
+
 extern
 void split_token_cache(a_token_cache	       *cache1,
                        a_token_cache	       *cache2,
@@ -1841,7 +1852,7 @@ void move_cached_tokens(a_cached_token_ptr	first_token,
 
 
 extern void update_reusable_cache_rescan_location(
-					a_cached_token_handle	token_handle);
+				a_pack_expansion_stack_entry_ptr	pesep);
 
 extern void increment_variadic_rescans_for_reusable_cache(void);
 

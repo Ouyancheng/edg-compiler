@@ -1,5 +1,26 @@
 Version 4.4
 
+3/27/11  [EDGcpfe/11550]
+Microsoft compatibility: spurious errors on complex variadic return types
+
+Certain test cases with complex return types involving variadic templates
+could result in spurious errors in Microsoft mode.  Now fixed.
+
+  template<int... I> struct A {};
+  template<class X, class Y, class I> struct B;
+  template<class X, class Y, int... J> struct B<X, Y, A<J...> > {	
+    typedef int Q;
+  };
+  template<class... U> class C {};
+  template<class... U> struct D {	
+    D(int,int,int){}
+    template<class... Z> typename B<C<U...>, C<Z&...>, int>::Q f(Z&&... args);
+  };
+  int main() {
+    D<char, int>(1, 2, 3);
+  }
+
+
 3/25/11  [EDGcpfe/11473]
 Internal error when "delete []" called with pointer to array
 

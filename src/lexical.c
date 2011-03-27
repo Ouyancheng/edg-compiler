@@ -1372,15 +1372,16 @@ to by the token.
 }  /* copy_cached_token */
 
 
-static
 void copy_tokens_from_cache(a_token_cache_ptr	       src_cache,
                             a_token_sequence_number    first_tsn,
                             a_token_sequence_number    last_tsn,
+			    a_boolean                  include_last_token,
                             a_token_cache_ptr	       dest_cache)
 /*
 Copy the tokens from src_cache to dest_cache that are in the range
 of token sequence numbers from first_tsn to last_tsn.  last_tsn
 is actually the first token to not be included in the cache.
+If include_last_token is TRUE, last_tsn is included in the cache.
 */
 {
   a_cached_token_ptr		ctp;
@@ -1438,6 +1439,12 @@ is actually the first token to not be included in the cache.
     copy_cached_token(ctp, copy_ctp);
     add_cached_token_to_cache(copy_ctp, dest_cache);
   }  /* for */
+  if (include_last_token) {
+    ctp = last_ctp_to_copy;
+    alloc_cached_token(copy_ctp);
+    copy_cached_token(ctp, copy_ctp);
+    add_cached_token_to_cache(copy_ctp, dest_cache);
+  }  /* if */
   if (adjust_final_token) {
     /* Change the last token copied from a ">>" to a ">". */
     check_assertion((a_token_kind)copy_ctp->token == tok_shift_right);
@@ -1541,11 +1548,6 @@ which has not yet been cached.
     (void)get_token();
   }  /* while */
 }  /* cache_std_attribute */
-
-
-/* Forward declarations. */
-static void begin_caching_fetched_tokens(a_boolean	include_curr_token);
-static void end_caching_fetched_tokens(void);
 
 
 a_boolean cache_token_stream_until_matching_token(
@@ -1743,7 +1745,7 @@ a template argument list or is just a less-than sign.
     last_tsn = curr_token_sequence_number;
     /* Get the tokens from the cache that has been accumulated. */
     copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn, last_tsn,
-                           cache);
+                           curr_token == tok_end_of_source, cache);
   }  /* if */
   /* Clear the flag that indicates that the tokens being scanned are to be
      cached. */
@@ -2175,15 +2177,15 @@ an equivalent change.
 
 
 void update_reusable_cache_rescan_location(
-					a_cached_token_handle	token_handle)
+				a_pack_expansion_stack_entry_ptr	pesep)
 /*
 Update the current reusable token cache information to begin rescanning
-tokens from the token specified by token_handle.
+tokens from the token specified by pesep.
 */
 {
   /* Discard any tokens on the non-reusable rescan list. */
   while (cached_token_rescan_list != NULL) (void)get_token();
-  reusable_cache_stack->next_cached_token = token_handle;
+  reusable_cache_stack->next_cached_token = pesep->first_token_handle;
   (void)get_token();
 }  /* update_reusable_cache_rescan_location */
 
@@ -2270,11 +2272,11 @@ an equivalent change.
   }  /* if */
   /* Check whether we have reached the end of this cache. */
   while ((reusable_cache_stack->next_cached_token == NULL ||
-      (reusable_cache_stack->next_cached_token->next == NULL &&
-       reusable_cache_stack->skip_terminator &&
-       reusable_cache_stack->next_cached_token->token ==
+          (reusable_cache_stack->next_cached_token->next == NULL &&
+           reusable_cache_stack->skip_terminator &&
+           reusable_cache_stack->next_cached_token->token ==
                                      (a_small_token_kind)tok_end_of_source)) &&
-      reusable_cache_stack->variadic_rescans_in_progress == 0) {
+          reusable_cache_stack->variadic_rescans_in_progress == 0) {
      /* Don't pop this entry of the stack if it is currently being used
         for a variadic template rescan. */
      pop_reusable_cache_stack();
@@ -11785,7 +11787,7 @@ to it.
   lssep->next = NULL;
   lssep->cache_tokens = 0;
   lssep->last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
-  clear_token_cache(&lssep->cache, /*is_reusable=*/FALSE);
+  clear_token_cache(&lssep->cache, /*is_reusable=*/TRUE);
   return lssep;
 }  /* alloc_lexical_state_stack_entry */
 
@@ -11851,7 +11853,7 @@ Interface to pop_lexical_state_stack_full that passes in final_pop == FALSE.
 }  /* pop_lexical_state_stack */
 
 
-static void begin_caching_fetched_tokens(a_boolean	include_curr_token)
+void begin_caching_fetched_tokens(a_boolean	include_curr_token)
 /*
 Update the current lexical stack state to indicate that new tokens that are
 fetched should automatically be added to the cache associated with the
@@ -11876,7 +11878,7 @@ added to the cache.
 }  /* begin_caching_fetched_tokens */
 
 
-static void end_caching_fetched_tokens(void)
+void end_caching_fetched_tokens(void)
 /*
 Update the current lexical stack state to indicate that new tokens that are
 fetched should no longer be added to the cache associated with the current

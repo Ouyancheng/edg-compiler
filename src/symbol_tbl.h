@@ -43,6 +43,7 @@ typedef struct a_gnu_attribute  a_gnu_attribute_dummy_typedef;
 typedef struct a_symbol_list_entry *a_symbol_list_entry_ptr;
 typedef struct a_hash_table *a_hash_table_ptr;
 typedef struct a_param_id *a_param_id_ptr;
+typedef struct a_pack_expansion_stack_entry *a_pack_expansion_stack_entry_ptr;
 
 /* The pointer to a_routine_fixup is declared here even though the struct
    itself is defined in class_decl.c.  This allows the pointer to be made

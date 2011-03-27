@@ -15323,50 +15323,6 @@ parameter in the parameter list.
 }  /* prescan_function_template_default_arg_expr */
 
 
-static void prescan_template_param_decl(a_token_cache	      *token_cache)
-/*
-Place the tokens for a template parameter into a token cache.
-*/
-{
-  a_token_set_array  stop_tokens;
-
-  db_enter(3, "prescan_template_param_decl");
-  /* Initialize a local stop token set. */
-  clear_token_set_array(stop_tokens);
-  /* In the normal case we will scan an expression and encounter a comma
-     or right parenthesis.  If both of these are omitted, terminate the token
-     stream when some likely delimiter is reached. */
-  incr_token_set_array_element(stop_tokens, tok_semicolon);
-  incr_token_set_array_element(stop_tokens, tok_lbrace);
-  clear_token_cache(token_cache, /*reusable=*/TRUE);
-  if (curr_token != tok_template && !microsoft_mode) {
-    /* When not scanning a template template parameter, stop on a ","
-       or ">".  These may appear in a template template parameter declaration,
-       so when scanning those we scan until a semicolon or brace.  The more
-       general caching mechanism is also used in Microsoft mode to avoid
-       errors on certain invalid class template references that could be
-       issued by cache_token_stream_coalesce_identifiers. */
-    incr_token_set_array_element(stop_tokens, tok_comma);
-    incr_token_set_array_element(stop_tokens, tok_gt);
-    cache_token_stream_coalesce_identifiers(token_cache, stop_tokens);
-  } else {
-    /* When caching a template template parameter it is more difficult to
-       know when to stop.  Stop on just a semicolon or brace.  Don't
-       coalesce identifiers because we might encounter references to
-       template parameters that have not been declared yet. */
-    cache_token_stream(token_cache, stop_tokens);
-  }  /* if */
-  /* Note that the terminating token (comma, etc.) is not added to
-     the cache. */
-  terminate_token_cache(token_cache);
-  /* Rescan a copy of the tokens that were just cached.  Rescanning a copy
-     ensures that processing of the remainder of the original line will
-     not be affected by the tok_end_of_source that terminates the cache. */
-  rescan_copy_of_cache(token_cache);
-  db_exit();
-}  /* prescan_template_param_decl */
-
-
 static void scan_a_template_parameter_declaration(
 				a_symbol_locator	*param_locator,
 				a_type_ptr		*param_type_ptr,
@@ -15475,21 +15431,19 @@ ellipsis, return TRUE in *is_pack.
 
 
 static
-a_symbol_kind determine_template_param_kind(a_token_cache_ptr param_cache)
+a_symbol_kind determine_template_param_kind(void)
 /*
 Determine the kind of template parameter that is being scanned.
 Return the symbol kind for the parameter symbol to be created for
-this parameter.  param_cache is a token cache containing the template
-parameter declaration.
+this parameter.
 */
 {
-  a_symbol_kind	result;
-  a_token_kind	first_token;
-  a_boolean	is_end_of_param;
+  a_symbol_kind			result;
+  a_token_kind			first_token;
+  a_boolean			is_end_of_param;
+  a_token_sequence_number	first_tsn = curr_token_sequence_number;
+  a_token_cache			cache;
 
-  /* Rescan the tokens from the parameter cache to determine the
-     parameter kind. */
-  rescan_reusable_cache(param_cache);
   /* Determine whether this is a "type-argument" (a parameter that
      represents a type) or a "parameter-declaration" (a parameter that
      represents a constant).  A type argument may be specified as "class T"
@@ -15503,6 +15457,7 @@ parameter declaration.
      parameter begins with they keyword "template".  All other cases are
      considered to be nontype parameters. */
   first_token = curr_token;
+  clear_token_cache(&cache, /*is_reusable=*/FALSE);
   /* Bypass the initial token of the declaration. */
   if (curr_token != tok_end_of_source) (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -15524,10 +15479,6 @@ parameter declaration.
                     curr_token == tok_gt ||
                     curr_token == tok_assign ||
                     curr_token == tok_end_of_source;
-  /* Flush and remaining tokens from the cache. */
-  while (curr_token != tok_end_of_source) (void)get_token();
-  /* Skip past the tok_end_of_source. */
-  (void)get_token();
   /* Classify the template parameter using the information gathered above. */
   if ((first_token == tok_class || first_token == tok_typename) &&
       is_end_of_param) {
@@ -15540,6 +15491,12 @@ parameter declaration.
     /* A nontype parameter. */
     result = (a_symbol_kind)sk_constant;
   }  /* if */
+  /* Get the tokens that were fetched by this routine from the cache
+     that has been accumulated and rescan them. */
+  copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
+                         curr_token_sequence_number,
+                         /*include_last_token=*/FALSE, &cache);
+  rescan_cached_tokens(&cache);
   return result;
 }  /* determine_template_param_kind */
 
@@ -15781,14 +15738,12 @@ parameter entry for the parameter.
 static a_template_param_ptr scan_nontype_template_param(
 		a_tmpl_decl_state_ptr		decl_state,
 		a_template_param_list_pos	template_param_list_pos,
-		a_token_cache			*param_cache,
 		a_boolean			*param_cache_used)
 /*
 Scan the declaration of a nontype template parameter.  Return the template
-parameter entry for the parameter.  param_cache is the cache containing
-the template parameter declaration.  param_cache_used is set to TRUE if
+parameter entry for the parameter.  param_cache_used is set to TRUE if
 a that cache has been saved for rescanning when the type of the nontype
-parameter depends on a template parameter.
+parameter depends on a template parameter.  If param_cached_used is TRUE
 */
 {
   a_type_ptr		param_type_ptr;
@@ -15844,7 +15799,7 @@ parameter depends on a template parameter.
        to be saved as a token cache if the type uses template
        parameters. */
     template_param->variant.constant.type_involves_template_param = TRUE;
-    set_template_cache_info(&template_param->cache, param_cache,
+    set_template_cache_info(&template_param->cache, (a_token_cache_ptr)NULL,
                             decl_state->decl_info);
     *param_cache_used = TRUE;
     decl_state->has_dependent_templ_param = TRUE;
@@ -15958,7 +15913,6 @@ parameter based on the current state.
 static a_template_param_ptr scan_template_template_param(
 		a_tmpl_decl_state_ptr		parent_decl_state,
 		a_template_param_list_pos	template_param_list_pos,
-		a_token_cache			*param_cache,
 		a_boolean			*param_cache_used,
 		a_boolean			is_rescan)
 /*
@@ -16132,7 +16086,7 @@ depends on a another template parameter.
     if (!is_rescan) {
       /* Don't attempt to save the cache information if, during a rescan,
          the template is still dependent. */
-      set_template_cache_info(&template_param->cache, param_cache,
+      set_template_cache_info(&template_param->cache, (a_token_cache_ptr)NULL,
                               parent_decl_state->decl_info);
       *param_cache_used = TRUE;
     }  /* if */
@@ -16153,9 +16107,9 @@ to represent the template parameters.
   a_template_param_ptr 		template_param;
   a_template_param_ptr 		template_param_list = NULL;
   a_template_param_ptr 		end_of_template_param_list = NULL;
-  a_token_cache        		param_cache;
   a_boolean			param_cache_used = FALSE;
   a_template_param_list_pos	template_param_list_pos = 0;
+  a_token_sequence_number	first_tsn;
 
   db_enter(3, "scan_template_param_list");
   add_stop_token(tok_semicolon);
@@ -16172,29 +16126,36 @@ to represent the template parameters.
       break;
     }  /* if */
     ++template_param_list_pos;
-    /* Cache the tokens that comprise the template parameter declaration.
-       If the parameter depends on other template parameters this cache
-       will be saved and rescanned to scan template argument lists. */
-    prescan_template_param_decl(&param_cache);
+    begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
     add_stop_token(tok_comma);
+    first_tsn = curr_token_sequence_number;
     /* Determine the kind of template parameter to be scanned. */
-    param_kind = determine_template_param_kind(&param_cache);
+    param_kind = determine_template_param_kind();
     if (param_kind == (a_symbol_kind)sk_type) {
       /* A type template parameter. */
       template_param = scan_type_template_param(decl_state,
                                                 template_param_list_pos);
     } else if (param_kind == (a_symbol_kind)sk_constant) {
       template_param = scan_nontype_template_param(
-                             decl_state, template_param_list_pos, &param_cache,
+                             decl_state, template_param_list_pos,
                              &param_cache_used);
     } else {
       /* A template template parameter. */
       template_param = scan_template_template_param(decl_state,
                                                     template_param_list_pos,
-                                                    &param_cache,
                                                     &param_cache_used,
 						    /*is_rescan=*/FALSE);
     }  /* if */
+    if (param_cache_used) {
+      /* If a template parameter cache is needed, make a copy from the
+         token cache that is being accumulated. */
+      copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
+                             curr_token_sequence_number,
+                             /*include_last_token=*/FALSE,
+                             &template_param->cache.tokens);
+      terminate_token_cache(&template_param->cache.tokens);
+    }  /* if */
+    end_caching_fetched_tokens();
     /* Add the template param to the end of the list. */
     if (template_param_list == NULL) {
       template_param_list = template_param;
@@ -16204,8 +16165,6 @@ to represent the template parameters.
     } else {
       end_of_template_param_list->next = template_param;
     }  /* if */
-    /* Discard the parameter token cache if it is not needed for later use. */
-    if (!param_cache_used) discard_token_cache(&param_cache);
     end_of_template_param_list = template_param;
     /* Make sure we are at the end of a template parameter. */
     if (curr_token != tok_comma && curr_token != tok_gt) {
@@ -16464,7 +16423,7 @@ template parameters that depend on other template parameters.
                        &parent_decl_state,
                        param_ptr->variant.templ->
                                           il_template_entry->coordinates.depth,
-                       (a_token_cache*)NULL, (a_boolean*)NULL,
+                       (a_boolean*)NULL,
                        /*is_rescan=*/TRUE);
     /* Scan the declaration specifiers. */
     /* Skip past any tokens remaining in the cache.  Extra tokens will

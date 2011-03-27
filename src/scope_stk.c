@@ -10302,7 +10302,6 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
           }  /* if */
         }  /* if */
       }  /* if */
-      pesep->instantiation_descr->after_first_element = TRUE;
     }  /* for */
     if (done && !pesep->is_rescan) {
       decrement_variadic_rescans_for_reusable_cache();
@@ -10311,14 +10310,13 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
   if (!done) {
     if (!pesep->is_rescan) {
       /* Reset the token position to the start of the pack expansion. */
-      update_reusable_cache_rescan_location(pesep->first_token_handle);
+      update_reusable_cache_rescan_location(pesep);
     }  /* if */
-  } else {
+    pesep->instantiation_descr->after_first_element = TRUE;
+  } else if (pesep != NULL) {
     /* If we have advanced past the last element, pop the pack expansion
        stack. */
-    if (pesep != NULL) {
-      pop_pack_expansion_stack();
-    }  /* if */
+    pop_pack_expansion_stack();
   }  /* if */
   return !done;
 }  /* advance_to_next_pack_element */

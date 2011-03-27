@@ -26,7 +26,6 @@ typedef struct an_expr_stack_entry an_expr_stack_entry_dummy_typedef;
 typedef struct a_class_def_state a_class_def_state_dummy_typedef;
 typedef struct a_class_fixup *a_class_fixup_ptr;
 typedef struct a_pack_expansion_descr *a_pack_expansion_descr_ptr;
-typedef struct a_pack_expansion_stack_entry *a_pack_expansion_stack_entry_ptr;
 typedef struct a_pack_instantiation_descr *a_pack_instantiation_descr_ptr;
 
 /*
