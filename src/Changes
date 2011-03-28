@@ -1,7 +1,7 @@
 Version 4.4
 
 3/28/11  [EDGcpfe/11428]
-C++-generating back end: naming a class template prototype instantation
+C++-generating back end: naming a class template prototype instantiation
 
 In C++-generating back end configurations in which
 PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, the name of a class template
