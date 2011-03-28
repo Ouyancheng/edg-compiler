@@ -1,5 +1,28 @@
 Version 4.4
 
+3/28/11  [EDGcpfe/11428]
+C++-generating back end: naming a class template prototype instantation
+
+In C++-generating back end configurations in which
+PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, the name of a class template
+prototype instantiation was typically generated as the qualified name of
+the template followed by a template argument list consisting of all the
+names of the template parameters.  While this form of the name is correct
+according to the C++ Standard, MSVC++ issued spurious errors for the
+generated code in some obscure cases.  To work around this problem, the
+C++-generating back end now generates such names as simply the name of
+the template unless the injected-class-name of the template is hidden; in
+that case, the full qualified name will still be used.  For example,
+
+  template<typename T> struct S {
+    typedef S thisclass;     // Previous generated as ::S<T>, now as S
+    void f(int S) {
+      typedef ::S<T> parent; // Still generated as ::S<T> because the
+                             // parameter hides the injected-class-name
+    }
+  };
+
+
 3/27/11  [EDGcpfe/11550]
 Microsoft compatibility: spurious errors on complex variadic return types
 

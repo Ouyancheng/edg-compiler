@@ -4908,57 +4908,12 @@ A reference is not the definition.
       /* A template instance is not declared, per se, but it should never be
          referred to by an elaborated-type-specifier. */
       type->has_been_declared = TRUE;
-      if (type->variant.class_struct_union.is_prototype_instantiation) {
-        /* Normally a reference to the name of a prototype instantiation
-           (which can only occur within the scope of the prototype
-           instantiation) will be generated as the qualified name of the
-           template followed by the template arguments, because the
-           injected-class-name hides the template name.  That's not usually
-           necessary because the injected-class-name will ordinarily be
-           visible, and the reference can't be generated in that form if
-           one of the parameters is unnamed.  In that case we need to
-           suppress the qualification and template argument list. */
-        a_template_arg_ptr arg;
-        for (arg = type->variant.class_struct_union.extra_info->
-                                                             template_arg_list;
-             arg != NULL; arg = arg->next) {
-          a_boolean unnamed;
-          switch(arg->kind) {
-            case tak_type:
-              unnamed = !has_name_before_mangling(arg->variant.type);
-              break;
-            case tak_nontype:
-              unnamed = !has_name_before_mangling(arg->variant.constant);
-              break;
-            case tak_template:
-              unnamed = !has_name_before_mangling(arg->variant.templ.ptr);
-              break;
-            case tak_start_of_pack_expansion:
-              /* In general, inside the definition of a class template like
-
-                     template<typename ... T> struct S { ... };
-
-                 we want references to the current instantiation to be
-                 generated as just S, which means S<T...>, so we treat a
-                 pack expansion as being unnamed.  When the type is used in
-                 the declaration of a parameter pack, however, that would
-                 make such a declaration effectively the equivalent of
-                 "S<T...> ...s", which is an error.  We therefore ignore
-                 the fact that the template argument is a pack expansion in
-                 such cases, causing the parameter declaration to be
-                 generated as "S<T> ...s". */
-              unnamed = !in_parameter_pack_declaration;
-              break;
-            default:
-              unexpected_condition();
-          }  /* switch */
-          if (unnamed) {
-            /* Suppress the qualification and template argument list. */
-            type->source_corresp.qualification_needed = FALSE;
-            options |= GN_NO_TEMPLATE_ARGS;
-            break;
-          }  /* if */
-        }  /* for */
+      if (type->variant.class_struct_union.is_prototype_instantiation &&
+          !type->source_corresp.qualification_needed) {
+        /* This is the name of the current instantiation, and it is visible.
+           Just use the name of the type, rather than the qualified name of
+           the template followed by the template arguments. */
+        options |= GN_NO_TEMPLATE_ARGS;
       }  /* if */
     } else if (type->source_corresp.is_class_member) {
       /* You can't use an elaborated-type-specifier for the first use of a
