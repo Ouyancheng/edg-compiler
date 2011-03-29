@@ -8741,7 +8741,7 @@ parameter.  Returns TRUE if the expression was replaced.
     if (replacing_roof ||
         (call_node != NULL &&
          is_routine_node(call_node->variant.operation.operands) &&
-         call_node->variant.operation.operands->variant.routine ==
+         call_node->variant.operation.operands->variant.routine.ptr ==
                                   master_routine_scope->variant.routine.ptr)) {
       a_scope_ptr      saved_curr_scope = curr_scope;
       /* We've found the "call" to the master routine.  Effectively inline
