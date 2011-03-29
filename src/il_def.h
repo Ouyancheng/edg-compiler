@@ -13261,9 +13261,27 @@ typedef struct an_expr_node {
                         /* A pointer to the variable. */
 
     /* When kind == enk_routine: */
-    a_routine_ptr
-                routine;
-                        /* A pointer to the routine. */
+    struct {
+      a_routine_ptr
+                ptr;	/* A pointer to the routine. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_property_or_event_descr_ptr
+		property_or_event_descr;
+			/* If this node is part of a call to a Microsoft
+			   property accessor (C++/CLI or __declspec) that
+			   was rewritten from a reference to a property
+			   field, this points to the descriptor for that
+			   property.  It is otherwise NULL. */
+      a_special_function_kind
+		special_kind;
+			/* If this node is part of a call to a Microsoft
+			   property accessor (C++/CLI or __declspec) that
+			   was rewritten from a reference to a property
+			   field, this is set to either sfk_property_set or
+			   sfk_property_get to reflect the kind of access;
+			   it is sfk_none otherwise. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } routine;
     /* When kind == enk_field: */
     a_field_ptr field;
 			/* A pointer to the field.  Used as an operand to an

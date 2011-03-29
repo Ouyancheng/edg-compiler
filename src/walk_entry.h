@@ -1465,8 +1465,12 @@ do_set_proper_definition_needed_flag:
           case enk_routine:
             /* Functions are handled from the scope that contains them.  Do
                not visit them here. */
-            remap_ptr(ptr->variant.routine, a_routine_ptr, iek_routine);
-            set_proper_routine_definition_needed_flag(ptr->variant.routine);
+            remap_ptr(ptr->variant.routine.ptr, a_routine_ptr, iek_routine);
+            remap_ptr(ptr->variant.routine.property_or_event_descr,
+                      a_property_or_event_descr_ptr,
+                      iek_property_or_event_descr);
+            set_proper_routine_definition_needed_flag(ptr->
+                                                          variant.routine.ptr);
             break;
           case enk_field:
             /* Fields are handled in processing the tag that contains

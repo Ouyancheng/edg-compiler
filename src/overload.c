@@ -7134,7 +7134,7 @@ or handle to a class ("->" or "->*" case, selector_is_object_pointer TRUE).
          function operand so we can alter it below without rebuilding it. */
       function_expr = function_operand->variant.expression;
       check_assertion(is_routine_node(function_expr));
-      function = function_expr->variant.routine;
+      function = function_expr->variant.routine.ptr;
       class_of_orig_function = parent_class_of(function);
 
       if (identical_types(complete_object_type, class_of_orig_function)) {
@@ -7190,7 +7190,7 @@ or handle to a class ("->" or "->*" case, selector_is_object_pointer TRUE).
                be called. */
             { a_ref_entry_ptr rep = function_operand->ref_entries_list;
               if (rep != NULL) rep->symbol = symbol_for(overrider);
-              function_expr->variant.routine = overrider;
+              function_expr->variant.routine.ptr = overrider;
               function_operand->orig_routine_type = function->type;
               function_expr->type = overrider->type;
               if (!function_expr->is_lvalue) {

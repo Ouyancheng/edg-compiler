@@ -4542,7 +4542,7 @@ Generate code for an enk_routine expression node, i.e., the name of a
 routine.
 */
 {
-  a_routine_ptr rout = expr->variant.routine;
+  a_routine_ptr rout = expr->variant.routine.ptr;
   a_type_ptr    rout_type = rout->type;
   a_type_ptr    expr_rout_type = (expr->is_lvalue) ? expr->type :
                                                    type_pointed_to(expr->type);
@@ -4723,7 +4723,7 @@ and terminate the traversal.
     }  /* if */
     tblock->terminate = TRUE;
   } else if (is_routine_node(expr)) {
-    rout_for_address_taken_check = expr->variant.routine;
+    rout_for_address_taken_check = expr->variant.routine.ptr;
     tblock->terminate = TRUE;
   }  /* if */
 }  /* set_target_of_addressing_op */

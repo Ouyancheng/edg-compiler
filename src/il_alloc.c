@@ -2795,7 +2795,11 @@ fields to default values.
       node->variant.variable = NULL;
       break;
     case enk_routine:
-      node->variant.routine = NULL;
+      node->variant.routine.ptr = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      node->variant.routine.property_or_event_descr = NULL;
+      node->variant.routine.special_kind = sfk_none;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case enk_field:
       node->variant.field = NULL;

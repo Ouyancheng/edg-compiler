@@ -4637,19 +4637,19 @@ expression that was used to select expr (NULL if no selector was used).
 #endif /* IA64_ABI */
     /* Do not insert code here. */
     {
-      template_arg_list = expr->variant.routine->template_arg_list;
-      if (expr->variant.routine->special_kind !=
+      template_arg_list = expr->variant.routine.ptr->template_arg_list;
+      if (expr->variant.routine.ptr->special_kind !=
                                            (a_special_function_kind)sfk_none) {
         /* See if this routine requires special handling. */
-        if (expr->variant.routine->special_kind ==
+        if (expr->variant.routine.ptr->special_kind ==
                                      (a_special_function_kind)sfk_destructor) {
           destructor_type = scp_parent_class(
-                                       &expr->variant.routine->source_corresp);
-        } else if (expr->variant.routine->special_kind ==
+                                   &expr->variant.routine.ptr->source_corresp);
+        } else if (expr->variant.routine.ptr->special_kind ==
                                        (a_special_function_kind)sfk_operator) {
           mangle_as_operator = TRUE;
-          opname = expr->variant.routine->variant.opname_kind;
-        } else if (expr->variant.routine->special_kind ==
+          opname = expr->variant.routine.ptr->variant.opname_kind;
+        } else if (expr->variant.routine.ptr->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
           /* Compiler-generated conversion operations have been stripped. */
 #if IA64_ABI
@@ -4657,7 +4657,7 @@ expression that was used to select expr (NULL if no selector was used).
             /* Mangle as a conversion operation. */
             mangle_as_operator = TRUE;
             opname = (an_opname_kind)onk_none;
-            conversion_type = expr->variant.routine->type->
+            conversion_type = expr->variant.routine.ptr->type->
                                                    variant.routine.return_type;
           }  /* if */
           suppress_address_of = TRUE;
@@ -4667,7 +4667,7 @@ expression that was used to select expr (NULL if no selector was used).
         }  /* if */
       } else {
         /* Provide a spelling for the routine. */
-        scp = &expr->variant.routine->source_corresp;
+        scp = &expr->variant.routine.ptr->source_corresp;
 #if IA64_ABI
         if (emulate_gnu_abi_bugs &&
             (name_reference != NULL && name_reference->is_template_id)) {
@@ -5370,13 +5370,13 @@ is TRUE.
       } else {
         add_address_of = TRUE;
       }  /* if */
-      mangled_entity_reference(&expr->variant.routine->source_corresp,
+      mangled_entity_reference(&expr->variant.routine.ptr->source_corresp,
                                (an_il_entry_kind)iek_routine,
                                (a_routine_info_block *)NULL,
                                add_address_of,
                                mctl);
 #else /* !IA64_ABI */
-      mangled_routine_name(expr->variant.routine, mctl);
+      mangled_routine_name(expr->variant.routine.ptr, mctl);
 #endif /* IA64_ABI */
       break;
     case enk_reuse_value:  /* Not expected generally, but can come up

@@ -1686,8 +1686,8 @@ Dump the contents of the indicated expression node for debug purposes.
       break;
     case enk_routine:
       fprintf(f_debug, "routine: %s\n",
-	      node->variant.routine->source_corresp.name != NULL ?
-                node->variant.routine->source_corresp.name : "<unnamed>");
+	      node->variant.routine.ptr->source_corresp.name != NULL ?
+                node->variant.routine.ptr->source_corresp.name : "<unnamed>");
       break;
     case enk_field:
       fprintf(f_debug, "field ");
@@ -5757,7 +5757,8 @@ are done.
         do_type_comparison = FALSE;
         break;
       case enk_routine:
-        eq = same_entities(node1->variant.routine, node2->variant.routine);
+        eq = same_entities(node1->variant.routine.ptr,
+                           node2->variant.routine.ptr);
         break;
       case enk_field:
         eq = same_entities(node1->variant.field, node2->variant.field);
@@ -7290,7 +7291,7 @@ even though calls actually always use the rvalue form.
       expr = skip_parens(expr->variant.operation.operands);
     }  /* if */
     if (is_routine_node(expr)) {
-      routine = expr->variant.routine;
+      routine = expr->variant.routine.ptr;
     }  /* if */
   }  /* if */
   return routine;
@@ -11020,7 +11021,7 @@ scan.
 */
 {
   if (expr->kind == (an_expr_node_kind)enk_routine) {
-    instantiate_il_entity(&expr->variant.routine->source_corresp);
+    instantiate_il_entity(&expr->variant.routine.ptr->source_corresp);
   } else if (expr->kind == (an_expr_node_kind)enk_variable) {
     instantiate_il_entity(&expr->variant.variable->source_corresp);
   } else if (expr->kind == (an_expr_node_kind)enk_constant) {
@@ -16013,7 +16014,7 @@ and return a pointer to it.
 
   node = alloc_expr_node((an_expr_node_kind)enk_routine);
   node->type = rout->type;
-  node->variant.routine = rout;
+  node->variant.routine.ptr = rout;
   node->is_lvalue = TRUE;
   return node;
 }  /* function_lvalue_expr */
@@ -16031,7 +16032,7 @@ flag is not set.
 
   node = alloc_expr_node((an_expr_node_kind)enk_routine);
   node->type = make_pointer_type(rout->type);
-  node->variant.routine = rout;
+  node->variant.routine.ptr = rout;
   return node;
 }  /* function_rvalue_expr */
 
@@ -16048,7 +16049,7 @@ in order to call it.
 
   node = alloc_expr_node((an_expr_node_kind)enk_routine);
   node->type = make_pointer_type(rout->type);
-  node->variant.routine = rout;
+  node->variant.routine.ptr = rout;
   rout->address_taken = TRUE;
   return node;
 }  /* function_addr_expr */
@@ -16156,7 +16157,7 @@ isn't terminated once a flag is set (allows for something like &(i ? j : k) ).
       set_variable_address_taken(expr->variant.variable);
     }  /* if */
   } else if (is_routine_node(expr)) {
-    expr->variant.routine->address_taken = TRUE;
+    expr->variant.routine.ptr->address_taken = TRUE;
   }  /* if */
 }  /* set_address_taken_on_target_of_addressing_op */
 

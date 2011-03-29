@@ -8603,7 +8603,7 @@ Return TRUE if the indicated expression is a call of a constructor.
       expr->variant.operation.kind == (an_expr_operator_kind)eok_call) {
     an_expr_node_ptr first_operand = expr->variant.operation.operands;
     if (is_routine_node(first_operand)) {
-      a_routine_ptr rout = first_operand->variant.routine;
+      a_routine_ptr rout = first_operand->variant.routine.ptr;
       if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
         is_ctor_call = TRUE;
       }  /* if */

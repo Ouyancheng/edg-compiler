@@ -3504,8 +3504,8 @@ that extra work.
   if (operand->name_reference_set) {
     if (is_routine_node(node)) {
       node->name_reference = find_allocated_name_reference(
-                                        &node->variant.routine->source_corresp,
-                                        &operand->name_reference);
+                                    &node->variant.routine.ptr->source_corresp,
+                                    &operand->name_reference);
     } else if (is_variable_node(node)) {
       node->name_reference = find_allocated_name_reference(
                                        &node->variant.variable->source_corresp,
@@ -14862,7 +14862,7 @@ used in generating the function-identifying operand in a call.
        handled above. */
     { an_expr_node_ptr expr = skip_parens(operand->variant.expression);
       if (is_routine_node(expr)) {
-        a_routine_ptr rout = expr->variant.routine;
+        a_routine_ptr rout = expr->variant.routine.ptr;
         a_type_ptr    rout_type = skip_typerefs(rout->type);
         if (routine_type_is_nonstatic_member_function(rout_type)) {
           internal_error(
@@ -15137,9 +15137,18 @@ being rewritten; it's used to set a kind in the expression created.
                              /*uses_operator_syntax=*/FALSE,
                              &operand_position, operand,
                              &func_call_node);
-      if (put_operand != NULL && func_call_node != NULL) {
-        func_call_node->variant.operation.
+      if (func_call_node != NULL) {
+        an_expr_node_ptr opnd = func_call_node->variant.operation.operands;
+        if (is_routine_node(opnd)) {
+          /* Record the property description in the enk_routine node. */
+          opnd->variant.routine.property_or_event_descr = pedp;
+          opnd->variant.routine.special_kind =
+                   (put_operand == NULL) ? sfk_property_get : sfk_property_set;
+        }  /* if */
+        if (put_operand != NULL) {
+          func_call_node->variant.operation.
                                       rewritten_property_reference_kind = kind;
+        }  /* if */
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       /* The operand's end position now reflects the end of the current

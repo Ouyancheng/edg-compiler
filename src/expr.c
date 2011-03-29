@@ -5508,7 +5508,7 @@ a left parenthesis in the source.
         sym = symbol_for(member_op->variant.variable);
       } else if (is_routine_node(member_op)) {
         /* Static member function. */
-        sym = symbol_for(member_op->variant.routine);
+        sym = symbol_for(member_op->variant.routine.ptr);
       } else {
         unexpected_condition();
       }  /* if */
@@ -10016,7 +10016,7 @@ id_case:
       if (is_variable_node(expr)) {
         result = expr->variant.variable->type;
       } else if (is_routine_node(expr)) {
-        result = expr->variant.routine->type;
+        result = expr->variant.routine.ptr->type;
       } else if (expr->kind == (an_expr_node_kind)enk_param_ref) {
         /* A reference to a parameter in a function declarator: This is
            similar to the variable case. */

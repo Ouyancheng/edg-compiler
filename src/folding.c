@@ -5649,7 +5649,7 @@ that higher up.
       break;
     case enk_routine:
       /* An lvalue for a function. */
-      make_constant_routine_address(expr->variant.routine, con,
+      make_constant_routine_address(expr->variant.routine.ptr, con,
                                     address_escapes,
                                     template_constant);
       is_constant_addr = TRUE;
@@ -5931,7 +5931,7 @@ caller would prefer to handle that higher up.
     case enk_routine:
       /* An rvalue for a function.  That's a function pointer, which can
          be rendered as a constant. */
-      make_constant_routine_address(expr->variant.routine, con,
+      make_constant_routine_address(expr->variant.routine.ptr, con,
                                     address_escapes,
                                     template_constant);
       is_constant_ptr = TRUE;

@@ -4182,7 +4182,7 @@ on every expression.
                   (an_il_entry_kind)iek_variable, octl);
         break;
       case enk_routine:
-        form_name(&expr->variant.routine->source_corresp,
+        form_name(&expr->variant.routine.ptr->source_corresp,
                   (an_il_entry_kind)iek_routine, octl);
         break;
       case enk_field:

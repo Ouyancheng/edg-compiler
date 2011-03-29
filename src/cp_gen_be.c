@@ -8680,9 +8680,9 @@ normal way.
      be left as calls. */
   if (expr->variant.operation.is_conversion_call &&
       operand_1->kind == (an_expr_node_kind)enk_routine &&
-      operand_1->variant.routine->special_kind ==
+      operand_1->variant.routine.ptr->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
-    a_routine_ptr routine = operand_1->variant.routine;
+    a_routine_ptr routine = operand_1->variant.routine.ptr;
     a_type_ptr    return_type =
                      skip_typerefs(routine->type)->variant.routine.return_type;
     a_type_ptr    bare_return_type = skip_typerefs(return_type);
@@ -9103,21 +9103,25 @@ operation); otherwise, leave *obj_expr unchanged.
 
 
 static void gen_cli_property_or_event_call(
-                                  an_expr_node_ptr                    args,
-                                  a_routine_ptr                       rout,
-                                  a_rewritten_property_reference_kind rpr_kind)
+                              an_expr_node_ptr                    args,
+                              a_routine_ptr                       rout,
+                              a_property_or_event_descr_ptr       desc,
+                              a_special_function_kind             special_kind,
+                              a_rewritten_property_reference_kind rpr_kind)
 /*
-Generate the appropriate operator-notation code to call the C++/CLI
-property or event access routine rout.  args is the first argument in the
-call, i.e., the object expression for a non-static member or the actual
-first argument (if any) for static members.  rpr_kind specifies the
-original source form if the expression expression is the expansion of a
-compound assignment or increment/decrement operation (e.g., "P += 1"
-becomes the IL equivalent of "P::set(P::get() + 1)") so it can be put out
-in that form.
+Generate the appropriate operator-notation code to call the Microsoft
+property (either C++/CLI or __declspec) or event access routine rout.  args
+is the first argument in the call, i.e., the object expression for a
+non-static member or the actual first argument (if any) for static members.
+The property or event is described by desc, and special_kind specifies the
+kind of accessor rout is; these are passed separately because __declspec
+property accessors are ordinary member functions and not uniquely
+associated with the property.  rpr_kind specifies the original source form
+if the expression expression is the expansion of a compound assignment or
+increment/decrement operation (e.g., "P += 1" becomes the IL equivalent of
+"P::set(P::get() + 1)") so it can be put out in that form.
 */
 {
-  a_property_or_event_descr_ptr desc = rout->variant.property_or_event_descr;
   an_expr_node_ptr              obj_expr;
   an_expr_node_ptr              subscripts;
   char                          *opstr = " = ";
@@ -9201,7 +9205,7 @@ in that form.
       args = subscripts;
     }  /* if */
   }  /* if */
-  switch (rout->special_kind) {
+  switch (special_kind) {
     case sfk_property_get:
       /* The generated code is just the property name, already done
          above. */
@@ -9279,12 +9283,23 @@ call.
     } else if (rout != NULL) {
       /* We can tell which routine is being called. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (rout_is_cli_accessor(rout)) {
+      if (rout_is_cli_accessor(rout) ||
+          (is_routine_node(func_expr) &&
+           func_expr->variant.routine.property_or_event_descr != NULL)) {
         /* This is a call of an accessor function for a C++/CLI property or
-           event; it should be generated using the associated operator
-           instead of as a function call. */
+           event or a __declspec property; it should be generated using the
+           associated operator instead of as a function call. */
+        a_property_or_event_descr_ptr descr;
+        a_special_function_kind       special_kind;
+        if (rout_is_cli_accessor(rout)) {
+          descr = rout->variant.property_or_event_descr;
+          special_kind = rout->special_kind;
+        } else {
+          descr = func_expr->variant.routine.property_or_event_descr;
+          special_kind = func_expr->variant.routine.special_kind;
+        }  /* if */
         gen_cli_property_or_event_call(
-             args, rout,
+             args, rout, descr, special_kind,
              expr->variant.operation.rewritten_property_reference_kind);
         processed = TRUE;
       } else 
@@ -13509,7 +13524,7 @@ flags on the classes found on an earlier call.
             op == (an_expr_operator_kind)eok_dot_member_call ||
             op == (an_expr_operator_kind)eok_points_to_member_call) {
           if (op1->kind == (an_expr_node_kind)enk_routine) {
-            scp = &op1->variant.routine->source_corresp;
+            scp = &op1->variant.routine.ptr->source_corresp;
           }  /* if */
         }  /* if */
       } else if (is_variable_node(expr)) {

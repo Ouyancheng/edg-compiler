@@ -3161,7 +3161,7 @@ the test means its address cannot be NULL.
     } else if (expr->kind == (an_expr_node_kind)enk_routine) {
       /* The address of a routine is generally non-NULL, but watch out for
          extern routines affected by linker magic. */
-      cannot_be = routine_has_non_null_address(expr->variant.routine);
+      cannot_be = routine_has_non_null_address(expr->variant.routine.ptr);
     } else if (is_operation_node(expr)) {
       an_expr_operator_kind op = expr->variant.operation.kind;
       an_expr_node_ptr      operand = expr->variant.operation.operands;
@@ -11882,7 +11882,7 @@ the top node of the indicated statement (which is an expression statement).
       routine = alternate_entry_point(routine, 
                                       (a_ctor_or_dtor_kind)cdk_complete,
                                       /*define_now=*/FALSE);
-      first_arg->variant.routine = routine;
+      first_arg->variant.routine.ptr = routine;
       first_arg->type = make_pointer_type(routine->type);
     }  /* if */
 #else /* !IA64_ABI */
@@ -13336,7 +13336,7 @@ inlining and therefore yield different results.
     /* We assume that routines other than extern routines have non-null
        addresses.  extern routines might have zero addresses because of
        linker magic like weak externals. */
-    *is_non_null = routine_has_non_null_address(expr->variant.routine);
+    *is_non_null = routine_has_non_null_address(expr->variant.routine.ptr);
   } else if (node_includes_lvalue_to_rvalue_conv(expr)) {
     /* Node includes an lvalue-to-rvalue conversion ("load from memory"),
        so it's not constant valued. */
