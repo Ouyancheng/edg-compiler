@@ -9104,17 +9104,16 @@ operation); otherwise, leave *obj_expr unchanged.
 
 static void gen_cli_property_or_event_call(
                               an_expr_node_ptr                    args,
-                              a_routine_ptr                       rout,
                               a_property_or_event_descr_ptr       desc,
                               a_special_function_kind             special_kind,
                               a_rewritten_property_reference_kind rpr_kind)
 /*
-Generate the appropriate operator-notation code to call the Microsoft
-property (either C++/CLI or __declspec) or event access routine rout.  args
-is the first argument in the call, i.e., the object expression for a
+Generate the appropriate operator-notation code to call a Microsoft
+property (either C++/CLI or __declspec) or event access routine.  args is
+the first argument in the call, i.e., the object expression for a
 non-static member or the actual first argument (if any) for static members.
 The property or event is described by desc, and special_kind specifies the
-kind of accessor rout is; these are passed separately because __declspec
+kind of accessor involved; these are passed separately because __declspec
 property accessors are ordinary member functions and not uniquely
 associated with the property.  rpr_kind specifies the original source form
 if the expression expression is the expansion of a compound assignment or
@@ -9299,7 +9298,7 @@ call.
           special_kind = func_expr->variant.routine.special_kind;
         }  /* if */
         gen_cli_property_or_event_call(
-             args, rout, descr, special_kind,
+             args, descr, special_kind,
              expr->variant.operation.rewritten_property_reference_kind);
         processed = TRUE;
       } else 
