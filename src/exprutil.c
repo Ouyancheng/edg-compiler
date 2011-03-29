@@ -15142,8 +15142,9 @@ being rewritten; it's used to set a kind in the expression created.
         if (is_routine_node(opnd)) {
           /* Record the property description in the enk_routine node. */
           opnd->variant.routine.property_or_event_descr = pedp;
-          opnd->variant.routine.special_kind =
-                   (put_operand == NULL) ? sfk_property_get : sfk_property_set;
+          opnd->variant.routine.special_kind = (put_operand == NULL) ?
+                                    (a_special_function_kind)sfk_property_get :
+                                    (a_special_function_kind)sfk_property_set;
         }  /* if */
         if (put_operand != NULL) {
           func_call_node->variant.operation.
