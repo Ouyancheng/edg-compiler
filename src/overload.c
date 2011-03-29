@@ -11984,6 +11984,7 @@ apply, but we can't tell).
   a_boolean                matched_except_for_missing_selector = FALSE;
   a_boolean                matched_except_for_selector = FALSE;
   a_boolean                member_is_best_match, have_selector;
+  a_boolean                nonstatic_member_is_best_match;
   an_expr_node_ptr         arg;
   a_type_ptr               routine_type;
   a_param_type_ptr         param;
@@ -12116,26 +12117,28 @@ apply, but we can't tell).
             /* We know the function selected for this nondependent call
                during the prototype instantiation.  Use that without going
                through overload resolution. */
-            a_boolean is_member;
             function_symbol = fundamental_symbol_of(proj_function_symbol);
-            is_member = routine_type_is_nonstatic_member_function(
-                                         routine_symbol_type(function_symbol));
-            if (is_member) {
+            if (function_symbol->is_class_member) {
               member_functions_symbol = proj_function_symbol;
-              operand_1->selector_is_object_pointer =
+              have_selector = routine_type_is_nonstatic_member_function(
+                                         routine_symbol_type(function_symbol));
+              if (have_selector) {
+                operand_1->selector_is_object_pointer =
                                                     selector_is_object_pointer;
+              }  /* if */
             } else {
               nonmember_functions_symbol = proj_function_symbol;
+              have_selector = FALSE;
             }  /* if */
             try_overloaded_function_match(
                                          proj_function_symbol,
                                          /*is_template_id=*/FALSE,
                                          (a_template_arg_ptr)NULL,
-                                         is_member ? arg_operand_list2 :
-                                                     arg_operand_list,
-                                         /*have_selector=*/is_member,
-                                         is_member ? operand_1 :
-                                                     (an_operand *)NULL,
+                                         have_selector ? arg_operand_list2 :
+                                                         arg_operand_list,
+                                         have_selector,
+                                         have_selector ? operand_1 :
+                                                         (an_operand *)NULL,
                                          /*ctor_conversion_case=*/FALSE,
                                          /*initializing_return_value=*/FALSE,
                                          /*effects_copy_initialization=*/FALSE,
@@ -12195,6 +12198,32 @@ apply, but we can't tell).
                                          &matched_except_for_selector);
             operand_1->selector_is_object_pointer =
                                               saved_selector_is_object_pointer;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (cppcli_enabled) {
+              /* Try to match a C++/CLI static operator function to the
+                 operands we have. */
+              try_overloaded_function_match(
+                                         member_functions_symbol,
+                                         /*is_template_id=*/FALSE,
+                                         (a_template_arg_ptr)NULL,
+                                         arg_operand_list,
+                                         /*have_selector=*/FALSE,
+                                         (an_operand *)NULL,
+                                         /*ctor_conversion_case=*/FALSE,
+                                         /*initializing_return_value=*/FALSE,
+                                         /*effects_copy_initialization=*/FALSE,
+                                         /*allow_udc_on_arguments=*/TRUE,
+                                         /*arg_dep_lookup_done=*/FALSE,
+                                         /*from_arg_dep_lookup=*/FALSE,
+                                         dependent_call,
+                                         /*forced_dependent=*/FALSE,
+                                         /*known_to_be_visible=*/TRUE,
+                                         /*is_overloaded_operator=*/TRUE,
+                                         &candidate_functions,
+                                         &matched_except_for_missing_selector,
+                                         &matched_except_for_selector);
+            }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           }  /* if */
         }  /* if */
         /* Find any non-member function for the operator. */
@@ -12432,8 +12461,11 @@ select_best_function:
             *processed = TRUE;
             function_symbol = fundamental_symbol_of(proj_function_symbol);
             routine_type = routine_symbol_type(function_symbol);
-            member_is_best_match = 
-                       routine_type_is_nonstatic_member_function(routine_type);
+            member_is_best_match = function_symbol->is_class_member;
+            /* In C++/CLI, the best match can be a static operator function. */
+            nonstatic_member_is_best_match =
+                     (member_is_best_match &&
+                      routine_type_is_nonstatic_member_function(routine_type));
             overloaded_function_symbol = member_is_best_match ?
                                                     member_functions_symbol :
                                                     nonmember_functions_symbol;
@@ -12463,6 +12495,7 @@ select_best_function:
                  "check_for_operator_overloading: bitwise operator=\n");
               }  /* if */
 #endif /* DEBUG */
+              check_assertion(nonstatic_member_is_best_match);
               bitwise_assignment = TRUE;
               check_use_of_deleted_function(function_symbol,
                                             /*elided_ref=*/FALSE,
@@ -12480,11 +12513,13 @@ select_best_function:
             }  /* if */
             arg_operand = arg_operand_list;
             bound_function_selector = NULL;
-            if (member_is_best_match) {
+            have_selector = FALSE;
+            if (nonstatic_member_is_best_match) {
               /* The function selected is a non-static member function.
                  Therefore, the first argument is to be used as the selector
                  object. */
               bound_function_selector = &arg_operand_list->operand;
+              have_selector = TRUE;
               if (selector_is_object_pointer) {
                 /* Convert the handle to an rvalue. */
                 do_operand_transformations(bound_function_selector,
@@ -12509,7 +12544,7 @@ select_best_function:
 
               /* Make a pointer for the selector, and adjust its type if
                  necessary. */
-              check_assertion(!selector_is_object_pointer);
+              check_assertion(have_selector && !selector_is_object_pointer);
               /* coverity[var_deref_model] */
               prep_special_selector_operand(bound_function_selector,
                                             routine_type);
@@ -12543,7 +12578,8 @@ select_best_function:
               /* Not the builtin bitwise operator=. */
               /* Build an expression-form argument list.  Convert the arguments
                  on the argument list to the right types.  Note that for the
-                 member function case we start at the second operand. */
+                 nonstatic member function case we start at the second
+                 operand. */
               arg_expr_list = end_arg_expr_list = NULL;
               for (; arg_operand != NULL;
                    arg_operand = arg_operand->next,
@@ -12561,7 +12597,6 @@ select_best_function:
                    ellipsis. */
                 if (param != NULL) param = param->next;
               }  /* for */
-              have_selector = member_is_best_match;
               if (have_selector) {
                 change_refs_on_selector(routine_type, bound_function_selector);
               }  /* if */
