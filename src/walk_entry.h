@@ -1466,9 +1466,11 @@ do_set_proper_definition_needed_flag:
             /* Functions are handled from the scope that contains them.  Do
                not visit them here. */
             remap_ptr(ptr->variant.routine.ptr, a_routine_ptr, iek_routine);
+#if MICROSOFT_EXTENSIONS_ALLOWED
             remap_ptr(ptr->variant.routine.property_or_event_descr,
                       a_property_or_event_descr_ptr,
                       iek_property_or_event_descr);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             set_proper_routine_definition_needed_flag(ptr->
                                                           variant.routine.ptr);
             break;
