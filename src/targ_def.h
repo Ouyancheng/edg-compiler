@@ -3258,7 +3258,7 @@ we define these equal to the corresponding intrinsic alignments.
 #if LONG_LONG_ALLOWED
 #ifndef TARG_LONG_LONG_FIELD_ALIGNMENT
 #define TARG_LONG_LONG_FIELD_ALIGNMENT TARG_ALIGNOF_LONG_LONG
-#endif /* TARG_SHORT_FIELD_ALIGNMENT */
+#endif /* TARG_LONG_LONG_FIELD_ALIGNMENT */
 #endif /* LONG_LONG_ALLOWED */
 
 #ifndef TARG_FLOAT_FIELD_ALIGNMENT
