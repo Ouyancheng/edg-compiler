@@ -4908,12 +4908,27 @@ A reference is not the definition.
       /* A template instance is not declared, per se, but it should never be
          referred to by an elaborated-type-specifier. */
       type->has_been_declared = TRUE;
-      if (type->variant.class_struct_union.is_prototype_instantiation &&
-          !type->source_corresp.qualification_needed) {
-        /* This is the name of the current instantiation, and it is visible.
-           Just use the name of the type, rather than the qualified name of
-           the template followed by the template arguments. */
-        options |= GN_NO_TEMPLATE_ARGS;
+      if (type_is_prototype_instantiation(type)) {
+        a_boolean need_qual;
+        if (type->source_corresp.qualification_needed) {
+          need_qual = TRUE;
+        } else if (type->source_corresp.visible_as_unqualified_name) {
+          need_qual = FALSE;
+        } else if (type->source_corresp.is_class_member &&
+                   class_is_in_name_context_stack(
+                                              parent_class_of(type),
+                                              /*include_base_classes=*/TRUE)) {
+          need_qual = FALSE;
+        } else {
+          need_qual = TRUE;
+        }  /* if */
+        if (!need_qual) {
+          /* This is the name of the current instantiation, and it is
+             visible.  Just use the name of the type, rather than the
+             qualified name of the template followed by the template
+             arguments. */
+          options |= GN_NO_TEMPLATE_ARGS;
+        }  /* if */
       }  /* if */
     } else if (type->source_corresp.is_class_member) {
       /* You can't use an elaborated-type-specifier for the first use of a
