@@ -1,5 +1,19 @@
 Version 4.4
 
+3/29/11  [EDGcpfe/11513]
+Microsoft compatibility: partial specialization declared outside of namespace
+
+The Microsoft compiler allows a partial specialization of a class template
+to be first declared outside of its namespace.  We now support this in
+Microsoft mode.
+
+  namespace N {
+    template <typename T, typename R> struct C;
+  }
+  template <typename T, typename R> struct N::C {};
+  template <typename T> struct N::C<T, void> {};
+
+
 3/29/11  [EDGcpfe/11552]
 Abort on ambiguous reference to overload set containing using-declarations
 

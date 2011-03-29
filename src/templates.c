@@ -14478,7 +14478,9 @@ friend_template_checks_done:
                      sym);
         err = TRUE;
       } else if (!sym->is_class_member &&
-                 ssep->assoc_namespace != sym_parent_namespace_or_null(sym)) {
+                 ssep->assoc_namespace != sym_parent_namespace_or_null(sym) &&
+                 (!microsoft_mode ||
+                  !namespace_is_enclosed_by_scope(sym, ssep))) {
         pos_error(ec_member_partial_spec_not_in_namespace,
                   &locator.source_position);
         err = TRUE;
