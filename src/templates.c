@@ -15738,12 +15738,12 @@ parameter entry for the parameter.
 static a_template_param_ptr scan_nontype_template_param(
 		a_tmpl_decl_state_ptr		decl_state,
 		a_template_param_list_pos	template_param_list_pos,
-		a_boolean			*param_cache_used)
+		a_boolean			*param_cache_needed)
 /*
 Scan the declaration of a nontype template parameter.  Return the template
-parameter entry for the parameter.  param_cache_used is set to TRUE if
-a that cache has been saved for rescanning when the type of the nontype
-parameter depends on a template parameter.  If param_cached_used is TRUE
+parameter entry for the parameter.  param_cache_needed is set to TRUE if
+a cache should be saved for rescanning when the type of the nontype parameter
+depends on a template parameter.
 */
 {
   a_type_ptr		param_type_ptr;
@@ -15801,7 +15801,7 @@ parameter depends on a template parameter.  If param_cached_used is TRUE
     template_param->variant.constant.type_involves_template_param = TRUE;
     set_template_cache_info(&template_param->cache, (a_token_cache_ptr)NULL,
                             decl_state->decl_info);
-    *param_cache_used = TRUE;
+    *param_cache_needed = TRUE;
     decl_state->has_dependent_templ_param = TRUE;
   }  /* if */
   if (curr_token == tok_assign) {
@@ -15913,13 +15913,13 @@ parameter based on the current state.
 static a_template_param_ptr scan_template_template_param(
 		a_tmpl_decl_state_ptr		parent_decl_state,
 		a_template_param_list_pos	template_param_list_pos,
-		a_boolean			*param_cache_used,
+		a_boolean			*param_cache_needed,
 		a_boolean			is_rescan)
 /*
 Scan the declaration of a template template parameter.  Return the template
-parameter entry for the parameter.  param_cache_used is set to TRUE if
-a that cache has been saved for rescanning when the type of the nontype
-parameter depends on a template parameter.  is_rescan is TRUE when this
+parameter entry for the parameter.  param_cache_needed is set to TRUE if
+a cache should saved for rescanning the template template parameter when it
+depends on a other template parameters.  is_rescan is TRUE when this
 routine is called to rescan a template template parameter declaration that
 depends on a another template parameter.
 */
@@ -16088,7 +16088,7 @@ depends on a another template parameter.
          the template is still dependent. */
       set_template_cache_info(&template_param->cache, (a_token_cache_ptr)NULL,
                               parent_decl_state->decl_info);
-      *param_cache_used = TRUE;
+      *param_cache_needed = TRUE;
     }  /* if */
   }  /* if */
   return template_param;
@@ -16107,7 +16107,7 @@ to represent the template parameters.
   a_template_param_ptr 		template_param;
   a_template_param_ptr 		template_param_list = NULL;
   a_template_param_ptr 		end_of_template_param_list = NULL;
-  a_boolean			param_cache_used = FALSE;
+  a_boolean			param_cache_needed = FALSE;
   a_template_param_list_pos	template_param_list_pos = 0;
   a_token_sequence_number	first_tsn;
 
@@ -16138,15 +16138,15 @@ to represent the template parameters.
     } else if (param_kind == (a_symbol_kind)sk_constant) {
       template_param = scan_nontype_template_param(
                              decl_state, template_param_list_pos,
-                             &param_cache_used);
+                             &param_cache_needed);
     } else {
       /* A template template parameter. */
       template_param = scan_template_template_param(decl_state,
                                                     template_param_list_pos,
-                                                    &param_cache_used,
+                                                    &param_cache_needed,
 						    /*is_rescan=*/FALSE);
     }  /* if */
-    if (param_cache_used) {
+    if (param_cache_needed) {
       /* If a template parameter cache is needed, make a copy from the
          token cache that is being accumulated. */
       copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
@@ -18938,11 +18938,10 @@ any non-empty template parameter lists that were scanned.
         if (!is_error_locator(locator)) {
           pos_st_error(ec_bad_template_declaration, &locator.source_position,
                        locator.symbol_header->identifier);
-        } else {
-          /* Record that this declaration was invalid so that we can flush
-             to the end of the declaration, if necessary. */
-          invalid_decl = TRUE;
         }  /* if */
+        /* Record that this declaration was invalid so that we can flush
+           to the end of the declaration, if necessary. */
+        invalid_decl = TRUE;
       }  /* if */
       done_with_func_info(func_info);
     }  /* if */

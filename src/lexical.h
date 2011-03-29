@@ -1760,6 +1760,14 @@ typedef struct a_reusable_cache_entry {
                 next_cached_token;
                         /* Points to the next token in the persistent cache
                            to be rescanned. */
+  a_token_cache_ptr
+		token_cache;
+			/* Points to the token cache from which the token
+			   list was obtained. */
+  a_token_cache
+		copy_of_token_cache;
+			/* A copy of the token cache from which the token
+			   list was obtained. */
   uint32_t
 		variadic_rescans_in_progress;
 			/* If this cache is being used for a variadic
@@ -1771,6 +1779,10 @@ typedef struct a_reusable_cache_entry {
 			/* TRUE if the tok_end_of_source terminator on the
 			   cache should be bypassed instead of being
 			   returned. */
+  a_byte_boolean
+		discard_cache_when_done;
+			/* TRUE if token_cache should be freed when the
+			   rescan is complete. */
 } a_reusable_cache_entry;
 
 		

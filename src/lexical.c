@@ -844,6 +844,11 @@ stack.
   a_reusable_cache_entry_ptr  rcep = reusable_cache_stack;
   cached_token_rescan_list = rcep->previous_token_rescan_list;
   reusable_cache_stack = rcep->next;
+  if (rcep->discard_cache_when_done) {
+    /* The cache was discarded while still in use, so the actual discard
+       was deferred until the entry referencing it has been popped. */
+    discard_token_cache(&rcep->copy_of_token_cache);
+  }  /* if */
   free_reusable_cache_entry(rcep);
   recalc_any_initial_get_token_tests_needed();
 }  /* pop_reusable_cache_stack */
@@ -924,8 +929,11 @@ Allocate a reusable cache entry.  Reuse a freed entry if possible.
   rsep->next = NULL;
   rsep->previous_token_rescan_list = NULL;
   rsep->next_cached_token = NULL;
+  rsep->token_cache = NULL;
+  clear_token_cache(&rsep->copy_of_token_cache, /*is_reusable=*/TRUE);
   rsep->variadic_rescans_in_progress = 0;
   rsep->skip_terminator = FALSE;
+  rsep->discard_cache_when_done = FALSE;
   return rsep;
 }  /* alloc_reusable_cache_entry */
 
@@ -1884,6 +1892,7 @@ tok_end_of_source token from cache should be bypassed.
     rcep = alloc_reusable_cache_entry();
     rcep->next = reusable_cache_stack;
     reusable_cache_stack = rcep;
+    rcep->token_cache = cache;
     /* Save and clear the current value of the regular token rescan list. */
     rcep->previous_token_rescan_list = cached_token_rescan_list;
     cached_token_rescan_list = NULL;
@@ -2074,21 +2083,31 @@ tokens therein and clear the cache.
 {
   a_cached_token_ptr ctp, ctp_next;
 
+  if (reusable_cache_stack != NULL &&
+      reusable_cache_stack->token_cache == cache) {
+    /* The token cache is still being rescanned as a reusable cache.
+       Defer the discarding until the cache has been fully scanned. */
+    reusable_cache_stack->discard_cache_when_done = TRUE;
+    /* Make a copy of the token cache as the original might be freed or on
+       the stack. */
+    reusable_cache_stack->copy_of_token_cache = *cache;
+  } else {
 #if DEBUG
-  /* This cache was marked as reusable but is now being discarded.
-     Update the count of reusable cached tokens. */
-  if (cache->is_reusable) {
-    /* Reset the flag just to be neat. */
-    cache->is_reusable = FALSE;
-    num_cached_tokens_in_reusable_caches -= cache->token_count;
-    num_pragmas_in_reusable_caches -= cache->pragma_count;
-  }  /* if */
+    /* This cache was marked as reusable but is now being discarded.
+       Update the count of reusable cached tokens. */
+    if (cache->is_reusable) {
+      /* Reset the flag just to be neat. */
+      cache->is_reusable = FALSE;
+      num_cached_tokens_in_reusable_caches -= cache->token_count;
+      num_pragmas_in_reusable_caches -= cache->pragma_count;
+    }  /* if */
 #endif /* DEBUG */
-  for (ctp = cache->first_token; ctp != NULL; ctp = ctp_next) {
-    ctp_next = ctp->next;
-    free_cached_token(ctp);
-  }  /* for */
-  clear_token_cache(cache, /*reusable=*/(a_boolean)cache->is_reusable);
+    for (ctp = cache->first_token; ctp != NULL; ctp = ctp_next) {
+      ctp_next = ctp->next;
+      free_cached_token(ctp);
+    }  /* for */
+    clear_token_cache(cache, /*reusable=*/(a_boolean)cache->is_reusable);
+  }  /* if */
 }  /* discard_token_cache */
 
 
