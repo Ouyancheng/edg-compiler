@@ -10871,6 +10871,7 @@ equivalent derivations).
              the list. */
           a_symbol_ptr  sym = fundamental_sym1->
                                     variant.overloaded_function.symbols;
+          sym = fundamental_symbol_of(sym);
           if (sym->kind != (a_symbol_kind)sk_function_template) {
             rout_type = routine_symbol_type(sym);
           } else {

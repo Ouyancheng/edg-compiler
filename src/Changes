@@ -1,5 +1,28 @@
 Version 4.4
 
+3/29/11  [EDGcpfe/11552]
+Abort on ambiguous reference to overload set containing using-declarations
+
+An abort could occur in progenitors_are_equivalent on a reference to
+an ambiguous function that is a member of an overload set made visible
+in a derived class via a using-declaration.  Now fixed.
+
+  struct A { };
+  struct B {
+    void f(A& a);
+    void f(A const& a);
+  };
+  struct C : virtual B {
+    using B::f;
+  };
+  struct D : virtual C { };
+  struct E : C, D { };
+  int main() {
+    E e;
+    e.f(A());  // should be ambiguous
+  }
+
+
 3/28/11  [EDGcpfe/11428]
 C++-generating back end: naming a class template prototype instantiation
 
