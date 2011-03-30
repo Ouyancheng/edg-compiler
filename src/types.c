@@ -1094,6 +1094,7 @@ Return TRUE if the indicated type is a C++/CLI ref class or interface class.
   return result;
 }  /* is_cli_ref_or_interface_class_type */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 static a_boolean is_cli_value_type(a_type_ptr tp)
 /*
@@ -1117,6 +1118,7 @@ standard 12.1.
   return result;
 }  /* is_cli_value_type */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_delegate_type(a_type_ptr tp)
 /*
@@ -1211,6 +1213,7 @@ unsigned char are all included.
 
 
 #if !STANDALONE_UTILITY_PROGRAM
+
 a_boolean is_wchar_t_array_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an array of wchar_t.
