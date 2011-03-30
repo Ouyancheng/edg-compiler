@@ -5478,7 +5478,9 @@ Clear a standard conversion description to default values.
   std_conv->is_mild_warning = FALSE;
   std_conv->cli_array_covariance_conversion = FALSE;
   std_conv->gpp_conv_of_real_to_complex = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   std_conv->conv_of_string_literal_to_cli_string = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* clear_std_conv_descr */
 
 
