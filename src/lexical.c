@@ -7153,8 +7153,19 @@ white_space_loop:
       } else if (ch == LE_END_OF_LINE || ch == LE_END_OF_INSERTION) {
         /* End of source line or end of macro insertion. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (ch == LE_END_OF_INSERTION && scanning_for_whitespace_keyword) {
-          /* A whitespace keyword cannot span the end of a macro insertion. */
+        if (scanning_for_whitespace_keyword &&
+            (ch == LE_END_OF_INSERTION || do_preprocessing_only)) {
+          /* A whitespace keyword cannot span the end of a macro insertion.
+             We also terminate the scan for the second word of the
+             whitespace keyword at the end of the line if we are doing
+             preprocessing only.  The reason for this is that when the
+             second word is on a different line, the line break is
+             effectively deleted in the preprocessed output, regardless of
+             whether the keyword was completed or not.  This is not
+             desirable when the preprocessor is used to manipulate text
+             that is not C or C++ code, and this consideration outweighs
+             the fact that in some pathological cases the results of direct
+             compilation and preprocessing only can be different. */
           goto end_skip;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

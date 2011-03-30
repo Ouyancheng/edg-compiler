@@ -1,5 +1,30 @@
 Version 4.4
 
+3/30/11  [EDGcpfe/11530]
+Multi-line whitespace keywords in preprocessing-only mode
+
+Version 4.3 introduced whitespace-keyword processing into the front end in
+preparation for support for C++/CLI.  Ordinarily whitespace keywords can be
+separated by any form of white space, including line breaks.  This caused
+problems in certain cases when the preprocessor was used on text that is
+not C or C++ code when a word that could be the beginning of a whitespace
+keyword appeared at the end of the line.  In such cases, whether or not a
+whitespace keyword was recognized, the line break following the potential
+start of the keyword was effectively deleted in the preprocessing output.
+For example, the text
+
+  go for
+  the gold
+
+became one line in the output in Microsoft preprocessing-only mode.  This
+problem has been addressed by disallowing line breaks in whitespace
+keywords when doing preprocessing only.  In certain pathological cases
+(e.g., when a macro is defined with a name that is one or the other of the
+tokens of a whitespace keyword and the tokens are split across lines), the
+result of preprocessing-only made can be different from that of direct
+compilation, but this should be exceptionally rare.
+
+
 3/30/11  [EDGcpfe/11532]
 Internal error on variadic partial specialization declared then defined later
 
