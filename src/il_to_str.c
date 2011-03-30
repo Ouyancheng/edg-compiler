@@ -4140,8 +4140,10 @@ on every expression.
           } else if (op == (an_expr_operator_kind)eok_lvalue_adjust) {
             /* Lvalue type adjustment (always implicit, so ignore). */
             form_expression(operand, octl);
-          } else if (op == (an_expr_operator_kind)eok_class_rvalue_adjust) {
+          } else if (op == (an_expr_operator_kind)eok_class_rvalue_adjust ||
+                     op == (an_expr_operator_kind)eok_cli_string) {
             /* Rvalue type adjustment (always implicit, so ignore). */
+            /* Ditto for C++/CLI string creation. */
             form_expression(operand, octl);
           } else if (operand->next == NULL) {
             /* Unary operators. */

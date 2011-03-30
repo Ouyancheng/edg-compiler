@@ -4011,6 +4011,7 @@ explicitly dealt with later in expression mangling.
             op == (an_expr_operator_kind)eok_array_to_pointer ||
             op == (an_expr_operator_kind)eok_reference_to ||
             op == (an_expr_operator_kind)eok_ref_indirect ||
+            op == (an_expr_operator_kind)eok_cli_string ||
             expr->variant.operation.implicit_step_of_explicit_cast ||
             /* Also drop implicit casts in the IA-64 ABI. */
             (is_cast_operation_node(expr) &&

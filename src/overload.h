@@ -563,6 +563,8 @@ extern a_boolean overloaded_function_match_possible(
                                an_arg_operand_ptr arg_operand_list,
                                a_boolean          have_selector,
                                an_operand         *bound_function_selector);
+
+extern void convert_operand_to_handle_to_cli_string(an_operand_ptr op);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void temp_init_from_operand(an_operand *operand,

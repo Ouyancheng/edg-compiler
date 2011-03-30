@@ -6648,6 +6648,51 @@ cli_float_kinds arrays therefore list only the preferred basic types.
 }  /* init_cli_symbol_corresponding_basic_types */
 
 
+void make_symbols_for_system_string_operators(void)
+/*
+Create symbols for the builtin System::String operators.
+*/
+{
+  a_symbol_locator  locator;
+  a_type_ptr        hstring_type, hobject_type;
+  
+  hstring_type = make_handle_type(
+                    type_symbol_type(cli_symbol_from_kind(csk_system_string)));
+  hobject_type = make_handle_type(
+                    type_symbol_type(cli_symbol_from_kind(csk_system_object)));
+  make_opname_locator((an_opname_kind)onk_plus, &locator,
+                      &null_source_position);
+  /* Create compiler-generated
+     String^ operator+(String^ left, String^ right); */
+  (void)make_predeclared_function_symbol(&locator,
+                                         make_routine_type(hstring_type,
+                                                           hstring_type,
+                                                           hstring_type,
+                                                           (a_type_ptr)NULL,
+                                                           (a_type_ptr)NULL));
+  make_opname_locator((an_opname_kind)onk_plus, &locator,
+                      &null_source_position);
+  /* Create compiler-generated
+     String^ operator+(String^ left, Object^ right); */
+  (void)make_predeclared_function_symbol(&locator,
+                                         make_routine_type(hstring_type,
+                                                           hstring_type,
+                                                           hobject_type,
+                                                           (a_type_ptr)NULL,
+                                                           (a_type_ptr)NULL));
+  make_opname_locator((an_opname_kind)onk_plus, &locator,
+                      &null_source_position);
+  /* Create compiler-generated
+     String^ operator+(Object^ left, String^ right); */
+  (void)make_predeclared_function_symbol(&locator,
+                                         make_routine_type(hstring_type,
+                                                           hobject_type,
+                                                           hstring_type,
+                                                           (a_type_ptr)NULL,
+                                                           (a_type_ptr)NULL));
+}  /* make_symbols_for_system_string_operators */
+
+
 void init_symbols_for_cli_system_types(void)
 /*
 Look up various C++/CLI system types and cache them in their corresponding 

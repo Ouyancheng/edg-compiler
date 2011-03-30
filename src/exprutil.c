@@ -2312,6 +2312,7 @@ cast in some modes.  orig_operand_expr can be NULL.
         case eok_lvalue:
         case eok_lvalue_adjust:
         case eok_class_rvalue_adjust:
+        case eok_cli_string:
           /* These operations are always implicit.  Keep stripping. */
           break;
         default:
@@ -2687,6 +2688,7 @@ that has it.
           case eok_lvalue:
           case eok_lvalue_adjust:
           case eok_class_rvalue_adjust:
+          case eok_cli_string:
             /* These operations are always implicit.  Keep stripping. */
             break;
           case eok_parens:
@@ -4981,6 +4983,44 @@ If make_lvalue is TRUE, an lvalue expression is returned.
   return expr;
 }  /* add_unbox_to_expression */
 
+
+static
+an_expr_node_ptr add_cli_string_creation_to_expression(an_expr_node_ptr expr)
+/*
+Add a C++/CLI string creation operation to the indicated expression (an rvalue
+with a pointer-to-char or pointer-to-wchar_t type), and return the
+resulting expression.
+*/
+{
+  a_type_ptr system_string = type_symbol_type(
+                                      cli_symbol_from_kind(csk_system_string));
+
+  check_assertion(!expr->is_lvalue);
+  expr = make_operator_node((an_expr_operator_kind)eok_cli_string,
+                            make_handle_type(system_string), expr);
+  expr->variant.operation.compiler_generated = TRUE;
+  return expr;
+}  /* add_cli_string_creation_to_expression */
+
+
+void convert_operand_to_handle_to_cli_string(an_operand_ptr operand)
+/*
+Convert operand (a string literal) to System::String^.
+*/
+{
+  an_expr_node_ptr expr;
+  an_operand       orig_operand;
+
+  check_assertion(is_literal_convertible_to_cli_string(operand));
+  orig_operand = *operand;
+  /* Convert the operand to an rvalue. */
+  do_operand_transformations(operand, TOPT_NO_OPTIONS);
+  expr = make_node_from_operand(operand);
+  expr = add_cli_string_creation_to_expression(expr);
+  make_expression_operand(expr, operand);
+  restore_operand_details(operand, &orig_operand);
+}  /* convert_operand_to_handle_to_cli_string */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void add_cast_to_node(an_expr_node_ptr  *p_node,
@@ -5074,6 +5114,12 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
     check_assertion(!is_implicit_cast);
     (*p_node) = add_unbox_to_expression(*p_node, new_type,
                                         /*make_lvalue=*/FALSE);
+  } else if (cppcli_enabled &&
+             cli_string_literal_conversion_possible(old_type, new_type,
+                                                   (a_std_conv_descr *)NULL)) {
+    /* Do a string literal conversion (string-literal --> System::String^). */
+    check_assertion(is_implicit_cast);
+    (*p_node) = add_cli_string_creation_to_expression(*p_node);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* For an ordinary cast, generate the eok_cast node. */
@@ -7544,7 +7590,11 @@ FALSE if there is an error.
     if (impl_handle_conversion(operand_2_type,
                                operand_1_type,
                                /*allow_qualifier_or_eh_mismatch=*/TRUE,
-                               &std_conv)) {
+                               &std_conv) ||
+        (operand_2->is_simple_string_literal &&
+         cli_string_literal_conversion_possible(operand_2->type,
+                                                operand_1_type,
+                                                &std_conv))) {
       local_operation_type = operand_1_type;
       okay = TRUE;
     }  /* if */
@@ -7555,7 +7605,11 @@ FALSE if there is an error.
     if (impl_handle_conversion(operand_1_type,
                                operand_2_type,
                                /*allow_qualifier_or_eh_mismatch=*/TRUE,
-                               &std_conv)) {
+                               &std_conv) ||
+        (operand_1->is_simple_string_literal &&
+         cli_string_literal_conversion_possible(operand_1->type,
+                                                operand_2_type,
+                                                &std_conv))) {
       local_operation_type = operand_2_type;
       okay = TRUE;
     }  /* if */
@@ -7598,6 +7652,23 @@ FALSE if there is an error.
   *operation_type = local_operation_type;
   return okay;
 }  /* check_compatibility_of_handle_operands */
+
+
+a_boolean is_literal_convertible_to_cli_string(an_operand *operand)
+/*
+Return TRUE in C++/CLI mode if the indicated operand is a string literal that
+can be converted to System::String^.
+*/
+{
+  a_boolean convertible = FALSE;
+
+  if (cppcli_enabled &&
+      operand->is_simple_string_literal &&
+      literal_type_convertible_to_cli_string(operand->type)) {
+    convertible = TRUE;
+  }  /* if */
+  return convertible;
+}  /* is_literal_convertible_to_cli_string */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -9901,8 +9972,8 @@ a secondary operator (e.g., the "]" of a subscript operation).
     known_not_overloaded = TRUE;
   } else {
     /* The current expression is not a constant expression. */
-    if (!is_overloadable_type(operand_1->type) &&
-        !is_overloadable_type(operand_2->type)) {
+    if (!is_overloadable_type_first_operand(operand_1) &&
+        !is_overloadable_type_operand(operand_2)) {
       known_not_overloaded = TRUE;
     }  /* if */
     if (known_not_overloaded) {
@@ -10055,7 +10126,7 @@ it happens in prototype instantiations.  op is the operator to be used.
     known_not_overloaded = TRUE;
   } else {
     /* The current expression is not a constant expression. */
-    if (!is_overloadable_type(operand->type)) {
+    if (!is_overloadable_type_first_operand(operand)) {
       known_not_overloaded = TRUE;
     }  /* if */
     if (known_not_overloaded) {

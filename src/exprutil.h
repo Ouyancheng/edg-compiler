@@ -1312,6 +1312,7 @@ a_boolean check_compatibility_of_handle_operands(
                                           an_operand        *operand_2,
                                           a_source_position *operator_position,
                                           a_type_ptr        *operation_type);
+extern a_boolean is_literal_convertible_to_cli_string(an_operand *operand);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean check_compatibility_of_nullptr_operands(

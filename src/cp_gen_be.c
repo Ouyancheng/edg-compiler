@@ -543,6 +543,7 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_CAST,		/* eok_box */
   PREC_PREFIX,		/* eok_handle_to_box */
   PREC_CAST,		/* eok_unbox */
+  PREC_LOWEST,		/* eok_cli_string */
   PREC_CAST,		/* eok_base_class_cast */
   PREC_CAST,		/* eok_derived_class_cast */
   PREC_CAST,		/* eok_pm_base_class_cast */
@@ -10166,6 +10167,7 @@ gen_expr that might end up generating this expr as a temporary.
           }  /* if */
           goto done_with_operation;
         case eok_class_rvalue_adjust:
+        case eok_cli_string:
           /* Always compiler-generated, so it has no source representation. */
           check_assertion(expr->variant.operation.compiler_generated);
           gen_expr(operand_1, /*need_parens=*/FALSE,

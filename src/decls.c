@@ -7689,10 +7689,15 @@ skip_overloading:;
 #if CHECKING
       if (routine_ptr->special_kind ==
                              (a_special_function_kind)sfk_operator) {
-        check_assertion_str
-             (is_new_operator(routine_ptr->variant.opname_kind) ||
-	      is_delete_operator(routine_ptr->variant.opname_kind),
-	      "decl_routine: bad opname kind");
+        /* In C++/CLI, there are several compiler generated "+" operators
+           (e.g. String concatenation) that can be hidden by user defined 
+           versions. */
+        check_assertion_str(
+             is_new_operator(routine_ptr->variant.opname_kind) ||
+             is_delete_operator(routine_ptr->variant.opname_kind) ||
+             (cppcli_enabled &&
+              routine_ptr->variant.opname_kind == (an_opname_kind)onk_plus),
+             "decl_routine: bad opname kind");
       }  /* if */
 #endif /* CHECKING */
     }  /* if */

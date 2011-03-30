@@ -2390,6 +2390,13 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
            aml_user_conversion but arg_summary->conversion does not indicate a
            user-defined conversion. */
         arg_summary->match_level = aml_user_conversion;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (std_conversion.conv_of_string_literal_to_cli_string) {
+        /* A C++/CLI conversion of a string literal to a System::String^
+           is considered an exact match. */
+        check_assertion(cppcli_enabled);
+        arg_summary->match_level = aml_exact;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       goto have_level;
     }  /* if */
@@ -4436,6 +4443,22 @@ in [over.ics.rank].
       goto have_cmp;
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* The C++/CLI string literal -> String^ conversion is better than
+     other conversions when the ranks are equal.  In particular,
+     that conversion is better than decay of a string literal to
+     a pointer to the element type. */
+  if (conv1->conv_of_string_literal_to_cli_string !=
+      conv2->conv_of_string_literal_to_cli_string) {
+    check_assertion(cppcli_enabled);
+    if (conv1->conv_of_string_literal_to_cli_string) {
+      cmp = 1;
+    } else {
+      cmp = -1;
+    }  /* if */
+    goto have_cmp;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (conv1->cli_array_covariance_conversion !=
       conv2->cli_array_covariance_conversion) {
     /* One has a C++/CLI array covariance conversion and the other does
@@ -12072,7 +12095,16 @@ apply, but we can't tell).
            (is_class_struct_union_type(operand_2->type) ||
             (operator_overloading_on_enums_enabled &&
              is_enum_type(operand_2->type)) ||
-            is_error_operand(operand_2)))) {
+            is_error_operand(operand_2)))
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            /* In C++/CLI, if one of the arguments is a string literal, then
+               operator overloading applies since it may eventually become a
+               System::String^ */
+            || (cppcli_enabled &&
+                (is_literal_convertible_to_cli_string(operand_1) ||
+                 is_literal_convertible_to_cli_string(operand_2)))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+         ) {
         /* Operator overloading may apply.  That is, the operation may be a
            call of an overloaded operator function or the operands may be
            convertible to built-in types appropriate for the built-in

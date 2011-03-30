@@ -608,45 +608,74 @@ EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 
-static a_boolean is_overloadable_type_operand(an_operand *operand)
+static a_boolean is_overloadable_type_operand_full(an_operand *operand,
+                                                   a_boolean  first_operand)
 /*
 Return TRUE if the given operand has a type for which operator overloading
-should be considered.  Also return TRUE for template-dependent operands
-in a prototype instantiation, because they might be overloadable (and
-we want to go to check_for_operator_overloading to handle that).
+should be considered.  If first_operand is TRUE, this is the first operand
+of an operation (C++/CLI has some special rules for such operands).
+Also return TRUE for error operands and template-dependent operands in
+a prototype instantiation, because they might be overloadable (and we
+want to go to check_for_operator_overloading to handle that).
 */
 {
-  /* Note that we check for all dependent types and not just
-     ones that could be class or enum types.  That allows us to generate
-     a generic operation in check_for_operator_overloading and
-     avoid testing for template cases in each place that calls it. */
-  a_boolean is_overloadable = is_overloadable_type(operand->type) ||
-                              is_error_operand(operand) ||
-                              (is_template_dependent_context() &&
-                               is_template_dependent_type(operand->type));
+  a_boolean is_overloadable = first_operand ?
+                            is_overloadable_first_operand_type(operand->type) :
+                            is_overloadable_type(operand->type);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && !is_overloadable &&
+      operand->is_simple_string_literal &&
+      literal_type_convertible_to_cli_string(operand->type)) {
+    /* In C++/CLI mode, a string literal can act like a System::String
+       and overloading can be done on that. */
+    is_overloadable = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (!is_overloadable) {
+    /* Note that we check for all dependent types and not just
+       ones that could be class or enum types.  That allows us to generate
+       a generic operation in check_for_operator_overloading and
+       avoid testing for template cases in each place that calls it. */
+    if (is_error_operand(operand) ||
+        (is_template_dependent_context() &&
+         is_template_dependent_type(operand->type))) {
+      is_overloadable = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_overloadable;
+}  /* is_overloadable_type_operand_full */
+
+
+a_boolean is_overloadable_type_operand(an_operand *operand)
+/*
+Return TRUE if the given operand has a type for which operator overloading
+should be considered.  Also return TRUE for error operands and
+template-dependent operands in a prototype instantiation, because they
+might be overloadable (and we want to go to check_for_operator_overloading
+to handle that).
+*/
+{
+  a_boolean is_overloadable =
+                    is_overloadable_type_operand_full(operand,
+                                                      /*first_operand=*/FALSE);
   return is_overloadable;
 }  /* is_overloadable_type_operand */
 
 
-static a_boolean is_overloadable_type_first_operand(an_operand *operand)
+a_boolean is_overloadable_type_first_operand(an_operand *operand)
 /*
 Return TRUE if the given operand has a type for which operator
 overloading should be considered, specifically on the first operand of
 an operation (there are some special rules for that in C++/CLI mode).
-Also return TRUE for template-dependent operands in a prototype
-instantiation, because they might be overloadable (and we want to go
-to check_for_operator_overloading to handle that).
+Also return TRUE for error operands and template-dependent operands in
+a prototype instantiation, because they might be overloadable (and we want
+to go to check_for_operator_overloading to handle that).
 */
 {
-  /* Note that we check for all dependent types and not just
-     ones that could be class or enum types.  That allows us to generate
-     a generic operation in check_for_operator_overloading and
-     avoid testing for template cases in each place that calls it. */
   a_boolean is_overloadable =
-                           is_overloadable_first_operand_type(operand->type) ||
-                           is_error_operand(operand) ||
-                           (is_template_dependent_context() &&
-                            is_template_dependent_type(operand->type));
+                     is_overloadable_type_operand_full(operand,
+                                                       /*first_operand=*/TRUE);
   return is_overloadable;
 }  /* is_overloadable_type_first_operand */
 
@@ -5715,6 +5744,15 @@ case).
       if (is_arrow_operator) {
         /* "->" operator.  The left operand must be a pointer (or a C++/CLI
            handle). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cppcli_enabled &&
+            is_literal_convertible_to_cli_string(operand_1)) {
+          /* When the field selection operator is applied to a string literal
+             in C++/CLI, the literal is immediately converted to
+             System::String^ */
+          convert_operand_to_handle_to_cli_string(operand_1);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (C_dialect == C_dialect_pcc &&
             is_integral_or_enum_type(operand_1->type)) {
           /* In pcc mode, something like 0->x is valid. */
@@ -7975,7 +8013,9 @@ error indication in *rcblock).
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         /* Note: not is_overloadable_type_first_operand on purpose; we want
-           to handle pointer-to-template-param better than the generic way. */
+           to handle pointer-to-template-param better than the generic way.
+           Also, in C++/CLI mode *"string" shouldn't consider the possibility
+           of converting the string literal to a handle to System::String. */
         is_overloadable_first_operand_type(operand.type)) {
       a_boolean has_predef_meaning = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -18486,6 +18526,17 @@ that case.
     if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
       /* One or both of the operands has an error. */
       operation_type = error_type();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (operand_1_is_handle || is_handle_type(operand_2.type)) {
+      /* At least one of the operands has a C++/CLI handle type.
+         This has to be checked before the pointer case because we want
+         a comparison between a handle to System::String and a string
+         literal to be resolved by converting the string literal to
+         a System::String^. */
+      (void)check_compatibility_of_handle_operands(
+                           operand_1, &operand_2, &operator_position,
+                           &operation_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       if (operand_1_is_pointer || is_pointer_type(operand_2.type)) {
         /* At least one of the operands is a pointer.  See if the operands are
@@ -18507,13 +18558,6 @@ that case.
         (void)check_ptr_to_member_operands_for_compatibility(
                            operand_1, &operand_2, &operator_position,
                            &operation_type);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (operand_1_is_handle || is_handle_type(operand_2.type)) {
-        /* At least one of the operands has a C++/CLI handle type. */
-        (void)check_compatibility_of_handle_operands(
-                           operand_1, &operand_2, &operator_position,
-                           &operation_type);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (operand_1_is_nullptr || is_nullptr_type(operand_2.type)) {
         /* At least one of the operands has a nullptr type. */
         (void)check_compatibility_of_nullptr_operands(operand_1, &operand_2,

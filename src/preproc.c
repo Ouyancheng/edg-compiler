@@ -1592,6 +1592,7 @@ system types.  Then import any other metadata files specified via --preusing.
   init_cli_symbol_corresponding_basic_types();
   /* Create cli::array. */
   make_symbol_for_cli_array();
+  make_symbols_for_system_string_operators();
   while (preusing_file_list != NULL) {
     name = alloc_il(strlen(preusing_file_list->file_name) + 1);
     strcpy(name, preusing_file_list->file_name);

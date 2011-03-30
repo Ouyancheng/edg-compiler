@@ -2824,8 +2824,8 @@ because any exception it can handle would be caught by type_1's handler.
       /* A C++/CLI handle type masks another handle type if the latter can be
          implicitly converted to the former. */
       if (impl_handle_conversion(type_2, type_1,
-                                  /*allow_qualifier_or_eh_mismatch=*/FALSE,
-                                  &std_conv)) {
+                                 /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                 &std_conv)) {
         masked = TRUE;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5478,6 +5478,7 @@ Clear a standard conversion description to default values.
   std_conv->is_mild_warning = FALSE;
   std_conv->cli_array_covariance_conversion = FALSE;
   std_conv->gpp_conv_of_real_to_complex = FALSE;
+  std_conv->conv_of_string_literal_to_cli_string = FALSE;
 }  /* clear_std_conv_descr */
 
 
@@ -6874,6 +6875,70 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+a_boolean literal_type_convertible_to_cli_string(a_type_ptr type_ptr)
+/*
+Return TRUE if type_ptr (the type of a string literal operand) can be
+implicitly converted to a handle to a C++/CLI System::String.
+See 14.2.5 in the ECMA-372 standard.  This function also
+returns TRUE for T* where T is a char or wchar_t, in addition to the T[]
+cases, because array->pointer decay may have already been done.
+*/
+{
+  a_boolean  result = FALSE;
+  a_type_ptr underlying_type = NULL;
+
+  type_ptr = skip_typerefs(type_ptr);
+  if (is_array(type_ptr)) {
+    underlying_type = array_element_type(type_ptr);
+  } else if (is_pointer(type_ptr)) {
+    underlying_type = type_pointed_to(type_ptr);
+  }  /* if */
+  if (underlying_type != NULL) {
+    result = is_narrow_or_wide_character_type(underlying_type);
+  }  /* if */
+  return result;
+}  /* literal_type_convertible_to_cli_string */
+
+
+a_boolean cli_string_literal_conversion_possible(
+                                              a_type_ptr           source_type,
+                                              a_type_ptr           dest_type,
+                                              a_std_conv_descr_ptr std_conv)
+/*
+Return TRUE if source_type (the type of a string literal operand) can be
+implicitly converted to dest_type (if that is a handle to a C++/CLI
+System::String).  See 14.2.5 in the ECMA-372 standard.
+If the conversion is possible, *std_conv is filled out to describe the
+conversion.  std_conv can be NULL if that information is not needed.
+*/
+{
+  a_boolean okay = FALSE;
+
+  if (cppcli_enabled) {
+    if (std_conv != NULL) clear_std_conv_descr(std_conv);
+    if (literal_type_convertible_to_cli_string(source_type)) {
+      /* The source type is an appropriate string literal type.  See if
+         the destination type is a handle to System::String. */
+      if (is_handle_type(dest_type)) {
+        a_type_ptr unqual_dest_type_pointed_to = f_skip_typerefs(
+                                                   type_pointed_to(dest_type));
+        a_type_ptr system_string = type_symbol_type(
+                                      cli_symbol_from_kind(csk_system_string));
+        if (identical_types(unqual_dest_type_pointed_to, system_string)) {
+          /* This is a string-literal -> String^ conversion. */
+          okay = TRUE;
+          if (std_conv != NULL) {
+            std_conv->nontrivial_conversion = TRUE;
+            std_conv->conv_of_string_literal_to_cli_string = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return okay;
+}  /* cli_string_literal_conversion_possible */
+
+
 a_boolean impl_handle_conversion(
                          a_type_ptr           source_type,
                          a_type_ptr           dest_type,
@@ -6885,7 +6950,9 @@ source_type (any type) to something of type dest_type (a C++/CLI
 handle type).  If allow_qualifier_or_eh_mismatch is TRUE, ignore
 cv-qualifier mismatches (the two types are probably the types of the
 operands of an operation).  If the conversion is possible, *std_conv
-is filled out to describe the conversion.
+is filled out to describe the conversion.  Doesn't cover boxing
+conversions (value class --> handle to boxed value) or string literal
+conversions (string-literal --> handle to System::String).
 */
 {
   a_boolean        okay = FALSE;
@@ -7713,6 +7780,12 @@ See conversion_possible.
     /* Destination type is a C++/CLI handle. */
     if (boxing_conversion_possible(source_type, dest_type, std_conv)) {
       /* A boxing conversion is possible. */
+      okay = TRUE;
+    } else if (source_is_string_literal &&
+               cli_string_literal_conversion_possible(source_type, dest_type,
+                                                      std_conv)) {
+      /* A string literal conversion is possible (string literal -->
+         handle to System::String). */
       okay = TRUE;
     } else {
       okay = impl_handle_conversion(source_type, dest_type,

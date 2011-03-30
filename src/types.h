@@ -875,6 +875,12 @@ typedef struct a_std_conv_descr {
 			/* TRUE if this conversion is from an integer or
 			   real floating type to a complex type, in
 			   g++ mode. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_byte_boolean
+		conv_of_string_literal_to_cli_string;
+			/* TRUE if the conversion is the conversion of a
+			   string literal to a C++/CLI System::String^. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_std_conv_descr;
 
 
@@ -894,6 +900,13 @@ extern a_boolean impl_pointer_conversion(
                          an_error_code        default_warning_code,
                          a_std_conv_descr_ptr std_conv);
 #if MICROSOFT_EXTENSIONS_ALLOWED
+extern
+a_boolean literal_type_convertible_to_cli_string(a_type_ptr type_ptr);
+extern
+a_boolean cli_string_literal_conversion_possible(
+                                              a_type_ptr           source_type,
+                                              a_type_ptr           dest_type,
+                                              a_std_conv_descr_ptr std_conv);
 extern a_boolean impl_handle_conversion(
                          a_type_ptr           source_type,
                          a_type_ptr           dest_type,
