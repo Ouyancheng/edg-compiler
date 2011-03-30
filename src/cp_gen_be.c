@@ -9271,7 +9271,7 @@ put out in that form.
 {
   an_expr_node_ptr              obj_expr;
   an_expr_node_ptr              subscripts;
-  unsigned long                 i, num_subscripts = 0;
+  unsigned long                 num_subscripts = 0;
   char                          *opstr = " = ";
   a_boolean                     need_context_pop = FALSE;
 
