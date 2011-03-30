@@ -3103,6 +3103,8 @@ and return a pointer to it.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       tssp->variant.class_template.argument_template = NULL;
       tssp->variant.class_template.substituted_param_template = NULL;
+      clear_template_cache(&tssp->variant.class_template.initial_decl_cache,
+                           /*reusable=*/TRUE);
 #if CENTERLINE_CHECKING 
       tssp->variant.class_template.avoid_codecenter_warnings = FALSE;
 #endif /* CENTERLINE_CHECKING */

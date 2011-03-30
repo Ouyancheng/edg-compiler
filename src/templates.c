@@ -2358,7 +2358,8 @@ in ps_arg_list.
   instance_type = type_symbol_type(instance_sym);
   /* Get the template parameter list associated with this partial
      specialization. */
-  templ_param_list = tssp->cache.decl_info->parameters;
+  templ_param_list = tssp->
+               variant.class_template.initial_decl_cache.decl_info->parameters;
   /* If no template argument list was provided by the caller, use a local
      one.  This is the case when the caller doesn't care about the
      argument list. */
@@ -15047,6 +15048,14 @@ friend_template_checks_done:
          the names of the prototype instantiation arguments to reflect
          the template parameter names used on the definition. */
       rename_prototype_arg_list(tssp, decl_state->decl_info->parameters);
+    }  /* if */
+    if (tssp->cache.decl_info == NULL) {
+     /* Save information about the original declaration of the class.
+        This is saved separately, because tssp->cache is modified if the
+        class is defined later. */
+     set_template_cache_info(&tssp->variant.class_template.initial_decl_cache,
+                             definition_token_cache,
+                             decl_state->decl_info);
     }  /* if */
     if (is_definition || tssp->cache.decl_info == NULL) {
       /* Save the information needed to create an instantiation based

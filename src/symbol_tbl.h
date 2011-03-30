@@ -2268,6 +2268,13 @@ typedef struct a_template_symbol_supplement {
 			   The rescanned version of the parameter list must
 			   be used when scanning template argument lists of
 			   the template template parameter. */
+      a_template_cache
+		initial_decl_cache;
+			/* For class templates, this represents the initial
+			   declaration of the class template.  If the
+			   initial declaration is also the definition,
+			   this will point to the same information as
+			   "cache" above. */
       a_bit_field
 		is_alias_template:1;
 			/* TRUE if this is an alias template. */

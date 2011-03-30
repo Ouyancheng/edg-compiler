@@ -1,5 +1,18 @@
 Version 4.4
 
+3/30/11  [EDGcpfe/11532]
+Internal error on variadic partial specialization declared then defined later
+
+An internal error could occur (in find_placeholder_arg_for_pack) if a
+variadic partial specialization was declared and then defined later.
+Now fixed.
+
+  template <class ...T> struct A {};
+  template <class T, class ...U> struct A<T, U...>;
+  template <class T, class ...U> struct A<T, U...> {};
+  A<int, long> a;
+
+
 3/30/11  [EDGcpfe/11558]
 Spurious error or internal error on sizeof... of an empty pack
 
