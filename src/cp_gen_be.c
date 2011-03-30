@@ -7924,8 +7924,14 @@ removed and FALSE otherwise.
       node = constant->expr;
     }  /* if */
   }  /* if */
-  if (node->kind == (an_expr_node_kind)enk_temp_init) {
-    a_dynamic_init_ptr dip = node->variant.init.dynamic_init;
+  if (node->kind == (an_expr_node_kind)enk_temp_init ||
+      node->kind == (an_expr_node_kind)enk_reuse_value) {
+    a_dynamic_init_ptr dip;
+    if (node->kind == (an_expr_node_kind)enk_temp_init) {
+      dip = node->variant.init.dynamic_init;
+    } else {
+      dip = node->variant.reused_value_init;
+    }  /* if */
     if (dip->is_reused_value &&
         (dip->kind == (a_dynamic_init_kind)dik_expression ||
          dip->kind ==
@@ -8976,153 +8982,296 @@ return FALSE and let the caller generate the code normally.
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-static void analyze_rewritten_property_reference(
-                                 a_property_or_event_descr_ptr       desc,
-                                 a_rewritten_property_reference_kind rpr_kind,
-                                 an_expr_node_ptr                    *obj_expr,
-                                 an_expr_node_ptr                    *args,
-                                 char                                **opstr)
 /*
-This function is called for a "set" operation on a C++/CLI property,
-described by desc, that is the result of decomposing a compound assignment
-or increment/decrement operation, e.g., "P += 1" becomes the IL equivalent
-of "P::set(P::get() + 1)"; rpr_kind specifies the form of the source
-operation.  If the property is non-static, *obj_expr designates the
-expression to be passed as the "this" pointer; otherwise, it is NULL.
-*args designates the first value to be passed to the "set" function (after
-the "this" pointer, if any).  Analyze the value and set *opstr to point to
-a string containing the corresponding compound assignment or
-increment/decrement operator and set *args to point to the expression that
-should be put out for the right operand of the compound assignment or to
-NULL for an increment/decrement.  If the property is static and was invoked
-with an object expression, set *obj_expr to that object expression (which
-is found only on the call to the "get" function via an eok_points_to_static
-operation); otherwise, leave *obj_expr unchanged.
+Variables used in the traversal of an expression resulting from rewriting
+a property reference.  They are initialized to NULL by
+analyze_rewritten_property_reference, set during the traversal of the
+expression by find_pieces_of_rewritten_property_reference, and then
+queried after the traversal by analyze_rewritten_property_reference.
+*/
+static char	*compound_operation_string;
+			/* Set to point to a string containing the compound
+			   assignment operator corresponding to the simple
+			   operator into which the source expression was
+			   decomposed. */
+
+static an_expr_node_ptr
+		opnd2_of_simple_operation;
+			/* Set to the second operand of the simple
+			   operation in the decomposed tree -- e.g., if the
+			   original source had p += 1, the resulting IL
+			   will be p = p + 1 and this pointer will be set
+			   to point to the 1. */
+
+static an_expr_node_ptr
+		static_object_expression;
+			/* In a static property reference that was written
+			   with an object expression, the object expression
+			   is given on the "get" accessor call as the
+			   operand of an eok_dot_static or
+			   eok_points_to_static operator, and this pointer
+			   will be set to it in such cases; NULL
+			   otherwise. */
+
+
+static void find_pieces_of_rewritten_property_reference(
+                                    an_expr_node_ptr                    node,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called from analyze_rewritten_property_reference via
+traverse_expr to locate important nodes in an expression tree resulting
+from rewriting a compound reference to a Microsoft property.  It sets the
+preceding global variables when it encounters the relevant expression nodes
+and terminates the traversal when it counters the call to the "get"
+accessor function.
 */
 {
-  an_expr_node_ptr          node = *args;
-  a_property_index_type_ptr idx;
+  if (is_operation_node(node)) {
+    /* Check to see if this is a simple operator decomposed from a compound
+       operation and, if so, set compound_operation_string to the
+       corresponding compound operator and record its second operand.
+       Also, if this an eok_dot_static or eok_points_to_static operation,
+       record the first operand so it can be incorporated in the generated
+       code. */
+    switch (node->variant.operation.kind) {
+      case eok_add:
+      case eok_padd:
+        /* Could be either ++ or +=.  Set the operation string to "++"
+           for now; it will be corrected later to "+=" if necessary. */
+        compound_operation_string = "++";
+        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        break;
+      case eok_subtract:
+      case eok_psubtract:
+        /* Could be either -- or -=.  Set the operation string to "--"
+           for now; it will be corrected later to "-=" if necessary. */
+        compound_operation_string = "--";
+        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        break;
+      case eok_multiply:
+        compound_operation_string = " *= ";
+        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        break;
+      case eok_divide:
+        compound_operation_string = " /= ";
+        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        break;
+      case eok_remainder:
+        compound_operation_string = " %= ";
+        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        break;
+      case eok_shiftl:
+        compound_operation_string = " <<= ";
+        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        break;
+      case eok_shiftr:
+        compound_operation_string = " >>= ";
+        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        break;
+      case eok_and:
+        compound_operation_string = " &= ";
+        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        break;
+      case eok_or:
+        compound_operation_string = " |= ";
+        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        break;
+      case eok_xor:
+        compound_operation_string = " ^= ";
+        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        break;
+      case eok_dot_static:
+      case eok_points_to_static:
+        /* A call to a C++/CLI static property accessor.  Record the
+           unused object expression so it can be included in the generated
+           code. */
+        static_object_expression = node->variant.operation.operands;
+        break;
+      default:
+        /* Not a node of interest. */
+        break;
+    }  /* switch */
+  } else if (is_routine_node(node)) {
+    a_routine_ptr rout = node->variant.routine.ptr;
+    if (rout->special_kind == (a_special_function_kind)sfk_operator) {
+      /* The simple operator corresponding to the compound operation in the
+         original source form can be a call to an operator function.
+         Determine the corresponding original compound operator based on
+         what kind of operator function this is. */
+      switch (rout->variant.opname_kind) {
+        case onk_plus:
+          /* Could be either ++ or +=.  Set the operation string to "++"
+             for now; it will be corrected later to "+=" if necessary. */
+          compound_operation_string = "++";
+          opnd2_of_simple_operation = node->next->next;
+          break;
+        case onk_minus:
+          /* Could be either -- or -=.  Set the operation string to "--"
+             for now; it will be corrected later to "-=" if necessary. */
+          compound_operation_string = "--";
+          opnd2_of_simple_operation = node->next->next;
+          break;
+        case onk_star:
+          compound_operation_string = " *= ";
+          opnd2_of_simple_operation = node->next->next;
+          break;
+        case onk_divide:
+          compound_operation_string = " /= ";
+          opnd2_of_simple_operation = node->next->next;
+          break;
+        case onk_remainder:
+          compound_operation_string = " %= ";
+          opnd2_of_simple_operation = node->next->next;
+          break;
+        case onk_excl_or:
+          compound_operation_string = " ^= ";
+          opnd2_of_simple_operation = node->next->next;
+          break;
+        case onk_ampersand:
+          compound_operation_string = " &= ";
+          opnd2_of_simple_operation = node->next->next;
+          break;
+        case onk_or:
+          compound_operation_string = " |= ";
+          opnd2_of_simple_operation = node->next->next;
+          break;
+        case onk_shift_left:
+          compound_operation_string = " <<= ";
+          opnd2_of_simple_operation = node->next->next;
+          break;
+        case onk_shift_right:
+          compound_operation_string = " >>= ";
+          opnd2_of_simple_operation = node->next->next;
+          break;
+        default:
+          /* Not a simple operator decomposed from a compound operation. */
+          break;
+      }  /* switch */
+    } else if (rout_is_cli_accessor(rout)) {
+      /* This should be the "get" accessor: indicate success and terminate
+         the traversal so we don't get confused by whatever might be in the
+         second operand of the simple operation. */
+      check_assertion(rout->special_kind ==
+                                    (a_special_function_kind)sfk_property_get);
+      tblock->result = TRUE;
+      tblock->terminate = TRUE;
+    } else if (node->variant.routine.property_or_event_descr != NULL) {
+      /* This should be the "get" accessor: indicate success and terminate
+         the traversal so we don't get confused by whatever might be in the
+         second operand of the simple operation. */
+      check_assertion(node->variant.routine.special_kind ==
+                                    (a_special_function_kind)sfk_property_get);
+      tblock->result = TRUE;
+      tblock->terminate = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* find_pieces_of_rewritten_property_reference */
+
+
+static void analyze_rewritten_property_reference(
+                            a_property_or_event_descr_ptr       desc,
+                            unsigned long                       num_subscripts,
+                            a_rewritten_property_reference_kind rpr_kind,
+                            an_expr_node_ptr                    *obj_expr,
+                            an_expr_node_ptr                    *args,
+                            char                                **opstr)
+/*
+This function is called for a "set" operation on a Microsoft property,
+either C++/CLI or __declspec, described by desc, that is the result of
+decomposing a compound assignment or increment/decrement operation, e.g.,
+"P += 1" becomes the IL equivalent of "P::set(P::get() + 1)"; rpr_kind
+specifies the form of the source operation.  If the property is non-static,
+*obj_expr designates the expression to be passed as the "this" pointer;
+otherwise, it is NULL.  *args designates the first value to be passed to
+the "set" function (after the "this" pointer, if any).  num_subscripts
+gives the number of subscripts expected by the property accessors and thus
+the number of subscript expressions at the beginning of the *args list.
+Analyze the value and set *opstr to point to a string containing the
+corresponding compound assignment or increment/decrement operator and set
+*args to point to the expression that should be put out for the right
+operand of the compound assignment or to NULL for an increment/decrement.
+If the property is static and was invoked with an object expression, set
+*obj_expr to that object expression (which is found only on the call to the
+"get" function via an eok_points_to_static operation); otherwise, leave
+*obj_expr unchanged.
+*/
+{
+  an_expr_node_ptr                node = *args;
+  an_expr_or_stmt_traversal_block tblock;
 
   /* Skip over any subscripts. */
-  for (idx = desc->indices;
-       idx != NULL && node != NULL;
-       idx = idx->next) {
+  while (num_subscripts--) {
     node = node->next;
   }  /* for */
   check_assertion(node != NULL);
-  if (is_operation_node(node) &&
-      node->variant.operation.compiler_generated &&
-      is_cast_operation_node(node)) {
-    /* Skip over the conversion of the operand to the type of the
-       property. */
-    node = node->variant.operation.operands;
-  }  /* if */
-  check_assertion(is_operation_node(node));
-  /* A compound assignment is decomposed in the IL to the corresponding
-     simple operation (to which node now points) with the first operand
-     being a call to the property's "get" function.  Similarly, an
-     increment/decrement operation becomes a plus or minus with a second
-     operand of 1.  Determine the string for the original operator. */
-  switch (node->variant.operation.kind) {
-    case eok_add:
-    case eok_padd:
-      if (rpr_kind ==
-               (a_rewritten_property_reference_kind)rprk_compound_assignment) {
-        *opstr = " += ";
-      } else {
-        *opstr = "++";
-      }  /* if */
-      break;
-    case eok_subtract:
-    case eok_psubtract:
-      if (rpr_kind ==
-               (a_rewritten_property_reference_kind)rprk_compound_assignment) {
-        *opstr = " -= ";
-      } else {
-        *opstr = "--";
-      }  /* if */
-      break;
-    case eok_multiply:
-      *opstr = " *= ";
-      break;
-    case eok_divide:
-      *opstr = " /= ";
-      break;
-    case eok_remainder:
-      *opstr = " %= ";
-      break;
-    case eok_shiftl:
-      *opstr = " <<= ";
-      break;
-    case eok_shiftr:
-      *opstr = " >>= ";
-      break;
-    case eok_and:
-      *opstr = " &= ";
-      break;
-    case eok_or:
-      *opstr = " |= ";
-      break;
-    case eok_xor:
-      *opstr = " ^= ";
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-  /* Now look at the operands of the simple operator: the first operand is
-     the call to the "get" function, and the second is the operand of the
-     compound assignment operator (or the value 1 in the case of an
-     increment/decrement). */
-  node = node->variant.operation.operands;
-  if (rpr_kind ==
-               (a_rewritten_property_reference_kind)rprk_compound_assignment) {
-    *args = node->next;
-  } else {
+  /* Traverse the expression tree to find the pieces resulting from
+     decomposing the compound operation into calls to the "get" and "set"
+     accessors. */
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = find_pieces_of_rewritten_property_reference;
+  compound_operation_string = NULL;
+  opnd2_of_simple_operation = NULL;
+  static_object_expression = NULL;
+  traverse_expr(node, &tblock);
+  check_assertion(tblock.result && compound_operation_string != NULL);
+  if (rpr_kind == (a_rewritten_property_reference_kind)rprk_pre_incr_decr ||
+      rpr_kind == (a_rewritten_property_reference_kind)rprk_post_incr_decr) {
     /* Ignore the second operand (the value 1) because it's implicit in the
        operation. */
     *args = NULL;
+  } else {
+    *args = opnd2_of_simple_operation;
   }  /* if */
-  if (is_operation_node(node) &&
-      node->variant.operation.compiler_generated &&
-      is_cast_operation_node(node)) {
-    /* Skip over the conversion from the property type to the type of the
-       operation. */
-    node = node->variant.operation.operands;
+  if (rpr_kind ==
+               (a_rewritten_property_reference_kind)rprk_compound_assignment) {
+    /* A simple operation of + or - could correspond to either an
+       increment/decrement or a compound assignment, so
+       find_pieces_of_rewritten_property_reference arbitrarily chose the
+       increment/decrement.  Correct the resulting operation strings now
+       that we know it's a compound assignment. */
+    if (*compound_operation_string == '+') {
+      compound_operation_string = " += ";
+    } else {
+      compound_operation_string = " -= ";
+    }  /* if */
   }  /* if */
-  check_assertion(is_operation_node(node));
-  if (node_operator_is(node, eok_points_to_static)) {
-    check_assertion(desc->is_static);
-    /* This is a static property that was written using an (ignored) object
-       expression.  In the decomposed IL, the object expression appears
-       only on the call to the "get" function (so that it is evaluated only
-       once), so we set *obj_expr to point to it here so that it can be put
-       out before the left-hand side of the property reference. */
-    *obj_expr = node->variant.operation.operands;
+  *opstr = compound_operation_string;
+  if (desc->is_static) {
+    /* This is a static property that might have been written using an
+       (ignored) object expression.  In the decomposed IL, the object
+       expression appears only on the call to the "get" function (so that
+       it is evaluated only once), so we set *obj_expr to point to it here
+       so that it can be put out before the left-hand side of the property
+       reference. */
+    *obj_expr = static_object_expression;
   }  /* if */
 }  /* analyze_rewritten_property_reference */
 
 
-static void gen_cli_property_or_event_call(
+static void gen_property_or_event_call(
+                              a_routine_ptr                       rout,
                               an_expr_node_ptr                    args,
                               a_property_or_event_descr_ptr       desc,
                               a_special_function_kind             special_kind,
                               a_rewritten_property_reference_kind rpr_kind)
 /*
 Generate the appropriate operator-notation code to call a Microsoft
-property (either C++/CLI or __declspec) or event access routine.  args is
-the first argument in the call, i.e., the object expression for a
-non-static member or the actual first argument (if any) for static members.
-The property or event is described by desc, and special_kind specifies the
-kind of accessor involved; these are passed separately because __declspec
-property accessors are ordinary member functions and not uniquely
-associated with the property.  rpr_kind specifies the original source form
-if the expression expression is the expansion of a compound assignment or
-increment/decrement operation (e.g., "P += 1" becomes the IL equivalent of
-"P::set(P::get() + 1)") so it can be put out in that form.
+property (either C++/CLI or __declspec) or event access routine specified
+by rout.  args is the first argument in the call, i.e., the object
+expression for a non-static member or the actual first argument (if any)
+for static members.  The property or event is described by desc, and
+special_kind specifies the kind of accessor involved; these are passed
+separately because __declspec property accessors are ordinary member
+functions and not uniquely associated with the property.  rpr_kind
+specifies the original source form if the expression expression is the
+expansion of a compound assignment or increment/decrement operation (e.g.,
+"P += 1" becomes the IL equivalent of "P::set(P::get() + 1)") so it can be
+put out in that form.
 */
 {
   an_expr_node_ptr              obj_expr;
   an_expr_node_ptr              subscripts;
+  unsigned long                 i, num_subscripts = 0;
   char                          *opstr = " = ";
   a_boolean                     need_context_pop = FALSE;
 
@@ -9133,9 +9282,30 @@ increment/decrement operation (e.g., "P += 1" becomes the IL equivalent of
     args = args->next;
   }  /* if */
   subscripts = args;
+  if (rout_is_cli_accessor(rout)) {
+    /* Count the list of indices. */
+    a_property_index_type_ptr idx;
+    for (idx = desc->indices; idx != NULL; idx = idx->next) {
+      ++num_subscripts;
+    }  /* for */
+  } else {
+    /* A __declspec property's descriptor does not have a list of indices;
+       the only way to find out that the accessor expects a subscript is to
+       count the number of parameters. */
+    a_routine_type_supplement_ptr rtsp =
+                         skip_typerefs(rout->type)->variant.routine.extra_info;
+    a_param_type_ptr pt;
+    for (pt = rtsp->param_type_list; pt != NULL; pt = pt->next) {
+      ++num_subscripts;
+    }  /* for */
+    if (special_kind == (a_special_function_kind)sfk_property_set) {
+      /* Don't count the value for the "set" in the number of subscripts. */
+      --num_subscripts;
+    }  /* if */
+  }  /* if */
   if (rpr_kind != (a_rewritten_property_reference_kind)rprk_none) {
-    analyze_rewritten_property_reference(desc, rpr_kind, &obj_expr, &args,
-                                         &opstr);
+    analyze_rewritten_property_reference(desc, num_subscripts, rpr_kind,
+                                         &obj_expr, &args, &opstr);
   }  /* if */
   if (rpr_kind == (a_rewritten_property_reference_kind)rprk_pre_incr_decr) {
     /* This is a prefix operator, so put it out now. */
@@ -9183,15 +9353,14 @@ increment/decrement operation (e.g., "P += 1" becomes the IL equivalent of
       pop_name_context();
     }  /* if */
   }  /* if */
-  if (desc->indices != NULL) {
+  if (num_subscripts > 0) {
     /* Generate the subscript list for the property reference. */
-    a_property_index_type_ptr idx;
     write_tok_ch('[');
-    for (idx = desc->indices; idx != NULL; idx = idx->next) {
+    while (num_subscripts--) {
       check_assertion(subscripts != NULL);
       gen_expr_with_parens(subscripts);
       subscripts = subscripts->next;
-      if (idx->next != NULL) {
+      if (num_subscripts != 0) {
         write_tok_str(", ");
       }  /* if */
     }  /* for */
@@ -9232,7 +9401,7 @@ increment/decrement operation (e.g., "P += 1" becomes the IL equivalent of
     default:
       unexpected_condition();
   }  /* switch */
-}  /* gen_cli_property_or_event_call */
+}  /* gen_property_or_event_call */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -9297,9 +9466,9 @@ call.
           descr = func_expr->variant.routine.property_or_event_descr;
           special_kind = func_expr->variant.routine.special_kind;
         }  /* if */
-        gen_cli_property_or_event_call(
-             args, descr, special_kind,
-             expr->variant.operation.rewritten_property_reference_kind);
+        gen_property_or_event_call(
+                    rout, args, descr, special_kind,
+                    expr->variant.operation.rewritten_property_reference_kind);
         processed = TRUE;
       } else 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -10569,10 +10738,7 @@ done_with_operation_after_parens:
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_reuse_value:
-      /* This comes up in Microsoft property reference expansions.
-         This is unfortunate since we don't really want to duplicate the
-         expression for the second reference to it.  But we don't have
-         much choice. */
+      /* This comes up in Microsoft property reference expansions. */
       dip = expr->variant.reused_value_init;
       gen_dynamic_init(dip, expr->type, /*parenthesized_init=*/FALSE,
                        /*force_parens=*/FALSE,
