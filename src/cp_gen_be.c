@@ -9361,7 +9361,11 @@ put out in that form.
       gen_expr_with_parens(subscripts);
       subscripts = subscripts->next;
       if (num_subscripts != 0) {
-        write_tok_str(", ");
+        if (rout_is_cli_accessor(rout)) {
+          write_tok_str(", ");
+        } else {
+          write_tok_str("][");
+        }  /* if */
       }  /* if */
     }  /* for */
     write_tok_ch(']');
