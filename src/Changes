@@ -1,5 +1,30 @@
 Version 4.4
 
+3/30/11  [EDGcpfe/11558]
+Spurious error or internal error on sizeof... of an empty pack
+
+A spurious error or internal error could result from a sizeof... of
+an empty nontype template parameter pack.  Now fixed.  The example below
+gets a "no instance of C<args...>::f matches the argument list, or if
+INTERNAL_ERROR is defined, gets an internal error in lower_type.
+
+  template <int... I> struct A { typedef A<I..., sizeof...(I)> n; };
+  template <int J> struct B { typedef typename A<>::n type; };
+  template <typename... args> struct C {
+#ifdef INTERNAL_ERROR
+    typedef A<> my_A;
+#else
+    typedef typename B<sizeof...(args)>::type my_A;
+#endif
+    template<int... I> void f(A<I...>);
+    void g() { f(my_A()); }
+  };
+  int main() {
+    C<int> c;
+    c.g();
+  }
+
+
 3/29/11  [EDGcpfe/11313]
 C++-generating back end, Microsoft compatibility: references to
 __declspec(property(...)) fields
