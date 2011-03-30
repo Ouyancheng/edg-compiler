@@ -1096,7 +1096,7 @@ Return TRUE if the indicated type is a C++/CLI ref class or interface class.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-static a_boolean is_cli_value_type(a_type_ptr tp)
+a_boolean is_cli_value_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a C++/CLI value type, which includes
 value class types and also fundamental types and pointers.  See ECMA

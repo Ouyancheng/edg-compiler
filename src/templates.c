@@ -5444,8 +5444,7 @@ non-NULL, issue an error at the given position.
        issue any errors. */
   } else {
     a_type_ptr tp = skip_typerefs(tap->variant.type);
-    if (!is_pointer_or_handle_type(tp) && !is_integral_or_enum_type(tp) &&
-        !is_value_class_type(tp)) {
+    if (!is_handle_type(tp) && !is_cli_value_type(tp)) {
       /* Elements of an array must have a handle or value type (or a type that
          can be implicitly converted to a value type). */
       if (diag_pos != NULL) {
