@@ -3664,7 +3664,7 @@ Display the indicated expression node.
                  (char *)ptr->variant.routine.property_or_event_descr,
                  iek_property_or_event_descr);
         disp_name("special_kind");
-        disp_special_function_kind_name(ptr->special_kind);
+        disp_special_function_kind_name(ptr->variant.routine.special_kind);
         (void)printf("\n");
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
