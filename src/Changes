@@ -42,15 +42,16 @@ INTERNAL_ERROR is defined, gets an internal error in lower_type.
 C++-generating back end, Microsoft compatibility: references to
 __declspec(property(...)) fields
 
-References to fields declared with a __declspec(property(...)) attribute are
-represented in the IL as calls to the associated "get" and "put" member
-functions, and the output of the C++-generating back end followed suit.  The
-C++-generating back end has now been changed to generate these references
-in the original source form, which required an IL CHANGE: the enk_routine
-variant of an_expr_node is now a struct instead of just a pointer, and in
-configurations in which MICROSOFT_EXTENSIONS_ALLOWED is TRUE, the struct
-contains information about the property and the kind of accessor that the
-member function call represents.  For example:
+References to fields declared with a __declspec(property(...)) attribute
+are represented in the IL as calls to the associated "get" and "put" member
+functions, and the output of the C++-generating back end followed suit.
+The C++-generating back end has now been changed to generate these
+references in the original source form, which required an IL CHANGE: the
+enk_routine variant of an_expr_node is now a struct instead of just a
+pointer, and in configurations in which MICROSOFT_EXTENSIONS_ALLOWED is
+TRUE and DO_IL_LOWERING is FALSE, the struct contains information about the
+property and the kind of accessor that the member function call represents.
+For example:
 
   struct S {
     int g();
