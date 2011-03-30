@@ -15140,11 +15140,13 @@ being rewritten; it's used to set a kind in the expression created.
       if (func_call_node != NULL) {
         an_expr_node_ptr opnd = func_call_node->variant.operation.operands;
         if (is_routine_node(opnd)) {
+#if !DO_IL_LOWERING
           /* Record the property description in the enk_routine node. */
           opnd->variant.routine.property_or_event_descr = pedp;
           opnd->variant.routine.special_kind = (put_operand == NULL) ?
                                     (a_special_function_kind)sfk_property_get :
                                     (a_special_function_kind)sfk_property_set;
+#endif /* DO_IL_LOWERING */
         }  /* if */
         if (put_operand != NULL) {
           func_call_node->variant.operation.

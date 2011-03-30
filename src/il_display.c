@@ -3658,7 +3658,7 @@ Display the indicated expression node.
     case enk_routine:
       (void)printf("enk_routine\n");
       disp_ptr("routine", (char *)ptr->variant.routine.ptr, iek_routine);
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
       if (ptr->variant.routine.property_or_event_descr != NULL) {
         disp_ptr("property_or_event_descr",
                  (char *)ptr->variant.routine.property_or_event_descr,
@@ -3667,7 +3667,7 @@ Display the indicated expression node.
         disp_special_function_kind_name(ptr->variant.routine.special_kind);
         (void)printf("\n");
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
       break;
     case enk_field:
       (void)printf("enk_field\n");

@@ -13264,7 +13264,7 @@ typedef struct an_expr_node {
     struct {
       a_routine_ptr
                 ptr;	/* A pointer to the routine. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
       a_property_or_event_descr_ptr
 		property_or_event_descr;
 			/* If this node is part of a call to a Microsoft
@@ -13280,7 +13280,7 @@ typedef struct an_expr_node {
 			   field, this is set to either sfk_property_set or
 			   sfk_property_get to reflect the kind of access;
 			   it is sfk_none otherwise. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
     } routine;
     /* When kind == enk_field: */
     a_field_ptr field;
