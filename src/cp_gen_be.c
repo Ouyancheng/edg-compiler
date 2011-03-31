@@ -9027,6 +9027,8 @@ and terminates the traversal when it counters the call to the "get"
 accessor function.
 */
 {
+  an_expr_node_ptr opnd2;
+
   if (is_operation_node(node)) {
     /* Check to see if this is a simple operator decomposed from a compound
        operation and, if so, set compound_operation_string to the
@@ -9034,52 +9036,53 @@ accessor function.
        Also, if this an eok_dot_static or eok_points_to_static operation,
        record the first operand so it can be incorporated in the generated
        code. */
+    opnd2 = node->variant.operation.operands->next;
     switch (node->variant.operation.kind) {
       case eok_add:
       case eok_padd:
         /* Could be either ++ or +=.  Set the operation string to "++"
            for now; it will be corrected later to "+=" if necessary. */
         compound_operation_string = "++";
-        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        opnd2_of_simple_operation = opnd2;
         break;
       case eok_subtract:
       case eok_psubtract:
         /* Could be either -- or -=.  Set the operation string to "--"
            for now; it will be corrected later to "-=" if necessary. */
         compound_operation_string = "--";
-        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        opnd2_of_simple_operation = opnd2;
         break;
       case eok_multiply:
         compound_operation_string = " *= ";
-        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        opnd2_of_simple_operation = opnd2;
         break;
       case eok_divide:
         compound_operation_string = " /= ";
-        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        opnd2_of_simple_operation = opnd2;
         break;
       case eok_remainder:
         compound_operation_string = " %= ";
-        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        opnd2_of_simple_operation = opnd2;
         break;
       case eok_shiftl:
         compound_operation_string = " <<= ";
-        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        opnd2_of_simple_operation = opnd2;
         break;
       case eok_shiftr:
         compound_operation_string = " >>= ";
-        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        opnd2_of_simple_operation = opnd2;
         break;
       case eok_and:
         compound_operation_string = " &= ";
-        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        opnd2_of_simple_operation = opnd2;
         break;
       case eok_or:
         compound_operation_string = " |= ";
-        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        opnd2_of_simple_operation = opnd2;
         break;
       case eok_xor:
         compound_operation_string = " ^= ";
-        opnd2_of_simple_operation = node->variant.operation.operands->next;
+        opnd2_of_simple_operation = opnd2;
         break;
       case eok_dot_static:
       case eok_points_to_static:
@@ -9099,50 +9102,51 @@ accessor function.
          original source form can be a call to an operator function.
          Determine the corresponding original compound operator based on
          what kind of operator function this is. */
+      opnd2 = node->next->next;
       switch (rout->variant.opname_kind) {
         case onk_plus:
           /* Could be either ++ or +=.  Set the operation string to "++"
              for now; it will be corrected later to "+=" if necessary. */
           compound_operation_string = "++";
-          opnd2_of_simple_operation = node->next->next;
+          opnd2_of_simple_operation = opnd2;
           break;
         case onk_minus:
           /* Could be either -- or -=.  Set the operation string to "--"
              for now; it will be corrected later to "-=" if necessary. */
           compound_operation_string = "--";
-          opnd2_of_simple_operation = node->next->next;
+          opnd2_of_simple_operation = opnd2;
           break;
         case onk_star:
           compound_operation_string = " *= ";
-          opnd2_of_simple_operation = node->next->next;
+          opnd2_of_simple_operation = opnd2;
           break;
         case onk_divide:
           compound_operation_string = " /= ";
-          opnd2_of_simple_operation = node->next->next;
+          opnd2_of_simple_operation = opnd2;
           break;
         case onk_remainder:
           compound_operation_string = " %= ";
-          opnd2_of_simple_operation = node->next->next;
+          opnd2_of_simple_operation = opnd2;
           break;
         case onk_excl_or:
           compound_operation_string = " ^= ";
-          opnd2_of_simple_operation = node->next->next;
+          opnd2_of_simple_operation = opnd2;
           break;
         case onk_ampersand:
           compound_operation_string = " &= ";
-          opnd2_of_simple_operation = node->next->next;
+          opnd2_of_simple_operation = opnd2;
           break;
         case onk_or:
           compound_operation_string = " |= ";
-          opnd2_of_simple_operation = node->next->next;
+          opnd2_of_simple_operation = opnd2;
           break;
         case onk_shift_left:
           compound_operation_string = " <<= ";
-          opnd2_of_simple_operation = node->next->next;
+          opnd2_of_simple_operation = opnd2;
           break;
         case onk_shift_right:
           compound_operation_string = " >>= ";
-          opnd2_of_simple_operation = node->next->next;
+          opnd2_of_simple_operation = opnd2;
           break;
         default:
           /* Not a simple operator decomposed from a compound operation. */
@@ -9232,7 +9236,7 @@ If the property is static and was invoked with an object expression, set
        that we know it's a compound assignment. */
     if (*compound_operation_string == '+') {
       compound_operation_string = " += ";
-    } else {
+    } else if (*compound_operation_string == '-') {
       compound_operation_string = " -= ";
     }  /* if */
   }  /* if */
