@@ -9441,11 +9441,13 @@ expanded.  Advance to the token after the end of the pack expansion.
 
   /* Advance to the last token of the expansion. */
   while (curr_token_sequence_number != last_token &&
-         curr_token_sequence_number != NO_TOKEN_SEQUENCE_NUMBER) {
+         curr_token_sequence_number != NO_TOKEN_SEQUENCE_NUMBER &&
+         curr_token != tok_end_of_source) {
     (void)get_token();
   }  /* while */
   /* Now go to the token after the expansion. */
-  if (curr_token_sequence_number != last_token) {
+  if (curr_token_sequence_number != last_token &&
+      curr_token != tok_end_of_source) {
     (void)get_token();
   }  /* if */
 }  /* skip_pack_expansion_tokens */
@@ -9811,8 +9813,8 @@ suppression is on the stack.
       } else {
         /* There are no arguments to be expanded.  Advance to the token
            after the end of the expansion. */
-        skip_pack_expansion_tokens(pedp);
         decrement_variadic_rescans_for_reusable_cache();
+        skip_pack_expansion_tokens(pedp);
       }  /* if */
     }  /* if */
     any_args = pesep != NULL;

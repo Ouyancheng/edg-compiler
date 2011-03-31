@@ -108,6 +108,10 @@ typedef struct a_tmpl_decl_state {
 		export_position;
 			/* If export_present is TRUE, the position of the
 			   export keyword. */
+  a_token_sequence_number
+		starting_token_sequence_number;
+			/* The token sequence number of the first token of
+			   the template declaration. */
   an_access_specifier
 		access;
 			/* When the declaration appears in a class scope,

@@ -1,5 +1,22 @@
 Version 4.4
 
+3/31/11  [EDGcpfe/11569]
+Internal error on variadic member function template
+
+An internal error (in find_function_template_member) could occur on the
+instantiation of a variadic member function template.  Now fixed.
+
+  template <class ...T> struct A {
+    template <class _T = int>  A(T... args) {}
+  };
+  template <class ...T> inline void f(T... args) {
+   A<T...> a(args...);
+  }
+  int main() {
+    f();
+  }
+
+
 3/31/11  [EDGcpfe/11526]
 is_local_to_function flag for parameter variables
 
