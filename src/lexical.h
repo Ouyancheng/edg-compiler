@@ -1767,7 +1767,15 @@ typedef struct a_reusable_cache_entry {
   a_token_cache
 		copy_of_token_cache;
 			/* A copy of the token cache from which the token
-			   list was obtained. */
+			   list was obtained.  This is used when
+			   discard_cache_when_done is set below.  The
+			   token_cache pointer is used to recognize that
+			   the cache associated with this entry is being
+			   discarded, but a copy of that entry must be made
+			   to be able to discard it later because token_cache
+			   could point to an an entry that no longer exists
+			   at the point at which the cache is actually
+			   discarded. */
   uint32_t
 		variadic_rescans_in_progress;
 			/* If this cache is being used for a variadic
@@ -1782,7 +1790,9 @@ typedef struct a_reusable_cache_entry {
   a_byte_boolean
 		discard_cache_when_done;
 			/* TRUE if token_cache should be freed when the
-			   rescan is complete. */
+			   rescan is complete.  This is set if an attempt
+			   is made to discard the cache while it is still
+			   being scanned. */
 } a_reusable_cache_entry;
 
 		
