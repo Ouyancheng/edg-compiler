@@ -1,5 +1,13 @@
 Version 4.4
 
+3/31/11  [EDGcpfe/11526]
+is_local_to_function flag for parameter variables
+
+Version 4.3 included a change that caused is_local_to_function to be FALSE for
+certain parameter variables (in particular, for the implicit "this" parameter).
+This is now fixed.
+
+
 3/30/11  [EDGcpfe/10821]
 Token separators in preprocessed output
 

@@ -450,6 +450,8 @@ return a pointer to it.
   vp->declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   vp->is_parameter = TRUE;
+  /* Parameter variables are always "local". */
+  vp->source_corresp.is_local_to_function = TRUE;
   return(vp);
 }  /* make_param_variable */
 
@@ -629,16 +631,6 @@ associated with a variadic parameter, but not the initial one.
     if (ptp->is_pack_element) sym->is_pack_element = TRUE;
     sym->variant.variable.ptr = vp;
     set_source_corresp(&(vp->source_corresp), sym);
-    /* Set the is_local_to_function flag even though it is also done in
-       set_source_corresp -- this assures that it is done for unnamed
-       parameters and non-initial variadic pack elements, too. */
-    vp->source_corresp.is_local_to_function = TRUE;
-#if RECORD_SCOPE_DEPTH_IN_IL
-    /* The scope depth will not be set for non-initial variadic pack elements
-       (because the associated symbol is not in the symbol table and therefore
-       has no associated depth). */
-    vp->source_corresp.scope_depth = decl_scope_level;
-#endif /* RECORD_SCOPE_DEPTH_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Since real instantiations of a same template share the same param_id
        list, new source sequence entries should be created for the
@@ -662,6 +654,21 @@ associated with a variadic parameter, but not the initial one.
       db_symbol(sym, "Changed from parameter symbol: ", 4);
     }  /* if */
 #endif /* DEBUG */
+  }  /* if */
+  if (vp->is_pack_element) {
+    /* The symbol for a non-initial variadic pack element is not in the symbol
+       table and therefore has no associated scope depth.  As a result, the
+       call to set_source_corresp may have produced invalid values for
+       is_local_to_function and scope_depth.  Produce the correct values
+       now. */
+    vp->source_corresp.is_local_to_function = TRUE;
+#if RECORD_SCOPE_DEPTH_IN_IL
+    vp->source_corresp.scope_depth = decl_scope_level;
+  } else if (sym == NULL) {
+    /* scope_depth is normally recorded by a call to set_source_corresp, but
+       that call didn't occur for unnamed parameters.  Record the depth now. */
+    vp->source_corresp.scope_depth = decl_scope_level;
+#endif /* RECORD_SCOPE_DEPTH_IN_IL */
   }  /* if */
   vp->assoc_param_type = ptp;
   ptp->name = vp->source_corresp.name;
