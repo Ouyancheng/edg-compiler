@@ -1,5 +1,24 @@
 Version 4.4
 
+3/31/11  [EDGcpfe/11591]
+Reference to wrong variant of expression node when PARENS_IN_IL is TRUE
+
+In configurations with PARENS_IN_IL TRUE, in some cases code in
+process_void_operand referred to the wrong variant of an expression
+node after stripping off an eok_parens node.  As a consequence,
+aborts could happen, e.g., in examine_expr_for_side_effect.
+In source code, this would require parentheses around a void
+operand, e.g., the first operand of a comma operator, or a top-level
+expression.  This example provoked such an invalid reference:
+
+  struct Z {
+    Z();
+  };
+  void f() {
+    ((Z()), 3);
+  }
+
+
 3/31/11  [EDGcpfe/11569]
 Internal error on variadic member function template
 
