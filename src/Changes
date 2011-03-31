@@ -1,5 +1,18 @@
 Version 4.4
 
+3/31/11  [EDGcpfe/11596]
+Failure to diagnose ambiguity on certain variadic templates
+
+The following case should have been diagnosed as ambiguous, but was not.
+Now fixed.
+
+  template <class ...T> void f(T...);
+  template <class ...T, class ...U> void f(U...);
+  void g() {
+    f(37);
+  }
+
+
 3/31/11  [EDGcpfe/11591]
 Reference to wrong variant of expression node when PARENS_IN_IL is TRUE
 
