@@ -2976,14 +2976,14 @@ else.  This routine should only be called when generate_pp_output is TRUE.
 
 /*
 Execute "statement" if a blank should be put out before the first character
-of a new token to separate it from the previous token.  This is used
-in producing preprocessing output and raw listing output, in cases
-where token confusion might result without the blank.  token_start is TRUE
-if this is the start of a new token; if so, ch is the first character
-of the new token, and prev_ch is the previous character.  prev_ch is
-updated on return (always).  token_start is reset to FALSE if it was TRUE.
-In some modes (pcc mode, #include directives for stdarg.h) no blank is ever
-put out.
+of a new token to separate it from the previous token.  This is used in
+producing preprocessing output and raw listing output, in cases where token
+confusion might result without the blank.  token_start is TRUE if this is
+the start of a new token; if so, ch is the first character of the new
+token, prev_ch is the previous character, and prev_prev_ch is the character
+before that.  prev_ch and prev_prev_ch are updated on return (always).
+token_start is reset to FALSE if it was TRUE.  In some modes (pcc mode,
+#include directives for stdarg.h) no blank is ever put out.
 
 NOTE:  This check needs to be pretty fast.  It is only run when
 preprocessing or raw listing output is being created, and then
@@ -2998,7 +2998,8 @@ Start by getting the lexical category of the two characters.
 If either is a "singleton", i.e., a character that is always its own
 token and not part of another, then no space is needed.
 */
-#define token_separator_blank_if_needed(ch, prev_ch, token_start, statement) \
+#define token_separator_blank_if_needed(ch, prev_ch, prev_prev_ch,    \
+                                        token_start, statement)       \
 { a_byte cat_ch, cat_prev_ch;                                         \
   if (token_start) {                                                  \
     token_start = FALSE;                                              \
@@ -3014,13 +3015,14 @@ token and not part of another, then no space is needed.
            However, check for some bizarre special cases having to do \
            with pp-numbers (3.1.8; "e" or "E" followed by "+" or "-"  \
            can appear in a pp-number, and the same for "+" or "-"     \
-           followed by a number) and wide literals ("L" followed by a \
-           single or double quote). */                                \
+           preceded by "e" or "E" and followed by a digit) and wide   \
+           literals ("L" followed by a  single or double quote). */   \
                  ((prev_ch != 'e' && prev_ch != 'E') ||               \
                   (ch != '+' && ch != '-')) &&                        \
-                  !((prev_ch == '+' || prev_ch == '-') &&             \
-                    cat_ch == PLC_ID_OR_NUMBER) &&                    \
-                  (prev_ch != 'L' || (ch != '\'' && ch != '"'))) {    \
+                 !((prev_ch == '+' || prev_ch == '-') &&              \
+                   (prev_prev_ch == 'e' || prev_prev_ch == 'E') &&    \
+                   isdigit((unsigned char)ch)) &&                     \
+                 (prev_ch != 'L' || (ch != '\'' && ch != '"'))) {     \
         /* No space is needed. */                                     \
       } else {                                                        \
         /* An extra space to separate tokens is needed. */            \
@@ -3028,6 +3030,7 @@ token and not part of another, then no space is needed.
       }  /* if */                                                     \
     }  /* if */                                                       \
   }  /* if */                                                         \
+  prev_prev_ch = prev_ch;                                             \
   prev_ch = ch;                                                       \
 }  /* token_separator_blank_if_needed */
 
@@ -3044,6 +3047,7 @@ is TRUE.
   register a_source_line_modif_ptr slmp;
            a_source_line_modif_ptr ins_slmp;
            char                    prev_ch;
+           char                    prev_prev_ch;
            a_boolean               token_start;
 #if UNICODE_SOURCE_SUPPORTED
   /* Determine whether the Unicode encoding of the current file matches the
@@ -3147,6 +3151,7 @@ is TRUE.
          this routine, change the other too. */
       set_up_for_walk_of_source_line(loc_in_line, slmp);
       prev_ch = '\n';
+      prev_prev_ch = '\0';
       token_start = FALSE;
       for (;;) {
         /* Fetch the next character, stepping into and out of macro
@@ -3319,7 +3324,8 @@ is TRUE.
           {
             /* Output a blank to separate the character from the previous
                character if necessary to prevent tokenizing confusion. */
-            token_separator_blank_if_needed(ch, prev_ch, token_start,
+            token_separator_blank_if_needed(ch, prev_ch, prev_prev_ch,
+                                            token_start,
                                             putc(' ', f_pp_output));
           }  /* if */
           /* Output the character.  It will be set to '\0' if the needed
@@ -3509,6 +3515,7 @@ the calls to this routine.
   register a_source_line_modif_ptr slmp;
            a_source_line_modif_ptr ins_slmp;
            char                    prev_ch;
+           char                    prev_prev_ch;
            a_boolean               token_start;
 
   /* The output line is generated in raw_listing_buffer first, then
@@ -3562,6 +3569,7 @@ the calls to this routine.
       if (orig_line_modif_list != NULL) must_display_raw_listing_buffer = TRUE;
     }  /* if */
     prev_ch = '\n';
+    prev_prev_ch = '\0';
     token_start = FALSE;
     for (;;) {
       /* Fetch the next character, stepping into and out of macro
@@ -3646,7 +3654,8 @@ the calls to this routine.
         {
           /* Output a blank to separate the character from the previous
              character if necessary to prevent tokenizing confusion. */
-          token_separator_blank_if_needed(ch, prev_ch, token_start,
+          token_separator_blank_if_needed(ch, prev_ch, prev_prev_ch,
+                                          token_start,
                                           add_char_to_raw_listing_buffer(' '));
         }  /* if */
         /* Output the character. */
