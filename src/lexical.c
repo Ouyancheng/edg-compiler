@@ -3013,10 +3013,13 @@ token and not part of another, then no space is needed.
            and the other is not).  We probably do not need the space. \
            However, check for some bizarre special cases having to do \
            with pp-numbers (3.1.8; "e" or "E" followed by "+" or "-"  \
-           can appear in a pp-number) and wide literals ("L" followed \
-           by a single or double quote). */                           \
+           can appear in a pp-number, and the same for "+" or "-"     \
+           followed by a number) and wide literals ("L" followed by a \
+           single or double quote). */                                \
                  ((prev_ch != 'e' && prev_ch != 'E') ||               \
                   (ch != '+' && ch != '-')) &&                        \
+                  !((prev_ch == '+' || prev_ch == '-') &&             \
+                    cat_ch == PLC_ID_OR_NUMBER) &&                    \
                   (prev_ch != 'L' || (ch != '\'' && ch != '"'))) {    \
         /* No space is needed. */                                     \
       } else {                                                        \

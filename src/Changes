@@ -1,5 +1,26 @@
 Version 4.4
 
+3/30/11  [EDGcpfe/10821]
+Token separators in preprocessed output
+
+When creating preprocessed output (via the -E command-line option, for
+instance), the front end inserts spaces as needed to prevent separate
+tokens in macro expansions from being incorrectly merged into a single
+token.  This processing was missing a case, however, as illustrated in
+this example:
+
+  #define X 52
+  #define TT2(x) 1.0e ## x
+  #define TT(x) TT2(x)
+  double y = TT(-X);
+
+The "-" and "X" are separate tokens but were incorrectly concatenated in
+the preprocessed output (but not during actual compilation), giving an
+apparently well-formed floating point constant 1.0e-52.  The front end
+has now been fixed to maintain the original tokenization by putting a
+space between the "-" and the "5" in the preprocessed output.
+
+
 3/30/11  [EDGcpfe/11530]
 Multi-line whitespace keywords in preprocessing-only mode
 
