@@ -86,7 +86,7 @@ problem has been addressed by disallowing line breaks in whitespace
 keywords when doing preprocessing only.  In certain pathological cases
 (e.g., when a macro is defined with a name that is one or the other of the
 tokens of a whitespace keyword and the tokens are split across lines), the
-result of preprocessing-only made can be different from that of direct
+result of preprocessing-only mode can be different from that of direct
 compilation, but this should be exceptionally rare.
 
 
