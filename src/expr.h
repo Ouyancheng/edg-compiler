@@ -261,9 +261,10 @@ void prescan_aggregate_initializer_expression(
 
 extern a_boolean token_ends_initializer(a_token_kind  token);
 
-extern a_boolean is_overloadable_type_operand(an_operand_ptr operand);
-
-extern a_boolean is_overloadable_type_first_operand(an_operand_ptr operand);
+extern
+a_boolean is_overloadable_type_operand_full(an_operand_ptr operand,
+                                            a_boolean      first_operand,
+                                            a_boolean      all_dep_cases);
 
 extern void scan_class_parenthesized_initializer(
                                    a_type_ptr         class_type,

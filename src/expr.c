@@ -608,20 +608,25 @@ EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 
-static a_boolean is_overloadable_type_operand_full(an_operand *operand,
-                                                   a_boolean  first_operand)
+a_boolean is_overloadable_type_operand_full(an_operand *operand,
+                                            a_boolean  first_operand,
+                                            a_boolean  all_dep_cases)
 /*
 Return TRUE if the given operand has a type for which operator overloading
 should be considered.  If first_operand is TRUE, this is the first operand
 of an operation (C++/CLI has some special rules for such operands).
-Also return TRUE for error operands and template-dependent operands in
-a prototype instantiation, because they might be overloadable (and we
-want to go to check_for_operator_overloading to handle that).
+Also return TRUE for error operands (because they might be overloadable).
+When all_dep_cases is TRUE, also return TRUE for operands that are
+template-dependent at other than the top level; that's used to send
+those to check_for_operator_overloading so partially-dependent cases
+don't have to be handled in the general code.
 */
 {
-  a_boolean is_overloadable = first_operand ?
+  a_boolean is_overloadable =
+                   (first_operand ?
                             is_overloadable_first_operand_type(operand->type) :
-                            is_overloadable_type(operand->type);
+                            is_overloadable_type(operand->type)) ||
+                   is_error_operand(operand);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled && !is_overloadable &&
@@ -632,50 +637,47 @@ want to go to check_for_operator_overloading to handle that).
     is_overloadable = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (!is_overloadable) {
-    /* Note that we check for all dependent types and not just
-       ones that could be class or enum types.  That allows us to generate
-       a generic operation in check_for_operator_overloading and
-       avoid testing for template cases in each place that calls it. */
-    if (is_error_operand(operand) ||
-        (is_template_dependent_context() &&
-         is_template_dependent_type(operand->type))) {
-      is_overloadable = TRUE;
-    }  /* if */
+  if (!is_overloadable && all_dep_cases &&
+      is_template_dependent_context() &&
+      is_template_dependent_type(operand->type)) {
+    is_overloadable = TRUE;
   }  /* if */
   return is_overloadable;
 }  /* is_overloadable_type_operand_full */
 
 
-a_boolean is_overloadable_type_operand(an_operand *operand)
+static a_boolean is_overloadable_type_operand(an_operand *operand)
 /*
 Return TRUE if the given operand has a type for which operator overloading
-should be considered.  Also return TRUE for error operands and
-template-dependent operands in a prototype instantiation, because they
-might be overloadable (and we want to go to check_for_operator_overloading
-to handle that).
+should be considered.  More specifically, return TRUE if we'd like
+to go to check_for_operator_overloading to handle an operation on this
+operand, which for convenience includes cases where the operand is
+template-dependent at other than the first level.
 */
 {
   a_boolean is_overloadable =
                     is_overloadable_type_operand_full(operand,
-                                                      /*first_operand=*/FALSE);
+                                                      /*first_operand=*/FALSE,
+                                                      /*all_dep_cases=*/TRUE);
   return is_overloadable;
 }  /* is_overloadable_type_operand */
 
 
-a_boolean is_overloadable_type_first_operand(an_operand *operand)
+static a_boolean is_overloadable_type_first_operand(an_operand *operand)
 /*
 Return TRUE if the given operand has a type for which operator
 overloading should be considered, specifically on the first operand of
 an operation (there are some special rules for that in C++/CLI mode).
-Also return TRUE for error operands and template-dependent operands in
-a prototype instantiation, because they might be overloadable (and we want
-to go to check_for_operator_overloading to handle that).
+More specifically, return TRUE if we'd like to go to
+check_for_operator_overloading to handle an operation on this operand,
+which for convenience includes cases where the operand is
+template-dependent at other than the first level.
 */
 {
   a_boolean is_overloadable =
                      is_overloadable_type_operand_full(operand,
-                                                       /*first_operand=*/TRUE);
+                                                       /*first_operand=*/TRUE,
+                                                       /*all_dep_cases=*/TRUE);
   return is_overloadable;
 }  /* is_overloadable_type_first_operand */
 

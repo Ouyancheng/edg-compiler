@@ -9972,8 +9972,10 @@ a secondary operator (e.g., the "]" of a subscript operation).
     known_not_overloaded = TRUE;
   } else {
     /* The current expression is not a constant expression. */
-    if (!is_overloadable_type_first_operand(operand_1) &&
-        !is_overloadable_type_operand(operand_2)) {
+    if (!is_overloadable_type_operand_full(operand_1, /*first_operand=*/TRUE,
+                                           /*all_dep_cases=*/FALSE) &&
+        !is_overloadable_type_operand_full(operand_2, /*first_operand=*/FALSE,
+                                           /*all_dep_cases=*/FALSE)) {
       known_not_overloaded = TRUE;
     }  /* if */
     if (known_not_overloaded) {
@@ -10126,7 +10128,8 @@ it happens in prototype instantiations.  op is the operator to be used.
     known_not_overloaded = TRUE;
   } else {
     /* The current expression is not a constant expression. */
-    if (!is_overloadable_type_first_operand(operand)) {
+    if (!is_overloadable_type_operand_full(operand, /*first_operand=*/TRUE,
+                                           /*all_dep_cases=*/FALSE)) {
       known_not_overloaded = TRUE;
     }  /* if */
     if (known_not_overloaded) {
