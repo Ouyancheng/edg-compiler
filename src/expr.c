@@ -719,8 +719,7 @@ to win out.
 
   check_assertion(is_old_form_property_ref_operand(operand));
   /* Get the "get" function symbol. */
-  get_sym = get_property_accessor_symbol(operand->variant.property_ref.descr,
-                                         /*put=*/FALSE,
+  get_sym = get_property_accessor_symbol(operand->symbol, /*put=*/FALSE,
                                          /*must_be_present=*/FALSE,
                                          &operand->position);
   if (get_sym != NULL) {
@@ -772,23 +771,23 @@ to win out.
 }  /* property_ref_has_accessor_that_yields_subscriptable_object */
 
 
-static void make_property_ref_operand(
-                               a_property_or_event_descr_ptr pedp,
-                               an_operand                    *operand,
-                               a_boolean                     is_arrow_operator,
-                               an_operand                    *result)
+static void make_property_ref_operand(a_symbol_ptr  property_or_event,
+                                      an_operand    *operand,
+                                      a_boolean     is_arrow_operator,
+                                      an_operand    *result)
 /*
-Make an operand for a Microsoft property member reference.  pedp describes
-the property (associated with a field or static data member variable).
-operand is the class object, or (if is_arrow_operator is TRUE) a handle to
-the class object.  The property reference operand created is returned in
-*result.  For a static property, operand is NULL if no object was specified.
+Make an operand for a Microsoft property or event reference.  property_or_event
+is an sk_property_set, sk_field, or sk_static_data_member symbol associated
+with the property or event name.  operand is the class object, or (if
+is_arrow_operator is TRUE) a handle to the class object.  The property
+reference operand created is returned in *result.  For a static property,
+operand is NULL if no object was specified.
 */
 {
   check_assertion(operand != result);
   clear_operand((an_operand_kind)ok_property_ref, result);
   result->type = unknown_type();
-  result->variant.property_ref.descr = pedp;
+  result->symbol = property_or_event;
   set_lvalue_operand_state(result);
   if (operand != NULL) {
     conv_selector_to_object_pointer(operand, &is_arrow_operator);
@@ -817,9 +816,8 @@ rewrite it as a property reference so the subscripts can be applied to that.
     }  /* if */
     type = skip_typerefs(type);
     if (is_immediate_managed_class_type(type)) {
-      a_property_or_event_descr_ptr pedp =
-                         class_type_supp(type)->default_indexed_property_descr;
-      if (pedp != NULL) {
+      a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(type);
+      if (cssp->default_indexed_properties != NULL) {
         /* The class has a default indexed property, so rewrite the
            reference. */
         an_operand new_operand;
@@ -827,7 +825,8 @@ rewrite it as a property reference so the subscripts can be applied to that.
                                    handle_case ?
                                     TOPT_NO_OPTIONS :
                                     TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-        make_property_ref_operand(pedp, operand, handle_case, &new_operand);
+        make_property_ref_operand(cssp->default_indexed_properties, operand,
+                                  handle_case, &new_operand);
         restore_operand_details(&new_operand, operand);
         copy_operand(&new_operand, operand);
       }  /* if */
@@ -4665,12 +4664,10 @@ is a C++/CLI handle.
     make_error_operand(result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode && field_is_nontrivial_property_or_event(field) &&
-             (property_or_event_kind_is(field, pek_declspec_property) ||
-              property_or_event_kind_is(field, pek_cli_property))) {
+             property_or_event_kind_is(field, pek_declspec_property)) {
     /* A property field in Microsoft C++ mode.  Render as an ok_property_ref
        operand, which will be rewritten later as a function call. */
-    make_property_ref_operand(field->property_or_event_descr,
-                              operand_1, is_arrow_operator, result);
+    make_property_ref_operand(field_sym, operand_1, is_arrow_operator, result);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Determine the result type. */
@@ -6020,6 +6017,8 @@ case).
       rep = NULL;
       force_indefinite_function = TRUE;
       cppcli_overloaded_case = TRUE;
+    } else if (symbol_is(member_sym, sk_property_set)) {
+      rep = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       rep = ref_entry(member_sym, &member_position);
@@ -6081,15 +6080,14 @@ case).
 #if MICROSOFT_EXTENSIONS_ALLOWED
             if (var->property_or_event_descr != NULL) {
               /* A C++/CLI static property variable. */
-              make_property_ref_operand(var->property_or_event_descr,
-                                        operand_1,
-                                        is_arrow_operator,
-                                        result);
+              check_assertion(cppcli_enabled);
+              make_property_ref_operand(member_sym, operand_1,
+                                        is_arrow_operator, result);
             } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* Do not insert code here. */
             {
-              /* A normal static data member, not a property. */
+              /* A normal static data member (not a property). */
               make_lvalue_variable_operand(
                               var,
                               &member_position,
@@ -6105,6 +6103,14 @@ case).
             }  /* if */
           }
           break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case sk_property_set:
+          /* One or more C++/CLI properties. */
+          check_assertion(cppcli_enabled);
+          make_property_ref_operand(member_sym, operand_1, is_arrow_operator,
+                                    result);
+          break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case sk_member_function:
           /* Member function (static or non-static). */
           if (force_indefinite_function ||
@@ -22262,6 +22268,9 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       force_indefinite_function = TRUE;
       rep = NULL;
       cppcli_overloaded_case = TRUE;
+    } else if (symbol_is(sym_ptr, sk_property_set)) {
+      /* Properties are potentially overloaded. */
+      rep = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (rcblock != NULL) {
       /* No cross-reference entries in rescans. */
@@ -22316,10 +22325,8 @@ if rescan_is_template_id is TRUE, and return the result in *operand
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (var_ptr->property_or_event_descr != NULL) {
             /* A C++/CLI static property variable. */
-            make_property_ref_operand(var_ptr->property_or_event_descr,
-                                      (an_operand *)NULL,
-                                      /*handle_case=*/FALSE,
-                                      result);
+            make_property_ref_operand(sym_ptr, (an_operand *)NULL,
+                                      /*handle_case=*/FALSE, result);
             break;
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -22773,6 +22780,26 @@ overloaded_function:
             result->is_id_expression = TRUE;
           }  /* if */
           break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case sk_property_set:
+          /* The identifier refers to one or more C++/CLI properties. */
+          check_assertion(cppcli_enabled);
+          {  /* Create a "this" operand if meaningful. */
+            an_operand      *selector = NULL;
+            a_variable_ptr  this_var = NULL;
+            if (variable_this_exists(&this_var) &&
+                make_this_pointer_operand(sym_ptr, projection_sym_ptr,
+                                          &locator.source_position,
+                                          (a_boolean)locator.
+                                                 access_control_error_reported,
+                                          &this_pointer_operand)) {
+              selector = &this_pointer_operand;
+            }  /* if */
+            make_property_ref_operand(sym_ptr, selector, /*handle_case=*/TRUE,
+                                      result);
+          }
+          break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CHECKING
         case sk_keyword:
         default:

@@ -15886,9 +15886,9 @@ selection operator, in which case it points to the type of the left operand.
             check_assertion(is_template_param_type(qualifier_type) ||
                             is_vacuous_dtor_or_finalizer);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (qualifier_sym->kind == (a_symbol_kind)sk_field ||
-                   qualifier_sym->kind ==
-                                        (a_symbol_kind)sk_static_data_member) {
+        } else if (symbol_is(qualifier_sym, sk_field) ||
+                   symbol_is(qualifier_sym, sk_static_data_member) ||
+                   symbol_is(qualifier_sym, sk_property_set)) {
           /* A C++/CLI property or event field. */
           check_assertion(is_cppcli_property_or_event(qualifier_sym));
           qualifier_is_property_or_event = TRUE;
@@ -16654,16 +16654,8 @@ wrapup:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (qualifier_is_property_or_event) {
       locator_for_curr_id.is_property_or_event_accessor = TRUE;
-      locator_for_curr_id.property_or_event_is_static =
-               qualifier_property_or_event->kind ==
-                                          (a_symbol_kind)sk_static_data_member;
-      if (locator_for_curr_id.property_or_event_is_static) {
-        locator_for_curr_id.property_or_event_parent.variable =
-             qualifier_property_or_event->variant.static_data_member.variable;
-      } else {
-        locator_for_curr_id.property_or_event_parent.field =
-                                qualifier_property_or_event->variant.field.ptr;
-      }  /* if */
+      locator_for_curr_id.property_or_event_parent =
+                                                  qualifier_property_or_event;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Since we're returning a pseudo-token, set pos_curr_token. */

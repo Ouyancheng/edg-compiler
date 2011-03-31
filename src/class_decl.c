@@ -10057,10 +10057,7 @@ implicitly declared member functions.
     /* Do not check for redeclarations or overloading here since any errors
        would likely be spurious.  Instead, check_property_accessor or
        check_event_accessor will report duplicates. */
-    sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
-                             decl_scope_level, /*suppress_redecl_error=*/TRUE);
-    /* Property accessors cannot be called directly: Make them invisible. */
-    sym->is_invisible = TRUE;
+    sym = enter_cli_accessor(locator, decl_scope_level, pdp);
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
@@ -11206,6 +11203,90 @@ constant and entering the name in the symbol table.
   db_exit();
 }  /* decl_literal_field */
 
+
+static a_property_or_event_descr_ptr property_or_event_descr_for_sym(
+                                                            a_symbol_ptr  sym)
+/*
+The given symbol must be for a field or a static data member.  Return the
+associated property/event description entry or NULL if there is none.
+*/
+{
+  a_property_or_event_descr_ptr  pedp;
+
+  if (sym->kind == (a_symbol_kind)sk_field) {
+    pedp = sym->variant.field.ptr->property_or_event_descr;
+  } else {
+    check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
+    pedp = sym->variant.static_data_member.variable->property_or_event_descr;
+  }  /* if */
+  return pedp;
+}  /* property_or_event_descr_for_sym */
+
+
+static a_boolean distinguishable_property_indices(
+                                             a_property_index_type_ptr  pitp1,
+                                             a_property_index_type_ptr  pitp2)
+/*
+Return TRUE if and only if the given non-empty sequences of property index
+types are distinguishable when overloading C++/CLI properties.
+*/
+{
+  a_boolean  result = FALSE;
+
+  do {
+    if (pitp1 == NULL || pitp2 == NULL) {
+      /* One sequence (but not both) has no more elements. */
+      result = TRUE;
+      break;
+    } else if (!types_are_compatible(pitp1->type, pitp2->type)) {
+      /* Incompatible corresponding index types are distinguishable. */
+      result = TRUE;
+      break;
+    } else {
+      pitp1 = pitp1->next;
+      pitp2 = pitp2->next;
+    }  /* if */
+  } while (pitp1 != NULL || pitp2 != NULL);
+  return result;
+}  /* distinguishable_property_indices */
+
+
+static void check_for_overloaded_property_conflict(a_symbol_ptr  property_set,
+                                                   a_symbol_ptr  property_sym)
+/*
+property_sym represents a C++/CLI property that has just been declared, and it
+is a member of the given property set (possibly the only such member).  If the
+set contains any previously declared properties, diagnose any conflict created
+by the new property.
+*/
+{
+  a_symbol_ptr  sym = property_set->variant.property_info->properties;
+  a_property_or_event_descr_ptr
+                new_pedp, prev_pedp;
+
+  check_assertion(cppcli_enabled);
+  new_pedp = property_or_event_descr_for_sym(property_sym);
+  for (; sym != property_sym; sym = sym->next) {
+    a_boolean  conflict = FALSE;
+    check_assertion(sym != NULL);
+    prev_pedp = property_or_event_descr_for_sym(sym);
+    if ((prev_pedp->indices == NULL) != (new_pedp->indices == NULL)) {
+      /* One property is indexed, and the other isn't: No conflict. */
+    } else if (new_pedp->indices == NULL) {
+      /* Neither property is indexed: They conflict. */
+      conflict = TRUE; 
+    } else {
+      conflict = !distinguishable_property_indices(prev_pedp->indices,
+                                                   new_pedp->indices);
+    }  /* if */
+    if (conflict) {
+      pos_sy_error(ec_conflicting_properties, &property_sym->decl_position,
+                   sym);
+      break;
+    }  /* if */
+  }  /* for */
+}  /* check_for_overloaded_property_conflict */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean is_or_is_nested_within_unnamed_class(a_type_ptr  tp)
@@ -11262,6 +11343,9 @@ specific information about the member declaration, respectively.
 */
 {
   a_symbol_ptr          sym, prototype_tag_sym;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_symbol_ptr          property_set = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_variable_ptr        var;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_name_reference_ptr  name_ref = NULL;
@@ -11333,8 +11417,23 @@ specific information about the member declaration, respectively.
   if (!decl_info->is_member_template || prototype_instantiations_in_il) {
     add_to_variables_list(var, decl_scope_level);
   }  /* if */
-  sym = enter_local_symbol((a_symbol_kind)sk_static_data_member, locator,
-                           decl_scope_level, /*suppress_redecl_error=*/FALSE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (var_is_property_or_event(var) &&
+      property_or_event_kind_is(var, pek_cli_property)) {
+    /* C++/CLI properties are associated with an sk_property_set symbol.
+       Multiple properties (static and/or nonstatic) of the same name can be
+       recorded under the same symbol (but each property also has its own
+       sk_field or sk_static_data_member symbol). */
+    sym = enter_property_set_member(locator, decl_scope_level,
+                                    var->property_or_event_descr,
+                                    &property_set);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    sym = enter_symbol((a_symbol_kind)sk_static_data_member, locator,
+                       decl_scope_level, /*suppress_redecl_error=*/FALSE);
+  }  /* if */
   decl_state->sym = sym;
   /* Set the source correspondence fields of the variable. */
   set_source_corresp(&var->source_corresp, sym);
@@ -11516,6 +11615,9 @@ specific information about the member declaration, respectively.
     if (decl_state->ms_attributes != NULL) {
       apply_microsoft_attributes(&decl_state->ms_attributes, (char*)var,
                                  iek_variable, MSAT_DATA_MEMBER);
+    }  /* if */
+    if (property_set != NULL) {
+      check_for_overloaded_property_conflict(property_set, sym);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12199,10 +12301,12 @@ nonstandard anonymous unions is_nonstd is TRUE.
       case sk_undefined:
         /* Error. */
         break;
-#if CHECKING
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case sk_property_set:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
-        internal_error("check_anonymous_union_symbols: unexpected sym kind");
-#endif /* CHECKING */
+        unexpected_condition_str(
+                        "check_anonymous_union_symbols: unexpected sym kind");
     }  /* switch */
 #if DEBUG
     if (debug_level >= 4) {
@@ -13136,6 +13240,9 @@ be entered.
   a_type_ptr                     member_type, member_element_type;
   a_field_ptr                    field;
   a_symbol_ptr                   member_sym = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_symbol_ptr                   property_set = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_class_symbol_supplement_ptr  cssp;
   a_boolean                      unnamed_field = decl_info->is_unnamed_field;
 
@@ -13236,10 +13343,26 @@ be entered.
       /* Adjust the decl_scope given by make_unnamed_symbol. */
       member_sym->decl_scope = decl_scope_depth;
     } else {
-      member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
-                                      decl_scope_depth,
-                                      /*suppress_redecl_error=*/
+      /* A named field.  C++/CLI property fields are treated specially since
+         they can be "overloaded". */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (field_is_property_or_event(field) &&
+          property_or_event_kind_is(field, pek_cli_property)) {
+        member_sym = enter_property_set_member(locator, decl_scope_depth,
+                                               field->property_or_event_descr,
+                                               &property_set);
+        if (field->property_or_event_descr->is_default_indexed) {
+          cssp->default_indexed_properties = property_set;
+        }  /* if */
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        member_sym = enter_symbol((a_symbol_kind)sk_field, locator,
+                                  decl_scope_depth,
+                                  /*suppress_redecl_error=*/
                                              field->is_captured_pack_element);
+      }  /* if */
       set_source_corresp(&(field->source_corresp), member_sym);
     }  /* if */
     member_sym->variant.field.ptr = field;
@@ -13332,15 +13455,19 @@ be entered.
       cssp->any_template_dependent_fields = TRUE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && !decl_state->is_property_or_event_field) {
-      /* Disallow real data members in interface types (declspec property
-         fields are fine; C++/CLI properties and events will already have
-         triggered an error). */
-      if (class_type->variant.class_struct_union.is_interface) {
-        pos_error(ec_interface_cannot_have_data_member,
-                  &locator->source_position);
-      } else {
-        class_state->potentially_interface_like = FALSE;
+    if (microsoft_mode) {
+      if (!decl_state->is_property_or_event_field) {
+        /* Disallow real data members in interface types (declspec property
+           fields are fine; C++/CLI properties and events will already have
+           triggered an error). */
+        if (class_type->variant.class_struct_union.is_interface) {
+          pos_error(ec_interface_cannot_have_data_member,
+                    &locator->source_position);
+        } else {
+          class_state->potentially_interface_like = FALSE;
+        }  /* if */
+      } else if (property_set != NULL) {
+        check_for_overloaded_property_conflict(property_set, member_sym);
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -16821,6 +16948,7 @@ being parsed), *decl_info describes the current member declaration, and
 */
 {
   a_decl_parse_state    *dps = &decl_info->decl_state;
+  a_symbol_locator      loc;
   a_type_ptr            class_type = class_state->class_type;
   a_class_type_supplement_ptr
                         ctsp = class_type_supp(class_type);
@@ -16935,24 +17063,11 @@ being parsed), *decl_info describes the current member declaration, and
       pos_error(ec_static_default_indexed_property, &pos_curr_token);
     } else {
       pdp->is_default_indexed = TRUE;
-      if (ctsp->default_indexed_property_descr == NULL) {
-        ctsp->default_indexed_property_descr = pdp;
-      }  /* if */
     }  /* if */
   }  /* if */
   class_state->property_or_event_descr = pdp;
   dps->is_property_or_event_field = TRUE;
-  if (pdp->is_static) {
-    decl_static_data_member(&locator_for_curr_id, class_state, decl_info);
-    check_assertion(dps->sym != NULL &&
-                    dps->sym->kind == (a_symbol_kind)sk_static_data_member);
-    pdp->variant.variable = dps->sym->variant.static_data_member.variable;
-  } else {
-    pdp->variant.field = decl_nonstatic_data_member(&locator_for_curr_id,
-                                                    class_state, decl_info,
-                                                    depth_scope_stack);
-  }  /* if */
-  ctsp->has_direct_property_or_event = TRUE;
+  loc = locator_for_curr_id;
   (void)get_token();
   if (is_property) {
     /* Check for index types. */
@@ -16965,6 +17080,17 @@ being parsed), *decl_info describes the current member declaration, and
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   pdp->definition_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (pdp->is_static) {
+    decl_static_data_member(&loc, class_state, decl_info);
+    check_assertion(dps->sym != NULL &&
+                    dps->sym->kind == (a_symbol_kind)sk_static_data_member);
+    pdp->variant.variable = dps->sym->variant.static_data_member.variable;
+  } else {
+    pdp->variant.field = decl_nonstatic_data_member(&loc, class_state,
+                                                    decl_info,
+                                                    depth_scope_stack);
+  }  /* if */
+  ctsp->has_direct_property_or_event = TRUE;
   if (curr_token == tok_semicolon) {
     /* A trivial scalar property or event. */
     pdp->is_trivial = TRUE;
@@ -18623,6 +18749,11 @@ not inherited) property or event named X.
   if (sym != NULL) {
     a_property_or_event_descr_ptr  pdp = NULL;
     a_boolean                      true_conflict;
+    if (symbol_is(sym, sk_property_set)) {
+      /* A potentially overloaded property: The check can be performed against
+         any member of the set. */
+      sym = sym->variant.property_info->properties;
+    }  /* if */
     if (symbol_is(sym, sk_field)) {
       pdp = sym->variant.field.ptr->property_or_event_descr;
     } else if (symbol_is(sym, sk_static_data_member)) {
@@ -18748,9 +18879,11 @@ and a default-indexed property.
                                   IDL_DO_NOT_CREATE_PROJ_SYM);
   if (sym != NULL) {
     /* The class contains an operator[]: A conflict is possible. */
-    a_property_or_event_descr_ptr
-           pedp = class_type_supp(class_type)->default_indexed_property_descr;
-    if (pedp == NULL && same_entities(sym_parent_class(sym), class_type)) {
+    a_symbol_ptr  default_indexed_properties =
+                                    symbol_supplement_for_class(class_type)
+                                                 ->default_indexed_properties;
+    if (default_indexed_properties == NULL &&
+        same_entities(sym_parent_class(sym), class_type)) {
       /* Look for a conflict with a default-indexed property in a base class.
          (If operator[] were in a base class, this is not needed because a
          diagnostic would already have been issued for a conflict in a
@@ -18758,19 +18891,17 @@ and a default-indexed property.
       a_base_class_ptr  bcp = base_classes_of(class_type);
       for (; bcp != NULL; bcp = bcp->next) {
         if (!cli_class_type_kind_is(bcp->type, cctk_interface)) {
-          pedp = class_type_supp(bcp->type)->default_indexed_property_descr;
-          if (pedp != NULL) break;
+          default_indexed_properties = symbol_supplement_for_class(bcp->type)
+                                                 ->default_indexed_properties;
+          if (default_indexed_properties != NULL) break;
         }  /* if */
       }  /* for */
     }  /* if */
-    if (pedp != NULL) {
+    if (default_indexed_properties != NULL) {
       /* A conflict: Issue an error. */
-      a_source_position_ptr  decl_pos;
-      if (pedp->is_static) {
-        decl_pos = &pedp->variant.variable->source_corresp.decl_position;
-      } else {
-        decl_pos = &pedp->variant.field->source_corresp.decl_position;
-      }  /* if */
+      a_source_position_ptr  decl_pos = &default_indexed_properties
+                                                  ->variant.property_info
+                                                  ->properties->decl_position;
       sym = fundamental_symbol_of(sym);
       pos_sy_error(ec_subscript_mechanism_conflict, decl_pos, sym);
     }  /* for */

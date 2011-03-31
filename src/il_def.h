@@ -6402,11 +6402,6 @@ typedef struct a_class_type_supplement {
   char		*uuid_string;
 			/* Pointer to a character string representing the
 			   argument of a uuid decl-modifier. */
-  a_property_or_event_descr_ptr
-		default_indexed_property_descr;
-			/* If this class has one or more default-indexed
-			   properties, a pointer to the description of one of
-			   those properties.  Otherwise, NULL. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier

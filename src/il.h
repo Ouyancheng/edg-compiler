@@ -1347,9 +1347,7 @@ Macros to examine property and event members (and their accessor functions).
 #define field_is_nontrivial_property_or_event(fp)                            \
   (field_is_property_or_event(fp) &&                                         \
    !(fp)->property_or_event_descr->is_trivial)
-#if BACK_END_IS_CP_GEN_BE
 #define var_is_property_or_event(vp)  ((vp)->property_or_event_descr != NULL)
-#endif /* BACK_END_IS_CP_GEN_BE */
 #define rout_is_cli_accessor(rp) \
   ((rp)->special_kind >= (int)sfk_first_accessor && \
    (rp)->special_kind <= (int)sfk_last_accessor)

@@ -2664,8 +2664,6 @@ after_entry_from_class:
                   iek_template_arg);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_string_ptr(ptr->uuid_string, iek_other_text, 0);
-        remap_ptr(ptr->default_indexed_property_descr,
-                  a_property_or_event_descr_ptr, iek_property_or_event_descr);
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* Recall that entry_ptr is a class pointer in this case. */
         if (is_cli_array_type((a_type_ptr)entry_ptr) &&

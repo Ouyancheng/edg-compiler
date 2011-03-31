@@ -1172,6 +1172,16 @@ declaration position to eliminate redundant file names in a diagnostic.
       entity_kind = ec_named_address_space;
       goto symbol_name;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case sk_property_set:
+      if (fund_sym->variant.property_info->properties != NULL &&
+          fund_sym->variant.property_info->properties->next != NULL) {
+        entity_kind = ec_property_set;
+      } else {
+        entity_kind = ec_property;
+      }  /* if */
+      goto symbol_name;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case sk_undefined:
       entity_kind = ec_no_error;
       goto symbol_name;

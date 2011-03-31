@@ -382,6 +382,17 @@ name of an instance of a class template in Microsoft mode.
                                         simulated_hiding, sp, hidden_by);
         }  /* for */
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case sk_property_set:
+        /* Enter members of a property set separately. */
+        sym = hidden_sym->variant.property_info->properties;
+        for (; sym != NULL; sym = sym->next) {
+          record_defeatable_name_hiding(sym, tag_hidden_by_nontag,
+                                        hidden_class_or_namespace_member,
+                                        simulated_hiding, sp, hidden_by);
+        }  /* for */
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case sk_projection:
         if (!hidden_sym->synthesized_namespace_projection) {
           /* Ignore most projection symbols. */

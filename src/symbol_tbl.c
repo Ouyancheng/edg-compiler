@@ -134,6 +134,7 @@ static unsigned long
 #if MICROSOFT_EXTENSIONS_ALLOWED
 		num_saved_macro_states_allocated,
 		num_hide_by_sig_list_entries_allocated,
+		num_property_set_symbol_supplements_allocated,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 		num_exception_spec_error_descrs_allocated;
 #endif /* DEBUG */
@@ -1213,6 +1214,22 @@ do_variable:
       fprintf(f_debug, " (id = %d)", (int)sym->variant.named_register.id);
       break;
 #endif /* NAMED_REGISTERS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case sk_property_set:
+      if (sym->variant.property_info->properties == NULL) {
+        put_string("properties = <null>");
+      } else {
+        a_symbol_ptr  property_sym = sym->variant.property_info->properties;
+        put_string("properties =\n");
+        for (; property_sym != NULL; property_sym = property_sym->next) {
+          fprintf(f_debug, "%*s", indentation, "");
+          db_symbol(property_sym, "", indentation + 2);
+        }  /* for */
+        col = 0;
+        suppress_newline = TRUE;
+      }  /* if */
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CHECKING
     default:
       put_string("UNEXPECTED SYMBOL KIND");
@@ -3147,6 +3164,31 @@ and return a pointer to it.
   return tssp;
 }  /* alloc_template_symbol_supplement */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static
+a_property_set_symbol_supplement_ptr alloc_property_set_symbol_supplement(void)
+/*
+Allocate a new property set symbol supplement and initialize its fields to
+null.  (Used for C++/CLI properties.)
+*/
+{
+  a_property_set_symbol_supplement_ptr  psssp;
+
+  /* Allocate a template symbol supplement. */
+  psssp = (a_property_set_symbol_supplement_ptr)
+                           alloc_fe(sizeof(a_property_set_symbol_supplement));
+#if DEBUG
+  num_property_set_symbol_supplements_allocated++;
+#endif /* DEBUG */
+  /* Initialize its fields. */
+  psssp->properties = NULL;
+  psssp->get_accessors = NULL;
+  psssp->set_accessors = NULL;
+  return psssp;
+}  /* alloc_property_set_symbol_supplement */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void set_symbol_kind(register a_symbol_ptr sym_ptr,
 		     a_symbol_kind         sym_kind)
@@ -3232,6 +3274,7 @@ state.
         cssp->friend_functions = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         cssp->super_lookup_symbols = NULL;
+        cssp->default_indexed_properties = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cssp->name_qualifiers = NULL;
         cssp->prev_entry_on_types_list = NULL;
@@ -3380,6 +3423,11 @@ state.
       sym_ptr->variant.named_register.id = 0;
       break;
 #endif /* NAMED_REGISTERS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case sk_property_set:
+      sym_ptr->variant.property_info = alloc_property_set_symbol_supplement();
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CHECKING
     default:
       internal_error("set_symbol_kind: bad symbol kind");
@@ -5638,6 +5686,138 @@ a locator for the new symbol.  Return a pointer to the new symbol.
   return sym_ptr;
 }  /* enter_overloaded_symbol */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_symbol_ptr enter_property_set_member(a_symbol_locator               *loc,
+                                       a_scope_depth                  depth,
+                                       a_property_or_event_descr_ptr  pedp,
+                                       a_symbol_ptr                   *set_sym)
+/*
+pedp describes a C++/CLI property that is being declared at the given scope
+depth (which must correspond to a sck_class_struct_union scope).  loc is the
+locator for the declaration.  Create and return an sk_field or
+sk_static_data_member symbol (the latter for static properties) for this
+declaration.  That symbol is placed under an sk_property_set symbol (which
+might be pre-existing or might be created for this particular call) entered
+in the class scope described by depth; the sk_property_set symbol is returned
+in *set_sym.  Issue errors if a conflict with a previous non-property
+declaration arises.
+*/
+{
+  a_type_ptr     class_type;
+  a_symbol_kind  member_kind;
+  a_symbol_ptr   member_sym, *p_member_sym;
+
+  /* First retrieve or create a sk_property_set symbol for the property. */
+  check_assertion(
+             scope_stack[depth].kind == (a_scope_kind)sck_class_struct_union);
+  class_type = scope_stack[depth].assoc_type;
+  *set_sym = class_qualified_id_lookup(loc, class_type,
+                                       IDL_DIRECT_CLASS_MEMBERS_ONLY);
+  if (*set_sym == NULL || !symbol_is(*set_sym, sk_property_set)) {
+    /* No property with this name has been declared yet in this class. */
+    *set_sym = enter_symbol((a_symbol_kind)sk_property_set, loc, depth,
+                            /*suppress_error=*/FALSE);
+    set_class_membership(*set_sym, (a_source_correspondence*)NULL, class_type);
+  }  /* if */
+  /* Next, create the field or static data member symbol for the given
+     property. */
+  if (pedp->is_static) {
+    member_kind = (a_symbol_kind)sk_static_data_member;
+  } else {
+    member_kind = (a_symbol_kind)sk_field;
+  }  /* if */
+  member_sym = alloc_symbol(member_kind, loc->symbol_header,
+                            &loc->source_position);
+  /* Finally, link the property symbol under the property set symbol. */
+  p_member_sym = &(*set_sym)->variant.property_info->properties;
+  while (*p_member_sym != NULL) p_member_sym = &(*p_member_sym)->next;
+  *p_member_sym = member_sym;
+  return member_sym;
+}  /* enter_property_set_member */
+
+
+static a_symbol_ptr enter_cli_property_accessor(
+                                a_symbol_locator               *locator,
+                                a_scope_depth                  depth,
+                                a_symbol_ptr                   set_sym)
+/*
+Enter and return a symbol for an accessor member function of a C++/CLI
+property.  The given locator describes the name of the accessor, set_sym
+points to the associated property set, and depth is the scope stack depth
+corresponding to the enclosing class definition.
+*/
+{
+  a_symbol_ptr  result, *p_accessor_sym;
+
+  if (strcmp(locator->symbol_header->identifier, "get") == 0) {
+    p_accessor_sym = &set_sym->variant.property_info->get_accessors;
+  } else {
+    p_accessor_sym = &set_sym->variant.property_info->set_accessors;
+  }  /* if */
+  if (*p_accessor_sym == NULL) {
+    *p_accessor_sym = result =
+                enter_local_symbol((a_symbol_kind)sk_member_function, locator,
+                                   depth, /*suppress_redecl_error=*/TRUE);
+  } else {
+    result = enter_overloaded_symbol((a_symbol_kind)sk_member_function,
+                                     locator, /*is_constructor=*/FALSE,
+                                     *p_accessor_sym, p_accessor_sym);
+  }  /* if */
+  return result;
+}  /* enter_cli_property_accessor */
+
+
+a_symbol_ptr enter_cli_accessor(a_symbol_locator               *locator,
+                                a_scope_depth                  depth,
+                                a_property_or_event_descr_ptr  pedp)
+/*
+Enter and return a symbol for an accessor member function for a C++/CLI
+property or event.  The given locator describes the name of the accessor, pedp
+describes the property or event, and depth is the scope stack depth
+corresponding to the enclosing class definition.
+*/
+{
+  a_symbol_ptr  sym;
+
+  check_assertion(
+             scope_stack[depth].kind == (a_scope_kind)sck_class_struct_union);
+  if (pedp->kind == (a_property_or_event_kind)pek_cli_event) {
+    /* C++/CLI events cannot be overloaded.  Their accessors are entered as
+       invisible member functions. */
+    sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
+                             depth, /*suppress_redecl_error=*/TRUE);
+  } else if (pedp->kind == (a_property_or_event_kind)pek_cli_property) {
+    /* A C++/CLI property accessor.  Since properties can be overloaded, we
+       keep track of accessor overload sets for each property set. */
+    /* Find the property set for this accessor. */
+    a_symbol_locator  set_loc;
+    a_symbol_ptr      set_sym, prop_sym;
+    a_type_ptr        class_type;
+    class_type = scope_stack[depth].assoc_type;
+    prop_sym = pedp->is_static ? symbol_for(pedp->variant.variable)
+                               : symbol_for(pedp->variant.field);
+    make_locator_for_symbol(prop_sym, &set_loc);
+    clear_specific_symbol(set_loc);
+    set_sym = class_qualified_id_lookup(&set_loc, class_type,
+                                        IDL_DIRECT_CLASS_MEMBERS_ONLY);
+    if (set_sym == NULL || !symbol_is(set_sym, sk_property_set)) {
+      /* No property set was found.  This is must be due to a severe error. */
+      expect_error();
+      set_to_named_error_locator(*locator);
+      sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
+                               depth, /*suppress_redecl_error=*/TRUE);
+    } else { 
+      sym = enter_cli_property_accessor(locator, depth, set_sym);
+    }  /* if */
+  } else {
+    unexpected_condition();
+  }  /* if */
+  /* Accessors cannot be called directly: Make them invisible. */
+  sym->is_invisible = TRUE;
+  return sym;
+}  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_base_class_ptr find_base_with_type(a_type_ptr        base_type,
                                      a_type_ptr        class_type,
@@ -8805,6 +8985,12 @@ It cannot be used for checking access (see have_access_to_symbol).
        functions shouldn't get into the main portion of the access checking
        code. */
     access = (an_access_specifier)as_public;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (symbol_is(fundamental_symbol_of(sym_ptr), sk_property_set)) {
+    /* In general, we can only tell the access once we know which property in
+       the set is selected. */
+    access = (an_access_specifier)as_public;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (sym_ptr->kind == (a_symbol_kind)sk_projection) {
     /* Projection symbol. */
     access = sym_ptr->variant.projection.access;
@@ -10937,6 +11123,14 @@ check_rout_type:
           equiv = TRUE;
         }  /* if */
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case sk_property_set:
+        /* Property sets only appear in C++/CLI managed classes, which don't
+           permit multiple base subobjects of the same type. */
+        check_assertion(cppcli_enabled);
+        equiv = TRUE;
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         /* Static data member, member constant, or member type. */
         equiv = TRUE;
@@ -13532,6 +13726,9 @@ for space tracking purposes.
   db_space_used("hide-by-sig list entries",
                 num_hide_by_sig_list_entries_allocated,
                 a_hide_by_sig_list_entry);
+  db_space_used("property set symbol suppl.",
+                num_property_set_symbol_supplements_allocated,
+                a_property_set_symbol_supplement);
   grand_total = db_show_ms_attrib_space_used(grand_total);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   grand_total = db_show_pch_space_used(grand_total);
@@ -13625,6 +13822,9 @@ are handled in symbol_tbl_init.)
 #if NAMED_REGISTERS_ALLOWED
   name_space_for_symbol_kind[(int)sk_named_register] = nsk_other;
 #endif /* NAMED_REGISTERS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  name_space_for_symbol_kind[(int)sk_property_set] = nsk_other;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CHECKING
   /* "undefined" and "routine" must be in the same name space.  See
       decl_default_function. */
@@ -13670,8 +13870,7 @@ are handled in symbol_tbl_init.)
   cleared_locator.parent.class_type               = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cleared_locator.is_property_or_event_accessor   = FALSE;
-  cleared_locator.property_or_event_is_static     = FALSE;
-  cleared_locator.property_or_event_parent.field  = NULL;
+  cleared_locator.property_or_event_parent        = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cleared_locator.template_arg_list               = NULL;
   cleared_locator.name_qualifier                  = NULL;
@@ -13851,6 +14050,7 @@ are handled in symbol_tbl_init.)
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(num_saved_macro_states_allocated),
       pch_saved_var_array_elem(num_hide_by_sig_list_entries_allocated),
+      pch_saved_var_array_elem(num_property_set_symbol_supplements_allocated),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* if DEBUG */
       pch_saved_var_array_terminating_elem()
@@ -13999,50 +14199,51 @@ of the front end.
   anonymous_parent_object_symbol_header = NULL;
   unnamed_field_symbol_header = NULL;
 #if DEBUG
-  num_symbols_allocated                        = 0;
-  num_symbol_headers_allocated                 = 0;
-  num_symbol_headers_in_hash_table             = 0;
-  num_conversion_headers_allocated             = 0;
-  symbol_name_string_space                     = 0;
-  num_symbol_header_lookup_entries_allocated   = 0;
-  num_enum_symbol_supplements_allocated        = 0;
-  num_class_symbol_supplements_allocated       = 0;
-  num_template_symbol_supplements_allocated    = 0;
-  num_namespace_symbol_supplements_allocated   = 0;
-  num_template_params_allocated                = 0;
-  num_param_ids_allocated                      = 0;
-  num_dependent_type_fixups_allocated          = 0;
-  num_template_instances_allocated             = 0;
-  num_master_instances_allocated               = 0;
-  num_symbol_list_entries_allocated            = 0;
-  num_type_list_entries_allocated              = 0;
-  num_substituted_type_list_entries_allocated  = 0;
-  num_template_cache_segments_allocated        = 0;
-  num_template_decl_info_allocated             = 0;
-  num_out_of_class_partial_specs_allocated     = 0;
-  num_nondependent_call_info_allocated         = 0;
-  num_templ_friend_info_allocated              = 0;
-  num_namespace_list_entries_allocated         = 0;
-  num_extern_symbol_descrs_allocated           = 0;
-  num_vla_fixups_allocated                     = 0;
-  num_extern_type_fixups_allocated             = 0;
-  num_projection_descrs_allocated              = 0;
-  num_used_symbol_buckets                      = 0;
-  num_searches_for_symbols                     = 0;
-  num_compares_for_symbols                     = 0;
-  num_access_error_descrs_allocated            = 0;
-  num_fast_id_lookups                          = 0;
-  num_slow_id_lookups                          = 0;
-  num_active_using_directives_allocated        = 0;
-  num_generated_entity_blocks_allocated        = 0;
-  num_progenitors_allocated                    = 0;
-  num_hash_tables_allocated                    = 0;
-  num_hash_table_entries_allocated             = 0;
-  total_hash_table_size                        = 0;
-  num_exception_spec_error_descrs_allocated    = 0;
+  num_symbols_allocated                         = 0;
+  num_symbol_headers_allocated                  = 0;
+  num_symbol_headers_in_hash_table              = 0;
+  num_conversion_headers_allocated              = 0;
+  symbol_name_string_space                      = 0;
+  num_symbol_header_lookup_entries_allocated    = 0;
+  num_enum_symbol_supplements_allocated         = 0;
+  num_class_symbol_supplements_allocated        = 0;
+  num_template_symbol_supplements_allocated     = 0;
+  num_namespace_symbol_supplements_allocated    = 0;
+  num_template_params_allocated                 = 0;
+  num_param_ids_allocated                       = 0;
+  num_dependent_type_fixups_allocated           = 0;
+  num_template_instances_allocated              = 0;
+  num_master_instances_allocated                = 0;
+  num_symbol_list_entries_allocated             = 0;
+  num_type_list_entries_allocated               = 0;
+  num_substituted_type_list_entries_allocated   = 0;
+  num_template_cache_segments_allocated         = 0;
+  num_template_decl_info_allocated              = 0;
+  num_out_of_class_partial_specs_allocated      = 0;
+  num_nondependent_call_info_allocated          = 0;
+  num_templ_friend_info_allocated               = 0;
+  num_namespace_list_entries_allocated          = 0;
+  num_extern_symbol_descrs_allocated            = 0;
+  num_vla_fixups_allocated                      = 0;
+  num_extern_type_fixups_allocated              = 0;
+  num_projection_descrs_allocated               = 0;
+  num_used_symbol_buckets                       = 0;
+  num_searches_for_symbols                      = 0;
+  num_compares_for_symbols                      = 0;
+  num_access_error_descrs_allocated             = 0;
+  num_fast_id_lookups                           = 0;
+  num_slow_id_lookups                           = 0;
+  num_active_using_directives_allocated         = 0;
+  num_generated_entity_blocks_allocated         = 0;
+  num_progenitors_allocated                     = 0;
+  num_hash_tables_allocated                     = 0;
+  num_hash_table_entries_allocated              = 0;
+  total_hash_table_size                         = 0;
+  num_exception_spec_error_descrs_allocated     = 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  num_saved_macro_states_allocated             = 0;
-  num_hide_by_sig_list_entries_allocated       = 0;
+  num_saved_macro_states_allocated              = 0;
+  num_hide_by_sig_list_entries_allocated        = 0;
+  num_property_set_symbol_supplements_allocated = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* DEBUG */
 }  /* symbol_tbl_init */

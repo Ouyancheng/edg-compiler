@@ -2025,8 +2025,8 @@ ec_invalid_literal_type;;"a literal data member of type %t is not allowed"
 ec_literal_const_has_no_effect;;"const has no effect on a literal data member"
 ec_initonly_requires_managed_class;;"initonly data members can only be members of managed types"
 ec_initonly_const_has_no_effect;;"const has no effect on an initonly data member"
-ec_cli_get_property_function_missing;;"property %sq has no \"get\" function"
-ec_cli_put_property_function_missing;;"property %sq has no \"put\" function"
+ec_cli_get_accessor_missing;;"%nd has no \"get\" accessor"
+ec_cli_set_accessor_missing;;"%nd has no \"set\" accessor"
 ec_static_constructor_with_params;;"a static constructor cannot have parameters"
 ec_static_constructor_member_template;;"a static constructor cannot be a member template"
 ec_compound_lvalue_as_asm_operand;;"a compound lvalue is not allowed as an asm output operand"
@@ -2149,6 +2149,9 @@ ec_cli_enum_base_has_no_system_counterpart;;"type must correspond to System::Boo
 ec_bad_call_of_handle;;"call of an object of a handle type without appropriate operator() or conversion functions to pointer-to-function type"
 ec_abstract_declarator_pack_is_nested;;"an unnamed parameter pack declaration cannot be parenthesized"
 ec_cl_variadic_templates_only_in_cplusplus;;"variadic templates can be enabled only when compiling C++"
+ec_conflicting_properties;;"property definition conflicts with %nd"
+ec_property_set;INTERNAL;"overloaded property"
+ec_property;INTERNAL;"property"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

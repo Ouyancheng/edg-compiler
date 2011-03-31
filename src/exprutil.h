@@ -439,8 +439,8 @@ typedef struct an_operand {
 			/* If non-NULL, this operand is a pack expansion
 			   (it is followed by "...", as in "T()..."), and this
 			   points to the expansion description. */
-  /* When kind == ok_indefinite_function, ok_sym_for_member, or
-     ok_undefined_symbol, and also ok_expression for the enk_field case: */
+  /* When kind == ok_indefinite_function, ok_sym_for_member, ok_property_ref,
+     or ok_undefined_symbol, and also ok_expression for the enk_field case: */
   a_symbol_ptr
 		symbol;
 			/* Pointer to the symbol.  May be a projection
@@ -466,8 +466,6 @@ typedef struct an_operand {
 			   indicates an object that is evaluated and discarded
 			   (it won't take part in the overload resolution
 			   used to select the accessor). */
-      a_property_or_event_descr_ptr
-		descr;	/* The property description. */
       an_arg_operand_ptr
 		subscripts;
 			/* Optional list of subscript expressions, for cases
@@ -1064,8 +1062,10 @@ Ditto, but only for a property declared with __declspec(property(...)).
 */
 #define is_old_form_property_ref_operand(operand)                       \
         (is_property_ref_operand(operand) &&                            \
-         (operand)->variant.property_ref.descr->kind ==                 \
-          (a_property_or_event_kind)pek_declspec_property)
+         symbol_is((operand)->symbol, sk_field) &&                      \
+         (operand)->symbol->variant.field.ptr                           \
+                          ->property_or_event_descr->kind ==            \
+                       (a_property_or_event_kind)pek_declspec_property)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -1341,11 +1341,10 @@ extern void change_binary_operand_types(a_type_ptr             type,
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern
-a_symbol_ptr get_property_accessor_symbol(
-                                 a_property_or_event_descr_ptr pedp,
-                                 a_boolean                     put,
-                                 a_boolean                     must_be_present,
-                                 a_source_position             *pos);
+a_symbol_ptr get_property_accessor_symbol(a_symbol_ptr       property_sym,
+                                          a_boolean          put,
+                                          a_boolean          must_be_present,
+                                          a_source_position  *pos);
 extern
 void rewrite_property_reference(
                               an_operand                          *operand,

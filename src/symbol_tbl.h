@@ -123,25 +123,6 @@ EXTERN a_translation_unit_ptr
 			/* A dynamically allocated array of translation
 			   unit pointers indexed by scope number. */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-typedef union a_property_or_event_parent {
-  /* This is used for Microsoft property and event accessor functions to
-     indicate the property or event with which the accessor function is
-     associated. */
-  /* When property_or_event_is_static is TRUE: */
-  a_variable_ptr
-		variable;
-			/* For static properties and events, this points to the
-			   property or event variable. */
-  /* When property_or_event_is_static is FALSE: */
-  a_field_ptr
-		field;
-			/* For nonstatic properties and events, this points
-			   to the property or event field. */
-} a_property_or_event_parent;
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 typedef struct a_symbol_locator {
   /* Data structure used to store information about an identifier token.
@@ -253,9 +234,6 @@ typedef struct a_symbol_locator {
   a_bit_field	is_property_or_event_accessor:1;
 			/* TRUE if the identifier is a Microsoft property
 			   or event accessor function. */
-  a_bit_field	property_or_event_is_static:1;
-			/* TRUE when is_property_or_event_accessor is TRUE
-			   and the accessor is for a static member. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_symbol_ptr	specific_symbol;
 			/* If is_qualified_name is TRUE, this points to the
@@ -276,13 +254,12 @@ typedef struct a_symbol_locator {
 			   qualifier is a C++0x-mode or Microsoft-mode enum
 			   qualifier. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_property_or_event_parent
+  a_symbol_ptr
 		property_or_event_parent;
 			/* If is_property_or_event_accessor is TRUE, this
-			   points to the property/event variable or field.
-			   If the property_or_event_is_static field is TRUE
-			   it points to a variable, otherwise it points to
-			   a field. */
+			   points to the property set or the event data member
+			   (sk_field or sk_static_data_member) associated with
+			   the accessor. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_template_arg_ptr
 		template_arg_list;
@@ -456,6 +433,10 @@ enum a_symbol_kind_tag {
 			/* Embedded C (TR 18037) named-register storage
 			   class. */
 #endif /* NAMED_REGISTERS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  sk_property_set,
+			/* C++/CLI property. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -479,6 +460,9 @@ EXTERN char	*symbol_kind_names[(int)sk_last + 1]
 #if NAMED_REGISTERS_ALLOWED
    "named register",
 #endif /* NAMED_REGISTERS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+   "property set",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
@@ -999,6 +983,10 @@ typedef struct a_class_symbol_supplement {
 			   __super lookup.  This list is consulted for
 			   subsequent lookups so that the symbols may be
 			   reused. */
+  a_symbol_ptr	default_indexed_properties;
+			/* A pointer to an sk_property_set symbol representing
+			   the default-indexed properties of this class, or
+			   NULL if there are no such properties. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_name_qualifier_ptr
 		name_qualifiers;
@@ -2631,6 +2619,32 @@ typedef struct a_projection_descr {
 			   and the member specified by fundamental_symbol. */
 } a_projection_descr;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+typedef struct a_property_set_symbol_supplement
+                                        *a_property_set_symbol_supplement_ptr;
+typedef struct a_property_set_symbol_supplement {
+  a_symbol_ptr
+		properties;
+			/* One or more symbols representing properties.  Each
+			   entry may represent a nonstatic property (sk_field)
+			   or a static property (sk_static_data_member).
+			   Overloading of properties is possible when multiple
+			   properties of the same name have different index
+			   types. */
+  a_symbol_ptr
+		get_accessors;
+			/* A symbol representing the "get" accessors of the
+			   properties in this set.  If only one "get" accessor
+			   is present among the properties, this points to a
+			   sk_member_function symbol; otherwise to a
+			   sk_overload_function symbol. */
+  a_symbol_ptr
+		set_accessors;
+			/* Same as get_accessor, but for the "set" accessors. */
+} a_property_set_symbol_supplement;
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 typedef struct a_symbol {
   /* A symbol as used by the front end. */
@@ -3170,6 +3184,11 @@ typedef struct a_symbol {
 			   storage class. */
     } named_register;
 #endif /* NAMED_REGISTERS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* When kind == sk_property_set: */
+    a_property_set_symbol_supplement_ptr
+		property_info;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } variant;
 } a_symbol;
 
@@ -3667,6 +3686,18 @@ extern a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
                                             a_boolean        is_constructor,
                                             a_symbol_ptr     old_sym_ptr,
                                             a_symbol_ptr     *overload_sym);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_symbol_ptr enter_property_set_member(
+                                     a_symbol_locator               *loc,
+                                     a_scope_depth                  depth,
+                                     a_property_or_event_descr_ptr  pedp,
+                                     a_symbol_ptr                   *set_sym);
+
+extern a_symbol_ptr enter_cli_accessor(a_symbol_locator               *locator,
+                                       a_scope_depth                  depth,
+                                       a_property_or_event_descr_ptr  pedp);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_base_class_ptr find_base_with_type(a_type_ptr        base_type,
                                             a_type_ptr        class_type,
@@ -4557,21 +4588,23 @@ extern a_boolean overload_set_contains_template(a_symbol_ptr sym);
                                               (a_type_kind)tk_template_param)
 
 /*
-Return TRUE if sym refers to a C++/CLI property or event field, which can
-be used as a qualifier in a qualified name.
+Return TRUE if sym refers to a C++/CLI property or event, which can
+be used as a qualifier in a qualified name.  The symbol may also refer to
+an overloaded set of properties.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define is_cppcli_property_or_event(sym)				\
-  (cppcli_enabled &&							\
-   (((sym)->kind == (a_symbol_kind)sk_field &&				\
-     (sym)->variant.field.ptr->property_or_event_descr != NULL &&	\
-     (sym)->variant.field.ptr->property_or_event_descr->kind !=		\
-                    (a_property_or_event_kind)pek_declspec_property) ||	\
-    ((sym)->kind == (a_symbol_kind)sk_static_data_member &&		\
-     (sym)->variant.static_data_member.variable->			\
-				property_or_event_descr != NULL &&	\
-     (sym)->variant.static_data_member.variable->			\
-				property_or_event_descr->kind !=	\
+#define is_cppcli_property_or_event(sym)                                \
+  (cppcli_enabled &&                                                    \
+   (symbol_is(sym, sk_property_set) ||                                  \
+    (symbol_is((sym), sk_field) &&                                      \
+     (sym)->variant.field.ptr->property_or_event_descr != NULL &&       \
+     (sym)->variant.field.ptr->property_or_event_descr->kind !=         \
+                    (a_property_or_event_kind)pek_declspec_property) || \
+    (symbol_is(sym, sk_static_data_member) &&                           \
+     (sym)->variant.static_data_member.variable->                       \
+                                property_or_event_descr != NULL &&      \
+     (sym)->variant.static_data_member.variable->                       \
+                                property_or_event_descr->kind !=        \
                         (a_property_or_event_kind)pek_declspec_property)))
 #else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_cppcli_property_or_event(sym) /*lint --e(506)*/FALSE

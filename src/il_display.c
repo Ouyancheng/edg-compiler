@@ -5661,11 +5661,6 @@ Display the indicated class type supplement entry.
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (ptr->default_indexed_property_descr != NULL) {
-    disp_ptr("default_indexed_property_descr",
-             (char *)ptr->default_indexed_property_descr,
-             iek_property_or_event_descr);
-  }  /* if */
   if (ptr->uuid_string != NULL) {
     disp_string_ptr("uuid_string", ptr->uuid_string, iek_other_text,
                     (sizeof_t)0);

@@ -1264,6 +1264,21 @@ need to be determined.
         }  /* for */
       }
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case sk_property_set:
+      result = FALSE;
+      { /* If any member of the overload set may have a correspondence,
+           the whole set should be treated as such. */
+        a_symbol_ptr  sub_sym = sym->variant.property_info->properties;
+        for (; sub_sym != NULL; sub_sym = sub_sym->next) {
+          if (may_have_correspondence(sub_sym)) {
+            result = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+      }
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NAMED_ADDRESS_SPACES_ALLOWED
     case sk_named_address_space:
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */

@@ -3875,48 +3875,46 @@ for the accessor; otherwise return NULL.
              !same_entities(locator->parent.class_type, class_type)) {
     /* The locator is not for a class member, or does not match the class
        type provided.  Return NULL (set above). */
+  } else if (symbol_is(locator->property_or_event_parent, sk_property_set)) {
+    /* Return the symbol for the get or set accessor maintained in the
+       property set supplement. */
+    if (strcmp(locator->symbol_header->identifier, "get") == 0) {
+      result_sym = locator->property_or_event_parent->variant.property_info
+                                                    ->get_accessors;
+    } else if (strcmp(locator->symbol_header->identifier, "set") == 0) {
+      result_sym = locator->property_or_event_parent->variant.property_info
+                                                    ->set_accessors;
+    } else {
+      /* Not a valid accessor name: Return NULL (set above). */
+    }  /* if */
   } else {
     a_property_or_event_descr_ptr	pdp;
     a_symbol_header_ptr			sym_hdr = locator->symbol_header;
     a_symbol_ptr			sym;
-    if (locator->property_or_event_is_static) {
-      pdp = locator->
-                    property_or_event_parent.variable->property_or_event_descr;
+    if (symbol_is(locator->property_or_event_parent, sk_field)) {
+      pdp = locator->property_or_event_parent
+                   ->variant.field.ptr
+                   ->property_or_event_descr;
     } else {
-      pdp = locator->property_or_event_parent.field->property_or_event_descr;
+      pdp = locator->property_or_event_parent
+                   ->variant.static_data_member.variable
+                   ->property_or_event_descr;
     }  /* if */
-    switch (pdp->kind) {
-      case pek_cli_property:
-        /* See if the symbol header we are looking for matches that of the
-           get or set routines (if present). */
-        sym = symbol_for_or_null(pdp->get_routine.ptr);
-        if (sym->header == sym_hdr) {
-          result_sym = sym;
-        } else {
-          sym = symbol_for_or_null(pdp->set_routine.ptr);
-          if (sym->header == sym_hdr) result_sym = sym;
-        }  /* if */
-        break;
-      case pek_cli_event:
-        /* See if the symbol header we are looking for matches that of the
-           the add, remove, or raise routines (if present). */
-        sym = symbol_for_or_null(pdp->add_routine);
-        if (sym->header == sym_hdr) {
-          result_sym = sym;
-        } else {
-          sym = symbol_for_or_null(pdp->remove_routine);
-          if (sym->header == sym_hdr) {
-            result_sym = sym;
-          } else {
-            sym = symbol_for_or_null(pdp->raise_routine);
-            if (sym->header == sym_hdr) result_sym = sym;
-          }  /* if */
-        }  /* if */
-        break;
-      default:
-        unexpected_condition();
-        break;
-    }  /* switch */
+    check_assertion(pdp->kind == (a_property_or_event_kind)pek_cli_event);
+    /* See if the symbol header we are looking for matches that of the add,
+       remove, or raise routines (if present). */
+    sym = symbol_for_or_null(pdp->add_routine);
+    if (sym->header == sym_hdr) {
+      result_sym = sym;
+    } else {
+      sym = symbol_for_or_null(pdp->remove_routine);
+      if (sym->header == sym_hdr) {
+        result_sym = sym;
+      } else {
+        sym = symbol_for_or_null(pdp->raise_routine);
+        if (sym->header == sym_hdr) result_sym = sym;
+      }  /* if */
+    }  /* if */
   }  /* if */
   return result_sym;
 }  /* look_up_property_or_event_accessor */

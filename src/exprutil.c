@@ -307,10 +307,14 @@ recorded right away and no entry is created; NULL is returned.
       case sk_routine:             /* Nonmember function. */
         ref_kind_can_be_affected_by_context = TRUE;
         break;
-#if CHECKING
       case sk_overloaded_function: /* Overloaded function (member or not). */
-        internal_error("ref_entry: overloaded function");
-#endif /* CHECKING */
+        unexpected_condition_str("ref_entry: overloaded function");
+        break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case sk_property_set:
+        unexpected_condition_str("ref_entry: property set");
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:;
         ref_kind_can_be_affected_by_context = FALSE;
         break;
@@ -1653,7 +1657,6 @@ to default values.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case ok_property_ref:
       operand->variant.property_ref.object = NULL;
-      operand->variant.property_ref.descr = NULL;
       operand->variant.property_ref.subscripts = NULL;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1837,16 +1840,7 @@ Display an expression operand for debugging purposes.
       } else {
         (void)fprintf(f_debug, " NULL\n");
       }  /* if */
-      { a_property_or_event_descr_ptr pedp =
-                                           operand->variant.property_ref.descr;
-        if (pedp->is_static) {
-          (void)fprintf(f_debug, "variable = ");
-          db_name(&pedp->variant.variable->source_corresp);
-        } else {
-          (void)fprintf(f_debug, "field = ");
-          db_name(&pedp->variant.field->source_corresp);
-        }  /* if */
-      }
+      db_symbol(operand->symbol, "", 0);
       if (operand->variant.property_ref.subscripts != NULL) {
         an_arg_operand_ptr aop;
         (void)fprintf(f_debug, "\nsubscripts =\n");
@@ -2223,18 +2217,7 @@ lowering (as lvalueness is known at that time).
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case ok_property_ref:
-      if (operand->variant.property_ref.descr->is_static) {
-        /* The property is static and has no associated object.  Even if there
-           is one on the original operand, don't copy it because we don't
-           need it on the clone. */
-        operand_clone->variant.property_ref.object = NULL;
-        if (operand->variant.property_ref.object!= NULL) {
-          /* ... but do set *temp_init_used to force the original operand
-             to be evaluated first. */
-          *temp_init_used = TRUE;
-        }  /* if */
-      } else {
-        check_assertion(operand->variant.property_ref.object != NULL);
+      if (operand->variant.property_ref.object != NULL) {
         operand_clone->variant.property_ref.object =
                   make_expr_reusable_copy(operand->variant.property_ref.object,
                                           vars_can_change, temp_init_used,
@@ -15011,31 +14994,28 @@ qualifiers as appropriate).  If operand != NULL, it is the associated operand
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-a_symbol_ptr get_property_accessor_symbol(
-                                 a_property_or_event_descr_ptr pedp,
-                                 a_boolean                     put,
-                                 a_boolean                     must_be_present,
-                                 a_source_position             *pos)
+a_symbol_ptr get_property_accessor_symbol(a_symbol_ptr       property_sym,
+                                          a_boolean          put,
+                                          a_boolean          must_be_present,
+                                          a_source_position  *pos)
 /*
-pedp points to the description for a Microsoft property.  Get and return the
-symbol for the accessor function, either for "get" (put == FALSE) or "put"
-(put == TRUE).  Return NULL if there is no such symbol.  In that case, if
-must_be_present is TRUE also put out an error.  The source position of the
-reference is given by pos.
+property_sym points to a field or property set associated with a Microsoft
+property.  (Both old-style __declspec properties and C++/CLI properties are
+handled here.)  Get and return the symbol for the accessor function, either
+for "get" (put == FALSE) or "put"/"set" (put == TRUE).  Return NULL if there
+is no such symbol.  In that case, if must_be_present is TRUE also put out an
+error.  The source position of the reference is given by pos.
 */
 {
-  a_symbol_ptr                getput_sym = NULL;
-  a_source_correspondence_ptr assoc_scp;
+  a_symbol_ptr getput_sym = NULL;
 
-  check_assertion(pedp != NULL);
-  /* Get the source correspondence of the associated declared entity (a field
-     or static data member). */
-  assoc_scp = (pedp->is_static ? &pedp->variant.variable->source_corresp :
-                                 &pedp->variant.field->source_corresp);
-
-  if (pedp->kind == (a_property_or_event_kind)pek_declspec_property) {
+  check_assertion(property_sym != NULL);
+  if (symbol_is(property_sym, sk_field)) {
     /* And old-style property, specified via __declspec. */
-    char *getput_property_name;
+    char                          *getput_property_name;
+    a_property_or_event_descr_ptr pedp = property_sym->variant.field.ptr
+                                                     ->property_or_event_descr;
+    check_assertion(pedp != NULL);
     if (put) {
       getput_property_name = pedp->set_routine.name;
     } else {
@@ -15055,7 +15035,7 @@ reference is given by pos.
       (void)find_symbol(getput_property_name,
                         (sizeof_t)strlen(getput_property_name),
                         &locator);
-      class_type = scp_parent_class(assoc_scp);
+      class_type = sym_parent_class(property_sym);
       /* Look for the "get" or "put" function by name in the class. */
       getput_sym = class_qualified_id_lookup(&locator, class_type,
                                              IDL_NO_OPTIONS);
@@ -15072,29 +15052,24 @@ reference is given by pos.
         getput_sym = locator.specific_symbol;
       }  /* if */
     }  /* if */
-  } else if (pedp->kind == (a_property_or_event_kind)pek_cli_property) {
+  } else {
     /* C++/CLI property. */
-    a_routine_ptr getput_routine;
+    check_assertion(symbol_is(property_sym, sk_property_set));
     if (put) {
-      getput_routine = pedp->set_routine.ptr;
+      getput_sym = property_sym->variant.property_info->set_accessors;
     } else {
-      getput_routine = pedp->get_routine.ptr;
+      getput_sym = property_sym->variant.property_info->get_accessors;
     }  /* if */
-    if (getput_routine == NULL) {
+    if (getput_sym == NULL) {
       if (must_be_present &&
           expr_error_should_be_issued()) {
-        pos_st_error(put ? ec_cli_put_property_function_missing :
-                           ec_cli_get_property_function_missing,
-                     pos, unmangled_name_of(assoc_scp));
+        pos_sy_error(put ? ec_cli_set_accessor_missing :
+                           ec_cli_get_accessor_missing,
+                     pos, property_sym);
       }  /* if */
-      getput_sym = NULL;
     } else {
-      getput_sym = symbol_for(getput_routine);
-      check_assertion(getput_sym != NULL &&
-                      is_member_function_symbol(getput_sym));
+      check_assertion(is_member_function_symbol(getput_sym));
     }  /* if */
-  } else {
-    unexpected_condition();
   }  /* if */
   return getput_sym;
 }  /* get_property_accessor_symbol */
@@ -15114,9 +15089,7 @@ When put_operand is non-NULL, kind indicates the kind of operator
 being rewritten; it's used to set a kind in the expression created.
 */
 {
-  a_property_or_event_descr_ptr
-                    pedp = operand->variant.property_ref.descr;
-  a_symbol_ptr      getput_sym;
+  a_symbol_ptr      property_sym = operand->symbol, getput_sym;
   a_source_position operand_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position operand_end_position;
@@ -15127,7 +15100,7 @@ being rewritten; it's used to set a kind in the expression created.
   operand_end_position = operand->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Get the "get" or "put" function name from the field. */
-  getput_sym = get_property_accessor_symbol(pedp,
+  getput_sym = get_property_accessor_symbol(property_sym,
                                             /*put=*/(put_operand != NULL),
                                             /*must_be_present=*/TRUE,
                                             &operand_position);
@@ -15136,26 +15109,20 @@ being rewritten; it's used to set a kind in the expression created.
     conv_to_error_operand(operand);
   } else {
     an_operand         function_operand;
-    an_operand         bound_function_selector;
-    an_operand         static_selector;
-    a_boolean          have_selector = !pedp->is_static;
-    a_boolean          have_static_selector = FALSE;
+    an_operand         selector;
     an_arg_operand_ptr arg_operand_list;
     an_expr_node_ptr   argument_list;
+    a_boolean          have_selector =
+                               (operand->variant.property_ref.object != NULL),
+                       static_case = FALSE;
 
     if (have_selector) {
-      /* Make an operand for the object pointer. */
-      check_assertion(operand->variant.property_ref.object != NULL);
-      make_expression_operand(operand->variant.property_ref.object,
-                              &bound_function_selector);
-      bound_function_selector.selector_is_object_pointer = TRUE;
-    } else if (operand->variant.property_ref.object != NULL) {
-      /* This is a static property, but an object was specified.  It's
-         not used in overload resolution, but it gets attached to the
-         result as an unneeded selector. */
-      have_static_selector = TRUE;
-      make_expression_operand(operand->variant.property_ref.object,
-                              &static_selector);
+      /* A selector object was specified.  It may or may not be used in the
+         accessor call depending on whether a static or nonstatic property is
+         selected by overload resolution.  If it isn't bound, it will be
+         added in via a comma operator below. */
+      make_expression_operand(operand->variant.property_ref.object, &selector);
+      selector.selector_is_object_pointer = TRUE;
     }  /* if */
     /* The arg_operand list is the subscript expression list, if any. */
     arg_operand_list = operand->variant.property_ref.subscripts;
@@ -15182,7 +15149,7 @@ being rewritten; it's used to set a kind in the expression created.
                                        /*is_template_id=*/FALSE,
                                        (a_template_arg_ptr)NULL,
                                        have_selector,
-                                       &bound_function_selector,
+                                       &selector,
                                        arg_operand_list,
                                        /*do_arg_dep_lookup=*/FALSE,
                                        /*try_surrogate_functions=*/FALSE,
@@ -15202,8 +15169,7 @@ being rewritten; it's used to set a kind in the expression created.
     } else {
       /* Create the function call. */
       an_expr_node_ptr func_call_node;
-      assemble_function_call(&function_operand, &bound_function_selector,
-                             argument_list,
+      assemble_function_call(&function_operand, &selector, argument_list,
                              /*compiler_generated=*/TRUE,
                              /*arg_dep_lookup_suppressed=*/FALSE,
                              /*qualified_function_name=*/FALSE,
@@ -15214,13 +15180,26 @@ being rewritten; it's used to set a kind in the expression created.
       if (func_call_node != NULL) {
         an_expr_node_ptr opnd = func_call_node->variant.operation.operands;
         if (is_routine_node(opnd)) {
+          a_routine_ptr                 rp = opnd->variant.routine.ptr;
 #if !DO_IL_LOWERING
+          a_property_or_event_descr_ptr pedp;
+          if (symbol_is(property_sym, sk_field)) {
+            /* A __declspec property: Get the property description from the
+               field. */
+            pedp = property_sym->variant.field.ptr->property_or_event_descr;
+          } else {
+            /* A C++/CLI property: Get the property description from the
+               accessor. */
+            check_assertion(symbol_is(property_sym, sk_property_set));
+            pedp = rp->variant.property_or_event_descr;
+          }  /* if */
           /* Record the property description in the enk_routine node. */
           opnd->variant.routine.property_or_event_descr = pedp;
           opnd->variant.routine.special_kind = (put_operand == NULL) ?
                                     (a_special_function_kind)sfk_property_get :
                                     (a_special_function_kind)sfk_property_set;
 #endif /* DO_IL_LOWERING */
+          static_case = !routine_type_is_nonstatic_member_function(rp->type);
         }  /* if */
         if (put_operand != NULL) {
           func_call_node->variant.operation.
@@ -15233,9 +15212,9 @@ being rewritten; it's used to set a kind in the expression created.
          the original operand end position. */
       operand->end_position = operand_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      if (have_static_selector) {
+      if (static_case && have_selector) {
         /* Attach an unneeded selector for a static property. */
-        combine_unneeded_selector_with_operand(&static_selector,
+        combine_unneeded_selector_with_operand(&selector,
                                                /*is_arrow_operator=*/TRUE,
                                                operand);
       }  /* if */
