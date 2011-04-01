@@ -3016,7 +3016,7 @@ token and not part of another, then no space is needed.
            with pp-numbers (3.1.8; "e" or "E" followed by "+" or "-"  \
            can appear in a pp-number, and the same for "+" or "-"     \
            preceded by "e" or "E" and followed by a digit) and wide   \
-           literals ("L" followed by a  single or double quote). */   \
+           literals ("L" followed by a single or double quote). */    \
                  ((prev_ch != 'e' && prev_ch != 'E') ||               \
                   (ch != '+' && ch != '-')) &&                        \
                  !((prev_ch == '+' || prev_ch == '-') &&              \
