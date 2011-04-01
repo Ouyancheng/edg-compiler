@@ -16667,7 +16667,7 @@ definition and record it in the IL (as a special-purpose class type).
   a_symbol_locator             loc, member_loc;
   a_symbol_ptr                 prev_decl = NULL;
   a_func_info_block            func_info;
-  a_type_ptr                   parent_type = NULL, class_type;
+  a_type_ptr                   parent_type = NULL, class_type, htype;
   a_class_type_supplement_ptr  ctsp;
   a_scope_depth                decl_level = depth_scope_stack;
   a_class_def_state            class_state;
@@ -16675,6 +16675,7 @@ definition and record it in the IL (as a special-purpose class type).
   a_boolean                    saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_member_decl_info           member_info;
+  a_decl_parse_state           *mdps = &member_info.decl_state;
 
   clear_decl_pos_block(&decl_pos_block);
   visibility = scan_cli_visibility_specifier_if_any(&visibility_pos);
@@ -16772,8 +16773,8 @@ definition and record it in the IL (as a special-purpose class type).
   clear_locator(&member_loc, &dps->declarator_pos);
   (void)find_symbol("Invoke", sizeof("Invoke")-1, &member_loc);
   initialize_member_decl_info(&member_info, &dps->specifiers_pos);
-  member_info.decl_state.declared_type = dps->declared_type;
-  member_info.decl_state.type = dps->type;
+  mdps->declared_type = dps->declared_type;
+  mdps->type = dps->type;
   decl_member_function(&member_loc, &func_info, &class_state, &member_info,
                        /*compiler_generated=*/TRUE);
   /* Add the one-argument constructor (declaration only). */
@@ -16783,11 +16784,36 @@ definition and record it in the IL (as a special-purpose class type).
                                                 /*is_static_ctor=*/FALSE);
   initialize_member_decl_info(&member_info, &dps->specifiers_pos);
   member_info.is_constructor = TRUE;
-  member_info.decl_state.declared_type = member_info.decl_state.type =
+  mdps->declared_type = mdps->type =
                   make_routine_type(void_type(), make_pointer_type(dps->type),
                                     /*param2_type=*/(a_type_ptr)NULL,
                                     /*param3_type=*/(a_type_ptr)NULL,
                                     /*param4_type=*/(a_type_ptr)NULL);
+  decl_member_function(&member_loc, &func_info, &class_state, &member_info,
+                       /*compiler_generated=*/TRUE);
+  /* Add static operators "+" and "-" (again, declarations only). */
+  make_opname_locator((an_opname_kind)onk_plus, &member_loc,
+                      &dps->declarator_pos);
+  initialize_member_decl_info(&member_info, &dps->specifiers_pos);
+  mdps->storage_class = mdps->declared_storage_class =
+                                                   (a_storage_class)sc_static;
+  htype = make_handle_type(class_type);
+  mdps->declared_type = mdps->type =
+                          make_routine_type(htype, htype, htype,
+                                            /*param3_type=*/(a_type_ptr)NULL,
+                                            /*param4_type=*/(a_type_ptr)NULL);
+  decl_member_function(&member_loc, &func_info, &class_state, &member_info,
+                       /*compiler_generated=*/TRUE);
+  make_opname_locator((an_opname_kind)onk_minus, &member_loc,
+                      &dps->declarator_pos);
+  initialize_member_decl_info(&member_info, &dps->specifiers_pos);
+  mdps->storage_class = mdps->declared_storage_class =
+                                                   (a_storage_class)sc_static;
+  htype = make_handle_type(class_type);
+  mdps->declared_type = mdps->type =
+                          make_routine_type(htype, htype, htype,
+                                            /*param3_type=*/(a_type_ptr)NULL,
+                                            /*param4_type=*/(a_type_ptr)NULL);
   decl_member_function(&member_loc, &func_info, &class_state, &member_info,
                        /*compiler_generated=*/TRUE);
   /* Wrap up the definition. */
