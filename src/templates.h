@@ -41,6 +41,8 @@ typedef int a_template_decl_options_set;
 #define TDO_INLINE		0x2
 			/* TRUE if the "inline" keyword was specified
 			   before the "template" keyword. */
+#define TDO_GENERIC		0x4
+			/* TRUE if this is a C++/CLI generic declaration. */
 
 #if !STANDALONE_UTILITY_PROGRAM
 /*
@@ -104,6 +106,8 @@ typedef struct a_tmpl_decl_state {
   a_boolean	is_variadic;
 			/* TRUE if any of the template parameters are
 			   parameter packs. */
+  a_boolean	is_generic;
+			/* TRUE if this a C++/CLI generic declaration. */
   a_source_position
 		export_position;
 			/* If export_present is TRUE, the position of the
@@ -725,6 +729,12 @@ extern void begin_special_variadic_template_arg_list_traversal(
 extern void special_variadic_advance_to_next_template_arg(
 				a_template_param_ptr	*tpp,
 				a_template_arg_ptr	*tap);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean is_start_of_generic_decl(void);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_start_of_generic_decl()  /*lint --e(506)*/FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void templates_one_time_init(void);
 

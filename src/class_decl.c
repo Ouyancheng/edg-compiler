@@ -16570,7 +16570,7 @@ The current token is an identifier that might be a C++/CLI context-sensitive
 declaration specifier (e.g., "delegate" or "property").  Return TRUE if it
 starts a name qualifier (i.e., it is a class, enum, or namespace name followed
 by a "::") or if it is followed by a "<" (which presumably means that it
-starts a template-id).
+starts a template-id), but is not the special case for "generic <...".
 */
 {
   a_boolean     result = FALSE;
@@ -16585,6 +16585,9 @@ starts a template-id).
     a_symbol_locator  loc;
     loc = locator_for_curr_id;
     result = normal_id_lookup(&loc, IDL_MUST_BE_CLASS_OR_NAMESPACE) != NULL;
+  } else if (is_start_of_generic_decl()) {
+    /* We have "generic < class" or "generic < typename".  This is the
+       start of a generic declaration. */
   } else if (next_tok == tok_lt) {
     result = TRUE;
   }  /* if */
@@ -19603,6 +19606,7 @@ classes.
         }  /* if */
 #endif /* !ASM_FUNCTION_ALLOWED */
         if (C_dialect == C_dialect_cplusplus) {
+          a_boolean	is_generic = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_mode) {
             /* Scan any Microsoft attributes, and perhaps a leading
@@ -19659,7 +19663,9 @@ classes.
           /* Check for template declaration. */
           if (curr_token == tok_template || curr_token == tok_export ||
               (extern_template_allowed && curr_token == tok_extern &&
-               next_token() == tok_template)) {
+               next_token() == tok_template) ||
+               (cppcli_enabled &&
+                (is_generic = is_start_of_generic_decl()))) {
             /* A template declaration in a class may be a member template
                declaration or a friend declaration.  Explicit instantiations
                are not permitted in a class context.  The error for an
@@ -19679,6 +19685,9 @@ classes.
               /* In some modes "extern template ..." is permitted. */
               (void)get_token();
               td_flags = TDO_EXTERN;
+            } else if (is_generic) {
+              /* A C++/CLI generic declaration. */
+              td_flags |= TDO_GENERIC;
             }  /* if */
             template_directive_or_declaration(&final_token, td_flags,
                                               &directive_start_pos);

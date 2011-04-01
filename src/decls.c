@@ -14717,6 +14717,7 @@ indicates how processing should proceed after the call.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
+    a_boolean	is_generic = FALSE;
     if (curr_token == tok_extern && next_token() == tok_string_literal) {
       /* This looks like a C++ linkage specification, which is "extern"
          followed by a string literal (e.g., "C++" or "C"). */
@@ -14739,7 +14740,9 @@ indicates how processing should proceed after the call.
                curr_token == tok_export ||
                (((extern_template_allowed && curr_token == tok_extern) ||
                  (inline_template_allowed && curr_token == tok_inline)) &&
-                next_token() == tok_template)) {
+                next_token() == tok_template) ||
+                (cppcli_enabled &&
+                 (is_generic = is_start_of_generic_decl()))) {
       /* Do the processing required for a template declaration.  If this is
          a top level declaration, the subroutine should not advance past the
          final token of the declaration. */
@@ -14755,6 +14758,9 @@ indicates how processing should proceed after the call.
         /* In some modes "inline template ..." is permitted. */
         (void)get_token();
         td_flags = TDO_INLINE;
+      } else if (is_generic) {
+        /* A C++/CLI generic declaration. */
+        td_flags |= TDO_GENERIC;
       }  /* if */
       template_directive_or_declaration(final_token, td_flags,
                                         &directive_start_pos);

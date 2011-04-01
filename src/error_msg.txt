@@ -2152,6 +2152,8 @@ ec_cl_variadic_templates_only_in_cplusplus;;"variadic templates can be enabled o
 ec_conflicting_properties;;"property definition conflicts with %nd"
 ec_property_set;INTERNAL;"overloaded property"
 ec_property;INTERNAL;"property"
+ec_generic_param_cannot_have_default;;"a generic parameter cannot have a default"
+ec_bad_param_kind_for_generic;;"a generic can only have type parameters"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

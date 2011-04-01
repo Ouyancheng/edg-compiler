@@ -478,6 +478,7 @@ Initialize a template declaration state block.
   tdsp->is_template_template_param = FALSE;
   tdsp->is_template_template_param_rescan = FALSE;
   tdsp->is_variadic = FALSE;
+  tdsp->is_generic = FALSE;
   tdsp->export_position = null_source_position;
   tdsp->starting_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   tdsp->access = (an_access_specifier)as_public;
@@ -15126,7 +15127,7 @@ static void prescan_template_declaration(a_tmpl_decl_state_ptr decl_state,
 /*
 Scan the tokens of a template declaration and determine whether
 it is full specialization, and whether the token "friend" is used in
-the declaration.
+the declaration.  C++/CLI generic declarations cannot be specialized.
 
 skip_params is TRUE if this routine is being called a second time to
 when recaching the template declaration, but not the template parameter list.
@@ -15135,7 +15136,7 @@ cache the expected tokens.
 */
 {
   a_boolean		is_template_friend = FALSE;
-  a_boolean		is_full_specialization = TRUE;
+  a_boolean		is_full_specialization = !decl_state->is_generic;
   a_token_cache_ptr	p_cache;
 
   if (skip_params) {
@@ -15147,7 +15148,8 @@ cache the expected tokens.
   if (!skip_params) {
     /* See if the beginning of the declaration consists of template
        parameter clauses that are all of the form "template <>". */
-    while (curr_token == tok_template) {
+    while (curr_token == tok_template ||
+           (cppcli_enabled && is_start_of_generic_decl())) {
       (void)get_token();
       if (curr_token != tok_lt) continue;
       (void)get_token();
@@ -15642,7 +15644,8 @@ parameter entry for the parameter.
     scan_and_discard_extended_decl_modifiers();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (curr_token == tok_ellipsis && variadic_templates_enabled) {
+  if (curr_token == tok_ellipsis && variadic_templates_enabled &&
+      !decl_state->is_generic) {
     is_pack = TRUE;
     (void)get_token();
   }  /* if */
@@ -15694,6 +15697,11 @@ parameter entry for the parameter.
       /* A parameter pack cannot have a default argument.  Issue an error and
          ignore the default. */
       pos_error(ec_param_pack_cannot_have_default, &pos_curr_token);
+      ignore_default = TRUE;
+    } else if (decl_state->is_generic) {
+      /* A generic parameter cannot have a default argument.  Issue an
+         error and ignore the default. */
+      pos_error(ec_generic_param_cannot_have_default, &pos_curr_token);
       ignore_default = TRUE;
     }  /* if */
     /* Skip past the equals sign. */
@@ -16131,6 +16139,7 @@ to represent the template parameters.
      declarations. */
   do {
     a_symbol_kind  param_kind;
+    a_boolean      invalid_param = FALSE;
     /* If we've unexpectedly reached the end of the template parameter list,
        issue an error. */
     if (curr_token == tok_gt || curr_token == tok_end_of_source) {
@@ -16141,8 +16150,13 @@ to represent the template parameters.
     begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
     add_stop_token(tok_comma);
     first_tsn = curr_token_sequence_number;
-    /* Determine the kind of template parameter to be scanned. */
+    /* Determine the kind of template parameter to be scanned.  C++/CLI
+       generics can only have type parameters. */
     param_kind = determine_template_param_kind();
+    if (decl_state->is_generic && param_kind != (a_symbol_kind)sk_type) {
+      pos_error(ec_bad_param_kind_for_generic, &pos_curr_token);
+      invalid_param = TRUE;
+    }  /* if */
     if (param_kind == (a_symbol_kind)sk_type) {
       /* A type template parameter. */
       template_param = scan_type_template_param(decl_state,
@@ -16168,16 +16182,18 @@ to represent the template parameters.
       terminate_token_cache(&template_param->cache.tokens);
     }  /* if */
     end_caching_fetched_tokens();
-    /* Add the template param to the end of the list. */
-    if (template_param_list == NULL) {
-      template_param_list = template_param;
-      /* Update the parameters list of the template_decl_info for this
-         declaration scope. */
-      decl_state->decl_info->parameters = template_param_list;
-    } else {
-      end_of_template_param_list->next = template_param;
+    if (!invalid_param) {
+      /* Add the template param to the end of the list. */
+      if (template_param_list == NULL) {
+        template_param_list = template_param;
+        /* Update the parameters list of the template_decl_info for this
+           declaration scope. */
+        decl_state->decl_info->parameters = template_param_list;
+      } else {
+        end_of_template_param_list->next = template_param;
+      }  /* if */
+      end_of_template_param_list = template_param;
     }  /* if */
-    end_of_template_param_list = template_param;
     /* Make sure we are at the end of a template parameter. */
     if (curr_token != tok_comma && curr_token != tok_gt) {
       pos_error(ec_exp_comma_or_gt, &pos_curr_token);
@@ -18368,8 +18384,12 @@ Scan one or more template parameter lists of the form:
 	template < param-list    >
                              opt
 
-The parameter list can be empty for a specialization declaration.  Once
-a non-empty parameter list has been specified, all subsequent parameter
+or generic parameter lists of the form:
+
+	generic <param-list>
+
+The parameter list can be empty for a template specialization declaration.
+Once a non-empty parameter list has been specified, all subsequent parameter
 lists must by non-empty.
 
 This is used to scan the initial portion of template declarations and
@@ -18389,7 +18409,8 @@ information).  See the definition of a_tmpl_decl_state for details.
   /* Loop until there are no more template parameter clauses.  Note that
      this routine is not called for explicit instantiations, in which
      the template keyword is not followed by a parameter clause. */
-  while (curr_token == tok_template) {
+  while (curr_token == tok_template ||
+         (cppcli_enabled && is_start_of_generic_decl())) {
     /* The template parameter lists of template template parameters do not
        have nesting depths. */
     if (!is_template_param) decl_state->nesting_depth++;
@@ -18442,8 +18463,8 @@ information).  See the definition of a_tmpl_decl_state for details.
           }  /* if */
           decl_state->template_decl = template_decl;
         }  /* if */
-      } else if (is_template_param) {
-        /* A template parameter declaration with a missing template
+      } else if (is_template_param || decl_state->is_generic) {
+        /* A template or generic parameter declaration with a missing template
            parameter list. */
         error(ec_empty_template_param_list);
         /* Bypass the ">". */
@@ -20271,6 +20292,7 @@ differs between function and nonfunction declarations.
     decl_state->access = ssep->current_access;
     decl_state->is_variadic = ssep->in_variadic_template;
   }  /* if */
+  /* FIXME: a generic cannot be declared in a template. */
   if (decl_state->is_member_decl) {
     /* A member template cannot be declared in a local class. */
     if (ssep->inside_local_class && !decl_state->is_template_friend) {
@@ -20323,7 +20345,8 @@ differs between function and nonfunction declarations.
 static void template_or_specialization_declaration(
 				a_token_kind		*final_token,
 				a_boolean		export_present,
-				a_source_position	*export_pos)
+				a_source_position	*export_pos,
+				a_boolean		is_generic)
 /*
 Scan a template declaration of a template specialization declaration.
 
@@ -20336,16 +20359,17 @@ are either the specialization of a template or a template declaration.
 
 export_present is TRUE if the template keyword was preceded by "export".
 If export_present is TRUE, export_pos is the position of the export
-keyword.
+keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
 */
 {
   a_tmpl_decl_state		decl_state;
   a_def_arg_expr_fixup_ptr	saved_curr_default_args;
   a_scope_depth			orig_depth = depth_scope_stack;
 
-  check_assertion_str2(curr_token == tok_template,
+  check_assertion_str2(curr_token == tok_template ||
+                       (curr_token == tok_identifier && is_generic),
                        "template_or_specialization_declaration:",
-                       "expected tok_template");
+                       "expected tok_template or generic identifier");
   init_templ_decl_state(&decl_state);
   /* Note that select_curr_construct_pragmas is called in the caller.
      extract_curr_construct_pragmas is called to save the list of
@@ -20356,6 +20380,7 @@ keyword.
   decl_state.export_present = export_present;
   decl_state.export_position = *export_pos;
   decl_state.starting_token_sequence_number = curr_token_sequence_number;
+  decl_state.is_generic = is_generic;
   saved_curr_default_args = curr_default_args;
   curr_default_args = NULL;
   decl_state.in_prototype_instantiation =
@@ -20381,6 +20406,7 @@ keyword.
   /* Make sure that this template declaration is permitted in the current
      scope. */
   if (decl_state.effective_decl_level == NO_SCOPE_DEPTH) {
+    /* FIXME: different message for generics? */
     pos_error(ec_bad_template_declaration_scope,
               &decl_state.decl_parse.start_pos);
     decl_state.decl_scope_err = TRUE;
@@ -20393,6 +20419,7 @@ keyword.
              decl_state.class_declared_in
                                   ->variant.class_struct_union.is_interface) {
     /* Member templates should not appear in interface definitions. */
+    /* FIXME: different message for generics? */
     pos_error(ec_interface_cannot_have_member_templates,
               &decl_state.decl_parse.start_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -25464,10 +25491,12 @@ directive_start_pos points to the beginning of the directive or declaration
 {
   a_boolean		export_present = FALSE;
   a_source_position	export_pos;
+  a_boolean		is_generic = (options & TDO_GENERIC) != 0;
 
   db_enter(3, "template_directive_or_declaration");
   export_pos = null_source_position;
-  check_assertion(curr_token == tok_template || curr_token == tok_export);
+  check_assertion(curr_token == tok_template || curr_token == tok_export ||
+                  (curr_token == tok_identifier && is_generic));
   /* Templates are outside the "Embedded C++" subset. */
   feature_is_not_part_of_embedded_cplusplus_subset(
                                           &pos_curr_token,
@@ -25493,7 +25522,7 @@ directive_start_pos points to the beginning of the directive or declaration
     }  /* if */
     (void)get_token();
   }  /* if */
-  if (curr_token != tok_template) {
+  if (curr_token != tok_template && !is_generic) {
     /* An export keyword not followed by "template". */
     add_stop_token(tok_semicolon);
     add_stop_token(tok_rbrace);
@@ -25534,7 +25563,7 @@ directive_start_pos points to the beginning of the directive or declaration
     }  /* if */
     /* Scan the declaration. */
     template_or_specialization_declaration(final_token, export_present,
-                                           &export_pos);
+                                           &export_pos, is_generic);
     if (err) {
       /* Restore the linkage. */
       ssep->default_name_linkage = saved_name_linkage;
@@ -25766,6 +25795,32 @@ that routine for how this routine differs from advance_to_next_template_arg.
   *tpp = (*tpp)->next;
 }  /* special_variadic_advance_to_next_template_arg */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean is_start_of_generic_decl(void)
+/*
+Return TRUE if we are at the start of a C++/CLI generic declaration.
+
+A generic declaration begins with the unqualified identifier "generic"
+followed by "<" and then the class or typename keyword.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (curr_token == tok_identifier &&
+      !locator_for_curr_id.is_qualified_name &&
+    symbol_header_is_for_identifier_string(locator_for_curr_id.symbol_header,
+                                           "generic")) {
+    a_token_kind	second_token;
+    (void)next_two_tokens(tok_lt, &second_token);
+    if (second_token == tok_class || second_token == tok_typename) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_start_of_generic_decl */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if DEBUG
 unsigned long db_show_template_space_used(unsigned long grand_total)
