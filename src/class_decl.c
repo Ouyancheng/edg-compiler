@@ -19665,7 +19665,7 @@ classes.
               (extern_template_allowed && curr_token == tok_extern &&
                next_token() == tok_template) ||
                (cppcli_enabled &&
-                (is_generic = is_start_of_generic_decl()))) {
+                (is_generic = is_start_of_generic_decl()/*lint --e(820)*/))) {
             /* A template declaration in a class may be a member template
                declaration or a friend declaration.  Explicit instantiations
                are not permitted in a class context.  The error for an
