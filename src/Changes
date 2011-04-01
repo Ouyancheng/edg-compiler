@@ -1,5 +1,21 @@
 Version 4.4
 
+4/1/11   [EDGcpfe/11597]
+Spurious remark on second argument to main when configuration uses signed chars
+
+When the configuration uses signed chars as the default (e.g., in Microsoft C
+emulation mode), a spurious remark had been issued for the second argument
+to main, even when it had the correct type.  For example (with --microsoft --c
+--remarks):
+
+  int main(int argc, char **argv) {
+  // had issued:
+  // remark: nonstandard second parameter "char **" of
+  //        "main", expected "char *[]" or "char **"
+    return 0;
+  }
+
+
 3/31/11  [EDGcpfe/11596]
 Failure to diagnose ambiguity on certain variadic templates
 

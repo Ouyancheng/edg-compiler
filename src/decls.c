@@ -13341,7 +13341,7 @@ diagnostics.
       if (is_pointer_type(ptp->type)) {
         a_type_ptr targ_type = type_pointed_to(ptp->type);
         if (is_pointer_type(targ_type)) {
-          a_type_ptr char_type = integer_type((an_integer_kind)ik_char);
+          a_type_ptr char_type = integer_type(plain_char_int_kind);
           targ_type = type_pointed_to(targ_type);
           if (identical_types(targ_type, char_type)) {
             p2type_is_correct = TRUE;
