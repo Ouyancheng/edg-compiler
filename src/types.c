@@ -1130,9 +1130,9 @@ Return TRUE if the given type is a C++/CLI delegate type.
 }  /* is_delegate_type */
 
 
-a_type_ptr delegate_invocation_type(a_type_ptr delegate_type)
+a_routine_ptr delegate_invocation_function(a_type_ptr delegate_type)
 /*
-Given a delegate class type, return the associated function type.
+Given a delegate class type, return its Invoke function.
 */
 {
   a_routine_ptr  rp;
@@ -1144,6 +1144,17 @@ Given a delegate class type, return the associated function type.
     check_assertion(name != NULL && strcmp(name, "Invoke") == 0);
   }
 #endif /* CHECKING */
+  return rp;
+}  /* delegate_invocation_function */
+
+
+a_type_ptr delegate_invocation_type(a_type_ptr delegate_type)
+/*
+Given a delegate class type, return the associated function type.
+*/
+{
+  a_routine_ptr rp = delegate_invocation_function(delegate_type);
+
   return rp->type;
 }  /* delegate_invocation_type */
 

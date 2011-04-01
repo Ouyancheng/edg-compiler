@@ -4012,10 +4012,24 @@ are expected to be NULL in that case.
         do_operand_transformations(bound_function_selector, TOPT_NO_OPTIONS);
         bound_function_selector->selector_is_object_pointer = TRUE;
       }  /* if */
-      /* See if the class has an operator(). */
-      member_function_symbol = opname_member_function_symbol(
-                                        (an_opname_kind)onk_function_call,
-                                        class_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled && is_delegate_type(class_type)) {
+        /* A C++/CLI delegate class object can be invoked.  Its Invoke
+           function is called. */
+        a_routine_ptr invoke_rout = delegate_invocation_function(class_type);
+        member_function_symbol = symbol_for(invoke_rout);
+        /* A delegate doesn't have surrogate functions, so don't bother
+           looking for them. */
+        try_surrogate_functions = FALSE;
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        /* See if the class has an operator(). */
+        member_function_symbol = opname_member_function_symbol(
+                                          (an_opname_kind)onk_function_call,
+                                          class_type);
+      }  /* if */
       if (member_function_symbol != NULL) {
         /* There is an operator() function.  The operand has become
            the selector object, and the function call operator routine
