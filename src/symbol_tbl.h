@@ -3953,7 +3953,6 @@ extern void make_symbol_for_cli_array(void);
 extern void make_symbol_for_cli_interior_ptr(void);
 extern void make_symbol_for_cli_pin_ptr(void);
 extern void make_symbol_for_namespace_system(void);
-extern void make_symbol_for_namespace_system_collections(void);
 extern void init_symbols_for_cli_system_types(void);
 extern void init_cli_symbol_corresponding_basic_types(void);
 extern void make_symbols_for_system_string_operators(void);

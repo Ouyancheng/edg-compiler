@@ -3556,9 +3556,11 @@ semantic checks.
         field = symbol->variant.field.ptr;
         check_assertion(field->property_or_event_descr != NULL);
         if ((field->property_or_event_descr->is_trivial ||
-             (field->property_or_event_descr->kind == pek_declspec_property &&
+             (field->property_or_event_descr->kind ==
+                             (a_property_or_event_kind)pek_declspec_property &&
               field->property_or_event_descr->get_routine.name != NULL) ||
-             (field->property_or_event_descr->kind == pek_cli_property &&
+             (field->property_or_event_descr->kind ==
+                                  (a_property_or_event_kind)pek_cli_property &&
               field->property_or_event_descr->get_routine.ptr != NULL)) &&
             field->property_or_event_descr->indices == NULL) {
           /* The field meets the non-access requirements. */

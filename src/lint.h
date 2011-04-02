@@ -685,6 +685,19 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_conflicting_properties)*/
 /*lint -esym(769,ec_property_set)*/
 /*lint -esym(769,ec_property)*/
+/*lint -esym(769,ec_for_each_missing_function)*/
+/*lint -esym(769,ec_for_each_function_takes_args)*/
+/*lint -esym(769,ec_for_each_function_const_violation)*/
+/*lint -esym(769,ec_for_each_function_access_violation)*/
+/*lint -esym(769,ec_for_each_static_function)*/
+/*lint -esym(769,ec_for_each_no_matching_overload)*/
+/*lint -esym(769,ec_for_each_invalid_return_type_for_move_next)*/
+/*lint -esym(769,ec_for_each_incompatible_type)*/
+/*lint -esym(769,ec_for_each_incompatible_iterator)*/
+/*lint -esym(769,ec_for_each_missing_field)*/
+/*lint -esym(769,ec_for_each_inaccessible_field)*/
+/*lint -esym(769,ec_for_each_getenumerator_return_type_invalid)*/
+/*lint -esym(769,ec_exp_in)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(759,basic_type_from_system_type)*/
@@ -701,6 +714,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_string)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_delegate)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_none)*/
+/*lint -esym(769,a_cli_symbol_kind_tag::csk_system_idisposable)*/
+/*lint -esym(769,a_cli_symbol_kind_tag::csk_system_gc)*/
 
 #endif /* ifndef LINT_H */
 
