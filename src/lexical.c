@@ -15148,18 +15148,18 @@ is preferred over the normal lookup symbol.
        type that acts like a template (array, interior_ptr, pin_ptr). */
     a_symbol_header_ptr sym_hdr = locator_for_curr_id.symbol_header;
     if (sym_hdr != NULL) {
-      if (symbol_for_cli_array != NULL &&
-          sym_hdr == symbol_for_cli_array->header) {
+      check_assertion(cli_symbol_from_kind(csk_cli_array) != NULL &&
+                      cli_symbol_from_kind(csk_interior_ptr) != NULL &&
+                      cli_symbol_from_kind(csk_pin_ptr) != NULL);
+      if (sym_hdr == cli_symbol_from_kind(csk_cli_array)->header) {
         /* Fall back to cli::array.  ECMA-372 $24.1. */
-        sym = symbol_for_cli_array;
-      } else if (symbol_for_cli_interior_ptr != NULL &&
-                 sym_hdr == symbol_for_cli_interior_ptr->header) {
+        sym = cli_symbol_from_kind(csk_cli_array);
+      } else if (sym_hdr == cli_symbol_from_kind(csk_interior_ptr)->header) {
         /* Fall back to cli::interior_ptr.  ECMA-372 $12.3.6. */
-        sym = symbol_for_cli_interior_ptr;
-      } else if (symbol_for_cli_pin_ptr != NULL &&
-                 sym_hdr == symbol_for_cli_pin_ptr->header) {
+        sym = cli_symbol_from_kind(csk_interior_ptr);
+      } else if (sym_hdr == cli_symbol_from_kind(csk_pin_ptr)->header) {
         /* Fall back to cli::pin_ptr.  ECMA-372 $12.3.7. */
-        sym = symbol_for_cli_pin_ptr;
+        sym = cli_symbol_from_kind(csk_pin_ptr);
       }  /* if */
     }  /* if */
   }  /* if */

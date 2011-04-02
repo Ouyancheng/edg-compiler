@@ -3142,7 +3142,7 @@ the scope being pushed.
          a declaration from metadata. */ 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    } else if (symbol_for_namespace_cli != NULL && assoc_type != NULL &&
+    } else if (cli_symbols[csk_cli_namespace] != NULL && assoc_type != NULL &&
                is_member_of_namespace_cli(assoc_type)) {
       /* Do not generate source sequence entries for members of namespace
          "cli".  Only generated declarations can live in that namespace;

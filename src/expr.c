@@ -25105,7 +25105,8 @@ is TRUE if this is the expression in a switch statement.
 
 an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop,
                                       a_boolean marked_as_gnu_extension,
-                                      a_boolean is_statement_expr)
+                                      a_boolean is_statement_expr,
+                                      a_boolean is_for_each_expr)
 /*
 Scan a "void expression," i.e., one whose value is discarded.  This is
 used for expression statements, the increment expression of a "for", etc.
@@ -25118,7 +25119,8 @@ preceded by the GNU __extension__ keyword.  is_statement_expr is
 TRUE if this expression is being scanned as a statement inside a
 GNU statement expression.  Issue a warning for an expression that has
 no side effects unless this expression is the last in a statement
-expression.
+expression.  is_for_each_expr is TRUE if this is the iterated expression
+in a "for each" statement, and in this case no warning is issued.
 */
 {
   an_expr_node_ptr    expression;
@@ -25145,11 +25147,27 @@ expression.
     /* This is the last statement in a GNU statement expression.
        As such, it is the value of the expression. */
     result_used = TRUE;
+  } else if (is_for_each_expr) {
+    /* This is the assignment-expression portion of a "for each" statement
+       (see ECMA-372 16.2).  We can consider the result used. */
+    result_used = TRUE;
   }  /* if */
   if (!result_used) {
     process_void_operand(&result);
   } else {
-    do_void_operand_transformations(&result, /*force_lvalue_to_rvalue=*/TRUE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_for_each_expr) {
+      /* If we are scanning "for each" expressions, we don't want to have the
+         array type decay to a pointer type. */
+      do_operand_transformations(&result,
+                                 TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION);
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      do_void_operand_transformations(&result,
+                                      /*force_lvalue_to_rvalue=*/TRUE);
+    }  /* if */
   }  /* if */
   expression = make_node_from_void_expression_operand(&result);
   expression = wrap_up_full_expression(expression);
@@ -29116,6 +29134,167 @@ of this where the source should be considered an rvalue.
   restore_expr_stack(saved_expr_stack);
   return result;
 }  /* compute_is_convertible */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean for_each_iteration_variable_conversion_possible(
+                                     a_type_ptr        collection_element_type,
+                                     a_variable_ptr    iteration_variable,
+                                     a_source_position *pos)
+/*
+This routine determines if, in the context of a "for each" statement, the
+specified iteration variable type can accept the specified element type from
+the collection expression.  ECMA-372 specifies that this conversion takes the
+form of a safe_cast<> expression in 16.2.1.  An implicit conversion
+constructor, or assignment operator defined in iteration_variable_type is not
+considered.  Only a suitable conversion operator defined in
+collection_element_type will satisfy this check.
+
+FIXME: SAFE_CAST according to ECMA-372 16.2.1 this should be a safe_cast<>
+operation and not a static_cast<>; at the time of writing there was no
+safe_cast support yet.
+*/
+{
+  a_boolean            possible = FALSE, cast_to_reference;
+  a_boolean            allow_rvalue_on_rewrite;
+  a_boolean            err = FALSE;
+  a_boolean            processed = FALSE;
+  an_operand           operand;
+  an_expr_stack_entry  expr_stack_entry;
+  an_error_severity    saved_error_threshold;
+  a_type_ptr           type_cast_to, adj_type_cast_to;
+  a_type_ptr           source_type, adj_source_type;
+  an_error_code        warning_suggested;
+
+  /* Mark the variable as initialized. */
+  iteration_variable->init_kind = (an_init_kind)initk_zero;
+  /* Check if the variable in question is declared with type "auto". */
+  if (iteration_variable->declared_with_auto_type_specifier) {
+    /* Set the type. */
+    iteration_variable->type = skip_typedefs(collection_element_type);
+    possible = TRUE;
+    goto end_of_routine;
+  }  /* if */
+  /* Disable any errors for the duration of the check.  The error is issued
+     in the parent function. */
+  saved_error_threshold = error_threshold;
+  error_threshold = es_catastrophe;
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  type_cast_to = iteration_variable->type;
+  source_type = collection_element_type;
+  make_dummy_lvalue_operand(source_type, &operand);
+  operand.position = *pos;
+  cast_to_reference = is_any_reference_type(type_cast_to);
+  /* Check for user-defined conversions and casts to reference type. */
+  check_user_defined_conversions_for_cast(type_cast_to, &operand,
+                                          csf_static_cast, pos,
+                                          &allow_rvalue_on_rewrite,
+                                          &processed, &err);
+  if (processed) {
+    if (!err) {
+      /* User-defined conversions possible. */
+      possible = TRUE;
+    }  /* if */
+  } else {
+    /* No user-defined conversion applies. */
+    /* Get the source type after the transformations. */
+    adj_source_type = source_type = operand.type;
+    adj_type_cast_to = type_cast_to;
+    if (cast_to_reference) {
+      /* Determine the types to be used for checking a reference cast
+         if we pretend it has been rewritten as a pointer cast. */
+      set_up_cast_to_reference(type_cast_to, &operand,
+                               allow_rvalue_on_rewrite,
+                               csf_static_cast,
+                               pos,
+                               &adj_type_cast_to,
+                               &adj_source_type,
+                               &processed);
+    }  /* if */
+    /* Check for different types of casts and do the cast. */
+    if (processed) {
+      if (!is_error_operand(&operand)) {
+        possible = TRUE;
+      }  /* if */
+    } else if (static_cast_conversion_possible(
+                                      adj_source_type,
+                                      /*source_is_constant=*/FALSE,
+                                      /*source_is_string_literal=*/FALSE,
+                                      /*source_constant=*/(a_constant *)NULL,
+                                      adj_type_cast_to,
+                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                      /*default_warning_code=*/ec_no_error,
+                                      &warning_suggested)) {
+      possible = TRUE;
+    }  /* if */
+  }  /* if */
+  pop_expr_stack();
+  /* Restore error threshold. */
+  error_threshold = saved_error_threshold;
+end_of_routine:
+  return possible;
+}  /* for_each_iteration_variable_conversion_possible */
+
+
+a_boolean check_for_each_user_defined_operator(
+                                       an_opname_kind            kind,
+                                       a_type_ptr                class_type,
+                                       a_type_ptr                param_type,
+                                       a_source_position         *position,
+                                       a_token_sequence_number   seq_number,
+                                       a_nondependent_call_depth call_depth,
+                                       a_type_ptr                *return_type)
+/*
+This routine is used to determine if there is an operator *, ++, or != (denoted
+by kind) which operates on class_type and param_type.  In the case of the
+unary operands * and ++, param_type is NULL.  "position" gives the operator
+source position.  seq_number gives the token sequence number of the operator.
+call_depth is usually zero, but if non-zero is a disambiguator for seq_number.
+*return_type is set to the resulting type returned by the operator, if one is
+found (and is unset otherwise).  The routine returns TRUE if an operator is
+found and passes all semantic checks.
+*/
+{
+  a_boolean            unary_operator, processed, retval = FALSE;
+  an_operand           operand_1, operand_2, result, *operand_2_ptr;
+  an_expr_stack_entry  expr_stack_entry;
+
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  /* Build dummy operands. */
+  make_dummy_lvalue_operand(class_type, &operand_1);
+  if (param_type) {
+    make_dummy_lvalue_operand(param_type, &operand_2);
+    operand_2_ptr = &operand_2;
+    unary_operator = FALSE;
+  } else {
+    operand_2_ptr = &operand_2;
+    unary_operator = TRUE;
+  }  /* if */
+  /* Look for the operator. */
+  check_for_operator_overloading(kind,
+                                 unary_operator,
+                                 /*must_be_member_function=*/FALSE,
+                                 /*try_conversions=*/TRUE,
+                                 /*has_predef_meaning=*/
+                                                  is_enum_type(operand_1.type),
+                                 &operand_1, operand_2_ptr,
+                                 position, seq_number, call_depth,
+                                 (a_source_position *)NULL,
+                                 &result, &processed);
+  if (processed && !is_error_operand(&result)) {
+    /* Found operator. */
+    *return_type = result.type;
+    retval = TRUE;
+  }  /* if */
+  pop_expr_stack();
+  return retval;
+}  /* check_for_each_user_defined_operator */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 /******************************************************************************

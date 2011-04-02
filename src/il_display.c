@@ -4173,6 +4173,33 @@ do_label:
                  iek_scope);
       }  /* if */
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case stmk_for_each:
+      (void)printf("stmk_for_each\n");
+      disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
+      if (ptr->variant.for_each_loop.extra_info->
+                                        uses_for_each_cli_collection_pattern) {
+        disp_boolean("uses_for_each_cli_collection_pattern", TRUE);
+      }  /* if */
+      if (ptr->variant.for_each_loop.extra_info->
+                                       implements_for_each_system_collection) {
+        disp_boolean("implements_for_each_system_collection", TRUE);
+      }  /* if */
+      if (ptr->variant.for_each_loop.extra_info->
+                                        uses_for_each_stl_collection_pattern) {
+        disp_boolean("uses_for_each_stl_collection_pattern", TRUE);
+      }  /* if */
+      if (ptr->variant.for_each_loop.extra_info->uses_for_each_array_pattern) {
+        disp_boolean("uses_for_each_array_pattern", TRUE);
+      }  /* if */
+      disp_ptr("statement",
+               (char *)ptr->variant.for_each_loop.statement,
+               iek_statement);
+      disp_ptr("iterator",
+               (char *)ptr->variant.for_each_loop.extra_info->iterator,
+               iek_variable);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case stmk_switch_case:
       (void)printf("stmk_switch_case\n");
       disp_ptr("switch_statement",
@@ -6116,6 +6143,9 @@ This routine is called during IL walking.
     case iek_microsoft_try_supplement:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case iek_for_loop:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case iek_for_each_loop:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case iek_derivation_step:
     case iek_class_list_entry:
     case iek_routine_list_entry:

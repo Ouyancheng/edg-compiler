@@ -1666,6 +1666,14 @@ do_set_proper_definition_needed_flag:
 #endif /* UPC_EXTENSIONS_ALLOWED */
       }
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case iek_for_each_loop:
+      {
+        a_for_each_loop_ptr ptr = (a_for_each_loop_ptr)entry_ptr;
+        walk_ptr(ptr->iterator, a_variable_ptr, iek_variable);
+      }
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case iek_switch_case_entry:
       {
         a_switch_case_entry_ptr ptr = (a_switch_case_entry_ptr)entry_ptr;
@@ -1826,6 +1834,14 @@ do_set_proper_definition_needed_flag:
             walk_ptr(ptr->variant.for_loop.statement, a_statement_ptr,
                      iek_statement);
             break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          case stmk_for_each:
+            walk_ptr(ptr->variant.for_each_loop.extra_info,
+                     a_for_each_loop_ptr, iek_for_each_loop);
+            walk_ptr(ptr->variant.for_each_loop.statement,
+                     a_statement_ptr, iek_statement);
+            break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           case stmk_switch_case:
             remap_ptr_not_needed(ptr->variant.switch_case.switch_statement,
                                  a_statement_ptr, iek_statement);
@@ -3327,6 +3343,10 @@ of each kind.
   walk_orphan_entry_list_for_entry_kind(a_label_ptr, iek_label);
   walk_orphan_entry_list_for_entry_kind(an_expr_node_ptr, iek_expr_node);
   walk_orphan_entry_list_for_entry_kind(a_for_loop_ptr, iek_for_loop);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  walk_orphan_entry_list_for_entry_kind(a_for_each_loop_ptr,
+                                        iek_for_each_loop);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   walk_orphan_entry_list_for_entry_kind(a_switch_case_entry_ptr,
                                         iek_switch_case_entry);
   walk_orphan_entry_list_for_entry_kind(a_switch_stmt_descr_ptr,

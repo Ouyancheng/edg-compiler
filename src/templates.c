@@ -5541,10 +5541,10 @@ issue an error at the given position.
 {
   a_boolean  result;
 
-  if (template_sym == symbol_for_cli_array) {
+  if (template_sym == cli_symbol_from_kind(csk_cli_array)) {
     result = is_valid_cli_array_instantiation(template_arg_list, diag_pos);
-  } else if (template_sym == symbol_for_cli_interior_ptr ||
-             template_sym == symbol_for_cli_pin_ptr) {
+  } else if (template_sym == cli_symbol_from_kind(csk_interior_ptr) ||
+             template_sym == cli_symbol_from_kind(csk_pin_ptr)) {
     result = is_valid_cli_special_ptr_instantiation(
                                                  template_arg_list, diag_pos);
   } else {
@@ -5937,7 +5937,7 @@ is returned.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (class_template_sym == symbol_for_cli_array) {
+  if (class_template_sym == cli_symbol_from_kind(csk_cli_array)) {
     /* This is a C++/CLI array type. */
     ctsp->is_cli_array = TRUE;
   }  /* if */
@@ -13399,7 +13399,7 @@ initially used when processing the declaration of a partial specialization.
       prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
       prototype_ctsp->assoc_template = decl_state->il_template_entry;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (sym == symbol_for_cli_array) {
+      if (sym == cli_symbol_from_kind(csk_cli_array)) {
         /* This is a C++/CLI array type. */
         prototype_ctsp->is_cli_array = TRUE;
       }  /* if */

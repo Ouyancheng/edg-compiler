@@ -6639,10 +6639,12 @@ Predeclare namespace "cli".  This namespace is used in C++/CLI mode.
 */
 {
   a_symbol_locator locator;
+  a_symbol_ptr     symbol = NULL;
 
   clear_locator(&locator, &null_source_position);
-  make_symbol_for_predeclared_namespace("cli", &symbol_for_namespace_cli);
-  enter_symbol_for_namespace(symbol_for_namespace_cli, &locator);
+  make_symbol_for_predeclared_namespace("cli", &symbol);
+  enter_symbol_for_namespace(symbol, &locator);
+  cli_symbols[csk_cli_namespace] = symbol;
 }  /* make_symbol_for_namespace_cli */
 
 
@@ -6652,11 +6654,12 @@ Predeclare namespace "System".  This namespace is used in C++/CLI mode.
 */
 {
   a_symbol_locator locator;
+  a_symbol_ptr     symbol = NULL;
 
   clear_locator(&locator, &null_source_position);
-  make_symbol_for_predeclared_namespace("System",
-                                        &symbol_for_namespace_system);
-  enter_symbol_for_namespace(symbol_for_namespace_system, &locator);
+  make_symbol_for_predeclared_namespace("System", &symbol);
+  enter_symbol_for_namespace(symbol, &locator);
+  cli_symbols[csk_system_namespace] = symbol;
 }  /* make_symbol_for_namespace_system */
 
 
@@ -6692,7 +6695,7 @@ cli::array or cli::interior_ptr.
   a_symbol_ptr                     result_sym;
 
   scan_top_level_metadata_declarations(definition_string);
-  ns_ptr = symbol_for_namespace_cli->variant.namespace_info.ptr;
+  ns_ptr = cli_symbols[csk_cli_namespace]->variant.namespace_info.ptr;
   result_sym = look_up_name_string_in_namespace(symbol_name, ns_ptr);
   check_assertion(result_sym->kind == (a_symbol_kind)sk_class_template);
   tssp = result_sym->variant.template_info;
@@ -6708,16 +6711,16 @@ from ECMA-372, subsection 8.2.3.)
 */
 {
  /* Create cli::array in two parts.  First, declare the template without
-    defining it to ensure symbol_for_cli_array is set before the
+    defining it to ensure cli_symbols[csk_cli_array] is set before the
     prototype instantiation of cli::array is done.  Then complete the
     definition. */
- symbol_for_cli_array = make_cli_internal_template("array",
+  cli_symbols[csk_cli_array] = make_cli_internal_template("array",
      "namespace cli {"
      "  template <typename T, int rank = 1>"
      "  ref class array;"
      "}"
    );
- scan_top_level_metadata_declarations(
+  scan_top_level_metadata_declarations(
      "namespace cli {"
      "  template <typename T, int rank>"
      "  ref class array sealed : System::Array {};"
@@ -6731,7 +6734,7 @@ void make_symbol_for_cli_interior_ptr(void)
 Declare and define the C++/CLI type "cli::interior_ptr".
 */
 {
-  symbol_for_cli_interior_ptr = make_cli_internal_template("interior_ptr",
+  cli_symbols[csk_interior_ptr] = make_cli_internal_template("interior_ptr",
       "namespace cli {"
       "  template <typename Type>"
       "  __internal_alias_decl interior_ptr ="
@@ -6746,7 +6749,7 @@ void make_symbol_for_cli_pin_ptr(void)
 Declare and define the C++/CLI type "cli::pin_ptr".
 */
 {
-  symbol_for_cli_pin_ptr = make_cli_internal_template("pin_ptr",
+  cli_symbols[csk_pin_ptr] = make_cli_internal_template("pin_ptr",
       "namespace cli {"
       "  template <typename Type>"
       "  __internal_alias_decl pin_ptr ="
@@ -6879,9 +6882,10 @@ Look up various C++/CLI system types and cache them in their corresponding
 global pointers.  This function assumes that mscorlib.dll has been imported.
 */
 {
-  a_namespace_ptr ns_ptr = symbol_for_namespace_system->
-                                                   variant.namespace_info.ptr;
+  a_symbol_ptr    ns_sym;
+  a_namespace_ptr ns_ptr;
   int             csk;
+  char            *name;
 
 #if CHECKING
   /* Check that the a_cli_symbol_kind_tag enumeration is correctly defined. */
@@ -6892,22 +6896,26 @@ global pointers.  This function assumes that mscorlib.dll has been imported.
          "init_symbols_for_cli_system_types: incorrect a_cli_symbol_kind_tag");
   }  /* if */
   /* Check that the cli_symbol_names array is correctly initialized. */
-  if (cli_symbol_names[(int)csk_last] == NULL ||
-      strcmp(cli_symbol_names[(int)csk_last], "last") != 0) {
+  if (cli_symbol_names[(int)csk_last].name == NULL ||
+      strcmp(cli_symbol_names[(int)csk_last].name, "last") != 0) {
     internal_error(
               "init_symbols_for_cli_system_types: incorrect cli_symbol_names");
   }  /* if */
 #endif /* CHECKING */
   /* Initialize the symbols in the cli_symbols array. */
-  for (csk = 0; csk < (int)csk_last; csk++) {
-    if (cli_symbol_names[csk] != NULL) {
-      check_assertion(*cli_symbol_names[csk] != '\0');
-      cli_symbols[csk] = look_up_name_string_in_namespace(
-                                                         cli_symbol_names[csk],
-                                                         ns_ptr);
+  for (csk = (int)csk_first; csk < (int)csk_last; csk++) {
+    name = cli_symbol_names[csk].name;
+    if (name != NULL) {
+      check_assertion(*name != '\0');
+      check_assertion(is_namespace_symbol(
+                           cli_symbols[cli_symbol_names[csk].namespace_kind]));
+      /* Get the symbol for the parent namespace. */
+      ns_sym = cli_symbols[cli_symbol_names[csk].namespace_kind];
+      ns_ptr = ns_sym->variant.namespace_info.ptr;
+      cli_symbols[csk] = look_up_name_string_in_namespace(name, ns_ptr);
       if (cli_symbols[csk] == NULL) {
-        str_catastrophe(ec_cli_system_entity_not_loaded,
-                        cli_symbol_names[csk]);
+        /* The symbol wasn't found in the parent namespace. */
+        str_catastrophe(ec_cli_entity_not_loaded, name);
       }  /* if */
     }  /* if */
   }  /* for */
@@ -13982,11 +13990,6 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(symbol_for_namespace_std),
       pch_saved_var_array_elem(symbol_for_namespace_std_entered),
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      pch_saved_var_array_elem(symbol_for_namespace_cli),
-      pch_saved_var_array_elem(symbol_for_cli_array),
-      pch_saved_var_array_elem(symbol_for_cli_interior_ptr),
-      pch_saved_var_array_elem(symbol_for_cli_pin_ptr),
-      pch_saved_var_array_elem(symbol_for_namespace_system),
       pch_array_saved_var_array_elem(cli_symbols),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(va_list_global_alias_has_been_created),
@@ -14061,11 +14064,6 @@ are handled in symbol_tbl_init.)
   register_trans_unit_variable(symbol_for_namespace_std);
   register_trans_unit_variable(symbol_for_namespace_std_entered);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  register_trans_unit_variable(symbol_for_namespace_cli);
-  register_trans_unit_variable(symbol_for_cli_array);
-  register_trans_unit_variable(symbol_for_cli_interior_ptr);
-  register_trans_unit_variable(symbol_for_cli_pin_ptr);
-  register_trans_unit_variable(symbol_for_namespace_system);
   register_trans_unit_array(cli_symbols),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   register_trans_unit_variable(va_list_global_alias_has_been_created);
@@ -14108,11 +14106,6 @@ given translation unit.
   symbol_for_namespace_std = NULL;
   symbol_for_namespace_std_entered = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  symbol_for_namespace_cli = NULL;
-  symbol_for_cli_array = NULL;
-  symbol_for_cli_interior_ptr = NULL;
-  symbol_for_cli_pin_ptr = NULL;
-  symbol_for_namespace_system = NULL;
   memzero((char *)cli_symbols, sizeof(cli_symbols));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   va_list_global_alias_has_been_created = FALSE;

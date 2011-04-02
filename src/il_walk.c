@@ -2122,6 +2122,9 @@ running them through the indicated remapping function.
   remap_orphan_entry_first(iek_label);
   remap_orphan_entry_first(iek_expr_node);
   remap_orphan_entry_first(iek_for_loop);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  remap_orphan_entry_first(iek_for_each_loop);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   remap_orphan_entry_first(iek_switch_case_entry);
   remap_orphan_entry_first(iek_switch_stmt_descr);
   remap_orphan_entry_first(iek_handler);
@@ -2217,6 +2220,9 @@ running them through the indicated remapping function.
   remap_orphan_entry_last(iek_label);
   remap_orphan_entry_last(iek_expr_node);
   remap_orphan_entry_last(iek_for_loop);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  remap_orphan_entry_last(iek_for_each_loop);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   remap_orphan_entry_last(iek_switch_case_entry);
   remap_orphan_entry_last(iek_switch_stmt_descr);
   remap_orphan_entry_last(iek_handler);
@@ -3334,6 +3340,18 @@ as specified in the control block.
 #endif /* UPC_EXTENSIONS_ALLOWED */
       }
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case stmk_for_each:
+      if (statement->expr != NULL) {
+        traverse_expr(statement->expr, tblock);
+        if (tblock->terminate) goto end_of_routine;
+      }  /* if */
+      if (statement->variant.for_each_loop.statement != NULL) {
+        traverse_statement(statement->variant.for_each_loop.statement, tblock);
+        if (tblock->terminate) goto end_of_routine;
+      }  /* if */
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case stmk_switch_case:
       {
         if (tblock->process_non_dynamic_constants) {

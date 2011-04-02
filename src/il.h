@@ -913,6 +913,8 @@ extern a_type_ptr cli_system_object_type(void);
 
 extern a_type_ptr cli_system_value_type(void);
 
+extern a_type_ptr cli_collections_ienumerable_type(void);
+
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 extern a_boolean f_is_member_of_namespace_cli(a_source_correspondence  *scp);
 

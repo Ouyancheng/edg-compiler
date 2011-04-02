@@ -3168,6 +3168,9 @@ fields to default values.
 {
   a_block_ptr          bp;
   a_for_loop_ptr       flip;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_for_each_loop_ptr  felp;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_try_supplement_ptr tsp;
 
   sp->kind = stmt_kind;
@@ -3215,6 +3218,18 @@ fields to default values.
       flip->affinity = NULL;
 #endif /* UPC_EXTENSIONS_ALLOWED */
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case stmk_for_each:
+      sp->variant.for_each_loop.statement = NULL;
+      sp->variant.for_each_loop.extra_info = felp =
+                      (a_for_each_loop_ptr)alloc_cil(sizeof(a_for_each_loop));
+      felp->iterator = NULL;
+      felp->uses_for_each_cli_collection_pattern = FALSE;
+      felp->implements_for_each_system_collection = FALSE;
+      felp->uses_for_each_stl_collection_pattern = FALSE;
+      felp->uses_for_each_array_pattern = FALSE;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case stmk_switch_case:
       sp->variant.switch_case.switch_statement = NULL;
       sp->variant.switch_case.extra_info       = NULL;

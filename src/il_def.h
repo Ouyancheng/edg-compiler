@@ -477,6 +477,9 @@ typedef enum /*an_il_entry_kind*/ {
   iek_label,		/* a_label */
   iek_expr_node,	/* an_expr_node */
   iek_for_loop,         /* a_for_loop */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  iek_for_each_loop,    /* a_for_each_loop */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   iek_switch_case_entry,
                         /* a_switch_case_entry */
   iek_switch_stmt_descr,
@@ -654,6 +657,9 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_label */				"label",
 /* iek_expr_node */			"expr-node",
 /* iek_for_loop */			"for-loop",
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/* iek_for_each_loop */			"for-each-loop",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* iek_switch_case_entry */		"switch-case-entry",
 /* iek_switch_stmt_descr */		"switch-stmt-descr",
 /* iek_handler */			"handler",
@@ -952,6 +958,7 @@ typedef enum /*a_token_kind*/ {
   tok_microsoft_lprefix,
   tok_microsoft_identifier,
   tok_uuid,
+  tok_in,
   /* Keywords with embedded white space.  All except tok_for_each are only
      in C++/CLI.  These must be in the contiguous range defined by
      tok_first_whitespace_token through tok_last_whitespace_token, as the
@@ -1139,7 +1146,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__super",
    "__noop", "__interface",
    "__ptr32", "__ptr64", "__sptr", "__uptr", "__w64",
-   "__LPREFIX", "__identifier", "uuid",
+   "__LPREFIX", "__identifier", "uuid", "in",
    "for each", "ref class", "ref struct", "value class", "value struct",
    "enum class", "enum struct", "interface class", "interface struct",
    "ref", "value", "interface", "for", "enum",
@@ -13559,6 +13566,9 @@ enum a_statement_kind_tag {
 			   own declarations and scope. */
   stmk_end_test_while,	/* Loop, test at bottom. */
   stmk_for,		/* For loop. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  stmk_for_each,	/* For each loop. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   stmk_switch_case,	/* A "case ... :" or "default:" construct. */
   stmk_switch,		/* Switch. */
   stmk_init,		/* Do a dynamic initialization. */
@@ -13669,6 +13679,32 @@ typedef struct a_for_loop {
 			   before executing each iteration of the loop. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 } a_for_loop;
+
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/*
+Information about a "for each" statement, pointed to from a stmk_for_each
+statement.
+*/
+typedef struct a_for_each_loop *a_for_each_loop_ptr;
+typedef struct a_for_each_loop {
+  a_variable_ptr
+                iterator;
+                        /* Pointer to the iteration variable. */
+  a_bit_field   uses_for_each_cli_collection_pattern:1;
+                        /* TRUE if the standard C++/CLI collection
+                           pattern was used instead of the STL one. */
+  a_bit_field   implements_for_each_system_collection:1;
+                        /* TRUE if the collection type derives from the
+                           System::Collections::IEnumerable interface. */
+  a_bit_field   uses_for_each_stl_collection_pattern:1;
+                        /* TRUE if the collection pattern used matches
+                           that of the standard template library instead of the
+                           C++/CLI one. */
+  a_bit_field   uses_for_each_array_pattern:1;
+                        /* TRUE if the "array" pattern is used. */
+} a_for_each_loop;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 typedef struct a_switch_case_entry *a_switch_case_entry_ptr;
@@ -13874,6 +13910,7 @@ typedef struct a_statement {
                            Note that the "expression to test" in each of the
                            four cases is always standardized to an integer/
                            boolean expression.
+                             The collection expression for stmk_for_each.
                              The switch expression for stmk_switch.
                              The selector expression for stmk_assigned_goto,
 			     if GNU extensions are allowed. */
@@ -13938,6 +13975,22 @@ typedef struct a_statement {
 			   to from the expr field).  A separate entry is used
 			   to keep the size of a_statement down. */
     } for_loop;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* When kind == stmk_for_each: */
+        struct {
+          a_statement_ptr
+                statement;
+                        /* Pointer to the statement that is the body of the
+                           loop (commonly but not necessarily an stmk_block)
+                           that is to be executed on each iteration of the
+                           loop; NULL if there is none. */
+          a_for_each_loop_ptr
+                extra_info;
+                        /* Information about the loop control constructs
+                           excluding the collection expression which is
+                           pointed to from the expr field). */
+        } for_each_loop;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* When kind == stmk_switch_case: */
     struct {
       a_statement_ptr
@@ -15847,6 +15900,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_label),
   sizeof(an_expr_node),
   sizeof(a_for_loop),
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  sizeof(a_for_each_loop),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sizeof(a_switch_case_entry),
   sizeof(a_switch_stmt_descr),
   sizeof(a_handler),

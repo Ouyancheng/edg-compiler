@@ -3798,31 +3798,6 @@ extern void enter_symbol_for_namespace_abi(a_symbol_locator  *locator);
 #endif /* IA64_ABI */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-EXTERN a_symbol_ptr
-		symbol_for_namespace_cli;
-			/* Symbol for namespace "cli".  Used in C++/CLI
-			   mode. */
-
-EXTERN a_symbol_ptr
-		symbol_for_namespace_system;
-			/* Symbol for namespace "System".  Used in C++/CLI 
-			   mode. */
-  
-EXTERN a_symbol_ptr
-		symbol_for_cli_interior_ptr;
-			/* Symbol for "cli::interior_ptr".  Used in C++/CLI 
-			   mode. */
-
-EXTERN a_symbol_ptr
-		symbol_for_cli_pin_ptr;
-			/* Symbol for "cli::pin_ptr".  Used in C++/CLI mode. */
-
-EXTERN a_symbol_ptr
-		symbol_for_cli_array;
-			/* Symbol for "cli::array".  Used in C++/CLI mode.
-			   NULL until mscorlib has been loaded. */
-
-
 /*
 Enumerates the cli_symbols array.  The array is apportioned as follows:
 
@@ -3840,7 +3815,8 @@ symbol requires special initialization, leave the corresponding
 cli_symbol_names entry set to NULL.
 */
 enum a_cli_symbol_kind_tag {
-  csk_first_integer,
+  csk_first,
+  csk_first_integer = csk_first,
   csk_system_byte_sign_unspecified = csk_first_integer, /* ik_char */
   csk_system_sbyte,				/* ik_signed_char */
   csk_system_byte,				/* ik_unsigned_char */
@@ -3867,6 +3843,15 @@ enum a_cli_symbol_kind_tag {
   csk_system_string,
   csk_system_delegate,
   csk_system_multicast_delegate,
+  csk_system_collections_namespace,
+  csk_collections_ienumerable,
+  csk_system_idisposable,
+  csk_system_gc,
+  csk_cli_namespace,
+  csk_system_namespace,
+  csk_cli_array,
+  csk_interior_ptr,
+  csk_pin_ptr,
   csk_last,
   csk_none = csk_last
 };
@@ -3882,37 +3867,62 @@ EXTERN a_symbol_ptr
 			   See the a_cli_symbol_kind_tag enumeration for more
 			   information. */
 
-EXTERN char
-		*cli_symbol_names[(int)csk_last + 1]
+/*
+Structure representing a managed symbol that will be pre-created
+and stored in cli_symbols.
+*/
+typedef struct {
+  char *name;           /* Unqualified name of the symbol. */
+  enum a_cli_symbol_kind_tag
+                namespace_kind;
+                        /* Enum value for the parent namespace for the symbol
+                           or csk_none. */
+} a_cli_symbol_name;
+
+EXTERN a_cli_symbol_name
+		cli_symbol_names[(int)csk_last + 1]
 			/* Array of symbol names corresponding to each entry in
 			   a_cli_symbol_kind_tag, respectively.  See
 			   a_cli_symbol_kind_tag for more information. */
 #if VAR_INITIALIZERS
 = {
-  NULL,                /* csk_system_byte_sign_unspecified */
-  "SByte",             /* csk_system_sbyte */
-  "Byte",              /* csk_system_byte */
-  "Int16",             /* csk_system_int16 */
-  "UInt16",            /* csk_system_uint16 */
-  "Int32",             /* csk_system_int32 */
-  "UInt32",            /* csk_system_uint32 */
-  "Int32",             /* csk_system_int32_is_long */
-  "UInt32",            /* csk_system_uint32_is_long */
-  "Int64",             /* csk_system_int64 */
-  "UInt64",            /* csk_system_uint64 */
-  "Single",            /* csk_system_single */
-  "Double",            /* csk_system_double */
-  "Double",            /* csk_system_double_is_long */
-  "Boolean",           /* csk_system_boolean */
-  "Char",              /* csk_system_char */
-  "Object",            /* csk_system_object */
-  "ValueType",         /* csk_system_value_type */
-  "Enum",              /* csk_system_enum */
-  "Type",              /* csk_system_type */
-  "String",            /* csk_system_string */
-  "Delegate",          /* csk_system_delegate */
-  "MulticastDelegate", /* csk_system_multicast_delegate */
-  "last"               /* csk_last */
+  { NULL, csk_none },                   /* csk_system_byte_sign_unspecified */
+  { "SByte", csk_system_namespace },    /* csk_system_sbyte */
+  { "Byte", csk_system_namespace },     /* csk_system_byte */
+  { "Int16", csk_system_namespace },    /* csk_system_int16 */
+  { "UInt16", csk_system_namespace },   /* csk_system_uint16 */
+  { "Int32", csk_system_namespace },    /* csk_system_int32 */
+  { "UInt32", csk_system_namespace },   /* csk_system_uint32 */
+  { "Int32", csk_system_namespace },    /* csk_system_int32_is_long */
+  { "UInt32", csk_system_namespace },   /* csk_system_uint32_is_long */
+  { "Int64", csk_system_namespace },    /* csk_system_int64 */
+  { "UInt64", csk_system_namespace },   /* csk_system_uint64 */
+  { "Single", csk_system_namespace },   /* csk_system_single */
+  { "Double", csk_system_namespace },   /* csk_system_double */
+  { "Double", csk_system_namespace },   /* csk_system_double_is_long */
+  { "Boolean", csk_system_namespace },  /* csk_system_boolean */
+  { "Char", csk_system_namespace },     /* csk_system_char */
+  { "Object", csk_system_namespace },   /* csk_system_object */
+  { "ValueType", csk_system_namespace },/* csk_system_value_type */
+  { "Enum", csk_system_namespace },     /* csk_system_enum */
+  { "Type", csk_system_namespace },     /* csk_system_type */
+  { "String", csk_system_namespace },   /* csk_system_string */
+  { "Delegate", csk_system_namespace }, /* csk_system_delegate */
+  { "MulticastDelegate", csk_system_namespace },
+                                        /* csk_system_multicast_delegate */
+  { "Collections", csk_system_namespace },
+                                        /* csk_system_collections_namespace */
+  { "IEnumerable", csk_system_collections_namespace },
+                                        /* csk_collections_ienumerable */
+  { "IDisposable", csk_system_namespace },
+                                        /* csk_system_idisposable */
+  { "GC", csk_system_namespace },       /* csk_system_gc */
+  { NULL, csk_none },                   /* csk_cli_namespace */
+  { NULL, csk_none },                   /* csk_system_namespace */
+  { NULL, csk_none },                   /* csk_cli_array */
+  { NULL, csk_none },                   /* csk_interior_ptr */
+  { NULL, csk_none },                   /* csk_pin_ptr */
+  { "last", csk_none },                 /* csk_last */
 }
 #endif /* VAR_INITIALIZERS */
 ;
@@ -3943,6 +3953,7 @@ extern void make_symbol_for_cli_array(void);
 extern void make_symbol_for_cli_interior_ptr(void);
 extern void make_symbol_for_cli_pin_ptr(void);
 extern void make_symbol_for_namespace_system(void);
+extern void make_symbol_for_namespace_system_collections(void);
 extern void init_symbols_for_cli_system_types(void);
 extern void init_cli_symbol_corresponding_basic_types(void);
 extern void make_symbols_for_system_string_operators(void);

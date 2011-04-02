@@ -11574,11 +11574,18 @@ to NULL.
 }  /* asm_declaration */
 
 
-a_variable_ptr condition_declaration(void)
+static a_variable_ptr condition_or_for_each_declaration(
+                                            a_statement_ptr for_each_statement)
 /*
-Scan a condition declaration.  Syntax:
+Scan a condition declaration (when for_each_statement is NULL) or an iterator
+declaration in a "for each" statement (when for_each_statement is non-NULL).
+Syntax for a condition declaration:
 
   type-specifier-seq declarator = assignment-expression
+
+Syntax for an iterator declaration in a "for each" statement:
+
+  type-specifier-seq declarator in assignment-expression
 
 Return a pointer to the variable that is declared.
 */
@@ -11593,7 +11600,7 @@ Return a pointer to the variable that is declared.
   a_decl_pos_block             decl_pos_block;
   a_decl_parse_state           state;
 
-  db_enter(3, "condition_declaration");
+  db_enter(3, "condition_or_for_each_declaration");
   /* Scan the declaration specifiers.  "typedef" is not allowed and may
      not introduce a new class or enumeration. */
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
@@ -11683,16 +11690,45 @@ Return a pointer to the variable that is declared.
        are disallowed, as is implicit initialization of objects with default
        constructors). */
     decl_pos_block.var_init_range.start = pos_curr_token;
-    (void)required_token(tok_assign, ec_exp_assign);
-    if (curr_token == tok_lbrace) {
-      /* The syntax does not permit initialization with a brace enclosed
-         initializer list. */
-      error_position = pos_curr_token;
-      syntax_error(ec_exp_primary_expr);
-    } else {
-      initializer(&state, &locator.source_position, idl_none,
-                  /*parenthesized_initializer=*/FALSE,
-                  &incomplete_type_error_reported, &decl_pos_block);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (for_each_statement != NULL) {
+      an_expr_node_ptr expr;
+      (void)check_context_sensitive_keyword(tok_in, "in");
+      (void)required_token(tok_in, ec_exp_in);
+      for_each_statement->variant.for_each_loop.extra_info->iterator = vp;
+      expr = scan_void_expression(/*repeated_in_loop=*/FALSE,
+                                  /*marked_as_gnu_extension=*/FALSE,
+                                  /*is_statement_expr=*/FALSE,
+                                  /*is_for_each_expr=*/TRUE);
+      if (expr->kind == (an_expr_node_kind)enk_variable) {
+        /* If the expression for the collection is a variable, mark it as
+           used.  This prevents the emission of a warning for unused variable
+           on arrays.  For example:
+
+             int a[5] = {1, 2, 3, 4, 5};
+             for each(int i in a) {}
+                               ^ "a" is not marked as used during expression
+                                 scanning.
+        */
+        a_symbol_ptr var_sym = symbol_for(expr->variant.variable);
+        if (var_sym != NULL) var_sym->variant.variable.used = TRUE;
+      }  /* if */
+      for_each_statement->expr = expr;
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      (void)required_token(tok_assign, ec_exp_assign);
+      if (curr_token == tok_lbrace) {
+        /* The syntax does not permit initialization with a brace enclosed
+           initializer list. */
+        error_position = pos_curr_token;
+        syntax_error(ec_exp_primary_expr);
+      } else {
+        initializer(&state, &locator.source_position, idl_none,
+                    /*parenthesized_initializer=*/FALSE,
+                    &incomplete_type_error_reported, &decl_pos_block);
+      }  /* if */
     }  /* if */
     /* Reset the error position to the source position of the declarator. */
     error_position = locator.source_position;
@@ -11712,7 +11748,43 @@ Return a pointer to the variable that is declared.
   db_exit();
   /* Return a pointer to the variable. */
   return vp;
+}  /* condition_or_for_each_declaration */
+
+
+a_variable_ptr condition_declaration(void)
+/*
+Scan a condition declaration.  Syntax:
+
+  type-specifier-seq declarator = assignment-expression
+
+Return a pointer to the variable that is declared.
+*/
+{
+  a_variable_ptr vp;
+
+  db_enter(3, "condition_declaration");
+  vp = condition_or_for_each_declaration((a_statement_ptr)NULL);
+  db_exit();
+  return vp;
 }  /* condition_declaration */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void for_each_iterator_declaration(a_statement_ptr sp)
+/*
+Scan a "for each" iteration variable declaration.  Syntax:
+
+  type-specifier-seq declarator in assignment-expression
+
+Where "in" is a context-sensitive keyword.
+*/
+{
+  db_enter(3, "for_each_iterator_declaration");
+  (void)condition_or_for_each_declaration(sp);
+  db_exit();
+}  /* for_each_iterator_declaration */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 static void make_static_assert_string_for_output(void)
@@ -12260,7 +12332,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* User code is not permitted to extend the cli namespace. */
       if (cppcli_enabled && !is_scanning_generated_code_from_metadata && 
-          ns_sym == symbol_for_namespace_cli) {
+          ns_sym == cli_symbol_from_kind(csk_cli_namespace)) {
         pos_error(ec_namespace_cli_cannot_be_extended,
                   &locator.source_position);
       }  /* if */

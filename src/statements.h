@@ -239,6 +239,7 @@ typedef enum /*a_struct_stmt_kind*/ {
   ssk_while,		/* while (...) {} statement. */
   ssk_do,		/* do {} while (...); statement. */
   ssk_for,		/* for (...; ...; ...) {} statement. */
+  ssk_for_each,		/* for each (...) {} statement. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ssk_microsoft_try,	/* Microsoft try-except or try-finally. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

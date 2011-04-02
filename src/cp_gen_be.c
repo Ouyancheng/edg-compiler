@@ -482,6 +482,7 @@ static void gen_general_declaration_using_type(
                              a_gen_decl_options_set       options,
                              a_name_reference_ptr         name_ref);
 static void gen_variable_decl(a_boolean is_condition,
+                              a_boolean is_iterator,
                               a_boolean for_init,
                               a_boolean suppress_specifiers,
                               a_boolean *another_decl_in_comma_list);
@@ -10891,8 +10892,8 @@ This can be a condition declaration or simply an expression.
     }  /* if */
   } else {
     /* Condition declaration. */
-    gen_variable_decl(/*is_condition=*/TRUE, /*for_init=*/FALSE,
-                      /*suppress_specifiers=*/FALSE,
+    gen_variable_decl(/*is_condition=*/TRUE, /*is_iterator=*/FALSE,
+                      /*for_init=*/FALSE, /*suppress_specifiers=*/FALSE,
                       (a_boolean *)NULL);
   }  /* if */
 }  /* gen_condition */  
@@ -11011,6 +11012,28 @@ Generate code for the indicated "for" statement.
   if (for_init_scope != NULL) pop_name_context();
 }  /* gen_for_statement */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void gen_for_each_statement(a_statement_ptr statement)
+/*
+Generate code for the indicated "for each" statement.
+*/
+{
+  write_tok_str("for each (");
+  check_assertion(statement->expr != NULL);
+  /* Generate the iteration variable. */
+  gen_variable_decl(/*is_condition=*/FALSE, /*is_iterator=*/TRUE,
+                    /*for_init=*/FALSE, /*suppress_specifiers=*/FALSE,
+                    (a_boolean *)NULL);
+  write_tok_str(" in ");
+  /* Generate the expression for the collection. */
+  gen_expression(statement->expr);
+  write_tok_str(") ");
+  /* Generate the dependent statement. */
+  gen_statement(statement->variant.for_each_loop.statement);
+}  /* gen_for_each_statement */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_switch_case(a_statement_ptr stmt)
 /*
@@ -11442,8 +11465,8 @@ instantiation is available.
       break;
     case templk_static_data_member:
       if (tp->prototype_instantiation.variable != NULL) {
-        gen_variable_decl(/*is_condition=*/FALSE, /*for_init=*/FALSE,
-                          /*suppress_specifiers=*/FALSE,
+        gen_variable_decl(/*is_condition=*/FALSE, /*is_iterator=*/FALSE,
+                          /*for_init=*/FALSE, /*suppress_specifiers=*/FALSE,
                           &another_decl_in_comma_list);
         result = TRUE;
       }  /* if */
@@ -12503,6 +12526,12 @@ one that yields the value) of a statement expression.
       /* "for" statement. */
       gen_for_statement(statement);
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case stmk_for_each:
+      /* "for each" statement. */
+      gen_for_each_statement(statement);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case stmk_goto:
       /* "goto" statement: generate "goto name;". */
       { a_label_ptr label = statement->variant.label.ptr;
@@ -13189,17 +13218,20 @@ initialization is in a condition declaration if is_condition is TRUE.
 
 
 static void gen_variable_decl(a_boolean is_condition,
+                              a_boolean is_iterator,
                               a_boolean for_init,
                               a_boolean suppress_specifiers,
                               a_boolean *another_decl_in_comma_list)
 /*
 Generate a declaration of the variable indicated by the current source
 sequence entry.  If is_condition is TRUE, this variable is declared in
-a condition declaration.  for_init is TRUE if this variable is in a for-init.
-suppress_specifiers and another_decl_in_comma_list deal with comma lists:
-suppress_specifiers is TRUE if the current declaration is a continuation
-of a comma list, and *another_decl_in_comma_list is returned TRUE if the
-declaration following this one is such a continuation.
+a condition declaration.  If is_iterator is TRUE, this variable is declared
+as an iteration variable in a "for each" statement.  for_init is TRUE if
+this variable is in a for-init.  suppress_specifiers and
+another_decl_in_comma_list deal with comma lists: suppress_specifiers is
+TRUE if the current declaration is a continuation of a comma list, and
+*another_decl_in_comma_list is returned TRUE if the declaration following
+this one is such a continuation.
 */
 {
   a_variable_ptr               var;
@@ -13436,8 +13468,10 @@ declaration following this one is such a continuation.
         */
         gen_storage_class(storage_class);
       }  /* if */
-    } else if (is_condition && storage_class == (a_storage_class)sc_auto) {
-      /* Condition declarations do not allow a storage class. */
+    } else if ((is_condition || is_iterator) &&
+               storage_class == (a_storage_class)sc_auto) {
+      /* Condition declarations and "for each" statement iteration variables
+         do not allow a storage class. */
     } else if (var->declared_with_auto_type_specifier &&
                storage_class == (a_storage_class)sc_auto) {
       /* The "auto" type specifier cannot be combined with "auto" used as a
@@ -13531,8 +13565,8 @@ declaration following this one is such a continuation.
     adv_curr_source_sequence_entry();
   }  /* if */
   /* Output the semicolon or comma at the end of the declaration, but not
-     for a condition. */
-  if (!is_condition) {
+     for a condition or a "for each" iterator. */
+  if (!is_condition && !is_iterator) {
     a_boolean  use_comma_terminator = FALSE;
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
@@ -14786,8 +14820,8 @@ parameter declarations).
         }
         break;
       case iek_variable:
-        gen_variable_decl(/*is_condition=*/FALSE, for_init,
-                          suppress_specifiers, &another_decl);
+        gen_variable_decl(/*is_condition=*/FALSE, /*is_iterator=*/FALSE,
+                          for_init, suppress_specifiers, &another_decl);
         suppress_specifiers = TRUE;
         break;
       case iek_routine:

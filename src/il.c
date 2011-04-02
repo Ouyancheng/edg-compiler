@@ -2242,6 +2242,9 @@ Dump a statement kind, for debug purposes.
     case stmk_block:           s = "block";             break;
     case stmk_end_test_while:  s = "end-test-while";    break;
     case stmk_for:             s = "for";               break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case stmk_for_each:        s = "for each";          break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case stmk_switch_case:     s = "switch-case";       break;
     case stmk_switch:          s = "switch";            break;
     case stmk_init:            s = "init";              break;
@@ -2430,6 +2433,12 @@ the dump (this one counts as the first).
           db_statement_list(sp->variant.for_loop.statement, indent+2, "",
                             how_deep-1);
           break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case stmk_for_each:
+          db_statement_list(sp->variant.for_each_loop.statement, indent+2, "",
+                            how_deep-1);
+          break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case stmk_while:
         case stmk_end_test_while:
           db_statement_list(sp->variant.loop_statement, indent+2, "",
@@ -9259,7 +9268,7 @@ a_type_ptr cli_system_object_type(void)
 Return the C++/CLI System::Object type.
 */
 {
-  a_symbol_ptr sym = cli_symbols[(int)csk_system_object];
+  a_symbol_ptr sym = cli_symbol_from_kind(csk_system_object);
 
   check_assertion(sym != NULL &&
                   sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
@@ -9272,12 +9281,25 @@ a_type_ptr cli_system_value_type(void)
 Return the C++/CLI System::ValueType type.
 */
 {
-  a_symbol_ptr sym = cli_symbols[(int)csk_system_value_type];
+  a_symbol_ptr sym = cli_symbol_from_kind(csk_system_value_type);
 
   check_assertion(sym != NULL &&
                   sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
   return sym->variant.class_struct_union.type;
 }  /* cli_system_value_type */
+
+
+a_type_ptr cli_collections_ienumerable_type(void)
+/*
+Return the C++/CLI System::Collections::IEnumerable type.
+*/
+{
+  a_symbol_ptr sym = cli_symbol_from_kind(csk_collections_ienumerable);
+
+  check_assertion(sym != NULL &&
+                  sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
+  return sym->variant.type.ptr;
+}  /* cli_collections_ienumerable_type */
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
@@ -9290,10 +9312,9 @@ namespace "cli".
   a_boolean  result = FALSE;
 
   if (scp_is_namespace_member(scp) && cppcli_enabled) {
-    check_assertion(symbol_for_namespace_cli != NULL);
-    result = scp->parent_scope ==
-                         symbol_for_namespace_cli->variant.namespace_info.ptr
-                                                 ->variant.assoc_scope;
+    check_assertion(cli_symbol_from_kind(csk_cli_namespace) != NULL);
+    result = scp->parent_scope == cli_symbol_from_kind(csk_cli_namespace)->
+                               variant.namespace_info.ptr->variant.assoc_scope;
   }  /* if */
   return result;
 }  /* f_is_member_of_namespace_cli */
