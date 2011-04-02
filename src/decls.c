@@ -11574,6 +11574,9 @@ to NULL.
 }  /* asm_declaration */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- for_each_statement is not used in this case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_variable_ptr condition_or_for_each_declaration(
                                             a_statement_ptr for_each_statement)
 /*

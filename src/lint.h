@@ -685,6 +685,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_conflicting_properties)*/
 /*lint -esym(769,ec_property_set)*/
 /*lint -esym(769,ec_property)*/
+/*lint -esym(769,ec_cli_entity_not_loaded)*/
 /*lint -esym(769,ec_for_each_missing_function)*/
 /*lint -esym(769,ec_for_each_function_takes_args)*/
 /*lint -esym(769,ec_for_each_function_const_violation)*/
@@ -700,6 +701,9 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_exp_in)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
+/*lint -esym(759,is_class_struct_type)*/
+/*lint -esym(765,is_class_struct_type)*/
+/*lint -esym(714,is_class_struct_type)*/
 /*lint -esym(759,basic_type_from_system_type)*/
 /*lint -esym(765,basic_type_from_system_type)*/
 /*lint -esym(714,basic_type_from_system_type)*/
