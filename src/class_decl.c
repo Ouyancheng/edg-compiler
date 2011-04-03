@@ -19694,6 +19694,11 @@ classes.
             /* The terminating token will be either a semicolon or a right
                brace.  The latter has already been checked for, but the former
                has not. */
+            if (curr_token == tok_end_of_source) {
+              /* In some variadic rescan cases, the terminating
+                 tok_end_of_source can end up being the current token. */
+              (void)get_token();
+            }  /* if */
             if (final_token == tok_semicolon) {
               (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
             }  /* if */

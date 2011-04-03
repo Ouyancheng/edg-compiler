@@ -1,5 +1,21 @@
 Version 4.4
 
+4/3/11   [EDGcpfe/11603]
+Spurious errors on member template of variadic class
+
+Spurious errors could be issued on a member function template of a variadic
+class template when the function template used the variadic template
+parameters of the enclosing class.  Now fixed.
+
+  template <class ... T> struct A {
+    template <class U> void f(U, T... args);
+  };
+  int main() {
+    A<int,int> a;
+    a.f(1, 2, 3);
+  }
+
+
 4/1/11   [EDGcpfe/11597]
 Spurious remark on second argument to main when configuration uses signed chars
 

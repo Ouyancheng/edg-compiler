@@ -2240,7 +2240,7 @@ TRUE if this is the function declarator in a friend function declaration.
         if (is_new_param) {
           is_new_param = FALSE;
         }  /* if */
-        is_pack_element = pesep != NULL && !is_template_dependent_context();
+        is_pack_element = pesep != NULL && pesep->instantiation_descr != NULL;
         is_non_initial_pack_element = is_non_initial_variadic_element();
         /* Count the number of parameters encountered.  All elements of a given
            parameter pack are given the same parameter number. */
