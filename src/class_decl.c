@@ -16916,6 +16916,80 @@ done:
 }  /* check_for_cli_field_modifier */
 
 
+static void record_trivial_property_accessors(a_class_def_state  *class_state)
+/*
+Generate "get" and "set" accessor declarations (but not definitions) for the
+trivial property described by class_state->property_or_event_descr.
+*/
+{
+  a_property_or_event_descr_ptr
+                      pdp = class_state->property_or_event_descr;
+  a_type_ptr          type;
+  a_symbol_locator    member_loc;
+  a_func_info_block   func_info;
+  a_member_decl_info  member_info;
+  a_decl_parse_state  *mdps = &member_info.decl_state;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean           saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  int                 k;
+
+  check_assertion(pdp != NULL);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Don't issue source sequence entries for generated entities. */
+  saved_source_sequence_entries_disallowed =
+                                            source_sequence_entries_disallowed;
+  scope_stack_top().source_sequence_entries_disallowed = TRUE;
+  source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  for (k = 0; k<2; ++k) {
+    /* k == 0: "get", k == 1: "set". */
+    a_boolean  is_get = k == 0;
+    clear_locator(&member_loc, &pos_curr_token);
+    (void)find_symbol(is_get ? "get" : "set",
+                      (is_get ? sizeof("get") : sizeof("set"))-1,
+                      &member_loc);
+    member_loc.is_property_or_event_accessor = TRUE;
+    initialize_member_decl_info(&member_info, &pos_curr_token);;
+    clear_func_info(&func_info);
+    if (pdp->is_static) {
+      /* The accessor is a static member function. */
+      mdps->storage_class = mdps->declared_storage_class =
+                                                   (a_storage_class)sc_static;
+      member_loc.property_or_event_parent = symbol_for(pdp->variant.variable);
+      type = pdp->variant.variable->type;
+    } else {
+      /* The accessor is a nonstatic, possibly virtual, member function. */
+      if (pdp->is_virtual) mdps->dso_flags |= DSO_VIRTUAL;
+      member_loc.property_or_event_parent = symbol_for(pdp->variant.field);
+      type = pdp->variant.field->type;
+    }  /* if */
+    /* For a property of type X the "get" signature is "X get()" and the "set"
+       signature is "void set(X)". */
+    mdps->declared_type = make_routine_type(is_get ? type : void_type(), 
+                                            is_get ? (a_type_ptr)NULL : type,
+                                            /*param2_type=*/(a_type_ptr)NULL,
+                                            /*param3_type=*/(a_type_ptr)NULL,
+                                            /*param4_type=*/(a_type_ptr)NULL);
+    if (!pdp->is_static) {
+      /* The accessor must have a "this" parameter. */
+      mdps->declared_type->variant.routine.extra_info->this_class =
+                                                      class_state->class_type;
+    }  /* if */
+    mdps->type = mdps->declared_type;
+    decl_member_function(&member_loc, &func_info, class_state, &member_info,
+                         /*compiler_generated=*/TRUE);
+  }  /* for */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Restore the previous state wrt. generating source sequence entries. */
+  source_sequence_entries_disallowed =
+                                     saved_source_sequence_entries_disallowed;
+  scope_stack_top().source_sequence_entries_disallowed 
+                                    = saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+}  /* record_trivial_property_accessors */
+
+
 static void scan_cli_property_indices(a_property_or_event_descr_ptr  pdp)
 /*
 Scan a list of C++/CLI property index types and record them in the pdp->indices
@@ -17123,6 +17197,9 @@ being parsed), *decl_info describes the current member declaration, and
   if (curr_token == tok_semicolon) {
     /* A trivial scalar property or event. */
     pdp->is_trivial = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    pdp->definition_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (is_property) {
       if (pdp->indices != NULL) {
         /* A trivial property cannot be an indexed property. */
@@ -17134,10 +17211,8 @@ being parsed), *decl_info describes the current member declaration, and
         /* A trivial property cannot have a const or volatile type. */
         pos_error(ec_trivial_const_or_volatile_property, &type_pos);
       }  /* if */
+      record_trivial_property_accessors(class_state);
     }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    pdp->definition_range.end = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
     class_state->property_or_event_descr = NULL;
   } else {
