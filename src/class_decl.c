@@ -16946,7 +16946,7 @@ trivial property described by class_state->property_or_event_descr.
     /* k == 0: "get", k == 1: "set". */
     a_boolean  is_get = k == 0;
     clear_locator(&member_loc, &pos_curr_token);
-    (void)find_symbol(is_get ? "get" : "set",
+    (void)find_symbol(is_get ? (char*)"get" : (char*)"set",
                       (is_get ? sizeof("get") : sizeof("set"))-1,
                       &member_loc);
     member_loc.is_property_or_event_accessor = TRUE;
