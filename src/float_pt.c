@@ -472,9 +472,23 @@ conversion can be done, return the result in "result".
     /* Macros to turn DBL_MAX into a string: */
 #define str2_dbl_max(x) #x
 #define str1_dbl_max(x) str2_dbl_max(x)
-    host_fp_dbl_max = str_to_long_double(str1_dbl_max(DBL_MAX));
+    char buf_dbl_max[] = str1_dbl_max(DBL_MAX);
+    char *str_dbl_max = buf_dbl_max;
 #undef str2_dbl_max
 #undef str1_dbl_max
+    if (strncmp(str_dbl_max, "((double)", 9) == 0) {
+      /* Some systems, e.g., Linux with gcc 4.5 and later, define DBL_MAX with
+         a cast, e.g., "((double)1.79769313486231570815e+308L)".  strtod cannot
+         deal with the parentheses or the cast, so skip past them. */
+      char *tmp;
+      str_dbl_max += 9;
+      tmp = strchr(str_dbl_max, ')');
+      check_assertion_str(tmp != NULL && tmp[1] == '\0' &&
+                          isdigit((unsigned char)str_dbl_max[0]),
+                          "conv_host_fp_to_double: bad DBL_MAX definition");
+      *tmp = '\0';
+    }  /* if */
+    host_fp_dbl_max = str_to_long_double(str_dbl_max);
     check_assertion_str2(errno == 0, "conv_host_fp_to_double:",
                          "error on conversion of DBL_MAX");
     double_dbl_max = (double)host_fp_dbl_max;

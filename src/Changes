@@ -1,5 +1,17 @@
 Version 4.4
 
+4/4/11   [EDGcpfe/11604]
+Host DBL_MAX with form ((double)1.79769313486231570815e+308L)
+
+One some systems (e.g., Linux with gcc 4.5.0 or later), DBL_MAX is defined with
+a cast to double.  The code in float_pt.c that converts DBL_MAX is now capable
+of dealing with that form.  Note that this relates to the host definition of
+DBL_MAX as seen while compiling the C source of the front end itself, which
+might be different than the definition used when compiling user source code.
+See also the Changes entry of 8/2/99 which describes a similar issue with
+FLT_MAX.
+
+
 4/3/11   [EDGcpfe/11603]
 Spurious errors on member template of variadic class
 
