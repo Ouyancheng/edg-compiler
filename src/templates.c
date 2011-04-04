@@ -20294,12 +20294,12 @@ of the list.
 */
 {
   a_generic_constraint_ptr	result_list = NULL;
-  a_generic_constraint_ptr	list_tail;
+  a_generic_constraint_ptr	list_tail = NULL;
   a_boolean			done;
 
   do {
     a_type_ptr			type = NULL;
-    a_generic_constraint_kind	kind = gck_none;
+    a_generic_constraint_kind	kind = (a_generic_constraint_kind)gck_none;
     a_symbol_ptr		sym;
     a_boolean			err;
     a_source_position		pos = pos_curr_token;

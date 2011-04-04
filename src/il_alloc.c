@@ -4458,7 +4458,7 @@ pointer to it.
   gcp->next = NULL;
   gcp->type = NULL;
   gcp->position = null_source_position;
-  gcp->kind = gck_none;
+  gcp->kind = (a_generic_constraint_kind)gck_none;
   return gcp;
 }  /* alloc_generic_constraint */
 
