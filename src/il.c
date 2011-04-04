@@ -13514,7 +13514,6 @@ kind of cast.
       case eok_lvalue_cast:
       case eok_ref_cast:
       case eok_lvalue_adjust:
-      case eok_class_rvalue_adjust:
       case eok_box:
       case eok_unbox:
       case eok_base_class_cast:
