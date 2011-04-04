@@ -80,6 +80,8 @@ static unsigned long
 		num_ms_attribute_args_allocated,
 		num_property_index_types_allocated,
 		num_property_or_event_descriptions_allocated,
+		num_generic_constraints_allocated,
+		num_generic_constraint_clauses_allocated,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 		num_ms_if_exists_allocated,
@@ -1132,6 +1134,9 @@ and return a pointer to it.
 #endif /* DEBUG */
   tptsp->class_type = NULL;
   tptsp->orig_nested_type = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  tptsp->generic_constraints = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return tptsp;
 }  /* alloc_template_param_type_supplement */
 
@@ -4052,9 +4057,12 @@ initialize its fields, and return a pointer to it.
 #if DEBUG
   num_template_decls_allocated++;
 #endif /* DEBUG */
-  tdp->parent       = NULL;
-  tdp->param_list   = NULL;
-  tdp->scope        = NULL;
+  tdp->parent = NULL;
+  tdp->param_list = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  tdp->generic_constraint_clauses = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  tdp->scope = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   tdp->template_pos = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -4434,6 +4442,59 @@ a pointer to it.
   return pdp;
 }  /* alloc_property_or_event_descr */
 
+
+a_generic_constraint_ptr alloc_generic_constraint(void)
+/*
+Allocate an entry describing a C++/CLI generic constraint and return a
+pointer to it.
+*/
+{
+  a_generic_constraint_ptr	gcp;
+
+  gcp = alloc_il_of_type(a_generic_constraint);
+#if DEBUG
+  num_generic_constraints_allocated++;
+#endif /* DEBUG */
+  gcp->next = NULL;
+  gcp->type = NULL;
+  gcp->position = null_source_position;
+  gcp->kind = gck_none;
+  return gcp;
+}  /* alloc_generic_constraint */
+
+
+void clear_generic_constraint_clause(a_generic_constraint_clause_ptr gccp)
+/*
+Initialize the fields of a C++/CLI generic constraint clause entry.
+*/
+{
+  gccp->next = NULL;
+  gccp->type = NULL;
+  gccp->type_position = null_source_position;
+  gccp->constraints = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  gccp->where_position = null_source_position;
+  gccp->colon_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* clear_generic_constraint_clause */
+
+
+a_generic_constraint_clause_ptr alloc_generic_constraint_clause(void)
+/*
+Allocate an entry describing a C++/CLI generic constraint clause and return a
+pointer to it.
+*/
+{
+  a_generic_constraint_clause_ptr	gccp;
+
+  gccp = alloc_il_of_type(a_generic_constraint_clause);
+#if DEBUG
+  num_generic_constraint_clauses_allocated++;
+#endif /* DEBUG */
+  clear_generic_constraint_clause(gccp);
+  return gccp;
+}  /* alloc_generic_constraint_clause */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_lambda_ptr alloc_lambda(void)
@@ -4686,6 +4747,12 @@ Display and return the amount of space used for various IL tables.
   db_space_used("property/event descrs",
                 num_property_or_event_descriptions_allocated,
                 a_property_or_event_descr);
+  db_space_used("generic constraint",
+                num_generic_constraints_allocated,
+                a_generic_constraint);
+  db_space_used("generic constraint clause",
+                num_generic_constraint_clauses_allocated,
+                a_generic_constraint_clause);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   db_space_used("Microsoft __if_exists",
@@ -4974,6 +5041,8 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_ms_attribute_args_allocated),
       pch_saved_var_array_elem(num_property_index_types_allocated),
       pch_saved_var_array_elem(num_property_or_event_descriptions_allocated),
+      pch_saved_var_array_elem(num_generic_constraints_allocated),
+      pch_saved_var_array_elem(num_generic_constraint_clauses_allocated),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
       pch_saved_var_array_elem(num_ms_if_exists_allocated),
@@ -5167,6 +5236,9 @@ initializations that are done for each compilation.
   num_ms_attribute_args_allocated        = 0;
   num_property_index_types_allocated     = 0;
   num_property_or_event_descriptions_allocated
+                                         = 0;
+  num_generic_constraints_allocated      = 0;
+  num_generic_constraint_clauses_allocated
                                          = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES

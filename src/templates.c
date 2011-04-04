@@ -502,6 +502,9 @@ Initialize a template declaration state block.
   tdsp->definition_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   tdsp->template_decl = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  tdsp->generic_constraint_clauses = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* init_templ_decl_state */
 
 
@@ -18171,6 +18174,8 @@ is a class template declaration of the form
 
 	friend	class-key identifier tok_colon
 	      opt
+	friend	class-key identifier tok_lbrace
+	      opt
 	friend	class-key identifier tok_end_of_source
 	      opt
 
@@ -18228,7 +18233,8 @@ the declaration token cache.
          recovery. */
       next_tok = curr_token;
     }  /* if */
-    result = (next_tok == tok_colon || next_tok == tok_end_of_source);
+    result = (next_tok == tok_colon || next_tok == tok_end_of_source ||
+              next_tok == tok_lbrace);
   }  /* if */
   /* Flush any remaining tokens from the reusable cache. */
   while (curr_token != tok_end_of_source) (void)get_token();
@@ -18460,6 +18466,10 @@ information).  See the definition of a_tmpl_decl_state for details.
         if (prototype_instantiations_in_il) {
           template_decl =
                         make_template_decl(decl_state->decl_info->parameters);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          template_decl->generic_constraint_clauses =
+                                        decl_state->generic_constraint_clauses;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           template_decl->scope = scope_stack_top().il_scope;
           template_decl->template_pos = template_pos;
           if (decl_state->il_template_entry != NULL) {
@@ -20273,6 +20283,210 @@ that follows.
   db_exit();
 }  /* full_specialization */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_generic_constraint_ptr scan_constraint_item_list(void)
+/*
+Scan a C++/CLI generic constraint-item-list return the list.
+
+See scan_generic_constraints_clauses for more information about the form
+of the list.
+*/
+{
+  a_generic_constraint_ptr	result_list = NULL;
+  a_generic_constraint_ptr	list_tail;
+  a_boolean			done;
+
+  do {
+    a_type_ptr			type = NULL;
+    a_generic_constraint_kind	kind = gck_none;
+    a_symbol_ptr		sym;
+    a_boolean			err;
+    a_source_position		pos = pos_curr_token;
+    (void)is_generalized_identifier_start(GID_NO_OPTIONS);
+    switch (curr_token) {
+      case tok_identifier:
+        /* A type name constraint.  Look up the name and make sure it is
+           a type. */
+        sym = coalesce_and_lookup_generalized_identifier(
+                                            GID_NO_OPTIONS, ilm_normal, &err);
+        if (sym != NULL) {
+          record_potential_pack_reference(
+                                    sym, &locator_for_curr_id.source_position);
+        }  /* if */
+        if (!err && sym == NULL) {
+          str_error(ec_undefined_identifier,
+                    locator_for_curr_id.symbol_header->identifier);
+        } else if (!is_type_symbol(sym)) {
+          str_error(ec_not_a_type_name,
+                    locator_for_curr_id.symbol_header->identifier);
+        } else {
+          type = type_symbol_type(sym);
+        }  /* if */
+        (void)get_token();
+        kind = (a_generic_constraint_kind)gck_type;
+        break;
+      case tok_ref_class:
+      case tok_ref_struct:
+        kind = (a_generic_constraint_kind)gck_ref_class;
+        (void)get_token();
+        break;
+      case tok_value_class:
+      case tok_value_struct:
+        kind = (a_generic_constraint_kind)gck_value_class;
+        (void)get_token();
+        break;
+      case tok_gcnew:
+        kind = (a_generic_constraint_kind)gck_gcnew;
+        /* The gcnew must be followed by "()". */
+        (void)get_token();
+        if (curr_token != tok_lparen) {
+          pos_error(ec_exp_lparen, &pos_curr_token);
+          if (curr_token != tok_rparen) (void)get_token();
+        } else {
+          (void)get_token();
+        }  /* if */
+        if (curr_token != tok_rparen) {
+          pos_error(ec_exp_rparen, &pos_curr_token);
+          if (curr_token != tok_comma) (void)get_token();
+        } else {
+          (void)get_token();
+        }  /* if */
+        break;
+      default:
+        pos_error(ec_invalid_constraint, &pos_curr_token);
+        (void)get_token();
+        break;
+    }  /* switch */
+    if (kind != (a_generic_constraint_kind)gck_none) {
+      /* A valid constraint was scanned.  Add it to the list. */
+      a_generic_constraint_ptr	gcp;
+      gcp = alloc_generic_constraint();
+      gcp->type = type;
+      gcp->kind = kind;
+      gcp->position = pos;
+      if (result_list == NULL) {
+        result_list = gcp;
+      } else {
+        list_tail->next = gcp;
+      }   /* if */
+      list_tail = gcp;
+    }  /* if */
+    done = curr_token != tok_comma;
+    if (!done) (void)get_token();
+  } while (!done);
+  return result_list;
+}  /* scan_constraint_item_list */
+
+
+static void scan_generic_constraint_clauses(a_tmpl_decl_state_ptr decl_state)
+/*
+Scan an optional set of C++/CLI generic constraints.  The form is:
+
+  constraint-clause-list:
+    constraint-clause-list opt constraint-clause
+
+  constraint-clause:
+    where identifier : constraint-item-list
+
+  constraint-item-list:
+    constraint-item
+    constraint-item-list, constraint-item
+
+  constraint-item:
+    type-id
+    ref class
+    ref struct
+    value class
+    value struct
+    gcnew()
+*/
+{
+  a_generic_constraint_clause_ptr	gccp_list = NULL;
+  a_generic_constraint_clause_ptr	gccp_tail = NULL;
+
+  /* The "where" is not a keyword, it is scanned as an identifier. */
+  while (curr_token == tok_identifier &&
+         symbol_header_is_for_identifier_string(
+                                           locator_for_curr_id.symbol_header,
+                                           "where")) {
+    a_type_ptr			param_type = NULL;
+    a_generic_constraint_ptr	constraint_item_list = NULL;
+    a_generic_constraint_clause	gcc;
+    clear_generic_constraint_clause(&gcc);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+     gcc.where_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* Skip over the "where" token. */
+    (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+     gcc.colon_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* The current token should be an identifier for the template parameter
+       being constrained. */
+    if (curr_token != tok_identifier) {
+      /* The token is not an identifier. */
+      pos_error(ec_exp_identifier, &pos_curr_token);
+    } else {
+      a_symbol_ptr	sym;
+      sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+      if (sym == NULL) {
+        str_error(ec_undefined_identifier,
+                  locator_for_curr_id.symbol_header->identifier);
+      } else if (!sym->is_template_param) {
+        /* The symbol found is not a template parameter. */
+        str_error(ec_not_a_generic_param,
+                  locator_for_curr_id.symbol_header->identifier);
+      } else if (sym->decl_scope !=
+                        scope_stack[depth_template_declaration_scope].number) {
+        /* The symbol found is not a template parameter of the innermost
+           generic parameter list. */
+        str_error(ec_not_generic_param_of_curr_decl,
+                  locator_for_curr_id.symbol_header->identifier);
+      } else {
+        /* A valid generic parameter name. */
+        check_assertion(sym->kind == (a_symbol_kind)sk_type);
+        param_type = sym->variant.type.ptr;
+        check_assertion(param_type->kind == (a_type_kind)tk_template_param);
+        gcc.type_position = pos_curr_token;
+        gcc.type = param_type;
+      }  /* if */
+      /* Bypass the identifier and look for the expected colon. */
+      if (curr_token == tok_identifier || curr_token != tok_colon) {
+        (void)get_token();
+      }  /* if */
+      if (curr_token != tok_colon) {
+        pos_error(ec_exp_colon, &pos_curr_token);
+      } else {
+        /* Bypass the colon. */
+        (void)get_token();
+      }  /* if */
+      /* Scan the list of constraint items. */
+      constraint_item_list = scan_constraint_item_list();
+      param_type->variant.template_param.extra_info->
+                                    generic_constraints = constraint_item_list;
+    }  /* if */
+    /* If a valid type was specified, add this constraint clause to the
+       list. */
+    if (prototype_instantiations_in_il) {
+      if (param_type != NULL) {
+        a_generic_constraint_clause_ptr	gccp;
+        gccp = alloc_generic_constraint_clause();
+        /* Copy the entry constructed above. */
+        *gccp = gcc;
+        if (gccp_list == NULL) {
+          gccp_list = gccp;
+          decl_state->generic_constraint_clauses = gccp_list;
+        } else {
+          gccp_tail->next = gccp;
+        }  /* if */
+        gccp_tail = gccp;
+      }  /* if */
+    }  /* if */
+  }  /* while */
+}  /* scan_generic_constraint_clauses */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void decl_level_of_template(a_tmpl_decl_state_ptr decl_state)
 /*
@@ -20452,6 +20666,12 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
      optional (but once a parameter list has been specified, all subsequent
      param-lists must be present). */
   scan_template_param_clauses(&decl_state, /*is_template_param=*/FALSE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (decl_state.is_generic) {
+    /* For C++/CLI generics, scan any constraints that may be present. */
+    scan_generic_constraint_clauses(&decl_state);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (decl_state.is_specialization) {
     /* A specialization declaration is only permitted in a namespace scope. */
     a_scope_stack_entry_ptr ssep = scope_stack_entry_for(orig_depth);

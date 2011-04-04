@@ -79,6 +79,10 @@ typedef struct a_variable_remapping_for_inlining
 typedef struct a_template_decl *a_template_decl_ptr;
 typedef struct a_template *a_template_ptr;
 typedef struct an_ms_attribute *an_ms_attribute_ptr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+typedef struct a_generic_constraint *a_generic_constraint_ptr;
+typedef struct a_generic_constraint_clause *a_generic_constraint_clause_ptr;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
 typedef struct a_destructible_entity_descr
                              a_destructible_entity_descr_dummy_typedef;
@@ -592,6 +596,10 @@ typedef enum /*an_il_entry_kind*/ {
 			/* a_property_index_type */
   iek_property_or_event_descr,
 			/* a_property_or_event_descr */
+  iek_generic_constraint_clause,
+			/* a_generic_constraint_clause */
+  iek_generic_constraint,
+			/* a_generic_constraint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   iek_seq_number_lookup_entry,
 			/* a_seq_number_lookup_entry */
@@ -746,6 +754,8 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_ms_attribute_arg */		"ms-attribute-arg",
 /* iek_property_index_type */		"property-index-type",
 /* iek_property_descr */		"property-descr",
+/* iek_generic_constraint_clause */	"generic-constraint-clause",
+/* iek_generic_constraint */		"generic-constraint",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* iek_seq_number_lookup_entry */	"seq-number-lookup-entry",
 #if MACRO_INVOCATION_TREE_IN_IL
@@ -959,6 +969,7 @@ typedef enum /*a_token_kind*/ {
   tok_microsoft_identifier,
   tok_uuid,
   tok_in,
+  tok_gcnew,
   /* Keywords with embedded white space.  All except tok_for_each are only
      in C++/CLI.  These must be in the contiguous range defined by
      tok_first_whitespace_token through tok_last_whitespace_token, as the
@@ -1146,7 +1157,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__super",
    "__noop", "__interface",
    "__ptr32", "__ptr64", "__sptr", "__uptr", "__w64",
-   "__LPREFIX", "__identifier", "uuid", "in",
+   "__LPREFIX", "__identifier", "uuid", "in", "gcnew",
    "for each", "ref class", "ref struct", "value class", "value struct",
    "enum class", "enum struct", "interface class", "interface struct",
    "ref", "value", "interface", "for", "enum",
@@ -6756,6 +6767,12 @@ typedef struct a_template_param_type_supplement {
 			   represent the corresponding nonreal type for
 			   a nested type of a class template, this points
 			   to the original nested type;  NULL otherwise. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_generic_constraint_ptr
+		generic_constraints;
+			/* For C++/CLI generics, this points to the list of
+			   constraints specified, and can be NULL. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_template_param_coordinate
 		coordinates;
 			/* The parameter list position and template nesting
@@ -14310,6 +14327,82 @@ typedef struct a_hidden_name {
 } a_hidden_name;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+/*
+Generic constraint kinds.
+*/
+enum a_generic_constraint_kind_tag {
+  gck_none,		/* Used to specify an unknown or invalid kind. */
+  gck_type,		/* Used for class, interface, and naked type parameter
+			   constraints. */
+  gck_ref_class,	/* Used for ref class and ref struct constraints. */
+  gck_value_class,	/* Used for value class and value struct
+			   constraints. */
+  gck_gcnew,		/* Used for gcnew constraints. */
+};
+
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_generic_constraint_kind;
+
+/*
+Entry used to represent a constraint item of a constraint clause.
+*/
+typedef struct a_generic_constraint {
+  a_generic_constraint_ptr
+		next;
+			/* The next entry in a list of constraint items, or
+			   NULL for the last entry. */
+  a_type_ptr	type;
+			/* When kind is gck_type, this points to the type
+			   specified. */
+  a_source_position
+		position;
+			/* The starting position of the constraint item. */
+  a_generic_constraint_kind
+		kind;
+			/* The kind of constraint represented. */
+} a_generic_constraint;
+
+/*
+Entry used to represent a generic constraint clause.
+
+The generic constraint clause is the portion of the declaration
+highlighted below.
+
+  generic <typename T> where T : ref class, gcnew() ref class A {};
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The latter parts of the clause (ref class, gcnew()) are the constraint
+items.  A list of those is pointed to by this entry.
+*/
+typedef struct a_generic_constraint_clause {
+  a_generic_constraint_clause_ptr
+		next;
+			/* The next entry in a list of constraint clauses, or
+			   NULL for the last entry. */
+  a_type_ptr	type;
+			/* The type of the generic parameter named in the
+			   constraint clause. */
+  a_source_position
+		type_position;
+			/* The source position of the type that was
+			   specified. */
+  a_generic_constraint_ptr
+		constraints;
+			/* The list of constraints items specified in this
+			   constraint clause. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		where_position;
+			/* The source position of the "where" identifier. */
+  a_source_position
+		colon_position;
+			/* The source position of the ":". */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+} a_generic_constraint_clause;
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Kind of template parameter. */
 enum a_template_parameter_kind_tag {
@@ -14379,9 +14472,10 @@ typedef struct a_template_parameter {
 
 
 typedef struct a_template_decl {
-  /* The description of the "header" of a template declaration.  The template
-     entity (a_template) points to an entry of this type, and the nesting
-     structure (for nested templates) is maintained through a parent pointer.
+  /* The description of the "header" of a template or C++/CLI generic
+     declaration.  The template entity (a_template) points to an entry of
+     this type, and the nesting structure (for nested templates) is
+     maintained through a parent pointer.
          template <class T> void f(T x) { ... }
                             ^^^^^^^^^^^^^^^^^^^ ----- a_routine entry info
          ^^^^^^^^^^^^^^^^^^ ------------------------- a_template_decl info
@@ -14394,6 +14488,12 @@ typedef struct a_template_decl {
 		param_list;
 			/* The list of template parameters for this template
 			   entity (not including enclosing parameters). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_generic_constraint_clause_ptr
+		generic_constraint_clauses;
+			/* For C++/CLI generics, this points to the list of
+			   constraints specified, and can be NULL. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_scope_ptr	scope;
 			/* The template declaration scope containing the
 			   template parameter declarations.  NULL for an
@@ -15988,6 +16088,8 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(an_ms_attribute_arg),
   sizeof(a_property_index_type),
   sizeof(a_property_or_event_descr),
+  sizeof(a_generic_constraint_clause),
+  sizeof(a_generic_constraint),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sizeof(a_seq_number_lookup_entry),
 #if MACRO_INVOCATION_TREE_IN_IL

@@ -548,6 +548,7 @@ Install the keywords in the symbol table.
        to the appropriate tk_pointer entry. */
     enter_keyword((a_token_kind)tok_internal_alias_decl,
                   "__internal_alias_decl");
+    enter_keyword((a_token_kind)tok_gcnew, "gcnew");
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (type_traits_helpers_enabled ||

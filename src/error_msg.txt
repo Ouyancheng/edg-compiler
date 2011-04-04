@@ -2168,6 +2168,9 @@ ec_for_each_inaccessible_field;;"\"for each\" cannot use %n because it is not pu
 ec_for_each_getenumerator_return_type_invalid;;"in \"for each\" statement, %t2 is not a valid enumerator (returned by \"GetEnumerator\" of %t1)"
 ec_exp_in;;"expected \"in\""
 ec_no_suitable_synthesis_assignment_operator;;"class %t has no suitable assignment operator (after operator synthesis)"
+ec_not_a_generic_param;;"%sq is not a generic parameter"
+ec_not_generic_param_of_curr_decl;;"%sq is not a generic parameter of the innermost generic parameter list"
+ec_invalid_constraint;;"invalid generic constraint"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

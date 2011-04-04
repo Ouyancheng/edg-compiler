@@ -1975,6 +1975,11 @@ do_set_proper_definition_needed_flag:
         walk_ptr(ptr->parent, a_template_decl_ptr, iek_template_decl);
         walk_list(ptr->param_list, a_template_parameter_ptr,
                   iek_template_parameter);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        walk_list(ptr->generic_constraint_clauses,
+                  a_generic_constraint_clause_ptr,
+                  iek_generic_constraint);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         walk_ptr(ptr->scope, a_scope_ptr, iek_scope);
       }
       break;
@@ -2178,6 +2183,25 @@ do_set_proper_definition_needed_flag:
         }  /* switch */
       }
       break;
+      case iek_generic_constraint:
+        {
+          a_generic_constraint_ptr ptr = (a_generic_constraint_ptr)entry_ptr;
+          remap_next_ptr(ptr->next, a_generic_constraint_ptr,
+                         iek_generic_constraint);
+          remap_ptr(ptr->type, a_type_ptr, iek_type);
+        }
+        break;
+      case iek_generic_constraint_clause:
+        {
+          a_generic_constraint_clause_ptr ptr =
+                                    (a_generic_constraint_clause_ptr)entry_ptr;
+          remap_next_ptr(ptr->next, a_generic_constraint_clause_ptr,
+                         iek_generic_constraint_clause);
+          remap_ptr(ptr->type, a_type_ptr, iek_type);
+          walk_list(ptr->constraints, a_generic_constraint_ptr,
+                    iek_generic_constraint);
+        }
+        break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
     case iek_ms_if_exists:
