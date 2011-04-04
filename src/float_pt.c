@@ -468,7 +468,6 @@ conversion can be done, return the result in "result".
      DBL_MAX will yield, so it's the right value to use for the overflow
      comparison.  double_dbl_max is that value converted to double. */
   if (!init_done) {
-    init_done = TRUE;
     /* Macros to turn DBL_MAX into a string: */
 #define str2_dbl_max(x) #x
 #define str1_dbl_max(x) str2_dbl_max(x)
@@ -492,6 +491,7 @@ conversion can be done, return the result in "result".
     check_assertion_str2(errno == 0, "conv_host_fp_to_double:",
                          "error on conversion of DBL_MAX");
     double_dbl_max = (double)host_fp_dbl_max;
+    init_done = TRUE;
   }  /* if */
   if (
 #if TARG_HAS_IEEE_FLOATING_POINT
