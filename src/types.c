@@ -3672,7 +3672,7 @@ a_type_ptr add_right_pointer_type_to_this(a_type_ptr type,
 Add the right kind of "pointer to" to "type" so it can be used as a "this"
 pointer for a member of the class class_type, and return the pointer type.
 The kind of pointer is unusual (e.g., it can be a handle) when the class
-is a C++/CLI class.
+is a C++/CLI class.  See type_of_address_of for a variant of this function.
 */
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED

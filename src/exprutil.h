@@ -2114,6 +2114,9 @@ extern an_expr_operator_kind operator_for_opname_kind(
                                                 an_opname_kind kind,
                                                 a_boolean      unary_operator);
 
+extern
+an_opname_kind simple_opname_kind_for_compound_assignment(an_opname_kind kind);
+
 extern void add_base_class_casts(a_base_class_ptr  bcp,
                                  a_type_ptr        qualifiers_model,
                                  a_boolean         check_cast_access,

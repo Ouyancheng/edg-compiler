@@ -2167,6 +2167,7 @@ ec_for_each_missing_field;;"to be used with \"for each\" statements, type %t mus
 ec_for_each_inaccessible_field;;"\"for each\" cannot use %n because it is not public"
 ec_for_each_getenumerator_return_type_invalid;;"in \"for each\" statement, %t2 is not a valid enumerator (returned by \"GetEnumerator\" of %t1)"
 ec_exp_in;;"expected \"in\""
+ec_no_suitable_synthesis_assignment_operator;;"class %t has no suitable assignment operator (after operator synthesis)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

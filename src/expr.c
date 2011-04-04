@@ -6830,8 +6830,8 @@ it is set to NULL.
 }  /* prepare_property_ref_incr_decr */
 
 
-static void insert_temporary_initialization(an_expr_node_ptr  temp_init_expr,
-                                            an_operand        *result)
+void insert_temporary_initialization(an_expr_node_ptr  temp_init_expr,
+                                     an_operand        *result)
 /*
 If temp_init_expr is non-NULL, insert the temporary-initialization code
 it points to into result so it executes before whatever is originally
@@ -20190,6 +20190,60 @@ accepted as a null pointer constant.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+
+void process_simple_assignment(an_operand        *operand_1,
+                               an_operand        *operand_2,
+                               a_source_position *operator_position,
+                               an_operand        *result)
+/*
+Process a simple assignment (i.e., a C-style assignment, or one in C++
+that does not involve calling an operator= function).  operand_1 is the
+left operand, operand_2 the right operand, and the result is placed in
+*result.  operator_position gives the assignment operator position.
+*/
+{
+  an_expr_operator_kind op;
+  a_type_ptr            orig_result_type, result_type;
+
+  do_operand_transformations(operand_1,
+                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+#if ASSIGNMENT_TO_THIS_ALLOWED
+  if (!C_mode() &&
+      is_an_rvalue(operand_1) &&  /* For speed. */
+      check_assignment_to_this_pointer(operand_1)) {
+    /* Anachronism -- assigning to the "this" pointer. */
+    /* The subroutine changes operand_1 to the proper lvalue. */
+  } else {
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+    if (check_modifiable_lvalue_operand(operand_1)) {
+      modifying_lvalue(operand_1, /*value_used=*/FALSE);
+    }  /* if */
+#if ASSIGNMENT_TO_THIS_ALLOWED
+  }  /* if */
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+  /* The type of the assignment is the destination type with qualifiers
+     dropped as appropriate. */
+  orig_result_type = operand_1->type;
+  result_type = rvalue_type(orig_result_type);
+  op = which_binary_operator(tok_assign, result_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Check for a bug related to null pointer constants in Microsoft C mode. */
+  process_microsoft_null_pointer_constant_bug(operand_2, result_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* do_operand_transformations is not done in the second operand,
+     because the processing for that is done in the conversion stuff. */
+  prep_assignment_operand(operand_2, result_type,
+                          ec_incompatible_assignment_operands,
+                          operator_position);
+  build_binary_result_operand(operand_1, operand_2, op,
+                              result_type, result);
+  /* In C++, assignment operators return lvalues. */
+  if (!C_mode()) {
+    change_assignment_result_to_lvalue(result, operand_1, orig_result_type);
+  }  /* if */
+}  /* process_simple_assignment */
+
+
 static void scan_simple_assignment_operator(an_operand             *operand_1,
                                             a_rescan_control_block *rcblock,
                                             an_operand             *result)
@@ -20209,7 +20263,6 @@ that case.
                     operator_tok_seq_number;
   a_boolean         err = FALSE, processed = FALSE;
   a_boolean         has_predef_meaning;
-  a_type_ptr        orig_result_type, result_type;
 
   db_enter(4, "scan_simple_assignment_operator");
 
@@ -20278,6 +20331,13 @@ that case.
             has_predef_meaning = TRUE;
           }  /* if */
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cppcli_enabled &&
+            is_cli_ref_or_interface_class_type(operand_1->type)) {
+          /* There's no default assignment for C++/CLI managed class types. */
+          has_predef_meaning = FALSE;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       check_for_operator_overloading((an_opname_kind)onk_assign,
                                      /*unary_operator=*/FALSE,
@@ -20292,46 +20352,9 @@ that case.
                                      result, &processed);
     }  /* if */
     if (!processed) {
-      an_expr_operator_kind  op;
       /* Non-operator-function cases, including all C cases. */
-      do_operand_transformations(operand_1,
-                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-#if ASSIGNMENT_TO_THIS_ALLOWED
-      if (C_dialect == C_dialect_cplusplus &&
-          is_an_rvalue(operand_1) &&  /* For speed. */
-          check_assignment_to_this_pointer(operand_1)) {
-        /* Anachronism -- assigning to the "this" pointer. */
-        /* The subroutine changes operand_1 to the proper lvalue. */
-      } else {
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-        if (check_modifiable_lvalue_operand(operand_1)) {
-          modifying_lvalue(operand_1, /*value_used=*/FALSE);
-        }  /* if */
-#if ASSIGNMENT_TO_THIS_ALLOWED
-      }  /* if */
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-      /* The type of the assignment is the destination type with qualifiers
-         dropped as appropriate. */
-      orig_result_type = operand_1->type;
-      result_type = rvalue_type(orig_result_type);
-      op = which_binary_operator(tok_assign, result_type);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      /* Check for a bug related to null pointer constants in Microsoft C
-         mode. */
-      process_microsoft_null_pointer_constant_bug(&operand_2, result_type);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* do_operand_transformations is not done in the second operand,
-         because the processing for that is done in the conversion stuff. */
-      prep_assignment_operand(&operand_2, result_type,
-                              ec_incompatible_assignment_operands,
-                              &operator_position);
-      build_binary_result_operand(operand_1, &operand_2, op,
-                                  result_type, result);
-      /* In C++, assignment operators return lvalues. */
-      if (C_dialect == C_dialect_cplusplus) {
-        change_assignment_result_to_lvalue(result, operand_1,
-                                           orig_result_type);
-      }  /* if */
+      process_simple_assignment(operand_1, &operand_2, &operator_position,
+                                result);
     }  /* if */
   }  /* if */
 

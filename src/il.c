@@ -16204,6 +16204,26 @@ address is taken and set the address_taken flag on these nodes.
 }  /* set_address_taken_for_variable_or_routine_expr */
 
 
+a_type_ptr type_of_address_of(an_expr_node_ptr node)
+/*
+Return the type of the address-of operator "&" applied to the indicated
+expression.  Normally, that is pointer-to its type, but in C++/CLI it can
+be interior_ptr-to the type.  Note that it is never handle-to the type.
+See add_right_pointer_type_to_this for a variant of this function.
+*/
+{
+  /* If the lvalue is a C++/CLI gc-lvalue, the "&" operator's type
+     is an interior_ptr. */
+  a_type_ptr addr_type =
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                         is_gc_lvalue_expr(node) ?
+                           make_interior_ptr_type(node->type) :
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                           make_pointer_type(node->type);
+  return addr_type;
+}  /* type_of_address_of */
+
+
 an_expr_node_ptr add_address_of_to_node(an_expr_node_ptr node)
 /*
 Add an eok_address_of operation on top of the given node, and return a
@@ -16225,15 +16245,8 @@ designated an rvalue.
       node = node->variant.operation.operands;
       check_assertion(!node->is_lvalue);
     } else {
-      /* If the lvalue is a C++/CLI gc-lvalue, the "&" operator's type
-         is an interior_ptr. */
-      a_type_ptr addr_type =
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                             is_gc_lvalue_expr(node) ?
-                               make_interior_ptr_type(node->type) :
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                               make_pointer_type(node->type);
       /* Set the address_taken flag for variables and routines. */
+      a_type_ptr addr_type = type_of_address_of(node);
       set_address_taken_for_variable_or_routine_expr(node);
       node->next = NULL;
       node = make_operator_node((an_expr_operator_kind)eok_address_of,

@@ -1943,8 +1943,8 @@ lowering (as lvalueness is known at that time).
     an_expr_node_ptr expr_to_save = copy_node(expr);
     a_boolean        lvalue_case = expr->is_lvalue;
     if (lvalue_case) {
-      temp_type = make_pointer_type(temp_type);
       expr_to_save = add_address_of_to_node(expr_to_save);
+      temp_type = expr_to_save->type;
     } else {
       /* The operand shouldn't be a class in C++ (we don't want to copy it). */
       check_assertion(C_mode() || !is_class_struct_union_type(temp_type));
@@ -9373,6 +9373,54 @@ The operation is a unary operation if unary_operator is TRUE.
 }  /* operator_for_opname_kind */
 
 
+an_opname_kind simple_opname_kind_for_compound_assignment(an_opname_kind kind)
+/*
+If kind is some kind of compound assignment, return the opname kind for
+the corresponding simple operator, e.g., onk_plus_assign ("+=") in produces
+onk_plus ("+") out.  If kind is not a compound assignment operator,
+return onk_none.
+*/
+{
+  an_opname_kind simple_kind = (an_opname_kind)onk_none;
+
+  switch (kind) {
+    case onk_plus_assign:
+      simple_kind = (an_opname_kind)onk_plus;
+      break;
+    case onk_minus_assign:
+      simple_kind = (an_opname_kind)onk_minus;
+      break;
+    case onk_times_assign:
+      simple_kind = (an_opname_kind)onk_star;
+      break;
+    case onk_divide_assign:
+      simple_kind = (an_opname_kind)onk_divide;
+      break;
+    case onk_remainder_assign:
+      simple_kind = (an_opname_kind)onk_remainder;
+      break;
+    case onk_excl_or_assign:
+      simple_kind = (an_opname_kind)onk_excl_or;
+      break;
+    case onk_and_assign:
+      simple_kind = (an_opname_kind)onk_ampersand;
+      break;
+    case onk_or_assign:
+      simple_kind = (an_opname_kind)onk_or;
+      break;
+    case onk_shift_left_assign:
+      simple_kind = (an_opname_kind)onk_shift_left;
+      break;
+    case onk_shift_right_assign:
+      simple_kind = (an_opname_kind)onk_shift_right;
+      break;
+    default:
+      break;
+  }  /* switch */
+  return simple_kind;
+}  /* simple_opname_kind_for_compound_assignment */
+
+
 void do_binary_operation_full(an_expr_operator_kind   op,
                               an_operand              *operand_1,
                               an_operand              *operand_2,
@@ -12814,12 +12862,7 @@ explicit "&" operator in the source and *operator_position gives its position.
               expr = add_address_of_to_node(expr);
             } else {
               /* An explicit "&" operator. */
-              a_type_ptr addr_type =
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                     is_gc_lvalue_expr(expr) ?
-                                       make_interior_ptr_type(expr->type) :
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                       make_pointer_type(expr->type);
+              a_type_ptr addr_type = type_of_address_of(expr);
               expr = make_operator_node((an_expr_operator_kind)eok_address_of,
                                         addr_type, expr);
 #if EXTRA_SOURCE_POSITIONS_IN_IL

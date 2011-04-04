@@ -213,6 +213,14 @@ void rescan_selector_of_call(a_rescan_control_block *rcblock,
                              an_operand_ptr         function_operand,
                              an_operand_ptr         bound_function_selector);
 
+extern void insert_temporary_initialization(an_expr_node_ptr  temp_init_expr,
+                                            an_operand_ptr    result);
+
+extern void process_simple_assignment(an_operand_ptr    operand_1,
+                                      an_operand_ptr    operand_2,
+                                      a_source_position *operator_position,
+                                      an_operand_ptr    result);
+
 #if GNU_EXTENSIONS_ALLOWED
 an_expr_node_ptr scan_asm_operand_expression(a_boolean output,
                                              a_boolean input);

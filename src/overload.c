@@ -12021,6 +12021,10 @@ apply, but we can't tell).
   a_boolean                selector_is_object_pointer = FALSE;
   a_boolean                saved_selector_is_object_pointer =
                                          operand_1->selector_is_object_pointer;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean                potential_operator_synthesis_case = FALSE;
+  an_opname_kind           corresp_simple_operator = (an_opname_kind)onk_none;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "check_for_operator_overloading");
 #if DEBUG
@@ -12047,18 +12051,28 @@ apply, but we can't tell).
     /* Check for operator overloading (but not in constant expressions). */
     eff_operand_1_type = operand_1->type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && is_handle_type(eff_operand_1_type)) {
-      /* In C++/CLI, if the first operand is a handle to a class we can look
-         for operator functions in the class underlying the handle. */
-      if (kind == (an_opname_kind)onk_eq ||
-          kind == (an_opname_kind)onk_assign) {
-        /* This trick is not allowed for certain operators. */
-      } else {
-        a_type_ptr under_type = type_pointed_to(eff_operand_1_type);
-        if (is_class_struct_union_type(under_type)) {
-          eff_operand_1_type = under_type;
-          selector_is_object_pointer = TRUE;
+    if (cppcli_enabled) {
+      if (is_handle_type(eff_operand_1_type)) {
+        /* In C++/CLI, if the first operand is a handle to a class we can look
+           for operator functions in the class underlying the handle. */
+        if (kind == (an_opname_kind)onk_eq ||
+            kind == (an_opname_kind)onk_assign) {
+          /* This trick is not allowed for certain operators. */
+        } else {
+          a_type_ptr under_type = type_pointed_to(eff_operand_1_type);
+          if (is_class_struct_union_type(under_type)) {
+            eff_operand_1_type = under_type;
+            selector_is_object_pointer = TRUE;
+          }  /* if */
         }  /* if */
+      }  /* if */
+      /* See if this is a compound assignment operator where operator
+         synthesis (ECMA-372 19.7.4) might apply. */
+      corresp_simple_operator=simple_opname_kind_for_compound_assignment(kind);
+      if (corresp_simple_operator != (an_opname_kind)onk_none &&
+          is_managed_class_type(eff_operand_1_type)) {
+        /* Yes, operator synthesis may apply. */
+        potential_operator_synthesis_case = TRUE;
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12405,8 +12419,109 @@ select_best_function:
             /* The operator is one that has a predefined meaning when applied
                to classes (e.g., unary "&").  Leave the operator unprocessed
                and let the caller apply the built-in meaning. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (potential_operator_synthesis_case) {
+            /* We might still be able to find a match by using operator
+               synthesis, e.g., after failing to match "x += y" we try
+               "x = x + y". */
+            /* Note that we were just about to issue an error, so from
+               here on in we can freely modify the operands, because if we
+               don't a get a match via operator synthesis we will issue an
+               error and it doesn't matter that we altered the operands. */
+            an_operand       operand_1_clone;
+            a_boolean        temp_init_used;
+            an_expr_node_ptr temp_init_expr = NULL;
+            clone_operand(operand_1, &operand_1_clone,
+                          /*vars_can_change=*/TRUE,
+                          &temp_init_used,
+                          /*treat_as_potential_rvalue=*/FALSE);
+            if (temp_init_used) {
+              /* operand_1 has side effects, so the cloning generated a
+                 temporary.  Extract the initialization of the temporary
+                 as an expression to be inserted later with a comma expression
+                 to get the initialization done at the start of the rewritten
+                 expression.  operand_1 becomes another clone of the
+                 original operand, i.e., a reference to the temporary. */
+              an_operand operand_1_clone_2;
+              a_boolean  local_temp_init_used;
+              clone_operand(operand_1, &operand_1_clone_2,
+                            /*vars_can_change=*/TRUE,
+                            &local_temp_init_used,
+                            /*treat_as_potential_rvalue=*/FALSE);
+              temp_init_expr = make_node_from_operand(operand_1);
+              copy_operand(&operand_1_clone_2, operand_1);
+            }  /* if */
+            /* Try "operand_1 simple-op operand_2".  We pass
+               has_predef_meaning TRUE so that if there is no match
+               we get control back here and we can issue an error based on
+               the original compound-assignment operator. */
+            check_for_operator_overloading(corresp_simple_operator,
+                                           /*unary_operator=*/FALSE,
+                                           /*must_be_member_function=*/FALSE,
+                                           /*try_conversions=*/FALSE,
+                                           /*has_predef_meaning=*/TRUE,
+                                           operand_1,
+                                           operand_2,
+                                           operator_position,
+                                           operator_tok_seq_number,
+                                           (a_nondependent_call_depth)2,
+                                           operator_position_2,
+                                           result,
+                                           processed);
+            if (!*processed) goto no_applicable_operator_function;
+            /* There is an acceptable simple operator function.  See if
+               the assignment can be done. */
+            { an_operand interm_result;
+              copy_operand(result, &interm_result);
+              if (selector_is_object_pointer) {
+                /* The first operand is a handle, so there's no point
+                   in looking for an operator= function to handle it.  It can
+                   just be handled directly. */
+                process_simple_assignment(&operand_1_clone,
+                                          &interm_result,
+                                          operator_position,
+                                          result);
+                *processed = TRUE;
+              } else {
+                /* Look for a suitable operator= function. */
+                /* Again, we specify has_predef_meaning TRUE so we can issue
+                   a specific error message here. */
+                check_for_operator_overloading((an_opname_kind)onk_assign,
+                                               /*unary_operator=*/FALSE,
+                                              /*must_be_member_function=*/TRUE,
+                                               /*try_conversions=*/FALSE,
+                                               /*has_predef_meaning=*/TRUE,
+                                               &operand_1_clone,
+                                               &interm_result,
+                                               operator_position,
+                                               operator_tok_seq_number,
+                                               (a_nondependent_call_depth)1,
+                                               operator_position_2,
+                                               result,
+                                               processed);
+                if (*processed) {
+                  /* The operator= is also acceptable, so we've succeeded.
+                     Insert the temporary-initialization code from above,
+                     if any. */
+                  insert_temporary_initialization(temp_init_expr, result);
+                } else {
+                  /* No suitable assignment operator. */
+                  if (expr_error_should_be_issued()) {
+                    pos_ty_error(ec_no_suitable_synthesis_assignment_operator,
+                                 operator_position,
+                                 f_skip_typerefs(eff_operand_1_type));
+                  }  /* if */
+                  make_error_operand(result);
+                  *processed = TRUE;
+                }  /* if */
+              }  /* if */
+            }
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             /* Error: no applicable operator function. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+no_applicable_operator_function:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             *processed = TRUE;
             if (expr_error_should_be_issued()) {
               pos_st_start_error(ec_no_matching_operator_function,

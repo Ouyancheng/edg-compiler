@@ -702,6 +702,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_for_each_inaccessible_field)*/
 /*lint -esym(769,ec_for_each_getenumerator_return_type_invalid)*/
 /*lint -esym(769,ec_exp_in)*/
+/*lint -esym(757,insert_temporary_initialization)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(759,basic_type_from_system_type)*/
