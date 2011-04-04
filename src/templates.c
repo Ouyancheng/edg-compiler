@@ -2010,6 +2010,8 @@ overloaded function).
   a_boolean	qualifiers_dropped2 = FALSE;
   a_boolean	type_under_ref_is_function = FALSE;
   a_boolean	do_ref_vs_ptr_check;
+  a_boolean	local_match1;
+  a_boolean	local_match2;
 
   /* Microsoft and g++ consider a reference to function to match a
      pointer to function for partial ordering. */
@@ -2088,17 +2090,21 @@ overloaded function).
     param_type1 = skip_typerefs(param_type1);
     param_type2 = skip_typerefs(param_type2);
   }  /* if */
-  /* Only check a parameter if no mismatch for that routine has been found. */
-  if (*match1) {
-    *match1 = matches_template_type(param_type1, param_type2, templ_arg_list1,
-                                    templ_param_list1, MTT_NO_FLAGS);
-  }  /* if */
-  if (*match2) {
-    *match2 = matches_template_type(param_type2, param_type1, templ_arg_list2,
-                                    templ_param_list2, MTT_NO_FLAGS);
-  }  /* if */
-  /* If both comparisons match, prefer the direction that is more qualified. */
-  if (*match1 && *match2) {
+  local_match1 = matches_template_type(param_type1, param_type2,
+                                       templ_arg_list1, templ_param_list1,
+                                       MTT_NO_FLAGS);
+  local_match2 = matches_template_type(param_type2, param_type1,
+                                       templ_arg_list2, templ_param_list2,
+                                       MTT_NO_FLAGS);
+  if (!local_match1 || !local_match2) {
+    /* There was only a match in one direction.  Update the caller's flags
+       with the status. */
+    *match1 &= local_match1;
+    *match2 &= local_match2;
+  } else if (local_match1 && local_match2) {
+    /* If both comparisons match, prefer the direction that is a "better"
+       references (i.e, not an rvalue reference) or if they are the
+       same kind of reference, the one that is more qualified. */
     if (!microsoft_mode && !gpp_mode && !sun_mode &&
         (type_1_is_reference && type_2_is_reference) &&
         (type_1_is_lvalue_reference != type_2_is_lvalue_reference)) {

@@ -1,5 +1,21 @@
 Version 4.4
 
+4/4/11   [EDGcpfe/11605]
+Incorrect partial ordering of lvalue vs. rvalue references
+
+Version 4.3 implemented the resolution of core issue 1164 regarding the
+partial ordering of lvalue vs. rvalue references (see 1/14/11 entry).
+That change incorrectly considered some cases as ordered that should
+have been ambiguous.  Now fixed.
+
+  template <class T, class U> void f(T&&, U&);
+  template <class T, class U> void f(T&, U&&);
+  int main() {
+     int x = 1;
+     f(x, x);
+  }
+
+
 4/4/11   [EDGcpfe/11604]
 Host DBL_MAX with form ((double)1.79769313486231570815e+308L)
 
