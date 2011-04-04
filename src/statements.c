@@ -3971,9 +3971,12 @@ pointer or handle type; in that case replace "c." with "c->".
     saved_error_threshold = error_threshold;
     error_threshold = es_catastrophe;
     /* For now, only allow the STL patten while we're in C++/CLI mode
-       (otherwise lowering will abort). */
-    if (cppcli_enabled &&
-        check_for_each_stl_collection_pattern(sp, &element_type)) {
+       if lowering is enabled (otherwise lowering will abort). */
+    if (check_for_each_stl_collection_pattern(sp, &element_type)
+#if DO_IL_LOWERING
+        && cppcli_enabled
+#endif /* DO_IL_LOWERING */
+                         ) {
       /* Passed semantic checks for the STL pattern. */
       felp->uses_for_each_stl_collection_pattern = TRUE;
     } else if (cppcli_enabled &&
@@ -4003,7 +4006,11 @@ pointer or handle type; in that case replace "c." with "c->".
       error_threshold = saved_error_threshold;
       /* For now, only give STL errors when C++/CLI mode is enabled (otherwise
          valid STL "for each" statements can escape to lowering). */
-      if (cppcli_enabled && (begin_symbol != NULL || end_symbol != NULL)) {
+      if ((begin_symbol != NULL || end_symbol != NULL)
+#if DO_IL_LOWERING
+          && cppcli_enabled
+#endif /* DO_IL_LOWERING */
+                           ) {
         /* Either begin or end was provided, so issue the STL set of
            diagnostics. */
         (void)check_for_each_stl_collection_pattern(sp, &element_type);
