@@ -703,6 +703,9 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_for_each_getenumerator_return_type_invalid)*/
 /*lint -esym(769,ec_exp_in)*/
 /*lint -esym(757,insert_temporary_initialization)*/
+/*lint -esym(759,process_simple_assignment)*/
+/*lint -esym(765,process_simple_assignment)*/
+/*lint -esym(769,ec_no_suitable_synthesis_assignment_operator)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(759,basic_type_from_system_type)*/

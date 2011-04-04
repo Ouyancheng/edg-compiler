@@ -2114,8 +2114,10 @@ extern an_expr_operator_kind operator_for_opname_kind(
                                                 an_opname_kind kind,
                                                 a_boolean      unary_operator);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 extern
 an_opname_kind simple_opname_kind_for_compound_assignment(an_opname_kind kind);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void add_base_class_casts(a_base_class_ptr  bcp,
                                  a_type_ptr        qualifiers_model,

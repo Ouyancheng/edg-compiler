@@ -9372,6 +9372,7 @@ The operation is a unary operation if unary_operator is TRUE.
   return op;
 }  /* operator_for_opname_kind */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 an_opname_kind simple_opname_kind_for_compound_assignment(an_opname_kind kind)
 /*
@@ -9420,6 +9421,7 @@ return onk_none.
   return simple_kind;
 }  /* simple_opname_kind_for_compound_assignment */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void do_binary_operation_full(an_expr_operator_kind   op,
                               an_operand              *operand_1,
