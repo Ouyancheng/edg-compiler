@@ -12,7 +12,7 @@ have been ambiguous.  Now fixed.
   template <class T, class U> void f(T&, U&&);
   int main() {
      int x = 1;
-     f(x, x);
+     f(x, x);  // now diagnosed as ambiguous
   }
 
 

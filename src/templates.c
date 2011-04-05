@@ -2106,7 +2106,7 @@ overloaded function).
     *match2 &= local_match2;
   } else if (local_match1 && local_match2) {
     /* If both comparisons match, prefer the direction that is a "better"
-       references (i.e, not an rvalue reference) or if they are the
+       reference (i.e, not an rvalue reference) or if they are the
        same kind of reference, the one that is more qualified. */
     if (!microsoft_mode && !gpp_mode && !sun_mode &&
         (type_1_is_reference && type_2_is_reference) &&
