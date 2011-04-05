@@ -4917,12 +4917,12 @@ A reference is not the definition.
         } else if (type->source_corresp.visible_as_unqualified_name) {
           need_qual = FALSE;
         } else if (type->source_corresp.is_class_member &&
-                   class_is_in_name_context_stack(
+                   !class_is_in_name_context_stack(
                                               parent_class_of(type),
                                               /*include_base_classes=*/TRUE)) {
-          need_qual = FALSE;
-        } else {
           need_qual = TRUE;
+        } else {
+          need_qual = FALSE;
         }  /* if */
         if (!need_qual) {
           /* This is the name of the current instantiation, and it is
