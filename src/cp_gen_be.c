@@ -9773,6 +9773,7 @@ problems.
          (operand->variant.operation.compiler_generated &&
           (node_operator_is(operand, eok_address_of) ||
            node_operator_is(operand, eok_indirect) ||
+           node_operator_is(operand, eok_class_rvalue_adjust) ||
            (is_cast_operation_node(operand) &&
             !operand->variant.operation.keep_cast_for_cp_gen_be &&
             !is_const_string_literal_cast(operand)))))) {
