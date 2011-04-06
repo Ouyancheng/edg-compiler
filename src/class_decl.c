@@ -17204,6 +17204,7 @@ being parsed), *decl_info describes the current member declaration, and
       if (pdp->indices != NULL) {
         /* A trivial property cannot be an indexed property. */
         pos_error(ec_trivial_indexed_property, &pos_curr_token);
+        pdp->indices = NULL;
       } else if (is_any_reference_type(dps->type)) {
         /* A trivial property cannot have a reference type. */
         pos_error(ec_trivial_reference_property, &type_pos);
