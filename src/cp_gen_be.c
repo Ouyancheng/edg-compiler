@@ -4910,7 +4910,9 @@ A reference is not the definition.
       /* A template instance is not declared, per se, but it should never be
          referred to by an elaborated-type-specifier. */
       type->has_been_declared = TRUE;
-      if (type_is_prototype_instantiation(type)) {
+      if (type_is_prototype_instantiation(type) &&
+          class_is_in_name_context_stack(type,
+                                         /*include_base_classes=*/TRUE)) {
         a_boolean need_qual;
         if (type->source_corresp.qualification_needed) {
           need_qual = TRUE;
