@@ -1670,7 +1670,7 @@ do_set_proper_definition_needed_flag:
     case iek_for_each_loop:
       {
         a_for_each_loop_ptr ptr = (a_for_each_loop_ptr)entry_ptr;
-        walk_ptr(ptr->iterator, a_variable_ptr, iek_variable);
+        remap_ptr(ptr->iterator, a_variable_ptr, iek_variable);
       }
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

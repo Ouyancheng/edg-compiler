@@ -13994,19 +13994,19 @@ typedef struct a_statement {
     } for_loop;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* When kind == stmk_for_each: */
-        struct {
-          a_statement_ptr
+    struct {
+      a_statement_ptr
                 statement;
                         /* Pointer to the statement that is the body of the
                            loop (commonly but not necessarily an stmk_block)
                            that is to be executed on each iteration of the
                            loop; NULL if there is none. */
-          a_for_each_loop_ptr
+      a_for_each_loop_ptr
                 extra_info;
                         /* Information about the loop control constructs
-                           excluding the collection expression which is
+                           (excluding the collection expression which is
                            pointed to from the expr field). */
-        } for_each_loop;
+    } for_each_loop;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* When kind == stmk_switch_case: */
     struct {

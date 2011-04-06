@@ -11582,7 +11582,8 @@ static a_variable_ptr condition_or_for_each_declaration(
 /*
 Scan a condition declaration (when for_each_statement is NULL) or an iterator
 declaration in a "for each" statement (when for_each_statement is non-NULL).
-Syntax for a condition declaration:
+"for each" statements only occur in Microsoft mode (and some types are
+further restricted to C++/CLI mode).  Syntax for a condition declaration:
 
   type-specifier-seq declarator = assignment-expression
 
@@ -11705,8 +11706,8 @@ Return a pointer to the variable that is declared.
                                   /*is_for_each_expr=*/TRUE);
       if (expr->kind == (an_expr_node_kind)enk_variable) {
         /* If the expression for the collection is a variable, mark it as
-           used.  This prevents the emission of a warning for unused variable
-           on arrays.  For example:
+           used.  This prevents the emission of a warning for an unused
+           variable on arrays.  For example:
 
              int a[5] = {1, 2, 3, 4, 5};
              for each(int i in a) {}
@@ -11775,7 +11776,9 @@ Return a pointer to the variable that is declared.
 
 void for_each_iterator_declaration(a_statement_ptr sp)
 /*
-Scan a "for each" iteration variable declaration.  Syntax:
+Scan a "for each" iteration variable declaration.  "for each" statements are
+allowed only in Microsoft mode and some types of "for each" are allowed only
+in C++/CLI mode.  Syntax:
 
   type-specifier-seq declarator in assignment-expression
 

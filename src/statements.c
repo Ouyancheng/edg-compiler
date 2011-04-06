@@ -3970,13 +3970,7 @@ pointer or handle type; in that case replace "c." with "c->".
        diagnostics. */
     saved_error_threshold = error_threshold;
     error_threshold = es_catastrophe;
-    /* For now, only allow the STL patten while we're in C++/CLI mode
-       if lowering is enabled (otherwise lowering will abort). */
-    if (check_for_each_stl_collection_pattern(sp, &element_type)
-#if DO_IL_LOWERING
-        && cppcli_enabled
-#endif /* DO_IL_LOWERING */
-                         ) {
+    if (check_for_each_stl_collection_pattern(sp, &element_type)) {
       /* Passed semantic checks for the STL pattern. */
       felp->uses_for_each_stl_collection_pattern = TRUE;
     } else if (cppcli_enabled &&
@@ -4004,13 +3998,7 @@ pointer or handle type; in that case replace "c." with "c->".
                                           &statement_position,
                                           &getenum_symbol);
       error_threshold = saved_error_threshold;
-      /* For now, only give STL errors when C++/CLI mode is enabled (otherwise
-         valid STL "for each" statements can escape to lowering). */
-      if ((begin_symbol != NULL || end_symbol != NULL)
-#if DO_IL_LOWERING
-          && cppcli_enabled
-#endif /* DO_IL_LOWERING */
-                           ) {
+      if (begin_symbol != NULL || end_symbol != NULL) {
         /* Either begin or end was provided, so issue the STL set of
            diagnostics. */
         (void)check_for_each_stl_collection_pattern(sp, &element_type);
@@ -6080,7 +6068,7 @@ See also 3.6.6.4.
 #if VLA_DEALLOCATIONS_IN_IL
   if (vla_enabled && vla_deallocations_in_il &&
       curr_reachability.reachable) {
-    /* Put out a vla-dealloc statement "for each" declaration of a VLA variable
+    /* Put out a vla-dealloc statement for each declaration of a VLA variable
        in the currently active blocks of the function. */
     vla_dealloc_stmts = collect_vla_dealloc_stmts_for_function(
                                               end_of_control_flow_descr_list);
