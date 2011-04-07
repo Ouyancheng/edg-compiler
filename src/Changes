@@ -1,5 +1,22 @@
 Version 4.4
 
+4/7/11   [EDGcpfe/11614]
+GNU C++ compatibility: __GNUC_GNU_INLINE__ and __GNUC_STDC_INLINE__ macros
+
+With the changes to emulate GNU's handling of "extern inline" (see
+EDGcpfe/8555), the front end (in GNU C mode), defines either
+__GNUC_GNU_INLINE__ or __GNUC_STDC_INLINE__, however if one of those macros
+was also defined in the predefined_macros.txt file, the situation could
+arise that both macros are defined.  A change has been made to
+make_predef_macro_table to suppress definitions for these macros.  Users
+should either re-run make_predef_macro_table or remove these macro
+definitions from their predefined_macros.txt file.  For example:
+
+  #if defined(__GNUC_GNU_INLINE__) && defined(__GNUC_STDC_INLINE__)
+  #error Both __GNUC_GNU_INLINE__ and __GNUC_STDC_INLINE__ are defined
+  #endif
+
+
 4/4/11   [EDGcpfe/11605]
 Incorrect partial ordering of lvalue vs. rvalue references
 
