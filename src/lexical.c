@@ -16630,6 +16630,22 @@ wrapup:
          symbol of kind sk_undefined. */
       make_specific_symbol_error_locator(&locator_for_curr_id);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (qualifier_is_property_or_event) {
+      locator_for_curr_id.is_property_or_event_accessor = TRUE;
+      locator_for_curr_id.property_or_event_parent =
+                                                  qualifier_property_or_event;
+      if (qualifier_type == NULL) {
+        /* If, for example, class type C has an event e, we treat "e::raise"
+           as an unqualified name (e.g., p->e::raise may be a virtual call)
+           but we record C as a parent type.  "C::e::raise" is treated as a
+           qualified name as usual. */
+        check_assertion(qualifier_is_type);
+        qualifier_type = sym_parent_class(qualifier_sym);
+        is_qualified_name = FALSE;
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (qualifier_is_type) {
       locator_for_curr_id.parent.class_type = qualifier_type;
       locator_for_curr_id.is_class_member = qualifier_type != NULL;
@@ -16659,13 +16675,6 @@ wrapup:
     locator_for_curr_id.qualifier_is_super = qualifier_is_super;
     locator_for_curr_id.is_super_qualified = is_super_qualified;
     locator_for_curr_id.name_qualifier = name_qualifier;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (qualifier_is_property_or_event) {
-      locator_for_curr_id.is_property_or_event_accessor = TRUE;
-      locator_for_curr_id.property_or_event_parent =
-                                                  qualifier_property_or_event;
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Since we're returning a pseudo-token, set pos_curr_token. */
     pos_curr_token = start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
