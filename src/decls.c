@@ -4839,7 +4839,8 @@ associated sk_external_variable or sk_external_routine symbol, if any.
                will operate on the wrong routines list. */
             remove_from_routines_list(sym->variant.routine.ptr,
                                       DEPTH_OF_FILE_SCOPE);
-            add_to_routines_list(sym->variant.routine.ptr, decl_scope_level);
+            add_to_routines_list(sym->variant.routine.ptr,
+                                 idlbp->effective_decl_level);
           }  /* if */
           if (microsoft_mode && !sym->defined && sev == es_error &&
               idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {

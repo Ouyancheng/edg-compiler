@@ -1,5 +1,22 @@
 Version 4.4
 
+4/7/11   [EDGcpfe/11509]
+Infinite loop or abort after friend declaration of a static extern "C" function
+
+In some C++ modes (including default and Sun C++ modes), the front end 
+incorrectly moved a routine entry for a static extern "C" function to a class
+scope if that function was referred to by a friend declaration.  The resulting 
+corrupt IL could later trigger an abort or an infinite loop (e.g., in the
+perform_scheduled_routine_moves).  For example:
+
+  extern "C" { static void f(); };
+  class C { friend void f(); };  // Entry for f moved to the wrong scope list
+                                 // in some modes.
+  void f() {}                    // Triggered an infinite loop or abort.
+
+This is now fixed.
+
+
 4/7/11   [EDGcpfe/11617]
 Variadic templates: errors caused by packs expanded during disambiguation
 
