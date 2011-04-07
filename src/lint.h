@@ -709,6 +709,9 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_not_a_generic_param)*/
 /*lint -esym(769,ec_not_generic_param_of_curr_decl)*/
 /*lint -esym(769,ec_invalid_constraint)*/
+/*lint -esym(769,ec_invalid_event_use)*/
+/*lint -esym(769,ec_event_without_raise_invoked)*/
+/*lint -esym(769,ec_bad_event_compound_assignment)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(759,basic_type_from_system_type)*/
