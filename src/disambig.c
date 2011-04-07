@@ -196,7 +196,7 @@ TRUE, coalesce any identifiers.
 }  /* cache_tokens_until */
 
 
-static void prescan_initializer(a_disambig_state_ptr	state)
+static void prescan_initializer(void)
 /*
 Cache the tokens that comprise an initializer of the form
 "= initializer-clause".
@@ -1194,7 +1194,7 @@ function_lparen:
        tokens that comprise the initializer and leave curr_token
        as the token following the initializer (usually a comma or
        a semicolon). */
-    prescan_initializer(state);
+    prescan_initializer();
   } else {
     /* A condition is required to have an "=" style initialization.
        If the initialization is missing, don't consider this to be
