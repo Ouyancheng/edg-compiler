@@ -16918,17 +16918,13 @@ done:
 
 static void generate_trivial_accessor(a_class_def_state  *class_state,
                                       a_type_ptr         type,
-                                      char               *name,
-                                      a_boolean          is_static,
-                                      a_boolean          is_virtual)
+                                      char               *name)
 /*
 Declare an accessor function with the given name and type for a trivial
 property or event being defined in the class described by class_state (the
 property or event is described by class_state->property_or_event_descr).
-is_static and is_virtual indicate whether the property or event is static or
-virtual.  The given type is an unshared routine type that does not include a
-"this" parameter: This function adds that parameter if the accessor is
-nonstatic (is_static is FALSE).
+The given type is an unshared routine type that does not include a "this"
+parameter: This function adds that parameter if the accessor is nonstatic.
 */
 {
   a_property_or_event_descr_ptr
@@ -17001,14 +16997,12 @@ trivial property described by class_state->property_or_event_descr.
                                           /*param2_type=*/(a_type_ptr)NULL,
                                           /*param3_type=*/(a_type_ptr)NULL,
                                           /*param4_type=*/(a_type_ptr)NULL);
-  generate_trivial_accessor(class_state, get_type, "get",
-                            pdp->is_static, pdp->is_virtual);
+  generate_trivial_accessor(class_state, get_type, "get");
   set_type = make_routine_type(void_type(), prop_type,
                                             /*param2_type=*/(a_type_ptr)NULL,
                                             /*param3_type=*/(a_type_ptr)NULL,
                                             /*param4_type=*/(a_type_ptr)NULL);
-  generate_trivial_accessor(class_state, set_type, "set",
-                            pdp->is_static, pdp->is_virtual);
+  generate_trivial_accessor(class_state, set_type, "set");
 }  /* record_trivial_property_accessors */
 
 
@@ -17032,11 +17026,9 @@ class_state->property_or_event_descr.
                                             /*param2_type=*/(a_type_ptr)NULL,
                                             /*param3_type=*/(a_type_ptr)NULL,
                                             /*param4_type=*/(a_type_ptr)NULL);
-  generate_trivial_accessor(class_state, add_type, "add",
-                            pdp->is_static, pdp->is_virtual);
+  generate_trivial_accessor(class_state, add_type, "add");
   remove_type = add_type;
-  generate_trivial_accessor(class_state, remove_type, "remove",
-                            pdp->is_static, pdp->is_virtual);
+  generate_trivial_accessor(class_state, remove_type, "remove");
   /* Declare the event's "raise" accessor: It is always private. */
   if (is_template_dependent_type(event_type)) {
     /* During prototype instantiations, we cannot always know the invocation
@@ -17055,8 +17047,7 @@ class_state->property_or_event_descr.
                                       delegate_invocation_type(delegate_type),
                                       /*copy_default_args=*/FALSE);
       raise_type->variant.routine.extra_info->this_class = NULL;
-      generate_trivial_accessor(class_state, raise_type, "raise",
-                                pdp->is_static, pdp->is_virtual);
+      generate_trivial_accessor(class_state, raise_type, "raise");
       class_state->access = saved_access;
     }  /* if */
   }  /* if */
