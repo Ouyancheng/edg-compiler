@@ -16916,6 +16916,71 @@ done:
 }  /* check_for_cli_field_modifier */
 
 
+static void generate_trivial_accessor(a_class_def_state  *class_state,
+                                      a_type_ptr         type,
+                                      char               *name,
+                                      a_boolean          is_static,
+                                      a_boolean          is_virtual)
+/*
+Declare an accessor function with the given name and type for a trivial
+property or event being defined in the class described by class_state (the
+property or event is described by class_state->property_or_event_descr).
+is_static and is_virtual indicate whether the property or event is static or
+virtual.  The given type is an unshared routine type that does not include a
+"this" parameter: This function adds that parameter if the accessor is
+nonstatic (is_static is FALSE).
+*/
+{
+  a_property_or_event_descr_ptr
+                      pdp = class_state->property_or_event_descr;
+  a_symbol_locator    member_loc;
+  a_func_info_block   func_info;
+  a_member_decl_info  member_info;
+  a_decl_parse_state  *mdps = &member_info.decl_state;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean           saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Don't issue source sequence entries for generated entities. */
+  saved_source_sequence_entries_disallowed =
+                                            source_sequence_entries_disallowed;
+  scope_stack_top().source_sequence_entries_disallowed = TRUE;
+  source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  clear_locator(&member_loc, &pos_curr_token);
+  (void)find_symbol(name, strlen(name), &member_loc);
+  member_loc.is_property_or_event_accessor = TRUE;
+  initialize_member_decl_info(&member_info, &pos_curr_token);;
+  clear_func_info(&func_info);
+  if (pdp->is_static) {
+    /* The accessor is a static member function. */
+    mdps->storage_class = mdps->declared_storage_class =
+                                                   (a_storage_class)sc_static;
+    member_loc.property_or_event_parent = symbol_for(pdp->variant.variable);
+  } else {
+    /* The accessor is a nonstatic, possibly virtual, member function. */
+    if (pdp->is_virtual) mdps->dso_flags |= DSO_VIRTUAL;
+    member_loc.property_or_event_parent = symbol_for(pdp->variant.field);
+  }  /* if */
+  check_assertion(type->kind == (a_type_kind)tk_routine);
+  if (!pdp->is_static) {
+    /* The accessor must have a "this" parameter. */
+    type->variant.routine.extra_info->this_class = class_state->class_type;
+  }  /* if */
+  mdps->type = mdps->declared_type = type;
+  decl_member_function(&member_loc, &func_info, class_state, &member_info,
+                       /*compiler_generated=*/TRUE);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Restore the previous state wrt. generating source sequence entries. */
+  source_sequence_entries_disallowed =
+                                     saved_source_sequence_entries_disallowed;
+  scope_stack_top().source_sequence_entries_disallowed 
+                                    = saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+}  /* generate_trivial_accessor */
+
+
 static void record_trivial_property_accessors(a_class_def_state  *class_state)
 /*
 Generate "get" and "set" accessor declarations (but not definitions) for the
@@ -16924,70 +16989,78 @@ trivial property described by class_state->property_or_event_descr.
 {
   a_property_or_event_descr_ptr
                       pdp = class_state->property_or_event_descr;
-  a_type_ptr          type;
-  a_symbol_locator    member_loc;
-  a_func_info_block   func_info;
-  a_member_decl_info  member_info;
-  a_decl_parse_state  *mdps = &member_info.decl_state;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_boolean           saved_source_sequence_entries_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  int                 k;
+  a_type_ptr          prop_type, get_type, set_type;
 
   check_assertion(pdp != NULL);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* Don't issue source sequence entries for generated entities. */
-  saved_source_sequence_entries_disallowed =
-                                            source_sequence_entries_disallowed;
-  scope_stack_top().source_sequence_entries_disallowed = TRUE;
-  source_sequence_entries_disallowed = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  for (k = 0; k<2; ++k) {
-    /* k == 0: "get", k == 1: "set". */
-    a_boolean  is_get = k == 0;
-    clear_locator(&member_loc, &pos_curr_token);
-    (void)find_symbol(is_get ? (char*)"get" : (char*)"set",
-                      (is_get ? sizeof("get") : sizeof("set"))-1,
-                      &member_loc);
-    member_loc.is_property_or_event_accessor = TRUE;
-    initialize_member_decl_info(&member_info, &pos_curr_token);;
-    clear_func_info(&func_info);
-    if (pdp->is_static) {
-      /* The accessor is a static member function. */
-      mdps->storage_class = mdps->declared_storage_class =
-                                                   (a_storage_class)sc_static;
-      member_loc.property_or_event_parent = symbol_for(pdp->variant.variable);
-      type = pdp->variant.variable->type;
-    } else {
-      /* The accessor is a nonstatic, possibly virtual, member function. */
-      if (pdp->is_virtual) mdps->dso_flags |= DSO_VIRTUAL;
-      member_loc.property_or_event_parent = symbol_for(pdp->variant.field);
-      type = pdp->variant.field->type;
-    }  /* if */
-    /* For a property of type X the "get" signature is "X get()" and the "set"
-       signature is "void set(X)". */
-    mdps->declared_type = make_routine_type(is_get ? type : void_type(), 
-                                            is_get ? (a_type_ptr)NULL : type,
+  if (pdp->is_static) {
+    prop_type = pdp->variant.variable->type;
+  } else {
+    prop_type = pdp->variant.field->type;
+  }  /* if */
+  get_type = make_routine_type(prop_type, /*param1_type=*/(a_type_ptr)NULL,
+                                          /*param2_type=*/(a_type_ptr)NULL,
+                                          /*param3_type=*/(a_type_ptr)NULL,
+                                          /*param4_type=*/(a_type_ptr)NULL);
+  generate_trivial_accessor(class_state, get_type, "get",
+                            pdp->is_static, pdp->is_virtual);
+  set_type = make_routine_type(void_type(), prop_type,
                                             /*param2_type=*/(a_type_ptr)NULL,
                                             /*param3_type=*/(a_type_ptr)NULL,
                                             /*param4_type=*/(a_type_ptr)NULL);
-    if (!pdp->is_static) {
-      /* The accessor must have a "this" parameter. */
-      mdps->declared_type->variant.routine.extra_info->this_class =
-                                                      class_state->class_type;
-    }  /* if */
-    mdps->type = mdps->declared_type;
-    decl_member_function(&member_loc, &func_info, class_state, &member_info,
-                         /*compiler_generated=*/TRUE);
-  }  /* for */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* Restore the previous state wrt. generating source sequence entries. */
-  source_sequence_entries_disallowed =
-                                     saved_source_sequence_entries_disallowed;
-  scope_stack_top().source_sequence_entries_disallowed 
-                                    = saved_source_sequence_entries_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  generate_trivial_accessor(class_state, set_type, "set",
+                            pdp->is_static, pdp->is_virtual);
 }  /* record_trivial_property_accessors */
+
+
+static void record_trivial_event_accessors(a_class_def_state  *class_state)
+/*
+Generate "add", "remove", and "raise" accessor declarations (but not
+definitions) for the trivial event described by
+class_state->property_or_event_descr.
+*/
+{
+  a_property_or_event_descr_ptr
+                      pdp = class_state->property_or_event_descr;
+  a_type_ptr          event_type, add_type, remove_type, raise_type;
+  check_assertion(pdp != NULL);
+  if (pdp->is_static) {
+    event_type = pdp->variant.variable->type;
+  } else {
+    event_type = pdp->variant.field->type;
+  }  /* if */
+  add_type = make_routine_type(void_type(), event_type,
+                                            /*param2_type=*/(a_type_ptr)NULL,
+                                            /*param3_type=*/(a_type_ptr)NULL,
+                                            /*param4_type=*/(a_type_ptr)NULL);
+  generate_trivial_accessor(class_state, add_type, "add",
+                            pdp->is_static, pdp->is_virtual);
+  remove_type = add_type;
+  generate_trivial_accessor(class_state, remove_type, "remove",
+                            pdp->is_static, pdp->is_virtual);
+  /* Declare the event's "raise" accessor: It is always private. */
+  if (is_template_dependent_type(event_type)) {
+    /* During prototype instantiations, we cannot always know the invocation
+       type if the event type is template-dependent.  Do not create the "raise"
+       member in that case. */
+  } else if (!is_handle_type(event_type)) {
+    expect_error();
+  } else {
+    a_type_ptr  delegate_type = type_pointed_to(event_type);
+    if (!is_delegate_type(delegate_type)) {
+      expect_error();
+    } else {
+      an_access_specifier  saved_access = class_state->access;
+      class_state->access = (an_access_specifier)as_private;
+      raise_type = copy_routine_type_with_param_types(
+                                      delegate_invocation_type(delegate_type),
+                                      /*copy_default_args=*/FALSE);
+      raise_type->variant.routine.extra_info->this_class = NULL;
+      generate_trivial_accessor(class_state, raise_type, "raise",
+                                pdp->is_static, pdp->is_virtual);
+      class_state->access = saved_access;
+    }  /* if */
+  }  /* if */
+}  /* record_trivial_event_accessors */
 
 
 static void scan_cli_property_indices(a_property_or_event_descr_ptr  pdp)
@@ -17213,6 +17286,8 @@ being parsed), *decl_info describes the current member declaration, and
         pos_error(ec_trivial_const_or_volatile_property, &type_pos);
       }  /* if */
       record_trivial_property_accessors(class_state);
+    } else {
+      record_trivial_event_accessors(class_state);
     }  /* if */
     (void)get_token();
     class_state->property_or_event_descr = NULL;

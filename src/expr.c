@@ -771,23 +771,23 @@ to win out.
 }  /* property_ref_has_accessor_that_yields_subscriptable_object */
 
 
-static void make_property_ref_operand(a_symbol_ptr  property_or_event,
+static void make_property_ref_operand(a_symbol_ptr  property,
                                       an_operand    *operand,
                                       a_boolean     is_arrow_operator,
                                       an_operand    *result)
 /*
-Make an operand for a Microsoft property or event reference.  property_or_event
-is an sk_property_set, sk_field, or sk_static_data_member symbol associated
-with the property or event name.  operand is the class object, or (if
-is_arrow_operator is TRUE) a handle to the class object.  The property
-reference operand created is returned in *result.  For a static property,
-operand is NULL if no object was specified.
+Make an operand for a Microsoft property reference.  property is an
+sk_property_set, sk_field, or sk_static_data_member symbol associated with the
+property name.  operand is the class object, or (if is_arrow_operator is TRUE)
+a handle to the class object.  The property reference operand created is
+returned in *result.  For a static property, operand is NULL if no object was
+specified.
 */
 {
   check_assertion(operand != result);
   clear_operand((an_operand_kind)ok_property_ref, result);
   result->type = unknown_type();
-  result->symbol = property_or_event;
+  result->symbol = property;
   set_lvalue_operand_state(result);
   if (operand != NULL) {
     conv_selector_to_object_pointer(operand, &is_arrow_operator);
@@ -797,6 +797,33 @@ operand is NULL if no object was specified.
     result->variant.property_ref.object = NULL;
   }  /* if */
 }  /* make_property_ref_operand */
+
+
+static void make_event_ref_operand(a_symbol_ptr  event,
+                                   an_operand    *operand,
+                                   a_boolean     is_arrow_operator,
+                                   an_operand    *result)
+/*
+Make an operand for a Microsoft C++/CLI event reference.  event is an sk_field
+or sk_static_data_member symbol associated with the event name.  operand is
+the class object, or (if is_arrow_operator is TRUE) a handle to the class
+object.  The event reference operand created is returned in *result.  For a
+static event, operand is NULL if no object was specified.
+*/
+{
+  check_assertion(operand != result);
+  clear_operand((an_operand_kind)ok_event_ref, result);
+  result->type = unknown_type();
+  result->symbol = event;
+  set_lvalue_operand_state(result);
+  if (operand != NULL) {
+    conv_selector_to_object_pointer(operand, &is_arrow_operator);
+    result->variant.event_ref.object = make_node_from_operand(operand);
+  } else {
+    /* The event is static and no object was specified. */
+    result->variant.event_ref.object = NULL;
+  }  /* if */
+}  /* make_event_ref_operand */
 
 
 static void rewrite_class_with_default_indexed_property_as_property_ref(
@@ -3855,6 +3882,7 @@ are expected to be NULL in that case.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean         ignore_call = FALSE;
   a_boolean         saved_evaluated, saved_potentially_evaluated;
+  an_expr_node_ptr  unneeded_selector = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean         call_folded_to_constant = FALSE;
@@ -3907,6 +3935,14 @@ are expected to be NULL in that case.
                                 &call_position) < 0) ?
                                             bound_function_selector->position :
                                             call_position;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_event_ref_operand(operand)) {
+    /* Invoking an event is equivalent to calling its "raise" accessor. */
+    rewrite_event_ref_for_call(operand, bound_function_selector,
+                               &unneeded_selector);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
   /* Argument-dependent lookup will be done if the function name is a
      simple name followed by a left parenthesis (not, for example,
      a name enclosed in parentheses as in "(f)(x)"). */
@@ -4530,6 +4566,19 @@ are expected to be NULL in that case.
     cast_operand(sync_result_type, result, /*is_implicit_cast=*/TRUE);
   }  /* if */
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (unneeded_selector != NULL) {
+    /* A static event reference included a selector object.  This selector
+       doesn't participate in the call to the raise accessor (i.e., there is
+       no "this" parameter), but it should still be evaluated. */
+    an_operand  selector_operand;
+    make_expression_operand(unneeded_selector, &selector_operand);
+    combine_unneeded_selector_with_operand(
+                                &selector_operand,
+                                is_any_ptr_or_ref_type(selector_operand.type),
+                                result);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 done:
 #endif /* GNU_EXTENSIONS_ALLOWED */
   db_exit();
@@ -4677,11 +4726,22 @@ is a C++/CLI handle.
   if (is_error_operand(operand_1)) {
     make_error_operand(result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && field_is_nontrivial_property_or_event(field) &&
-             property_or_event_kind_is(field, pek_declspec_property)) {
-    /* A property field in Microsoft C++ mode.  Render as an ok_property_ref
-       operand, which will be rewritten later as a function call. */
-    make_property_ref_operand(field_sym, operand_1, is_arrow_operator, result);
+  } else if (microsoft_mode && field_is_nontrivial_property_or_event(field)) {
+    if (property_or_event_kind_is(field, pek_declspec_property)) {
+      /* A property field in Microsoft C++ mode.  Render as an ok_property_ref
+         operand, which will be rewritten later as a function call. */
+      make_property_ref_operand(field_sym, operand_1, is_arrow_operator,
+                                result);
+    } else if (property_or_event_kind_is(field, pek_cli_event)) {
+      /* An event field in C++/CLI mode.  Render as an ok_event_ref operand:
+         It will be rewritten later. */
+      make_event_ref_operand(field_sym, operand_1, is_arrow_operator, result);
+    } else {
+      /* Note that, in particular, C++/CLI properties do not get here because
+         they're handled via sk_property_set symbols rather than sk_field
+         symbols. */
+      unexpected_condition();
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Determine the result type. */
@@ -6053,39 +6113,53 @@ case).
       change_operand_refs_to_error(operand_1);
       change_refs_to_error(rep);
     } else {
-      a_boolean is_lvalue;
+      a_boolean    is_lvalue;
+      a_field_ptr  field;
       /* See what kind of member we have. */
       switch (member_sym->kind) {
         case sk_field:
-          /* Normal field selection. */
-          /* The result is an rvalue if the operator is "." and the left
-             operand is an rvalue. */
-          is_lvalue = is_arrow_operator || is_an_lvalue(operand_1);
-          if (microsoft_bugs && microsoft_version < 1600 && !is_lvalue &&
-              is_floating_type(member_sym->variant.field.ptr->type)) {
-            /* For some unknown reason, MSVC considers a selection of a
-               field of a floating-point type out of a class rvalue to
-               be an lvalue.  Checked in 7.1, 8.0, 10.0 beta.  Fixed in
-               real 10.0 release. */
-            revert_microsoft_rvalue_to_lvalue_if_possible(operand_1);
-            is_lvalue = is_an_lvalue(operand_1);
+          field = member_sym->variant.field.ptr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (field->property_or_event_descr != NULL) {
+            /* A C++/CLI static event variable.  (Static properties are
+               handled via sk_property_set symbols.) */
+            check_assertion(cppcli_enabled &&
+                            property_or_event_kind_is(field, pek_cli_event));
+            make_event_ref_operand(member_sym, operand_1, is_arrow_operator,
+                                   result);
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
+          {
+            /* Normal field selection. */
+            /* The result is an rvalue if the operator is "." and the left
+               operand is an rvalue. */
+            is_lvalue = is_arrow_operator || is_an_lvalue(operand_1);
+            if (microsoft_bugs && microsoft_version < 1600 && !is_lvalue &&
+                is_floating_type(field->type)) {
+              /* For some unknown reason, MSVC considers a selection of a
+                 field of a floating-point type out of a class rvalue to
+                 be an lvalue.  Checked in 7.1, 8.0, 10.0 beta.  Fixed in
+                 real 10.0 release. */
+              revert_microsoft_rvalue_to_lvalue_if_possible(operand_1);
+              is_lvalue = is_an_lvalue(operand_1);
+            }  /* if */
+            /* This operation uses the left-side operand, so cast the
+               operand to the type of the member symbol. */
+            cast_pointer_for_field_selection(
+                         operand_1, is_arrow_operator, member_sym,
+                         projection_member_sym,
+                         (a_boolean)locator.access_control_error_reported,
+                         /*do_protected_member_check=*/TRUE, &member_position);
+            do_field_selection_operation(operand_1,
+                                         orig_class_struct_union_type,
+                                         is_arrow_operator, is_lvalue,
+                                         /*compiler_generated=*/FALSE,
+                                         &locator,
+                                         &member_position,
+                                         end_position_or_null(&end_position),
+                                         rep, result);
           }  /* if */
-          /* This operation uses the left-side operand, so cast the
-             operand to the type of the member symbol. */
-          cast_pointer_for_field_selection(operand_1, is_arrow_operator,
-                                           member_sym, projection_member_sym,
-                                           (a_boolean)locator.
-                                                 access_control_error_reported,
-                                           /*do_protected_member_check=*/TRUE,
-                                           &member_position);
-          do_field_selection_operation(operand_1,
-                                       orig_class_struct_union_type,
-                                       is_arrow_operator, is_lvalue,
-                                       /*compiler_generated=*/FALSE,
-                                       &locator,
-                                       &member_position,
-                                       end_position_or_null(&end_position),
-                                       rep, result);
           break;
         case sk_static_data_member:
           /* Static data member reference. */
@@ -6093,15 +6167,17 @@ case).
                                member_sym->variant.static_data_member.variable;
 #if MICROSOFT_EXTENSIONS_ALLOWED
             if (var->property_or_event_descr != NULL) {
-              /* A C++/CLI static property variable. */
-              check_assertion(cppcli_enabled);
-              make_property_ref_operand(member_sym, operand_1,
-                                        is_arrow_operator, result);
+              /* A C++/CLI static event variable.  (Static properties are
+                 handled via sk_property_set symbols.) */
+              check_assertion(cppcli_enabled &&
+                              property_or_event_kind_is(var, pek_cli_event));
+              make_event_ref_operand(member_sym, operand_1, is_arrow_operator,
+                                     result);
             } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* Do not insert code here. */
             {
-              /* A normal static data member (not a property). */
+              /* A normal static data member (not an event or property). */
               make_lvalue_variable_operand(
                               var,
                               &member_position,
@@ -20489,6 +20565,14 @@ is expected to be NULL in that case.
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand_1);
     operand_will_not_be_used_because_of_error(&operand_2);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (is_event_ref_operand(operand_1)) {
+    /* The left-hand side is a C++/CLI event member: Only a += or -= is valid,
+       and these operators translate to calls to the event's "add" and "remove"
+       accessors respectively. */
+    rewrite_event_operator(operand_1, &operand_2, result, operator_token,
+                           &operator_position, &err);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         (is_overloadable_type_first_operand(operand_1) ||
@@ -22360,10 +22444,18 @@ if rescan_is_template_id is TRUE, and return the result in *operand
         case sk_static_data_member:
           var_ptr = sym_ptr->variant.static_data_member.variable;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (var_ptr->property_or_event_descr != NULL) {
-            /* A C++/CLI static property variable. */
-            make_property_ref_operand(sym_ptr, (an_operand *)NULL,
-                                      /*handle_case=*/FALSE, result);
+          if (var_is_property_or_event(var_ptr)) {
+            /* A C++/CLI static property or event variable. */
+            if (property_or_event_kind_is(var_ptr, pek_cli_property)) {
+              make_property_ref_operand(sym_ptr, (an_operand *)NULL,
+                                        /*handle_case=*/FALSE, result);
+            } else if (property_or_event_kind_is(var_ptr, pek_cli_event)) {
+              make_event_ref_operand(sym_ptr, (an_operand *)NULL,
+                                     /*handle_case=*/FALSE, result);
+            } else {
+              unexpected_condition();
+            }  /* if */
+            result->is_qualified_name = locator.is_qualified_name;
             break;
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

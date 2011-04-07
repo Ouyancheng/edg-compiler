@@ -248,7 +248,9 @@ enum an_operand_kind_tag {
 			   instead).  Used only in C++. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ok_property_ref,	/* A reference to a Microsoft property member
-			   of a class. */
+			   of a class (traditional or managed). */
+  ok_event_ref,		/* A reference to a Microsoft event member of a
+			   managed class. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ok_undefined_symbol	/* An undefined symbol encountered while scanning an
 			   expression.  Could be an implicit function
@@ -440,14 +442,16 @@ typedef struct an_operand {
 			   (it is followed by "...", as in "T()..."), and this
 			   points to the expansion description. */
   /* When kind == ok_indefinite_function, ok_sym_for_member, ok_property_ref,
-     or ok_undefined_symbol, and also ok_expression for the enk_field case: */
+     ok_event_ref, or ok_undefined_symbol, and also ok_expression for
+     the enk_field case: */
   a_symbol_ptr
 		symbol;
 			/* Pointer to the symbol.  May be a projection
 			   symbol for ok_indefinite_function,
 			   ok_sym_for_member, or ok_expression/enk_field. */
   union {
-    /* When kind == ok_error, no variant fields. */
+    /* When kind == ok_error, ok_indefinite_function, ok_sym_for_member, or
+       ok_undefined_symbol: No variant fields. */
     /* When kind == ok_expression: */
     an_expr_node_ptr
 		expression;
@@ -471,6 +475,16 @@ typedef struct an_operand {
 			/* Optional list of subscript expressions, for cases
 			   like p->x[y][z]. */
     } property_ref;
+    /* When kind == ok_event_ref: */
+    struct {
+      an_expr_node_ptr
+		object;	/* Expression for the class object pointer.  For a
+			   reference to a C++/CLI static event, can be NULL
+			   because there's no object, and if it is non-NULL
+			   indicates an object that is evaluated and discarded
+			   (it won't take part in the overload resolution
+			   used to select the accessor). */
+    } event_ref;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } variant;
 } an_operand;
@@ -1066,6 +1080,12 @@ Ditto, but only for a property declared with __declspec(property(...)).
          (operand)->symbol->variant.field.ptr                           \
                           ->property_or_event_descr->kind ==            \
                        (a_property_or_event_kind)pek_declspec_property)
+/*
+Macro that is TRUE if the operand is one that references a member declared
+with the Microsoft C++/CLI event syntax.
+*/
+#define is_event_ref_operand(operand)				\
+	((operand)->kind == (an_operand_kind)ok_event_ref)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -1350,6 +1370,18 @@ void rewrite_property_reference(
                               an_operand                          *operand,
                               an_operand                          *put_operand,
                               a_rewritten_property_reference_kind kind);
+
+extern void rewrite_event_operator(an_operand         *lhs,
+                                   an_operand         *rhs,
+                                   an_operand         *result,
+                                   a_token_kind       operator_token,
+                                   a_source_position  *operator_pos,
+                                   a_boolean          *p_err);
+
+extern void rewrite_event_ref_for_call(
+                                   an_operand        *operand,
+                                   an_operand        *bound_function_selector,
+                                   an_expr_node_ptr  *p_unneeded_selector);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void convert_function_template_to_single_function_if_possible(

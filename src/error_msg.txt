@@ -2171,6 +2171,9 @@ ec_no_suitable_synthesis_assignment_operator;;"class %t has no suitable assignme
 ec_not_a_generic_param;;"%sq is not a generic parameter"
 ec_not_generic_param_of_curr_decl;;"%sq is not a generic parameter of the innermost generic parameter list"
 ec_invalid_constraint;;"invalid generic constraint"
+ec_invalid_event_use;;"invalid use of event member (only subscription, unsubscription, and invocation are allowed)"
+ec_event_without_raise_invoked;;"invoking an event with no \"raise\" accessor is invalid"
+ec_bad_event_compound_assignment;;"only \"+=\" and \"-=\" are valid for events"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

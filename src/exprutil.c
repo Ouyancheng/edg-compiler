@@ -1659,6 +1659,9 @@ to default values.
       operand->variant.property_ref.object = NULL;
       operand->variant.property_ref.subscripts = NULL;
       break;
+    case ok_event_ref:
+      operand->variant.property_ref.object = NULL;
+      break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CHECKING
     default:
@@ -1850,6 +1853,17 @@ Display an expression operand for debugging purposes.
           db_operand(&aop->operand);
         }  /* for */
       }  /* if */
+      break;
+    case ok_event_ref:
+      (void)fprintf(f_debug, "event ref = \n");
+      (void)fprintf(f_debug, "object =");
+      if (operand->variant.property_ref.object != NULL) {
+        (void)fprintf(f_debug, "\n");
+        db_expression(operand->variant.property_ref.object);
+      } else {
+        (void)fprintf(f_debug, " NULL\n");
+      }  /* if */
+      db_symbol(operand->symbol, "", 0);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:
@@ -2245,6 +2259,14 @@ lowering (as lvalueness is known at that time).
           last_clone_aop = aop_clone;
         }  /* for */
       }
+      break;
+    case ok_event_ref:
+      if (operand->variant.event_ref.object != NULL) {
+        operand_clone->variant.event_ref.object =
+                    make_expr_reusable_copy(operand->variant.event_ref.object,
+                                            vars_can_change, temp_init_used,
+                                            treat_as_potential_rvalue);
+      }  /* if */
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:
@@ -15271,6 +15293,162 @@ being rewritten; it's used to set a kind in the expression created.
   rule_out_expr_kinds(ROEK_CONSTANT, operand);
 }  /* rewrite_property_reference */
 
+
+void rewrite_event_operator(an_operand         *lhs,
+                            an_operand         *rhs,
+                            an_operand         *result,
+                            a_token_kind       operator_token,
+                            a_source_position  *operator_pos,
+                            a_boolean          *p_err)
+/*
+An expression "lhs @= rhs" has been scanned with lhs an event reference.
+Produce in *result an operand rewriting that expression as a call to the
+event's "add" or "remove" accessor.  operator_token and operator_pos describe
+the compound assignment operator token (only "+=" and "-=" are valid; other
+assignment operators trigger a diagnostic).  If an error occurs, *p_err is set
+to TRUE and *result becomes an error operand.
+*/
+{
+  a_boolean  err = FALSE;
+
+  check_assertion(is_event_ref_operand(lhs));
+  if (operator_token != tok_plus_assign &&
+      operator_token != tok_minus_assign) {
+    expr_pos_error(ec_bad_event_compound_assignment, operator_pos);
+    err = TRUE;
+  } else {
+    a_property_or_event_descr_ptr
+                       pedp;
+    a_symbol_ptr       event_sym = lhs->symbol, accessor_sym;
+    a_symbol_locator   accessor_loc;
+    an_operand         function_operand;
+    an_operand         selector;
+    an_arg_operand_ptr arg_operand_list;
+    an_expr_node_ptr   argument_list;
+    a_boolean          have_selector = (lhs->variant.event_ref.object != NULL);
+    if (symbol_is(event_sym, sk_field)) {
+      pedp = event_sym->variant.field.ptr->property_or_event_descr;
+    } else if (symbol_is(event_sym, sk_static_data_member)) {
+      pedp = event_sym->variant.variable.ptr->property_or_event_descr;
+    } else {
+      unexpected_condition();
+    }  /* if */
+    if (operator_token == tok_plus_assign) {
+      accessor_sym = symbol_for(pedp->add_routine);
+    } else {
+      accessor_sym = symbol_for(pedp->remove_routine);
+    }  /* if */
+    if (have_selector) {
+      /* A selector object was specified.  It may or may not be used in the
+         accessor call depending on whether a static or nonstatic property is
+         selected by overload resolution.  If it isn't bound, it will be
+         added in via a comma operator below. */
+      make_expression_operand(lhs->variant.event_ref.object, &selector);
+      selector.selector_is_object_pointer = TRUE;
+    }  /* if */
+    make_locator_for_symbol(accessor_sym, &accessor_loc);
+    accessor_loc.source_position = *operator_pos;
+    check_ambiguity_and_verify_access(&accessor_loc);
+    /* Turn the right-hand side into an operand list for the accessor call. */
+    arg_operand_list = alloc_arg_operand();
+    arg_operand_list->operand = *rhs;
+    /* Do overload resolution to determine the function to call. */
+    if (select_and_prepare_to_call_overloaded_function(
+                                            accessor_sym,
+                                            /*is_template_id=*/FALSE,
+                                            (a_template_arg_ptr)NULL,
+                                            have_selector,
+                                            &selector,
+                                            arg_operand_list,
+                                            /*do_arg_dep_lookup=*/FALSE,
+                                            /*try_surrogate_functions=*/FALSE,
+                                            /*is_property=*/FALSE,
+                                            ec_no_matching_function,
+                                            ec_ambiguous_overloaded_function,
+                                            (an_operand *)NULL,
+                                            operator_pos,
+                                            (a_token_sequence_number)0,
+                                            (a_source_position *)NULL,
+                                            (a_boolean *)NULL,
+                                            (a_boolean *)NULL,
+                                            &function_operand,
+                                            &argument_list) == NULL) {
+      /* Some error. */
+      err = TRUE;
+    } else {
+      /* Create the function call. */
+      an_expr_node_ptr  func_call_node;
+      assemble_function_call(&function_operand, &selector, argument_list,
+                             /*compiler_generated=*/TRUE,
+                             /*arg_dep_lookup_suppressed=*/FALSE,
+                             /*qualified_function_name=*/FALSE,
+                             /*found_through_adl=*/FALSE,
+                             /*uses_operator_syntax=*/FALSE,
+                             operator_pos, result, &func_call_node);
+    }  /* if */
+  }  /* if */
+  if (err) {
+    make_error_operand(result);
+    operand_will_not_be_used_because_of_error(lhs);
+    operand_will_not_be_used_because_of_error(rhs);
+    *p_err = TRUE;
+  }  /* if */
+}  /* rewrite_event_operator  */
+
+
+void rewrite_event_ref_for_call(an_operand        *operand,
+                                an_operand        *bound_function_selector,
+                                an_expr_node_ptr  *p_unneeded_selector)
+/*
+operand describes an event reference for an event invocation.  Replace the
+operand to be a member function designation for the event's "raise" accessor
+(or issue a diagnostic and make the operand an error operand if there is no
+such accessor).  For non-static events, set *bound_function_selector to the
+selector expression used to designate the event.  For static events, set
+*p_unneeded_selector to any selector expression that was specified (but not
+actually needed for the call proper: the caller must ensure it is evaluated
+if it has any side effects) or NULL if no selector was specified.
+*/
+{
+  a_property_or_event_descr_ptr  pedp;
+  a_symbol_ptr                   event_sym = operand->symbol;
+
+  check_assertion(is_event_ref_operand(operand));
+  /* Retrieve the event description entry: */
+  if (symbol_is(event_sym, sk_field)) {
+    pedp = event_sym->variant.field.ptr->property_or_event_descr;
+  } else if (symbol_is(event_sym, sk_static_data_member)) {
+    pedp = event_sym->variant.variable.ptr->property_or_event_descr;
+  } else {
+    unexpected_condition();
+  }  /* if */
+  if (pedp->raise_routine == NULL) {
+    /* If the event has no "raise" member, it cannot be invoked. */
+    error_in_operand(ec_event_without_raise_invoked, operand);
+  } else {
+    a_symbol_ptr      raise_sym = symbol_for(pedp->raise_routine);
+    a_symbol_locator  raise_loc;
+    an_expr_node_ptr  selector = operand->variant.event_ref.object;
+    make_locator_for_symbol(raise_sym, &raise_loc);
+    raise_loc.source_position = operand->position;
+    check_ambiguity_and_verify_access(&raise_loc);
+    make_function_designator_operand(raise_sym, operand->is_qualified_name,
+                                     &operand->position,
+                                     end_position_or_null(
+                                                &operand->end_position),
+                                     operand->ref_entries_list, operand);
+    if (pedp->is_static) {
+      *p_unneeded_selector = selector;
+    } else if (selector != NULL) {
+      make_expression_operand(selector, bound_function_selector);
+      bind_member_function_operand_to_selector(
+                                          bound_function_selector,
+                                          /*selector_is_object_pointer=*/TRUE,
+                                          operand);
+    }  /* if */
+  }  /* if */
+}  /* rewrite_event_for_call */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void convert_function_template_to_single_function_full(
@@ -15480,12 +15658,17 @@ transformations.
 {
   a_boolean will_call = (options & TOPT_WILL_CALL) != 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_property_ref_operand(operand)) {
-    if (!(options & TOPT_SUPPRESS_RVALUE_PROPERTY_REWRITE)) {
-      /* This operand is a reference to a member declared as a Microsoft
-         property.  Change it to a call of the appropriate "get" function. */
-      rewrite_property_reference(operand, (an_operand *)NULL,
+  if (cppcli_enabled) {
+    if (is_property_ref_operand(operand)) {
+      if (!(options & TOPT_SUPPRESS_RVALUE_PROPERTY_REWRITE)) {
+        /* This operand is a reference to a member declared as a Microsoft
+           property.  Change it to a call of the appropriate "get" function. */
+        rewrite_property_reference(operand, (an_operand *)NULL,
                                (a_rewritten_property_reference_kind)rprk_none);
+      }  /* if */
+    } else if (is_event_ref_operand(operand)) {
+      /* Events cannot be accessed as rvalues. */
+      error_in_operand(ec_invalid_event_use, operand);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
