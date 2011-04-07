@@ -30,9 +30,6 @@ disambig.c -- Disambiguation of C++ declarations and expressions.
 
 typedef struct a_disambig_state *a_disambig_state_ptr;
 typedef struct a_disambig_state {
-  a_token_cache	cache;
-			/* Cache containing tokens that were scanned as
-			   part of the disambiguation process. */
   a_type_ptr	decl_class_type;
 			/* In certain modes, this is set to the class type
 			   of the declarator that is found. */
@@ -52,6 +49,13 @@ typedef struct a_disambig_state {
   a_boolean	variadic_prototype_instantiation;
 			/* TRUE if we are in a template dependent context of
 			   a variadic template. */
+  a_boolean	cache_tokens;
+			/* TRUE if the tokens fetched for disambiguation
+			   should be cached. */
+  a_token_sequence_number
+		first_tsn;
+			/* The value of curr_token_sequence_number at the
+			   start of disambiguation. */
   a_pack_expansion_stack_entry_ptr
 		pack_expansion_stack_entry;
 			/* If variadic_prototype_instantiation is TRUE,
@@ -60,19 +64,25 @@ typedef struct a_disambig_state {
 
 
 static void init_disambig_state(a_disambig_state_ptr	dsp,
-				a_boolean		suppress_packs)
+				a_boolean		suppress_packs,
+				a_boolean		cache_tokens)
 /*
 Initialize a disambiguation state block.  If suppress_packs is TRUE
 and we are in the prototype instantiation of a variadic template,
-push a pack expansion suppression.
+push a pack expansion suppression.  If cache_tokens is TRUE, a token
+cache of the tokens fetched for disambiguation should be created.
 */
 {
-  clear_token_cache(&dsp->cache, /*reusable=*/FALSE);
   dsp->decl_class_type = NULL;
   dsp->may_be_decl = TRUE;
   dsp->terminate = FALSE;
   dsp->set_decl_class_type = FALSE;
   dsp->friend_encountered = FALSE;
+  dsp->cache_tokens = cache_tokens;
+  dsp->first_tsn = curr_token_sequence_number;
+  if (cache_tokens) {
+    begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+  }  /* if */
   dsp->variadic_prototype_instantiation = suppress_packs &&
        is_prototype_instantiation_context() && is_variadic_template_context();
   if (dsp->variadic_prototype_instantiation) {
@@ -87,6 +97,22 @@ static void wrapup_disambig_state(a_disambig_state_ptr dsp)
 Perform any operations that must be done to clean up after disambiguation.
 */
 {
+  /* If we are accumulated cached tokens, extract the tokens and rescan
+     them.  The test of dsp->first_tsn is used to avoid doing this when the
+     only token put in the cache was the current token at the start of
+     caching. */
+  if (dsp->cache_tokens &&
+      curr_lexical_state_stack_entry->last_tsn_in_cache != dsp->first_tsn) {
+    a_token_cache	cache;
+    end_caching_fetched_tokens();
+    clear_token_cache(&cache, /*is_reusable=*/FALSE);
+    /* Get the tokens that were fetched by this routine from the cache
+       that has been accumulated and rescan them. */
+    copy_tokens_from_cache(curr_lexical_state_cache(), dsp->first_tsn,
+                           last_token_sequence_number_of_token,
+                           /*include_last_token=*/TRUE, &cache);
+    f_rescan_cached_tokens(&cache, /*discard_curr_token=*/TRUE);
+  }   /* if */
   if (dsp->variadic_prototype_instantiation) {
     /* Restore the variadic processing state. */
     pop_expansion_suppression(dsp->pack_expansion_stack_entry);
@@ -148,8 +174,7 @@ and if gid_flags does not include GID_IS_TYPENAME.
 
 
 
-static void cache_tokens_until(a_disambig_state_ptr	state,
-			       a_token_kind		stop_token,
+static void cache_tokens_until(a_token_kind		stop_token,
 			       a_boolean		coalesce)
 /*
 Wrapper for cache_token_stream that saves and restores the stop tokens
@@ -165,7 +190,8 @@ TRUE, coalesce any identifiers.
      in error cases. */
   incr_token_set_array_element(stop_token_array, tok_rbrace);
   incr_token_set_array_element(stop_token_array, tok_semicolon);
-  cache_token_stream_with_coalesce_flag(&state->cache, stop_token_array,
+  cache_token_stream_with_coalesce_flag((a_token_cache_ptr)NULL,
+                                        stop_token_array,
                                         coalesce);
 }  /* cache_tokens_until */
 
@@ -182,7 +208,8 @@ Cache the tokens that comprise an initializer of the form
   incr_token_set_array_element(stop_token_array, tok_comma);
   incr_token_set_array_element(stop_token_array, tok_semicolon);
   incr_token_set_array_element(stop_token_array, tok_rparen);
-  cache_token_stream_coalesce_identifiers(&state->cache, stop_token_array);
+  cache_token_stream_coalesce_identifiers((a_token_cache_ptr)NULL,
+                                          stop_token_array);
 }  /* prescan_initializer */
 
 
@@ -216,8 +243,7 @@ the general identifier option.
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED || \
     GNU_EXTENSIONS_ALLOWED
 
-static void prescan_until_closing_paren(a_disambig_state_ptr  state,
-                                        a_disambig_flag_set   flags)
+static void prescan_until_closing_paren(a_disambig_flag_set   flags)
 /*
 Get tokens, and optionally cache them, until we encounter an unmatched
 right parenthesis (that matches a left parenthesis that we have already
@@ -227,7 +253,6 @@ scanned).
   int	paren_count = 0;
 
   for (;;) {
-    if (state != NULL) cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
     if (curr_token == tok_rparen) {
       /* A right parenthesis.  Break out if this is a zero level
@@ -250,8 +275,7 @@ scanned).
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 
-static void prescan_extended_decl_modifiers(a_disambig_state_ptr  state,
-                                            a_disambig_flag_set   flags)
+static void prescan_extended_decl_modifiers(a_disambig_flag_set   flags)
 /*
 For Microsoft compatibility, prescan the following Microsoft modifiers:
 
@@ -264,15 +288,11 @@ For Microsoft compatibility, prescan the following Microsoft modifiers:
 
 or for near/far support prescan "near" or "far".   When this routine is
 called, the current token must be the initial keyword.
-
-A NULL state pointer may be provided if the tokens that are scanned do
-not need to be cached.
 */
 {
   for (;;) {
 #if NEAR_AND_FAR_ALLOWED
     if (is_near_or_far()) {
-      if (state != NULL) cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       continue;
 #if !MICROSOFT_EXTENSIONS_ALLOWED
@@ -286,7 +306,6 @@ not need to be cached.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (curr_token == tok_declspec) {
       /* Bypass the __declspec token. */
-      if (state != NULL) cache_curr_token(&state->cache);
       (void)get_token();
       if (curr_token == tok_lparen) {
         /* The syntax within the parentheses of the __declspec specifier is
@@ -294,9 +313,8 @@ not need to be cached.
            to be properly nested (the same number of opening and closing
            parentheses), and to improve error recovery, it is not expected to
            include a semicolon, left brace, or end-of-source token. */
-        prescan_until_closing_paren(state, flags);
+        prescan_until_closing_paren(flags);
         if (curr_token == tok_rparen) {
-          if (state != NULL) cache_curr_token(&state->cache);
           get_token_and_coalesce_if_identifier(flags);
         }  /* if */
       }  /* if */
@@ -316,7 +334,6 @@ not need to be cached.
           if (strcmp(name, "single_inheritance") == 0 ||
               strcmp(name, "multiple_inheritance") == 0 ||
               strcmp(name, "virtual_inheritance") == 0) {
-            if (state != NULL) cache_curr_token(&state->cache);
             get_token_and_coalesce_if_identifier(flags);
             done = FALSE;
           }  /* if */
@@ -330,8 +347,7 @@ not need to be cached.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 
-static void prescan_std_attribute(a_disambig_state_ptr  state,
-                                  a_disambig_flag_set   flags)
+static void prescan_std_attribute(a_disambig_flag_set   flags)
 /*
 Prescan a C++0x attribute list of the form:
 
@@ -345,16 +361,13 @@ attribute list.  It simply requires that the brackets be properly nested
 {
   check_assertion(curr_token == tok_lbracket);
   /* Bypass the first left parenthesis. */
-  cache_curr_token(&state->cache);
   (void)get_token();
   if (curr_token == tok_lbracket) {
     int  bracket_count = 0;
     /* Bypass the second left bracket. */
-    cache_curr_token(&state->cache);
     (void)get_token();
     /* Look for the closing bracket of the attribute. */
     for (;;) {
-      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       if (curr_token == tok_rbracket) {
         /* A right bracket.  Break out if this is a zero-level bracket. */
@@ -368,10 +381,8 @@ attribute list.  It simply requires that the brackets be properly nested
     }  /* for */
     /* We should now be at the closing "]]" of the attribute. */
     if (curr_token == tok_rbracket) {
-      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       if (curr_token == tok_rbracket) {
-        cache_curr_token(&state->cache);
         get_token_and_coalesce_if_identifier(flags);
       }  /* if */
     }  /* if */
@@ -380,8 +391,7 @@ attribute list.  It simply requires that the brackets be properly nested
 
 #if GNU_EXTENSIONS_ALLOWED
 
-static void prescan_gnu_attribute(a_disambig_state_ptr  state,
-                                  a_disambig_flag_set   flags)
+static void prescan_gnu_attribute(a_disambig_flag_set   flags)
 /*
 Prescan a GNU attribute list of the form:
 
@@ -395,26 +405,21 @@ attribute list.  It simply requires that the parentheses be properly nested
 {
   check_assertion(curr_token == tok_attribute);
   /* Bypass the attribute token. */
-  cache_curr_token(&state->cache);
   (void)get_token();
   if (curr_token == tok_lparen) {
     /* Bypass the first left parenthesis. */
-    cache_curr_token(&state->cache);
     (void)get_token();
     if (curr_token == tok_lparen) {
       /* Bypass the second left parenthesis. */
-      cache_curr_token(&state->cache);
       (void)get_token();
       /* Look for the closing parenthesis of the attribute. */
-      prescan_until_closing_paren(state, flags);
+      prescan_until_closing_paren(flags);
       /* We should now be at the closing "))" of the attribute. */
       if (curr_token == tok_rparen) {
-        cache_curr_token(&state->cache);
         get_token_and_coalesce_if_identifier(flags);
       }  /* if */
     }  /* if */
     if (curr_token == tok_rparen) {
-      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
     }  /* if */
   }  /* if */
@@ -424,8 +429,7 @@ attribute list.  It simply requires that the parentheses be properly nested
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void prescan_based_modifier(a_disambig_state_ptr       state,
-                                   a_disambig_flag_set 	      flags)
+static void prescan_based_modifier(a_disambig_flag_set 	      flags)
 /*
 Prescan the Microsoft __based modifier:
 
@@ -439,19 +443,15 @@ keyword.
                        "prescan_based_modifier:",
                        "curr_token not tok_based");
   /* Bypass the __based token. */
-  cache_curr_token(&state->cache);
   (void)get_token();
   if (curr_token == tok_lparen) {
-    cache_curr_token(&state->cache);
     /* Get the next token, which should be an identifier. */
     get_token_and_coalesce_if_identifier(flags);
     if (curr_token == tok_identifier) {
       /* Get the next token, which should be a right paren. */
-      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       if (curr_token == tok_rparen) {
         /* Bypass the right paren. */
-        cache_curr_token(&state->cache);
         get_token_and_coalesce_if_identifier(flags);
       }  /* if */
     }  /* if */
@@ -461,7 +461,6 @@ keyword.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void prescan_any_prefix_bracketed_attributes(
-                                                  a_disambig_state_ptr  state,
                                                   a_disambig_flag_set   flags)
 /*
 This routine is called at the start of a declaration (possibly a parameter
@@ -481,12 +480,10 @@ C++0x attributes (i.e., not a lambda), scan over them.
     /* This appears to be a left bracket introducing Microsoft or C++0x
        attribute. */
     /* Advance past the left bracket. */
-    cache_curr_token(&state->cache);
     (void)get_token();
     /* Now scan up to the matching right bracket. */
-    cache_tokens_until(state, tok_rbracket, /*coalesce=*/FALSE);
+    cache_tokens_until(tok_rbracket, /*coalesce=*/FALSE);
     /* Advance past the right bracket. */
-    cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
   }  /* while */
 }  /* prescan_any_prefix_bracketed_attributes */
@@ -516,10 +513,9 @@ Return TRUE if token can follow a typeof of the form "typeof(expression)".
 
 
 static void prescan_typeof_operator(a_disambig_state_ptr       state,
-                                    a_disambig_flag_set        flags)
+				    a_disambig_flag_set        flags)
 /*
-Scan past (and cache) a decltype or typeof specifier.  state points to the
-token cache to be used.
+Scan past (and cache) a decltype or typeof specifier.
 
 The typeof operator can be used with or without parentheses in g++
 (but not gcc) mode:
@@ -530,18 +526,16 @@ The typeof operator can be used with or without parentheses in g++
 {
   a_boolean	is_typeof = curr_token == tok_typeof;
   /* Bypass the decltype or typeof (or __typeof__) token. */
-  cache_curr_token(&state->cache);
   (void)get_token();
   if (curr_token == tok_lparen) {
     /* Advance past the left paren. */
-    cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
     if (is_typeof && gpp_mode && gnu_version >= 30400 &&
         !is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                           DFS_REAL_DECLARATOR_ALLOWED)) {
       /* This is a g++ typeof of the form "typeof (expression)".  Check for
          a continuation of the expression after the ")". */
-      cache_tokens_until(state, tok_rparen, /*coalesce=*/TRUE);
+      cache_tokens_until(tok_rparen, /*coalesce=*/TRUE);
       if (is_token_allowed_after_typeof(next_token())) {
         /* There are more tokens that are part of the expression.  We can't
            prescan an arbitrary expression, so cut off the disambiguation
@@ -552,7 +546,7 @@ The typeof operator can be used with or without parentheses in g++
         check_assertion(!state->set_decl_class_type);
       }  /* if */
     } else {
-      cache_tokens_until(state, tok_rparen, /*coalesce=*/TRUE);
+      cache_tokens_until(tok_rparen, /*coalesce=*/TRUE);
     }  /* if */
   }  /* if */
 }  /* prescan_typeof_operator */
@@ -662,14 +656,14 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_declspec:
-        prescan_extended_decl_modifiers(state, flags);
+        prescan_extended_decl_modifiers(flags);
         next_token_fetched = TRUE;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
       case tok_attribute:
         /* A GNU __attribute__. */
-        prescan_gnu_attribute(state, flags);
+        prescan_gnu_attribute(flags);
         next_token_fetched = TRUE;
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -772,7 +766,6 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
            repeated.  Note that use_implicit_typename() is not used in this
            case. */
         do {
-          cache_curr_token(&state->cache);
           f_get_token_and_coalesce_if_identifier(
                        flags, curr_token == tok_typename ? GID_IS_TYPENAME
                                                          : GID_NO_OPTIONS);
@@ -781,7 +774,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         if (microsoft_mode or_near_and_far_enabled()) {
           /* Check for near/far and a Microsoft decl modifier, such as
              __single_inheritance. */
-          prescan_extended_decl_modifiers(state, flags);
+          prescan_extended_decl_modifiers(flags);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
         if (is_typename && microsoft_mode && curr_token != tok_identifier) {
@@ -814,7 +807,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         break;
       case tok_lbracket:
         if (std_attribute_tokens_next()) {
-          prescan_std_attribute(state, flags);
+          prescan_std_attribute(flags);
           next_token_fetched = TRUE;
           break;
         }  /* if */
@@ -828,7 +821,6 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
     any_decl_specifiers = TRUE;
     if (!next_token_fetched) {
       /* Cache this token and get the next one. */
-      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
     }  /* if */
   }  /* for */
@@ -869,10 +861,9 @@ part of a function declarator is found, may_be_decl is set to FALSE.
 {
   /* Scan the function argument list. */
   while (curr_token != tok_rparen) {
-    prescan_any_prefix_bracketed_attributes(state, flags);
+    prescan_any_prefix_bracketed_attributes(flags);
     if (curr_token == tok_ellipsis) {
       /* Advance past the ellipsis. */
-      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
     } else {
       /* A parameter declaration.  Scan the declaration. */
@@ -883,7 +874,6 @@ part of a function declarator is found, may_be_decl is set to FALSE.
       if (terminate_disambiguation(state)) goto done;
     }  /* if */
     if (curr_token == tok_comma) {
-      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
     } else if (curr_token != tok_rparen && curr_token != tok_ellipsis) {
       /* After scanning a parameter declaration we should be at a comma,
@@ -895,11 +885,9 @@ part of a function declarator is found, may_be_decl is set to FALSE.
     }  /* if */
   }  /* while */
   /* Cache and bypass the right parenthesis. */
-  cache_curr_token(&state->cache);
   get_token_and_coalesce_if_identifier(flags);
   /* Skip past any cv-qualifiers associated with this function declarator. */
   while (is_type_qualifier() or_is_near_or_far()) {
-    cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
   }  /* while */
   /* Cache the tokens associated with the optional throw specification.
@@ -907,7 +895,6 @@ part of a function declarator is found, may_be_decl is set to FALSE.
      throw declaration. */
   if (curr_token == tok_throw) {
     /* Advance past the throw keyword. */
-    cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
     if (curr_token != tok_lparen) {
       /* A throw specification must follow the throw keyword in a function
@@ -916,17 +903,14 @@ part of a function declarator is found, may_be_decl is set to FALSE.
       goto done;
     }  /* if */
     /* Advance past the left parenthesis. */
-    cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
-    cache_tokens_until(state, tok_rparen, /*coalesce=*/TRUE);
+    cache_tokens_until(tok_rparen, /*coalesce=*/TRUE);
     if (curr_token == tok_rparen) {
       /* Cache the right parenthesis. */
-      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
     }  /* if */
     if (trailing_return_types_enabled && curr_token == tok_arrow) {
       /* Cache the trailing return type. */
-      cache_curr_token(&state->cache);
       (void)get_token();
       prescan_trailing_return_type(state);
     }  /* if */
@@ -968,13 +952,12 @@ part of a declarator is found, may_be_decl is set to FALSE.
         or_is_cli_declarator_operator(curr_token)) {
       /* Cache and bypass the "*" or "&" or "&&" (or, in C++/CLI mode, the
          "^" or "%"). */
-      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       pointer_operator_seen = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (curr_token == tok_based) {
       /* Microsoft __based modifier. */
-      prescan_based_modifier(state, flags);
+      prescan_based_modifier(flags);
     } else if (curr_token == tok_microsoft_w64 ||
                curr_token == tok_microsoft_sptr ||
                curr_token == tok_microsoft_uptr ||
@@ -983,7 +966,6 @@ part of a declarator is found, may_be_decl is set to FALSE.
       /* Syntactically, __w64, __ptr32, and __ptr64 are similar to type
          qualifiers, but semantically they don't affect the type (which
          is why they are not included in "is_type_qualifier"). */
-      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_type_qualifier() ||
@@ -994,7 +976,6 @@ part of a declarator is found, may_be_decl is set to FALSE.
          certain modes). */
       /* Cache and bypass any pointer to member operators. */
       /* Keywords allowed in declarators in Microsoft mode, e.g., __cdecl. */
-      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
     } else {
       /* No more ptr-operators. */
@@ -1004,7 +985,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
 #if GNU_EXTENSIONS_ALLOWED
   if (curr_token == tok_attribute) {
     /* A GNU __attribute__ may appear after the pointer-declarators. */
-    prescan_gnu_attribute(state, flags);
+    prescan_gnu_attribute(flags);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (curr_token == tok_lparen) {
@@ -1014,7 +995,6 @@ part of a declarator is found, may_be_decl is set to FALSE.
        declarator the next token must be a "*", "(", or "[", whereas in the
        function case it is ")", "...", or a declaration specifier. */
     a_boolean	treat_as_expr = FALSE;
-    cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
     if (any_cfront_mode() && is_top_level && !is_template_decl(flags)) {
       /* Cfront handles declarations like
@@ -1111,7 +1091,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
 #if GNU_EXTENSIONS_ALLOWED
     if (curr_token == tok_attribute) {
       /* A GNU __attribute__ may appear at the start of a nested declarator. */
-      prescan_gnu_attribute(state, flags);
+      prescan_gnu_attribute(flags);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     prescan_declarator(state, flags,
@@ -1123,13 +1103,11 @@ part of a declarator is found, may_be_decl is set to FALSE.
       state->may_be_decl = FALSE;
       goto done;
     }  /* if */
-    cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
   } else {
     a_boolean	is_name_start;
     /* An ellipsis indicating a parameter pack declaration might be next. */
     if (curr_token == tok_ellipsis && variadic_templates_enabled) {
-      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
     }  /* if */
     /* An identifier is expected next, but is omitted in the 
@@ -1150,7 +1128,6 @@ part of a declarator is found, may_be_decl is set to FALSE.
       state->may_be_decl = FALSE;
       goto done;
     } else {
-      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       if (state->set_decl_class_type) {
         /* Return a pointer to the class of which a member (if any) of the
@@ -1171,7 +1148,6 @@ part of a declarator is found, may_be_decl is set to FALSE.
       /* Appears to be a function declarator.  But be sure it's not the
          start of a parenthesized initializer. */
       /* Advance past the left parenthesis. */
-      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       if (curr_token != tok_rparen && curr_token != tok_ellipsis) {
         /* See if the thing inside the parenthesis looks like an
@@ -1182,10 +1158,9 @@ part of a declarator is found, may_be_decl is set to FALSE.
           /* Function_declarator should not be called, scan the tokens that
              comprise the parenthesized initializer and exit the loop. */
           paren_initializer_seen = TRUE;
-          cache_tokens_until(state, tok_rparen, /*coalesce=*/TRUE);
+          cache_tokens_until(tok_rparen, /*coalesce=*/TRUE);
           if (curr_token == tok_rparen) {
             /* Cache the right parenthesis. */
-            cache_curr_token(&state->cache);
             get_token_and_coalesce_if_identifier(flags);
           }  /* if */
           break;
@@ -1199,12 +1174,10 @@ function_lparen:
       /* Left bracket, indicating array declarator. */
       check_assertion(curr_token == tok_lbracket);
       /* Advance past the left bracket. */
-      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
-      cache_tokens_until(state, tok_rbracket, /*coalesce=*/TRUE);
+      cache_tokens_until(tok_rbracket, /*coalesce=*/TRUE);
       /* Bypass and cache the "]". */
       if (curr_token == tok_rbracket) {
-        cache_curr_token(&state->cache);
         get_token_and_coalesce_if_identifier(flags);
       }  /* if */
     }  /* if */
@@ -1212,7 +1185,7 @@ function_lparen:
 #if GNU_EXTENSIONS_ALLOWED
   if (curr_token == tok_attribute) {
     /* A GNU __attribute__. */
-    prescan_gnu_attribute(state, flags);
+    prescan_gnu_attribute(flags);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Look for an initialization that begins with an assignment operator. */
@@ -1251,7 +1224,6 @@ evidence to the contrary.
   db_enter(3, "prescan_declaration");
   if (curr_token == tok_extension) {
     /* Skip over a leading GNU __extension__ keyword. */
-    cache_curr_token(&state->cache);
     (void)get_token();
   }  /* if */
   /* Coalesce the identifier if this is a tok_identifier. */
@@ -1261,7 +1233,7 @@ evidence to the contrary.
                                                        flags, GID_NO_OPTIONS));
   for (;;) {
     /* Prescan leading bracket-enclosed attributes (if any). */
-    prescan_any_prefix_bracketed_attributes(state, flags);
+    prescan_any_prefix_bracketed_attributes(flags);
     /* Scan the decl specifiers. */
     prescan_decl_specifiers(state, flags);
     if (terminate_disambiguation(state)) goto done;
@@ -1282,7 +1254,6 @@ evidence to the contrary.
           is_condition(flags) ||
           curr_token != tok_comma) break;
       /* Advance past the comma then scan the next declarator. */
-      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       is_first_declarator = FALSE;
     }  /* for */
@@ -1292,7 +1263,6 @@ evidence to the contrary.
          (curr_token != tok_comma && curr_token != tok_ellipsis)) break;
     /* Advance past the comma then scan the next declaration. */
     if (curr_token != tok_ellipsis) {
-      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
     }  /* if */
   }  /* for */
@@ -1475,8 +1445,6 @@ types separated by commas (when single_type_required is FALSE).
                (is_cast(flags) && /* See note above */
                 is_implicit_template_type)) &&
               is_start_of_type)) {
-    /* Initialize the token cache. */
-    init_disambig_state(&state, /*suppress_packs=*/TRUE);
     if (curr_token == tok_identifier) {
       /* The prescanning process clears the specific symbol field of the
          locator to prevent the prescanning process from biasing
@@ -1491,7 +1459,11 @@ types separated by commas (when single_type_required is FALSE).
            is looked up again later, it might be determined to be a nontype. */
         locator_for_curr_id.do_not_clear_specific_symbol = TRUE;
       }  /* if */
+      clear_specific_symbol(locator_for_curr_id);
     }  /* if */
+    /* Initialize the token cache. */
+    init_disambig_state(&state, /*suppress_packs=*/TRUE,
+                        /*cache_tokens=*/TRUE);
     /* Scan forward as far as required to determine whether this is a
        declaration.  Each token that is encountered is cached away, so
        that they can be restored for the actual scan. */
@@ -1531,7 +1503,6 @@ types separated by commas (when single_type_required is FALSE).
            parenthesis to see if it is something that could follow a cast.
            This is to prevent (A()) from being interpreted as an invalid
            cast. */
-        cache_curr_token(&state.cache);
         (void)get_token();
         /* If the thing after the right parenthesis is not the start of
            an expression, then this is not a cast -- so indicate that this
@@ -1551,8 +1522,7 @@ types separated by commas (when single_type_required is FALSE).
       }  /* if */
     }  /* if */
 restore_token_sequence:
-    /* Restore the tokens. */
-    rescan_cached_tokens(&state.cache);
+    wrapup_disambig_state(&state);
     if (curr_token == tok_identifier) {
       /* Restore the saved value of the do_not_clear_specific_symbol
          flag. */
@@ -1560,7 +1530,6 @@ restore_token_sequence:
                                             prev_do_not_clear_specific_symbol;
     }  /* if */
     result = state.may_be_decl;
-    wrapup_disambig_state(&state);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
 done:
@@ -1616,15 +1585,13 @@ cache passed by the caller are flushed.
   a_disambig_state    state;
 
   /* Initialize the disambiguation state block. */
-  init_disambig_state(&state, /*suppress_packs=*/FALSE);
+  init_disambig_state(&state, /*suppress_packs=*/FALSE,
+                      /*cache_tokens=*/FALSE);
   state.set_decl_class_type = TRUE;
   rescan_reusable_cache(decl_token_cache_ptr);
   prescan_declaration(&state,
                       DFS_REAL_DECLARATOR_ALLOWED | DFS_IS_TEMPLATE_DECL,
                      /*is_top_level=*/TRUE);
-  /* Discard the cached token.  They are not needed because we were already
-     scanning from a cache. */
-  discard_token_cache(&state.cache);
   *is_friend_decl = state.friend_encountered;
   wrapup_disambig_state(&state);
   return state.decl_class_type;
@@ -1638,7 +1605,7 @@ Skip over near, far, and any Microsoft extended decl modifiers that may be
 present.
 */
 {
-  prescan_extended_decl_modifiers((a_disambig_state_ptr)NULL, DFS_NO_FLAGS);
+  prescan_extended_decl_modifiers(DFS_NO_FLAGS);
 }  /* prescan_decl_modifiers */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */

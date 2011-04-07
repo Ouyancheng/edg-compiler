@@ -3355,8 +3355,10 @@ Display the contents of list of template cache segment entries.
     fprintf(f_debug, "Entry %d\n", count);
     fprintf(f_debug, "Symbol: ");
     db_symbol(tcsp->symbol, "", 6);
-    fprintf(f_debug, "  first_token_number: %lu\n", tcsp->first_token_number);
-    fprintf(f_debug, "  last_token_number: %lu\n", tcsp->last_token_number);
+    fprintf(f_debug, "  first_token_number: %lu\n",
+            (unsigned long)tcsp->first_token_number);
+    fprintf(f_debug, "  last_token_number: %lu\n",
+            (unsigned long)tcsp->last_token_number);
     fprintf(f_debug, "  before_first_token: %p\n",
             (void*)tcsp->before_first_token);
     fprintf(f_debug, "  last_token: %p\n", (void*)tcsp->last_token);

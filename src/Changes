@@ -1,5 +1,32 @@
 Version 4.4
 
+4/7/11   [EDGcpfe/11617]
+Variadic templates: errors caused by packs expanded during disambiguation
+
+Spurious errors could occur in certain cases if a pack was expanded during
+disambiguation.  Now fixed.  This example would get a 'no instance of
+overloaded function "f" matches the argument list' during the instantiation
+of g.
+
+  template <class T1, class T2, class ... T3> struct B {
+    template <class U1, class ... U2> B(U1&&, U2&&...);
+  };
+  template <class T0, class T1, class T2, class ... T3> struct C {
+    C(const T0&){}
+  };
+  template <class T> T& f(T&);
+  template <class T> T&& f(T&&);
+  template<class T0, class T1, class... T3, class... T4>
+  inline void g(T0 (T1::* const pmf)(T3...), T4&&... args) {	
+    (B<T0, C<T0 (T1::*)(T3...), T0, T1, T3...>, T4...>
+     (C<T0 (T1::*)(T3...), T0, T1, T3...>(pmf), ::f<T4>(args)...));
+  }
+  struct A { void f(int, char, double); };
+  int main() {
+    g(&A::f, 1, 'c', 1.0);
+  }
+
+
 4/7/11   [EDGcpfe/11614]
 GNU C++ compatibility: __GNUC_GNU_INLINE__ and __GNUC_STDC_INLINE__ macros
 

@@ -8874,14 +8874,16 @@ Display the tokens that make up a pack expansion, for debugging purposes.
        They could presumably also come from something like a default
        argument cache, but that is not supported by this routine. */
     cache = &tssp->cache.tokens;
-    if (cache->first_token->token_sequence_number <= pedp->first_token &&
+    if (cache->first_token != NULL &&
+        cache->first_token->token_sequence_number <= pedp->first_token &&
         cache->last_token->token_sequence_number >= pedp->last_token) {
       /* Use this cache. */
       result_cache = cache;
     } else if (is_function_or_template_symbol(template_sym)) {
       /* Try the declaration cache for a function template. */
       cache = &tssp->variant.function.decl_cache.tokens;
-      if (cache->first_token->token_sequence_number <= pedp->first_token &&
+      if (cache->first_token != NULL &&
+          cache->first_token->token_sequence_number <= pedp->first_token &&
           cache->last_token->token_sequence_number >= pedp->last_token) {
         /* Use this cache. */
         result_cache = cache;
@@ -10059,6 +10061,16 @@ that list to pedp.
       pedp->packs_referenced = *p_first_prp;
       *p_first_prp = last_prp->next;
       last_prp->next = NULL;
+#if DEBUG
+      if (db_flag_is_set("packs")) {
+        fprintf(f_debug, "Extracting references for:\n");
+        for (prp = pedp->packs_referenced; prp != NULL; prp = prp->next) {
+          fprintf(f_debug, "  ");
+          db_symbol_name(prp->symbol);
+          fprintf(f_debug, " at tsn %lu\n", (long)prp->token_sequence_number);
+        }  /* for */
+      }  /* if */
+#endif /* DEBUG */
       {
         /* Make sure the same symbol is not on the extracted list more than
            once. */
@@ -10409,6 +10421,11 @@ The source position of the use of the symbol is indicated by position.
         if (prp->symbol == pack_symbol &&
             prp->token_sequence_number == curr_token_sequence_number) {
           break;
+        } else if (prp->token_sequence_number > curr_token_sequence_number) {
+          /* The list is in token sequence number order.  Stop if we have
+             found an entry beyond the one we are recording. */
+          prp = NULL;
+          break;
         }  /* if */
       }  /* for */
       if (prp == NULL) {
@@ -10442,8 +10459,16 @@ The source position of the use of the symbol is indicated by position.
         }  /* if */
         prp->position = *position;
         prp->token_sequence_number = curr_token_sequence_number;
-        /* Add this to the end of the list of entries on the scope stack. */
+        /* Insert this in the list of entries on the scope stack. */
+        if (*p_prp != NULL) prp->next = (*p_prp)->next;
         *p_prp = prp;
+#if DEBUG
+        if (db_flag_is_set("packs")) {
+          fprintf(f_debug, "Recording pack reference for ");
+          db_symbol_name(pack_symbol);
+          fprintf(f_debug, " at tsn %lu\n", (long)curr_token_sequence_number);
+        }  /* if */
+#endif /* DEBUG */
       }  /* if */
     }  /* if */
   }  /* if */

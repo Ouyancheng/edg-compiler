@@ -1200,6 +1200,7 @@ the newly created token.
   alloc_cached_token(ctp);
   ctp->token = (a_small_token_kind)kind;
   ctp->token_sequence_number = sequence_number;
+  ctp->ending_token_sequence_number = sequence_number;
   ctp->source_position = *position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* This is a synthesized token, for which we are really using the position
@@ -1269,6 +1270,7 @@ This is used to save tokens for later rescanning.
   ctp->end_source_position = end_pos_curr_token;
 #endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
   ctp->token_sequence_number = curr_token_sequence_number;
+  ctp->ending_token_sequence_number = last_token_sequence_number_of_token;
   if (cache->is_reusable) {
     /* For reusable caches, save a pointer to the cached token entry as
        a handle into the cache that can be used to rescan a range of
@@ -1490,6 +1492,7 @@ The current token must be a ">>": Replace it with two ">" tokens.
      were assigned, a slot is reserved so that this number will be known to
      be unique. */
   curr_token_sequence_number++;
+  last_token_sequence_number_of_token = curr_token_sequence_number;
   rescan_cached_tokens(&cache);
 }  /* replace_right_shift_by_two_closing_angle_brackets */
 
@@ -1576,14 +1579,15 @@ be coalesced.  This should be done when the stop token set includes
 tokens that can appear in an expression, which means that the
 caching process must be able to determine whether a "<" starts
 a template argument list or is just a less-than sign.  coalesce_ids must
-be TRUE if curr_token is tok_lt.
+be TRUE if curr_token is tok_lt.  When coalesce_ids is FALSE and cache is
+not NULL, any fetched tokens will be added to cache.
 */
 {
   a_token_kind  closing_token;
   int           paren_count = 0, bracket_count = 0, brace_count = 0;
   a_boolean	done = FALSE;
   a_boolean	err = FALSE;
-  a_boolean	cache_tokens = coalesce_ids;
+  a_boolean	add_tokens_to_cache = !coalesce_ids && cache != NULL;
 
   db_enter(4, "cache_token_stream_until_matching_token");
   if (curr_token == tok_lt) {
@@ -1606,7 +1610,7 @@ be TRUE if curr_token is tok_lt.
 #endif /* CHECKING */
   }  /* switch */
   /* Cache the current token, and advance to its successor. */
-  if (!cache_tokens) cache_curr_token(cache);
+  if (add_tokens_to_cache) cache_curr_token(cache);
   get_token_and_coalesce_if_needed(coalesce_ids);
   /* Keep looping through successive tokens until the corresponding closing
      token is found at level zero (i.e., not within a nesting of parens,
@@ -1629,7 +1633,7 @@ be TRUE if curr_token is tok_lt.
     }  /* if */
     if (std_attribute_tokens_next()) {
       /* The start of a standard attribute. */
-      cache_std_attribute(cache, !cache_tokens);
+      cache_std_attribute(cache, add_tokens_to_cache);
     } else if (closing_token == tok_rbrace) { /*lint !e539*/
       /* When looking for a right brace, don't consider any other
          delimiters.  Braces can't be nested inside parens, brackets,
@@ -1654,7 +1658,7 @@ be TRUE if curr_token is tok_lt.
     /* Always stop the flush on end of source. */
     if (curr_token == tok_end_of_source) break;
     /* None of the conditions was satisfied, so keep going. */
-    if (!cache_tokens) cache_curr_token(cache);
+    if (add_tokens_to_cache) cache_curr_token(cache);
     get_token_and_coalesce_if_needed(coalesce_ids);
     if (curr_token == tok_shift_right && closing_token == tok_gt &&
         right_shift_can_be_angle_brackets) {
@@ -1678,7 +1682,9 @@ Copy the current token and succeeding tokens into the token cache specified
 by cache up to but not including the first token that matches a member of
 the stop tokens array.  Return immediately if end of source is reached.
 (This routine is similar to flush_tokens, but instead of throwing tokens
-away it adds them to the specified token cache.)
+away it adds them to the specified token cache.)  If cache is NULL, the
+tokens are not added to the cache.  This may be the case when the background
+caching mechanism is being used.
 
 coalesce_ids is TRUE if identifiers found in the token stream should
 be coalesced.  This should be done when the stop token set includes
@@ -1692,11 +1698,13 @@ a template argument list or is just a less-than sign.
   a_boolean			save_caching_tokens = caching_tokens;
   a_boolean			prev_token_precedes_angle_bracket_list = FALSE;
   a_boolean			prev_token_was_template = FALSE;
+  a_boolean			add_tokens_to_cache;
 
   db_enter(4, "cache_token_stream_with_coalesce_flag");
   /* Set a flag that indicates that the tokens being scanned are to be
      cached. */
   caching_tokens = TRUE;
+  add_tokens_to_cache = !coalesce_ids && cache != NULL;
   /* Start caching of tokens when we are coalescing ids.   This is needed
      because when coalescing ids not all tokens are fetched directly by
      this routine.  A cache is constructed behind the scenes, and the
@@ -1729,7 +1737,7 @@ a template argument list or is just a less-than sign.
     } else {
       if (std_attribute_tokens_next()) {
         /* The start of a standard attribute. */
-        cache_std_attribute(cache, !coalesce_ids);
+        cache_std_attribute(cache, add_tokens_to_cache);
       } else if (curr_token == tok_lparen || curr_token == tok_lbracket ||
                  curr_token == tok_lbrace ||
           (curr_token == tok_lt && prev_token_precedes_angle_bracket_list)) {
@@ -1743,12 +1751,12 @@ a template argument list or is just a less-than sign.
     /* Stop immediately when end of source is reached. */
     if (curr_token == tok_end_of_source) break;
     /* Add the current token to the cache and advance to its successor. */
-    if (!coalesce_ids) cache_curr_token(cache);
+    if (add_tokens_to_cache) cache_curr_token(cache);
     get_token_and_coalesce_if_needed(coalesce_ids);
   }  /* while */
   /* Leave error_position associated with what is now curr_token. */
   set_err_pos_to_curr_token();
-  if (coalesce_ids) {
+  if (coalesce_ids && cache != NULL) {
     /* Make a copy of the specified range of tokens from the source cache. */
     last_tsn = curr_token_sequence_number;
     /* Get the tokens from the cache that has been accumulated. */
@@ -1800,8 +1808,8 @@ Interface to get_token that sets the caching_tokens flag.
 }  /* get_token_to_be_cached */
 
 
-static void f_rescan_cached_tokens(a_token_cache *cache,
-                                   a_boolean	  discard_curr_token)
+void f_rescan_cached_tokens(a_token_cache *cache,
+                            a_boolean	  discard_curr_token)
 /*
 Put the tokens saved in *cache onto the rescan list so that they will be
 re-fetched by get_token.  On return, the current token is the first
@@ -2164,6 +2172,7 @@ an equivalent change.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   error_position = pos_curr_token;
   curr_token_sequence_number = ctp->token_sequence_number;
+  last_token_sequence_number_of_token = ctp->ending_token_sequence_number;
   /* Normally tokens in non-reusable caches won't have a token handle,
      but they could if the token originated from a reusable cache. */
   curr_cached_token_handle = ctp->token_handle;
@@ -2228,6 +2237,7 @@ an equivalent change.
     check_assertion(reusable_cache_stack->variadic_rescans_in_progress);
     ctoken = tok_end_of_source;
     curr_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
+    last_token_sequence_number_of_token = NO_TOKEN_SEQUENCE_NUMBER;
     goto done;
   }  /* if */
   for (;;) {
@@ -2269,6 +2279,7 @@ an equivalent change.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   error_position = pos_curr_token;
   curr_token_sequence_number = ctp->token_sequence_number;
+  last_token_sequence_number_of_token = ctp->ending_token_sequence_number;
   curr_cached_token_handle = ctp->token_handle;
   start_of_curr_token = end_of_curr_token = NULL;
   len_of_curr_token = 0;
@@ -10667,6 +10678,7 @@ restart:
      two tokens because it closes two template argument lists. */
   last_token_sequence_number_used += 2;
   curr_token_sequence_number = last_token_sequence_number_used;
+  last_token_sequence_number_of_token = curr_token_sequence_number;
   curr_cached_token_handle = NO_CACHED_TOKEN_HANDLE;
 rescan_token:
   /* Skip over any initial white space blanks and horizontal tabs.
@@ -11837,7 +11849,7 @@ to it.
   lssep->next = NULL;
   lssep->cache_tokens = 0;
   lssep->last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
-  clear_token_cache(&lssep->cache, /*is_reusable=*/TRUE);
+  clear_token_cache(&lssep->cache, /*is_reusable=*/FALSE);
   return lssep;
 }  /* alloc_lexical_state_stack_entry */
 
@@ -18293,7 +18305,8 @@ Display the contents of a token cache.
                 ctp->variant.locator.symbol_header->identifier);
       }  /* if */
       fprintf(f_debug, "\n");
-      fprintf(f_debug, "  sequence_number: %lu\n", ctp->token_sequence_number);
+      fprintf(f_debug, "  sequence_number: %lu\n",
+              (unsigned long)ctp->token_sequence_number);
       if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_none &&
           ctp->extra_info_kind != (a_token_extra_info_kind)teik_identifier) {
         char	*s;
@@ -18746,6 +18759,7 @@ done to determine whether a precompiled header may be used.
   any_initial_get_token_tests_needed = FALSE;
   treat_newline_as_token = FALSE;
   curr_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
+  last_token_sequence_number_of_token = NO_TOKEN_SEQUENCE_NUMBER;
   curr_cached_token_handle = NO_CACHED_TOKEN_HANDLE;
   any_tokens_fetched_from_curr_input_file = FALSE;
   curr_token_asm_string = NULL;

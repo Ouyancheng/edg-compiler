@@ -41,14 +41,22 @@ typedef struct a_cached_token *a_cached_token_ptr;
 A sequence number is assigned to each token fetched from the input.
 This is the type used to represent the sequence number.
 */
-typedef unsigned long a_token_sequence_number;
+typedef uint32_t a_token_sequence_number;
 
 EXTERN a_token_sequence_number
 		curr_token_sequence_number;
 			/* The sequence number associated with the
 			   current token.  A token retains its sequence
 			   number even when saved and restored from a
-			   token cache. */
+			   token cache.  For a coalesced token this is the
+			   token sequence number of the initial token. */
+
+EXTERN a_token_sequence_number
+		last_token_sequence_number_of_token;
+			/* The sequence number associated with the end of
+			   the current token.  This is normally the same as
+			   curr_token_sequence_number, but for coalesced
+			   identifiers refers to a later token. */
 
 EXTERN a_token_sequence_number
 		last_token_sequence_number_used;
@@ -1701,6 +1709,11 @@ typedef struct a_cached_token {
   a_token_sequence_number
 		token_sequence_number;
 			/* The sequence number associated with this token. */
+  a_token_sequence_number
+		ending_token_sequence_number;
+			/* The ending sequence number of this token (different
+			   from token_sequence_number for coalesced
+			   identifiers). */
   a_cached_token_handle
 		token_handle;
 			/* For tokens from reusable caches, this identifies the
@@ -1840,6 +1853,8 @@ void remove_token_from_cache(a_cached_token_ptr	ctp,
 extern a_token_kind get_token_to_be_cached(void);
 /* Put some cached tokens on the get_token rescan list. */
 extern void rescan_cached_tokens(a_token_cache *cache);
+extern void f_rescan_cached_tokens(a_token_cache *cache,
+                                   a_boolean	  discard_curr_token);
 /* Push a reusable cache on to the reusable cache stack. */
 extern void rescan_reusable_cache(a_token_cache *cache);
 extern void rescan_reusable_cache_full(a_token_cache	*cache,
