@@ -22896,7 +22896,7 @@ overloaded_function:
         case sk_property_set:
           /* The identifier refers to one or more C++/CLI properties. */
           check_assertion(cppcli_enabled);
-          {  /* Create a "this" operand if meaningful. */
+          { /* Create a "this" operand if meaningful. */
             an_operand      *selector = NULL;
             a_variable_ptr  this_var = NULL;
             if (variable_this_exists(&this_var) &&

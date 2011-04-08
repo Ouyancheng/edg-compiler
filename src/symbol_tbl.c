@@ -3175,7 +3175,7 @@ null.  (Used for C++/CLI properties.)
 {
   a_property_set_symbol_supplement_ptr  psssp;
 
-  /* Allocate a template symbol supplement. */
+  /* Allocate a property set symbol supplement. */
   psssp = (a_property_set_symbol_supplement_ptr)
                            alloc_fe(sizeof(a_property_set_symbol_supplement));
 #if DEBUG

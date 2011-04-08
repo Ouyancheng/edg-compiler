@@ -2641,7 +2641,8 @@ typedef struct a_property_set_symbol_supplement {
 			   sk_overload_function symbol. */
   a_symbol_ptr
 		set_accessors;
-			/* Same as get_accessor, but for the "set" accessors. */
+			/* Same as get_accessors, but for the "set"
+			   accessors. */
 } a_property_set_symbol_supplement;
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
