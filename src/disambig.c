@@ -105,7 +105,7 @@ static void wrapup_disambig_state(a_disambig_state_ptr dsp)
 Perform any operations that must be done to clean up after disambiguation.
 */
 {
-  /* If we are accumulated cached tokens, extract the tokens and rescan
+  /* If we are accumulating cached tokens, extract the tokens and rescan
      them.  The test of dsp->first_tsn is used to avoid doing this when the
      only token put in the cache was the current token at the start of
      caching. */
