@@ -1660,7 +1660,7 @@ to default values.
       operand->variant.property_ref.subscripts = NULL;
       break;
     case ok_event_ref:
-      operand->variant.property_ref.object = NULL;
+      operand->variant.event_ref.object = NULL;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CHECKING
@@ -1857,9 +1857,9 @@ Display an expression operand for debugging purposes.
     case ok_event_ref:
       (void)fprintf(f_debug, "event ref = \n");
       (void)fprintf(f_debug, "object =");
-      if (operand->variant.property_ref.object != NULL) {
+      if (operand->variant.event_ref.object != NULL) {
         (void)fprintf(f_debug, "\n");
-        db_expression(operand->variant.property_ref.object);
+        db_expression(operand->variant.event_ref.object);
       } else {
         (void)fprintf(f_debug, " NULL\n");
       }  /* if */
@@ -15319,7 +15319,7 @@ to TRUE and *result becomes an error operand.
   } else {
     a_property_or_event_descr_ptr
                        pedp;
-    a_symbol_ptr       event_sym = lhs->symbol, accessor_sym;
+    a_symbol_ptr       event_sym = lhs->symbol, accessor_sym = NULL;
     a_symbol_locator   accessor_loc;
     an_operand         function_operand;
     an_operand         selector;
@@ -15333,27 +15333,31 @@ to TRUE and *result becomes an error operand.
     } else {
       unexpected_condition();
     }  /* if */
-    if (operator_token == tok_plus_assign) {
+    if (operator_token == tok_plus_assign && pedp->add_routine != NULL) {
       accessor_sym = symbol_for(pedp->add_routine);
-    } else {
+    } else if (operator_token == tok_minus_assign &&
+               pedp->remove_routine != NULL) {
       accessor_sym = symbol_for(pedp->remove_routine);
+    } else {
+      err = TRUE;
     }  /* if */
-    if (have_selector) {
-      /* A selector object was specified.  It may or may not be used in the
-         accessor call depending on whether a static or nonstatic property is
-         selected by overload resolution.  If it isn't bound, it will be
-         added in via a comma operator below. */
-      make_expression_operand(lhs->variant.event_ref.object, &selector);
-      selector.selector_is_object_pointer = TRUE;
-    }  /* if */
-    make_locator_for_symbol(accessor_sym, &accessor_loc);
-    accessor_loc.source_position = *operator_pos;
-    check_ambiguity_and_verify_access(&accessor_loc);
-    /* Turn the right-hand side into an operand list for the accessor call. */
-    arg_operand_list = alloc_arg_operand();
-    arg_operand_list->operand = *rhs;
-    /* Do overload resolution to determine the function to call. */
-    if (select_and_prepare_to_call_overloaded_function(
+    if (!err) {
+      if (have_selector) {
+        /* A selector object was specified.  It may or may not be used in the
+           accessor call depending on whether a static or nonstatic property is
+           selected by overload resolution.  If it isn't bound, it will be
+           added in via a comma operator below. */
+        make_expression_operand(lhs->variant.event_ref.object, &selector);
+        selector.selector_is_object_pointer = TRUE;
+      }  /* if */
+      make_locator_for_symbol(accessor_sym, &accessor_loc);
+      accessor_loc.source_position = *operator_pos;
+      check_ambiguity_and_verify_access(&accessor_loc);
+      /* Turn the right-hand side into an operand list for the call. */
+      arg_operand_list = alloc_arg_operand();
+      arg_operand_list->operand = *rhs;
+      /* Do overload resolution to determine the function to call. */
+      if (select_and_prepare_to_call_overloaded_function(
                                             accessor_sym,
                                             /*is_template_id=*/FALSE,
                                             (a_template_arg_ptr)NULL,
@@ -15373,18 +15377,19 @@ to TRUE and *result becomes an error operand.
                                             (a_boolean *)NULL,
                                             &function_operand,
                                             &argument_list) == NULL) {
-      /* Some error. */
-      err = TRUE;
-    } else {
-      /* Create the function call. */
-      an_expr_node_ptr  func_call_node;
-      assemble_function_call(&function_operand, &selector, argument_list,
-                             /*compiler_generated=*/TRUE,
-                             /*arg_dep_lookup_suppressed=*/FALSE,
-                             /*qualified_function_name=*/FALSE,
-                             /*found_through_adl=*/FALSE,
-                             /*uses_operator_syntax=*/FALSE,
-                             operator_pos, result, &func_call_node);
+        /* Some error. */
+        err = TRUE;
+      } else {
+        /* Create the function call. */
+        an_expr_node_ptr  func_call_node;
+        assemble_function_call(&function_operand, &selector, argument_list,
+                               /*compiler_generated=*/TRUE,
+                               /*arg_dep_lookup_suppressed=*/FALSE,
+                               /*qualified_function_name=*/FALSE,
+                               /*found_through_adl=*/FALSE,
+                               /*uses_operator_syntax=*/FALSE,
+                               operator_pos, result, &func_call_node);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (err) {

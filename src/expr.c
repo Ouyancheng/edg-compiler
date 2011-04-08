@@ -3940,9 +3940,8 @@ are expected to be NULL in that case.
     /* Invoking an event is equivalent to calling its "raise" accessor. */
     rewrite_event_ref_for_call(operand, bound_function_selector,
                                &unneeded_selector);
-  } else
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
   /* Argument-dependent lookup will be done if the function name is a
      simple name followed by a left parenthesis (not, for example,
      a name enclosed in parentheses as in "(f)(x)"). */
