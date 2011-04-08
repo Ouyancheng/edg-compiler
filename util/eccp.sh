@@ -564,6 +564,7 @@ check_abbreviation()
 --c++0x_sfinae_ignore_access
 --c++cli
 --c_to_obj_lib
+--c_to_obj_options
 --cfront_2.1
 --cfront_3.0
 --check_concatenations
