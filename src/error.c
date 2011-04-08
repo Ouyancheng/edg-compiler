@@ -3592,7 +3592,8 @@ void record_prototype_diagnostic(
 /*
 This diagnostic is being issued for a prototype instantiation.
 Make a record of the diagnostic so that we can find it later to
-suppress duplicate diagnostics.
+suppress duplicate diagnostics.  This is also used to record information
+about diagnostics issued during disambiguation.
 */
 {
   int				bucket;
@@ -3681,7 +3682,8 @@ Return TRUE if the diagnostic should be suppressed.
          command-line error. */
     } else if (find_prototype_diagnostic(error_code, severity, error_pos)) {
       suppress_diagnostic = TRUE;
-    } else if (is_template_dependent_context()) {
+    } else if (is_template_dependent_context() ||
+               scope_stack_top().in_disambiguation) {
       record_prototype_diagnostic(error_code, severity, error_pos);
     }  /* if */
     /* Save the result of this check and reuse it for any subordinate

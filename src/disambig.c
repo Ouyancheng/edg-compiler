@@ -52,6 +52,9 @@ typedef struct a_disambig_state {
   a_boolean	cache_tokens;
 			/* TRUE if the tokens fetched for disambiguation
 			   should be cached. */
+  a_boolean	saved_in_disambiguation;
+			/* The value of the scope stack in_disambiguation
+			   flag at the start of disambiguation. */
   a_token_sequence_number
 		first_tsn;
 			/* The value of curr_token_sequence_number at the
@@ -73,6 +76,8 @@ push a pack expansion suppression.  If cache_tokens is TRUE, a token
 cache of the tokens fetched for disambiguation should be created.
 */
 {
+  a_scope_stack_entry_ptr	ssep;
+
   dsp->decl_class_type = NULL;
   dsp->may_be_decl = TRUE;
   dsp->terminate = FALSE;
@@ -89,6 +94,9 @@ cache of the tokens fetched for disambiguation should be created.
     /* Disable variadic processing during the prescan. */
     push_expansion_suppression(&dsp->pack_expansion_stack_entry);
   }  /* if */
+  ssep = &scope_stack_top();
+  dsp->saved_in_disambiguation = ssep->in_disambiguation;
+  ssep->in_disambiguation = TRUE;
 }  /* init_disambig_state */
 
 
@@ -117,6 +125,7 @@ Perform any operations that must be done to clean up after disambiguation.
     /* Restore the variadic processing state. */
     pop_expansion_suppression(dsp->pack_expansion_stack_entry);
   }  /* if */
+  scope_stack_top().in_disambiguation = dsp->saved_in_disambiguation;
 }  /* wrapup_disambig_state */
 
 

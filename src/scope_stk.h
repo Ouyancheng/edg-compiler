@@ -838,6 +838,9 @@ typedef struct a_scope_stack_entry {
   a_bit_field	implicit_typename:1;
 			/* TRUE if, in this scope, implicit typename processing
 			   should be done. */
+  a_bit_field	in_disambiguation:1;
+			/* TRUE if we are currently doing disambiguation
+			   processing. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
