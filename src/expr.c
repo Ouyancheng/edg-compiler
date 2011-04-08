@@ -4726,7 +4726,7 @@ is a C++/CLI handle.
   if (is_error_operand(operand_1)) {
     make_error_operand(result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && field_is_nontrivial_property_or_event(field)) {
+  } else if (microsoft_mode && field_is_property_or_event(field)) {
     if (property_or_event_kind_is(field, pek_declspec_property)) {
       /* A property field in Microsoft C++ mode.  Render as an ok_property_ref
          operand, which will be rewritten later as a function call. */
@@ -6119,47 +6119,31 @@ case).
       switch (member_sym->kind) {
         case sk_field:
           field = member_sym->variant.field.ptr;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          if (field->property_or_event_descr != NULL) {
-            /* A C++/CLI static event variable.  (Static properties are
-               handled via sk_property_set symbols.) */
-            check_assertion(cppcli_enabled &&
-                            property_or_event_kind_is(field, pek_cli_event));
-            make_event_ref_operand(member_sym, operand_1, is_arrow_operator,
-                                   result);
-          } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          /* Do not insert code here. */
-          {
-            /* Normal field selection. */
-            /* The result is an rvalue if the operator is "." and the left
-               operand is an rvalue. */
-            is_lvalue = is_arrow_operator || is_an_lvalue(operand_1);
-            if (microsoft_bugs && microsoft_version < 1600 && !is_lvalue &&
-                is_floating_type(field->type)) {
-              /* For some unknown reason, MSVC considers a selection of a
-                 field of a floating-point type out of a class rvalue to
-                 be an lvalue.  Checked in 7.1, 8.0, 10.0 beta.  Fixed in
-                 real 10.0 release. */
-              revert_microsoft_rvalue_to_lvalue_if_possible(operand_1);
-              is_lvalue = is_an_lvalue(operand_1);
-            }  /* if */
-            /* This operation uses the left-side operand, so cast the
-               operand to the type of the member symbol. */
-            cast_pointer_for_field_selection(
-                         operand_1, is_arrow_operator, member_sym,
-                         projection_member_sym,
-                         (a_boolean)locator.access_control_error_reported,
-                         /*do_protected_member_check=*/TRUE, &member_position);
-            do_field_selection_operation(operand_1,
-                                         orig_class_struct_union_type,
-                                         is_arrow_operator, is_lvalue,
-                                         /*compiler_generated=*/FALSE,
-                                         &locator,
-                                         &member_position,
-                                         end_position_or_null(&end_position),
-                                         rep, result);
+          /* Normal field selection. */
+          /* The result is an rvalue if the operator is "." and the left
+             operand is an rvalue. */
+          is_lvalue = is_arrow_operator || is_an_lvalue(operand_1);
+          if (microsoft_bugs && microsoft_version < 1600 && !is_lvalue &&
+              is_floating_type(field->type)) {
+            /* For some unknown reason, MSVC considers a selection of a field
+               of a floating-point type out of a class rvalue to be an lvalue.
+               Checked in 7.1, 8.0, 10.0 beta.  Fixed in real 10.0 release. */
+            revert_microsoft_rvalue_to_lvalue_if_possible(operand_1);
+            is_lvalue = is_an_lvalue(operand_1);
           }  /* if */
+          /* This operation uses the left-side operand, so cast the
+             operand to the type of the member symbol. */
+          cast_pointer_for_field_selection(
+                       operand_1, is_arrow_operator, member_sym,
+                       projection_member_sym,
+                       (a_boolean)locator.access_control_error_reported,
+                       /*do_protected_member_check=*/TRUE, &member_position);
+          do_field_selection_operation(operand_1, orig_class_struct_union_type,
+                                       is_arrow_operator, is_lvalue,
+                                       /*compiler_generated=*/FALSE,
+                                       &locator, &member_position,
+                                       end_position_or_null(&end_position),
+                                       rep, result);
           break;
         case sk_static_data_member:
           /* Static data member reference. */
