@@ -15657,8 +15657,9 @@ transformations.
 */
 {
   a_boolean will_call = (options & TOPT_WILL_CALL) != 0;
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (microsoft_mode) {
     if (is_property_ref_operand(operand)) {
       if (!(options & TOPT_SUPPRESS_RVALUE_PROPERTY_REWRITE)) {
         /* This operand is a reference to a member declared as a Microsoft
