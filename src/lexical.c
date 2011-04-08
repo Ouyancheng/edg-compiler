@@ -1284,7 +1284,8 @@ This is used to save tokens for later rescanning.
        string. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_pp_token;
     make_copy_of_pp_token(&ctp->variant.pp_token_descr);
-  } else if (curr_token == tok_identifier || curr_token == tok_ptr_to_member) {
+  } else if (curr_token == tok_identifier || curr_token == tok_ptr_to_member
+             if_microsoft_extensions(|| curr_token == tok_cli_typeid)) {
     /* Identifier -- save information about it. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_identifier;
     ctp->variant.locator = locator_for_curr_id;
@@ -15363,7 +15364,8 @@ position of the first token in the sequence.  We return TRUE if an identifier
 was found, otherwise we return FALSE.
 
 Pointer to members are coalesced into a tok_ptr_to_member. We return
-FALSE for pointer to members.
+FALSE for pointer to members.  Similarly, the C++/CLI X::typeid construct
+is coalesced into a tok_cli_typeid and FALSE is returned.
 
 Returns TRUE and sets curr_token to tok_identifier for the
 following cases:
@@ -15395,6 +15397,12 @@ Returns FALSE and sets curr_token to tok_ptr_to_member for:
 
 	X::*
 	A<int>::*	Template reference will be coalesced
+
+Returns FALSE and sets curr_token to tok_cli_typeidr for the C++/CLI
+constructs:
+
+	X::typeid
+	A<int>::typeid	Template reference will be coalesced
 
 Returns FALSE and leaves curr_token_unchanged for:
 
@@ -15467,6 +15475,7 @@ selection operator, in which case it points to the type of the left operand.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                     qualifier_is_property_or_event = FALSE;
   a_symbol_ptr			qualifier_property_or_event = NULL;
+  a_boolean			is_cli_typeid = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean			qualifier_type_is_class = FALSE;
   a_namespace_ptr		qualifier_namespace = NULL;
@@ -15488,12 +15497,14 @@ selection operator, in which case it points to the type of the left operand.
   /* If the current token is an identifier, then check the flag in the
      locator to see if it has already been coalesced.  If so, simply
      return TRUE with no further processing.  If the current token is a
-     tok_ptr_to_member, return FALSE with no further processing. */
+     tok_ptr_to_member or tok_cli_typeid, return FALSE with no further
+     processing. */
   if (curr_token == tok_identifier &&
       locator_for_curr_id.has_been_coalesced) {
     result = TRUE;
     goto exit;
-  } else if (curr_token == tok_ptr_to_member) {
+  } else if (curr_token == tok_ptr_to_member
+             if_microsoft_extensions(|| curr_token == tok_cli_typeid)) {
     result = FALSE;
     goto exit;
   }  /* if */
@@ -16277,6 +16288,12 @@ selection operator, in which case it points to the type of the left operand.
          token. */
       is_identifier = FALSE;
       is_ptr_to_member = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (curr_token == tok_typeid) {
+      /* We have a C++/CLI typeid (i.e, A::typeid). */
+      is_identifier = FALSE;
+      is_cli_typeid = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
   if (is_identifier) {
@@ -16355,14 +16372,21 @@ selection operator, in which case it points to the type of the left operand.
   }  /* if */
   /* This routine has two functions: determining whether the thing
      being scanned is a generalized identifier, pointer to member,
-     or something else; and, if it is an identifier, coalescing the
-     identifier and storing the information in the locator.  The code
-     above performed the first part of the job.  The code below does
-     the coalescing now that we know what we are scanning. */
-  if (is_ptr_to_member) {
+     C++/CLI typeid operator, or something else; and, if it is an
+     identifier, coalescing the identifier and storing the information
+     in the locator.  The code above performed the first part of the
+     job.  The code below does the coalescing now that we know what we
+     are scanning. */
+  if (is_ptr_to_member if_microsoft_extensions(|| is_cli_typeid)) {
     curr_token = tok_ptr_to_member;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_cli_typeid) {
+      curr_token = tok_cli_typeid;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* parent.class_type and is_class_member are the only fields of the
-       locator that are valid when curr_token is tok_ptr_to_member. */
+       locator that are valid when curr_token is tok_ptr_to_member or
+       tok_cli_typeid. */
     locator_for_curr_id.parent.class_type = qualifier_type;
     locator_for_curr_id.is_class_member = TRUE;
     /* Clear the is_template_id flag in the locator in case it was set before
@@ -17739,6 +17763,7 @@ of characters added.
              token == tok_pp_number ||
              token == tok_digit_sequence ||
              token == tok_cpp_quote ||
+             if_microsoft_extensions(token == tok_cli_typeid ||)
              token == tok_ptr_to_member) {
     internal_error("add_token_to_string: unexpected token");
 #endif /* CHECKING */

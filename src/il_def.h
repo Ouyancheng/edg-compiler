@@ -970,6 +970,7 @@ typedef enum /*a_token_kind*/ {
   tok_uuid,
   tok_in,
   tok_gcnew,
+  tok_cli_typeid,
   /* Keywords with embedded white space.  All except tok_for_each are only
      in C++/CLI.  These must be in the contiguous range defined by
      tok_first_whitespace_token through tok_last_whitespace_token, as the
@@ -1157,7 +1158,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__super",
    "__noop", "__interface",
    "__ptr32", "__ptr64", "__sptr", "__uptr", "__w64",
-   "__LPREFIX", "__identifier", "uuid", "in", "gcnew",
+   "__LPREFIX", "__identifier", "uuid", "in", "gcnew", "cli typeid",
    "for each", "ref class", "ref struct", "value class", "value struct",
    "enum class", "enum struct", "interface class", "interface struct",
    "ref", "value", "interface", "for", "enum",
