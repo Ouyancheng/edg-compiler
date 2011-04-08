@@ -1,5 +1,27 @@
 Version 4.4
 
+4/8/11   [EDGcpfe/11519]
+Lowered code generation for catch(...) clause
+
+In configurations where FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS is TRUE
+(which is the default in C generating back end configurations), lowering
+had generated intermediate C code that appeared at compile time as though
+the end of the "try" statement was reachable, when in fact, at run-time it
+was not.  This happened only in cases when a "try" statement included a
+"catch(...)" clause and no local variables were modified in the "try"
+statement.  For example, this sample had generated a warning ("control reaches
+end of non-void function") when the intermediate C code was compiled with 
+"gcc -Wall":
+
+  int f() {
+    try {
+      return 0;
+    } catch (...) {
+      throw;
+    }
+  }
+
+
 4/8/11   [EDGcpfe/11613]
 IA-64 ABI: assertion failure when mangling unnamed namespace
 

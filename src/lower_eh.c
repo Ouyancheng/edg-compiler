@@ -5237,6 +5237,9 @@ be passed down.
   long               catch_clause_number;
 #if FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS
   a_label_ptr        label;
+  an_expr_node_ptr   modified_var_arg_list = NULL;
+  a_context_ptr      context;
+  a_variable_ptr     var;
 #endif /* FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
@@ -5348,10 +5351,36 @@ be passed down.
        is generated during the lowering of the dependent statement. */
     lower_statement(dep_statement);
 #if DO_FULL_PORTABLE_EH_LOWERING
-#if !FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS
+#if FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS
+    /* Work up through the context stack from the current location (the
+       try block) out to the function scope.  At each scope, look for local
+       variables that are modified within the try and add them to a list
+       of modified variables (that will be used as an argument list for a
+       call to a dummy routine). */
+    context = curr_context;
+    do {
+      context = context->parent;
+      for (var = context->scope->variables;
+           var != NULL;
+           var = var->next) {
+        add_var_addr_to_list_if_modified_in_try_block(var,
+                                                      &modified_var_arg_list);
+      }  /* for */
+      for (var = context->scope->nonstatic_variables;
+           var != NULL;
+           var = var->next) {
+        add_var_addr_to_list_if_modified_in_try_block(var,
+                                                      &modified_var_arg_list);
+      }  /* for */
+    } while (context->scope != innermost_function_scope);
+#endif /* FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */
     /* The special processing for the ellipsis entry is not done if we want
        to add an "else" at the end to suppress optimization. */
-    if (handler->parameter == NULL) {
+    if (handler->parameter == NULL
+#if FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS
+        && modified_var_arg_list == NULL
+#endif /* FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */
+                                        ) {
       /* This is an ellipsis entry.  No "if" is required, since it accepts
          any type.  Previous error checks have ensured that this is the
          last clause. */
@@ -5359,7 +5388,6 @@ be passed down.
                           "lower_try_block: ellipsis clause not last");
       prev_if_stmt->variant.if_stmt.else_statement = dep_statement;
     } else {
-#endif /* !FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */
       /* Test the catch clause number returned by the runtime in an "if"
          statement:
            if (__catch_clause_number == n) ...
@@ -5381,9 +5409,7 @@ be passed down.
       if_stmt->variant.if_stmt.then_statement = dep_statement;
       prev_if_stmt->variant.if_stmt.else_statement = if_stmt;
       prev_if_stmt = if_stmt;
-#if !FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS
     }  /* if */
-#endif /* !FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */
     /* Clear the assoc_handler pointer in the handler scope because it's not
        a C field. */
     handler->statement->variant.block.extra_info->assoc_scope->
@@ -5410,49 +5436,28 @@ be passed down.
        goto start_of_try;
      This convinces C compilers that the indicated variables must be stored
      out when modified in the try block. */
-  { a_statement_ptr    block_stmt, call_stmt, goto_stmt;
-    an_expr_node_ptr   arg_list = NULL, call_node;
-    a_context_ptr      context;
-    a_variable_ptr     var;
+  /* The extra code is needed only if there are such modified variables. */
+  if (modified_var_arg_list != NULL) {
+    a_statement_ptr    block_stmt, call_stmt, goto_stmt;
+    an_expr_node_ptr   call_node;
     an_insert_location block_insert_location;
-    /* Work up through the context stack from the current location (the
-       try block) out to the function scope.  At each scope, look for local
-       variables that are modified within the try and add them to the
-       argument list for the call. */
-    context = curr_context;
-    do {
-      context = context->parent;
-      for (var = context->scope->variables;
-           var != NULL;
-           var = var->next) {
-        add_var_addr_to_list_if_modified_in_try_block(var, &arg_list);
-      }  /* for */
-      for (var = context->scope->nonstatic_variables;
-           var != NULL;
-           var = var->next) {
-        add_var_addr_to_list_if_modified_in_try_block(var, &arg_list);
-      }  /* for */
-    } while (context->scope != innermost_function_scope);
-    /* The extra code is needed only if there are such modified variables. */
-    if (arg_list != NULL) {
-      call_node = make_runtime_rout_call("__suppress_optim_on_vars_in_try",
-                                        &suppress_optim_on_vars_in_try_routine,
-                                         void_type(),
-                                         arg_list);
-      call_stmt = alloc_expr_statement(call_node);
-      /* Add a block statement as the "else" of the last "if" for a catch
-         handler. */
-      block_stmt = alloc_statement((a_statement_kind)stmk_block);
-      prev_if_stmt->variant.if_stmt.else_statement = block_stmt;
-      /* Put the call into the block. */
-      set_block_start_insert_location(block_stmt, &block_insert_location);
-      insert_statement(call_stmt, &block_insert_location);
-      /* Put the goto following the call. */
-      goto_stmt = alloc_statement((a_statement_kind)stmk_goto);
-      goto_stmt->variant.label.ptr = label;
-      insert_statement(goto_stmt, &block_insert_location);
-    }  /* if */
-  }
+    call_node = make_runtime_rout_call("__suppress_optim_on_vars_in_try",
+                                       &suppress_optim_on_vars_in_try_routine,
+                                       void_type(),
+                                       modified_var_arg_list);
+    call_stmt = alloc_expr_statement(call_node);
+    /* Add a block statement as the "else" of the last "if" for a catch
+       handler. */
+    block_stmt = alloc_statement((a_statement_kind)stmk_block);
+    prev_if_stmt->variant.if_stmt.else_statement = block_stmt;
+    /* Put the call into the block. */
+    set_block_start_insert_location(block_stmt, &block_insert_location);
+    insert_statement(call_stmt, &block_insert_location);
+    /* Put the goto following the call. */
+    goto_stmt = alloc_statement((a_statement_kind)stmk_goto);
+    goto_stmt->variant.label.ptr = label;
+    insert_statement(goto_stmt, &block_insert_location);
+  }  /* if */
 #endif /* FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   /* Generate code to pop the "try" frame off the stack after the rewritten
