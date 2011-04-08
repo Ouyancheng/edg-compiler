@@ -3273,6 +3273,73 @@ is already known to be a symbol with an associated nonreal type.
   return result_sym;
 }  /* f_nonreal_type_if_nested_prototype_type */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_symbol_ptr look_up_property_or_event_accessor(
+					a_symbol_locator         *locator,
+					a_type_ptr               class_type)
+/*
+The locator represents a Microsoft property or event accessor function.
+These are named in an unusual way.  For example, for a property P in class
+C, the accessor is named as C::P::get even though P is not itself a class
+type.  If the locator names a valid accessor in class_type, return the symbol
+for the accessor; otherwise return NULL.
+*/
+{
+  a_symbol_ptr	result_sym = NULL;
+
+  if (locator->specific_symbol != NULL) {
+    /* Retain the specific symbol if there is one. */
+    result_sym = locator->specific_symbol;
+  } else if (!locator->is_class_member ||
+             !same_entities(locator->parent.class_type, class_type)) {
+    /* The locator is not for a class member, or does not match the class
+       type provided.  Return NULL (set above). */
+  } else if (symbol_is(locator->property_or_event_parent, sk_property_set)) {
+    /* Return the symbol for the get or set accessor maintained in the
+       property set supplement. */
+    if (strcmp(locator->symbol_header->identifier, "get") == 0) {
+      result_sym = locator->property_or_event_parent->variant.property_info
+                                                    ->get_accessors;
+    } else if (strcmp(locator->symbol_header->identifier, "set") == 0) {
+      result_sym = locator->property_or_event_parent->variant.property_info
+                                                    ->set_accessors;
+    } else {
+      /* Not a valid accessor name: Return NULL (set above). */
+    }  /* if */
+  } else {
+    a_property_or_event_descr_ptr	pdp;
+    a_symbol_header_ptr			sym_hdr = locator->symbol_header;
+    a_symbol_ptr			sym;
+    if (symbol_is(locator->property_or_event_parent, sk_field)) {
+      pdp = locator->property_or_event_parent
+                   ->variant.field.ptr
+                   ->property_or_event_descr;
+    } else {
+      pdp = locator->property_or_event_parent
+                   ->variant.static_data_member.variable
+                   ->property_or_event_descr;
+    }  /* if */
+    check_assertion(pdp->kind == (a_property_or_event_kind)pek_cli_event);
+    /* See if the symbol header we are looking for matches that of the add,
+       remove, or raise routines (if present). */
+    sym = symbol_for_or_null(pdp->add_routine);
+    if (sym->header == sym_hdr) {
+      result_sym = sym;
+    } else {
+      sym = symbol_for_or_null(pdp->remove_routine);
+      if (sym->header == sym_hdr) {
+        result_sym = sym;
+      } else {
+        sym = symbol_for_or_null(pdp->raise_routine);
+        if (sym->header == sym_hdr) result_sym = sym;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result_sym;
+}  /* look_up_property_or_event_accessor */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                               an_id_lookup_options_set options)
@@ -3307,6 +3374,14 @@ C and C++.
     /* The locator is an error locator, so return NULL (i.e., no symbol
        found). */
     sym = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (locator->is_property_or_event_accessor) {
+    /* If the locator refers to a property or event, do a special lookup
+       for accessor functions. */
+    sym = look_up_property_or_event_accessor(locator,
+                                             locator->parent.class_type);
+    locator->specific_symbol = sym;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Initialize the lookup state information used to pass information
        about this lookup between the various routines used to do the
@@ -3853,73 +3928,6 @@ current template member that is being defined; FALSE otherwise.
   return result;
 }  /* is_definition_of_template_member */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static a_symbol_ptr look_up_property_or_event_accessor(
-					a_symbol_locator         *locator,
-					a_type_ptr               class_type)
-/*
-The locator represents a Microsoft property or event accessor function.
-These are named in an unusual way.  For example, for a property P in class
-C, the accessor is named as C::P::get even though P is not itself a class
-type.  If the locator names a valid accessor in class_type, return the symbol
-for the accessor; otherwise return NULL.
-*/
-{
-  a_symbol_ptr	result_sym = NULL;
-
-  if (locator->specific_symbol != NULL) {
-    /* Retain the specific symbol if there is one. */
-    result_sym = locator->specific_symbol;
-  } else if (!locator->is_class_member ||
-             !same_entities(locator->parent.class_type, class_type)) {
-    /* The locator is not for a class member, or does not match the class
-       type provided.  Return NULL (set above). */
-  } else if (symbol_is(locator->property_or_event_parent, sk_property_set)) {
-    /* Return the symbol for the get or set accessor maintained in the
-       property set supplement. */
-    if (strcmp(locator->symbol_header->identifier, "get") == 0) {
-      result_sym = locator->property_or_event_parent->variant.property_info
-                                                    ->get_accessors;
-    } else if (strcmp(locator->symbol_header->identifier, "set") == 0) {
-      result_sym = locator->property_or_event_parent->variant.property_info
-                                                    ->set_accessors;
-    } else {
-      /* Not a valid accessor name: Return NULL (set above). */
-    }  /* if */
-  } else {
-    a_property_or_event_descr_ptr	pdp;
-    a_symbol_header_ptr			sym_hdr = locator->symbol_header;
-    a_symbol_ptr			sym;
-    if (symbol_is(locator->property_or_event_parent, sk_field)) {
-      pdp = locator->property_or_event_parent
-                   ->variant.field.ptr
-                   ->property_or_event_descr;
-    } else {
-      pdp = locator->property_or_event_parent
-                   ->variant.static_data_member.variable
-                   ->property_or_event_descr;
-    }  /* if */
-    check_assertion(pdp->kind == (a_property_or_event_kind)pek_cli_event);
-    /* See if the symbol header we are looking for matches that of the add,
-       remove, or raise routines (if present). */
-    sym = symbol_for_or_null(pdp->add_routine);
-    if (sym->header == sym_hdr) {
-      result_sym = sym;
-    } else {
-      sym = symbol_for_or_null(pdp->remove_routine);
-      if (sym->header == sym_hdr) {
-        result_sym = sym;
-      } else {
-        sym = symbol_for_or_null(pdp->raise_routine);
-        if (sym->header == sym_hdr) result_sym = sym;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return result_sym;
-}  /* look_up_property_or_event_accessor */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr class_qualified_id_lookup(a_symbol_locator         *locator,
                                        a_type_ptr               class_type,
