@@ -1,5 +1,26 @@
 Version 4.4
 
+4/8/11   [EDGcpfe/11613]
+IA-64 ABI: assertion failure when mangling unnamed namespace
+
+In cases where a member of an unnamed namespace is used in a template argument,
+an assertion failure (in mangled_simple_id) could trigger during mangling.
+This is a regression that was introduced in 4.2.  For example:
+
+  template <bool B> struct A {
+    typedef char type;
+  };
+  namespace {
+    template <typename T> struct C {
+      static const bool X = true;
+    };
+  }
+  template <typename T> typename A<C<T>::X>::type f(void);
+  void g() {
+    f<char>();
+  }
+
+
 4/7/11   [EDGcpfe/11509]
 Infinite loop or abort after friend declaration of a static extern "C" function
 

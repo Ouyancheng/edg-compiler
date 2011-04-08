@@ -5943,10 +5943,10 @@ with multiply defined symbols.
 static char *give_unnamed_namespace_a_name(a_namespace_ptr          nsp,
                                            a_mangling_control_block *mctl)
 /*
-If the indicated namespace is unnamed, give it a name (if possible).  If we're
-in the mangling pre-pass, mctl->lacking_module_id will be set to TRUE and a
-placeholder name will be returned.  A subsequent call (once the module id has
-been chosen) will give the namespace an appropriate name.
+If the indicated namespace is unnamed, give it a fabricated name (if possible).
+If we're in the mangling pre-pass, mctl->lacking_module_id will be set to TRUE
+and a placeholder name will be returned.  A subsequent call (once the module id
+has been chosen) will give the namespace an appropriate name.
 */
 {
   char     *name, *prefix;
@@ -5957,17 +5957,19 @@ been chosen) will give the namespace an appropriate name.
      end. */
   name = nsp->source_corresp.name;
   if (name == NULL) {
-    /* The namespace is unnamed, so make up a name. */
+    /* The namespace is unnamed, so fabricate a name and use it as both
+       the "mangled" name and the fabricated name. */
     char            *module_id;
     a_namespace_ptr parent_nsp;
     a_boolean       lacking_module_id = FALSE;
-    /* The name is __N followed by the module id. */
+    /* The name is either __N or _GLOBAL__N_ followed by the module id. */
     check_assertion(!nsp->source_corresp.is_class_member);
     parent_nsp = parent_namespace_or_null(nsp);
     if (parent_nsp != NULL &&
         unmangled_or_fabricated_name_of(&parent_nsp->source_corresp) == NULL) {
       /* A nested unnamed namespace within an unnamed namespace.
-         Just use __N.  The name will be unique within the parent namespace. */
+         Forgo the module id; the name will be unique within the parent
+         namespace. */
       module_id = "";
     } else {
       check_assertion(!nsp->is_namespace_alias);
@@ -5991,6 +5993,8 @@ been chosen) will give the namespace an appropriate name.
       (void)strcpy(name+strlen(prefix), module_id);
       nsp->source_corresp.name = name;
       nsp->source_corresp.name_has_been_mangled = TRUE;
+      nsp->source_corresp.unmangled_name_or_mangled_encoding = name;
+      nsp->source_corresp.unnamed_entity_given_fabricated_name = TRUE;
     }  /* if */
   }  /* if */
   return name;
