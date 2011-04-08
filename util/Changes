@@ -1,5 +1,17 @@
 Version 4.3, March 17, 2011
 
+4/8/11   [EDGcpfe/11620]
+Add --c_to_obj_option option to eccp
+
+A new option, --c_to_obj_option, has been added to the eccp script to
+allow passing of command line options to the back end compiler.  The
+command line argument that appears after --c_to_obj_option on the command
+line is passed (without any interpretation) to the back end compiler.
+For example:
+
+  eccp --c_to_obj_option -Wall -x -c ex.c
+
+
 3/15/11  [EDGcpfe/11177]
 Variadic template name demangling
 

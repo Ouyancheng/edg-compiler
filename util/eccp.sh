@@ -1124,6 +1124,11 @@ process_option()
 #     Use the old .ii file format that does not include the current directory
       old_ii_format=1
       ;;
+    --c_to_obj_option)
+#     Pass the argument that follows to the back end
+      c_to_obj_options="$c_to_obj_options $curr_param"
+      used_two_params=1
+      ;;
     *\.a)
 #     Collect a list of library archive (.a) files.
       object_files=$object_files" "$arg
