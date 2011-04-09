@@ -1158,6 +1158,7 @@ Save an end-of-source token on the end of the list of tokens saved in *cache.
   ctp->token_sequence_number = cache->last_token == NULL
                                      ? NO_TOKEN_SEQUENCE_NUMBER
                                     : cache->last_token->token_sequence_number;
+  ctp->ending_token_sequence_number = ctp->token_sequence_number;
   ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
   /* Add the end-of-source token to the end of the cache. */
   add_cached_token_to_cache(ctp, cache);

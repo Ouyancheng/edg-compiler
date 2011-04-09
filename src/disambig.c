@@ -119,7 +119,8 @@ Perform any operations that must be done to clean up after disambiguation.
     copy_tokens_from_cache(curr_lexical_state_cache(), dsp->first_tsn,
                            last_token_sequence_number_of_token,
                            /*include_last_token=*/TRUE, &cache);
-    f_rescan_cached_tokens(&cache, /*discard_curr_token=*/TRUE);
+    f_rescan_cached_tokens(
+               &cache, /*discard_curr_token=*/curr_token != tok_end_of_source);
   }   /* if */
   if (dsp->variadic_prototype_instantiation) {
     /* Restore the variadic processing state. */
