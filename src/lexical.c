@@ -15399,7 +15399,7 @@ Returns FALSE and sets curr_token to tok_ptr_to_member for:
 	X::*
 	A<int>::*	Template reference will be coalesced
 
-Returns FALSE and sets curr_token to tok_cli_typeidr for the C++/CLI
+Returns FALSE and sets curr_token to tok_cli_typeid for the C++/CLI
 constructs:
 
 	X::typeid
