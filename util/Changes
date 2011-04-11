@@ -1,4 +1,4 @@
-Version 4.3, March 17, 2011
+Version 4.4
 
 4/8/11   [EDGcpfe/11620]
 Add --c_to_obj_option option to eccp
@@ -11,6 +11,9 @@ For example:
 
   eccp --c_to_obj_option -Wall -x -c ex.c
 
+
+-------------------------------------------------------------------------------
+Version 4.3, March 17, 2011
 
 3/15/11  [EDGcpfe/11177]
 Variadic template name demangling
