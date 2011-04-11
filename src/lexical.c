@@ -15697,6 +15697,11 @@ selection operator, in which case it points to the type of the left operand.
       } else if (is_conversion_type && next_tok != tok_colon_colon) {
         /* Something like "operator B ...". */
         lookup_kind = IDL_NO_OPTIONS;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+     } else if (cppcli_enabled && next_tok_2 == tok_typeid) {
+        /* A C++/CLI typeid reference -- something like X::typeid. */
+        lookup_kind = IDL_NO_OPTIONS;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         lookup_kind = IDL_MUST_BE_CLASS_OR_NAMESPACE;
       }  /* if */
@@ -15918,6 +15923,9 @@ selection operator, in which case it points to the type of the left operand.
             check_assertion(is_template_param_type(qualifier_type) ||
                             is_vacuous_dtor_or_finalizer);
 #if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcli_enabled && next_tok_2 == tok_typeid) {
+          /* A C++/CLI typeid reference. */
+          qualifier_is_type = TRUE;
         } else if (symbol_is(qualifier_sym, sk_field) ||
                    symbol_is(qualifier_sym, sk_static_data_member) ||
                    symbol_is(qualifier_sym, sk_property_set)) {
@@ -16084,14 +16092,20 @@ selection operator, in which case it points to the type of the left operand.
                this is a template reference or simply a less than sign.
                We must assume it could be a less than sign and do a normal
                (nonclass) lookup. */
-            lookup_options = next_tok == tok_lt || is_template
-                                   ? IDL_TENTATIVE_TEMPLATE_LOOKUP
-                                   : IDL_MUST_BE_CLASS_OR_NAMESPACE;
+            if (next_tok == tok_lt || is_template) {
+              lookup_options = IDL_TENTATIVE_TEMPLATE_LOOKUP;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            } else if (cppcli_enabled && next_tok_2 == tok_typeid) {
+              /* A C++/CLI typeid reference -- something like X::typeid. */
+              lookup_options = IDL_NO_OPTIONS;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            } else {
+              lookup_options = IDL_MUST_BE_CLASS_OR_NAMESPACE;
+            }  /* if */
             /* If the identifier was preceded by "template", the name can be
                assumed to be a template. */
             if (is_template) {
-              lookup_options |= IDL_TREAT_AS_TEMPLATE_ID |
-                                IDL_TENTATIVE_TEMPLATE_LOOKUP;
+              lookup_options |= IDL_TREAT_AS_TEMPLATE_ID;
             }  /* if */
             if ((options & GID_IS_TYPENAME) != 0) {
               /* If this name followed the typename keyword, indicate that the
@@ -16290,7 +16304,7 @@ selection operator, in which case it points to the type of the left operand.
       is_identifier = FALSE;
       is_ptr_to_member = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (curr_token == tok_typeid) {
+    } else if (cppcli_enabled && curr_token == tok_typeid) {
       /* We have a C++/CLI typeid (i.e, A::typeid). */
       is_identifier = FALSE;
       is_cli_typeid = TRUE;
