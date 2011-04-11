@@ -10711,15 +10711,25 @@ done_with_operation_after_parens:
       break;
     case enk_typeid:
       /* C++ typeid operator. */
-      write_tok_str("typeid(");
-      if (expr->variant.typeid_info.expr == NULL) {
-        /* Use type. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (expr->variant.typeid_info.is_cli_typeid) {
+        /* C++/CLI variant, T::typeid. */
         gen_type(expr->variant.typeid_info.type);
-      } else {
-        /* Use expression. */
-        gen_expression(expr->variant.typeid_info.expr);
+        write_tok_str("::typeid");
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        write_tok_str("typeid(");
+        if (expr->variant.typeid_info.expr == NULL) {
+          /* Use type. */
+          gen_type(expr->variant.typeid_info.type);
+        } else {
+          /* Use expression. */
+          gen_expression(expr->variant.typeid_info.expr);
+        }  /* if */
+        write_tok_ch(')');
       }  /* if */
-      write_tok_ch(')');
       break;
     case enk_sizeof:
       if (expr->variant.sizeof_info.is_type) {

@@ -2870,6 +2870,9 @@ fields to default values.
     case enk_typeid:
       node->variant.typeid_info.type = NULL;
       node->variant.typeid_info.expr = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      node->variant.typeid_info.is_cli_typeid = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case enk_sizeof:
       node->variant.sizeof_info.is_type = TRUE;

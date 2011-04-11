@@ -11320,16 +11320,21 @@ This is allowed in both Microsoft C and C++ modes.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- is_cli_typeid is not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void make_typeid_operand(a_type_ptr        typeid_type,
                                 an_expr_node_ptr  typeid_expr,
+                                a_boolean         is_cli_typeid,
                                 a_boolean         make_constant,
                                 an_operand        *result)
 /*
 Create an operand (in *result) representing the application of a typeid
 operator.  typeid_type is the adjusted static type passed to the typeid
 operator, and typeid_expr is the expression from which the dynamic type should
-be retrieved (or NULL if only the static type should be used).  If
-make_constant is TRUE, an operand based on a constant address should be
+be retrieved (or NULL if only the static type should be used).
+If is_cli_typeid is TRUE, this is the C++/CLI typeid variant (T::typeid).
+If make_constant is TRUE, an operand based on a constant address should be
 produced; otherwise, an expression operand whose top-level node is an
 enk_typeid entry should be created.
 */
@@ -11338,10 +11343,24 @@ enk_typeid entry should be created.
   a_boolean        template_case = is_template_dependent_context() &&
                                 (is_template_dependent_type(typeid_type) ||
                                  is_instantiation_dependent_type(typeid_type));
-  a_type_ptr       const_type_info = make_qualified_type(
-                                              type_of_type_info,
-                                              (a_type_qualifier_set)TQ_CONST);
+  a_type_ptr       result_type = NULL;
 
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_cli_typeid) {
+    /* C++/CLI T::typeid.  The result type is System::Type ^. */
+    a_type_ptr system_type = type_symbol_type(
+                                        cli_symbol_from_kind(csk_system_type));
+    result_type = make_handle_type(system_type);
+    check_assertion(!make_constant && typeid_expr == NULL);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    /* Standard C++ typeid: the result type is const type_info. */
+    result_type = make_qualified_type(type_of_type_info,
+                                      (a_type_qualifier_set)TQ_CONST);
+  }  /* if */
   if (make_constant) {
     /* Create a constant (either ck_address/abk_typeid or ck_template_param/
        tpck_typeid). */
@@ -11352,7 +11371,6 @@ enk_typeid entry should be created.
     } else {
       /* Template-dependent case: Use a ck_template_param/tpck_typeid
          constant. */
-      template_case = TRUE;
       clear_constant(&typeid_con, (a_constant_repr_kind)ck_template_param);
       set_template_param_constant_kind(
                     &typeid_con, (a_template_param_constant_kind)tpck_typeid);
@@ -11362,7 +11380,7 @@ enk_typeid entry should be created.
         typeid_con.variant.template_param.variant.templ_sizeof.expr =
                                                                   typeid_expr;
       }  /* if */
-      typeid_con.type = make_pointer_type(const_type_info);
+      typeid_con.type = make_pointer_type(result_type);
     }  /* if */
     typeid_node = alloc_node_for_constant(&typeid_con);
     /* Put the constant under a "*" operator to get an lvalue. */
@@ -11372,7 +11390,10 @@ enk_typeid entry should be created.
     typeid_node = alloc_expr_node((an_expr_node_kind)enk_typeid);
     typeid_node->variant.typeid_info.expr = typeid_expr;
     typeid_node->variant.typeid_info.type = typeid_type;
-    typeid_node->type = const_type_info;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    typeid_node->variant.typeid_info.is_cli_typeid = is_cli_typeid;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    typeid_node->type = result_type;
     typeid_node->is_lvalue = TRUE;
   }  /* if */
   make_lvalue_expression_operand(typeid_node, result);
@@ -11411,12 +11432,18 @@ Syntax:
 
 The current token is the typeid keyword.  Scan a type or expression
 operand, and return an operand for typeid applied to that, in *result.
+
+Also handles the C++/CLI variant of typeid:
+
+        T::typeid
+
 If rcblock is non-NULL, redo semantic analysis on a previously-scanned
 typeid expression, and return the result in *result (or an error
 indication in *rcblock).
 */
 {
   a_source_position operator_position, start_position, operand_position;
+  a_token_kind      operator_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -11424,6 +11451,7 @@ indication in *rcblock).
   an_expr_node_ptr  expr = NULL;
   a_boolean         is_type;
   a_type_ptr        typeid_type;
+  a_boolean         is_cli_typeid = FALSE;
   a_boolean         err = FALSE;
   a_boolean         microsoft_template_arg_case = FALSE;
   a_boolean         runtime_case = FALSE;
@@ -11438,7 +11466,10 @@ indication in *rcblock).
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
     a_token_sequence_number operator_tok_seq_number;
-    check_assertion(rcblock->operator_token == tok_typeid);
+    operator_token = rcblock->operator_token;
+    check_assertion(operator_token == tok_typeid
+                    if_microsoft_extensions(
+                       || operator_token == tok_cli_typeid));
     make_sizeof_et_al_rescan_operands(rcblock,
                                       &is_type, &operand, &typeid_type,
                                       &operator_position,
@@ -11450,9 +11481,13 @@ indication in *rcblock).
     if (!is_type) operand_position = operand.position;
   } else {
     /* Normal, non-rescan, processing. */
+    operator_token = curr_token;
     operator_position = pos_curr_token;
   }  /* if */
   start_position = operator_position;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (operator_token == tok_cli_typeid) is_cli_typeid = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CHECKING
   if (curr_expr_kind_is(ek_pp)) {
     /* Typeid not possible for preprocessing expressions. */
@@ -11465,7 +11500,8 @@ indication in *rcblock).
                                               ec_rtti_in_embedded_cplusplus);
   if (curr_expr_kind_is_const()) {
     /* typeid is not allowed in constant expressions. */
-    if (microsoft_mode && curr_expr_kind_is(ek_template_arg)) {
+    if (microsoft_mode && curr_expr_kind_is(ek_template_arg) &&
+        !is_cli_typeid) {
       /* ... except that MSVC++ allows it in template arguments. */
       microsoft_template_arg_case = TRUE;
     } else {
@@ -11475,7 +11511,7 @@ indication in *rcblock).
   }  /* if */
   /* typeid is valid only after the type_info type has been defined in a
      header file. */
-  if (!err && is_incomplete_type(type_of_type_info)) {
+  if (!err && !is_cli_typeid && is_incomplete_type(type_of_type_info)) {
     expr_pos_error(ec_typeid_needs_typeinfo, &start_position);
   }  /* if */
   /* Push an entry on the expression stack so the operand will be handled
@@ -11500,27 +11536,42 @@ indication in *rcblock).
     expr_stack->potentially_unevaluated = TRUE;
   }  /* if */
   if (rcblock == NULL) {
-    /* Advance past typeid. */
-    (void)get_token();
-    /* Check for and pass over the left parenthesis. */
-    (void)required_token(tok_lparen, ec_exp_lparen);
-    add_matching_stop_token(tok_rparen);
-    /* Disambiguate to choose between the type case and the expression case. */
-    if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                         DFS_SINGLE_TYPE_REQUIRED)) {
-      /* Scan a type name. */
+    /* Not rescan, scanning from tokens. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_cli_typeid) {
+      /* C++/CLI T::typeid operation.  The construct has already been
+         coalesced, and the locator gives the type of T. */
+      typeid_type = locator_for_curr_id.parent.class_type;
+      check_assertion(typeid_type != NULL);
       is_type = TRUE;
-      operand_position = pos_curr_token;
-      type_name(&typeid_type);
-    } else {
-      /* Scan an expression. */
-      is_type = FALSE;
-      scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
-      operand_position = operand.position;
-      objectless_nonstatic_data_ref_seen =
+      operand_position = start_position;
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      /* Advance past typeid. */
+      (void)get_token();
+      /* Check for and pass over the left parenthesis. */
+      (void)required_token(tok_lparen, ec_exp_lparen);
+      add_matching_stop_token(tok_rparen);
+      /* Disambiguate to choose between the type case and the expression
+         case. */
+      if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                           DFS_SINGLE_TYPE_REQUIRED)) {
+        /* Scan a type name. */
+        is_type = TRUE;
+        operand_position = pos_curr_token;
+        type_name(&typeid_type);
+      } else {
+        /* Scan an expression. */
+        is_type = FALSE;
+        scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+        operand_position = operand.position;
+        objectless_nonstatic_data_ref_seen =
                                 expr_stack->objectless_nonstatic_data_ref_seen;
-      objectless_nonstatic_data_ref_pos =
+        objectless_nonstatic_data_ref_pos =
                                  expr_stack->objectless_nonstatic_data_ref_pos;
+      }  /* if */
     }  /* if */
   }  /* if */
 
@@ -11528,10 +11579,17 @@ indication in *rcblock).
      a rescan). */
   if (is_type) {
     /* Type case. */
-    /* If the type is a reference, drop that. */
+    /* If the type is a reference, drop that.  (Including C++/CLI
+       tracking references.) */
     if (is_any_reference_type(typeid_type)) {
       typeid_type = type_pointed_to(typeid_type);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Also drop handles for the C++/CLI case. */
+    if (is_cli_typeid && is_handle_type(typeid_type)) {
+      typeid_type = type_pointed_to(typeid_type);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Expression case. */
     /* Rule out indefinite functions. */
@@ -11601,44 +11659,91 @@ indication in *rcblock).
       is_instantiation_dependent_type(typeid_type)) {
     typeid_type = skip_typerefs_not_dependent_decltypes(typeid_type);
   } else {
-    if (is_array_type(typeid_type)) {
+    if (is_array_type(typeid_type) && !is_cli_typeid) {
       /* Remove cv-qualifiers on an array element type. */
       typeid_type = make_unqualified_type(typeid_type);
     }  /* if */
     typeid_type = skip_typerefs(typeid_type);
   }  /* if */
-  /* Instantiate the type if it is a template class. */
-  complete_type_is_needed(typeid_type);
-  /* The type cannot be incomplete if it is a class type. */
-  if (is_class_struct_union_type(typeid_type)) {
-    if (is_incomplete_type(typeid_type)) {
-      if (microsoft_mode) {
-        /* Microsoft accepts incomplete class types and assumes they are
-           nonpolymorphic.  Since that assumption may be wrong, issue a
-           warning. */
-        check_assertion(expr == NULL);
-        expr_pos_warning(ec_typeid_of_incomplete_type, &operand_position);
-      } else {
-        expr_pos_error(ec_incomplete_type_not_allowed, &operand_position);
-        err = TRUE;
-      }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_cli_typeid) {
+    /* Do error checks for the C++/CLI T::typeid form. */
+    if (is_interior_ptr_type(typeid_type) ||
+        is_pin_ptr_type(typeid_type)) {
+      expr_pos_error(ec_cli_typeid_of_managed_pointer, &operand_position);
+      err = TRUE;
+    } else {
+      /* Convert the fundamental type version of a type to the value class
+         version. */
+      a_type_ptr sys_type = system_type_from_basic_type(typeid_type);
+      if (sys_type != NULL) typeid_type = sys_type;
     }  /* if */
-  } else if (vla_enabled && is_variably_modified_type(typeid_type)) {
-    /* typeid of a variable-length array is not allowed. */
-    expr_pos_error(ec_vla_not_allowed, &operand_position);
-    err = TRUE;
-  } else if (is_managed_nullptr_type(typeid_type)) {
-    /* typeid of the C++/CLI managed nullptr type is not allowed. */
-    expr_pos_error(ec_managed_nullptr_not_allowed, &operand_position);
-    err = TRUE;
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && is_value_class_type(typeid_type)) {
+      /* Convert the value class version of a fundamental type to the
+         fundamental type. */
+      a_type_ptr basic_type = basic_type_from_system_type(typeid_type);
+      if (basic_type != NULL) typeid_type = basic_type;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Instantiate the type if it is a template class. */
+    complete_type_is_needed(typeid_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Rule out cases not allowed for the native typeid in C++/CLI mode. */
+    if (cppcli_enabled &&
+        (is_managed_class_type(typeid_type) || is_handle_type(typeid_type))) {
+      /* typeid of a C++/CLI managed type is not allowed. */
+      expr_pos_error(ec_typeid_of_managed_type, &operand_position);
+      err = TRUE;
+    } else if (cppcli_enabled && is_managed_nullptr_type(typeid_type)) {
+      /* typeid of the C++/CLI managed nullptr type is not allowed. */
+      expr_pos_error(ec_managed_nullptr_not_allowed, &operand_position);
+      err = TRUE;
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */      
+    if (is_class_struct_union_type(typeid_type)) {
+      /* The type cannot be incomplete if it is a class type. */
+      if (is_incomplete_type(typeid_type)) {
+        if (microsoft_mode) {
+          /* Microsoft accepts incomplete class types and assumes they are
+             nonpolymorphic.  Since that assumption may be wrong, issue a
+             warning. */
+          check_assertion(expr == NULL);
+          expr_pos_warning(ec_typeid_of_incomplete_type, &operand_position);
+        } else {
+          expr_pos_error(ec_incomplete_type_not_allowed, &operand_position);
+          err = TRUE;
+        }  /* if */
+      }  /* if */
+    } else if (vla_enabled && is_variably_modified_type(typeid_type)) {
+      /* typeid of a variable-length array is not allowed. */
+      expr_pos_error(ec_vla_not_allowed, &operand_position);
+      err = TRUE;
+    }  /* if */
   }  /* if */
   if (rcblock == NULL) {
-    /* Check for and pass over the right parenthesis. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    (void)required_token(tok_rparen, ec_exp_rparen);
-    remove_matching_stop_token(tok_rparen);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_cli_typeid) {
+      /* C++/CLI T::typeid operation.  Advance over the coalesced
+         tok_cli_typeid token. */
+      check_assertion(curr_token == tok_cli_typeid);
+      (void)get_token();
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      /* Check for and pass over the right parenthesis. */
+      (void)required_token(tok_rparen, ec_exp_rparen);
+      remove_matching_stop_token(tok_rparen);
+    }  /* if */
   }  /* if */
   pop_expr_stack();
   if (microsoft_template_arg_case) {
@@ -11648,7 +11753,9 @@ indication in *rcblock).
     make_error_operand(result);
   } else {
     /* Create a typeid operand. */
-    make_typeid_operand(typeid_type, expr, microsoft_template_arg_case,
+    make_typeid_operand(typeid_type, expr, is_cli_typeid,
+                        /*make_constant=*/microsoft_template_arg_case &&
+                                          !is_cli_typeid,
                         result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
@@ -21014,6 +21121,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_nullptr:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_native_nullptr:
+    case tok_cli_typeid:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       is_expr_start = TRUE;
       break;
@@ -24218,6 +24326,12 @@ see expr.h).
       { a_boolean okay_after_typename;
         /* Watch out for something like "S::*". */
         if (!is_expr_qualified_name_start()) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (curr_token == tok_cli_typeid) {
+            /* C++/CLI T::typeid operation. */
+            goto handle_cli_typeid;
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           goto bad_start_of_primary;
         }  /* if */
         scan_identifier(&local_result, local_options, prec_level,
@@ -24569,6 +24683,11 @@ see expr.h).
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_cli_typeid:
+      /* C++/CLI T::typeid operation. */
+handle_cli_typeid:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_typeid:
       /* typeid operation. */
       scan_typeid_operator((a_rescan_control_block *)NULL, &local_result);
@@ -26864,6 +26983,12 @@ set accordingly.
     *unary = TRUE;
   } else if (expr->kind == (an_expr_node_kind)enk_typeid) {
     operator_token = tok_typeid;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (expr->variant.typeid_info.is_cli_typeid) {
+      /* C++/CLI T::typeid operation. */
+      operator_token = tok_cli_typeid;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     *unary = TRUE;
   } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
     a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
@@ -27079,6 +27204,9 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_uuidof:
         scan_uuidof_operator(rcblock, result, /*after_keyword=*/FALSE);
         break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_cli_typeid:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_typeid:
         scan_typeid_operator(rcblock, result);

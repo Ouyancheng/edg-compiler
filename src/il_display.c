@@ -3712,6 +3712,11 @@ Display the indicated expression node.
       (void)printf("enk_typeid\n");
       disp_ptr("type", (char *)ptr->variant.typeid_info.type, iek_type);
       disp_ptr("expr", (char *)ptr->variant.typeid_info.expr, iek_expr_node);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (node->variant.typeid_info.is_cli_typeid) {
+        disp_boolean("is_cli_typeid", TRUE);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case enk_sizeof:
       (void)printf("enk_sizeof\n");

@@ -13385,6 +13385,13 @@ typedef struct an_expr_node {
 			   type that was specified using the "auto"
 			   type-specifier, this is the expression
 			   specified; otherwise NULL. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_byte_boolean
+		is_cli_typeid;
+			/* TRUE if this typeid comes from a C++/CLI typeid,
+			   of the form T::typeid.  type gives the type T,
+			   and expr is NULL. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } typeid_info;
     /* When kind == enk_sizeof: */
     struct {

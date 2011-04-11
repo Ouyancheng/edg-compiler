@@ -2174,6 +2174,8 @@ ec_invalid_constraint;;"invalid generic constraint"
 ec_invalid_event_use;;"invalid use of event member (only subscription, unsubscription, and invocation are allowed)"
 ec_event_without_raise_invoked;;"invoking an event with no \"raise\" accessor is invalid"
 ec_bad_event_compound_assignment;;"only \"+=\" and \"-=\" are valid for events"
+ec_typeid_of_managed_type;;"typeid of a managed type is not allowed"
+ec_cli_typeid_of_managed_pointer;;"CLI typeid of a managed pointer type is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

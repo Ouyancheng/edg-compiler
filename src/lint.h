@@ -714,11 +714,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_bad_event_compound_assignment)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
-/*lint -esym(759,basic_type_from_system_type)*/
-/*lint -esym(765,basic_type_from_system_type)*/
-/*lint -esym(714,basic_type_from_system_type)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_enum)*/
-/*lint -esym(769,a_cli_symbol_kind_tag::csk_system_type)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_delegate)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_none)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_idisposable)*/

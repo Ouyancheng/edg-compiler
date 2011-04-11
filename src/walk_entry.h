@@ -1513,10 +1513,16 @@ do_set_proper_definition_needed_flag:
             definition_needed_if_class(ptr->variant.typeid_info.type);
             walk_ptr(ptr->variant.typeid_info.expr, an_expr_node_ptr,
                      iek_expr_node);
-            /* Make sure the definition of type_info is retained, even though
-               the node only uses a pointer to it.  This is necessary with
-               cp_gen_be output. */
-            set_proper_definition_needed_flag(f_skip_typerefs(ptr->type));
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (!ptr->variant.typeid_info.is_cli_typeid)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            /* Do not insert code here. */
+            {
+              /* Make sure the definition of type_info is retained, even though
+                 the node only uses a pointer to it.  This is necessary with
+                 cp_gen_be output. */
+              set_proper_definition_needed_flag(f_skip_typerefs(ptr->type));
+            }  /* if */
             break;
           case enk_sizeof:
             if (ptr->variant.sizeof_info.is_type) {
