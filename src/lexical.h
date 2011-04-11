@@ -276,6 +276,9 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_ptr_to_member */
    (an_opname_kind)onk_none,          /* tok_removed_default_arg */
    (an_opname_kind)onk_none,          /* tok_removed_template_body */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+   (an_opname_kind)onk_none,          /* tok_cli_typeid */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_unimplemented */
    (an_opname_kind)onk_subscript,     /* operator[] starts with tok_lbracket */
    (an_opname_kind)onk_none,          /* tok_rbracket */
@@ -421,7 +424,6 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_uuid */
    (an_opname_kind)onk_none,          /* tok_in */
    (an_opname_kind)onk_none,          /* tok_gcnew */
-   (an_opname_kind)onk_none,          /* tok_cli_typeid */
    (an_opname_kind)onk_none,          /* tok_for_each */
    (an_opname_kind)onk_none,          /* tok_ref_class */
    (an_opname_kind)onk_none,          /* tok_ref_struct */

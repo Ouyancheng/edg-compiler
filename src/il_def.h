@@ -813,6 +813,9 @@ typedef enum /*a_token_kind*/ {
   tok_ptr_to_member 	    /* C++ only */,
   tok_removed_default_arg   /* Placeholder for a removed default argument. */,
   tok_removed_template_body /* Placeholder for a removed template body. */,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  tok_cli_typeid,           /* Represents C++/CLI X::typeid construct. */  
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_unimplemented         /* Token used to indicate keywords that are not
                                yet implemented. */,
   tok_last_complex_token = tok_unimplemented,
@@ -970,7 +973,6 @@ typedef enum /*a_token_kind*/ {
   tok_uuid,
   tok_in,
   tok_gcnew,
-  tok_cli_typeid,
   /* Keywords with embedded white space.  All except tok_for_each are only
      in C++/CLI.  These must be in the contiguous range defined by
      tok_first_whitespace_token through tok_last_whitespace_token, as the
@@ -1129,6 +1131,9 @@ EXTERN char	*token_names[(int)tok_last+1]
    "int constant", "char constant", "string literal", "end of source",
    "newline", "header name", "pp number", "digit sequence", "cpp quote",
    "ptr to member", "removed default arg", "removed template body",
+#if MICROSOFT_EXTENSIONS_ALLOWED
+   "cli typeid",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "unimplemented",
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==",
@@ -1158,7 +1163,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__super",
    "__noop", "__interface",
    "__ptr32", "__ptr64", "__sptr", "__uptr", "__w64",
-   "__LPREFIX", "__identifier", "uuid", "in", "gcnew", "cli typeid",
+   "__LPREFIX", "__identifier", "uuid", "in", "gcnew",
    "for each", "ref class", "ref struct", "value class", "value struct",
    "enum class", "enum struct", "interface class", "interface struct",
    "ref", "value", "interface", "for", "enum",
