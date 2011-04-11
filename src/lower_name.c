@@ -5993,10 +5993,8 @@ has been chosen) will give the namespace an appropriate name.
       (void)strcpy(name+strlen(prefix), module_id);
       nsp->source_corresp.name = name;
       nsp->source_corresp.name_has_been_mangled = TRUE;
-#if ABI_COMPATIBILITY_VERSION >= 404
       nsp->source_corresp.unmangled_name_or_mangled_encoding = name;
       nsp->source_corresp.unnamed_entity_given_fabricated_name = TRUE;
-#endif /* ABI_COMPATIBILITY_VERSION >= 404 */
     }  /* if */
   }  /* if */
   return name;
