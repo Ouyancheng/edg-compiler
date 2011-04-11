@@ -15698,7 +15698,7 @@ selection operator, in which case it points to the type of the left operand.
         /* Something like "operator B ...". */
         lookup_kind = IDL_NO_OPTIONS;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-     } else if (cppcli_enabled && next_tok_2 == tok_typeid) {
+      } else if (cppcli_enabled && next_tok_2 == tok_typeid) {
         /* A C++/CLI typeid reference -- something like X::typeid. */
         lookup_kind = IDL_NO_OPTIONS;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
