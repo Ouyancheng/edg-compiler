@@ -3713,7 +3713,7 @@ Display the indicated expression node.
       disp_ptr("type", (char *)ptr->variant.typeid_info.type, iek_type);
       disp_ptr("expr", (char *)ptr->variant.typeid_info.expr, iek_expr_node);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (node->variant.typeid_info.is_cli_typeid) {
+      if (ptr->variant.typeid_info.is_cli_typeid) {
         disp_boolean("is_cli_typeid", TRUE);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

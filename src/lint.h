@@ -712,6 +712,9 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_invalid_event_use)*/
 /*lint -esym(769,ec_event_without_raise_invoked)*/
 /*lint -esym(769,ec_bad_event_compound_assignment)*/
+/*lint -esym(769,ec_managed_nullptr_not_allowed)*/
+/*lint -esym(769,ec_typeid_of_managed_type)*/
+/*lint -esym(769,ec_cli_typeid_of_managed_pointer)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_enum)*/
