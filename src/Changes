@@ -3348,6 +3348,7 @@ PARENS_IN_IL is TRUE.  This is now fixed.  For example:
   X<int> x;
 
 
+------------------------------------------------------------------------------
 Version 4.2, August 25, 2010
 
 8/23/10
