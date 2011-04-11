@@ -15407,10 +15407,10 @@ to TRUE and *result becomes an error operand.
             opnd->variant.routine.special_kind = rp->special_kind;
           }  /* if */
         }  /* if */
+#endif /* !DO_IL_LOWERING */
       }  /* if */
     }  /* if */
   }  /* if */
-#endif /* !DO_IL_LOWERING */
   if (err) {
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(lhs);
