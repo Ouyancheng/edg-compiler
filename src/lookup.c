@@ -3324,15 +3324,15 @@ for the accessor; otherwise return NULL.
     /* See if the symbol header we are looking for matches that of the add,
        remove, or raise routines (if present). */
     sym = symbol_for_or_null(pdp->add_routine);
-    if (sym->header == sym_hdr) {
+    if (sym != NULL && sym->header == sym_hdr) {
       result_sym = sym;
     } else {
       sym = symbol_for_or_null(pdp->remove_routine);
-      if (sym->header == sym_hdr) {
+      if (sym != NULL && sym->header == sym_hdr) {
         result_sym = sym;
       } else {
         sym = symbol_for_or_null(pdp->raise_routine);
-        if (sym->header == sym_hdr) result_sym = sym;
+        if (sym != NULL && sym->header == sym_hdr) result_sym = sym;
       }  /* if */
     }  /* if */
   }  /* if */
