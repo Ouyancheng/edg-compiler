@@ -15003,7 +15003,9 @@ Generate C++ or C from the intermediate language.
       C_output_file_name = gen_c_file_name;
     } else {
       C_output_file_name = derived_name(primary_source_file_name,
-                                        GEN_C_FILE_SUFFIX);
+                                        C_mode() ? GEN_C_FILE_SUFFIX
+                                                 : GEN_CPP_FILE_SUFFIX);
+
     }  /* if */
     f_C_output = open_output_file_with_error_handling(
                                      C_output_file_name, /*binary_file=*/FALSE,

@@ -5273,6 +5273,11 @@ file.
 #else /* !defined(GEN_C_FILE_SUFFIX) */
   comment_undefined_macro_name(GEN_C_FILE_SUFFIX);
 #endif /* defined(GEN_C_FILE_SUFFIX) */
+#if defined(GEN_CPP_FILE_SUFFIX)
+  define_string_valued_macro(GEN_CPP_FILE_SUFFIX);
+#else /* !defined(GEN_CPP_FILE_SUFFIX) */
+  comment_undefined_macro_name(GEN_CPP_FILE_SUFFIX);
+#endif /* defined(GEN_CPP_FILE_SUFFIX) */
 #if defined(GEN_EXTRA_LINE_ID_INFO)
   define_numeric_valued_macro(GEN_EXTRA_LINE_ID_INFO);
 #else /* !defined(GEN_EXTRA_LINE_ID_INFO) */
