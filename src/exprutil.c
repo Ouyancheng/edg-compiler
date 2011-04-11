@@ -15249,6 +15249,10 @@ being rewritten; it's used to set a kind in the expression created.
         if (is_routine_node(opnd)) {
           a_routine_ptr                 rp = opnd->variant.routine.ptr;
 #if !DO_IL_LOWERING
+          /* Record the information about the property in the enk_routine
+             node to indicate that the call resulted from a transformed
+             property reference rather than an explicit use of the property
+             accessor. */
           a_property_or_event_descr_ptr pedp;
           if (symbol_is(property_sym, sk_field)) {
             /* A __declspec property: Get the property description from the
@@ -15265,7 +15269,7 @@ being rewritten; it's used to set a kind in the expression created.
           opnd->variant.routine.special_kind = (put_operand == NULL) ?
                                     (a_special_function_kind)sfk_property_get :
                                     (a_special_function_kind)sfk_property_set;
-#endif /* DO_IL_LOWERING */
+#endif /* !DO_IL_LOWERING */
           static_case = !routine_type_is_nonstatic_member_function(rp->type);
         }  /* if */
         if (put_operand != NULL) {
@@ -15389,9 +15393,24 @@ to TRUE and *result becomes an error operand.
                                /*found_through_adl=*/FALSE,
                                /*uses_operator_syntax=*/FALSE,
                                operator_pos, result, &func_call_node);
+#if !DO_IL_LOWERING
+        if (func_call_node != NULL) {
+          an_expr_node_ptr opnd = func_call_node->variant.operation.operands;
+          if (is_routine_node(opnd)) {
+            /* Record the information about the event in the enk_routine
+               node to indicate that the call resulted from a transformed
+               event reference rather than an explicit use of the event
+               accessor. */
+            a_routine_ptr rp = opnd->variant.routine.ptr;
+            opnd->variant.routine.property_or_event_descr =
+                                           rp->variant.property_or_event_descr;
+            opnd->variant.routine.special_kind = rp->special_kind;
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
+#endif /* !DO_IL_LOWERING */
   if (err) {
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(lhs);
@@ -15434,6 +15453,9 @@ if it has any side effects) or NULL if no selector was specified.
     a_symbol_ptr      raise_sym = symbol_for(pedp->raise_routine);
     a_symbol_locator  raise_loc;
     an_expr_node_ptr  selector = operand->variant.event_ref.object;
+#if !DO_IL_LOWERING
+    an_expr_node_ptr  routine_node;
+#endif /* !DO_IL_LOWERING */
     make_locator_for_symbol(raise_sym, &raise_loc);
     raise_loc.source_position = operand->position;
     check_ambiguity_and_verify_access(&raise_loc);
@@ -15442,6 +15464,17 @@ if it has any side effects) or NULL if no selector was specified.
                                      end_position_or_null(
                                                 &operand->end_position),
                                      operand->ref_entries_list, operand);
+#if !DO_IL_LOWERING
+    routine_node = expr_node_from_operand(operand);
+    if (routine_node != NULL) {
+      /* Record the information about the event in the enk_routine node to
+         indicate that the call resulted from a transformed event reference
+         rather than an explicit use of the event accessor. */
+      routine_node->variant.routine.property_or_event_descr = pedp;
+      routine_node->variant.routine.special_kind =
+                                      (a_special_function_kind)sfk_event_raise;
+    }  /* if */
+#endif /* !DO_IL_LOWERING */
     if (pedp->is_static) {
       *p_unneeded_selector = selector;
     } else if (selector != NULL) {

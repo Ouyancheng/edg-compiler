@@ -2528,6 +2528,20 @@ a name.  Never generate a qualified name.
     write_tok_str("__identifier(");
     write_tok_str(name);
     write_tok_str(")");
+  } else if (entry_kind == iek_routine &&
+             rout_is_cli_accessor((a_routine_ptr)scp)) {
+    /* The names of property and event accessors should always be generated
+       with the event or property name as a qualifier. */
+    a_property_or_event_descr_ptr descr =
+                         ((a_routine_ptr)scp)->variant.property_or_event_descr;
+    if (descr->is_static) {
+      write_tok_str(unmangled_name_of(
+                                    &descr->variant.variable->source_corresp));
+    } else {
+      write_tok_str(unmangled_name_of(&descr->variant.field->source_corresp));
+    }  /* if */
+    write_tok_str("::");
+    write_tok_str(name);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (entry_kind == iek_variable &&
              ((a_variable_ptr)scp)->is_parameter) {
@@ -9257,11 +9271,12 @@ If the property is static and was invoked with an object expression, set
 
 
 static void gen_property_or_event_call(
-                              a_routine_ptr                       rout,
-                              an_expr_node_ptr                    args,
-                              a_property_or_event_descr_ptr       desc,
-                              a_special_function_kind             special_kind,
-                              a_rewritten_property_reference_kind rpr_kind)
+                           a_routine_ptr                       rout,
+                           an_expr_node_ptr                    args,
+                           a_property_or_event_descr_ptr       desc,
+                           a_special_function_kind             special_kind,
+                           a_rewritten_property_reference_kind rpr_kind,
+                           a_boolean                           is_virtual_call)
 /*
 Generate the appropriate operator-notation code to call a Microsoft
 property (either C++/CLI or __declspec) or event access routine specified
@@ -9274,7 +9289,8 @@ functions and not uniquely associated with the property.  rpr_kind
 specifies the original source form if the expression expression is the
 expansion of a compound assignment or increment/decrement operation (e.g.,
 "P += 1" becomes the IL equivalent of "P::set(P::get() + 1)") so it can be
-put out in that form.
+put out in that form.  is_virtual_call is TRUE if the call is virtual and
+FALSE otherwise.
 */
 {
   an_expr_node_ptr              obj_expr;
@@ -9350,12 +9366,19 @@ put out in that form.
   if (!desc->is_default_indexed) {
     /* Write the property name unless this is a default-indexed property,
        in which case the member name is suppressed. */
-    if (desc->is_static) {
-      gen_name(&desc->variant.variable->source_corresp, iek_variable,
-               GN_NO_OPTIONS, (a_boolean *)NULL);
+    a_gen_name_options_set options;
+    if (desc->is_virtual && !is_virtual_call) {
+      /* Use a qualified name to suppress the virtuality. */
+      options = GN_FORCE_QUALIFIED_NAME;
     } else {
-      gen_name(&desc->variant.field->source_corresp, iek_field,
-               GN_NO_OPTIONS, (a_boolean *)NULL);
+      options = GN_NO_OPTIONS;
+    }  /* if */
+    if (desc->is_static) {
+      gen_name(&desc->variant.variable->source_corresp, iek_variable, options,
+               (a_boolean *)NULL);
+    } else {
+      gen_name(&desc->variant.field->source_corresp, iek_field, options,
+               (a_boolean *)NULL);
     }  /* if */
     if (need_context_pop) {
       pop_name_context();
@@ -9463,24 +9486,19 @@ call.
     } else if (rout != NULL) {
       /* We can tell which routine is being called. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (rout_is_cli_accessor(rout) ||
-          (is_routine_node(func_expr) &&
-           func_expr->variant.routine.property_or_event_descr != NULL)) {
+      if (is_routine_node(func_expr) &&
+          func_expr->variant.routine.property_or_event_descr != NULL) {
         /* This is a call of an accessor function for a C++/CLI property or
            event or a __declspec property; it should be generated using the
            associated operator instead of as a function call. */
         a_property_or_event_descr_ptr descr;
         a_special_function_kind       special_kind;
-        if (rout_is_cli_accessor(rout)) {
-          descr = rout->variant.property_or_event_descr;
-          special_kind = rout->special_kind;
-        } else {
-          descr = func_expr->variant.routine.property_or_event_descr;
-          special_kind = func_expr->variant.routine.special_kind;
-        }  /* if */
+        descr = func_expr->variant.routine.property_or_event_descr;
+        special_kind = func_expr->variant.routine.special_kind;
         gen_property_or_event_call(
-                    rout, args, descr, special_kind,
-                    expr->variant.operation.rewritten_property_reference_kind);
+                     rout, args, descr, special_kind,
+                     expr->variant.operation.rewritten_property_reference_kind,
+                     expr->variant.operation.is_virtual_call);
         processed = TRUE;
       } else 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
