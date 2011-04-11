@@ -15926,6 +15926,7 @@ selection operator, in which case it points to the type of the left operand.
         } else if (cppcli_enabled && next_tok_2 == tok_typeid) {
           /* A C++/CLI typeid reference. */
           qualifier_is_type = TRUE;
+          qualifier_type = type_symbol_type(qualifier_sym);
         } else if (symbol_is(qualifier_sym, sk_field) ||
                    symbol_is(qualifier_sym, sk_static_data_member) ||
                    symbol_is(qualifier_sym, sk_property_set)) {
