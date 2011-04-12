@@ -13390,7 +13390,10 @@ typedef struct an_expr_node {
 		is_cli_typeid;
 			/* TRUE if this typeid comes from a C++/CLI typeid,
 			   of the form T::typeid.  type gives the type T,
-			   and expr is NULL. */
+			   and expr is NULL.  Note that cv-qualifiers on T
+			   are not removed (we want to keep any typedefs)
+			   so a back end should remove them before selecting
+			   the appropriate System::Type entry. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } typeid_info;
     /* When kind == enk_sizeof: */

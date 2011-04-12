@@ -11651,20 +11651,6 @@ indication in *rcblock).
       discard_operand(&operand);
     }  /* if */
   }  /* if */
-  /* Type qualifiers on the type are ignored [expr.typeid]. */
-  /* Skip typerefs, but keep dependent decltypes because they will have
-     to be rescanned to get the proper type (or detect any errors on the
-     rescan). */
-  if (is_template_dependent_context() &&
-      is_instantiation_dependent_type(typeid_type)) {
-    typeid_type = skip_typerefs_not_dependent_decltypes(typeid_type);
-  } else {
-    if (is_array_type(typeid_type) && !is_cli_typeid) {
-      /* Remove cv-qualifiers on an array element type. */
-      typeid_type = make_unqualified_type(typeid_type);
-    }  /* if */
-    typeid_type = skip_typerefs(typeid_type);
-  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_cli_typeid) {
     /* Do error checks for the C++/CLI T::typeid form. */
@@ -11675,17 +11661,32 @@ indication in *rcblock).
     } else {
       /* Convert the fundamental type version of a type to the value class
          version. */
-      a_type_ptr sys_type = system_type_from_basic_type(typeid_type);
+      a_type_ptr sys_type = system_type_from_basic_type(
+                                                   skip_typerefs(typeid_type));
       if (sys_type != NULL) typeid_type = sys_type;
     }  /* if */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
   {
+    /* Type qualifiers on the type are ignored [expr.typeid]. */
+    /* Skip typerefs, but keep dependent decltypes because they will have
+       to be rescanned to get the proper type (or detect any errors on the
+       rescan). */
+    if (is_template_dependent_context() &&
+        is_instantiation_dependent_type(typeid_type)) {
+      typeid_type = skip_typerefs_not_dependent_decltypes(typeid_type);
+    } else {
+      if (is_array_type(typeid_type)) {
+        /* Remove cv-qualifiers on an array element type. */
+        typeid_type = make_unqualified_type(typeid_type);
+      }  /* if */
+      typeid_type = skip_typerefs(typeid_type);
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled && is_value_class_type(typeid_type)) {
       /* Convert the value class version of a fundamental type to the
-         fundamental type. */
+         fundamental type.  Note that typerefs have been stripped above. */
       a_type_ptr basic_type = basic_type_from_system_type(typeid_type);
       if (basic_type != NULL) typeid_type = basic_type;
     }  /* if */
