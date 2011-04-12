@@ -1681,26 +1681,6 @@ reference type if param_is_reference is TRUE.
   }  /* if */
 }  /* set_arg_summary_for_user_conversion */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static a_boolean is_gc_lvalue_operand(an_operand *operand)
-/*
-Return TRUE if the given operand is a gc-lvalue for C++/CLI.  Roughly,
-that means it is an lvalue that is or may be on the managed heap.
-*/
-{
-  a_boolean is_gc_lvalue = FALSE;
-
-  if (cppcli_enabled && is_expression_operand(operand)) {
-    if (is_gc_lvalue_expr(operand->variant.expression)) {
-      is_gc_lvalue = TRUE;
-    }  /* if */
-  }  /* if */
-  return is_gc_lvalue;
-}  /* is_gc_lvalue_operand */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
 
 static a_boolean array_transformation_needed_on_reference_init(
                                                        a_type_ptr *arg_type,

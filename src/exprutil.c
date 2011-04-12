@@ -6270,6 +6270,26 @@ in C.
   return is_lvalue;
 }  /* is_a_cplusplus_lvalue */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean is_gc_lvalue_operand(an_operand *operand)
+/*
+Return TRUE if the given operand is a gc-lvalue for C++/CLI.  Roughly,
+that means it is an lvalue that is or may be on the managed heap.
+*/
+{
+  a_boolean is_gc_lvalue = FALSE;
+
+  if (cppcli_enabled && is_expression_operand(operand)) {
+    if (is_gc_lvalue_expr(operand->variant.expression)) {
+      is_gc_lvalue = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_gc_lvalue;
+}  /* is_gc_lvalue_operand */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 
 a_type_ptr type_after_bit_field_integral_promotion(an_expr_node_ptr node)
 /*

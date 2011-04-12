@@ -12221,6 +12221,8 @@ indication in *rcblock).
   a_boolean         cast_type_okay, operand_type_okay;
   a_boolean         reference_case = FALSE, err = FALSE;
   a_boolean         rvalue_reference_case = FALSE;
+  a_boolean         tracking_reference_case = FALSE;
+  a_boolean         handle_case = FALSE;
   a_boolean         template_param_case = FALSE;
 #if IA64_ABI
   a_boolean         void_star_case = FALSE;
@@ -12246,14 +12248,21 @@ indication in *rcblock).
     err = TRUE;
   }  /* if */
   if (!err) {
-    /* The type cast to must be a pointer or reference to a complete class
-       type, or void*. */
+    /* The type cast to must be a pointer, handle, or reference to a
+       complete class type, or void*. */
     cast_type_okay = FALSE;
-    if (is_ptr_or_ref_type(cast_type)) {
+    if (is_ptr_or_ref_type(cast_type) ||
+        is_handle_or_tracking_ref_type(cast_type)) {
       underlying_cast_type = type_pointed_to(cast_type);
-      reference_case = is_any_reference_type(cast_type);
-      if (reference_case && is_rvalue_reference_type(cast_type)) {
-        rvalue_reference_case = TRUE;
+      if (is_any_reference_type(cast_type)) {
+        reference_case = TRUE;
+        if (is_rvalue_reference_type(cast_type)) {
+          rvalue_reference_case = TRUE;
+        } else if (is_tracking_reference_type(cast_type)) {
+          tracking_reference_case = TRUE;
+        }  /* if */
+      } else if (is_handle_type(cast_type)) {
+        handle_case = TRUE;
       }  /* if */
       if (is_class_struct_union_type(underlying_cast_type)) {
         /* Casting to a pointer or reference to a complete class type is okay.
@@ -12318,20 +12327,24 @@ indication in *rcblock).
          rvalue. */
       do_operand_transformations(&operand, TOPT_NO_OPTIONS);
       operand_type = operand.type;
-      /* The source operand must be a pointer to a complete class type. */
+      /* The source operand must be a pointer or handle to a complete class
+         type. */
       underlying_operand_type = NULL;
-      if (is_pointer_type(operand_type)) {
-        underlying_operand_type = type_pointed_to(operand_type);
-        if (is_class_struct_union_type(underlying_operand_type)) {
-          complete_class_type_is_needed(underlying_operand_type);
-          if (!is_incomplete_type(underlying_operand_type)) {
-            operand_type_okay = TRUE;
-          } else if (!strict_ansi_mode &&
-                     is_prototype_instantiation_context()) {
-            /* The type might be complete at some later point when a real
-               instantiation is done, so let it by. */
-            operand_type_okay = TRUE;
-            template_param_case = TRUE;
+      if (is_pointer_or_handle_type(operand_type)) {
+        if (is_pointer_type(cast_type) == is_pointer_type(operand_type)) {
+          /* Can only cast pointers to pointers and handles to handles. */
+          underlying_operand_type = type_pointed_to(operand_type);
+          if (is_class_struct_union_type(underlying_operand_type)) {
+            complete_class_type_is_needed(underlying_operand_type);
+            if (!is_incomplete_type(underlying_operand_type)) {
+              operand_type_okay = TRUE;
+            } else if (!strict_ansi_mode &&
+                       is_prototype_instantiation_context()) {
+              /* The type might be complete at some later point when a real
+                 instantiation is done, so let it by. */
+              operand_type_okay = TRUE;
+              template_param_case = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -12341,7 +12354,9 @@ indication in *rcblock).
         if (!is_error_type(operand_type) &&
             (underlying_operand_type == NULL ||
              !is_error_type(underlying_operand_type))) {
-          expr_pos_error(ec_bad_ptr_dynamic_cast_operand, &operand.position);
+          expr_pos_error(handle_case ? ec_bad_handle_dynamic_cast_operand :
+                                       ec_bad_ptr_dynamic_cast_operand,
+                         &operand.position);
         }  /* if */
       }  /* if */
     } else {
@@ -12352,7 +12367,9 @@ indication in *rcblock).
       if (is_class_struct_union_type(operand_type)) {
         complete_class_type_is_needed(operand_type);
         if (!is_incomplete_type(operand_type)) {
-          if (is_an_lvalue(&operand)) {
+          if (tracking_reference_case) {
+            operand_type_okay = is_gc_lvalue_operand(&operand);
+          } else if (is_an_lvalue(&operand)) {
             operand_type_okay = TRUE;
           } else if (rvalue_reference_case && is_an_rvalue(&operand)) {
             operand_type_okay = TRUE;
@@ -12365,7 +12382,9 @@ indication in *rcblock).
         if (!is_error_type(operand_type)) {
           expr_pos_error(rvalue_reference_case ?
                            ec_bad_rvalue_ref_dynamic_cast_operand :
-                           ec_bad_ref_dynamic_cast_operand,
+                           tracking_reference_case ?
+                             ec_bad_tracking_ref_dynamic_cast_operand :
+                             ec_bad_ref_dynamic_cast_operand,
                          &operand.position);
         }  /* if */
       }  /* if */

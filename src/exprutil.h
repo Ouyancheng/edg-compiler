@@ -1919,6 +1919,12 @@ extern an_expr_node_ptr expr_before_type_adjustment(an_expr_node_ptr expr);
 
 extern a_boolean is_a_cplusplus_lvalue(an_operand *operand);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean is_gc_lvalue_operand(an_operand *operand);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_gc_lvalue_operand(operand) /*lint --e(506)*/FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern a_type_ptr type_after_bit_field_integral_promotion(
                                                        an_expr_node_ptr node);
 extern void record_suppressed_error(void);
