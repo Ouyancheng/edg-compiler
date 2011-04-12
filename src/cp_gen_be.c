@@ -3159,6 +3159,29 @@ but the problem goes away with a leading qualifier.
 }  /* force_qualifier_for_msvc */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static void add_property_or_event_name_as_qualifier(a_routine_ptr rout)
+/*
+If rout is a C++/CLI property or event accessor, put out the name of the
+property or event as a qualifier.
+*/
+{
+  if (rout_is_cli_accessor(rout)) {
+    /* The names of property and event accessors should always be generated
+       with the name of the property or event as a qualifier. */
+    a_property_or_event_descr_ptr descr =
+                                         rout->variant.property_or_event_descr;
+    if (descr->is_static) {
+      gen_bare_name(&descr->variant.variable->source_corresp, iek_variable);
+    } else {
+      gen_bare_name(&descr->variant.field->source_corresp, iek_field);
+    }
+    write_tok_str("::");
+  }  /* if */
+}  /* add_property_or_event_name_as_qualifier */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 static void gen_name(a_source_correspondence *scp,
                      an_il_entry_kind        entry_kind,
                      a_gen_name_options_set  options,
@@ -3392,19 +3415,6 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           write_tok_str("template ");
         }  /* if */
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (entry_kind == iek_routine) {
-        a_source_correspondence *parent_scp;
-        an_il_entry_kind        parent_kind;
-        if (is_property_or_event_accessor((a_routine_ptr)scp, &parent_scp,
-                                          &parent_kind)) {
-          /* For a property or event, output the name of the actual property
-              or event field/variable. */
-          gen_bare_name(parent_scp, parent_kind);
-          write_tok_str("::");
-        }  /* if */
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (scp_is_namespace_member(scp)) {
       /* The entity is a member of a namespace. */
       a_namespace_ptr nsp = scp_parent_namespace(scp);
@@ -3471,6 +3481,12 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
     scp->qualification_needed = save_qualification_needed;
   }  /* if */
 unqualified_part:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (entry_kind == iek_routine &&
+      (options & GN_DECLARATION) == 0) {
+    add_property_or_event_name_as_qualifier((a_routine_ptr)scp);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Finally, emit the unqualified part of the name, with or without
      template arguments. */
   if (options & GN_NO_TEMPLATE_ARGS) {
@@ -3677,6 +3693,9 @@ to indicate that the name reference was successfully emitted.
              and do not come here.) */
           write_tok_str("template ");
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        add_property_or_event_name_as_qualifier((a_routine_ptr)scp);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         gen_bare_name(scp, entry_kind);
         if (nrp->is_template_id) {
           gen_template_arguments(scp, entry_kind, nrp->num_template_arguments);
@@ -3708,6 +3727,9 @@ force the generation of a qualified name.
     /* We have information on the exact form of reference and used that
        to generate the name. */
   } else if (unqualified) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    add_property_or_event_name_as_qualifier(rout);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     gen_unqualified_name(&rout->source_corresp, iek_routine);
   } else {
     a_boolean saved_qualification_needed =
@@ -8677,6 +8699,9 @@ function reference.
            come here.) */
         write_tok_str("template ");
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      add_property_or_event_name_as_qualifier(rout);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Put out the base routine name.*/
       gen_unqualified_name(&rout->source_corresp, iek_routine);
     }  /* if */
