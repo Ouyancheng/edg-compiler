@@ -2474,38 +2474,6 @@ unnamed.
 }  /* gen_param_name */
 
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static a_boolean is_property_or_event_accessor(
-                                      a_routine_ptr           rout,
-                                      a_source_correspondence **parent_scp,
-                                      an_il_entry_kind        *parent_kind)
-/*
-Return TRUE if the routine specified by rout is an accessor routine for a
-property or event.  If so, set *parent_scp and *parent_kind to the property
-or event field or variable.  When FALSE is returned, *parent_scp and
-*parent_kind are unchanged.
-*/
-{
-  a_boolean	result = FALSE;
-
-  if (rout_is_cli_accessor(rout)) {
-    a_property_or_event_descr_ptr	pdp;
-    pdp = rout->variant.property_or_event_descr;
-    result = TRUE;
-    if (pdp->is_static) {
-      *parent_scp = &pdp->variant.variable->source_corresp;
-      *parent_kind = iek_variable;
-    } else {
-      *parent_scp = &pdp->variant.field->source_corresp;
-      *parent_kind = iek_field;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_property_or_event_accessor */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
 static void gen_bare_name(a_source_correspondence *scp,
                           an_il_entry_kind        entry_kind)
 /*
