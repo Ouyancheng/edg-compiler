@@ -1786,6 +1786,10 @@ not an operator encoding, return NULL.
     s = "reinterpret_cast<";
     *is_new_style_cast = TRUE;
     *takes_type = TRUE;
+  } else if (start_of_id_is("sf", ptr, dctl)) {
+    s = "safe_cast<";
+    *is_new_style_cast = TRUE;
+    *takes_type = TRUE;
   } else if (start_of_id_is("tw", ptr, dctl)) {
     s = "throw ";
   } else if (start_of_id_is("sz", ptr, dctl)) {
@@ -5302,6 +5306,11 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
           str = "%";
           *length = 12;
           *num_operands = 1;
+        } else if (start_of_id_is("v112clisafe_cast", ptr)) {
+          /* C++/CLI safe_cast<T>() */
+          str = "safe_cast";
+          *length = 16;
+          *num_operands = 1;
         } else if (start_of_id_is("9builtin", ptr+2)) {
           /* Builtin operation.  Name is
                vN9builtinXX
@@ -6131,7 +6140,8 @@ The syntax is:
       if (strcmp(op_str, "static_cast") == 0 ||
           strcmp(op_str, "dynamic_cast") == 0 ||
           strcmp(op_str, "const_cast") == 0 ||
-          strcmp(op_str, "reinterpret_cast") == 0) {
+          strcmp(op_str, "reinterpret_cast") == 0 ||
+          strcmp(op_str, "safe_cast") == 0) {
         /* New style cast. */
         write_id_ch('<', dctl);
         ptr = demangle_type(ptr, dctl);

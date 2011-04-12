@@ -162,6 +162,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_FINALIZER "D7"
 #define MANGLING_STRING_FOR_MANAGED_NULLPTR "DN"
 #define MANGLING_STRING_FOR_OPERATOR_HANDLE_TO "v19clihandle"
+#define MANGLING_STRING_FOR_SAFE_CAST "v112clisafe_cast"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #else /* !IA64_ABI */
@@ -290,6 +291,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_MANAGED_NULLPTR "j"
 #define MANGLING_STRING_FOR_OPERATOR_HANDLE_TO "ht"
 #define MANGLING_STRING_FOR_OPERATOR_CLI_SUBSCRIPT "sb"
+#define MANGLING_STRING_FOR_SAFE_CAST "sf"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* IA64_ABI */
@@ -9015,6 +9017,10 @@ returned string to an appropriate buffer before this routine is invoked again.
         name = MANGLING_STRING_FOR_CONST_CAST;
       } else if (expr->variant.operation.is_reinterpret_cast) {
         name = MANGLING_STRING_FOR_REINTERPRET_CAST;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (expr->is_safe_cast) {
+        name = MANGLING_STRING_FOR_SAFE_CAST;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else 
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
       /* Do not insert code here. */
