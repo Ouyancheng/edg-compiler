@@ -2368,6 +2368,9 @@ end_of_loop:
     if (expr->kind == (an_expr_node_kind)enk_temp_init ||
         is_cast_operation_node(expr) ||
         ((source_form == csf_static_cast ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          source_form == csf_safe_cast ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           source_form == csf_functional ||
           source_form == csf_old_style) &&
          is_operation_node(expr) &&
@@ -4599,13 +4602,10 @@ this routine does handle suppression of errors in deduction contexts
 appropriately and error_detected can be NULL.
 */
 {
-  a_type_ptr            curr_type, qual_curr_type;
+  a_type_ptr            curr_type, qual_curr_type, orig_type;
   a_derivation_step_ptr dsp;
   a_base_class_ptr      base_class;
   a_boolean             pointer_case = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_boolean             handle_case = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   /* The code here looks like fold_base_class_cast. */
   if (error_detected != NULL) *error_detected = FALSE;
@@ -4623,15 +4623,10 @@ appropriately and error_detected can be NULL.
     /* Loop through the classes between the derived class and the
        base class.  Check accessibility at each step and generate the
        necessary casts. */
-    curr_type = (*p_node)->type;
-    if (is_pointer_type(curr_type)) {
+    curr_type = orig_type = (*p_node)->type;
+    if (is_pointer_or_handle_type(curr_type)) {
       pointer_case = TRUE;
       curr_type = type_pointed_to(curr_type);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (is_handle_type(curr_type)) {
-      handle_case = TRUE;
-      curr_type = type_pointed_to(curr_type);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     curr_type = skip_typerefs(curr_type);
     check_assertion(is_immediate_class_type(curr_type));
@@ -4661,11 +4656,8 @@ appropriately and error_detected can be NULL.
       qual_curr_type = make_identically_qualified_type(curr_type,
                                                        qualifiers_model);
       if (pointer_case) {
-        qual_curr_type = make_pointer_type(qual_curr_type);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (handle_case) {
-        qual_curr_type = make_handle_type(qual_curr_type);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        qual_curr_type = make_pointer_type_of_same_kind(qual_curr_type,
+                                                        orig_type);
       }  /* if */
       if ((*p_node)->is_lvalue) {
         *p_node = make_lvalue_operator_node(
@@ -4687,14 +4679,18 @@ appropriately and error_detected can be NULL.
 }  /* add_base_class_casts */
     
 
-static void add_a_derived_class_cast(a_type_ptr            new_type_pointed_to,
-                                     a_derivation_step_ptr dsp,
-                                     an_expr_node_ptr      *p_node)
+static void add_a_derived_class_cast(
+                                  a_type_ptr            new_type_pointed_to,
+                                  a_derivation_step_ptr dsp,
+                                  a_boolean             requires_runtime_check,
+                                  an_expr_node_ptr      *p_node)
 /*
 Helper routine for add_derived_class_casts: adds casts to *p_node to change
 its type to pointer to new_type_pointed_to.  dsp points to the derivation
 list from the desired type to the current type (i.e., it's backwards from
-what's needed).  Also handles casting of class lvalues and rvalues.
+what's needed).  requires_runtime_check is TRUE if a C++/CLI runtime
+check is needed.  *err_pos indicates a source position to be used for
+errors.  Also handles casting of class lvalues and rvalues.
 */
 {
   a_type_ptr cast_type;
@@ -4706,15 +4702,16 @@ what's needed).  Also handles casting of class lvalues and rvalues.
     cast_type = dsp->base_class->type;
     cast_type = make_identically_qualified_type(cast_type,
                                                 new_type_pointed_to);
-    add_a_derived_class_cast(cast_type, dsp->next, p_node);
+    add_a_derived_class_cast(cast_type, dsp->next, requires_runtime_check,
+                             p_node);
     check_assertion(is_operation_node(*p_node) &&
                     (*p_node)->variant.operation.kind ==
                                 (an_expr_operator_kind)eok_derived_class_cast);
     (*p_node)->variant.operation.implicit_step_of_explicit_cast = TRUE;
   }  /* if */
   cast_type = new_type_pointed_to;
-  if (is_pointer_type((*p_node)->type)) {
-    cast_type = make_pointer_type(cast_type);
+  if (is_pointer_or_handle_type((*p_node)->type)) {
+    cast_type = make_pointer_type_of_same_kind(cast_type, (*p_node)->type);
   }  /* if */
   /* Add the node to do the final cast. */
   if ((*p_node)->is_lvalue) {
@@ -4725,6 +4722,9 @@ what's needed).  Also handles casting of class lvalues and rvalues.
     *p_node = make_operator_node((an_expr_operator_kind)eok_derived_class_cast,
                                  cast_type, *p_node);
   }  /* if */
+  if (requires_runtime_check) {
+    (*p_node)->variant.operation.requires_runtime_cast_check = TRUE;
+  }  /* if */
   /* No need to set compiler_generated; a derived class cast is always
      explicit. */
 }  /* add_a_derived_class_cast */
@@ -4733,6 +4733,7 @@ what's needed).  Also handles casting of class lvalues and rvalues.
 void add_derived_class_casts(a_type_ptr        new_type_pointed_to,
                              a_base_class_ptr  bcp,
                              a_boolean         check_ambiguity,
+                             a_boolean         requires_runtime_check,
                              an_expr_node_ptr  *p_node,
                              a_source_position *err_pos,
                              a_boolean         *error_detected)
@@ -4742,14 +4743,15 @@ pointer to new_type_pointed_to, a derived class of that class; bcp indicates
 the base class of the derived class that corresponds to the current type
 (i.e., its derivation list is backwards from what's needed).  Also handles
 casting of class lvalues and rvalues.  check_ambiguity is TRUE if checking
-for an ambiguous class should be done.  *err_pos indicates a source position
-to be used for errors.
-If error_detected is non-NULL, return *error_detected set to TRUE if
-there was an error, and do not issue any diagnostics (including warnings).
-Note that calls from outside the expression-processing routines must
-specify error_detected != NULL.  For calls from inside, this routine
-does handle suppression of errors in deduction contexts appropriately
-and error_detected can be NULL.
+for an ambiguous class should be done.  requires_runtime_check is TRUE
+if a C++/CLI runtime check is needed.  *err_pos indicates a source
+position to be used for errors.  If error_detected is non-NULL, return
+*error_detected set to TRUE if there was an error, and do not issue
+any diagnostics (including warnings).  Note that calls from outside
+the expression-processing routines must specify error_detected !=
+NULL.  For calls from inside, this routine does handle suppression of
+errors in deduction contexts appropriately and error_detected can be
+NULL.
 */
 {
   /* The code here looks like fold_derived_class_cast. */
@@ -4776,7 +4778,7 @@ and error_detected can be NULL.
   } else {
     /* Use recursion to process the list backwards to generate casts. */
     add_a_derived_class_cast(new_type_pointed_to, cast_derivation_path_of(bcp),
-                             p_node);
+                             requires_runtime_check, p_node);
   }  /* if */
 }  /* add_derived_class_casts */
 
@@ -5078,6 +5080,7 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
       /* Base --> derived.  Valid unless the cast is ambiguous or the base
          class is a virtual base of the derived class. */
       add_derived_class_casts(new_type_pointed_to, bcp, check_ambiguity,
+                              /*requires_runtime_check=*/FALSE,
                               p_node, err_pos, (a_boolean *)NULL);
     }  /* if */
   } else if (!C_mode() && !reinterpret_semantics &&
@@ -6143,6 +6146,7 @@ is an lvalue reference to const.
         an_expr_node_ptr expr = make_node_from_operand(operand);
         check_assertion(!is_implicit_cast);
         add_derived_class_casts(underlying_type, bcp, /*check_ambiguity=*/TRUE,
+                                /*requires_runtime_check=*/FALSE,
                                 &expr, &orig_operand.position,
                                 (a_boolean *)NULL);
         make_lvalue_expression_operand(expr, operand);
@@ -9943,6 +9947,11 @@ e.g., if the source operand is an lvalue.
         case csf_static_cast:
           expr->is_static_cast = TRUE;
           break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case csf_safe_cast:
+          expr->is_safe_cast = TRUE;
+          break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case csf_const_cast:
           check_assertion(is_operation_node(expr));
           expr->variant.operation.is_const_cast = TRUE;

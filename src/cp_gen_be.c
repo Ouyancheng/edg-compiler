@@ -8173,10 +8173,14 @@ is_reinterpret_cast indicate it.
   /* See if the source form was a new-style cast. */
   if (expr->is_static_cast) {
     new_cast_keyword = "static_cast";
-  } else if (expr->variant.operation.is_reinterpret_cast) {
-    new_cast_keyword = "reinterpret_cast";
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (expr->is_safe_cast) {
+    new_cast_keyword = "safe_cast";
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (expr->variant.operation.is_const_cast) {
     new_cast_keyword = "const_cast";
+  } else if (expr->variant.operation.is_reinterpret_cast) {
+    new_cast_keyword = "reinterpret_cast";
   } else if (op == (an_expr_operator_kind)eok_dynamic_cast ||
              op == (an_expr_operator_kind)eok_ref_dynamic_cast) {
     new_cast_keyword = "dynamic_cast";

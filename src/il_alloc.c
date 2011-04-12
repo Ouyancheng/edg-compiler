@@ -2795,6 +2795,7 @@ fields to default values.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       node->variant.operation.rewritten_property_reference_kind =
                                 (a_rewritten_property_reference_kind)rprk_none;
+      node->variant.operation.requires_runtime_cast_check = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       node->variant.operation.operands = NULL;
       break;
@@ -2955,6 +2956,9 @@ its kind to the indicated kind.
   node->is_static_cast = FALSE;
   node->is_objectless_nonstatic_data_mem_ref = FALSE;
   node->is_pack_expansion = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  node->is_safe_cast = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CENTERLINE_CHECKING
   node->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

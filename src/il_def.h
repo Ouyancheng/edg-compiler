@@ -973,6 +973,7 @@ typedef enum /*a_token_kind*/ {
   tok_uuid,
   tok_in,
   tok_gcnew,
+  tok_safe_cast,
   /* Keywords with embedded white space.  All except tok_for_each are only
      in C++/CLI.  These must be in the contiguous range defined by
      tok_first_whitespace_token through tok_last_whitespace_token, as the
@@ -1163,7 +1164,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__super",
    "__noop", "__interface",
    "__ptr32", "__ptr64", "__sptr", "__uptr", "__w64",
-   "__LPREFIX", "__identifier", "uuid", "in", "gcnew",
+   "__LPREFIX", "__identifier", "uuid", "in", "gcnew", "safe_cast",
    "for each", "ref class", "ref struct", "value class", "value struct",
    "enum class", "enum struct", "interface class", "interface struct",
    "ref", "value", "interface", "for", "enum",
@@ -13143,6 +13144,12 @@ typedef struct an_expr_node {
 			   constant entry that appears in the initializer list
 			   for an aggregate (there's an is_pack_expansion flag
 			   also in a_constant). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_bit_field
+		is_safe_cast:1;
+			/* TRUE when the operation is a C++/CLI safe_cast
+			   in the source.  Similar to is_static_cast. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == enk_error or enk_address_of_ellipsis, no variant fields. */
@@ -13297,6 +13304,13 @@ typedef struct an_expr_node {
 			   accessor and a "put" accessor are called as part
 			   of the expansion, indicates the kind of operator.
 			   Otherwise, rprk_none. */
+      a_bit_field
+		requires_runtime_cast_check:1;
+			/* TRUE for a C++/CLI cast operation that requires a
+			   runtime check (e.g., it's part of a safe_cast).
+			   Can appear on eok_cast (for handles),
+			   eok_derived_class_cast, and eok_ref_cast (for
+			   casts to tracking references). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       an_expr_node_ptr  
                 operands;

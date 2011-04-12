@@ -5714,6 +5714,9 @@ are done.
     /* Not equal. */
   } else if (node1->kind == node2->kind &&
              node1->is_lvalue == node2->is_lvalue &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+             node1->is_safe_cast == node2->is_safe_cast &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
              node1->is_static_cast == node2->is_static_cast) {
     a_boolean do_type_comparison = TRUE;
     switch (node1->kind) {
@@ -5726,6 +5729,10 @@ are done.
                            node2->variant.operation.is_reinterpret_cast &&
             node1->variant.operation.compiler_generated ==
                            node2->variant.operation.compiler_generated &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            node1->variant.operation.requires_runtime_cast_check ==
+                        node2->variant.operation.requires_runtime_cast_check &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             node1->variant.operation.is_reference_cast ==
                            node2->variant.operation.is_reference_cast &&
             node1->variant.operation.is_rvalue_reference_cast ==
@@ -9341,6 +9348,33 @@ namespace "cli".
 
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+a_type_ptr make_pointer_type_of_same_kind(a_type_ptr base_type,
+                                          a_type_ptr model_pointer_type)
+/*
+Make a pointer type with base_type as the underlying type, and return it.
+Make the same kind of pointer as the kind indicated by model_pointer_type
+(this comes up in C++/CLI where interior_ptr, pin_ptr, and handles
+are pointer-like types).
+*/
+{
+  a_type_ptr result_type;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && is_interior_ptr_type(model_pointer_type)) {
+    result_type = make_interior_ptr_type(base_type);
+  } else if (cppcli_enabled && is_pin_ptr_type(model_pointer_type)) {
+    result_type = make_pin_ptr_type(base_type);
+  } else if (cppcli_enabled && is_handle_type(model_pointer_type)) {
+    result_type = make_handle_type(base_type);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    result_type = make_pointer_type(base_type);
+  }  /* if */
+  return result_type;
+}  /* make_pointer_type_of_same_kind */
 
 #if !NEAR_AND_FAR_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED
 /* ARGSUSED */  /* <- is_error and tracking_ref are not used in some
@@ -17220,6 +17254,14 @@ c99_float_operations:
          might still cause side effects. */
       break;
   }  /* switch */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled &&
+      node->variant.operation.requires_runtime_cast_check) {
+    /* A C++/CLI safe_cast that includes a runtime check can throw an
+       exception. */
+    has_side_effects = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return has_side_effects;
 }  /* operation_has_side_effects */
 
@@ -22512,8 +22554,11 @@ by back ends.
          get back to the underlying cast type. */
       dest_type = type_pointed_to(dest_type);
     }  /* if */
-    if (expr->is_static_cast &&
-        any_qualifier_missing(dest_type, operand_1->type)) {
+    if ((expr->is_static_cast
+#if MICROSOFT_EXTENSIONS_ALLOWED
+         || expr->is_safe_cast
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        ) && any_qualifier_missing(dest_type, operand_1->type)) {
       /* This node is a static_cast to a reference type followed by an
          lvalue-to-rvalue conversion that drops the cv-qualifiers.  We don't
          have a way of recovering the original cv-qualifiers of the reference

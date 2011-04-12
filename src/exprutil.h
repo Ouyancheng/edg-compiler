@@ -137,6 +137,7 @@ typedef enum a_cast_source_form {
   csf_static_cast,	/* static_cast<T>(x) */
   csf_const_cast,	/* const_cast<T>(x) */
   csf_reinterpret_cast,	/* reinterpret_cast<T>(x) */
+  csf_safe_cast,	/* safe_cast<T>(x) -- C++/CLI mode. */
   csf_dynamic_cast	/* dynamic_cast<T>(x) */
 } a_cast_source_form;
 
@@ -2171,12 +2172,14 @@ extern an_expr_node_ptr add_unbox_to_expression(an_expr_node_ptr expr,
                                                 a_boolean        make_lvalue);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-extern void add_derived_class_casts(a_type_ptr        new_type_pointed_to,
-                                    a_base_class_ptr  bcp,
-                                    a_boolean         check_ambiguity,
-                                    an_expr_node_ptr  *p_node,
-                                    a_source_position *err_pos,
-                                    a_boolean         *error_detected);
+extern
+void add_derived_class_casts(a_type_ptr        new_type_pointed_to,
+                             a_base_class_ptr  bcp,
+                             a_boolean         check_ambiguity,
+                             a_boolean         requires_runtime_check,
+                             an_expr_node_ptr  *p_node,
+                             a_source_position *err_pos,
+                             a_boolean         *error_detected);
 
 extern a_boolean is_bit_field_extract_node(an_expr_node_ptr node);
 

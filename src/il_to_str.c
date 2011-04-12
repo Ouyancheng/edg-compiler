@@ -4115,6 +4115,10 @@ on every expression.
             }  /* if */
             if (expr->is_static_cast) {
               new_style_op = "static_cast";
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            } else if (expr->is_safe_cast) {
+              new_style_op = "safe_cast";
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             } else if (expr->variant.operation.is_const_cast) {
               new_style_op = "const_cast";
             } else if (expr->variant.operation.is_reinterpret_cast) {

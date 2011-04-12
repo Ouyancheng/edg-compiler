@@ -919,6 +919,9 @@ extern a_boolean f_is_member_of_namespace_cli(a_source_correspondence  *scp);
 #define is_member_of_namespace_cli(ptr)                                      \
   (f_is_member_of_namespace_cli((a_source_correspondence*)ptr))
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+extern
+a_type_ptr make_pointer_type_of_same_kind(a_type_ptr base_type,
+                                          a_type_ptr model_pointer_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_type_ptr make_reference_to_reference(

@@ -3465,6 +3465,11 @@ EXTERN sizeof_t	size_scope_stack;
 			/* Allocated size of scope_stack in elements.
 			   Not per-file. */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/* Header for the contextual keyword "safe_cast" used in C++/CLI. */
+EXTERN a_symbol_header_ptr
+		safe_cast_symbol_header;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Entry describing a fixup that is required for a VLA that appears in a

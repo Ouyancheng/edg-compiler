@@ -549,6 +549,13 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_internal_alias_decl,
                   "__internal_alias_decl");
     enter_keyword((a_token_kind)tok_gcnew, "gcnew");
+    { a_symbol_locator locator;
+      /* safe_cast is a contextual keyword. */
+      clear_locator(&locator, &null_source_position);
+      safe_cast_symbol_header = find_symbol_header("safe_cast",
+                                                   sizeof("safe_cast")-1,
+                                                   &locator);
+    }
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (type_traits_helpers_enabled ||

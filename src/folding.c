@@ -1089,7 +1089,9 @@ ec_no_error if there was no error.
     if (expr != NULL) {
       a_boolean local_error_detected;
       add_derived_class_casts(type_pointed_to(new_type), bcp,
-                              /*check_ambiguity=*/FALSE, &expr, err_pos,
+                              /*check_ambiguity=*/FALSE,
+                              /*requires_runtime_check=*/FALSE,
+                              &expr, err_pos,
                               &local_error_detected);
       check_assertion(!local_error_detected);
     }  /* if */

@@ -3558,6 +3558,11 @@ Display the indicated expression node.
   if (ptr->is_pack_expansion) {
     disp_boolean("is_pack_expansion", TRUE);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->variant.operation.is_safe_cast) {
+    disp_boolean("is_safe_cast", TRUE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:
@@ -3643,6 +3648,9 @@ Display the indicated expression node.
             (void)printf("**BAD REWRITTEN PROP REF KIND**\n");
             break;
         }  /* switch */
+      }  /* if */
+      if (ptr->variant.operation.requires_runtime_cast_check) {
+        disp_boolean("requires_runtime_cast_check", TRUE);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       disp_ptr("operands", (char *)ptr->variant.operation.operands,

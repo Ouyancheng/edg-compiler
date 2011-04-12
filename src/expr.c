@@ -16061,6 +16061,288 @@ indication in *rcblock).
 }  /* scan_const_cast_operator */
 
 
+static void process_static_cast(
+                               a_type_ptr                type_cast_to,
+                               an_operand                *operand,
+                               a_source_position         *start_position,
+                               a_source_position         *type_position,
+                               a_boolean                 is_safe_cast,
+                               a_ruled_out_expr_kind_set *ruled_out_expr_kinds)
+/*
+Do semantic checks and generate IL for a static_cast of *operand to
+type_cast_to.  The source position of the start of the cast is
+start_position, and the position of the type within the cast is
+type_position.  If is_safe_cast is TRUE, the cast was written as
+a C++/CLI safe_cast even though it has static_cast semantics.
+On return, add to *ruled_out_expr_kinds any expression kinds that are
+ruled out by this cast.  This is placed in a separate routine so that
+one can do a static_cast on an operand even if it is not scanned from
+source.  Note that this routine can't be used to investigate whether a
+static cast can be done, only to actually do one (and produce errors
+if it's not valid).
+*/
+{
+  a_type_ptr         adj_type_cast_to;
+  a_type_ptr         source_type, adj_source_type;
+  a_boolean          err = FALSE, processed = FALSE, ignored = FALSE;
+  a_boolean          processed_as_udc;
+  a_boolean          allow_rvalue_on_rewrite;
+  an_error_code      warning_suggested;
+  an_expr_node_ptr   operand_expression;
+  a_boolean          cast_to_reference = is_any_reference_type(type_cast_to);
+  a_boolean          cast_to_void = is_void_type(type_cast_to);
+  a_cast_source_form source_form = (is_safe_cast ? csf_safe_cast :
+                                                   csf_static_cast);
+
+  /* Remember the expression at the start, so we can see what we added. */
+  operand_expression = expr_node_from_operand(operand);
+  /* Check for user-defined conversions and casts to reference type. */
+  check_user_defined_conversions_for_cast(type_cast_to, operand,
+                                          source_form,
+                                          type_position,
+                                          &allow_rvalue_on_rewrite,
+                                          &processed_as_udc, &err);
+  if (processed_as_udc) {
+    processed = TRUE;
+  } else {
+    /* In some modes, a do-nothing cast is thrown away (and the operand
+       stays an lvalue if it is one). */
+    if ((microsoft_bugs || sun_mode) &&
+        identical_types(type_cast_to, operand->type)) {
+      processed = TRUE;
+      ignored = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!processed) {
+    /* No user-defined conversion applies. */
+    a_boolean gnu_lvalue_cast_case = FALSE;
+    if (is_gpp_lvalue_cast(operand, type_cast_to)) {
+      /* GNU C++ allows a limited form of lvalue cast on integral types. */
+      gnu_lvalue_cast_case = TRUE;
+    }  /* if */
+    if (!cast_to_reference && !cast_to_void && !gnu_lvalue_cast_case) {
+      /* Normal case (not a cast to reference or cast to void). */
+      if (gpp_mode && gnu_version >= 30400 &&
+          is_pointer_type(type_cast_to) && is_pointer_type(operand->type)) {
+        /* g++ versions since 3.4 (through 4.4 at least) have a bug that
+           a static_cast of a pointer to a cv-unqualified base class to a
+           pointer to a cv-qualified derived class actually results in a
+           pointer to the cv-unqualified derived class.  (This check must
+           be done before the operand transformations, as the bug occurs
+           only with a pointer operand, not an array type that decays to
+           a pointer.) */
+        a_type_ptr to_type = type_pointed_to(type_cast_to);
+        a_type_ptr from_type = type_pointed_to(operand->type);
+        if (is_qualified_type(to_type) && !is_qualified_type(from_type)) {
+          to_type = skip_typerefs(to_type);
+          from_type = skip_typerefs(from_type);
+          if (is_immediate_class_type(to_type) &&
+              is_immediate_class_type(from_type) &&
+              find_base_class_of(to_type, from_type) != NULL) {
+            /* Emulate the g++ bug by substituting the cv-unqualified
+               version of the target type. */
+            type_cast_to = make_pointer_type(to_type);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+     /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
+         conversions.  They must be done now because they affect the type
+         of the operand. */
+      /* Keep indefinite functions, since a particular function can
+         be chosen by a cast to a pointer or pointer-to-member type. */
+      do_operand_transformations(operand,
+                                 TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
+      convert_function_template_to_single_function_if_possible(operand,
+                                                          /*will_call=*/FALSE);
+    }  /* if */
+    /* Check for casts that aren't valid in this kind of expression.
+       Note that this check is done after the operand transformations
+       (e.g., turning arrays into pointers). */
+    if (!cast_is_valid_in_current_expression_kind(operand, type_cast_to,
+                                                  EOPT_NO_OPTIONS,
+                                                  type_position,
+                                                  ruled_out_expr_kinds)) {
+      /* This cast is not valid in this kind of expression. */
+      err = TRUE;
+    }  /* if */
+    /* Get the source type after the transformations. */
+    adj_source_type = source_type = operand->type;
+    adj_type_cast_to = type_cast_to;
+    if (cast_to_reference && !err) {
+      /* Determine the types to be used for checking a reference cast
+         if we pretend it has been rewritten as a pointer cast. */
+      /* Note that this is done after the check for user-defined
+         conversions above, since if such a cast can be done by
+         a conversion function, it should be. */
+      set_up_cast_to_reference(type_cast_to, operand,
+                               allow_rvalue_on_rewrite,
+                               source_form,
+                               type_position,
+                               &adj_type_cast_to,
+                               &adj_source_type,
+                               &processed);
+    }  /* if */
+    /* Check for different types of casts and do the cast. */
+    if (!err && !processed) {
+      a_boolean      operand_is_constant = is_constant_operand(operand);
+      a_constant_ptr operand_con = NULL;
+      if (operand_is_constant) operand_con = &operand->variant.constant;
+      if (is_indefinite_function_operand(operand)) {
+        /* An overloaded function may be cast to a pointer type that
+           disambiguates, but is not valid in any other kind of cast. */
+        cast_overloaded_function(type_cast_to, operand, /*is_cast=*/TRUE,
+                                 /*is_static_cast=*/TRUE);
+      } else if (cast_to_void) {
+        /* Cast to (possibly cv-qualified) void. */
+        cast_operand_to_void(operand, type_cast_to);
+      } else if (gnu_lvalue_cast_case) {
+        /* GNU C++ allows a limited form of lvalue cast on integral types. */
+        lvalue_cast(type_cast_to, operand, /*compiler_generated=*/FALSE);
+      } else if (static_cast_conversion_possible(
+                                      adj_source_type,
+                                      operand_is_constant,
+                                      (a_boolean)operand->
+                                                      is_simple_string_literal,
+                                      operand_con,
+                                      adj_type_cast_to,
+                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                      ec_bad_cast,
+                                      &warning_suggested)) {
+        a_base_class_ptr bcp;
+        a_boolean        baseward_cast;
+        /* Valid static_cast conversion. */
+        if (warning_suggested != ec_no_error) {
+          /* Issue warning on oddball cases. */
+          expr_pos_warning(warning_suggested, start_position);
+        }  /* if */
+        if (is_template_dependent_context() &&
+            (is_template_dependent_type(source_type) ||
+             is_template_dependent_type(type_cast_to))) {
+          /* Put out a generic operator for a case involving template
+             parameter types. */
+          generic_cast_operand(operand, type_cast_to, source_form,
+                               /*is_implicit_cast=*/FALSE,
+                               type_position);
+        } else {
+          if (expr_access_checking_should_be_done() &&
+              related_member_pointers(adj_source_type, adj_type_cast_to,
+                                      &baseward_cast, &bcp) &&
+              baseward_cast &&
+              !bcp->ambiguous &&
+              !is_accessible_base_class(bcp)) {
+            /* A conversion from pointer-to-member of derived to
+               pointer-to-member of a private base should not be
+               allowed.  See core issue 54. */
+            if (expr_diagnostic_should_be_issued(es_discretionary_error,
+                                                 ec_inaccessible_base_class)) {
+              pos_ty_diagnostic(es_discretionary_error,
+                                ec_inaccessible_base_class,
+                                start_position,
+                                bcp->type);
+            }  /* if */
+          } else if (expr_access_checking_should_be_done() &&
+                     related_class_pointers_or_handles(adj_source_type,
+                                                       adj_type_cast_to,
+                                                       &baseward_cast,
+                                                       &bcp) &&
+                     !baseward_cast &&
+                     !bcp->ambiguous &&
+                     !is_accessible_base_class(bcp)) {
+            /* A conversion from a pointer to a private base to
+               a pointer to a derived should not be allowed.
+               See core issue 54.  However, MSVC++ 7.1 and g++
+               3.2/3.3 (but not 3.4) allow it. */
+            if ((microsoft_mode && microsoft_version == 1310) ||
+                (gpp_mode && gnu_version < 30400)) {
+              /* Okay. */
+            } else {
+              if (expr_diagnostic_should_be_issued(
+                                      es_discretionary_error,
+                                      ec_conv_from_inaccessible_base_class)) {
+                pos_ty_diagnostic(es_discretionary_error,
+                                  ec_conv_from_inaccessible_base_class,
+                                  start_position,
+                                  bcp->type);
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          /* Do the actual cast. */
+          if (!cast_to_reference) {
+            cast_operand_special(type_cast_to, operand, type_position,
+                                 /*check_cast_access=*/TRUE,
+                                 /*is_implicit_cast=*/FALSE,
+                                 /*is_reinterpret_cast=*/FALSE,
+                                 /*reinterpret_semantics=*/FALSE);
+          } else {
+            cast_operand_for_reference_cast(operand,
+                                            type_cast_to,
+                                            type_position,
+                                            /*check_cast_access=*/TRUE,
+                                            /*is_implicit_cast=*/FALSE,
+                                            /*reinterpret_semantics=*/FALSE);
+          }  /* if */
+        }  /* if */
+      } else {
+        /* Not a valid cast. */
+        err = TRUE;
+        if (is_class_struct_union_type(type_cast_to)) {
+          /* Use a special clearer message for casting to a class. */
+          if (expr_error_should_be_issued()) {
+            pos_ty_error(ec_cast_to_bad_type, type_position, type_cast_to);
+          }  /* if */
+        } else if (same_type_with_added_qualifiers(adj_source_type,
+                                                   adj_type_cast_to,
+                                                   /*ignore_qualifiers=*/TRUE,
+                                                   (a_boolean *)NULL) &&
+                   cast_removes_qualifiers(adj_source_type,
+                                           adj_type_cast_to,
+                                           &warning_suggested)) {
+          /* Use a special message for casting away constness. */
+          if (expr_error_should_be_issued()) {
+            pos_st_error(ec_cannot_cast_away_const, start_position,
+                         is_safe_cast ? "safe_cast" : "static_cast");
+          }  /* if */
+        } else {
+          /* Generic message. */
+          expr_pos_error(ec_bad_cast, start_position);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (err) {
+    conv_to_error_operand(operand);
+  } else if (!ignored) {
+    an_expr_node_ptr expr = find_primary_cast_node(operand_expression,
+                                                   source_form,
+                                                   operand);
+    if (expr != NULL) {
+      /* An expression node was created that represents this static_cast:
+         mark it as resulting from a static_cast operation.  (Or, when
+         is_safe_cast is TRUE, as a safe_cast.) */
+      if (is_cast_operation_node(expr) ||
+          expr->kind == (an_expr_node_kind)enk_temp_init ||
+          (is_operation_node(expr) &&
+           expr->variant.operation.is_conversion_call)) {
+        if (is_safe_cast) {
+          expr->is_safe_cast = TRUE;
+        } else {
+          expr->is_static_cast = TRUE;
+        }  /* if */
+      }  /* if */
+      record_cast_position_in_expr_rescan_info(expr,
+                                               start_position,
+                                               type_position,
+                                               type_cast_to);
+    }  /* if */
+#if CHECKING
+    if (cast_to_reference && !processed_as_udc) {
+      check_reference_cast_flag_is_set(operand, type_cast_to);
+    }  /* if */
+#endif /* CHECKING */
+  }  /* if */
+}  /* process_static_cast */
+
+
 static void scan_static_cast_operator(a_rescan_control_block *rcblock,
                                       an_operand             *result)
 /*
@@ -16075,270 +16357,22 @@ indication in *rcblock).
 */
 {
   a_source_position start_position, type_position, end_position;
-  a_type_ptr        type_cast_to, adj_type_cast_to;
-  a_type_ptr        source_type, adj_source_type;
-  a_boolean         err = FALSE, processed = FALSE, ignored = FALSE;
-  a_boolean         processed_as_udc = FALSE;
-  a_boolean         allow_rvalue_on_rewrite = FALSE;
-  a_boolean         cast_to_reference = FALSE;
-  an_error_code     warning_suggested;
+  a_type_ptr        type_cast_to;
   a_ruled_out_expr_kind_set
                     ruled_out_expr_kinds = ROEK_NONE;
-  an_expr_node_ptr  operand_expression = NULL;
 
   db_enter(4, "scan_static_cast_operator");
-#if CHECKING
-  if (curr_expr_kind_is(ek_pp)) {
-    /* static_cast not possible for preprocessing expressions. */
-    internal_error("scan_static_cast_operator: in preprocessing expr");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion_str(!curr_expr_kind_is(ek_pp),
+                      "scan_static_cast_operator: in preprocessing expr");
   /* Scan "< type-id > ( expression )". */
   if (!scan_new_style_cast(csf_static_cast, rcblock, &start_position,
                            &type_cast_to, &type_position, &end_position,
                            result)) {
-    err = TRUE;
-  } else {
-    a_boolean cast_to_void = is_void_type(type_cast_to);
-
-    cast_to_reference = is_any_reference_type(type_cast_to);
-    operand_expression = expr_node_from_operand(result);
-    /* Check for user-defined conversions and casts to reference type. */
-    check_user_defined_conversions_for_cast(type_cast_to, result,
-                                            csf_static_cast, &type_position,
-                                            &allow_rvalue_on_rewrite,
-                                            &processed_as_udc, &err);
-    if (processed_as_udc) {
-      processed = TRUE;
-    } else {
-      /* In some modes, a do-nothing cast is thrown away (and the operand
-         stays an lvalue if it is one). */
-      if ((microsoft_bugs || sun_mode) &&
-          identical_types(type_cast_to, result->type)) {
-        processed = TRUE;
-        ignored = TRUE;
-      }  /* if */
-    }  /* if */
-    if (!processed) {
-      /* No user-defined conversion applies. */
-      a_boolean gnu_lvalue_cast_case = FALSE;
-      if (is_gpp_lvalue_cast(result, type_cast_to)) {
-        /* GNU C++ allows a limited form of lvalue cast on integral types. */
-        gnu_lvalue_cast_case = TRUE;
-      }  /* if */
-      if (!cast_to_reference && !cast_to_void && !gnu_lvalue_cast_case) {
-        /* Normal case (not a cast to reference or cast to void). */
-        if (gpp_mode && gnu_version >= 30400 &&
-            is_pointer_type(type_cast_to) && is_pointer_type(result->type)) {
-          /* g++ versions since 3.4 (through 4.4 at least) have a bug that
-             a static_cast of a pointer to a cv-unqualified base class to a
-             pointer to a cv-qualified derived class actually results in a
-             pointer to the cv-unqualified derived class.  (This check must
-             be done before the operand transformations, as the bug occurs
-             only with a pointer operand, not an array type that decays to
-             a pointer.) */
-          a_type_ptr to_type = type_pointed_to(type_cast_to);
-          a_type_ptr from_type = type_pointed_to(result->type);
-          if (is_qualified_type(to_type) && !is_qualified_type(from_type)) {
-            to_type = skip_typerefs(to_type);
-            from_type = skip_typerefs(from_type);
-            if (is_immediate_class_type(to_type) &&
-                is_immediate_class_type(from_type) &&
-                find_base_class_of(to_type, from_type) != NULL) {
-              /* Emulate the g++ bug by substituting the cv-unqualified
-                 version of the target type. */
-              type_cast_to = make_pointer_type(to_type);
-            }  /* if */
-          }  /* if */
-        }  /* if */
-        /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
-           conversions.  They must be done now because they affect the type
-           of the operand. */
-        /* Keep indefinite functions, since a particular function can
-           be chosen by a cast to a pointer or pointer-to-member type. */
-        do_operand_transformations(result,
-                                  TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
-        convert_function_template_to_single_function_if_possible(result,
-                                                          /*will_call=*/FALSE);
-      }  /* if */
-      /* Check for casts that aren't valid in this kind of expression.
-         Note that this check is done after the operand transformations
-         (e.g., turning arrays into pointers). */
-      if (!cast_is_valid_in_current_expression_kind(result, type_cast_to,
-                                                    EOPT_NO_OPTIONS,
-                                                    &type_position,
-                                                    &ruled_out_expr_kinds)) {
-        /* This cast is not valid in this kind of expression. */
-        err = TRUE;
-      }  /* if */
-      /* Get the source type after the transformations. */
-      adj_source_type = source_type = result->type;
-      adj_type_cast_to = type_cast_to;
-      if (cast_to_reference && !err) {
-        /* Determine the types to be used for checking a reference cast
-           if we pretend it has been rewritten as a pointer cast. */
-        /* Note that this is done after the check for user-defined
-           conversions above, since if such a cast can be done by
-           a conversion function, it should be. */
-        set_up_cast_to_reference(type_cast_to, result,
-                                 allow_rvalue_on_rewrite,
-                                 csf_static_cast,
-                                 &type_position,
-                                 &adj_type_cast_to,
-                                 &adj_source_type,
-                                 &processed);
-      }  /* if */
-      /* Check for different types of casts and do the cast. */
-      if (!err && !processed) {
-        a_boolean      operand_is_constant = is_constant_operand(result);
-        a_constant_ptr operand_con = NULL;
-        if (operand_is_constant) operand_con = &result->variant.constant;
-        if (is_indefinite_function_operand(result)) {
-          /* An overloaded function may be cast to a pointer type that
-             disambiguates, but is not valid in any other kind of cast. */
-          cast_overloaded_function(type_cast_to, result, /*is_cast=*/TRUE,
-                                   /*is_static_cast=*/TRUE);
-        } else if (cast_to_void) {
-          /* Cast to (possibly cv-qualified) void. */
-          cast_operand_to_void(result, type_cast_to);
-        } else if (gnu_lvalue_cast_case) {
-          /* GNU C++ allows a limited form of lvalue cast on integral types. */
-          lvalue_cast(type_cast_to, result, /*compiler_generated=*/FALSE);
-        } else if (static_cast_conversion_possible(adj_source_type,
-                                                   operand_is_constant,
-                                                   (a_boolean)result->
-                                                      is_simple_string_literal,
-                                                   operand_con,
-                                                   adj_type_cast_to,
-                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
-                                                   ec_bad_cast,
-                                                   &warning_suggested)) {
-          a_base_class_ptr bcp;
-          a_boolean        baseward_cast;
-          /* Valid static_cast conversion. */
-          if (warning_suggested != ec_no_error) {
-            /* Issue warning on oddball cases. */
-            expr_pos_warning(warning_suggested, &start_position);
-          }  /* if */
-          if (is_template_dependent_context() &&
-              (is_template_dependent_type(source_type) ||
-               is_template_dependent_type(type_cast_to))) {
-            /* Put out a generic operator for a case involving template
-               parameter types. */
-            generic_cast_operand(result, type_cast_to, csf_static_cast,
-                                 /*is_implicit_cast=*/FALSE,
-                                 &type_position);
-          } else {
-            if (expr_access_checking_should_be_done() &&
-                related_member_pointers(adj_source_type, adj_type_cast_to,
-                                        &baseward_cast, &bcp) &&
-                baseward_cast &&
-                !bcp->ambiguous &&
-                !is_accessible_base_class(bcp)) {
-              /* A conversion from pointer-to-member of derived to
-                 pointer-to-member of a private base should not be
-                 allowed.  See core issue 54. */
-              if (expr_diagnostic_should_be_issued(es_discretionary_error,
-                                                ec_inaccessible_base_class)) {
-                pos_ty_diagnostic(es_discretionary_error,
-                                  ec_inaccessible_base_class,
-                                  &start_position,
-                                  bcp->type);
-              }  /* if */
-            } else if (expr_access_checking_should_be_done() &&
-                       related_class_pointers_or_handles(adj_source_type,
-                                                         adj_type_cast_to,
-                                                         &baseward_cast,
-                                                         &bcp) &&
-                       !baseward_cast &&
-                       !bcp->ambiguous &&
-                       !is_accessible_base_class(bcp)) {
-              /* A conversion from a pointer to a private base to
-                 a pointer to a derived should not be allowed.
-                 See core issue 54.  However, MSVC++ 7.1 and g++
-                 3.2/3.3 (but not 3.4) allow it. */
-              if ((microsoft_mode && microsoft_version == 1310) ||
-                  (gpp_mode && gnu_version < 30400)) {
-                /* Okay. */
-              } else {
-                if (expr_diagnostic_should_be_issued(
-                                      es_discretionary_error,
-                                      ec_conv_from_inaccessible_base_class)) {
-                  pos_ty_diagnostic(es_discretionary_error,
-                                    ec_conv_from_inaccessible_base_class,
-                                    &start_position,
-                                    bcp->type);
-                }  /* if */
-              }  /* if */
-            }  /* if */
-            /* Do the actual cast. */
-            if (!cast_to_reference) {
-              cast_operand_special(type_cast_to, result, &type_position,
-                                   /*check_cast_access=*/TRUE,
-                                   /*is_implicit_cast=*/FALSE,
-                                   /*is_reinterpret_cast=*/FALSE,
-                                   /*reinterpret_semantics=*/FALSE);
-            } else {
-              cast_operand_for_reference_cast(result,
-                                              type_cast_to,
-                                              &type_position,
-                                              /*check_cast_access=*/TRUE,
-                                              /*is_implicit_cast=*/FALSE,
-                                              /*reinterpret_semantics=*/FALSE);
-            }  /* if */
-          }  /* if */
-        } else {
-          /* Not a valid cast. */
-          err = TRUE;
-          if (is_class_struct_union_type(type_cast_to)) {
-            /* Use a special clearer message for casting to a class. */
-            if (expr_error_should_be_issued()) {
-              pos_ty_error(ec_cast_to_bad_type, &type_position,
-                           type_cast_to);
-            }  /* if */
-          } else if (same_type_with_added_qualifiers(adj_source_type,
-                                                     adj_type_cast_to,
-                                                    /*ignore_qualifiers=*/TRUE,
-                                                     (a_boolean *)NULL) &&
-                     cast_removes_qualifiers(adj_source_type,
-                                             adj_type_cast_to,
-                                             &warning_suggested)) {
-            /* Use a special message for casting away constness. */
-            if (expr_error_should_be_issued()) {
-              pos_st_error(ec_cannot_cast_away_const, &start_position,
-                           "static_cast");
-            }  /* if */
-          } else {
-            /* Generic message. */
-            expr_pos_error(ec_bad_cast, &start_position);
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  if (err) {
     conv_to_error_operand(result);
-  } else if (!ignored) {
-    an_expr_node_ptr expr = find_primary_cast_node(operand_expression,
-                                                   csf_static_cast,
-                                                   result);
-    if (expr != NULL) {
-      /* An expression node was created that represents this static_cast:
-         mark it as resulting from a static_cast operation. */
-      if (is_cast_operation_node(expr) ||
-          expr->kind == (an_expr_node_kind)enk_temp_init) {
-        expr->is_static_cast = TRUE;
-      }  /* if */
-      record_cast_position_in_expr_rescan_info(expr,
-                                               &start_position,
-                                               &type_position,
-                                               type_cast_to);
-    }  /* if */
-#if CHECKING
-    if (cast_to_reference && !processed_as_udc) {
-      check_reference_cast_flag_is_set(result, type_cast_to);
-    }  /* if */
-#endif /* CHECKING */
+  } else {
+    /* Check that the cast is okay and generate IL for it. */
+    process_static_cast(type_cast_to, result, &start_position, &type_position,
+                        /*is_safe_cast=*/FALSE, &ruled_out_expr_kinds);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
@@ -16346,6 +16380,181 @@ indication in *rcblock).
   db_exit();
 }  /* scan_static_cast_operator */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static a_boolean process_runtime_checked_safe_cast(
+                                     a_type_ptr                type_cast_to,
+                                     an_operand                *operand,
+                                     a_source_position         *start_position)
+/*
+Determine whether a C++/CLI safe_cast of *operand to type_cast_to
+requires a runtime check, and if so apply the checked cast to the
+operand and return TRUE.  The source position of the start of the cast
+is start_position.
+*/
+{
+  a_boolean        is_runtime_checked_cast = FALSE;
+  a_boolean        is_cast_to_tracking_ref = FALSE;
+  a_boolean        might_be_runtime_checked = FALSE;
+  a_type_ptr       source_type, dest_type;
+  a_base_class_ptr bcp;
+
+  if (is_handle_type(operand->type) &&
+      is_handle_type(type_cast_to)) {
+    source_type = type_pointed_to(operand->type);
+    dest_type = type_pointed_to(type_cast_to);
+    might_be_runtime_checked = TRUE;
+  } else if (is_tracking_reference_type(type_cast_to)) {
+    is_cast_to_tracking_ref = TRUE;
+    source_type = operand->type;
+    dest_type = type_pointed_to(type_cast_to);
+    might_be_runtime_checked = TRUE;
+  }  /* if */
+  if (might_be_runtime_checked &&
+      is_cli_ref_or_interface_class_type(source_type) &&
+      is_cli_ref_or_interface_class_type(dest_type) &&
+      /* Don't allow casting away constness. */
+      !cast_removes_qualifiers(operand->type, type_cast_to,
+                               (an_error_code *)NULL)) {
+    /* We have a cast from handle-to-class to handle-to-class,
+       or from class to tracking-reference-to-class.  Depending on
+       the relationship between the classes, this might be a cast that
+       requires checking. */
+    if (identical_types_ignoring_qualifiers(source_type, dest_type)) {
+      /* The underlying class types are the same, so no runtime check
+         is needed. */
+      is_runtime_checked_cast = FALSE;
+    } else {
+      bcp = find_base_class_of(source_type, dest_type);
+      if (bcp != NULL) {
+        /* A cast to a base class, so no runtime check is needed. */
+        is_runtime_checked_cast = FALSE;
+      } else {
+        /* Unrelated classes, or a cast to a derived class.  A runtime
+           check will be needed. */
+        is_runtime_checked_cast = TRUE;
+        bcp = find_base_class_of(dest_type, source_type);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (is_runtime_checked_cast) {
+    /* This is a cast that can be done as a safe_cast with runtime checking.
+       Do the cast. */
+    an_expr_node_ptr expr;
+    an_operand       orig_operand;
+    if (is_cast_to_tracking_ref) {
+      /* When casting to a tracking reference, if the source operand is
+         an rvalue, convert it to an lvalue. */
+      eliminate_unusual_operand_kinds(operand);
+      conv_reference_cast_operand_to_lvalue_if_necessary(operand);
+    } else {
+      /* Convert the handle to an rvalue if necessary. */
+      do_operand_transformations(operand, TOPT_NO_OPTIONS);
+    }  /* if */
+    orig_operand = *operand;
+    expr = make_node_from_operand(operand);
+    if (bcp != NULL) {
+      /* A cast to a derived class, with runtime checking.  Use
+         an eok_derived_class_cast. */
+      add_derived_class_casts(dest_type, bcp,
+                              /*check_ambiguity=*/TRUE,
+                              /*requires_runtime_check=*/TRUE,
+                              &expr, start_position,
+                              (a_boolean *)NULL);
+    } else {
+      /* A cast between unrelated classes.  Use an eok_cast for the handle
+         case, an eok_ref_cast for the tracking reference case. */
+      if (is_cast_to_tracking_ref) {
+        expr = make_lvalue_operator_node((an_expr_operator_kind)eok_ref_cast,
+                                         dest_type, expr);
+        expr->variant.operation.is_reference_cast = TRUE;
+      } else {
+        expr = make_operator_node((an_expr_operator_kind)eok_cast,
+                                  dest_type, expr);
+      }  /* if */
+      expr->is_safe_cast = TRUE;
+      expr->variant.operation.requires_runtime_cast_check = TRUE;
+    }  /* if */
+    make_lvalue_or_rvalue_expression_operand(expr, operand);
+    restore_operand_details_for_cast(operand, &orig_operand,
+                                     /*is_implicit_cast=*/FALSE,
+                                     /*incl_ref=*/is_cast_to_tracking_ref);
+  }  /* if */
+  return is_runtime_checked_cast;
+}  /* process_runtime_checked_safe_cast */
+
+
+static void process_safe_cast(a_type_ptr                type_cast_to,
+                              an_operand                *operand,
+                              a_source_position         *start_position,
+                              a_source_position         *type_position,
+                              a_ruled_out_expr_kind_set *ruled_out_expr_kinds)
+/*
+Do semantic checks and generate IL for a C++/CLI safe_cast of *operand
+to type_cast_to.  The source position of the start of the cast is
+start_position, and the position of the type within the cast is
+type_position.  On return, add to *ruled_out_expr_kinds any expression
+kinds that are ruled out by this cast.  This is placed in a separate
+routine so that one can do a safe_cast on an operand even if it is not
+scanned from source.  Note that this routine can't be used to
+investigate whether a safe_cast can be done, only to actually do one
+(and produce errors if it's not valid).
+*/
+{
+  /* What VC10 implements is very different from what ECMA-372 15.3.11
+     mandates.  VC10's idea of safe_cast seems to be "Allow what static_cast
+     allows, but for casts involving managed class objects, use a runtime
+     check to make sure the result really has the type expected." */
+  if (process_runtime_checked_safe_cast(type_cast_to, operand,
+                                        start_position)) {
+    /* The cast requires a runtime check and has been processed that way. */
+    *ruled_out_expr_kinds |= (ROEK_INTEGRAL_CONSTANT | ROEK_CONSTANT);
+  } else {
+    /* Process as an unchecked static_cast. */
+    process_static_cast(type_cast_to, operand,
+                        start_position, type_position,
+                        /*is_safe_cast=*/TRUE, ruled_out_expr_kinds);
+  }  /* if */
+}  /* process_safe_cast */
+
+
+static void scan_safe_cast_operator(a_rescan_control_block *rcblock,
+                                      an_operand           *result)
+/*
+Scan the C++/CLI safe_cast operator.  See ECMA-372 15.3.11.
+
+Syntax:
+	safe_cast < type-id > ( expression )
+
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+safe_cast expression, and return the result in *result (or an error
+indication in *rcblock).
+*/
+{
+  a_source_position start_position, type_position, end_position;
+  a_type_ptr        type_cast_to;
+  a_ruled_out_expr_kind_set
+                    ruled_out_expr_kinds = ROEK_NONE;
+
+  db_enter(4, "scan_safe_cast_operator");
+  check_assertion_str(!curr_expr_kind_is(ek_pp),
+                      "scan_safe_cast_operator: in preprocessing expr");
+  /* Scan "< type-id > ( expression )". */
+  if (!scan_new_style_cast(csf_safe_cast, rcblock, &start_position,
+                           &type_cast_to, &type_position, &end_position,
+                           result)) {
+    conv_to_error_operand(result);
+  } else {
+    /* Check that the cast is okay and generate IL for it. */
+    process_safe_cast(type_cast_to, result, &start_position, &type_position,
+                      &ruled_out_expr_kinds);
+  }  /* if */
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
+  rule_out_expr_kinds(ruled_out_expr_kinds, result);
+  db_exit();
+}  /* scan_safe_cast_operator */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void scan_reinterpret_cast_operator(a_rescan_control_block *rcblock,
                                            an_operand             *result)
@@ -21123,6 +21332,7 @@ Return TRUE if the indicated token is one that could start an expression.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_native_nullptr:
     case tok_cli_typeid:
+    case tok_safe_cast:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       is_expr_start = TRUE;
       break;
@@ -24200,6 +24410,27 @@ called to record the end of the header of the indicated lambda.
   expr_stack->current_lambda_in_header = NULL;
 }  /* record_end_of_lambda_header */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean turn_safe_cast_into_keyword_if_appropriate(void)
+/*
+We're in C++/CLI mode, and the current token is an identifier spelled
+"safe_cast".  If that name doesn't mean anything here, change the token
+to the safe_cast keyword and return TRUE.
+*/
+{
+  a_boolean        is_keyword = FALSE;
+  a_symbol_locator temp_locator;
+
+  temp_locator = locator_for_curr_id;
+  if (normal_id_lookup(&temp_locator, IDL_NO_OPTIONS) == NULL) {
+    is_keyword = TRUE;
+    curr_token = tok_safe_cast;
+  }  /* if */
+  return is_keyword;
+}  /* turn_safe_cast_into_keyword_if_appropriate */
+        
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void scan_expr_full(an_operand               *result,
                            an_operand               *bound_function_selector,
@@ -24317,13 +24548,24 @@ see expr.h).
       if (ntoken == tok_new) goto scan_new;
       /* Check for ":: delete". */
       if (ntoken == tok_delete) goto scan_delete;
-      /* Fall through to next case ("::" is the start of a qualified name). */
-      /*FALLTHROUGH*/
-    case tok_identifier:
+      goto handle_identifier;
     case tok_operator:               /* Start of "operator+" and the like. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_super:                  /* Microsoft __super qualifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      goto handle_identifier;
+    case tok_identifier:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled &&
+          locator_for_curr_id.symbol_header == safe_cast_symbol_header) {
+        /* safe_cast is a keyword in C++/CLI if it doesn't mean anything
+           else here. */
+        if (turn_safe_cast_into_keyword_if_appropriate()) {
+          goto handle_safe_cast;
+        }  /* if */
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+handle_identifier:
       { a_boolean okay_after_typename;
         /* Watch out for something like "S::*". */
         if (!is_expr_qualified_name_start()) {
@@ -24738,6 +24980,14 @@ handle_cli_typeid:
       /* static_cast operation. */
       scan_static_cast_operator((a_rescan_control_block *)NULL, &local_result);
       break;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_safe_cast:
+      /* C++/CLI safe_cast operation. */
+handle_safe_cast:
+      scan_safe_cast_operator((a_rescan_control_block *)NULL, &local_result);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
     case tok_reinterpret_cast:
       /* reinterpret_cast operation. */
@@ -26799,6 +27049,10 @@ set accordingly.
         *unary = TRUE;
         if (expr->is_static_cast) {
           operator_token = tok_static_cast;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (expr->is_safe_cast) {
+          operator_token = tok_safe_cast;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (expr->variant.operation.is_const_cast) {
           operator_token = tok_const_cast;
         } else if (expr->variant.operation.is_reinterpret_cast) {
@@ -26999,6 +27253,10 @@ set accordingly.
     } else if (dip->is_explicit_cast) {
       if (expr->is_static_cast) {
         operator_token = tok_static_cast;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (expr->is_safe_cast) {
+        operator_token = tok_safe_cast;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         operator_token = tok_typename;  /* Representing a generic cast. */
       }  /* if */
@@ -27218,6 +27476,12 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_static_cast:
         scan_static_cast_operator(rcblock, result);
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_safe_cast:
+        /* C++/CLI safe_cast operation. */
+        scan_safe_cast_operator(rcblock, result);
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_reinterpret_cast:
         scan_reinterpret_cast_operator(rcblock, result);
         break;

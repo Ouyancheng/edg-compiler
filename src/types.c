@@ -8026,7 +8026,8 @@ exception specifications are not checked.
     /* If the conversion is a pointer or pointer to member conversion, make
        sure qualifiers are not being removed. */
     if (!allow_qualifier_or_eh_mismatch &&
-        ((is_pointer(source_type) && is_pointer(dest_type)) ||
+        ((is_pointer_or_handle(source_type) &&
+          is_pointer_or_handle(dest_type)) ||
         (is_ptr_to_member(source_type) && is_ptr_to_member(dest_type)))) {
       if (cast_removes_qualifiers(source_type, dest_type,
                                   (an_error_code *)NULL)) {
@@ -8672,18 +8673,7 @@ top-level qualifiers are dropped).  Otherwise, NULL is returned.
         result = make_qualified_type(result,
                                      get_type_qualifiers(type_pointed_to_1) |
                                        get_type_qualifiers(type_pointed_to_2));
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (type_1->variant.pointer.is_interior_ptr) {
-          result = make_interior_ptr_type(result);
-        } else if (type_1->variant.pointer.is_pin_ptr) {
-          result = make_pin_ptr_type(result);
-        } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* Do not insert code here */
-        {
-          result = make_pointer_type(result);
-        }  /* if */
+        result = make_pointer_type_of_same_kind(result, type_1);
       }  /* if */
     } else {
       /* The types at this level are not the same, so there is no composite
