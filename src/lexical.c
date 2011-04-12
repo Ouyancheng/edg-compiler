@@ -18207,6 +18207,12 @@ C++/CLI delegate class types.)
                               tdip, class_type, (a_routine_ptr)NULL, class_sym,
                               class_sym, (a_template_arg_ptr)NULL,
                               /*push_lex_state=*/TRUE, PS_NO_OPTIONS);
+  /* By default, the instantiation scope context pushed by the call to
+     push_template_instantiation_scope just copies the name linkage from the
+     previous entry on the scope stack, which may not be related to that of
+     the class. */
+  scope_stack_top().default_name_linkage =
+                                      class_type->source_corresp.name_linkage;
   if (class_def_buffer == NULL) class_def_buffer = alloc_text_buffer(1024);
   reset_text_buffer(class_def_buffer);
 #if CPPCLI_ENABLING_POSSIBLE
