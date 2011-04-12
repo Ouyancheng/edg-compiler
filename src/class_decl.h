@@ -39,10 +39,6 @@ extern a_boolean conflicts_with_previous_function_decl(
                                                 a_source_position  *pos);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern a_boolean is_overriding_function(a_type_ptr    class_type,
-                                        a_routine_ptr derived_class_routine,
-                                        a_routine_ptr base_class_routine);
-
 extern a_routine_ptr find_finalize_routine(a_type_ptr class_type,
                                            a_boolean  *p_is_object_finalize);
 

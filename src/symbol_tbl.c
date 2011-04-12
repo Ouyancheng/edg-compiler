@@ -6937,7 +6937,7 @@ global pointers.  This function assumes that mscorlib.dll has been imported.
 }  /* init_symbols_for_cli_system_types */
 
 
-a_type_ptr cli_class_type_for(a_cli_symbol_kind kind)
+a_type_ptr f_cli_class_type_for(a_cli_symbol_kind kind)
 /*
 Return the type of the specified C++/CLI symbol kind.
 */
@@ -6949,7 +6949,7 @@ Return the type of the specified C++/CLI symbol kind.
   check_assertion(sym != NULL &&
                   sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
   return sym->variant.class_struct_union.type;
-}  /* cli_class_type_for */
+}  /* f_cli_class_type_for */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

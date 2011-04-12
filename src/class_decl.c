@@ -2946,15 +2946,15 @@ correcting the class declarations that produced the problem.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-a_boolean is_overriding_function(a_type_ptr    class_type,
-                                 a_routine_ptr derived_class_routine,
-                                 a_routine_ptr base_class_routine)
+static a_boolean is_overriding_function(a_type_ptr    class_type,
+                                        a_routine_ptr derived_class_routine,
+                                        a_routine_ptr base_class_routine)
 /*
 Return TRUE if, in the given class_type, derived_class_routine overrides
 base_class_routine.
 */
 {
-  a_boolean  is_overriding_function = FALSE;
+  a_boolean  result = FALSE;
 
   if (derived_class_routine->is_virtual &&
       derived_class_routine->overrides_base_member) {
@@ -2967,7 +2967,7 @@ base_class_routine.
         for (; ovfp != NULL; ovfp = ovfp->next) {
           if (ovfp->primary_function == base_class_routine &&
               ovfp->overriding_function == derived_class_routine) {
-            is_overriding_function = TRUE;
+            result = TRUE;
             break;
           }  /* if */
         }  /* for */
@@ -2975,7 +2975,7 @@ base_class_routine.
       }  /* if */
     }  /* for */
   }  /* if */
-  return is_overriding_function;
+  return result;
 }  /* is_overriding_function */
 
 
@@ -3020,7 +3020,7 @@ and it meets the requirements of the "CLI Dispose pattern", set
               is_void_type(routine->type->variant.routine.return_type) &&
               routine->source_corresp.access ==
                                           (an_access_specifier)as_protected &&
-              (identical_types(class_type, cli_system_object_type()) ||
+              (is_cli_system_object_type(class_type) ||
                is_overriding_function(class_type, routine,
                                       get_object_finalize_routine()))) {
             *p_is_object_finalize = TRUE;
@@ -6925,8 +6925,7 @@ type, add an implicit derivation from System::ObjectType or System::ValueType
         break;
       }  /* if */
     }  /* for */
-    if (add_implicit_base &&
-        !identical_types(class_type, cli_system_object_type())) {
+    if (add_implicit_base && !is_cli_system_object_type(class_type)) {
       a_base_class_ptr              new_direct_bcp, last_bcp = NULL;
       a_boolean                     may_be_first_direct_nonvirtual_base = TRUE;
       a_base_class_sequence_number  direct_base_number = 0;
@@ -14607,14 +14606,14 @@ requirements of a valid dispose pattern implementation of Dispose(bool), i.e.
 protected: virtual void Dispose(bool);
 */
 {
-  a_boolean  is_dispose_bool_function = FALSE;
+  a_boolean  result = FALSE;
 
   check_assertion(sym != NULL && p_is_valid != NULL);
   if (symbol_is(sym, sk_member_function)) {
     a_routine_ptr     routine = sym->variant.routine.ptr;
     a_param_type_ptr  ptp = function_type_params(routine->type);
     if (ptp != NULL && ptp->next == NULL && is_bool_type(ptp->type)) {
-      is_dispose_bool_function = TRUE;
+      result = TRUE;
       if (routine->is_virtual &&
           is_void_type(routine->type->variant.routine.return_type) &&
           routine->source_corresp.access ==
@@ -14623,7 +14622,7 @@ protected: virtual void Dispose(bool);
       }  /* if */
     } /* if */
   }  /* if */
-  return is_dispose_bool_function;
+  return result;
 }  /* is_dispose_bool_function */
 
 
@@ -14637,7 +14636,7 @@ Furthermore, "p_is_idisposable_dispose" is set to TRUE if that function also
 meets the requirements of a valid implementation of IDisposable::Dispose().
 */
 {
-  a_boolean  is_dispose_void_function = FALSE;
+  a_boolean  result = FALSE;
 
   check_assertion(sym != NULL && p_is_idisposable_dispose != NULL);
   if (symbol_is(sym, sk_member_function)) {
@@ -14646,7 +14645,7 @@ meets the requirements of a valid implementation of IDisposable::Dispose().
       /* A member function with an empty parameter list: Return TRUE. */
       a_class_symbol_supplement_ptr
                                cssp = symbol_supplement_for_class(class_type);
-      is_dispose_void_function = TRUE;
+      result = TRUE;
       /* Determine if this routine implements IDisposable::Dispose() for the
          specified class. */
       if (cssp->is_disposable && routine->is_virtual &&
@@ -14659,7 +14658,7 @@ meets the requirements of a valid implementation of IDisposable::Dispose().
       }  /* if */
     } /* if */
   }  /* if */
-  return is_dispose_void_function;
+  return result;
 }  /* is_dispose_void_function */
 
 
@@ -14691,7 +14690,7 @@ should be implemented.  The results are stored in the class symbol supplement.
   pos = &class_type->source_corresp.decl_position;
   if (cssp->checked_for_dispose_pattern) goto done;
   cssp->checked_for_dispose_pattern = TRUE;
-  if (identical_types(class_type, cli_system_object_type())) {
+  if (is_cli_system_object_type(class_type)) {
     /* This is the System::Object type, which is special since it doesn't have
        a base class.  Just record it's "Finalize" member. */
     cssp->object_finalize = symbol_for(get_object_finalize_routine());
