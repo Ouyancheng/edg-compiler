@@ -415,18 +415,13 @@ primary source file to get the name of the generated C output file.
 #endif /* ifndef GEN_C_FILE_SUFFIX */
 
 /*
-When the C++/C-generating back end (cp_gen_be) is run in C mode, this is the
+When the C++/C-generating back end (cp_gen_be) is run in C++ mode, this is the
 suffix appended to the base of the primary source file to get the name of the
 generated C++ output file.
 */
 #ifndef GEN_CPP_FILE_SUFFIX
 #if BACK_END_IS_CP_GEN_BE
-#if EDG_MSDOS
-/* File names under MSDOS cannot have multiple periods. */
 #define GEN_CPP_FILE_SUFFIX GEN_C_FILE_SUFFIX
-#else /* !EDG_MSDOS */
-#define GEN_CPP_FILE_SUFFIX GEN_C_FILE_SUFFIX
-#endif /* if EDG_MSDOS */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* ifndef GEN_CPP_FILE_SUFFIX */
 
