@@ -16161,6 +16161,9 @@ selection operator, in which case it points to the type of the left operand.
                 qualifier_sym = super_qualified_id_lookup(
                                              &locator_for_curr_id,
                                              lookup_options);
+             } else if (qualifier_is_property_or_event) {
+               /* A property or event cannot be followed by "::". */
+               qualifier_sym = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               } else {
                   /* Look up the name in the class specified by the qualifier
@@ -16687,11 +16690,12 @@ wrapup:
       locator_for_curr_id.is_property_or_event_accessor = TRUE;
       locator_for_curr_id.property_or_event_parent =
                                                   qualifier_property_or_event;
-      if (qualifier_type == NULL) {
+      if (qualifier_type == NULL && qualifier_sym != NULL) {
         /* If, for example, class type C has an event e, we treat "e::raise"
            as an unqualified name (e.g., p->e::raise may be a virtual call)
            but we record C as a parent type.  "C::e::raise" is treated as a
-           qualified name as usual. */
+           qualified name as usual.  The qualifier_sym can be NULL in some
+           error cases. */
         check_assertion(qualifier_is_type);
         qualifier_type = sym_parent_class(qualifier_sym);
         is_qualified_name = FALSE;
