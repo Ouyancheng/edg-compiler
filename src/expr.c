@@ -12252,24 +12252,24 @@ indication in *rcblock).
        complete class type, or void*. */
     cast_type_okay = FALSE;
     if (is_ptr_or_ref_type(cast_type)
-#if MICROSOFT_EXTENSIONS_ENABLED
+#if MICROSOFT_EXTENSIONS_ALLOWED
         || is_handle_or_tracking_ref_type(cast_type)
-#endif /* MICROSOFT_EXTENSIONS_ENABLED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         ) {
       underlying_cast_type = type_pointed_to(cast_type);
       if (is_any_reference_type(cast_type)) {
         reference_case = TRUE;
         if (is_rvalue_reference_type(cast_type)) {
           rvalue_reference_case = TRUE;
-#if MICROSOFT_EXTENSIONS_ENABLED
+#if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (is_tracking_reference_type(cast_type)) {
           tracking_reference_case = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ENABLED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
-#if MICROSOFT_EXTENSIONS_ENABLED
+#if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (is_handle_type(cast_type)) {
         handle_case = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ENABLED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       if (is_class_struct_union_type(underlying_cast_type)) {
         /* Casting to a pointer or reference to a complete class type is okay.
