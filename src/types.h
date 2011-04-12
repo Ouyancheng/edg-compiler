@@ -140,7 +140,9 @@ extern a_boolean is_cli_ref_or_interface_class_type(a_type_ptr tp);
 extern a_boolean is_delegate_type(a_type_ptr tp);
 extern a_routine_ptr delegate_invocation_function(a_type_ptr delegate_type);
 extern a_type_ptr delegate_invocation_type(a_type_ptr delegate_type);
+#if !STANDALONE_UTILITY_PROGRAM
 extern a_boolean is_cli_system_object_type(a_type_ptr tp);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_immediate_managed_class_type(tp) /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
