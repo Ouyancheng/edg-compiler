@@ -3559,7 +3559,7 @@ Display the indicated expression node.
     disp_boolean("is_pack_expansion", TRUE);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (ptr->variant.operation.is_safe_cast) {
+  if (ptr->is_safe_cast) {
     disp_boolean("is_safe_cast", TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

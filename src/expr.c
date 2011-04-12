@@ -16323,9 +16323,13 @@ if it's not valid).
           expr->kind == (an_expr_node_kind)enk_temp_init ||
           (is_operation_node(expr) &&
            expr->variant.operation.is_conversion_call)) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
         if (is_safe_cast) {
           expr->is_safe_cast = TRUE;
-        } else {
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
           expr->is_static_cast = TRUE;
         }  /* if */
       }  /* if */

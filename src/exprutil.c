@@ -4722,9 +4722,11 @@ errors.  Also handles casting of class lvalues and rvalues.
     *p_node = make_operator_node((an_expr_operator_kind)eok_derived_class_cast,
                                  cast_type, *p_node);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (requires_runtime_check) {
     (*p_node)->variant.operation.requires_runtime_cast_check = TRUE;
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* No need to set compiler_generated; a derived class cast is always
      explicit. */
 }  /* add_a_derived_class_cast */
