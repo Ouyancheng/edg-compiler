@@ -2528,20 +2528,6 @@ a name.  Never generate a qualified name.
     write_tok_str("__identifier(");
     write_tok_str(name);
     write_tok_str(")");
-  } else if (entry_kind == iek_routine &&
-             rout_is_cli_accessor((a_routine_ptr)scp)) {
-    /* The names of property and event accessors should always be generated
-       with the event or property name as a qualifier. */
-    a_property_or_event_descr_ptr descr =
-                         ((a_routine_ptr)scp)->variant.property_or_event_descr;
-    if (descr->is_static) {
-      write_tok_str(unmangled_name_of(
-                                    &descr->variant.variable->source_corresp));
-    } else {
-      write_tok_str(unmangled_name_of(&descr->variant.field->source_corresp));
-    }  /* if */
-    write_tok_str("::");
-    write_tok_str(name);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (entry_kind == iek_variable &&
              ((a_variable_ptr)scp)->is_parameter) {
