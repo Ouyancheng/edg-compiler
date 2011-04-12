@@ -715,6 +715,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_managed_nullptr_not_allowed)*/
 /*lint -esym(769,ec_typeid_of_managed_type)*/
 /*lint -esym(769,ec_cli_typeid_of_managed_pointer)*/
+/*lint -esym(769,ec_name_before_typeid_not_type)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_enum)*/
