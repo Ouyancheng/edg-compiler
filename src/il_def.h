@@ -6704,6 +6704,21 @@ typedef struct a_class_type_supplement {
 			/* If this construct was defined in an assembly, the
 			   typedef-token for this construct within the
 			   assembly in which it was defined. */
+  a_routine_ptr base_dispose_bool_routine;
+			/* If this is a C++/CLI ref class that is extending a
+			   base class dispose pattern, this is the base class
+			   Dispose(bool) routine (which this class'
+			   Dispose(bool) member should invoke); NULL
+			   otherwise. */
+  a_routine_ptr base_idisposable_dispose_routine;
+  a_routine_ptr base_object_finalize_routine;
+			/* If this is a C++/CLI ref class that is introducing
+			   the dispose pattern, these are the base class
+			   Dispose() and Finalize() routines.  NULL if this
+			   class doesn't introduce the dispose pattern or if
+			   no the corresponding functions don't exist.  The
+			   Dispose(bool) implementation in this class invokes
+			   these routines. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_class_type_supplement;
 
@@ -8721,6 +8736,12 @@ enum a_special_function_kind_tag {
   sfk_static_constructor,
 			/* A C++/CLI static constructor. */
   sfk_finalizer,	/* A C++/CLI finalizer. */
+  sfk_idisposable_dispose,
+			/* A compiler-generated implementation of the
+			   IDisposable::Dispose() member. */
+  sfk_dispose_bool,	/* A compiler-generated Dispose(bool) member. */
+  sfk_object_finalize,	/* A compiler-generated overrider for the
+			   Object::Finalize() member. */
   sfk_property_get,	/* A "get" accessor function of a C++/CLI property. */
   sfk_first_accessor = sfk_property_get,
   sfk_property_set,	/* A "set" accessor function of a C++/CLI property. */
@@ -8743,7 +8764,10 @@ EXTERN char     *db_special_function_kinds[(int)sfk_last + 1]
 = {
    "none", "constructor", "destructor", "conversion", "operator",
 #if MICROSOFT_EXTENSIONS_ALLOWED
-   "static constructor", "finalizer", "property getter", "property setter",
+   "static constructor", "finalizer",
+   "IDisposable::Dispose implementation", "Dispose(bool)",
+   "Object::Finalize overrider",
+   "property getter", "property setter",
    "event add", "event remove", "event raise",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "last" /* used to check that initialization is right. */

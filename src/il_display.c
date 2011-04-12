@@ -5019,6 +5019,7 @@ simple-source-position portion of) null_source_position.
   }  /* if */
 }  /* disp_simple_source_position */
 
+
 static void disp_macro_invocation_record(a_macro_invocation_record_ptr   mirp,
                                          a_macro_invocation_record_index idx)
 /*
@@ -5034,6 +5035,7 @@ offset idx.
   disp_simple_source_position("end", &mirp->end);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_macro_invocation_record */
+
 
 static void disp_macro_invocation_record_block(
                                    a_macro_invocation_record_block_ptr mirbp,
@@ -5075,6 +5077,7 @@ Display the indicated sequence number lookup entry.
   disp_unsigned_long("line_number", (unsigned long)ptr->line_number);
   disp_ptr("source_file", (char*)ptr->source_file, iek_source_file);
 }  /* disp_seq_number_lookup_entry */
+
 
 static void disp_object_lifetime(an_object_lifetime_ptr ptr)
 /*
@@ -5842,6 +5845,18 @@ Display the indicated class type supplement entry.
   if (ptr->corresponding_basic_type != NULL) {
     disp_ptr("corresponding_basic_type",
              (char *)ptr->corresponding_basic_type, iek_type);
+  }  /* if */
+  if (ptr->base_dispose_bool_routine != NULL) {
+    disp_ptr("base_dispose_bool_routine",
+             (char*)ptr->base_dispose_bool_routine, iek_routine);
+  }  /* if */
+  if (ptr->base_idisposable_dispose_routine != NULL) {
+    disp_ptr("base_idisposable_dispose_routine",
+             (char*)ptr->base_idisposable_dispose_routine, iek_routine);
+  }  /* if */
+  if (ptr->base_object_finalize_routine != NULL) {
+    disp_ptr("base_object_finalize_routine",
+             (char*)ptr->base_object_finalize_routine, iek_routine);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* disp_class_type_supplement */

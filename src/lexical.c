@@ -18156,6 +18156,9 @@ C++/CLI delegate class types.)
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean			saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean			saved_is_scanning_generated_code_from_metadata;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   /* This routine cannot handle local classes. */
   if (class_type->source_corresp.is_local_to_function) {
@@ -18193,6 +18196,11 @@ C++/CLI delegate class types.)
   scope_stack_top().source_sequence_entries_disallowed = TRUE;
   source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  saved_is_scanning_generated_code_from_metadata 
+                                    = is_scanning_generated_code_from_metadata;
+  is_scanning_generated_code_from_metadata = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tdip = alloc_template_decl_info();
   set_template_decl_info_for_class_definition(tdip, class_type);
   (void)push_template_instantiation_scope(
@@ -18271,6 +18279,10 @@ C++/CLI delegate class types.)
      "class X"). */
   class_type->has_been_declared = TRUE;
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  is_scanning_generated_code_from_metadata 
+                             = saved_is_scanning_generated_code_from_metadata;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   source_sequence_entries_disallowed =
                                       saved_source_sequence_entries_disallowed;

@@ -7076,6 +7076,19 @@ does not set either return value.
       case sfk_finalizer:
         *symbols = cssp->finalizer;
         break;
+      case sfk_idisposable_dispose:
+        *symbols = cssp->has_dispose_pattern_idisposable_dispose
+                                           ? cssp->idisposable_dispose : NULL;
+        break;
+      case sfk_dispose_bool:
+        *symbols = (cssp->has_dispose_pattern_idisposable_dispose ||
+                    cssp->has_dispose_pattern_object_finalize)
+                                                  ? cssp->dispose_bool : NULL;
+        break;
+      case sfk_object_finalize:
+        *symbols = cssp->has_dispose_pattern_object_finalize
+                                               ? cssp->object_finalize : NULL;
+        break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case sfk_conversion:
         /* There are two lists of conversion operators.  One for templates

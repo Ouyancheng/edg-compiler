@@ -903,6 +903,18 @@ typedef struct a_member_decl_info {
 			/* TRUE if the current declaration is a finalizer.
 			   In unusual cases this value may be different from
 			   (dso_flags & DSO_FINALIZER). */
+  a_bit_field	is_idisposable_dispose:1;
+			/* TRUE if the current declaration is the generated
+			   IDisposable::Dispose() that is part of the C++/CLI
+			   dispose pattern. */
+  a_bit_field	is_dispose_bool:1;
+			/* TRUE if the current declaration is the generated
+			   Dispose(bool) that is part of the C++/CLI dispose
+			   pattern. */
+  a_bit_field	is_object_finalize:1;
+			/* TRUE if the current declaration is the generated
+			   Object::Finalize override that is part of the
+			   C++/CLI dispose pattern. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	invalid_virtual_specifier:1;
 			/* TRUE when (dso_flags & DSO_VIRTUAL) is TRUE but
@@ -975,6 +987,9 @@ a class member declaration as it appears.
   mdip->is_destructor = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   mdip->is_finalizer = FALSE;
+  mdip->is_idisposable_dispose = FALSE;
+  mdip->is_dispose_bool = FALSE;
+  mdip->is_object_finalize = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   mdip->invalid_virtual_specifier = FALSE;
   mdip->is_unnamed_field = FALSE;
@@ -2929,6 +2944,96 @@ correcting the class declarations that produced the problem.
   end_error();
 }  /* abstract_class_diagnostic */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean is_overriding_function(a_type_ptr    class_type,
+                                 a_routine_ptr derived_class_routine,
+                                 a_routine_ptr base_class_routine)
+/*
+Return TRUE if, in the given class_type, derived_class_routine overrides
+base_class_routine.
+*/
+{
+  a_boolean  is_overriding_function = FALSE;
+
+  if (derived_class_routine->is_virtual &&
+      derived_class_routine->overrides_base_member) {
+    a_type_ptr       base_class_type = parent_class_of(base_class_routine);
+    a_base_class_ptr bcp = base_classes_of(class_type);
+    for (; bcp != NULL; bcp = bcp->next) {
+      if (identical_types(bcp->type, base_class_type)) {
+        an_overriding_virtual_function_ptr
+                                     ovfp = bcp->overriding_virtual_functions;
+        for (; ovfp != NULL; ovfp = ovfp->next) {
+          if (ovfp->primary_function == base_class_routine &&
+              ovfp->overriding_function == derived_class_routine) {
+            is_overriding_function = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return is_overriding_function;
+}  /* is_overriding_function */
+
+
+a_routine_ptr find_finalize_routine(a_type_ptr class_type,
+                                    a_boolean  *p_is_object_finalize)
+/*
+Return the routine entry for the Finalize() member function of the given class
+type, or NULL if there is no such function.  If such a member function is found
+and it meets the requirements of the "CLI Dispose pattern", set
+*p_is_object_finalize to TRUE; otherwise, set it to FALSE.
+*/
+{
+  a_routine_ptr    finalize_routine = NULL;
+  a_symbol_locator locator;
+  a_symbol_ptr     sym;
+
+  check_assertion(p_is_object_finalize != NULL); 
+  *p_is_object_finalize = FALSE;
+  clear_locator(&locator, &class_type->source_corresp.decl_position);
+  (void)find_symbol("Finalize", sizeof("Finalize")-1, &locator);
+  clear_specific_symbol(locator);
+  sym = class_qualified_id_lookup(&locator, class_type,
+                                  IDL_DIRECT_CLASS_MEMBERS_ONLY);
+  /* A valid Finalize routine is a member function with the
+     following signature: protected: virtual void Finalize(); */
+  if (sym != NULL && is_member_function_symbol(sym)) {
+    a_boolean  is_overloaded_function;
+    /* Lookup found a Finalize function (or an overload set of them). */
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      sym = sym->variant.overloaded_function.symbols;
+      is_overloaded_function = TRUE;
+    } else {
+      is_overloaded_function = FALSE;
+    }  /* if */
+    for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
+      if (symbol_is(sym, sk_member_function)) {
+        a_routine_ptr  routine = sym->variant.routine.ptr;
+        if (function_type_params(routine->type) == NULL) {
+          finalize_routine = routine;
+          if (routine->is_virtual && !routine->pure_virtual &&
+              !routine->final &&
+              is_void_type(routine->type->variant.routine.return_type) &&
+              routine->source_corresp.access ==
+                                          (an_access_specifier)as_protected &&
+              (identical_types(class_type, cli_system_object_type()) ||
+               is_overriding_function(class_type, routine,
+                                      get_object_finalize_routine()))) {
+            *p_is_object_finalize = TRUE;
+          }  /* if */
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return finalize_routine;
+}  /* find_finalize_routine */
+ 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void insert_in_virtual_function_override_list(
                                 a_base_class_ptr                   base_class,
@@ -4058,6 +4163,7 @@ Return TRUE if bcp is on a derivation path involving a "final" base class.
 done:
   return result;
 }  /* base_is_final */
+
 
 static void check_virtual_function_override(
                                  a_class_def_state_ptr   class_state,
@@ -6820,8 +6926,7 @@ type, add an implicit derivation from System::ObjectType or System::ValueType
       }  /* if */
     }  /* for */
     if (add_implicit_base &&
-        !f_identical_types(class_type, cli_system_object_type(),
-                           ITF_NO_FLAGS)) {
+        !identical_types(class_type, cli_system_object_type())) {
       a_base_class_ptr              new_direct_bcp, last_bcp = NULL;
       a_boolean                     may_be_first_direct_nonvirtual_base = TRUE;
       a_base_class_sequence_number  direct_base_number = 0;
@@ -6841,9 +6946,9 @@ type, add an implicit derivation from System::ObjectType or System::ValueType
         may_be_first_direct_nonvirtual_base = FALSE;
       }  /* if */
       new_direct_bcp = alloc_base_class();
-      new_direct_bcp->type = cli_class_type_kind_is(class_type, cctk_ref) ?
-                                                      cli_system_object_type()
-                                                    : cli_system_value_type();
+      new_direct_bcp->type =
+        cli_class_type_kind_is(class_type, cctk_ref) ? cli_system_object_type()
+                                                     : cli_system_value_type();
       complete_type_is_needed(new_direct_bcp->type);
       new_direct_bcp->orig_type = new_direct_bcp->type;
       new_direct_bcp->derived_class = class_type;
@@ -6863,7 +6968,9 @@ static void wrapup_base_classes(a_class_def_state_ptr  class_state)
 /*
 The base specifier list has been scanned and any implicit base classes have
 been added.  Perform any needed post-processing for the resulting base class
-list (such as computing the preorder list for the IA-64 ABI).
+list (such as computing the preorder list for the IA-64 ABI).  This function
+may be called twice in C++/CLI mode, if the IDisposable interface is added
+implicitly as part of the dispose pattern implementation.
 */
 {
   a_type_ptr                   type_ptr = class_state->class_type;
@@ -8334,6 +8441,8 @@ function, set *ambiguous to TRUE.
     /* An error of some short. */
     sym = NULL;
   } else {
+    a_class_symbol_supplement_ptr cssp;
+    cssp = symbol_supplement_for_class(class_type);
     if (first_param != NULL) {
       /* A copy constructor or an assignment operator.  If the parameter is
          of reference type, the qualifier underneath the reference is
@@ -8361,17 +8470,36 @@ function, set *ambiguous to TRUE.
         break;
       case sfk_destructor:
         /* Destructor. */
-        sym = (symbol_supplement_for_class(class_type))->destructor;
+        sym = cssp->destructor;
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case sfk_static_constructor:
         check_assertion(cppcli_enabled);
-        sym = (symbol_supplement_for_class(class_type))->static_constructor;
+        sym = cssp->static_constructor;
         break;
       case sfk_finalizer:
         /* C++/CLI finalizer. */
         check_assertion(cppcli_enabled);
-        sym = (symbol_supplement_for_class(class_type))->finalizer;
+        sym = cssp->finalizer;
+        break;
+      case sfk_idisposable_dispose:
+        /* C++/CLI dispose pattern IDisposable::Dispose() member. */
+        check_assertion(cppcli_enabled);
+        sym = cssp->has_dispose_pattern_idisposable_dispose ?
+                                             cssp->idisposable_dispose : NULL;
+        break;
+      case sfk_dispose_bool:
+        /* C++/CLI dispose pattern Dispose(bool) member. */
+        check_assertion(cppcli_enabled);
+        sym = (cssp->has_dispose_pattern_idisposable_dispose ||
+               cssp->has_dispose_pattern_object_finalize) ?
+                                                    cssp->dispose_bool : NULL;
+        break;
+      case sfk_object_finalize:
+        /* C++/CLI dispose pattern Finalize() member. */
+        check_assertion(cppcli_enabled);
+        sym = cssp->has_dispose_pattern_object_finalize ?
+                                                 cssp->object_finalize : NULL;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case sfk_operator:
@@ -8816,6 +8944,11 @@ set to FALSE (and FALSE is always returned).
         /* Finalizers are only allowed in C++/CLI ref class types. */
         check_assertion_or_expect_error(is_ref_class_type(type) &&
                                         !rtn->compiler_generated);
+        break;
+      case sfk_idisposable_dispose:
+      case sfk_dispose_bool:
+      case sfk_object_finalize:
+        check_assertion(rtn->compiler_generated);
         break;
       default:
         unexpected_condition();
@@ -9864,6 +9997,18 @@ otherwise, it is NULL.
          supplement. */
       cssp->finalizer = sym;
       break;
+    case sfk_idisposable_dispose:
+      check_assertion(cssp->idisposable_dispose == NULL);
+      cssp->idisposable_dispose = sym;
+      break;
+    case sfk_dispose_bool:
+      check_assertion(cssp->dispose_bool == NULL);
+      cssp->dispose_bool = sym;
+      break;
+    case sfk_object_finalize:
+      check_assertion(cssp->object_finalize == NULL);
+      cssp->object_finalize = sym;
+      break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:
       /* Nothing to do. */
@@ -9951,6 +10096,15 @@ an error at the given position.
          issued elsewhere. */
       expect_error();
       break;
+    case sfk_idisposable_dispose:
+      /* A value class that implements the IDisposable interface will have an
+         empty implementation of IDisposable::Dispose() generated for it. */
+      break;
+    case sfk_dispose_bool:
+    case sfk_object_finalize:
+      /* These functions should never be generated for value classes. */
+      unexpected_condition();
+      break;
     case sfk_operator:
       if (rtn->variant.opname_kind == (an_opname_kind)onk_assign) {
         err_code = ec_assignment_in_value_class_type;
@@ -9964,6 +10118,44 @@ an error at the given position.
     pos_error(err_code, diag_pos);
   }  /* if */
 }  /* exclude_special_members_from_value_class_type */
+
+
+static void check_for_reserved_dispose_pattern_members(
+                                    a_symbol_locator              *locator,
+                                    a_type_ptr                    class_type,
+                                    a_decl_parse_state            *decl_state,
+                                    a_routine_type_supplement_ptr rtsp)
+/*
+Issue a diagnostic if a Dispose(bool), Dispose(), or Finalize() function is
+being declared in a ref class.  These function signatures are reserved for the
+C++/CLI dispose pattern.
+*/
+{
+  check_assertion(cppcli_enabled);
+  if (is_managed_class_type(class_type) &&
+      class_type_supp(class_type)->assembly_index == 0 &&
+      locator->symbol_header != NULL) {
+    a_boolean  is_dispose = symbol_header_is_for_identifier_string(
+                                            locator->symbol_header, "Dispose");
+    a_boolean  is_finalize = !is_dispose &&
+                             symbol_header_is_for_identifier_string(
+                                           locator->symbol_header, "Finalize");
+    if (is_dispose || is_finalize) {
+      a_param_type_ptr  ptp = rtsp->param_type_list;
+      if (ptp == NULL ||
+          (is_dispose && ptp->next == NULL && is_bool_type(ptp->type))) {
+        /* The member being declared is Finalize(), Dispose(), or
+           Dispose(bool): Issue an error (and disable the implicit generation
+           of the "dispose pattern" members). */
+        symbol_supplement_for_class(class_type)
+                              ->disable_dispose_pattern_implementation = TRUE;
+        pos_st_error(is_dispose ? ec_reserved_dispose : ec_reserved_finalize,
+                     &decl_state->declarator_pos,
+                     locator->symbol_header->identifier);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_for_reserved_dispose_pattern_members */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -10015,6 +10207,10 @@ implicitly declared member functions.
       /* The member function declaration appears as part of a static property
          declaration. */
       decl_state->storage_class = (a_storage_class)sc_static;
+    }  /* if */
+    if (!compiler_generated) {
+      check_for_reserved_dispose_pattern_members(locator, class_type,
+                                                 decl_state, rtsp);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -10146,6 +10342,15 @@ implicitly declared member functions.
     } else if (decl_info->is_finalizer) {
       /* A C++/CLI finalizer declaration. */
       set_routine_special_kind(rtn, (a_special_function_kind)sfk_finalizer);
+    } else if (decl_info->is_idisposable_dispose) {
+      set_routine_special_kind(rtn, (a_special_function_kind)
+                                                     sfk_idisposable_dispose);
+    } else if (decl_info->is_dispose_bool) {
+      set_routine_special_kind(rtn, (a_special_function_kind)
+                                                            sfk_dispose_bool);
+    } else if (decl_info->is_object_finalize) {
+      set_routine_special_kind(rtn, (a_special_function_kind)
+                                                         sfk_object_finalize);
     } else if (pdp != NULL) {
       /* A C++/CLI property accessor. */
       if (pdp->kind == (a_property_or_event_kind)pek_cli_property) {
@@ -13470,6 +13675,12 @@ be entered.
         check_for_overloaded_property_conflict(property_set, member_sym);
       }  /* if */
     }  /* if */
+    if (cppcli_enabled && !cssp->any_disposable_data_members &&
+        is_ref_class_type(member_type) &&
+        symbol_supplement_for_class(member_type)->is_disposable) {
+      /* Record that there is at least one disposable ref class member. */
+      cssp->any_disposable_data_members = TRUE;
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 #if DECL_MODIFIERS_IN_USE
@@ -13676,6 +13887,7 @@ information about the member declaration, respectively.
 
 static void generate_special_function(a_class_def_state_ptr   class_state,
                                       a_member_decl_info_ptr  decl_info,
+                                      a_func_info_block_ptr   func_info,
                                       a_param_type_ptr        ptp)
 /*
 Create a routine entry for a compiler generated constructor, destructor, or
@@ -13690,7 +13902,6 @@ operator should be created.  No routine body is generated at this time.
   a_type_ptr                rout_type, class_type = class_state->class_type;
   a_routine_type_supplement *extra_info;
   a_symbol_locator          locator;
-  a_func_info_block         func_info;
   a_source_position         *class_decl_pos;
   a_routine_ptr             routine;
 
@@ -13707,7 +13918,11 @@ operator should be created.  No routine body is generated at this time.
     rout_type->variant.routine.return_type = void_type();
     extra_info->assoc_routine_is_dtor = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && decl_info->is_static_constructor) {
+  } else if (cppcli_enabled &&
+             (decl_info->is_static_constructor ||
+              decl_info->is_idisposable_dispose ||
+              decl_info->is_dispose_bool ||
+              decl_info->is_object_finalize)) {
     rout_type->variant.routine.return_type = void_type();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
@@ -13728,8 +13943,11 @@ operator should be created.  No routine body is generated at this time.
      to be safe, in case the rules change on when the flag needs to be set. */
   set_routine_calling_method_flag(rout_type, &null_source_position);
   decl_info->decl_state.type = rout_type;
-  /* Create a locator for the symbol that will be created. */
   class_decl_pos = &class_type->source_corresp.decl_position;
+  /* All special functions are inline definitions */
+  func_info->is_inline = TRUE;
+  if (exceptions_enabled) func_info->throw_position = *class_decl_pos;
+  /* Create a locator for the symbol that will be created. */
   if (decl_info->is_constructor || decl_info->is_destructor) {
     a_symbol_ptr tag_sym = symbol_for(class_type);
     make_locator_for_symbol(tag_sym, &locator);
@@ -13745,19 +13963,25 @@ operator should be created.  No routine body is generated at this time.
     make_locator_for_symbol(tag_sym, &locator);
     change_class_locator_into_constructor_locator(&locator, class_decl_pos,
                                                   /*is_static_ctor=*/TRUE);
+  } else if (cppcli_enabled && decl_info->is_idisposable_dispose) {
+    clear_locator(&locator, class_decl_pos);
+    (void)find_symbol("Dispose", sizeof("Dispose")-1, &locator);
+  } else if (cppcli_enabled && decl_info->is_dispose_bool) {
+    clear_locator(&locator, class_decl_pos);
+    (void)find_symbol("Dispose", sizeof("Dispose")-1, &locator);
+  } else if (cppcli_enabled && decl_info->is_object_finalize) {
+    clear_locator(&locator, class_decl_pos);
+    (void)find_symbol("Finalize", sizeof("Finalize")-1, &locator);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Must be an assignment operator. */
     make_opname_locator((an_opname_kind)onk_assign, &locator, class_decl_pos);
   }  /* if */
-  clear_func_info(&func_info);
-  func_info.is_inline = TRUE;
-  if (exceptions_enabled) func_info.throw_position = *class_decl_pos;
   /* Create a symbol and enter it in the symbol table, and create a routine
      entry and add it to the routines list for the current scope. */
-  decl_member_function(&locator, &func_info, class_state, decl_info,
+  decl_member_function(&locator, func_info, class_state, decl_info,
                        /*compiler_generated=*/TRUE);
-  done_with_func_info(func_info);
+  done_with_func_info(*func_info);
   /* It can be that the head of symbols list for the scope has been
      modified (it may have been changed to an sk_overloaded_function, or
      it may have been empty), so update the class symbol supplement, just to
@@ -14186,6 +14410,7 @@ by class_state.  If is_deleted is TRUE, make that constructor "deleted".
 {
   a_type_ptr          class_type = class_state->class_type;
   a_member_decl_info  decl_info;
+  a_func_info_block   func_info;
 
   initialize_member_decl_info(&decl_info,
                               &class_type->source_corresp.decl_position);
@@ -14195,7 +14420,9 @@ by class_state.  If is_deleted is TRUE, make that constructor "deleted".
        Since it will never actually be called it gets special handling. */
     decl_info.is_trivial_default_constructor = TRUE;
   }  /* if */
-  generate_special_function(class_state, &decl_info, (a_param_type*)NULL);
+  clear_func_info(&func_info);
+  generate_special_function(class_state, &decl_info, &func_info,
+                            (a_param_type*)NULL);
   if (is_deleted) {
     a_symbol_ptr  sym = decl_info.decl_state.sym;
     sym->defined = TRUE;
@@ -14265,11 +14492,13 @@ qualified parent class type) and qualifiers describes the qualifiers in X.
   a_member_decl_info  decl_info;
   a_param_type_ptr    ptp;
   a_type_ptr          ptype;
+  a_func_info_block   func_info;
 
   initialize_member_decl_info(&decl_info, pos);
   ptype = make_qualified_type(class_type, qualifiers);
   ptp = alloc_param_type(make_reference_type(ptype));
-  generate_special_function(class_state, &decl_info, ptp);
+  clear_func_info(&func_info);
+  generate_special_function(class_state, &decl_info, &func_info, ptp);
   if (is_deleted) {
     a_symbol_ptr  sym = decl_info.decl_state.sym;
     sym->defined = TRUE;
@@ -14286,7 +14515,8 @@ qualified parent class type) and qualifiers describes the qualifiers in X.
     if (!identical_types(far_ptype, ptype)) {
       ptp = alloc_param_type(make_reference_type(far_ptype));
       initialize_member_decl_info(&decl_info, pos);
-      generate_special_function(class_state, &decl_info, ptp);
+      clear_func_info(&func_info);
+      generate_special_function(class_state, &decl_info, &func_info, ptp);
     }  /* if */
     if (is_deleted) {
       a_symbol_ptr  sym = decl_info.decl_state.sym;
@@ -14346,6 +14576,469 @@ member functions.)
   }  /* if */
 }  /* mark_trivial_copy_functions */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_type_ptr find_base_ref_class(a_type_ptr  class_type)
+/*
+Returns the direct base ref class of the specified class, or NULL if the class
+is System::Object itself.
+*/
+{
+  a_type_ptr        base_class_type = NULL;
+  a_base_class_ptr  bcp = base_classes_of(class_type);
+
+  check_assertion(cppcli_enabled && is_ref_class_type(class_type));
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct && is_ref_class_type(bcp->type)) {
+      base_class_type = bcp->type;
+      break;
+    }  /* if */
+  }  /* for */
+  return base_class_type;
+}  /* find_base_ref_class */
+
+
+static a_boolean is_dispose_bool_function(a_symbol_ptr  sym,
+                                          a_boolean     *p_is_valid)
+/*
+Returns TRUE if "sym" is a member function that has a single bool parameter.
+Furthermore, "p_is_valid" is set to TRUE if that function also meets the
+requirements of a valid dispose pattern implementation of Dispose(bool), i.e.
+protected: virtual void Dispose(bool);
+*/
+{
+  a_boolean  is_dispose_bool_function = FALSE;
+
+  check_assertion(sym != NULL && p_is_valid != NULL);
+  if (symbol_is(sym, sk_member_function)) {
+    a_routine_ptr     routine = sym->variant.routine.ptr;
+    a_param_type_ptr  ptp = function_type_params(routine->type);
+    if (ptp != NULL && ptp->next == NULL && is_bool_type(ptp->type)) {
+      is_dispose_bool_function = TRUE;
+      if (routine->is_virtual &&
+          is_void_type(routine->type->variant.routine.return_type) &&
+          routine->source_corresp.access ==
+                                          (an_access_specifier)as_protected) {
+        *p_is_valid = TRUE;
+      }  /* if */
+    } /* if */
+  }  /* if */
+  return is_dispose_bool_function;
+}  /* is_dispose_bool_function */
+
+
+static a_boolean is_dispose_void_function(
+                                      a_symbol_ptr  sym,
+                                      a_type_ptr    class_type,
+                                      a_boolean     *p_is_idisposable_dispose)
+/*
+Returns TRUE if "sym" is a member function that has an empty parameter list.
+Furthermore, "p_is_idisposable_dispose" is set to TRUE if that function also
+meets the requirements of a valid implementation of IDisposable::Dispose().
+*/
+{
+  a_boolean  is_dispose_void_function = FALSE;
+
+  check_assertion(sym != NULL && p_is_idisposable_dispose != NULL);
+  if (symbol_is(sym, sk_member_function)) {
+    a_routine_ptr  routine = sym->variant.routine.ptr;
+    if (function_type_params(routine->type) == NULL) {
+      /* A member function with an empty parameter list: Return TRUE. */
+      a_class_symbol_supplement_ptr
+                               cssp = symbol_supplement_for_class(class_type);
+      is_dispose_void_function = TRUE;
+      /* Determine if this routine implements IDisposable::Dispose() for the
+         specified class. */
+      if (cssp->is_disposable && routine->is_virtual &&
+          !routine->pure_virtual &&
+          is_void_type(routine->type->variant.routine.return_type) &&
+          routine->source_corresp.access == (an_access_specifier)as_public &&
+          is_overriding_function(class_type, routine,
+                                 get_idisposable_dispose_routine())) {
+        *p_is_idisposable_dispose = TRUE;
+      }  /* if */
+    } /* if */
+  }  /* if */
+  return is_dispose_void_function;
+}  /* is_dispose_void_function */
+
+
+static void check_for_dispose_pattern(a_type_ptr  class_type)
+/*
+Find any Dispose(bool), Dispose(), and Finalize() functions in the specified
+class.  The results are used to determine how a derived class dispose pattern
+should be implemented.  The results are stored in the class symbol supplement.
+*/
+{
+  a_source_position              *pos;
+  a_type_ptr                     base_class;
+  a_class_symbol_supplement_ptr  cssp, base_cssp;
+  a_symbol_locator               locator;
+  a_symbol_ptr                   sym = NULL;
+  a_routine_ptr                  dispose_void_routine = NULL;
+  a_routine_ptr                  dispose_bool_routine = NULL;
+  a_routine_ptr                  object_finalize_routine = NULL;
+  a_boolean                      is_valid_object_finalize = FALSE;
+  a_boolean                      is_valid_dispose_bool = FALSE;
+  a_boolean                      is_idisposable_dispose = FALSE;
+  a_boolean                      has_dispose_pattern_idisposable_dispose =
+                                                                        FALSE;
+  a_boolean                      has_dispose_pattern_object_finalize = FALSE;
+  a_boolean                      needs_new_idisposable_dispose = FALSE;
+
+  check_assertion(is_ref_class_type(class_type));
+  cssp = symbol_supplement_for_class(class_type);
+  pos = &class_type->source_corresp.decl_position;
+  if (cssp->checked_for_dispose_pattern) goto done;
+  cssp->checked_for_dispose_pattern = TRUE;
+  if (identical_types(class_type, cli_system_object_type())) {
+    /* This is the System::Object type, which is special since it doesn't have
+       a base class.  Just record it's "Finalize" member. */
+    cssp->object_finalize = symbol_for(get_object_finalize_routine());
+    goto done;
+  }  /* if */
+  /* Look for a Finalize() function in the class.*/
+  object_finalize_routine = find_finalize_routine(class_type,
+                                                  &is_valid_object_finalize);
+  if (object_finalize_routine != NULL && !is_valid_object_finalize) {
+    /* The Finalize() function does not override Object::Finalize(). */
+    a_symbol_ptr  object_finalize_symbol = symbol_for(object_finalize_routine);
+    pos_sy_error(ec_finalize_does_not_override_object_finalize,
+                 &object_finalize_symbol->decl_position,
+                 object_finalize_symbol);
+    object_finalize_routine = NULL;
+  }  /* if */
+  /* Look for any Dispose(bool) or Dispose() functions in the class. */
+  clear_locator(&locator, pos);
+  (void)find_symbol("Dispose", sizeof("Dispose")-1, &locator);
+  /* Clear the specific symbol so that it does not influence the lookup. */
+  clear_specific_symbol(locator);
+  sym = class_qualified_id_lookup(&locator, class_type,
+                                  IDL_DIRECT_CLASS_MEMBERS_ONLY);
+  if (sym != NULL && is_member_function_symbol(sym)) {
+    a_boolean  is_overloaded_function;
+    /* Lookup found one or more Dispose member functions. */
+    if (symbol_is(sym, sk_overloaded_function)) {
+      sym = sym->variant.overloaded_function.symbols;
+      is_overloaded_function = TRUE;
+    } else {
+      is_overloaded_function = FALSE;
+    }  /* if */
+    for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
+      if (dispose_bool_routine == NULL &&
+          is_dispose_bool_function(sym, &is_valid_dispose_bool)) {
+        /* A Dispose(bool) function. */
+        dispose_bool_routine = sym->variant.routine.ptr;
+      } else if (dispose_void_routine == NULL &&
+                 is_dispose_void_function(sym, class_type,
+                                          &is_idisposable_dispose)) {
+        /* A Dispose() function. */
+        dispose_void_routine = sym->variant.routine.ptr;
+      }  /* if */
+      if (dispose_bool_routine != NULL && dispose_void_routine != NULL) {
+        /* No other functions are of interest. */
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (is_valid_dispose_bool) {
+    if (is_idisposable_dispose) {
+      /* We found valid Dispose(bool) and Dispose() members: This is a valid
+         dispose pattern. */
+      has_dispose_pattern_idisposable_dispose = TRUE;
+    }  /* if */
+    if (object_finalize_routine != NULL) {
+      /* We found valid Dispose(bool) and Finalize() members: This is a valid
+         dispose pattern. */
+      has_dispose_pattern_object_finalize = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Check for a base class dispose pattern implementation. */
+  base_class = find_base_ref_class(class_type);
+  base_cssp = symbol_supplement_for_class(base_class);
+  check_for_dispose_pattern(base_class);
+  if (base_cssp->dispose_bool != NULL) {
+    /* The base class may be providing the dispose pattern implementation.
+       This is only worth checking for if class_type itself doesn't do so,
+       and if it either has not Dispose(bool) member or that member is a
+       valid overrider of the base class' Dispose(bool) member. */
+    if ((dispose_void_routine == NULL || object_finalize_routine == NULL) &&
+        (dispose_bool_routine == NULL ||
+         (is_valid_dispose_bool &&
+          is_overriding_function(
+                            class_type, dispose_bool_routine,
+                            base_cssp->dispose_bool->variant.routine.ptr)))) {
+      /* This class extends a base class dispose pattern. */
+      if (dispose_void_routine == NULL &&
+          base_cssp->has_dispose_pattern_idisposable_dispose) {
+        /* This class does not have a Dispose() function.  However, a base
+           class has an IDisposable::Dispose() function that is part of a
+           dispose pattern implementation.  Therefore, this class will not
+           need to implement one. */
+        has_dispose_pattern_idisposable_dispose = TRUE;
+      }  /* if */
+      if (object_finalize_routine == NULL &&
+          base_cssp->has_dispose_pattern_object_finalize) {
+        /* This class does not have a Finalize() function that overrides
+           Object::Finalize().  However, a base class has an override of
+           Object::Finalize() that is part of a dispose pattern
+           implementation.  Therefore, this class will not need to implement
+           one. */
+        has_dispose_pattern_object_finalize = TRUE;
+      }  /* if */
+    }  /* if */
+    if (dispose_bool_routine == NULL) {
+      /* Look for a Dispose(bool) member in a base class that a derived class'
+         Dispose(bool) implementation should invoke. */
+      dispose_bool_routine = base_cssp->dispose_bool->variant.routine.ptr;
+    }  /* if */
+  }  /* if */
+  if (dispose_void_routine == NULL) {
+    if (base_cssp->idisposable_dispose != NULL) {
+      /* Find the IDisposable::Dispose() overrider in a base class that should
+         be invoked by the derived class' Dispose(bool) implementation. */
+      dispose_void_routine = base_cssp->idisposable_dispose
+                                      ->variant.routine.ptr;
+      is_idisposable_dispose = TRUE;
+    }  /* if */
+    /* The virtual Dispose() function in the base class is sealed or it does
+       not implement IDisposable::Dispose().  Derived classes that implement
+       IDisposable::Dispose() will need to mark the declaration with the "new"
+       modifier. */
+    needs_new_idisposable_dispose = base_cssp->needs_new_idisposable_dispose;
+  } else if (dispose_void_routine->is_virtual &&
+             (dispose_void_routine->final || !is_idisposable_dispose)) {
+    /* The virtual Dispose() function in this class is sealed or it does not
+       implement IDisposable::Dispose().  Derived classes that implement
+       IDisposable::Dispose() will need to mark the declaration with the "new"
+       modifier. */
+    needs_new_idisposable_dispose = TRUE;
+  }  /* if */
+  if (object_finalize_routine == NULL) {
+    /* Find an override of Object::Finalize() in a base class that must be
+       invoked by a derived class' Dispose(bool) implementation. */
+    check_assertion(base_cssp->object_finalize != NULL);
+    object_finalize_routine = base_cssp->object_finalize->variant.routine.ptr;
+  }  /* if */
+  /* Store the results of the search for the dispose pattern in the class
+     symbol supplement. */
+  if (is_idisposable_dispose) {
+    cssp->idisposable_dispose = symbol_for(dispose_void_routine);
+  }  /* if */
+  if (dispose_bool_routine != NULL && dispose_bool_routine->is_virtual) {
+    cssp->dispose_bool = symbol_for(dispose_bool_routine);
+  }  /* if */
+  if (object_finalize_routine != NULL) {
+    cssp->object_finalize = symbol_for(object_finalize_routine);
+  }  /* if */
+  cssp->has_dispose_pattern_idisposable_dispose =
+                                    has_dispose_pattern_idisposable_dispose;
+  cssp->has_dispose_pattern_object_finalize =
+                                        has_dispose_pattern_object_finalize;
+  cssp->needs_new_idisposable_dispose = needs_new_idisposable_dispose;
+done:
+  return;
+}  /* check_for_dispose_pattern */
+
+
+static void add_cli_system_idisposable_base(a_class_def_state_ptr  class_state)
+/*
+Add System::IDisposable as a direct (implicit) base of the given class.
+(This is a class implementing the C++/CLI dispose pattern, including an
+implementation of IDisposable::Dispose().)
+*/
+{
+  a_type_ptr                     class_type = class_state->class_type;
+  a_class_symbol_supplement_ptr  cssp;
+  a_base_class_ptr               bcp, new_direct_bcp, last_bcp = NULL;
+  a_boolean                      may_be_first_direct_nonvirtual_base = TRUE;
+  a_base_class_sequence_number   direct_base_number = 0;
+
+  cssp = symbol_supplement_for_class(class_type);
+  check_assertion(cli_class_type_kind_is(class_type, cctk_ref));
+  /* Determine the last base class entry and the last direct base number. */
+  bcp = base_classes_of(class_type);
+  if (bcp != NULL) {
+    for (; bcp != NULL; bcp = bcp->next) {
+      if (bcp->next == NULL) last_bcp = bcp;
+      if (bcp->direct_base_number > direct_base_number) {
+        direct_base_number = bcp->direct_base_number;
+      }  /* if */
+    }  /* for */
+    /* There are no virtual base classes for managed classes.  So if there
+        is already a base class, there must also be a direct nonvirtual
+        base class. */
+    may_be_first_direct_nonvirtual_base = FALSE;
+  }  /* if */
+  new_direct_bcp = alloc_base_class();
+  new_direct_bcp->type = cli_class_type_for(csk_system_idisposable);
+  complete_type_is_needed(new_direct_bcp->type);
+  new_direct_bcp->orig_type = new_direct_bcp->type;
+  new_direct_bcp->derived_class = class_type;
+  new_direct_bcp->direct = TRUE;
+  new_direct_bcp->is_implicit_direct_base = TRUE;
+  new_direct_bcp->direct_base_number = direct_base_number+1;
+  add_new_direct_base(new_direct_bcp, class_state,
+                      (an_access_specifier)as_public, &last_bcp,
+                      &may_be_first_direct_nonvirtual_base);
+  cssp->is_disposable = TRUE;
+  /* Unlike other base classes, this one is added after the body of the class
+     is completely parsed: Call wrapup_base_classes again to ensure the base
+     class post-processing takes the new base class into account. */
+  wrapup_base_classes(class_state);
+}  /* add_cli_system_idisposable_base */
+
+
+static void implement_dispose_pattern_if_needed(
+                                           a_class_def_state_ptr  class_state)
+/*
+Implement the C++/CLI dispose pattern for this class it is needed.
+*/
+{
+  a_type_ptr                     class_type = class_state->class_type;
+  a_boolean                      is_ref_class;
+  a_boolean                      is_value_class;
+  a_boolean                      implement_dispose_pattern = FALSE;
+  a_class_symbol_supplement_ptr  cssp;
+  a_class_type_supplement_ptr    ctsp;
+  a_source_position              *pos;
+
+  is_ref_class = cli_class_type_kind_is(class_type, cctk_ref);
+  is_value_class = cli_class_type_kind_is(class_type, cctk_value);
+  check_assertion(is_ref_class || is_value_class);
+  cssp = symbol_supplement_for_class(class_type);
+  ctsp = class_type_supp(class_type);
+  pos = &class_type->source_corresp.decl_position;
+  if (!cssp->disable_dispose_pattern_implementation) {
+    if (is_ref_class) {
+      /* A ref class requires a dispose pattern implementation if it has a
+         destructor, finalizer, or any disposable data members. */
+      implement_dispose_pattern = cssp->destructor || cssp->finalizer ||
+                                  cssp->any_disposable_data_members;
+    } else if (is_value_class) {
+      /* If a value class implements the IDisposable interface, an
+         IDisposable::Dispose() function should be generated; however,
+         that function will do nothing. */
+      implement_dispose_pattern = cssp->is_disposable;
+    }  /* if */
+  }  /* if */
+  if (implement_dispose_pattern) {
+    an_access_specifier            saved_access = class_state->access;
+    a_func_info_block              func_info;
+    a_member_decl_info             decl_info;
+    a_param_type_ptr               ptp;
+    a_type_ptr                     base_class_type = NULL;
+    a_class_symbol_supplement_ptr  base_cssp = NULL;
+    if (is_ref_class) {
+      base_class_type = find_base_ref_class(class_type);
+      check_assertion(base_class_type != NULL);
+      base_cssp = symbol_supplement_for_class(base_class_type);
+      check_assertion(base_cssp != NULL);
+      /* Determine what dispose pattern functions need to be implemented
+         and what base class functions they should chain to. */
+      check_for_dispose_pattern(base_class_type);
+      /* Generate the Dispose(bool) function. */
+      class_state->access = (an_access_specifier)as_protected;
+      initialize_member_decl_info(&decl_info, pos);
+      decl_info.is_dispose_bool = TRUE;
+      decl_info.decl_state.dso_flags |= DSO_VIRTUAL;
+      clear_func_info(&func_info);
+      if (base_cssp->dispose_bool == NULL) {
+        /* No base class has a virtual Dispose(bool) function. An "override"
+           or "new" modifier is not required. */
+      } else if (base_cssp->has_dispose_pattern_idisposable_dispose ||
+                 base_cssp->has_dispose_pattern_object_finalize) {
+        /* Override the virtual Dispose(bool) that exists in the base class'
+           dispose pattern implementation. */
+        func_info.override = TRUE;
+      } else {
+        /* Hide any Dispose(bool) in the base class that is not part of a
+           valid dispose pattern implementation. */
+        func_info.new_member = TRUE;
+      }  /* if */
+      ptp = alloc_param_type(bool_type());
+      generate_special_function(class_state, &decl_info, &func_info, ptp);
+      check_assertion(cssp->dispose_bool != NULL);
+      /* Record the routines that the generated Dispose(bool) function will
+         call in the class type supplement. */
+      if (base_cssp->has_dispose_pattern_object_finalize ||
+          base_cssp->has_dispose_pattern_idisposable_dispose) {
+        /* Extend the base class dispose pattern: Dispose(bool) calls the base
+           class Dispose(bool) function. */
+        check_assertion(base_cssp->dispose_bool != NULL);
+        ctsp->base_dispose_bool_routine = base_cssp->dispose_bool
+                                                   ->variant.routine.ptr;
+      }  else {
+        /* Introduce the base class dispose pattern: Dispose(bool) calls the
+           base class' Dispose() and Finalize() implementations if present. */
+        if (base_cssp->idisposable_dispose) {
+          ctsp->base_idisposable_dispose_routine =
+                          base_cssp->idisposable_dispose->variant.routine.ptr;
+        }  /* if */
+        check_assertion(base_cssp->object_finalize != NULL);
+        ctsp->base_object_finalize_routine = base_cssp->object_finalize
+                                                      ->variant.routine.ptr;
+      }  /* if */
+      /* Generate the Object::Finalize() overrider if a finalizer was
+         declared. */
+      if (cssp->finalizer != NULL &&
+          !base_cssp->has_dispose_pattern_object_finalize) {
+        class_state->access = (an_access_specifier)as_protected;
+        initialize_member_decl_info(&decl_info, pos);
+        decl_info.is_object_finalize = TRUE;
+        decl_info.decl_state.dso_flags |= DSO_VIRTUAL;
+        clear_func_info(&func_info);
+        func_info.override = TRUE;
+        generate_special_function(class_state, &decl_info, &func_info,
+                                  (a_param_type_ptr)NULL);
+        check_assertion(cssp->object_finalize != NULL);
+        cssp->has_dispose_pattern_object_finalize = FALSE;
+      } else {
+        /* Record whether or not a base class dispose pattern already
+           implements the Finalize() member. */
+        cssp->has_dispose_pattern_object_finalize =
+                               base_cssp->has_dispose_pattern_object_finalize;
+      }  /* if */
+    }  /* if */
+    /* Generate the implementation of IDisposable::Dispose() if one was not
+       already provided by a base class dispose pattern implementation. */
+    if (is_value_class ||
+        !base_cssp->has_dispose_pattern_idisposable_dispose) {
+      if (is_ref_class) {
+        /* Since an IDisposable::Dispose() implementation is about to be
+           generated, mark the class as implementing System::IDisposable. */
+        add_cli_system_idisposable_base(class_state);
+      }  /* if */
+      class_state->access = (an_access_specifier)as_public;
+      initialize_member_decl_info(&decl_info, pos);
+      decl_info.is_idisposable_dispose = TRUE;
+      decl_info.decl_state.dso_flags |= DSO_VIRTUAL;
+      clear_func_info(&func_info);
+      func_info.sealed = TRUE;
+      if (base_cssp->needs_new_idisposable_dispose) {
+        func_info.new_member = TRUE;
+      } else if (base_cssp->idisposable_dispose != NULL) {
+        func_info.override = TRUE;
+      }  /* if */
+      generate_special_function(class_state, &decl_info, &func_info,
+                                (a_param_type_ptr)NULL);
+      check_assertion(cssp->idisposable_dispose != NULL);
+      cssp->has_dispose_pattern_idisposable_dispose = TRUE;
+      cssp->needs_new_idisposable_dispose = TRUE;
+    } else if (base_cssp != NULL) {
+      /* Record the fact that a base class dispose pattern already implements
+         the IDisposable::Dispose() function. */
+      cssp->has_dispose_pattern_idisposable_dispose = TRUE;
+      cssp->needs_new_idisposable_dispose =
+                                     base_cssp->needs_new_idisposable_dispose;
+    }  /* if */
+    cssp->checked_for_dispose_pattern = TRUE;
+    /* Restore the original class access. */
+    class_state->access = saved_access;
+  }  /* if */
+}  /* implement_dispose_pattern_if_needed */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void check_special_member_functions(a_type_ptr            class_type,
                                            a_class_def_state_ptr class_state)
@@ -14377,6 +15070,7 @@ The routine body is not generated until it is known to be needed.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                     declare_static_ctor;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_func_info_block             func_info;
 
   db_enter(3, "check_special_member_functions");
   cssp = symbol_supplement_for_class(class_type);
@@ -14442,7 +15136,9 @@ The routine body is not generated until it is known to be needed.
     initialize_member_decl_info(&decl_info, pos);
     decl_info.decl_state.storage_class = (a_storage_class)sc_static;
     decl_info.is_static_constructor = TRUE;
-    generate_special_function(class_state, &decl_info, (a_param_type_ptr)NULL);
+    clear_func_info(&func_info);
+    generate_special_function(class_state, &decl_info, &func_info,
+                              (a_param_type_ptr)NULL);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (declare_copy_ctor) {
@@ -14456,7 +15152,8 @@ The routine body is not generated until it is known to be needed.
                             make_qualified_type(class_type, ctor_qualifiers)));
       initialize_member_decl_info(&decl_info, pos);
       decl_info.is_constructor = TRUE;
-      generate_special_function(class_state, &decl_info, ptp);
+      clear_func_info(&func_info);
+      generate_special_function(class_state, &decl_info, &func_info, ptp);
     }  /* if */
   }  /* if */
   if (declare_dtor) {
@@ -14468,7 +15165,8 @@ The routine body is not generated until it is known to be needed.
       /* Add the declaration of the destructor. */
       initialize_member_decl_info(&decl_info, pos);
       decl_info.is_destructor = TRUE;
-      generate_special_function(class_state, &decl_info,
+      clear_func_info(&func_info);
+      generate_special_function(class_state, &decl_info, &func_info,
                                 (a_param_type_ptr)NULL);
     }  /* if */
   }  /* if */
@@ -14511,6 +15209,22 @@ The routine body is not generated until it is known to be needed.
   if (user_provided_copy_assignment_op) {
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled &&
+      (cli_class_type_kind_is(class_type, cctk_ref) ||
+       cli_class_type_kind_is(class_type, cctk_value))) {
+    /* Determine if the class implements the System::IDisposable interface. */
+    cssp->is_disposable =
+        find_base_class_of(class_type,
+                           cli_class_type_for(csk_system_idisposable)) != NULL;
+    if (class_type_supp(class_type)->assembly_index == 0 &&
+        !class_type->variant.class_struct_union.is_prototype_instantiation) {
+      /* The class was not defined in metadata.  Generate the dispose pattern
+         implementation if one is needed. */
+      implement_dispose_pattern_if_needed(class_state);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
 }  /* check_special_member_functions */
 

@@ -391,6 +391,10 @@ typedef int a_gen_name_options_set;
 #define GN_USING_DIRECTIVE 0x200
 			/* The name is the namespace nominated by a
 			   using-directive. */
+#define GN_ALLOW_PROTECTED_BASE_MEMBER_QUALIFIED_NAME 0x400
+			/* Allow the use of the base class name when forming
+			   a qualified name referring to a protected member of
+			   a base of the current class context. */
 
 #if USER_CONTROL_OF_STRUCT_PACKING
 /*
@@ -3352,6 +3356,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
             qualifier_options |= GN_NO_TEMPLATE_ARGS;
           } else if (scp->access == (an_access_specifier)as_protected &&
                      (options & GN_FORCE_QUALIFIED_NAME) != 0 &&
+                     (options &
+                      GN_ALLOW_PROTECTED_BASE_MEMBER_QUALIFIED_NAME) == 0 &&
                      !scp->qualification_needed &&
                      curr_name_context_is_a_class() &&
                      find_base_class_of(curr_name_context_class(),
@@ -7440,6 +7446,7 @@ syntax ("a->b") rather than an explicit function call.
   }  /* if */
   return result;
 }  /* is_operator_syntax_arrow */
+
 
 static void gen_simple_field_selection(an_expr_node_ptr expr)
 /*
@@ -14048,7 +14055,9 @@ managed C++/CLI class.
     }  /* if */
     write_space();
     gen_name((a_source_correspondence_ptr)ep->entity.ptr,
-             (an_il_entry_kind)ep->entity.kind, GN_FORCE_QUALIFIED_NAME,
+             (an_il_entry_kind)ep->entity.kind,
+             GN_FORCE_QUALIFIED_NAME |
+             GN_ALLOW_PROTECTED_BASE_MEMBER_QUALIFIED_NAME,
              (a_boolean *)NULL);
   }  /* for */
 }  /* gen_overridden_function_list */

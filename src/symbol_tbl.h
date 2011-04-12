@@ -876,6 +876,33 @@ typedef struct a_class_symbol_supplement {
 			/* Pointer to an sk_member_function symbol that
 			   identifies the C++/CLI finalizer for this class;
 			   NULL if there is none. */
+  a_symbol_ptr	idisposable_dispose;
+			/* Pointer to an sk_member_function symbol that
+			   identifies the member function that implements
+			   IDisposable::Dispose() and which further derived
+			   classes should invoke in their implementation of
+			   Dispose(bool).  It will be a member of this class
+			   or one of its bases, or NULL if no chaining should
+			   occur.  This function is only part of the dispose
+			   pattern if has_dispose_pattern_idisposable_dispose
+			   is TRUE. */
+  a_symbol_ptr	dispose_bool;
+			/* Pointer to an sk_member_function symbol that
+			   identifies the virtual Dispose(bool) member
+			   function that should be overridden or hidden by
+			   derived class implementations of the dispose
+			   pattern.  It will be a member of this class or one
+			   of its bases, or NULL if no such function exists.
+			   This function is only part of the dispose pattern
+			   if has_dispose_pattern_idisposable_dispose and/or
+			   has_dispose_pattern_object_finalize is TRUE. */
+  a_symbol_ptr	object_finalize;
+			/* Pointer to an sk_member_function symbol that
+			   identifies the member function that overrides
+			   Object::Finalize(); NULL if no such function
+			   exists.  This function is only part of the dispose
+			   pattern if has_dispose_pattern_object_finalize is
+			   TRUE. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_symbol_ptr  assignment_operator;
 			/* Pointer to a symbol (sk_member_function or
@@ -1171,6 +1198,39 @@ typedef struct a_class_symbol_supplement {
   a_bit_field	standard_layout:1;
 			/* TRUE if this is a "standard layout" class as
 			   defined by C++0x. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	disable_dispose_pattern_implementation:1;
+			/* TRUE if check_for_reserved_dispose_pattern_member
+			   found a Dispose(), Dispose(bool), or Finalize()
+			   function declaration in the class.  This is used to
+			   prevent the implementation of the dispose pattern to
+			   avoid spurious errors caused by redeclarations of
+			   those functions. */
+  a_bit_field	checked_for_dispose_pattern:1;
+			/* TRUE if a check for an existing dispose pattern
+			   implementation has already been performed. */
+  a_bit_field	is_disposable:1;
+			/* TRUE if the class implements the IDisposable
+			   interface. */
+  a_bit_field	any_disposable_data_members:1;
+			/* TRUE if the class itself has one or more ref class
+			   data members that implement IDisposable::Dispose. */
+  a_bit_field	has_dispose_pattern_idisposable_dispose:1;
+			/* TRUE if this class implements the dispose pattern
+			   and has an implementation of IDisposable::Dispose();
+			   idisposable_dispose is that function's symbol. */
+  a_bit_field	has_dispose_pattern_object_finalize:1;
+			/* TRUE if this class implements the dispose pattern
+			   and has an implementation of Object::Finalize();
+			   object_finalize is that function's symbol. */
+  a_bit_field	needs_new_idisposable_dispose:1;
+			/* TRUE if this class or one of its base classes
+			   implements a virtual Dispose() that either did not
+			   implement IDisposable::Dispose() or was sealed.
+			   Derived classes that need to implement
+			   IDisposable::Dispose() will therefore need to mark
+			   their declaration with the "new" modifier. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block
 		pointers_block;
@@ -3953,6 +4013,18 @@ a_cli_symbol_kind_tag/an_integer_kind/a_float_kind respectively.
   (cli_symbol_from_kind(integer_kind_to_cli_symbol_kind((ik))))
 #define cli_symbol_from_float_kind(fk)                                \
   (cli_symbol_from_kind(float_kind_to_cli_symbol_kind((fk))))
+
+extern a_type_ptr cli_class_type_for(a_cli_symbol_kind kind);
+
+/*
+Macros to retrieve special C++/CLI types.
+*/
+#define cli_system_object_type()                                             \
+  (cli_class_type_for((a_cli_symbol_kind)csk_system_object))
+#define cli_system_value_type()                                              \
+  (cli_class_type_for((a_cli_symbol_kind)csk_system_value_type))
+#define cli_collections_ienumerable_type()                                   \
+  (cli_class_type_for((a_cli_symbol_kind)csk_collections_ienumerable))
 
 
 extern void make_symbol_for_namespace_cli(void);

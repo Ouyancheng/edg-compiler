@@ -2177,6 +2177,11 @@ ec_bad_event_compound_assignment;;"only \"+=\" and \"-=\" are valid for events"
 ec_typeid_of_managed_type;;"typeid of a managed type is not allowed"
 ec_cli_typeid_of_managed_pointer;;"CLI typeid of a managed pointer type is not allowed"
 ec_name_before_typeid_not_type;;"name followed by \"::typeid\" must be a type name"
+ec_reserved_dispose;;"a member %sq of this type is reserved within a managed class -- destructor intended?"
+ec_reserved_finalize;;"a member %sq of this type is reserved within a managed class -- finalizer intended?"
+ec_invalid_idisposable_dispose;;"System::IDisposable::Dispose is missing or invalid"
+ec_invalid_object_finalize;;"System::Object::Finalize is missing or invalid"
+ec_finalize_does_not_override_object_finalize;;"%n does not override System::Object::Finalize"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

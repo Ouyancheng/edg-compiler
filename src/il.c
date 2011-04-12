@@ -9263,43 +9263,63 @@ and reuse an existing entry if possible.
 }  /* make_pin_ptr_type */
 
 
-a_type_ptr cli_system_object_type(void)
+static a_routine_ptr idisposable_dispose_routine;
+
+a_routine_ptr get_idisposable_dispose_routine(void)
 /*
-Return the C++/CLI System::Object type.
+Return the routine entry for "System::IDisposable::Dispose".
 */
 {
-  a_symbol_ptr sym = cli_symbol_from_kind(csk_system_object);
+  if (idisposable_dispose_routine == NULL) {
+    a_symbol_locator locator;
+    a_type_ptr       system_idisposable_type =
+                                   cli_class_type_for(csk_system_idisposable);
+    a_symbol_ptr     sym;
+    complete_type_is_needed(system_idisposable_type);
+    clear_locator(&locator,
+                  &system_idisposable_type->source_corresp.decl_position);
+    (void)find_symbol("Dispose", sizeof("Dispose")-1, &locator);
+    clear_specific_symbol(locator);
+    sym = class_qualified_id_lookup(&locator, system_idisposable_type,
+                                    IDL_DIRECT_CLASS_MEMBERS_ONLY);
+    /* System::IDisposable::Dispose should be a member function with the
+       following signature: public: virtual void Dispose(); */
+    if (sym != NULL && symbol_is(sym, sk_member_function)) {
+      a_routine_ptr routine = sym->variant.routine.ptr;
+      if (routine->source_corresp.access == (an_access_specifier)as_public &&
+          routine->is_virtual &&
+          is_void_type(routine->type->variant.routine.return_type) &&
+          function_type_params(routine->type) == NULL) {
+        idisposable_dispose_routine = routine;
+      }  /* if */
+    }  /* if */
+    if (idisposable_dispose_routine == NULL) {
+      catastrophe(ec_invalid_idisposable_dispose);
+    }  /* if */
+  }
+  return idisposable_dispose_routine;
+}  /* get_idisposable_dispose_routine */
 
-  check_assertion(sym != NULL &&
-                  sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
-  return sym->variant.class_struct_union.type;
-}  /* cli_system_object_type */
 
+static a_routine_ptr object_finalize_routine;
 
-a_type_ptr cli_system_value_type(void)
+a_routine_ptr get_object_finalize_routine(void)
 /*
-Return the C++/CLI System::ValueType type.
+Return the symbol for "System::Object::Finalize".
 */
 {
-  a_symbol_ptr sym = cli_symbol_from_kind(csk_system_value_type);
-
-  check_assertion(sym != NULL &&
-                  sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
-  return sym->variant.class_struct_union.type;
-}  /* cli_system_value_type */
-
-
-a_type_ptr cli_collections_ienumerable_type(void)
-/*
-Return the C++/CLI System::Collections::IEnumerable type.
-*/
-{
-  a_symbol_ptr sym = cli_symbol_from_kind(csk_collections_ienumerable);
-
-  check_assertion(sym != NULL &&
-                  sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
-  return sym->variant.type.ptr;
-}  /* cli_collections_ienumerable_type */
+  if (object_finalize_routine == NULL) {
+    a_boolean  is_valid_object_finalize;
+    a_type_ptr system_object_type = cli_system_object_type();
+    complete_type_is_needed(system_object_type);
+    object_finalize_routine = find_finalize_routine(system_object_type,
+                                                    &is_valid_object_finalize);
+    if (object_finalize_routine == NULL || !is_valid_object_finalize) {
+      catastrophe(ec_invalid_object_finalize);
+    }  /* if */
+  }  /* if */
+  return object_finalize_routine;
+}  /* get_object_finalize_routine */
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
@@ -22792,6 +22812,8 @@ in il_init.)
       pch_array_saved_var_array_elem(types_of_type_info),
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(type_of_guid),
+      pch_saved_var_array_elem(idisposable_dispose_routine),
+      pch_saved_var_array_elem(object_finalize_routine),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_array_saved_var_array_elem(float_types),
       pch_saved_var_array_elem(il_error_type),
@@ -22891,6 +22913,8 @@ in il_init.)
   register_trans_unit_array(types_of_type_info);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   register_trans_unit_variable(type_of_guid);
+  register_trans_unit_variable(idisposable_dispose_routine);
+  register_trans_unit_variable(object_finalize_routine);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   register_trans_unit_variable(curr_fp_contract_state);
   register_trans_unit_variable(curr_fenv_access_state);
@@ -22992,6 +23016,10 @@ need initialization for every (primary and secondary) translation unit.
   il_error_type = il_unknown_type = il_void_type = NULL;
   il_standard_nullptr_type = NULL;
   il_managed_nullptr_type = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  idisposable_dispose_routine = NULL;
+  object_finalize_routine = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   { sizeof_t size = sizeof(a_constant_ptr) * SIZE_SHAREABLE_CONSTANTS_TABLE;
     shareable_constants_table = (a_constant_ptr*)alloc_fe(size);
     memzero((char *)shareable_constants_table, size_t_arg(size));

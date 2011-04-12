@@ -909,11 +909,9 @@ extern a_type_ptr make_interior_ptr_type(a_type_ptr pointed_to_type);
 
 extern a_type_ptr make_pin_ptr_type(a_type_ptr pointed_to_type);
 
-extern a_type_ptr cli_system_object_type(void);
+extern a_routine_ptr get_idisposable_dispose_routine(void);
 
-extern a_type_ptr cli_system_value_type(void);
-
-extern a_type_ptr cli_collections_ienumerable_type(void);
+extern a_routine_ptr get_object_finalize_routine(void);
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 extern a_boolean f_is_member_of_namespace_cli(a_source_correspondence  *scp);

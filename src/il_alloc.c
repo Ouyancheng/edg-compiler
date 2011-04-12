@@ -1498,6 +1498,9 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->corresponding_basic_type          = NULL;
   ctsp->assembly_index                    = 0;
   ctsp->metadata_type_def_token           = 0;
+  ctsp->base_dispose_bool_routine         = NULL;
+  ctsp->base_idisposable_dispose_routine  = NULL;
+  ctsp->base_object_finalize_routine      = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* clear_class_type_supplement */
 
@@ -2358,6 +2361,9 @@ value.  Also clear related variant fields to default values.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case sfk_static_constructor:
     case sfk_finalizer:
+    case sfk_idisposable_dispose:
+    case sfk_dispose_bool:
+    case sfk_object_finalize:
       check_assertion(cppcli_enabled);
       break;
     case sfk_property_get:

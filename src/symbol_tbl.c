@@ -3256,6 +3256,16 @@ state.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         cssp->static_constructor = NULL;
         cssp->finalizer = NULL;
+        cssp->idisposable_dispose = NULL;
+        cssp->dispose_bool = NULL;
+        cssp->object_finalize = NULL;
+        cssp->disable_dispose_pattern_implementation = FALSE;
+        cssp->checked_for_dispose_pattern = FALSE;
+        cssp->any_disposable_data_members = FALSE;
+        cssp->is_disposable = FALSE;
+        cssp->has_dispose_pattern_idisposable_dispose = FALSE;
+        cssp->has_dispose_pattern_object_finalize = FALSE;
+        cssp->needs_new_idisposable_dispose = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cssp->assignment_operator = NULL;
         cssp->conversion_list = NULL;
@@ -6926,8 +6936,22 @@ global pointers.  This function assumes that mscorlib.dll has been imported.
                                                 : cli_symbols[csk_system_byte];
 }  /* init_symbols_for_cli_system_types */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+a_type_ptr cli_class_type_for(a_cli_symbol_kind kind)
+/*
+Return the type of the specified C++/CLI symbol kind.
+*/
+{
+  a_symbol_ptr sym;
+
+  check_assertion((int)kind < (int)csk_last);
+  sym = cli_symbol_from_kind(kind);
+  check_assertion(sym != NULL &&
+                  sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
+  return sym->variant.class_struct_union.type;
+}  /* cli_class_type_for */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void enter_symbol_for_namespace(a_symbol_ptr      sym,
                                        a_symbol_locator  *locator)

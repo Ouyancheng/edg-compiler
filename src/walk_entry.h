@@ -2839,6 +2839,12 @@ after_entry_from_class:
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_ptr_not_needed(ptr->corresponding_basic_type, a_type_ptr,
                             iek_type);
+        walk_ptr_not_needed(ptr->base_dispose_bool_routine, a_routine_ptr,
+                            iek_routine);
+        walk_ptr_not_needed(ptr->base_idisposable_dispose_routine,
+                            a_routine_ptr, iek_routine);
+        walk_ptr_not_needed(ptr->base_object_finalize_routine, a_routine_ptr,
+                            iek_routine);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }
       break;
