@@ -16161,9 +16161,9 @@ selection operator, in which case it points to the type of the left operand.
                 qualifier_sym = super_qualified_id_lookup(
                                              &locator_for_curr_id,
                                              lookup_options);
-             } else if (qualifier_is_property_or_event) {
-               /* A property or event cannot be followed by "::". */
-               qualifier_sym = NULL;
+              } else if (qualifier_is_property_or_event) {
+                /* A property or event cannot be followed by "::". */
+                qualifier_sym = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               } else {
                   /* Look up the name in the class specified by the qualifier
