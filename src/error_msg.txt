@@ -2176,6 +2176,7 @@ ec_event_without_raise_invoked;;"invoking an event with no \"raise\" accessor is
 ec_bad_event_compound_assignment;;"only \"+=\" and \"-=\" are valid for events"
 ec_typeid_of_managed_type;;"typeid of a managed type is not allowed"
 ec_cli_typeid_of_managed_pointer;;"CLI typeid of a managed pointer type is not allowed"
+ec_name_before_typeid_not_type;;"name followed by \"::typeid\" must be a type name"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -15926,7 +15926,13 @@ selection operator, in which case it points to the type of the left operand.
         } else if (cppcli_enabled && next_tok_2 == tok_typeid) {
           /* A C++/CLI typeid reference. */
           qualifier_is_type = TRUE;
-          qualifier_type = type_symbol_type(qualifier_sym);
+          if (is_type_symbol(qualifier_sym)) {
+            qualifier_type = type_symbol_type(qualifier_sym);
+          } else {
+            pos_error(ec_name_before_typeid_not_type, &pos_curr_token);
+            invalid_qualifier_sym = TRUE;
+            err = TRUE;
+          }  /* if */
         } else if (symbol_is(qualifier_sym, sk_field) ||
                    symbol_is(qualifier_sym, sk_static_data_member) ||
                    symbol_is(qualifier_sym, sk_property_set)) {
@@ -16401,11 +16407,14 @@ selection operator, in which case it points to the type of the left operand.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (is_cli_typeid) {
       curr_token = tok_cli_typeid;
+      if (qualifier_type == NULL) qualifier_type = error_type();
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* parent.class_type and is_class_member are the only fields of the
        locator that are valid when curr_token is tok_ptr_to_member or
-       tok_cli_typeid. */
+       tok_cli_typeid.  Note that in error cases, qualifier_type can be
+       NULL for tok_ptr_to_member, but will be an error type (set above)
+       for tok_cli_typeid cases. */
     locator_for_curr_id.parent.class_type = qualifier_type;
     locator_for_curr_id.is_class_member = TRUE;
     /* Clear the is_template_id flag in the locator in case it was set before
