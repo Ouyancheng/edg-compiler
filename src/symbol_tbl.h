@@ -250,9 +250,15 @@ typedef struct a_symbol_locator {
 			   is TRUE this points to the type of the qualifier,
 			   which may not actually be a class type (e.g.,
 			   for int::~int this will point to the type "int").
-			   Also, this may point to an enumeration type if the
+			   This may point to an enumeration type if the
 			   qualifier is a C++0x-mode or Microsoft-mode enum
-			   qualifier. */
+			   qualifier.  For tok_ptr_to_member tokens (e.g.,
+			   "A::*", this points to the class type before the
+			   "::" and is NULL if the type before the "::" is not
+			   a class type.  In C++/CLI mode for constructs like
+			   X::typeid, a tok_cli_typeid token is created and
+			   this points to the type before the ::typeid,
+			   which can be a non-class type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_symbol_ptr
 		property_or_event_parent;
