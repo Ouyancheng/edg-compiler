@@ -10151,6 +10151,7 @@ C++/CLI dispose pattern.
         pos_st_error(is_dispose ? ec_reserved_dispose : ec_reserved_finalize,
                      &decl_state->declarator_pos,
                      locator->symbol_header->identifier);
+        set_to_error_locator(*locator);
       }  /* if */
     }  /* if */
   }  /* if */
