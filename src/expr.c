@@ -16300,7 +16300,8 @@ if it's not valid).
           /* Use a special message for casting away constness. */
           if (expr_error_should_be_issued()) {
             pos_st_error(ec_cannot_cast_away_const, start_position,
-                         is_safe_cast ? "safe_cast" : "static_cast");
+                         is_safe_cast ? (char *)"safe_cast" :
+                                        (char *)"static_cast");
           }  /* if */
         } else {
           /* Generic message. */

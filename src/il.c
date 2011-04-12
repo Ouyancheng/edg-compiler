@@ -9349,6 +9349,9 @@ namespace "cli".
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- model_pointer_type is not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_type_ptr make_pointer_type_of_same_kind(a_type_ptr base_type,
                                           a_type_ptr model_pointer_type)
 /*
