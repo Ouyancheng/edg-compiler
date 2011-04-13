@@ -13217,6 +13217,13 @@ typedef struct an_expr_node {
 			   reference type in the source.  Will be TRUE only
 			   when is_reference_cast is also TRUE, and only in
 			   eok_ref_cast and eok_ref_dynamic_cast nodes. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_bit_field
+		is_tracking_reference_cast:1;
+			/* TRUE when the operation is a cast to a C++/CLI
+			   tracking reference type in the source.  Will be
+			   TRUE only when is_reference_cast is also TRUE. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
 		implicit_in_member_naming:1;
 			/* TRUE for a base class cast that is implicit in

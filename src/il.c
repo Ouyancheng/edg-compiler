@@ -5732,6 +5732,8 @@ are done.
 #if MICROSOFT_EXTENSIONS_ALLOWED
             node1->variant.operation.requires_runtime_cast_check ==
                         node2->variant.operation.requires_runtime_cast_check &&
+            node1->variant.operation.is_tracking_reference_cast ==
+                        node2->variant.operation.is_tracking_reference_cast &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             node1->variant.operation.is_reference_cast ==
                            node2->variant.operation.is_reference_cast &&
@@ -22598,14 +22600,12 @@ by back ends.
   ref_type->variant.pointer.is_reference = TRUE;
   if (expr->variant.operation.is_rvalue_reference_cast) {
     ref_type->variant.pointer.is_rvalue_reference = TRUE;
-  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_operation_node(expr) &&
-      node_operator_is(expr, eok_unbox)) {
-    /* A C++/CLI unbox is casting to a tracking reference type. */
+  } else if (expr->variant.operation.is_tracking_reference_cast) {
+    /* A cast to a C++/CLI tracking reference. */
     ref_type->variant.pointer.is_handle = TRUE;
-  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
   ref_type->variant.pointer.type = dest_type;
 }  /* destination_type_for_reference_cast */
 

@@ -6054,6 +6054,26 @@ operators for reference casts take an lvalue as their operand.
 }  /* conv_reference_cast_operand_to_lvalue_if_necessary */
 
 
+void mark_as_reference_cast(an_expr_node_ptr expr,
+                            a_type_ptr       ref_type)
+/*
+expr represents a cast to the reference type ref_type.  Set flags in
+the expression node to indicate that.
+*/
+{
+  check_assertion(is_cast_operation_node(expr) &&
+                  is_any_reference_type(ref_type));
+  expr->variant.operation.is_reference_cast = TRUE;
+  if (is_rvalue_reference_type(ref_type)) {
+    expr->variant.operation.is_rvalue_reference_cast = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (is_tracking_reference_type(ref_type)) {
+    expr->variant.operation.is_tracking_reference_cast = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+}  /* mark_as_reference_cast */
+
+
 void cast_operand_for_reference_cast(an_operand        *operand,
                                      a_type_ptr        dest_type,
                                      a_source_position *type_position,
@@ -6162,8 +6182,7 @@ is an lvalue reference to const.
         /* We don't need the final eok_ref_cast, so mark the top node of
            the related-class cast as part of a reference cast. */
         an_expr_node_ptr expr = operand->variant.expression;
-        check_assertion(is_operation_node(expr));
-        expr->variant.operation.is_reference_cast = TRUE;
+        mark_as_reference_cast(expr, dest_type);
       }  /* if */
     }  /* if */
     if (need_eok_ref_cast) {
@@ -6171,11 +6190,10 @@ is an lvalue reference to const.
       an_expr_node_ptr expr = make_node_from_operand(operand);
       expr = make_lvalue_operator_node((an_expr_operator_kind)eok_ref_cast,
                                        underlying_type, expr);
-      expr->variant.operation.is_reference_cast = TRUE;
+      mark_as_reference_cast(expr, dest_type);
       if (is_implicit_cast) expr->variant.operation.compiler_generated = TRUE;
       make_lvalue_expression_operand(expr, operand);
       if (is_rvalue_ref) {
-        expr->variant.operation.is_rvalue_reference_cast = TRUE;
         /* The result of a cast to an rvalue reference type is an rvalue. */
         conv_rvalue_reference_result_to_rvalue(operand);
       }  /* if */
@@ -9846,6 +9864,7 @@ reference type.  Note that the cast can be bizarre in a number of ways,
 e.g., if the source operand is an lvalue.
 */
 {
+  a_type_ptr orig_dest_type = dest_type;
   an_operand orig_operand;
   a_boolean  rvalue_expected = FALSE, lvalue_expected = FALSE;
   a_boolean  is_reference_cast = is_any_reference_type(dest_type);
@@ -9938,12 +9957,8 @@ e.g., if the source operand is an lvalue.
           expr->variant.operation.compiler_generated = TRUE;
         }  /* if */
         if (is_reference_cast) {
-          expr->variant.operation.is_reference_cast = TRUE;
-          if (is_rvalue_reference_cast) {
-            expr->variant.operation.is_rvalue_reference_cast = TRUE;
-          } else {
-            expr->is_lvalue = TRUE;
-          }  /* if */
+          mark_as_reference_cast(expr, orig_dest_type);
+          if (!is_rvalue_reference_cast) expr->is_lvalue = TRUE;
         }  /* if */
       } else {
         /* Cast to a class type.  Use an enk_temp_init/dik_constructor. */

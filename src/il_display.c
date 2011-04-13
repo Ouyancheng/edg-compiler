@@ -3593,6 +3593,11 @@ Display the indicated expression node.
       if (ptr->variant.operation.is_rvalue_reference_cast) {
         disp_boolean("is_rvalue_reference_cast", TRUE);
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (ptr->variant.operation.is_tracking_reference_cast) {
+        disp_boolean("is_tracking_reference_cast", TRUE);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (ptr->variant.operation.implicit_in_member_naming) {
         disp_boolean("implicit_in_member_naming", TRUE);
       }  /* if */

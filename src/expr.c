@@ -12189,11 +12189,16 @@ the result expression, if any.
     an_expr_node_ptr expr = expr_node_from_operand(operand);
 
     if (expr != NULL && is_operation_node(expr)) {
-      check_assertion(expr->variant.operation.is_reference_cast);
+      check_assertion(expr->variant.operation.is_reference_cast &&
+                      is_cast_operation_node(expr));
       if (is_rvalue_reference_type(cast_type)) {
         check_assertion(expr->variant.operation.is_rvalue_reference_cast &&
                         (node_operator_is(expr, eok_ref_cast) ||
                          node_operator_is(expr, eok_ref_dynamic_cast)));
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (is_tracking_reference_type(cast_type)) {
+        check_assertion(expr->variant.operation.is_tracking_reference_cast);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -12481,10 +12486,9 @@ indication in *rcblock).
                                   (an_expr_operator_kind)eok_ref_dynamic_cast,
                                   underlying_cast_type,
                                   expr);
-        expr->variant.operation.is_reference_cast = TRUE;
+        mark_as_reference_cast(expr, cast_type);
         make_lvalue_expression_operand(expr, result);
         if (rvalue_reference_case) {
-          expr->variant.operation.is_rvalue_reference_cast = TRUE;
           conv_rvalue_reference_result_to_rvalue(result);
         }  /* if */
       } else {
@@ -15123,7 +15127,7 @@ called only in C++ mode.
             expr = make_node_from_operand(operand);
             expr = add_unbox_to_expression(expr, eff_type_cast_to,
                                            /*make_lvalue=*/TRUE);
-            expr->variant.operation.is_reference_cast = TRUE;
+            mark_as_reference_cast(expr, type_cast_to);
             make_lvalue_expression_operand(expr, operand);
             restore_operand_details(operand, &orig_operand);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -16497,7 +16501,7 @@ is start_position.
       if (is_cast_to_tracking_ref) {
         expr = make_lvalue_operator_node((an_expr_operator_kind)eok_ref_cast,
                                          dest_type, expr);
-        expr->variant.operation.is_reference_cast = TRUE;
+        mark_as_reference_cast(expr, type_cast_to);
       } else {
         expr = make_operator_node((an_expr_operator_kind)eok_cast,
                                   type_cast_to, expr);

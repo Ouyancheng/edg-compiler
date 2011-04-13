@@ -2777,6 +2777,9 @@ fields to default values.
       node->variant.operation.is_const_cast = FALSE;
       node->variant.operation.is_reference_cast = FALSE;
       node->variant.operation.is_rvalue_reference_cast = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      node->variant.operation.is_tracking_reference_cast = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       node->variant.operation.implicit_in_member_naming = FALSE;
       node->variant.operation.implicit_step_of_explicit_cast = FALSE;
       node->variant.operation.is_conversion_call = FALSE;
