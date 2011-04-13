@@ -14758,6 +14758,7 @@ should be implemented.  The results are stored in the class symbol supplement.
   }  /* if */
   /* Check for a base class dispose pattern implementation. */
   base_class = find_base_ref_class(class_type);
+  check_assertion(base_class != NULL);
   base_cssp = symbol_supplement_for_class(base_class);
   check_for_dispose_pattern(base_class);
   if (base_cssp->dispose_bool != NULL) {
