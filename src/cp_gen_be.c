@@ -9450,7 +9450,7 @@ call.
     a_boolean     need_close_paren = FALSE;
     a_boolean     need_arg_dep_close_paren = FALSE;
     a_boolean     is_dot_static = is_dot_static_operation(func_expr);
-    a_routine_ptr rout = NULL;
+    a_routine_ptr rout = routine_from_function_expr(func_expr);
 
     if (is_dot_static) {
       /* Put parentheses around a call using a dot-static operator
@@ -9459,13 +9459,21 @@ call.
       write_tok_ch('(');
       need_close_paren = TRUE;
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (!is_dot_static && rout != NULL && is_routine_node(func_expr) &&
+        func_expr->variant.routine.property_or_event_descr != NULL) {
+      /* This will be generated as a property/event reference, not a
+         function call, so there is no need for parentheses to suppress
+         argument-dependent lookup. */
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
     if (expr->variant.operation.arg_dependent_lookup_suppressed_on_call) {
       /* Put parentheses around the name of the function to suppress
          argument-dependent lookup. */
       write_tok_ch('(');
       need_arg_dep_close_paren = TRUE;
     }  /* if */
-    rout = routine_from_function_expr(func_expr);
     if (is_dot_static) {
       /* Call of a static member function identified by a static
          selection, e.g., p->f().  Put out the selection without
