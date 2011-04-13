@@ -15201,14 +15201,13 @@ being rewritten; it's used to set a kind in the expression created.
     /* Some error. */
     conv_to_error_operand(operand);
   } else {
-    an_operand         function_operand;
-    an_operand         selector;
+    an_operand         orig_operand, function_operand, selector;
     an_arg_operand_ptr arg_operand_list;
     an_expr_node_ptr   argument_list;
-    a_boolean          have_selector =
-                               (operand->variant.property_ref.object != NULL),
-                       static_case = FALSE;
+    a_boolean          have_selector, static_case = FALSE;
 
+    have_selector = (operand->variant.property_ref.object != NULL);
+    orig_operand = *operand;
     if (have_selector) {
       /* A selector object was specified.  It may or may not be used in the
          accessor call depending on whether a static or nonstatic property is
@@ -15262,10 +15261,20 @@ being rewritten; it's used to set a kind in the expression created.
     } else {
       /* Create the function call. */
       an_expr_node_ptr func_call_node;
+      a_boolean        virtual_function, bound_function;
+      /* Generally speaking, we want to restore the original operand details,
+         but the "virtual_function" and "bound_function" flags should reflect
+         the nature of the call. */
+      bound_function = function_operand.bound_function;
+      virtual_function = function_operand.virtual_function;
+      restore_operand_details(&function_operand, &orig_operand);
+      function_operand.virtual_function = virtual_function &&
+                                          !orig_operand.is_qualified_name;
+      function_operand.bound_function = bound_function;
       assemble_function_call(&function_operand, &selector, argument_list,
                              /*compiler_generated=*/TRUE,
-                             /*arg_dep_lookup_suppressed=*/FALSE,
-                             /*qualified_function_name=*/FALSE,
+                             /*arg_dep_lookup_suppressed=*/TRUE,
+                             orig_operand.is_qualified_name,
                              /*found_through_adl=*/FALSE,
                              /*uses_operator_syntax=*/FALSE,
                              &operand_position, operand,
@@ -15351,8 +15360,7 @@ to TRUE and *result becomes an error operand.
                        pedp;
     a_symbol_ptr       event_sym = lhs->symbol, accessor_sym = NULL;
     a_symbol_locator   accessor_loc;
-    an_operand         function_operand;
-    an_operand         selector;
+    an_operand         function_operand, selector;
     an_arg_operand_ptr arg_operand_list;
     an_expr_node_ptr   argument_list;
     a_boolean          have_selector = (lhs->variant.event_ref.object != NULL);
@@ -15412,6 +15420,11 @@ to TRUE and *result becomes an error operand.
       } else {
         /* Create the function call. */
         an_expr_node_ptr  func_call_node;
+        if (lhs->is_qualified_name) {
+          /* If the left-hand operand used a qualified name to refer to the
+             event, the accessor call is never virtual. */
+          function_operand.virtual_function = FALSE;
+        }  /* if */
         assemble_function_call(&function_operand, &selector, argument_list,
                                /*compiler_generated=*/TRUE,
                                /*arg_dep_lookup_suppressed=*/FALSE,
@@ -15482,6 +15495,9 @@ if it has any side effects) or NULL if no selector was specified.
 #if !DO_IL_LOWERING
     an_expr_node_ptr  routine_node;
 #endif /* !DO_IL_LOWERING */
+    an_operand        orig_operand;
+    a_boolean         virtual_function;
+    orig_operand = *operand;
     make_locator_for_symbol(raise_sym, &raise_loc);
     raise_loc.source_position = operand->position;
     check_ambiguity_and_verify_access(&raise_loc);
@@ -15490,6 +15506,12 @@ if it has any side effects) or NULL if no selector was specified.
                                      end_position_or_null(
                                                 &operand->end_position),
                                      operand->ref_entries_list, operand);
+    /* Generally speaking, we want to restore the original operand details,
+       but the "virtual_function" flag should reflect the kind of "raise"
+       accessor that the call resolves to. */
+    virtual_function = operand->virtual_function;
+    restore_operand_details(operand, &orig_operand);
+    operand->virtual_function = virtual_function;
 #if !DO_IL_LOWERING
     routine_node = expr_node_from_operand(operand);
     if (routine_node != NULL) {

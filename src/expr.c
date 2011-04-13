@@ -4741,6 +4741,7 @@ is a C++/CLI handle.
          symbols. */
       unexpected_condition();
     }  /* if */
+    set_operand_id_details_from_locator(result, field_locator);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Determine the result type. */
@@ -6156,6 +6157,7 @@ case).
                               property_or_event_kind_is(var, pek_cli_event));
               make_event_ref_operand(member_sym, operand_1, is_arrow_operator,
                                      result);
+              set_operand_id_details_from_locator(result, &locator);
             } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* Do not insert code here. */
@@ -6182,6 +6184,7 @@ case).
           check_assertion(cppcli_enabled);
           make_property_ref_operand(member_sym, operand_1, is_arrow_operator,
                                     result);
+          set_operand_id_details_from_locator(result, &locator);
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case sk_member_function:
@@ -22793,7 +22796,7 @@ if rescan_is_template_id is TRUE, and return the result in *operand
             } else {
               unexpected_condition();
             }  /* if */
-            result->is_qualified_name = locator.is_qualified_name;
+            set_operand_id_details_from_locator(result, &locator);
             break;
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -23264,6 +23267,7 @@ overloaded_function:
             }  /* if */
             make_property_ref_operand(sym_ptr, selector, /*handle_case=*/TRUE,
                                       result);
+            set_operand_id_details_from_locator(result, &locator);
           }
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
