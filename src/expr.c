@@ -16500,7 +16500,7 @@ is start_position.
         expr->variant.operation.is_reference_cast = TRUE;
       } else {
         expr = make_operator_node((an_expr_operator_kind)eok_cast,
-                                  dest_type, expr);
+                                  type_cast_to, expr);
       }  /* if */
       expr->is_safe_cast = TRUE;
       expr->variant.operation.requires_runtime_cast_check = TRUE;
