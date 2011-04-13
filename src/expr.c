@@ -12349,9 +12349,12 @@ indication in *rcblock).
          type. */
       underlying_operand_type = NULL;
       if (is_pointer_or_handle_type(operand_type)) {
-        if (is_pointer_type(cast_type) == is_pointer_type(operand_type) &&
-            !(is_interior_ptr_type(operand_type) &&
-              !is_interior_ptr_type(cast_type))) {
+        if (is_pointer_type(cast_type) == is_pointer_type(operand_type)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            && !(is_interior_ptr_type(operand_type) &&
+                 !is_interior_ptr_type(cast_type))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            ) {
           /* Can only cast pointers to pointers and handles to handles, and
              cannot cast an interior pointer to a regular pointer type. */
           underlying_operand_type = type_pointed_to(operand_type);
@@ -12375,10 +12378,14 @@ indication in *rcblock).
         if (!is_error_type(operand_type) &&
             (underlying_operand_type == NULL ||
              !is_error_type(underlying_operand_type))) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
           if (is_interior_ptr_type(operand_type) &&
               !is_interior_ptr_type(cast_type)) {
             expr_pos_error(ec_cast_interior_ptr_to_ptr, &operand.position);
-          } else {
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
+          {
             expr_pos_error(handle_case ? ec_bad_handle_dynamic_cast_operand :
                                          ec_bad_ptr_dynamic_cast_operand,
                            &operand.position);
