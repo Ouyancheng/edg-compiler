@@ -15273,7 +15273,7 @@ being rewritten; it's used to set a kind in the expression created.
       function_operand.bound_function = bound_function;
       assemble_function_call(&function_operand, &selector, argument_list,
                              /*compiler_generated=*/TRUE,
-                             /*arg_dep_lookup_suppressed=*/TRUE,
+                             /*arg_dep_lookup_suppressed=*/FALSE,
                              orig_operand.is_qualified_name,
                              /*found_through_adl=*/FALSE,
                              /*uses_operator_syntax=*/FALSE,
