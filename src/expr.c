@@ -12422,6 +12422,7 @@ indication in *rcblock).
   }  /* if */
   if (err) {
     /* Some error, previously issued. */
+    operand_will_not_be_used_because_of_error(&operand);
     /* Error operand will be made below. */
   } else if (template_param_case) {
     /* The source operand type or the destination type is unknown, so
