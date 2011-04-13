@@ -1996,7 +1996,7 @@ static void mangled_encoding_for_sizeof(
 Add to the mangled name the encoding of sizeof(type), __ALIGNOF__(type),
 __uuidof(type), or typeid(type); kind indicates which.  If expr is non-NULL,
 the original form used an expression, which expr points to.  "type" is
-ignored if expr != NULL.  orig_expr is "original" expression (where
+ignored if expr != NULL.  orig_expr is the "original" expression (where
 "type" and "expr" most likely originated); it is used in cases where
 the original expression may have additional flags that might affect mangling
 (i.e., is_cli_typeid).  orig_expr can be NULL.
