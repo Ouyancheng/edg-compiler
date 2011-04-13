@@ -3172,6 +3172,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
 {
   a_boolean               force_qualified_name =
                                       (options & GN_FORCE_QUALIFIED_NAME) != 0;
+  a_boolean               used_qualified_name = FALSE;
   a_source_correspondence *scp_for_unknown_base_member =
                                     (scp->member_of_unknown_base) ? scp : NULL;
 
@@ -3253,7 +3254,6 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
     }  /* if */
     if (scp->is_class_member) {
       a_type_ptr class_type = scp_parent_class(scp);
-      a_boolean  used_qualified_name = FALSE;
       a_boolean  include_base_classes;
       /* Determine if a declaration for the entity is visible with unqualified
          lookup. */
@@ -3451,7 +3451,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
 unqualified_part:
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (entry_kind == iek_routine &&
-      (options & GN_DECLARATION) == 0) {
+      (((options & GN_DECLARATION) == 0) || used_qualified_name)) {
     add_property_or_event_name_as_qualifier((a_routine_ptr)scp);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
