@@ -16309,13 +16309,13 @@ selection operator, in which case it points to the type of the left operand.
     /* This is a qualifier (but not a file scope qualified name such as
        ::x) -- see if it is a pointer to member. */
     if (curr_token == tok_star) {
-      /* We have a pointer to member token (i.e, A::*).  Update the current
+      /* We have a pointer to member token (i.e., A::*).  Update the current
          token. */
       is_identifier = FALSE;
       is_ptr_to_member = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled && curr_token == tok_typeid) {
-      /* We have a C++/CLI typeid (i.e, A::typeid). */
+      /* We have a C++/CLI typeid (i.e., A::typeid). */
       is_identifier = FALSE;
       is_cli_typeid = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
