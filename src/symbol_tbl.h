@@ -253,7 +253,7 @@ typedef struct a_symbol_locator {
 			   This may point to an enumeration type if the
 			   qualifier is a C++0x-mode or Microsoft-mode enum
 			   qualifier.  For tok_ptr_to_member tokens (e.g.,
-			   "A::*", this points to the class type before the
+			   "A::*"), this points to the class type before the
 			   "::" and is NULL if the type before the "::" is not
 			   a class type.  In C++/CLI mode for constructs like
 			   X::typeid, a tok_cli_typeid token is created and
