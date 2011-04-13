@@ -1983,15 +1983,23 @@ to the type "type".  This is used for template-dependent casts.
 }  /* mangled_encoding_for_constant_cast */
 
 
-static void mangled_encoding_for_sizeof(a_type_ptr                     type,
-                                        an_expr_node_ptr               expr,
-                                        a_template_param_constant_kind kind,
-                                        a_mangling_control_block       *mctl)
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* orig_expr is not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+static void mangled_encoding_for_sizeof(
+                                      a_type_ptr                     type,
+                                      an_expr_node_ptr               expr,
+                                      a_template_param_constant_kind kind,
+                                      an_expr_node_ptr               orig_expr,
+                                      a_mangling_control_block       *mctl)
 /*
 Add to the mangled name the encoding of sizeof(type), __ALIGNOF__(type),
 __uuidof(type), or typeid(type); kind indicates which.  If expr is non-NULL,
 the original form used an expression, which expr points to.  "type" is
-ignored if expr != NULL.
+ignored if expr != NULL.  orig_expr is "original" expression (from whence
+"type" and "expr" most likely originated); it is passed as a mechanism to
+communicate other flags that might be needed for mangling (i.e.,
+is_cli_typeid).  orig_expr can be NULL.
 */
 {
 #if ABI_COMPATIBILITY_VERSION >= 402
@@ -2103,7 +2111,16 @@ ignored if expr != NULL.
       break;
     case tpck_typeid:
 #if !IA64_ABI
-      add_str_to_mangled_name("ty", mctl);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (orig_expr != NULL && orig_expr->variant.typeid_info.is_cli_typeid) {
+        /* C++/CLI T::typeid form. */
+        add_str_to_mangled_name("ct", mctl);
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        add_str_to_mangled_name("ty", mctl);
+      }  /* if */
 #else /* IA64_ABI */
       if (expr != NULL) {
 #if ABI_COMPATIBILITY_VERSION >= 402
@@ -2113,7 +2130,17 @@ ignored if expr != NULL.
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
       } else {
 #if ABI_COMPATIBILITY_VERSION >= 402
-        add_str_to_mangled_name("ti", mctl);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (orig_expr != NULL &&
+            orig_expr->variant.typeid_info.is_cli_typeid) {
+          /* C++/CLI T::typeid form. */
+          add_str_to_mangled_name("v19clitypeid", mctl);
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          add_str_to_mangled_name("ti", mctl);
+        }  /* if */
 #else /* ABI_COMPATIBILITY_VERSION < 402 */
         add_str_to_mangled_name("v16typeid", mctl);
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
@@ -3745,6 +3772,7 @@ do_unknown_function:
                          con->variant.template_param.variant.templ_sizeof.type,
                          con->variant.template_param.variant.templ_sizeof.expr,
                          con->variant.template_param.kind,
+                         (an_expr_node_ptr)NULL,
                          mctl);
           break;
         default:
@@ -5302,12 +5330,14 @@ is TRUE.
         mangled_encoding_for_sizeof(expr->variant.sizeof_info.variant.type,
                                     (an_expr_node_ptr)NULL,
                                    (a_template_param_constant_kind)tpck_sizeof,
+                                    expr,
                                     mctl);
       } else {
         check_assertion(!expr->is_lvalue);
         mangled_encoding_for_sizeof((a_type_ptr)NULL,
                                     expr->variant.sizeof_info.variant.expr,
                                    (a_template_param_constant_kind)tpck_sizeof,
+                                    expr,
                                     mctl);
       }  /* if */
       break;
@@ -5317,11 +5347,13 @@ is TRUE.
         mangled_encoding_for_sizeof(expr->variant.typeid_info.type,
                                     (an_expr_node_ptr)NULL,
                                    (a_template_param_constant_kind)tpck_typeid,
+                                    expr,
                                     mctl);
       } else {
         mangled_encoding_for_sizeof((a_type_ptr)NULL,
                                     expr->variant.typeid_info.expr,
                                    (a_template_param_constant_kind)tpck_typeid,
+                                    expr,
                                     mctl);
       }  /* if */
       break;

@@ -1295,6 +1295,10 @@ position following what was demangled.
           p = demangle_type(p, dctl);
           write_id_ch(')', dctl);
         }  /* if */
+      } else if (strcmp(operator_str, "::typeid") == 0) {
+        /* C++/CLI T::typeid. */
+        p = demangle_type(p, dctl);
+        write_id_str(operator_str, dctl);
       } else {
         /* Generic processing of items that take a type (e.g., static_cast). */
         write_id_str(operator_str, dctl);
@@ -1806,6 +1810,9 @@ not an operator encoding, return NULL.
     *takes_type = TRUE;
   } else if (start_of_id_is("ty", ptr, dctl)) {
     s = "typeid(";
+    *takes_type = TRUE;
+  } else if (start_of_id_is("ct", ptr, dctl)) {
+    s = "::typeid";
     *takes_type = TRUE;
   } else if (start_of_id_is("bi", ptr, dctl)) {
     s = "builtin-operation";
@@ -5279,6 +5286,11 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
           *close_str = ")";
           *num_operands = 0;
           *length = 9;
+        } else if (start_of_id_is("v19clitypeid", ptr)) {
+          /* C++/CLI T::typeid. */
+          str = "::typeid";
+          *num_operands = 0;
+          *length = 12;
         } else if (start_of_id_is("v23min", ptr)) {
           /* GNU "<?" */
           str = "<?";
@@ -6164,7 +6176,7 @@ The syntax is:
       ptr = demangle_expression(ptr, dctl);
     } else {
       /* Special cases: sizeof(type), __alignof__(type),
-         __uuidof(type), typeid(type), scope resolution "::",
+         __uuidof(type), typeid(type), T::typeid, scope resolution "::",
          throw (just the rethrow variety). */
       if (strcmp(op_str, "sizeof(") == 0) {
         /* sizeof(type). */
@@ -6183,6 +6195,10 @@ The syntax is:
         /* typeid(type). */
         write_id_str(op_str, dctl);
         ptr = demangle_type(ptr, dctl);
+      } else if (strcmp(op_str, "::typeid") == 0) {
+        /* C++/CLI T::typeid. */
+        ptr = demangle_type(ptr, dctl);
+        write_id_str(op_str, dctl);
       } else if (strcmp(op_str, "throw") == 0) {
         /* throw.  This handles the rethrow variety, throw-expression is
            handled separately. */
