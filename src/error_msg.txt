@@ -2183,7 +2183,9 @@ ec_invalid_idisposable_dispose;;"System::IDisposable::Dispose is missing or inva
 ec_invalid_object_finalize;;"System::Object::Finalize is missing or invalid"
 ec_finalize_does_not_override_object_finalize;;"%n does not override System::Object::Finalize"
 ec_bad_handle_dynamic_cast_operand;;"the operand of a handle dynamic_cast must be a handle to a complete class type"
-ec_bad_tracking_ref_dynamic_cast_operand;;"the operand of a tracking-reference dynamic_cast must be a gc-lvalue of a complete class type"
+ec_bad_tracking_ref_dynamic_cast_operand;;"the operand of a tracking-reference dynamic_cast must be an lvalue of a complete class type"
+ec_bad_cli_dynamic_cast_type;;"the type in a dynamic_cast to a handle or tracking reference type must refer to a complete class"
+
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

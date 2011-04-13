@@ -12316,7 +12316,10 @@ indication in *rcblock).
       /* Bad dynamic cast type. */
       err = TRUE;
       if (!is_error_type(cast_type)) {
-        expr_pos_error(ec_bad_dynamic_cast_type, &type_position);
+        expr_pos_error((handle_case || tracking_reference_case) ?
+                                                 ec_bad_cli_dynamic_cast_type :
+                                                 ec_bad_dynamic_cast_type,
+                       &type_position);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -12379,9 +12382,7 @@ indication in *rcblock).
       if (is_class_struct_union_type(operand_type)) {
         complete_class_type_is_needed(operand_type);
         if (!is_incomplete_type(operand_type)) {
-          if (tracking_reference_case) {
-            operand_type_okay = is_gc_lvalue_operand(&operand);
-          } else if (is_an_lvalue(&operand)) {
+          if (is_an_lvalue(&operand)) {
             operand_type_okay = TRUE;
           } else if (rvalue_reference_case && is_an_rvalue(&operand)) {
             operand_type_okay = TRUE;
