@@ -10120,14 +10120,14 @@ an error at the given position.
 
 
 static void check_for_reserved_dispose_pattern_members(
-                                    a_symbol_locator              *locator,
-                                    a_type_ptr                    class_type,
-                                    a_decl_parse_state            *decl_state,
-                                    a_routine_type_supplement_ptr rtsp)
+                                                a_symbol_locator    *locator,
+                                                a_decl_parse_state  *dps,
+                                                a_type_ptr          class_type)
 /*
-Issue a diagnostic if a Dispose(bool), Dispose(), or Finalize() function is
-being declared in a ref class.  These function signatures are reserved for the
-C++/CLI dispose pattern.
+locator and dps describe a member function being declared in the given class
+type.  Issue a diagnostic if it is a Dispose(bool), Dispose(), or Finalize()
+member being declared in a managed class (such a member is reserved for the
+C++/CLI dispose pattern).
 */
 {
   check_assertion(cppcli_enabled);
@@ -10140,7 +10140,7 @@ C++/CLI dispose pattern.
                              symbol_header_is_for_identifier_string(
                                            locator->symbol_header, "Finalize");
     if (is_dispose || is_finalize) {
-      a_param_type_ptr  ptp = rtsp->param_type_list;
+      a_param_type_ptr  ptp = function_type_params(skip_typerefs(dps->type));
       if (ptp == NULL ||
           (is_dispose && ptp->next == NULL && is_bool_type(ptp->type))) {
         /* The member being declared is Finalize(), Dispose(), or
@@ -10149,7 +10149,7 @@ C++/CLI dispose pattern.
         symbol_supplement_for_class(class_type)
                               ->disable_dispose_pattern_implementation = TRUE;
         pos_st_error(is_dispose ? ec_reserved_dispose : ec_reserved_finalize,
-                     &decl_state->declarator_pos,
+                     &dps->declarator_pos,
                      locator->symbol_header->identifier);
         set_to_error_locator(*locator);
       }  /* if */
@@ -10209,8 +10209,8 @@ implicitly declared member functions.
       decl_state->storage_class = (a_storage_class)sc_static;
     }  /* if */
     if (!compiler_generated) {
-      check_for_reserved_dispose_pattern_members(locator, class_type,
-                                                 decl_state, rtsp);
+      check_for_reserved_dispose_pattern_members(locator, decl_state,
+                                                 class_type);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -14585,9 +14585,10 @@ is System::Object itself.
 */
 {
   a_type_ptr        base_class_type = NULL;
-  a_base_class_ptr  bcp = base_classes_of(class_type);
+  a_base_class_ptr  bcp;
 
   check_assertion(cppcli_enabled && is_ref_class_type(class_type));
+  bcp = base_classes_of(class_type);
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct && is_ref_class_type(bcp->type)) {
       base_class_type = bcp->type;
@@ -14601,10 +14602,11 @@ is System::Object itself.
 static a_boolean is_dispose_bool_function(a_symbol_ptr  sym,
                                           a_boolean     *p_is_valid)
 /*
-Returns TRUE if "sym" is a member function that has a single bool parameter.
-Furthermore, "p_is_valid" is set to TRUE if that function also meets the
-requirements of a valid dispose pattern implementation of Dispose(bool), i.e.
-protected: virtual void Dispose(bool);
+Returns TRUE if sym is a member function that has a single bool parameter.
+Furthermore, *p_is_valid is set to TRUE if that function also meets the
+requirements of a valid dispose pattern implementation of Dispose(bool) (i.e.,
+"protected: virtual void Dispose(bool);").  The caller must initialize
+*p_is_valid.
 */
 {
   a_boolean  result = FALSE;
@@ -14632,9 +14634,10 @@ static a_boolean is_dispose_void_function(
                                       a_type_ptr    class_type,
                                       a_boolean     *p_is_idisposable_dispose)
 /*
-Returns TRUE if "sym" is a member function that has an empty parameter list.
-Furthermore, "p_is_idisposable_dispose" is set to TRUE if that function also
+Returns TRUE if sym is a member function that has an empty parameter list.
+Furthermore, *p_is_idisposable_dispose is set to TRUE if that function also
 meets the requirements of a valid implementation of IDisposable::Dispose().
+The caller must initialize *p_is_idisposable_dispose.
 */
 {
   a_boolean  result = FALSE;
@@ -14693,7 +14696,7 @@ should be implemented.  The results are stored in the class symbol supplement.
   cssp->checked_for_dispose_pattern = TRUE;
   if (is_cli_system_object_type(class_type)) {
     /* This is the System::Object type, which is special since it doesn't have
-       a base class.  Just record it's "Finalize" member. */
+       a base class.  Just record its "Finalize" member. */
     cssp->object_finalize = symbol_for(get_object_finalize_routine());
     goto done;
   }  /* if */
@@ -14759,9 +14762,9 @@ should be implemented.  The results are stored in the class symbol supplement.
   check_for_dispose_pattern(base_class);
   if (base_cssp->dispose_bool != NULL) {
     /* The base class may be providing the dispose pattern implementation.
-       This is only worth checking for if class_type itself doesn't do so,
-       and if it either has not Dispose(bool) member or that member is a
-       valid overrider of the base class' Dispose(bool) member. */
+       This is only worth checking for if class_type itself doesn't do so, and
+       if it either has no Dispose(bool) member or that member is a valid
+       overrider of the base class' Dispose(bool) member. */
     if ((dispose_void_routine == NULL || object_finalize_routine == NULL) &&
         (dispose_bool_routine == NULL ||
          (is_valid_dispose_bool &&
@@ -14992,7 +14995,7 @@ Implement the C++/CLI dispose pattern for this class it is needed.
         generate_special_function(class_state, &decl_info, &func_info,
                                   (a_param_type_ptr)NULL);
         check_assertion(cssp->object_finalize != NULL);
-        cssp->has_dispose_pattern_object_finalize = FALSE;
+        cssp->has_dispose_pattern_object_finalize = TRUE;
       } else {
         /* Record whether or not a base class dispose pattern already
            implements the Finalize() member. */

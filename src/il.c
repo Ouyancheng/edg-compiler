@@ -9305,7 +9305,7 @@ Return the routine entry for "System::IDisposable::Dispose".
     if (idisposable_dispose_routine == NULL) {
       catastrophe(ec_invalid_idisposable_dispose);
     }  /* if */
-  }
+  }  /* if */
   return idisposable_dispose_routine;
 }  /* get_idisposable_dispose_routine */
 

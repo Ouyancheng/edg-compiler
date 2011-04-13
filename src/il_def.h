@@ -6717,7 +6717,7 @@ typedef struct a_class_type_supplement {
 			   the dispose pattern, these are the base class
 			   Dispose() and Finalize() routines.  NULL if this
 			   class doesn't introduce the dispose pattern or if
-			   no the corresponding functions don't exist.  The
+			   the corresponding functions don't exist.  The
 			   Dispose(bool) implementation in this class invokes
 			   these routines. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
