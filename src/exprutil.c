@@ -12094,35 +12094,39 @@ static an_expr_node_ptr func_call_expr(
                                   a_source_position *err_pos,
                                   an_expr_node_ptr  *function_call_node)
 /*
-Make an expression for a call of the function indicated by function_node,
-whose type is function_type, and which is virtual if is_virtual is TRUE or
-a pointer-to-member-function call if the type of function_node is
-pointer-to-member-function.  The arguments of the call are already attached
-to function_node.  A skip_typerefs need not have been done on
-function_type.  Return a pointer to the call node.  *err_pos gives an error
-position for the case where the function return type is invalid (i.e.,
-incomplete); an error node is returned for that case.  If
-virtual_suppressed is TRUE, the function was named via a qualified name and
-that has suppressed calling it as virtual; that's also reflected in
-is_virtual, but knowing that the user did it explicitly controls whether a
-diagnostic is put out in some cases.  selector_is_object_pointer is TRUE if
-the call is a nonstatic member function call and the source form was "->"
-(or "->*" for the pointer-to-member case) rather than "." (or ".*").
-compiler_generated is TRUE if this call is compiler-generated (e.g., for an
-implicit conversion via a conversion function).  is_conversion is TRUE for
-a call generated for an explicit or implicit conversion (e.g., a conversion
-function call).  arg_dep_lookup_suppressed is TRUE if argument-dependent
-lookup was suppressed on the call because the function name is not followed
-by a left parenthesis.  qualified_function_name is TRUE if
-argument-dependent lookup was suppressed because the function name is
-qualified.  found_through_adl is TRUE if the call was resolved only through
-argument-dependent lookup (i.e., ordinary lookup did not yield the called
-function).  uses_operator_syntax is TRUE when a call to an overloaded
-operator is the result of operator notation ("a+b") rather than an explicit
+Make an expression for a call of the function indicated by
+function_node, whose type is function_type, and which is to be called
+virtually if is_virtual is TRUE, or a pointer-to-member-function call
+if the type of function_node is pointer-to-member-function.  The
+arguments of the call are already attached to function_node.  A
+skip_typerefs need not have been done on function_type.  Return a
+pointer to the call node.  *err_pos gives an error position for the
+case where the function return type is invalid (i.e., incomplete); an
+error node is returned for that case.  If virtual_suppressed is TRUE,
+the function was named in some way that would suppress calling it as
+virtual (if indeed it is virtual); that's also reflected in
+is_virtual, but knowing that the user did it explicitly controls
+whether a diagnostic is put out in some cases.
+selector_is_object_pointer is TRUE if the call is a nonstatic member
+function call and the source form was "->" (or "->*" for the
+pointer-to-member case) rather than "." (or ".*").  compiler_generated
+is TRUE if this call is compiler-generated (e.g., for an implicit
+conversion via a conversion function).  is_conversion is TRUE for a
+call generated for an explicit or implicit conversion (e.g., a
+conversion function call).  arg_dep_lookup_suppressed is TRUE if
+argument-dependent lookup was suppressed on the call because the
+function name is not followed by a left parenthesis.
+qualified_function_name is TRUE if argument-dependent lookup was
+suppressed because the function name is qualified.  found_through_adl
+is TRUE if the call was resolved only through argument-dependent
+lookup (i.e., ordinary lookup did not yield the called function).
+uses_operator_syntax is TRUE when a call to an overloaded operator is
+the result of operator notation ("a+b") rather than an explicit
 function call.  If non-NULL, function_call_node is the address of an
-expression node pointer that will be set to point to the actual call node
-itself (which might be below the node returned because of transformations
-on the return value).  It is returned NULL for some error cases.
+expression node pointer that will be set to point to the actual call
+node itself (which might be below the node returned because of
+transformations on the return value).  It is returned NULL for some
+error cases.
 */
 {
   an_expr_operator_kind         op;
@@ -12240,30 +12244,37 @@ void make_function_call(an_expr_node_ptr  function_node,
                         an_operand        *result,
                         an_expr_node_ptr  *function_call_node)
 /*
-Make an operand for a call of the function indicated by function_node, whose
-type is function_type, and which is virtual if is_virtual is TRUE or a
-pointer-to-member-function call if the type of function_node is
-pointer-to-member-function.  The arguments of the call are already attached
-to function_node.  A skip_typerefs need not have been done on
-function_type.  selector_is_object_pointer is TRUE if the call is a
-nonstatic member function call and the source form was "->" (or "->*" for
-the pointer-to-member case) rather than "." (or ".*").  compiler_generated
+Make an operand for a call of the function indicated by function_node,
+whose type is function_type, and which is to be called virtually if
+is_virtual is TRUE, or a pointer-to-member-function call if the type
+of function_node is pointer-to-member-function.  The arguments of the
+call are already attached to function_node.  A skip_typerefs need not
+have been done on function_type.  If virtual_suppressed is TRUE, the
+function was named in some way that would suppress calling it as
+virtual (if indeed it is virtual); that's also reflected in
+is_virtual, but knowing that the user did it explicitly controls
+whether a diagnostic is put out in some cases.
+selector_is_object_pointer is TRUE if the call is a nonstatic member
+function call and the source form was "->" (or "->*" for the
+pointer-to-member case) rather than "." (or ".*").  compiler_generated
 is TRUE if this is a compiler-generated call (e.g., for an implicit
-conversion via a conversion function).  is_conversion is TRUE for a call
-generated for an explicit or implicit conversion (e.g., a conversion
-function call).  arg_dep_lookup_suppressed is TRUE if argument-dependent
-lookup was suppressed on the call because the function name was not
-followed by a left parenthesis.  qualified_function_name is TRUE if
-argument-dependent lookup was suppressed because the function name was
-qualified.  found_through_adl is TRUE if the call was resolved only through
-argument-dependent lookup (i.e., ordinary lookup did not yield the called
-function).  uses_operator_syntax is TRUE when a call to an overloaded
-operator is the result of operator notation ("a+b") rather than an explicit
+conversion via a conversion function).  is_conversion is TRUE for a
+call generated for an explicit or implicit conversion (e.g., a
+conversion function call).  arg_dep_lookup_suppressed is TRUE if
+argument-dependent lookup was suppressed on the call because the
+function name was not followed by a left parenthesis.
+qualified_function_name is TRUE if argument-dependent lookup was
+suppressed because the function name was qualified.  found_through_adl
+is TRUE if the call was resolved only through argument-dependent
+lookup (i.e., ordinary lookup did not yield the called function).
+uses_operator_syntax is TRUE when a call to an overloaded operator is
+the result of operator notation ("a+b") rather than an explicit
 function call.  *call_pos gives the source position of the call.  If
-non-NULL, function_call_node is the address of an expression node pointer
-that will be set to point to the actual call node itself (which might be
-below the expression in the result because of transformations on the return
-value).  It is returned NULL for some error cases.
+non-NULL, function_call_node is the address of an expression node
+pointer that will be set to point to the actual call node itself
+(which might be below the expression in the result because of
+transformations on the return value).  It is returned NULL for some
+error cases.
 */
 {
   an_expr_node_ptr call_node;

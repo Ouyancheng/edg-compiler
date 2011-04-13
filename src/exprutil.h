@@ -309,8 +309,10 @@ typedef struct an_operand {
 			   on operands that are intended to be used as
 			   selectors before they get bound to anything. */
   a_bit_field	virtual_function:1;
-			/* TRUE if the operand represents a virtual
-			   function. */
+			/* TRUE if the operand represents a function that
+			   should be called as a virtual function (e.g.,
+			   FALSE for a virtual function referenced using
+			   a qualified name). */
   a_bit_field   is_id_expression:1;
 			/* TRUE if this operand was generated from an
 			   id-expression (a qualified or unqualified name). */
