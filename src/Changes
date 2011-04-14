@@ -1,5 +1,21 @@
 Version 4.4
 
+4/14/11  [EDGcpfe/11610]
+Incorrect default template argument value within prototype instantiation
+
+The IL for the prototype instantiation of a class could incorrectly
+represent a default template argument of the prototype instantiation or
+a class declared within the prototype instantiation.  Formerly, the value
+used was the one originally declared as the template default argument.
+It instead should have had any template parameters substituted with
+those from the reference.  Now fixed.
+
+  template <typename T> class A {
+    template<typename U, bool is_pod = __is_pod(U)> struct B { };
+    B<T> b;  // Was B<T,__is_pod(U)> should have been B<T,__is_pod(T)>
+  };
+
+
 4/14/11  [EDGcpfe/11634]
 Rvalue reference can bind to lvalue in g++ 4.3 and 4.4 modes
 
