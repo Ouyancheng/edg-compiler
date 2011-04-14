@@ -2555,7 +2555,8 @@ have_level:;
        arguments, based on their lvalueness. */
     if (param_is_rvalue_reference) {
       /* An rvalue reference can only be bound to an rvalue. */
-      if (arg_originally_an_lvalue) {
+      if (arg_originally_an_lvalue &&
+          !binding_rvalue_ref_to_lvalue_allowed()) {
         if (arg_originally_a_bindable_bit_field) {
           /* MSVC10 allows binding an rvalue reference to a bit field
              (presumably by converting the bit field to an rvalue). */
@@ -15507,6 +15508,9 @@ direct binding is "possible" and not whether it is "valid".
     if (source_operand != NULL && !is_an_rvalue(source_operand)) {
       if (is_cast) {
         /* In a cast, the source can be an lvalue. */
+      } else if (binding_rvalue_ref_to_lvalue_allowed()) {
+        /* Some versions of g++ allow binding an rvalue reference to an
+           lvalue. */
       } else if (binding_rvalue_ref_to_bit_field_allowed() &&
                  is_bit_field_operand(source_operand)) {
         /* MSVC10 allows binding an rvalue reference to a bit-field lvalue. */
@@ -15853,7 +15857,8 @@ been found to be acceptable, and *conversion describes it.
                                 /*lvalue_expected=*/!is_rvalue_ref,
                                 /*rvalue_expected=*/is_rvalue_ref);
     }  /* if */
-  } else if (is_rvalue_ref && !is_an_rvalue(source_operand)) {
+  } else if (is_rvalue_ref && !is_an_rvalue(source_operand) &&
+             !binding_rvalue_ref_to_lvalue_allowed()) {
     /* An rvalue reference cannot be bound to an lvalue. */
     expr_pos_error(ec_rvalue_reference_bound_to_lvalue,
                    &source_operand->position);

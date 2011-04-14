@@ -1,5 +1,23 @@
 Version 4.4
 
+4/14/11  [EDGcpfe/11634]
+Rvalue reference can bind to lvalue in g++ 4.3 and 4.4 modes
+
+g++ 4.3 and 4.4 implement an early version of the rules for rvalue
+references, which allows an rvalue reference to bind to an lvalue.
+In those modes, we now emulate that behavior.  (One of the reasons
+we needed to do so is that the g++ 4.4 headers make use of such a
+binding.  g++ 4.5 changed to match the rules ultimately adopted in
+the standard.)
+
+  void f(int &&);
+  void f(void *);
+  int main() {
+    int i = 0;
+    f(i);  // Okay now with --gnu_version=40400
+  }
+
+
 4/11/11  [EDGcpfe/11621]
 Configuration of the file name suffix for C++ output files
 
