@@ -296,8 +296,8 @@ Spurious error or internal error on sizeof... of an empty pack
 
 A spurious error or internal error could result from a sizeof... of
 an empty nontype template parameter pack.  Now fixed.  The example below
-gets a "no instance of C<args...>::f matches the argument list, or if
-INTERNAL_ERROR is defined, gets an internal error in lower_type.
+got a "no instance of C<args...>::f matches the argument list, or if
+INTERNAL_ERROR is defined, got an internal error in lower_type.
 
   template <int... I> struct A { typedef A<I..., sizeof...(I)> n; };
   template <int J> struct B { typedef typename A<>::n type; };
