@@ -6457,6 +6457,27 @@ pointer to non-shared, or if the conversion is between two pointer to UPC
 }  /* check_implicit_upc_pointer_conversion */
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean is_prohibited_interior_ptr_conversion(a_type_ptr source_type,
+                                                a_type_ptr dest_type)
+/*
+Return TRUE if conversion from source_type to dest_type is a prohibited
+conversion in C++/CLI because it drops gc-ness of an interior_ptr.
+*/
+{
+  a_boolean prohibited = FALSE;
+
+  if (cppcli_enabled &&
+      is_interior_ptr_type(source_type) &&
+      is_pointer_type(dest_type) &&
+      !is_interior_ptr_type(dest_type)) {
+    prohibited = TRUE;
+  }  /* if */
+  return prohibited;
+}  /* is_prohibited_interior_ptr_conversion */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean impl_pointer_conversion(
                          a_type_ptr           source_type,
@@ -6580,8 +6601,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
     source_type_pointed_to = type_pointed_to(source_type);
     unqual_source_type_pointed_to = skip_typerefs(source_type_pointed_to);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (source_type->variant.pointer.is_interior_ptr &&
-        !dest_type->variant.pointer.is_interior_ptr) {
+    if (is_prohibited_interior_ptr_conversion(source_type, dest_type)) {
       /* Conversion from an interior_ptr to a non-interior_ptr is not
          allowed, because it loses the gc-ness of the pointer. */
       okay = FALSE;
@@ -8034,6 +8054,14 @@ exception specifications are not checked.
         okay = FALSE;
       }  /* if */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (okay && cppcli_enabled &&
+        is_prohibited_interior_ptr_conversion(source_type, dest_type)) {
+      /* Conversion from an interior_ptr to a non-interior_ptr is not
+         allowed, because it loses the gc-ness of the pointer. */
+      okay = FALSE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (is_integral_or_enum(source_type) && is_enum_type(dest_type)) {
     /* Core Issue 128 makes enum --> enum a valid static_cast.  This also
        covers the case of integer --> scoped enum (the unscoped case is a

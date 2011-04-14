@@ -894,6 +894,11 @@ extern a_boolean is_nothrow_type(a_type_ptr  type);
 extern a_boolean exception_spec_is_less_restrictive(a_type_ptr  type1,
                                                     a_type_ptr  type2);
 extern a_boolean same_exception_spec(a_type_ptr type_1, a_type_ptr type_2);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern
+a_boolean is_prohibited_interior_ptr_conversion(a_type_ptr source_type,
+                                                a_type_ptr dest_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern a_boolean impl_pointer_conversion(
                          a_type_ptr           source_type,
                          a_boolean            source_is_constant,
