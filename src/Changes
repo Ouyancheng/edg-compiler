@@ -73,6 +73,7 @@ IA-64 ABI: assertion failure when mangling unnamed namespace
 In cases where a member of an unnamed namespace is used in a template argument,
 an assertion failure (in mangled_simple_id) could trigger during mangling.
 This is a regression that was introduced in 4.2.  For example:
+[Patch sent out 4/14/11.]
 
   template <bool B> struct A {
     typedef char type;
@@ -102,7 +103,7 @@ an infinite loop (e.g., in perform_scheduled_routine_moves).  For example:
   void f() {}                    // Triggered an infinite loop or abort in
                                  // Sun mode.
 
-This is now fixed.
+This is now fixed.  [Patch sent out 4/14/11.]
 
 
 4/7/11   [EDGcpfe/11617]
@@ -111,7 +112,7 @@ Variadic templates: errors caused by packs expanded during disambiguation
 Spurious errors could occur in certain cases if a pack was expanded during
 disambiguation.  Now fixed.  This example would get a 'no instance of
 overloaded function "f" matches the argument list' during the instantiation
-of g.
+of g.  [Patch sent out 4/14/11.]
 
   template <class T1, class T2, class ... T3> struct B {
     template <class U1, class ... U2> B(U1&&, U2&&...);
@@ -155,7 +156,7 @@ Incorrect partial ordering of lvalue vs. rvalue references
 Version 4.3 implemented the resolution of core issue 1164 regarding the
 partial ordering of lvalue vs. rvalue references (see 1/14/11 entry).
 That change incorrectly considered some cases as ordered that should
-have been ambiguous.  Now fixed.
+have been ambiguous.  Now fixed.  [Patch sent out 4/14/11.]
 
   template <class T, class U> void f(T&&, U&);
   template <class T, class U> void f(T&, U&&);
@@ -174,7 +175,7 @@ of dealing with that form.  Note that this relates to the host definition of
 DBL_MAX as seen while compiling the C source of the front end itself, which
 might be different than the definition used when compiling user source code.
 See also the Changes entry of 8/2/99 which describes a similar issue with
-FLT_MAX.
+FLT_MAX.  [Patch sent out 4/14/11.]
 
 
 4/3/11   [EDGcpfe/11603]
@@ -182,7 +183,7 @@ Spurious errors on member template of variadic class
 
 Spurious errors could be issued on a member function template of a variadic
 class template when the function template used the variadic template
-parameters of the enclosing class.  Now fixed.
+parameters of the enclosing class.  Now fixed.  [Patch sent out 4/14/11.]
 
   template <class ... T> struct A {
     template <class U> void f(U, T... args);
@@ -199,7 +200,7 @@ Spurious remark on second argument to main when configuration uses signed chars
 When the configuration uses signed chars as the default (e.g., in Microsoft C
 emulation mode), a spurious remark had been issued for the second argument
 to main, even when it had the correct type.  For example (with --microsoft --c
---remarks):
+--remarks): [Patch sent out 4/14/11.]
 
   int main(int argc, char **argv) {
   // had issued:
@@ -213,7 +214,7 @@ to main, even when it had the correct type.  For example (with --microsoft --c
 Failure to diagnose ambiguity on certain variadic templates
 
 The following case should have been diagnosed as ambiguous, but was not.
-Now fixed.
+Now fixed.  [Patch sent out 4/14/11.]
 
   template <class ...T> void f(T...);
   template <class ...T, class ...U> void f(U...);
@@ -232,6 +233,7 @@ aborts could happen, e.g., in examine_expr_for_side_effect.
 In source code, this would require parentheses around a void
 operand, e.g., the first operand of a comma operator, or a top-level
 expression.  This example provoked such an invalid reference:
+[Patch sent out 4/14/11.]
 
   struct Z {
     Z();
@@ -246,6 +248,7 @@ Internal error on variadic member function template
 
 An internal error (in find_function_template_member) could occur on the
 instantiation of a variadic member function template.  Now fixed.
+[Patch sent out 4/14/11.]
 
   template <class ...T> struct A {
     template <class _T = int>  A(T... args) {}
@@ -263,7 +266,7 @@ is_local_to_function flag for parameter variables
 
 Version 4.3 included a change that caused is_local_to_function to be FALSE for
 certain parameter variables (in particular, for the implicit "this" parameter).
-This is now fixed.
+This is now fixed.  [Patch sent out 4/14/11.]
 
 
 3/30/11  [EDGcpfe/10821]
@@ -285,6 +288,7 @@ the preprocessed output (but not during actual compilation), giving an
 apparently well-formed floating point constant 1.0e-52.  The front end
 has now been fixed to maintain the original tokenization by putting a
 space between the "-" and the "5" in the preprocessed output.
+[Patch sent out 4/14/11.]
 
 
 3/30/11  [EDGcpfe/11530]
@@ -309,7 +313,7 @@ keywords when doing preprocessing only.  In certain pathological cases
 (e.g., when a macro is defined with a name that is one or the other of the
 tokens of a whitespace keyword and the tokens are split across lines), the
 result of preprocessing-only mode can be different from that of direct
-compilation, but this should be exceptionally rare.
+compilation, but this should be exceptionally rare.  [Patch sent out 4/14/11.]
 
 
 3/30/11  [EDGcpfe/11532]
@@ -317,7 +321,7 @@ Internal error on variadic partial specialization declared then defined later
 
 An internal error could occur (in find_placeholder_arg_for_pack) if a
 variadic partial specialization was declared and then defined later.
-Now fixed.
+Now fixed.  [Patch sent out 4/14/11.]
 
   template <class ...T> struct A {};
   template <class T, class ...U> struct A<T, U...>;
@@ -332,6 +336,7 @@ A spurious error or internal error could result from a sizeof... of
 an empty nontype template parameter pack.  Now fixed.  The example below
 got a "no instance of C<args...>::f matches the argument list, or if
 INTERNAL_ERROR is defined, got an internal error in lower_type.
+[Patch sent out 4/14/11.]
 
   template <int... I> struct A { typedef A<I..., sizeof...(I)> n; };
   template <int J> struct B { typedef typename A<>::n type; };
@@ -380,7 +385,7 @@ Microsoft compatibility: partial specialization declared outside of namespace
 
 The Microsoft compiler allows a partial specialization of a class template
 to be first declared outside of its namespace.  We now support this in
-Microsoft mode.
+Microsoft mode.  [Patch sent out 4/14/11.]
 
   namespace N {
     template <typename T, typename R> struct C;
@@ -395,6 +400,7 @@ Abort on ambiguous reference to overload set containing using-declarations
 An abort could occur in progenitors_are_equivalent on a reference to
 an ambiguous function that is a member of an overload set made visible
 in a derived class via a using-declaration.  Now fixed.
+[Patch sent out 4/14/11.]
 
   struct A { };
   struct B {
@@ -440,6 +446,7 @@ Microsoft compatibility: spurious errors on complex variadic return types
 
 Certain test cases with complex return types involving variadic templates
 could result in spurious errors in Microsoft mode.  Now fixed.
+[Patch sent out 4/14/11.]
 
   template<int... I> struct A {};
   template<class X, class Y, class I> struct B;
@@ -463,7 +470,7 @@ In GNU and Microsoft emulation modes, an attempt to call "delete []" with a
 pointer to an array of a class with a virtual destructor had resulted in an
 internal error ("make_vptr_field_lvalue: not class type") in configurations
 that use IL lowering.  This regression was introduced in 4.2 (EDGcpfe/10873)
-and is now fixed.  For example:
+and is now fixed.  For example: [Patch sent out 4/14/11.]
 
   struct A {
     virtual ~A();
@@ -481,6 +488,7 @@ Warnings that an expression has no side effect are now suppressed
 inside decltype expressions, because decltype expressions are now
 used to test SFINAE conditions, and such tests may indeed have
 a SFINAE purpose even though they have no side effects.
+[Patch sent out 4/14/11.]
 
   template <class T> auto f(T p) -> decltype((p > 0), p) { return 0; }
   int main() {
@@ -502,7 +510,7 @@ __is_convertible_to failed to instantiate its argument types
 The type trait function __is_convertible_to failed to instantiate its
 argument types when they are templates, and therefore in some cases
 failed to correctly determine whether one type could be converted
-to another.  Now fixed.
+to another.  Now fixed.  [Patch sent out 4/14/11.]
 
   template <class T> struct A {
     operator A<int>() { return A<int>(); }
@@ -518,7 +526,7 @@ Implicit typename not disabled during variadic prototype instantiations
 Prototype instantiations are done for variadic functions even in
 modes when nonclass prototype instantiations are not enabled.  Implicit
 typename processing was not disabled during such prototype instantiations,
-resulting in spurious errors.  Now fixed.
+resulting in spurious errors.  Now fixed.  [Patch sent out 4/14/11.]
 
   template <class ... T, class U> void f(U p, T... args) {
     U::V * p;  // spurious "redeclaration of p" error
@@ -531,7 +539,7 @@ Variadic failure to deduce additional elements of explicit argument list
 When an explicit argument list is provided for a variadic template
 argument, additional elements can be deduced from the call arguments.
 This did not work correctly when the deduction was from a template
-argument list in the call.  Now fixed.
+argument list in the call.  Now fixed.  [Patch sent out 4/14/11.]
 
   template<typename... T> class A {};
   template<int I, typename... T> void f(A<T...>&);
@@ -547,6 +555,7 @@ Spurious ambiguity on partial specialization of variadic template
 A spurious ambiguity in selecting a partial specialization could occur
 if the partial specializations contained a function type in which the
 function parameter list contained a function parameter pack.  Now fixed.
+[Patch sent out 4/14/11.]
 
   template <class T> struct A {};
   template <class T, class ... args> struct B;
@@ -566,7 +575,7 @@ Spurious error on variadic expansion starting with complex identifier
 Under some complex conditions, including the fact that the start of a
 pack expansion is an identifier that is a qualified name and/or
 contains a template argument list, a spurious error could result
-during an instantiation.  Now fixed.
+during an instantiation.  Now fixed.  [Patch sent out 4/14/11.]
 
   namespace N {
     template<class T> T&& f(T& _Arg);
@@ -591,7 +600,7 @@ and new-style SFINAE in Microsoft mode
 Version 4.3 introduced a problem that could result in an internal error
 (in get_expr_rescan_info) on default template arguments of function
 templates in Microsoft mode when using new-style SFINAE (e.g., in C++0x mode).
-Now fixed.
+Now fixed.  [Patch sent out 4/14/11.]
 
   template <bool b, class T> struct enable_if {
     typedef T type;
@@ -617,6 +626,7 @@ Variadic templates must have their prototype instantiations done in order
 for real instantiations to be processed correctly.  Prototype instantiations
 of member function templates were not being done in modes in which
 nonclass prototype instantiations were not enabled.  Now fixed.
+[Patch sent out 4/14/11.]
 
   template <class ... T> void g(T... args) {}
   template <class T> struct A {
@@ -634,7 +644,7 @@ nonclass prototype instantiations were not enabled.  Now fixed.
 IL display build problem on Windows without CPPCLI_ENABLING_POSSIBLE
 
 The IL display program did not build properly on Windows when
-CPPCLI_ENABLING_POSSIBLE was FALSE.  Now fixed.
+CPPCLI_ENABLING_POSSIBLE was FALSE.  Now fixed.  [Patch sent out 4/14/11.]
 
 
 3/17/11  [EDGcpfe/11520]
@@ -642,6 +652,7 @@ Access checking regression in template argument substitution
 
 Version 4.3 introduced a regression that could cause spurious access
 errors during template argument substitution.  Now fixed.
+[Patch sent out 4/14/11.]
 
   class A {
     typedef int (A::*pmf)(int);
