@@ -13559,16 +13559,12 @@ all arguments were explicit.
       } else if (is_template_templ_arg(arg_ptr)) {
         /* A template template argument. */
         if (orig_param_ptr->has_default_arg) {
-          if (!template_in_prototype_instantiation) {
-            /* A type parameter with a default value.  The default can be
-               either a type or a token cache that needs to be scanned. */
-            arg_ptr->variant.templ.ptr =
+          /* A type parameter with a default value.  The default can be
+             either a type or a token cache that needs to be scanned. */
+          arg_ptr->variant.templ.ptr =
                      rescan_template_template_default_arg(template_sym,
                                                           orig_param_ptr,
                                                           arg_list);
-          } else {
-            arg_ptr->variant.templ.ptr = orig_param_ptr->default_arg.templ;
-          }  /* if */
         } else {
           /* A template template parameter with no default argument.
              This occurs only in error cases.  Use an error template. */
@@ -13581,19 +13577,15 @@ all arguments were explicit.
         /* A nontype argument. */
         check_assertion(is_nontype_templ_arg(arg_ptr));
         if (orig_param_ptr->has_default_arg) {
-          if (!template_in_prototype_instantiation) {
-            /* A constant parameter.  The default value can be either a
-               constant value or a token cache that needs to be scanned.
-               Call a routine that will rescan the type declaration and/or
-               default argument expression. */
-            (void)rescan_template_constant_parameter(
+          /* A constant parameter.  The default value can be either a
+             constant value or a token cache that needs to be scanned.
+             Call a routine that will rescan the type declaration and/or
+             default argument expression. */
+          (void)rescan_template_constant_parameter(
                                      template_sym, sym, orig_param_ptr,
                                      arg_list, /*do_default_arg=*/TRUE,
                                      &constant);
-            arg_ptr->variant.constant = constant;
-          } else {
-            arg_ptr->variant.constant = orig_param_ptr->default_arg.constant;
-          }  /* if */
+          arg_ptr->variant.constant = constant;
         } else {
           /* A nontype constant without a default argument.  This also only
              occurs in error cases.  Use an error constant. */
