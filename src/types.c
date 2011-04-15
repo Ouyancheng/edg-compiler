@@ -1099,7 +1099,7 @@ Return TRUE if the indicated type is a C++/CLI ref class or interface class.
 a_boolean is_cli_value_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a C++/CLI value type, which includes
-value class types and also fundamental types and pointers.  See ECMA
+value class types and also fundamental types, enums, and pointers.  See ECMA
 standard 12.1.
 */
 {
@@ -1109,9 +1109,8 @@ standard 12.1.
     tp = skip_typerefs(tp);
     if (is_value_class_type(tp) ||
         is_enum(tp) ||
-        is_pointer_type(tp) ||
-        is_integral(tp) ||
-        is_real_floating(tp)) {
+        is_pointer(tp) ||
+        system_type_from_basic_type(tp) != NULL) {
       result = TRUE;
     }  /* if */
   }  /* if */
@@ -12066,6 +12065,7 @@ for the reverse mapping.
 */
 {
   a_symbol_ptr symbol = NULL;
+  a_type_ptr   sys_type = NULL;
 
   check_assertion(tp != NULL);
   switch (tp->kind) {
@@ -12087,7 +12087,11 @@ for the reverse mapping.
       symbol = NULL;
       break;
   }  /* switch */
-  return (symbol != NULL) ? type_symbol_type(symbol) : NULL;
+  if (symbol != NULL) {
+    sys_type = type_symbol_type(symbol);
+    check_assertion(is_value_class_type(sys_type));
+  }  /* if */
+  return sys_type;
 }  /* system_type_from_basic_type */
 
 
