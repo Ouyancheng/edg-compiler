@@ -3484,6 +3484,15 @@ the overridden symbol.
 #else /* !ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
                         ec_different_return_type_on_virtual_function_override;
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled &&
+        is_managed_class_type(sym_parent_class(overridden_sym))) {
+      /* Do not suggest a potential covariant match in the diagnostic for a
+         managed class type, since covariant return types are not accepted in
+         such classes. */
+      error_code = ec_different_return_type_on_virtual_function_override;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     pos_syty_error(error_code, diag_pos, overridden_sym,
                    skip_typerefs(type_of_overridden_routine)
                                                ->variant.routine.return_type);
