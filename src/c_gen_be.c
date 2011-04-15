@@ -2774,7 +2774,9 @@ Return the byte offset following the end of the indicated field.
 {
   a_targ_size_t offset_after;
 
-  if (!field->is_bit_field) {
+  if (!field->is_bit_field || msvc_is_generated_code_target) {
+    /* The Microsoft compiler treats bit-fields as being allocated within a
+       container the size of the nominal type of the bit-field. */
     offset_after = field->offset + skip_typerefs(field->type)->size;
   } else {
     /* Bit field. */
