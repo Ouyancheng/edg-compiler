@@ -1,16 +1,16 @@
 Version 4.4
 
 4/14/11  [EDGcpfe/11491]
-C-generating back end, Microsoft compatibility: end-of-struct padding after
-bit-fields
+C-generating back end, Microsoft compatibility: padding after bit-fields
 
 When msvc_is_generated_code_target is TRUE, the C-generating back end
 failed to account for the way the Microsoft C compiler allocates bit-fields
-when determining whether padding was required at the end of a struct in the
+when determining whether padding was required after a bit-field in the
 generated code.  As a result, unneeded padding was sometimes introduced,
-effectively causing the size of some generated structs to be different from
-what they would have been if the original code were compiled directly by
-the Microsoft compiler.  This has now been fixed.  For example:
+effectively causing the size of some generated structs and the offset of
+members following bit-fields to be different from what they would have been
+if the original code were compiled directly by the Microsoft compiler.
+This has now been fixed.  For example:
 
   struct S {
     int i:4;
