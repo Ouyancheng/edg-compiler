@@ -9404,7 +9404,8 @@ exit_loop:
   }  /* if */
 #endif /* DEBUG */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && is_immediate_class_type(*type_ptr) &&
+  if (cppcli_enabled && *type_ptr != NULL &&
+      is_immediate_class_type(*type_ptr) &&
       cli_class_type_kind_is(*type_ptr, cctk_value)) {
     /* Naming a special value class like System::Int32 is equivalent to
        denoting the corresponding standard type (e.g., int).  It may later be
