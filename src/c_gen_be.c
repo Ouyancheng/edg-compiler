@@ -550,7 +550,7 @@ typedef struct a_microsoft_bit_field_tracker {
 static a_microsoft_bit_field_tracker
 		msvc_bit_field_tracker;
 			/* Bit-field tracker for the struct currently being
-			   declared.
+			   declared. */
 
 
 /* Declarations needed because of forward references: */
