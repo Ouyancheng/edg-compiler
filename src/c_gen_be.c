@@ -517,6 +517,41 @@ displayed in layout annotations to be relative to the complete object.)
 */
 static a_targ_size_t subobject_offset;
 
+/*
+The following data structures are used when the Microsoft compiler is the
+generated code target to determine whether padding is needed following a
+bit-field.  The Microsoft compiler allocates bit-fields within a container
+of the declared type of the bit-field, so no padding should be inserted if
+the next field or the end of the struct occurs at the end of the current
+container, regardless of how much or little of the container is used by the
+bit-fields.
+
+Each time a bit-field is declared and starts a new container (because the
+preceding field, if any, was not a bit-field, or because the declared type
+is different from that of the preceding bit-field, or because the new
+bit-field does not fit into the current container), the declared type of
+the bit-field and the offset of the container are recorded, and the next
+available allocation following the last bit-field in that container will be
+simply the container offset plus the size of the container type.
+*/
+typedef struct a_microsoft_bit_field_tracker {
+  a_type_ptr	container_type;
+			/* Declared type of the previous bit-field in the
+			   current sequence of bit-fields.  NULL if there
+			   was no previous field or if the previous field
+			   was not a bit-field. */
+  a_targ_size_t	container_offset;
+			/* The offset of the container (of type
+			   container_type) within which bit-fields are
+			   currently being allocated.  Only valid if
+			   container_type is non-NULL. */
+} a_microsoft_bit_field_tracker;
+
+static a_microsoft_bit_field_tracker
+		msvc_bit_field_tracker;
+			/* Bit-field tracker for the struct currently being
+			   declared.
+
 
 /* Declarations needed because of forward references: */
 static void dump_constant(a_constant_ptr constant);
@@ -2767,19 +2802,59 @@ which has a declared size that is larger than its base type.
 }  /* dump_bit_field_padding */
 
 
+static void track_microsoft_bit_field_allocation(a_field_ptr field)
+/*
+If field is a bit-field, update msvc_bit_field_tracker as needed to remember
+the offset of the container within which the bit-field is allocated.  If
+field is not a bit-field, reset the tracker so that the next bit-field will
+be recognized as the start of a new container.  This should be called for
+each field of a struct being declared, whether or not it is a bit-field, but
+only if the Microsoft compiler is the generated code target.
+*/
+{
+  a_type_ptr field_type = skip_typerefs(field->type);
+
+  check_assertion(msvc_is_generated_code_target);
+  if (field->is_bit_field) {
+    if (field_type == msvc_bit_field_tracker.container_type &&
+        field->offset < msvc_bit_field_tracker.container_offset +
+                                                            field_type->size) {
+      /* Bit-field is still in the same container. */
+    } else {
+      /* This bit-field starts a new container. */
+      msvc_bit_field_tracker.container_type = field_type;
+      msvc_bit_field_tracker.container_offset = field->offset;
+    }  /* if */
+  } else {
+    /* Clear container_type so a subsequent bit-field will start a new
+       container. */
+    msvc_bit_field_tracker.container_type = NULL;
+  }  /* if */
+}  /* track_microsoft_bit_field_allocation */
+
+
 static a_targ_size_t offset_after_field(a_field_ptr field)
 /*
 Return the byte offset following the end of the indicated field.
 */
 {
   a_targ_size_t offset_after;
+  a_type_ptr    field_type = skip_typerefs(field->type);
 
-  if (!field->is_bit_field || msvc_is_generated_code_target) {
+  if (!field->is_bit_field) {
+    offset_after = field->offset + field_type->size;
+  } else if (msvc_is_generated_code_target &&
+             field->declared_bit_size <= field->bit_size) {
     /* The Microsoft compiler treats bit-fields as being allocated within a
-       container the size of the nominal type of the bit-field. */
-    offset_after = field->offset + skip_typerefs(field->type)->size;
+       container the size of the nominal type of the bit-field.  However,
+       that does not affect a bit-field that is declared to be larger than
+       the size of the declared type; in that case, because of the extra
+       padding added following the container to fill out the declared width
+       of the bit-field, the normal calculation below applies. */
+    offset_after = msvc_bit_field_tracker.container_offset +
+                                   msvc_bit_field_tracker.container_type->size;
   } else {
-    /* Bit field. */
+    /* Non-Microsoft bit field. */
     offset_after = field->offset + (targ_char_bit - 1 + 
                                     field->declared_bit_size +
                                     field->offset_bit_remainder) /
@@ -3005,6 +3080,11 @@ padding in the generated code.
   a_field_ptr prev_field = NULL;
 
   check_assertion(is_immediate_class_type(type));
+  if (msvc_is_generated_code_target) {
+    /* Ensure that an initial bit-field is recognized as starting a new
+       container. */
+    msvc_bit_field_tracker.container_type = NULL;
+  }  /* if */
   for (field = type->variant.class_struct_union.field_list;
        field != NULL;
        field = field->next) {
@@ -3037,6 +3117,11 @@ padding in the generated code.
         /* Add end-of-struct padding. */
         dump_field_padding(*last_field,
                            field->type->size - offset_after_fields);
+      }  /* if */
+      if (msvc_is_generated_code_target) {
+        /* A bit-field following a base class subobject will be in a new
+           container. */
+        msvc_bit_field_tracker.container_type = NULL;
       }  /* if */
       pop_member_name_prefix_component(&prefix);
     } else if (!field->is_bit_field) {
@@ -3208,6 +3293,10 @@ padding in the generated code.
       }  /* if */
     }  /* if */
     prev_field = field;
+    if (msvc_is_generated_code_target) {
+      /* Register the field for bit-field allocation tracking purposes. */
+      track_microsoft_bit_field_allocation(field);
+    }  /* if */
   }  /* for */
   if (name_prefix_components != NULL && prev_field != NULL &&
       prev_field->is_bit_field) {
@@ -3216,16 +3305,23 @@ padding in the generated code.
        bit-field if needed to ensure that if the following derived class
        member is a bit-field, it doesn't bleed into the space left over
        from the base class field. */
-    an_offset_bit_remainder dummy_bits = 
+    if (msvc_is_generated_code_target) {
+      /* Put out a zero-length bit field to force alignment to the offset
+         of the next container. */
+      dump_type(prev_field->type, /*add_pointer=*/FALSE);
+      write_tok_str(":0;");
+    } else {
+      an_offset_bit_remainder dummy_bits = 
                                       (targ_char_bit -
                                        (prev_field->offset_bit_remainder +
                                         prev_field->bit_size)) % targ_char_bit;
-    if (dummy_bits != 0) {
-      write_tok_str("unsigned int ");
-      dump_field_name_with_prefix("__dummy_bits", (a_field_ptr)NULL);
-      write_tok_ch(':');
-      write_unsigned_num((a_host_large_unsigned)dummy_bits);
-      write_tok_ch(';');
+      if (dummy_bits != 0) {
+        write_tok_str("unsigned int ");
+        dump_field_name_with_prefix("__dummy_bits", (a_field_ptr)NULL);
+        write_tok_ch(':');
+        write_unsigned_num((a_host_large_unsigned)dummy_bits);
+        write_tok_ch(';');
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* dump_field_list */
@@ -6746,6 +6842,10 @@ block with state information for the processing.
         ipdp->curr_field = next_initializable_field(
                                   type->variant.class_struct_union.field_list);
         if (ipdp->curr_field != NULL) {
+          if (msvc_is_generated_code_target) {
+            /* Initialize bit-field allocation tracker. */
+            msvc_bit_field_tracker.container_type = NULL;
+          }  /* if */
           elem_type = ipdp->curr_field->type;
           if (ipdp->curr_field !=
                                  type->variant.class_struct_union.field_list) {
@@ -6753,6 +6853,9 @@ block with state information for the processing.
                points to the preceding field. */
             prev_field = type->variant.class_struct_union.field_list;
             while (prev_field->next != ipdp->curr_field) {
+              if (msvc_is_generated_code_target) {
+                track_microsoft_bit_field_allocation(prev_field);
+              }  /* if */
               prev_field = prev_field->next;
             }  /* while */
           }  /* if */
@@ -6939,10 +7042,16 @@ block with state information for the processing.
             check_assertion_str(type->kind == (a_type_kind)tk_struct,
                                 "dump_initializer_part: bad entity kind (2)");
             prev_field = ipdp->curr_field;
+            if (msvc_is_generated_code_target) {
+              track_microsoft_bit_field_allocation(prev_field);
+            }  /* if */
             ipdp->curr_field= next_initializable_field(ipdp->curr_field->next);
             while (prev_field->next != ipdp->curr_field) {
               /* Adjust prev_field if next_initializable_field skipped some
                  non-initializable fields. */
+              if (msvc_is_generated_code_target) {
+                track_microsoft_bit_field_allocation(prev_field);
+              }  /* if */
               prev_field = prev_field->next;
             }  /* while */
           }  /* if */
@@ -6974,6 +7083,10 @@ block with state information for the processing.
       } else if (need_array_dummy_init) {
         write_tok_str(",{0}");
       }  /* if */
+      if (msvc_is_generated_code_target) {
+        /* Ensure that the next bit-field will be in a new container. */
+        msvc_bit_field_tracker.container_type = NULL;
+      }  /* if */
     } else  if (suppress_brace_for_base_class_subobject &&
                 ipdp->curr_field != NULL) {
       /* We're at the end of the fields that were promoted from a base
@@ -6992,6 +7105,10 @@ block with state information for the processing.
       while (offset_after_fields++ < type->size) {
         write_tok_str(",'\\0'");
       }  /* while */
+      if (msvc_is_generated_code_target) {
+        /* Ensure that the next bit-field will be in a new container. */
+        msvc_bit_field_tracker.container_type = NULL;
+      }  /* if */
     }  /* if */
     if (outer_level_pos != NULL) outer_level_pos->next = NULL;
   }  /* if */
