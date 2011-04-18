@@ -3190,7 +3190,7 @@ indicating that error recovery should proceed as if no error had occurred
       if (SVR4_C_mode) {
         if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
           /* Functions and variables are treated differently.  For example:
-               void f() { extern unsigned g(); extern int x; }
+               void f() { extern unsigned g(), x; }
                int g();      // Warning in SVR4 C mode.
                int x;        // Error in SVR4 C mode.
           */
@@ -3281,7 +3281,15 @@ indicating that error recovery should proceed as if no error had occurred
             esdp->variant.routine.ptr->superseded_external = TRUE;
             esdp->variant.routine.ptr = NULL;
           }  /* if */
-          okay = FALSE;
+          if (is_function_type(old_type) && is_function_type(type_ptr) &&
+              interchangeable_types(return_type_of(old_type),
+                                    return_type_of(type_ptr))) {
+            /* Microsoft accepts incompatible function types with a warning,
+               as long as the return types are "interchangeable". */
+            severity = ((int)severity>(int)es_warning) ? es_warning : severity;
+          } else {
+            okay = FALSE;
+          }  /* if */
         } else if (!incompatible_linkage_spec) {
           /* In Microsoft C++ mode extern "C" routine declarations are
              allowed to have incompatible types when they appear in
@@ -3376,7 +3384,7 @@ created; the caller must set it.
     if (ext_sym != NULL) {
       /* There is an existing external symbol for the name. */
       esdp = ext_sym->variant.extern_symbol_descr;
-      if ((microsoft_bugs || gpp_mode) &&
+      if (!C_mode() && (microsoft_bugs || gpp_mode) &&
           depth_innermost_function_scope == NO_SCOPE_DEPTH &&
           name_linkage == (a_name_linkage_kind)nlk_external) {
         /* In Microsoft and GNU compilers, an extern "C" declaration in one

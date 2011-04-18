@@ -11782,11 +11782,12 @@ typedef struct a_routine {
 			/* TRUE if the routine has a definition that contains
 			   a local class, struct, or union declaration. */
   a_bit_field	superseded_external:1;
-			/* TRUE (in SVR4 C mode only) if the current routine
-			   was created to represent a block extern declaration
-			   whose type is incompatible with that of another
-			   file-scope routine with the same name, where the
-			   latter is treated as the "official" routine. */
+			/* TRUE (in SVR4 and Microsoft C mode only) if the
+			   current routine was created to represent a block
+			   extern declaration whose type is incompatible with
+			   that of another file-scope routine with the same
+			   name, where the latter is treated as the "official"
+			   routine. */
   a_bit_field	defined_in_friend_decl:1;
 			/* TRUE when the routine definition appears in a
 			   friend declaration.  When this flag is set, a
