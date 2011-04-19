@@ -18388,6 +18388,7 @@ done:
 }  /* member_declarator */
 
 
+static
 a_boolean check_cppcli_explicit_conversion(a_type_ptr          class_type,
                                            a_decl_parse_state  *dps,
                                            a_decl_flag_set     dso_flags)
