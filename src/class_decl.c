@@ -18387,6 +18387,33 @@ done:
   return okay;
 }  /* member_declarator */
 
+
+a_boolean check_cppcli_explicit_conversion(a_type_ptr          class_type,
+                                           a_decl_parse_state  *dps,
+                                           a_decl_flag_set     dso_flags)
+/*
+Return TRUE if the explicit conversion function declaration described by *dps
+and dso_flags (the flag set returned by decl_specifiers) can validly appear in
+the definition of the given class type.  Otherwise, return FALSE and issue an
+error.  Called in C++/CLI mode only.
+*/
+{
+  a_boolean  okay = TRUE;
+
+  check_assertion(cppcli_enabled);
+  if (!cli_class_type_kind_is(class_type, cctk_ref) &&
+      !cli_class_type_kind_is(class_type, cctk_value)) {
+    pos_error(ec_cppcli_explicit_conversion_only_in_ref_and_value_classes,
+              &dps->start_pos);
+    okay = FALSE;
+  } else if (dso_flags & DSO_VIRTUAL) {
+    pos_error(ec_cppcli_explicit_conversion_is_virtual, &dps->start_pos);
+    okay = FALSE;
+  }  /* if */
+  return okay;
+}  /* check_cppcli_explicit_conversion */
+
+
 #if !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* instance and template_decl is not used unless source
                 sequence lists are generated. */
@@ -18786,7 +18813,11 @@ passed via template_decl.
           if (decl_info.is_constructor) {
             tssp = rout_sym->variant.template_info;
             tssp->variant.function.routine->is_explicit_constructor = TRUE;
-          } else if (locator.is_conversion_name && cppcli_enabled) {
+          } else if (locator.is_conversion_name &&
+                     (cpp0x_mode || 
+                      (cppcli_enabled &&
+                       check_cppcli_explicit_conversion(class_type, decl_state,
+                                                        dso_flags)))) {
             tssp = rout_sym->variant.template_info;
             tssp->variant.function.routine
                 ->is_explicit_conversion_function = TRUE;
@@ -18861,7 +18892,11 @@ passed via template_decl.
         if (dso_flags & DSO_EXPLICIT) {
           if (decl_info.is_constructor) {
             rout_sym->variant.routine.ptr->is_explicit_constructor = TRUE;
-          } else if (locator.is_conversion_name && cppcli_enabled) {
+          } else if (locator.is_conversion_name &&
+                     (cpp0x_mode || 
+                      (cppcli_enabled &&
+                       check_cppcli_explicit_conversion(class_type, decl_state,
+                                                        dso_flags)))) {
             rout_sym->variant.routine.ptr
                     ->is_explicit_conversion_function = TRUE;
           }  /* if */
