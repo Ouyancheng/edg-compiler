@@ -18401,6 +18401,7 @@ error.  Called in C++/CLI mode only.
   a_boolean  okay = TRUE;
 
   check_assertion(cppcli_enabled);
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (!cli_class_type_kind_is(class_type, cctk_ref) &&
       !cli_class_type_kind_is(class_type, cctk_value)) {
     pos_error(ec_cppcli_explicit_conversion_only_in_ref_and_value_classes,
@@ -18410,6 +18411,7 @@ error.  Called in C++/CLI mode only.
     pos_error(ec_cppcli_explicit_conversion_is_virtual, &dps->start_pos);
     okay = FALSE;
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return okay;
 }  /* check_cppcli_explicit_conversion */
 
