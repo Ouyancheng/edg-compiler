@@ -19184,7 +19184,7 @@ next_declaration:;
       /* Microsoft compilers appear to ignore "explicit" in this case. */
     } else if (!(dso_flags & DSO_FRIEND) &&
                (decl_info.is_constructor ||
-                (cppcli_enabled &&
+                ((cpp0x_mode || cppcli_enabled) &&
                   is_conversion_function_symbol(decl_state->sym)))) {
       /* Okay. */
     } else {
