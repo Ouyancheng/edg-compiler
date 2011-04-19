@@ -722,6 +722,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_invalid_object_finalize)*/
 /*lint -esym(769,ec_finalize_does_not_override_object_finalize)*/
 /*lint -esym(769,ec_cast_interior_ptr_to_ptr)*/
+/*lint -esym(769,ec_cppcli_explicit_conversion_only_in_ref_and_value_classes)*/
+/*lint -esym(769,ec_cppcli_explicit_conversion_is_virtual)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_enum)*/

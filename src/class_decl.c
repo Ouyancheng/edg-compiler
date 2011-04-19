@@ -18388,6 +18388,9 @@ done:
 }  /* member_declarator */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* The parameters are used only in some configurations. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static
 a_boolean check_cppcli_explicit_conversion(a_type_ptr          class_type,
                                            a_decl_parse_state  *dps,
