@@ -664,16 +664,17 @@ extern void adjust_class_object_type(an_operand       *operand,
                                      a_type_ptr       dest_type,
                                      a_base_class_ptr bcp);
 
-a_boolean conversion_from_class_possible(
-                            an_operand               *source_operand,
-                            a_type_ptr               dest_type,
-                            a_builtin_type_kind_set  builtin_types_allowed,
-                            a_boolean                need_lvalue_result,
-                            a_boolean                is_copy_initialization,
-                            a_boolean                is_reference_binding,
-                            a_conv_descr             *conversion,
-                            a_boolean                *ambiguous,
-                            a_candidate_function_ptr *ambiguity_list);
+extern a_boolean conversion_from_class_possible(
+                          an_operand               *source_operand,
+                          a_type_ptr               dest_type,
+                          a_builtin_type_kind_set  builtin_types_allowed,
+                          a_boolean                need_lvalue_result,
+                          a_boolean                is_copy_initialization,
+                          a_boolean                orig_is_copy_initialization,
+                          a_boolean                is_reference_binding,
+                          a_conv_descr             *conversion,
+                          a_boolean                *ambiguous,
+                          a_candidate_function_ptr *ambiguity_list);
 
 extern void try_to_convert_class_operand_to_builtin_type(
                                  an_operand              *operand,

@@ -15080,6 +15080,7 @@ called only in C++ mode.
                                        (a_builtin_type_kind_set)BTK_NONE,
                                        /*need_lvalue_result=*/FALSE,
                                        /*is_copy_initialization=*/TRUE, /*sic*/
+                                       /*orig_is_copy_initialization=*/TRUE,
                                        /*is_reference_binding=*/FALSE, /*sic*/
                                        &conversion,
                                        &ambiguous,

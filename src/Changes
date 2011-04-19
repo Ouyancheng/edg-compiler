@@ -1,5 +1,27 @@
 Version 4.4
 
+4/19/11  [EDGcpfe/8624,EDGcpfe/11498,EDGcpfe/11517]
+explicit conversion functions
+
+Conversion functions marked "explicit", as defined by the C++0x standard
+(see paper N2437), are now implemented.  Such conversion functions
+are used only for explicit casts, and not for implicit conversions.
+The related concept of "boolean-converted" is also now implemented.
+It allows explicit conversion functions to bool to be used to produce
+a bool value in contexts like the expression of an "if" statement
+even though such a context is not an explicit cast.
+
+  struct A {
+    explicit operator bool();
+  };
+  int main() {
+    A a;
+    (void)bool(a);  // Okay
+    if (a) {}  // Okay
+    bool b = a;  // Error
+  }
+
+
 4/18/11  [EDGcpfe/11476]
 Microsoft C mode block-extern function declarations
 

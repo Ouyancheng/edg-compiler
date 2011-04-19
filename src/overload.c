@@ -29,14 +29,15 @@ overload.c -- Expression processing overload resolution.
 
 /* Forward declarations required because of out-of-order references. */
 static void try_conversion_function_match(
-                            an_operand               *source_operand,
-                            a_type_ptr               dest_type,
-                            a_type_ptr               requested_type,
-                            a_builtin_type_kind_set  builtin_types_allowed,
-                            a_boolean                need_lvalue_result,
-                            a_boolean                is_copy_initialization,
-                            a_boolean                is_reference_binding,
-                            a_candidate_function_ptr *candidate_functions);
+                          an_operand               *source_operand,
+                          a_type_ptr               dest_type,
+                          a_type_ptr               requested_type,
+                          a_builtin_type_kind_set  builtin_types_allowed,
+                          a_boolean                need_lvalue_result,
+                          a_boolean                is_copy_initialization,
+                          a_boolean                orig_is_copy_initialization,
+                          a_boolean                is_reference_binding,
+                          a_candidate_function_ptr *candidate_functions);
 static void prep_conversion_operand(
                                  an_operand        *source_operand,
                                  a_type_ptr        dest_type,
@@ -1821,6 +1822,7 @@ part of determining the conversions on the operands of a "?" operator.
                                           (a_builtin_type_kind_set)BTK_NONE,
                                           /*need_lvalue_result=*/TRUE,
                                           /*is_copy_initialization=*/FALSE,
+                                         /*orig_is_copy_initialization=*/FALSE,
                                           /*is_reference_binding=*/TRUE,
                                           conversion,
                                           ambiguous,
@@ -1840,6 +1842,7 @@ part of determining the conversions on the operands of a "?" operator.
                                          (a_builtin_type_kind_set)BTK_NONE,
                                          /*need_lvalue_result=*/FALSE,
                                          /*is_copy_initialization=*/TRUE,
+                                         /*orig_is_copy_initialization=*/TRUE,
                                          /*is_reference_binding=*/FALSE,
                                          &local_conversion,
                                          &local_ambiguous,
@@ -1871,6 +1874,7 @@ part of determining the conversions on the operands of a "?" operator.
                                         (a_builtin_type_kind_set)BTK_NONE,
                                         /*need_lvalue_result=*/FALSE,
                                         /*is_copy_initialization=*/FALSE,
+                                        /*orig_is_copy_initialization=*/FALSE,
                                         /*is_reference_binding=*/FALSE,
                                         ambiguity_list);
           check_assertion(*ambiguity_list != NULL);
@@ -2515,6 +2519,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                                                                       BTK_NONE,
                                                /*need_lvalue_result=*/FALSE,
                                                /*is_copy_initialization=*/TRUE,
+                                          /*orig_is_copy_initialization=*/TRUE,
                                                /* Following FALSE is correct:
                                                   reference binding here is to
                                                   a temp, not direct. */
@@ -4268,6 +4273,7 @@ the class_object can be a handle to an object.
   a_symbol_ptr            surrogate_function_conv_sym;
   a_symbol_ptr            base_surrogate_function_conv_sym;
   a_type_ptr              class_type, conversion_type, routine_type;
+  a_routine_ptr           routine;
   a_boolean               matched_except_for_missing_selector = FALSE;
   a_boolean               matched_except_for_selector = FALSE;
   a_boolean               handle_case = FALSE;
@@ -4302,10 +4308,14 @@ the class_object can be a handle to an object.
                             fundamental_symbol_of(surrogate_function_conv_sym);
     /* Consider only conversion functions to pointer to function type or
        reference to function type or reference to pointer to function type. */
-    routine_type = base_surrogate_function_conv_sym->variant.routine.ptr->type;
+    routine = base_surrogate_function_conv_sym->variant.routine.ptr;
+    routine_type = routine->type;
     routine_type = skip_typerefs(routine_type);
     conversion_type = routine_type->variant.routine.return_type;
-    if (is_ptr_or_ref_type(conversion_type)) {
+    if (routine->is_explicit_conversion_function) {
+      /* An explicit conversion function cannot be used to convert to a
+         surrogate. */
+    } else if (is_ptr_or_ref_type(conversion_type)) {
       a_type_ptr underlying_type = type_pointed_to(conversion_type);
       if (is_reference_type(conversion_type) &&
           is_pointer_type(underlying_type)) {
@@ -9848,14 +9858,15 @@ object types can be incomplete in some cases.
 
 
 static void try_conversion_function_match(
-                            an_operand               *source_operand,
-                            a_type_ptr               dest_type,
-                            a_type_ptr               requested_type,
-                            a_builtin_type_kind_set  builtin_types_allowed,
-                            a_boolean                need_lvalue_result,
-                            a_boolean                is_copy_initialization,
-                            a_boolean                is_reference_binding,
-                            a_candidate_function_ptr *candidate_functions)
+                          an_operand               *source_operand,
+                          a_type_ptr               dest_type,
+                          a_type_ptr               requested_type,
+                          a_builtin_type_kind_set  builtin_types_allowed,
+                          a_boolean                need_lvalue_result,
+                          a_boolean                is_copy_initialization,
+                          a_boolean                orig_is_copy_initialization,
+                          a_boolean                is_reference_binding,
+                          a_candidate_function_ptr *candidate_functions)
 /*
 See if a class operand source_operand can be converted by a conversion function
 to either
@@ -9885,7 +9896,9 @@ and allow appropriate cv-qualification adjustments, but do not
 consider standard conversions after the conversion function; otherwise,
 allow standard conversions on the result.  If is_copy_initialization
 is TRUE, the result will be copied for a copy-initialization.
-This routine is only used in C++ mode.
+orig_is_copy_initialization indicates whether the original initialization
+was copy-initialization (this controls whether explicit conversion functions
+are considered).  This routine is only used in C++ mode.
 */
 {
   a_symbol_ptr              conversion_symbol, base_conversion_symbol;
@@ -9904,6 +9917,7 @@ This routine is only used in C++ mode.
   a_boolean                 class_object_adjustment_required = FALSE;
   a_boolean                 template_conversions_started;
   a_boolean                 function_template_case;
+  a_boolean                 boolean_converted_case = FALSE;
   a_template_arg_ptr        template_arg_list;
   a_template_symbol_supplement_ptr
                             tssp;
@@ -9915,6 +9929,7 @@ This routine is only used in C++ mode.
        conversion to a specific type so that templates can be used. */
     dest_type = requested_type = bool_type();
     builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
+    boolean_converted_case = cpp0x_mode;
   } else if (builtin_types_allowed == BTK_PTRDIFF_T) {
     /* There's only one type in the BTK_PTRDIFF_T category, so make this a
        conversion to a specific type so that templates can be used. */
@@ -9976,8 +9991,27 @@ This routine is only used in C++ mode.
     if (!function_template_case) {
       /* The symbol is not a template. */
       conversion_routine = base_conversion_symbol->variant.routine.ptr;
-      conv_routine_type = conversion_routine->type;
     } else {
+      /* The symbol is a template. */
+      tssp = base_conversion_symbol->variant.template_info;
+      conversion_routine = tssp->variant.function.routine;
+    }  /* if */
+    conv_routine_type = conversion_routine->type;
+    if (conversion_routine->is_explicit_conversion_function) {
+      /* A conversion function marked "explicit" can be used only when
+           (a) invoked for direct-initialization, or
+           (b) converting to bool for a "boolean-converted" context (e.g.,
+               a boolean controlling expression).
+      */
+      if (!orig_is_copy_initialization) {
+        /* The context is direct-initialization, so the use is okay. */
+      } else if (boolean_converted_case) {
+        /* The conversion is in a context where bool is required. */
+      } else {
+        goto reject_function;
+      }  /* if */
+    }  /* if */
+    if (function_template_case) {
       a_type_ptr eff_dest_type = requested_type;
       a_boolean  weird_gpp_case = FALSE;
       /* The symbol is a function template. */
@@ -9987,9 +10021,6 @@ This routine is only used in C++ mode.
          invalid). */
       if (is_abstract_class_type(eff_dest_type)) goto reject_function;
       /* Do type deduction on the return type. */
-      tssp = base_conversion_symbol->variant.template_info;
-      conversion_routine = tssp->variant.function.routine;
-      conv_routine_type = conversion_routine->type;
       return_type = return_type_of(conv_routine_type);
       /* Determine whether the desired type matches the type returned by the
          conversion template.  If normal deduction fails, check whether a
@@ -10185,6 +10216,17 @@ This routine is only used in C++ mode.
           compatible = TRUE;
           result_is_an_lvalue = FALSE;
         }  /* if */
+      }  /* if */
+      if (compatible &&
+          conversion_routine->is_explicit_conversion_function &&
+          std_conversion.nontrivial_conversion &&
+          !gpp_mode) {
+        /* A conversion using an explicit conversion function must be to the
+           exact type required, modulo cv-qualifier differences.  It can't
+           be used, e.g., to go to "int" after which there's a conversion to
+           "float".  g++ doesn't seem to enforce that restriction (tested
+           with versions 4.5 and 4.6). */
+        compatible = FALSE;
       }  /* if */
     } else {
       /* We're looking for a built-in type described in general terms. */
@@ -10884,6 +10926,7 @@ the target type to be used).
                                      builtin_type_set_for_type_code(type_code),
                                            need_lvalue_result,
                                            /*is_copy_initialization=*/TRUE,
+                                          /*orig_is_copy_initialization=*/TRUE,
                                            /*is_reference_binding=*/FALSE,
                                            &conversion,
                                            &ambiguous,
@@ -11000,6 +11043,7 @@ the target type to be used).
                                            (a_builtin_type_kind_set)BTK_NONE,
                                            need_lvalue_result,
                                            /*is_copy_initialization=*/TRUE,
+                                          /*orig_is_copy_initialization=*/TRUE,
                                            /*is_reference_binding=*/FALSE,
                                            &conversion,
                                            &ambiguous,
@@ -11819,6 +11863,7 @@ Adjust the operand type to match the type requirement.
                                      builtin_type_set_for_type_code(type_code),
                                            /*need_lvalue_result=*/FALSE,
                                            /*is_copy_initialization=*/TRUE,
+                                          /*orig_is_copy_initialization=*/TRUE,
                                            /*is_reference_binding=*/FALSE,
                                            &conversion,
                                            &ambiguous, &ambiguity_list)) {
@@ -13013,6 +13058,7 @@ because of an error.  This routine is used only in C++ mode.
            does the job. */
         a_type_ptr eff_dest_type = dest_type;
         a_boolean  eff_is_copy_initialization= adjusted_is_copy_initialization;
+        a_boolean  eff_orig_is_copy_initialization=orig_is_copy_initialization;
         a_boolean  eff_is_reference_binding = is_reference_binding;
         if (try_as_arg_of_bitwise_cctor) {
           /* On an initialization of a class type whose "copy constructor"
@@ -13022,6 +13068,7 @@ because of an error.  This routine is used only in C++ mode.
              class_type. */
           eff_dest_type = make_qualified_type(class_type, TQ_CONST);
           eff_is_copy_initialization = FALSE;
+          eff_orig_is_copy_initialization = FALSE;
           eff_is_reference_binding = TRUE;
         }  /* if */
         try_conversion_function_match(source_operand, eff_dest_type,
@@ -13029,6 +13076,7 @@ because of an error.  This routine is used only in C++ mode.
                                       (a_builtin_type_kind_set)BTK_NONE,
                                       /*need_lvalue_result=*/FALSE,
                                       eff_is_copy_initialization,
+                                      eff_orig_is_copy_initialization,
                                       eff_is_reference_binding,
                                       &candidate_functions);
       }  /* if */
@@ -13121,15 +13169,16 @@ because of an error.  This routine is used only in C++ mode.
 
 
 a_boolean conversion_from_class_possible(
-                            an_operand               *source_operand,
-                            a_type_ptr               dest_type,
-                            a_builtin_type_kind_set  builtin_types_allowed,
-                            a_boolean                need_lvalue_result,
-                            a_boolean                is_copy_initialization,
-                            a_boolean                is_reference_binding,
-                            a_conv_descr             *conversion,
-                            a_boolean                *ambiguous,
-                            a_candidate_function_ptr *ambiguity_list)
+                          an_operand               *source_operand,
+                          a_type_ptr               dest_type,
+                          a_builtin_type_kind_set  builtin_types_allowed,
+                          a_boolean                need_lvalue_result,
+                          a_boolean                is_copy_initialization,
+                          a_boolean                orig_is_copy_initialization,
+                          a_boolean                is_reference_binding,
+                          a_conv_descr             *conversion,
+                          a_boolean                *ambiguous,
+                          a_candidate_function_ptr *ambiguity_list)
 /*
 If the class operand source_operand can be converted by a conversion function
 to either
@@ -13154,10 +13203,12 @@ and allow appropriate cv-qualification adjustments, but do not
 consider standard conversions after the conversion function; otherwise,
 allow standard conversions on the result.  If is_copy_initialization
 is TRUE, the result will be copied for a copy-initialization.
-Note that this routine does not look for constructors that can be
-used as conversion functions or for the possibility of bitwise copying
-(see conversion_to_class_possible).  This routine is used only in
-C++ mode.
+orig_is_copy_initialization indicates whether the original initialization
+was copy-initialization (this controls whether explicit conversion functions
+are considered).  Note that this routine does not look for
+constructors that can be used as conversion functions or for the
+possibility of bitwise copying (see conversion_to_class_possible).
+This routine is used only in C++ mode.
 */
 {
   a_boolean                okay;
@@ -13191,6 +13242,7 @@ C++ mode.
     try_conversion_function_match(source_operand, dest_type, dest_type,
                                   builtin_types_allowed, need_lvalue_result,
                                   is_copy_initialization,
+                                  orig_is_copy_initialization,
                                   is_reference_binding,
                                   &candidate_functions);
     /* Of the viable functions, select the best. */
@@ -13265,6 +13317,7 @@ Issue an error and set *processed to TRUE if the conversion is ambiguous.
                                        builtin_types_allowed,
                                        /*need_lvalue_result=*/FALSE,
                                        /*is_copy_initialization=*/TRUE,
+                                       /*orig_is_copy_initialization=*/TRUE,
                                        /*is_reference_binding=*/FALSE,
                                        &conversion,
                                        &ambiguous, &ambiguity_list)) {
@@ -13416,6 +13469,7 @@ a reference type (the caller should have rewritten that case).
                                        (a_builtin_type_kind_set)BTK_NONE,
                                        need_lvalue_result,
                                        is_copy_initialization,
+                                       orig_is_copy_initialization,
                                        is_reference_binding,
                                        conversion,
                                        &ambiguous, &ambiguity_list)) {
@@ -16867,6 +16921,7 @@ used only in C++ mode.
                                            (a_builtin_type_kind_set)BTK_NONE,
                                            /*need_lvalue_result=*/FALSE,
                                            /*is_copy_initialization=*/TRUE,
+                                          /*orig_is_copy_initialization=*/TRUE,
                                            /*is_reference_binding=*/FALSE,
                                            conv,
                                            &local_ambiguous,
