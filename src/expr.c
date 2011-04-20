@@ -4917,6 +4917,31 @@ end_of_routine:;
 }  /* process_overloaded_operator_arrow */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void box_value_type_operand(an_operand *operand)
+/*
+operand has a fundamental type that corresponds to a C++/CLI value class
+type.  Box the operand, producing an lvalue for boxed value.  This is
+an implicit operation.
+*/
+{
+  an_expr_node_ptr expr;
+  an_operand       orig_operand;
+
+  orig_operand = *operand;
+  /* Convert the value to an rvalue. */
+  do_operand_transformations(operand, TOPT_NO_OPTIONS);
+  expr = make_node_from_operand(operand);
+  expr = add_box_to_expression(expr, /*is_implicit=*/TRUE,
+                               /*handle_to_form=*/FALSE);
+  expr = add_indirection_to_node(expr);
+  make_expression_operand(expr, operand);
+  restore_operand_details(operand, &orig_operand);
+}  /* box_value_type_operand */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 static a_symbol_ptr look_up_selection_name(
                                       a_symbol_locator *locator,
                                       a_type_ptr       class_struct_union_type)
@@ -5787,6 +5812,18 @@ case).
     /* Operation is not allowed in this kind of expression. */
     operand_will_not_be_used_because_of_error(operand_1);
   } else {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && !is_arrow_operator &&
+        !is_class_struct_union_type(operand_1->type)) {
+      /* In C++/CLI, the first operand of "." will be boxed if it has a
+         built-in type that has a corresponding value class type. */
+      a_type_ptr sys_type = system_type_from_basic_type(
+                                               skip_typerefs(operand_1->type));
+      if (sys_type != NULL) {
+        box_value_type_operand(operand_1);
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (is_arrow_operator && C_dialect == C_dialect_cplusplus) {
       /* Process overloaded operator->, if applicable. */
       process_overloaded_operator_arrow(operand_1,
