@@ -2493,6 +2493,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                (conversion_to_class_possible(orig_arg_operand, param_type,
                                              /*try_bitwise_copy=*/FALSE,
                                            /*initializing_return_value=*/FALSE,
+                                             /*is_func_notation_cast=*/FALSE,
                                              /*is_copy_initialization=*/TRUE,
                                              /*orig_is_copy_initialization=*/
                                                                           TRUE,
@@ -11033,6 +11034,7 @@ the target type to be used).
                                          eff_specific_type,
                                          /*try_bitwise_copy=*/FALSE,
                                          /*initializing_return_value=*/FALSE,
+                                         /*is_func_notation_cast=*/FALSE,
                                          /*is_copy_initialization=*/TRUE,
                                          /*orig_is_copy_initialization=*/TRUE,
                                          /*is_reference_binding=*/FALSE,
@@ -12859,11 +12861,15 @@ no_applicable_operator_function:
 }  /* check_for_operator_overloading */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- is_func_notation_cast is not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_boolean conversion_to_class_possible(
                           an_operand               *source_operand,
                           a_type_ptr               dest_type,
                           a_boolean                try_bitwise_copy,
                           a_boolean                initializing_return_value,
+                          a_boolean                is_func_notation_cast,
                           a_boolean                is_copy_initialization,
                           a_boolean                orig_is_copy_initialization,
                           a_boolean                is_reference_binding,
@@ -12878,16 +12884,17 @@ to describe the conversion and return TRUE.  Otherwise, return FALSE.
 The result is always an rvalue.  Bitwise copies are considered if
 try_bitwise_copy is TRUE.  initializing_return_value is TRUE if the
 initialization is being done to return a value in a return statement.
-If is_copy_initialization is TRUE, the initialization is
-copy-initialization ("="-form initialization); if FALSE, it's
-direct-initialization ("()"-form initialization).  User-defined
-conversions on constructor arguments are considered only for
-direct-initialization.  In some cases, the caller has rewritten
-a copy-initialization as a direct-initialization; in those cases,
-orig_is_copy_initialization indicates whether the original initialization
-was copy-initialization (this controls whether explicit constructors
-are considered).  If is_reference_binding is TRUE, the result
-will be bound to a reference, so also consider conversions to
+is_func_notation_cast is TRUE if the conversion is being done via
+a functional-notation cast.  If is_copy_initialization is TRUE, the
+initialization is copy-initialization ("="-form initialization); if
+FALSE, it's direct-initialization ("()"-form initialization).
+User-defined conversions on constructor arguments are considered only
+for direct-initialization.  In some cases, the caller has rewritten a
+copy-initialization as a direct-initialization; in those cases,
+orig_is_copy_initialization indicates whether the original
+initialization was copy-initialization (this controls whether explicit
+constructors are considered).  If is_reference_binding is TRUE, the
+result will be bound to a reference, so also consider conversions to
 derived classes of dest_type.  If ctor_arg_conversion is non-NULL,
 return a description of the conversion to be done on the constructor
 argument in *ctor_arg_conversion.  If more than one function matches,
@@ -13026,6 +13033,13 @@ because of an error.  This routine is used only in C++ mode.
       /* Do not try conversion functions when the source is not a class. */
     } else if (type_is_same_or_derived) {
       /* Do not try conversion functions for a derived-to-base conversion. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled &&
+               is_managed_class_type(dest_type) &&
+               is_func_notation_cast) {
+      /* In C++/CLI, a functional-notation cast to a managed class type
+         sees only the constructors, not the conversion functions. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (adjusted_is_copy_initialization) {
       /* Try conversion functions for copy-initialization. */
       try_conversion_functions = TRUE;
@@ -13367,6 +13381,7 @@ a_boolean user_defined_conversion_possible(
                                       a_type_ptr   dest_type,
                                       a_boolean    need_lvalue_result,
                                       a_boolean    initializing_return_value,
+                                      a_boolean    is_func_notation_cast,
                                       a_boolean    is_copy_initialization,
                                       a_boolean    orig_is_copy_initialization,
                                       a_boolean    is_reference_binding,
@@ -13385,8 +13400,9 @@ source_operand to an error operand, set *failed to TRUE, and return
 FALSE.  need_lvalue_result is TRUE if the result is required to be
 an lvalue; otherwise, the result can be an lvalue or an rvalue.
 initializing_return_value is TRUE if the initialization is being
-done to return a value in a return statement.
-If is_copy_initialization is TRUE, this is copy-initialization
+done to return a value in a return statement.  is_func_notation_cast
+is TRUE if the conversion is being done via a functional-notation
+cast.  If is_copy_initialization is TRUE, this is copy-initialization
 ("="-form initialization); if FALSE, it's direct-initialization
 ("()"-form initialization).  User-defined conversions on constructor
 arguments are considered only for direct-initialization.  In some
@@ -13427,6 +13443,7 @@ a reference type (the caller should have rewritten that case).
     if (conversion_to_class_possible(source_operand, dest_type,
                                      /*try_bitwise_copy=*/TRUE,
                                      initializing_return_value,
+                                     is_func_notation_cast,
                                      is_copy_initialization,
                                      orig_is_copy_initialization,
                                      is_reference_binding,
@@ -13659,6 +13676,7 @@ NULL, the operand is not a parameter.
       user_defined_conversion_possible(source_operand, dest_type,
                                        need_lvalue_result,
                                        initializing_return_value,
+                                       /*is_func_notation_cast=*/FALSE,
                                        is_copy_initialization,
                                        orig_is_copy_initialization,
                                        is_reference_binding,
@@ -15004,6 +15022,7 @@ constructor elision in C++ mode.  This is an initialization with the
       if (conversion_to_class_possible(&rvalue_operand, dest_type,
                                        /*try_bitwise_copy=*/TRUE,
                                        initializing_return_value,
+                                       /*is_func_notation_cast=*/FALSE,
                                        is_copy_initialization,
                                        orig_is_copy_initialization,
                                        /*is_reference_binding=*/FALSE,
@@ -16925,6 +16944,7 @@ used only in C++ mode.
                                          conv_dest_type,
                                          /*try_bitwise_copy=*/TRUE,
                                          /*initializing_return_value=*/FALSE,
+                                         /*is_func_notation_cast=*/FALSE,
                                          /*is_copy_initialization=*/TRUE,
                                          /*orig_is_copy_initialization=*/TRUE,
                                          /*is_reference_binding=*/FALSE,

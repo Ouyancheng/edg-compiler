@@ -15098,6 +15098,7 @@ called only in C++ mode.
                                   eff_type_cast_to,
                                   /*try_bitwise_copy=*/TRUE,
                                   /*initializing_return_value=*/FALSE,
+                                  /*is_func_notation_cast=*/FALSE, /*sic*/
                                   /*is_copy_initialization=*/TRUE, /*sic*/
                                   /*orig_is_copy_initialization=*/TRUE, /*sic*/
                                   /*is_reference_binding=*/FALSE, /*sic*/
@@ -15222,6 +15223,8 @@ called only in C++ mode.
                                          operand, type_cast_to,
                                          /*need_lvalue_result=*/FALSE,
                                          /*initializing_return_value=*/FALSE,
+                                         /*is_func_notation_cast=*/
+                                               (source_form == csf_functional),
                                          /*is_copy_initialization=*/FALSE,
                                          /*orig_is_copy_initialization=*/FALSE,
                                          /*is_reference_binding=*/FALSE,
@@ -28710,6 +28713,7 @@ a thrown exception) if that is appropriate.
                                           required_type,
                                           /*try_bitwise_copy=*/TRUE,
                                           /*initializing_return_value=*/FALSE,
+                                          /*is_func_notation_cast=*/FALSE,
                                           /*is_copy_initialization=*/TRUE,
                                           /*orig_is_copy_initialization=*/TRUE,
                                           /*is_reference_binding=*/FALSE,
