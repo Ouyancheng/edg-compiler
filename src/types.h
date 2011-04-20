@@ -1251,6 +1251,9 @@ extern a_type_ptr basic_type_from_system_type(a_type_ptr tp);
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern a_boolean compatible_ms_bit_field_container_types(a_type_ptr tp1,
+                                                         a_type_ptr tp2);
+
 #endif /* ifndef TYPES_H */
 
 /******************************************************************************

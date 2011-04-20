@@ -216,30 +216,6 @@ Clear the block used to contain information while working out class layout.
 }  /* clear_layout_block */
 
 
-static a_boolean compatible_ms_bit_field_container_types(a_type_ptr  tp1,
-                                                         a_type_ptr  tp2)
-/*
-Return TRUE if tp1 and tp2 are compatible container types, according to the
-conventions of Microsoft's bit-field allocation scheme.
-*/
-{
-  a_boolean  compat;
-
-  /* It is assumed that typerefs have already been stripped off. */
-  check_assertion(tp1->kind != (a_type_kind)tk_typeref &&
-                  tp2->kind != (a_type_kind)tk_typeref);
-  /* Check that both are integral types, in case of errors. */
-  if (!is_integral_or_enum_type(tp1) || !is_integral_or_enum_type(tp2)) {
-    compat = FALSE;
-  } else {
-    /* Whether or not the integral types are identical, container-type
-       compatibility only requires that the sizes be the same. */
-    compat = (tp1->size == tp2->size);
-  }  /* if */
-  return compat;
-}  /* compatible_ms_bit_field_container_types */
-
-
 #if USER_CONTROL_OF_STRUCT_PACKING
 
 /* An entry on the pack alignment stack.  a_pack_alignment_stack_entry_ptr

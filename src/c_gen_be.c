@@ -2816,7 +2816,10 @@ only if the Microsoft compiler is the generated code target.
 
   check_assertion(msvc_is_generated_code_target);
   if (field->is_bit_field) {
-    if (field_type == msvc_bit_field_tracker.container_type &&
+    if (msvc_bit_field_tracker.container_type != NULL &&
+        compatible_ms_bit_field_container_types(
+                                      field_type,
+                                      msvc_bit_field_tracker.container_type) &&
         field->offset < msvc_bit_field_tracker.container_offset +
                                                             field_type->size) {
       /* Bit-field is still in the same container. */
