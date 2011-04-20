@@ -10289,10 +10289,22 @@ are considered).  This routine is only used in C++ mode.
                        this_param_type_for_overload_res(conv_routine_type,
                                                         conversion_symbol,
                                                         /*is_conv_func=*/TRUE);
-    selector_match_with_this_param(source_operand,
-                                   conversion_routine,
-                                   eff_this_param_type,
-                                   &this_match);
+    if (eff_this_param_type == NULL) {
+      /* C++/CLI has static conversion functions.   For those, match the
+         argument against the first parameter. */
+      a_param_type_ptr ptp = function_type_params(conv_routine_type);
+      check_assertion(cppcli_enabled && ptp != NULL && ptp->next == NULL);
+      determine_arg_match_level(source_operand, (a_type_ptr)NULL,
+                                ptp->type, ptp,
+                                ptp->type_involves_deduced_template_param,
+                                /*try_user_conversions=*/FALSE,
+                                &this_match);
+    } else {
+      selector_match_with_this_param(source_operand,
+                                     conversion_routine,
+                                     eff_this_param_type,
+                                     &this_match);
+    }  /* if */
     /* Ignore this function if it cannot be called for this argument. */
     if (this_match.match_level == aml_none) goto reject_function;
     this_match_ptr = alloc_arg_match_summary();
@@ -13849,21 +13861,29 @@ is used only in C++ mode.
                                                 &operand->position,
                                                 operand->type,
                                                 /*honor_virtual=*/TRUE);
-  check_assertion_str(routine_type_is_nonstatic_member_function(routine_type),
-                     "set_up_for_conversion_function_call: no this parameter");
-  /* Check for the cfront anachronism that allows a non-const function to be
-     called for a const selector (see determine_selector_match_level). */
-  if (cfront_2_1_mode &&
-      is_const_qualified_type(operand->type)) {
-    if (!(routine_type->variant.routine.extra_info->qualifiers & TQ_CONST)) {
-      expr_pos_warning(ec_const_function_anachronism, &operand->position);
-      /* prep_special_selector_operand (call below) will drop the const. */
+  if (!routine_type_is_nonstatic_member_function(routine_type)) {
+    /* C++/CLI allows static conversion functions.  The operand is used as
+       the first argument of the call. */
+    a_param_type_ptr ptp = function_type_params(routine_type);
+    check_assertion(cppcli_enabled && ptp != NULL && ptp->next == NULL);
+    prep_argument_operand(operand, ptp,
+                          (a_conv_descr *)NULL,
+                          ec_incompatible_param);
+  } else {
+    /* Check for the cfront anachronism that allows a non-const function to be
+       called for a const selector (see determine_selector_match_level). */
+    if (cfront_2_1_mode &&
+        is_const_qualified_type(operand->type)) {
+      if (!(routine_type->variant.routine.extra_info->qualifiers & TQ_CONST)) {
+        expr_pos_warning(ec_const_function_anachronism, &operand->position);
+        /* prep_special_selector_operand (call below) will drop the const. */
+      }  /* if */
     }  /* if */
+    change_refs_on_selector(routine_type, operand);
+    /* Convert the operand to the proper type to be the "this" argument of the
+       conversion function. */
+    prep_special_selector_operand(operand, routine_type);
   }  /* if */
-  change_refs_on_selector(routine_type, operand);
-  /* Convert the operand to the proper type to be the "this" argument of the
-     conversion function. */
-  prep_special_selector_operand(operand, routine_type);
   /* Make an expression for the argument. */
   *arg_expr_list = make_node_from_operand(operand);
 }  /* set_up_for_conversion_function_call */
