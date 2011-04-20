@@ -10034,13 +10034,27 @@ T to T&, or a number of other conversions that are doable as standard
 conversions.
 */
 {
-  a_boolean  is_implicitly_callable = TRUE;
-  a_type_ptr class_type;
-  a_type_ptr ret_type;
+  a_boolean                      is_implicitly_callable = TRUE;
+  a_type_ptr                     class_type;
+  a_type_ptr                     ret_type;
+  a_routine_type_supplement_ptr  rtsp;
 
   rout_type = skip_typerefs(rout_type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
-  class_type = rout_type->variant.routine.extra_info->this_class;
+  rtsp = rout_type->variant.routine.extra_info;
+  class_type = rtsp->this_class;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && class_type == NULL && rtsp->param_type_list != NULL) {
+    /* A C++/CLI managed class type can contain a "static conversion function".
+       Use the explicit parameter instead of a "this" parameter. */
+    class_type = rtsp->param_type_list->type;
+    if (is_handle_type_or_any_ref_type(class_type)) {
+      class_type = type_pointed_to(class_type);
+    }  /* if */
+    class_type = skip_typerefs(class_type);
+    check_assertion(is_immediate_managed_class_type(class_type));
+  }  /* if */
+#endif /*MICROSOFT_EXTENSIONS_ALLOWED */
   /* Note that return_type_of removes references, which is desired. */
   ret_type = f_skip_typerefs(return_type_of(rout_type));
   if (class_type == NULL) {
