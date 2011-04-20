@@ -30,6 +30,8 @@ http://code.msdn.microsoft.com/alink
 
 */
 
+#include "basics.h"
+
 #if CPPCLI_ENABLING_POSSIBLE
 
 #include <windows.h>
@@ -46,8 +48,6 @@ http://code.msdn.microsoft.com/alink
 #include <algorithm>
 #include <fstream>
 #include <memory>
-
-#include "basics.h"
 
 EXTERN_C_BLOCK_IN_CPP_FILE
 #include "error.h"
