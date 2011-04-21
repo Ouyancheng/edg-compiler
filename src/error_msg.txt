@@ -2190,6 +2190,8 @@ ec_cppcli_explicit_conversion_only_in_ref_and_value_classes;;"explicit conversio
 ec_cppcli_explicit_conversion_is_virtual;;"explicit conversion operator cannot be virtual"
 ec_expr_not_arithmetic_or_unscoped_enum;;"expression must have arithmetic or unscoped enum type"
 ec_expr_not_arithmetic_or_unscoped_enum_or_pointer;;"expression must have arithmetic, unscoped enum, or pointer type"
+ec_expr_not_integral_or_unscoped_enum;;"expression must have integral or unscoped enum type"
+ec_expr_not_integral_or_unscoped_enum_or_fixed_point;;"expression must have integral, unscoped enum, or fixed-point type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

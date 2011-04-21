@@ -570,6 +570,17 @@ enum type is not considered an integral type; in C it is.)
 }  /* is_integral_or_enum_type */
 
 
+a_boolean is_integral_or_unscoped_enum_type(a_type_ptr tp)
+/*
+Return TRUE if the type is an integral type or an unscoped enum type.  (In C++
+an enum type is not considered an integral type; in C it is.)
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_integer_or_unscoped_enum(tp);
+}  /* is_integral_or_unscoped_enum_type */
+
+
 a_boolean is_bool_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is the bool type.  The bool type does not exist

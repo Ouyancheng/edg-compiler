@@ -8573,10 +8573,17 @@ See section 3.1.2.5 of the standard.
     /* If the operand has a type of error, an error message has already been
        issued. */
     okay = FALSE;
-  } else if (!is_integral_or_enum_type(operand->type)) {
-    error_in_operand(enum_type_is_integral ?
-                       ec_expr_not_integral : ec_expr_not_integral_or_enum,
-                     operand);
+  } else if (!is_integral_or_unscoped_enum_type(operand->type)) {
+    an_error_code  error_code;
+    /* Use different diagnostics depending on the mode. */
+    if (enum_type_is_integral) {
+      error_code = ec_expr_not_integral;
+    } else if (cpp0x_mode || cppcli_enabled) {
+      error_code = ec_expr_not_integral_or_enum;
+    } else {
+      error_code = ec_expr_not_integral_or_unscoped_enum;
+    }  /* if */
+    error_in_operand(error_code, operand);
     okay = FALSE;
   }  /* if */
 
@@ -8601,15 +8608,25 @@ to an error operand.
   } else if (is_fixed_point_type(operand->type)) {
     /* Fixed-point types are acceptable. */
 #endif /* FIXED_POINT_ALLOWED */
-  } else if (!is_integral_or_enum_type(operand->type)) {
+  } else if (!is_integral_or_unscoped_enum_type(operand->type)) {
     an_error_code  error_code;
+    /* Use different diagnostics depending on the mode. */
     if (fixed_point_enabled) {
-      error_code =
-          enum_type_is_integral ? ec_expr_not_integral_or_fixed_point
-                                : ec_expr_not_integral_or_enum_or_fixed_point;
+      if (enum_type_is_integral) {
+        error_code = ec_expr_not_integral_or_fixed_point;
+      } else if (cpp0x_mode || cppcli_enabled) {
+        error_code = ec_expr_not_integral_or_unscoped_enum_or_fixed_point;
+      } else {
+        error_code = ec_expr_not_integral_or_enum_or_fixed_point;
+      }  /* if */
     } else {
-      error_code = enum_type_is_integral ? ec_expr_not_integral
-                                         : ec_expr_not_integral_or_enum;
+      if (enum_type_is_integral) {
+        error_code = ec_expr_not_integral;
+      } else if (cpp0x_mode || cppcli_enabled) {
+        error_code = ec_expr_not_integral_or_enum;
+      } else {
+        error_code = ec_expr_not_integral_or_unscoped_enum;
+      }  /* if */
     }  /* if */
     error_in_operand(error_code, operand);
     okay = FALSE;
