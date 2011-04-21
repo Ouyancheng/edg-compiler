@@ -710,13 +710,24 @@ element type is template-dependent.
 
 a_boolean is_arithmetic_or_enum_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is an arithmetic type (3.1.2.5) or an enum
-type.  (An enum type *is* an arithmetic type in C but not in C++.)
+Return TRUE if the given type is an arithmetic type or an enum type.  This
+includes scoped enum types in C++0x and C++/CLI modes.  (An enum type *is* an
+arithmetic type in C but not in C++.)
 */
 {
   tp = skip_typerefs(tp);
   return(is_arithmetic_or_enum(tp));
 }  /* is_arithmetic_or_enum_type */
+
+
+a_boolean is_arithmetic_or_unscoped_enum_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an arithmetic type or an unscoped enum type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_arithmetic_or_unscoped_enum(tp);
+}  /* is_arithmetic_or_unscoped_enum_type */
 
 
 a_boolean is_arithmetic_type(a_type_ptr tp)

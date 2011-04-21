@@ -10881,7 +10881,7 @@ if the type is not appropriate.
     if (is_integral_or_enum_type(tp)) {
       /* Integral types are converted to double. */
       tp = float_type((a_float_kind)fk_double);
-    } else if (!is_arithmetic_or_enum_type(tp)) {
+    } else if (!is_arithmetic_or_unscoped_enum_type(tp)) {
       expr_pos_error(ec_expr_not_arithmetic, &operand.position);
       tp = error_type();
     }  /* if */
@@ -14699,9 +14699,7 @@ expressions allow only certain limited casts).
       valid_in_integral_const_expr = TRUE;
       if (strict_ansi_mode) {
         err_severity = strict_ansi_error_severity;
-        err_code = enum_type_is_integral ?
-                           ec_expr_not_arithmetic :
-                           ec_expr_not_arithmetic_or_enum;
+        err_code = expr_not_arithmetic_code();
         if (err_severity == es_error) valid_in_integral_const_expr = FALSE;
       }  /* if */
     } else if (is_template_param_type(source_type)) {
@@ -14714,8 +14712,7 @@ expressions allow only certain limited casts).
         valid_in_integral_const_expr = TRUE;
       } else {
         err_severity = es_error;
-        err_code = enum_type_is_integral ?
-                      ec_expr_not_arithmetic : ec_expr_not_arithmetic_or_enum;
+        err_code = expr_not_arithmetic_code();
       }  /* if */
     }  /* if */
   } else if ((local_options & EOPT_OPERAND_OF_CAST) &&
@@ -14781,9 +14778,7 @@ expressions allow only certain limited casts).
       valid_in_const_expr = TRUE;
       if (strict_ansi_mode) {
         err_severity = strict_ansi_error_severity;
-        err_code = enum_type_is_integral ?
-                           ec_expr_not_arithmetic :
-                           ec_expr_not_arithmetic_or_enum;
+        err_code = expr_not_arithmetic_code();
         if (err_severity == es_error) valid_in_const_expr = FALSE;
       }  /* if */
     } else if (is_template_param_type(source_type)) {
@@ -14795,8 +14790,7 @@ expressions allow only certain limited casts).
         valid_in_const_expr = TRUE;
       } else {
         err_severity = es_error;
-        err_code = enum_type_is_integral ?
-                      ec_expr_not_arithmetic : ec_expr_not_arithmetic_or_enum;
+        err_code = expr_not_arithmetic_code();
       }  /* if */
     }  /* if */
   } else if (is_pointer_type(dest_type)) {
@@ -14895,9 +14889,7 @@ expressions allow only certain limited casts).
            as in (int)(char *)1. */
         if (strict_ansi_mode) {
           expr_pos_diagnostic(strict_ansi_error_severity,
-                              enum_type_is_integral ?
-                                ec_expr_not_arithmetic :
-                                ec_expr_not_arithmetic_or_enum,
+                              expr_not_arithmetic_code(),
                               &operand->position);
           err = (strict_ansi_error_severity == es_error);
         }  /* if */
@@ -18232,17 +18224,14 @@ that case.
     /* The first operand must be an arithmetic or enum type or a pointer. */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     operand_1_is_pointer = FALSE;
-    if (is_arithmetic_or_enum_type(operand_1->type)) {
+    if (is_arithmetic_or_unscoped_enum_type(operand_1->type)) {
       /* Okay. */
 #if GNU_VECTOR_TYPES_ALLOWED
     } else if (gnu_mode && is_vector_type(operand_1->type)) {
       /* Vector types are arithmetic types in some sense. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-    } else if (check_pointer_operand(
-                               operand_1,
-                               enum_type_is_integral ?
-                                 ec_expr_not_scalar :
-                                 ec_expr_not_arithmetic_or_enum_or_pointer)) {
+    } else if (check_pointer_operand(operand_1,
+                                     expr_not_arithmetic_or_pointer_code())) {
       operand_1_is_pointer = TRUE;
     }  /* if */
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
@@ -18414,8 +18403,8 @@ that case.
       /* The result type is the same as the pointer type in operand 2. */
       result_type = operation_type = operand_2.type;
     } else {
-      /* Operand 1 is arithmetic or enum. */
-      if (is_arithmetic_or_enum_type(operand_2.type)
+      /* Operand 1 is arithmetic or (unscoped) enum. */
+      if (is_arithmetic_or_unscoped_enum_type(operand_2.type)
 #if GNU_VECTOR_TYPES_ALLOWED
           /* Vector types are arithmetic types in some sense. */
           || (gnu_mode && is_vector_type(operand_2.type))
@@ -18455,10 +18444,7 @@ that case.
         both_operands_are_arithmetic = TRUE;
       } else {
         /* Arithmetic +- non-arithmetic.  Error. */
-        error_in_operand(enum_type_is_integral ?
-                           ec_expr_not_arithmetic :
-                           ec_expr_not_arithmetic_or_enum,
-                         &operand_2);
+        error_in_operand(expr_not_arithmetic_code(), &operand_2);
         err = TRUE;
       }  /* if */
     }  /* if */
@@ -18769,19 +18755,17 @@ that case.
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
-    /* The first operand must be an arithmetic or enum type or a pointer. */
+    /* The first operand must be an arithmetic or (unscoped) enum type or a
+       pointer. */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     operand_1_is_pointer = FALSE;
     operand_1_is_nullptr = FALSE;
-    if (is_arithmetic_or_enum_type(operand_1->type)) {
+    if (is_arithmetic_or_unscoped_enum_type(operand_1->type)) {
       /* Okay. */
     } else if (is_nullptr_type(operand_1->type)) {
       operand_1_is_nullptr = TRUE;
-    } else if (check_pointer_operand(
-                               operand_1,
-                               enum_type_is_integral ?
-                                 ec_expr_not_scalar :
-                                 ec_expr_not_arithmetic_or_enum_or_pointer)) {
+    } else if (check_pointer_operand(operand_1,
+                                     expr_not_arithmetic_or_pointer_code())) {
       operand_1_is_pointer = TRUE;
     }  /* if */
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
@@ -18832,7 +18816,7 @@ that case.
           /* Pointer to member types cannot be compared using relational
              operators.  (The case where operand_1 has a pointer to member
              type was already caught above.) */
-          expr_pos_error(ec_expr_not_arithmetic_or_enum_or_pointer,
+          expr_pos_error(expr_not_arithmetic_or_pointer_code(),
                          &operand_2.position);
           operation_type = error_type();
         } else {
@@ -19009,7 +18993,7 @@ that case.
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     operand_1_is_pointer = operand_1_is_ptr_to_member = FALSE;
     operand_1_is_nullptr = FALSE;
-    if (is_arithmetic_or_enum_type(operand_1->type)) {
+    if (is_arithmetic_or_unscoped_enum_type(operand_1->type)) {
       /* Okay. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled && is_handle_type(operand_1->type)) {
@@ -19019,11 +19003,8 @@ that case.
       operand_1_is_nullptr = TRUE;
     } else if (is_ptr_to_member_type(operand_1->type)) {
       operand_1_is_ptr_to_member = TRUE;
-    } else if (check_pointer_operand(
-                               operand_1,
-                               enum_type_is_integral ?
-                                 ec_expr_not_scalar :
-                                 ec_expr_not_arithmetic_or_enum_or_pointer)) {
+    } else if (check_pointer_operand(operand_1,
+                                     expr_not_arithmetic_or_pointer_code())) {
       operand_1_is_pointer = TRUE;
     }  /* if */
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
@@ -19194,11 +19175,11 @@ is expected to be NULL in that case.
       options |= TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION;
     }  /* if */
     do_operand_transformations(operand_1, options);
-    if (!is_arithmetic_or_enum_type(operand_1->type)) {
+    if (!is_arithmetic_or_unscoped_enum_type(operand_1->type)) {
       /* If the operand does not have arithmetic type, it must have pointer
          type. */
       if (check_pointer_operand(operand_1,
-                                ec_expr_not_arithmetic_or_enum_or_pointer)) {
+                                expr_not_arithmetic_or_pointer_code())) {
         operand_1_is_pointer = TRUE;
       }  /* if */
     }  /* if */
@@ -20498,8 +20479,8 @@ that case.
         err = !check_compatibility_of_nullptr_operands(&operand_2, &operand_3,
                                                        &colon_position,
                                                        &result_type);
-      } else if (is_arithmetic_or_enum_type(operand_2.type)) {
-        /* Both operands should be arithmetic or enum. */
+      } else if (is_arithmetic_or_unscoped_enum_type(operand_2.type)) {
+        /* Both operands should be arithmetic or (unscoped) enum. */
         (void)check_arithmetic_or_enum_operand(&operand_3);
         /* The Microsoft Visual C++ compiler treats "x ? long_expr : int_expr"
            and "x ? int_expr : long_expr" as having result type int. */
@@ -21051,7 +21032,7 @@ is expected to be NULL in that case.
              /* C++ allows bool += pointer.  In C99 this is disallowed
                 by a type constraint in 6.5.16.2p1. */
             (void)check_object_pointer_operand(&operand_2,
-                                    ec_expr_not_arithmetic_or_enum_or_pointer);
+                                       expr_not_arithmetic_or_pointer_code());
             pointer_add_sub = TRUE;
             break;
           }  /* if */
@@ -21072,9 +21053,9 @@ is expected to be NULL in that case.
           } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
           /* Do not insert code here. */
-          if (is_arithmetic_or_enum_type(operand_1->type)) {
-            /* If the first operand is arithmetic or enum, the second must
-               be also. */
+          if (is_arithmetic_or_unscoped_enum_type(operand_1->type)) {
+            /* If the first operand is arithmetic or (unscoped) enum, the
+               second must be also. */
             (void)check_arithmetic_or_enum_operand(&operand_2);
 #if FIXED_POINT_ALLOWED
             if (fixed_point_enabled) {
@@ -21095,10 +21076,7 @@ is expected to be NULL in that case.
                       is_function_type(type_pointed_to(operand_1->type))));
             if (nonobject_pointer ||
                 check_object_pointer_operand(
-                              operand_1,
-                               enum_type_is_integral ?
-                                 ec_expr_not_scalar :
-                                 ec_expr_not_arithmetic_or_enum_or_pointer)) {
+                           operand_1, expr_not_arithmetic_or_pointer_code())) {
               /* The first operand is a pointer, so the second one must be
                  integral or enum. */
               if (check_integral_or_enum_operand(&operand_2)) {

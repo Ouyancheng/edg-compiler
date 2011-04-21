@@ -1460,6 +1460,10 @@ extern a_boolean check_object_or_incomp_array_pointer_operand(
                                                        an_operand    *otherop);
 #endif /* PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
 
+extern an_error_code expr_not_arithmetic_code(void);
+
+extern an_error_code expr_not_arithmetic_or_pointer_code(void);
+
 extern a_boolean check_arithmetic_or_enum_operand(an_operand *operand);
 
 extern void make_integer_constant_operand(an_operand		*operand,

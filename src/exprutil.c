@@ -8619,10 +8619,62 @@ to an error operand.
 }  /* check_integral_or_enum_or_fixed_point_operand */
 
 
+an_error_code expr_not_arithmetic_code(void)
+/*
+Return the appropriate diagnostic code to indicate that an expression is not
+"arithmetic".  In C mode, it is sufficient to say that is doesn't have an
+"arithmetic type".  In C++ mode, unscoped enum types are not "arithmetic
+types" but they are acceptable in this context and hence the diagnostic should
+make that clear.  In traditional C++, there is no distinction between "scoped"
+and "unscoped" enums, so we use a diagnostic that doesn't mention that
+distinction.
+*/
+{
+  an_error_code  result;
+
+  if (enum_type_is_integral) {
+    result = ec_expr_not_arithmetic;
+  } else if (cpp0x_mode || cppcli_enabled) {
+    /* Modes that make a distinction between scoped and unscoped enum types. */
+    result = ec_expr_not_arithmetic_or_unscoped_enum;
+  } else {
+    result = ec_expr_not_arithmetic_or_enum;
+  }  /* if */
+  return result;
+}  /* expr_not_arithmetic_code */
+
+
+an_error_code expr_not_arithmetic_or_pointer_code(void)
+/*
+Return the appropriate diagnostic code to indicate that an expression is
+neither "arithmetic" nor a pointer.  In C mode, it is sufficient to say that
+is doesn't have a "scalar type".  In C++ mode, unscoped enum types are not
+"arithmetic types" but they are acceptable in this context and hence the
+diagnostic should make that clear.  (C++ cannot use the "scalar type" term in
+this context because pointer-to-member types are scalar but not acceptable in
+this context.)  In traditional C++, there is no distinction between "scoped"
+and "unscoped" enums, so we use a diagnostic that doesn't mention that
+distinction.
+*/
+{
+  an_error_code  result;
+
+  if (enum_type_is_integral) {
+    result = ec_expr_not_scalar;
+  } else if (cpp0x_mode || cppcli_enabled) {
+    /* Modes that make a distinction between scoped and unscoped enum types. */
+    result = ec_expr_not_arithmetic_or_unscoped_enum_or_pointer;
+  } else {
+    result = ec_expr_not_arithmetic_or_enum_or_pointer;
+  }  /* if */
+  return result;
+}  /* expr_not_arithmetic_or_pointer_code */
+
+
 a_boolean check_arithmetic_or_enum_operand(an_operand *operand)
 /*
-Return FALSE if the operand is not of arithmetic type.  If there is an error,
-change the operand to an error operand.  See section 3.1.2.5 of the standard.
+Return FALSE if the operand is not of arithmetic type (including unscoped
+enum types).  If there is an error, change the operand to an error operand.
 */
 {
   register a_boolean okay = TRUE;
@@ -8630,10 +8682,8 @@ change the operand to an error operand.  See section 3.1.2.5 of the standard.
   if (is_error_operand(operand)) {
     /* If it is an error type, an error message has already been issued. */
     okay = FALSE;
-  } else if (!is_arithmetic_or_enum_type(operand->type)) {
-    error_in_operand(enum_type_is_integral ?
-                       ec_expr_not_arithmetic : ec_expr_not_arithmetic_or_enum,
-                     operand);
+  } else if (!is_arithmetic_or_unscoped_enum_type(operand->type)) {
+    error_in_operand(expr_not_arithmetic_code(), operand);
     okay = FALSE;
   }  /* if */
 
@@ -8781,10 +8831,7 @@ See section 3.1.2.5 of the standard.
        issued. */
     okay = FALSE;
   } else if (!is_scalar_type(operand->type)) {
-    error_in_operand(enum_type_is_integral ?
-                       ec_expr_not_scalar :
-                       ec_expr_not_arithmetic_or_enum_or_pointer,
-                     operand);
+    error_in_operand(expr_not_arithmetic_or_pointer_code(), operand);
     okay = FALSE;
   }  /* if */
 

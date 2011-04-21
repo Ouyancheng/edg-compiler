@@ -2188,6 +2188,8 @@ ec_bad_cli_dynamic_cast_type;;"the type in a dynamic_cast to a handle or trackin
 ec_cast_interior_ptr_to_ptr;;"an interior pointer cannot be cast to a native pointer"
 ec_cppcli_explicit_conversion_only_in_ref_and_value_classes;;"explicit conversion operators can only be declared in ref and value class types"
 ec_cppcli_explicit_conversion_is_virtual;;"explicit conversion operator cannot be virtual"
+ec_expr_not_arithmetic_or_unscoped_enum;;"expression must have arithmetic or unscoped enum type"
+ec_expr_not_arithmetic_or_unscoped_enum_or_pointer;;"expression must have arithmetic, unscoped enum, or pointer type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

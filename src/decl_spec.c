@@ -4512,7 +4512,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Skip over "enum". */
   (void)get_token();
-  if ((cpp0x_mode) && (curr_token == tok_class || curr_token == tok_struct)) {
+  if (cpp0x_mode && (curr_token == tok_class || curr_token == tok_struct)) {
     is_scoped_enum = TRUE;
     (void)get_token();
   }  /* if */
