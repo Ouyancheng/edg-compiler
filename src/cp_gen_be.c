@@ -10068,14 +10068,16 @@ gen_expr that might end up generating this expr as a temporary.
             if (expr->variant.operation.compiler_generated &&
                 (strip_lvalue_cast_sequence(&operand_1) ||
                  (is_operation_node(operand_1) &&
-                  operand_1->variant.operation.is_reference_cast))) {
+                  (operand_1->variant.operation.is_reference_cast ||
+                   node_operator_is(operand_1, eok_box))))) {
               /* The "*" did not appear in the source but was added to
                  restore the lvalueness of an operand whose address was
-                 taken in order to apply some compiler-generated casts or
-                 because a cast to a reference type was transformed into a
-                 cast to a pointer type.  Strip off the compiler-generated
-                 sequence, if any, so the lvalue operand will be generated
-                 directly, and do not generate the implicit "*". */
+                 taken in order to apply some compiler-generated casts
+                 (including boxing) or because a cast to a reference type
+                 was transformed into a cast to a pointer type.  Strip off
+                 the compiler-generated sequence, if any, so the lvalue
+                 operand will be generated directly, and do not generate
+                 the implicit "*". */
             } else {
               /* The "*" did appear in the source or is part of a
                  compiler-generated sequence that cannot be simplified, so
