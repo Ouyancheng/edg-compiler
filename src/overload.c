@@ -2696,10 +2696,18 @@ selector is enabled, allow that kind of mismatch here.
              could_be_dependent_class_type(arg_type)) {
     /* A nonreal class could have an operator-> function, so try matching
        against a pointer to unknown type. */
-    arg_type = make_pointer_type(type_of_unknown_templ_param_nontype);
+    arg_type = add_right_pointer_type_to_this(
+                                           type_of_unknown_templ_param_nontype,
+                                           type_pointed_to(param_type));
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (cppcli_enabled &&
+      is_handle_type(arg_type) &&
+      is_interior_ptr_type(param_type)) {
+    /* A C++/CLI value class member function can be called with a handle
+       selector even though the function expects an interior_ptr "this". */
+    arg_type = make_interior_ptr_type(type_pointed_to(arg_type));
+  } else if (microsoft_mode) {
     /* Drop __unaligned as a type qualifier on the argument type.
        MSVC++ allows a member function to be called on an __unaligned
        object with no warning. */
