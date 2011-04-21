@@ -559,6 +559,16 @@ Return TRUE if the given type is an enum type.
 }  /* is_enum_type */
 
 
+a_boolean is_scoped_enum_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a scoped enum type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return type_kind_is_integer(tp) && integer_type_is_scoped_enum(tp);
+}  /* is_scoped_enum_type */
+
+
 a_boolean is_integral_or_enum_type(a_type_ptr tp)
 /*
 Return TRUE if the type is an integral type or an enum type.  (In C++ an

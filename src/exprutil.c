@@ -6939,6 +6939,30 @@ case; see the header comment of that routine for details.
   return result_type;
 }  /* usual_arithmetic_conversions */
 
+
+void check_binary_scoped_enum_operation(an_operand  *operand_1,
+                                        an_operand  *operand_2,
+                                        a_type_ptr  *p_operation_type)
+/*
+A built-in binary operation is being performed on the given two operands, at
+least one of which is a scoped enum value.  Issue an error if the two operands
+do not have the same type and return the scoped enumeration type of either
+operand through *p_operation_type.
+*/
+{
+  check_assertion(is_scoped_enum_type(operand_1->type) ||
+                  is_scoped_enum_type(operand_2->type));
+  *p_operation_type = skip_typerefs(operand_1->type);
+  if (!identical_types(operand_1->type, operand_2->type)) {
+    if (!is_scoped_enum_type(operand_1->type)) {
+      error_in_operand(ec_scoped_enum_operation_type_mismatch, operand_1);
+      *p_operation_type = skip_typerefs(operand_2->type);
+    } else {
+      error_in_operand(ec_scoped_enum_operation_type_mismatch, operand_2);
+    }  /* if */
+  }  /* if */
+}  /* check_binary_scoped_enum_operation */
+
 #if TARG_HAS_IEEE_FLOATING_POINT
 
 static a_constant_ptr nan_constant = (a_constant_ptr)NULL;

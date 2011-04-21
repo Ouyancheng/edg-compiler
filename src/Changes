@@ -12,8 +12,9 @@ scoped enumeration values.  For example:
     E::e+E::f;  // Previously accepted in C++0x mode; now an error.
   }
 
-Now, such operations result in an error.  (Operator overloading can make such
-expressions valid.)
+Now, built-in arithmetic operators involving a scoped enumeration value produce
+an error, and comparison operators (equality and relational) involving a scoped
+enumeration value are accepted only if both operands have the same type.
 
 
 4/19/11  [EDGcpfe/8624,EDGcpfe/11498,EDGcpfe/11517]

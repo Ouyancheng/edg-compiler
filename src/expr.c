@@ -18760,7 +18760,7 @@ that case.
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     operand_1_is_pointer = FALSE;
     operand_1_is_nullptr = FALSE;
-    if (is_arithmetic_or_unscoped_enum_type(operand_1->type)) {
+    if (is_arithmetic_or_enum_type(operand_1->type)) {
       /* Okay. */
     } else if (is_nullptr_type(operand_1->type)) {
       operand_1_is_nullptr = TRUE;
@@ -18774,6 +18774,12 @@ that case.
     if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
       /* One or both of the operands has an error. */
       operation_type = error_type();
+    } else if (is_scoped_enum_type(operand_1->type) ||
+               is_scoped_enum_type(operand_2.type)) {
+      /* In C++/CLI mode, scoped enumeration operands of the same type can be
+         compared.  No promotion is involved. */
+      check_binary_scoped_enum_operation(operand_1, &operand_2,
+                                         &operation_type);
 #if C99_IL_EXTENSIONS_SUPPORTED
     } else if (is_nonreal_floating_type(operand_1->type)) {
       /* Complex and imaginary operands are unordered. */
@@ -18993,7 +18999,7 @@ that case.
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     operand_1_is_pointer = operand_1_is_ptr_to_member = FALSE;
     operand_1_is_nullptr = FALSE;
-    if (is_arithmetic_or_unscoped_enum_type(operand_1->type)) {
+    if (is_arithmetic_or_enum_type(operand_1->type)) {
       /* Okay. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled && is_handle_type(operand_1->type)) {
@@ -19013,6 +19019,12 @@ that case.
     if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
       /* One or both of the operands has an error. */
       operation_type = error_type();
+    } else if (is_scoped_enum_type(operand_1->type) ||
+               is_scoped_enum_type(operand_2.type)) {
+      /* In C++/CLI mode, scoped enumeration operands of the same type can be
+         compared.  No promotion is involved. */
+      check_binary_scoped_enum_operation(operand_1, &operand_2,
+                                         &operation_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (operand_1_is_handle || is_handle_type(operand_2.type)) {
       /* At least one of the operands has a C++/CLI handle type.

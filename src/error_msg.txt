@@ -2192,6 +2192,7 @@ ec_expr_not_arithmetic_or_unscoped_enum;;"expression must have arithmetic or uns
 ec_expr_not_arithmetic_or_unscoped_enum_or_pointer;;"expression must have arithmetic, unscoped enum, or pointer type"
 ec_expr_not_integral_or_unscoped_enum;;"expression must have integral or unscoped enum type"
 ec_expr_not_integral_or_unscoped_enum_or_fixed_point;;"expression must have integral, unscoped enum, or fixed-point type"
+ec_scoped_enum_operation_type_mismatch;;"a built-in binary operator applied to a scoped enumeration requires two operands of the same type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

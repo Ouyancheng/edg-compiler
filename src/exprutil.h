@@ -1293,6 +1293,10 @@ extern a_type_ptr determine_arithmetic_conversions(an_operand *operand_1,
 extern a_type_ptr usual_arithmetic_conversions(a_type_ptr operand_1_type,
                                                a_type_ptr operand_2_type);
 
+extern void check_binary_scoped_enum_operation(an_operand  *operand_1,
+                                               an_operand  *operand_2,
+                                               a_type_ptr  *p_operation_type);
+
 #if TARG_HAS_IEEE_FLOATING_POINT
 extern void make_nan_operand(an_operand  *result);
 

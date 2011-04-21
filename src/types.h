@@ -75,6 +75,7 @@ extern a_boolean is_void_star_type(a_type_ptr tp);
 extern a_boolean is_integral_type(a_type_ptr tp);
 extern a_boolean is_signed_integral_type(a_type_ptr tp);
 extern a_boolean is_enum_type(a_type_ptr tp);
+extern a_boolean is_scoped_enum_type(a_type_ptr tp);
 extern a_boolean is_integral_or_enum_type(a_type_ptr tp);
 extern a_boolean is_integral_or_unscoped_enum_type(a_type_ptr tp);
 extern a_boolean is_bool_type(a_type_ptr tp);
