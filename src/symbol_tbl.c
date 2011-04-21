@@ -6838,6 +6838,13 @@ cli_float_kinds arrays therefore list only the preferred basic types.
                                              corresponding_basic_type == NULL);
   class_type_supp(type_symbol_type(cli_symbol))->
                                      corresponding_basic_type = wchar_t_type();
+  /* Map System::Void to void. */
+  cli_symbol = cli_symbol_from_kind(csk_system_void);
+  check_assertion(cli_symbol != NULL);
+  check_assertion(class_type_supp(type_symbol_type(cli_symbol))->
+                                             corresponding_basic_type == NULL);
+  class_type_supp(type_symbol_type(cli_symbol))->
+                                        corresponding_basic_type = void_type();
 }  /* init_cli_symbol_corresponding_basic_types */
 
 

@@ -12083,6 +12083,9 @@ for the reverse mapping.
     case tk_float:
       symbol = cli_symbol_from_float_kind(tp->variant.float_kind);
       break;
+    case tk_void:
+      symbol = cli_symbol_from_kind(csk_system_void);
+      break;
     default:
       symbol = NULL;
       break;

@@ -585,6 +585,14 @@ expression is permitted.
   if (is_type_specifier() || is_type_qualifier() ||
       is_function_specifier() || curr_token == tok_friend) {
     is_start = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && is_expr_context && is_type_keyword(curr_token) &&
+        next_token() == tok_colon_colon) {
+      /* Something like int::something.  In C++/CLI this is an expression.
+         Typically something like int::Parse("1"). */
+      is_start = FALSE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (type_name_next(is_expr_context ? GID_IS_EXPR_CONTEXT
                                             : GID_NO_OPTIONS)) {
     /* Identifier that is a type name (a typedef name or, in C++,

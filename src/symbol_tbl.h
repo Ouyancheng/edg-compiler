@@ -3908,6 +3908,7 @@ enum a_cli_symbol_kind_tag {
   csk_last_float = csk_system_double_is_long,
   csk_system_boolean,				/* bool_type() */
   csk_system_char,				/* wchar_t_type() */
+  csk_system_void,				/* void_type() */
   csk_system_object,
   csk_system_value_type,
   csk_system_enum,
@@ -3974,6 +3975,7 @@ EXTERN a_cli_symbol_name
   { "Double", csk_system_namespace },   /* csk_system_double_is_long */
   { "Boolean", csk_system_namespace },  /* csk_system_boolean */
   { "Char", csk_system_namespace },     /* csk_system_char */
+  { "Void", csk_system_namespace },     /* csk_system_void */
   { "Object", csk_system_namespace },   /* csk_system_object */
   { "ValueType", csk_system_namespace },/* csk_system_value_type */
   { "Enum", csk_system_namespace },     /* csk_system_enum */

@@ -25211,6 +25211,10 @@ type_start:
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcli_enabled && next_token() == tok_colon_colon &&
+                   type_keyword() != NULL) {
+          /* C++/CLI allows things like int::Parse("1"). */
+          goto handle_identifier;
         } else if (microsoft_mode) {
           /* The Microsoft compiler allows things like "unsigned int(x)". */
           cast_type = simple_type_specifier_sequence();

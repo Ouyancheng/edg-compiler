@@ -7005,6 +7005,11 @@ expr_statement:
         (void)get_token();
       }  /* if */
       if (!C_mode() &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          /* In C++/CLI, a construct like int:: begins an expression. */
+          !(cppcli_enabled && is_type_keyword(curr_token) &&
+            next_token() == tok_colon_colon) &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           (curr_token == tok_using || curr_token == tok_namespace ||
            is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED))) {
         a_struct_stmt_stack_entry_ptr

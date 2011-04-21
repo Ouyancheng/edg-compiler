@@ -15469,6 +15469,7 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean                     qualifier_is_property_or_event = FALSE;
   a_symbol_ptr			qualifier_property_or_event = NULL;
   a_boolean			is_cli_typeid = FALSE;
+  a_type_ptr			cli_system_type_for_keyword = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean			qualifier_type_is_class = FALSE;
   a_namespace_ptr		qualifier_namespace = NULL;
@@ -15600,6 +15601,23 @@ selection operator, in which case it points to the type of the left operand.
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && (options & GID_IS_EXPR_CONTEXT) != 0 &&
+             is_type_keyword(curr_token) && next_token() == tok_colon_colon) {
+    /* A construct like int::Parse("1").  If the type has an associated C++/CLI
+       system type, treat this as a qualifier. */
+    a_type_ptr	tp;
+    /* Get the type represented by the current keyword token. */
+    tp = type_keyword();
+    if (tp != NULL) {
+      /* Get the C++/CLI type, if any, that corresponds to the keyword type. */
+      tp = system_type_from_basic_type(tp);
+      if (tp != NULL) {
+        /* Save the type found for user later as the qualifier. */
+        cli_system_type_for_keyword = tp;
+        might_be_qualifier = TRUE;
+        next_tok = tok_colon_colon;
+      }  /* if */
+    }  /* if */
   } else if (curr_token == tok_super) {
     /* Microsoft __super qualifier. */
     might_be_qualifier = TRUE;
@@ -15650,6 +15668,10 @@ selection operator, in which case it points to the type of the left operand.
         error(ec_super_not_in_class);
         err = TRUE;
       }  /* if */
+    } else if (cli_system_type_for_keyword != NULL) {
+      /* A construct like int::Parse("1").  Use the corresponding C++/CLI
+         system type determined above. */
+      qualifier_sym = symbol_for(cli_system_type_for_keyword);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       an_id_lookup_options_set	lookup_kind;
