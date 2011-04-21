@@ -9,7 +9,7 @@ scoped enumeration values.  For example:
 
   enum class E { e, f };
   void g() {
-    e+f;  // Previously accepted in C++0x mode; now an error.
+    E::e+E::f;  // Previously accepted in C++0x mode; now an error.
   }
 
 Now, such operations result in an error.  (Operator overloading can make such
