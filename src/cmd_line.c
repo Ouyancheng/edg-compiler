@@ -521,6 +521,13 @@ Initialize the option information table.
   add_option_description(optk_mscorlib_file_name, "mscorlib_file_name",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
+  add_option_description(optk_generic_arity_overload, "generic_arity_overload",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_generic_arity_overload,
+                         "no_generic_arity_overload",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* CPPCLI_ENABLING_POSSIBLE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
@@ -7775,6 +7782,9 @@ enable_microsoft_mode:
                                              &assembly_search_path,
                                              &end_assembly_search_path);
         break;
+      case optk_generic_arity_overload:
+        generic_arity_overload_allowed = opt_value;
+        break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
       case optk_far_data_pointers:
@@ -9459,6 +9469,7 @@ variables declared in cmd_line.h.
   /* using_framework_directory defaults to TRUE, but has no effect unless
      cppcli_enabled is TRUE. */
   using_framework_directory = TRUE;
+  generic_arity_overload_allowed = DEFAULT_GENERIC_ARITY_OVERLOAD_ALLOWED;
 #if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
   generate_portable_assemblies = FALSE;
 #endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */

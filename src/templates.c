@@ -504,6 +504,7 @@ Initialize a template declaration state block.
   tdsp->template_decl = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tdsp->generic_constraint_clauses = NULL;
+  tdsp->num_parameters = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* init_templ_decl_state */
 
@@ -13318,6 +13319,20 @@ to the newly created list.
 } /* create_prototype_arg_list */
 
 
+a_template_arg_ptr create_generic_arg_list(
+			a_template_param_ptr	generic_param_list)
+/*
+Build the generic argument list for the declaration of a C++/CLI generic.
+Loop through the generic parameters (generic_param_list) and create a
+corresponding generic argument for each based on the constraints
+for the generic parameter.  Return a pointer to the newly created list.
+*/
+{
+  /* FIXME: This is a stub version. */
+ return create_prototype_arg_list(generic_param_list);
+}  /* create_generic_arg_list */
+
+
 static void rename_prototype_arg_list(
 		a_template_symbol_supplement_ptr	tssp,
 		a_template_param_ptr			templ_param_list)
@@ -13444,7 +13459,11 @@ initially used when processing the declaration of a partial specialization.
     templ_param_list = decl_state->decl_info->parameters;
     /* Create a template argument list that corresponds to the template
        parameter list. */
-    templ_arg_list = create_prototype_arg_list(templ_param_list);
+    if (decl_state->is_generic) {
+      templ_arg_list = create_generic_arg_list(templ_param_list);
+    } else {
+      templ_arg_list = create_prototype_arg_list(templ_param_list);
+    }  /* if */
     if (is_alias_template) {
       prototype_type->variant.typeref.extra_info->template_arg_list
                                                               = templ_arg_list;
@@ -14130,6 +14149,99 @@ because the extra parameter clause is not in fact ignored.
   return result;
 }  /* allow_extra_gpp_mode_param_clauses */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void check_for_generic_arity_overload(
+				a_tmpl_decl_state_ptr	decl_state,
+				a_symbol_ptr		*sym_found,
+				a_symbol_ptr		*primary_arity_sym)
+/*
+We are processing a generic class declaration and *sym_found is the symbol
+found by a lookup of the generic name.  See if the arity of the current
+declaration matches *sym_found, in which case this is a redeclaration or
+definition of that generic.  Otherwise, look through the generic_arity_list
+of *sym_found for a declaration with the same arity as the current declaration.
+If one is found, set *sym_found to that symbol.  Otherwise, if no match
+is found, save the original *sym_found in *primary_arity and set *sym_found
+to NULL.
+*/
+{
+  if (arity_for_generic(*sym_found) == decl_state->num_parameters) {
+    /* A redeclaration of sym_found.  No action is needed. */
+  } else {
+    a_symbol_list_entry_ptr		slep;
+    a_template_symbol_supplement_ptr	tssp;
+    tssp = (*sym_found)->variant.template_info;
+    for (slep = tssp->variant.class_template.generic_arity_list;
+         slep != NULL; slep = slep->next) {
+      if (arity_for_generic(slep->symbol) == decl_state->num_parameters) {
+        /* This is a redeclaration of a symbol already on the
+           generic_arity_list for this generic.  Return that symbol. */
+        *sym_found = slep->symbol;
+        break;
+      }  /* if */
+    }  /* for */
+    if (slep == NULL) {
+      /* This is a declaration of a new arity.  Save the symbol found by
+         the lookup in *primary_arity_sym. */
+      *primary_arity_sym = *sym_found;
+      *sym_found = NULL;
+    }  /* if */
+  }  /* if */
+}  /* check_for_generic_arity_overload */
+
+
+static a_symbol_ptr add_arity_overload(
+			a_tmpl_decl_state_ptr	decl_state,
+			a_symbol_ptr		primary_arity_sym,
+			a_symbol_locator	*locator)
+/*
+A C++/CLI generic of a given name has already been declared in a given scope.
+Create a symbol for a new generic of the same name and scope, but with
+a different arity (number of generic parameters) and add it to the
+generic_arity_list of primary_arity_sym.  Return the new symbol.
+*/
+{
+  a_symbol_ptr				sym;
+  a_template_symbol_supplement_ptr	pas_tssp;
+  a_symbol_list_entry_ptr		slep;
+  a_symbol_list_entry_ptr		slep_tail;
+
+  pas_tssp = primary_arity_sym->variant.template_info;
+  if (pas_tssp->variant.class_template.generic_arity_list == NULL) {
+    /* The initial entry on the arity list is not created until a second
+       declaration is encountered.  Create the initial entry now. */
+    slep = alloc_symbol_list_entry();
+    slep->symbol = primary_arity_sym;
+    pas_tssp->variant.class_template.generic_arity_list = slep;
+    slep_tail = slep;
+  } else {
+    /* Find the end of the generic_arity_list. */
+    for (slep = pas_tssp->variant.class_template.generic_arity_list;
+         slep != NULL && slep->next != NULL; slep = slep->next) { }
+    slep_tail = slep;
+  }  /* if */
+  sym = alloc_symbol((a_symbol_kind)sk_class_template,
+                     primary_arity_sym->header,
+                     &locator->source_position);
+  sym->decl_scope = primary_arity_sym->decl_scope;
+  /* Add a new entry to the end of the list. */
+  slep = alloc_symbol_list_entry();
+  slep->symbol = sym;
+  slep_tail->next = slep;
+    /* Update the minimum and maximum arity fields. */
+  if (pas_tssp->variant.class_template.min_arity >
+                                                  decl_state->num_parameters) {
+    pas_tssp->variant.class_template.min_arity = decl_state->num_parameters;
+  }  /* if */
+  if (pas_tssp->variant.class_template.max_arity <
+                                                  decl_state->num_parameters) {
+    pas_tssp->variant.class_template.max_arity = decl_state->num_parameters;
+  }  /* if */
+  return sym;
+}  /* add_arity_overload */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void class_template_declaration(
                          a_tmpl_decl_state_ptr decl_state,
@@ -14185,6 +14297,7 @@ declaration of a partial specialization declared outside of its class.
                                           (a_cli_class_type_kind)cctk_standard;
   an_assembly_visibility            cli_visibility;
   a_source_position                 cli_visibility_pos; 
+  a_symbol_ptr                      primary_arity_sym = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_attribute_ptr                  attributes = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -14333,13 +14446,15 @@ declaration of a partial specialization declared outside of its class.
       if (sym != NULL && is_template_class_symbol(sym) &&
           locator_for_curr_id.is_template_id) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        /* Check whether this template can be specialized. */
+        /* Check whether this template can be specialized.  Generics and
+           certain templates cannot be partially specialized. */
         a_symbol_ptr                     class_template_sym;
 
         class_template_sym = template_for_instance(sym);
         tssp = class_template_sym->variant.template_info;
-        if (cppcli_enabled && 
-            tssp->variant.class_template.cannot_be_specialized) {
+        if (cppcli_enabled &&
+            (decl_state->is_generic ||
+             tssp->variant.class_template.cannot_be_specialized)) {
           pos_sy_error(ec_partial_specialization_not_allowed, 
                        &locator_for_curr_id.source_position, 
                        class_template_sym);
@@ -14555,6 +14670,20 @@ friend_template_checks_done:
       sym = NULL;
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template &&
+      cppcli_enabled &&
+      (generic_arity_overload_allowed ||
+       is_scanning_generated_code_from_metadata)) {
+    /* See if this is a C++/CLI generic declaration with a different
+       arity from the symbol found.  If so, the symbol found will be cleared,
+       but saved in primary_arity_sym to we can add the new symbol later
+       to it's generic_arity_list.  Generics with varying arity are always
+       allowed when importing code from metadata but otherwise are only
+       allowed when generic_arity_overload_allowed is TRUE. */
+    check_for_generic_arity_overload(decl_state, &sym, &primary_arity_sym);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (sym != NULL && !decl_state->decl_scope_err && !sym->is_error) {
     /* Make sure the symbol found is a class template symbol or a class
        symbol.  If the class symbol is not a member of a class template,
@@ -14773,6 +14902,7 @@ friend_template_checks_done:
     /* Enter the symbol at the scope indicated by effective_decl_level. */
     a_scope_stack_entry_ptr	ssep =
                                 &scope_stack[decl_state->effective_decl_level];
+    a_boolean			add_sym_to_symbol_table = FALSE;
     if (decl_state->is_partial_specialization &&
         partial_spec_nonreal_sym == NULL) {
       /* A partial specialization cannot be entered if no partial spec.
@@ -14792,9 +14922,22 @@ friend_template_checks_done:
       tssp->variant.class_template.is_interface = is_interface;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
-      sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
-                         decl_state->effective_decl_level,
-                         suppress_redecl_error);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (primary_arity_sym != NULL) {
+        /* This is a new arity for this generic.  Add it to the arity list
+           for the symbol found by the lookup. */
+        sym = add_arity_overload(decl_state, primary_arity_sym, &locator);
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        /* Create the symbol for the template.  It will be added to
+           the symbol table later after more information about the template
+           has been filled in.  The extra information is needed to check
+           for redeclaration errors. */
+        sym = make_symbol((a_symbol_kind)sk_class_template, &locator);
+        add_sym_to_symbol_table = TRUE;
+      }  /* if */
       if (!friend_injection_enabled) {
         /* If the class template is initially declared in a friend declaration,
            mark it as invisible. */
@@ -14816,6 +14959,17 @@ friend_template_checks_done:
     tssp->variant.class_template.type_kind = type_kind;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     tssp->variant.class_template.is_interface = is_interface;
+    tssp->is_generic = decl_state->is_generic;
+    if (tssp->is_generic) {
+      tssp->variant.class_template.arity = decl_state->num_parameters;
+      if (primary_arity_sym == NULL) {
+        /* This is the first declaration of a generic of this name.  When
+           a new arity is added, these fields are updated by
+           add_arity_overload. */
+        tssp->variant.class_template.min_arity = decl_state->num_parameters;
+        tssp->variant.class_template.max_arity = decl_state->num_parameters;
+      }  /* if */
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     tssp->is_variadic = decl_state->is_variadic;
     /* Set the name-linkage for this template -- it will be propagated
@@ -14826,6 +14980,10 @@ friend_template_checks_done:
     /* Save the IL template entry pointer for this symbol. */
     set_il_template_entry(decl_state, sym, tssp);
     is_redecl = FALSE;
+    if (add_sym_to_symbol_table) {
+      add_symbol_to_symbol_table(sym, decl_state->effective_decl_level,
+                                 suppress_redecl_error);
+    }  /* if */
   }  /* if */
   /* Make sure the is_exported flag is set properly. */
   update_export_flag_for_class(decl_state, tssp);
@@ -16219,6 +16377,11 @@ to represent the template parameters.
   remove_stop_token(tok_gt);
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (decl_state->is_generic) {
+    decl_state->num_parameters = template_param_list_pos;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
 }  /* scan_template_param_list */
 
@@ -17912,6 +18075,7 @@ caller.
     tssp->is_variadic = decl_state->is_variadic;
     /* Update the exported flag, if necessary. */
     update_export_flag_for_function(decl_state, rout_ptr, sym, tssp);
+    tssp->is_generic = decl_state->is_generic;
   }  /* if */
   /* Make sure that the template parameter list is compatible with
      any previous declaration (i.e., the declaration of the class
@@ -19617,7 +19781,8 @@ that follows.
       }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      /* Check whether this template can be specialized. */
+      /* Check whether this template can be specialized.  Generics and
+         certain templates cannot be partially specialized. */
       { a_symbol_ptr                     class_template_sym;
         a_template_symbol_supplement_ptr tssp;
 
@@ -19626,7 +19791,8 @@ that follows.
         if (class_template_sym != NULL) {
           tssp = class_template_sym->variant.template_info;
           if (cppcli_enabled && 
-              tssp->variant.class_template.cannot_be_specialized) {
+              (tssp->is_generic ||
+                tssp->variant.class_template.cannot_be_specialized)) {
             sym_error(ec_entity_cannot_be_specialized, class_template_sym);
           }  /* if */
         }  /* if */
@@ -20299,6 +20465,8 @@ of the list.
   a_generic_constraint_ptr	list_tail = NULL;
   a_boolean			done;
 
+  /* FIXME: check for duplicate constraints, more than one class constraint,
+     a class that is sealed, recursive naked type parameters, etc. */
   do {
     a_type_ptr			type = NULL;
     a_generic_constraint_kind	kind = (a_generic_constraint_kind)gck_none;

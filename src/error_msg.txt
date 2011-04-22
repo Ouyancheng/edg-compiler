@@ -2203,6 +2203,10 @@ ec_gcnew_bad_type_used_with_array_init;;"an array initializer can only be used t
 ec_gcnew_used_with_auto_syntax;;"gcnew does not allow auto"
 ec_too_many_array_bounds;;"too many array bounds"
 ec_too_few_array_bounds;;"too few array bounds"
+ec_too_few_generic_args;;"too few arguments for %nf"
+ec_too_many_generic_args;;"too many arguments for %nf"
+ec_generic_class;INTERNAL;"generic class"
+ec_no_matching_arity;;"no declaration of %nf accepts the number of generic arguments supplied"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

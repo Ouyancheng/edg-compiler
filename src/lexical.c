@@ -13630,6 +13630,117 @@ all arguments were explicit.
   return arg_list;
 }  /* scan_template_argument_list */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_template_arg_ptr scan_generic_argument_list(a_symbol_ptr	generic_sym,
+					      a_boolean		*any_errors)
+/*
+Scan a comma separated list of generic arguments.  generic_sym points to
+the template with which this argument list is associated.  If it is a
+generic with more than one arity, generic_sym points to the symbol found
+by lookup, which contains information about the other arity generics.
+*any_errors is set to TRUE if any errors are detected by this routine.
+Its value is unchanged if no errors are detected.
+*/
+{
+  a_template_arg_ptr			arg_ptr;
+  a_template_arg_ptr			arg_list = NULL;
+  a_template_arg_ptr			last_arg = NULL;
+  uint32_t				arity = 0;
+  a_template_symbol_supplement_ptr	tssp;
+  a_boolean				saved_in_template_arg_list =
+					scope_stack_top().in_template_arg_list;
+
+  scope_stack_top().in_template_arg_list = TRUE;
+  tssp = generic_sym->variant.template_info;
+  /* Because there can be a set of generics with the same name but different
+     numbers of parameters, scan all of the arguments that are present.
+     The particular generic that is being used will be determined by the
+     caller. */
+  do {
+    a_type_ptr		argument_type;
+    if (curr_token == tok_shift_right && right_shift_can_be_angle_brackets) {
+      /* Check for the case where a "right shift" could be interpreted as two
+         consecutive closing angle brackets. */
+      replace_right_shift_by_two_closing_angle_brackets();
+    }  /* if */
+    /* If the current token is a ">", and this is the first argument,
+       then exit the loop (an empty argument list). */
+    if (curr_token == tok_gt && arg_list == NULL) {
+      break;
+    }  /* if */
+    if (arity == tssp->variant.class_template.max_arity) {
+      /* There are more arguments than the maximum allowed. */
+      pos_sy_error(ec_too_many_generic_args, &pos_curr_token, generic_sym);
+      *any_errors = TRUE;
+    }  /* if */
+    arity++;
+    add_stop_token(tok_comma);
+    argument_type = scan_template_type_argument();
+    arg_ptr = alloc_template_arg((a_templ_arg_kind)tak_type);
+    arg_ptr->variant.type = argument_type;
+    /* Link this entry on to the argument list. */
+    if (arg_list == NULL) arg_list = arg_ptr;
+    if (last_arg != NULL) last_arg->next = arg_ptr;
+    last_arg = arg_ptr;
+    remove_stop_token(tok_comma);
+  } while (loop_token(tok_comma));
+  if (arity < tssp->variant.class_template.min_arity) {
+    /* There are fewer arguments than the minimum allowed. */
+    pos_sy_error(ec_too_few_generic_args, &pos_curr_token, generic_sym);
+    *any_errors = TRUE;
+  }  /* if */
+  scope_stack_top().in_template_arg_list = saved_in_template_arg_list;
+  return arg_list;
+}  /* scan_generic_argument_list */
+
+
+static void select_generic_based_on_arity(a_symbol_ptr		*generic_sym,
+					  a_template_arg_ptr	arg_list,
+					  a_source_position	*arg_start_pos,
+					  a_boolean		*any_errors)
+/*
+There can be multiple versions of a C++/CLI generic each with a different
+number of parameters.  If there is only one version, see if the argument
+list has the correct number of parameters.  If there are multiple versions,
+see if any of them match the argument list.  If the generic that is matched
+is not the one referred to by *generic_sym, update *generic_sym to refer
+to the appropriate generic.  *arg_start_pos is the position of the start
+of the first generic argument.  *any_errors is set to TRUE if any errors
+are detected by this routine.  Its value is unchanged if no errors are
+detected.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  uint32_t				arity = 0;
+  a_template_arg_ptr			tap;
+
+  /* Count the number of arguments. */
+  for (tap = arg_list; tap != NULL; tap = tap->next) arity++;
+  tssp = (*generic_sym)->variant.template_info;
+  if (arity == tssp->variant.class_template.min_arity &&
+      arity == tssp->variant.class_template.max_arity) {
+    /*  There is only one arity and this matches. */
+  } else {
+    a_symbol_list_entry_ptr	slep;
+    for (slep = tssp->variant.class_template.generic_arity_list;
+         slep != NULL; slep = slep->next) {
+      if (arity_for_generic(slep->symbol) == arity) {
+        /* We found a match. */
+        *generic_sym = slep->symbol;
+        break;
+      }  /* if */
+    }  /* for */
+    if (slep == NULL) {
+      /* No match was found. */
+      pos_sy_error(ec_no_matching_arity, arg_start_pos, *generic_sym);
+      *any_errors = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* select_generic_based_on_arity */
+
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void f_check_closing_angle_bracket(a_boolean  *any_errors)
 /*
@@ -13856,6 +13967,15 @@ a routine to lookup the appropriate instance (or generate one if needed).
          current instance (which it already does). */
       new_sym = template_sym;
       goto skip_processing;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (template_sym != NULL &&
+               is_cli_generic_class_symbol(template_sym) &&
+               *non_generic_class_for_cli_generic(template_sym) != NULL) {
+      /* The template_sym is a C++/CLI generic class for which there is also
+         a non-generic class of the same name.  Return that symbol. */
+      new_sym = *non_generic_class_for_cli_generic(template_sym);
+      goto skip_processing;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* There is no template argument list.  If we are in an instantiation of
          this class template, use the symbol associated with the innermost
@@ -13944,9 +14064,25 @@ a routine to lookup the appropriate instance (or generate one if needed).
   if (template_sym != NULL &&
       !template_sym->variant.template_info->is_nonreal_member &&
       !template_sym->variant.template_info->is_error) {
-    /* Scan the template argument list. */
-    arg_list = scan_template_argument_list(template_sym, &any_errors,
-                                           &first_defaulted_arg);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_cli_generic_class_symbol(template_sym)) {
+      a_source_position	arg_start_pos = pos_curr_token;
+      /* Scan the generic argument list. */
+      arg_list = scan_generic_argument_list(template_sym, &any_errors);
+      if (!any_errors) {
+        /* Determine the which generic is being referenced based on the number
+           of arguments provided. */
+        select_generic_based_on_arity(&template_sym, arg_list, &arg_start_pos,
+                                      &any_errors);
+      }  /* if */
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      /* Scan the template argument list. */
+      arg_list = scan_template_argument_list(template_sym, &any_errors,
+                                             &first_defaulted_arg);
+    }  /* if */
   } else {
     /* The template is a member of a proxy or nonreal class.  This occurs
        as a result of constructs like T::A<int>.  In such cases there is

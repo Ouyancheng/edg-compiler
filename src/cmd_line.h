@@ -286,6 +286,7 @@ typedef enum /*an_option_kind*/ {
   optk_assembly_using_dir,
   optk_using_framework_directory,
   optk_mscorlib_file_name,
+  optk_generic_arity_overload,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_last		/* Must be last. */
 } an_option_kind;
@@ -1092,6 +1093,16 @@ EXTERN a_boolean
 			/* TRUE if generating portable assemblies for use
 			   in testing C++/CLI on non-Windows platforms. */
 #endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
+
+EXTERN a_boolean
+		generic_arity_overload_allowed;
+			/* TRUE if C++/CLI generic classes with different arity
+			   (number of generic parameters) can exist in the
+			   same scope and if a generic class and non-generic
+			   class can have the same name in a given scope.
+			   This support is always allowed for generics
+			   imported from metadata.  This controls the
+			   availability of the feature as a source feature. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS

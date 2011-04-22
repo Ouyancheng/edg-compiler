@@ -206,6 +206,9 @@ typedef struct a_tmpl_decl_state {
 		generic_constraint_clauses;
 			/* For C++/CLI generics, this points to the list of
 			   constraints clauses specified, and can be NULL. */
+  uint32_t	num_parameters;
+			/* The number of parameters for the generic being
+			   declared. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_tmpl_decl_state;
 

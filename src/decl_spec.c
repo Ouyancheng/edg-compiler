@@ -1275,7 +1275,7 @@ caution when modifying this routine.
          the symbol is a template class symbol then the arguments have already
          been scanned and we should simply use the symbol returned by
          normal_id_lookup. */
-      if (is_class_template_symbol(templ_sym)) {
+      if (is_class_template_but_not_cli_generic(templ_sym)) {
         a_boolean  implicit_template_allowed =
                      (microsoft_bugs && microsoft_version < 1400) || sun_mode;
         tag_sym = coalesce_template_class_reference(

@@ -1055,6 +1055,11 @@ declaration position to eliminate redundant file names in a diagnostic.
                  sym->variant.template_info->
                                     variant.class_template.is_alias_template) {
         entity_kind = ec_alias_template;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (sym->kind == (a_symbol_kind)sk_class_template &&
+                 sym->variant.template_info->is_generic) {
+        entity_kind = ec_generic_class;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         entity_kind = ec_class_template;
       }  /* if */

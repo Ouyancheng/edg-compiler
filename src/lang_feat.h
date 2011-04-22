@@ -796,6 +796,24 @@ to read C++/CLI metadata from portable assembly files.
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !CPPCLI_ENABLING_POSSIBLE */
 
 /*
+Flag that is TRUE if, by default, C++/CLI generic classes with
+different arity (number of generic parameters) can exist in the same
+scope and if a generic class and non-generic class can have the same
+name in a given scope.  This support is always allowed for generics
+imported from metadata.  This controls the availability of the feature
+as a source feature.
+*/
+#ifndef DEFAULT_GENERIC_ARITY_OVERLOAD_ALLOWED
+#define DEFAULT_GENERIC_ARITY_OVERLOAD_ALLOWED FALSE
+#endif /* ifndef DEFAULT_GENERIC_ARITY_OVERLOAD_ALLOWED */
+
+#if DEFAULT_GENERIC_ARITY_OVERLOAD_ALLOWED && !CPPCLI_ENABLING_POSSIBLE
+ #error -- DEFAULT_GENERIC_ARITY_OVERLOAD_ALLOWED requires \
+           CPPCLI_ENABLING_POSSIBLE
+#endif /* DEFAULT_GENERIC_ARITY_OVERLOAD_ALLOWED &&
+          !CPPCLI_ENABLING_POSSIBLE */
+
+/*
 Flag that is TRUE if by default in Microsoft modes the front end should accept
 64-bit pointer extensions (__ptr32/__ptr64 and __sptr/__uptr).  This is used
 to initialize the global variable microsoft_64bit_pointer_extensions_enabled.

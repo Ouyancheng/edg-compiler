@@ -2247,6 +2247,9 @@ typedef struct a_template_symbol_supplement {
 			   for error recovery purposes. */
   a_bit_field	is_variadic:1;
 			/* TRUE if this is a variadic template. */
+  a_bit_field
+		is_generic:1;
+			/* TRUE for C++/CLI generics. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When symbol kind = sk_class_template (note that this symbol kind is used
@@ -2329,6 +2332,48 @@ typedef struct a_template_symbol_supplement {
 			   initial declaration is also the definition,
 			   this will point to the same information as
 			   "cache" above. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_symbol_list_entry_ptr
+		generic_arity_list;
+			/* There can be more than one generic of a given name
+			   in a given scope provided that they differ in the
+			   number of generic parameters (also known as
+			   "arity").  If there is more than one arity for
+			   a generic, this points to a list of all of the
+			   different arity versions of the generic.  It is
+			   NULL if there is only one arity.  The list
+			   is attached to the initial generic entered into
+			   the symbol table and that generic is included on
+			   the list.  The other entries on the list are not
+			   entered into the symbol table.  The list is
+			   maintained in the order in which the generics were
+			   declared. */
+      a_symbol_ptr
+		non_generic_class;
+			/* In addition to generics of varying arity described
+			   above, a non-generic class can exist in the same
+			   scope as a one or more generic of the same name.
+			   In such cases, the generic is found by name
+			   lookup and this pointer can be used if it is
+			   determined that the reference is to the non-generic
+			   version.  It is NULL if their is no non-generic
+			   version. */
+       uint32_t	arity;
+			/* For C++/CLI generics classes, the number of generic
+			   parameters for this generic. */
+       uint32_t	min_arity;
+			/* For C++/CLI generics, this field is set in the
+			   generic found by lookup and is the minimum number
+			   of generic parameters of the various versions of
+			   the generic.  It is also set if there is only
+			   one arity. */
+       uint32_t	max_arity;
+			/* For C++/CLI generics, this field is set in the
+			   generic found by lookup and is the maximum number
+			   of generic parameters of the various versions of
+			   the generic.  It is also set if there is only
+			   one arity. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
 		is_alias_template:1;
 			/* TRUE if this is an alias template. */
@@ -3694,6 +3739,13 @@ void set_template_cache_info(a_template_cache_ptr	tcp,
 extern a_template_symbol_supplement_ptr alloc_template_symbol_supplement(
                                                          a_symbol_kind  kind);
 
+extern a_symbol_ptr make_symbol(a_symbol_kind    sym_kind,
+                                a_symbol_locator *location);
+
+extern void add_symbol_to_symbol_table(a_symbol_ptr     sym_ptr,
+                                       a_scope_depth    scope_depth,
+                                       a_boolean        suppress_error);
+
 extern a_symbol_ptr enter_symbol(a_symbol_kind    sym_kind,
 				 a_symbol_locator *location,
                                  a_scope_depth    scope_depth,
@@ -4035,6 +4087,13 @@ Macros to retrieve special C++/CLI types.
   (cli_class_type_for((a_cli_symbol_kind)csk_system_value_type))
 #define cli_collections_ienumerable_type()                                   \
   (cli_class_type_for((a_cli_symbol_kind)csk_collections_ienumerable))
+
+/*
+Return the arity of a symbol that points to an sk_class_template symbol
+for a C++/CLI generic.
+*/
+#define arity_for_generic(sym)						\
+  ((sym)->variant.template_info->variant.class_template.arity)
 
 
 extern void make_symbol_for_namespace_cli(void);
@@ -4771,6 +4830,32 @@ symbol found by the lookup is semantically valid.
 #define is_class_template_symbol(sym)					\
   ((sym)->kind == (a_symbol_kind)sk_class_template)
 
+/*
+Return TRUE if the symbol is a class template, but not a C++/CLI generic.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_class_template_but_not_cli_generic(sym)			\
+  (is_class_template_symbol(sym) &&					\
+   !(sym)->variant.template_info->is_generic)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_class_template_but_not_cli_generic(sym)			\
+  (is_class_template_symbol(sym))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+/*
+Return a pointer to the non-generic class symbol pointer (which may be NULL)
+for a C++/CLI generic class.
+*/
+#define non_generic_class_for_cli_generic(sym)				\
+   (&(sym)->variant.template_info->variant.class_template.non_generic_class)
+
+#define is_cli_generic_class_symbol(sym)				\
+  (is_class_template_symbol(sym) &&					\
+   (sym)->variant.template_info->is_generic)
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Return TRUE if the symbol is an sk_type symbol that represents an
    injected class name in a template class.  In a template class, the

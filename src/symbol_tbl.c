@@ -3088,6 +3088,7 @@ and return a pointer to it.
   tssp->is_nonreal_member = FALSE;
   tssp->is_error = FALSE;
   tssp->is_variadic = FALSE;
+  tssp->is_generic = FALSE;
 #if CENTERLINE_CHECKING 
   tssp->avoid_codecenter_warnings = FALSE;
 #endif /* CENTERLINE_CHECKING */
@@ -3109,6 +3110,11 @@ and return a pointer to it.
                                             (a_name_linkage_kind)nlk_none;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       tssp->variant.class_template.is_interface = FALSE;
+      tssp->variant.class_template.generic_arity_list = NULL;
+      tssp->variant.class_template.non_generic_class = NULL;
+      tssp->variant.class_template.arity = 0;
+      tssp->variant.class_template.min_arity = 0;
+      tssp->variant.class_template.max_arity = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       tssp->variant.class_template.not_standalone_nested_class = FALSE;
       tssp->variant.class_template.template_template_param = FALSE;
@@ -4112,6 +4118,29 @@ this is not allowed, an error will be issued by the caller.
             if (insert_sym != NULL) *insert_sym = old_sym;
           }  /* if */
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (cppcli_enabled &&
+                 (is_cli_generic_class_symbol(fund_new_sym) &&
+                  is_class_struct_union_symbol(fund_old_sym))) {
+        /* The old symbol is a class type and the new symbol is a C++/CLI
+           generic.  These can exist in the same scope.  The generic should
+           hide the non-generic. */
+        err = FALSE;
+        /* Record the non-generic symbol in the information about the
+           generic. */
+        *non_generic_class_for_cli_generic(fund_new_sym) = fund_old_sym;
+      } else if (cppcli_enabled &&
+                  (is_cli_generic_class_symbol(fund_old_sym) &&
+                   is_class_struct_union_symbol(fund_new_sym))) {
+        /* The new symbol is a class type and the old symbol is a C++/CLI
+           generic.  These can exist in the same scope.  The generic should
+           hide the non-generic. */
+        err = FALSE;
+        if (insert_sym != NULL) *insert_sym = old_sym;
+        /* Record the non-generic symbol in the information about the
+           generic. */
+        *non_generic_class_for_cli_generic(fund_old_sym) = fund_new_sym;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4968,12 +4997,8 @@ is called.
   /* Set the locator to point to the symbol entered. */
   location->specific_symbol = sym_ptr;
   location->is_qualified_name = FALSE;
-  /* Add the symbol to the proper scope's symbol list. */
-  add_symbol_to_scope_list(sym_ptr, scope_depth, &suppress_error);
-  /* Add the symbol to the symbol table.  This must be done after the symbol
-     is added to the scope list, because that sets the scope number, which
-     is needed to check for redeclaration. */
-  link_symbol_into_symbol_table(sym_ptr, scope_depth, suppress_error);
+  /* Enter the symbol into the symbol table. */
+  add_symbol_to_symbol_table(sym_ptr, scope_depth, suppress_error);
   return sym_ptr;
 }  /* enter_namespace_projection_symbol */
 
@@ -5212,6 +5237,52 @@ applicable).
 }  /* copy_locator_parent_to_sym */
 
 
+a_symbol_ptr make_symbol(a_symbol_kind    sym_kind,
+			 a_symbol_locator *location)
+/*
+Create a new symbol entry, but don't add it to the symbol table.
+*location must be refer to the desired symbol header.  If *location is
+an error locator, an error symbol is created.  Note that any specific symbol
+indicated in the locator is supposed to be ignored.
+*/
+{
+  a_symbol_ptr sym_ptr;
+
+  /* Allocate and initialize the symbol. */
+  sym_ptr = alloc_symbol(sym_kind, location->symbol_header,
+                         &location->source_position);
+  sym_ptr->is_error = location->is_error;
+  if (sym_ptr->is_error) {
+    /* In the error case it can be useful to remember the membership (e.g.,
+       to recognize constructor-like symbols). */
+    copy_locator_parent_to_sym(location, sym_ptr);
+  }  /* if */
+  /* Set the locator to point to the symbol entered. */
+  location->specific_symbol = sym_ptr;
+  location->is_qualified_name = FALSE;
+  return sym_ptr;
+}  /* make_symbol */
+
+
+void add_symbol_to_symbol_table(a_symbol_ptr     sym_ptr,
+				a_scope_depth    scope_depth,
+	                        a_boolean        suppress_error)
+/*
+Add sym_ptr to the symbol table and the scope list for its scope.
+scope_depth indicates the level of the scope stack at which the symbol
+should be entered.  Generate an error if the symbol is already defined
+in that scope and name space unless suppress_error is TRUE.
+*/
+{
+  /* Add the symbol to the proper scope's symbol list. */
+  add_symbol_to_scope_list(sym_ptr, scope_depth, &suppress_error);
+  /* Add the symbol to the symbol table.  This must be done after the symbol
+     is added to the scope list, because that sets the scope number, which
+     is needed to check for redeclaration. */
+  link_symbol_into_symbol_table(sym_ptr, scope_depth, suppress_error);
+}  /* add_symbol_to_symbol_table */
+
+
 a_symbol_ptr enter_symbol(a_symbol_kind    sym_kind,
 			  a_symbol_locator *location,
 			  a_scope_depth    scope_depth,
@@ -5235,23 +5306,9 @@ be changed too.
   db_enter(4, "enter_symbol");
 
   /* Allocate and initialize the symbol. */
-  sym_ptr = alloc_symbol(sym_kind, location->symbol_header,
-                         &location->source_position);
-  sym_ptr->is_error = location->is_error;
-  if (sym_ptr->is_error) {
-    /* In the error case it can be useful to remember the membership (e.g.,
-       to recognize constructor-like symbols). */
-    copy_locator_parent_to_sym(location, sym_ptr);
-  }  /* if */
-  /* Set the locator to point to the symbol entered. */
-  location->specific_symbol = sym_ptr;
-  location->is_qualified_name = FALSE;
-  /* Add the symbol to the proper scope's symbol list. */
-  add_symbol_to_scope_list(sym_ptr, scope_depth, &suppress_error);
-  /* Add the symbol to the symbol table.  This must be done after the symbol
-     is added to the scope list, because that sets the scope number, which
-     is needed to check for redeclaration. */
-  link_symbol_into_symbol_table(sym_ptr, scope_depth, suppress_error);
+  sym_ptr = make_symbol(sym_kind, location);
+  /* Enter the symbol into the symbol table. */
+  add_symbol_to_symbol_table(sym_ptr, scope_depth, suppress_error);
   db_exit();
   return sym_ptr;
 }  /* enter_symbol */
@@ -5336,16 +5393,7 @@ symbol should be re-entered.  Generate an error if the symbol is already
 defined in that scope and name space unless suppress_error is TRUE.
 */
 {
-  db_enter(4, "reenter_symbol");
-
-  /* Add the symbol to the proper scope's symbol list. */
-  add_symbol_to_scope_list(symbol_to_reenter, scope_depth, &suppress_error);
-  /* Add the symbol to the symbol table.  This must be done after the symbol
-     is added to the scope list, because that sets the scope number, which
-     is needed to check for redeclaration. */
-  link_symbol_into_symbol_table(symbol_to_reenter, scope_depth,
-                                suppress_error);
-  db_exit();
+  add_symbol_to_symbol_table(symbol_to_reenter, scope_depth, suppress_error);
 }  /* reenter_symbol */
 
 
@@ -5382,13 +5430,8 @@ unless suppress_error is TRUE.
   new_sym->next = NULL;
   new_sym->next_in_scope = NULL;
   new_sym->prev_in_scope = NULL;
-  /* Add the symbol to the proper scope's symbol list. */
-  add_symbol_to_scope_list(new_sym, scope_depth, &suppress_error);
-  /* Add the symbol to the symbol table.  This must be done after the symbol
-     is added to the scope list, because that sets the scope number, which
-     is needed to check for redeclaration. */
-  link_symbol_into_symbol_table(new_sym, scope_depth,
-                                suppress_error);
+  /* Enter the symbol into the symbol table. */
+  add_symbol_to_symbol_table(new_sym, scope_depth, suppress_error);
   db_exit();
   return new_sym;
 }  /* enter_copy_of_symbol */
