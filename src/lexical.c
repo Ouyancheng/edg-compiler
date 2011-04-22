@@ -15612,7 +15612,7 @@ selection operator, in which case it points to the type of the left operand.
       /* Get the C++/CLI type, if any, that corresponds to the keyword type. */
       tp = system_type_from_fundamental_type(tp);
       if (tp != NULL) {
-        /* Save the type found for user later as the qualifier. */
+        /* Save the type found for use later as the qualifier. */
         cli_system_type_for_keyword = tp;
         might_be_qualifier = TRUE;
         next_tok = tok_colon_colon;
