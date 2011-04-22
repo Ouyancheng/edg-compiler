@@ -734,6 +734,10 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_gcnew_used_with_auto_syntax)*/
 /*lint -esym(769,ec_too_many_array_bounds)*/
 /*lint -esym(769,ec_too_few_array_bounds)*/
+/*lint -esym(769,ec_too_few_generic_args)*/
+/*lint -esym(769,ec_too_many_generic_args)*/
+/*lint -esym(769,ec_generic_class)*/
+/*lint -esym(769,ec_no_matching_arity)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_enum)*/
