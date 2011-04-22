@@ -14174,9 +14174,9 @@ expression, and return the result in *result (or an error indication in
           needs_initialization = has_new_initializer = FALSE;
         }  /* if */
       }  /* if */
-    } else if (template_case || is_error_type(new_type)) {
+    } else if (template_case) {
       /* A "new" or "gcnew" of a template-dependent type, in a prototype
-         instantiation, or an error case. */
+         instantiation. */
       /* Scan the argument list. */
       templ_init_scanned = TRUE;
       scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
@@ -14380,23 +14380,14 @@ handle_empty_parens_new_initializer:
     /* Finish processing the previously scanned new-init as if the
        arguments are passed to a template-dependent constructor. */
     an_expr_node_ptr   expr_list;
+    an_arg_check_block arg_block;
 
-    if (is_error_type(new_type)) {
-      /* The error case. */
-      expr_list = convert_arg_operand_list_to_expr_list(
-                                       init_raw_args,
-                                       /*expr_tail=*/(an_expr_node_ptr *)NULL);
-    } else {
-      /* The template case. */
-      an_arg_check_block arg_block;
-
-      start_call_argument_processing(/*function_type=*/(a_type_ptr)NULL,
-                                     /*routine=*/(a_routine_ptr)NULL,
-                                     &arg_block);
-      arg_block.unknown_dependent_function = TRUE;
-      process_call_argument_list(init_raw_args, &arg_block);
-      expr_list = arg_block.argument_head;
-    }  /* if */
+    start_call_argument_processing(/*function_type=*/(a_type_ptr)NULL,
+                                   /*routine=*/(a_routine_ptr)NULL,
+                                   &arg_block);
+    arg_block.unknown_dependent_function = TRUE;
+    process_call_argument_list(init_raw_args, &arg_block);
+    expr_list = arg_block.argument_head;
     init_raw_args = NULL;
     /* Set the dynamic init entry to represent "constructor" initialization,
        leaving the constructor pointer NULL. */
