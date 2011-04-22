@@ -18930,7 +18930,7 @@ that case.
         result_type = integer_type(targ_ptrdiff_t_int_kind);
       } else {
         /* Pointer +- non-integral.  Error. */
-        error_in_operand(expr_not_integral_or_any_enum_code(), &operand_2);
+        error_in_operand(expr_not_integral_code(), &operand_2);
         err = TRUE;
       }  /* if */
     } else if (operator_token == tok_plus &&
