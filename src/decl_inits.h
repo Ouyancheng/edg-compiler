@@ -65,6 +65,7 @@ extern void scan_compound_literal_initializer(a_type_ptr         *type,
    while scanning an array-init. */
 typedef struct a_cli_array_init_scan_info
 {
+#if MICROSOFT_EXTENSIONS_ALLOWED
   an_expr_node_ptr
 		cli_array_dimension_lengths;
 			/* A list of C++/CLI array dimension lengths associated
@@ -78,6 +79,7 @@ typedef struct a_cli_array_init_scan_info
 			   checks for each dimension length.  This member is
 			   only relevant if cli_array_dimension_lengths is
 			   non-NULL. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  a_cli_array_init_scan_info;
 
 typedef a_cli_array_init_scan_info *a_cli_array_init_scan_info_ptr;

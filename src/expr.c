@@ -14308,10 +14308,10 @@ handle_empty_parens_new_initializer:
         }  /* for */
         if (too_many_args) {
           /* More arguments than expected. */
-          expr_pos_error(ec_too_many_arguments, &too_many_position);
+          expr_pos_error(ec_too_many_array_bounds, &too_many_position);
         } else if (!rank_unknown && count <= rank) {
           /* Fewer arguments than expected. */
-          expr_pos_error(ec_too_few_arguments, &end_new_init_position);
+          expr_pos_error(ec_too_few_array_bounds, &end_new_init_position);
         }  /* if */
         cli_array_new_init_args = convert_arg_operand_list_to_expr_list(
                                                      init_raw_args,

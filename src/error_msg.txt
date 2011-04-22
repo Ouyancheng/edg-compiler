@@ -2201,6 +2201,8 @@ ec_new_used_on_handle_or_tracking_reference_type;;"new cannot be used on a handl
 ec_cli_array_must_have_new_or_array_init;;"gcnew for a C++/CLI array must have a new initializer or an array initializer"
 ec_gcnew_bad_type_used_with_array_init;;"an array initializer can only be used to initialize a C++/CLI array type"
 ec_gcnew_used_with_auto_syntax;;"gcnew does not allow auto"
+ec_too_many_array_bounds;;"too many array bounds"
+ec_too_few_array_bounds;;"too few array bounds"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

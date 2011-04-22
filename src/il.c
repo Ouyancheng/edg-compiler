@@ -1730,13 +1730,12 @@ Dump the contents of the indicated expression node for debug purposes.
         fputs("\n", f_debug);
         if (gsp->cli_array_dimension_lengths != NULL) {
           for (a = 0; a < level; a++) fputs(" ", f_debug);
-          fprintf(f_debug, "cli_array_dimension_lengths: ");
+          fprintf(f_debug, "dimension lengths:\n");
           for (operand = gsp->cli_array_dimension_lengths;
                operand != NULL;
                operand = operand->next) {
             db_expr_node(operand, level + 2);
           }  /* for */
-          fputs("\n", f_debug);
         }  /* if */
         if (gsp->dynamic_init != NULL) {
           for (a = 0; a < level; a++) fputs(" ", f_debug);
