@@ -18568,7 +18568,7 @@ or generic parameter lists of the form:
 
 The parameter list can be empty for a template specialization declaration.
 Once a non-empty parameter list has been specified, all subsequent parameter
-lists must by non-empty.
+lists must be non-empty.
 
 This is used to scan the initial portion of template declarations and
 also for template template parameters (when is_template_param is TRUE).
@@ -20455,7 +20455,7 @@ that follows.
 
 static a_generic_constraint_ptr scan_constraint_item_list(void)
 /*
-Scan a C++/CLI generic constraint-item-list return the list.
+Scan a C++/CLI generic constraint-item-list and return the list.
 
 See scan_generic_constraints_clauses for more information about the form
 of the list.
