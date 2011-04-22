@@ -5817,7 +5817,7 @@ case).
         !is_class_struct_union_type(operand_1->type)) {
       /* In C++/CLI, the first operand of "." will be boxed if it has a
          built-in type that has a corresponding value class type. */
-      a_type_ptr sys_type = system_type_from_basic_type(
+      a_type_ptr sys_type = system_type_from_fundamental_type(
                                                skip_typerefs(operand_1->type));
       if (sys_type != NULL) {
         box_value_type_operand(operand_1);
@@ -11740,7 +11740,7 @@ indication in *rcblock).
     } else {
       /* Convert the fundamental type version of a type to the value class
          version. */
-      a_type_ptr sys_type = system_type_from_basic_type(
+      a_type_ptr sys_type = system_type_from_fundamental_type(
                                                    skip_typerefs(typeid_type));
       if (sys_type != NULL) typeid_type = sys_type;
     }  /* if */
@@ -11766,7 +11766,7 @@ indication in *rcblock).
     if (cppcli_enabled && is_value_class_type(typeid_type)) {
       /* Convert the value class version of a fundamental type to the
          fundamental type.  Note that typerefs have been stripped above. */
-      a_type_ptr basic_type = basic_type_from_system_type(typeid_type);
+      a_type_ptr basic_type = fundamental_type_from_system_type(typeid_type);
       if (basic_type != NULL) typeid_type = basic_type;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13047,7 +13047,8 @@ the "new" if an exception is thrown before the initialization of the
 storage is completed.  This must be called only after it has been
 determined that the "new" has initialization, but before that
 initialization is scanned (so the cleanup entry gets onto the object
-lifetime list in the right place).
+lifetime list in the right place).  For gcnew, this macro does nothing
+as new_routine will always be NULL and array_new will always be FALSE.
 */
 /* Do not record the deletion if no delete routine is needed or if
    allocation is folded into a constructor (new_routine == NULL
@@ -13068,7 +13069,8 @@ the operator is missing and the given boolean flag is TRUE.  There is no
 need to issue the warning if exceptions are disabled (since no exceptions
 could possibly be thrown in such cases).  In some cases (prototype
 instantiations or errors) the actual operator new being called is not known
-and hence we cannot examine the matching operator delete either.
+and hence we cannot examine the matching operator delete either.  For gcnew,
+this macro does nothing as function_symbol will always be NULL.
 */
 #define warn_about_missing_delete_if(cond)                                  \
 { if (/*lint --e(506)*/delete_routine == NULL && exceptions_enabled &&      \
@@ -13081,11 +13083,58 @@ and hence we cannot examine the matching operator delete either.
   }  /* if */                                                               \
 }  /* warn_about_missing_delete_if */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+an_expr_node_ptr create_cli_array_length_list(a_type_ptr cli_array_type)
+/*
+Create a list of n expression nodes for the C++/CLI array type cli_array_type
+of rank n.  This list is used to track the inferred length of each dimension of
+a C++/CLI array during array-init scanning.  If the rank of cli_array_type
+cannot be determined, a list is not created and the function returns NULL.
+*/
+{
+  a_boolean                    is_cli_array_rank_unknown;
+  a_host_large_unsigned        local_cli_array_rank;
+  an_expr_node_ptr             head;
+
+  check_assertion(is_cli_array_type(cli_array_type));
+  local_cli_array_rank = (a_host_large_unsigned)cli_array_rank(
+                                                   cli_array_type,
+                                                   &is_cli_array_rank_unknown);
+  if (!is_cli_array_rank_unknown) {
+    a_host_large_unsigned        x;
+    an_expr_node_ptr             *curr;
+
+    /* Initialize the list to use for tracking dimension lengths with
+       defaults since we know the array rank at this point (but not the
+       dimension lengths themselves). */
+    for (x = 0, curr = &head;
+         x < local_cli_array_rank;
+         ++x, curr = &(*curr)->next) {
+      /* Allocate a constant expression node.  Do not use
+         node_for_host_large_integer because the constant cannot be shared.
+         It will be mutated while scanning the C++/CLI array-init. */
+      *curr = alloc_expr_node((an_expr_node_kind)enk_constant);
+      (*curr)->variant.constant =
+                              alloc_constant((a_constant_repr_kind)ck_integer);
+      set_integer_constant((*curr)->variant.constant,
+                           /*value=*/INTERNAL_UNSPECIFIED_CLI_ARRAY_LENGTH,
+                           (an_integer_kind)ik_int);
+      (*curr)->type = (*curr)->variant.constant->type;
+    }  /* for */
+    *curr = NULL;
+  } else {
+    head = NULL;
+  }  /* if */
+  return head;
+}  /* create_cli_array_length_list */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void scan_new_operator(a_rescan_control_block *rcblock,
                               an_operand             *result)
 /*
-Scan the C++ new operator.
+Scan the C++ "new" operator or the C++/CLI "gcnew" operator.
 
 Syntax:
       allocation-expression:
@@ -13093,22 +13142,33 @@ Syntax:
 		  opt              opt                              opt
 		::    new placement    ( type-name ) new-initializer
 		  opt              opt                              opt
+		gcnew type-specifier-seq new-initializer    array-init
+		                                        opt           opt
       placement:
 		( expression-list )
       new-initializer:
 		( initializer-list    )
 		                  opt
+      array-init:
+		{ initializer-list ,    }
+		                    opt
+		{  }
 
-new-type-name and the "( type-name )" case are handled by the routine
-new_type_name called from this routine.  Note that both forms of type
-specification allow a variable-sized array as the top type.
-If rcblock is non-NULL, redo semantic analysis on a previously-scanned
-new expression, and return the result in *result (or an error indication
-in *rcblock).
+new-type-name, the "( type-name )" case, and type-specifier-seq are handled
+by the routine new_type_name called from this routine.  The first two forms
+of type specification allow a variable-sized array as the top type whereas
+the latter does not.  array-init is handled by scan_cli_array_init and is only
+applicable if type-specifier-seq is a C++/CLI array type.  If rcblock is
+non-NULL, redo semantic analysis on a previously-scanned new or gcnew
+expression, and return the result in *result (or an error indication in
+*rcblock).
 */
 {
   a_boolean         err = FALSE;
   a_source_position start_position, type_position, init_position;
+  /* end_new_init_position is only set for template and array new-init
+     cases */
+  a_source_position end_new_init_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -13155,24 +13215,57 @@ in *rcblock).
                     dps;
   an_expression_cache
                     *saved_expression_cache = NULL;
+  a_token_kind      operator_token;
+  a_boolean         templ_init_scanned = FALSE;
+  an_arg_operand_ptr
+                    init_raw_args = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_gcnew_supplement_ptr
+                    rescan_gsp = NULL;
+  a_boolean         gcnew_cli_array = FALSE;
+  an_expr_node_ptr
+                    cli_array_new_init_args = NULL;
+  a_boolean         has_array_init = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_new_operator");
 
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
-    check_assertion(rcblock->operator_token == tok_new);
-    make_new_delete_rescan_operands(rcblock, &rescan_ndsp, &start_position,
-                                    &new_type, &type_position);
+#if CHECKING
+    if (!(rcblock->operator_token == tok_new
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          || rcblock->operator_token == tok_gcnew
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+         )) {
+      /* Ensure that the rescan operator token is either a tok_new
+         or tok_gcnew */
+      unexpected_condition();
+    }  /* if */
+#endif /* CHECKING */
+    operator_token = rcblock->operator_token;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (operator_token == tok_gcnew) {
+      make_gcnew_rescan_operands(rcblock, &rescan_gsp, &start_position,
+                                 &new_type, &type_position);
+      has_new_initializer = rescan_gsp->has_new_initializer;
+    } else 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      make_new_delete_rescan_operands(rcblock, &rescan_ndsp, &start_position,
+                                      &new_type, &type_position);
+      use_global_new = rescan_ndsp->global_new_or_delete;
+      placement_new = rescan_ndsp->placement_new;
+      has_new_initializer = rescan_ndsp->has_new_initializer;
+      new_type_involves_auto = rescan_ndsp->type_contains_auto_specifier; 
+    }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* On the rescan, we can't distinguish start_position and new_position
        (they differ if there's a leading "::"). */
     new_position = start_position;
-    use_global_new = rescan_ndsp->global_new_or_delete;
-    placement_new = rescan_ndsp->placement_new;
-    has_new_initializer = rescan_ndsp->has_new_initializer;
-    new_type_involves_auto = rescan_ndsp->type_contains_auto_specifier;
     if (placement_new) {
       /* Pick up the placement new argument list in arg_operand form. */
       check_assertion(rescan_ndsp->arg != NULL);
@@ -13188,11 +13281,28 @@ in *rcblock).
     }  /* if */
     if (has_new_initializer) {
       /* Set up the argument list for the new initializer. */
-      a_dynamic_init_ptr init_dip = rescan_ndsp->dynamic_init;
-      check_assertion(init_dip != NULL &&
-                      !init_dip->is_explicit_cast);
-      rcblock->argument_list = arg_expr_list =
-                                              arg_list_from_dyn_init(init_dip);
+      a_dynamic_init_ptr init_dip;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (operator_token == tok_gcnew) {
+        if (rescan_gsp->is_cli_array) {
+          check_assertion(rescan_gsp->cli_array_dimension_lengths != NULL);
+          arg_expr_list = rescan_gsp->cli_array_dimension_lengths;
+        } else {
+          init_dip = rescan_gsp->dynamic_init;
+          check_assertion(init_dip != NULL &&
+                          !init_dip->is_explicit_cast);
+          arg_expr_list = arg_list_from_dyn_init(init_dip);
+        }  /* if */
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        init_dip = rescan_ndsp->dynamic_init;
+        check_assertion(init_dip != NULL &&
+                        !init_dip->is_explicit_cast);
+        arg_expr_list = arg_list_from_dyn_init(init_dip);
+      }  /* if */
+      rcblock->argument_list = arg_expr_list;
       if (arg_expr_list != NULL &&
           arg_expr_list->rescan_info != NULL) {
         init_position = arg_expr_list->rescan_info->saved_operand.position;
@@ -13200,14 +13310,35 @@ in *rcblock).
         /* Use the type position as an approximate initializer position. */
         init_position = type_position;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* On rescan, use init_position as an approximate
+         end_new_init_position */
+      end_new_init_position = init_position;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   } else {
     /* Normal, non-rescan, processing. */
     start_position = pos_curr_token;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* For operator new, the current token may not be tok_new,
+       but for gcnew the current token will always be tok_gcnew */
+    if (curr_token == tok_gcnew) {
+      operator_token = tok_gcnew;
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      operator_token = tok_new;
+    }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* We shouldn't be scanning a gcnew expression unless C++/CLI is
+     enabled */
+  check_assertion(!(operator_token == tok_gcnew && !cppcli_enabled));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   if (curr_expr_kind_is_const()) {
-    /* "new" not allowed in constant expressions. */
+    /* "new" nor "gcnew" allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &start_position);
     err = TRUE;
   }  /* if */
@@ -13219,8 +13350,12 @@ in *rcblock).
       (void)get_token();
     }  /* if */
 #if CHECKING
-    if (curr_token != tok_new) {
-      internal_error("scan_new_operator: expected new");
+    if (operator_token != tok_new
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        && operator_token != tok_gcnew
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        ) {
+      internal_error("scan_new_operator: expected new or gcnew");
     }  /* if */
 #endif /* CHECKING */
     new_position = pos_curr_token;
@@ -13242,6 +13377,16 @@ in *rcblock).
       } else {
         /* This is the placement expression list. */
         placement_new = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* Ensure that gcnew is not used with placement syntax. */
+        if (cppcli_enabled && operator_token == tok_gcnew) {
+          expr_pos_error(ec_gcnew_used_with_placement_syntax,
+                         &pos_curr_token);
+          err = TRUE;
+          /* Recover from erroneous use of placement new. */
+          placement_new = FALSE;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (curr_token == tok_rparen) {
           /* An empty list is not allowed. */
           expr_pos_error(ec_exp_primary_expr, &pos_curr_token);
@@ -13309,6 +13454,21 @@ in *rcblock).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     new_type_involves_auto = (dps.auto_type_specifier_seen &&
                               !dps.has_trailing_return_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (operator_token == tok_gcnew) {
+      if (new_type_involves_auto) {
+        /* Do not allow auto syntax with gcnew. */
+        expr_pos_error(ec_gcnew_used_with_auto_syntax, &type_position);
+        dps.type = error_type();
+        dps.auto_type_specifier_seen = new_type_involves_auto = FALSE;
+      } else if (is_array_type(dps.type)) {
+        /* An error should have been emitted for this.  Ensure we recover
+           appropriately. */
+        if (expr_error_should_be_issued()) expect_error();
+        dps.type = error_type();
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (curr_token == tok_lparen) {
       /* A new-initializer is present. */
       has_new_initializer = TRUE;
@@ -13356,6 +13516,14 @@ in *rcblock).
   /* Determine the type of pointer returned from "new". */
   base_new_type = new_type;
   new_array_dimension = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (operator_token == tok_gcnew && is_cli_array_type(new_type)) {
+    /* This is a gcnew with the C++/CLI array type.  Even if we don't
+       detect a C++/CLI array type at this point, we still may create a C++/CLI
+       array initialization node if we see an array-init later. */
+    gcnew_cli_array = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_array_type(new_type)) {
     /* A "new" of an array returns a pointer to the initial element.
        Note that this is only done for one level, e.g., new int [i][10]
@@ -13379,7 +13547,19 @@ in *rcblock).
     }  /* if */
   }  /* if */
   unqual_base_new_type = skip_typerefs(base_new_type);
-  ptr_new_type = make_pointer_type(base_new_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (operator_token == tok_gcnew) {
+    /* For gcnew, base_new_type and new_type and their variants should be
+       equivalent. */
+    check_assertion(identical_types(new_type, base_new_type) &&
+                    identical_types(unqual_new_type, unqual_base_new_type));
+    ptr_new_type = make_handle_type(base_new_type);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */  
+  {
+    ptr_new_type = make_pointer_type(base_new_type);
+  }  /* if */
   /* Check that the type to be allocated is valid.  It must be an object
      type. */
   if (err) {
@@ -13396,7 +13576,11 @@ in *rcblock).
       expr_pos_error(ec_type_must_be_object_type, &type_position);
     }  /* if */
     err = TRUE;
-  } else if (is_abstract_class_type(new_type)) {
+  } else if (is_abstract_class_type(new_type) &&
+             !is_cli_array_type(new_type)) {
+    /* FIXME: The array check above is to work around a bug where a C++/CLI
+       array is seen as an abstract class with unimplemented members.  Remove
+       it once this is fixed. */
     /* The type is an abstract class type, so an object of the type
        cannot be allocated. */
     if (expr_error_should_be_issued()) {
@@ -13412,6 +13596,59 @@ in *rcblock).
   } else {
     /* Valid type. */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && !err) {
+    /* We have parsed through the type (the initializer will be parsed later
+       below).  This is enough to issue diagnostics related to "gcnew" or
+       "new" with managed types.
+       Note: This is not part of the above semantic check control flow because
+       this branch will not necessarily emit an error. */
+    if (operator_token == tok_gcnew) {
+      /* Validate that gcnew is used on an appropriate type.
+         Any class or struct must be of ref or value type. */
+      if (!(is_managed_class_type(unqual_base_new_type) ||
+            is_cli_enum_type(unqual_base_new_type) ||
+            is_value_class_or_fundamental_type(unqual_base_new_type) ||
+            is_error_type(unqual_base_new_type) ||
+            is_template_param_or_nonreal_class_type(unqual_base_new_type))) {
+        if (expr_error_should_be_issued()) {
+          pos_ty_error(ec_invalid_gcnew_type, &type_position, new_type);
+        }  /* if */
+        err = TRUE;
+      }  /* if */
+      /* It is illegal to use gcnew with a global qualifier.  However,
+         that will have already been caught as a syntax error.  This serves
+         as an internal consistency check. */
+      check_assertion (!use_global_new);
+    } else {
+      /* Error checks on standard "new" with C++/CLI managed types. */
+      if (is_managed_class_type(unqual_base_new_type)) {
+        if (is_value_class_type(unqual_base_new_type)) {
+          if (is_simple_value_class_type(unqual_base_new_type)) {
+            /* No semantic error for new with simple value types. */
+          } else {
+            /* Only simple value types are allowed with "new". */
+            expr_pos_error(ec_new_used_on_unsuitable_value_type,
+                           &type_position);
+            err = TRUE;
+          }  /* if */
+        } else {
+          /* This is an attempt to use new on a ref class or interface type. */
+          expr_pos_error(ec_new_used_on_managed_class_type, &type_position);
+          err = TRUE;
+        }  /* if */
+      } else if (is_handle_or_tracking_ref_type(unqual_base_new_type)) {
+        /* "new" cannot be used to allocate handle or tracking reference
+           types. */
+        expr_pos_error(ec_new_used_on_handle_or_tracking_reference_type,
+                       &type_position);
+        err = TRUE;
+      } else {
+        /* No semantic errors were detected. */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (array_new) {
      /* For multi-dimensional arrays: even though only one level of array is
         dropped to determine the pointer type, all levels must be dropped
@@ -13434,8 +13671,15 @@ in *rcblock).
     }  /* while */
     unqual_base_new_type = skip_typerefs(base_new_type);
   }  /* if */
+  /* If no error was encountered thus far, determine the correct overload
+     for the "new" routine.  This is not performed for gcnew. */
   function_symbol = proj_function_symbol = NULL;
-  if (!err) {
+  if (!err
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* The "new" routine is not applicable for "gcnew". */
+      && operator_token != tok_gcnew
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+     ) {
     /* Compute the allocation size in bytes. */
     if (new_array_dimension != NULL) {
       /* The type is a variable-dimension array, as in
@@ -13615,7 +13859,11 @@ in *rcblock).
   /* Set ctor_sym non-NULL if the type is a class that has a constructor
      or an array with elements of such a class. */
   ctor_sym = NULL;
-  if (is_class_struct_union_type(base_new_type)) {
+  if (is_class_struct_union_type(base_new_type)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      && !gcnew_cli_array
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+     ) {
     cssp = symbol_supplement_for_class(base_new_type);
     ctor_sym = cssp->constructor;
   }  /* if */
@@ -13745,7 +13993,12 @@ in *rcblock).
   if (!has_new_initializer) {
     /* No new-initializer is present. */
     if (is_class_struct_union_type(base_new_type) &&
-        !symbol_supplement_for_class(base_new_type)->is_POD) {
+        !symbol_supplement_for_class(base_new_type)->is_POD
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        && !(cppcli_enabled &&
+             is_value_class_type(base_new_type))
+#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
+       ) {
       /* A non-POD class (or array thereof), with no new-initializer. */
       a_boolean is_generated_ctor = FALSE, do_const_test = FALSE;
       /* Look for a default constructor. */
@@ -13789,6 +14042,11 @@ in *rcblock).
                  unqual_base_new_type->variant.class_struct_union.
                                                             is_nonreal_class) {
         /* A proxy class in a prototype instantiation. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (gcnew_cli_array) {
+        /* The new-init is not required for a C++/CLI array type so long as an
+           array-init follows.  We'll check for the array-init later. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* Note that this case comes up if the class type is incomplete.
            An error was issued previously. */
@@ -13811,6 +14069,18 @@ in *rcblock).
       /* Non-class type, or POD class, with no new-initializer.  Check for
          error cases like const entities not being initialized. */
       if (!err) check_for_missing_initializer((a_symbol_ptr)NULL, new_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (operator_token == tok_gcnew) {
+        /* Check to see if this is a fundamental, value, or cli enum type
+           without a new initializer and ensure that they are
+           zero-initialized. */
+        if (is_value_class_or_fundamental_type(base_new_type) ||
+            is_cli_enum_type(base_new_type)) {
+          needs_initialization = TRUE;
+          zero_initialization = TRUE;
+        }  /* if */
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   } else {
     /* A new-initializer is present. */
@@ -13822,6 +14092,46 @@ in *rcblock).
                      rcblock != NULL ? &init_position : &pos_curr_token);
       err = TRUE;
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (gcnew_cli_array) {
+      /* Scan the new-init for a C++/CLI array, but handle semantic checks
+         later.  The expressions in the new-init for a C++/CLI array specify
+         the lengths for each dimension of the array. */
+      scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
+                          /*already_after_left_paren=*/TRUE, &dummy,
+                          /*return_raw_arguments=*/TRUE,
+                          /*unknown_dependent_function=*/FALSE,
+                          rcblock, &init_raw_args,
+                          (an_operand_ptr)NULL,
+                          (a_boolean *)NULL,
+                          &end_new_init_position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if (rcblock == NULL) end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    } else if (empty_parens &&
+               ((cppcli_enabled &&
+                 is_value_class_type(base_new_type)) ||
+                (operator_token == tok_gcnew &&
+                 (system_type_from_fundamental_type(unqual_base_new_type)
+                                                                     != NULL ||
+                  is_cli_enum_type(unqual_base_new_type))))) {
+      /* Make sure that C++/CLI value types with an empty new-init are zero
+         initialized for both "new" and "gcnew" expressions.  This must happen
+         before we process constructors since value classes do not have
+         default constructors, but they may have non-default constructors.
+         Also, ensure that for "gcnew" all enums and basic types are
+         initialized. */
+      needs_initialization = TRUE;
+      zero_initialization = TRUE;
+      if (rcblock == NULL) {
+        (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      }  /* if */
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
     if (ctor_sym != NULL) {
       a_boolean trivial_ctor;
       /* Class with a (nontrivial) constructor. */
@@ -13846,7 +14156,7 @@ in *rcblock).
                           &dip, (an_expr_node_ptr *)NULL,
                           (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      end_position = curr_construct_end_position;
+      if (rcblock == NULL) end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       if (trivial_ctor) {
         /* The constructor selected is a trivial default constructor, which
@@ -13861,14 +14171,21 @@ in *rcblock).
           needs_initialization = has_new_initializer = FALSE;
         }  /* if */
       }  /* if */
-    } else if (template_case) {
-      /* A "new" of a template-dependent type, in a prototype instantiation. */
-      scan_dependent_parenthesized_initializer(
-                                              rcblock,
-                                              (an_operand *)NULL,
-                                              &dip);
+    } else if (template_case || is_error_type(new_type)) {
+      /* A "new" or "gcnew" of a template-dependent type, in a prototype
+         instantiation, or an error case. */
+      /* Scan the argument list. */
+      templ_init_scanned = TRUE;
+      scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
+                          /*already_after_left_paren=*/TRUE,
+                          &dummy, /*return_raw_arguments=*/TRUE,
+                          /*unknown_dependent_function=*/FALSE,
+                          rcblock, &init_raw_args,
+                          /*single_operand=*/NULL,
+                          /*single_operand_returned=*/NULL,
+                          &end_new_init_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      end_position = curr_construct_end_position;
+      if (rcblock == NULL) end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       needs_initialization = TRUE;
     } else {
@@ -13897,7 +14214,7 @@ in *rcblock).
         warn_about_missing_delete_if(node_has_side_effects(init_val_node,
                                                            (a_boolean*)NULL));
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        end_position = curr_construct_end_position;
+        if (rcblock == NULL) end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         needs_initialization = TRUE;
       } else {
@@ -13927,6 +14244,164 @@ handle_empty_parens_new_initializer:
       }  /* if */
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (operator_token == tok_gcnew) {
+    /* Now that the gcnew new-init has been scanned, check for an array-init
+       and make a definitive decision over whether this is a C++/CLI array
+       initialization node. */
+    if (rcblock == NULL ? curr_token == tok_lbrace :
+                          (rescan_gsp->is_cli_array &&
+                           rescan_gsp->dynamic_init != NULL)) {
+      gcnew_cli_array = TRUE;
+      has_array_init = TRUE;
+    }  /* if */
+    /* Beyond this point, gcnew_cli_array tells us definitively whether this
+       is a gcnew C++/CLI array initialization or not. */
+    if (gcnew_cli_array) {
+      if (has_new_initializer) {
+        /* If a C++/CLI array has a new initializer, perform semantic checks
+           on the previously scanned new-init and convert the arguments into
+           an expression list.  If a new initializer is present, the arguments
+           specify the length of each dimension of the array, in order.  If
+           a new-init does not exist, the length of each dimension will be
+           inferred from the array-init later. */
+        an_arg_operand_ptr           arg_ptr;
+        a_type_ptr                   param_type =
+                                         integer_type((an_integer_kind)ik_int);
+        a_boolean                    too_many_args = FALSE;
+        a_source_position            too_many_position;
+        a_boolean                    rank_unknown = TRUE;
+        a_host_large_unsigned        rank;
+        a_host_large_unsigned        count;
+
+        if (is_cli_array_type(new_type)) {
+          rank = cli_array_rank(new_type, &rank_unknown);
+        }  /* if */
+        for (arg_ptr = init_raw_args, count = 1;
+             arg_ptr != NULL;
+             arg_ptr = arg_ptr->next, ++count) {
+          /* Convert the bound size expression to int. */
+          prep_initializer_operand(
+                        &arg_ptr->operand, param_type, (a_boolean *)NULL,
+                        (a_conv_descr_ptr)NULL,
+                        /*initializing_return_value=*/FALSE,
+                        /*initializing_variable=*/FALSE,
+                        /*static_lifetime=*/FALSE,
+                        /*is_copy_initialization=*/FALSE,
+                        is_template_param_constant_operand(&arg_ptr->operand),
+                        ec_incompatible_param);
+          if (arg_ptr->operand.kind == (an_operand_kind)ok_constant &&
+              arg_ptr->operand.variant.constant.kind ==
+                                            (a_constant_repr_kind)ck_integer &&
+              cmpulit_integer_constant(&arg_ptr->operand.variant.constant,
+                                       (a_host_large_unsigned)0) < 0) {
+            expr_pos_error(ec_new_array_size_must_be_nonnegative,
+                           &arg_ptr->operand.position);
+          }  /* if */
+          if (!too_many_args && !rank_unknown && count > rank) {
+            too_many_args = TRUE;
+            too_many_position = arg_ptr->operand.position;
+          }  /* if */
+        }  /* for */
+        if (too_many_args) {
+          /* More arguments than expected. */
+          expr_pos_error(ec_too_many_arguments, &too_many_position);
+        } else if (!rank_unknown && count <= rank) {
+          /* Fewer arguments than expected. */
+          expr_pos_error(ec_too_few_arguments, &end_new_init_position);
+        }  /* if */
+        cli_array_new_init_args = convert_arg_operand_list_to_expr_list(
+                                                     init_raw_args,
+                                                     (an_expr_node_ptr *)NULL);
+        init_raw_args = NULL;
+      }  /* if */
+      if (has_array_init) {
+        /* Scan the CLI array-init. */
+        a_dynamic_init_ptr  init_dip;
+        a_type_ptr          temp_type;
+        a_decl_pos_block    decl_pos_block;
+
+        if (is_cli_array_type(new_type)) {
+          temp_type = ptr_new_type;
+        } else if (is_template_param_or_nonreal_class_type(new_type)) {
+          temp_type = type_of_unknown_templ_param_nontype;
+        } else {
+          temp_type = error_type();
+          if (!is_error_type(new_type)) {
+            expr_pos_error(ec_gcnew_bad_type_used_with_array_init,
+                           &pos_curr_token);
+          }  /* if */
+          err = TRUE;
+        }  /* if */
+        if (rcblock == NULL) {
+          /* Scan the CLI array-init.  If cli_array_new_init_args is NULL
+             (i.e., if a new-init is not present) then scan_cli_array_init
+             will create and populate the inferred dimension lengths of the
+             array, returning them through cli_array_new_init_args.  If
+             cli_array_new_init_args is non-NULL, then any constant arguments
+             specified in the new-init will serve as compile-time bound checks
+             for each array dimension. */
+          if (scan_cli_array_init(&dps,
+                                  &temp_type,
+                                  /*vp=*/NULL,
+                                  /*static_lifetime=*/FALSE,
+                                  &pos_curr_token,
+                                  &init_dip,
+                                  &decl_pos_block,
+                                  &cli_array_new_init_args)) {
+            dip = init_dip;
+          } else {
+            err = TRUE;
+          }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          end_position = decl_pos_block.var_init_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        } else {
+          /* Rescanning of array inits is not currently supported.
+             That should have been disallowed higher up. */
+          unexpected_condition();
+        }  /* if */
+      } else if (!has_new_initializer) {
+        expr_pos_error(ec_cli_array_must_have_new_or_array_init,
+                       rcblock == NULL ? &pos_curr_token : &type_position);
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (templ_init_scanned
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      && !gcnew_cli_array
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      ) {
+    /* Finish processing the previously scanned new-init as if the
+       arguments are passed to a template-dependent constructor. */
+    an_expr_node_ptr   expr_list;
+
+    if (is_error_type(new_type)) {
+      /* The error case. */
+      expr_list = convert_arg_operand_list_to_expr_list(
+                                       init_raw_args,
+                                       /*expr_tail=*/(an_expr_node_ptr *)NULL);
+    } else {
+      /* The template case. */
+      an_arg_check_block arg_block;
+
+      start_call_argument_processing(/*function_type=*/(a_type_ptr)NULL,
+                                     /*routine=*/(a_routine_ptr)NULL,
+                                     &arg_block);
+      arg_block.unknown_dependent_function = TRUE;
+      process_call_argument_list(init_raw_args, &arg_block);
+      expr_list = arg_block.argument_head;
+    }  /* if */
+    init_raw_args = NULL;
+    /* Set the dynamic init entry to represent "constructor" initialization,
+       leaving the constructor pointer NULL. */
+    dip = alloc_expr_ctor_dynamic_init((a_routine_ptr)NULL,
+                                       expr_list,
+                                       /*add_default_args=*/FALSE,
+                                       /*implied_source=*/FALSE);
+  }  /* if */
   expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
   if (auto_deduction_attempted) {
@@ -13937,9 +14412,51 @@ handle_empty_parens_new_initializer:
     saved_expression_cache = NULL;
   }  /* if */
   /* Now build the IL for the operation. */
-  if (err || (function_symbol == NULL && !unknown_dependent_new)) {
+  if (err || (function_symbol == NULL && !unknown_dependent_new &&
+              operator_token == tok_new)) {
     /* Some error. */
     make_error_operand(result);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (operator_token == tok_gcnew) {
+    /* This code is not shared with the "new" case below because it is
+       generating a different expr_node_kind. */
+    an_expr_node_ptr        gcnew_node;
+    a_gcnew_supplement_ptr  gsp;
+
+    /* Use an enk_gcnew node to represent the "gcnew". */
+    gcnew_node = alloc_expr_node((an_expr_node_kind)enk_gcnew);
+    gcnew_node->type = ptr_new_type;
+    gsp = gcnew_node->variant.gcnew_info;
+    gsp->type = new_type; 
+    gsp->has_new_initializer = has_new_initializer;
+    gsp->is_cli_array = gcnew_cli_array;
+    gsp->cli_array_dimension_lengths = cli_array_new_init_args;
+    if (needs_initialization) {
+      if (dip != NULL || gcnew_cli_array) {
+        /* Nothing to do because a_dynamic_init was allocated above. */
+      } else if (zero_initialization) {
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+      } else {
+        /* This handles cases like "gcnew int(3)" in which there is no
+           constructor to call but an initializer is provided. */
+        check_assertion(init_val_node != NULL);
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+        dip->variant.expression = init_val_node;
+      }  /* if */
+    }  /* if */
+    if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_constructor) {
+      /* Any constructor invocation emanating from a gcnew expression should
+         have the type zero-initialized first. */
+      dip->variant.constructor.value_initialization = TRUE;
+    }  /* if */
+    gcnew_node->variant.gcnew_info->dynamic_init = dip;
+    record_typed_operator_position_in_expr_rescan_info(gcnew_node,
+                                                       &start_position,
+                                                       &type_position,
+                                                       new_type);
+    /* Make an operand for the result. */
+    make_expression_operand(gcnew_node, result);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     an_expr_node_ptr            new_node;
     a_new_delete_supplement_ptr ndsp;
@@ -14023,6 +14540,7 @@ handle_empty_parens_new_initializer:
     change_arg_operand_list_refs_to_error(arg_operand_list);
     free_arg_operand_list(arg_operand_list);
   }  /* if */
+  check_assertion(init_raw_args == NULL);
   free_arg_match_summary_list(arg_match_list);
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
@@ -21472,6 +21990,9 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_union:
     case tok_is_trivial:
     case tok_is_standard_layout:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_gcnew:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_dynamic_cast:
     case tok_const_cast:
     case tok_static_cast:
@@ -25161,6 +25682,9 @@ handle_safe_cast:
       /* __INTADDR__ operation. */
       scan_intaddr_operator((a_rescan_control_block *)NULL, &local_result);
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_gcnew:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_new:
 scan_new:
       /* C++ "new" operator. */
@@ -27449,6 +27973,17 @@ set accordingly.
       operator_token = tok_delete;
     } /* if */
     *unary = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (expr->kind == (an_expr_node_kind)enk_gcnew) {
+    if (expr->variant.gcnew_info->is_cli_array &&
+        expr->variant.gcnew_info->dynamic_init != NULL) {
+      /* We don't support rescanning gcnew with an array-init at this time. */
+      rescannable = FALSE;
+    } else {
+      operator_token = tok_gcnew;
+      *unary = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (expr->kind == (an_expr_node_kind)enk_throw) {
     operator_token = tok_throw;
     *unary = TRUE;
@@ -27680,6 +28215,9 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_dynamic_cast:
         scan_dynamic_cast_operator(rcblock, result);
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_gcnew:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_new:
         scan_new_operator(rcblock, result);
         break;

@@ -827,10 +827,15 @@ extern a_boolean is_nontemplate_routine_from_exported_trans_unit(
 						a_routine_ptr rout_ptr);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
 extern a_boolean check_cli_internal_template_instantiation(
                                         a_symbol_ptr       template_sym,
                                         a_template_arg_ptr template_arg_list,
                                         a_source_position  *diag_pos);
+
+extern a_symbol_ptr make_cli_array_type(a_type_ptr             element_type,
+                                        a_host_large_unsigned  rank);
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if DEBUG

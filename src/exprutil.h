@@ -1716,6 +1716,17 @@ extern void make_new_delete_rescan_operands(
                                    a_type_ptr                  *type, 
                                    a_source_position           *type_position);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+extern void make_gcnew_rescan_operands(
+                                  a_rescan_control_block      *rcblock,
+                                  a_gcnew_supplement_ptr      *gsp,
+                                  a_source_position           *start_position,
+                                  a_type_ptr                  *type,
+                                  a_source_position           *type_position);
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern void make_throw_rescan_operands(a_rescan_control_block *rcblock,
                                        a_source_position      *start_position,
                                        an_operand             *operand,

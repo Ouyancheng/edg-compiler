@@ -6769,10 +6769,10 @@ Declare and define the C++/CLI type "cli::pin_ptr".
 }  /* make_symbol_for_cli_pin_ptr */
 
 
-void init_cli_symbol_corresponding_basic_types(void)
+void init_cli_symbols_corresponding_to_fundamental_types(void)
 /*
 For each fundamental CLI type, initialize its corresponding_basic_type member.
-This will be used later by the basic_type_from_system_type function.
+This will be used later by the fundamental_type_from_system_type function.
 Without taking modopts into account, there is a one-to-many relationship
 when mapping some CLI types to basic types.  For example, System::Int32
 could be mapped to either int or long.  The cli_integer_kinds and
@@ -6845,7 +6845,7 @@ cli_float_kinds arrays therefore list only the preferred basic types.
                                              corresponding_basic_type == NULL);
   class_type_supp(type_symbol_type(cli_symbol))->
                                         corresponding_basic_type = void_type();
-}  /* init_cli_symbol_corresponding_basic_types */
+}  /* init_cli_symbols_corresponding_to_fundamental_types */
 
 
 void make_symbols_for_system_string_operators(void)

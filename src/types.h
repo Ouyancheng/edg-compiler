@@ -122,6 +122,7 @@ extern a_boolean is_tracking_reference_type(a_type_ptr tp);
 extern a_boolean is_handle_or_tracking_ref_type(a_type_ptr tp);
 extern a_boolean is_interior_ptr_type(a_type_ptr tp);
 extern a_boolean is_pin_ptr_type(a_type_ptr tp);
+extern a_boolean is_handle_to_cli_array_type(a_type_ptr tp);
 extern a_boolean is_cli_array_type(a_type_ptr tp);
 extern a_boolean is_cli_value_type(a_type_ptr tp);
 extern a_type_ptr cli_array_element_type(a_type_ptr tp);
@@ -129,6 +130,7 @@ extern a_host_large_unsigned cli_array_rank(a_type_ptr tp,
                                             a_boolean  *unknown);
 extern a_boolean is_ref_class_type(a_type_ptr tp);
 extern a_boolean is_value_class_type(a_type_ptr tp);
+extern a_boolean is_simple_value_class_type(a_type_ptr tp);
 extern a_boolean is_standard_class_type(a_type_ptr tp);
 extern a_boolean is_managed_class_type(a_type_ptr tp);
 extern a_boolean is_cli_ref_or_interface_class_type(a_type_ptr tp);
@@ -1248,9 +1250,13 @@ extern int32_t *min_template_arguments_for_type(a_type_ptr	tp);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-extern a_type_ptr system_type_from_basic_type(a_type_ptr tp);
+extern a_type_ptr system_type_from_fundamental_type(a_type_ptr tp);
 
-extern a_type_ptr basic_type_from_system_type(a_type_ptr tp);
+extern a_type_ptr fundamental_type_from_system_type(a_type_ptr tp);
+
+extern a_boolean is_value_class_or_fundamental_type(a_type_ptr tp);
+
+extern a_boolean is_cli_enum_type(a_type_ptr tp);
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

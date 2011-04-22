@@ -2160,6 +2160,9 @@ running them through the indicated remapping function.
   remap_orphan_entry_first(iek_asm_entry);
   remap_orphan_entry_first(iek_template_arg);
   remap_orphan_entry_first(iek_new_delete_supplement);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  remap_orphan_entry_first(iek_gcnew_supplement);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   remap_orphan_entry_first(iek_throw_supplement);
 #if !ABI_CHANGES_FOR_RTTI
   remap_orphan_entry_first(iek_accessible_base_class);
@@ -2258,6 +2261,9 @@ running them through the indicated remapping function.
   remap_orphan_entry_last(iek_asm_entry);
   remap_orphan_entry_last(iek_template_arg);
   remap_orphan_entry_last(iek_new_delete_supplement);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  remap_orphan_entry_last(iek_gcnew_supplement);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   remap_orphan_entry_last(iek_throw_supplement);
 #if !ABI_CHANGES_FOR_RTTI
   remap_orphan_entry_last(iek_accessible_base_class);
@@ -2638,6 +2644,7 @@ it's the initializer for an aggregate.
   }  /* if */
   if (tblock->process_type != NULL && constant->type != NULL) {
     tblock->process_type(constant->type, tblock);
+    if (tblock->terminate) goto end_of_routine;
   }  /* if */
   if (tblock->process_constant != NULL) {
     /* Call the user-provided routine. */
@@ -2667,6 +2674,7 @@ it's the initializer for an aggregate.
             constant->variant.address.kind==(an_address_base_kind)abk_typeid) {
           tblock->process_type(constant->variant.address.variant.type,
                                tblock);
+          if (tblock->terminate) goto end_of_routine;
         }  /* if */
       }  /* if */
       if (tblock->process_non_dynamic_constants) {
@@ -3047,6 +3055,7 @@ as specified in the control block.
 {
   if (tblock->process_type != NULL) {
     tblock->process_type(expr->type, tblock);
+    if (tblock->terminate) goto end_of_routine;
   }  /* if */
   if (tblock->process_expr != NULL) {
     /* Call the user-provided routine. */
@@ -3089,6 +3098,7 @@ as specified in the control block.
       { a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
         if (tblock->process_type != NULL) {
           tblock->process_type(ndsp->type, tblock);
+          if (tblock->terminate) goto end_of_routine;
         }  /* if */
         if (ndsp->arg != NULL) {
           traverse_expr_list(ndsp->arg, tblock);
@@ -3107,6 +3117,27 @@ as specified in the control block.
     case enk_lambda:
       traverse_dynamic_init(expr->variant.lambda.initialization, tblock);
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case enk_gcnew:
+      {
+        a_gcnew_supplement_ptr gsp = expr->variant.gcnew_info;
+
+        if (tblock->process_type != NULL) {
+          tblock->process_type(gsp->type, tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
+        if (gsp->cli_array_dimension_lengths != NULL) {
+          traverse_expr_list(gsp->cli_array_dimension_lengths, tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
+        if (expr->variant.gcnew_info->dynamic_init != NULL) {
+          traverse_dynamic_init(expr->variant.gcnew_info->dynamic_init,
+                                tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
+      }
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case enk_throw:
       if (expr->variant.throw_info != NULL) {
         if (expr->variant.throw_info->dynamic_init != NULL) {
@@ -3133,6 +3164,7 @@ as specified in the control block.
     case enk_typeid:
       if (tblock->process_type != NULL) {
         tblock->process_type(expr->variant.typeid_info.type, tblock);
+        if (tblock->terminate) goto end_of_routine;
       }  /* if */
       if (expr->variant.typeid_info.expr != NULL) {
         traverse_expr(expr->variant.typeid_info.expr, tblock);

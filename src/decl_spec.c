@@ -4167,7 +4167,7 @@ typerefs are dropped from *p_base_type.
   } else if (base_type->variant.integer.wchar_t_type) {
     pos_error(ec_wchar_t_type_not_allowed, pos_type);
   } else if (!is_scanning_generated_code_from_metadata &&
-             system_type_from_basic_type(base_type) == NULL) {
+             system_type_from_fundamental_type(base_type) == NULL) {
     /* A C++/CLI enum base type must have a corresponding System::xxx value
        class type.  (This cannot be tested while loading the System::...
        metadata.) */
@@ -9411,7 +9411,7 @@ exit_loop:
        denoting the corresponding standard type (e.g., int).  It may later be
        switched back to the System value type, e.g. if a handle to an int is
        formed (but not e.g. if a tracking reference to an int is formed). */
-    a_type_ptr  standard_type = basic_type_from_system_type(*type_ptr);
+    a_type_ptr  standard_type = fundamental_type_from_system_type(*type_ptr);
     if (standard_type != NULL) *type_ptr = standard_type;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

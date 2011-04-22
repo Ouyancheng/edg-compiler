@@ -4392,6 +4392,14 @@ constant is an aggregate the braces around it are suppressed.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         array_case = TRUE;
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tk_pointer:
+        /* The only pointer type that can be initialized here is a handle to a
+           CLI array. */
+        check_assertion(is_handle_to_cli_array_type(type));
+        array_case = TRUE;
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tk_class:
       case tk_struct:
       case tk_union:
@@ -4415,6 +4423,16 @@ constant is an aggregate the braces around it are suppressed.
       /* Vector -- like an array. */
       sub_type = type->variant.vector.element_type;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (is_handle_to_cli_array_type(type)) {
+      check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
+      if (constant->variant.aggregate.first_constant != NULL) {
+        /* Set the sub_type to the type of the first element.  If there are no
+           elements in the aggregate, then do nothing; in that case we do not
+           need to set the next type. */
+        sub_type = constant->variant.aggregate.first_constant->type;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       check_assertion_str(is_class_type_kind(type->kind),
                           "gen_initializer_constant: bad aggregate type");
@@ -8031,6 +8049,15 @@ expression node terminates the traversal leaving temp_init_node unchanged.
   }  /* if */
 }  /* find_temp_init */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/*
+Return TRUE if the given expression is a C++/CLI gcnew for a CLI array.
+*/
+#define is_compiler_generated_gcnew_cli_array(expr)                     \
+  ((expr)->kind == (an_expr_node_kind)enk_gcnew &&                      \
+   (expr)->variant.gcnew_info->compiler_generated &&                    \
+   (expr)->variant.gcnew_info->is_cli_array)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_initializer_expr(an_expr_node_ptr expr,
                                  a_type_ptr       type,
@@ -8114,6 +8141,15 @@ obscure Microsoft bug).
        be named here. */
     form_integer_constant(expr->variant.constant, /*suppress_cast=*/TRUE,
                           need_parens, &octl);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (is_compiler_generated_gcnew_cli_array(expr)) {
+    /* This initializer expression is a compiler-generated gcnew node
+       initializing a C++/CLI array, meaning in source it is using the
+       {} short-hand for C++/CLI array initialization.  Ensure that we don't
+       emit parentheses. */
+    gen_expr(expr, /*need_parens=*/FALSE,
+             /*obj_expr_of_mfunc_operator=*/FALSE);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     gen_expr(expr, need_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
   }  /* if */
@@ -8466,6 +8502,52 @@ Generate code for a new or delete operation.
   }  /* if */
 }  /* gen_new_delete */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void gen_gcnew(an_expr_node_ptr gcnew_expr) 
+/*
+Generate code for a gcnew expression.
+*/
+{
+  a_gcnew_supplement_ptr gsp  = gcnew_expr->variant.gcnew_info;
+  a_type_ptr             type = gsp->type;
+  a_dynamic_init_ptr     dip  = gsp->dynamic_init;
+
+  if (!gsp->compiler_generated) {
+    write_tok_str("gcnew ");
+    /* In contrast to the gen_new_delete case, the types allowed
+       with gcnew should not require parentheses because we do not allow
+       native array syntax, etc. */
+    gen_type(type);
+  }  /* if */
+  if (gsp->is_cli_array) {
+    if (gsp->has_new_initializer) {
+      an_expr_node_ptr curr;
+
+      /* For a C++/CLI array, emit the array length expressions in the new
+         initializer */
+      write_tok_str("(");
+      for (curr = gsp->cli_array_dimension_lengths;
+           curr != NULL;
+           curr = curr->next) {
+        gen_expr_with_parens(curr);
+        if (curr->next != NULL) write_tok_str(", ");
+      }  /* for */
+      write_tok_str(")");
+    }  /* if */
+  }  /* if */
+  if (dip != NULL) {
+    gen_dynamic_init(dip,
+                     (gsp->is_cli_array ? gcnew_expr->type : type),
+                     /*parenthesized_init=*/!gsp->is_cli_array,
+                     /*force_parens=*/!gsp->is_cli_array &&
+                                      gsp->has_new_initializer,
+                     /*obj_expr_of_mfunc_operator=*/FALSE,
+                     /*is_static_cast*/FALSE);
+  }  /* if */
+}  /* gen_gcnew */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_bound_function(an_expr_node_ptr object_expr,
                                an_expr_node_ptr func_expr,
@@ -10820,6 +10902,13 @@ done_with_operation_after_parens:
       gen_new_delete(expr);
       if (need_parens) write_tok_ch(')');
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case enk_gcnew:
+      if (need_parens) write_tok_ch('(');
+      gen_gcnew(expr);
+      if (need_parens) write_tok_ch(')');
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case enk_field:
       /* In most cases, enk_field nodes are rendered elsewhere.  However, we
          may end up here with field references under enk_builtin_operation

@@ -2532,9 +2532,16 @@ and type is the specified type.
   if (expr_stack->possible_rescan_context &&
       !is_error_node(expr)) {
     an_expr_rescan_info_entry_ptr eriep;
-    check_assertion(is_cast_operation_node(expr) ||
-                    expr->kind == (an_expr_node_kind)enk_temp_init ||
-                    expr->kind == (an_expr_node_kind)enk_new_delete);
+#if CHECKING
+    if (!(is_cast_operation_node(expr) ||
+          expr->kind == (an_expr_node_kind)enk_temp_init ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          expr->kind == (an_expr_node_kind)enk_gcnew ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          expr->kind == (an_expr_node_kind)enk_new_delete)) {
+      unexpected_condition();
+    }  /* if */
+#endif /* CHECKING */
     record_operator_position_in_expr_rescan_info(expr, start_position,
                                                  NO_TOKEN_SEQUENCE_NUMBER,
                                                  type_position);
@@ -3394,6 +3401,43 @@ type of entity to be allocated.  If type_position is non-NULL,
                                 type_position);
 }  /* make_new_delete_rescan_operands */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void make_gcnew_rescan_operands(a_rescan_control_block      *rcblock,
+                                a_gcnew_supplement_ptr      *gsp,
+                                a_source_position           *start_position,
+                                a_type_ptr                  *type,
+                                a_source_position           *type_position)
+/*
+As part of redoing semantic analysis on an expression while doing
+template deduction, extract and return information about the "gcnew"
+expression given by rcblock->expr.  *gsp is set to the
+gcnew supplement.  *start_position is set to the starting
+position of the expression.  If type is non-NULL, *type is set to the
+type of entity to be allocated.  If type_position is non-NULL,
+*type_position is set to the position of the type in the expression.
+*/
+{
+  an_expr_node_ptr              expr = rcblock->expr;
+  an_expr_rescan_info_entry_ptr eriep;
+  a_token_sequence_number       operator_tok_seq_number;
+
+  check_assertion(expr != NULL);
+  check_assertion(expr->kind == (an_expr_node_kind)enk_gcnew);
+  /* We pass NULL for the second argument because we want to require
+     explicit rescan information on all gcnews. */
+  eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
+  *gsp = expr->variant.gcnew_info;
+  if (type != NULL) {
+    check_assertion(eriep->type != NULL);
+    *type = do_type_substitution_for_rescan(eriep->type, rcblock, eriep);
+  }  /* if */
+  get_rescan_operator_positions(eriep, start_position,
+                                &operator_tok_seq_number,
+                                type_position);
+}  /* make_gcnew_rescan_operands */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void make_throw_rescan_operands(a_rescan_control_block *rcblock,
                                 a_source_position      *start_position,

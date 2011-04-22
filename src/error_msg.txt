@@ -2193,6 +2193,15 @@ ec_expr_not_arithmetic_or_unscoped_enum_or_pointer;;"expression must have arithm
 ec_expr_not_integral_or_unscoped_enum;;"expression must have integral or unscoped enum type"
 ec_expr_not_integral_or_unscoped_enum_or_fixed_point;;"expression must have integral, unscoped enum, or fixed-point type"
 ec_scoped_enum_operation_type_mismatch;;"a built-in binary operator applied to a scoped enumeration requires two operands of the same type"
+ec_invalid_gcnew_type;;"gcnew cannot allocate an entity of type %t"
+ec_gcnew_used_with_placement_syntax;;"placement syntax cannot be used with gcnew"
+ec_gcnew_used_with_array_syntax;;"gcnew cannot be used with array syntax"
+ec_new_used_on_unsuitable_value_type;;"new can only be used with simple value types"
+ec_new_used_on_managed_class_type;;"new cannot be used on a managed class type"
+ec_new_used_on_handle_or_tracking_reference_type;;"new cannot be used on a handle type"
+ec_cli_array_must_have_new_or_array_init;;"gcnew for a C++/CLI array must have a new initializer or an array initializer"
+ec_gcnew_bad_type_used_with_array_init;;"an array initializer can only be used to initialize a C++/CLI array type"
+ec_gcnew_used_with_auto_syntax;;"gcnew does not allow auto"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

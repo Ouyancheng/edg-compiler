@@ -26232,6 +26232,41 @@ the point at which the compilation was terminated.
 
 #endif /* MAKE_FRONT_END_CALLABLE */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_symbol_ptr make_cli_array_type(a_type_ptr             element_type,
+                                 a_host_large_unsigned  rank)
+/*
+Based on the specified element type and array rank, find or create the
+corresponding symbol for a CLI array type and return it.
+*/
+{
+  a_symbol_ptr            result;
+  a_template_arg_ptr      arg_list;
+  a_symbol_ptr            cli_array_tmpl_sym = cli_symbol_from_kind(
+                                                                csk_cli_array);
+  a_constant_ptr          rank_constant;
+  a_memory_region_number  region_to_switch_back_to;
+
+  /* The constant for a non-type template argument in a template argument list
+     must be allocated at file scope */
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  rank_constant = alloc_constant((a_constant_repr_kind)ck_integer);
+  switch_back_to_original_region(region_to_switch_back_to);
+  arg_list = alloc_template_arg((a_templ_arg_kind)tak_type);
+  arg_list->variant.type = element_type;
+  arg_list->next = alloc_template_arg((a_templ_arg_kind)tak_nontype);
+  set_unsigned_integer_constant(rank_constant, rank, (an_integer_kind)ik_int);
+  arg_list->next->variant.constant = rank_constant;
+  result = find_template_class(cli_array_tmpl_sym, &arg_list,
+                               /*any_prototype_allowed=*/TRUE,
+                               /*specific_prototype_allowed=*/NULL);
+  return result;
+}  /* make_cli_array_type */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *

@@ -9382,6 +9382,37 @@ list checking (e.g., for the presence of too few arguments).
 }  /* process_end_of_call_arguments */
 
 
+an_expr_node_ptr convert_arg_operand_list_to_expr_list(
+                                          an_arg_operand_ptr  arg_operand_list,
+                                          an_expr_node_ptr    *expr_tail)
+/*
+Convert arg_operand_list into expression nodes, free the original operands,
+and then return the head of the new expression list.  If expr_tail is non-NULL,
+then *expr_tail is returned pointing to the last node in the returned
+expression list.
+*/
+{
+  an_arg_operand_ptr arg_operand;
+  an_expr_node_ptr   result = NULL;
+  an_expr_node_ptr   *expr_node;
+  an_expr_node_ptr   local_expr_tail = NULL;
+
+  /* Convert the operand list to an expression list. */
+  for (arg_operand = arg_operand_list, expr_node = &result;
+       arg_operand != NULL;
+       arg_operand = arg_operand->next, expr_node = &(*expr_node)->next) {
+    local_expr_tail = *expr_node = make_node_from_operand_for_expr_list(
+                                                        &arg_operand->operand);
+  }  /* for */
+  if (expr_tail != NULL) {
+    *expr_tail = local_expr_tail;
+  }  /* if */
+  /* Free the argument list. */
+  free_arg_operand_list(arg_operand_list);
+  return result;
+}  /* convert_arg_operand_list_to_expr_list */
+
+
 void process_call_argument_list(an_arg_operand_ptr  arg_operand_list,
                                 an_arg_check_block  *arg_block)
 /*
@@ -9408,23 +9439,12 @@ operand list is deallocated).  Some state information is recorded in *arg_block
     warn_if_missing_sentinel(arg_operand_list, arg_block);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Convert the operand list to an expression list. */
-  for (arg_operand = arg_operand_list;
-       arg_operand != NULL;
-       arg_operand = arg_operand->next) {
-    an_expr_node_ptr arg_expr;
-    arg_expr = make_node_from_operand_for_expr_list(&arg_operand->operand);
-    if (arg_block->argument_head == NULL) {
-      arg_block->argument_head = arg_expr;
-    } else {
-      arg_block->argument_tail->next = arg_expr;
-    }  /* if */
-    arg_block->argument_tail = arg_expr;
-  }  /* for */
+  /* Convert (and free) the operand list to an expression list. */
+  arg_block->argument_head = convert_arg_operand_list_to_expr_list(
+                                                    arg_operand_list,
+                                                    &arg_block->argument_tail);
   /* Do processing for the end of the argument list. */
   process_end_of_call_arguments(arg_block);
-  /* Free the argument list. */
-  free_arg_operand_list(arg_operand_list);
 }  /* process_call_argument_list */
 
 
@@ -15717,6 +15737,11 @@ non-const to the indicated (rvalue) operand.
           /* A reference to non-const can bind to a "new". */
           can_bind = TRUE;
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (expr->kind == (an_expr_node_kind)enk_gcnew) {
+        /* A reference to non-const can bind to a "gcnew". */
+        can_bind = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
   }  /* if */

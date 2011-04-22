@@ -3425,6 +3425,23 @@ Display the indicated new/delete supplement to an expression node.
            iek_dynamic_init);
 }  /* disp_new_delete_supplement */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void disp_gcnew_supplement(a_gcnew_supplement_ptr gsp)
+/*
+Display the indicated gcnew supplement for an expression node.
+*/
+{
+  disp_boolean("has_new_initializer", (a_boolean)gsp->has_new_initializer);
+  disp_boolean("is_cli_array", (a_boolean)gsp->is_cli_array);
+  disp_boolean("compiler_generated", (a_boolean)gsp->compiler_generated);
+  disp_ptr("type", (char *)gsp->type, iek_type);
+  disp_ptr("cli_array_dimension_lengths",
+           (char *)gsp->cli_array_dimension_lengths, iek_expr_node);
+  disp_ptr("dynamic_init", (char *)gsp->dynamic_init, iek_dynamic_init);
+}  /* disp_gcnew_supplement */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !ABI_CHANGES_FOR_RTTI
 
 static void disp_accessible_base_classes(an_accessible_base_class_ptr abcp)
@@ -3702,6 +3719,12 @@ Display the indicated expression node.
       disp_ptr("initialization", (char *)ptr->variant.lambda.initialization,
                iek_dynamic_init);
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case enk_gcnew:
+      (void)printf("enk_gcnew\n");
+      disp_gcnew_supplement(ptr->variant.gcnew_info);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case enk_throw:
       (void)printf("enk_throw\n");
       if (ptr->variant.throw_info != NULL) {
@@ -6184,6 +6207,9 @@ This routine is called during IL walking.
     case iek_routine_list_entry:
     case iek_template_arg:
     case iek_new_delete_supplement:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case iek_gcnew_supplement:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case iek_throw_supplement:
     case iek_condition_supplement:
 #if !ABI_CHANGES_FOR_RTTI

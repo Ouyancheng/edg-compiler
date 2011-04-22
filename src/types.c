@@ -983,6 +983,16 @@ Return TRUE if the given type is a C++/CLI pin_ptr type.
 }  /* is_pin_ptr_type */
 
 
+a_boolean is_handle_to_cli_array_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a handle to a C++/CLI array type.
+*/
+{
+  return is_handle_type(tp) &&
+         is_cli_array_type(type_pointed_to(tp));
+}  /* is_handle_to_cli_array_type */
+
+
 a_boolean is_cli_array_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a C++/CLI array type.
@@ -1083,6 +1093,40 @@ Return TRUE if the indicated type is a C++/CLI value class or value struct.
 }  /* is_value_class_type */
 
 
+a_boolean is_simple_value_class_type(a_type_ptr tp)
+/*
+Return TRUE if the indicated type is an ECMA-372 section 22.4 simple C++/CLI
+value type.
+*/
+{
+  a_boolean result = FALSE;
+
+  tp = skip_typerefs(tp);
+  if (is_value_class_type(tp)) {
+    a_field_ptr curr;
+
+    result = TRUE;  /* Assume */
+    for (curr = tp->variant.class_struct_union.field_list;
+         curr != NULL;
+         curr = curr->next) {
+      a_type_ptr curr_type = skip_typerefs(curr->type);
+
+      if (!(system_type_from_fundamental_type(curr_type) != NULL ||
+            fundamental_type_from_system_type(curr_type) != NULL ||
+            is_enum(curr_type) ||
+            is_pointer(curr_type) ||
+            is_simple_value_class_type(curr_type))) {
+        /* A simple value type can only have members that are either
+           fundamental types, enums, pointers, or another simple value type. */
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* is_simple_value_class_type */
+
+
 a_boolean is_standard_class_type(a_type_ptr tp)
 /*
 Return TRUE if the indicated type is a native class type, i.e., a class
@@ -1142,7 +1186,7 @@ standard 12.1.
     if (is_value_class_type(tp) ||
         is_enum(tp) ||
         is_pointer(tp) ||
-        system_type_from_basic_type(tp) != NULL) {
+        system_type_from_fundamental_type(tp) != NULL) {
       result = TRUE;
     }  /* if */
   }  /* if */
@@ -1561,6 +1605,7 @@ Return the underlying element type of the given array type.
 */
 {
   a_type_ptr tp = array_type;
+
   do {
     tp = array_element_type(tp);
     /* Array-of-NULL is possible while the type is still being constructed. */
@@ -3448,6 +3493,9 @@ object or an rvalue that is a pointer (or C++/CLI handle) to an object.
         break;
       case enk_reuse_value:
       case enk_new_delete:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case enk_gcnew:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case enk_address_of_ellipsis:
       case enk_throw:
       case enk_field:
@@ -3585,6 +3633,14 @@ object or an rvalue that is a pointer (or C++/CLI handle) to an object.
         /* The class value returned by the lambda node is a complete object. */
         complete_object_type = node->type;
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case enk_gcnew:
+      {
+        a_gcnew_supplement_ptr gsp = node->variant.gcnew_info;
+        complete_object_type = gsp->type;
+      }
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case enk_object_lifetime:
         /* Handled by the traversal routine. */
         break;
@@ -7200,7 +7256,7 @@ conversion.  std_conv can be NULL if that information is not needed.
       source_type = skip_typerefs(source_type);
       /* Convert a built-in type to the corresponding CLI type, e.g.,
          int to System::Int32. */
-      corresp_type = system_type_from_basic_type(source_type);
+      corresp_type = system_type_from_fundamental_type(source_type);
       if (corresp_type != NULL) source_type = corresp_type;
       dest_type = type_pointed_to(dest_type);
       /* cv-qualifiers are ignored on the destination type, since it's okay
@@ -7269,7 +7325,7 @@ can be NULL if that information is not needed.
       dest_type = skip_typerefs(dest_type);
       /* Convert a built-in type to the corresponding CLI type, e.g.,
          int to System::Int32. */
-      corresp_type = system_type_from_basic_type(dest_type);
+      corresp_type = system_type_from_fundamental_type(dest_type);
       if (corresp_type != NULL) dest_type = corresp_type;
       if (types_are_compatible(source_type, dest_type)) {
         /* A boxing conversion is possible:  cv1 V^ --> cv2 V. */
@@ -12088,12 +12144,12 @@ of the front end are called.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-a_type_ptr system_type_from_basic_type(a_type_ptr tp)
+a_type_ptr system_type_from_fundamental_type(a_type_ptr tp)
 /*
-Returns the C++/CLI type corresponding to the basic type, specified by tp, or
-NULL if there is no corresponding C++/CLI type.  Note that the caller is
-expected to call skip_typerefs if necessary.  See basic_type_from_system_type
-for the reverse mapping.
+Returns the C++/CLI type corresponding to the fundamental type, specified by
+tp, or NULL if there is no corresponding C++/CLI type.  Note that the caller is
+expected to call skip_typerefs if necessary.  See
+fundamental_type_from_system_type for the reverse mapping.
 */
 {
   a_symbol_ptr symbol = NULL;
@@ -12127,15 +12183,15 @@ for the reverse mapping.
     check_assertion(is_value_class_type(sys_type));
   }  /* if */
   return sys_type;
-}  /* system_type_from_basic_type */
+}  /* system_type_from_fundamental_type */
 
 
-a_type_ptr basic_type_from_system_type(a_type_ptr tp)
+a_type_ptr fundamental_type_from_system_type(a_type_ptr tp)
 /*
-Returns the basic type corresponding to the C++/CLI type, specified by tp,
-or NULL if there is no corresponding basic type.  Note that the caller is
-expected to call skip_typerefs if necessary.  See system_type_from_basic_type
-for the reverse mapping.
+Returns the fundamental type corresponding to the C++/CLI type, specified by
+tp, or NULL if there is no corresponding basic type.  Note that the caller is
+expected to call skip_typerefs if necessary.  See
+system_type_from_fundamental_type for the reverse mapping.
 */
 {
   a_type_ptr result;
@@ -12147,7 +12203,42 @@ for the reverse mapping.
     result = NULL;
   }  /* if */
   return result;
-}  /* basic_type_from_system_type */
+}  /* fundamental_type_from_system_type */
+
+
+a_boolean is_value_class_or_fundamental_type(a_type_ptr tp)
+/*
+Returns TRUE if this is a C++/CLI value class or a fundamental type with a
+corresponding value class type.
+*/
+{
+  a_boolean  result = FALSE;
+
+  tp = skip_typerefs(tp);
+  if (is_value_class_type(tp)) {
+    result = TRUE;
+  } else {
+    tp = system_type_from_fundamental_type(tp);
+    if (tp != NULL) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_value_class_or_fundamental_type */
+
+
+a_boolean is_cli_enum_type(a_type_ptr tp)
+/*
+Returns TRUE if tp is a C++/CLI enum type.  Currently, there isn't a source nor
+IL distinction between C++0x scoped enums and C++/CLI enumerations; however,
+this function provides a layer of indirection in case this changes in the
+future.
+*/
+{
+  tp = skip_typerefs(tp);
+  return type_kind_is_integer(tp) && integer_type_is_scoped_enum(tp);
+}  /* is_cli_enum_type */
+
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

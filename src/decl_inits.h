@@ -61,6 +61,41 @@ extern void scan_compound_literal_initializer(a_type_ptr         *type,
                                               a_boolean          is_static,
                                               a_dynamic_init_ptr *dip);
 
+/* Describes how the length of each C++/CLI array dimension should be processed
+   while scanning an array-init. */
+typedef struct a_cli_array_init_scan_info
+{
+  an_expr_node_ptr
+		cli_array_dimension_lengths;
+			/* A list of C++/CLI array dimension lengths associated
+			   with the array-init being scanned. */
+  a_boolean
+		populate_cli_array_lengths;
+			/* TRUE if cli_array_dimension_lengths should be
+			   populated with the greatest length of each dimension
+			   while scanning a C++/CLI array-init.  FALSE if
+			   cli_array_dimension_lengths should be used as bound
+			   checks for each dimension length.  This member is
+			   only relevant if cli_array_dimension_lengths is
+			   non-NULL. */
+}  a_cli_array_init_scan_info;
+
+typedef a_cli_array_init_scan_info *a_cli_array_init_scan_info_ptr;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+extern a_boolean scan_cli_array_init(
+                    a_decl_parse_state_ptr      dps,
+                    a_type_ptr                  *handle_to_cli_array_type,
+                    a_variable_ptr              vp,
+                    a_boolean                   static_lifetime,
+                    a_source_position           *err_pos,
+                    a_dynamic_init_ptr          *init_dip,
+                    a_decl_pos_block_ptr        decl_pos_block,
+                    an_expr_node_ptr            *cli_array_dimension_lengths);
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #endif /* ifndef DECL_INITS_H */
 
 /******************************************************************************

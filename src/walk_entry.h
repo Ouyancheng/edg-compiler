@@ -1494,6 +1494,12 @@ do_set_proper_definition_needed_flag:
             walk_ptr(ptr->variant.lambda.initialization, a_dynamic_init_ptr,
                      iek_dynamic_init);
             break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          case enk_gcnew:
+            walk_ptr(ptr->variant.gcnew_info, a_gcnew_supplement_ptr,
+                     iek_gcnew_supplement);
+            break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           case enk_throw:
             walk_ptr(ptr->variant.throw_info, a_throw_supplement_ptr,
                      iek_throw_supplement);
@@ -2981,6 +2987,19 @@ after_entry_from_class:
                  iek_dynamic_init);
       }
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case iek_gcnew_supplement:
+      {
+        a_gcnew_supplement_ptr ptr = (a_gcnew_supplement_ptr)entry_ptr;
+
+        walk_ptr(ptr->type, a_type_ptr, iek_type);
+        definition_needed_if_class(ptr->type);
+        walk_list(ptr->cli_array_dimension_lengths, an_expr_node_ptr,
+                  iek_expr_node);
+        walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
+      }
+    break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case iek_throw_supplement:
       {
         a_throw_supplement_ptr ptr = (a_throw_supplement_ptr)entry_ptr;
@@ -3431,6 +3450,10 @@ of each kind.
   walk_orphan_entry_list_for_entry_kind(a_template_arg_ptr, iek_template_arg);
   walk_orphan_entry_list_for_entry_kind(a_new_delete_supplement_ptr,
                                         iek_new_delete_supplement);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  walk_orphan_entry_list_for_entry_kind(a_gcnew_supplement_ptr,
+                                        iek_gcnew_supplement);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   walk_orphan_entry_list_for_entry_kind(a_throw_supplement_ptr,
                                         iek_throw_supplement);
 #if !ABI_CHANGES_FOR_RTTI

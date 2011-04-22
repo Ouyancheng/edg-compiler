@@ -62,6 +62,9 @@ static unsigned long
 		num_labels_allocated,
 		num_expr_nodes_allocated,
 		num_new_delete_supplements_allocated,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+		num_gcnew_supplements_allocated,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 		num_throw_supplements_allocated,
 		num_condition_supplements_allocated,
 #if !ABI_CHANGES_FOR_RTTI
@@ -898,7 +901,7 @@ a_param_type_ptr alloc_param_type(a_type_ptr type)
 /*
 Allocate a new parameter type entry and return a pointer to it.  Set its
 fields to default values and its type to "type".  It is always allocated
-at file scope.
+in the file scope memory region.
 */
 {
   a_param_type_ptr        ptp;
@@ -2759,6 +2762,9 @@ fields to default values.
 */
 {
   a_new_delete_supplement_ptr ndsp;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_gcnew_supplement_ptr      gnsp;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_throw_supplement_ptr      tsp;
   a_condition_supplement_ptr  csp;
 
@@ -2845,6 +2851,21 @@ fields to default values.
       node->variant.lambda.ptr            = NULL;
       node->variant.lambda.initialization = NULL;
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case enk_gcnew:
+      gnsp = (a_gcnew_supplement_ptr)alloc_cil(sizeof(a_gcnew_supplement));
+      node->variant.gcnew_info = gnsp;
+#if DEBUG
+      num_gcnew_supplements_allocated++;
+#endif /* DEBUG */
+      gnsp->has_new_initializer         = FALSE;
+      gnsp->is_cli_array                = FALSE;
+      gnsp->compiler_generated          = FALSE;
+      gnsp->type                        = NULL;
+      gnsp->cli_array_dimension_lengths = NULL;
+      gnsp->dynamic_init                = NULL;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case enk_throw:
       /* Allocate the supplement for a throw. */
       tsp = (a_throw_supplement_ptr)alloc_cil(sizeof(a_throw_supplement));
@@ -4728,6 +4749,10 @@ Display and return the amount of space used for various IL tables.
   db_space_used("expr node", num_expr_nodes_allocated, an_expr_node);
   db_space_used("new/delete supplement", num_new_delete_supplements_allocated,
                 a_new_delete_supplement);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  db_space_used("gcnew supplement", num_gcnew_supplements_allocated,
+                a_gcnew_supplement);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_space_used("throw supplement", num_throw_supplements_allocated,
                 a_throw_supplement);
   db_space_used("condition supplement", num_condition_supplements_allocated,
@@ -5067,6 +5092,9 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_il_entry_prefixes_allocated),
       pch_saved_var_array_elem(num_labels_allocated),
       pch_saved_var_array_elem(num_new_delete_supplements_allocated),
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(num_gcnew_supplements_allocated),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(num_overriding_virtual_functions_allocated),
       pch_saved_var_array_elem(num_param_types_allocated),
       pch_saved_var_array_elem(num_pragmas_allocated),
@@ -5234,6 +5262,7 @@ initializations that are done for each compilation.
   num_labels_allocated                   = 0;
   num_expr_nodes_allocated               = 0;
   num_new_delete_supplements_allocated   = 0;
+  num_gcnew_supplements_allocated        = 0;
   num_throw_supplements_allocated        = 0;
   num_condition_supplements_allocated    = 0;
 #if !ABI_CHANGES_FOR_RTTI

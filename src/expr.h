@@ -522,6 +522,25 @@ the pointer operand of these nodes.
          (node)->variant.operation.operands->next :                    \
          (node)->variant.operation.operands)
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+#define INTERNAL_UNSPECIFIED_CLI_ARRAY_LENGTH ((a_host_large_integer)-1)
+			/* Internal default value representing an unspecified
+			   length for an array dimension.  The internal
+			   representation is used within front end parsing
+			   routines.  When generating the final IL for an
+			   unspecified length, the internal representation is
+			   converted to the external representation,
+			   UNSPECIFIED_CLI_ARRAY_LENGTH. */
+#define UNSPECIFIED_CLI_ARRAY_LENGTH ((a_host_large_integer)0xC0FFEE)
+			/* Default value representing an unspecified length
+			   for an array dimension.  This is dictated by the
+			   ECMA-372 standard (24.6). */
+
+extern an_expr_node_ptr create_cli_array_length_list(
+                                                    a_type_ptr cli_array_type);
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef EXPR_H */
 

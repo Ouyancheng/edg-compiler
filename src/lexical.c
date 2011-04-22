@@ -15610,7 +15610,7 @@ selection operator, in which case it points to the type of the left operand.
     tp = type_keyword();
     if (tp != NULL) {
       /* Get the C++/CLI type, if any, that corresponds to the keyword type. */
-      tp = system_type_from_basic_type(tp);
+      tp = system_type_from_fundamental_type(tp);
       if (tp != NULL) {
         /* Save the type found for user later as the qualifier. */
         cli_system_type_for_keyword = tp;

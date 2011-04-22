@@ -103,12 +103,32 @@ typedef struct an_aggregate_init_info {
                 designation_state;
                         /* Have we just collected a partial or complete
                            designation? */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_expr_node_ptr
+		cli_array_dimensions;
+			/* Points to a list of expressions used during C++/CLI
+			   array initializer scanning that represent the
+			   length of each dimension. */
+  a_boolean	is_cli_array_initializer;
+			/* TRUE if currently scanning a CLI array
+			   initializer. */
+  a_boolean	populate_cli_array_lengths;
+			/* TRUE if cli_array_dimensions should be populated
+			   with the greatest length of each dimension while
+			   scanning a CLI array-init.  FALSE if
+			   cli_array_dimensions should be used as bounds checks
+			   for each dimension length.  This is only relevant if
+			   is_cli_array_initializer is TRUE and
+			   cli_array_dimensions is non-NULL. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } an_aggregate_init_info;
 
 
-static void initialize_init_info(an_aggregate_init_info_ptr  init_info,
-                                 a_boolean                   static_lifetime,
-                                 a_decl_parse_state          *dps)
+static void initialize_init_info(
+                               an_aggregate_init_info_ptr      init_info,
+                               a_boolean                       static_lifetime,
+                               a_decl_parse_state              *dps,
+                               a_cli_array_init_scan_info_ptr  cli_array_init)
 /*
 Initialize an entry of type an_aggregrate_init_info.
 */
@@ -126,6 +146,21 @@ Initialize an entry of type an_aggregrate_init_info.
   init_info->init_end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   init_info->designation_state = ds_no_designation;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cli_array_init != NULL) {
+    /* If cli_array_init is non-NULL, a C++/CLI array initializer is being
+       scanned. */
+    init_info->is_cli_array_initializer = TRUE;
+    init_info->cli_array_dimensions = 
+                                   cli_array_init->cli_array_dimension_lengths;
+    init_info->populate_cli_array_lengths = 
+                                    cli_array_init->populate_cli_array_lengths;
+  } else {
+    init_info->is_cli_array_initializer = FALSE;
+    init_info->cli_array_dimensions = NULL;
+    init_info->populate_cli_array_lengths = FALSE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* initialize_init_info */
 
 
@@ -180,13 +215,25 @@ typedef struct an_aggregate_init_context {
 			   processing the implicit designator levels needed
 			   to get down to the field, at which point it is
 			   cleared to NULL. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_expr_node_ptr
+		curr_dimension_length;
+			/* Pointer to a node in a list that represents
+			   the current dimension's length in a C++/CLI
+			   array. */
+  a_boolean	scanning_for_cli_array_dimension_init;
+			/* TRUE if the elements currently being scanned in this
+			   aggregate represent dimensions of a multidimensional
+			   C++/CLI array.*/
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } an_aggregate_init_context;
 
 
 static void initialize_init_context(
                              an_aggregate_init_context_ptr  init_context,
                              an_aggregate_init_context_ptr  prev_init_context,
-                             a_type_ptr                     type)
+                             a_type_ptr                     type,
+                             an_aggregate_init_info_ptr     init_info)
 /*
 Initialize an entry of type an_aggregrate_init_context.
 */
@@ -207,6 +254,26 @@ Initialize an entry of type an_aggregrate_init_context.
       prev_init_context->anonymous_union_field_sym = NULL;
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (prev_init_context != NULL) {
+    if (prev_init_context->curr_dimension_length != NULL) {
+      /* If we are scanning a C++/CLI array initializer, get the next
+         dimension length from the previous context. */
+      init_context->curr_dimension_length = 
+                                prev_init_context->curr_dimension_length->next;
+    } else {
+      /* If the previous context does not have a dimension length,
+         assign current dimension length to NULL. */
+      init_context->curr_dimension_length = NULL;
+    }  /* if */
+  } else {
+    /* If there is no previous context, then this is a top-level call to
+       get_initializer.  Get the head of the dimension length list (if any)
+       from the init_info and assign it to the current context. */
+    init_context->curr_dimension_length = init_info->cli_array_dimensions;
+  }  /* if */
+  init_context->scanning_for_cli_array_dimension_init = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* initialize_init_context */
 
 
@@ -1196,7 +1263,11 @@ decl parse state, which otherwise is gotten from init_info->dps.
                                   ((init_info != NULL) ?
                                        init_info->static_lifetime : FALSE),
                                   ((init_info != NULL) ?
-                                       init_info->compound_literal : FALSE),
+                                       init_info->compound_literal
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                       || init_info->is_cli_array_initializer
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                       : FALSE),
                                   dps,
                                   (allow_whole_string_init ?
                                        NULL :
@@ -1244,15 +1315,15 @@ decl parse state, which otherwise is gotten from init_info->dps.
       (*init_constant)->type = rvalue_type(context->type);
       if (!is_constant) {
         context->any_dynamic_initialization = TRUE;
-        /* We should only get here for class types (as opposed to array types).
-           If we emulate GNU C++ whole-object initialization using nonconstant
-           compound literals, some array cases may get here too, and the
-           following should be revised. */
-        check_assertion(cssp != NULL);
-        if (exceptions_enabled) {
+        /* We should only get here for class types (as opposed to native array
+           types) or C++/CLI array types.  If we emulate GNU C++ whole-object
+           initialization using nonconstant compound literals, some array
+           cases may get here too, and the following may need to be
+           revised. */
+        if (cssp != NULL && exceptions_enabled) {
           if (has_nontrivial_destructor(cssp)) {
             /* If appropriate, add a destructor pointer to the dynamic
-               init entry. This is for the case in which an exception is
+               init entry.  This is for the case in which an exception is
                thrown by the constructor before the entire array has been
                initialized. */
             a_routine_ptr  dtor_rp = cssp->destructor->variant.routine.ptr;
@@ -1312,6 +1383,14 @@ In C99 and GNU C modes, the processing is similar to that in C++.
   check_assertion(init_info != NULL && init_info->dps != NULL);
   if ((!C_mode() || c99_mode || gcc_mode) &&
       (is_class_struct_union_type(context->type) ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+       /* When scanning a C++/CLI array initializer, C++/CLI array dimensions
+          must be brace initialized and are not allowed to be initialized
+          here. */
+       (cppcli_enabled && is_handle_to_cli_array_type(context->type) &&
+        context->prev_context != NULL &&
+        !context->prev_context->scanning_for_cli_array_dimension_init) ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
        (gnu_mode && is_array_type(context->type) &&
         !skip_typerefs(context->type)->variant.array.bound_is_zero)) &&
       !curr_token_if_nothing_cached_is(tok_lbrace, init_info->dps) &&
@@ -1363,13 +1442,75 @@ type.
   }  /* if */
 }  /* handle_missing_brace */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_type_ptr next_inner_cli_array_type(
+                                           a_type_ptr handle_to_cli_array,
+                                           a_boolean  *is_cli_array_dimension)
+/*
+Returns the type of the elements to expect inside an array-init for a handle
+to a CLI array type specified by handle_to_cli_array.  If
+is_cli_array_dimension is non-NULL, *is_cli_array_dimension is set to TRUE or
+FALSE depending upon whether the elements inside this array-init
+represent array dimensions inside a multidimensional array.
+
+handle_to_cli_array should never be an array type with an unknown rank
+(e.g., one that has a non-type template argument as the array rank); the
+expected element type would be indeterminate in that case.  The caller is
+expected to verify that the array rank for handle_to_cli_array is known before
+calling this function.
+*/
+{
+  a_type_ptr            result;
+  a_boolean             local_is_cli_array_dimension = FALSE;
+  a_type_ptr            array_type;
+  a_boolean             is_rank_unknown;
+  a_host_large_integer  curr_array_rank;
+  a_symbol_ptr          cli_array_sym;
+
+  check_assertion(is_handle_to_cli_array_type(handle_to_cli_array));
+  array_type = type_pointed_to(handle_to_cli_array);
+  curr_array_rank = cli_array_rank(array_type, &is_rank_unknown);
+  check_assertion(!is_rank_unknown);
+  if (curr_array_rank == 1) {
+    result = cli_array_element_type(array_type);
+  } else {
+    check_assertion(curr_array_rank > 1);
+    local_is_cli_array_dimension = TRUE;
+    /* Find or create the same array type as handle_cli_array_type with a
+       decremented rank. */
+    cli_array_sym = make_cli_array_type(cli_array_element_type(array_type),
+                                        curr_array_rank - 1);
+    result = make_handle_type(type_symbol_type(cli_array_sym));
+  }  /* if */
+  if (is_cli_array_dimension != NULL) {
+    *is_cli_array_dimension = local_is_cli_array_dimension;
+  }  /* if */
+  return result;
+}  /* next_inner_cli_array_type */
+
+
+static a_boolean cli_array_rank_is_unknown(a_type_ptr cli_array_type)
+/*
+Returns TRUE if the rank of the CLI array type cli_array_type is unknown (e.g.,
+it is a nontype template parameter).
+*/
+{
+  a_boolean is_unknown_rank;
+
+  (void)cli_array_rank(cli_array_type, &is_unknown_rank);
+  return is_unknown_rank;
+}  /* cli_array_rank_is_unknown */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void start_aggregate_init_scan_loop(
-                          an_aggregate_init_context  *context,
-                          a_type_kind                *kind,
-                          a_type_ptr                 *member_type,
-                          a_boolean                  *any_more_members,
-                          a_boolean                  *is_flexible_array)
+                            an_aggregate_init_context  *context,
+                            a_type_kind                *kind,
+                            a_type_ptr                 *member_type,
+                            a_boolean                  *any_more_members,
+                            a_boolean                  *is_flexible_array,
+                            a_boolean                  *is_cli_array_dimension)
 /*
 Initialize the state for the loop that will scan an aggregate initializer list.
 State information about this initializer scanning is maintained in *context.
@@ -1382,12 +1523,22 @@ context->type, except that nonreal class types produce tk_template_param.
 an error type if context->type is an error_type).  If there are any members to
 initialize, *any_more_members will be set to TRUE.  If context->type is an
 array type of zero size ("[]" or "[0]"), *is_flexible_array will be set to
-TRUE.
+TRUE.  If the elements being scanned are inside a C++/CLI array-init and
+represent array dimensions inside a multidimensional array,
+*is_cli_array_dimension is returned TRUE.
 */
 {
   a_type_ptr  type = skip_typerefs(context->type);
 
-  if (is_template_param_or_nonreal_class_type(context->type)) {
+  if (is_template_param_or_nonreal_class_type(context->type)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* If a C++/CLI array-init is being scanned with an unknown array rank,
+         treat it as a template type because the expected type is
+         indeterminate within the array-init. */
+      || (cppcli_enabled && is_handle_to_cli_array_type(context->type) &&
+          cli_array_rank_is_unknown(type_pointed_to(context->type)))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      ) {
     /* Treat both template parameters and nonreal types as "types whose
        inner structure is unknown". */
     *kind = (a_type_kind)tk_template_param;
@@ -1396,6 +1547,9 @@ TRUE.
   }  /* if */
   *any_more_members = TRUE;  /* Assume. */
   *is_flexible_array = FALSE;
+  if (is_cli_array_dimension != NULL) {
+    *is_cli_array_dimension = FALSE;
+  }  /*if */
   switch (*kind) {
     case tk_error:
       /* Unknown member type (due to error). */
@@ -1434,6 +1588,12 @@ TRUE.
          level in the routine "initializer" and replaced by an error type),
          so we don't have to check for them here. */
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tk_pointer:
+      check_assertion(cppcli_enabled && is_handle_to_cli_array_type(type));
+      *member_type = next_inner_cli_array_type(type, is_cli_array_dimension);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tk_struct:
     case tk_class:
     case tk_union:
@@ -2117,7 +2277,11 @@ init_info->dps->prescanned_initializer_cache.
                                      nonconst_allowed,
                                      (a_boolean)init_info->static_lifetime,
                                      /*force_object_lifetime=*/FALSE,
-                                     (a_boolean)init_info->compound_literal,
+                                     (a_boolean)(init_info->compound_literal
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                     || init_info->is_cli_array_initializer
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                     ),
                                      /*is_copy_initialization=*/TRUE,
                                      &is_pack_expansion,
                                      (a_boolean *)NULL,
@@ -2192,6 +2356,22 @@ process_closing_brace:
   return constant;
 }  /* get_single_value_for_aggregate_initializer */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean cli_array_constant_dimension_length(an_expr_node_ptr  expr)
+/*
+Returns TRUE if expr is a constant integer value expression that can be used
+for bounds checking while scanning C++/CLI array-init.
+*/
+{
+  a_boolean result = (is_constant_node(expr) &&
+                      expr->variant.constant->kind ==
+                                             (a_constant_repr_kind)ck_integer);
+
+  return result;
+}  /* cli_array_constant_dimension_length */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_constant_ptr get_initializer(
                               a_type_ptr                    *type,
@@ -2216,6 +2396,9 @@ this function points to a tree that includes a dynamic-init entry.
 */
 {
   a_constant_ptr                 init_con = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean                      is_cli_array_dimension = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean                      is_flexible_array;
   a_type_ptr                     member_type;
   a_boolean                      brace_flag;
@@ -2240,7 +2423,7 @@ this function points to a tree that includes a dynamic-init entry.
   check_assertion(dps != NULL);
   *nothing_taken = FALSE;
   *any_dynamic_init = FALSE;
-  initialize_init_context(&context, prev_init_context, *type);
+  initialize_init_context(&context, prev_init_context, *type, init_info);
   /* See if we're initializing an aggregate and the next initializer
      expression initializes the whole aggregate. */
   if (process_whole_object_init(init_info, &context, &init_con)) {
@@ -2248,6 +2431,9 @@ this function points to a tree that includes a dynamic-init entry.
        was an error and a diagnostic has been issued.  In either case,
        init_con has been set to the right initializer value. */
   } else if (is_aggregate_or_union_type(context.type) ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+             (cppcli_enabled && is_handle_to_cli_array_type(context.type)) ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_VECTOR_TYPES_ALLOWED
              (gnu_mode && is_vector_type(context.type) &&
               curr_token_if_nothing_cached_is(tok_lbrace, dps)) ||
@@ -2310,14 +2496,29 @@ this function points to a tree that includes a dynamic-init entry.
     } else {
       /* Normal case, not array of char.  Could be an array, a struct,
          or a union, or an error type. */
-      a_targ_size_t curr_array_element = 0, array_size = 0;
-      a_field_ptr   curr_field;
-      a_boolean     discard_initializers = FALSE, is_gnu_vector = FALSE;
+      a_targ_size_t     curr_array_element = 0, array_size = 0;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      an_integer_value  curr_cli_array_element;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      a_field_ptr       curr_field;
+      a_boolean         discard_initializers = FALSE, is_gnu_vector = FALSE;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled) {
+        set_unsigned_integer_value(&curr_cli_array_element,
+                                   (a_host_large_unsigned)0);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* In ANSI C and C++, the top-level initializer for a struct, union, or
          array/vector must be surrounded by braces.  e.g., "int a[1] = 1;" is
          not allowed.  However, pcc will allow initialization with a single
          value and we allow it as an extension. */
-      if (top_level && !brace_flag) {
+      if ((top_level
+#if MICROSOFT_EXTENSIONS_ALLOWED
+           /* Braces are mandatory for initializing C++/CLI array types */
+           || (cppcli_enabled && is_handle_to_cli_array_type(context.type))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          ) && !brace_flag) {
         /* If a hard error is decided, context.type will become an error
            type. */
         handle_missing_brace(init_info, &context);
@@ -2331,7 +2532,16 @@ this function points to a tree that includes a dynamic-init entry.
       /* Get information on the first member of the aggregate to be
          initialized (if any). */
       start_aggregate_init_scan_loop(&context, &kind, &member_type,
-                                     &any_more_members, &is_flexible_array);
+                                     &any_more_members, &is_flexible_array,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                     &is_cli_array_dimension
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+                                     (a_boolean *)NULL
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                    );
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      context.scanning_for_cli_array_dimension_init = is_cli_array_dimension;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_VECTOR_TYPES_ALLOWED
       is_gnu_vector = (kind == (a_type_kind)tk_vector);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -2425,6 +2635,11 @@ this function points to a tree that includes a dynamic-init entry.
             fputc('\n', f_debug);
           }  /* if */
 #endif /* DEBUG */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcli_enabled &&
+                   is_handle_to_cli_array_type(context.type)) {
+           /* member_type was set outside the loop. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           /* struct or union type: get the type of the current field. */
           check_assertion(curr_field != NULL);
@@ -2667,6 +2882,51 @@ this function points to a tree that includes a dynamic-init entry.
             any_more_members = n_vector_elems > curr_array_element;
           }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcli_enabled &&
+                   is_handle_to_cli_array_type(context.type)) {
+          if (cmp_integer_values(&curr_cli_array_element,
+                                 /*op_1_signed=*/FALSE,
+                                 &max_integer_value_of_kind[ik_int],
+                                 /*op_2_signed=*/TRUE) == 0) {
+            /* A C++/CLI array has a dimension that is too long; presumably,
+               this is an array being initialized with a ridiculous number of
+               initial values.  Note that it is okay to do the check and
+               increment before knowing whether or not there is an initializer
+               for this element because after the last initializer of an
+               array the curr_array_element will indicate the size,
+               which is also subject to the same range check. */
+            if (!array_too_long_error_given) {
+              error(ec_array_size_too_large);
+              array_too_long_error_given = TRUE;
+            }  /* if */
+          } else {
+            /* Advance to next array element. */
+            incr_integer_value(&curr_cli_array_element);
+            /* In general, more "members" are available if the length of this
+               array dimension is larger than the current element index.  In
+               the case of templates, the array length may not be known, or
+               the underlying type could be a type that allows for additional
+               initializers: In those cases any_more_members is also TRUE. */
+            any_more_members = TRUE;  /* Assume */
+            if (context.curr_dimension_length != NULL &&
+                init_info->is_cli_array_initializer &&
+                !init_info->populate_cli_array_lengths &&
+                cli_array_constant_dimension_length(
+                                              context.curr_dimension_length)) {
+              /* If this C++/CLI array has a new-init with a constant argument
+                 pertaining to the current dimension, do bounds checking for
+                 the current dimension length here. */
+              a_constant_ptr curr_dim =
+                               context.curr_dimension_length->variant.constant;
+              any_more_members = cmp_integer_values(
+                                              &curr_dim->variant.integer_value,
+                                              int_constant_is_signed(curr_dim),
+                                              &curr_cli_array_element,
+                                              /*op_2_signed=*/FALSE) > 0;
+            }  /* if */
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (kind == (a_type_kind)tk_class ||
                    kind == (a_type_kind)tk_struct) {
           if (pack_expansion_encountered) {
@@ -2762,6 +3022,34 @@ this function points to a tree that includes a dynamic-init entry.
         /* Keep looping while there are more initializers. */
       }  /* while */
       remove_stop_token(tok_comma);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled &&
+          init_info->is_cli_array_initializer &&
+          init_info->populate_cli_array_lengths &&
+          context.curr_dimension_length != NULL) {
+        a_constant_ptr curr_dim;
+        check_assertion(cli_array_constant_dimension_length(
+                                               context.curr_dimension_length));
+        curr_dim = context.curr_dimension_length->variant.constant;
+        if (cmp_integer_values(&curr_dim->variant.integer_value,
+                               int_constant_is_signed(curr_dim),
+                               &curr_cli_array_element,
+                               /*op_2_signed=*/FALSE) < 0) {
+          /* If the length of this aggregate is greater than the greatest
+             length seen thus far for this dimension and we are determining
+             the length of this dimension based on the count of initializers,
+             set the greatest length of this dimension to the length of this
+             aggregate.  Note that in a multi-dimensional array each
+             initializer list for a lower-level slice has a chance to
+             change the bound at that level if it has more initializers
+             that any of the previous lists at that level. */
+          /* Note that it's okay to change this constant directly because it's
+             known to be unshared (it's allocated that way in
+             create_cli_array_length_list). */
+          curr_dim->variant.integer_value = curr_cli_array_element;
+        }  /* if */
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* There are no more initializers in the source (at least, none
          that should be considered part of the current aggregate). */
       if (kind == (a_type_kind)tk_error) any_more_members = FALSE;
@@ -2893,7 +3181,8 @@ function get_initializer does all the hard work.
 
   check_assertion((C_mode() || gpp_mode) && (curr_token == tok_lbrace));
   init_decl_parse_state(&dps);
-  initialize_init_info(&info, is_static, &dps);
+  initialize_init_info(&info, is_static, &dps,
+                       (a_cli_array_init_scan_info_ptr)NULL);
   info.compound_literal = TRUE;
   compound_constant = get_initializer(type, &info,
                                       (an_aggregate_init_context_ptr)NULL,
@@ -2953,14 +3242,16 @@ function get_initializer does all the hard work.
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static a_boolean scan_initializer_list(a_decl_parse_state    *dps,
-                                       a_type_ptr            *type,
-                                       a_variable_ptr        vp,
-                                       a_boolean             static_lifetime,
-                                       a_constant_ptr        *init_con,
-                                       a_dynamic_init_ptr    *init_dip,
-                                       a_source_position     *err_pos,
-                                       a_decl_pos_block_ptr  decl_pos_block)
+static a_boolean scan_initializer_list(
+                               a_decl_parse_state              *dps,
+                               a_type_ptr                      *type,
+                               a_variable_ptr                  vp,
+                               a_boolean                       static_lifetime,
+                               a_constant_ptr                  *init_con,
+                               a_dynamic_init_ptr              *init_dip,
+                               a_source_position               *err_pos,
+                               a_decl_pos_block_ptr            decl_pos_block,
+                               a_cli_array_init_scan_info_ptr  cli_array_init)
 /*
 Scan an initializer list for an aggregate initialization.  Usually it is a
 brace-enclosed list of initializers, but the case of initializing an
@@ -2972,9 +3263,11 @@ modified as part of initializer processing, but the variable should not
 necessarily be updated.)  static_lifetime is TRUE for global and local static
 variables.  Either *init_con or *init_dip (but not both) will be updated,
 depending on whether this is an instance of dynamic initialization.  *err_pos
-indicates the source position for diagnostics.  The function returns TRUE
-unless there were errors in the scan (other than those reporting the
-detection of uninitialized fields).
+indicates the source position for diagnostics.  If non-NULL, cli_array_init
+indicates that the initializer list being scanned is an array-init for a
+C++/CLI array and describes how the lengths of each dimension should be
+processed.  The function returns TRUE unless there were errors in the scan
+(other than those reporting the detection of uninitialized fields).
 */
 {
   an_aggregate_init_info  init_info;
@@ -2997,7 +3290,7 @@ detection of uninitialized fields).
     fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
-  initialize_init_info(&init_info, static_lifetime, dps);
+  initialize_init_info(&init_info, static_lifetime, dps, cli_array_init);
   *init_con = get_initializer(type, &init_info,
                               (an_aggregate_init_context_ptr)NULL,
                               &nothing_taken, &any_dynamic_init);
@@ -3065,6 +3358,87 @@ detection of uninitialized fields).
   return !err;
 }  /* scan_initializer_list */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean scan_cli_array_init(
+                      a_decl_parse_state_ptr      dps,
+                      a_type_ptr                  *handle_to_cli_array_type,
+                      a_variable_ptr              vp,
+                      a_boolean                   static_lifetime,
+                      a_source_position           *err_pos,
+                      a_dynamic_init_ptr          *init_dip,
+                      a_decl_pos_block_ptr        decl_pos_block,
+                      an_expr_node_ptr            *cli_array_dimension_lengths)
+/*
+Wraps scan_initializer_list to scan an array-init for a C++/CLI array.
+See scan_initializer_list for additional information on shared parameters.
+*cli_array_dimension_lengths, if non-NULL, is used to check array length bounds
+based on the previously scanned new-init.  If *cli_array_dimension_lengths is
+NULL, it is populated and returned with the dimension lengths inferred while
+scanning the array-init.
+*/
+{
+  a_constant_ptr              init_con;
+  a_boolean                   result;
+  an_expr_node_ptr            node_ptr;
+  a_cli_array_init_scan_info  cli_array_scan_info;
+
+  /* Scan the array-init. */
+  check_assertion(cli_array_dimension_lengths != NULL);
+  if (*cli_array_dimension_lengths == NULL) {
+    /* We are expected to infer the dimension bounds by counting the
+       number of initializers. */
+    if (is_handle_to_cli_array_type(*handle_to_cli_array_type)) {
+      *cli_array_dimension_lengths = create_cli_array_length_list(
+                                   type_pointed_to(*handle_to_cli_array_type));
+    }  /* if */
+    cli_array_scan_info.cli_array_dimension_lengths =
+                                                  *cli_array_dimension_lengths;
+    cli_array_scan_info.populate_cli_array_lengths = TRUE;
+  } else {
+    /* The dimension bounds were provided explicitly in a new-init. */
+    cli_array_scan_info.cli_array_dimension_lengths =
+                                                  *cli_array_dimension_lengths;
+    cli_array_scan_info.populate_cli_array_lengths = FALSE;
+  }  /* if */
+  if (scan_initializer_list(dps, handle_to_cli_array_type, vp,
+                            static_lifetime, &init_con,
+                            init_dip, err_pos,
+                            decl_pos_block, &cli_array_scan_info)) {
+    if (init_con != NULL) {
+      check_assertion(init_con->kind == (a_constant_repr_kind)ck_aggregate);
+      *init_dip = alloc_dynamic_init(
+                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
+      (*init_dip)->variant.constant = init_con;
+    }  /* if */
+    result = TRUE;
+  } else {
+    result = FALSE;
+  }  /* if */
+  if (cli_array_scan_info.populate_cli_array_lengths) {
+    /* We are inferring bounds.  If a bound didn't get inferred because there
+       were no initializers, use a size of 0xC0FFEE for that bound.  That
+       sounds like a joke, but it's actually mandated by the ECMA-372
+       standard (see section 24.6). */
+    for (node_ptr = cli_array_scan_info.cli_array_dimension_lengths;
+         node_ptr != NULL;
+         node_ptr = node_ptr->next) {
+      check_assertion(
+         node_ptr->kind == (an_expr_node_kind)enk_constant &&
+         node_ptr->variant.constant->kind == (a_constant_repr_kind)ck_integer);
+      if (cmplit_integer_constant(
+                      node_ptr->variant.constant,
+                      /*value2=*/INTERNAL_UNSPECIFIED_CLI_ARRAY_LENGTH) == 0) {
+        set_integer_constant(node_ptr->variant.constant,
+                             /*value=*/UNSPECIFIED_CLI_ARRAY_LENGTH,
+                             (an_integer_kind)ik_int);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* scan_cli_array_init */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_dynamic_initialization(
                                   a_variable_ptr        vp,
@@ -3798,7 +4172,8 @@ returned set to TRUE.
          enclosed list of values.  Except that in C++ such lists may include
          non-constants. */
       if (scan_initializer_list(dps, &vp_type, vp, static_lifetime, &init_con,
-                                &init_dip, source_pos, decl_pos_block)) {
+                                &init_dip, source_pos, decl_pos_block,
+                                (a_cli_array_init_scan_info_ptr)NULL)) {
         /* The scan was successful. */
         if (!var_err && vp != NULL &&
             is_incomplete_type(vp->type) && is_array_type(vp->type)) {
@@ -3819,6 +4194,41 @@ returned set to TRUE.
         }  /* if */
       }  /* if */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && first_token == tok_lbrace &&
+             (is_handle_to_cli_array_type(vp_type) ||
+              (is_handle_type(vp_type) &&
+               is_template_param_or_nonreal_class_type(
+                                                 type_pointed_to(vp_type))))) {
+    /* A C++/CLI array initializer. */
+    /* Fake up a gcnew expression.  Note that we do not need to verify that
+       we are in a constant context because constant initializers are
+       handled separately through scan_constant_initializer_expression,
+       which will not recognize array-init syntax. */
+    an_expr_node_ptr             fk_gcnew = 
+                                 alloc_expr_node((an_expr_node_kind)enk_gcnew);
+    a_gcnew_supplement_ptr       gsp = fk_gcnew->variant.gcnew_info;
+    a_type_ptr                   array_type = type_pointed_to(vp_type);
+    a_boolean                    template_case =
+                           is_template_param_or_nonreal_class_type(array_type);
+    an_expr_node_ptr             cli_array_lengths = NULL;
+
+    gsp->is_cli_array = TRUE;
+    gsp->compiler_generated = TRUE;
+    gsp->has_new_initializer = FALSE;
+    gsp->type = array_type;
+    if (!scan_cli_array_init(dps,
+                             template_case ? &array_type : &vp_type, vp,
+                             static_lifetime, source_pos,
+                             &gsp->dynamic_init, decl_pos_block,
+                             &cli_array_lengths)) {
+      init_err = TRUE;
+    }  /* if */
+    gsp->cli_array_dimension_lengths = cli_array_lengths;
+    init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+    fk_gcnew->type = vp_type;
+    init_dip->variant.expression = fk_gcnew;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* A non-aggregate object is being initialized.  Braces are permitted
        but not required.  A constant or non-constant expression may be

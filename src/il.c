@@ -1720,6 +1720,33 @@ Dump the contents of the indicated expression node for debug purposes.
     case enk_lambda:
       fprintf(f_debug, "lambda\n");
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case enk_gcnew:
+      {
+        a_gcnew_supplement_ptr gsp = node->variant.gcnew_info;
+
+        fprintf(f_debug, "gcnew: type = ");
+        db_abbreviated_type(gsp->type);
+        fputs("\n", f_debug);
+        if (gsp->cli_array_dimension_lengths != NULL) {
+          for (a = 0; a < level; a++) fputs(" ", f_debug);
+          fprintf(f_debug, "cli_array_dimension_lengths: ");
+          for (operand = gsp->cli_array_dimension_lengths;
+               operand != NULL;
+               operand = operand->next) {
+            db_expr_node(operand, level + 2);
+          }  /* for */
+          fputs("\n", f_debug);
+        }  /* if */
+        if (gsp->dynamic_init != NULL) {
+          for (a = 0; a < level; a++) fputs(" ", f_debug);
+          fprintf(f_debug, "dynamic_init: ");
+          db_dynamic_initializer(gsp->dynamic_init,
+                                 level + 2);
+        }  /* if */
+      }
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case enk_throw:
       fputs("throw: ", f_debug);
       tsp = node->variant.throw_info;
@@ -2302,6 +2329,11 @@ dumping other structures to which the node belongs.
       case enk_lambda:
         fprintf(f_debug, " (lambda)");
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case enk_gcnew:
+        fprintf(f_debug, " (gcnew)");
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
       case enk_lowered_eh_construct:
         fprintf(f_debug, " (lowered eh construct)");
@@ -5800,6 +5832,24 @@ are done.
                                       options));
         }
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case enk_gcnew:
+        {
+          a_gcnew_supplement_ptr gsp1 = node1->variant.gcnew_info;
+          a_gcnew_supplement_ptr gsp2 = node2->variant.gcnew_info;
+          eq = (gsp1->is_cli_array == gsp2->is_cli_array &&
+                !(gsp1->is_cli_array &&
+                  gsp1->has_new_initializer != gsp2->has_new_initializer) &&
+                gsp1->compiler_generated == gsp2->compiler_generated &&
+                identical_types(gsp1->type, gsp2->type) &&
+                compare_expression_lists(gsp1->cli_array_dimension_lengths,
+                                         gsp2->cli_array_dimension_lengths,
+                                         options) &&
+                compare_dynamic_inits(gsp1->dynamic_init, gsp2->dynamic_init,
+                                      options));
+        }
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case enk_lambda:
         eq = (node1->variant.lambda.ptr == node2->variant.lambda.ptr &&
               node1->variant.lambda.initialization ==
@@ -9153,7 +9203,7 @@ an existing entry if possible.
   a_type_ptr ptr;
 
   /* Box built-in types when creating handles. */
-  ptr = system_type_from_basic_type(skip_typerefs(pointed_to_type));
+  ptr = system_type_from_fundamental_type(skip_typerefs(pointed_to_type));
   if (ptr != NULL) {
     pointed_to_type = type_plus_qualifiers_from_second_type(ptr,
                                                             pointed_to_type);
@@ -15320,6 +15370,9 @@ Allocate a copy of an expression node and return a pointer to it.
   an_expr_node_ptr              expr_copy;
   an_expr_node_kind             kind = expr->kind;
   a_new_delete_supplement_ptr   copy_new_delete;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_gcnew_supplement_ptr        copy_gcnew;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_throw_supplement_ptr        copy_throw_info;
   a_condition_supplement_ptr    copy_condition;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
@@ -15330,6 +15383,10 @@ Allocate a copy of an expression node and return a pointer to it.
   /* Preserve the supplement pointer if there is one. */
   if (kind == (an_expr_node_kind)enk_new_delete) {
     copy_new_delete = expr_copy->variant.new_delete;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (kind == (an_expr_node_kind)enk_gcnew) {
+    copy_gcnew = expr_copy->variant.gcnew_info;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (kind == (an_expr_node_kind)enk_throw) {
     copy_throw_info = expr_copy->variant.throw_info;
   } else if (kind == (an_expr_node_kind)enk_condition) {
@@ -15352,6 +15409,12 @@ Allocate a copy of an expression node and return a pointer to it.
     /* Copy the new/delete supplement. */
     *copy_new_delete = *expr->variant.new_delete;
     expr_copy->variant.new_delete = copy_new_delete;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (kind == (an_expr_node_kind)enk_gcnew) {
+    /* Copy the gcnew supplement. */
+    *copy_gcnew = *expr->variant.gcnew_info;
+    expr_copy->variant.gcnew_info = copy_gcnew;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (kind == (an_expr_node_kind)enk_throw) {
     /* Copy the throw supplement. */
     if (expr->variant.throw_info != NULL) {
@@ -15434,6 +15497,9 @@ be called to start a copy.
 {
   an_expr_node_ptr            expr_copy;
   a_new_delete_supplement_ptr ndsp, copy_ndsp;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_gcnew_supplement_ptr      gsp, copy_gsp;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   /* Copy the top node. */
   expr_copy = copy_node(expr);
@@ -15533,6 +15599,24 @@ be called to start a copy.
                        i_copy_dynamic_init(expr->variant.lambda.initialization,
                                            options, cblock);
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case enk_gcnew:
+      /* Copy the subtree and dynamic init for a new/delete operation. */
+      /* Note that the gcnew supplement was copied by copy_node. */
+      gsp = expr->variant.gcnew_info;
+      copy_gsp = expr_copy->variant.gcnew_info;
+      if (gsp->cli_array_dimension_lengths != NULL) {
+        copy_gsp->cli_array_dimension_lengths = i_copy_list_of_expr_trees(
+                                              gsp->cli_array_dimension_lengths,
+                                              options,
+                                              cblock);
+      }  /* if */
+      if (gsp->dynamic_init != NULL) {
+        copy_gsp->dynamic_init =
+                     i_copy_dynamic_init(gsp->dynamic_init, options, cblock);
+      }  /* if */
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case enk_throw:
       if (expr->variant.throw_info != NULL) {
         /* Copy the dynamic init for a throw. */
@@ -17320,6 +17404,12 @@ doing nothing should be suppressed.
       /* A lambda always has a side effect. */
       has_side_effects = TRUE;
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case enk_gcnew:
+      /* A gcnew always has a side effect. */
+      has_side_effects = TRUE;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case enk_throw:
       /* A throw always has a side effect. */
       has_side_effects = TRUE;
