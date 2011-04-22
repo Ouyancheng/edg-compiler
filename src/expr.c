@@ -13582,7 +13582,7 @@ expression, and return the result in *result (or an error indication in
                 C++/CLI array is seen as an abstract class with unimplemented
                 members.  Remove it once this is fixed. */
              && !is_cli_array_type(new_type)
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                             ) {
     /* The type is an abstract class type, so an object of the type
        cannot be allocated. */
