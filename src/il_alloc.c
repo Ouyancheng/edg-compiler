@@ -5262,7 +5262,9 @@ initializations that are done for each compilation.
   num_labels_allocated                   = 0;
   num_expr_nodes_allocated               = 0;
   num_new_delete_supplements_allocated   = 0;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   num_gcnew_supplements_allocated        = 0;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   num_throw_supplements_allocated        = 0;
   num_condition_supplements_allocated    = 0;
 #if !ABI_CHANGES_FOR_RTTI

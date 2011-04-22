@@ -724,6 +724,14 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_cast_interior_ptr_to_ptr)*/
 /*lint -esym(769,ec_cppcli_explicit_conversion_only_in_ref_and_value_classes)*/
 /*lint -esym(769,ec_cppcli_explicit_conversion_is_virtual)*/
+/*lint -esym(769,ec_invalid_gcnew_type)
+/*lint -esym(769,ec_gcnew_used_with_placement_syntax)
+/*lint -esym(769,ec_new_used_on_unsuitable_value_type)
+/*lint -esym(769,ec_new_used_on_managed_class_type)
+/*lint -esym(769,ec_new_used_on_handle_or_tracking_reference_type)
+/*lint -esym(769,ec_cli_array_must_have_new_or_array_init)
+/*lint -esym(769,ec_gcnew_bad_type_used_with_array_init)
+/*lint -esym(769,ec_gcnew_used_with_auto_syntax)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_enum)*/

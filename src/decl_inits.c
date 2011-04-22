@@ -124,6 +124,9 @@ typedef struct an_aggregate_init_info {
 } an_aggregate_init_info;
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- cli_array_init is not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void initialize_init_info(
                                an_aggregate_init_info_ptr      init_info,
                                a_boolean                       static_lifetime,
@@ -229,6 +232,9 @@ typedef struct an_aggregate_init_context {
 } an_aggregate_init_context;
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- init_info is not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void initialize_init_context(
                              an_aggregate_init_context_ptr  init_context,
                              an_aggregate_init_context_ptr  prev_init_context,
@@ -270,6 +276,7 @@ Initialize an entry of type an_aggregrate_init_context.
     /* If there is no previous context, then this is a top-level call to
        get_initializer.  Get the head of the dimension length list (if any)
        from the init_info and assign it to the current context. */
+    check_assertion(init_info != NULL);
     init_context->curr_dimension_length = init_info->cli_array_dimensions;
   }  /* if */
   init_context->scanning_for_cli_array_dimension_init = FALSE;

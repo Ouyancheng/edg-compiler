@@ -13576,11 +13576,14 @@ expression, and return the result in *result (or an error indication in
       expr_pos_error(ec_type_must_be_object_type, &type_position);
     }  /* if */
     err = TRUE;
-  } else if (is_abstract_class_type(new_type) &&
-             !is_cli_array_type(new_type)) {
-    /* FIXME: The array check above is to work around a bug where a C++/CLI
-       array is seen as an abstract class with unimplemented members.  Remove
-       it once this is fixed. */
+  } else if (is_abstract_class_type(new_type)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+             /* FIXME: The array check here is to work around a bug where a
+                C++/CLI array is seen as an abstract class with unimplemented
+                members.  Remove it once this is fixed. */
+             && !is_cli_array_type(new_type)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                            ) {
     /* The type is an abstract class type, so an object of the type
        cannot be allocated. */
     if (expr_error_should_be_issued()) {
