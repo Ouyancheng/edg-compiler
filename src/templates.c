@@ -20621,18 +20621,20 @@ Scan an optional set of C++/CLI generic constraints.  The form is:
         gcc.type_position = pos_curr_token;
         gcc.type = param_type;
       }  /* if */
-      /* Bypass the identifier and look for the expected colon. */
-      if (curr_token == tok_identifier || curr_token != tok_colon) {
-        (void)get_token();
-      }  /* if */
-      if (curr_token != tok_colon) {
-        pos_error(ec_exp_colon, &pos_curr_token);
-      } else {
-        /* Bypass the colon. */
-        (void)get_token();
-      }  /* if */
-      /* Scan the list of constraint items. */
-      constraint_item_list = scan_constraint_item_list();
+    }  /* if */
+    /* Bypass the identifier and look for the expected colon. */
+    if (curr_token == tok_identifier || curr_token != tok_colon) {
+      (void)get_token();
+    }  /* if */
+    if (curr_token != tok_colon) {
+      pos_error(ec_exp_colon, &pos_curr_token);
+    } else {
+      /* Bypass the colon. */
+      (void)get_token();
+    }  /* if */
+    /* Scan the list of constraint items. */
+    constraint_item_list = scan_constraint_item_list();
+    if (param_type != NULL) {
       param_type->variant.template_param.extra_info->
                                     generic_constraints = constraint_item_list;
     }  /* if */
