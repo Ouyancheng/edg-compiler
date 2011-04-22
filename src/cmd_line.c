@@ -4566,6 +4566,11 @@ file.
 #else /* !defined(DEFAULT_FRIEND_INJECTION) */
   comment_undefined_macro_name(DEFAULT_FRIEND_INJECTION);
 #endif /* defined(DEFAULT_FRIEND_INJECTION) */
+#if defined(DEFAULT_GENERIC_ARITY_OVERLOAD_ALLOWED)
+  define_numeric_valued_macro(DEFAULT_GENERIC_ARITY_OVERLOAD_ALLOWED);
+#else /* !defined(DEFAULT_GENERIC_ARITY_OVERLOAD_ALLOWED) */
+  comment_undefined_macro_name(DEFAULT_GENERIC_ARITY_OVERLOAD_ALLOWED);
+#endif /* defined(DEFAULT_GENERIC_ARITY_OVERLOAD_ALLOWED) */
 #if defined(DEFAULT_GNU_ABI_VERSION)
   define_numeric_valued_macro(DEFAULT_GNU_ABI_VERSION);
 #else /* !defined(DEFAULT_GNU_ABI_VERSION) */
