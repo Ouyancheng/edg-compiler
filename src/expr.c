@@ -10917,11 +10917,14 @@ if the type is not appropriate.
     tp = error_type();
   } else {
     tp = skip_typerefs(operand.type);
-    if (is_integral_or_enum_type(tp)) {
-      /* Integral types are converted to double. */
+    if (is_integral_or_unscoped_enum_type(tp)) {
+      /* Integral types are converted to double.  (Scoped enums are excluded
+         for consistency here, but the distinction has no effect since type-
+         generic functions are a C99-only feature, and C99 does not have
+         scoped enums.) */
       tp = float_type((a_float_kind)fk_double);
-    } else if (!is_arithmetic_or_unscoped_enum_type(tp)) {
-      expr_pos_error(ec_expr_not_arithmetic, &operand.position);
+    } else if (!is_arithmetic_type(tp)) {
+      expr_pos_error(expr_not_arithmetic_code(), &operand.position);
       tp = error_type();
     }  /* if */
   }  /* if */
@@ -18795,8 +18798,8 @@ that case.
       err = TRUE;
     } else if (operand_1_is_pointer) {
       /* Operand 1 has pointer type. */
-      if (is_integral_or_enum_type(operand_2.type)) {
-        /* Pointer +- integral/enum. */
+      if (is_integral_or_unscoped_enum_type(operand_2.type)) {
+        /* Pointer +- integral/enum (but not scoped enum). */
         /* The first operand must be a pointer to an object. */
         if (gcc_mode && (is_void_type(type_pointed_to(operand_1->type)) ||
                          is_function_type(type_pointed_to(operand_1->type)))) {
@@ -18927,14 +18930,12 @@ that case.
         result_type = integer_type(targ_ptrdiff_t_int_kind);
       } else {
         /* Pointer +- non-integral.  Error. */
-        error_in_operand(enum_type_is_integral ?
-                           ec_expr_not_integral : ec_expr_not_integral_or_enum,
-                         &operand_2);
+        error_in_operand(expr_not_integral_or_any_enum_code(), &operand_2);
         err = TRUE;
       }  /* if */
     } else if (operator_token == tok_plus &&
                is_pointer_type(operand_2.type) &&
-               is_integral_or_enum_type(operand_1->type)) {
+               is_integral_or_unscoped_enum_type(operand_1->type)) {
       /* Integral/enum + pointer. */
       pointer_operand_is_second = TRUE;
       /* The second operand must be a pointer to an object.  GNU C allows
@@ -19320,8 +19321,7 @@ that case.
   }  /* if */
   if (!processed) {
     /* Non-operator-function cases. */
-    /* The first operand must be an arithmetic or (unscoped) enum type or a
-       pointer. */
+    /* The first operand must be an arithmetic or enum type or a pointer. */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     operand_1_is_pointer = FALSE;
     operand_1_is_nullptr = FALSE;
@@ -19341,8 +19341,8 @@ that case.
       operation_type = error_type();
     } else if (is_scoped_enum_type(operand_1->type) ||
                is_scoped_enum_type(operand_2.type)) {
-      /* In C++/CLI mode, scoped enumeration operands of the same type can be
-         compared.  No promotion is involved. */
+      /* Scoped enumeration operands of the same type can be compared.  No
+         promotion is involved. */
       check_binary_scoped_enum_operation(operand_1, &operand_2,
                                          &operation_type);
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -24483,10 +24483,7 @@ which of the various keywords was used.
     is_string = TRUE;
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* These are not allowed in an integral constant expression. */
-    error_and_make_error_operand(enum_type_is_integral ?
-                                   ec_expr_not_integral :
-                                   ec_expr_not_integral_or_enum,
-                                 result);
+    error_and_make_error_operand(expr_not_integral_or_any_enum_code(), result);
     goto end_of_routine;
   }  /* if */
   if (!is_string) {
@@ -25354,9 +25351,7 @@ handle_identifier:
             make_constant_operand(&const_for_curr_token, &local_result);
           }  /* if */
         } else {
-          error_and_make_error_operand(enum_type_is_integral ?
-                                         ec_expr_not_integral :
-                                         ec_expr_not_integral_or_enum,
+          error_and_make_error_operand(expr_not_integral_or_any_enum_code(),
                                        &local_result);
         }  /* if */
         /* Float constants are generally not allowed in integral constant
@@ -25379,9 +25374,7 @@ handle_identifier:
             curr_expr_kind_is(ek_integral_constant)) {
           /* String literals are not allowed in pp and integral constant
              expressions. */
-          error_and_make_error_operand(enum_type_is_integral ?
-                                         ec_expr_not_integral :
-                                         ec_expr_not_integral_or_enum,
+          error_and_make_error_operand(expr_not_integral_or_any_enum_code(),
                                        &local_result);
         }  /* if */
         rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, &local_result);
@@ -26198,10 +26191,7 @@ in a switch statement if is_switch_expr is TRUE.
         /* For switch expressions, don't call check_integral_or_enum_operand
            because that doesn't allow for scoped enumeration values. */
         if (!is_integral_or_enum_type(operand->type)) {
-          error_in_operand(enum_type_is_integral ?
-                             ec_expr_not_integral :
-                             ec_expr_not_integral_or_enum,
-                           operand);
+          error_in_operand(expr_not_integral_or_any_enum_code(), operand);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -27280,7 +27270,7 @@ escape at the end of the expression.)
   if (gpp_mode && is_floating_type(operand->type) && !is_an_lvalue(operand)) {
     /* g++ allows floating-point constants and operations in template
        arguments.  Make sure the final result is not floating. */
-    error_in_operand(ec_expr_not_integral_or_enum, operand);
+    error_in_operand(expr_not_integral_or_any_enum_code(), operand);
   }  /* if */
 }  /* check_nontype_template_argument_type */
 

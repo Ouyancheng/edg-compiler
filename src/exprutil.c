@@ -8628,11 +8628,57 @@ lvalue.  If there is an error, change the operand to an error operand.
 }  /* check_modifiable_lvalue_operand */
 
 
+an_error_code expr_not_integral_or_any_enum_code(void)
+/*
+Return the appropriate diagnostic code to indicate that an expression is not
+an integer or an enum (both scoped and unscoped enum types are acceptable
+here).  In C mode, it is sufficient to say that is doesn't have an "integral"
+type".  In C++ mode, enum types are not "integral types" but they are
+acceptable in this context and hence the diagnostic should make that clear.
+If scoped enum types should be excluded, use expr_not_integral_code instead.
+*/
+{
+  an_error_code  result;
+
+  if (enum_type_is_integral) {
+    result = ec_expr_not_integral;
+  } else {
+    result = ec_expr_not_integral_or_enum;
+  }  /* if */
+  return result;
+}  /* expr_not_integral_or_any_enum_code */
+
+
+an_error_code expr_not_integral_code(void)
+/*
+Return the appropriate diagnostic code to indicate that an expression is not
+an integer or an unscoped enum.  In C mode, it is sufficient to say that is
+ doesn't have an "integral" type".  In C++ mode, unscoped enum types are not
+"integral types" but they are acceptable in this context and hence the
+diagnostic should make that clear.  In traditional C++, there is no
+distinction between "scoped" and "unscoped" enums, so we use a diagnostic that
+doesn't mention that distinction.
+*/
+{
+  an_error_code  result;
+
+  if (enum_type_is_integral) {
+    result = ec_expr_not_integral;
+  } else if (cpp0x_mode || cppcli_enabled) {
+    /* Modes that make a distinction between scoped and unscoped enum types. */
+    result = ec_expr_not_integral_or_unscoped_enum;
+  } else {
+    result = ec_expr_not_integral_or_enum;
+  }  /* if */
+  return result;
+}  /* expr_not_integral_code */
+
+
 a_boolean check_integral_or_enum_operand(an_operand *operand)
 /*
-Return FALSE and issue an error message if the operand is not of integral
-type.  If there is an error change "operand" to an error operand.
-See section 3.1.2.5 of the standard.
+Return FALSE and issue an error message if the operand is not of integral type
+(including unscoped enum types, but not scoped enum types).  If there is an
+error change "operand" to an error operand.
 */
 {
   register a_boolean okay = TRUE;
@@ -8642,16 +8688,8 @@ See section 3.1.2.5 of the standard.
        issued. */
     okay = FALSE;
   } else if (!is_integral_or_unscoped_enum_type(operand->type)) {
-    an_error_code  error_code;
     /* Use different diagnostics depending on the mode. */
-    if (enum_type_is_integral) {
-      error_code = ec_expr_not_integral;
-    } else if (cpp0x_mode || cppcli_enabled) {
-      error_code = ec_expr_not_integral_or_enum;
-    } else {
-      error_code = ec_expr_not_integral_or_unscoped_enum;
-    }  /* if */
-    error_in_operand(error_code, operand);
+    error_in_operand(expr_not_integral_code(), operand);
     okay = FALSE;
   }  /* if */
 
@@ -8662,8 +8700,8 @@ See section 3.1.2.5 of the standard.
 a_boolean check_integral_or_enum_or_fixed_point_operand(an_operand *operand)
 /*
 Return FALSE and issue an error message if the operand is not of integral,
-enumeration, or fixed-point type.  If there is an error change "operand"
-to an error operand.
+unscoped enumeration, or fixed-point type (scoped enumeration types are not
+accepted).  If there is an error change "operand" to an error operand.
 */
 {
   register a_boolean okay = TRUE;
@@ -8688,13 +8726,7 @@ to an error operand.
         error_code = ec_expr_not_integral_or_enum_or_fixed_point;
       }  /* if */
     } else {
-      if (enum_type_is_integral) {
-        error_code = ec_expr_not_integral;
-      } else if (cpp0x_mode || cppcli_enabled) {
-        error_code = ec_expr_not_integral_or_enum;
-      } else {
-        error_code = ec_expr_not_integral_or_unscoped_enum;
-      }  /* if */
+      error_code = expr_not_integral_code();
     }  /* if */
     error_in_operand(error_code, operand);
     okay = FALSE;
