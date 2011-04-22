@@ -25609,8 +25609,19 @@ in a switch statement if is_switch_expr is TRUE.
     do_operand_transformations(operand, TOPT_NO_OPTIONS);
     /* Can't check the type of a template parameter in a prototype
        instantiation. */
-    if (!is_template_param_type(operand->type)) {
-      (void)check_integral_or_enum_operand(operand);
+    if (!is_error_operand(operand) && !is_template_param_type(operand->type)) {
+      if (!is_switch_expr) {
+        (void)check_integral_or_enum_operand(operand);
+      } else {
+        /* For switch expressions, don't call check_integral_or_enum_operand
+           because that doesn't allow for scoped enumeration values. */
+        if (!is_integral_or_enum_type(operand->type)) {
+          error_in_operand(enum_type_is_integral ?
+                             ec_expr_not_integral :
+                             ec_expr_not_integral_or_enum,
+                           operand);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   if (is_switch_expr) {
