@@ -13319,7 +13319,7 @@ to the newly created list.
 } /* create_prototype_arg_list */
 
 
-a_template_arg_ptr create_generic_arg_list(
+static a_template_arg_ptr create_generic_arg_list(
 			a_template_param_ptr	generic_param_list)
 /*
 Build the generic argument list for the declaration of a C++/CLI generic.

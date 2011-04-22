@@ -13632,6 +13632,7 @@ all arguments were explicit.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+static
 a_template_arg_ptr scan_generic_argument_list(a_symbol_ptr	generic_sym,
 					      a_boolean		*any_errors)
 /*
