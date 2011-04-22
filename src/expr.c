@@ -7182,11 +7182,17 @@ case.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (property_ref_case) {
           /* No further checking here. */
+        } else if (cppcli_enabled && is_scoped_enum_type(operand->type)) {
+          /* C++/CLI, unlike standard C++0x, defines built-in ++ and -- for
+             scoped enumeration types. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (C_dialect == C_dialect_cplusplus &&
                    is_enum_type(operand->type)) {
-          /* Enum types are not allowed (because the enum promotes to integer
-             for the operation, and then can't get back to enum). */
+          /* Enum types are not allowed (except for scoped enums in C++/CLI
+             mode).  An unscoped enum promotes to integer for the operation,
+             and then can't get back to enum.  C++0x scoped enumerations don't
+             promote, but the standard doesn't define built-in increment or
+             decrement operations for them. */
           if (allow_anachronisms) {
             expr_pos_diagnostic(anachronism_error_severity,
                                 ec_mixed_enum_type_anachronism,
@@ -7430,11 +7436,17 @@ and return the result in *result (or an error indication in *rcblock).
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (property_ref_case) {
           /* No further checking here. */
+        } else if (cppcli_enabled && is_scoped_enum_type(operand.type)) {
+          /* C++/CLI, unlike standard C++0x, defines built-in ++ and -- for
+             scoped enumeration types. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (C_dialect == C_dialect_cplusplus &&
                    is_enum_type(operand.type)) {
-          /* Enum types are not allowed (because the enum promotes to integer
-             for the operation, and then can't get back to enum). */
+          /* Enum types are not allowed (except for scoped enums in C++/CLI
+             mode).  An unscoped enum promotes to integer for the operation,
+             and then can't get back to enum.  C++0x scoped enumerations don't
+             promote, but the standard doesn't define built-in increment or
+             decrement operations for them. */
           if (allow_anachronisms) {
             expr_pos_diagnostic(anachronism_error_severity,
                                 ec_mixed_enum_type_anachronism,
@@ -8345,6 +8357,15 @@ analysis on a previously-scanned expression, and return the result in
           } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
           /* Do not insert code here. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (cppcli_enabled && is_scoped_enum_type(operand.type)) {
+            /* In C++/CLI mode, a scoped enumeration operand is permitted.
+               No promotion is involved. */
+            do_promotion = FALSE;
+            result_type = operand.type;
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
           {
             (void)check_arithmetic_or_enum_operand(&operand);
           }  /* if */
@@ -8375,6 +8396,15 @@ analysis on a previously-scanned expression, and return the result in
         } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* Do not insert code here. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cppcli_enabled && is_scoped_enum_type(operand.type)) {
+          /* In C++/CLI mode, a scoped enumeration operand is permitted.
+             No promotion is involved. */
+          do_promotion = FALSE;
+          result_type = operand.type;
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
         {
           (void)check_arithmetic_or_enum_operand(&operand);
         }  /* if */
@@ -8400,6 +8430,15 @@ analysis on a previously-scanned expression, and return the result in
             }  /* if */
           } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+          /* Do not insert code here. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (cppcli_enabled && is_scoped_enum_type(operand.type)) {
+            /* In C++/CLI mode, a scoped enumeration operand is permitted.
+               No promotion is involved. */
+            do_promotion = FALSE;
+            result_type = operand.type;
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
           {
             (void)check_integral_or_enum_operand(&operand);
@@ -18226,6 +18265,10 @@ that case.
     operand_1_is_pointer = FALSE;
     if (is_arithmetic_or_unscoped_enum_type(operand_1->type)) {
       /* Okay. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled && is_scoped_enum_type(operand_1->type)) {
+      /* Scoped enum types are okay in C++/CLI mode but not in C++0x mode. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_VECTOR_TYPES_ALLOWED
     } else if (gnu_mode && is_vector_type(operand_1->type)) {
       /* Vector types are arithmetic types in some sense. */
@@ -18403,7 +18446,7 @@ that case.
       /* The result type is the same as the pointer type in operand 2. */
       result_type = operation_type = operand_2.type;
     } else {
-      /* Operand 1 is arithmetic or (unscoped) enum. */
+      /* Operand 1 is arithmetic or enum. */
       if (is_arithmetic_or_unscoped_enum_type(operand_2.type)
 #if GNU_VECTOR_TYPES_ALLOWED
           /* Vector types are arithmetic types in some sense. */
@@ -18442,6 +18485,16 @@ that case.
                        determine_arithmetic_conversions(operand_1, &operand_2);
         }  /* if */
         both_operands_are_arithmetic = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (cppcli_enabled &&
+                 (is_scoped_enum_type(operand_1->type) ||
+                  is_scoped_enum_type(operand_2.type))) {
+        /* In C++/CLI mode, scoped enumeration operands of the same time can
+           be added or subtracted. */
+        check_binary_scoped_enum_operation(operand_1, &operand_2,
+                                           &operation_type);
+        result_type = operation_type;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* Arithmetic +- non-arithmetic.  Error. */
         error_in_operand(expr_not_arithmetic_code(), &operand_2);
@@ -19389,6 +19442,17 @@ that case.
          vector types. */
     } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+    /* Do not insert code here. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled &&
+        (is_scoped_enum_type(operand_1->type) ||
+         is_scoped_enum_type(operand_2.type))) {
+      /* In C++/CLI mode, scoped enumeration operands of the same time can
+         be combined. */
+      check_binary_scoped_enum_operation(operand_1, &operand_2, &result_type);
+      op = which_binary_operator(operator_token, result_type);
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
     {
       (void)check_integral_or_enum_operand(operand_1);
