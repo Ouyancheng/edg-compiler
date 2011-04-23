@@ -1,5 +1,22 @@
 Version 4.4
 
+4/23/11  [EDGcpfe/11344]
+GNU compatibility, C-generating back end: empty compound literals
+
+When an initialization in --gcc mode contains an empty compound literal (a
+GNU extension), the code produced by the C-generating back end contained an
+incorrect "=" corresponding to the trivial initialization.  This has now
+been fixed.  For example:
+
+  struct A {
+    int* m;
+  };
+  void f() {
+    struct A a = { (int[]) {} };  // Previously resulted in "{ = }" in the
+                                  // generated C code
+  }
+
+
 4/21/11  [EDGcpfe/11650]
 Arithmetic conversions on scoped enumeration values (C++0x mode)
 

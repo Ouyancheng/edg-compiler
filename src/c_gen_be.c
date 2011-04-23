@@ -8092,6 +8092,10 @@ This is used for stmk_init statements.
     /* Initialization needs to be done.  It wasn't done by
        dump_variable_decl. */
     clear_initialization_flags(&icb);
+    /* Because this initialization is being done by assignments, make sure
+       that we don't inadvertently add an erroneous "=" preceding a
+       compound literal. */
+    icb.suppress_initializer_equals = TRUE;
     start_initializer_assignments(whole_variable, &icb);
     dump_dynamic_init(dip, &icb);
     end_initializer_assignments(whole_variable, &icb);
