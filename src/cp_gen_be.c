@@ -4807,8 +4807,21 @@ associated with the argument should be reactivated in such cases.
 {
   a_source_sequence_scan_state  saved_state;
   a_boolean                     is_decltype = tp->variant.typeref.is_decltype;
+  char                          *kwd;
 
-  write_tok_str((char*)(is_decltype ? "decltype(" : "__typeof__("));
+  if (is_decltype) {
+    if (gcc_is_generated_code_target) {
+      /* Current versions of g++ only accept the decltype keyword with
+         -std=c++0x; however, they accept __decltype in either mode, so use
+         the safer spelling. */
+      kwd = (char *)"__decltype(";
+    } else {
+      kwd = (char *)"decltype(";
+    }  /* if */
+  } else {
+    kwd = (char *)"__typeof__(";
+  }  /* if */
+  write_tok_str(kwd);
   if (tp->definition_delayed) {
     /* The decltype or typeof construct has associated source sequence entries.
        Save the current position in the source sequence stream and change it

@@ -18017,6 +18017,11 @@ of characters added.
               sun_is_generated_code_target) &&
              token == tok_alignof) {
     put_str_to_temp_text_buffer("__alignof");
+  } else if (gcc_is_generated_code_target && token == tok_decltype) {
+    /* Current versions of g++ only accept the decltype keyword with
+       -std=c++0x, but they accept __decltype in both modes.  Use the safer
+       form. */
+    put_str_to_temp_text_buffer("__decltype");
 #endif /* BACK_END_IS_CP_GEN_BE */
   } else {
     /* A keyword or other token whose literal name can be put out. */
