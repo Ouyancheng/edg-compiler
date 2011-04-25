@@ -1,5 +1,19 @@
 Version 4.4
 
+4/25/11  [EDGcpfe/11493]
+Abort on local declaration that does not declare anything
+
+The C++-generating back end previously aborted in gen_declaration on some
+local declarations that do not declare anything.  For example:
+
+  void f() {
+    int;   // Previously aborted in "gen_declaration".
+    int x;
+  }
+
+This is now fixed.
+
+
 4/23/11  [EDGcpfe/11344]
 GNU compatibility, C-generating back end: empty compound literals
 

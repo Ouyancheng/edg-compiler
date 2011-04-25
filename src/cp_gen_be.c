@@ -12453,7 +12453,18 @@ Generate the declaration associated with the given stmk_decl statement.
 #if CHECKING
   save_source_sequence_scan_state(&start_state);
 #endif /* CHECKING */
-  gen_declaration(/*for_init=*/FALSE);
+  if (curr_source_sequence_entry == NULL ||
+      ss_entry_kind(curr_source_sequence_entry) == iek_statement) {
+    /* Either no source sequence entry follows (at all), or the one that
+       follows is for the next statement: This can happen with (useless)
+       declarations like "int;".  No source sequence entry is recorded for
+       such a declaration: Do not attempt to render one. */
+#if CHECKING
+    check_assertion(ep == NULL);
+#endif /* CHECKING */
+  } else {
+    gen_declaration(/*for_init=*/FALSE);
+  }  /* if */
 #if CHECKING
   /* Check that the sequence of source sequence entries generated for this
      declaration statement matches the "declared entities" list recorded in
@@ -12477,8 +12488,7 @@ Generate the declaration associated with the given stmk_decl statement.
       entry_kind = (an_il_entry_kind)sec_decl->entity.kind;
     } else {
       entry_ptr = curr_source_sequence_entry->entity.ptr;
-      entry_kind =
-              (an_il_entry_kind)curr_source_sequence_entry->entity.kind;
+      entry_kind = (an_il_entry_kind)curr_source_sequence_entry->entity.kind;
     }  /* if */
     switch (entry_kind) {
       case iek_type:
