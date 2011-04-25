@@ -1456,7 +1456,9 @@ by octl.
           octl->output_name((char*)type, iek_type);
         } else {
           an_expr_node_ptr  expr = decltype_arg(type);
-          octl->output_str(use_gnu_form() ? "__decltype(" : "decltype(", octl);
+          octl->output_str((char *)(use_gnu_form() ? "__decltype(" :
+                                                     "decltype("),
+                           octl);
           if (expr != NULL) {
             if (!type->variant.typeref.decltype_expr_not_parenthesized) {
               octl->output_str("(", octl);
