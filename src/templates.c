@@ -14326,11 +14326,12 @@ declaration of a partial specialization declared outside of its class.
     friend_pos = pos_curr_token;
     friend_token_seen = TRUE;
     (void)get_token();
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled) {
-    cli_visibility = scan_cli_visibility_specifier_if_any(&cli_visibility_pos);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled) {
+    cli_visibility = scan_cli_visibility_specifier_if_any(&cli_visibility_pos);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   skip_illegal_class_template_decl_specifiers(/*diagnose=*/TRUE);
   switch (curr_token) {
     case tok_struct:
@@ -14800,18 +14801,6 @@ friend_template_checks_done:
         pos_sy_error(ec_already_defined, &locator.source_position, sym);
         err = TRUE;
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled && !err) {
-        a_type_ptr  class_type = 
-                          tssp->variant.class_template.prototype_instantiation
-                              ->variant.type.ptr;
-        if (class_type_supp(class_type)->cli_class_type_kind !=
-                                                              cli_type_kind) {
-          pos_sy_error(ec_conflicting_cli_class_template_kinds,
-                       &locator.source_position, sym);
-        }  /* if */
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (decl_state->decl_scope_err) err = TRUE;
       if ((is_definition || is_redecl) && sym != NULL) {
         /* Either a definition or a redeclaration.  Make sure the template
@@ -14861,6 +14850,18 @@ friend_template_checks_done:
                                 severity);
             if (mismatch && severity == es_error) err = TRUE;
           }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (cppcli_enabled && !err) {
+            a_type_ptr  class_type = 
+                          tssp->variant.class_template.prototype_instantiation
+                              ->variant.type.ptr;
+            if (class_type_supp(class_type)->cli_class_type_kind !=
+                                                              cli_type_kind) {
+              pos_sy_error(ec_conflicting_cli_class_template_kinds,
+                           &locator.source_position, sym);
+            }  /* if */
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } /* if */
       }  /* if */
     } else if (locator.is_qualified_name) {
