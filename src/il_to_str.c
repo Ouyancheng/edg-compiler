@@ -1455,10 +1455,17 @@ by octl.
              types. */
           octl->output_name((char*)type, iek_type);
         } else {
-          an_expr_node_ptr  expr = decltype_arg(type);
-          octl->output_str((char *)(use_gnu_form() ? "__decltype(" :
-                                                     "decltype("),
-                           octl);
+          an_expr_node_ptr expr = decltype_arg(type);
+          char             *kwd;
+          if (use_gnu_form() && octl->gen_compilable_code) {
+            /* Current versions of g++ only accept the decltype keyword
+               with -std=c++0x, but they accept __decltype in both modes,
+               so use the safer spelling. */
+            kwd = (char *)"__decltype(";
+          } else {
+            kwd = (char *)"decltype(";
+          }  /* if */
+          octl->output_str(kwd, octl);
           if (expr != NULL) {
             if (!type->variant.typeref.decltype_expr_not_parenthesized) {
               octl->output_str("(", octl);
