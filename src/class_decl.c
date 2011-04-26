@@ -13240,8 +13240,11 @@ declarations.
                                    (a_template_param_type_kind)tptk_member);
       /* Okay. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (decl_state->is_property_or_event_field) {
-      /* A property or event field doesn't need to have a complete type. */
+    } else if (decl_state->is_property_or_event_field &&
+               (class_state->property_or_event_descr == NULL ||
+                !class_state->property_or_event_descr->is_trivial)) {
+      /* A property or event field doesn't need to have a complete type
+         (except a C++/CLI trivial property). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       a_type_ptr  el_type = skip_array_types(field_type);
@@ -17998,6 +18001,15 @@ being parsed), *decl_info describes the current member declaration, and
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   pdp->definition_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (curr_token == tok_semicolon) {
+    /* A trivial scalar property or event.  Set the "is_trivial" flag before
+       calling decl_nonstatic_data_member since it determines whether an
+       incomplete type is permissible. */
+    pdp->is_trivial = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    pdp->definition_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
   if (pdp->is_static) {
     decl_static_data_member(&loc, class_state, decl_info);
     check_assertion(dps->sym != NULL &&
@@ -18009,12 +18021,7 @@ being parsed), *decl_info describes the current member declaration, and
                                                     depth_scope_stack);
   }  /* if */
   ctsp->has_direct_property_or_event = TRUE;
-  if (curr_token == tok_semicolon) {
-    /* A trivial scalar property or event. */
-    pdp->is_trivial = TRUE;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    pdp->definition_range.end = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (pdp->is_trivial) {
     if (is_property) {
       if (pdp->indices != NULL) {
         /* A trivial property cannot be an indexed property. */
