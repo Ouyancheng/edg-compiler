@@ -6484,6 +6484,136 @@ constant will be set as well.
   constant->type = expr->type;
 }  /* fold_is_convertible_to */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean microsoft_has_assign_predicate(a_type_ptr                type,
+                                                a_builtin_operation_kind  kind)
+/*
+Determine the value of the __has_assign or __has_nothrow_assign pseudo-function
+(as indicated by kind) applied to the given type in Microsoft mode.
+Ordinarily, the result for __has_nothrow_assign can be retrieved from a class'
+symbol supplement, but in Microsoft mode, the result can depend on the order
+of declaration of the assignment operators.
+*/
+{
+  a_class_symbol_supplement_ptr
+                cssp = symbol_supplement_for_class(type);
+  a_symbol_ptr  sym = cssp->assignment_operator;
+  a_boolean     is_list, result = FALSE, found_copy_assign = FALSE;
+
+  if (sym != NULL) {
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      is_list = TRUE;
+      sym = sym->variant.overloaded_function.symbols;
+    }  /* if */
+    for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+      if (sym->kind == (a_symbol_kind)sk_member_function) {
+        a_type_qualifier_set  qualifiers;
+        a_boolean             ref_param, is_base_class_match;
+        if (is_assignment_operator_for_copy(
+                    sym, /*move_assign_okay=*/FALSE, &ref_param,
+                    &qualifiers, &is_base_class_match)) {
+          a_routine_ptr  rp = sym->variant.routine.ptr;
+          if (kind == (a_builtin_operation_kind)bok_has_assign) {
+            /* __has_assign returns true for any user-declared or nontrivial
+               copy assignment (MSVC++ does not currently support defaulted
+               assignment operators; we treat them like any other user-declared
+               operators in that respect). */
+            found_copy_assign = TRUE;
+            if (!rp->compiler_generated || !rp->is_trivial_copy_function) {
+              result = TRUE;
+              break;
+            }  /* if */
+          } else if (!rp->compiler_generated) {
+            /* __has_nothrow_assign: Return TRUE if the copy assignment
+               operators are declared with "throw()" or a "nothrow"
+               attribute. */
+            found_copy_assign = TRUE;
+            result = rp->never_throws ||
+                     is_nothrow_type(skip_typerefs(rp->type));
+            /* Microsoft compilers only consider the first declared copy
+               assignment operator.  Since we store those operators in reverse
+               order of declaration, continue the loop in case another such
+               operator appears on the list. */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (!found_copy_assign &&
+      kind == (a_builtin_operation_kind)bok_has_nothrow_assign) {
+    /* If no copy assignment operator was found in the class, return the
+       flag as recorded in the class supplement (which is independent of the
+       declaration order of e.g. operator= in base classes). */
+    result = cssp->has_nothrow_assign;
+  }  /* if */
+  return result;
+}  /* microsoft_has_assign_predicate */
+
+
+static a_boolean microsoft_has_copy_predicate(a_type_ptr                type,
+                                              a_builtin_operation_kind  kind)
+/*
+Determine the value of the __has_copy or __has_nothrow_copy pseudo-function
+(as indicated by kind) applied to the given type in Microsoft mode.
+Ordinarily, the result for __has_nothrow_copy can be retrieved from a class'
+symbol supplement, but in Microsoft mode, the result can depend on the order
+of declaration of the constructors.
+*/
+{
+  a_class_symbol_supplement_ptr
+                cssp = symbol_supplement_for_class(type);
+  a_symbol_ptr  sym = cssp->constructor;
+  a_boolean     is_list, result = FALSE, found_copy_ctor = FALSE;
+
+  if (sym != NULL) {
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      is_list = TRUE;
+      sym = sym->variant.overloaded_function.symbols;
+    }  /* if */
+    for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+      if (sym->kind == (a_symbol_kind)sk_member_function) {
+        a_routine_ptr  rp = sym->variant.routine.ptr;
+        a_type_ptr     rtp = skip_typerefs(rp->type);
+        if (is_copy_constructor_type(rtp, type, (a_type_qualifier_set *)NULL,
+                                     /*include_move_ctors=*/FALSE,
+                                     /*is_declarative_context=*/TRUE)) {
+          if (kind == (a_builtin_operation_kind)bok_has_copy) {
+            /* __has_copy returns true for any user-declared or nontrivial
+               copy constructor (MSVC++ does not currently support defaulted
+               copy constructors; we treat them like any other user-declared
+               constructors in that respect). */
+            found_copy_ctor = TRUE;
+            if (!rp->compiler_generated || !rp->is_trivial_copy_function) {
+              result = TRUE;
+              break;
+            }  /* if */
+          } else if (!rp->compiler_generated) {
+            /* __has_nothrow_copy: Return TRUE if the copy constructors are
+               declared with "throw()" or a "nothrow" attribute. */
+            found_copy_ctor = TRUE;
+            result = rp->never_throws ||
+                     is_nothrow_type(skip_typerefs(rp->type));
+            /* Microsoft compilers only consider the first declared copy
+               constructor.  Since we store the constructors in reverse order
+               of declaration, continue the loop in case another copy
+               constructor appears on the list. */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (!found_copy_ctor &&
+      kind == (a_builtin_operation_kind)bok_has_nothrow_copy) {
+    /* If no copy constructor was found in the class, return the flag as
+       recorded in the class supplement (which is independent of the
+       declaration order of e.g. constructors in base classes). */
+    result = cssp->has_nothrow_copy;
+  }  /* if */
+  return result;
+}  /* microsoft_has_copy_predicate */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void fold_unary_type_trait_helper(
                                     an_expr_node_ptr   expr,
@@ -6584,115 +6714,30 @@ constant will be set as well.
     }  /* if */
     switch (kind) {
       case bok_has_assign:
-        /* If there is no copy assignment operator, then __has_assign returns
-           false, but __has_nothrow_assign returns true. */
-        check_assertion(microsoft_mode);
-        /*FALLTHROUGH*/
       case bok_has_nothrow_assign:
         check_assertion(cssp != NULL);  /* For Coverity. */
-        sym = cssp->assignment_operator;
-        result = (kind != (a_builtin_operation_kind)bok_has_assign);
-        if (sym == NULL) {
-          /* There is no copy assignment operator. */
-          goto result_known;
-        } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-          is_list = TRUE;
-          sym = sym->variant.overloaded_function.symbols;
+        if (!microsoft_mode) {
+          check_assertion(kind ==
+                            (a_builtin_operation_kind)bok_has_nothrow_assign);
+          result = cssp->has_nothrow_assign;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else {
+          result = microsoft_has_assign_predicate(type, kind);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
-        for (; sym != NULL; sym = is_list ? sym->next : NULL) {
-          if (sym->kind == (a_symbol_kind)sk_member_function) {
-            a_type_qualifier_set  qualifiers;
-            a_boolean             ref_param, is_base_class_match;
-            if (is_assignment_operator_for_copy(
-                        sym, /*move_assign_okay=*/FALSE, &ref_param,
-                        &qualifiers, &is_base_class_match)) {
-              a_routine_ptr  rp = sym->variant.routine.ptr;
-              if (kind == (a_builtin_operation_kind)bok_has_assign) {
-                /* __has_assign returns true for any user-declared or
-                   nontrivial copy assignment (MSVC++ does not currently
-                   support defaulted assignment operators; we treat them like
-                   any other user-declared operators in that respect). */
-                result = !rp->compiler_generated ||
-                         !rp->is_trivial_copy_function;
-                if (result) goto result_known;
-              } else {
-                /* __has_nothrow_assign: Return TRUE if the copy assignment
-                   operators are trivial or if they are declared with
-                   "throw()".  Microsoft compilers also return TRUE for
-                   certain compiler-generated nontrivial copy assignment
-                   operators, but we do not currently emulate that. */
-                result = rp->is_trivial_copy_function ||
-                         is_nothrow_type(skip_typerefs(rp->type));
-                if (microsoft_mode) {
-                  /* Microsoft compilers only consider the first declared copy
-                     assignment operator.  Since we store those operators in
-                     reverse order of declaration, continue the loop in case
-                     another such operator appears on the list. */
-                } else if (!result) {
-                  /* If any of the copy-assignment operators may throw an
-                     exception, __has_nothrow_assign should return FALSE (in
-                     non-Microsoft modes). */
-                  goto result_known;
-                }  /* if */
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        }  /* for */
         break;
       case bok_has_copy:
-        /* If there is no copy constructor, then __has_copy returns false,
-           but __has_nothrow_copy returns true. */
-        check_assertion(microsoft_mode);
-        /*FALLTHROUGH*/
       case bok_has_nothrow_copy:
         check_assertion(cssp != NULL);  /* For Coverity. */
-        sym = cssp->constructor;
-        result = (kind != (a_builtin_operation_kind)bok_has_copy);
-        if (sym == NULL) {
-          /* There is no copy constructor. */
-          goto result_known;
-        } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-          is_list = TRUE;
-          sym = sym->variant.overloaded_function.symbols;
+        if (!microsoft_mode) {
+          check_assertion(kind ==
+                              (a_builtin_operation_kind)bok_has_nothrow_copy);
+          result = cssp->has_nothrow_copy;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else {
+          result = microsoft_has_copy_predicate(type, kind);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
-        for (; sym != NULL; sym = is_list ? sym->next : NULL) {
-          if (sym->kind == (a_symbol_kind)sk_member_function) {
-            a_routine_ptr  rp = sym->variant.routine.ptr;
-            a_type_ptr     rtp = skip_typerefs(rp->type);
-            if (is_copy_constructor_type(rtp, type,
-                                         (a_type_qualifier_set *)NULL,
-                                         /*include_move_ctors=*/FALSE,
-                                         /*is_declarative_context=*/TRUE)) {
-              if (kind == (a_builtin_operation_kind)bok_has_copy) {
-                /* __has_copy returns true for any user-declared or nontrivial
-                   copy constructor (MSVC++ does not currently support
-                   defaulted copy constructors; we treat them like any other
-                   user-declared constructors in that respect). */
-                result = !rp->compiler_generated ||
-                         !rp->is_trivial_copy_function;
-                if (result) goto result_known;
-              } else {
-                /* __has_nothrow_copy: Return TRUE if the copy constructors are
-                   trivial or if they are declared with "throw()".  Microsoft
-                   compilers also return TRUE for certain compiler-generated
-                   nontrivial copy constructors, but we do not currently
-                   emulate that. */
-                result = rp->is_trivial_copy_function || is_nothrow_type(rtp);
-                if (microsoft_mode) {
-                  /* Microsoft compilers only consider the first declared copy
-                     constructor.  Since we store the constructors in reverse
-                     order of declaration, continue the loop in case another
-                     copy constructor appears on the list. */
-                } else if (!result) {
-                  /* If any of the copy-constructors may throw an exception,
-                     __has_nothrow_copy should return FALSE (in non-Microsoft
-                     modes). */
-                  goto result_known;
-                }  /* if */
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        }  /* for */
         break;
       case bok_has_nothrow_constructor:
         check_assertion(cssp != NULL);  /* For Coverity. */
