@@ -1,5 +1,19 @@
 Version 4.4
 
+4/27/11  [EDGcpfe/11658]
+Abort on qualified class declaration with attributes
+
+Previously, the front end could abort with an internal error in
+attach_tag_attributes when parsing a class declaration (but not a definition)
+using a qualified name and with explicit attributes.  For example:
+
+  namespace N { struct S {}; }
+  struct __declspec(dllimport) struct N::S;
+     // Previously triggered an internal error in Microsoft C++ mode.
+
+This is now fixed.
+
+
 4/27/11  [EDGcpfe/11653]
 Rendering class definitions appearing in block-extern function declarators
 

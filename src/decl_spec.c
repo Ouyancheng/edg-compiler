@@ -3756,16 +3756,18 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     } else if (is_class_definition || is_predeclared_type_decl ||
                ((curr_token == tok_semicolon ||
                  curr_token == tok_removed_template_body) &&
-                (vacuous_decl_allowed ||
-                 is_friend_decl || is_template_specific_decl)) ||
+                (vacuous_decl_allowed || is_friend_decl ||
+                 is_template_specific_decl || dps->tag_attributes != NULL)) ||
                previously_invisible) {
-      /* Vacuous declarations are not typically permitted to use qualified
-         names.  Exceptions are made for friend declarations and for
-         template specialization declarations.
-
-         A class name that was previously invisible, that is used in an
-         elaborated type specifier is now visible.  Treat such a transition
-         as a declaration. */
+      /* Vacuous declarations are not usually permitted to use qualified names
+         (even so, the declarations are accepted with warning in nonstrict
+         modes).  Exceptions are friend declarations and template
+         specialization declarations.  We also treat vacuous declarations with
+         attributes as actual declaration since the attributes may have a
+         significant declarative effect.
+         If an elaborated type specifier makes visible a class name that was
+         previously invisible (e.g., the first declaration was a friend), we
+         we treat the elaborated type specifier as a declaration. */
       srk_flags = SRK_DECLARATION;
       if (is_friend_decl) srk_flags |= SRK_FRIEND;
       if (is_class_definition) {
