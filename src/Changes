@@ -1,5 +1,21 @@
 Version 4.4
 
+4/27/11  [EDGcpfe/11653]
+Rendering class definitions appearing in block-extern function declarators
+
+In some modes (like Microsoft C mode), the C++-generating back end previously
+aborted with an internal error in check_for_and_take_source_seq_entry when
+attempting to render a class defined in the parameter list of a block-extern
+function declarator.  For example:
+
+  int f() {
+    void g(struct S { int i; } p);  // Triggered an abort in some modes.
+    return 0;
+  }
+
+This is now fixed.  (See also the entry of 5/26/10 for EDGcpfe/10706.)
+
+
 4/27/11  [EDGcpfe/11213]
 __has_nothrow_copy and __has_nothrow_assign
 

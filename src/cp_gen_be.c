@@ -1623,7 +1623,7 @@ static a_boolean curr_src_seq_entry_is_type_decl(
 Return TRUE if the current source sequence entry is for a type declaration
 (including a secondary declaration).  If so, set *type to the type, *sec_decl
 to the secondary declaration entry (or NULL if this is a primary declaration),
-and *is_definition TRUE if the declaration is a definition.
+and *is_definition to TRUE if the declaration is a definition.
 */
 {
   a_boolean is_type_decl = FALSE;
@@ -5086,13 +5086,14 @@ will be put out when they are encountered when generating the parameter types.
     if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
       /* There is a type declaration.  See if it is part of the prototype
          scope. */
-      if (il_header.source_language == sl_Cplusplus || microsoft_mode) {
-        /* In C++ (and in Microsoft C) class types declared in a parameter
-           list are not actually entered in the function prototype scope: The
-           type entry will thus not have its declared_in_function_prototype
-           flag set, but the secondary source sequence may have it set,
-           reflecting the lexical location of the declaration (but not its
-           scope). */
+      if ((il_header.source_language == sl_Cplusplus || microsoft_mode) &&
+          !is_definition) {
+        /* In C++ (and in Microsoft C) class types declared (but not defined)
+           in a parameter list are not actually entered in the function
+           prototype scope: The type entry will thus not have its
+           declared_in_function_prototype flag set, but the secondary source
+           sequence entry may have it set, reflecting the lexical location of
+           the declaration (but not its scope). */
         if (sec_decl != NULL && sec_decl->declared_in_func_prototype) {
           found_decl = TRUE;
         }  /* if */
