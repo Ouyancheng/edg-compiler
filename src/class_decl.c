@@ -19967,6 +19967,8 @@ Microsoft mode, additional checking is needed.)
     if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
       is_list = TRUE;
       sym = sym->variant.overloaded_function.symbols;
+    } else {
+      is_list = FALSE;
     }  /* if */
     for (; sym != NULL; sym = is_list ? sym->next : NULL) {
       if (sym->kind == (a_symbol_kind)sk_member_function) {
@@ -20003,6 +20005,8 @@ Microsoft mode, additional checking is needed.)
     if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
       is_list = TRUE;
       sym = sym->variant.overloaded_function.symbols;
+    } else {
+      is_list = FALSE;
     }  /* if */
     /* Look for a throwing copy assignment operator. */
     for (; sym != NULL; sym = is_list ? sym->next : NULL) {
