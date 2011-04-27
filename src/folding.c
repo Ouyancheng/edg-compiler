@@ -6499,7 +6499,7 @@ of declaration of the assignment operators.
   a_class_symbol_supplement_ptr
                 cssp = symbol_supplement_for_class(type);
   a_symbol_ptr  sym = cssp->assignment_operator;
-  a_boolean     is_list, result = FALSE, found_copy_assign = FALSE;
+  a_boolean     is_list = FALSE, result = FALSE, found_copy_assign = FALSE;
 
   if (sym != NULL) {
     if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
@@ -6564,7 +6564,7 @@ of declaration of the constructors.
   a_class_symbol_supplement_ptr
                 cssp = symbol_supplement_for_class(type);
   a_symbol_ptr  sym = cssp->constructor;
-  a_boolean     is_list, result = FALSE, found_copy_ctor = FALSE;
+  a_boolean     is_list = FALSE, result = FALSE, found_copy_ctor = FALSE;
 
   if (sym != NULL) {
     if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
