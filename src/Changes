@@ -9,7 +9,7 @@ declaration (but not a definition) using a qualified name and with explicit
 attributes.  For example:
 
   namespace N { struct S {}; }
-  struct __declspec(dllimport) struct N::S;
+  struct __declspec(dllimport) N::S;
      // Previously triggered an internal error in Microsoft C++ mode.
 
 This is now fixed.
