@@ -1,5 +1,25 @@
 Version 4.4
 
+4/27/11  [EDGcpfe/11213]
+__has_nothrow_copy and __has_nothrow_assign
+
+Previously, the type trait pseudo-functions __has_nothrow_copy and
+__has_nothrow_assign produced a "true" value only when the corresponding
+copying function (constructor or assignment operator) was trivial or
+explicitly declared with a "throw()" exception specification.  For example:
+
+  struct S { virtual ~S(); };     // Not trivially copyable because the class
+                                  // contains a virtual function.
+  int i = __has_nothrow_copy(S);  // Previously, i was initialized to 0;
+                                  // now, it is initialized to 1.
+
+Now, the front end uses a more precise algorithm to determine whether copy
+constructors and copy assignment operators can throw.  The resulting values
+for __has_nothrow_copy and __has_nothrow_assign are closer to those produced
+with Microsoft and GNU compilers (in the case of Microsoft, we know of no
+difference in this regard).
+
+
 4/25/11  [EDGcpfe/11611]
 GNU compatibility, C++-generating back end: spelling of "decltype"
 
