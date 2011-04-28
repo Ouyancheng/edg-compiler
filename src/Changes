@@ -1,5 +1,25 @@
 Version 4.4
 
+4/28/11  [EDGcpfe/11664]
+Source positions on stmk_init and stmk_vla_decl statements added by lowering
+
+Generally speaking, statements added by lowering have no statement positions
+(thereby indicating that they are compiler generated).  Back ends can typically
+assume that a statement with no position information should be treated as
+having the same position information as the previous statement.  This heuristic
+didn't work with stmk_init and stmk_vla_decl statements that are added prior
+to the statement being lowered (thus, when using the heuristic, appearing to
+be part of the previous statement).  These statements are now given the
+source position of the statement that caused their creation.  This example
+(with --g++) has both stmk_init and stmk_vla_decl lowered statements
+(when LOWER_VARIABLE_LENGTH_ARRAYS is FALSE):
+
+  void f(int i) {
+    i = 1;
+    (int (*)[i*2]) { 0 };
+  }
+
+
 4/27/11  [EDGcpfe/11658]
 Abort on qualified class declaration with attributes
 

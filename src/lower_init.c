@@ -9716,6 +9716,12 @@ void add_to_end_of_temp_init_statements_list(a_statement_ptr stmt)
 Add the indicated statement to the end of the temp_init_statements list.
 */
 {
+  check_assertion(seq_number_from_stmt_source_position(stmt->position) == 0);
+  /* Set the statement's position to the current position (otherwise
+     this statement might be mistaken by a back end as being part of the
+     previous statement).  Applies to both compound literals and VLAs (when
+     they're not being lowered). */
+  set_stmt_pos_to_code_pos_for_lowering(stmt);
   if (temp_init_statements == NULL) {
     temp_init_statements = stmt;
   } else {
