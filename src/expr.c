@@ -23542,8 +23542,10 @@ if rescan_is_template_id is TRUE, and return the result in *operand
   a_source_position  end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean          cppcli_overloaded_case = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean          allow_addr_of_managed_member = 
                               (local_options & EOPT_DELEGATE_INITIALIZER) != 0;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_identifier");
 #if CHECKING
