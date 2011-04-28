@@ -740,6 +740,14 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_no_matching_arity)*/
 /*lint -esym(759,convert_arg_operand_list_to_expr_list)*/
 /*lint -esym(765,convert_arg_operand_list_to_expr_list)*/
+/*lint -esym(769,ec_bad_function_for_delegate)*/
+/*lint -esym(769,ec_ambiguous_function_for_delegate)*/
+/*lint -esym(769,ec_mismatched_function_for_delegate)*/
+/*lint -esym(769,ec_missing_delegate_object)*/
+/*lint -esym(769,ec_nonmanaged_function_for_delegate)*/
+/*lint -esym(769,ec_superfluous_delegate_object)*/
+/*lint -esym(769,ec_incompatible_delegate_object)*/
+/*lint -esym(769,ec_address_of_managed_member_function)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_enum)*/
