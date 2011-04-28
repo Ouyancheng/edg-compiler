@@ -2846,7 +2846,9 @@ implement an interface member.
           /* Get the next routine on the list. */
         }  /* for */
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
 next_base:;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Get the next base class. */
     }  /* for */
   }  /* if */
