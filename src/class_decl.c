@@ -3363,18 +3363,21 @@ done:
 }  /* record_virtual_function_override */
 
 
-#if !ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+#if !ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN || \
+    !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* class_type is used only to support covariant return types. */
-#endif /* !ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#endif /* !ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN || ... */
 static a_boolean return_types_are_override_compatible(
                                  a_type_ptr        type_of_overriding_routine,
                                  a_type_ptr        type_of_overridden_routine,
                                  a_base_class_ptr  *return_adjustment_bcp,
                                  a_symbol_ptr      overridden_sym,
+                                 a_class_def_state *class_state,
                                  a_source_position *diag_pos)
 /*
-Given the routine types of overriding and overridden virtual functions,
-return TRUE if the return types are identical or "covariant" (WP 10.3).
+Given the routine types of overriding and overridden virtual functions, return
+TRUE if the return types are identical or "covariant".  The overriding function
+is being declared in the class definition described by class_state.
 Covariance means both return types are references or pointers to class types
 that are related by derivation, where the class associated with the overridden
 function is a base class of the class associated with the overriding function.
@@ -3472,12 +3475,21 @@ the overridden symbol.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (!compatible &&
-      !((gpp_mode || microsoft_mode) &&
-        is_prototype_instantiation_context())) {
+  /* Issue an incompatibility diagnostic if needed. */
+  if (compatible) {
+    /* Nothing more to do. */
+  } else if ((gpp_mode || microsoft_mode) &&
+             is_prototype_instantiation_context()) {
+    /* GNU and Microsoft compilers appear not to check return type
+       compatibility during prototype instantiations. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cli_class_type_kind_is(class_state->class_type, cctk_interface)) {
+    /* A derived C++/CLI interface can validly contain a member whose type and
+       name match except for the return type: Do no issue a diagnostic. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else {
     /* Error -- return type must be identical to or covariant with that of the
-       overridden function.  (GNU and Microsoft compilers appear not to check
-       this during prototype instantiations.) */
+       overridden function. */
     an_error_code  error_code =
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
                         ec_bad_return_type_on_virtual_function_override;
@@ -4503,7 +4515,8 @@ next_named_override:
             /* The parameter types correspond; now compare the return types. */
             if (!return_types_are_override_compatible(rout->type, rp->type,
                                                       &return_adjustment_bcp,
-                                                      sym, source_pos)) {
+                                                      sym, class_state,
+                                                      source_pos)) {
               /* Since, except for the return types, there is a match, there
                  is no need to look any further in the current base class.
                  Advance to the next base class. */
