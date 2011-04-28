@@ -749,6 +749,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_incompatible_delegate_object)*/
 /*lint -esym(769,ec_address_of_managed_member_function)*/
 /*lint -esym(769,ec_bad_delegate_init_list)*/
+/*lint -esym(769,ec_interface_not_implemented)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_enum)*/
