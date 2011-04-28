@@ -2748,28 +2748,50 @@ static void check_abstract_class(a_type_ptr  class_type)
 If the current class is not already marked as "abstract", run through its
 base classes to determine whether it is "abstract by inheritance" (i.e.,
 if it inherits any pure virtual functions which are not redeclared in the
-current class -- see ARM 10.3).  If it is, mark the class accordingly.
+current class).  If it is, mark the class accordingly.  Also, if the class
+is a C++/CLI ref class or value class, issue a diagnostic if it fails to
+implement an interface member.
 */
 {
   a_base_class_ptr                    bcp;
   a_class_type_supplement_ptr         bctsp;
   a_routine_ptr                       rp;
   an_overriding_virtual_function_ptr  ovfp;
+  a_boolean                           check_abstract, check_interfaces;
 
   db_enter(4, "check_abstract_class");
-  if (class_type->variant.class_struct_union.abstract) {
-    /* The class is already marked "abstract", presumably as a result of
-       having one or more pure virtual member functions. */
-  } else if (class_type->variant.class_struct_union.is_nonreal_class) {
+  if (class_type->variant.class_struct_union.is_nonreal_class) {
     /* If the class is nonreal and not marked abstract, it could only be
        abstract because it doesn't override an inherited pure virtual.
        However, if that pure virtual member function comes from a dependent
-       base we cannot make a good decision yet. */
+       base we cannot make a good decision yet.  Similarly, interface
+       compliance cannot be checked reliably. */
+    check_abstract = FALSE;
+    check_interfaces = FALSE;
   } else {
-    /* The class was not already marked "abstract".  Go through its base
-       classes to look for a pure virtual function that is inherited without
-       an intervening declaration that overrides it. */
+    /* If we already know that the given class type is abstract (e.g.,
+       because it contains a pure virtual member declaration), we need not
+       search for a non-overridden pure virtual member among the base
+       classes.  However, for ref and value classes, we must still check
+       for non-overridden interface members (which are also implicitly
+       pure). */
+    check_abstract = !class_type->variant.class_struct_union.abstract;
+    check_interfaces = cppcli_enabled &&
+                       class_type_supp(class_type)->assembly_index == 0 &&
+                       (cli_class_type_kind_is(class_type, cctk_ref) ||
+                        cli_class_type_kind_is(class_type, cctk_value));
+  }  /* if */
+  if (check_abstract || check_interfaces) {
+    /* Traverse the base classes to look for a pure virtual function that is
+       inherited without an intervening declaration that overrides it. */
     for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (!check_abstract &&
+          !cli_class_type_kind_is(bcp->type, cctk_interface)) {
+        /* We are only checking C++/CLI interface bases. */
+        goto next_base;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (bcp->type->variant.class_struct_union.any_pure_virtual_functions) {
         /* This base class *is* abstract, with at least one pure virtual
            function.  For each of the base class's pure virtual functions,
@@ -2799,6 +2821,21 @@ current class -- see ARM 10.3).  If it is, mark the class accordingly.
                  function is therefore inherited, and so the derived class
                  is also abstract. */
               class_type->variant.class_struct_union.abstract = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              if (check_interfaces) {
+                if (cli_class_type_kind_is(bcp->type, cctk_interface)) {
+                  /* A base interface member is not overridden (i.e., not
+                     implemented): Issue an error. */
+                  pos_sy_error(ec_interface_not_implemented, &error_position,
+                               symbol_for(rp));
+                } else {
+                  /* We now know the class is abstract, but we don't yet know
+                     if it implements all its interfaces. */
+                  check_abstract = FALSE;
+                  goto next_base;
+                }  /* if */
+              }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               goto done;
             }  /* if */
             /* An overriding virtual function was found, so the pure
@@ -2807,6 +2844,7 @@ current class -- see ARM 10.3).  If it is, mark the class accordingly.
           /* Get the next routine on the list. */
         }  /* for */
       }  /* if */
+next_base:;
       /* Get the next base class. */
     }  /* for */
   }  /* if */
