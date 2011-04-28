@@ -2757,7 +2757,7 @@ implement an interface member.
   a_class_type_supplement_ptr         bctsp;
   a_routine_ptr                       rp;
   an_overriding_virtual_function_ptr  ovfp;
-  a_boolean                           check_abstract, check_interfaces;
+  a_boolean                           check_abstract, check_interfaces = FALSE;
 
   db_enter(4, "check_abstract_class");
   if (class_type->variant.class_struct_union.is_nonreal_class) {
@@ -2776,10 +2776,12 @@ implement an interface member.
        for non-overridden interface members (which are also implicitly
        pure). */
     check_abstract = !class_type->variant.class_struct_union.abstract;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     check_interfaces = cppcli_enabled &&
                        class_type_supp(class_type)->assembly_index == 0 &&
                        (cli_class_type_kind_is(class_type, cctk_ref) ||
                         cli_class_type_kind_is(class_type, cctk_value));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (check_abstract || check_interfaces) {
     /* Traverse the base classes to look for a pure virtual function that is
