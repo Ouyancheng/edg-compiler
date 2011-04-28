@@ -13164,6 +13164,7 @@ as NULL if there is an error.
   a_type_ptr   class_type = NULL;
   a_type_ptr   type, needed_type = NULL;
   a_boolean    err = FALSE;
+  a_boolean    template_case = FALSE;
 
   check_assertion(cppcli_enabled && is_delegate_type(new_type));
   add_matching_stop_token(tok_rparen);
@@ -13207,9 +13208,12 @@ as NULL if there is an error.
     } else if (is_ptr_to_member_type(type)) {
       func_type = pm_member_type(type);
       class_type = pm_class_type(type);
+    } else if (is_template_param_type(type)) {
+      template_case = TRUE;
     }  /* if */
-    if (func_type == NULL ||
-        !is_function_type(func_type)) {
+    if (!template_case &&
+        (func_type == NULL ||
+         !is_function_type(func_type))) {
       /* The function operand is not a function. */
       if (!is_error_type(type) &&
           (func_type == NULL || !is_error_type(func_type))) {
@@ -13310,7 +13314,9 @@ as NULL if there is an error.
   if (!err) {
     /* See whether the function operand matches the desired type, i.e.,
        whether it has the right parameter and return types. */
-    if (is_indefinite_function_operand(function_operand)) {
+    if (template_case) {
+      prep_generic_operand(function_operand);
+    } else if (is_indefinite_function_operand(function_operand)) {
       /* For an overloaded function, we have to select the one that matches
          based on the type.  We suppress the final adjustment cast so
          we get the raw type based on the function and not adjusted
@@ -13338,7 +13344,10 @@ as NULL if there is an error.
   }  /* if */
   if (!err && object_operand != NULL) {
     /* Check the validity of the object operand. */
-    if (class_type == NULL) {
+    if (is_template_dependent_type(object_operand->type)) template_case = TRUE;
+    if (template_case) {
+      prep_generic_operand(object_operand);
+    } else if (class_type == NULL) {
       /* No object is needed for a static function. */
       expr_pos_error(ec_superfluous_delegate_object,
                      &object_operand->position);
