@@ -15038,6 +15038,7 @@ by an "&" in the source, and *ampersand_position gives its position.
   a_boolean    has_required_ampersand = (ampersand_position != NULL &&
                                          /* Watch out for &(A::f). */
                                          operand->is_id_expression);
+  a_boolean    allow_addr_of_managed_member = FALSE;
 
   orig_operand = *operand;
   check_assertion(is_sym_for_member_operand(operand));
@@ -15047,6 +15048,9 @@ by an "&" in the source, and *ampersand_position gives its position.
        operator. */
     orig_operand.position = *ampersand_position;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  allow_addr_of_managed_member = operand->allow_addr_of_managed_member;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Make an operand for a pointer-to-member constant. */
   make_ptr_to_member_constant_operand(member_sym, member_sym,
                                       &orig_operand.position,
@@ -15054,8 +15058,7 @@ by an "&" in the source, and *ampersand_position gives its position.
                                       !operand->access_control_error_reported,
                                       (a_boolean)operand->is_qualified_name,
                                       has_required_ampersand,
-                                      (a_boolean)orig_operand.
-                                                  allow_addr_of_managed_member,
+                                      allow_addr_of_managed_member,
                                       operand);
   /* Restore the original source position, etc. */
   restore_operand_details_incl_ref(operand, &orig_operand);
