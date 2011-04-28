@@ -2216,7 +2216,6 @@ ec_superfluous_delegate_object;;"invalid delegate initializer -- object is not n
 ec_incompatible_delegate_object;;"invalid delegate initializer -- object has type %t1 but type %t2 is expected"
 ec_address_of_managed_member_function;;"taking the address of a member function of a managed class is not allowed"
 ec_bad_delegate_init_list;;"invalid delegate initializer -- expected either \"(<function-address>)\" or \"(<object-handle>, <member-address>)\""
-ec_bad_delegate_init_list;;"invalid delegate initializer -- should be (function) or (object, function)"
 ec_interface_not_implemented;;"class fails to implement interface member %nd"
 ###############################################################################
 #                                                             \  ___  /       #
