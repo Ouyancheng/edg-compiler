@@ -385,6 +385,12 @@ typedef struct an_operand {
   a_bit_field	caused_template_instantiation:1;
 			/* TRUE if scanning this operand caused a template
 			   to be instantiated. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	allow_addr_of_managed_member:1;
+			/* TRUE if this operand is for a function scanned in
+			   a C++/CLI context where it's okay to take the
+			   address of a member of a managed class. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_name_reference
 		name_reference;
 			/* Records the form of reference to a name, for
@@ -1452,6 +1458,7 @@ extern void make_ptr_to_member_constant_operand(
                                     a_boolean         check_protected_access,
                                     a_boolean         is_qualified_name,
                                     a_boolean         has_required_ampersand,
+                                    a_boolean         allow_on_managed,
                                     an_operand        *result);
 
 extern a_boolean check_object_pointer_operand(an_operand    *operand,
@@ -1852,6 +1859,8 @@ extern void make_call_rescan_operands(
                              a_token_sequence_number *operator_tok_seq_number,
                              a_source_position       *closing_paren_position);
 
+extern an_expr_node_ptr alloc_node_for_constant_operand(an_operand *operand);
+
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 
 extern
@@ -1893,7 +1902,8 @@ extern void conv_indefinite_function_operand_to_unknown_dependent_function(
 extern void cast_overloaded_function(a_type_ptr type_cast_to,
                                      an_operand *operand,
                                      a_boolean  is_cast,
-                                     a_boolean  is_static_cast);
+                                     a_boolean  is_static_cast,
+                                     a_boolean  skip_final_adjustment);
 
 extern
 void cast_operand_full(a_type_ptr        new_type,

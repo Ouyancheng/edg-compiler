@@ -2080,6 +2080,9 @@ do_set_proper_definition_needed_flag:
         conditionally_clear_fe_pointer(ptr->next);
         if (ptr->is_class) {
           walk_ptr(ptr->qualifier.class_type, a_type_ptr, iek_type);
+          /* "if_class" test is needed because the qualifier can be an
+             enum in Microsoft mode. */
+          definition_needed_if_class(ptr->qualifier.class_type);
         } else {
           walk_ptr(ptr->qualifier.namespace_ptr, a_namespace_ptr,
                    iek_namespace);

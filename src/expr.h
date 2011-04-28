@@ -68,6 +68,10 @@ expr.h -- Declarations related to expression parsing.
 #define EOPT_OPERAND_OF_OFFSETOF 0x100
 			/* This expression is in the top-level chain of the
 			   second operand of __builtin_offsetof. */
+#define EOPT_DELEGATE_INITIALIZER 0x200
+			/* This expression is a top-level expression in the
+			   initializer for a C++/CLI gcnew of a delegate
+			   type. */
 #define EOPT_NO_OPTIONS 0
 
 typedef int a_local_expr_options_set;

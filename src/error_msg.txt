@@ -2207,6 +2207,14 @@ ec_too_few_generic_args;;"too few arguments for %nf"
 ec_too_many_generic_args;;"too many arguments for %nf"
 ec_generic_class;INTERNAL;"generic class"
 ec_no_matching_arity;;"no declaration of %nf accepts the number of generic arguments supplied"
+ec_bad_function_for_delegate;;"invalid delegate initializer -- must be a function"
+ec_ambiguous_function_for_delegate;;"invalid delegate initializer -- more than one function matches the delegate type"
+ec_mismatched_function_for_delegate;;"invalid delegate initializer -- function does not match the delegate type"
+ec_missing_delegate_object;;"invalid delegate initializer -- an object is needed in addition to a function"
+ec_nonmanaged_function_for_delegate;;"invalid delegate initializer -- function is not a member of a managed class"
+ec_superfluous_delegate_object;;"invalid delegate initializer -- object is not needed for the specified function"
+ec_incompatible_delegate_object;;"invalid delegate initializer -- object has type %t1 but type %t2 is expected"
+ec_address_of_managed_member_function;;"taking the address of a member function of a managed class is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

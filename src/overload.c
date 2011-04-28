@@ -7325,6 +7325,7 @@ intermediate language (operand should be NULL in that case).
   a_boolean         eff_address_taken = address_taken;
   a_boolean         is_qualified_name = FALSE;
   a_boolean         has_required_ptr_to_member_form = FALSE;
+  a_boolean         allow_addr_of_managed_member = FALSE;
   a_source_position *ampersand_position = NULL;
   a_source_position *function_position;
   a_source_position *function_end_position;
@@ -7354,6 +7355,10 @@ intermediate language (operand should be NULL in that case).
     } else {
       id_position = function_position;
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    allow_addr_of_managed_member =
+                           orig_function_operand->allow_addr_of_managed_member;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     check_assertion(call_position != NULL);
     function_position = function_end_position = id_position = call_position;
@@ -7449,6 +7454,7 @@ intermediate language (operand should be NULL in that case).
                                               !*access_error_reported,
                                               is_qualified_name,
                                               has_required_ptr_to_member_form,
+                                              allow_addr_of_managed_member,
                                               operand);
           operand->ref_entries_list = rep;
           change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
@@ -7459,6 +7465,9 @@ intermediate language (operand should be NULL in that case).
                                            function_position,
                                            function_end_position,
                                            rep, operand);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          operand->allow_addr_of_managed_member = allow_addr_of_managed_member;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           if (!result_is_lvalue) {
             /* Convert the operand to a function pointer.  Note the use of
                a special routine that will convert a nonstatic member

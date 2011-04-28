@@ -2784,9 +2784,11 @@ Do the output in the way described by octl.
   an_il_entry_kind        entry_kind;
   a_base_class_ptr        bcp =
                             constant->variant.ptr_to_member.casting_base_class;
+  a_boolean               function_case =
+                               constant->variant.ptr_to_member.is_function_ptr;
 
   /* See if this is a pointer to data member or pointer to member function. */
-  if (constant->variant.ptr_to_member.is_function_ptr) {
+  if (function_case) {
     a_routine_ptr rout = constant->variant.ptr_to_member.variant.routine;
     if (rout != NULL) scp = &rout->source_corresp;
     entry_kind = iek_routine;
@@ -2846,7 +2848,7 @@ Do the output in the way described by octl.
            adjust the member type, if necessary. */
         a_type_ptr new_member_type = pm_member_type(con_type);
         a_type_ptr member_type = NULL, member_class;
-        if (constant->variant.ptr_to_member.is_function_ptr) {
+        if (function_case) {
           a_routine_ptr rout = constant->variant.ptr_to_member.variant.routine;
           if (rout != NULL) {
             member_type = rout->type;
@@ -2903,7 +2905,8 @@ Do the output in the way described by octl.
                    !(octl->output_name_reference != NULL &&
                      octl->output_name_reference(
                                 constant->variant.ptr_to_member.name_reference,
-                                scp, iek_constant, /*is_declaration=*/FALSE));
+                                scp, entry_kind,
+                                /*is_declaration=*/FALSE));
       }
     } else {
       /* There's no name reference available; use a qualified name. */

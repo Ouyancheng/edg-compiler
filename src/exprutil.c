@@ -1703,6 +1703,9 @@ values.
   operand->is_parenthesized = FALSE;
   operand->name_reference_set = FALSE;
   operand->caused_template_instantiation = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  operand->allow_addr_of_managed_member = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   operand->ruled_out_expr_kinds = ROEK_NONE;
   operand->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -3501,6 +3504,45 @@ it (using information from rcblock), and return the substituted type in
 }  /* make_type_operand_rescan_type */
 
 
+an_expr_node_ptr alloc_node_for_constant_operand(an_operand *operand)
+/*
+Allocate an enk_constant expression node for the given constant operand,
+and return a pointer to it.
+*/
+{
+  an_expr_node_ptr node;
+  a_constant_ptr   con;
+  a_constant       local_con;
+
+  check_assertion(is_constant_operand(operand));
+  con = &operand->variant.constant;
+  if (operand->name_reference_set &&
+      con->kind == (a_constant_repr_kind)ck_ptr_to_member) {
+    /* Pointer-to-member constants have their own name_reference field.
+       Transfer the name reference information to the allocated constant. */
+    a_source_correspondence_ptr obj;
+    if (con->variant.ptr_to_member.is_function_ptr) {
+      obj =
+         (a_source_correspondence *)con->variant.ptr_to_member.variant.routine;
+    } else {
+      obj =
+           (a_source_correspondence *)con->variant.ptr_to_member.variant.field;
+    }  /* if */
+    /* The object pointer is NULL for NULL pointers-to-members. */
+    if (obj != NULL) {
+      copy_constant(con, &local_con);
+      local_con.variant.ptr_to_member.name_reference =
+                  find_allocated_name_reference(obj, &operand->name_reference);
+      con = &local_con;
+    }  /* if */
+  }  /* if */
+  node = alloc_node_for_constant(con);
+  copy_operand_position_to_expr(operand, node);
+  node->is_lvalue = is_an_lvalue(operand);
+  return node;
+}  /* alloc_node_for_constant_operand */
+
+
 static an_expr_node_ptr extract_node_from_operand(an_operand *operand)
 /*
 Extract an expression from an operand.  If the operand contains a
@@ -3530,9 +3572,7 @@ instead.
     case ok_constant:
       /* Create a constant node and copy the constant in the operand to the
          node. */
-      node = alloc_node_for_constant(&operand->variant.constant);
-      copy_operand_position_to_expr(operand, node);
-      node->is_lvalue = is_an_lvalue(operand);
+      node = alloc_node_for_constant_operand(operand);
       break;
 #if CHECKING
     default:
@@ -5464,7 +5504,8 @@ function to be selected is not known.
 void cast_overloaded_function(a_type_ptr type_cast_to,
                               an_operand *operand,
                               a_boolean  is_cast,
-                              a_boolean  is_static_cast)
+                              a_boolean  is_static_cast,
+                              a_boolean  skip_final_adjustment)
 /*
 Cast an operand for an overloaded function (*operand) to type_cast_to.
 If type_cast_to is a pointer, reference, or pointer-to-member type, the cast
@@ -5472,7 +5513,9 @@ can serve to select one of the functions in the overload set.  See [over.over].
 If it doesn't, an error is issued.  If is_cast is TRUE, the disambiguation
 is being done via an explicit cast (a static_cast if is_static_cast is
 TRUE, otherwise an old-style or functional-notation cast); otherwise, it's
-implicit by context.
+implicit by context.  If skip_final_adjustment is TRUE, do not do the
+final type adjustment to get to type_cast_to; leave the operand as the
+raw type based on the function selected.
 */
 {
   an_arg_match_level match_level;
@@ -5516,6 +5559,10 @@ implicit by context.
                                  operand,
                                  &access_error_reported);
     restore_operand_details_incl_ref(operand, &orig_operand);
+    if (!is_cast) {
+      restore_operand_id_details(operand, &orig_operand);
+      restore_operand_form_of_name_reference(operand, &orig_operand);
+    }  /* if */
   } else if (unknown_dependent_function) {
     /* The cast occurs in a prototype instantiation and it is not possible
        to determine which function to use. */
@@ -5534,7 +5581,9 @@ implicit by context.
   /* If the pointer to member is to a related class, or the pointer
      to function differs because of a conversion (e.g., a C++ vs.
      C linkage on the function type), adjust the operand. */
-  if (!reference_case) {
+  if (skip_final_adjustment) {
+    /* Skip that final adjustment if told to do so. */
+  } else if (!reference_case) {
     /* This also takes care of recording the cast as part of the
        expression representation of the constant. */
     cast_operand_full(type_cast_to, operand,
@@ -5740,7 +5789,8 @@ user-defined conversions.
            the legality of such casts is checked by conversion_possible.
            A cast cannot get here unless allowed by that routine. */
         cast_overloaded_function(new_type, operand, !is_implicit_cast,
-                                 /*is_static_cast=*/FALSE);
+                                 /*is_static_cast=*/FALSE,
+                                 /*skip_final_adjustment=*/FALSE);
         break;
 #if CHECKING
       default:
@@ -11240,6 +11290,9 @@ returned should only be used locally and not linked into the IL tree.
 }  /* var_constant_value */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- allow_on_managed is not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/  /* <-- end_position is not used in that case. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -11251,6 +11304,7 @@ void make_ptr_to_member_constant_operand(
                                     a_boolean         check_protected_access,
                                     a_boolean         is_qualified_name,
                                     a_boolean         has_required_ampersand,
+                                    a_boolean         allow_on_managed,
                                     an_operand        *result)
 /*
 Make an operand for a constant representing a C++ pointer to member.
@@ -11264,15 +11318,16 @@ protected member, do the ARM 11.5 protected member access check.
 The name that generated this pointer-to-member constant is a qualified
 name if is_qualified_name is TRUE; it is the immediate operand of a "&"
 operator (with not even parentheses allowed to intervene) if
-has_required_ampersand is TRUE.  If the member is a bit field, issue
-an error.  
+has_required_ampersand is TRUE.  If member_sym is a member of a
+C++/CLI managed class, issue an error unless allow_on_managed is
+TRUE.  If the member is a bit field, issue an error.  
 */
 {
   a_symbol_ptr base_member_sym = fundamental_symbol_of(member_sym);
   a_constant   constant;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled &&
+  if (cppcli_enabled && !allow_on_managed &&
       is_managed_class_type(sym_parent_class(member_sym))) {
     /* You can't take a pointer-to-member of a member of a C++/CLI managed
        class. */
@@ -14999,6 +15054,8 @@ by an "&" in the source, and *ampersand_position gives its position.
                                       !operand->access_control_error_reported,
                                       (a_boolean)operand->is_qualified_name,
                                       has_required_ampersand,
+                                      (a_boolean)orig_operand.
+                                                  allow_addr_of_managed_member,
                                       operand);
   /* Restore the original source position, etc. */
   restore_operand_details_incl_ref(operand, &orig_operand);
@@ -15033,6 +15090,20 @@ by an "&" operator and *ampersand_position gives its position.
   orig_operand = *operand;
   expr = make_node_from_operand(operand);
   check_assertion(expr->is_lvalue || is_error_node(expr));
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && !will_call &&
+      !operand->allow_addr_of_managed_member) {
+    a_routine_ptr rout = routine_from_function_expr(expr);
+    if (rout != NULL &&
+        rout->source_corresp.is_class_member &&
+        is_managed_class_type(parent_class_of(rout))) {
+      /* In C++/CLI, it's illegal to take the address of a member of a
+         managed class (except in certain exceptional contexts). */
+      expr_pos_error(ec_address_of_managed_member_function,
+                     &operand->position);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Try to fold to a constant address in a context that prefers a
      constant result.   However, if we're going to call this function,
      stay in expression form because a call is inherently non-constant

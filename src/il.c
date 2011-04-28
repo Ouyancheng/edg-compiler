@@ -9028,7 +9028,7 @@ building a type from nested declarators outward.  class_type must be non-NULL.)
     }  /* if */
   }  /* if */
   return tp;
-}  /* ptr_to_member_type */
+}  /* ptr_to_member_type_full */
 
 
 a_type_ptr related_member_type(a_type_ptr member_type,

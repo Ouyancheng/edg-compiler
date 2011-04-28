@@ -7549,8 +7549,9 @@ and return the result in *result (or an error indication in *rcblock).
 }  /* scan_prefix_incr_decr */
 
 
-static void scan_ampersand_operator(a_rescan_control_block *rcblock,
-                                    an_operand             *result)
+static void scan_ampersand_operator(a_rescan_control_block    *rcblock,
+                                    an_operand                *result,
+                                    a_local_expr_options_set  local_options)
 /*
 Scan the "&" (address of) operator.  The current token is the operator.
 Scan the operand, build an expression, and return an operand for that in
@@ -7643,7 +7644,9 @@ error indication in *rcblock).
     if (rcblock == NULL) {
       /* Scan the operand. */
       scan_expr(&operand, PREC_PREFIX,
-                EOPT_OPERAND_OF_ADDRESS_OF | EOPT_PTR_TO_MEMBER_CONTEXT);
+                (local_options |
+                 EOPT_OPERAND_OF_ADDRESS_OF |
+                 EOPT_PTR_TO_MEMBER_CONTEXT));
     }  /* if */
 
     if (err) {
@@ -13088,6 +13091,306 @@ this macro does nothing as function_symbol will always be NULL.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+static a_type_ptr unbound_delegate_pm_type(a_type_ptr delegate_type)
+/*
+Given a C++/CLI delegate type delegate_type, see whether it can be used
+as an unbound delegate.  If so, return the pointer-to-member type
+that functions must match to be used with that delegate; if not, return
+NULL.  An unbound delegate has a first argument that is a handle,
+tracking reference, or interior_ptr to a managed class, which can be
+used as the "this" pointer, and the remaining parameters (if any) are
+those that would actually be passed in the invocation.  The returned
+pointer-to-member type is a pointer-to-member-function of the class
+of the first parameter, with parameters matching parameters 2 through N
+of the original type, and the same return type.
+See http://msdn.microsoft.com/en-us/library/ms177195.aspx.
+*/
+{
+  a_type_ptr       pm_type = NULL;
+  a_type_ptr       dftype = delegate_invocation_type(delegate_type);
+  a_param_type_ptr ptp;
+
+  check_assertion(dftype->kind == (a_type_kind)tk_routine);
+  ptp = function_type_params(dftype);
+  /* Check that the first parameter can be used as an object pointer. */
+  if (ptp != NULL) {
+    a_type_ptr param1_type = ptp->type;
+    if ((is_handle_type(param1_type) &&
+         is_cli_ref_or_interface_class_type(type_pointed_to(param1_type))) ||
+        (is_tracking_reference_type(param1_type) &&
+         is_managed_class_type(type_pointed_to(param1_type))) ||
+        (is_interior_ptr_type(param1_type) &&
+         is_value_class_type(type_pointed_to(param1_type)))) {
+      /* The first parameter looks okay.  Build the pointer-to-member
+         type.  This builds a new copy of the type every time it is called;
+         we hope that's not too much wasted space/time. */
+      a_type_ptr func_type;
+      /* Remove the first parameter type, copy the type, and put back the
+         first parameter type. */
+      function_type_params(dftype) = ptp->next;
+      func_type = copy_routine_type_with_param_types(dftype,
+                                                  /*copy_default_args=*/FALSE);
+      function_type_params(dftype) = ptp;
+      pm_type = ptr_to_member_type(func_type, type_pointed_to(param1_type));
+    }  /* if */
+  }  /* if */
+  return pm_type;
+}  /* unbound_delegate_pm_type */
+
+
+static void scan_delegate_initializer(
+                                     a_type_ptr         new_type,
+                                     a_source_position  *end_new_init_position,
+                                     a_dynamic_init_ptr *dip)
+/*
+Scan the initializer for a C++/CLI gcnew of a delegate type.  The
+initializer specifies a function to call and possibly an associated object:
+
+  gcnew D(&A::f)        // Static member function
+  gcnew D(Aobj, &A::g)  // Nonstatic member function, and object
+
+See also unbound delegates (not covered in the ECMA-372 standard) at
+http://msdn.microsoft.com/en-us/library/ms177195.aspx.
+
+The current token is the one after the opening parenthesis.  On return
+*dip is set to point to a dynamic initialization for the delegate,
+*end_new_init_position is set to the position of the closing parenthesis,
+and the current position is the token after that.  *dip is returned
+as NULL if there is an error.
+*/
+{
+  an_operand   operand_1, operand_2;
+  an_operand   *function_operand, *object_operand;
+  a_type_ptr   class_type = NULL;
+  a_type_ptr   type, needed_type = NULL;
+  a_boolean    err = FALSE;
+
+  check_assertion(cppcli_enabled && is_delegate_type(new_type));
+  add_matching_stop_token(tok_rparen);
+  /* Scan the first operand. */
+  scan_expr(&operand_1, PREC_LOWEST,
+            (EOPT_DISALLOW_COMMA_OPERATOR | EOPT_DELEGATE_INITIALIZER));
+  if (curr_token == tok_comma) {
+    /* There are two operands, presumably object followed by function. */
+    object_operand = &operand_1;
+    (void)get_token();
+    scan_expr(&operand_2, PREC_LOWEST,
+              (EOPT_DISALLOW_COMMA_OPERATOR | EOPT_DELEGATE_INITIALIZER));
+    function_operand = &operand_2;
+  } else {
+    /* Only one operand, presumably the function. */
+    function_operand = &operand_1;
+    object_operand = NULL;
+  }  /* if */
+  /* Check the function operand. */
+  if (is_a_function_designator(function_operand)) {
+    /* If the operand is a function designator, convert it to a pointer.
+       For class members, this will produce a pointer-to-member, but also
+       a diagnostic about nonstandard use (because no "&" was used). */
+    conv_function_designator_to_ptr_to_function(function_operand,
+                                                (a_source_position *)NULL,
+                                                /*allow_ctor=*/FALSE,
+                                                /*will_call=*/FALSE);
+  }  /* if */
+  /* See if the operand is a pointer or pointer-to-member to a function.
+     If it's a member, set class_type to the class type. */
+  if (is_indefinite_function_operand(function_operand)) {
+    /* An overloaded function, either member or non-member.  Clearly a
+       function. */
+    a_symbol_ptr func_sym = function_operand->symbol;
+    if (func_sym->is_class_member) class_type = sym_parent_class(func_sym);
+  } else {
+    a_type_ptr func_type = NULL;
+    type = function_operand->type;
+    if (is_pointer_type(type)) {
+      func_type = type_pointed_to(type);
+    } else if (is_ptr_to_member_type(type)) {
+      func_type = pm_member_type(type);
+      class_type = pm_class_type(type);
+    }  /* if */
+    if (func_type == NULL ||
+        !is_function_type(func_type)) {
+      /* The function operand is not a function. */
+      if (!is_error_type(type) &&
+          (func_type == NULL || !is_error_type(func_type))) {
+        expr_pos_error(ec_bad_function_for_delegate,
+                       &function_operand->position);
+      }  /* if */
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    /* Determine the type the function has to match. */
+    a_type_ptr dftype = delegate_invocation_type(new_type);
+    if (class_type == NULL) {
+      /* The desired type is a pointer to function type. */
+      needed_type = make_pointer_type(dftype);
+    } else {
+      /* The desired type is a pointer to member because the function is
+         a member. */
+      if (!is_managed_class_type(class_type)) {
+        /* The function is a member of a nonmanaged class, which is not
+           allowed. */
+        expr_pos_error(ec_nonmanaged_function_for_delegate,
+                       &function_operand->position);
+        err = TRUE;
+      } else if (object_operand != NULL) {
+        /* There is an object operand, so the function can be from any
+           class. */
+        needed_type = ptr_to_member_type(dftype, class_type);
+      } else {
+        /* There's no object.  See if a static member function matches,
+           or if the delegate is unbound and can match that way. */
+        a_type_ptr unbound_needed_type;
+        a_boolean  assume_static = FALSE;
+        needed_type = make_pointer_type(dftype);
+        unbound_needed_type = unbound_delegate_pm_type(new_type);
+        if (!is_indefinite_function_operand(function_operand)) {
+          /* A single function was specified, so we know whether it is
+             static or nonstatic. */
+          assume_static = !is_ptr_to_member_type(function_operand->type);
+        } else {
+          /* An overloaded function was specified, so we have to see which
+             function in the set matches the requirements.  There could be
+             a match for a static function and also one for the unbound
+             delegate approach. */
+          an_arg_match_level match_level;
+          a_std_conv_descr   std_conversion;
+          a_boolean          ambiguous, unknown_dependent_function;
+          assume_static = find_addr_of_overloaded_function_match(
+                                   function_operand->symbol,
+                                   (a_boolean)function_operand->is_template_id,
+                                   function_operand->template_arg_list,
+                                   /*source_is_lvalue=*/FALSE,
+                                   needed_type,
+                                   /*is_cast=*/FALSE,
+                                   /*is_static_cast=*/FALSE,
+                                   &match_level,
+                                   &std_conversion,
+                                   /*reinterpret_semantics=*/(a_boolean *)NULL,
+                                   &unknown_dependent_function,
+                                   &ambiguous) != NULL;
+          if (unknown_dependent_function) {
+            assume_static = TRUE;
+          } else if (assume_static && unbound_needed_type != NULL) {
+            /* See if an unbound delegate also applies. */
+            if (find_addr_of_overloaded_function_match(
+                                   function_operand->symbol,
+                                   (a_boolean)function_operand->is_template_id,
+                                   function_operand->template_arg_list,
+                                   /*source_is_lvalue=*/FALSE,
+                                   unbound_needed_type,
+                                   /*is_cast=*/FALSE,
+                                   /*is_static_cast=*/FALSE,
+                                   &match_level,
+                                   &std_conversion,
+                                   /*reinterpret_semantics=*/(a_boolean *)NULL,
+                                   &unknown_dependent_function,
+                                   &ambiguous) != NULL) {
+              expr_pos_error(ec_ambiguous_function_for_delegate,
+                             &function_operand->position);
+              err = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        if (!assume_static && !err) {
+          /* No static function matched, so this should be an unbound
+             delegate. */
+          needed_type = unbound_needed_type;
+          if (needed_type == NULL) {
+            /* The delegate doesn't support use as an unbound delegate. */
+            expr_pos_error(ec_missing_delegate_object,
+                           &function_operand->position);
+            err = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    /* See whether the function operand matches the desired type, i.e.,
+       whether it has the right parameter and return types. */
+    if (is_indefinite_function_operand(function_operand)) {
+      /* For an overloaded function, we have to select the one that matches
+         based on the type.  We suppress the final adjustment cast so
+         we get the raw type based on the function and not adjusted
+         to any derived class in which the name was referenced. */
+      cast_overloaded_function(needed_type, function_operand,
+                               /*is_cast=*/FALSE,
+                               /*is_static_cast=*/FALSE,
+                               /*skip_final_adjustment=*/TRUE);
+      if (is_error_operand(function_operand)) {
+        err = TRUE;
+      } else if (is_ptr_to_member_type(function_operand->type)) {
+        /* Get the class type of the function selected.  Pointers to members
+           are weird in that writing &derived::f produces &base::f. */
+        class_type = pm_class_type(function_operand->type);
+      }  /* if */
+    } else {
+      /* For known functions, check that the type of the function matches
+         the delegate invocation type. */
+      if (!types_are_compatible(needed_type, function_operand->type)) {
+        expr_pos_error(ec_mismatched_function_for_delegate,
+                       &function_operand->position);
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!err && object_operand != NULL) {
+    /* Check the validity of the object operand. */
+    if (class_type == NULL) {
+      /* No object is needed for a static function. */
+      expr_pos_error(ec_superfluous_delegate_object,
+                     &object_operand->position);
+      err = TRUE;
+    } else {
+      /* Check the object against the class type from the function. */
+      prep_initializer_operand(
+                        object_operand,
+                        make_handle_type(class_type),
+                        /*is_transparent=*/(a_boolean *)NULL,
+                        (a_conv_descr_ptr)NULL,
+                        /*initializing_return_value=*/FALSE,
+                        /*initializing_variable=*/FALSE,
+                        /*static_lifetime=*/FALSE,
+                        /*is_copy_initialization=*/TRUE,
+                        /*nontype_template_arg=*/FALSE,
+                        ec_incompatible_delegate_object);
+      if (is_error_operand(object_operand)) err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (err) {
+    *dip = NULL;
+    operand_will_not_be_used_because_of_error(function_operand);
+    if (object_operand != NULL) {
+      operand_will_not_be_used_because_of_error(object_operand);
+    }  /* if */
+  } else {
+    /* Build a dynamic initialization for the arguments to the gcnew. */
+    /* Set the dynamic init entry to represent "constructor" initialization,
+       leaving the constructor pointer NULL. */
+    an_expr_node_ptr arg1, arg2;
+    arg1 = make_node_from_operand_for_expr_list(function_operand);
+    if (object_operand != NULL) {
+      arg2 = arg1;
+      arg1 = make_node_from_operand_for_expr_list(object_operand);
+      arg1->next = arg2;
+    }  /* if */
+    *dip = alloc_expr_ctor_dynamic_init((a_routine_ptr)NULL,
+                                        arg1,
+                                        /*add_default_args=*/FALSE,
+                                        /*implied_source=*/FALSE);
+  }  /* if */
+  /* Check for the closing parenthesis and advance past it. */
+  *end_new_init_position = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_matching_stop_token(tok_rparen);
+}  /* scan_delegate_initializer */
+
+
 an_expr_node_ptr create_cli_array_length_list(a_type_ptr cli_array_type)
 /*
 Create a list of n expression nodes for the C++/CLI array type cli_array_type
@@ -14113,6 +14416,14 @@ expression, and return the result in *result (or an error indication in
                           &end_new_init_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (rcblock == NULL) end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    } else if (cppcli_enabled && rcblock == NULL &&
+               is_delegate_type(unqual_base_new_type)) {
+      /* The initializer for a C++/CLI delegate is scanned specially. */
+      check_assertion(operator_token == tok_gcnew);
+      scan_delegate_initializer(new_type, &end_new_init_position, &dip);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     } else if (empty_parens &&
                ((cppcli_enabled &&
@@ -15945,6 +16256,8 @@ FALSE if the bound function case is not one that undergoes the conversion.
                                           /*check_protected_access=*/FALSE,
                                           /*is_qualified_name=*/FALSE,
                                           /*has_required_ampersand=*/FALSE,
+                                          (a_boolean)orig_operand.
+                                                  allow_addr_of_managed_member,
                                           operand);
       restore_operand_details(operand, &orig_operand);
       operand->bound_function = FALSE;
@@ -16265,7 +16578,8 @@ indicates which.
           /* An overloaded function can be cast to a pointer type that
              disambiguates, but is not valid in any other kind of cast. */
           cast_overloaded_function(type_cast_to, operand, /*is_cast=*/TRUE,
-                                   /*is_static_cast=*/FALSE);
+                                   /*is_static_cast=*/FALSE,
+                                   /*skip_final_adjustment=*/FALSE);
         } else if (cast_to_void) {
           /* Cast to (possibly cv-qualified) void. */
           cast_operand_to_void(operand, type_cast_to);
@@ -16831,7 +17145,8 @@ if it's not valid).
         /* An overloaded function may be cast to a pointer type that
            disambiguates, but is not valid in any other kind of cast. */
         cast_overloaded_function(type_cast_to, operand, /*is_cast=*/TRUE,
-                                 /*is_static_cast=*/TRUE);
+                                 /*is_static_cast=*/TRUE,
+                                 /*skip_final_adjustment=*/FALSE);
       } else if (cast_to_void) {
         /* Cast to (possibly cv-qualified) void. */
         cast_operand_to_void(operand, type_cast_to);
@@ -18000,16 +18315,16 @@ Also scans GNU statement expressions:
                            &start_position);
     } else {
       /* This is an expression in parentheses. */
-      /* Parentheses do not affect the fact that the expression is the
-         immediate operand of a cast, so pass down that option. */
       a_boolean                need_expr = FALSE;
       a_boolean                need_expr_for_constant = FALSE;
       an_expr_node_ptr         expr = NULL;
       a_boolean                parens_in_il = PARENS_IN_IL;
+      /* Only certain options get passed down. */
       a_local_expr_options_set options =
                                       (local_options &
                                                 (EOPT_OPERAND_OF_CAST |
-                                                 EOPT_OPERAND_OF_ADDRESS_OF)) |
+                                                 EOPT_OPERAND_OF_ADDRESS_OF |
+                                                 EOPT_DELEGATE_INITIALIZER)) |
                                        EOPT_ALLOW_BOUND_FUNCTION |
                                        EOPT_PRESERVE_PROPERTY_REF;
       /* Ordinarily, parentheses do affect whether an expression is the
@@ -23922,6 +24237,13 @@ overloaded_function:
      represent a different form of the expression (e.g., if it is
      parenthesized: x is an id-expression, but (x) is not). */
   result->is_id_expression = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (local_options & EOPT_DELEGATE_INITIALIZER) {
+    /* A managed class member function in a C++/CLI delegate gcnew can
+       have its address taken. */
+    result->allow_addr_of_managed_member = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Remember whether or not an access control error was reported on the
      identifier.  This is useful for suppressing additional errors due
      to the ARM 11.5 protected member access check. */
@@ -24783,7 +25105,7 @@ been annotated in the source with the GNU keyword __extension__.
       if (expr == NULL &&
           curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
         /* Create a constant expression to record the extension flag. */
-        expr = alloc_node_for_constant(&op->variant.constant);
+        expr = alloc_node_for_constant_operand(op);
         op->variant.constant.expr = expr;
       }  /* if */
       if (expr != NULL) {
@@ -25471,7 +25793,8 @@ handle_identifier:
       break;
 
     case tok_ampersand:
-      scan_ampersand_operator((a_rescan_control_block *)NULL, &local_result);
+      scan_ampersand_operator((a_rescan_control_block *)NULL, &local_result,
+                              (local_options & EOPT_DELEGATE_INITIALIZER));
       break;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -27113,7 +27436,7 @@ expression context.  Return either *is_constant TRUE and a constant value in
             constant->kind != (a_constant_repr_kind)ck_template_param) {
          /* This case can occur with expressions like (int)&x which are
              represented as constants but aren't known until link time. */
-          *expression = alloc_node_for_constant(constant);
+          *expression = alloc_node_for_constant_operand(&result);
           *is_constant = FALSE;
         }  /* if */
       } else {
@@ -27133,7 +27456,7 @@ expression context.  Return either *is_constant TRUE and a constant value in
         } else if (constant_sign == 0) {
           /* A zero value is returned as an expression to avoid confusing
              array [] and array [0]. */
-          *expression = alloc_node_for_constant(constant);
+          *expression = alloc_node_for_constant_operand(&result);
           *is_constant = FALSE;
         }  /* if */
       }  /* if */
@@ -28129,7 +28452,8 @@ alternative callable from outside, see rescan_expr_with_substitution.
         }  /* if */
         break;
       case tok_ampersand:
-        scan_ampersand_operator(rcblock, result);
+        scan_ampersand_operator(rcblock, result,
+                                (local_options & EOPT_DELEGATE_INITIALIZER));
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_remainder:
@@ -28390,7 +28714,8 @@ function or template.
     /* Resolve the instance of an overloaded function or template based
        on the destination guide type. */
     cast_overloaded_function(guide_type, &result, /*is_cast=*/FALSE,
-                             /*is_static_cast=*/FALSE);
+                             /*is_static_cast=*/FALSE,
+                             /*skip_final_adjustment=*/FALSE);
   }  /* if */
   if (rcblock->error_detected) {
     set_error_constant(constant);
