@@ -69,6 +69,7 @@ static void scan_initializer_expr_with_potential_pack_expansion(
                                          an_operand         *operand,
                                          a_boolean          *expr_not_present);
 static an_arg_operand_ptr scan_expr_list(a_token_kind closing_token,
+                                         a_boolean    is_delegate_init,
                                          a_boolean    empty_list_okay,
                                          a_boolean    trailing_comma_okay);
 static an_arg_operand *rescan_expr_list(an_expr_node_ptr       expr_list,
@@ -989,6 +990,7 @@ This routine is also used when scanning __builtin_offsetof constructs.
       /* The subscript is an expression list in C++/CLI mode.  Top-level commas
          separate elements of the list. */
       operand_2_list = scan_expr_list(tok_rbracket,
+                                      /*is_delegate_init=*/FALSE,
                                       /*empty_list_okay=*/FALSE,
                                       /*trailing_comma_okay=*/FALSE);
       check_assertion(operand_2_list != NULL);
@@ -1261,27 +1263,33 @@ description block.
 
 
 static an_arg_operand_ptr scan_expr_list(a_token_kind closing_token,
+                                         a_boolean    is_delegate_init,
                                          a_boolean    empty_list_okay,
                                          a_boolean    trailing_comma_okay)
 /*
 Scan a comma-separated list of expressions.  The list must be
 terminated by the token indicated by closing_token (which is not
-consumed by this routine).  If empty_list_okay is TRUE, an empty list
-is allowed.  If trailing_comma_okay is TRUE, the last expression may
-be followed by a comma (which is consumed here).  A pointer to the
-resulting operand list is returned.
+consumed by this routine).  If is_delegate_init is TRUE, this is
+the initializer list for a C++/CLI gcnew of a delegate type.
+If empty_list_okay is TRUE, an empty list is allowed.  If
+trailing_comma_okay is TRUE, the last expression may be followed by a
+comma (which is consumed here).  A pointer to the resulting operand
+list is returned.
 */
 {
   a_boolean           after_cached_expr = FALSE;
   an_operand_ptr      operand;
   an_arg_operand_ptr  arg_op;
   an_arg_operand_ptr  arg_operand_list = NULL, end_arg_operand_list = NULL;
+  a_local_expr_options_set
+                      options = EOPT_DISALLOW_COMMA_OPERATOR;
 
+  if (is_delegate_init) options |= EOPT_DELEGATE_INITIALIZER;
   /* Pick up any cached expressions first. */
   while (cached_expression_present()) {
     arg_op = alloc_arg_operand();
     operand = &arg_op->operand;
-    scan_expr(operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    scan_expr(operand, PREC_LOWEST, options);
     if (arg_operand_list == NULL) {
       arg_operand_list = arg_op;
     } else {
@@ -1323,7 +1331,7 @@ resulting operand list is returned.
         arg_op = alloc_arg_operand();
         operand = &arg_op->operand;
         /* Scan an argument expression. */
-        scan_expr(operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+        scan_expr(operand, PREC_LOWEST, options);
         if (arg_operand_list == NULL) {
           arg_operand_list = arg_op;
         } else {
@@ -1494,7 +1502,7 @@ template pack expansions into multiple expressions as necessary.
        that number. */
     do {
       arg_op = alloc_arg_operand();
-      scan_expr(&arg_op->operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+      scan_expr(&arg_op->operand, PREC_LOWEST, EOPT_NO_OPTIONS);
       if (arg_operand_list == NULL) {
         arg_operand_list = arg_op;
       } else {
@@ -1686,7 +1694,9 @@ to TRUE.
       (void)get_token();
     }  /* if */
     /* Scan the argument list. */  
-    arg_operand_list = scan_expr_list(tok_rparen,
+    arg_operand_list = scan_expr_list(
+                                    tok_rparen,
+                                    /*is_delegate_init=*/FALSE,
                                     /*empty_list_okay=*/TRUE,
                                     /*trailing_comma_okay=*/any_cfront_mode());
     set_err_pos_to_curr_token();
@@ -13139,9 +13149,11 @@ See http://msdn.microsoft.com/en-us/library/ms177195.aspx.
 
 
 static void scan_delegate_initializer(
-                                     a_type_ptr         new_type,
-                                     a_source_position  *end_new_init_position,
-                                     a_dynamic_init_ptr *dip)
+                                 a_type_ptr             new_type,
+                                 a_source_position      *type_position,
+                                 a_rescan_control_block *rcblock,
+                                 a_source_position      *end_new_init_position,
+                                 a_dynamic_init_ptr     *dip)
 /*
 Scan the initializer for a C++/CLI gcnew of a delegate type.  The
 initializer specifies a function to call and possibly an associated object:
@@ -13156,35 +13168,55 @@ The current token is the one after the opening parenthesis.  On return
 *dip is set to point to a dynamic initialization for the delegate,
 *end_new_init_position is set to the position of the closing parenthesis,
 and the current position is the token after that.  *dip is returned
-as NULL if there is an error.
+as NULL if there is an error.  type_position gives the source
+position of the type.
+
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+delegate initializer, given by rcblock->argument_list.
 */
 {
-  an_operand   operand_1, operand_2;
-  an_operand   *function_operand, *object_operand;
-  a_type_ptr   class_type = NULL;
-  a_type_ptr   type, needed_type = NULL;
-  a_boolean    err = FALSE;
-  a_boolean    template_case = FALSE;
+  an_arg_operand *operand_list;
+  an_operand     *function_operand, *object_operand;
+  a_type_ptr     class_type = NULL;
+  a_type_ptr     type, needed_type = NULL;
+  a_boolean      err = FALSE;
+  a_boolean      template_case = FALSE;
+  a_source_position
+                 start_position;
 
   check_assertion(cppcli_enabled && is_delegate_type(new_type));
-  add_matching_stop_token(tok_rparen);
-  /* Scan the first operand. */
-  scan_expr(&operand_1, PREC_LOWEST,
-            (EOPT_DISALLOW_COMMA_OPERATOR | EOPT_DELEGATE_INITIALIZER));
-  if (curr_token == tok_comma) {
-    /* There are two operands, presumably object followed by function. */
-    object_operand = &operand_1;
-    (void)get_token();
-    scan_expr(&operand_2, PREC_LOWEST,
-              (EOPT_DISALLOW_COMMA_OPERATOR | EOPT_DELEGATE_INITIALIZER));
-    function_operand = &operand_2;
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned initializer. */
+    operand_list = rescan_expr_list(rcblock->argument_list, rcblock);
+    start_position = *type_position;
   } else {
-    /* Only one operand, presumably the function. */
-    function_operand = &operand_1;
+    /* Scanning from source. */
+    add_matching_stop_token(tok_rparen);
+    start_position = pos_curr_token;
+    /* Scan the operands. */
+    operand_list = scan_expr_list(tok_rparen,
+                                  /*is_delegate_init=*/TRUE,
+                                  /*empty_list_okay=*/FALSE,
+                                  /*trailing_comma_okay=*/FALSE);
+  }  /* if */
+  /* Check for the right number of arguments. */
+  /* The subroutine should not allow zero arguments. */
+  check_assertion(operand_list != NULL);
+  if (operand_list->next == NULL) {
+    /* One operand, presumably the function. */
+    function_operand = &operand_list->operand;
     object_operand = NULL;
+  } else if (operand_list->next->next == NULL) {
+    /* Two operands, presumably object followed by function. */
+    object_operand = &operand_list->operand;
+    function_operand = &operand_list->next->operand;
+  } else {
+    /* More than two operands -- error. */
+    expr_pos_error(ec_bad_delegate_init_list, &start_position);
+    err = TRUE;
   }  /* if */
   /* Check the function operand. */
-  if (is_a_function_designator(function_operand)) {
+  if (!err && is_a_function_designator(function_operand)) {
     /* If the operand is a function designator, convert it to a pointer.
        For class members, this will produce a pointer-to-member, but also
        a diagnostic about nonstandard use (because no "&" was used). */
@@ -13195,7 +13227,9 @@ as NULL if there is an error.
   }  /* if */
   /* See if the operand is a pointer or pointer-to-member to a function.
      If it's a member, set class_type to the class type. */
-  if (is_indefinite_function_operand(function_operand)) {
+  if (err) {
+    /* Previous error. */
+  } else if (is_indefinite_function_operand(function_operand)) {
     /* An overloaded function, either member or non-member.  Clearly a
        function. */
     a_symbol_ptr func_sym = function_operand->symbol;
@@ -13370,10 +13404,10 @@ as NULL if there is an error.
   }  /* if */
   if (err) {
     *dip = NULL;
-    operand_will_not_be_used_because_of_error(function_operand);
-    if (object_operand != NULL) {
-      operand_will_not_be_used_because_of_error(object_operand);
-    }  /* if */
+    while (operand_list != NULL) {
+      operand_will_not_be_used_because_of_error(&operand_list->operand);
+      operand_list = operand_list->next;
+    }  /* while */
   } else {
     /* Build a dynamic initialization for the arguments to the gcnew. */
     /* Set the dynamic init entry to represent "constructor" initialization,
@@ -13390,13 +13424,16 @@ as NULL if there is an error.
                                         /*add_default_args=*/FALSE,
                                         /*implied_source=*/FALSE);
   }  /* if */
-  /* Check for the closing parenthesis and advance past it. */
-  *end_new_init_position = pos_curr_token;
+  free_arg_operand_list(operand_list);
+  if (rcblock == NULL) {
+    /* Check for the closing parenthesis and advance past it. */
+    *end_new_init_position = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  curr_construct_end_position = end_pos_curr_token;
+    curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  (void)required_token(tok_rparen, ec_exp_rparen);
-  remove_matching_stop_token(tok_rparen);
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_matching_stop_token(tok_rparen);
+  }  /* if */
 }  /* scan_delegate_initializer */
 
 
@@ -14426,13 +14463,14 @@ expression, and return the result in *result (or an error indication in
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (rcblock == NULL) end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    } else if (cppcli_enabled && rcblock == NULL &&
+    } else if (cppcli_enabled &&
                is_delegate_type(unqual_base_new_type)) {
       /* The initializer for a C++/CLI delegate is scanned specially. */
       check_assertion(operator_token == tok_gcnew);
-      scan_delegate_initializer(new_type, &end_new_init_position, &dip);
+      scan_delegate_initializer(new_type, &type_position, rcblock,
+                                &end_new_init_position, &dip);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      end_position = curr_construct_end_position;
+      if (rcblock == NULL) end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     } else if (empty_parens &&
                ((cppcli_enabled &&
@@ -23504,9 +23542,10 @@ if rescan_is_template_id is TRUE, and return the result in *operand
   a_source_position  end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean          cppcli_overloaded_case = FALSE;
+  a_boolean          allow_addr_of_managed_member = 
+                              (local_options & EOPT_DELEGATE_INITIALIZER) != 0;
 
   db_enter(4, "scan_identifier");
-
 #if CHECKING
   if (curr_expr_kind_is(ek_pp)) {
     /* Should never see an identifier in a preprocessing directive. */
@@ -23527,6 +23566,9 @@ if rescan_is_template_id is TRUE, and return the result in *operand
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     name_followed_by_left_paren =
                                 rescan_operand->is_name_followed_by_left_paren;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    allow_addr_of_managed_member= rescan_operand->allow_addr_of_managed_member;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Make a locator for the symbol. */
     make_locator_for_symbol(sym_ptr, &locator);
     reduce_projection_symbol_to_fundamental_symbol(sym_ptr);
@@ -24247,7 +24289,7 @@ overloaded_function:
      parenthesized: x is an id-expression, but (x) is not). */
   result->is_id_expression = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (local_options & EOPT_DELEGATE_INITIALIZER) {
+  if (allow_addr_of_managed_member) {
     /* A managed class member function in a C++/CLI delegate gcnew can
        have its address taken. */
     result->allow_addr_of_managed_member = TRUE;
