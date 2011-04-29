@@ -2742,6 +2742,35 @@ ambiguity.
   db_exit();
 } /* report_virtual_function_ambiguities */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean is_quasi_direct_base_interface(a_base_class_ptr  bcp)
+/*
+Return TRUE if bcp is a base of C++/CLI interface type that is either a direct
+base or whose derivation path includes only interfaces (not including the
+derived class).
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (cli_class_type_kind_is(bcp->type, cctk_interface)) {
+    result = TRUE;
+    if (!bcp->direct) {
+      a_base_class_derivation_ptr  derivation = bcp->derivation;
+      a_derivation_step_ptr        step;
+      check_assertion(derivation->next == NULL);
+      for (step = derivation->path; step != NULL; step = step->next) {
+        if (!cli_class_type_kind_is(step->base_class->type, cctk_interface)) {
+          result = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_quasi_direct_base_interface */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void check_abstract_class(a_type_ptr  class_type)
 /*
@@ -2789,8 +2818,10 @@ implement an interface member.
     for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (!check_abstract &&
-          !cli_class_type_kind_is(bcp->type, cctk_interface)) {
-        /* We are only checking C++/CLI interface bases. */
+          (!cli_class_type_kind_is(bcp->type, cctk_interface) ||
+           !is_quasi_direct_base_interface(bcp))) {
+        /* We are only checking direct C++/CLI interface bases.  (And only
+           interface bases that aren't bases of a ref class base.) */
         goto next_base;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2827,9 +2858,12 @@ implement an interface member.
               if (check_interfaces) {
                 if (cli_class_type_kind_is(bcp->type, cctk_interface)) {
                   /* A base interface member is not overridden (i.e., not
-                     implemented): Issue an error. */
-                  pos_sy_error(ec_interface_not_implemented, &error_position,
-                               symbol_for(rp));
+                     implemented): Issue an error if the interface is a direct
+                     base or derived only through interface derivations. */
+                  if (is_quasi_direct_base_interface(bcp)) {
+                    pos_sy_error(ec_interface_not_implemented, &error_position,
+                                 symbol_for(rp));
+                  }  /* if */
                 } else {
                   /* We now know the class is abstract, but we don't yet know
                      if it implements all its interfaces. */
