@@ -8945,6 +8945,7 @@ return FALSE and let the caller generate the code normally.
     param = rtsp->param_type_list;
     arg = func_expr->next;
     op = rp->variant.opname_kind;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (expr->variant.operation.rewritten_property_reference_kind !=
                               (a_rewritten_property_reference_kind)rprk_none) {
       /* This is a compound assignment operation that was decomposed into
@@ -8957,7 +8958,10 @@ return FALSE and let the caller generate the code normally.
                      expr->variant.operation.rewritten_property_reference_kind,
                      /*is_virtual_call=*/FALSE);
       handled = TRUE;
-    } else {
+    } else 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
       if (arg->next == NULL &&
           (op == (an_opname_kind)onk_plus_plus ||
            op == (an_opname_kind)onk_minus_minus ||
@@ -10523,6 +10527,7 @@ gen_expr that might end up generating this expr as a temporary.
           break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
         case eok_assign:
+#if MICROSOFT_EXTENSIONS_ALLOWED
           if (expr->variant.operation.rewritten_property_reference_kind !=
                               (a_rewritten_property_reference_kind)rprk_none) {
             /* This assignment is the result of decomposing compound
@@ -10536,6 +10541,7 @@ gen_expr that might end up generating this expr as a temporary.
                      /*is_virtual_call=*/FALSE);
             goto done_with_operation;
           }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           opstr = "=";
           break;
         case eok_add_assign:
