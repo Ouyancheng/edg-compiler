@@ -13368,11 +13368,19 @@ typedef struct an_expr_node {
       a_bit_field /* a_rewritten_property_reference_kind */
 		rewritten_property_reference_kind:2;
 			/* If this is the "put" call in a rewritten
-			   Microsoft property reference involving a compound
-			   assignment or other operator where both a "get"
-			   accessor and a "put" accessor are called as part
-			   of the expansion, indicates the kind of operator.
-			   Otherwise, rprk_none. */
+			   Microsoft property reference involving a
+			   compound assignment or other operator where both
+			   a "get" accessor and a "put" accessor are called
+			   as part of the expansion, indicates the kind of
+			   operator.  The same applies to an eok_assign
+			   operator or a call to an overloaded assignment
+			   operator in a compound assignment operation that
+			   was decomposed to the corresponding simple
+			   operations using operator synthesis.  Finally,
+			   this is also set in the top-level
+			   compiler-generated eok_comma node that holds
+			   temporary initialization for one of these
+			   operations.  Otherwise, rprk_none. */
       a_bit_field
 		requires_runtime_cast_check:1;
 			/* TRUE for a C++/CLI cast operation that requires a

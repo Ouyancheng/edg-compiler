@@ -217,8 +217,12 @@ void rescan_selector_of_call(a_rescan_control_block *rcblock,
                              an_operand_ptr         function_operand,
                              an_operand_ptr         bound_function_selector);
 
-extern void insert_temporary_initialization(an_expr_node_ptr  temp_init_expr,
-                                            an_operand_ptr    result);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern void insert_temporary_initialization(
+                            an_expr_node_ptr                    temp_init_expr,
+                            a_rewritten_property_reference_kind rewritten_kind,
+                            an_operand_ptr                      result);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void process_simple_assignment(an_operand_ptr    operand_1,
                                       an_operand_ptr    operand_2,

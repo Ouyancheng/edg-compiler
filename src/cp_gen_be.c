@@ -462,6 +462,16 @@ static a_boolean entity_name_is_accessible(
                                    a_source_correspondence_ptr scp,
                                    an_il_entry_kind            kind,
                                    a_boolean                   ignore_context);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static void gen_prop_event_or_op_synth_call(
+                          an_expr_node_ptr                    obj_expr,
+                          a_routine_ptr                       rout,
+                          an_expr_node_ptr                    args,
+                          a_property_or_event_descr_ptr       desc,
+                          a_special_function_kind             special_kind,
+                          a_rewritten_property_reference_kind rpr_kind,
+                          a_boolean                           is_virtual_call);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /*
 Options for gen_general_declaration_using_type.
 */
@@ -8935,150 +8945,164 @@ return FALSE and let the caller generate the code normally.
     param = rtsp->param_type_list;
     arg = func_expr->next;
     op = rp->variant.opname_kind;
-    if (arg->next == NULL &&
-        (op == (an_opname_kind)onk_plus_plus ||
-         op == (an_opname_kind)onk_minus_minus ||
-         op == (an_opname_kind)onk_ampersand ||
-         op == (an_opname_kind)onk_star ||
-         op == (an_opname_kind)onk_plus ||
-         op == (an_opname_kind)onk_minus)) {
-      /* These opname kinds are used for both prefix and infix/postfix
-         operators.  If there is no second operand, this call represents
-         the prefix variant. */
-      operator_precedence = PREC_PREFIX;
+    if (expr->variant.operation.rewritten_property_reference_kind !=
+                              (a_rewritten_property_reference_kind)rprk_none) {
+      /* This is a compound assignment operation that was decomposed into
+         calls to the simple assignment and corresponding simple operation
+         via operator synthesis.  Generate it in the original form. */
+      gen_prop_event_or_op_synth_call(
+                     (an_expr_node_ptr)NULL, rp, arg,
+                     (a_property_or_event_descr_ptr)NULL,
+                     (a_special_function_kind)sfk_none,
+                     expr->variant.operation.rewritten_property_reference_kind,
+                     /*is_virtual_call=*/FALSE);
+      handled = TRUE;
     } else {
-      /* In all other cases, the precedence is given by the
-         overloadable_operator_precedence table. */
-      operator_precedence = overloadable_operator_precedence[op];
-    }  /* if */
-
-    /* For postfix operators, there's no need to enclose the generated
-       expression in parentheses because the precedence is already higher
-       than all the other operators.. */
-    outer_parens_needed = !(op == (an_opname_kind)onk_function_call ||
-                            op == (an_opname_kind)onk_subscript ||
-                            op == (an_opname_kind)onk_arrow ||
-                            ((op == (an_opname_kind)onk_plus_plus ||
-                              op == (an_opname_kind)onk_minus_minus) &&
-                             arg->next != NULL));
-
-    /* For most operators we can use the opname_names table to get the
-       operator representation.  Function call and subscript operators,
-       however, come in two parts, one before the second operand and one
-       after.  The arrow operator is suppressed altogether (because it
-       is supplied by the expansion of the top-level expression node). */
-    if (op == (an_opname_kind)onk_function_call) {
-      op_name = "(";
-      right_half = ")";
-    } else if (op == (an_opname_kind)onk_subscript) {
-      op_name = "[";
-      right_half = "]";
-    } else if (op == (an_opname_kind)onk_arrow) {
-      op_name = "";
-      right_half = NULL;
-    } else {
-      op_name = opname_names[op];
-      right_half = NULL;
-    }  /* if */
-
-    if (outer_parens_needed) {
-      /* Parenthesize to make sure we don't have precedence problems. */
-      write_tok_ch('(');
-    }  /* if */
-
-    if (arg->next == NULL &&
-        op != (an_opname_kind)onk_function_call &&
-        op != (an_opname_kind)onk_arrow) {
-      /* This is a prefix operator, so put the operator name first. */
-      write_tok_str(op_name);
-    }  /* if */
-
-    operand_parens_needed = parens_may_be_needed(operator_precedence, arg);
-    if (operand_parens_needed) {
-      write_tok_ch('(');
-    }  /* if */
-    if (routine_type_is_nonstatic_member_function(rp->type)) {
-      /* The first operand is the member function's "this" pointer:
-         generate it as an lvalue. */
-      gen_object_expr_for_implicit_call(arg,
-                                        /*obj_expr_of_mfunc_operator=*/TRUE);
-      arg = arg->next;
-    } else {
-      /* For non-member functions, there's a parameter declaration to
-         guide the generation of the first operand. */
-      gen_argument(arg, param, /*operator_notation=*/TRUE);
-      arg = arg->next;
-      param = param->next;
-    }  /* if */
-    if (operand_parens_needed) {
-      write_tok_ch(')');
-    }  /* if */
-
-    if (arg != NULL || op == (an_opname_kind)onk_function_call) {
-      /* Either there's a second argument or this is a function call
-         operator, so the operator follows the first operand. */
-      a_boolean spaces_needed = (op != (an_opname_kind)onk_function_call &&
-                                 op != (an_opname_kind)onk_subscript &&
-                                 op != (an_opname_kind)onk_plus_plus &&
-                                 op != (an_opname_kind)onk_minus_minus &&
-                                 op != (an_opname_kind)onk_arrow_star);
-      if (spaces_needed && op != (an_opname_kind)onk_comma) {
-        write_space();
-      }  /* if */
-      write_tok_str(op_name);
-      if (spaces_needed) {
-        write_space();
+      if (arg->next == NULL &&
+          (op == (an_opname_kind)onk_plus_plus ||
+           op == (an_opname_kind)onk_minus_minus ||
+           op == (an_opname_kind)onk_ampersand ||
+           op == (an_opname_kind)onk_star ||
+           op == (an_opname_kind)onk_plus ||
+           op == (an_opname_kind)onk_minus)) {
+        /* These opname kinds are used for both prefix and infix/postfix
+           operators.  If there is no second operand, this call represents
+           the prefix variant. */
+        operator_precedence = PREC_PREFIX;
+      } else {
+        /* In all other cases, the precedence is given by the
+           overloadable_operator_precedence table. */
+        operator_precedence = overloadable_operator_precedence[op];
       }  /* if */
 
-      if (op != (an_opname_kind)onk_plus_plus &&
-          op != (an_opname_kind)onk_minus_minus) {
-        /* Postfix "++" and "--" have a second argument in the function call
-           form, but it doesn't appear in the operator syntax. */
-        while (arg != NULL && !arg->generated_default_arg) {
-          /* A function call has an arbitrary number of arguments, some of
-             which may not have corresponding parameter declarations (in case
-             of ellipsis).  The remaining cases will have a single right
-             operand.  This loop handles all these cases.  We fall out of
-             the loop if we encounter an argument that results from a
-             default argument, because these must not appear in the
-             generated code. */
+      /* For postfix operators, there's no need to enclose the generated
+         expression in parentheses because the precedence is already higher
+         than all the other operators.. */
+      outer_parens_needed = !(op == (an_opname_kind)onk_function_call ||
+                              op == (an_opname_kind)onk_subscript ||
+                              op == (an_opname_kind)onk_arrow ||
+                              ((op == (an_opname_kind)onk_plus_plus ||
+                                op == (an_opname_kind)onk_minus_minus) &&
+                               arg->next != NULL));
+
+      /* For most operators we can use the opname_names table to get the
+         operator representation.  Function call and subscript operators,
+         however, come in two parts, one before the second operand and one
+         after.  The arrow operator is suppressed altogether (because it is
+         supplied by the expansion of the top-level expression node). */
+      if (op == (an_opname_kind)onk_function_call) {
+        op_name = "(";
+        right_half = ")";
+      } else if (op == (an_opname_kind)onk_subscript) {
+        op_name = "[";
+        right_half = "]";
+      } else if (op == (an_opname_kind)onk_arrow) {
+        op_name = "";
+        right_half = NULL;
+      } else {
+        op_name = opname_names[op];
+        right_half = NULL;
+      }  /* if */
+
+      if (outer_parens_needed) {
+        /* Parenthesize to make sure we don't have precedence problems. */
+        write_tok_ch('(');
+      }  /* if */
+
+      if (arg->next == NULL &&
+          op != (an_opname_kind)onk_function_call &&
+          op != (an_opname_kind)onk_arrow) {
+        /* This is a prefix operator, so put the operator name first. */
+        write_tok_str(op_name);
+      }  /* if */
+
+      operand_parens_needed = parens_may_be_needed(operator_precedence, arg);
+      if (operand_parens_needed) {
+        write_tok_ch('(');
+      }  /* if */
+      if (routine_type_is_nonstatic_member_function(rp->type)) {
+        /* The first operand is the member function's "this" pointer:
+           generate it as an lvalue. */
+        gen_object_expr_for_implicit_call(arg,
+                                          /*obj_expr_of_mfunc_operator=*/TRUE);
+        arg = arg->next;
+      } else {
+        /* For non-member functions, there's a parameter declaration to
+           guide the generation of the first operand. */
+        gen_argument(arg, param, /*operator_notation=*/TRUE);
+        arg = arg->next;
+        param = param->next;
+      }  /* if */
+      if (operand_parens_needed) {
+        write_tok_ch(')');
+      }  /* if */
+
+      if (arg != NULL || op == (an_opname_kind)onk_function_call) {
+        /* Either there's a second argument or this is a function call
+           operator, so the operator follows the first operand. */
+        a_boolean spaces_needed = (op != (an_opname_kind)onk_function_call &&
+                                   op != (an_opname_kind)onk_subscript &&
+                                   op != (an_opname_kind)onk_plus_plus &&
+                                   op != (an_opname_kind)onk_minus_minus &&
+                                   op != (an_opname_kind)onk_arrow_star);
+        if (spaces_needed && op != (an_opname_kind)onk_comma) {
+          write_space();
+        }  /* if */
+        write_tok_str(op_name);
+        if (spaces_needed) {
+          write_space();
+        }  /* if */
+
+        if (op != (an_opname_kind)onk_plus_plus &&
+            op != (an_opname_kind)onk_minus_minus) {
+          /* Postfix "++" and "--" have a second argument in the function
+             call form, but it doesn't appear in the operator syntax. */
+          while (arg != NULL && !arg->generated_default_arg) {
+            /* A function call has an arbitrary number of arguments, some
+               of which may not have corresponding parameter declarations
+               (in case of ellipsis).  The remaining cases will have a
+               single right operand.  This loop handles all these cases.
+               We fall out of the loop if we encounter an argument that
+               results from a default argument, because these must not
+               appear in the generated code. */
+            if (right_half != NULL) {
+              /* This form has its own delimiter, so no additional parentheses
+                 are needed. */
+              operand_parens_needed = FALSE;
+            } else {
+              operand_parens_needed = parens_may_be_needed(operator_precedence,
+                                                           arg);
+            }  /* if */
+            if (operand_parens_needed) {
+              write_tok_ch('(');
+            }  /* if */
+            /* Pass FALSE for operator_notation if this is a function-call
+               operator (i.e., treat the argument as an ordinary function
+               argument). */
+            gen_argument(arg, param, op != (an_opname_kind)onk_function_call);
+            if (operand_parens_needed) {
+              write_tok_ch(')');
+            }  /* if */
+            arg = arg->next;
+            if (arg != NULL && !arg->generated_default_arg) {
+              write_tok_str(", ");
+            }  /* if */
+            if (param != NULL) {
+              param = param->next;
+            }  /* if */
+          }  /* while */
+
           if (right_half != NULL) {
-            /* This form has its own delimiter, so no additional parentheses
-               are needed. */
-            operand_parens_needed = FALSE;
-          } else {
-            operand_parens_needed = parens_may_be_needed(operator_precedence,
-                                                         arg);
+            write_tok_str(right_half);
           }  /* if */
-          if (operand_parens_needed) {
-            write_tok_ch('(');
-          }  /* if */
-          /* Pass FALSE for operator_notation if this is a function-call
-             operator (i.e., treat the argument as an ordinary function
-             argument). */
-          gen_argument(arg, param, op != (an_opname_kind)onk_function_call);
-          if (operand_parens_needed) {
-            write_tok_ch(')');
-          }  /* if */
-          arg = arg->next;
-          if (arg != NULL && !arg->generated_default_arg) {
-            write_tok_str(", ");
-          }  /* if */
-          if (param != NULL) {
-            param = param->next;
-          }  /* if */
-        }  /* while */
-
-        if (right_half != NULL) {
-          write_tok_str(right_half);
         }  /* if */
       }  /* if */
-    }  /* if */
 
-    if (outer_parens_needed) {
-      write_tok_ch(')');
+      if (outer_parens_needed) {
+        write_tok_ch(')');
+      }  /* if */
+      handled = TRUE;
     }  /* if */
-    handled = TRUE;
   }  /* if */
 
   return handled;
@@ -9087,16 +9111,18 @@ return FALSE and let the caller generate the code normally.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*
-Variables used in the traversal of an expression resulting from rewriting
-a property reference.  They are initialized to NULL by
-analyze_rewritten_property_reference, set during the traversal of the
-expression by find_pieces_of_rewritten_property_reference, and then
-queried after the traversal by analyze_rewritten_property_reference.
+Variables used in the traversal of an expression resulting from rewriting a
+compound operation (compound assignment, increment, decrement) involving
+property references or operator synthesis to its corresponding simple
+operations.  They are initialized to NULL by
+analyze_decomposed_compound_operation, set during the traversal of the
+expression by find_pieces_of_decomposed_compound_operation, and then
+queried after the traversal by analyze_decomposed_compound_operation.
 */
 static char	*compound_operation_string;
 			/* Set to point to a string containing the compound
-			   assignment operator corresponding to the simple
-			   operator into which the source expression was
+			   operator corresponding to the simple operator
+			   into which the source expression was
 			   decomposed. */
 
 static an_expr_node_ptr
@@ -9118,16 +9144,29 @@ static an_expr_node_ptr
 			   otherwise. */
 
 
-static void find_pieces_of_rewritten_property_reference(
+/*
+A variable set by analyze_decomposed_compound_operation prior to the call
+to traverse_expr to control the traversal.
+*/
+static a_boolean
+		tree_is_from_operator_synthesis;
+			/* Will be TRUE if the rewritten tree resulted from
+			   operator synthesis, i.e., if the right-hand side
+			   is not a call to a property "get" accessor. */
+
+
+static void find_pieces_of_decomposed_compound_operation(
                                     an_expr_node_ptr                    node,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-This routine is called from analyze_rewritten_property_reference via
+This routine is called from analyze_decomposed_compound_operation via
 traverse_expr to locate important nodes in an expression tree resulting
-from rewriting a compound reference to a Microsoft property.  It sets the
+from rewriting a compound reference to a Microsoft property or event or a
+compound assignment decomposed via operator synthesis.  It sets the
 preceding global variables when it encounters the relevant expression nodes
-and terminates the traversal when it counters the call to the "get"
-accessor function.
+and terminates the traversal when it encounters the call to the "get"
+accessor function or, in the operator synthesis case, when it finds the
+corresponding simple operation.
 */
 {
   an_expr_node_ptr opnd2;
@@ -9273,10 +9312,19 @@ accessor function.
       tblock->terminate = TRUE;
     }  /* if */
   }  /* if */
-}  /* find_pieces_of_rewritten_property_reference */
+  if (tree_is_from_operator_synthesis && compound_operation_string != NULL) {
+    /* There's no call to a property or event accessor in the decomposed
+       tree resulting from operator synthesis, so we can't use that to
+       terminate the traversal.  Instead, we just exit when we've found the
+       simple operator, indicated by having set the corresponding compound
+       operation string. */
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* find_pieces_of_decomposed_compound_operation */
 
 
-static void analyze_rewritten_property_reference(
+static void analyze_decomposed_compound_operation(
                             a_property_or_event_descr_ptr       desc,
                             unsigned long                       num_subscripts,
                             a_rewritten_property_reference_kind rpr_kind,
@@ -9287,21 +9335,25 @@ static void analyze_rewritten_property_reference(
 This function is called for a "set" operation on a Microsoft property,
 either C++/CLI or __declspec, described by desc, that is the result of
 decomposing a compound assignment or increment/decrement operation, e.g.,
-"P += 1" becomes the IL equivalent of "P::set(P::get() + 1)"; rpr_kind
-specifies the form of the source operation.  If the property is non-static,
-*obj_expr designates the expression to be passed as the "this" pointer;
-otherwise, it is NULL.  *args designates the first value to be passed to
-the "set" function (after the "this" pointer, if any).  num_subscripts
-gives the number of subscripts expected by the property accessors and thus
-the number of subscript expressions at the beginning of the *args list.
-Analyze the value and set *opstr to point to a string containing the
-corresponding compound assignment or increment/decrement operator and set
-*args to point to the expression that should be put out for the right
-operand of the compound assignment or to NULL for an increment/decrement.
-If the property is static and was invoked with an object expression, set
-*obj_expr to that object expression (which is found only on the call to the
-"get" function via an eok_points_to_static operation); otherwise, leave
-*obj_expr unchanged.
+"P += 1" becomes the IL equivalent of "P::set(P::get() + 1)".  It is also
+called for an assignment (either built-in or overloaded) that results from
+operator synthesis, in which case desc will be NULL.  rpr_kind specifies
+the form of the source operation.  For a call to a non-static property,
+*obj_expr designates the expression to be passed as the "this" pointer; for
+an assignment operation, *obj_expr represents the left operand; otherwise,
+it is NULL.  *args designates the first value to be passed to the "set"
+function (after the "this" pointer, if any) or the right operand of an
+assignment operation.  num_subscripts gives the number of subscripts
+expected by the property accessors and thus the number of subscript
+expressions at the beginning of the *args list.  Analyze the value and set
+*opstr to point to a string containing the corresponding compound
+assignment or increment/decrement operator and set *args to point to the
+expression that should be put out for the right operand of the compound
+assignment or to NULL for an increment/decrement.  If the property is
+static and was invoked with an object expression, set *obj_expr to that
+object expression (which is found only on the call to the "get" function
+via an eok_points_to_static operation); otherwise, leave *obj_expr
+unchanged.
 */
 {
   an_expr_node_ptr                node = *args;
@@ -9316,10 +9368,11 @@ If the property is static and was invoked with an object expression, set
      decomposing the compound operation into calls to the "get" and "set"
      accessors. */
   clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_expr = find_pieces_of_rewritten_property_reference;
+  tblock.process_expr = find_pieces_of_decomposed_compound_operation;
   compound_operation_string = NULL;
   opnd2_of_simple_operation = NULL;
   static_object_expression = NULL;
+  tree_is_from_operator_synthesis = (desc == NULL);
   traverse_expr(node, &tblock);
   check_assertion(tblock.result && compound_operation_string != NULL);
   if (rpr_kind == (a_rewritten_property_reference_kind)rprk_pre_incr_decr ||
@@ -9334,7 +9387,7 @@ If the property is static and was invoked with an object expression, set
                (a_rewritten_property_reference_kind)rprk_compound_assignment) {
     /* A simple operation of + or - could correspond to either an
        increment/decrement or a compound assignment, so
-       find_pieces_of_rewritten_property_reference arbitrarily chose the
+       find_pieces_of_decomposed_compound_operation arbitrarily chose the
        increment/decrement.  Correct the resulting operation strings now
        that we know it's a compound assignment. */
     if (*compound_operation_string == '+') {
@@ -9344,7 +9397,7 @@ If the property is static and was invoked with an object expression, set
     }  /* if */
   }  /* if */
   *opstr = compound_operation_string;
-  if (desc->is_static) {
+  if (desc != NULL && desc->is_static) {
     /* This is a static property that might have been written using an
        (ignored) object expression.  In the decomposed IL, the object
        expression appears only on the call to the "get" function (so that
@@ -9353,10 +9406,11 @@ If the property is static and was invoked with an object expression, set
        reference. */
     *obj_expr = static_object_expression;
   }  /* if */
-}  /* analyze_rewritten_property_reference */
+}  /* analyze_decomposed_compound_operation */
 
 
-static void gen_property_or_event_call(
+static void gen_prop_event_or_op_synth_call(
+                           an_expr_node_ptr                    obj_expr,
                            a_routine_ptr                       rout,
                            an_expr_node_ptr                    args,
                            a_property_or_event_descr_ptr       desc,
@@ -9364,35 +9418,50 @@ static void gen_property_or_event_call(
                            a_rewritten_property_reference_kind rpr_kind,
                            a_boolean                           is_virtual_call)
 /*
-Generate the appropriate operator-notation code to call a Microsoft
-property (either C++/CLI or __declspec) or event access routine specified
-by rout.  args is the first argument in the call, i.e., the object
-expression for a non-static member or the actual first argument (if any)
-for static members.  The property or event is described by desc, and
-special_kind specifies the kind of accessor involved; these are passed
-separately because __declspec property accessors are ordinary member
-functions and not uniquely associated with the property.  rpr_kind
-specifies the original source form if the expression expression is the
-expansion of a compound assignment or increment/decrement operation (e.g.,
-"P += 1" becomes the IL equivalent of "P::set(P::get() + 1)") so it can be
-put out in that form.  is_virtual_call is TRUE if the call is virtual and
-FALSE otherwise.
+Generate the appropriate operator-notation code for a property or event
+reference or a compound assignment or increment/decrement operation that
+was decomposed into IL involving a simple operation ("+" for "+=" or "++",
+for example).  If rout is NULL, the top node of the IL is a simple
+assignment operator (eok_assign); otherwise, rout designates the assignment
+operator, Microsoft property (either C++/CLI or __declspec) accessor, or
+event accessor to be called.  args is the left operand of the assignment or
+the first argument in the call, i.e., the object expression for a
+non-static member or the actual first argument (if any) for static members;
+in case of a dot-static call to a property, the object expression is given
+by obj_expr, which will be NULL otherwise.  The property or event is
+described by desc (which will be NULL if the decomposition resulted from
+operator synthesis), and special_kind specifies the kind of accessor
+involved (sfk_none for the operator synthesis case).  rpr_kind specifies
+the original source form if the expression expression is the expansion of a
+compound assignment or increment/decrement operation (e.g., "P += 1"
+becomes the IL equivalent of "P::set(P::get() + 1)") so it can be put out
+in that form.  is_virtual_call is TRUE if the call is virtual and FALSE
+otherwise.
 */
 {
-  an_expr_node_ptr              obj_expr;
   an_expr_node_ptr              subscripts;
   unsigned long                 num_subscripts = 0;
   char                          *opstr = " = ";
   a_boolean                     need_context_pop = FALSE;
 
-  if (desc->is_static) {
-    obj_expr = NULL;
+  if (desc != NULL && desc->is_static) {
+    /* This operation calls a static property.  The object expression will
+       either be the one passed in or will be set by the traversal of the
+       subexpression. */
   } else {
+    /* This operation is the built-in assignment operator, a call to an
+       overloaded assignment operator, or a call to a non-static
+       property/event accessor.  Remember the object expression (or the
+       left operand of the built-in assignment operator) and skip over it
+       to the first "real" argument. */
     obj_expr = args;
     args = args->next;
   }  /* if */
   subscripts = args;
-  if (rout_is_cli_accessor(rout)) {
+  if (rout == NULL || special_kind == (a_special_function_kind)sfk_none) {
+    /* An assignment operator, either built-in or overloaded.  There are no
+       subscripts. */
+  } else if (rout_is_cli_accessor(rout)) {
     /* Count the list of indices. */
     a_property_index_type_ptr idx;
     for (idx = desc->indices; idx != NULL; idx = idx->next) {
@@ -9414,8 +9483,8 @@ FALSE otherwise.
     }  /* if */
   }  /* if */
   if (rpr_kind != (a_rewritten_property_reference_kind)rprk_none) {
-    analyze_rewritten_property_reference(desc, num_subscripts, rpr_kind,
-                                         &obj_expr, &args, &opstr);
+    analyze_decomposed_compound_operation(desc, num_subscripts, rpr_kind,
+                                          &obj_expr, &args, &opstr);
   }  /* if */
   if (rpr_kind == (a_rewritten_property_reference_kind)rprk_pre_incr_decr) {
     /* This is a prefix operator, so put it out now. */
@@ -9428,11 +9497,14 @@ FALSE otherwise.
           obj_expr->variant.variable->is_this_parameter)) {
       a_boolean removed_nodes = strip_lvalue_cast_sequence(&obj_expr);
       gen_expr_with_parens(obj_expr);
-      if (!desc->is_default_indexed) {
+      if (desc == NULL || desc->is_default_indexed) {
         /* With a default-indexed property, the property is unnamed and the
            subscripts are applied to the object expression directly, not to
-           the property member.  Both the -> and the member name must be
-           suppressed. */
+           the property member.  Similarly, in the operator synthesis case,
+           there is no property/event member.  Both the -> and the member
+           name must be suppressed. */
+      } else {
+        /* Handle the normal property/event reference case. */
         a_type_ptr class_type;
         if (is_pointer_or_handle_type(obj_expr->type)) {
           class_type = f_skip_typerefs(type_pointed_to(obj_expr->type));
@@ -9449,9 +9521,11 @@ FALSE otherwise.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (!desc->is_default_indexed) {
+  if (desc != NULL && !desc->is_default_indexed) {
     /* Write the property name unless this is a default-indexed property,
-       in which case the member name is suppressed. */
+       in which case the member name is suppressed, or this is an
+       assignment resulting from operator synthesis, in which case there
+       is no property/event member. */
     a_gen_name_options_set options;
     if (desc->is_virtual && !is_virtual_call) {
       /* Use a qualified name to suppress the virtuality. */
@@ -9499,6 +9573,7 @@ FALSE otherwise.
       /* The generated code is just the property name, already done
          above. */
       break;
+    case sfk_none:
     case sfk_property_set:
       if (rpr_kind !=
                      (a_rewritten_property_reference_kind)rprk_pre_incr_decr) {
@@ -9522,7 +9597,7 @@ FALSE otherwise.
     default:
       unexpected_condition();
   }  /* switch */
-}  /* gen_property_or_event_call */
+}  /* gen_prop_event_or_op_synth_call */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -9547,6 +9622,9 @@ call.
     a_boolean     need_arg_dep_close_paren = FALSE;
     a_boolean     is_dot_static = is_dot_static_operation(func_expr);
     a_routine_ptr rout = routine_from_function_expr(func_expr);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    a_boolean     is_property_or_event_call;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
     if (is_dot_static) {
       /* Put parentheses around a call using a dot-static operator
@@ -9556,8 +9634,11 @@ call.
       need_close_paren = TRUE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (!is_dot_static && rout != NULL && is_routine_node(func_expr) &&
-        func_expr->variant.routine.property_or_event_descr != NULL) {
+    is_property_or_event_call = rout != NULL &&
+                (rout_is_cli_accessor(rout) ||
+                 (is_routine_node(func_expr) &&
+                  func_expr->variant.routine.property_or_event_descr != NULL));
+    if (!is_dot_static && is_property_or_event_call) {
       /* This will be generated as a property/event reference, not a
          function call, so there is no need for parentheses to suppress
          argument-dependent lookup. */
@@ -9570,29 +9651,48 @@ call.
       write_tok_ch('(');
       need_arg_dep_close_paren = TRUE;
     }  /* if */
-    if (is_dot_static) {
-      /* Call of a static member function identified by a static
-         selection, e.g., p->f().  Put out the selection without
-         surrounding parentheses, to avoid problems with overloaded
-         functions (the function identifier must be right next to the
-         argument parentheses). */
+    if (is_dot_static
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        && !(rout != NULL && rout_is_cli_accessor(rout))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        ) {
+      /* Call of a static member function identified by a static selection,
+         e.g., p->f().  Put out the selection without surrounding
+         parentheses, to avoid problems with overloaded functions (the
+         function identifier must be right next to the argument
+         parentheses).  C++/CLI properties and events (but not __declspec
+         properties) can be static, but should be handled below and not
+         here. */
       gen_expression(func_expr);
     } else if (rout != NULL) {
       /* We can tell which routine is being called. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (is_routine_node(func_expr) &&
-          func_expr->variant.routine.property_or_event_descr != NULL) {
+      if (is_property_or_event_call) {
         /* This is a call of an accessor function for a C++/CLI property or
            event or a __declspec property; it should be generated using the
            associated operator instead of as a function call. */
         a_property_or_event_descr_ptr descr;
         a_special_function_kind       special_kind;
-        descr = func_expr->variant.routine.property_or_event_descr;
-        special_kind = func_expr->variant.routine.special_kind;
-        gen_property_or_event_call(
-                     rout, args, descr, special_kind,
+        an_expr_node_ptr              obj_expr;
+        if (is_routine_node(func_expr)) {
+          descr = func_expr->variant.routine.property_or_event_descr;
+          special_kind = func_expr->variant.routine.special_kind;
+        } else {
+          descr = rout->variant.property_or_event_descr;
+          special_kind = rout->special_kind;
+        }  /* if */
+        if (is_dot_static) {
+          obj_expr = func_expr->variant.operation.operands;
+        } else {
+          obj_expr = NULL;
+        }  /* if */
+        gen_prop_event_or_op_synth_call(
+                     obj_expr, rout, args, descr, special_kind,
                      expr->variant.operation.rewritten_property_reference_kind,
                      expr->variant.operation.is_virtual_call);
+        if (need_close_paren) {
+          write_tok_ch(')');
+        }  /* if */
         processed = TRUE;
       } else 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -10423,6 +10523,19 @@ gen_expr that might end up generating this expr as a temporary.
           break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
         case eok_assign:
+          if (expr->variant.operation.rewritten_property_reference_kind !=
+                              (a_rewritten_property_reference_kind)rprk_none) {
+            /* This assignment is the result of decomposing compound
+               assignment operation into its simple components via operator
+               synthesis.  Generate it in the original form. */
+            gen_prop_event_or_op_synth_call(
+                     (an_expr_node_ptr)NULL, (a_routine_ptr)NULL, operand_1,
+                     (a_property_or_event_descr_ptr)NULL,
+                     (a_special_function_kind)sfk_none,
+                     expr->variant.operation.rewritten_property_reference_kind,
+                     /*is_virtual_call=*/FALSE);
+            goto done_with_operation;
+          }  /* if */
           opstr = "=";
           break;
         case eok_add_assign:
@@ -10505,16 +10618,13 @@ gen_expr that might end up generating this expr as a temporary.
 #endif /* CHECKING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (expr->variant.operation.compiler_generated &&
-              is_property_or_event_call(operand_2)) {
-            /* This is the expansion of a C++/CLI property or event
-               reference.  operand_1 contains enk_temp_init nodes whose
-               expressions will be generated in the call to the property
-               access function, so suppress it here. */
-          } else if (operand_1->kind == (an_expr_node_kind)enk_temp_init &&
-                     operand_1->variant.init.dynamic_init->is_reused_value) {
-            /* This is probably the expansion of a Microsoft __declspec
-               property reference.  Again, the first operand should be
-               suppressed. */
+              expr->variant.operation.rewritten_property_reference_kind !=
+                              (a_rewritten_property_reference_kind)rprk_none) {
+            /* This is the initialization for the expansion of a property
+               or event reference or a synthesized compound assignment
+               operation.  operand_1 contains enk_temp_init nodes whose
+               expressions will be generated in the second operand, so
+               suppress it here. */
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
@@ -14736,6 +14846,13 @@ handle_as_definition:
                             !out_of_class_redecl) ||
                            (decl_scope_of(&rout->source_corresp) ==
                                                curr_name_context->assoc_scope);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (rout_is_cli_accessor(rout) && decl_within_class) {
+    /* Ensure that a C++/CLI accessor is not qualified on its in-class
+       declaration. */
+    name_ref = NULL;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Generate a declaration for the routine name with the right type. */
   in_friend_declaration = friend_decl;
   gen_routine_specifiers_and_declaration(rout, rout_type,

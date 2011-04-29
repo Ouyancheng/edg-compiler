@@ -12563,12 +12563,12 @@ select_best_function:
                                            operator_tok_seq_number,
                                            (a_nondependent_call_depth)2,
                                            operator_position_2,
-                                           result,
-                                           processed);
+                                           result, processed);
             if (!*processed) goto no_applicable_operator_function;
             /* There is an acceptable simple operator function.  See if
                the assignment can be done. */
             { an_operand interm_result;
+              an_expr_node_ptr assignment_op = NULL;
               copy_operand(result, &interm_result);
               if (selector_is_object_pointer) {
                 /* The first operand is a handle, so there's no point
@@ -12578,6 +12578,10 @@ select_best_function:
                                           &interm_result,
                                           operator_position,
                                           result);
+                assignment_op = expr_node_from_operand(result);
+                check_assertion(assignment_op != NULL &&
+                                is_operation_node(assignment_op) &&
+                                node_operator_is(assignment_op, eok_assign));
                 *processed = TRUE;
               } else {
                 /* Look for a suitable operator= function. */
@@ -12593,14 +12597,26 @@ select_best_function:
                                                operator_position,
                                                operator_tok_seq_number,
                                                (a_nondependent_call_depth)1,
-                                               operator_position_2,
-                                               result,
+                                               operator_position_2, result,
                                                processed);
                 if (*processed) {
                   /* The operator= is also acceptable, so we've succeeded.
-                     Insert the temporary-initialization code from above,
+                     Find the node representing the assignment, and then
+                     insert the temporary-initialization code from above,
                      if any. */
-                  insert_temporary_initialization(temp_init_expr, result);
+                  assignment_op = expr_node_from_operand(result);
+                  check_assertion(assignment_op != NULL &&
+                                  is_operation_node(assignment_op));
+                  if (node_operator_is(assignment_op, eok_ref_indirect)) {
+                    /* Skip over the implicit indirection through a
+                       reference return type. */
+                    assignment_op = assignment_op->variant.operation.operands;
+                  }  /* if */
+                  insert_temporary_initialization(
+                                          temp_init_expr,
+                                          (a_rewritten_property_reference_kind)
+                                                      rprk_compound_assignment,
+                                          result);
                 } else {
                   /* No suitable assignment operator. */
                   if (expr_error_should_be_issued()) {
@@ -12611,6 +12627,12 @@ select_best_function:
                   make_error_operand(result);
                   *processed = TRUE;
                 }  /* if */
+              }  /* if */
+              if (assignment_op != NULL) {
+                /* Mark the node as the result of operator synthesis. */
+                assignment_op->
+                          variant.operation.rewritten_property_reference_kind =
+                 (a_rewritten_property_reference_kind)rprk_compound_assignment;
               }  /* if */
             }
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

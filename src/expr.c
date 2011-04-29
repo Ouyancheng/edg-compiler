@@ -6956,12 +6956,15 @@ it is set to NULL.
 }  /* prepare_property_ref_incr_decr */
 
 
-void insert_temporary_initialization(an_expr_node_ptr  temp_init_expr,
-                                     an_operand        *result)
+void insert_temporary_initialization(
+                            an_expr_node_ptr                    temp_init_expr,
+                            a_rewritten_property_reference_kind rewritten_kind,
+                            an_operand                          *result)
 /*
 If temp_init_expr is non-NULL, insert the temporary-initialization code
 it points to into result so it executes before whatever is originally
-in result.
+in result.  Mark the resulting eok_comma node with the kind of operation
+specified by rewritten_kind.
 */
 {
   if (temp_init_expr != NULL) {
@@ -6971,6 +6974,7 @@ in result.
     expr = make_node_from_operand(result);
     expr = make_comma_node(temp_init_expr, expr);
     expr->variant.operation.compiler_generated = TRUE;
+    expr->variant.operation.rewritten_property_reference_kind = rewritten_kind;
     make_expression_operand(expr, result);
     if (is_an_lvalue(&orig_operand) ||
         is_a_function_designator(&orig_operand)) {
@@ -7007,10 +7011,14 @@ inserted before the overall operation so it will be evaluated before
 any use of the temporary.  The overall result is placed in *result.
 */
 {
-  an_operand             one_operand;
-  a_constant             one_constant;
-  a_type_ptr             result_type;
-  an_expr_operator_kind  op;
+  an_operand                          one_operand;
+  a_constant                          one_constant;
+  a_type_ptr                          result_type;
+  an_expr_operator_kind               op;
+  a_rewritten_property_reference_kind rprk = (is_post ?
+                     (a_rewritten_property_reference_kind)rprk_post_incr_decr :
+                     (a_rewritten_property_reference_kind)rprk_pre_incr_decr);
+
 
   /* Make a constant "1" of the right type. */
   set_integer_constant(&one_constant, (a_host_large_integer)1L,
@@ -7025,14 +7033,11 @@ any use of the temporary.  The overall result is placed in *result.
   do_binary_operation(op, operand, &one_operand, result_type, result,
                       operator_position, NO_TOKEN_SEQUENCE_NUMBER);
   /* Add a call of the appropriate "put" routine. */
-  rewrite_property_reference(operand_clone, result,
-                             (is_post ?
-                     (a_rewritten_property_reference_kind)rprk_post_incr_decr :
-                     (a_rewritten_property_reference_kind)rprk_pre_incr_decr));
+  rewrite_property_reference(operand_clone, result, rprk);
 
   copy_operand(operand_clone, result);
   /* Insert temporary-initialization code if required. */
-  insert_temporary_initialization(temp_init_expr, result);
+  insert_temporary_initialization(temp_init_expr, rprk, result);
 }  /* process_property_ref_incr_decr */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -22254,7 +22259,10 @@ operation_type_determined:
                 (a_rewritten_property_reference_kind)rprk_compound_assignment);
     copy_operand(&operand_1_clone, result);
     operand_1_clone_unused = FALSE;
-    insert_temporary_initialization(temp_init_expr, result);
+    insert_temporary_initialization(
+                 temp_init_expr,
+                 (a_rewritten_property_reference_kind)rprk_compound_assignment,
+                 result);
   }  /* if */
   /* The following test is defensive programming: although
      operand_1_clone_unused cannot currently ever be TRUE at this point, it's
