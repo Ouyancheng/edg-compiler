@@ -13787,9 +13787,11 @@ expression, and return the result in *result (or an error indication in
       an_operand auto_operand;
       a_type_ptr deduced_new_type, deduced_auto_type;
       a_boolean  still_dependent;
+#if MICROSOFT_EXTENSIONS_ALLOWED
       /* gcnew auto was prohibited on the initial scan, so it should not
          get here for a rescan. */
       check_assertion(operator_token != tok_gcnew);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       make_rescan_operand(rcblock->argument_list, rcblock, &auto_operand);
       /* Deduce the type. */
       if (deduce_auto_type(new_type, /*auto_type=*/(a_type_ptr)NULL,
