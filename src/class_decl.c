@@ -3527,7 +3527,7 @@ the overridden symbol.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cli_class_type_kind_is(class_state->class_type, cctk_interface)) {
     /* A derived C++/CLI interface can validly contain a member whose type and
-       name match except for the return type: Do no issue a diagnostic. */
+       name match except for the return type: Do not issue a diagnostic. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Error -- return type must be identical to or covariant with that of the
