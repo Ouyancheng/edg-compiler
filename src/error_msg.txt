@@ -2217,6 +2217,7 @@ ec_incompatible_delegate_object;;"invalid delegate initializer -- object has typ
 ec_address_of_managed_member_function;;"taking the address of a member function of a managed class is not allowed"
 ec_bad_delegate_init_list;;"invalid delegate initializer -- expected either \"(<function-address>)\" or \"(<object-handle>, <member-address>)\""
 ec_interface_not_implemented;;"class fails to implement interface member %nd"
+ec_gcnew_of_native_array;;"gcnew cannot be used to allocate a native array"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

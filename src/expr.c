@@ -13841,7 +13841,7 @@ expression, and return the result in *result (or an error indication in
       } else if (is_array_type(new_type)) {
         /* An error should have been emitted for this.  Ensure we recover
            appropriately. */
-        if (expr_error_should_be_issued()) expect_error();
+        expr_pos_error(ec_gcnew_of_native_array, &type_position);
         new_type = error_type();
         new_type_involves_auto = FALSE;
       }  /* if */
