@@ -10130,24 +10130,6 @@ used as an rvalue).
 }  /* handle_lvalue_constant_node */
 
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-static a_boolean is_property_or_event_call(an_expr_node_ptr expr)
-/*
-Return TRUE if expr is a call to a property or event accessor function.
-*/
-{
-  a_boolean result = FALSE;
-  if (is_operation_node(expr) &&
-      node_operator_is(expr, eok_points_to_member_call)) {
-    a_routine_ptr rout =
-                  routine_from_function_expr(expr->variant.operation.operands);
-    result = (rout != NULL && rout_is_cli_accessor(rout));
-  }  /* if */
-  return result;
-}  /* is_property_or_event_call */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens,
                      a_boolean        obj_expr_of_mfunc_operator)
