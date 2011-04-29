@@ -133,42 +133,6 @@ of a default argument expression, mark the new entry the same way.
 }  /* transfer_expr_context_if_applicable */
 
 
-static void deduce_auto_type_if_necessary(a_decl_parse_state *dps)
-/*
-*dps represents a declaration with an "auto" type specifier and a prescanned
-initializer expression.  Deduce the auto type from the initializer and
-store it in dps->type.  Do not do the deduction if the initializer is
-still dependent or the specifiers type is dependent other than
-because of the "auto", since we won't be able to get a result in those
-cases.
-*/
-{
-  a_boolean          do_deduction = TRUE;
-  an_arg_operand_ptr auto_arg_operand = dps->prescanned_initializer_cache.
-                                                              first_expression;
-
-  check_assertion(auto_arg_operand != NULL && auto_arg_operand->next == NULL);
-  if (is_template_dependent_context()) {
-    if (is_template_dependent_type(auto_arg_operand->operand.type)) {
-      /* The initializer is dependent. */
-      do_deduction = FALSE;
-    } else {
-      check_assertion(dps->auto_type != NULL && is_auto_type(dps->auto_type));
-      /* Temporarily treat the "auto" type as an "unknown" type so it is
-         ignored by "is_template_dependent_type". */
-      dps->auto_type->kind = (a_type_kind)tk_unknown;
-      do_deduction = !is_template_dependent_type(dps->declared_type);
-      dps->auto_type->kind = (a_type_kind)tk_template_param;
-    }  /* if */
-  }  /* if */
-  if (do_deduction) {
-    deduce_auto_type(dps);
-  } else {
-    dps->type = dps->declared_type;
-  }  /* if */
-}  /* deduce_auto_type_if_necessary */
-
-
 void prescan_initializer_for_auto_type_deduction(
                                          a_decl_parse_state *dps,
                                          a_boolean          parenthesized_init)
@@ -177,16 +141,23 @@ Prescan an initializer expression for an "auto" type variable declaration and
 deduce the type of the variable.  The operand resulting from the scan is
 recorded in *dps for later consumption.  On return, dps->deduced_auto_type is
 the type to which the "auto" was deduced, and dps->type is the type of the
-entity to initialize.  The prescanned operand can later be accessed using
-set_up_initializer_rescan.  The initializer is parenthesized if
-parenthesized_init is TRUE; otherwise, it's "="-form.
+entity to initialize.  dps->auto_type_specifier_seen (which must be TRUE
+on entry) is cleared to FALSE if there was a deduction error, and
+dps->deduced_auto_type is returned NULL if deduction was not done because
+the type or initializer is still dependent.  The prescanned operand
+can later be accessed using set_up_initializer_rescan.  The
+initializer is parenthesized if parenthesized_init is TRUE; otherwise,
+it's "="-form.
 */
 {
   an_expr_stack_entry expr_stack_entry;
   an_expr_stack_entry *saved_expr_stack;
   an_expression_kind  expr_kind = (an_expression_kind)ek_normal;
   an_operand          operand;
+  a_type_ptr          deduced_auto_type;
+  a_boolean           still_dependent;
 
+  check_assertion(dps->auto_type_specifier_seen && dps->auto_type != NULL);
   /* Usually an initializer is a full expression and we must push an entry
      on the expression stack.  However, the initializer for a new-expression
      is not a full expression and a stack entry will already have been
@@ -229,7 +200,53 @@ parenthesized_init is TRUE; otherwise, it's "="-form.
                                   /*to_front=*/TRUE,
                                   /*preserve_lifetime=*/!dps->is_new_expr_type,
                                   &dps->prescanned_initializer_cache);
-  deduce_auto_type_if_necessary(dps);
+  /* Do type deduction. */
+  if (!deduce_auto_type(dps->declared_type,
+                        dps->auto_type,
+                        &operand,
+                        &dps->declarator_pos,
+                        &dps->type,
+                        &deduced_auto_type,
+                        &still_dependent)) {
+    if (still_dependent) {
+      /* Deduction was not done because the types are still dependent. */
+      dps->type = dps->declared_type;
+      dps->deduced_auto_type = NULL;
+    } else {
+      /* Deduction failed. */
+      expr_pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
+      dps->specifiers_type = dps->deduced_auto_type = dps->type = error_type();
+      dps->auto_type_specifier_seen = FALSE;
+    }  /* if */
+  } else {
+    /* Deduction succeeded. */
+    if (dps->deduced_auto_type != NULL &&
+        !identical_types(dps->deduced_auto_type, deduced_auto_type)) {
+      /* This is a declaration with multiple declarators and the type deduced
+         for a previous declarator is not consistent with the current
+         deduction:  Issue an error. */
+      if (expr_error_should_be_issued()) {
+        pos_ty2_error(ec_inconsistent_deduction_of_auto, &dps->declarator_pos,
+                      deduced_auto_type, dps->deduced_auto_type);
+      }  /* if */
+    }  /* if */
+    /* Record the type deduced for the "auto" specifier. */
+    dps->deduced_auto_type = deduced_auto_type;
+    /* Check that the actual (deduced) type of the declaration is applicable to
+       the declared entity (in particular, this checks for compatibility with
+       previous declarations of the same entity). */
+    check_deduced_auto_type(dps);
+  }  /* if */
+  if (dps->sym != NULL) {
+    /* Update the type in the IL entry. */
+    if (dps->sym->kind == (a_symbol_kind)sk_variable) {
+      dps->sym->variant.variable.ptr->type = dps->type;
+    } else if (dps->sym->kind == (a_symbol_kind)sk_static_data_member) {
+      dps->sym->variant.static_data_member.variable->type = dps->type;
+    } else {
+      unexpected_condition();
+    }  /* if */
+  }  /* if */
   /* Pop the expression stack if needed. */
   if (!dps->is_new_expr_type) {
     pop_expr_stack();
@@ -13558,7 +13575,7 @@ expression, and return the result in *result (or an error indication in
   a_boolean         template_case = FALSE;
   a_boolean         force_dependent = FALSE;
   a_boolean         new_type_involves_auto = FALSE;
-  a_boolean         auto_deduction_attempted = FALSE;
+  a_boolean         using_expr_cache = FALSE;
   a_boolean         empty_parens;
   a_boolean         trapped_left_paren = FALSE;
   a_new_delete_supplement_ptr
@@ -13765,34 +13782,39 @@ expression, and return the result in *result (or an error indication in
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned "new". */
     if (new_type_involves_auto) {
-      /* The type is based on "auto".  Find the "auto" in the type. */
-      a_type_ptr tp = find_bottom_of_type(new_type);
-      tp = skip_typerefs(tp);
-      if (is_error_type(tp)) {
-        /* There was a previous error. */
+      /* The type is based on "auto".  Deduce the type from the
+         initializer expression. */
+      an_operand auto_operand;
+      a_type_ptr deduced_new_type, deduced_auto_type;
+      a_boolean  still_dependent;
+      /* gcnew auto was prohibited on the initial scan, so it should not
+         get here for a rescan. */
+      check_assertion(operator_token != tok_gcnew);
+      make_rescan_operand(rcblock->argument_list, rcblock, &auto_operand);
+      /* Deduce the type. */
+      if (deduce_auto_type(new_type, /*auto_type=*/(a_type_ptr)NULL,
+                           &auto_operand, &type_position,
+                           &deduced_new_type,
+                           &deduced_auto_type,
+                           &still_dependent)) {
+        /* Deduction succeeded. */
+        new_type = deduced_new_type;
+        new_type_involves_auto = FALSE;
+      } else if (still_dependent) {
+        /* The deduction could not be done because the types are still
+           dependent, so new_type stays as it is. */
+      } else {
+        /* Deduction failed. */
         new_type = error_type();
         rcblock->error_detected = TRUE;
-      } else {
-        an_operand auto_operand;
-        check_assertion(is_auto_type(tp));
-        /* Deduce the type from the initializer.  The initializer expression
-           is "prescanned" by putting it in dps. */
-        dps.is_new_expr_type = TRUE;
-        dps.declared_type = new_type;
-        make_rescan_operand(rcblock->argument_list, rcblock,
-                            &auto_operand);
-        add_operand_to_expression_cache(&auto_operand,
-                                        /*to_front=*/TRUE,
-                                        /*preserve_lifetime=*/FALSE,
-                                        &dps.prescanned_initializer_cache);
-        dps.declarator_pos = dps.auto_pos = type_position;
-        dps.auto_type_specifier_seen = TRUE;
-        /* Do the deduction. */
-        dps.auto_type = tp;
-        deduce_auto_type_if_necessary(&dps);
-        new_type = dps.type;
-        auto_deduction_attempted = TRUE;
       }  /* if */
+      /* Save the expression in the cache so it will get picked up below,
+         avoiding rescanning it again. */
+      add_operand_to_expression_cache(&auto_operand,
+                                      /*to_front=*/TRUE,
+                                      /*preserve_lifetime=*/FALSE,
+                                      &dps.prescanned_initializer_cache);
+      using_expr_cache = TRUE;
     }  /* if */
   } else {
     /* Scan the new-type-name or ( type-name ) from source. */
@@ -13804,6 +13826,7 @@ expression, and return the result in *result (or an error indication in
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    new_type = dps.type;
     new_type_involves_auto = (dps.auto_type_specifier_seen &&
                               !dps.has_trailing_return_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -13811,13 +13834,14 @@ expression, and return the result in *result (or an error indication in
       if (new_type_involves_auto) {
         /* Do not allow auto syntax with gcnew. */
         expr_pos_error(ec_gcnew_used_with_auto_syntax, &type_position);
-        dps.type = error_type();
-        dps.auto_type_specifier_seen = new_type_involves_auto = FALSE;
-      } else if (is_array_type(dps.type)) {
+        new_type = error_type();
+        new_type_involves_auto = FALSE;
+      } else if (is_array_type(new_type)) {
         /* An error should have been emitted for this.  Ensure we recover
            appropriately. */
         if (expr_error_should_be_issued()) expect_error();
-        dps.type = error_type();
+        new_type = error_type();
+        new_type_involves_auto = FALSE;
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13831,31 +13855,30 @@ expression, and return the result in *result (or an error indication in
         /* Prescan the initializer to deduce the type to allocate. */
         prescan_initializer_for_auto_type_deduction(&dps,
                                                   /*parenthesized_init=*/TRUE);
-        auto_deduction_attempted = TRUE;
+        using_expr_cache = TRUE;
+        if (!dps.auto_type_specifier_seen) {
+          /* There was an error.  Proceed as if "auto" did not appear. */
+          new_type = error_type();
+          new_type_involves_auto = FALSE;
+        } else if (dps.deduced_auto_type == NULL) {
+          /* The deduction was not done because the initializer or the auto
+             type is dependent.  The new_type will still involve "auto". */
+        } else {
+          /* In other cases, the deduction succeeded and "auto" is gone
+             from the new_type. */
+          new_type = dps.type;
+          new_type_involves_auto = FALSE;
+        }  /* if */
       }  /* if */
     } else if (new_type_involves_auto) {
       /* An auto type specifier not followed by a new-initializer or a
          trailing return type is an error. */
       expr_pos_error(ec_auto_type_requires_initializer, &type_position);
-      dps.type = error_type();
-      dps.auto_type_specifier_seen = new_type_involves_auto = FALSE;
-    }  /* if */
-    new_type = dps.type;
-  }  /* if */
-  if (auto_deduction_attempted) {
-    /* Deduction for "auto" was attempted.  See what the results were. */
-    if (!dps.auto_type_specifier_seen) {
-      /* There was an error.  Proceed as if "auto" did not appear. */
       new_type = error_type();
       new_type_involves_auto = FALSE;
-    } else if (dps.deduced_auto_type == NULL) {
-      /* The deduction was not done because the initializer or the auto
-         type is dependent.  The new_type will still involve "auto". */
-    } else {
-      /* In other cases, the deduction succeeded and "auto" is gone
-         from the new_type. */
-      new_type_involves_auto = FALSE;
     }  /* if */
+  }  /* if */
+  if (using_expr_cache) {
     /* Activate the prescanned expression cache so the expression will be
        considered pre-scanned for the code below. */
     saved_expression_cache = expr_stack->expression_cache;
@@ -14759,7 +14782,7 @@ handle_empty_parens_new_initializer:
   }  /* if */
   expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
-  if (auto_deduction_attempted) {
+  if (using_expr_cache) {
     /* Deactivate the expression cache used for "auto". */
     check_assertion(expr_stack->expression_cache ==
                                             &dps.prescanned_initializer_cache);

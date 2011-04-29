@@ -863,9 +863,13 @@ extern a_routine_ptr select_assignment_operator_for_memberwise_copy(
                                              an_expr_node_ptr  dest_expr,
                                              a_source_position *dest_decl_pos);
 
-#if !STANDALONE_UTILITY_PROGRAM
-extern void deduce_auto_type(a_decl_parse_state  *dps);
-#endif /* !STANDALONE_UTILITY_PROGRAM */
+extern a_boolean deduce_auto_type(a_type_ptr        orig_type,
+                                  a_type_ptr        auto_type,
+                                  an_operand        *initializer_operand,
+                                  a_source_position *source_pos,
+                                  a_type_ptr        *type_after_deduction,
+                                  a_type_ptr        *deduced_auto_type,
+                                  a_boolean         *still_dependent);
 
 extern void overload_init(void);
 

@@ -17518,105 +17518,121 @@ to be copied.
 }  /* select_assignment_operator_for_memberwise_copy */
 
 
-void deduce_auto_type(a_decl_parse_state  *dps)
+a_boolean deduce_auto_type(a_type_ptr        orig_type,
+                           a_type_ptr        auto_type,
+                           an_operand        *initializer_operand,
+                           a_source_position *source_pos,
+                           a_type_ptr        *type_after_deduction,
+                           a_type_ptr        *deduced_auto_type,
+                           a_boolean         *still_dependent)
 /*
-*dps describes a declaration of an "auto" variable, including its initializer.
-Deduce the "auto" type specifier and store the resulting type in dps->type.
-Deduction failures are diagnosed as errors.
+Do type deduction for a use of "auto" in a declaration or similar
+construct.  orig_type is the type of the declared entity, with "auto"
+embedded in it.  auto_type is the "auto" type that's embedded (a
+template parameter type); it can be NULL, in which case this routine
+will find it inside orig_type.  initializer_operand is the initializer,
+whose type is used to do the deduction.  source_pos is the source
+position of the declaration.  If the deduction succeeds,
+*type_after_deduction is set to the deduced version of orig_type,
+*deduced_auto_type is set to the type deduced for "auto" itself, and
+TRUE is returned.  If an error is detected, FALSE is returned (but no
+diagnostic is issued).  If the deduction was not attempted because
+the types involved are still dependent, *still_dependent is
+returned TRUE and FALSE is returned.
 */
 {
-  an_arg_operand_ptr    auto_arg_operand;
-  an_operand            *arg;
+  a_boolean             okay = TRUE;
+  a_boolean             do_deduction = TRUE;
   a_template_param_ptr  templ_param;
   a_template_arg_ptr    templ_arg = NULL;
-  a_type_ptr            type = dps->declared_type, orig_type = type;
+  a_type_ptr            type = orig_type;
   a_type_ptr            arg_type;
   a_type_ptr            qc_param_type = NULL;
   a_type_ptr            qc_arg_type = NULL;
   a_boolean             subst_error = FALSE;
   a_ctws_state          ctws_state;
 
-  check_assertion(dps->auto_type_specifier_seen && dps->auto_type != NULL);
-  auto_arg_operand = dps->prescanned_initializer_cache.first_expression;
-  check_assertion(auto_arg_operand != NULL && auto_arg_operand->next == NULL);
-  arg = &auto_arg_operand->operand;
-  arg_type = arg->type;
+  *type_after_deduction = NULL;
+  *deduced_auto_type = NULL;
+  *still_dependent = FALSE;
+  if (auto_type == NULL) {
+    /* Find the "auto" inside the type. */
+    auto_type = find_bottom_of_type(type);
+    auto_type = skip_typerefs(auto_type);
+    if (is_error_type(auto_type)) {
+      /* There was a previous error. */
+      *type_after_deduction = *deduced_auto_type = error_type();
+      okay = TRUE;
+      goto end_of_routine;
+    }  /* if */
+  }  /* if */
+  check_assertion(is_auto_type(auto_type));
+  arg_type = initializer_operand->type;
   if (is_managed_nullptr_type(arg_type)) {
     /* The Microsoft C++/CLI compiler deduces std::nullptr_t from an auto
        initializer of the managed nullptr type. */
     arg_type = standard_nullptr_type();
+    initializer_operand = NULL;
   }  /* if */
-  dps->type = NULL;
-  templ_param = alloc_template_param(symbol_for(dps->auto_type));
-  /* Adjust the argument and parameter types for deduction.  Some types can
-     never succeed: Issue an error and don't attempt deduction any further. */
-  if (!adjust_deduction_pair(&type, &arg_type, arg, templ_param,
-                             (a_template_arg *)NULL,
-                             &qc_param_type, &qc_arg_type,
-                             (a_boolean *)NULL)) {
-    expr_pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
-    goto set_type;
-  }  /* if */
-  if (!deduce_from_one_pair(type, arg_type, qc_param_type, qc_arg_type,
-                            &templ_arg, templ_param)) {
-    /* Deduction failed. */
-    expr_pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
-    goto set_type;
-  }  /* if */
-  if (templ_arg == NULL) {
-    /* Deduction produced no argument because an error type was involved. */
-    check_assertion(total_errors != 0 &&
-                    is_or_contains_error_type(orig_type));
-    goto set_type;
-  }  /* if */
-  check_assertion(templ_arg->kind == (a_templ_arg_kind)tak_type);
-  /* Substitute the deduced type to obtain the actual type for the current
-     declaration.  A substitution failure is an error. */
-  init_ctws_state(&ctws_state);
-  dps->type = copy_type_with_substitution(orig_type, templ_arg, templ_param,
-                                          &dps->declarator_pos,
-                                          CTWS_NO_OPTIONS, &subst_error,
-                                          &ctws_state);
-  if (subst_error) {
-    /* Substitution failed. */
-    expr_pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
-    dps->type = NULL;
-    goto set_type;
-  }  /* if */
-  if (dps->deduced_auto_type != NULL &&
-      !identical_types(dps->deduced_auto_type, templ_arg->variant.type)) {
-    /* This is a declaration with multiple declarators and the type deduced
-       for a previous declarator is not consistent with the current deduction:
-       Issue an error. */
-    if (expr_error_should_be_issued()) {
-      pos_ty2_error(ec_inconsistent_deduction_of_auto, &dps->declarator_pos,
-                    templ_arg->variant.type, dps->deduced_auto_type);
-    }  /* if */
-  }  /* if */
-  /* Record the type deduced for the "auto" specifier. */
-  dps->deduced_auto_type = templ_arg->variant.type;
-  /* Check that the actual (deduced) type of the declaration is applicable to
-     the declared entity (in particular, this checks for compatibility with
-     previous declarations of the same entity). */
-  check_deduced_auto_type(dps);
-set_type:
-  if (dps->type == NULL) {
-    /* An error occurred: Recover with an error type and proceed as if "auto"
-       had not been seen. */
-    dps->specifiers_type = dps->deduced_auto_type = dps->type = error_type();
-    dps->auto_type_specifier_seen = FALSE;
-  }  /* if */
-  if (dps->sym != NULL) {
-    /* Update the type in the IL entry. */
-    if (dps->sym->kind == (a_symbol_kind)sk_variable) {
-      dps->sym->variant.variable.ptr->type = dps->type;
-    } else if (dps->sym->kind == (a_symbol_kind)sk_static_data_member) {
-      dps->sym->variant.static_data_member.variable->type = dps->type;
+  if (is_template_dependent_context()) {
+    /* See whether deduction can be done. */
+    if (is_template_dependent_type(arg_type)) {
+      /* No, the initializer is dependent. */
+      do_deduction = FALSE;
     } else {
-      unexpected_condition();
+      /* See whether the type is dependent. */
+      /* Temporarily treat the "auto" type as an "unknown" type so it is
+         ignored by "is_template_dependent_type". */
+      auto_type->kind = (a_type_kind)tk_unknown;
+      do_deduction = !is_template_dependent_type(type);
+      auto_type->kind = (a_type_kind)tk_template_param;
     }  /* if */
   }  /* if */
+  if (!do_deduction) {
+    /* Can't do deduction yet. */
+    *still_dependent = TRUE;
+    okay = FALSE;
+  } else {
+    /* Do deduction. */
+    templ_param = alloc_template_param(symbol_for(auto_type));
+    /* Adjust the argument and parameter types for deduction.  Some types can
+       never succeed:  Issue an error and don't attempt deduction any
+       further. */
+    if (!adjust_deduction_pair(&type, &arg_type, initializer_operand,
+                               templ_param, (a_template_arg *)NULL,
+                               &qc_param_type, &qc_arg_type,
+                               (a_boolean *)NULL)) {
+      okay = FALSE;
+    } else if (!deduce_from_one_pair(type, arg_type,
+                                     qc_param_type, qc_arg_type,
+                                     &templ_arg, templ_param)) {
+      /* Deduction failed. */
+      okay = FALSE;
+    } else if (templ_arg == NULL) {
+      /* Deduction produced no argument because an error type was involved. */
+      okay = FALSE;
+    } else {
+      /* Deduction succeeded. */
+      check_assertion(templ_arg->kind == (a_templ_arg_kind)tak_type);
+      *deduced_auto_type = templ_arg->variant.type;
+      /* Substitute the deduced type to obtain the actual type for the current
+         declaration. */
+      init_ctws_state(&ctws_state);
+      *type_after_deduction = copy_type_with_substitution(
+                                              orig_type,
+                                              templ_arg, templ_param,
+                                              source_pos,
+                                              CTWS_NO_OPTIONS, &subst_error,
+                                              &ctws_state);
+      if (subst_error) {
+        /* Substitution failed. */
+        okay = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+end_of_routine:
   if (templ_arg != NULL) free_template_arg_list(templ_arg);
+  return okay;
 }  /* deduce_auto_type */
 
 
