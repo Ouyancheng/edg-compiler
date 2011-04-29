@@ -1,5 +1,22 @@
 Version 4.4
 
+4/29/11  [EDGcpfe/11654]
+Microsoft compatibility: static_cast of field selection can be lvalue cast
+
+In Microsoft bugs mode, a static_cast applied to an lvalue that is
+a field selection using the "->" operator (including the implicit "this->"
+case of that), that casts the lvalue to the same type with different
+cv-qualifiers, is now treated as an lvalue cast, i.e., it produces an
+lvalue result.
+
+  class Cl {
+    int mem;
+     void Func( void ) const {
+       static_cast<int>(mem) = -1;   // Now accepted in Microsoft bugs mode
+     }
+  };
+
+
 4/28/11  [EDGcpfe/11664]
 Source positions on stmk_init and stmk_vla_decl statements added by lowering
 

@@ -17142,11 +17142,25 @@ if it's not valid).
   if (!processed) {
     /* No user-defined conversion applies. */
     a_boolean gnu_lvalue_cast_case = FALSE;
+    a_boolean microsoft_lvalue_cast_case = FALSE;
     if (is_gpp_lvalue_cast(operand, type_cast_to)) {
       /* GNU C++ allows a limited form of lvalue cast on integral types. */
       gnu_lvalue_cast_case = TRUE;
+    } else if (microsoft_bugs && !cast_to_reference &&
+               is_an_lvalue(operand) &&
+               identical_types_ignoring_qualifiers(operand->type,
+                                                   type_cast_to) &&
+               is_expression_operand(operand) &&
+               is_operation_node(operand->variant.expression) &&
+               node_operator_is(operand->variant.expression,
+                                eok_points_to_field) &&
+               !is_bit_field_operand(operand)) {
+      /* MSVC allows adjusting the cv-qualifiers on an lvalue formed by
+         a field selection. */
+      microsoft_lvalue_cast_case = TRUE;
     }  /* if */
-    if (!cast_to_reference && !cast_to_void && !gnu_lvalue_cast_case) {
+    if (!cast_to_reference && !cast_to_void &&
+        !gnu_lvalue_cast_case && !microsoft_lvalue_cast_case) {
       /* Normal case (not a cast to reference or cast to void). */
       if (gpp_mode && gnu_version >= 30400 &&
           is_pointer_type(type_cast_to) && is_pointer_type(operand->type)) {
@@ -17225,6 +17239,10 @@ if it's not valid).
       } else if (gnu_lvalue_cast_case) {
         /* GNU C++ allows a limited form of lvalue cast on integral types. */
         lvalue_cast(type_cast_to, operand, /*compiler_generated=*/FALSE);
+      } else if (microsoft_lvalue_cast_case) {
+        /* Microsoft C++ allows a limited form of lvalue cast. */
+        microsoft_lvalue_cv_qual_adjustment(operand, type_cast_to,
+                                            /*compiler_generated=*/FALSE);
       } else if (static_cast_conversion_possible(
                                       adj_source_type,
                                       operand_is_constant,
