@@ -750,6 +750,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_address_of_managed_member_function)*/
 /*lint -esym(769,ec_bad_delegate_init_list)*/
 /*lint -esym(769,ec_interface_not_implemented)*/
+/*lint -esym(769,ec_gcnew_of_native_array)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_enum)*/
