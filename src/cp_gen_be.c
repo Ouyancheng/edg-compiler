@@ -9627,7 +9627,7 @@ call.
     a_boolean     is_dot_static = is_dot_static_operation(func_expr);
     a_routine_ptr rout = routine_from_function_expr(func_expr);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    a_boolean     is_property_or_event_call;
+    a_boolean     is_property_or_event_ref;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
     if (is_dot_static) {
@@ -9638,11 +9638,11 @@ call.
       need_close_paren = TRUE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    is_property_or_event_call = rout != NULL &&
-                (rout_is_cli_accessor(rout) ||
-                 (is_routine_node(func_expr) &&
-                  func_expr->variant.routine.property_or_event_descr != NULL));
-    if (!is_dot_static && is_property_or_event_call) {
+    is_property_or_event_ref = rout != NULL &&
+               ((is_routine_node(func_expr) &&
+                 func_expr->variant.routine.property_or_event_descr != NULL) ||
+                (is_dot_static && rout_is_cli_accessor(rout)));
+    if (!is_dot_static && is_property_or_event_ref) {
       /* This will be generated as a property/event reference, not a
          function call, so there is no need for parentheses to suppress
          argument-dependent lookup. */
@@ -9671,7 +9671,7 @@ call.
     } else if (rout != NULL) {
       /* We can tell which routine is being called. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (is_property_or_event_call) {
+      if (is_property_or_event_ref) {
         /* This is a call of an accessor function for a C++/CLI property or
            event or a __declspec property; it should be generated using the
            associated operator instead of as a function call. */
