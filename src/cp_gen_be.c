@@ -10512,7 +10512,7 @@ gen_expr that might end up generating this expr as a temporary.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (expr->variant.operation.rewritten_property_reference_kind !=
                               (a_rewritten_property_reference_kind)rprk_none) {
-            /* This assignment is the result of decomposing compound
+            /* This assignment is the result of decomposing a compound
                assignment operation into its simple components via operator
                synthesis.  Generate it in the original form. */
             gen_prop_event_or_op_synth_call(
