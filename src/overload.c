@@ -17632,7 +17632,14 @@ returned TRUE and FALSE is returned.
       okay = FALSE;
     } else if (templ_arg == NULL) {
       /* Deduction produced no argument because an error type was involved. */
-      okay = FALSE;
+      if (is_error_type(arg_type) || is_error_type(type)) {
+        *type_after_deduction = *deduced_auto_type = error_type();
+        okay = TRUE;
+      } else {
+        /* If we're not sure there was a previous error, make the
+           caller issue one. */
+        okay = FALSE;
+      }  /* if */
     } else {
       /* Deduction succeeded. */
       check_assertion(templ_arg->kind == (a_templ_arg_kind)tak_type);
