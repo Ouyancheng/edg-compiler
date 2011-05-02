@@ -14888,18 +14888,23 @@ handle_as_definition:
        declarator, except for function definitions (where postfix attributes
        are not allowed). */
     gen_attributes(attributes, al_id_equivalent, is_definition);
-    /* For a pure virtual function, add "= 0".  (If the "abstract" function
-       modifier has been generated already do not output the "= 0" since it
-       would be redundant.) */
-    if (rout->pure_virtual && !abstract_generated) {
-      write_tok_str(" = 0");
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (rout->overridden_functions != NULL &&
-               is_immediate_managed_class_type(parent_class)) {
+    if (rout->overridden_functions != NULL &&
+        is_immediate_managed_class_type(parent_class)) {
       /* The routine is a C++/CLI member function with a list of overridden
          functions. */
       gen_overridden_function_list(rout);
+    } else if (parent_class != NULL &&
+               cli_class_type_kind_is(parent_class, cctk_interface)) {
+      /* Do not render "= 0" for C++/CLI interfaces since it is implied. */
+    } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    if (rout->pure_virtual && !abstract_generated) {
+      /* For a pure virtual function, add "= 0".  (If the "abstract" function
+         modifier has been generated already do not output the "= 0" since it
+         would be redundant.) */
+      write_tok_str(" = 0");
     }  /* if */
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
