@@ -9024,7 +9024,15 @@ set to FALSE (and FALSE is always returned).
       case sfk_conversion:
       case sfk_operator:
         if (!rtn->compiler_generated) {
-          if (type->variant.class_struct_union.is_interface) {
+          if (cli_class_type_kind_is(type, cctk_interface)) {
+            /* C++/CLI interfaces cannot have an operator= member. */
+            if (rtn->variant.opname_kind == (an_opname_kind)onk_assign) {
+              pos_error(ec_cli_interface_cannot_have_assignment,
+                        &locator->source_position);
+            }  /* if */
+          } else if (type->variant.class_struct_union.is_interface) {
+            /* Old-style __interface classes cannot have any member operator
+               at all. */
             pos_error(ec_interface_cannot_have_operator,
                       &locator->source_position);
           } else {
