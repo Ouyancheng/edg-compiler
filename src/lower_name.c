@@ -162,6 +162,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_FINALIZER "D7"
 #define MANGLING_STRING_FOR_MANAGED_NULLPTR "DN"
 #define MANGLING_STRING_FOR_OPERATOR_HANDLE_TO "v19clihandle"
+#define MANGLING_STRING_FOR_OPERATOR_GCNEW "gc"
 #define MANGLING_STRING_FOR_SAFE_CAST "v112clisafe_cast"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -290,6 +291,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_FINALIZER "df"
 #define MANGLING_STRING_FOR_MANAGED_NULLPTR "j"
 #define MANGLING_STRING_FOR_OPERATOR_HANDLE_TO "ht"
+#define MANGLING_STRING_FOR_OPERATOR_GCNEW "gc"
 #define MANGLING_STRING_FOR_OPERATOR_CLI_SUBSCRIPT "sb"
 #define MANGLING_STRING_FOR_SAFE_CAST "sf"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4108,6 +4110,11 @@ explicitly dealt with later in expression mangling.
         /* Remove implicit operations. */
         expr = arg_list_from_dyn_init(dip);
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED && CHECKING
+    } else if (expr->kind == (an_expr_node_kind)enk_gcnew) {
+      /* Compiler-generated gcnew shouldn't get to mangling. */
+      check_assertion(!expr->variant.gcnew_info->compiler_generated);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && CHECKING */
     }  /* if */
   }  /* while */
   return skip_parens(expr);
@@ -5135,6 +5142,46 @@ static_cast.  Compound literals are not handled at this time.
 }  /* mangled_dynamic_init */
 
 
+static void mangled_encoding_for_initializer(
+                                  a_dynamic_init_ptr       dip,
+                                  a_boolean                in_dependent_expr,
+                                  a_mangling_control_block *mctl)
+/*
+Provide a mangled encoding for the initializer in a new/gcnew expression.
+dip specifies the initialization that is being performed.  In the IA-64 ABI,
+in_dependent_expr is TRUE if this expression is part of a template-dependent
+expression.  For the IA-64 ABI, if there is no <initializer>, an 'E' is
+emitted.  Only parenthesized initialization is currently supported.
+
+  <initializer> ::= pi <expression>* E    # parenthesized initialization
+*/
+{
+  an_expr_node_ptr  inits;
+
+  if (dip != NULL) {
+    /* We need to include an initializer expression list. */
+    inits = arg_list_from_dyn_init(dip);
+#if IA64_ABI
+    add_str_to_mangled_name("pi", mctl);
+#else /* !IA64_ABI */
+    store_digits_and_underscore(number_of_operands_in_list(inits),
+                                /*old_form=*/FALSE, mctl);
+#endif /* IA64_ABI */
+    if (inits != NULL) {
+      mangled_expression_list(inits, in_dependent_expr, mctl);
+    }  /* if */
+#if IA64_ABI
+    add_to_mangled_name('E', mctl);
+#endif /* IA64_ABI */
+#if IA64_ABI
+  } else {
+    /* No <initializer>; indicate such with an "E". */
+    add_to_mangled_name('E', mctl);
+#endif /* IA64_ABI */
+  }  /* if */
+}  /* mangled_encoding_for_initializer */
+
+
 static void mangled_encoding_for_expression_full(
                                   an_expr_node_ptr         expr,
                                   a_boolean                in_dependent_expr,
@@ -5500,29 +5547,70 @@ is TRUE.
           add_to_mangled_name('_', mctl);
 #endif /* IA64_ABI */
           mangled_encoding_for_type(expr->variant.new_delete->type, mctl);
-          if (expr->variant.new_delete->dynamic_init != NULL) {
-            /* We need to include an initializer expression list. */
-            args = arg_list_from_dyn_init(
-                                       expr->variant.new_delete->dynamic_init);
-#if IA64_ABI
-            add_str_to_mangled_name("pi", mctl);
-#else /* !IA64_ABI */
-            store_digits_and_underscore(number_of_operands_in_list(args), 
-                                        /*old_form=*/FALSE, mctl);
-#endif /* IA64_ABI */
-            if (args != NULL) {
-              mangled_expression_list(args, in_dependent_expr, mctl);
-            }  /* if */
-          }  /* if */
-#if IA64_ABI
-          add_to_mangled_name('E', mctl);
-#endif /* IA64_ABI */
+          mangled_encoding_for_initializer(
+                                        expr->variant.new_delete->dynamic_init,
+                                        in_dependent_expr, mctl);
         }  /* if */
 #if !IA64_ABI
         add_to_mangled_name('O', mctl);
 #endif /* !IA64_ABI */
       }
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case enk_gcnew:
+      /* Mangle a gcnew expression (C++/CLI only). */
+      { an_expr_node_ptr dimensions =
+                         expr->variant.gcnew_info->cli_array_dimension_lengths;
+#if IA64_ABI
+        /* There is no IA-64 ABI standard mangling for C++/CLI gcnew, and
+           the vendor extended operator syntax isn't flexible enough to
+           support gcnew, so add an EDG-specific mangling (patterned after
+           the mangling for "new"):
+             ::= gc _ <type> E                 # gcnew type
+             ::= gc _ <type> <initializer>     # gcnew type (init)
+             ::= gc <expression>* _ <type> E
+                                               # gcnew array<type>(dims)
+             ::= gc <expression>* _ <type> <initializer>
+                                               # gcnew array<type>(dims) {init}
+        */
+#else /* !IA64_ABI */
+        /* gcnew is mangled with initial dimension expressions (which may
+           be a list of length zero if not an array), followed by the type,
+           followed by the initializers (which may be entirely omitted if
+           there are no initializers).
+
+             Ogc_1_CiL_1_2Z1ZO <-- encoding for "gcnew array<int>(2)"
+                             ^---- "O" to end the encoding.
+                          ^^^----- Type.
+                   ^^^^^^^-------- Dimension expressions (if any).
+                ^^^--------------- Dimension count (zero or more).
+              ^^------------------ gcnew operation.
+             ^-------------------- "O" for operation.
+        */
+        add_to_mangled_name('O', mctl);
+#endif /* IA64_ABI */
+        add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_GCNEW, mctl);
+#if !IA64_ABI
+        store_digits_and_underscore(number_of_operands_in_list(dimensions),
+                                    /*old_form=*/FALSE, mctl);
+#endif /* !IA64_ABI */
+        if (dimensions != NULL) {
+          check_assertion(expr->variant.gcnew_info->is_cli_array);
+          mangled_expression_list(dimensions, in_dependent_expr, mctl);
+        }  /* if */
+#if IA64_ABI
+        add_to_mangled_name('_', mctl);
+#endif /* IA64_ABI */
+        mangled_encoding_for_type(expr->variant.gcnew_info->type, mctl);
+        mangled_encoding_for_initializer(
+                                        expr->variant.gcnew_info->dynamic_init,
+                                        in_dependent_expr, mctl);
+#if !IA64_ABI
+        add_to_mangled_name('O', mctl);
+#endif /* !IA64_ABI */
+      }
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case enk_throw:
       /* Mangle a throw-expression (or a rethrow). */
 #if !IA64_ABI

@@ -1212,7 +1212,7 @@ position following what was demangled.
 {
   char          *p = ptr, *operator_str, *close_str = "";
   int           op_length;
-  unsigned long num_operands, i;
+  unsigned long num_operands, i, num_dimensions;
   a_boolean     takes_type, is_new_style_cast, is_postfix;
   a_boolean     has_variable_number_of_operands = FALSE;
   a_boolean     is_call = FALSE, is_cli_subscript = FALSE;
@@ -1367,6 +1367,39 @@ position following what was demangled.
         write_id_str(") ", dctl);
       }  /* if */
       p = demangle_type(p, dctl);
+      if (get_char(p, dctl) == 'O') {
+        /* There are no initializers; skip the loop below. */
+        goto skip_operand_loop;
+      }  /* if */
+      write_id_ch('(', dctl);
+      close_str = ")";
+    } else if (strcmp(operator_str, "gcnew") == 0) {
+      /* C++/CLI gcnew. */
+      write_id_str(operator_str, dctl);
+      write_id_ch(' ', dctl);
+      operator_str = "";
+      has_variable_number_of_operands = TRUE;
+      /* Get the count of dimensions. */
+      p = get_number_with_optional_underscore(p, &num_dimensions, dctl);
+      if (num_dimensions == 0) {
+        /* Non-array case. */
+        p = demangle_type(p, dctl);
+      } else {
+        char *dim_p = p;
+        /* Array case; emit the dimensions (but emit the type first). */
+        dctl->suppress_id_output++;
+        for (i = 1; i <= num_dimensions; i++) {
+          p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
+        }  /* for */
+        dctl->suppress_id_output--;
+        p = demangle_type(p, dctl);
+        write_id_ch('(', dctl);
+        for (i = 1; i <= num_dimensions; i++) {
+          dim_p = demangle_expression(dim_p, /*need_parens=*/FALSE, dctl);
+          if (i != num_dimensions) write_id_str(", ", dctl);
+        }  /* for */
+        write_id_str(") ", dctl);
+      }  /* if */
       if (get_char(p, dctl) == 'O') {
         /* There are no initializers; skip the loop below. */
         goto skip_operand_loop;
@@ -1692,6 +1725,8 @@ not an operator encoding, return NULL.
     len = 3;
   } else if (start_of_id_is("nw", ptr, dctl)) {
     s = "new";
+  } else if (start_of_id_is("gc", ptr, dctl)) {
+    s = "gcnew";
   } else if (start_of_id_is("dl", ptr, dctl)) {
     s = "delete";
   } else if (start_of_id_is("pl", ptr, dctl)) {
@@ -5898,6 +5933,30 @@ pointer to the terminating character (unless an error occurs).
 }  /* demangle_expression_list */
 
 
+static char *demangle_initializer(
+                                 char                       *ptr,
+                                 a_decode_control_block_ptr dctl)
+/*
+Demangle an <initializer> (or an 'E') starting at ptr.
+
+  <initializer> ::= pi <expression>* E  # parenthesized initialization
+
+*/
+{
+  if (*ptr == 'E') {
+    ptr++;
+  } else {
+    if (*ptr == 'p' && ptr[1] == 'i') {
+      ptr = demangle_expression_list(ptr+2, 'E', dctl);
+      ptr = advance_past('E', ptr, dctl);
+    } else {
+      bad_mangled_name(dctl);
+    }  /* if */
+  }  /* if */
+  return ptr;
+}  /* demangle_initializer */
+
+
 static char *demangle_expression(char                       *ptr,
                                  a_decode_control_block_ptr dctl)
 /*
@@ -5973,6 +6032,17 @@ The syntax is:
                ::= sp <expression>
                               # pack expansion
                ::= <expr-primary>
+
+Also, these non-standard expressions (EDG-specific) are demangled:
+
+               ::= gc _ <type> E
+                              # gcnew type
+               ::= gc _ <type> <initializer>
+                              # gcnew type (init)
+               ::= gc <expression>* _ <type> E
+                              # gcnew array<type>(dims)
+               ::= gc <expression>* _ <type> <initializer>
+                              # gcnew array<type>(dims) {init}
 
 */
 {
@@ -6051,17 +6121,35 @@ The syntax is:
     if (!dctl->err_in_id) {
       ptr = demangle_type(ptr, dctl);
       if (!dctl->err_in_id) {
-        if (*ptr == 'E') {
-          ptr++;
-        } else {
-          if (*ptr == 'p' && ptr[1] == 'i') {
-            ptr = demangle_expression_list(ptr+2, 'E', dctl);
-            ptr = advance_past('E', ptr, dctl);
-          } else {
-            bad_mangled_name(dctl);
-          }  /* if */
-        }  /* if */
+        ptr = demangle_initializer(ptr, dctl);
       }  /* if */
+    }  /* if */
+  } else if (*ptr == 'g' && ptr[1] == 'c') {
+    /* C++/CLI gcnew (EDG-specific mangling). */
+    ptr+=2;
+    write_id_str("gcnew ", dctl);
+    /* Optional array dimension expressions. */
+    if (*ptr != '_') {
+      char *optr = ptr, *ptr2;
+      /* We need the type before the dimension list, so suppress the list
+         to get to the type. */
+      dctl->suppress_id_output++;
+      dctl->suppress_substitution_recording++;
+      ptr2 = demangle_expression_list(ptr, '_', dctl);
+      dctl->suppress_id_output--;
+      dctl->suppress_substitution_recording--;
+      if (!dctl->err_in_id) {
+        ptr2 = advance_past('_', ptr2, dctl);
+        ptr = demangle_type(ptr2, dctl);
+        (void)demangle_expression_list(optr, '_', dctl);
+        write_id_ch(' ', dctl);
+      }  /* if */
+    } else {
+      ptr = advance_past('_', ptr, dctl);
+      ptr = demangle_type(ptr, dctl);
+    }  /* if */
+    if (!dctl->err_in_id) {
+      ptr = demangle_initializer(ptr, dctl);
     }  /* if */
   } else if (*ptr == 'd' && ptr[1] == 't') {
     /* expr.name */
