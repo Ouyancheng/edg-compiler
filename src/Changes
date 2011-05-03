@@ -1,5 +1,14 @@
 Version 4.4
 
+5/3/11   [EDGcpfe/11694]
+Performance improvement in find_progenitor_in_base_class
+
+This routine has been updated to use the scope hash tables (see 1/25/11
+entry) instead of the inactive list, which can result in a significant
+performance improvement in compilations that use a very large number of
+template instantiations
+
+
 4/29/11  [EDGcpfe/11654]
 Microsoft compatibility: static_cast of field selection can be lvalue cast
 

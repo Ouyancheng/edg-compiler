@@ -10964,6 +10964,9 @@ linked list of progenitor entries); otherwise, return NULL.
   a_scope_ptr       scope;
   a_boolean	    must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
   a_progenitor_ptr  progenitor, pp;
+  a_symbol_ptr      class_symbol;
+  a_class_symbol_supplement_ptr
+                    cssp;
 
   db_enter(4, "find_progenitor_in_base_class");
 #if DEBUG
@@ -10986,9 +10989,12 @@ linked list of progenitor entries); otherwise, return NULL.
        the inactive list).  class_qualified_id_lookup is not called for two
        reasons:  to avoid unnecessary overhead and to prevent extra projection
        symbols from being created. */
-    sym = inactive_symbol_list_from_locator(*locator);
+    class_symbol = symbol_for(base_class->type);
+    cssp = class_symbol->variant.class_struct_union.extra_info;
+    sym = find_symbol_list_in_table(&cssp->pointers_block,
+                                    locator->symbol_header);
     tag_sym = NULL;
-    for (; sym != NULL; sym = sym->next) {
+    for (; sym != NULL; sym = sym->next_in_lookup_table) {
       if (sym->decl_scope == scope->number) {
         /* Ignore sk_undefined symbols. */
         if (sym->kind == (a_symbol_kind)sk_undefined) continue;
