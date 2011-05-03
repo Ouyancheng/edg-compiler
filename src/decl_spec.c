@@ -3234,7 +3234,14 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     /* Record any class modifiers (a C++/CLI feature accepted in "normal" C++
        by recent Microsoft C++ compilers). */
     if (microsoft_version >= 1400 || cppcli_enabled) {
+      a_source_position  pos_after_name;
+      pos_after_name = pos_curr_token;
       scan_microsoft_class_modifiers(type_kind, &is_abstract, &is_sealed);
+      if (cli_type_kind == (a_cli_class_type_kind)cctk_interface &&
+          is_sealed) {
+        pos_error(ec_sealed_cli_interface, &pos_after_name);
+        is_sealed = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -2219,6 +2219,7 @@ ec_bad_delegate_init_list;;"invalid delegate initializer -- expected either \"(<
 ec_interface_not_implemented;;"class fails to implement interface member %nd"
 ec_gcnew_of_native_array;;"gcnew cannot be used to allocate a native array"
 ec_cli_interface_cannot_have_assignment;;"a C++/CLI interface class cannot declare an assignment operator"
+ec_sealed_cli_interface;;"a C++/CLI interface class cannot be sealed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
