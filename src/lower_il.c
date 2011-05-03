@@ -4454,11 +4454,13 @@ variable.
     a_memory_region_number region_to_switch_back_to = curr_il_region_number;
     check_assertion(innermost_function_scope != NULL);
     routine = innermost_function_scope->variant.routine.ptr;
+#if !STRING_LITERALS_ARE_CONST_IN_BACK_END
     if (string_literals_are_const && is_const_qualified_type(constant_type)) {
       /* The expression on top of this has already stripped the const
          qualification, so make sure the variable type matches. */
       constant_type = make_unqualified_type(constant_type);
     }  /* if */
+#endif /* !STRING_LITERALS_ARE_CONST_IN_BACK_END */
     switch_il_region(routine->assoc_scope);
     string_var = make_lowered_variable((char *)NULL,
                                        /*already_il_name=*/TRUE,
@@ -4607,6 +4609,7 @@ Do IL lowering of the indicated constant and everything under it.
         /* No handling required. */
         break;
       case ck_string:
+#if !STRING_LITERALS_ARE_CONST_IN_BACK_END
         if (string_literals_are_const &&
             is_const_qualified_type(constant->type)) {
           /* If string literals are const qualified by the C++ front end,
@@ -4615,6 +4618,7 @@ Do IL lowering of the indicated constant and everything under it.
              (as well as any ck_address nodes) have already been made. */
           constant->type = make_unqualified_type(constant->type);
         }  /* if */
+#endif /* !STRING_LITERALS_ARE_CONST_IN_BACK_END */
         break;
 #if C99_IL_EXTENSIONS_SUPPORTED
       case ck_complex:
@@ -4634,6 +4638,7 @@ Do IL lowering of the indicated constant and everything under it.
             break;
           case abk_constant:
             addressed_con = constant->variant.address.variant.constant;
+#if !STRING_LITERALS_ARE_CONST_IN_BACK_END
             if (string_literals_are_const &&
                 addressed_con->kind == (a_constant_repr_kind)ck_string) {
               /* This ck_string constant is about to be lowered from
@@ -4642,6 +4647,7 @@ Do IL lowering of the indicated constant and everything under it.
                  isn't already). */
               constant->implicit_cast = TRUE; 
             }  /* if */
+#endif /* !STRING_LITERALS_ARE_CONST_IN_BACK_END */
             lower_os_constant(addressed_con);
 #if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
             if (addressed_con->kind == (a_constant_repr_kind)ck_string) {
@@ -12394,6 +12400,7 @@ throughout the entire expression).
   } /* if */
 }  /* optimize_node_if_possible */
 
+#if !STRING_LITERALS_ARE_CONST_IN_BACK_END
 
 static void lower_operation_on_const_string_if_possible(an_expr_node_ptr expr)
 /*
@@ -12444,6 +12451,7 @@ case is handled properly.
   }  /* if */
 }  /* lower_operation_on_const_string_if_possible */
 
+#endif /* !STRING_LITERALS_ARE_CONST_IN_BACK_END */
 #if LOWER_LVALUE_RETURNING_OPERATIONS
 
 static void rewrite_discarded_lvalue_as_rvalue(an_expr_node_ptr expr);
@@ -14015,10 +14023,12 @@ cast.  See lower_expr for typical invocation.
         lower_vla_operations_before_operands_are_lowered(expr);
       }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+#if !STRING_LITERALS_ARE_CONST_IN_BACK_END
       /* See if we can optimize an operation that operates on a ck_string.
          Do so before lowering while the ck_strings are still identifiable
          (and not turned into variables as they are in some configurations). */
       lower_operation_on_const_string_if_possible(expr);
+#endif /* !STRING_LITERALS_ARE_CONST_IN_BACK_END */
       operand_node = expr->variant.operation.operands;
       op = expr->variant.operation.kind;
       /* Look for some special cases before the expression is lowered.
@@ -14441,6 +14451,7 @@ cast.  See lower_expr for typical invocation.
             con = NULL;
           }  /* if */
 #endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
+#if !STRING_LITERALS_ARE_CONST_IN_BACK_END
           if (string_literals_are_const &&
               is_const_qualified_type(expr->type)) {
             /* During the lowering of the constant below, its constness
@@ -14454,6 +14465,7 @@ cast.  See lower_expr for typical invocation.
             overwrite_node(expr, add_cast_to_lvalue(copy_node(expr),
                                                     orig_type));
           }  /* if */
+#endif /* !STRING_LITERALS_ARE_CONST_IN_BACK_END */
         }  /* if */
         if (con != NULL) {
           /* If the constant hasn't been rewritten as a variable, lower it. */

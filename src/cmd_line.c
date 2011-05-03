@@ -6186,6 +6186,11 @@ file.
 #else /* !defined(STDC_ZERO_IN_NONSTRICT_MODE) */
   comment_undefined_macro_name(STDC_ZERO_IN_NONSTRICT_MODE);
 #endif /* defined(STDC_ZERO_IN_NONSTRICT_MODE) */
+#if defined(STRING_LITERALS_ARE_CONST_IN_BACK_END)
+  define_numeric_valued_macro(STRING_LITERALS_ARE_CONST_IN_BACK_END);
+#else /* !defined(STRING_LITERALS_ARE_CONST_IN_BACK_END) */
+  comment_undefined_macro_name(STRING_LITERALS_ARE_CONST_IN_BACK_END);
+#endif /* defined(STRING_LITERALS_ARE_CONST_IN_BACK_END) */
 #if defined(SUN_EXTENSIONS_ALLOWED)
   define_numeric_valued_macro(SUN_EXTENSIONS_ALLOWED);
 #else /* !defined(SUN_EXTENSIONS_ALLOWED) */

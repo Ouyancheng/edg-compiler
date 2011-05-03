@@ -415,6 +415,19 @@ primary source file to get the name of the generated C output file.
 #endif /* ifndef GEN_C_FILE_SUFFIX */
 
 /*
+Flag that controls whether the back end would uses const or non-const
+string literals.  In C, string literals are non-const, so this flag
+defaults to FALSE when using the C generating back end.
+*/
+#ifndef STRING_LITERALS_ARE_CONST_IN_BACK_END
+#if BACK_END_IS_C_GEN_BE
+#define STRING_LITERALS_ARE_CONST_IN_BACK_END FALSE
+#else /* !BACK_END_IS_C_GEN_BE */
+#define STRING_LITERALS_ARE_CONST_IN_BACK_END TRUE
+#endif /* BACK_END_IS_C_GEN_BE */
+#endif /* ifndef STRING_LITERALS_ARE_CONST_IN_BACK_END */
+
+/*
 When the C++/C-generating back end (cp_gen_be) is run in C++ mode, this is the
 suffix appended to the base of the primary source file to get the name of the
 generated C++ output file.
