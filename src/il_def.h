@@ -6851,9 +6851,9 @@ typedef struct a_typeref_type_supplement {
   a_type_ptr	proxy_class;
 			/* If this is the typeref for a dependent decltype
 			   this points to the corresponding "proxy" class.
-                           template parameter. This is needed if the decltype
-			   is used in a context in which a class type is
-			   required (e.g., decltype(...)::X). NULL for other
+                           This is needed if the decltype is used in a
+			   context in which a class type is required
+			   (e.g., decltype(...)::X). NULL for other
 			   kinds of typerefs or if no class use has been
 			   encountered. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
