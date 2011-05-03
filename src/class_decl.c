@@ -3542,7 +3542,7 @@ done:
 static a_boolean return_types_are_override_compatible(
                                  a_type_ptr        type_of_overriding_routine,
                                  a_type_ptr        type_of_overridden_routine,
-                                 a_base_class_ptr  bcp,
+                                 a_base_class_ptr  base_class,
                                  a_base_class_ptr  *return_adjustment_bcp,
                                  a_symbol_ptr      overridden_sym,
                                  a_class_def_state *class_state,
@@ -3554,7 +3554,7 @@ is being declared in the class definition described by class_state.
 Covariance means both return types are references or pointers to class types
 that are related by derivation, where the class associated with the overridden
 function is a base class of the class associated with the overriding function.
-bcp is the base class containing the overridden_routine.
+base_class is the base class containing the overridden_routine.
 When covariance is detected, return in *return_adjustment_bcp the base class
 entry for the class associated with the overridden function.  Compatibility
 problems are diagnosed at the given position for the given symbol describing
@@ -3668,7 +3668,7 @@ the overridden symbol.
        revisit this case when the class is completed. */
     a_quasi_override_descr_ptr  qodp;
     qodp = append_quasi_override_descr(&class_state->quasi_overrides);
-    qodp->base_class = bcp;
+    qodp->base_class = base_class;
     qodp->base_member = overridden_sym;
     qodp->diag_pos = *diag_pos;
     qodp->return_type_mismatch = TRUE;
