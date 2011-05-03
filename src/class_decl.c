@@ -604,6 +604,96 @@ Place a partial-override entry on the available list, so it can be reused.
   avail_override_registry_entries = orep;
 }  /* free_override_registry_entry */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+/*
+Data structure to record a near-match encountered between a C++/CLI base
+interface member and a derived class member.  For example, an entry is
+recorded if the two members differ only in return type: For ordinary C++
+classes differing only in return type is an error, but with interface
+members there is no error if the base member is overridden using a named
+override specifier.
+*/
+typedef struct a_quasi_override_descr *a_quasi_override_descr_ptr;
+typedef struct a_quasi_override_descr {
+  a_quasi_override_descr_ptr
+		next;
+			/* Pointer to the next entry in the list (or NULL if
+			   there is no next entry). */
+  a_base_class_ptr
+		base_class;
+			/* The base class entry containing the function that
+			   "almost" matches a derived class function. */
+  a_symbol_ptr
+		base_member;
+			/* The base class member function that "almost" matches
+			   a derived class function. */
+  a_source_position
+		diag_pos;
+			/* The position at which to issue a diagnostic if
+			   needed (i.e., the position of the derived class
+			   member declaration). */
+  a_bit_field	return_type_mismatch:1;
+			/* TRUE if this entry is due to a return type
+			   mismatch. */
+  a_bit_field	missing_virtual_specifier:1;
+			/* TRUE if this entry is due to a missing explicit
+			   "virtual" specifier. */
+} a_quasi_override_descr;
+
+/* Available list of "quasi-override" descriptions. */
+static a_quasi_override_descr_ptr avail_quasi_override_descrs;
+
+
+static a_quasi_override_descr_ptr append_quasi_override_descr(
+                                          a_quasi_override_descr_ptr  *p_list)
+/*
+Append a new "quasi-override" description entry to the list of entries pointed
+to by *p_list (which is NULL if the list is empty).  Initialize and return the
+new entry.
+*/
+{
+  a_quasi_override_descr_ptr  qodp, *p_end = p_list;
+
+  /* Reuse a entry from the available list; otherwise, allocate a new entry. */
+  if (avail_quasi_override_descrs != NULL) {
+    qodp = avail_quasi_override_descrs;
+    avail_quasi_override_descrs = avail_quasi_override_descrs->next;
+  } else {
+    qodp =
+         (a_quasi_override_descr_ptr)alloc_fe(sizeof(a_quasi_override_descr));
+  }  /* if */
+  /* Initialize its fields. */
+  qodp->next = NULL;
+  qodp->base_class = NULL;
+  qodp->base_member = NULL;
+  qodp->diag_pos = null_source_position;
+  qodp->return_type_mismatch = FALSE;
+  qodp->missing_virtual_specifier = FALSE;
+  /* Append it to the end of the list. */
+  while (*p_end != NULL) p_end = &(*p_end)->next;
+  *p_end = qodp;
+  return qodp;
+}  /* append_quasi_override_descr */
+
+
+static void free_quasi_override_descr_list(a_quasi_override_descr_ptr  *p_list)
+/*
+Place the list of "quasi-override" description entries on the "available" list
+and set *p_list to NULL.
+*/
+{
+  a_quasi_override_descr_ptr  end = *p_list;
+
+  if (end != NULL) {
+    while (end->next != NULL) end = end->next;
+    end->next = avail_quasi_override_descrs;
+    avail_quasi_override_descrs = *p_list;
+    *p_list = NULL;
+  }  /* if */
+}  /* free_override_registry_entry */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if IA64_ABI
 /*
@@ -730,6 +820,11 @@ typedef struct a_class_def_state {
 			/* While parsing C++/CLI property or event accessor
 			   functions, this points to the associated IL
 			   descriptor.  Otherwise, NULL. */
+  a_quasi_override_descr_ptr
+		quasi_overrides;
+			/* A list of descriptions of base-derived member pairs
+			   that almost matched for overriding purposes.  Used
+			   for diagnosing certain cases in C++/CLI mode. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_class_def_state;
 
@@ -770,6 +865,7 @@ class being defined.
 #endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->property_or_event_descr = NULL;
+  cdsp->quasi_overrides = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* initialize_class_def_state */
 
@@ -3446,6 +3542,7 @@ done:
 static a_boolean return_types_are_override_compatible(
                                  a_type_ptr        type_of_overriding_routine,
                                  a_type_ptr        type_of_overridden_routine,
+                                 a_base_class_ptr  bcp,
                                  a_base_class_ptr  *return_adjustment_bcp,
                                  a_symbol_ptr      overridden_sym,
                                  a_class_def_state *class_state,
@@ -3457,6 +3554,7 @@ is being declared in the class definition described by class_state.
 Covariance means both return types are references or pointers to class types
 that are related by derivation, where the class associated with the overridden
 function is a base class of the class associated with the overriding function.
+bcp is the base class containing the overridden_routine.
 When covariance is detected, return in *return_adjustment_bcp the base class
 entry for the class associated with the overridden function.  Compatibility
 problems are diagnosed at the given position for the given symbol describing
@@ -3562,6 +3660,18 @@ the overridden symbol.
   } else if (cli_class_type_kind_is(class_state->class_type, cctk_interface)) {
     /* A derived C++/CLI interface can validly contain a member whose type and
        name match except for the return type: Do not issue a diagnostic. */
+  } else if (cli_class_type_kind_is(sym_parent_class(overridden_sym),
+                                    cctk_interface)) {
+    /* If the overridden member is from an interface, no error should be
+       issued until we are sure that the member won't be overridden in some
+       other way (via a named override).  Record a "quasi-override" entry to
+       revisit this case when the class is completed. */
+    a_quasi_override_descr_ptr  qodp;
+    qodp = append_quasi_override_descr(&class_state->quasi_overrides);
+    qodp->base_class = bcp;
+    qodp->base_member = overridden_sym;
+    qodp->diag_pos = *diag_pos;
+    qodp->return_type_mismatch = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Error -- return type must be identical to or covariant with that of the
@@ -4589,16 +4699,14 @@ next_named_override:
               continue;
             }  /* if */
             /* The parameter types correspond; now compare the return types. */
-            if (!return_types_are_override_compatible(rout->type, rp->type,
-                                                      &return_adjustment_bcp,
-                                                      sym, class_state,
-                                                      source_pos)) {
+            if (!return_types_are_override_compatible(
+                            rout->type, rp->type, bcp, &return_adjustment_bcp,
+                            sym, class_state, source_pos)) {
               /* Since, except for the return types, there is a match, there
                  is no need to look any further in the current base class.
                  Advance to the next base class. */
               goto next_base_class;                                       
             }  /* if */
-            /* Match */
 #if MICROSOFT_EXTENSIONS_ALLOWED
             if (cppcli_enabled) {
               /* Check that required modifiers are specified. */
@@ -4613,8 +4721,22 @@ next_named_override:
                              cli_class_type_kind_is(class_type, cctk_value))) {
                 /* If a member function of a ref or value class matches a
                    virtual member function from a base class it should have
-                   been declared with "new" or "virtual". */
-                pos_sy_error(ec_new_or_virtual_required, source_pos, sym); 
+                   been declared with "new" or "virtual".  If the base is an
+                   interface, the diagnostic should not be issued until we are
+                   sure that the overridden interface member is not otherwise
+                   overridden. */
+                if (cli_class_type_kind_is(bcp->type, cctk_interface)) {
+                  a_quasi_override_descr_ptr  qodp;
+                  qodp = append_quasi_override_descr(
+                                               &class_state->quasi_overrides);
+                  qodp->base_class = bcp;
+                  qodp->base_member = sym;
+                  qodp->diag_pos = *source_pos;
+                  qodp->missing_virtual_specifier = TRUE;
+                  goto next_base_class;
+                } else {
+                  pos_sy_error(ec_new_or_virtual_required, source_pos, sym); 
+                }  /* if */
               } else if ((func_info->override || func_info->new_member) &&
                          cli_class_type_kind_is(bcp->type, cctk_interface)) {
                 /* For members of managed types, "override" and "new" are not
@@ -4639,6 +4761,7 @@ next_named_override:
               }  /* if */
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            /* Match */
             check_virtual_function_override(class_state, decl_info, sym, bcp,
                                             return_adjustment_bcp);
             real_override = TRUE;
@@ -19975,6 +20098,52 @@ and a default-indexed property.
   }  /* if */
 }  /* check_for_subscript_mechanism_conflict */
 
+
+static void check_quasi_overrides(a_class_def_state_ptr  cdsp)
+/*
+Check all entries describing "quasi-overrides" and issue diagnostics for any
+that are not irrelevant due to actual overrides. 
+*/
+{
+  a_quasi_override_descr_ptr  qodp;
+
+  check_assertion(cppcli_enabled);
+  for (qodp = cdsp->quasi_overrides; qodp != NULL; qodp = qodp->next) {
+    an_overriding_virtual_function_ptr
+                   ovfp = qodp->base_class->overriding_virtual_functions;
+    a_routine_ptr  base_rp = qodp->base_member->variant.routine.ptr;
+    for (; ovfp != NULL; ovfp = ovfp->next) {
+      if (ovfp->primary_function == base_rp) {
+        /* The "quasi-overridden" function is really overridden.  No
+           diagnostic needed. */
+        goto next_quasi_override;
+      } else if (ovfp->primary_function->virtual_function_number >
+                                           base_rp->virtual_function_number) {
+        /* The "overriding_virtual_functions" list is ordered by the virtual
+           function numbers of the primary functions.  So the remainder of the
+           list cannot contain base_rp. */
+        break;
+      }  /* if */
+    }  /* for */
+    /* Issue the diagnostic corresponding to the cause of this entry. */
+    if (qodp->return_type_mismatch) {
+      pos_syty_warning(ec_different_return_type_on_virtual_function_override,
+                       &qodp->diag_pos, qodp->base_member,
+                       skip_typerefs(base_rp->type)
+                                               ->variant.routine.return_type);
+    } else if (qodp->missing_virtual_specifier) {
+      pos_sy_warning(ec_virtual_required, &qodp->diag_pos, qodp->base_member); 
+    } else {
+      unexpected_condition();
+    }  /* if */
+    /* Since an interface member was not overridden, an error should be
+       issued indicating that the interface was not implemented. */
+    expect_error();
+next_quasi_override:;
+  }  /* for */ 
+  free_quasi_override_descr_list(&cdsp->quasi_overrides);
+}  /* check_quasi_overrides */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void wrapup_standard_layout_flag(a_type_ptr  class_type)
@@ -20281,6 +20450,7 @@ bits of information that were acquired while parsing.
     if (cppcli_enabled && is_immediate_managed_class_type(class_type)) {
       check_names_reserved_by_cli_properties_and_events(class_type);
       check_for_subscript_mechanism_conflict(class_type);
+      check_quasi_overrides(class_state);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Check for missing or erroneous uses of the "hiding" attribute and
@@ -22286,6 +22456,9 @@ One-time initialization for class_decl.c static variables.
       pch_saved_var_array_elem(avail_class_fixup),
       pch_saved_var_array_elem(avail_derivation_steps),
       pch_saved_var_array_elem(avail_override_registry_entries),
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(avail_quasi_override_descrs),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(deferred_friend_fixup_list),
       pch_saved_var_array_elem(deferred_friend_fixup_list_tail),
       pch_saved_var_array_elem(use_deferred_friend_fixup_list),
@@ -22333,6 +22506,9 @@ Initializations for class declaration processing.
   avail_routine_fixup = NULL;
   avail_class_fixup = NULL;
   avail_override_registry_entries = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  avail_quasi_override_descrs = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if IA64_ABI
   avail_covariant_overrides = NULL;
 #if DEBUG

@@ -753,6 +753,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_gcnew_of_native_array)*/
 /*lint -esym(769,ec_cli_interface_cannot_have_assignment)*/
 /*lint -esym(769,ec_sealed_cli_interface)*/
+/*lint -esym(769,ec_virtual_required)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_enum)*/
