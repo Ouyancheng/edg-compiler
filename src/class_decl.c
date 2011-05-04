@@ -2952,6 +2952,10 @@ implement an interface member.
        pure). */
     check_abstract = !class_type->variant.class_struct_union.abstract;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    /* FIXME: We currently do not check interfaces specified by classes loaded
+       from metadata because we currently do not load private members from
+       metadata and those private members may satisfying the interface
+       requirements. */
     check_interfaces = cppcli_enabled &&
                        class_type_supp(class_type)->assembly_index == 0 &&
                        (cli_class_type_kind_is(class_type, cctk_ref) ||
@@ -20175,20 +20179,26 @@ that are not irrelevant due to actual overrides.
         break;
       }  /* if */
     }  /* for */
-    /* Issue the diagnostic corresponding to the cause of this entry. */
-    if (qodp->return_type_mismatch) {
-      pos_syty_warning(ec_different_return_type_on_virtual_function_override,
-                       &qodp->diag_pos, qodp->base_member,
-                       skip_typerefs(base_rp->type)
-                                               ->variant.routine.return_type);
-    } else if (qodp->missing_virtual_specifier) {
-      pos_sy_warning(ec_virtual_required, &qodp->diag_pos, qodp->base_member); 
-    } else {
-      unexpected_condition();
+    if (class_type_supp(cdsp->class_type)->assembly_index == 0) {
+      /* Issue the diagnostic corresponding to the cause of this entry.
+         (Currently, no diagnostic is issued for classes loaded by metadata
+         because the private members aren't loaded and might have resulted in
+         a valid override.  FIXME) */
+      if (qodp->return_type_mismatch) {
+        pos_syty_warning(ec_different_return_type_on_virtual_function_override,
+                         &qodp->diag_pos, qodp->base_member,
+                         skip_typerefs(base_rp->type)
+                                                ->variant.routine.return_type);
+      } else if (qodp->missing_virtual_specifier) {
+        pos_sy_warning(ec_virtual_required, &qodp->diag_pos,
+                       qodp->base_member); 
+      } else {
+        unexpected_condition();
+      }  /* if */
+      /* Since an interface member was not overridden, an error should be
+         issued indicating that the interface was not implemented. */
+      expect_error();
     }  /* if */
-    /* Since an interface member was not overridden, an error should be
-       issued indicating that the interface was not implemented. */
-    expect_error();
 next_quasi_override:;
   }  /* for */ 
   free_quasi_override_descr_list(&cdsp->quasi_overrides);

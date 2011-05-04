@@ -1245,19 +1245,19 @@ Dump the contents of the indicated type entry, for debug purposes.
         db_abbreviated_type(tp->variant.array.element_type);
         break;
       case tk_struct:
-        db_assembly_visibility_of_type(tp);
-        fputs("struct", f_debug);
-        goto class_struct_union;
       case tk_union:
-        db_assembly_visibility_of_type(tp);
-        fputs("union", f_debug);
-        goto class_struct_union;
       case tk_class:
         db_assembly_visibility_of_type(tp);
-        fputs("class", f_debug);
-  class_struct_union:
-        fputs(" ", f_debug);
-        ctsp = tp->variant.class_struct_union.extra_info;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        fputs(cli_class_type_kind_is(tp, cctk_ref) ? "ref " :
+              cli_class_type_kind_is(tp, cctk_value) ? "value " :
+              cli_class_type_kind_is(tp, cctk_interface) ? "interface " : "",
+              f_debug);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        fputs(tp->kind == (a_type_kind)tk_union ? "union " :
+              tp->kind == (a_type_kind)tk_struct ? "struct " : "class ",
+              f_debug);
+        ctsp = class_type_supp(tp);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (ctsp != NULL) {
           a_type_kind  orig_type_kind = ctsp->orig_type_kind;
