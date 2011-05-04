@@ -5645,6 +5645,11 @@ file.
 #else /* !defined(LOWER_MICROSOFT_NONCONSTANT_AGGREGATE) */
   comment_undefined_macro_name(LOWER_MICROSOFT_NONCONSTANT_AGGREGATE);
 #endif /* defined(LOWER_MICROSOFT_NONCONSTANT_AGGREGATE) */
+#if defined(LOWER_STRING_LITERALS_TO_NON_CONST)
+  define_numeric_valued_macro(LOWER_STRING_LITERALS_TO_NON_CONST);
+#else /* !defined(LOWER_STRING_LITERALS_TO_NON_CONST) */
+  comment_undefined_macro_name(LOWER_STRING_LITERALS_TO_NON_CONST);
+#endif /* defined(LOWER_STRING_LITERALS_TO_NON_CONST) */
 #if defined(LOWER_VARIABLE_LENGTH_ARRAYS)
   define_numeric_valued_macro(LOWER_VARIABLE_LENGTH_ARRAYS);
 #else /* !defined(LOWER_VARIABLE_LENGTH_ARRAYS) */
@@ -6186,11 +6191,6 @@ file.
 #else /* !defined(STDC_ZERO_IN_NONSTRICT_MODE) */
   comment_undefined_macro_name(STDC_ZERO_IN_NONSTRICT_MODE);
 #endif /* defined(STDC_ZERO_IN_NONSTRICT_MODE) */
-#if defined(STRING_LITERALS_ARE_CONST_IN_BACK_END)
-  define_numeric_valued_macro(STRING_LITERALS_ARE_CONST_IN_BACK_END);
-#else /* !defined(STRING_LITERALS_ARE_CONST_IN_BACK_END) */
-  comment_undefined_macro_name(STRING_LITERALS_ARE_CONST_IN_BACK_END);
-#endif /* defined(STRING_LITERALS_ARE_CONST_IN_BACK_END) */
 #if defined(SUN_EXTENSIONS_ALLOWED)
   define_numeric_valued_macro(SUN_EXTENSIONS_ALLOWED);
 #else /* !defined(SUN_EXTENSIONS_ALLOWED) */

@@ -415,17 +415,20 @@ primary source file to get the name of the generated C output file.
 #endif /* ifndef GEN_C_FILE_SUFFIX */
 
 /*
-Flag that controls whether the back end would uses const or non-const
-string literals.  In C, string literals are non-const, so this flag
-defaults to FALSE when using the C generating back end.
+Flag that controls whether string literals should be lowered to non-const
+types during lowering.  The goal of lowering is to produce C, and in the C
+language string literals are non-const.  However, setting this flag to TRUE
+may have other side-effects, for example, being able to place strings into
+read-only storage.  This flag defaults to TRUE when using the C generating back
+end.
 */
-#ifndef STRING_LITERALS_ARE_CONST_IN_BACK_END
+#ifndef LOWER_STRING_LITERALS_TO_NON_CONST
 #if BACK_END_IS_C_GEN_BE
-#define STRING_LITERALS_ARE_CONST_IN_BACK_END FALSE
+#define LOWER_STRING_LITERALS_TO_NON_CONST TRUE
 #else /* !BACK_END_IS_C_GEN_BE */
-#define STRING_LITERALS_ARE_CONST_IN_BACK_END TRUE
+#define LOWER_STRING_LITERALS_TO_NON_CONST FALSE
 #endif /* BACK_END_IS_C_GEN_BE */
-#endif /* ifndef STRING_LITERALS_ARE_CONST_IN_BACK_END */
+#endif /* ifndef LOWER_STRING_LITERALS_TO_NON_CONST */
 
 /*
 When the C++/C-generating back end (cp_gen_be) is run in C++ mode, this is the
