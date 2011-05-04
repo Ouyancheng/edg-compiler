@@ -418,9 +418,9 @@ primary source file to get the name of the generated C output file.
 Flag that controls whether string literals should be lowered to non-const
 types during lowering.  The goal of lowering is to produce C, and in the C
 language string literals are non-const.  However, setting this flag to TRUE
-may have other side-effects, for example, being able to place strings into
-read-only storage.  This flag defaults to TRUE when using the C generating back
-end.
+may have other side-effects, for example, not being able to place strings into
+read-only storage.  This flag defaults to TRUE when the C-generating back end
+is used.
 */
 #ifndef LOWER_STRING_LITERALS_TO_NON_CONST
 #if BACK_END_IS_C_GEN_BE
