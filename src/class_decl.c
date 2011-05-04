@@ -709,7 +709,9 @@ new entry.
   } else {
     qodp =
          (a_quasi_override_descr_ptr)alloc_fe(sizeof(a_quasi_override_descr));
+#if DEBUG
     num_quasi_override_descrs_allocated += 1;
+#endif /* DEBUG */
   }  /* if */
   /* Initialize its fields. */
   qodp->next = NULL;
