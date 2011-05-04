@@ -2952,12 +2952,7 @@ implement an interface member.
        pure). */
     check_abstract = !class_type->variant.class_struct_union.abstract;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* FIXME: We currently do not check interfaces specified by classes loaded
-       from metadata because we currently do not load private members from
-       metadata and those private members may satisfying the interface
-       requirements. */
     check_interfaces = cppcli_enabled &&
-                       class_type_supp(class_type)->assembly_index == 0 &&
                        (cli_class_type_kind_is(class_type, cctk_ref) ||
                         cli_class_type_kind_is(class_type, cctk_value));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3002,26 +2997,38 @@ implement an interface member.
               /* No overriding virtual function entry was found that refers to
                  the pure virtual function routine entry.  The pure virtual
                  function is therefore inherited, and so the derived class
-                 is also abstract. */
-              class_type->variant.class_struct_union.abstract = TRUE;
+                 is also abstract.  For C++/CLI ref and value classes (i.e.,
+                 check_interfaces == TRUE), not overriding an interface member
+                 is not treated as making the class abstract: such a lack of
+                 overriding is diagnosed as an error and making the class
+                 abstract would likely trigger additional unhelpful
+                 diagnostics. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
               if (check_interfaces) {
                 if (cli_class_type_kind_is(bcp->type, cctk_interface)) {
                   /* A base interface member is not overridden (i.e., not
                      implemented): Issue an error if the interface is a direct
                      base or derived only through interface derivations. */
-                  if (is_quasi_direct_base_interface(bcp)) {
+                  /* FIXME: We currently do not diagnose interfaces specified
+                     by classes loaded from metadata because we currently do
+                     not load private members from metadata and those private
+                     members may provide a valid override. */
+                  if (is_quasi_direct_base_interface(bcp) &&
+                      class_type_supp(class_type)->assembly_index == 0) {
                     pos_sy_error(ec_interface_not_implemented, &error_position,
                                  symbol_for(rp));
                   }  /* if */
+                  continue;
                 } else {
                   /* We now know the class is abstract, but we don't yet know
                      if it implements all its interfaces. */
+                  class_type->variant.class_struct_union.abstract = TRUE;
                   check_abstract = FALSE;
                   goto next_base;
                 }  /* if */
               }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+              class_type->variant.class_struct_union.abstract = TRUE;
               goto done;
             }  /* if */
             /* An overriding virtual function was found, so the pure
