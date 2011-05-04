@@ -2135,8 +2135,6 @@ of the lookup is returned to the caller.
          that we keep looking even if an ambiguity is detected.  The symbol
          pointed to by the ambiguous synthesized projection symbol may
          differ depending on the lookup options. */
-      a_namespace_ptr		nsp;
-      a_symbol_ptr		ns_sym;
       a_symbol_ptr		fund_sym;
       a_boolean			any_errors = FALSE;
       /* Ignore symbols that do not match the lookup requirements. */
