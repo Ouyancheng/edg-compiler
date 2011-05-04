@@ -1,5 +1,14 @@
 Version 4.4
 
+5/4/11   [EDGcpfe/11644]
+Performance improvement in do_using_directive_lookup
+
+This routine has been updated to use the scope hash tables (see 1/25/11
+entry) instead of the inactive list, which can result in a significant
+performance improvement in compilations that use a very large number of
+template instantiations.
+
+
 5/3/11   [EDGcpfe/11668]
 Configuration macro to set const qualification of string literals in back end
 

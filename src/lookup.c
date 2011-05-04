@@ -2105,6 +2105,10 @@ of the lookup is returned to the caller.
   a_symbol_ptr		synth_sym = NULL;
   a_symbol_ptr		new_sym;
   a_symbol_ptr		sym = sym_from_scope;
+  an_active_using_directive_ptr
+			audp;
+  a_namespace_symbol_supplement_ptr
+			nssp;
 
   db_enter(4, "do_using_directive_lookup");
   if (microsoft_bugs && sym_from_scope != NULL) {
@@ -2117,55 +2121,40 @@ of the lookup is returned to the caller.
       goto done;
     }  /* if */
   }  /* if */
-  /* Look through the inactive symbols for any symbols associated with
-     one of the marked namespaces.  Note that we keep looking even if
-     an ambiguity is detected.  The symbol pointed to by the ambiguous
-     synthesized projection symbol may differ depending on the
-     lookup options. */
-  for (new_sym = locator->symbol_header->inactive_symbols;
-       new_sym != NULL; new_sym = new_sym->next) {
-    a_namespace_ptr		nsp;
-    a_symbol_ptr		ns_sym;
-    a_symbol_ptr		fund_sym;
-    a_boolean			any_errors = FALSE;
-    a_namespace_symbol_supplement_ptr
-				nssp;
-    an_active_using_directive_ptr
-				audp;
-    a_boolean			visible = FALSE;
-    /* Ignore symbols that are not namespace members. */
-    if (new_sym->is_class_member) continue;
-    nsp = sym_parent_namespace_or_null(new_sym);
-    if (nsp == NULL) continue;
-    /* Ignore symbols that do not match the lookup requirements. */
-    fund_sym = fundamental_symbol_of(new_sym);
-    if (!is_acceptable_symbol(new_sym, fund_sym, *lookup_state,
-                              /*invisible_okay=*/FALSE)) {
-      continue;
-    }  /* if */
-    nsp = skip_namespace_aliases(nsp);
-    ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
-    nssp = ns_sym->variant.namespace_info.extra_info;
-    if (gpp_using_directive_lookup) {
-      /* In normal mode, only a namespace test is needed.  When we are doing
-         g++ dependent name lookup, a more complex test is needed to emulate
-         the g++ using-directive visibility rules. */
-      if (!is_symbol_visible_for_gpp_using_dir(ssep, locator,
-                                               lookup_state, sym_from_scope,
-                                                new_sym, nssp)) {
+  /* Loop through the using-directives that apply at this scope to see if
+     any of them contain symbols that match the lookup options. */
+  for (audp = ssep->using_directives_that_apply_here;
+       audp != NULL; audp = audp->next_that_applies_at_depth) {
+    /* Search for a symbol in the lookup table for the namespace. */
+    nssp = audp->namespace_supplement;
+    for (new_sym = find_symbol_list_in_table(&nssp->pointers_block,
+                                             locator->symbol_header);
+         new_sym != NULL;
+         new_sym = new_sym->next_in_lookup_table) {
+      /* Look through the symbols associated with the given namespace.  Note
+         that we keep looking even if an ambiguity is detected.  The symbol
+         pointed to by the ambiguous synthesized projection symbol may
+         differ depending on the lookup options. */
+      a_namespace_ptr		nsp;
+      a_symbol_ptr		ns_sym;
+      a_symbol_ptr		fund_sym;
+      a_boolean			any_errors = FALSE;
+      /* Ignore symbols that do not match the lookup requirements. */
+      fund_sym = fundamental_symbol_of(new_sym);
+      if (!is_acceptable_symbol(new_sym, fund_sym, *lookup_state,
+                                /*invisible_okay=*/FALSE)) {
         continue;
       }  /* if */
-    }  /* if */
-    /* Loop through the using-directives that apply at this scope to see if
-       any of them nominate the namespace of this symbol. */
-    for (audp = ssep->using_directives_that_apply_here;
-         audp != NULL; audp = audp->next_that_applies_at_depth) {
-      if (nssp == audp->namespace_supplement) {
-        visible = TRUE;
-        break;
+      if (gpp_using_directive_lookup) {
+       /* In normal mode, only a namespace test is needed.  When we are doing
+           g++ dependent name lookup, a more complex test is needed to emulate
+           the g++ using-directive visibility rules. */
+        if (!is_symbol_visible_for_gpp_using_dir(ssep, locator,
+                                                 lookup_state, sym_from_scope,
+                                                 new_sym, nssp)) {
+          continue;
+        }  /* if */
       }  /* if */
-    }  /* for */
-    if (visible) {
       if (synth_sym == NULL) {
         /* Look for a previous synthesized namespace projection symbol
            for this scope. */
@@ -2196,7 +2185,7 @@ of the lookup is returned to the caller.
       /* Set synth_sym in case it was not set earlier.  This
          suppresses subsequent attempts to look up synth_sym. */
       synth_sym = sym;
-    }  /* if */
+    }  /* for */
   }  /* for */
 done:
   db_exit();
