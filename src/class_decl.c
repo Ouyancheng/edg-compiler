@@ -566,6 +566,28 @@ typedef struct an_override_registry_entry {
 /* Available list of partial-override entries. */
 static an_override_registry_entry_ptr avail_override_registry_entries;
 
+#if DEBUG
+static unsigned long
+		num_override_registry_entries_allocated;
+
+unsigned long db_show_override_registry_entries_used(unsigned long grand_total)
+/*
+Show space used by the override registry entries.  This is called by the symbol
+table space used routine.  The space used by these entries is reported as part
+of the symbol table memory used.
+*/
+{
+  unsigned long  num, size, total;
+
+  db_space_used_lost("override registry entries",
+                     avail_override_registry_entries,
+                     num_override_registry_entries_allocated,
+                     an_override_registry_entry);
+  return grand_total;
+}  /* db_show_override_registry_entries_used */
+
+#endif /* DEBUG */
+
 
 static an_override_registry_entry_ptr alloc_override_registry_entry(void)
 /*
@@ -582,6 +604,9 @@ fields.
   } else {
     orep = (an_override_registry_entry_ptr)alloc_fe(
                                            sizeof(an_override_registry_entry));
+#if DEBUG
+    num_override_registry_entries_allocated += 1;
+#endif /* DEBUG */
   }  /* if */
   /* Initialize its fields. */
   orep->next                   = NULL;
@@ -644,6 +669,28 @@ typedef struct a_quasi_override_descr {
 /* Available list of "quasi-override" descriptions. */
 static a_quasi_override_descr_ptr avail_quasi_override_descrs;
 
+#if DEBUG
+static unsigned long
+		num_quasi_override_descrs_allocated;
+
+unsigned long db_show_quasi_override_descrs_used(unsigned long grand_total)
+/*
+Show space used by the "quasi-override" descriptions.  This is called by the
+symbol table space used routine.  The space used by these entries is reported
+as part of the symbol table memory used.
+*/
+{
+  unsigned long  num, size, total;
+
+  db_space_used_lost("quasi-override descr.",
+                     avail_quasi_override_descrs,
+                     num_quasi_override_descrs_allocated,
+                     a_quasi_override_descr);
+  return grand_total;
+}  /* db_show_quasi_override_descrs_used */
+
+#endif /* DEBUG */
+
 
 static a_quasi_override_descr_ptr append_quasi_override_descr(
                                           a_quasi_override_descr_ptr  *p_list)
@@ -662,6 +709,7 @@ new entry.
   } else {
     qodp =
          (a_quasi_override_descr_ptr)alloc_fe(sizeof(a_quasi_override_descr));
+    num_quasi_override_descrs_allocated += 1;
   }  /* if */
   /* Initialize its fields. */
   qodp->next = NULL;
@@ -691,7 +739,7 @@ and set *p_list to NULL.
     avail_quasi_override_descrs = *p_list;
     *p_list = NULL;
   }  /* if */
-}  /* free_override_registry_entry */
+}  /* free_quasi_override_descr_list */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -22465,6 +22513,10 @@ One-time initialization for class_decl.c static variables.
 #if DEBUG
       pch_saved_var_array_elem(num_routine_fixups_allocated),
       pch_saved_var_array_elem(num_class_fixups_allocated),
+      pch_saved_var_array_elem(num_override_registry_entries_allocated),
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(num_quasi_override_descrs_allocated),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* if DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -22518,6 +22570,10 @@ Initializations for class declaration processing.
 #if DEBUG
   num_routine_fixups_allocated = 0;
   num_class_fixups_allocated = 0;
+  num_override_registry_entries_allocated = 0;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  num_quasi_override_descrs_allocated = 0;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* DEBUG */
   return;
 }  /* class_decl_init */

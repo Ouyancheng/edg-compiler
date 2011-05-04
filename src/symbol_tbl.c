@@ -13829,6 +13829,10 @@ for space tracking purposes.
   grand_total = db_show_covariant_overrides_used(grand_total);
 #endif /* IA64_ABI */
   grand_total = db_show_class_fixups_used(grand_total);
+  grand_total = db_show_override_registry_entries_used(grand_total);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  grand_total = db_show_quasi_override_descrs_used(grand_total);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   grand_total = db_show_def_arg_expr_fixups_used(grand_total);
   grand_total = db_show_il_c_fe_space_used(grand_total);
   grand_total = db_show_trans_unit_space_used(grand_total);
