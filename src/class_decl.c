@@ -2888,385 +2888,37 @@ ambiguity.
   db_exit();
 } /* report_virtual_function_ambiguities */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_boolean is_quasi_direct_base_interface(a_base_class_ptr  bcp)
+static void find_final_overrider(a_base_class_ptr  *p_bcp,
+                                 a_routine_ptr     *p_rp)
 /*
-Return TRUE if bcp is a base of C++/CLI interface type that is either a direct
-base or whose derivation path includes only interfaces (not including the
-derived class).
+*p_rp is a member function of the base class described by *p_bcp.  Replace
+*p_rp and *p_bcp by the final overrider for the given member function, if any.
+If the final overrider is in the most derived class, set *p_bcp to NULL.
 */
 {
-  a_boolean  result = FALSE;
+  an_overriding_virtual_function_ptr
+                                ovfp = (*p_bcp)->overriding_virtual_functions;
 
-  if (cli_class_type_kind_is(bcp->type, cctk_interface)) {
-    result = TRUE;
-    if (!bcp->direct) {
-      a_base_class_derivation_ptr  derivation = bcp->derivation;
-      a_derivation_step_ptr        step;
-      check_assertion(derivation->next == NULL);
-      for (step = derivation->path; step != NULL; step = step->next) {
-        if (!cli_class_type_kind_is(step->base_class->type, cctk_interface)) {
-          result = FALSE;
-          break;
-        }  /* if */
-      }  /* for */
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_quasi_direct_base_interface */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-static void check_abstract_class(a_type_ptr  class_type)
-/*
-If the current class is not already marked as "abstract", run through its
-base classes to determine whether it is "abstract by inheritance" (i.e.,
-if it inherits any pure virtual functions which are not redeclared in the
-current class).  If it is, mark the class accordingly.  Also, if the class
-is a C++/CLI ref class or value class, issue a diagnostic if it fails to
-implement an interface member.
-*/
-{
-  a_base_class_ptr                    bcp;
-  a_class_type_supplement_ptr         bctsp;
-  a_routine_ptr                       rp;
-  an_overriding_virtual_function_ptr  ovfp;
-  a_boolean                           check_abstract, check_interfaces = FALSE;
-
-  db_enter(4, "check_abstract_class");
-  if (class_type->variant.class_struct_union.is_nonreal_class) {
-    /* If the class is nonreal and not marked abstract, it could only be
-       abstract because it doesn't override an inherited pure virtual.
-       However, if that pure virtual member function comes from a dependent
-       base we cannot make a good decision yet.  Similarly, interface
-       compliance cannot be checked reliably. */
-    check_abstract = FALSE;
-    check_interfaces = FALSE;
-  } else {
-    /* If we already know that the given class type is abstract (e.g.,
-       because it contains a pure virtual member declaration), we need not
-       search for a non-overridden pure virtual member among the base
-       classes.  However, for ref and value classes, we must still check
-       for non-overridden interface members (which are also implicitly
-       pure). */
-    check_abstract = !class_type->variant.class_struct_union.abstract;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    check_interfaces = cppcli_enabled &&
-                       (cli_class_type_kind_is(class_type, cctk_ref) ||
-                        cli_class_type_kind_is(class_type, cctk_value));
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  }  /* if */
-  if (check_abstract || check_interfaces) {
-    /* Traverse the base classes to look for a pure virtual function that is
-       inherited without an intervening declaration that overrides it. */
-    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (!check_abstract &&
-          (!cli_class_type_kind_is(bcp->type, cctk_interface) ||
-           !is_quasi_direct_base_interface(bcp))) {
-        /* We are only checking direct C++/CLI interface bases.  (And only
-           interface bases that aren't bases of a ref class base.) */
-        goto next_base;
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      if (bcp->type->variant.class_struct_union.any_pure_virtual_functions) {
-        /* This base class *is* abstract, with at least one pure virtual
-           function.  For each of the base class's pure virtual functions,
-           inspect the appropriate virtual function function override list.
-           If the pure virtual function is not overridden (i.e., if no entry
-           on the override list points to it as the primary function) then
-           mark the current class as abstract. */
-        bctsp = bcp->type->variant.class_struct_union.extra_info;
-        rp = bctsp->assoc_scope->routines;
-        for (; rp != NULL; rp = rp->next) {
-          if (rp->pure_virtual) {
-            /* Found a pure virtual function among the routines.  Advance
-               through the overriding virtual function list, passing over
-               entries in which the virtual function number of the primary
-               function is lower than that of the current routine. */
-            for (ovfp = bcp->overriding_virtual_functions;
-                 ovfp != NULL;
-                 ovfp = ovfp->next) {
-              if (ovfp->primary_function->virtual_function_number >=
-                                              rp->virtual_function_number) {
-                break;
-              }  /* if */
-            }  /* for */
-            if (ovfp == NULL || ovfp->primary_function != rp) {
-              /* No overriding virtual function entry was found that refers to
-                 the pure virtual function routine entry.  The pure virtual
-                 function is therefore inherited, and so the derived class
-                 is also abstract.  For C++/CLI ref and value classes (i.e.,
-                 check_interfaces == TRUE), not overriding an interface member
-                 is not treated as making the class abstract: such a lack of
-                 overriding is diagnosed as an error and making the class
-                 abstract would likely trigger additional unhelpful
-                 diagnostics. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-              if (check_interfaces) {
-                if (cli_class_type_kind_is(bcp->type, cctk_interface)) {
-                  /* A base interface member is not overridden (i.e., not
-                     implemented): Issue an error if the interface is a direct
-                     base or derived only through interface derivations. */
-                  /* FIXME: We currently do not diagnose interfaces specified
-                     by classes loaded from metadata because we currently do
-                     not load private members from metadata and those private
-                     members may provide a valid override. */
-                  if (is_quasi_direct_base_interface(bcp) &&
-                      class_type_supp(class_type)->assembly_index == 0) {
-                    pos_sy_error(ec_interface_not_implemented, &error_position,
-                                 symbol_for(rp));
-                  }  /* if */
-                  continue;
-                } else {
-                  /* We now know the class is abstract, but we don't yet know
-                     if it implements all its interfaces. */
-                  class_type->variant.class_struct_union.abstract = TRUE;
-                  check_abstract = FALSE;
-                  goto next_base;
-                }  /* if */
-              }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-              class_type->variant.class_struct_union.abstract = TRUE;
-              goto done;
-            }  /* if */
-            /* An overriding virtual function was found, so the pure
-               virtual function is not inherited. */
-          }  /* if */
-          /* Get the next routine on the list. */
-        }  /* for */
-      }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-next_base:;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Get the next base class. */
-    }  /* for */
-  }  /* if */
-done:;
-  db_exit();
-}  /* check_abstract_class */
-
-
-static void report_pure_virtual_functions(a_type_ptr        class_type,
-                                          a_base_class_ptr  base_class,
-                                          an_error_code     error_code,
-                                          a_boolean         *found)
-/*
-Add to the list of non-overridden pure virtual functions put out with the
-diagnostic about abstract class objects.  class_type is the abstract
-most-derived-type.  base_class is on the base_classes list of class_type;
-it may be NULL.  error_code indicates what message to put out.  *found is
-updated to TRUE if one or more non-overridden pure virtual functions is
-located.
-*/
-{
-  a_type_ptr                          tp;
-  a_base_class_ptr                    bcp;
-  a_routine_ptr                       rp;
-  an_overriding_virtual_function_ptr  ovfp;
-  a_boolean                           overridden;
-
-  tp = base_class == NULL ? class_type : base_class->type;
-  if (tp->variant.class_struct_union.any_pure_virtual_functions) {
-    /* tp is a class type with pure virtual functions.  List them only if
-       they are not overridden in a more derived class. */
-    /* Traverse the routines list. */
-    rp = tp->variant.class_struct_union.extra_info->assoc_scope->routines;
-    for (; rp != NULL; rp = rp->next) {
-      if (rp->pure_virtual) {
-        /* Found a virtual function declared pure.  But is it overridden? */
-        overridden = FALSE;
-        if (base_class != NULL) {
-          /* There is a more derived class in which there may be an overriding
-             function.  This check is required only when we're looking at
-             pure virtual functions in a base class. */
-          for (ovfp = base_class->overriding_virtual_functions;
-               ovfp != NULL;
-               ovfp = ovfp->next) {
-            if (ovfp->primary_function == rp) {
-              /* An overrider was found. */
-              overridden = TRUE;
-              break;
-            } else if (ovfp->primary_function->virtual_function_number >
-                                              rp->virtual_function_number) {
-              /* Since the order on the routines list corresponds to the
-                 virtual-function-number order, the search can terminate. */
-              break;
-            }  /* if */
-          }  /* for */
-        }  /* if */
-        if (!overridden) {
-          /* Put out the extra line of information. */
-          a_symbol_ptr  sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
-          sym_add_diag_info(error_code, sym);
-          *found = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  /* The list must also include all non-overridden pure virtual functions in
-     base classes. */
-  for (bcp = base_classes_of(tp); bcp != NULL; bcp = bcp->next) {
-    /* Only base classes that are themselves abstract need to be considered.
-       Traverse the derivation hierarchy by visiting the direct base classes
-       for the current level and, if this is the top-level base class list,
-       the virtual base classes.  (We only visit virtual base classes when
-       base_class is NULL to avoid hitting them more than once.) */
-    if (bcp->type->variant.class_struct_union.abstract &&
-        bcp->is_virtual ? base_class == NULL : bcp->direct) {
-      /* Recursive call.  Note that a different error code is used for
-         base class pure virtual functions. */
-      report_pure_virtual_functions(class_type,
-                                    base_class == NULL ?
-                                      bcp :
-                                      corresponding_base_class(bcp, class_type,
-                                                               base_class),
-                                    ec_no_overrider_for_pure_virtual_function,
-                                    found);
-    }  /* if */
-  }  /* for */
-}  /* report_pure_virtual_functions */
-
-
-void abstract_class_diagnostic(an_error_severity  severity,
-                               an_error_code      error_code,
-                               a_type_ptr         class_type,
-                               a_source_position  *diag_pos)
-/*
-Issue a diagnostic (using the message specified by error_code and with the
-given severity) on an incorrect use of an object of abstract class type, as
-indicated by class_type.  *diag_pos is the source position at which the
-diagnostic should be issued.  Except for some Microsoft-specific cases, the
-diagnostic includes a list of pure virtual functions, to assist the user in
-correcting the class declarations that produced the problem.
-*/
-{
-  a_boolean  found = FALSE;
-
-  class_type = skip_typerefs(class_type);
-  pos_ty_start_diagnostic(severity, error_code, diag_pos, class_type);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (class_type->variant.class_struct_union.is_interface) {
-    ty_add_diag_info(ec_type_is_interface, class_type);
-  } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  {
-    /* Put out the list of pure virtual functions. */
-    report_pure_virtual_functions(class_type, (a_base_class_ptr)NULL,
-                                  ec_pure_virtual_function, &found);
-    if (!found) {
-      /* If class_type is marked as abstract, at least one pure virtual
-         function should have been found (except maybe in some Microsoft
-         modes, where a class might be defined with the context-sensitive
-         keyword "abstract"). */
-      if (microsoft_mode && microsoft_version >= 1400) {
-        sym_add_diag_info(ec_type_is_declared_abstract,
-                          symbol_for(class_type));
-#if MICROSOFT_EXTENSIONS_ALLOWED && BACK_END_IS_CP_GEN_BE
-        check_assertion(class_type
-           ->variant.class_struct_union.defined_with_abstract_class_modifier);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && BACK_END_IS_CP_GEN_BE */
-      } else {
-        unexpected_condition();
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  /* Terminate the supplementary messages. */
-  end_error();
-}  /* abstract_class_diagnostic */
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static a_boolean is_overriding_function(a_type_ptr    class_type,
-                                        a_routine_ptr derived_class_routine,
-                                        a_routine_ptr base_class_routine)
-/*
-Return TRUE if, in the given class_type, derived_class_routine overrides
-base_class_routine.
-*/
-{
-  a_boolean  result = FALSE;
-
-  if (derived_class_routine->is_virtual &&
-      derived_class_routine->overrides_base_member) {
-    a_type_ptr       base_class_type = parent_class_of(base_class_routine);
-    a_base_class_ptr bcp = base_classes_of(class_type);
-    for (; bcp != NULL; bcp = bcp->next) {
-      if (identical_types(bcp->type, base_class_type)) {
-        an_overriding_virtual_function_ptr
-                                     ovfp = bcp->overriding_virtual_functions;
-        for (; ovfp != NULL; ovfp = ovfp->next) {
-          if (ovfp->primary_function == base_class_routine &&
-              ovfp->overriding_function == derived_class_routine) {
-            result = TRUE;
-            break;
-          }  /* if */
-        }  /* for */
+  if (ovfp != NULL) {
+    a_routine_ptr  rp = *p_rp;
+    for (; ovfp != NULL; ovfp = ovfp->next) {
+      if (ovfp->primary_function == rp) {
+        /* rp is overridden. */
+        *p_rp = ovfp->overriding_function;
+        *p_bcp = ovfp->base_class;
+        break;
+      } else if (ovfp->primary_function->virtual_function_number >
+                                                rp->virtual_function_number) {
+        /* The "overriding_virtual_functions" list is ordered by the
+           virtual function numbers of the primary functions.  So the
+           remainder of the list cannot contain rp. */
         break;
       }  /* if */
     }  /* for */
   }  /* if */
-  return result;
-}  /* is_overriding_function */
+}  /* find_final_overrider */
 
-
-a_routine_ptr find_finalize_routine(a_type_ptr class_type,
-                                    a_boolean  *p_is_object_finalize)
-/*
-Return the routine entry for the Finalize() member function of the given class
-type, or NULL if there is no such function.  If such a member function is found
-and it meets the requirements of the "CLI Dispose pattern", set
-*p_is_object_finalize to TRUE; otherwise, set it to FALSE.
-*/
-{
-  a_routine_ptr    finalize_routine = NULL;
-  a_symbol_locator locator;
-  a_symbol_ptr     sym;
-
-  check_assertion(p_is_object_finalize != NULL); 
-  *p_is_object_finalize = FALSE;
-  clear_locator(&locator, &class_type->source_corresp.decl_position);
-  (void)find_symbol("Finalize", sizeof("Finalize")-1, &locator);
-  clear_specific_symbol(locator);
-  sym = class_qualified_id_lookup(&locator, class_type,
-                                  IDL_DIRECT_CLASS_MEMBERS_ONLY);
-  /* A valid Finalize routine is a member function with the
-     following signature: protected: virtual void Finalize(); */
-  if (sym != NULL && is_member_function_symbol(sym)) {
-    a_boolean  is_overloaded_function;
-    /* Lookup found a Finalize function (or an overload set of them). */
-    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      sym = sym->variant.overloaded_function.symbols;
-      is_overloaded_function = TRUE;
-    } else {
-      is_overloaded_function = FALSE;
-    }  /* if */
-    for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
-      if (symbol_is(sym, sk_member_function)) {
-        a_routine_ptr  routine = sym->variant.routine.ptr;
-        if (function_type_params(routine->type) == NULL) {
-          finalize_routine = routine;
-          if (routine->is_virtual && !routine->pure_virtual &&
-              !routine->final &&
-              is_void_type(routine->type->variant.routine.return_type) &&
-              routine->source_corresp.access ==
-                                          (an_access_specifier)as_protected &&
-              (is_cli_system_object_type(class_type) ||
-               is_overriding_function(class_type, routine,
-                                      get_object_finalize_routine()))) {
-            *p_is_object_finalize = TRUE;
-          }  /* if */
-          break;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  return finalize_routine;
-}  /* find_finalize_routine */
- 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void insert_in_virtual_function_override_list(
                                 a_base_class_ptr                   base_class,
@@ -3460,6 +3112,522 @@ next_entry_from_old_list:;
   db_exit();
 }  /* copy_virtual_function_override_list */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean matching_cli_accessors(a_routine_ptr  overrider,
+                                        a_routine_ptr  candidate)
+/*
+Overrider is a function that might override virtual function "candidate".
+If either function is a C++/CLI property or event accessor return FALSE if
+the properties or events do not match for overriding purposes.  Otherwise,
+return TRUE.
+*/
+{
+  a_boolean                      mismatch = FALSE;
+  a_property_or_event_descr_ptr  pdp1 = NULL, pdp2 = NULL;
+
+  if (rout_is_cli_accessor(overrider)) {
+    pdp1 = overrider->variant.property_or_event_descr;
+  }  /* if */
+  if (rout_is_cli_accessor(candidate)) {
+    pdp2 = candidate->variant.property_or_event_descr;
+  }  /* if */
+  if (pdp1 == NULL && pdp2 == NULL) {
+    /* No accessors involved.  Return TRUE. */
+  } else if (pdp1 == NULL || pdp2 == NULL) {
+    /* One is an accessor and the other not: Mismatch. */
+    mismatch = TRUE;
+  } else if (pdp1->is_static || pdp2->is_static) {
+    /* If one property is static, it cannot participate in overriding. */
+    mismatch = TRUE;
+  } else {
+    a_field_ptr  fp1 = pdp1->variant.field, fp2 = pdp2->variant.field;
+    if (strcmp(fp1->source_corresp.name, fp2->source_corresp.name) != 0) {
+      /* Properties with different names don't match. */
+      mismatch = TRUE;
+    }  /* if */
+  }  /* if */
+  return !mismatch;
+}  /* matching_cli_accessors */
+
+
+static a_boolean is_quasi_direct_base_interface(a_base_class_ptr  bcp)
+/*
+Return TRUE if bcp is a base of C++/CLI interface type that is either a direct
+base or whose derivation path includes only interfaces (not including the
+derived class).
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (cli_class_type_kind_is(bcp->type, cctk_interface)) {
+    result = TRUE;
+    if (!bcp->direct) {
+      a_base_class_derivation_ptr  derivation = bcp->derivation;
+      a_derivation_step_ptr        step;
+      check_assertion(derivation->next == NULL);
+      for (step = derivation->path; step != NULL; step = step->next) {
+        if (!cli_class_type_kind_is(step->base_class->type, cctk_interface)) {
+          result = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_quasi_direct_base_interface */
+
+
+static a_boolean check_if_interface_member_implemented_by_inheritance(
+                                                    a_routine_ptr      irp,
+                                                    a_base_class_ptr   ibcp,
+                                                    a_class_def_state  *cdsp)
+/*
+irp is an interface member function declared in the interface base described
+by ibcp.  This interface member is not implemented by a direct member of the
+class being defined (described by cdsp).  Check if irp is implemented by a
+member of a proper base class of the class being defined, and if so return
+TRUE and update the IL to record the associated "override".
+*/
+{
+  a_boolean            match_found = FALSE;
+  a_type_ptr           class_type = cdsp->class_type;
+  a_base_class_ptr     bcp;
+  a_symbol_header_ptr  sym_header = symbol_for(irp)->header;
+
+  /* Search the bases for a member with the same name and type as irp.  This
+     search is somewhat similar to that done in check_for_virtual_function. */
+  check_assertion(!special_kind_is(irp, sfk_destructor));
+  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+    a_symbol_ptr  sym, sym_next;
+    if (cli_class_type_kind_is(bcp->type, cctk_interface)) {
+      /* Members of interfaces cannot implement irp. */
+      continue;
+    }  /* if */
+    /* Inner loop:  go through all the symbols for this name from the base
+       class, looking for one which represents a member function (overloaded
+       or simple) from the base class under examination. */
+    sym = find_symbol_list_in_table(&symbol_supplement_for_class(bcp->type)
+                                                             ->pointers_block,
+                                    sym_header);
+    for (; sym != NULL; sym = sym_next) {
+      sym_next = sym->next_in_lookup_table;
+      if (sym->decl_scope == class_type_supp(bcp->type)->assoc_scope->number) {
+        a_boolean  overloaded;
+        /* sym represents a member of bcp's class. */
+        if (symbol_is(sym, sk_overloaded_function)) {
+          overloaded = TRUE;
+          sym = sym->variant.overloaded_function.symbols;
+        } else if (symbol_is(sym, sk_member_function)) {
+          overloaded = FALSE;
+        } else if (symbol_is(sym, sk_field) ||
+                   symbol_is(sym, sk_static_data_member)) {
+          /* It's not a symbol for a function, but it's in the same name
+             space, so we've looked far enough for this base class. */
+          goto next_base_class;
+        } else {
+          /* It's not a symbol for a function, but it's not in the same name
+             space (e.g., a struct name) so keep scanning. */
+          continue;
+        }  /* if */
+        /* Innermost loop is run only once for simple functions but more
+           for overloaded functions. */
+        for (; sym != NULL; sym = overloaded ? sym->next : NULL) {
+          /* An overload set could include other symbol kinds, but only
+             sk_member_functions are checked. */
+          if (symbol_is(sym, sk_member_function)) {
+            a_routine_ptr  rp = sym->variant.routine.ptr;
+            if (!rp->is_virtual) {
+              /* sym does not represent a virtual function, so (if this is an
+                 overload set) keep looking. */
+              continue;
+            } else if (rp->source_corresp.access ==
+                                            (an_access_specifier)as_private) {
+              /* Microsoft compilers appear to ignore private base members in
+                 this context. */
+              continue;
+            } else if (!f_types_are_compatible(
+                                   irp->type, rp->type,
+                                   TCF_IGNORE_THIS_CLASS_TYPE |
+                                   TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) ||
+                       !this_param_types_correspond(
+                                               irp->type, rp->type,
+                                               /*check_as_conversion=*/FALSE,
+                                               /*check_as_operands=*/FALSE)) {
+              /* The types don't match. */
+              continue;
+            } else if (!matching_cli_accessors(irp, rp)) {
+              /* One or both routines is a property accessor and the other one
+                 doesn't match (either because it is not an accessor, or
+                 because it is an accessor for a non-matching property). */
+              continue;
+            } else {
+              /* Match: Record the override. */
+              an_overriding_virtual_function_ptr  new_ovfp;
+              /* Replace the (bcp, rp) pair by the final overrider, if any. */
+              find_final_overrider(&bcp, &rp);
+              check_assertion(bcp != NULL);
+              /* Allocate and insert an overriding-virtual-function entry. */
+              new_ovfp = alloc_overriding_virtual_function();
+              new_ovfp->primary_function = irp;
+              new_ovfp->overriding_function = rp;
+              new_ovfp->base_class = bcp;
+              insert_in_virtual_function_override_list(ibcp, new_ovfp);
+              match_found = TRUE;
+              goto done;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* for */
+next_base_class:;
+  }  /* for */
+done:
+  return match_found;
+}  /* check_if_interface_member_implemented_by_inheritance */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+static void wrapup_overrides(a_class_def_state  *cdsp)
+/*
+If the current class is not already marked as "abstract", run through its base
+classes to determine whether it is "abstract by inheritance" (i.e., if it
+inherits any pure virtual functions which are not redeclared in the current
+class).  If it is, mark the class accordingly.  Also, if the class is a
+C++/CLI ref class or value class, determine if any interface members are
+implemented by a base class member, and issue a diagnostic if it fails to
+implement an interface member.
+*/
+{
+  a_type_ptr                   class_type = cdsp->class_type;
+  a_base_class_ptr             bcp;
+  a_class_type_supplement_ptr  bctsp;
+  a_routine_ptr                rp;
+  a_boolean                    check_abstract, check_interfaces = FALSE;
+
+  db_enter(4, "wrapup_overrides");
+  if (class_type->variant.class_struct_union.is_nonreal_class) {
+    /* If the class is nonreal and not marked abstract, it could only be
+       abstract because it doesn't override an inherited pure virtual.
+       However, if that pure virtual member function comes from a dependent
+       base we cannot make a good decision yet.  Similarly, interface
+       compliance cannot be checked reliably. */
+    check_abstract = FALSE;
+    check_interfaces = FALSE;
+  } else {
+    /* If we already know that the given class type is abstract (e.g.,
+       because it contains a pure virtual member declaration), we need not
+       search for a non-overridden pure virtual member among the base
+       classes.  However, for ref and value classes, we must still check
+       for non-overridden interface members (which are also implicitly
+       pure). */
+    check_abstract = !class_type->variant.class_struct_union.abstract;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    check_interfaces = cppcli_enabled &&
+                       (cli_class_type_kind_is(class_type, cctk_ref) ||
+                        cli_class_type_kind_is(class_type, cctk_value));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+  if (check_abstract || check_interfaces) {
+    /* Traverse the base classes to look for a pure virtual function that is
+       inherited without an intervening declaration that overrides it. */
+    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (!check_abstract &&
+          (!cli_class_type_kind_is(bcp->type, cctk_interface) ||
+           !is_quasi_direct_base_interface(bcp))) {
+        /* We are only checking direct C++/CLI interface bases.  (And only
+           interface bases that aren't bases of a ref class base.) */
+        goto next_base;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      if (bcp->type->variant.class_struct_union.any_pure_virtual_functions) {
+        /* This base class *is* abstract, with at least one pure virtual
+           function.  For each of the base class's pure virtual functions,
+           inspect the appropriate virtual function function override list.
+           If the pure virtual function is not overridden (i.e., if no entry
+           on the override list points to it as the primary function) then
+           mark the current class as abstract. */
+        bctsp = bcp->type->variant.class_struct_union.extra_info;
+        rp = bctsp->assoc_scope->routines;
+        for (; rp != NULL; rp = rp->next) {
+          if (rp->pure_virtual) {
+            /* Found a pure virtual function among the routines.  See if it is
+               overridden. */
+            a_routine_ptr     orp = rp;
+            a_base_class_ptr  obcp = bcp;
+            find_final_overrider(&obcp, &orp);
+            if (orp == rp) {
+              /* No overriding virtual function entry was found that refers to
+                 the pure virtual function routine entry.  The pure virtual
+                 function is therefore inherited, and so the derived class
+                 is also abstract.  For C++/CLI ref and value classes (i.e.,
+                 check_interfaces == TRUE), not overriding an interface member
+                 is not treated as making the class abstract: such a lack of
+                 overriding is diagnosed as an error and making the class
+                 abstract would likely trigger additional unhelpful
+                 diagnostics. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              if (check_interfaces) {
+                if (cli_class_type_kind_is(bcp->type, cctk_interface)) {
+                  if (is_quasi_direct_base_interface(bcp)) {
+                    /* A C++/CLI interface from which the derived class derives
+                       directly or whose derivation chain involves only other
+                       interfaces.  Such an interface must be completely
+                       implemented by the derived class.  We have already
+                       established that no direct member of the derived class
+                       implements the member rp of the interface.  Before
+                       issuing a diagnostic, check whether a base class member
+                       implements rp. */
+                    if (check_if_interface_member_implemented_by_inheritance(
+                                                             rp, bcp, cdsp)) {
+                      /* rp is implemented by a base class member. */
+                    } else {
+                      /* The base interface member rp is not implemented (i.e.,
+                         not overridden): Issue an error. */
+                      /* FIXME: We currently do not diagnose interfaces
+                         specified by classes loaded from metadata because we
+                         currently do not load private members from metadata
+                         and those private members may provide a valid
+                         override. */
+                      if (class_type_supp(class_type)->assembly_index == 0) {
+                        pos_sy_error(ec_interface_not_implemented,
+                                     &error_position, symbol_for(rp));
+                      }  /* if */
+                    }  /* if */
+                  }  /* if */
+                  continue;
+                } else {
+                  /* We now know the class is abstract, but we don't yet know
+                     if it implements all its interfaces. */
+                  class_type->variant.class_struct_union.abstract = TRUE;
+                  check_abstract = FALSE;
+                  goto next_base;
+                }  /* if */
+              }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+              class_type->variant.class_struct_union.abstract = TRUE;
+              goto done;
+            }  /* if */
+            /* An overriding virtual function was found, so the pure
+               virtual function is not inherited. */
+          }  /* if */
+          /* Get the next routine on the list. */
+        }  /* for */
+      }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+next_base:;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Get the next base class. */
+    }  /* for */
+  }  /* if */
+done:;
+  db_exit();
+}  /* wrapup_overrides */
+
+
+static void report_pure_virtual_functions(a_type_ptr        class_type,
+                                          a_base_class_ptr  base_class,
+                                          an_error_code     error_code,
+                                          a_boolean         *found)
+/*
+Add to the list of non-overridden pure virtual functions put out with the
+diagnostic about abstract class objects.  class_type is the abstract
+most-derived-type.  base_class is on the base_classes list of class_type;
+it may be NULL.  error_code indicates what message to put out.  *found is
+updated to TRUE if one or more non-overridden pure virtual functions is
+located.
+*/
+{
+  a_type_ptr        tp;
+  a_base_class_ptr  bcp;
+  a_routine_ptr     rp;
+  a_boolean         overridden;
+
+  tp = base_class == NULL ? class_type : base_class->type;
+  if (tp->variant.class_struct_union.any_pure_virtual_functions) {
+    /* tp is a class type with pure virtual functions.  List them only if
+       they are not overridden in a more derived class. */
+    /* Traverse the routines list. */
+    rp = tp->variant.class_struct_union.extra_info->assoc_scope->routines;
+    for (; rp != NULL; rp = rp->next) {
+      if (rp->pure_virtual) {
+        /* Found a virtual function declared pure.  But is it overridden? */
+        overridden = FALSE;
+        if (base_class != NULL) {
+          /* There is a more derived class in which there may be an overriding
+             function.  This check is required only when we're looking at
+             pure virtual functions in a base class. */
+          a_routine_ptr     orp = rp;
+          a_base_class_ptr  obcp = base_class;
+          find_final_overrider(&obcp, &orp);
+          overridden = (orp != rp);
+        }  /* if */
+        if (!overridden) {
+          /* Put out the extra line of information. */
+          sym_add_diag_info(error_code, symbol_for(rp));
+          *found = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  /* The list must also include all non-overridden pure virtual functions in
+     base classes. */
+  for (bcp = base_classes_of(tp); bcp != NULL; bcp = bcp->next) {
+    /* Only base classes that are themselves abstract need to be considered.
+       Traverse the derivation hierarchy by visiting the direct base classes
+       for the current level and, if this is the top-level base class list,
+       the virtual base classes.  (We only visit virtual base classes when
+       base_class is NULL to avoid hitting them more than once.) */
+    if (bcp->type->variant.class_struct_union.abstract &&
+        bcp->is_virtual ? base_class == NULL : bcp->direct) {
+      /* Recursive call.  Note that a different error code is used for
+         base class pure virtual functions. */
+      report_pure_virtual_functions(class_type,
+                                    base_class == NULL ?
+                                      bcp :
+                                      corresponding_base_class(bcp, class_type,
+                                                               base_class),
+                                    ec_no_overrider_for_pure_virtual_function,
+                                    found);
+    }  /* if */
+  }  /* for */
+}  /* report_pure_virtual_functions */
+
+
+void abstract_class_diagnostic(an_error_severity  severity,
+                               an_error_code      error_code,
+                               a_type_ptr         class_type,
+                               a_source_position  *diag_pos)
+/*
+Issue a diagnostic (using the message specified by error_code and with the
+given severity) on an incorrect use of an object of abstract class type, as
+indicated by class_type.  *diag_pos is the source position at which the
+diagnostic should be issued.  Except for some Microsoft-specific cases, the
+diagnostic includes a list of pure virtual functions, to assist the user in
+correcting the class declarations that produced the problem.
+*/
+{
+  a_boolean  found = FALSE;
+
+  class_type = skip_typerefs(class_type);
+  pos_ty_start_diagnostic(severity, error_code, diag_pos, class_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (class_type->variant.class_struct_union.is_interface) {
+    ty_add_diag_info(ec_type_is_interface, class_type);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    /* Put out the list of pure virtual functions. */
+    report_pure_virtual_functions(class_type, (a_base_class_ptr)NULL,
+                                  ec_pure_virtual_function, &found);
+    if (!found) {
+      /* If class_type is marked as abstract, at least one pure virtual
+         function should have been found (except maybe in some Microsoft
+         modes, where a class might be defined with the context-sensitive
+         keyword "abstract"). */
+      if (microsoft_mode && microsoft_version >= 1400) {
+        sym_add_diag_info(ec_type_is_declared_abstract,
+                          symbol_for(class_type));
+#if MICROSOFT_EXTENSIONS_ALLOWED && BACK_END_IS_CP_GEN_BE
+        check_assertion(class_type
+           ->variant.class_struct_union.defined_with_abstract_class_modifier);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && BACK_END_IS_CP_GEN_BE */
+      } else {
+        unexpected_condition();
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Terminate the supplementary messages. */
+  end_error();
+}  /* abstract_class_diagnostic */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean is_overriding_function(a_type_ptr    class_type,
+                                        a_routine_ptr derived_class_routine,
+                                        a_routine_ptr base_class_routine)
+/*
+Return TRUE if, in the given class_type, derived_class_routine overrides
+base_class_routine.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (derived_class_routine->is_virtual &&
+      derived_class_routine->overrides_base_member) {
+    a_type_ptr        base_class_type = parent_class_of(base_class_routine);
+    a_base_class_ptr  bcp = base_classes_of(class_type);
+    for (; bcp != NULL; bcp = bcp->next) {
+      if (identical_types(bcp->type, base_class_type)) {
+        find_final_overrider(&bcp, &base_class_routine);
+        if (base_class_routine == derived_class_routine) {
+          result = TRUE;
+        }  /* if */
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* is_overriding_function */
+
+
+a_routine_ptr find_finalize_routine(a_type_ptr class_type,
+                                    a_boolean  *p_is_object_finalize)
+/*
+Return the routine entry for the Finalize() member function of the given class
+type, or NULL if there is no such function.  If such a member function is found
+and it meets the requirements of the "CLI Dispose pattern", set
+*p_is_object_finalize to TRUE; otherwise, set it to FALSE.
+*/
+{
+  a_routine_ptr    finalize_routine = NULL;
+  a_symbol_locator locator;
+  a_symbol_ptr     sym;
+
+  check_assertion(p_is_object_finalize != NULL); 
+  *p_is_object_finalize = FALSE;
+  clear_locator(&locator, &class_type->source_corresp.decl_position);
+  (void)find_symbol("Finalize", sizeof("Finalize")-1, &locator);
+  clear_specific_symbol(locator);
+  sym = class_qualified_id_lookup(&locator, class_type,
+                                  IDL_DIRECT_CLASS_MEMBERS_ONLY);
+  /* A valid Finalize routine is a member function with the following
+     signature: protected: virtual void Finalize(); */
+  if (sym != NULL && is_member_function_symbol(sym)) {
+    a_boolean  is_overloaded_function;
+    /* Lookup found a Finalize function (or an overload set of them). */
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      sym = sym->variant.overloaded_function.symbols;
+      is_overloaded_function = TRUE;
+    } else {
+      is_overloaded_function = FALSE;
+    }  /* if */
+    for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
+      if (symbol_is(sym, sk_member_function)) {
+        a_routine_ptr  routine = sym->variant.routine.ptr;
+        if (function_type_params(routine->type) == NULL) {
+          finalize_routine = routine;
+          if (routine->is_virtual && !routine->pure_virtual &&
+              !routine->final &&
+              is_void_type(routine->type->variant.routine.return_type) &&
+              routine->source_corresp.access ==
+                                          (an_access_specifier)as_protected &&
+              (is_cli_system_object_type(class_type) ||
+               is_overriding_function(class_type, routine,
+                                      get_object_finalize_routine()))) {
+            *p_is_object_finalize = TRUE;
+          }  /* if */
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return finalize_routine;
+}  /* find_finalize_routine */
+ 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void record_virtual_function_override(
                                 a_member_decl_info_ptr  decl_info,
@@ -3573,8 +3741,8 @@ appears on a linked list pointed to from base_class.
         ovfp->next = ovfp->next->next;
       }  /* while */
       break;
-    }
-  }  /* if */
+    }  /* if */
+  }  /* for */
   if (ovfp == NULL) {
     /* No previous virtual function override entry. */
     ovfp = alloc_overriding_virtual_function();
@@ -4372,43 +4540,6 @@ overriding.
   return result;
 }  /* selective_override_match */
 
-
-static a_boolean matching_cli_accessors(a_routine_ptr  overrider,
-                                        a_routine_ptr  candidate)
-/*
-Overrider is a function that might override virtual function "candidate".
-If either function is a C++/CLI property or event accessor return FALSE if
-the properties or events do not match for overriding purposes.  Otherwise,
-return TRUE.
-*/
-{
-  a_boolean                      mismatch = FALSE;
-  a_property_or_event_descr_ptr  pdp1 = NULL, pdp2 = NULL;
-
-  if (rout_is_cli_accessor(overrider)) {
-    pdp1 = overrider->variant.property_or_event_descr;
-  }  /* if */
-  if (rout_is_cli_accessor(candidate)) {
-    pdp2 = candidate->variant.property_or_event_descr;
-  }  /* if */
-  if (pdp1 == NULL && pdp2 == NULL) {
-    /* No accessors involved.  Return TRUE. */
-  } else if (pdp1 == NULL || pdp2 == NULL) {
-    /* One is an accessor and the other not: Mismatch. */
-    mismatch = TRUE;
-  } else if (pdp1->is_static || pdp2->is_static) {
-    /* If one property is static, it cannot participate in overriding. */
-    mismatch = TRUE;
-  } else {
-    a_field_ptr  fp1 = pdp1->variant.field, fp2 = pdp2->variant.field;
-    if (strcmp(fp1->source_corresp.name, fp2->source_corresp.name) != 0) {
-      /* Properties with different names don't match. */
-      mismatch = TRUE;
-    }  /* if */
-  }  /* if */
-  return !mismatch;
-}  /* matching_cli_accessors */
-
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean base_is_final(a_base_class_ptr  bcp)
@@ -4591,7 +4722,7 @@ next_named_override:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Outer loop:  go through the base classes of the current class. */
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-    if (rout->special_kind == (a_special_function_kind)sfk_destructor) {
+    if (special_kind_is(rout, sfk_destructor)) {
       /* Special processing is required for destructors, since a virtual
          destructor in a base class is not overridden in the derived class
          by a function of the same name. */
@@ -4759,6 +4890,21 @@ next_named_override:
                  not correspond.  Keep looking for a match. */
               continue;
             }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (func_info->new_member &&
+                cli_class_type_kind_is(bcp->type, cctk_ref)) {
+              /* The C++/CLI "new" modifier indicates that a member does not 
+                 override a virtual base ref class member with the same
+                 signature (ignoring the return type).  It does not, however,
+                 have an impact on matching interface members.) */
+              new_okay = TRUE;
+              /* Don't establish overriding of a base ref class member if the
+                 member function was declared "new".  The exception happens
+                 when a named override specifier is also present (e.g.,
+                 "virtual void f() new = X::g;"). */
+              if (named_override == NULL) goto next_base_class;
+            }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* The parameter types correspond; now compare the return types. */
             if (!return_types_are_override_compatible(
                             rout->type, rp->type, bcp, &return_adjustment_bcp,
@@ -4806,19 +4952,6 @@ next_named_override:
                    override specifiers can be omitted for native types, and
                    value types cannot be base classes. */
                 matching_interface_member = sym;
-              }  /* if */
-              if (func_info->new_member &&
-                  cli_class_type_kind_is(bcp->type, cctk_ref)) {
-                /* The C++/CLI "new" modifier indicates that a member does not 
-                   override a virtual base ref class member with the same
-                   signature.  (It does not have an impact on matching
-                   interface members, however.) */
-                new_okay = TRUE;
-                /* Don't establish overriding of a base ref class member if the
-                   member function was declared "new".  The exception happens
-                   when a named override specifier is also present (e.g.,
-                   "virtual void f() new = X::g;"). */
-                if (named_override == NULL) goto next_base_class;
               }  /* if */
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -20170,22 +20303,15 @@ that are not irrelevant due to actual overrides.
 
   check_assertion(cppcli_enabled);
   for (qodp = cdsp->quasi_overrides; qodp != NULL; qodp = qodp->next) {
-    an_overriding_virtual_function_ptr
-                   ovfp = qodp->base_class->overriding_virtual_functions;
-    a_routine_ptr  base_rp = qodp->base_member->variant.routine.ptr;
-    for (; ovfp != NULL; ovfp = ovfp->next) {
-      if (ovfp->primary_function == base_rp) {
-        /* The "quasi-overridden" function is really overridden.  No
-           diagnostic needed. */
-        goto next_quasi_override;
-      } else if (ovfp->primary_function->virtual_function_number >
-                                           base_rp->virtual_function_number) {
-        /* The "overriding_virtual_functions" list is ordered by the virtual
-           function numbers of the primary functions.  So the remainder of the
-           list cannot contain base_rp. */
-        break;
-      }  /* if */
-    }  /* for */
+    a_routine_ptr     base_rp = qodp->base_member->variant.routine.ptr;
+    a_routine_ptr     orp = base_rp;
+    a_base_class_ptr  obcp = qodp->base_class;
+    find_final_overrider(&obcp, &orp);
+    if (orp != base_rp) {
+      /* The "quasi-overridden" function is really overridden.  No
+         diagnostic needed. */
+      goto next_quasi_override;
+    }  /* if */
     if (class_type_supp(cdsp->class_type)->assembly_index == 0) {
       /* Issue the diagnostic corresponding to the cause of this entry.
          (Currently, no diagnostic is issued for classes loaded by metadata
@@ -20502,10 +20628,10 @@ bits of information that were acquired while parsing.
     if (class_type->variant.class_struct_union.any_virtual_base_classes) {
       report_virtual_function_ambiguities(class_type);
     }  /* if */
-    /* If the current class is not already marked as "abstract", run
-       through its base classes to determine whether it is abstract by
-       inheritance and set the flag accordingly. */
-    check_abstract_class(class_type);
+    /* If necessary, run through the base classes to determine (a) if the
+       class is abstract as a consequence of inheriting a pure virtual member
+       function, and (b) in C++/CLI if all the interfaces are implemented. */
+    wrapup_overrides(class_state);
     /* Issue warnings/remarks if the class has an operator new but no
        operator delete, etc. */
     check_operator_new_and_delete(tag_sym);
