@@ -6699,7 +6699,7 @@ Predeclare namespace "cli".  This namespace is used in C++/CLI mode.
   clear_locator(&locator, &null_source_position);
   make_symbol_for_predeclared_namespace("cli", &symbol);
   enter_symbol_for_namespace(symbol, &locator);
-  cli_symbols[csk_cli_namespace] = symbol;
+  cli_symbols[(int)csk_cli_namespace] = symbol;
 }  /* make_symbol_for_namespace_cli */
 
 
@@ -6714,7 +6714,7 @@ Predeclare namespace "System".  This namespace is used in C++/CLI mode.
   clear_locator(&locator, &null_source_position);
   make_symbol_for_predeclared_namespace("System", &symbol);
   enter_symbol_for_namespace(symbol, &locator);
-  cli_symbols[csk_system_namespace] = symbol;
+  cli_symbols[(int)csk_system_namespace] = symbol;
 }  /* make_symbol_for_namespace_system */
 
 
@@ -6750,7 +6750,7 @@ cli::array or cli::interior_ptr.
   a_symbol_ptr                     result_sym;
 
   scan_top_level_metadata_declarations(definition_string);
-  ns_ptr = cli_symbols[csk_cli_namespace]->variant.namespace_info.ptr;
+  ns_ptr = cli_symbols[(int)csk_cli_namespace]->variant.namespace_info.ptr;
   result_sym = look_up_name_string_in_namespace(symbol_name, ns_ptr);
   check_assertion(result_sym->kind == (a_symbol_kind)sk_class_template);
   tssp = result_sym->variant.template_info;
@@ -6769,7 +6769,7 @@ from ECMA-372, subsection 8.2.3.)
     defining it to ensure cli_symbols[csk_cli_array] is set before the
     prototype instantiation of cli::array is done.  Then complete the
     definition. */
-  cli_symbols[csk_cli_array] = make_cli_internal_template("array",
+  cli_symbols[(int)csk_cli_array] = make_cli_internal_template("array",
      "namespace cli {"
      "  template <typename T, int rank = 1>"
      "  ref class array;"
@@ -6789,7 +6789,8 @@ void make_symbol_for_cli_interior_ptr(void)
 Declare and define the C++/CLI type "cli::interior_ptr".
 */
 {
-  cli_symbols[csk_interior_ptr] = make_cli_internal_template("interior_ptr",
+  cli_symbols[(int)csk_interior_ptr] =
+    make_cli_internal_template("interior_ptr",
       "namespace cli {"
       "  template <typename Type>"
       "  __internal_alias_decl interior_ptr ="
@@ -6804,7 +6805,7 @@ void make_symbol_for_cli_pin_ptr(void)
 Declare and define the C++/CLI type "cli::pin_ptr".
 */
 {
-  cli_symbols[csk_pin_ptr] = make_cli_internal_template("pin_ptr",
+  cli_symbols[(int)csk_pin_ptr] = make_cli_internal_template("pin_ptr",
       "namespace cli {"
       "  template <typename Type>"
       "  __internal_alias_decl pin_ptr ="
@@ -6983,9 +6984,9 @@ global pointers.  This function assumes that mscorlib.dll has been imported.
   }  /* for */
   /* Initialize csk_system_byte_sign_unspecified based on the signedness
      of plain char. */
-  cli_symbols[csk_system_byte_sign_unspecified] =
-               il_header.plain_chars_are_signed ? cli_symbols[csk_system_sbyte]
-                                                : cli_symbols[csk_system_byte];
+  cli_symbols[(int)csk_system_byte_sign_unspecified] =
+          il_header.plain_chars_are_signed ? cli_symbols[(int)csk_system_sbyte]
+                                           : cli_symbols[(int)csk_system_byte];
 }  /* init_symbols_for_cli_system_types */
 
 

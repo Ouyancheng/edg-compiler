@@ -3974,8 +3974,6 @@ enum a_cli_symbol_kind_tag {
   csk_system_string,
   csk_system_delegate,
   csk_system_multicast_delegate,
-  csk_system_collections_namespace,
-  csk_collections_ienumerable,
   csk_system_idisposable,
   csk_system_gc,
   csk_cli_namespace,
@@ -4042,10 +4040,6 @@ EXTERN a_cli_symbol_name
   { "Delegate", csk_system_namespace }, /* csk_system_delegate */
   { "MulticastDelegate", csk_system_namespace },
                                         /* csk_system_multicast_delegate */
-  { "Collections", csk_system_namespace },
-                                        /* csk_system_collections_namespace */
-  { "IEnumerable", csk_system_collections_namespace },
-                                        /* csk_collections_ienumerable */
   { "IDisposable", csk_system_namespace },
                                         /* csk_system_idisposable */
   { "GC", csk_system_namespace },       /* csk_system_gc */
@@ -4073,7 +4067,7 @@ arrays.
 Macros to return a cli_symbols entry given one of
 a_cli_symbol_kind_tag/an_integer_kind/a_float_kind respectively.
 */
-#define cli_symbol_from_kind(csk) (cli_symbols[(a_cli_symbol_kind)(csk)])
+#define cli_symbol_from_kind(csk) (cli_symbols[(int)(csk)])
 #define cli_symbol_from_integer_kind(ik)                              \
   (cli_symbol_from_kind(integer_kind_to_cli_symbol_kind((ik))))
 #define cli_symbol_from_float_kind(fk)                                \
@@ -4091,8 +4085,6 @@ Macros to retrieve special C++/CLI types.
   (cli_class_type_for((a_cli_symbol_kind)csk_system_object))
 #define cli_system_value_type()                                              \
   (cli_class_type_for((a_cli_symbol_kind)csk_system_value_type))
-#define cli_collections_ienumerable_type()                                   \
-  (cli_class_type_for((a_cli_symbol_kind)csk_collections_ienumerable))
 
 /*
 Return the arity of a symbol that points to an sk_class_template symbol

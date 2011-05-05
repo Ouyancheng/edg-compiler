@@ -177,11 +177,16 @@ extern an_expr_node_ptr scan_integer_expression(a_boolean is_switch_expr);
 
 extern an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop,
                                              a_boolean marked_as_gnu_extension,
-                                             a_boolean is_statement_expr,
-                                             a_boolean is_for_each_expr);
+                                             a_boolean is_statement_expr);
 
 extern an_expr_node_ptr scan_typed_expression(a_type_ptr    required_type,
 					      an_error_code err_code);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern an_expr_node_ptr scan_for_each_expression(
+                                             a_variable_ptr      iterator,
+                                             a_for_each_loop_ptr extra_info);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void scan_default_arg_expr(a_param_type_ptr ptp);
 
@@ -436,21 +441,6 @@ extern a_boolean current_mode_allows_field_selection_folding(void);
 extern a_boolean compute_is_convertible(a_type_ptr  src_type,
                                         a_type_ptr  dst_type,
                                         a_boolean   src_is_rvalue);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-extern a_boolean for_each_iteration_variable_conversion_possible(
-                                     a_type_ptr        collection_element_type,
-                                     a_variable_ptr    iteration_variable,
-                                     a_source_position *pos);
-
-extern a_boolean check_for_each_user_defined_operator(
-                                       an_opname_kind            kind,
-                                       a_type_ptr                class_type,
-                                       a_type_ptr                param_type,
-                                       a_source_position         *position,
-                                       a_token_sequence_number   seq_number,
-                                       a_nondependent_call_depth call_depth,
-                                       a_type_ptr                *return_type);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Macro that is TRUE if the node is an operation node.

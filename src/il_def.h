@@ -13838,26 +13838,122 @@ typedef struct a_for_loop {
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*
+Kind of pattern for a collection type in a for-each statement. 
+*/
+enum a_for_each_pattern_kind_tag {
+  sfepk_none,
+  sfepk_stl_pattern,    /* The collection type conforms to the STL pattern. */
+  sfepk_cli_pattern,    /* The collection type conforms to the C++/CLI 
+                           pattern. */
+  sfepk_array_pattern   /* The collection type is an array. */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_for_each_pattern_kind;
+
+
+/*
 Information about a "for each" statement, pointed to from a stmk_for_each
-statement.
+statement.  The type of the collection used in the for-each statement conforms
+to one of three patterns: the C++/CLI collection pattern, the STL pattern, or
+the array pattern.  Depending on the kind of pattern there are several
+possible rewritings of the for-each statement:
+
+  for each (T t in c) <statement>
+
+  // Case A, C++/CLI collection pattern, GetEnumerator returns a handle
+  { E^ e;
+    try {
+      e = c.GetEnumerator();
+      while (e->MoveNext()) {
+        T t = safe_cast<T>(e->Current);
+        <statement>
+      }
+    } finally {
+      delete e;
+    }
+  }
+
+  // Case B, C++/CLI collection pattern, GetEnumerator does not return a handle
+  { E e = c.GetEnumerator();
+    while (e.MoveNext()) {
+      T t = safe_cast<T>(e.Current);
+      <statement>
+    }
+  }
+
+  // Case C, STL pattern
+  for (I i = c.begin(); i != c.end(); ++i) {
+    T t = *i;
+    <statement>
+  }
+
+  // Case D, array pattern
+  for (I i = &c[0]; i != &c[c_size]; ++i) {
+    T t = *i;
+    <statement>
+  }
 */
 typedef struct a_for_each_loop *a_for_each_loop_ptr;
 typedef struct a_for_each_loop {
   a_variable_ptr
-                iterator;
-                        /* Pointer to the iteration variable. */
-  a_bit_field   uses_for_each_cli_collection_pattern:1;
-                        /* TRUE if the standard C++/CLI collection
-                           pattern was used instead of the STL one. */
-  a_bit_field   implements_for_each_system_collection:1;
-                        /* TRUE if the collection type derives from the
-                           System::Collections::IEnumerable interface. */
-  a_bit_field   uses_for_each_stl_collection_pattern:1;
-                        /* TRUE if the collection pattern used matches
-                           that of the standard template library instead of the
-                           C++/CLI one. */
-  a_bit_field   uses_for_each_array_pattern:1;
-                        /* TRUE if the "array" pattern is used. */
+		iterator;
+			/* Pointer to the iteration variable. */
+  a_scope_ptr	for_each_scope;
+			/* Pointer to the sck_condition scope created for names
+			   declared in the for-each statement. */
+  an_expr_node_ptr
+		iteration_variable_expr;
+			/* Pointer to the iteration variable expression
+			   generated for:
+			   "safe_cast<T>(e->Current)" when kind is
+			   fepk_cli_pattern and e is a handle type.
+			   "safe_cast<T>(e.Current)" when kind is
+			   fepk_cli_pattern and e is not a handle type.
+			   "*i" with the conversion to type T when kind is
+			   sfepk_stl_pattern or sfepk_array_pattern.
+			   NULL if there was an error.  If the top of the
+			   expression is an enk_temp_init that should be
+			   taken to be initializing the iteration variable
+			   directly instead of a temporary.  If the variable
+			   is a reference, it is bound to this expression. */
+  a_variable_ptr
+		temporary_variable;
+			/* Pointer to the variable representing the temporary
+			   variable "e" when kind is fepk_cli_pattern or "i"
+			   when kind is sfepk_stl_pattern or
+			   sfepk_array_pattern.  NULL if there was an error. */
+  a_for_each_pattern_kind
+		kind;   /* Kind of pattern to which the collection type
+			   conforms. */
+  union {
+    /* When kind is sfepk_stl_pattern: */
+    struct {
+      a_routine_ptr
+		begin_routine;
+			/* Pointer to the routine for the "begin" member
+			   function of the collection type. */
+      a_routine_ptr
+		end_routine;
+			/* Pointer to the routine for the "end" member
+			   function of the collection type. */
+    } stl_pattern;
+    /* When kind is sfepk_cli_pattern: */
+    struct {
+      a_routine_ptr
+		getenumerator_routine;
+			/* Pointer to the routine for the "GetEnumerator"
+			   member function of the collection type. */
+      a_routine_ptr
+		movenext_routine;
+			/* Pointer to the routine for the "MoveNext" member
+			   function of the enumerator type. */
+      a_routine_ptr
+		current_get_routine;
+			/* Pointer to the routine for the "get" accessor 
+			   function of the "Current" property of the enumerator
+			   type. */
+    } cli_pattern;
+  } variant;
 } a_for_each_loop;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

@@ -3266,10 +3266,10 @@ fields to default values.
       sp->variant.for_each_loop.extra_info = felp =
                       (a_for_each_loop_ptr)alloc_cil(sizeof(a_for_each_loop));
       felp->iterator = NULL;
-      felp->uses_for_each_cli_collection_pattern = FALSE;
-      felp->implements_for_each_system_collection = FALSE;
-      felp->uses_for_each_stl_collection_pattern = FALSE;
-      felp->uses_for_each_array_pattern = FALSE;
+      felp->for_each_scope = NULL;
+      felp->iteration_variable_expr = NULL;
+      felp->temporary_variable = NULL;
+      felp->kind = (a_for_each_pattern_kind)sfepk_none;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case stmk_switch_case:

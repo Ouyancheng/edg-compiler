@@ -4082,6 +4082,64 @@ Display the indicated block.
   }  /* if */
 }  /* disp_block */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void disp_for_each_statement(a_statement_ptr ptr)
+/*
+Display a for-each statement.
+*/
+{
+  a_for_each_loop_ptr extra_info = ptr->variant.for_each_loop.extra_info;
+
+  (void)printf("stmk_for_each\n");
+  disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
+  disp_ptr("statement",
+           (char *)ptr->variant.for_each_loop.statement,
+           iek_statement);
+  disp_ptr("iterator", (char *)extra_info->iterator, iek_variable);
+  disp_ptr("for_each_scope", (char *)extra_info->for_each_scope,
+           iek_scope);
+  disp_ptr("iteration_variable_expr", 
+           (char *)extra_info->iteration_variable_expr,
+           iek_expr_node);
+  disp_ptr("temporary_variable", (char *)extra_info->temporary_variable,
+           iek_variable);
+  disp_name("for-each pattern kind");
+  switch (extra_info->kind) {
+    case sfepk_none:
+      (void)printf("sfepk_none\n");
+      break;
+    case sfepk_stl_pattern:
+      (void)printf("sfepk_stl_pattern\n");
+      disp_ptr("begin routine",
+               (char *)extra_info->variant.stl_pattern.begin_routine,
+               iek_routine);
+      disp_ptr("end routine",
+               (char *)extra_info->variant.stl_pattern.end_routine,
+               iek_routine);
+      break;
+    case sfepk_cli_pattern:
+      (void)printf("sfepk_cli_pattern\n");
+      disp_ptr("GetEnumerator routine",
+               (char *)extra_info->variant.cli_pattern.getenumerator_routine,
+               iek_routine);
+      disp_ptr("MoveNext routine",
+               (char *)extra_info->variant.cli_pattern.movenext_routine,
+               iek_routine);
+      disp_ptr("Current get routine",
+               (char *)extra_info->variant.cli_pattern.current_get_routine,
+               iek_routine);
+      break;
+    case sfepk_array_pattern:
+      (void)printf("sfepk_array_pattern\n");
+      break;
+    default:
+      (void)printf("**BAD FOR EACH KIND**\n");
+      break;
+  }  /* switch */
+}  /* disp_for_each_statement */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void disp_statement(a_statement_ptr ptr)
 /*
@@ -4216,29 +4274,7 @@ do_label:
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case stmk_for_each:
-      (void)printf("stmk_for_each\n");
-      disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
-      if (ptr->variant.for_each_loop.extra_info->
-                                        uses_for_each_cli_collection_pattern) {
-        disp_boolean("uses_for_each_cli_collection_pattern", TRUE);
-      }  /* if */
-      if (ptr->variant.for_each_loop.extra_info->
-                                       implements_for_each_system_collection) {
-        disp_boolean("implements_for_each_system_collection", TRUE);
-      }  /* if */
-      if (ptr->variant.for_each_loop.extra_info->
-                                        uses_for_each_stl_collection_pattern) {
-        disp_boolean("uses_for_each_stl_collection_pattern", TRUE);
-      }  /* if */
-      if (ptr->variant.for_each_loop.extra_info->uses_for_each_array_pattern) {
-        disp_boolean("uses_for_each_array_pattern", TRUE);
-      }  /* if */
-      disp_ptr("statement",
-               (char *)ptr->variant.for_each_loop.statement,
-               iek_statement);
-      disp_ptr("iterator",
-               (char *)ptr->variant.for_each_loop.extra_info->iterator,
-               iek_variable);
+      disp_for_each_statement(ptr);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case stmk_switch_case:

@@ -11713,28 +11713,19 @@ Return a pointer to the variable that is declared.
     decl_pos_block.var_init_range.start = pos_curr_token;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (for_each_statement != NULL) {
-      an_expr_node_ptr expr;
+      a_for_each_loop_ptr extra_info_ptr;
       (void)check_context_sensitive_keyword(tok_in, "in");
       (void)required_token(tok_in, ec_exp_in);
-      for_each_statement->variant.for_each_loop.extra_info->iterator = vp;
-      expr = scan_void_expression(/*repeated_in_loop=*/FALSE,
-                                  /*marked_as_gnu_extension=*/FALSE,
-                                  /*is_statement_expr=*/FALSE,
-                                  /*is_for_each_expr=*/TRUE);
-      if (expr->kind == (an_expr_node_kind)enk_variable) {
-        /* If the expression for the collection is a variable, mark it as
-           used.  This prevents the emission of a warning for an unused
-           variable on arrays.  For example:
-
-             int a[5] = {1, 2, 3, 4, 5};
-             for each(int i in a) {}
-                               ^ "a" is not marked as used during expression
-                                 scanning.
-        */
-        a_symbol_ptr var_sym = symbol_for(expr->variant.variable);
-        if (var_sym != NULL) var_sym->variant.variable.used = TRUE;
+      if (vp->declared_with_auto_type_specifier) {
+        /* The variable has to be marked as initialized to avoid
+           a diagnostic for referencing the variable within its own
+           initializer while performing the type deduction. */
+        vp->init_kind = (an_init_kind)initk_zero;
       }  /* if */
-      for_each_statement->expr = expr;
+      extra_info_ptr = for_each_statement->variant.for_each_loop.extra_info;
+      for_each_statement->variant.for_each_loop.extra_info->iterator = vp;
+      /* Scan and generate IL for the collection expression. */
+      for_each_statement->expr = scan_for_each_expression(vp, extra_info_ptr);
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
