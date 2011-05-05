@@ -4640,9 +4640,11 @@ return_types_are_override_compatible.
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled && is_immediate_managed_class_type(class_type) &&
+        !cli_class_type_kind_is(bcp->type, cctk_interface) &&
         is_more_accessible(rp->source_corresp.access, class_state->access)) {
       /* For managed types, the accessibility of a member function cannot be
-         reduced through overriding. */
+         reduced through overriding (except if the overridden member is from
+         an interface). */
       pos_sy_error(ec_overriding_reduces_accessibility_in_managed_type,
                    source_pos, overridden_sym);
     }  /* if */
