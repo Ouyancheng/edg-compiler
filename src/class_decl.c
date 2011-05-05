@@ -664,6 +664,10 @@ typedef struct a_quasi_override_descr {
   a_bit_field	missing_virtual_specifier:1;
 			/* TRUE if this entry is due to a missing explicit
 			   "virtual" specifier. */
+  a_bit_field	reduced_access:1;
+			/* TRUE if this entry is due to an attempt to override 
+			   a member with a member that has reduced
+			   accessibility. */
 } a_quasi_override_descr;
 
 /* Available list of "quasi-override" descriptions. */
@@ -693,11 +697,14 @@ as part of the symbol table memory used.
 
 
 static a_quasi_override_descr_ptr append_quasi_override_descr(
-                                          a_quasi_override_descr_ptr  *p_list)
+                                      a_quasi_override_descr_ptr  *p_list,
+                                      a_base_class_ptr            base_class,
+                                      a_symbol_ptr                base_member,
+                                      a_source_position           *diag_pos)
 /*
 Append a new "quasi-override" description entry to the list of entries pointed
-to by *p_list (which is NULL if the list is empty).  Initialize and return the
-new entry.
+to by *p_list (which is NULL if the list is empty).  Initialize the new entry
+(using base_class, base_member, and diag_pos) and return that entry.
 */
 {
   a_quasi_override_descr_ptr  qodp, *p_end = p_list;
@@ -715,11 +722,12 @@ new entry.
   }  /* if */
   /* Initialize its fields. */
   qodp->next = NULL;
-  qodp->base_class = NULL;
-  qodp->base_member = NULL;
-  qodp->diag_pos = null_source_position;
+  qodp->base_class = base_class;
+  qodp->base_member = base_member;
+  qodp->diag_pos = *diag_pos;
   qodp->return_type_mismatch = FALSE;
   qodp->missing_virtual_specifier = FALSE;
+  qodp->reduced_access = FALSE;
   /* Append it to the end of the list. */
   while (*p_end != NULL) p_end = &(*p_end)->next;
   *p_end = qodp;
@@ -3896,10 +3904,8 @@ the overridden symbol.
        other way (via a named override).  Record a "quasi-override" entry to
        revisit this case when the class is completed. */
     a_quasi_override_descr_ptr  qodp;
-    qodp = append_quasi_override_descr(&class_state->quasi_overrides);
-    qodp->base_class = base_class;
-    qodp->base_member = overridden_sym;
-    qodp->diag_pos = *diag_pos;
+    qodp = append_quasi_override_descr(&class_state->quasi_overrides,
+                                       base_class, overridden_sym, diag_pos);
     qodp->return_type_mismatch = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
@@ -4638,17 +4644,6 @@ return_types_are_override_compatible.
          can use the same virtual function number. */
       rout->virtual_function_number = rp->virtual_function_number;
     }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && is_immediate_managed_class_type(class_type) &&
-        !cli_class_type_kind_is(bcp->type, cctk_interface) &&
-        is_more_accessible(rp->source_corresp.access, class_state->access)) {
-      /* For managed types, the accessibility of a member function cannot be
-         reduced through overriding (except if the overridden member is from
-         an interface). */
-      pos_sy_error(ec_overriding_reduces_accessibility_in_managed_type,
-                   source_pos, overridden_sym);
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* check_virtual_function_override */
 
@@ -4937,14 +4932,31 @@ next_named_override:
                 if (cli_class_type_kind_is(bcp->type, cctk_interface)) {
                   a_quasi_override_descr_ptr  qodp;
                   qodp = append_quasi_override_descr(
-                                               &class_state->quasi_overrides);
-                  qodp->base_class = bcp;
-                  qodp->base_member = sym;
-                  qodp->diag_pos = *source_pos;
+                                               &class_state->quasi_overrides,
+                                               bcp, sym, source_pos);
                   qodp->missing_virtual_specifier = TRUE;
                   goto next_base_class;
                 } else {
                   pos_sy_error(ec_new_or_virtual_required, source_pos, sym); 
+                }  /* if */
+              } else if (is_immediate_managed_class_type(class_type) &&
+                         named_override == NULL &&
+                         is_more_accessible(rp->source_corresp.access,
+                                            class_state->access)) {
+                /* For managed types, the accessibility of a member function
+                   cannot be reduced when overriding, except through named
+                   overriding. */
+                if (cli_class_type_kind_is(bcp->type, cctk_interface)) {
+                  a_quasi_override_descr_ptr  qodp;
+                  qodp = append_quasi_override_descr(
+                                               &class_state->quasi_overrides,
+                                               bcp, sym, source_pos);
+                  qodp->reduced_access = TRUE;
+                  goto next_base_class;
+                } else {
+                  pos_sy_error(
+                          ec_overriding_reduces_accessibility_in_managed_type,
+                          source_pos, sym);
                 }  /* if */
               } else if ((func_info->override || func_info->new_member) &&
                          cli_class_type_kind_is(bcp->type, cctk_interface)) {
@@ -20327,6 +20339,9 @@ that are not irrelevant due to actual overrides.
       } else if (qodp->missing_virtual_specifier) {
         pos_sy_warning(ec_virtual_required, &qodp->diag_pos,
                        qodp->base_member); 
+      } else if (qodp->reduced_access) {
+        pos_sy_warning(ec_overriding_reduces_accessibility_in_managed_type,
+                       &qodp->diag_pos, qodp->base_member); 
       } else {
         unexpected_condition();
       }  /* if */
