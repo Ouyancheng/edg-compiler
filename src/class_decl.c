@@ -3210,6 +3210,7 @@ TRUE and update the IL to record the associated "override".
     sym = find_symbol_list_in_table(&symbol_supplement_for_class(bcp->type)
                                                              ->pointers_block,
                                     sym_header);
+    /*lint --e{445,850} sym modified in loop */
     for (; sym != NULL; sym = sym_next) {
       sym_next = sym->next_in_lookup_table;
       if (sym->decl_scope == class_type_supp(bcp->type)->assoc_scope->number) {
@@ -3266,7 +3267,6 @@ TRUE and update the IL to record the associated "override".
               an_overriding_virtual_function_ptr  new_ovfp;
               /* Replace the (bcp, rp) pair by the final overrider, if any. */
               find_final_overrider(&bcp, &rp);
-              check_assertion(bcp != NULL);
               /* Allocate and insert an overriding-virtual-function entry. */
               new_ovfp = alloc_overriding_virtual_function();
               new_ovfp->primary_function = irp;
