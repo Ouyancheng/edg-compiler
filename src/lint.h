@@ -699,7 +699,6 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_for_each_incompatible_type)*/
 /*lint -esym(769,ec_for_each_incompatible_iterator)*/
 /*lint -esym(769,ec_for_each_missing_field)*/
-/*lint -esym(769,ec_for_each_inaccessible_field)*/
 /*lint -esym(769,ec_for_each_getenumerator_return_type_invalid)*/
 /*lint -esym(769,ec_exp_in)*/
 /*lint -esym(757,insert_temporary_initialization)*/

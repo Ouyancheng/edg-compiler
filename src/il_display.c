@@ -4084,7 +4084,7 @@ Display the indicated block.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-void disp_for_each_statement(a_statement_ptr ptr)
+static void disp_for_each_statement(a_statement_ptr ptr)
 /*
 Display a for-each statement.
 */

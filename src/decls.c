@@ -11716,16 +11716,13 @@ Return a pointer to the variable that is declared.
       a_for_each_loop_ptr extra_info_ptr;
       (void)check_context_sensitive_keyword(tok_in, "in");
       (void)required_token(tok_in, ec_exp_in);
-      if (vp->declared_with_auto_type_specifier) {
-        /* The variable has to be marked as initialized to avoid
-           a diagnostic for referencing the variable within its own
-           initializer while performing the type deduction. */
-        vp->init_kind = (an_init_kind)initk_zero;
-      }  /* if */
       extra_info_ptr = for_each_statement->variant.for_each_loop.extra_info;
       for_each_statement->variant.for_each_loop.extra_info->iterator = vp;
       /* Scan and generate IL for the collection expression. */
       for_each_statement->expr = scan_for_each_expression(vp, extra_info_ptr);
+      /* The iteration variable is set by the expansion of the for-each,
+         even though there's no initializer recorded on the variable. */
+      mark_variable_value_set(sym);
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */

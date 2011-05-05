@@ -23071,6 +23071,18 @@ where the use of "x" within its own declaration is invalid.
   a_boolean auto_decl_underway =
                               (var_ptr->declared_with_auto_type_specifier &&
                                var_ptr->init_kind == (an_init_kind)initk_none);
+  if (auto_decl_underway) {
+    a_symbol_ptr sym = symbol_for(var_ptr);
+    if (sym != NULL && sym->kind == (a_symbol_kind)sk_variable &&
+        sym->variant.variable.value_has_been_set) {
+      /* In C++/CLI, the iterator variable in a for-each statement does not
+         get an initializer even after its deduction is finished.
+         Conclude from the fact that the variable is set that we're no
+         longer in the initializer expression.  This test may also be
+         useful in other modes. */
+      auto_decl_underway = FALSE;
+    }  /* if */
+  }  /* if */
   return auto_decl_underway;
 }  /* variable_auto_decl_underway */
 
@@ -27498,14 +27510,9 @@ successful.
        mode a static_cast to the same type leaves the operand an lvalue). */
     do_operand_transformations(&operand, TOPT_NO_OPTIONS);
     extra_info->iteration_variable_expr = make_node_from_operand(&operand);
-    if (is_expression_operand(collection_expr) &&
-        is_variable_node(collection_expr->variant.expression)) {
-      /* Prevent the emission of a warning diagnostic for unused variable. */
-      record_symbol_reference(
-             SRK_USE, 
-             symbol_for(collection_expr->variant.expression->variant.variable),
-             &collection_expr->position, /*update_il_entry=*/FALSE);
-    }  /* if */
+    /* Mark the collection expression as used. */
+    change_some_ref_kinds(collection_expr->ref_entries_list,
+                          SRK_REFERENCE, SRK_USE);
   }  /* if */
 }  /* check_for_each_array_pattern */
 
