@@ -2222,6 +2222,7 @@ ec_override_name_is_destructor_or_finalizer;;"an override specifier cannot desig
 ec_named_override_requires_managed_type;;"a named override specifier is allowed only in a managed class type"
 ec_named_override_type_mismatch;;"no member designated by the named override specifier matches the type of this member"
 ec_static_constructor_with_named_override;;"a static constructor declaration cannot include a named override specifier"
+ec_unnamed_scoped_enum;;"a scoped enumeration type must have a name"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

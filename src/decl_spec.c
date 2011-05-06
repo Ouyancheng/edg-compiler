@@ -4639,7 +4639,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       /* Neither the tag id nor the enum definition is present.  This is an
          error. */
       add_stop_token(tok_lbrace);
-      syntax_error((dsi_flags & DSI_NO_TAG_DEFINITION) != 0 ?
+      syntax_error((dsi_flags & DSI_NO_TAG_DEFINITION) != 0 || is_scoped_enum ?
                                 ec_exp_identifier : ec_exp_definition_of_tag);
       remove_stop_token(tok_lbrace);
       /* This statement might have declared something, but since we're
@@ -4649,6 +4649,8 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       /* Use an error type for error recovery. */
       *type_ptr = error_type();
       goto return_point;
+    } else if (is_scoped_enum) {
+      pos_error(ec_unnamed_scoped_enum, &pos_curr_token);
     }  /* if */
   }  /* if */
   if (tag_sym == NULL) {
