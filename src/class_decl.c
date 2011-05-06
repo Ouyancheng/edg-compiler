@@ -18601,9 +18601,11 @@ and record the overridden base class members in decl_info->named_overrides.
                                               (a_template_param_ptr)NULL,
                                               /*templates_only=*/FALSE,
                                               (a_symbol_ptr*)NULL);
-        if (sym != NULL) {
+        if (sym == NULL) {
+          pos_error(ec_named_override_type_mismatch, &pos_curr_token);
+        } else {
           a_routine_ptr  rp;
-          check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
+          check_assertion(symbol_is(sym, sk_member_function));
           rp = sym->variant.routine.ptr;
           if (!rp->is_virtual) {
             pos_sy_error(ec_override_name_nonvirtual, &pos_curr_token, sym);

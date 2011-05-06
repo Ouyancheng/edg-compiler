@@ -756,6 +756,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_destructor_or_finalizer_with_named_override)*/
 /*lint -esym(769,ec_override_name_is_destructor_or_finalizer)*/
 /*lint -esym(769,ec_named_override_requires_managed_type)*/
+/*lint -esym(769,ec_named_override_type_mismatch)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_enum)*/
