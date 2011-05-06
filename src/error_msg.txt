@@ -2217,6 +2217,8 @@ ec_gcnew_of_native_array;;"gcnew cannot be used to allocate a native array"
 ec_cli_interface_cannot_have_assignment;;"a C++/CLI interface class cannot declare an assignment operator"
 ec_sealed_cli_interface;;"a C++/CLI interface class cannot be sealed"
 ec_virtual_required;;"\"virtual\" is required because this declaration matches %nd"
+ec_destructor_or_finalizer_with_named_override;;"a destructor or finalizer declaration cannot include a named override specifier"
+ec_override_name_is_destructor_or_finalizer;;"an override specifier cannot designate a destructor or finalizer"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

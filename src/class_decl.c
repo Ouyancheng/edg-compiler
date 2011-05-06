@@ -18548,6 +18548,7 @@ and record the overridden base class members in decl_info->named_overrides.
   if (curr_token == tok_assign) {
     a_token_cache            cache;
     a_symbol_list_entry_ptr  *p_list_entry;
+    a_boolean                err = FALSE, sym_err;
     clear_token_cache(&cache, /*reusable=*/FALSE);
     cache_curr_token(&cache);
     (void)get_token();
@@ -18556,14 +18557,19 @@ and record the overridden base class members in decl_info->named_overrides.
       goto done;
     }  /* if */
     discard_token_cache(&cache);
+    if (decl_info->is_destructor || decl_info->is_finalizer) {
+      pos_error(ec_destructor_or_finalizer_with_named_override,
+                &pos_curr_token);
+      err = TRUE;
+    }  /* if */
     p_list_entry = &decl_info->named_overrides;
     do {
       a_symbol_ptr  sym;
-      a_boolean     err;
       if (!is_generalized_identifier_start(GID_NO_OPTIONS)) goto done;
       add_stop_token(tok_comma);
       sym = coalesce_and_lookup_generalized_identifier(
-                                            GID_NO_OPTIONS, ilm_normal, &err);
+                                        GID_NO_OPTIONS, ilm_normal, &sym_err);
+      err |= sym_err;
       remove_stop_token(tok_comma);
       if (err) {
         expect_error();
@@ -18597,6 +18603,11 @@ and record the overridden base class members in decl_info->named_overrides.
           rp = sym->variant.routine.ptr;
           if (!rp->is_virtual) {
             pos_sy_error(ec_override_name_nonvirtual, &pos_curr_token, sym);
+            sym = NULL;
+          } else if (special_kind_is(rp, sfk_destructor) ||
+                     special_kind_is(rp, sfk_finalizer)) {
+            pos_error(ec_override_name_is_destructor_or_finalizer,
+                      &pos_curr_token);
             sym = NULL;
           }  /* if */
         }  /* if */

@@ -753,6 +753,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_cli_interface_cannot_have_assignment)*/
 /*lint -esym(769,ec_sealed_cli_interface)*/
 /*lint -esym(769,ec_virtual_required)*/
+/*lint -esym(769,ec_destructor_or_finalizer_with_named_override)*/
+/*lint -esym(769,ec_override_name_is_destructor_or_finalizer)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_enum)*/
