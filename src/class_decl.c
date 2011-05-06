@@ -3691,6 +3691,11 @@ appears on a linked list pointed to from base_class.
                declaration is an ordinary override: Ignore the overriding
                implied by the current declaration for the given base class. */
             goto done;
+          } else if (same_entities(overriding_func,
+                                   ovfp->overriding_function)) {
+            /* If the current override is equivalent to a previous one, nothing
+               needs to be done. */
+            goto done;
           }  /* if */
         }  /* if */
         if (!replace_override) {
