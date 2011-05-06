@@ -18534,14 +18534,15 @@ innermost function being defined.
 }  /* check_cli_accessor_decl */
 
 
-static void scan_named_overrides_if_any(a_member_decl_info_ptr  decl_info)
+static void scan_named_overrides_if_any(a_member_decl_info_ptr  decl_info,
+                                        a_class_def_state_ptr   cdsp)
 /*
-decl_info describes a member function declaration in a class definition.  The
-top-level function declarator has just been scanned.  It may be followed by
-"= X, Y, Z, ..." (with X, Y, Z, ... qualified or unqualified names), to name
-specific virtual base class members that are overridden by the newly declared
-member.  If so, scan and validate the "= X, Y, Z, ..." construct and record
-the overridden base class members in decl_info->named_overrides.
+decl_info describes a member function declaration in the definition of a class
+described by cdsp.  The top-level function declarator has just been scanned.
+It may be followed by "= X, Y, ..." (with X, Y, ... qualified or unqualified
+names), to name specific virtual base class members that are overridden by the
+newly declared member.  If so, scan and validate the "= X, Y, ..." construct
+and record the overridden base class members in decl_info->named_overrides.
 */
 {
   if (curr_token == tok_assign) {
@@ -18578,7 +18579,9 @@ the overridden base class members in decl_info->named_overrides.
       } else if (sym->ambiguous) {
         pos_sy_error(ec_ambiguous_name, &pos_curr_token, sym);
         sym = NULL;
-      } else if (!is_member_function_symbol(sym)) {
+      } else if (!is_member_function_symbol(sym) ||
+                 find_base_class_of(cdsp->class_type,
+                                    sym_parent_class(sym)) == NULL) {
         pos_error(ec_override_name_must_be_a_base_class_member_function,
                   &pos_curr_token);
         sym = NULL;
@@ -18824,7 +18827,7 @@ flag if error recovery should be performed as if the specifier didn't occur.
                  (dps->do_flags & DO_IS_FINALIZER) != 0) {
         decl_info->is_finalizer = TRUE;
       }  /* if */
-      scan_named_overrides_if_any(decl_info);
+      scan_named_overrides_if_any(decl_info, class_state);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
