@@ -18558,7 +18558,10 @@ and record the overridden base class members in decl_info->named_overrides.
       goto done;
     }  /* if */
     discard_token_cache(&cache);
-    if (decl_info->is_destructor || decl_info->is_finalizer) {
+    if (!is_immediate_managed_class_type(cdsp->class_type)) {
+      pos_error(ec_named_override_requires_managed_type, &pos_curr_token);
+      err = TRUE;
+    } else if (decl_info->is_destructor || decl_info->is_finalizer) {
       pos_error(ec_destructor_or_finalizer_with_named_override,
                 &pos_curr_token);
       err = TRUE;

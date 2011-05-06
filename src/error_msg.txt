@@ -2219,6 +2219,7 @@ ec_sealed_cli_interface;;"a C++/CLI interface class cannot be sealed"
 ec_virtual_required;;"\"virtual\" is required because this declaration matches %nd"
 ec_destructor_or_finalizer_with_named_override;;"a destructor or finalizer declaration cannot include a named override specifier"
 ec_override_name_is_destructor_or_finalizer;;"an override specifier cannot designate a destructor or finalizer"
+ec_named_override_requires_managed_type;;"a named override specifier is allowed only in a managed class type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
