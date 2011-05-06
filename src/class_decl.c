@@ -2903,6 +2903,7 @@ static void find_final_overrider(a_base_class_ptr  *p_bcp,
 *p_rp is a member function of the base class described by *p_bcp.  Replace
 *p_rp and *p_bcp by the final overrider for the given member function, if any.
 If the final overrider is in the most derived class, set *p_bcp to NULL.
+If the given member is not overridden, *p_bcp and *p_rp are left unchanged.
 */
 {
   an_overriding_virtual_function_ptr
@@ -4888,7 +4889,7 @@ next_named_override:
               /* The C++/CLI "new" modifier indicates that a member does not 
                  override a virtual base ref class member with the same
                  signature (ignoring the return type).  It does not, however,
-                 have an impact on matching interface members.) */
+                 have an impact on matching interface members. */
               new_okay = TRUE;
               /* Don't establish overriding of a base ref class member if the
                  member function was declared "new".  The exception happens
