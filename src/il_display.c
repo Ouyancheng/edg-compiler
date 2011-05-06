@@ -2413,6 +2413,9 @@ Display the indicated variable.
   if (ptr->is_initonly) {
     disp_boolean("is_initonly", TRUE);
   }  /* if */
+  if (ptr->is_for_each_iterator) {
+    disp_boolean("is_for_each_iterator", TRUE);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   disp_initializer(ptr->init_kind, &ptr->initializer);
   if (ptr->entities_defined_in_initializer != NULL) {

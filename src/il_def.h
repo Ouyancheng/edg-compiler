@@ -8501,6 +8501,9 @@ typedef struct a_variable {
 			   appeared on the declaration of this static data
 			   member (C++/CLI only).  (Always FALSE for entries
 			   that do not represent a static data member.) */
+  a_bit_field	is_for_each_iterator:1;
+			/* TRUE for the iterator variable of a for-each
+			   loop in Microsoft or C++/CLI modes. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any.

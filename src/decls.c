@@ -11716,6 +11716,7 @@ Return a pointer to the variable that is declared.
       a_for_each_loop_ptr extra_info_ptr;
       (void)check_context_sensitive_keyword(tok_in, "in");
       (void)required_token(tok_in, ec_exp_in);
+      vp->is_for_each_iterator = TRUE;
       extra_info_ptr = for_each_statement->variant.for_each_loop.extra_info;
       for_each_statement->variant.for_each_loop.extra_info->iterator = vp;
       /* Scan and generate IL for the collection expression. */
