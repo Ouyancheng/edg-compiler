@@ -4833,21 +4833,11 @@ next_named_override:
               if (cppcli_enabled &&
                   is_immediate_managed_class_type(class_type)) {
                 /* Check for C++/CLI-style named overriding. */
-                if (named_override != NULL) {
-                  if (!identical_types(
-                                     sym_parent_class(named_override->symbol),
+                if (named_override != NULL &&
+                    !identical_types(sym_parent_class(named_override->symbol),
                                      bcp->type)) {
-                    /* named_override does not correspond to the current
-                       base. */
-                    goto next_base_class;
-                  }  /* if */
-                } else if (decl_info->named_overrides != NULL) {
-                  /* A declaration with named overrides, but this pass is for
-                     classic overriding of ref base classes: Ignore interface
-                     base classes. */
-                  if (cli_class_type_kind_is(bcp->type, cctk_interface)) {
-                    goto next_base_class;
-                  }  /* if */
+                  /* named_override does not correspond to the current base. */
+                  goto next_base_class;
                 }  /* if */
               } else {
                 /* Check for non-CLI-style selective overriding. */
@@ -5018,11 +5008,12 @@ next_base_class:;
          now be recycled. */
       free_list_of_symbol_list_entries(decl_info->named_overrides);
       named_override = NULL;
-      if (!func_info->new_member) {
+      if (!func_info->new_member &&
+          !cli_class_type_kind_is(class_type, cctk_interface)) {
         /* If the declaration included named override specifiers but not the
-           "new" modifier, the normal overriding should also be considered.
-           (This is not clear in ECMA-372, but it corresponds to the behavior
-           of Microsoft's compiler.) */
+           "new" modifier, the normal overriding should also be considered in
+           non-interface types.  (This is not clear in ECMA-372, but it
+           corresponds to the behavior of Microsoft's compiler.) */
         sym_header_to_search = rout_sym->header;
         goto next_named_override;
       }  /* if */
