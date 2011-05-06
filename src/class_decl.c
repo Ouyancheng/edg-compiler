@@ -18565,6 +18565,9 @@ and record the overridden base class members in decl_info->named_overrides.
       pos_error(ec_destructor_or_finalizer_with_named_override,
                 &pos_curr_token);
       err = TRUE;
+    } else if (decl_info->is_static_constructor) {
+      pos_error(ec_static_constructor_with_named_override, &pos_curr_token);
+      err = TRUE;
     }  /* if */
     p_list_entry = &decl_info->named_overrides;
     do {
