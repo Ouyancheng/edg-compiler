@@ -5446,7 +5446,7 @@ a declaration.
   /* The Microsoft compiler allows the typename specifier to be repeated. */
   while (microsoft_bugs && curr_token == tok_typename) (void)get_token();
   (void)is_generalized_identifier_start(GID_IS_TYPENAME);
-  if ((microsoft_bugs) &&
+  if (microsoft_bugs &&
       (curr_token != tok_identifier ||
        !locator_for_curr_id.is_qualified_name ||
        locator_for_curr_id.is_file_scope_qualified_name)) {
@@ -5463,10 +5463,10 @@ a declaration.
     ilm = within_using_decl ? ilm_using_typename : ilm_typename;
     if (!coalesce_and_lookup_qualified_name(GID_NO_OPTIONS, ilm, &err) ||
         (!cppcli_enabled &&
-        (!locator_for_curr_id.is_qualified_name ||
-         (locator_for_curr_id.is_file_scope_qualified_name &&
-          (locator_for_curr_id.is_global_qualified_name &&
-           !ignore_std_namespace) && !gpp_mode) || err))) {
+         (!locator_for_curr_id.is_qualified_name ||
+          (locator_for_curr_id.is_file_scope_qualified_name &&
+           (locator_for_curr_id.is_global_qualified_name &&
+            !ignore_std_namespace) && !gpp_mode) || err))) {
       /* The identifier scanned is not a class-qualified name,
          namespace-qualified name (file-scope qualified names such as ::x are
          disallowed by the syntax), or is a qualified name that refers to a
