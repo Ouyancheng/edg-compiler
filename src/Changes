@@ -145,7 +145,7 @@ difference in this regard).
 
 
 4/25/11  [EDGcpfe/11611]
-GNU compatibility, C++-generating back end: spelling of "decltype"
+GNU compatibility, C++-generating back end: spelling of "declspec"
 
 In --g++ mode, the front end accepts declspec and __declspec as equivalent
 keywords.  The C++-generating back end always generated a declspec
