@@ -145,16 +145,16 @@ difference in this regard).
 
 
 4/25/11  [EDGcpfe/11611]
-GNU compatibility, C++-generating back end: spelling of "declspec"
+GNU compatibility, C++-generating back end: spelling of "decltype"
 
-In --g++ mode, the front end accepts declspec and __declspec as equivalent
-keywords.  The C++-generating back end always generated a declspec
-construct using the "declspec" spelling; however, current versions of g++
+In --g++ mode, the front end accepts decltype and __decltype as equivalent
+keywords.  The C++-generating back end always generated a decltype
+construct using the "decltype" spelling; however, current versions of g++
 only accept that spelling of the keyword with -std=c++0x.  Consequently,
-such constructs are now generated using the "__declspec" spelling when
+such constructs are now generated using the "__decltype" spelling when
 gcc_is_generated_code_target is TRUE.  For example:
 
-  __declspec(0) i;   // Previously generated as "declspec(0) i;"
+  __decltype(0) i;   // Previously generated as "decltype(0) i;"
 
 
 4/25/11  [EDGcpfe/11493]
