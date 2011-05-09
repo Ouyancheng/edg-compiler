@@ -2436,6 +2436,8 @@ to it.  The entry is allocated in the file scope memory region.
   rp->declared_only_as_friend     = FALSE;
   rp->explicit_extern_inline      = FALSE;
   rp->direct_linkage_specifier_on_nondef_decl = FALSE;
+  rp->is_reverse_conversion_function
+                                  = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
@@ -2495,8 +2497,6 @@ to it.  The entry is allocated in the file scope memory region.
   rp->abstract                    = FALSE;
   rp->override                    = FALSE;
   rp->new_member                  = FALSE;
-  rp->is_reverse_conversion_function
-                                  = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   rp->has_been_defined            = FALSE;

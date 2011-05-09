@@ -11689,6 +11689,10 @@ typedef struct a_routine {
 			   effect of the preceding flag.  (The presence,
 			   absence, and form of a linkage specification on
 			   the definition has no effect.) */
+  a_bit_field	is_reverse_conversion_function:1;
+			/* TRUE for a C++/CLI static conversion operator that
+			   converts from the argument to the enclosing class
+			   type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
@@ -11868,10 +11872,6 @@ typedef struct a_routine {
   a_bit_field	new_member:1;
 			/* TRUE for a member function that was declared with
 			   the function-modifier "new". */
-  a_bit_field	is_reverse_conversion_function:1;
-			/* TRUE for a C++/CLI static conversion operator that
-			   converts from the argument to the enclosing class
-			   type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_bit_field	has_been_defined:1;

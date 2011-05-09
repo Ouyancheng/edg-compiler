@@ -11165,8 +11165,8 @@ implicitly declared member functions.
       }  /* if */
     } else if (locator->is_conversion_name) {
       /* User-defined conversion function. */
-      a_param_type_ptr  ptp = rtsp->param_type_list;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+      a_param_type_ptr  ptp = rtsp->param_type_list;
       if (decl_state->storage_class == (a_storage_class)sc_static &&
           ptp != NULL &&
           !valid_static_conversion_class_type(ptp->type, class_type)) {

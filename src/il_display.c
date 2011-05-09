@@ -2954,6 +2954,9 @@ Display the indicated routine.
   if (ptr->direct_linkage_specifier_on_nondef_decl) {
     disp_boolean("direct_linkage_specifier_on_nondef_decl", TRUE);
   }  /* if */
+  if (ptr->is_reverse_conversion_function) {
+    disp_boolean("is_reverse_conversion_function", TRUE);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
@@ -3053,9 +3056,6 @@ Display the indicated routine.
   }  /* if */
   if (ptr->new_member) {
     disp_boolean("new_member", TRUE);
-  }  /* if */
-  if (ptr->is_reverse_conversion_function) {
-    disp_boolean("is_reverse_conversion_function", TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* BACK_END_IS_CP_GEN_BE */
