@@ -17496,6 +17496,10 @@ is start_position.
            check will be needed. */
         is_runtime_checked_cast = TRUE;
         bcp = find_base_class_of(dest_type, source_type);
+        /* The unrelated class case is allowed only for tracking references. */
+        if (bcp == NULL && !is_cast_to_tracking_ref) {
+          is_runtime_checked_cast = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -17524,16 +17528,12 @@ is start_position.
                               &expr, start_position,
                               (a_boolean *)NULL);
     } else {
-      /* A cast between unrelated classes.  Use an eok_cast for the handle
-         case, an eok_ref_cast for the tracking reference case. */
-      if (is_cast_to_tracking_ref) {
-        expr = make_lvalue_operator_node((an_expr_operator_kind)eok_ref_cast,
-                                         dest_type, expr);
-        mark_as_reference_cast(expr, type_cast_to);
-      } else {
-        expr = make_operator_node((an_expr_operator_kind)eok_cast,
-                                  type_cast_to, expr);
-      }  /* if */
+      /* A cast between unrelated classes, allowed only for the tracking
+         reference case.  Use an eok_ref_cast. */
+      check_assertion(is_cast_to_tracking_ref);
+      expr = make_lvalue_operator_node((an_expr_operator_kind)eok_ref_cast,
+                                       dest_type, expr);
+      mark_as_reference_cast(expr, type_cast_to);
       expr->is_safe_cast = TRUE;
       expr->variant.operation.requires_runtime_cast_check = TRUE;
     }  /* if */
