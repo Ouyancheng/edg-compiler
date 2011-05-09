@@ -5205,11 +5205,15 @@ dsi_flags is the set of input flags passed to decl_specifiers.
         if (!done && curr_token == tok_rbrace) {
            /* In K&R C, C99, and C++0x modes an extra comma is allowed at the
               end of the list.  In other C and C++ modes, we allow it as an
-              extension, with a strict ANSI diagnostic (the gcc compiler
-              source includes cases like this, and that source is part of the
-              SPEC benchmark suite). */
+              extension, with a remark or strict ANSI diagnostic, but the
+              diagnostic is omitted altogether for C++0x-like scoped enum
+              types and enum types with explicit underlying types.  The gcc
+              compiler source includes cases like this, and that source is
+              part of the SPEC benchmark suite. */
           done = TRUE;
-          if (C_dialect != C_dialect_pcc && !c99_mode && !cpp0x_mode) {
+          if (C_dialect != C_dialect_pcc && !c99_mode && !cpp0x_mode &&
+              !(is_scoped_enum ||
+                explicit_base_kind != (an_integer_kind)ik_none)) {
             an_error_severity  severity;
             severity = strict_ansi_mode ? strict_ansi_discretionary_severity :
                                           es_remark;

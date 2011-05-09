@@ -4911,7 +4911,8 @@ next_named_override:
             if (cppcli_enabled) {
               /* Check that required modifiers are specified. */
               if (!func_info->override && !func_info->new_member &&
-                  is_ref_class_type(bcp->type) && named_override == NULL) {
+                  cli_class_type_kind_is(bcp->type, cctk_ref) &&
+                  named_override == NULL) {
                 /* If a match is found in a base ref class, the overriding 
                    function should have been declared with "new" or "override" 
                    unless it is a named override. */
@@ -7236,7 +7237,8 @@ or struct definition.  The syntax is
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Issue a diagnostic if an explicit access specifier was not provided
            (as per the recommendation on p. 243 of the ARM). */
-        if (!explicit_access_specifier) {
+        if (!explicit_access_specifier &&
+            !is_immediate_managed_class_type(type_ptr)) {
           pos_st_remark(ec_missing_access_specifier, &error_position,
                         default_access_str);
         }  /* if */
