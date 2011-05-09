@@ -2561,9 +2561,12 @@ have_level:;
        arguments, based on their lvalueness. */
     if (param_is_rvalue_reference) {
       /* An rvalue reference can only be bound to an rvalue. */
-      if (arg_originally_an_lvalue &&
-          !binding_rvalue_ref_to_lvalue_allowed()) {
-        if (arg_originally_a_bindable_bit_field) {
+      if (arg_originally_an_lvalue) {
+        if (binding_rvalue_ref_to_lvalue_allowed()) {
+          /* This mode allows binding an rvalue reference to an lvalue.
+             For g++, this is less desirable than other matches. */
+          if (gpp_mode) arg_summary->anachronism_used = TRUE;
+        } else if (arg_originally_a_bindable_bit_field) {
           /* MSVC10 allows binding an rvalue reference to a bit field
              (presumably by converting the bit field to an rvalue). */
         } else {

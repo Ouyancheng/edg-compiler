@@ -203,13 +203,14 @@ typedef struct an_arg_match_summary {
 			   anachronism was used.  This is a tie-breaker on
 			   otherwise equal matches.  Note that this is not
 			   set for all anachronisms, just those that act
-			   as tie-breakers in cfront mode. */
+			   as tie-breakers. */
   a_byte_boolean
 		tiebreaker_anachronism_used;
 			/* TRUE if the match was possible only because of an
 			   anachronism, but the anachronism is such that
-			   it only counts as a tiebreaker in overload
-			   resolution (used in Cfront mode). */
+			   it only counts as a tie-breaker on the
+			   comparisons done in compare_argument_tiebreakers
+			   (which are themselves already tie-breakers). */
   a_byte_boolean
 		const_anachronism;
 			/* In cfront compatibility mode, TRUE to indicate
