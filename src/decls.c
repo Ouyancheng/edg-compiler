@@ -980,6 +980,20 @@ declared array new or delete operator.
   return result;
 }  /* is_implicit_array_new_or_delete_symbol */
 
+
+a_boolean valid_static_conversion_class_type(a_type_ptr  tp,
+                                             a_type_ptr  class_type)
+/*
+Return TRUE if tp is T, T&, T&&, T%, or T^ where T is class_type.
+*/
+{
+  if (is_handle_type_or_any_ref_type(tp)) {
+    tp = type_pointed_to(tp);
+  }  /* if */
+  tp = skip_typerefs(tp);
+  return types_are_compatible(tp, class_type);
+}  /* valid_static_conversion_class_type */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void check_operator_function_params(a_type_ptr        rout_type,
@@ -1020,6 +1034,7 @@ new fields are set properly.
     check_assertion(class_type != NULL);
     if (cppcli_enabled && rtsp->this_class == NULL) {
       /* A C++/CLI static conversion function. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
       if (rtsp->param_type_list == NULL ||
           rtsp->param_type_list->next != NULL ||
           rtsp->has_ellipsis) {
@@ -1027,19 +1042,18 @@ new fields are set properly.
                   &locator->source_position);
         err = TRUE;
       } else {
-        /* Ensure the argument type is T, T&, T&&, T%, or T^, with T the
-           type indicated by class_type. */
-        a_type_ptr  param_type = rtsp->param_type_list->type;
-        if (is_handle_type_or_any_ref_type(param_type)) {
-          param_type = type_pointed_to(param_type);
-        }  /* if */
-        param_type = skip_typerefs(param_type);
-        if (!types_are_compatible(param_type, class_type)) {
+        /* Ensure the argument type or conversion-id type is T, T&, T&&, T%,
+           or T^, with T the type indicated by class_type. */
+        if (!valid_static_conversion_class_type(rtsp->param_type_list->type,
+                                                class_type) &&
+            !valid_static_conversion_class_type(
+                       locator->variant.conversion_result_type, class_type)) {
           pos_ty_error(ec_bad_parameter_type_for_static_member_operator,
-                  &locator->source_position, class_type);
+                       &locator->source_position, class_type);
           err = TRUE;
         }  /* if */
       }  /* if */
+#endif /*MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (rtsp->param_type_list != NULL || rtsp->has_ellipsis) {
       /* Any parameter is too many for a (standard) conversion function. */
       pos_error(ec_too_many_args_for_conversion, &locator->source_position);

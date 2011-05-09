@@ -10487,7 +10487,7 @@ conversions.
     class_type = skip_typerefs(class_type);
     check_assertion(is_immediate_managed_class_type(class_type));
   }  /* if */
-#endif /*MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Note that return_type_of removes references, which is desired. */
   ret_type = f_skip_typerefs(return_type_of(rout_type));
   if (class_type == NULL) {
@@ -11165,11 +11165,28 @@ implicitly declared member functions.
       }  /* if */
     } else if (locator->is_conversion_name) {
       /* User-defined conversion function. */
-      if (!is_implicitly_callable_conversion_function(rtn->type)) {
+      a_param_type_ptr  ptp = rtsp->param_type_list;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (decl_state->storage_class == (a_storage_class)sc_static &&
+          ptp != NULL &&
+          !valid_static_conversion_class_type(ptp->type, class_type)) {
+        /* A static conversion function for a conversion to the enclosing
+           class type (instead of from the enclosing class type). */
+        check_assertion(cppcli_enabled);
+        rtn->is_reverse_conversion_function = TRUE;
+      }  /* if */
+#endif /*MICROSOFT_EXTENSIONS_ALLOWED */
+      if (
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          /* "Reverse" conversion functions aren't checked in this way by the
+             Microsoft compiler. */
+          !rtn->is_reverse_conversion_function &&
+#endif /*MICROSOFT_EXTENSIONS_ALLOWED */
+          !is_implicitly_callable_conversion_function(rtn->type)) {
         /* Conversion to void or to the same type or a reference to the same
            type or to a base class or a reference to a base class "is never
-           used" (WP 12.3.2; that is, it is not used in implicit or explicit
-           conversions but only in an explicit invocations of the function). */
+           used" (that is, it is not used in implicit or explicit conversions
+           but only in an explicit invocations of the function). */
         pos_sy_warning(ec_conversion_function_not_usable,
                        &locator->source_position, sym);
       } else {

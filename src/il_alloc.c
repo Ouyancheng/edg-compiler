@@ -2495,6 +2495,8 @@ to it.  The entry is allocated in the file scope memory region.
   rp->abstract                    = FALSE;
   rp->override                    = FALSE;
   rp->new_member                  = FALSE;
+  rp->is_reverse_conversion_function
+                                  = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   rp->has_been_defined            = FALSE;
