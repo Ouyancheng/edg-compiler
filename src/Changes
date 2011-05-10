@@ -245,7 +245,7 @@ an error, and comparison operators (equality and relational) involving a scoped
 enumeration value are accepted only if both operands have the same type.
 
 
-4/19/11  [EDGcpfe/8624,EDGcpfe/11498,EDGcpfe/11517]
+4/19/11  [EDGcpfe/11367,EDGcpfe/8624,EDGcpfe/11498,EDGcpfe/11517]
 explicit conversion functions
 
 Conversion functions marked "explicit", as defined by the C++0x standard
