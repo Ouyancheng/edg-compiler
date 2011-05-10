@@ -19318,7 +19318,7 @@ passed via template_decl.
             tssp = rout_sym->variant.template_info;
             tssp->variant.function.routine->is_explicit_constructor = TRUE;
           } else if (locator.is_conversion_name &&
-                     (cpp0x_mode || 
+                     (cpp0x_mode || (gpp_mode && gnu_version >= 40500) ||
                       (cppcli_enabled &&
                        check_cppcli_explicit_conversion(class_type, decl_state,
                                                         dso_flags)))) {
@@ -19397,7 +19397,7 @@ passed via template_decl.
           if (decl_info.is_constructor) {
             rout_sym->variant.routine.ptr->is_explicit_constructor = TRUE;
           } else if (locator.is_conversion_name &&
-                     (cpp0x_mode || 
+                     (cpp0x_mode || (gpp_mode && gnu_version >= 40500) ||
                       (cppcli_enabled &&
                        check_cppcli_explicit_conversion(class_type, decl_state,
                                                         dso_flags)))) {
@@ -19674,15 +19674,17 @@ passed via template_decl.
 next_declaration:;
   if (dso_flags & DSO_EXPLICIT) {
     /* The keyword "explicit" is allowed only on a constructor declaration and
-       on a C++/CLI conversion function declaration.  Microsoft compilers also
-       allow it on free-standing class/enum declarations.  This check must
-       occur after any declarator processing because we cannot know for sure
-       whether the declaration was a constructor until then. */
+       on a conversion function declaration (the latter only in some modes).
+       Microsoft compilers also allow it on free-standing class/enum
+       declarations.  This check must occur after any declarator processing
+       because we cannot know for sure whether the declaration was a
+       constructor until then. */
     if (microsoft_mode && missing_declarator) {
       /* Microsoft compilers appear to ignore "explicit" in this case. */
     } else if (!(dso_flags & DSO_FRIEND) &&
                (decl_info.is_constructor ||
-                ((cpp0x_mode || cppcli_enabled) &&
+                ((cpp0x_mode || (gpp_mode && gnu_version >= 40500) ||
+                  cppcli_enabled) &&
                   is_conversion_function_symbol(decl_state->sym)))) {
       /* Okay. */
     } else {

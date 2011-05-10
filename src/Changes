@@ -1,5 +1,14 @@
 Version 4.4
 
+5/10/11  [EDGcpfe/11659]
+GNU compatibility: Explicit conversion functions
+
+Explicit conversion functions (a C++0x feature; see the Changes entry of
+4/19/11) are now enabled in GNU C++ mode when gnu_version >= 40500.  (GCC 4.5
+issues a warning on uses of the feature in non-C++0x modes, but we accept it
+silently.)
+
+
 5/10/11  [EDGcpfe/11670]
 Abort on use of __builtin_offsetof with overloaded subscript operator
 
