@@ -8202,7 +8202,8 @@ definition of a member function of a class template.
   idlb.locator = locator;
   set_linkage_environment(&idlb, orig_decl_level);
   in_prototype_instantiation =
-            scope_stack[idlb.effective_decl_level].in_prototype_instantiation;
+          scope_stack[idlb.effective_decl_level].in_prototype_instantiation ||
+          scope_stack[idlb.effective_decl_level].in_generic_definition;
   if (idlb.is_friend_decl && !friend_injection_enabled) {
     set_invisible = TRUE;
   }  /* if */
@@ -8266,7 +8267,8 @@ definition of a member function of a class template.
                template<> template<class T> void S<int>::f() {}
           */
           dps->first_decl = decl_state->is_specialization;
-        } else if (is_prototype_instantiation_symbol(parent_class_sym)) {
+        } else if (is_prototype_instantiation_or_cli_generic(
+                                                           parent_class_sym)) {
           /* This is a member function symbol of a prototype instantiation.
              Get the associated function template. */
           sym = get_member_function_template_symbol(sym);

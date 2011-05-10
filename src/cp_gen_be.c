@@ -1773,8 +1773,7 @@ associated a_template entry.
        entry is pointing to the a_template entry which in turn points to
        "type". */
     check_assertion(((is_immediate_class_type(type) &&
-                      type->variant.class_struct_union.
-                                                 is_prototype_instantiation) ||
+                      is_prototype_instantiation_or_cli_generic_type(type)) ||
                      (type->kind == (a_type_kind)tk_typeref &&
                       type->variant.typeref.is_prototype_instantiation)) &&
                     ss_entry_ptr(curr_source_sequence_entry, a_template_ptr)

@@ -2111,9 +2111,10 @@ X<T>::N inside the real instantiation X<int>.
 {
   a_boolean  result = FALSE;
 
-  check_assertion(scope_stack_top().in_prototype_instantiation);
+  check_assertion(scope_stack_top().in_prototype_instantiation ||
+                  scope_stack_top().in_generic_definition);
   if (proto_type != NULL &&
-      proto_type->variant.class_struct_union.is_prototype_instantiation) {
+      is_prototype_instantiation_or_cli_generic_type(proto_type)) {
     /* The prototype instantiation is for a class. */
     a_scope_ptr  parent_scope = get_parent_scope_of(proto_type);
     a_template_symbol_supplement_ptr
@@ -2544,6 +2545,7 @@ the scope being pushed.
   ssep->return_value_optimization_possible = FALSE;
   ssep->in_prototype_instantiation = FALSE;
   ssep->in_nonreal_instantiation = FALSE;
+  ssep->in_generic_definition    = FALSE;
   ssep->in_class_specialization  = FALSE;
   ssep->in_template_deduction_context = FALSE;
   ssep->in_variadic_template     = FALSE;
@@ -2884,6 +2886,7 @@ the scope being pushed.
                                    (options & PS_PROTOTYPE_INSTANTIATION) != 0;
       ssep->in_nonreal_instantiation =
                                    (options & PS_NONREAL_INSTANTIATION) != 0;
+      ssep->in_generic_definition = (options & PS_GENERIC_DEFINITION) != 0;
       if (template_sym != NULL) {
         /* Determine whether this is an instantiation of a variadic
            template. */
@@ -2916,11 +2919,14 @@ the scope being pushed.
         ssep->in_prototype_instantiation = FALSE;
         ssep->in_nonreal_instantiation = FALSE;
         ssep->in_variadic_template = FALSE;
+        ssep->in_generic_definition = FALSE;
       } else {
         ssep->in_prototype_instantiation =
                                           (ssep-1)->in_prototype_instantiation;
         ssep->in_nonreal_instantiation =
                                           (ssep-1)->in_nonreal_instantiation;
+        ssep->in_generic_definition =
+                                          (ssep-1)->in_generic_definition;
         ssep->in_variadic_template =
                                           (ssep-1)->in_variadic_template;
       }  /* if */
@@ -3162,7 +3168,8 @@ the scope being pushed.
          (but not the body) of a template function -- no source sequence
          entries would be involved. */
       source_sequence_entries_disallowed = TRUE;
-    } else if (ssep->in_prototype_instantiation) {
+    } else if (ssep->in_prototype_instantiation ||
+               ssep->in_generic_definition) {
       if (!prototype_instantiations_in_il) {
         /* If prototype instantiations are not recorded in the IL, source
            sequence entries are normally not generated during a prototype
@@ -7221,7 +7228,8 @@ new top-of-stack entry with information from the entry that has been popped.
          scope. */
       if (ssep->kind != (a_scope_kind)sck_instantiation_context &&
           (ssep->src_seq_entries_from_prototype_instantiation ||
-           ssep->in_prototype_instantiation)) {
+           ssep->in_prototype_instantiation ||
+           ssep->in_generic_definition)) {
         new_ssep->src_seq_entries_from_prototype_instantiation = TRUE;
       }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -7846,6 +7854,7 @@ End a name scope by popping an entry off the scope stack.
         /* The prototype instantiation should not be moved away from the
            associated template. */
         !ssep->in_prototype_instantiation &&
+        !ssep->in_generic_definition &&
         !ssep->src_seq_entries_from_prototype_instantiation &&
         !ssep->microsoft_specialization_instantiation_scope) {
       insert_instantiation_src_seq_list(ssep);
@@ -8322,6 +8331,8 @@ the class symbol supplement points to the partial specialization).
       options = PS_NO_OPTIONS;
       if (is_prototype_instantiation_symbol(class_sym)) {
         options |= PS_PROTOTYPE_INSTANTIATION;
+      } else if (is_cli_generic_class_definition_symbol(class_sym)) {
+        options |= PS_GENERIC_DEFINITION;
       }  /* if */
       (void)push_template_instantiation_scope(decl_info, class_type,
                                               (a_routine_ptr)NULL, class_sym,

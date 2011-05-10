@@ -1544,7 +1544,8 @@ in the metadata file.
       char              *buffer;
 
 #if DEBUG
-      if (db_flag_is_set("dump_metadata")) {
+      if (db_flag_is_set("dump_metadata") ||
+          db_flag_is_set("dump_full_metadata")) {
         fprintf(f_debug, "Importing metadata from '%s' returns %x.\n",
                 cmfp->full_name, cmfp->assembly_index);
       }  /* if */

@@ -1599,6 +1599,7 @@ to default values.
       pte->variant.class_struct_union.is_interface = FALSE;
       pte->variant.class_struct_union.is_interface_like = FALSE;
       pte->variant.class_struct_union.is_delegate_class = FALSE;
+      pte->variant.class_struct_union.is_generic_definition = FALSE;
 #if BACK_END_IS_CP_GEN_BE
       pte->variant.class_struct_union.
                  defined_with_abstract_class_modifier = FALSE;
@@ -1770,6 +1771,7 @@ to default values.
         pte->variant.template_param.kind =
                                        (a_template_param_type_kind)tptk_param;
         pte->variant.template_param.is_pack = FALSE;
+        pte->variant.template_param.is_generic_param = FALSE;
         tptsp = alloc_template_param_type_supplement();
         pte->variant.template_param.extra_info = tptsp;
         tptsp->coordinates.position = 0;

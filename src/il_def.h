@@ -6794,8 +6794,11 @@ typedef struct a_template_param_type_supplement {
 			   lookup is done using class_type.  The first
 			   time a name is looked up in class_type it
 			   will be entered as a member that can be
-			   found by subsequent lookups.  Pointer is NULL
-			   if no class use has been  encountered. */
+			   found by subsequent lookups.  The pointer is
+			   NULL if no class use has been encountered.  A
+			   proxy class is also created for C++/CLI
+			   generics to represent the type specified by
+			   the constraints. */
   a_type_ptr	orig_nested_type;
 			/* If this is a template parameter created to
 			   represent the corresponding nonreal type for
@@ -7510,6 +7513,13 @@ typedef struct a_type {
 		is_delegate_class:1;
 			/* TRUE for a ref class created by a C++/CLI delegate
 			   definition. */
+      a_bit_field
+		is_generic_definition:1;
+			/* TRUE if this is the class type that resulted from
+			   the initial scanning of a C++/CLI generic class.
+			   This is similar to a prototype instantiation of
+			   a template except that generics do not make use
+			   of dependent types. */
 #if BACK_END_IS_CP_GEN_BE
       a_bit_field
 		defined_with_abstract_class_modifier:1;
@@ -7899,6 +7909,9 @@ typedef struct a_type {
       a_bit_field
 		is_pack:1;
 			/* TRUE if this is a template parameter pack. */
+      a_bit_field
+		is_generic_param:1;
+			/* TRUE if this is a generic type parameter. */
       a_template_param_type_supplement_ptr
 		extra_info;
 			/* Pointer to a supplement containing additional

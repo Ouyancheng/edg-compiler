@@ -829,6 +829,9 @@ typedef struct a_class_def_state {
   a_bit_field	is_nonreal_instantiation:1;
 			/* TRUE if the class is a prototype instantiation of
 			   a class template. */
+  a_bit_field	is_generic_definition:1;
+			/* TRUE if the class is the definition of a C++/CLI
+			   generic. */
   a_bit_field	is_local_class:1;
 			/* TRUE if the class is local to a function. */
   a_bit_field	last_field_is_incomplete_array:1;
@@ -907,6 +910,7 @@ class being defined.
   cdsp->any_const_or_ref_fields = FALSE;
   cdsp->is_template_instantiation = FALSE;
   cdsp->is_nonreal_instantiation = FALSE;
+  cdsp->is_generic_definition = FALSE;
   cdsp->is_local_class = FALSE;
   cdsp->last_field_is_incomplete_array = FALSE;
   cdsp->default_ctor_is_nontrivial = FALSE;
@@ -2195,6 +2199,7 @@ nested class.
   a_template_symbol_supplement_ptr  tssp;
   a_boolean                         is_real_template_instantiation = FALSE;
   a_boolean                         is_nonreal_template_instantiation = FALSE;
+  a_boolean                         is_generic_definition = FALSE;
   a_boolean                         is_friend;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -2218,6 +2223,13 @@ nested class.
     if (class_type->variant.class_struct_union.is_template_class &&
         class_type->variant.class_struct_union.is_nonreal_class) {
       is_nonreal_template_instantiation = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (class_type->variant.class_struct_union.is_generic_definition) {
+      /* The definition of a C++/CLI generic class. */
+      /* FIXME: This may not be needed if we keep generic definitions as
+         nonreal. */
+      is_generic_definition = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_template_based) {
       is_real_template_instantiation = TRUE;
     }  /* if */
@@ -2386,7 +2398,8 @@ nested class.
               }  /* if */
             }  /* if */
           }  /* if */
-        } else if (is_nonreal_template_instantiation &&
+        } else if ((is_nonreal_template_instantiation ||
+                    is_generic_definition) &&
                    !scope_stack[depth_scope_stack].inside_local_class &&
                    !is_friend && !rfp->is_specialization &&
                    !in_class_specialization) {
@@ -7330,6 +7343,10 @@ skip_base_class:
     /* Advance past the next comma, if any, and scan the next base class
        specifier. */
     remove_stop_token(tok_comma);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* FIXME: Work around for metadata problem. */
+    if (cppcli_enabled && curr_token == tok_excl_or) (void)get_token();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } while (loop_token(tok_comma));
   db_exit();
 }  /* scan_base_specifier_list */
@@ -11094,7 +11111,10 @@ implicitly declared member functions.
                                          &locator->source_position);
     set_mixed_static_nonstatic_flag(overload_sym);
   }  /* if */
-  if (class_type->variant.class_struct_union.is_nonreal_class) {
+  if (class_type->variant.class_struct_union.is_nonreal_class ||
+      class_state->is_generic_definition) {
+    /* FIXME: is_generic_definition test may not be needed if we keep
+       generic definitions as nonreal classes. */
     /* This symbol represents a member function of a prototype instantiation
        of a class template.  As such it is a quasi function template itself.
        Set it up to look like that.  Microsoft/Sun in-class specializations
@@ -11112,6 +11132,10 @@ implicitly declared member functions.
       tssp->variant.function.routine = rtn;
       tssp->variant.function.func_info = *func_info;
       tssp->is_variadic = scope_stack_top().in_variadic_template;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      tssp->is_generic =
+                  class_type->variant.class_struct_union.is_generic_definition;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       rtn->is_prototype_instantiation = TRUE;
       rtn->is_template_function = TRUE;
       tip->prototype_scope_symbols = func_info->prototype_scope_symbols;
@@ -17521,9 +17545,12 @@ function definition and cache its tokens if appropriate.
       /* Advance past the optional semicolon. */
       (void)get_token();
     }  /* if */
-    if (class_state->is_nonreal_instantiation &&
+    if ((class_state->is_nonreal_instantiation ||
+         class_state->is_generic_definition) &&
         !class_type->variant.class_struct_union.is_specialized &&
         !class_type->source_corresp.is_local_to_function) {
+      /* FIXME: is_generic_definition test may not be needed if we keep
+         generic definitions as nonreal classes. */
       /* The test of is_specialized is done to exclude Microsoft mode
          specializations in a class template scope.  Similarly, a member
          function of a local class of a prototype instantiation is nonreal
@@ -20876,17 +20903,19 @@ classes.
     ctsp->surrounding_name_linkage_state =
                           scope_stack[depth_scope_stack].default_name_linkage;
 #endif /* BACK_END_IS_CP_GEN_BE */
-    if (class_type->variant.class_struct_union.is_prototype_instantiation ||
-        (scope_stack[depth_scope_stack].in_prototype_instantiation &&
+    if (is_prototype_instantiation_or_cli_generic_type(class_type) ||
+        ((scope_stack[depth_scope_stack].in_prototype_instantiation ||
+          scope_stack[depth_scope_stack].in_generic_definition) &&
          (class_type->source_corresp.is_local_to_function ||
           scope_stack[depth_scope_stack].in_class_specialization))) {
-      /* This is a prototype instantiation or an instantiation of a local
-         class type, so the resulting class is "nonreal" (i.e., based on
-         template arguments that include the dummy types and constants of
-         template parameters rather than real types and constants).  The
-         in_class_specialization test detects classes nested within a
-         Microsoft/Sun in-class specialization.   Note that for nested classes
-         the flag is set later. */
+      /* This is a prototype instantiation, C++/CLI generic definition, or
+         an instantiation of a local class type, so the resulting class
+         is "nonreal" (i.e., based on template arguments that include
+         the dummy types and constants of template parameters rather than
+         real types and constants).  The in_class_specialization test
+         detects classes nested within a Microsoft/Sun in-class
+         specialization.   Note that for nested classes the flag is set
+         later. */
       class_state.is_nonreal_instantiation = TRUE;
       class_type->variant.class_struct_union.is_nonreal_class = TRUE;
       if (tag_sym->is_class_member &&
@@ -20912,6 +20941,10 @@ classes.
            Check that an error has been or will be issued. */
         expect_error();
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (class_type->variant.class_struct_union.is_generic_definition) {
+      class_state.is_generic_definition = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_template_instantiation && tag_sym->is_class_member) {
       /* An instance of a member template.  Mark it as nonreal if the
          instantiation is being triggered inside a prototype instantiation. */

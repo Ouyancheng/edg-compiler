@@ -505,6 +505,9 @@ Initialize a template declaration state block.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tdsp->generic_constraint_clauses = NULL;
   tdsp->num_parameters = 0;
+  tdsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_standard;
+  tdsp->cli_visibility = av_none;
+  tdsp->cli_visibility_pos = null_source_position;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* init_templ_decl_state */
 
@@ -2957,8 +2960,10 @@ loading of classes.
      this instantiation. */
   cssp->referencing_namespace = determine_referencing_namespace();
   template_sym = template_symbol_for_class_symbol(instance_sym);
-  if (template_sym == NULL) {
-    /* Not a class based on a class template. */
+  if (template_sym == NULL ||
+      is_cli_generic_class_definition_symbol(instance_sym)) {
+    /* Not a class based on a class template or the class that is generated
+       to represent the definition of a C++/CLI generic class. */
 #if GET_DEFINITION_OF_CLASS_NEEDED
     /* Call a routine to potentially find a definition of this class. */
     if (class_type_supp(class_type)->assoc_scope == NULL) {
@@ -2987,6 +2992,7 @@ loading of classes.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     a_source_position           saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    a_symbol_ptr		prototype_instantiation_sym;
     saved_pos_curr_token = pos_curr_token;
     saved_error_position = error_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -3022,6 +3028,28 @@ loading of classes.
     }  /* if */
     tssp_of_prototype =
                      template_supplement_for_symbol(template_sym_of_prototype);
+    prototype_instantiation_sym =
+             tssp_of_prototype->variant.class_template.prototype_instantiation;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (tssp_of_prototype->is_generic) {
+      /* If this is a C++/CLI imported from an assembly, make sure the
+         definition has been imported. */
+      a_type_ptr	prototype_instantiation_type;
+      prototype_instantiation_type =
+                  prototype_instantiation_sym->variant.class_struct_union.type;
+      complete_class_type_is_needed(prototype_instantiation_type);
+#if 0
+#else /* !0 */
+      if (prototype_instantiation_type->
+                                variant.class_struct_union.is_delegate_class) {
+        /* FIXME: We can't instantiate delegates yet.  For now, just mark the
+           delegate class as defined.  Calling scan_cli_generic... is a
+           convenient way of doing this for now. */
+        scan_cli_generic_delegate_definition_from_assembly_import(class_type);
+      }  /* if */
+#endif /* 0 */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     body_cache = cache_for_template(tssp_of_prototype);
     /* There is a class template from which to generate this class and it is
        a real instantiation. */
@@ -3030,8 +3058,7 @@ loading of classes.
        be created before this is known.  Furthermore, even if it was set
        it may need to be revised if the instantiation is generated from
        a partial specialization. */
-    cssp->corresp_prototype_sym =
-             tssp_of_prototype->variant.class_template.prototype_instantiation;
+    cssp->corresp_prototype_sym = prototype_instantiation_sym;
     if (body_cache->tokens.first_token == NULL) {
       /* The template itself has not yet been defined.  The caller will
          issue an incomplete-type error. */
@@ -3760,6 +3787,7 @@ A pointer to the head of the list is returned in tcsp.
   a_class_symbol_supplement_ptr     cssp;
   a_boolean			    is_class_member;
   a_boolean			    scope_pushed;
+  a_push_scope_options_set	    ps_options = PS_PROTOTYPE_INSTANTIATION;
 
   db_enter(3, "instantiate_class_template");
   tssp = template_supplement_for_symbol(template_sym);
@@ -3796,6 +3824,7 @@ A pointer to the head of the list is returned in tcsp.
     prototype_type->variant.class_struct_union.abstract =
                                     tssp->variant.class_template.is_interface;
   }  /* if */
+  if (tssp->is_generic) ps_options = PS_GENERIC_DEFINITION;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   template_arg_list = templ_arg_list_for_class(prototype_type);
   cssp->instantiation_in_progress = TRUE;
@@ -3810,7 +3839,7 @@ A pointer to the head of the list is returned in tcsp.
 				    (a_routine_ptr)NULL, instance_sym,
 				    template_sym, template_arg_list,
                                     /*push_lex_state=*/TRUE,
-                                    PS_PROTOTYPE_INSTANTIATION);
+                                    ps_options);
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -3894,6 +3923,11 @@ template specified by template_sym.
     tssp = template_supplement_for_symbol(template_sym);
     /* Variadic function templates require prototype instantiations. */
     if (tssp->is_variadic) result = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Generic function templates undergo processing similar to a
+       prototype instantiation. */
+    if (tssp->is_generic) result = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   return result;
 }  /* prototype_instantiation_should_be_done_for_function */
@@ -3955,6 +3989,8 @@ user later during real instantiations.
        syntax errors. */
     if (!rout_ptr->is_defaulted) expect_error();
   } else {
+    a_push_scope_options_set	    ps_options = PS_PROTOTYPE_INSTANTIATION;
+    if (tssp->is_generic) ps_options = PS_GENERIC_DEFINITION;
     if (rout_ptr->storage_class != (a_storage_class)sc_static) {
       /* Set the linkage for the definition of an externally linked routine. */
       rout_ptr->storage_class = (a_storage_class)sc_unspecified;
@@ -3974,7 +4010,7 @@ user later during real instantiations.
   				        rout_sym, template_sym,
   				        rout_ptr->template_arg_list,
                                         /*push_lex_state=*/TRUE,
-                                        PS_PROTOTYPE_INSTANTIATION);
+                                        ps_options);
     }  /* if */
     /* Reactivate any pragmas that should be bound to the generated
        instance. */
@@ -12707,7 +12743,7 @@ Otherwise, return FALSE.
       /* Get the symbol associated with the type.  This symbol is the
          template class symbol. */
       class_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-      if (is_prototype_instantiation_symbol(class_sym)) {
+      if (is_prototype_instantiation_or_cli_generic(class_sym)) {
         /* Get a pointer to the symbol for the class template. */
         template_sym =
              class_sym->variant.class_struct_union.extra_info->class_template;
@@ -13318,6 +13354,26 @@ to the newly created list.
   return list_head;
 } /* create_prototype_arg_list */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void add_base_class_to_proxy_class(a_type_ptr	proxy_class,
+					  a_type_ptr	base_class)
+/*
+Add base_class as a direct base class of proxy_class.
+*/
+{
+  a_base_class_ptr	bcp;
+
+  bcp = alloc_base_class();
+  bcp->type = base_class;
+  bcp->orig_type = bcp->type;
+  bcp->derived_class = proxy_class;
+  bcp->direct = TRUE;
+  bcp->direct_base_number = 1;
+  check_assertion(base_classes_of(proxy_class) == NULL);
+  base_classes_of(proxy_class) = bcp;
+}  /* add_base_class_to_proxy_class */
+
 
 static a_template_arg_ptr create_generic_arg_list(
 			a_template_param_ptr	generic_param_list)
@@ -13328,10 +13384,44 @@ corresponding generic argument for each based on the constraints
 for the generic parameter.  Return a pointer to the newly created list.
 */
 {
-  /* FIXME: This is a stub version. */
- return create_prototype_arg_list(generic_param_list);
+  a_template_param_ptr	tpp;
+  a_template_arg_ptr	arg_list;
+  a_template_arg_ptr	tap;
+ 
+  /* Start with the prototype argument list, then fill in the constraint
+     type information. */
+  arg_list = create_prototype_arg_list(generic_param_list);
+  begin_template_arg_list_traversal(generic_param_list, arg_list, &tpp, &tap);
+  for (; tpp != NULL; advance_to_next_template_arg(&tpp, &tap)) {
+    a_symbol_ptr		param_sym = tpp->param_symbol;
+    a_type_ptr			templ_param_type = param_sym->variant.type.ptr;
+    a_generic_constraint_ptr	gcp;
+    a_type_ptr			arg_type = NULL;
+    a_type_ptr			proxy_class;
+    /* Create a proxy class that will be used as the class type representing
+       the constraints. */
+    proxy_class = proxy_class_for_template_param(templ_param_type);
+    gcp = templ_param_type->
+                        variant.template_param.extra_info->generic_constraints;
+    if (gcp == NULL) {
+      /* This parameter has no constraints.  The type Object is to be used
+         as the type of the parameter. */
+     arg_type = cli_system_object_type();
+    } else {
+    }  /* if */
+    if (arg_type == NULL) {
+     /* FIXME: Temporary code until constraints are implemented. */
+     arg_type = cli_system_object_type();
+    }  /* if */
+    /* Add the type specified by arg_type as a base class of the proxy
+       class. */
+    add_base_class_to_proxy_class(proxy_class, arg_type);
+    add_to_types_list(proxy_class, NO_SCOPE_DEPTH);
+  }  /* for */
+  return arg_list;
 }  /* create_generic_arg_list */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void rename_prototype_arg_list(
 		a_template_symbol_supplement_ptr	tssp,
@@ -13389,7 +13479,11 @@ initially used when processing the declaration of a partial specialization.
   a_type_ptr			prototype_type;
   a_class_symbol_supplement_ptr	prototype_cssp;
   a_boolean			is_alias_template;
+  a_boolean			is_generic = FALSE;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (decl_state->is_generic) is_generic = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   is_alias_template = tssp->variant.class_template.is_alias_template;
   if (sym->kind == (a_symbol_kind)sk_class_template) {
     a_template_param_ptr	templ_param_list;
@@ -13459,10 +13553,13 @@ initially used when processing the declaration of a partial specialization.
     templ_param_list = decl_state->decl_info->parameters;
     /* Create a template argument list that corresponds to the template
        parameter list. */
-    if (decl_state->is_generic) {
-      templ_arg_list = create_generic_arg_list(templ_param_list);
-    } else {
+    if (!is_generic) {
       templ_arg_list = create_prototype_arg_list(templ_param_list);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else {
+      /* Create the types used for lookup in generic type variables */
+      templ_arg_list = create_generic_arg_list(templ_param_list);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     if (is_alias_template) {
       prototype_type->variant.typeref.extra_info->template_arg_list
@@ -13501,7 +13598,7 @@ initially used when processing the declaration of a partial specialization.
   if (!is_alias_template) {
     prototype_cssp = prototype_sym->variant.class_struct_union.extra_info;
     prototype_type->
-                  variant.class_struct_union.is_prototype_instantiation = TRUE;
+           variant.class_struct_union.is_prototype_instantiation = !is_generic;
     prototype_type->variant.class_struct_union.is_nonreal_class = TRUE;
     prototype_cssp->template_info = tssp;
     if (sym->kind == (a_symbol_kind)sk_class_template) {
@@ -13511,6 +13608,39 @@ initially used when processing the declaration of a partial specialization.
          instantiation. */
       record_instantiation(prototype_sym, tssp);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode) {
+      if (cppcli_enabled) {
+        a_type_ptr			class_type;
+        class_type = tssp->variant.class_template.prototype_instantiation
+                                                            ->variant.type.ptr;
+        class_type_supp(class_type)->cli_class_type_kind =
+                                               decl_state->cli_class_type_kind;
+        class_type->variant.class_struct_union.is_generic_definition =
+                                                                    is_generic;
+        if (decl_state->cli_class_type_kind !=
+                                        (a_cli_class_type_kind)cctk_standard) {
+          class_type_supp(class_type)->is_hide_by_sig = TRUE;
+        }  /* if */
+        set_cli_visibility(class_type, decl_state->cli_visibility,
+                           &decl_state->cli_visibility_pos,
+                           decl_state->defines_something);
+        if (tssp->attributes != NULL && tssp->is_generic &&
+            is_scanning_generated_code_from_metadata) {
+          /* This is a generic declaration being loaded from metadata.
+             Apply the tag attributes because this will contain the
+             assembly_info declspec, which needs to be applied on the
+             declaration, not the definition. */
+          attach_tag_attributes(tssp->attributes, prototype_type,
+                            (a_decl_parse_state*)NULL,
+                            /*is_definition=*/decl_state->defines_something,
+                            /*is_forward_decl=*/FALSE,
+                            /*ignore_gnu_attributes=*/FALSE);
+          tssp->attributes = NULL;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MAINTAIN_NEEDED_FLAGS
     if (prototype_instantiations_in_il && !decl_state->decl_scope_err) {
       /* Make sure we keep the prototype instantiations in the IL even
@@ -14293,10 +14423,6 @@ declaration of a partial specialization declared outside of its class.
   an_extended_decl_info_block       extended_decl_info;
   a_boolean                         is_abstract = FALSE, is_sealed = FALSE;
   a_boolean                         is_interface = FALSE;
-  a_cli_class_type_kind             cli_type_kind =
-                                          (a_cli_class_type_kind)cctk_standard;
-  an_assembly_visibility            cli_visibility;
-  a_source_position                 cli_visibility_pos; 
   a_symbol_ptr                      primary_arity_sym = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_attribute_ptr                  attributes = NULL;
@@ -14329,7 +14455,8 @@ declaration of a partial specialization declared outside of its class.
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled) {
-    cli_visibility = scan_cli_visibility_specifier_if_any(&cli_visibility_pos);
+    decl_state->cli_visibility = scan_cli_visibility_specifier_if_any(
+                                              &decl_state->cli_visibility_pos);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   skip_illegal_class_template_decl_specifiers(/*diagnose=*/TRUE);
@@ -14356,27 +14483,27 @@ declaration of a partial specialization declared outside of its class.
       break;
     case tok_value_struct:
       type_kind     = (a_type_kind)tk_struct;
-      cli_type_kind = (a_cli_class_type_kind)cctk_value;
+      decl_state->cli_class_type_kind = (a_cli_class_type_kind)cctk_value;
       break;
     case tok_value_class:
       type_kind     = (a_type_kind)tk_class;
-      cli_type_kind = (a_cli_class_type_kind)cctk_value;
+      decl_state->cli_class_type_kind = (a_cli_class_type_kind)cctk_value;
       break;
     case tok_ref_struct:
       type_kind     = (a_type_kind)tk_struct;
-      cli_type_kind = (a_cli_class_type_kind)cctk_ref;
+      decl_state->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
       break;
     case tok_ref_class:
       type_kind     = (a_type_kind)tk_class;
-      cli_type_kind = (a_cli_class_type_kind)cctk_ref;
+      decl_state->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
       break;
     case tok_interface_struct:
       type_kind     = (a_type_kind)tk_struct;
-      cli_type_kind = (a_cli_class_type_kind)cctk_interface;
+      decl_state->cli_class_type_kind = (a_cli_class_type_kind)cctk_interface;
       break;        
     case tok_interface_class:
       type_kind     = (a_type_kind)tk_class;
-      cli_type_kind = (a_cli_class_type_kind)cctk_interface;
+      decl_state->cli_class_type_kind = (a_cli_class_type_kind)cctk_interface;
       break;        
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:
@@ -14496,6 +14623,7 @@ declaration of a partial specialization declared outside of its class.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   is_definition = (next_tok == tok_colon || next_tok == tok_lbrace);
+  decl_state->defines_something = is_definition;
   if (is_definition && locator_for_curr_id.is_qualified_name &&
       any_deferred_access_checks()) {
     /* When defining a class member outside of its class definition
@@ -14856,7 +14984,7 @@ friend_template_checks_done:
                           tssp->variant.class_template.prototype_instantiation
                               ->variant.type.ptr;
             if (class_type_supp(class_type)->cli_class_type_kind !=
-                                                              cli_type_kind) {
+                                             decl_state->cli_class_type_kind) {
               pos_sy_error(ec_conflicting_cli_class_template_kinds,
                            &locator.source_position, sym);
             }  /* if */
@@ -15044,6 +15172,9 @@ friend_template_checks_done:
        template information to reflect this. */
     record_specialization(sym, tssp, &locator.source_position);
   }  /* if */
+  if (tssp->attributes == NULL || is_definition) {
+    tssp->attributes = attributes;
+  }  /* if */
   if (tssp->variant.class_template.prototype_instantiation == NULL) {
     /* Create the symbol for the prototype instantiation (but don't do
        the instantiation yet).  A prototype instantiation type is created
@@ -15052,22 +15183,8 @@ friend_template_checks_done:
     create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
                           decl_state->is_partial_specialization);
   }  /* if */
-  if (tssp->attributes == NULL || is_definition) {
-    tssp->attributes = attributes;
-  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
-    if (cppcli_enabled) {
-      a_type_ptr  class_type = 
-                          tssp->variant.class_template.prototype_instantiation
-                              ->variant.type.ptr;
-      class_type_supp(class_type)->cli_class_type_kind = cli_type_kind;
-      if (cli_type_kind != (a_cli_class_type_kind)cctk_standard) {
-        class_type_supp(class_type)->is_hide_by_sig = TRUE;
-      }  /* if */
-      set_cli_visibility(class_type, cli_visibility, &cli_visibility_pos,
-                         is_definition);
-    }  /* if */
     if (tssp->prototype_template == NULL || tssp->is_specific_definition) {
       /* Update any decl modifiers that may have been specified.  Don't
          do this for subordinate templates -- the prototype of the prototype
@@ -15110,7 +15227,6 @@ friend_template_checks_done:
        template supplement later. */
     clear_token_cache(&local_token_cache, /*reusable=*/TRUE);
     definition_token_cache = &local_token_cache;
-    decl_state->defines_something = TRUE;
     if (sym != NULL) {
       mark_defined(sym, &locator.source_position);
     }  /* if */
@@ -15835,6 +15951,8 @@ parameter entry for the parameter.
   template_param_type->variant.template_param.extra_info->
                            coordinates.position = template_param_list_pos;
   template_param_type->variant.template_param.is_pack = is_pack;
+  template_param_type->variant.template_param.is_generic_param =
+                                                        decl_state->is_generic;
   set_type_size(template_param_type);
   set_source_corresp(&template_param_type->source_corresp, sym);
   if (parent_scope_should_be_set_for_template_param()) {
@@ -20454,6 +20572,45 @@ that follows.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+
+static a_boolean check_for_constraint_conflict(
+			a_generic_constraint_ptr	curr_list,
+			a_generic_constraint_kind	kind,
+			a_type_ptr			type,
+			a_source_position		*pos)
+/*
+A new constraint as specified by kind and type is being added.  Check
+whether it conflicts with the existing constraint list specified by
+curr_list.  If so, issue a diagnostic and return TRUE; otherwise return
+FALSE.  pos is the source position to be used for diagnostics.
+*/
+{
+  a_generic_constraint_ptr	gcp;
+  a_boolean			any_errors = FALSE;
+
+  /* Go through the current list of constraints to check for a conflict. */
+  for (gcp = curr_list; gcp != NULL; gcp = gcp->next) {
+    if (gcp->kind == kind) {
+      if (identical_types(gcp->type, type)) {
+        /* Two identical constraints.  Issue an error. */
+        pos_error(ec_duplicate_constraint, pos);
+        any_errors = TRUE;
+      } else if (kind == (a_generic_constraint_kind)gck_type &&
+                 !is_cli_interface_type(gcp->type) &&
+                 !is_cli_interface_type(type)) {
+        /* Two class constraints. */
+        pos_ty2_error(ec_multiple_class_constraints, pos, gcp->type,
+                      type);
+        any_errors = TRUE;
+      } else {
+        /* FIXME: Check for recursive naked type parameters. */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return any_errors;
+}  /* check_for_constraint_conflict */
+
+
 static a_generic_constraint_ptr scan_constraint_item_list(void)
 /*
 Scan a C++/CLI generic constraint-item-list and return the list.
@@ -20466,8 +20623,7 @@ of the list.
   a_generic_constraint_ptr	list_tail = NULL;
   a_boolean			done;
 
-  /* FIXME: check for duplicate constraints, more than one class constraint,
-     a class that is sealed, recursive naked type parameters, etc. */
+  /* FIXME: check for a class that is sealed, etc. */
   do {
     a_type_ptr			type = NULL;
     a_generic_constraint_kind	kind = (a_generic_constraint_kind)gck_none;
@@ -20513,13 +20669,11 @@ of the list.
         (void)get_token();
         if (curr_token != tok_lparen) {
           pos_error(ec_exp_lparen, &pos_curr_token);
-          if (curr_token != tok_rparen) (void)get_token();
         } else {
           (void)get_token();
         }  /* if */
         if (curr_token != tok_rparen) {
           pos_error(ec_exp_rparen, &pos_curr_token);
-          if (curr_token != tok_comma) (void)get_token();
         } else {
           (void)get_token();
         }  /* if */
@@ -20529,6 +20683,16 @@ of the list.
         (void)get_token();
         break;
     }  /* switch */
+    if (kind != (a_generic_constraint_kind)gck_none) {
+      /* A valid constraint was scanned.  Make sure the constraint does not
+         conflict with prior ones. */
+      if (check_for_constraint_conflict(result_list, kind, type, &pos)) {
+        /* The constraint is invalid.  A diagnostic will have already been
+           issued.  Set the kind to "none" to prevent it from being added to
+           the list below. */
+        kind = (a_generic_constraint_kind)gck_none;
+      }  /* if */
+    }  /* if */
     if (kind != (a_generic_constraint_kind)gck_none) {
       /* A valid constraint was scanned.  Add it to the list. */
       a_generic_constraint_ptr	gcp;
@@ -20619,8 +20783,15 @@ Scan an optional set of C++/CLI generic constraints.  The form is:
         check_assertion(sym->kind == (a_symbol_kind)sk_type);
         param_type = sym->variant.type.ptr;
         check_assertion(param_type->kind == (a_type_kind)tk_template_param);
-        gcc.type_position = pos_curr_token;
-        gcc.type = param_type;
+        if (param_type->variant.template_param.extra_info->
+                                                 generic_constraints != NULL) {
+          /* The parameter already has a constraint. */
+          pos_sy_error(ec_multiple_constraint_clauses, &pos_curr_token, sym);
+          param_type = NULL;
+        } else {
+          gcc.type_position = pos_curr_token;
+          gcc.type = param_type;
+        }  /* if */
       }  /* if */
     }  /* if */
     /* Bypass the identifier and look for the expected colon. */
@@ -23080,7 +23251,9 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
     }  /* if */
     mip = master_instance_of(tip);
   }  /* if */
-  if (instantiation_mode == tim_can_instantiate) {
+  if (tssp->is_generic) {
+    /* C++/CLI generics are not put on the list. */
+  } else if (instantiation_mode == tim_can_instantiate) {
     /* Leave the instantiation_required flag unchanged in this mode. */
   } else if (instantiation_mode == tim_all && !value) {
     /* An "unused" instantiation is being added to the list. */
@@ -26218,6 +26391,47 @@ followed by "<" and then the class or typename keyword.
   }  /* if */
   return result;
 }  /* is_start_of_generic_decl */
+
+
+void scan_cli_generic_class_definition_from_assembly_import(
+							a_type_ptr	type)
+/*
+Scan the definition of the generic class definition specified by type,
+which is being imported from metadata.
+*/
+{
+  declaration(/*function_definition_allowed=*/FALSE,
+              /*is_old_style_param_decl=*/FALSE,
+              /*is_top_level_declaration=*/TRUE,
+              /*marked_as_gnu_extension=*/FALSE,
+              (a_param_id_ptr)NULL, (a_source_range *)NULL);
+}  /* scan_cli_generic_class_definition_from_assembly_import */
+
+
+void scan_cli_generic_delegate_definition_from_assembly_import(
+							a_type_ptr	type)
+/*
+Scan the definition of the generic delegate definition specified by type,
+which is being imported from metadata.
+*/
+{
+  /* FIXME: This is just a stub version. */
+  a_class_symbol_supplement_ptr		cssp;
+
+  type->size = 1;
+  type->alignment = 1;
+  type->incomplete = FALSE;
+  type->variant.class_struct_union.is_delegate_class = TRUE;
+  cssp = symbol_supplement_for_class(type);
+  cssp->member_decl_scope = take_next_scope_number();
+  add_scope_to_class_type(type);
+  if (is_scanning_generated_code_from_metadata) {
+    /* Flush any tokens until a semicolon is found. */
+    while (curr_token != tok_semicolon) {
+      (void)get_token();
+    }  /* while */
+  }  /* if */
+}  /* scan_cli_generic_delegate_definition_from_assembly_import */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

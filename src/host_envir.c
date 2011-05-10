@@ -4962,16 +4962,16 @@ final search path will include, in this order:
   }  /* if */
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES
   /* Make it easy to find portable assemblies on non-Windows systems. */
-#ifdef CPPCLI_PORTABLE_ASSEMBLY_PATH
-  add_to_specified_include_search_path(CPPCLI_PORTABLE_ASSEMBLY_PATH, FALSE,
-                             &assembly_search_path, &end_assembly_search_path);
-#endif /* ifdef CPPCLI_PORTABLE_ASSEMBLY_PATH */
   { char *pa_path = getenv("EDG_CPPCLI_PORTABLE_ASSEMBLY_PATH");
     if (pa_path != NULL) {
       add_to_specified_include_search_path(pa_path, FALSE,
                              &assembly_search_path, &end_assembly_search_path);
     }  /* if */
   }
+#ifdef CPPCLI_PORTABLE_ASSEMBLY_PATH
+  add_to_specified_include_search_path(CPPCLI_PORTABLE_ASSEMBLY_PATH, FALSE,
+                             &assembly_search_path, &end_assembly_search_path);
+#endif /* ifdef CPPCLI_PORTABLE_ASSEMBLY_PATH */
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES */
 }  /* init_assembly_search_path */
 

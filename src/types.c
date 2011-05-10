@@ -1154,6 +1154,16 @@ Return TRUE if the given type is a C++/CLI managed class type.
 }  /* is_managed_class_type */
 
 
+a_boolean is_cli_interface_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++/CLI interface class type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_immediate_cli_interface_type(tp);
+}  /* is_cli_interface_type */
+
+
 a_boolean is_cli_ref_or_interface_class_type(a_type_ptr tp)
 /*
 Return TRUE if the indicated type is a C++/CLI ref class or interface class.
@@ -2436,7 +2446,7 @@ class will be instantiated if necessary so that its base classes are known.
          template class.  This is necessary so that we can see what its base
          classes are.  Note that this can potentially force instantiation
          of the base class as well. */
-      instantiate_template_class(derived_class);
+      complete_class_type_is_needed(derived_class);
 #else /* STANDALONE_UTILITY_PROGRAM */
       unexpected_condition();
 #endif /* !STANDALONE_UTILITY_PROGRAM */

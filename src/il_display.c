@@ -1858,6 +1858,9 @@ Display the indicated type entry.
       if (ptr->variant.class_struct_union.is_delegate_class) {
         disp_boolean("delegate_class", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.is_generic_definition) {
+        disp_boolean("generic_definition", TRUE);
+      }  /* if */
 #if BACK_END_IS_CP_GEN_BE
       if (ptr->variant.class_struct_union
                                       .defined_with_abstract_class_modifier) {
@@ -2060,6 +2063,9 @@ Display the indicated type entry.
       }  /* switch */
       if (ptr->variant.template_param.is_pack) {
         disp_boolean("is_pack", TRUE);
+      }  /* if */
+      if (ptr->variant.template_param.is_generic_param) {
+        disp_boolean("is_generic_param", TRUE);
       }  /* if */
       disp_template_param_type_supplement(
                                        ptr->variant.template_param.extra_info);

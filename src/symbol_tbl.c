@@ -2587,6 +2587,7 @@ Otherwise, return NULL.
   cssp = sym->variant.class_struct_union.extra_info;
   class_type = sym->variant.class_struct_union.type;
   if (class_type->variant.class_struct_union.is_template_class &&
+      !is_cli_generic_definition_type(class_type) &&
       !class_type->variant.class_struct_union.is_nonreal_class) {
     if (!class_type->variant.class_struct_union.is_specialized) {
       result_sym = cssp->corresp_prototype_sym;
@@ -2671,6 +2672,7 @@ to the symbol supplement associated with sym.
   }  /* if */
   ssep = &scope_stack[depth_to_use];
   check_assertion_str2(ssep->in_prototype_instantiation ||
+                       ssep->in_generic_definition ||
                        ssep->kind == (a_scope_kind)sck_template_declaration,
                        "alloc_template_cache_segment:",
                        "not in prototype instantiation");
@@ -6939,16 +6941,40 @@ Create symbols for the builtin System::String operators.
 }  /* make_symbols_for_system_string_operators */
 
 
+static void get_symbol_for_cli_system_type(a_cli_symbol_kind	csk)
+/*
+Look up the C++/CLI system type specified by csk and cache it in a
+global array.  This function assumes that mscorlib.dll has been imported.
+*/
+{
+  char            *name;
+  a_symbol_ptr    ns_sym;
+  a_namespace_ptr ns_ptr;
+
+  name = cli_symbol_names[csk].name;
+  if (name != NULL) {
+    check_assertion(*name != '\0');
+    check_assertion(is_namespace_symbol(
+                           cli_symbols[cli_symbol_names[csk].namespace_kind]));
+  /* Get the symbol for the parent namespace. */
+    ns_sym = cli_symbols[cli_symbol_names[csk].namespace_kind];
+    ns_ptr = ns_sym->variant.namespace_info.ptr;
+    cli_symbols[csk] = look_up_name_string_in_namespace(name, ns_ptr);
+    if (cli_symbols[csk] == NULL) {
+      /* The symbol wasn't found in the parent namespace. */
+      str_catastrophe(ec_cli_entity_not_loaded, name);
+    }  /* if */
+  }  /* if */
+}  /* get_symbol_for_cli_system_type */
+
+
 void init_symbols_for_cli_system_types(void)
 /*
 Look up various C++/CLI system types and cache them in their corresponding 
 global pointers.  This function assumes that mscorlib.dll has been imported.
 */
 {
-  a_symbol_ptr    ns_sym;
-  a_namespace_ptr ns_ptr;
   int             csk;
-  char            *name;
 
 #if CHECKING
   /* Check that the a_cli_symbol_kind_tag enumeration is correctly defined. */
@@ -6967,19 +6993,8 @@ global pointers.  This function assumes that mscorlib.dll has been imported.
 #endif /* CHECKING */
   /* Initialize the symbols in the cli_symbols array. */
   for (csk = (int)csk_first; csk < (int)csk_last; csk++) {
-    name = cli_symbol_names[csk].name;
-    if (name != NULL) {
-      check_assertion(*name != '\0');
-      check_assertion(is_namespace_symbol(
-                           cli_symbols[cli_symbol_names[csk].namespace_kind]));
-      /* Get the symbol for the parent namespace. */
-      ns_sym = cli_symbols[cli_symbol_names[csk].namespace_kind];
-      ns_ptr = ns_sym->variant.namespace_info.ptr;
-      cli_symbols[csk] = look_up_name_string_in_namespace(name, ns_ptr);
-      if (cli_symbols[csk] == NULL) {
-        /* The symbol wasn't found in the parent namespace. */
-        str_catastrophe(ec_cli_entity_not_loaded, name);
-      }  /* if */
+    if (cli_symbols[csk] == NULL) {
+      get_symbol_for_cli_system_type((a_cli_symbol_kind)csk);
     }  /* if */
   }  /* for */
   /* Initialize csk_system_byte_sign_unspecified based on the signedness
@@ -6998,6 +7013,10 @@ Return the type of the specified C++/CLI symbol kind.
   a_symbol_ptr sym;
 
   check_assertion((int)kind < (int)csk_last);
+  sym = cli_symbol_from_kind(kind);
+  if (sym == NULL) {
+    get_symbol_for_cli_system_type((a_cli_symbol_kind)kind);
+  }  /* if */
   sym = cli_symbol_from_kind(kind);
   check_assertion(sym != NULL &&
                   sym->kind == (a_symbol_kind)sk_class_or_struct_tag);

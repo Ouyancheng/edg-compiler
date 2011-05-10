@@ -71,7 +71,9 @@ typedef int a_push_scope_options_set;
 #define PS_IS_RESCAN			0x1000
 			/* TRUE if the scope being pushed is an instantiation
 			   scope for template rescan purposes. */
-
+#define PS_GENERIC_DEFINITION		0x2000
+			/* TRUE if the scope being pushed is the template
+			   instantiation scope for a generic definition. */
 #define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
 			/* Size of the shareable constants hash table for
 			   a function. */
@@ -629,6 +631,11 @@ typedef struct a_scope_stack_entry {
 			/* TRUE for instantiations based on template dependent
 			   template arguments.  This is only true for certain
 			   default template argument cases. */
+  a_bit_field	in_generic_definition:1;
+			/* TRUE if kind is sck_template_instantiation and
+			   what is being instantiated is the definition of a
+			   C++/CLI generic.  Also true for scopes nested within
+			   a generic definition. */
   a_bit_field	in_class_specialization:1;
 			/* TRUE for scopes that are template class explicit
 			   specialization scopes or scopes nested within such

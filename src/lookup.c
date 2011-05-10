@@ -468,7 +468,8 @@ initializing the class and assigning a scope number. The class type is
 created the first time that a template parameter is used in a context
 in which a class type is required.  This includes use in a qualified
 name lookup where the template parameter is used as the class type, and
-use as a base class.
+use as a base class.  Proxy classes are also created for C++/CLI type
+parameters to represent the type specified by the constraints.
 */
 {
   a_type_ptr				type;
@@ -477,6 +478,7 @@ use as a base class.
   a_class_symbol_supplement_ptr		cssp;
   a_type_ptr				templ_param_type;
   a_type_ptr				*proxy_class;
+  a_boolean				is_generic = FALSE;
 
   /* If the original type is a template parameter, get a pointer to the
      template parameter.  In any case, get a pointer to the proxy class
@@ -485,6 +487,7 @@ use as a base class.
     templ_param_type = orig_type;
     proxy_class = &templ_param_type->
                                  variant.template_param.extra_info->class_type;
+    is_generic = templ_param_type->variant.template_param.is_generic_param;
   } else {
     templ_param_type = NULL;
     proxy_class = &orig_type->variant.typeref.extra_info->proxy_class;
@@ -540,7 +543,9 @@ use as a base class.
     cssp = symbol_supplement_for_class(type);
     cssp->member_decl_scope = take_next_scope_number();
     cssp->template_param_for_proxy_class = orig_type;
-    type->variant.class_struct_union.is_nonreal_class = TRUE;
+    /* Note that while generic definitions are nonreal, the proxy classes for
+       contraints are not. */
+    type->variant.class_struct_union.is_nonreal_class = !is_generic;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (templ_param_type != NULL &&
         templ_param_type->variant.template_param.kind ==
@@ -551,9 +556,10 @@ use as a base class.
                                                               templ_param_type;
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-    if (prototype_instantiations_in_il) {
+    if (prototype_instantiations_in_il || is_generic) {
       /* When prototype instantiations are included in the IL, add the proxy
-         class to the IL. */
+         class to the IL.  Also do this for proxy classes created for
+         C++/CLI generic constraint types. */
       add_to_types_list(type, DEPTH_OF_FILE_SCOPE);
     }  /* if */
   }  /* if */
@@ -4026,6 +4032,12 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                                   ->template_param_for_proxy_class != NULL) {
         /* A proxy class. */
         is_proxy_or_nonreal_class_lookup = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (class_type->
+                            variant.class_struct_union.is_generic_definition) {
+        /* A lookup in a C++/CLI generic definition. */
+        /* FIXME: This should be eliminated if they are made real classes. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (class_type
                     ->variant.class_struct_union.is_prototype_instantiation ||
                  !class_type->variant.class_struct_union.is_template_class) {

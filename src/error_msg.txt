@@ -2231,6 +2231,9 @@ ec_managed_object_not_caught_by_handle;;"a managed object must be caught by hand
 ec_break_cannot_be_in_finally_block;;"a break statement cannot be used in a finally block"
 ec_continue_cannot_be_in_finally_block;;"a continue statement cannot be used in a finally block"
 ec_no_overloaded_subscript_with_offsetof;;"builtin offsetof cannot be used when subscripting is overloaded"
+ec_duplicate_constraint;;"duplicate constraint"
+ec_multiple_class_constraints;;"more than one class constraint: %t1 and %t2"
+ec_multiple_constraint_clauses;;"more than one constraint clause for %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
@@ -2240,3 +2243,4 @@ ec_no_overloaded_subscript_with_offsetof;;"builtin offsetof cannot be used when 
 # Copyright 1988-2011 Edison Design Group Inc.                   [_]          #
 #                                                                             #
 ###############################################################################
+

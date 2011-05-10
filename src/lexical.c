@@ -13818,7 +13818,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   a_boolean                       is_expr_context =
                                          (options & GID_IS_EXPR_CONTEXT) != 0;
   a_boolean                       sun_gpp_undefined_template = FALSE;
-  long                            first_defaulted_arg;
+  long                            first_defaulted_arg = -1L;
 
   db_enter(3, "coalesce_template_class_reference");
 
@@ -14093,7 +14093,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
        is no template symbol, which happens if an undefined symbol is
        followed by a template argument list. */
     arg_list = scan_unknown_template_arg_list(/*is_nonreal=*/TRUE);
-    first_defaulted_arg = -1L;
   }  /* if */
   arg_list_processed = TRUE;
   /* We should now be at the closing angle bracket.  Note that we don't
@@ -14520,7 +14519,10 @@ in a declarator of a template declaration.
 {
   a_boolean		any_errors = FALSE;
   a_symbol_ptr		sym = locator_for_curr_id.specific_symbol;
+  a_symbol_ptr		sym_parent;
 
+  sym_parent = sym != NULL && sym->is_class_member
+                                    ? symbol_for(sym_parent_class(sym)) : NULL;
   if (is_error_locator(locator_for_curr_id) || sym == NULL) {
     /* An error has already been issued. */
   } else if (!locator_for_curr_id.is_qualified_name) {
@@ -14530,8 +14532,7 @@ in a declarator of a template declaration.
   } else if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* Ignore errors in prototype instantiations. */
   } else if (sym->is_class_member &&
-             is_prototype_instantiation_symbol(
-                                         symbol_for(sym_parent_class(sym)))) {
+             (is_prototype_instantiation_or_cli_generic(sym_parent))) {
     /* The symbol is a member of a prototype instantiation -- this is the
        definition of a member of a class template. */
   } else if (options & GID_IS_TEMPLATE_SPECIALIZATION) {
@@ -14554,12 +14555,10 @@ in a declarator of a template declaration.
       /* The qualifier class type must point to a prototype instantiation. */
       a_type_ptr	tp;
       a_symbol_ptr	type_sym;
-      a_boolean		is_prototype_instantiation;
 
       tp = sym_parent_class(sym);
       type_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
-      is_prototype_instantiation = is_prototype_instantiation_symbol(type_sym);
-      if (is_prototype_instantiation) {
+      if (is_prototype_instantiation_or_cli_generic(type_sym)) { 
          /* Okay. */
       } else if (is_nonreal_instance_class_symbol(type_sym)) {
         /* If the class is not a real class type, then it is expected
@@ -18346,6 +18345,8 @@ C++/CLI delegate class types.)
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean			saved_is_scanning_generated_code_from_metadata;
+  a_boolean			is_delegate;
+  a_boolean			is_generic_definition;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   /* This routine cannot handle local classes. */
@@ -18427,6 +18428,9 @@ C++/CLI delegate class types.)
     fprintf(f_debug, "Class definition for %x/%08x: %.256s%s\n",
             assembly_index, metadata_type_def_token, class_def_buffer->buffer,
             class_def_buffer->size > 256 ? "..." : "");
+  } else if (db_flag_is_set("dump_full_metadata")) {
+    fprintf(f_debug, "Class definition for %x/%08x: %s\n",
+            assembly_index, metadata_type_def_token, class_def_buffer->buffer);
   }  /* if */
 #endif /* DEBUG */
 #else /* !CPPCLI_ENABLING_POSSIBLE */
@@ -18446,7 +18450,19 @@ C++/CLI delegate class types.)
   expand_macros = FALSE;
   insert_string_into_token_stream(class_def_buffer->buffer,
                                   /*insert_after=*/FALSE);
-  if (strncmp(class_def_buffer->buffer, "delegate ", 9) == 0) {
+  is_delegate = strncmp(class_def_buffer->buffer, "delegate ", 9) == 0;
+  is_generic_definition = class_type->
+                              variant.class_struct_union.is_generic_definition;
+  /* Generics are processed differently than other types.  They are cached
+     for instantiation purposes, then an initial scan is done to do the
+     semantic analysis of the generic definition. */
+  if (is_generic_definition) {
+    if (is_delegate) {
+      scan_cli_generic_delegate_definition_from_assembly_import(class_type);
+    } else {
+      scan_cli_generic_class_definition_from_assembly_import(class_type);
+    }  /* if */
+  } else if (is_delegate) {
     /* Delegate definitions are a special kind of class definition that is
        nor handled by the call to scan_class_definition below. */
     scan_cli_delegate_definition_from_assembly_import();
@@ -18532,6 +18548,8 @@ the caller should copy the contents as needed.
   if (db_flag_is_set("dump_metadata")) {
     fprintf(f_debug, "Import types from %x: %.256s%s\n",
             idx, buffer->buffer, buffer->size > 256 ? "..." : "");
+  } else if (db_flag_is_set("dump_full_metadata")) {
+    fprintf(f_debug, "Import types from %x: %s\n", idx, buffer->buffer);
   }  /* if */
 #endif /* DEBUG */
   return buffer->buffer;

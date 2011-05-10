@@ -37,7 +37,7 @@ http://code.msdn.microsoft.com/alink
 #include <windows.h>
 #include <metahost.h>
 #include <cor.h>
-#include <alink.h>
+#include "alink.h"
 
 #include <string>
 #include <map>
@@ -2499,6 +2499,7 @@ omitted.
   a_generic_parameter_list generic_type_parameters;
   a_top_level_kind         kind;
   bool                     skip_type = false;
+  bool                     is_generic;
   a_cpp_cli_feature_set    supported_features = 
                                      containing_assembly_.supported_features();
 
@@ -2515,6 +2516,7 @@ omitted.
                                               &extends_token);
   CHECK_API_RESULT(hr, GetTypeDefProps);
   generic_type_parameters = get_generic_parameters(typedef_token);
+  is_generic = !generic_type_parameters.empty();
   full_type_name = name_buffer.get();
   /* Check whether this type should be emitted based on the supported 
      features. */
@@ -2528,8 +2530,7 @@ omitted.
              (supported_features & cpp_cli_as_friend_assembly) == 0) {
     /* Skip this type if private types are not accessible. */
     skip_type = true;
-  } else if (!generic_type_parameters.empty() &&
-             (supported_features & cpp_cli_generic_types) == 0) {
+  } else if (is_generic && (supported_features & cpp_cli_generic_types) == 0) {
     /* Skip this type if generic types are not supported. */
     skip_type = true;
   } else if (full_type_name[0] == L'<' &&
@@ -2616,9 +2617,11 @@ omitted.
          the type name. */
       type_name = wstring(L"__identifier(\"") + type_name + wstring(L"\")");
     }  /* if */
-    /* Emit the namespace scopes and class head if required. */
-    if (!class_body_only) {
-      if (at_top_level) {
+    /* Emit the namespace scopes and class head if required.  These are
+       present on the original declaration and also on the definitions of
+       generics. */
+    if (!class_body_only || is_generic) {
+      if (at_top_level && !class_body_only) {
         /* Make sure that the correct namespace scopes are opened. */
         if (!namespace_name.empty()) {
           open_namespace_scopes(buffer, namespace_name);
@@ -2649,13 +2652,15 @@ omitted.
       /* Emit the tokens that represent the kind. */
       buffer << top_level_kind_as_wstring(kind) << ' ';
       /* Emit the assembly_info declspec. */
-      if ((supported_features & cpp_cli_declspec_assemby_info) != 0) {
+      if (!class_body_only &&
+          (supported_features & cpp_cli_declspec_assemby_info) != 0) {
         buffer << "__declspec(assembly_info(";
         buffer << containing_assembly_.assembly_index();
         buffer << ", 0x" << setw(8) << setfill('0') << hex << typedef_token;
         buffer << ")) ";
       }  /* if */
-    } else if (kind == tlk_delegate) {
+    }  /* if */
+    if (class_body_only && kind == tlk_delegate) {
       /* Even when class_body_only is TRUE, the context-sensitive keyword
          "delegate" is needed so that a delegate class definition can be
          easily distinguished from a more traditional (managed) class
@@ -2673,7 +2678,7 @@ omitted.
                           (supported_features & cpp_cli_define_all_types) != 0;
 
       /* Emit the name of the type. */
-      if (!class_body_only) buffer << type_name;
+      if (!class_body_only || is_generic) buffer << type_name;
       if (want_definition || define_all_types) {
         a_type_definition type_definition(typedef_token, type_name, 
                                           extends_token,
@@ -3575,11 +3580,11 @@ a_cpp_cli_feature_set
                                          cpp_cli_value_types |
                                          cpp_cli_interfaces |
                                          cpp_cli_enumerations |
-                                         cpp_cli_properties |
-                                         cpp_cli_events |
 //                                       cpp_cli_generic_types |
 //                                       cpp_cli_generic_methods |
                                          cpp_cli_delegates |
+                                         cpp_cli_properties |
+                                         cpp_cli_events |
 //                                       cpp_cli_define_all_types |
                                          cpp_cli_declspec_assemby_info;
 

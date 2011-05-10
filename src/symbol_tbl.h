@@ -961,9 +961,10 @@ typedef struct a_class_symbol_supplement {
 			   a lookup is done. */
   a_type_ptr    template_param_for_proxy_class;
 			/* If the class is a proxy class associated with
-			   a template parameter type or dependent decltype
-			   this field points back to the template parameter
-			   or the decltype typeref; otherwise it is NULL. */
+			   a template parameter type, dependent decltype or
+			   C++/CLI type parameter, this field points back
+			   to the template/generic parameter or the decltype
+			   typeref; otherwise it is NULL. */
   a_symbol_ptr	corresp_prototype_sym;
 			/* If the class is a template class instance, or a
 			   class nested within a template class, this points
@@ -4849,11 +4850,41 @@ for a C++/CLI generic class.
 #define non_generic_class_for_cli_generic(sym)				\
    (&(sym)->variant.template_info->variant.class_template.non_generic_class)
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Return TRUE if the symbol is a C++/CLI generic.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_cli_generic_class_symbol(sym)				\
   (is_class_template_symbol(sym) &&					\
    (sym)->variant.template_info->is_generic)
 
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_cli_generic_class_symbol(sym) /*lint --e(506)*/(FALSE)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Return TRUE if the symbol is the class symbol representing the definition
+of a C++/CLI generic class.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_cli_generic_class_definition_symbol(sym)			\
+  (is_class_struct_union_symbol(sym) &&					\
+   (sym)->variant.class_struct_union.type->				\
+                   variant.class_struct_union.is_generic_definition)
+
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_cli_generic_class_definition_symbol(sym) /*lint --e(506)*/(FALSE)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Return TRUE if the symbol is a prototype instantiation or C++/CLI generic
+class definition.
+*/
+#define is_prototype_instantiation_or_cli_generic(symbol)	\
+  (is_prototype_instantiation_symbol(symbol) ||				\
+   is_cli_generic_class_definition_symbol(symbol))
 
 /* Return TRUE if the symbol is an sk_type symbol that represents an
    injected class name in a template class.  In a template class, the
@@ -4914,6 +4945,16 @@ for a C++/CLI generic class.
                    variant.class_struct_union.is_template_class &&    \
    (sym)->variant.class_struct_union.type->			      \
                    variant.class_struct_union.is_nonreal_class)
+
+/*
+If type is a proxy class, return the associated template parameter,
+otherwise return NULL.
+*/
+#define template_param_if_proxy_class(type)				\
+  (is_immediate_class_type(type)					\
+   ? symbol_for(type)->variant.class_struct_union.extra_info->		\
+                                      template_param_for_proxy_class	\
+   : NULL)
 
 extern a_boolean is_proxy_member_symbol(a_symbol_ptr  sym);
 

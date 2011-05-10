@@ -209,6 +209,20 @@ typedef struct a_tmpl_decl_state {
   uint32_t	num_parameters;
 			/* The number of parameters for the generic being
 			   declared. */
+  a_cli_class_type_kind
+		cli_class_type_kind;
+			/* The class type kind of this template.  In
+			   non-C++/CLI modes, it is always cctk_standard.
+			   In C++/CLI mode, other kinds of classes
+			   (e.g., "ref classes") are possible. */
+  an_assembly_visibility
+		cli_visibility;
+			/* The C++/CLI visibility, if any, specified for this
+			   declaration, or av_none if none was specified. */
+  a_source_position
+		cli_visibility_pos;
+			/* The source position if a cli_visibility was
+			   specified, or null_source position. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_tmpl_decl_state;
 
@@ -830,6 +844,12 @@ extern a_boolean is_nontemplate_routine_from_exported_trans_unit(
 						a_routine_ptr rout_ptr);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
+extern void scan_cli_generic_class_definition_from_assembly_import(
+							a_type_ptr	type);
+
+extern void scan_cli_generic_delegate_definition_from_assembly_import(
+							a_type_ptr	type);
 
 extern a_boolean check_cli_internal_template_instantiation(
                                         a_symbol_ptr       template_sym,

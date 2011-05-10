@@ -133,12 +133,16 @@ extern a_boolean is_value_class_type(a_type_ptr tp);
 extern a_boolean is_simple_value_class_type(a_type_ptr tp);
 extern a_boolean is_standard_class_type(a_type_ptr tp);
 extern a_boolean is_managed_class_type(a_type_ptr tp);
+extern a_boolean is_cli_interface_type(a_type_ptr tp);
 extern a_boolean is_cli_ref_or_interface_class_type(a_type_ptr tp);
 #define cli_class_type_kind_is(tp, cctk)                                     \
   (class_type_supp(tp)->cli_class_type_kind == (a_cli_class_type_kind)(cctk))
 #define is_immediate_managed_class_type(tp)                                  \
   (is_immediate_class_type(tp) &&                                            \
    !cli_class_type_kind_is((tp), cctk_standard))
+#define is_immediate_cli_interface_type(tp)                                  \
+  (is_immediate_class_type(tp) &&                                            \
+   cli_class_type_kind_is((tp), cctk_interface))
 #define is_immediate_delegate_type(tp)                                       \
   (is_immediate_class_type(tp) &&                                            \
    (tp)->variant.class_struct_union.is_delegate_class)
@@ -899,7 +903,14 @@ extern a_boolean is_nothrow_type(a_type_ptr  type);
 extern a_boolean exception_spec_is_less_restrictive(a_type_ptr  type1,
                                                     a_type_ptr  type2);
 extern a_boolean same_exception_spec(a_type_ptr type_1, a_type_ptr type_2);
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
+/* A C++/CLI generic parameter type. */
+#define is_cli_generic_param(tp)					\
+   ((tp)->kind == (a_type_kind)tk_template_param &&		\
+    (tp)->variant.template_param.is_generic_param)
+
 extern
 a_boolean is_prohibited_interior_ptr_conversion(a_type_ptr source_type,
                                                 a_type_ptr dest_type);
@@ -1235,6 +1246,37 @@ extern a_targ_size_t upc_local_type_size(a_type_ptr tp);
       UPC_BLOCK_SIZE_NONE)
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
+
+/*
+Return TRUE if type is a prototype instantiation.  type is required to be
+a class type.
+*/
+#define is_prototype_instantiation_type(type)				\
+  (type->variant.class_struct_union.is_prototype_instantiation)
+
+/*
+Return TRUE if type is a C++/CLI generic definition.  type is required to be
+a class type.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_cli_generic_definition_type(type)				\
+  (type->variant.class_struct_union.is_generic_definition)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_cli_generic_definition_type(type) /*lint --e(506)*/(FALSE)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Return TRUE if type is a prototype instantiation or a C++/CLI generic
+definition.  type is required to be a class type.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_prototype_instantiation_or_cli_generic_type(type)		\
+  (is_prototype_instantiation_type(type) ||				\
+   is_cli_generic_definition_type(type))
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_prototype_instantiation_or_cli_generic_type(type)		\
+  (is_prototype_instantiation_type(type))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean in_definition_of_class(a_type_ptr  tp);
 

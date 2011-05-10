@@ -868,7 +868,7 @@ level.
          parent_sym is a prototype instantiation, to avoid output like
          "[with T=T]" */
       if (parent_template_sym != NULL &&
-          is_prototype_instantiation_symbol(parent_template_sym) &&
+          is_prototype_instantiation_or_cli_generic(parent_template_sym) &&
           !is_prototype_instantiation_symbol(parent_sym)) {
         form_template_arg_info(parent_sym, parent_template_sym, seg_ptr,
                                any_args);
@@ -3511,7 +3511,8 @@ message appears by itself on a separate line.
        need additional context information. */
     sym = ssep->instance_sym;
     /* If the instance symbol is NULL use the template symbol instead. */
-    if (ssep->in_prototype_instantiation) {
+    if (ssep->in_prototype_instantiation ||
+        ssep->in_generic_definition) {
       /* Prototype instantiations are excluded from the context output. */
     } else if (sym == NULL) {
       sym = ssep->template_sym;
