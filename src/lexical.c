@@ -18460,7 +18460,7 @@ C++/CLI delegate class types.)
     if (is_delegate) {
       scan_cli_generic_delegate_definition_from_assembly_import(class_type);
     } else {
-      scan_cli_generic_class_definition_from_assembly_import(class_type);
+      scan_cli_generic_class_definition_from_assembly_import();
     }  /* if */
   } else if (is_delegate) {
     /* Delegate definitions are a special kind of class definition that is

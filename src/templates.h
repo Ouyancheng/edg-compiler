@@ -845,8 +845,7 @@ extern a_boolean is_nontemplate_routine_from_exported_trans_unit(
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-extern void scan_cli_generic_class_definition_from_assembly_import(
-							a_type_ptr	type);
+extern void scan_cli_generic_class_definition_from_assembly_import(void);
 
 extern void scan_cli_generic_delegate_definition_from_assembly_import(
 							a_type_ptr	type);

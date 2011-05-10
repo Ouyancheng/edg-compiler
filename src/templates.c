@@ -506,7 +506,7 @@ Initialize a template declaration state block.
   tdsp->generic_constraint_clauses = NULL;
   tdsp->num_parameters = 0;
   tdsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_standard;
-  tdsp->cli_visibility = av_none;
+  tdsp->cli_visibility = (an_assembly_visibility)av_none;
   tdsp->cli_visibility_pos = null_source_position;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* init_templ_decl_state */
@@ -26393,11 +26393,11 @@ followed by "<" and then the class or typename keyword.
 }  /* is_start_of_generic_decl */
 
 
-void scan_cli_generic_class_definition_from_assembly_import(
-							a_type_ptr	type)
+void scan_cli_generic_class_definition_from_assembly_import(void)
 /*
-Scan the definition of the generic class definition specified by type,
-which is being imported from metadata.
+Scan the definition of a generic class definition, which is being imported
+from metadata.  The class being defined is specified by the tokens to be
+scanned.
 */
 {
   declaration(/*function_definition_allowed=*/FALSE,

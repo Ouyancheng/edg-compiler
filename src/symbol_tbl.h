@@ -4860,8 +4860,6 @@ Return TRUE if the symbol is a C++/CLI generic.
   (is_class_template_symbol(sym) &&					\
    (sym)->variant.template_info->is_generic)
 
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_cli_generic_class_symbol(sym) /*lint --e(506)*/(FALSE)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -4945,7 +4943,8 @@ class definition.
                    variant.class_struct_union.is_template_class &&    \
    (sym)->variant.class_struct_union.type->			      \
                    variant.class_struct_union.is_nonreal_class)
-
+#if 0
+/* FIXME: This should be referenced soon. */
 /*
 If type is a proxy class, return the associated template parameter,
 otherwise return NULL.
@@ -4955,6 +4954,7 @@ otherwise return NULL.
    ? symbol_for(type)->variant.class_struct_union.extra_info->		\
                                       template_param_for_proxy_class	\
    : NULL)
+#endif /* 0 */
 
 extern a_boolean is_proxy_member_symbol(a_symbol_ptr  sym);
 
