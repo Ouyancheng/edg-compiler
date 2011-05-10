@@ -882,6 +882,7 @@ rewrite it as a property reference so the subscripts can be applied to that.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void scan_subscript_operator(an_operand             *operand_1,
+                                    a_boolean              offsetof_case,
                                     a_rescan_control_block *rcblock,
                                     an_operand             *result)
 /*
@@ -896,8 +897,8 @@ operands into an expression, and return an operand for that in
 *result.  If rcblock is non-NULL, redo semantic analysis on a
 previously-scanned expression, and return the result in *result (or an
 error indication in *rcblock).  operand_1 is expected to be NULL in
-that case.
-This routine is also used when scanning __builtin_offsetof constructs.
+that case.  This routine is also used when scanning __builtin_offsetof
+constructs, in which case offsetof_case is TRUE.
 */
 {
   an_operand         local_operand_1, operand_2;
@@ -1102,6 +1103,14 @@ This routine is also used when scanning __builtin_offsetof constructs.
                                      (a_nondependent_call_depth)0,
                                      &closing_bracket_position,
                                      result, &processed);
+      if (offsetof_case && processed) {
+        /* An overloaded operator cannot be used with __builtin_offsetof. */
+        if (!is_error_operand(result)) {
+          expr_pos_error(ec_no_overloaded_subscript_with_offsetof,
+                         &operator_position);
+          conv_to_error_operand(result);
+        }  /* if */
+      }  /* if */
     }  /* if */
     if (!processed) {
       /* Non-operator-function cases. */
@@ -9751,7 +9760,8 @@ indication in *rcblock).
                                         /*offsetof_case=*/TRUE,
                                         &local_result, (an_operand*)NULL);
         } else {
-          scan_subscript_operator(&operand, (a_rescan_control_block *)NULL,
+          scan_subscript_operator(&operand, /*offsetof_case=*/TRUE,
+                                  (a_rescan_control_block *)NULL,
                                   &local_result);
         }  /* if */
       } while (curr_token == tok_period || curr_token == tok_lbracket);
@@ -26374,8 +26384,8 @@ bad_start_of_primary:
         break;
       case tok_lbracket:
         /* Subscript. */
-        scan_subscript_operator(&operand, (a_rescan_control_block *)NULL,
-                                &local_result);
+        scan_subscript_operator(&operand, /*offsetof_case=*/FALSE,
+                                (a_rescan_control_block *)NULL, &local_result);
         break;
       case tok_lparen:
         /* Routine call. */
@@ -29527,7 +29537,8 @@ alternative callable from outside, see rescan_expr_with_substitution.
        scan_expr_full. */
     switch (operator_token) {
       case tok_lbracket:
-        scan_subscript_operator((an_operand *)NULL, rcblock, result);
+        scan_subscript_operator((an_operand *)NULL, /*offsetof_case=*/FALSE,
+                                rcblock, result);
         break;
       case tok_lparen:
         scan_function_call((an_operand *)NULL, (an_operand *)NULL,

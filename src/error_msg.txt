@@ -2230,6 +2230,7 @@ ec_managed_object_not_thrown_by_handle;;"a managed object must be thrown by hand
 ec_managed_object_not_caught_by_handle;;"a managed object must be caught by handle"
 ec_break_cannot_be_in_finally_block;;"a break statement cannot be used in a finally block"
 ec_continue_cannot_be_in_finally_block;;"a continue statement cannot be used in a finally block"
+ec_no_overloaded_subscript_with_offsetof;;"builtin offsetof cannot be used when subscripting is overloaded"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

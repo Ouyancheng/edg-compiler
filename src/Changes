@@ -1,5 +1,24 @@
 Version 4.4
 
+5/10/11  [EDGcpfe/11670]
+Abort on use of __builtin_offsetof with overloaded subscript operator
+
+The front end aborted in is_template_dependent_offsetof_member in
+folding.c while processing a __builtin_offsetof operator in GNU C++
+mode when a subscript operation in the offsetof is overloaded.
+Now fixed (an error is issued).
+
+  struct A {
+    int operator [](int);
+  };
+  struct B {
+    A a;
+  };
+  int main() {
+    return __builtin_offsetof(B,a[0]);  // Error instead of abort now
+  }
+
+
 5/10/11  [EDGcpfe/11713]
 Empty variadic template pack expansion in arguments of "new" causes abort
 
