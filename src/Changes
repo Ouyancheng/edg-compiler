@@ -1,5 +1,26 @@
 Version 4.4
 
+5/10/11  [EDGcpfe/11713]
+Empty variadic template pack expansion in arguments of "new" causes abort
+
+An empty variadic template pack expansion as the argument list for a
+"new" operation on a class type could cause an abort in lower_new in
+lower_init.c.  Now fixed.  This affected only configurations that
+do IL lowering and that also have NEW_CAN_BE_FOLDED_INTO_CTOR set to
+TRUE (and therefore, not IA-64 ABI configurations).
+
+  struct A {
+    A();
+  };
+  template <class... Types> void f(Types... Args) {
+    new A(Args...);  // Could be an empty pack expansion, implying value
+                     // initialization.  Caused abort previously.
+  }
+  int main() {
+    f();
+  }
+
+
 5/6/11   [EDGcpfe/11426]
 Unnamed scoped enumerations
 

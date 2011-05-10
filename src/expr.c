@@ -14313,7 +14313,11 @@ expression, and return the result in *result (or an error indication in
                                         !has_new_initializer) &&
                                        !value_init &&
                                        has_trivial_default_constructor(cssp));
-        if (!value_init && !trivial_ctor_init) {
+        if (!value_init && !trivial_ctor_init &&
+            /* If the expression that follows might be an empty pack
+               expansion, we might end up with value initialization anyway
+               so we can't fold. */
+            !is_variadic_template_context()) {
           set_class_assoc_operator_new_routine(unqual_base_new_type);
           if (exceptions_enabled) {
             set_class_assoc_operator_delete_routine(unqual_base_new_type);
