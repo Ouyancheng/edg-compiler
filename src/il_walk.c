@@ -3420,6 +3420,7 @@ as specified in the control block.
         an_asm_operand_ptr aop;
         for (aop = aep->operands; aop != NULL; aop = aop->next) {
           traverse_expr(aop->expression, tblock);
+          if (tblock->terminate) goto end_of_routine;
         }  /* for */
       }
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -3443,6 +3444,12 @@ as specified in the control block.
           traverse_statement(handler->statement, tblock);
           if (tblock->terminate) goto end_of_routine;
         }  /* for */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (tsp->finally_statement != NULL) {
+          traverse_statement(tsp->finally_statement, tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED

@@ -14088,6 +14088,13 @@ typedef struct a_try_supplement {
   a_handler_ptr	handlers;
 			/* A linked list of entries describing the handlers
 			   (or catch-clauses) defined in the try block. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_statement_ptr
+                finally_statement;
+                        /* The "finally" clause of a try block when compiling
+                           C++/CLI code.  NULL if no finally block was
+                           specified. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_object_lifetime_ptr
 		lifetime;
 			/* An object lifetime enclosing the try block and

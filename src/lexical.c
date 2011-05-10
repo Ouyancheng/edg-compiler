@@ -17489,13 +17489,14 @@ called the current token is the right brace, except for error cases.
 }  /* cache_compound_stmt */
 
 
-static void cache_catch_clauses(a_token_cache		*p_token_cache,
-				a_token_set_array	stop_tokens)
+static void cache_function_try_block_clauses(a_token_cache     *p_token_cache,
+                                             a_token_set_array stop_tokens)
 /*
-Cache into p_token_cache the catch clauses that follow a function
-definition that are associated with a function try block.  stop_tokens
-is the stop token set to be used.  After this routine is
-called the current token is the right brace, except for error cases.
+Cache into p_token_cache the catch clauses that follow a function definition
+that are associated with a function try block.  In C++/CLI mode, the optional
+finally clause is also cached.  stop_tokens is the stop token set to be used.
+After this routine is called the current token is the right brace, except for
+error cases.
 */
 {
   while (next_token() == tok_catch) {
@@ -17514,7 +17515,38 @@ called the current token is the right brace, except for error cases.
        compound statement. */
     if (curr_token != tok_rbrace) break;
   }  /* while */
-}  /* cache_catch_clauses */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && curr_token == tok_rbrace &&
+      next_token() == tok_identifier) {
+    a_token_cache aux_cache;
+
+    /* We create an auxiliary token cache to hold the tok_rbrace as we look
+       ahead and determine if the upcoming identifier is "finally". */
+    clear_token_cache(&aux_cache, /*reusable=*/FALSE);
+    cache_curr_token(&aux_cache);
+    /* Advance past the tok_rbrace so that locator_for_curr_id points to the
+       tok_identifier. */
+    (void)get_token();
+    if (curr_token_is_identifier_string("finally") &&
+        next_token() == tok_lbrace) {
+      /* Discard the tok_rbrace in the auxiliary cache, because it was already
+         cached in p_token_cache. */
+      discard_token_cache(&aux_cache);
+      /* Cache and advance past the "finally". */
+      cache_curr_token(p_token_cache);
+      (void)get_token();
+      /* curr_token is now tok_lbrace, begin caching the compound statement. */
+      cache_compound_stmt(p_token_cache, stop_tokens);
+    } else {
+      /* It was not a "finally" clause.  Put the tok_rbrace and the current
+         token back on the token stream.  After this, current token will again
+         point to the tok_rbrace from the end of the previous compound
+         statement.  p_token_cache was not modified. */
+      rescan_cached_tokens(&aux_cache);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* cache_function_try_block_clauses */
 
 
 a_boolean cache_function_body(
@@ -17583,8 +17615,8 @@ not be returned.
 #endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
       if (try_found) {
         /* If this function is a function try block, cache the associated
-           catch clauses. */
-        cache_catch_clauses(p_token_cache, stop_tokens);
+           catch or C++/CLI finally clauses. */
+        cache_function_try_block_clauses(p_token_cache, stop_tokens);
       }  /* if */
       if (curr_token == tok_rbrace) {
         /* A get_token is intentionally not done -- the caller will

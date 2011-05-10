@@ -2223,6 +2223,13 @@ ec_named_override_requires_managed_type;;"a named override specifier is allowed 
 ec_named_override_type_mismatch;;"no member designated by the named override specifier matches the type of this member"
 ec_static_constructor_with_named_override;;"a static constructor declaration cannot include a named override specifier"
 ec_unnamed_scoped_enum;;"a scoped enumeration type must have a name"
+ec_branch_into_finally;;"transfer of control into a finally block is not allowed"
+ec_return_from_finally;;"return statement inside a finally block is not allowed"
+ec_missing_finally;;"try block requires at least one handler or finally clause"
+ec_managed_object_not_thrown_by_handle;;"a managed object must be thrown by handle"
+ec_managed_object_not_caught_by_handle;;"a managed object must be caught by handle"
+ec_break_cannot_be_in_finally_block;;"a break statement cannot be used in a finally block"
+ec_continue_cannot_be_in_finally_block;;"a continue statement cannot be used in a finally block"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

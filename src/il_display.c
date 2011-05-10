@@ -4046,6 +4046,9 @@ Display the indicated exception-handling "try" supplement.
   disp_boolean("is_function_try_block", (a_boolean)ptr->is_function_try_block);
   disp_ptr("statement", (char *)ptr->statement, iek_statement);
   disp_ptr("handlers", (char *)ptr->handlers, iek_handler);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  disp_ptr("finally", (char *)ptr->finally_statement, iek_statement);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
 }  /* disp_try_supplement */
 

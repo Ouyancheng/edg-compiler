@@ -11096,6 +11096,14 @@ pos is used to mark the location that carries any diagnostic.
        therefore treat such cases like lvalue references. */
     pos_error(ec_rvalue_reference_catch_type, pos);
     result = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && 
+             (is_managed_class_type(type) || 
+              (is_tracking_reference_type(type) && 
+               is_managed_class_type(type_pointed_to(type))))) {
+    /* In C++/CLI, managed types can only be thrown and caught by handle. */
+    pos_error(ec_managed_object_not_caught_by_handle, pos);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (is_any_ptr_or_ref_type(type)) {
     type = type_pointed_to(type);
     /* Force instantiation of template class. */

@@ -286,6 +286,10 @@ purposes.
         fprintf(f_debug, ", catch");
       } else if (cfdp->variant.block.is_try_block) {
         fprintf(f_debug, ", try");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (cfdp->variant.block.is_finally_block) {
+        fprintf(f_debug, ", finally");
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (cfdp->variant.block.is_statement_expr) {
         fprintf(f_debug, ", statement expr");
       } else if (cfdp->variant.block.is_within_goto_protected_block) {
@@ -558,6 +562,9 @@ to it.
       cfdp->variant.block.exposed_init_in_switch = FALSE;
       cfdp->variant.block.is_catch_block = FALSE;
       cfdp->variant.block.is_try_block = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      cfdp->variant.block.is_finally_block = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       cfdp->variant.block.is_statement_expr = FALSE;
       cfdp->variant.block.is_within_goto_protected_block = FALSE;
       break;
@@ -760,12 +767,11 @@ static a_boolean check_for_branch_into_goto_protected_block(
                                       a_control_flow_descr_ptr  goto_cfdp)
 /*
 Check for an attempt to branch into a try block, a catch clause (an
-exception handler), or a GNU statement expression.  Either label_cfdp
-points to a label entry and goto_cfdp to a goto entry, or else
-label_cfdp points to a case label entry and goto_cfdp is NULL (in
-which case we need to find the switch with which the case label is
-associated).  If an error is found, issue the diagnostic and
-return TRUE.
+exception handler), a C++/CLI finally clause, or a GNU statement expression.
+Either label_cfdp points to a label entry and goto_cfdp to a goto entry, or
+else label_cfdp points to a case label entry and goto_cfdp is NULL (in which
+case we need to find the switch with which the case label is associated).  If
+an error is found, issue the diagnostic and return TRUE.
 */
 {
   a_boolean                 err = FALSE;
@@ -777,6 +783,9 @@ return TRUE.
     /* The label is inside a statement that cannot be branched into. */
     while (!cfdp->variant.block.is_catch_block &&
            !cfdp->variant.block.is_try_block &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+           !cfdp->variant.block.is_finally_block &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
            !cfdp->variant.block.is_statement_expr) {
       cfdp = cfdp->parent;
       check_assertion(cfdp != NULL);
@@ -814,6 +823,10 @@ return TRUE.
         err_code = ec_branch_into_try_block;
       } else if (cfdp->variant.block.is_statement_expr) {
         err_code = ec_branch_into_statement_expr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (cfdp->variant.block.is_finally_block) {
+        err_code = ec_branch_into_finally;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         unexpected_condition_str(
              "check_for_branch_into_goto_protected_block: unknown block kind");
@@ -1104,9 +1117,13 @@ the label are promoted to the lifetime of the function scope.
       /* Don't promote the lifetime of an inner block if it has destructions
          associated with it. */
       keep_block_object_lifetime = TRUE;
-    } else if (block_cfdp->variant.block.is_catch_block) {
-      /* The lifetime of a try block or catch clause is retained in the IL,
-         even if it has no destructions. */
+    } else if (block_cfdp->variant.block.is_catch_block
+#if MICROSOFT_EXTENSIONS_ALLOWED
+               || block_cfdp->variant.block.is_finally_block
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                            ) {
+      /* The lifetime of a try block, catch clause or finally clause is
+         retained in the IL, even if it has no destructions. */
       keep_block_object_lifetime = TRUE;
     } else {
       keep_block_object_lifetime = FALSE;
@@ -2610,6 +2627,7 @@ statement is the top block of a GNU statement expression ({ ... }).
   sssep->for_init             = FALSE;
   sssep->is_catch_clause      = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  sssep->parsing_finally_clause = FALSE;
   sssep->in_cleanup_statement_of_microsoft_try = FALSE;
   sssep->in_handler_parameter_declaration = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2697,6 +2715,15 @@ statement is the top block of a GNU statement expression ({ ... }).
           cfdp->variant.block.is_catch_block = TRUE;
           cfdp->variant.block.is_within_goto_protected_block = TRUE;
           sssep->is_catch_clause = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (sssep->kind == (a_struct_stmt_kind)ssk_compound &&
+                   sssep[-1].kind == (a_struct_stmt_kind)ssk_try_block &&
+                   sssep[-1].parsing_finally_clause) {
+          /* This block represents the compound statement immediately within
+             the C++/CLI finally clause of a try block. */
+          cfdp->variant.block.is_finally_block = TRUE;
+          cfdp->variant.block.is_within_goto_protected_block = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (sssep[-1].kind == (a_struct_stmt_kind)ssk_try_block) {
           /* This block represents the compound statement immediately within a
              try block statement. */
@@ -3850,6 +3877,15 @@ where handler-seq is a sequence of one or more handlers of the form
 
   catch ( exception-declaration ) compound-statement
 
+In C++/CLI mode, the following forms are also accepted (see ECMA-372 A.16):
+
+   try compound-statement finally-clause
+   try compound-statement handler-seq finally-clause
+
+where finally-clause is of the form:
+
+   finally compound-statement
+
 This function is also called to scan a function try block, in which case the
 "try" keyword will already have been consumed and other initialization done.
 sp points to an stmk_try_block statement when a function try block is being
@@ -3859,7 +3895,8 @@ declared with an explicit return type.
 */
 {
   a_source_position  catch_pos;
-  a_boolean	     is_function_try_block;
+  a_boolean          is_function_try_block;
+  a_boolean          catch_exists;
 
   db_enter(3, "try_block_statement");
   /* The statement will already have been created for function try blocks. */
@@ -3889,7 +3926,15 @@ declared with an explicit return type.
      it is in fact tok_catch, since the function that checks also advances
      past it. */
   catch_pos = pos_curr_token;
-  if (required_token(tok_catch, ec_missing_handler)) {
+  /* If C++/CLI mode is not enabled, catch is required here.  Otherwise,
+     it can be omitted provided there is a "finally". */
+  if (!cppcli_enabled) {
+    catch_exists = required_token(tok_catch, ec_missing_handler);
+  } else {
+    catch_exists = curr_token == tok_catch;
+    if (catch_exists) (void)get_token();
+  }  /* if */
+  if (catch_exists) {
     /* Loop through the (1 or more) handler declarations, adding each to
        the linked list of handlers pointed to by sp. */
     do {
@@ -3901,6 +3946,29 @@ declared with an explicit return type.
       catch_pos = pos_curr_token;
     } while (loop_token(tok_catch));
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled) {
+    if (curr_token == tok_identifier &&
+        curr_token_is_identifier_string("finally") &&
+        next_token() == tok_lbrace) {
+      /* Scan the "finally" clause allowed in C++/CLI. */
+      (void)get_token();
+      term_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
+      start_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
+      struct_stmt_stack[depth_stmt_stack].parsing_finally_clause = TRUE;
+      sp->variant.try_block->finally_statement =
+        compound_statement(/*at_function_level=*/FALSE,
+                           explicit_return_type,
+                           /*is_catch_clause=*/FALSE,
+                           /*is_statement_expr=*/FALSE);
+      struct_stmt_stack[depth_stmt_stack].parsing_finally_clause = FALSE;
+    } else if (!catch_exists) {
+      /* Neither "catch" nor "finally" was specified. Use required_token to
+         issue the diagnostic and advance the token stream as above. */
+      (void)required_token(tok_catch, ec_missing_finally);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!C_mode()) (void)pop_object_lifetime();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
@@ -5035,6 +5103,50 @@ GNU allows a syntax similar to Fortran's assigned goto:
   db_exit();
 }  /* goto_statement */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean has_nested_finally_clause(a_struct_stmt_stack_entry_ptr sssep)
+/*
+Return TRUE if a C++/CLI finally clause is nested in the structured statement
+represented by *sssep.
+*/
+{
+  a_boolean result = FALSE;
+
+  check_assertion(cppcli_enabled);
+  while (sssep != &struct_stmt_stack[depth_stmt_stack]) {
+    if (sssep->parsing_finally_clause) {
+      result = TRUE;
+      break;
+    }  /* if */
+    sssep++;
+  }  /* while */
+  return result;
+}  /* has_nested_finally_clause */
+
+
+static a_boolean inside_finally_clause()
+/*
+Return TRUE if the top structured statement is nested in a C++/CLI finally
+clause.
+*/
+{
+  int       depth;
+  a_boolean result = FALSE;
+
+  check_assertion(cppcli_enabled);
+  /* Note that we look at entry [0] because we have to consider function
+     try-blocks. */
+  for (depth = depth_stmt_stack; depth >= 0; depth--) {
+    if (struct_stmt_stack[depth].parsing_finally_clause) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* inside_finally_clause */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void continue_statement(void)
 /*
@@ -5059,6 +5171,12 @@ See also 3.6.6.2.
   if (sssep == NULL) {
     /* No appropriate structured statement was found. */
     error(ec_continue_must_be_in_loop);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && has_nested_finally_clause(sssep)) {
+    /* A continue statement cannot be inside a C++/CLI finally clause. */
+    error(ec_continue_cannot_be_in_finally_block);
+    sssep = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Add a "goto" to the continue label. */
   add_goto_to_continue_label(sssep, /*is_leave=*/FALSE, &goto_stmt);
@@ -5189,6 +5307,12 @@ See also 3.6.6.3.
   if (sssep == NULL) {
     /* No appropriate structured statement was found. */
     error(ec_break_must_be_in_loop_or_switch);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && has_nested_finally_clause(sssep)) {
+    /* A break statement cannot be inside a C++/CLI finally clause. */
+    error(ec_break_cannot_be_in_finally_block);
+    sssep = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     check_for_leaving_upc_forall(sssep);
     if (sssep->kind == (a_struct_stmt_kind)ssk_switch &&
@@ -5426,6 +5550,14 @@ See also 3.6.6.4.
     discard_curr_construct_pragmas();
     return_type = error_type();
     return_stmt_allowed = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && inside_finally_clause()) {
+    /* This is a return statement inside of a finally block. */
+    pos_error(ec_return_from_finally, &return_pos);
+    discard_curr_construct_pragmas();
+    return_type = error_type();
+    return_stmt_allowed = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* See if the optional expression is present. */
     if (!expr_present) {
@@ -6491,6 +6623,27 @@ e.g., ({ ... }).
     /* Push an entry on the structured statement stack. */
     push_stmt_stack(ssk_compound, block,
                     innermost_block_object_lifetime(curr_object_lifetime));
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (struct_stmt_stack[depth_stmt_stack].kind ==
+                                          (a_struct_stmt_kind)ssk_try_block &&
+             struct_stmt_stack[depth_stmt_stack].parsing_finally_clause) {
+    /* When scanning the C++/CLI "finally" block, start_block_statement is
+       avoided because its call to add_statement would append the new block
+       statement into the wrong part of the try supplement.  This case is
+       similar to the is_catch_clause case above, except the scope stack was
+       not previously pushed. */
+    (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
+                     (a_type_ptr)NULL, (a_routine_ptr)NULL);
+    block = alloc_statement((a_statement_kind)stmk_block);
+    set_stmt_source_position(block->position, pos_curr_token);
+    stmt_update_source_sequence_list(block);
+    /* Issue diagnostics on pragmas that are trying to bind to the finally
+       clause. */
+    cannot_bind_to_curr_construct();
+    /* Push an entry on the structured statement stack. */
+    push_stmt_stack(ssk_compound, block,
+                    innermost_block_object_lifetime(curr_object_lifetime));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Block nested within a function.  Link it onto the current statement
        sequence. */

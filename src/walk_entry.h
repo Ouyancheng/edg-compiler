@@ -1775,6 +1775,9 @@ do_set_proper_definition_needed_flag:
         a_try_supplement_ptr ptr = (a_try_supplement_ptr)entry_ptr;
         walk_ptr(ptr->statement, a_statement_ptr, iek_statement);
         walk_list(ptr->handlers, a_handler_ptr, iek_handler);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        walk_ptr(ptr->finally_statement, a_statement_ptr, iek_statement);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         remap_ptr_not_needed(ptr->lifetime, an_object_lifetime_ptr,
                              iek_object_lifetime);
       }

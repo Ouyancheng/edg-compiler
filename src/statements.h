@@ -160,6 +160,12 @@ typedef struct a_control_flow_descr {
 		is_try_block:1;
 			/* TRUE if this is the top level block of a try
 			   statement. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_bit_field
+		is_finally_block:1;
+			/* TRUE if this is the top level block of a C++/CLI
+			   finally clause. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
 		is_statement_expr:1;
 			/* TRUE if this is the top level block of a GNU
@@ -264,6 +270,11 @@ typedef struct a_struct_stmt_stack_entry {
 			   statement represents the top level block of a
 			   catch clause. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	parsing_finally_clause:1;
+			/* If kind == ssk_try_block, TRUE if we are parsing
+			   a C++/CLI finally clause.  This flag is set before
+			   the call to compound_statement and cleared
+			   afterward. */
   a_bit_field	in_cleanup_statement_of_microsoft_try:1;
 			/* TRUE if currently inside the cleanup statement of
 			   a Microsoft try-finally or try-except. */

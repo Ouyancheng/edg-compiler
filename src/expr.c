@@ -22584,6 +22584,12 @@ in *rcblock).
           expr_pos_warning(ec_ptr_incomplete_throw, &operand.position);
         }  /* if */
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled && 
+               is_managed_class_type(throw_type)) {
+      /* In C++/CLI, managed types can only be thrown by handle. */
+      error_in_operand(ec_managed_object_not_thrown_by_handle, &operand);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_abstract_class_type(throw_type)) {
       if (expr_error_should_be_issued()) {
         abstract_class_diagnostic(es_error,

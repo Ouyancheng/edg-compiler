@@ -11349,6 +11349,12 @@ exception-handling "try" block.
     write_space();
     gen_statement(handler->statement);
   }  /* for */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (statement->variant.try_block->finally_statement != NULL) {
+    write_tok_str("finally ");
+    gen_statement(statement->variant.try_block->finally_statement);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* gen_try_block_statement */
 
 

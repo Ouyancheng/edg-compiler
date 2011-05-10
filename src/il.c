@@ -2502,6 +2502,14 @@ the dump (this one counts as the first).
                   db_statement_list(hp->statement, indent+4, "", how_deep-1);
                 }  /* if */
               }  /* for */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              if (sp->variant.try_block->finally_statement != NULL) {
+                for (a = 0; a < indent+2; a++) fputs(" ", f_debug);
+                fprintf(f_debug, "finally:\n");
+                db_statement_list(sp->variant.try_block->finally_statement,
+                                  indent+4, "", how_deep-1);
+              }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             }  /* if */
           }  /* if */
           break;

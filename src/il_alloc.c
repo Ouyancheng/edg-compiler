@@ -3328,9 +3328,12 @@ fields to default values.
       num_try_supplements_allocated++;
 #endif /* DEBUG */
       tsp->is_function_try_block = FALSE;
-      tsp->statement = NULL;
-      tsp->handlers  = NULL;
-      tsp->lifetime  = NULL;
+      tsp->statement         = NULL;
+      tsp->handlers          = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      tsp->finally_statement = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      tsp->lifetime          = NULL;
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case stmk_microsoft_try:
