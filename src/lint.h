@@ -759,6 +759,13 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_named_override_type_mismatch)*/
 /*lint -esym(769,ec_static_constructor_with_named_override)*/
 /*lint -esym(769,ec_static_conversion_function_must_have_one_parameter)*/
+/*lint -esym(769,ec_branch_into_finally)*/
+/*lint -esym(769,ec_return_from_finally)*/
+/*lint -esym(769,ec_missing_finally)*/
+/*lint -esym(769,ec_managed_object_not_thrown_by_handle)*/
+/*lint -esym(769,ec_managed_object_not_caught_by_handle)*/
+/*lint -esym(769,ec_break_cannot_be_in_finally_block)*/
+/*lint -esym(769,ec_continue_cannot_be_in_finally_block)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_enum)*/
