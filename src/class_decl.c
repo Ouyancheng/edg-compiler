@@ -9368,6 +9368,7 @@ set to FALSE (and FALSE is always returned).
           } else {
             state->potentially_interface_like = FALSE;
           }  /* if */
+          is_implicitly_pure_virtual = in_interface;
         }  /* if */
         break;
       case sfk_static_constructor:
