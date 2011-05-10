@@ -766,7 +766,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_managed_object_not_caught_by_handle)*/
 /*lint -esym(769,ec_break_cannot_be_in_finally_block)*/
 /*lint -esym(769,ec_continue_cannot_be_in_finally_block)*/
-/*lint -esym(769,ec_duplicate_constraint;;"duplicate constraint)*/
+/*lint -esym(769,ec_duplicate_constraint)*/
 /*lint -esym(769,ec_multiple_class_constraints)*/
 /*lint -esym(769,ec_multiple_constraint_clauses)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
