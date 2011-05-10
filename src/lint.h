@@ -769,6 +769,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_duplicate_constraint)*/
 /*lint -esym(769,ec_multiple_class_constraints)*/
 /*lint -esym(769,ec_multiple_constraint_clauses)*/
+/*lint -esym(769,ec_initonly_static_data_member_not_initialized)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_enum)*/

@@ -2234,6 +2234,7 @@ ec_no_overloaded_subscript_with_offsetof;;"builtin offsetof cannot be used when 
 ec_duplicate_constraint;;"duplicate constraint"
 ec_multiple_class_constraints;;"more than one class constraint: %t1 and %t2"
 ec_multiple_constraint_clauses;;"more than one constraint clause for %n"
+ec_initonly_static_data_member_not_initialized;;"initonly static data members must have an initializer or be initialized in a static constructor"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

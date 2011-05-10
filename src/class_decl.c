@@ -20422,6 +20422,35 @@ next_quasi_override:;
   free_quasi_override_descr_list(&cdsp->quasi_overrides);
 }  /* check_quasi_overrides */
 
+
+static void check_initonly_members(a_class_def_state_ptr  cdsp)
+/*
+Traverse the static data members and check whether the initonly members are
+initialized.  If not, issue a diagnostic if there is no static constructor.
+FIXME: If there is a static constructor and it is defined in the current
+translation unit, VC10 issues an error if the static constructor does not
+modify the initonly members that have no in-class initializer.
+*/
+{
+  a_type_ptr      class_type = cdsp->class_type;
+  a_variable_ptr  var = class_type_supp(class_type)->assoc_scope->variables;
+
+  for (; var != NULL; var = var->next) {
+    if (var->is_initonly && !var->is_member_constant) {
+      a_symbol_ptr  static_ctor = symbol_supplement_for_class(class_type)
+                                                         ->static_constructor;
+      if (static_ctor == NULL ||
+          static_ctor->variant.routine.ptr->compiler_generated) {
+        pos_error(ec_initonly_static_data_member_not_initialized,
+                  &symbol_for(var)->decl_position);
+      } else {
+        /* There is a user-declared static constructor, which presumably
+           initializes the initonly static data member. */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* check_initonly_members */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void wrapup_standard_layout_flag(a_type_ptr  class_type)
@@ -20729,6 +20758,7 @@ bits of information that were acquired while parsing.
       check_names_reserved_by_cli_properties_and_events(class_type);
       check_for_subscript_mechanism_conflict(class_type);
       check_quasi_overrides(class_state);
+      check_initonly_members(class_state);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Check for missing or erroneous uses of the "hiding" attribute and
