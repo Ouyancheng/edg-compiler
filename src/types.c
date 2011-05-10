@@ -1021,19 +1021,14 @@ tp is a C++/CLI array type.  Return its element type.
 }  /* cli_array_element_type */
 
 
-a_host_large_unsigned cli_array_rank(a_type_ptr tp,
-                                     a_boolean  *unknown)
+a_constant_ptr cli_array_rank_constant(a_type_ptr  tp)
 /*
-tp is a C++/CLI array type.  Return its rank, i.e., the number of dimensions.
-If the rank is unknown, e.g., because it's template-dependent, *unknown is
-returned TRUE.
+Return a pointer to the constant representing the number of dimensions of the
+given C++/CLI array type.
 */
 {
-  a_template_arg_ptr    tap;
-  a_host_large_unsigned rank = 0;
-  a_constant_ptr        rank_con;
+  a_template_arg_ptr  tap;
 
-  *unknown = FALSE;
   tp = skip_typerefs(tp);
   check_assertion(is_cli_array_type(tp));
   tap = class_type_supp(tp)->template_arg_list;
@@ -1043,7 +1038,21 @@ returned TRUE.
   tap = tap->next;
   check_assertion(tap != NULL && is_nontype_templ_arg(tap) &&
                   !tap->is_array_bound_of_unknown_type);
-  rank_con = tap->variant.constant;
+  return tap->variant.constant;
+}  /* cli_array_rank_constant */
+
+
+a_host_large_unsigned cli_array_rank(a_type_ptr tp,
+                                     a_boolean  *unknown)
+/*
+tp is a C++/CLI array type.  Return its rank, i.e., the number of dimensions.
+If the rank is unknown, e.g., because it's template-dependent, *unknown is
+returned TRUE.
+*/
+{
+  a_host_large_unsigned rank = 0;
+  a_constant_ptr        rank_con = cli_array_rank_constant(tp);
+
   if (rank_con->kind == (a_constant_repr_kind)ck_template_param ||
       rank_con->kind == (a_constant_repr_kind)ck_error) {
     /* A template-dependent value or error is unknown. */
@@ -1053,6 +1062,7 @@ returned TRUE.
     check_assertion(rank_con->kind == (a_constant_repr_kind)ck_integer);
     rank = unsigned_value_of_integer_constant(rank_con, &ovflo);
     check_assertion(!ovflo);
+    *unknown = FALSE;
   }  /* if */
   return rank;
 }  /* cli_array_rank */

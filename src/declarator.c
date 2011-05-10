@@ -1645,10 +1645,18 @@ diagnostic at the given position.
     if (!is_cli_array_type(tp)) {
       err = !is_error_type(tp);
     } else {
-      /* Check that the C++/CLI array type is one-dimensional. */
+      /* Check that the C++/CLI array type is one-dimensional.  Template-
+         dependent dimensions are not acceptable. */
       a_boolean unknown;
-      if (cli_array_rank(tp, &unknown) != 1 && !unknown) {
-        err = TRUE;
+      if (cli_array_rank(tp, &unknown) != 1) {
+        if (is_error_constant(cli_array_rank_constant(tp))) {
+          /* Do not issue another diagnostic but turn the parameter type into
+             an error type to avoid surprises downstream. */
+          expect_error();
+          ptp->type = error_type();
+        } else {
+          err = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
