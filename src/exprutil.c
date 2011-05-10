@@ -11046,7 +11046,7 @@ variable does not.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
-  if(const_addr && (variable->decl_modifiers & DM_THREAD) != 0) {
+  if (const_addr && (variable->decl_modifiers & DM_THREAD) != 0) {
     const_addr = FALSE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_... */
