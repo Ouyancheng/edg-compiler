@@ -17923,7 +17923,7 @@ definition and record it in the IL (as a special-purpose class type).
   clear_func_info(&func_info);
   declarator(di_flags, dps, /*member_parent_type=*/(a_type_ptr)NULL, &loc,
              &func_info, &decl_pos_block);
-  if (is_template_context()) {
+  if (is_template_dependent_context()) {
     /* Type checks are unreliable: Delay them until a real instantiation.
        E.g. "template<class T> ref struct S { delegate T D; };". */
   } else if (!is_function_type(dps->type)) {
@@ -17998,14 +17998,16 @@ definition and record it in the IL (as a special-purpose class type).
              push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
                         class_type, (a_routine_ptr)NULL);
   scope_stack_top().class_def_state = &class_state;
-  /* Add the Invoke member (declaration only). */
-  clear_locator(&member_loc, &dps->declarator_pos);
-  (void)find_symbol("Invoke", sizeof("Invoke")-1, &member_loc);
-  initialize_member_decl_info(&member_info, &dps->specifiers_pos);
-  mdps->declared_type = dps->declared_type;
-  mdps->type = dps->type;
-  decl_member_function(&member_loc, &func_info, &class_state, &member_info,
-                       /*compiler_generated=*/TRUE);
+  if (!is_error_type(dps->type)) {
+    /* Add the Invoke member (declaration only). */
+    clear_locator(&member_loc, &dps->declarator_pos);
+    (void)find_symbol("Invoke", sizeof("Invoke")-1, &member_loc);
+    initialize_member_decl_info(&member_info, &dps->specifiers_pos);
+    mdps->declared_type = dps->declared_type;
+    mdps->type = dps->type;
+    decl_member_function(&member_loc, &func_info, &class_state, &member_info,
+                         /*compiler_generated=*/TRUE);
+  }  /* if */
   /* Add the one-argument constructor (declaration only). */
   member_loc = loc;
   change_class_locator_into_constructor_locator(&member_loc,
