@@ -3819,8 +3819,10 @@ are non-NULL when they should be used for the outermost instantiation scope.
     a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
     /* If the class is a prototype instantiation, pass the appropriate flag
        to push_scope. */
-    if (class_type->variant.class_struct_union.is_prototype_instantiation) {
+    if (is_prototype_instantiation_type(class_type)) {
       ps_options = PS_PROTOTYPE_INSTANTIATION;
+    } else if (is_cli_generic_definition_type(class_type)) {
+      ps_options |= PS_GENERIC_DEFINITION;
     }  /* if */
     template_arg_list = templ_arg_list_for_class(class_type);
     (void)push_scope_full((a_scope_kind)sck_template_instantiation,
