@@ -1,5 +1,24 @@
 Version 4.4
 
+5/11/11  [EDGcpfe/11722]
+C++-generating back end: pointers to members of globally-qualified classes
+
+When the C++-generating back end generated the declaration of a pointer to
+a data member in which the class name must be globally qualified (i.e.,
+with a leading "::"), it failed to enclose the declarator in parentheses as
+required to separate the member type from the class name.  This has now
+been addressed by enclosing the declarators of all pointer-to-data-member
+declarations in parentheses, whether the class name is globally qualified
+or not.  For example:
+
+  struct O {
+    struct I {
+      int O;                // Hides ::O
+      typedef I (::O::*p);  // Previously generated without parens as I::O::*p
+    };
+  };
+
+
 5/11/11  [EDGcpfe/11704]
 Segmentation fault on invalid GNU case range
 
