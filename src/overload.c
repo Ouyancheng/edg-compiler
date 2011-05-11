@@ -9970,7 +9970,8 @@ are considered).  This routine is only used in C++ mode.
        conversion to a specific type so that templates can be used. */
     dest_type = requested_type = bool_type();
     builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
-    boolean_converted_case = cpp0x_mode;
+    boolean_converted_case = (explicit_conversion_functions_enabled &&
+                              !cppcli_enabled);
   } else if (builtin_types_allowed == BTK_PTRDIFF_T) {
     /* There's only one type in the BTK_PTRDIFF_T category, so make this a
        conversion to a specific type so that templates can be used. */
