@@ -27245,7 +27245,7 @@ when all the semantic checks are successful.
       passed = FALSE;
     } else {
       /* Ensure that the enumerator type has appropriate member functions. */
-      an_operand operand;
+      an_operand operand, operand_copy;
 
       complete_type_is_needed(enumerator_type);
       /* According ECMA-372 16.2.1 the for-each statement is executed as
@@ -27286,8 +27286,9 @@ when all the semantic checks are successful.
       operand.selector_is_object_pointer = enumerator_type_is_handle;
       /* Lookup the "MoveNext" member function and generate IL for the
          "e.MoveNext()" or "e->MoveNext()" expression. */
+      copy_operand(&operand, &operand_copy);
       if (!check_for_each_user_defined_function(enumerator_type,
-                                                &operand,
+                                                &operand_copy,
                                                 "MoveNext",
                                                 &pos,
                                                 &movenext_routine,
