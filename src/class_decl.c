@@ -11901,6 +11901,7 @@ constant and entering the name in the symbol table.
         pos_ty_error(ec_invalid_literal_type, &init_pos, member_type);
       }  /* if */
       scan_and_discard_initializer_expression(dps);
+      dps->has_initializer = FALSE;
     }  /* if */
   }  /* if */
   db_exit();
@@ -12213,9 +12214,6 @@ specific information about the member declaration, respectively.
          an initializer for this variable entry, it has not necessarily been
          defined. */
       var->is_member_constant = TRUE;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      add_src_seq_end_of_variable_if_needed(decl_state);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
       /* Issue a diagnostic for an invalid member constant type. */
       if (!is_error_type(member_type)) {
@@ -12227,6 +12225,7 @@ specific information about the member declaration, respectively.
         }  /* if */
       }  /* if */
       scan_and_discard_initializer_expression(decl_state);
+      decl_state->has_initializer = FALSE;
     }  /* if */
     if (restore_member_visibility) {
       /* Restore the member's visibility. */
@@ -12256,6 +12255,9 @@ specific information about the member declaration, respectively.
     (void)update_src_seq_secondary_decl((char *)var, member_type, name_ref,
                                         flags, &decl_info->decl_pos_block);
     wrapup_sse_for_simple_decl(decl_state);
+    if (decl_state->has_initializer) {
+      add_src_seq_end_of_variable_if_needed(decl_state);
+    }  /* if */
   }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Do processing required for any pragmas that are bound to the current

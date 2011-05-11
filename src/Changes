@@ -1,5 +1,22 @@
 Version 4.4
 
+5/11/11  [EDGcpfe/11695]
+Internal error on macro in static data member initializer
+
+In configurations with GENERATE_SOURCE_SEQUENCE_LISTS and RECORD_MACROS_IN_IL
+both set to TRUE, defining a macro in an in-class static data member
+initializer caused an internal error in add_src_seq_end_of_variable_if_needed
+(decls.c).  For example:
+
+  class C {
+    static const int x =
+  #define M
+                         0;  // Previously triggered an internal error.
+  };
+
+This is now fixed.
+  
+
 5/11/11  [EDGcpfe/11448]
 GNU attributes on function template redeclarations
 
