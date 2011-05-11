@@ -976,6 +976,12 @@ EXTERN a_boolean
 			   "C++ Library TR1") should be enabled. */
 
 EXTERN a_boolean
+		explicit_conversion_functions_enabled;
+			/* TRUE if support for explicit conversion function
+			   members (a C++0x and C++/CLI feature) should be
+			   enabled. */
+
+EXTERN a_boolean
 		explicit_enum_base_enabled;
 			/* TRUE if the syntax "enum X: base-type { ... }"
 			   should be accepted.  (This was originally a

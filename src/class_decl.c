@@ -19345,13 +19345,16 @@ passed via template_decl.
             tssp = rout_sym->variant.template_info;
             tssp->variant.function.routine->is_explicit_constructor = TRUE;
           } else if (locator.is_conversion_name &&
-                     (cpp0x_mode || (gpp_mode && gnu_version >= 40500) ||
-                      (cppcli_enabled &&
-                       check_cppcli_explicit_conversion(class_type, decl_state,
-                                                        dso_flags)))) {
-            tssp = rout_sym->variant.template_info;
-            tssp->variant.function.routine
-                ->is_explicit_conversion_function = TRUE;
+                     explicit_conversion_functions_enabled) {
+            if (cppcli_enabled &&
+                !check_cppcli_explicit_conversion(class_type, decl_state,
+                                                  dso_flags)) {
+              expect_error();
+            } else {
+              tssp = rout_sym->variant.template_info;
+              tssp->variant.function.routine
+                  ->is_explicit_conversion_function = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
         remove_stop_token(tok_comma);
@@ -19424,12 +19427,15 @@ passed via template_decl.
           if (decl_info.is_constructor) {
             rout_sym->variant.routine.ptr->is_explicit_constructor = TRUE;
           } else if (locator.is_conversion_name &&
-                     (cpp0x_mode || (gpp_mode && gnu_version >= 40500) ||
-                      (cppcli_enabled &&
-                       check_cppcli_explicit_conversion(class_type, decl_state,
-                                                        dso_flags)))) {
-            rout_sym->variant.routine.ptr
-                    ->is_explicit_conversion_function = TRUE;
+                     explicit_conversion_functions_enabled) {
+            if (cppcli_enabled &&
+                !check_cppcli_explicit_conversion(class_type, decl_state,
+                                                  dso_flags)) {
+              expect_error();
+            } else {
+              rout_sym->variant.routine.ptr
+                      ->is_explicit_conversion_function = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -19710,9 +19716,8 @@ next_declaration:;
       /* Microsoft compilers appear to ignore "explicit" in this case. */
     } else if (!(dso_flags & DSO_FRIEND) &&
                (decl_info.is_constructor ||
-                ((cpp0x_mode || (gpp_mode && gnu_version >= 40500) ||
-                  cppcli_enabled) &&
-                  is_conversion_function_symbol(decl_state->sym)))) {
+                (explicit_conversion_functions_enabled &&
+                 is_conversion_function_symbol(decl_state->sym)))) {
       /* Okay. */
     } else {
       pos_error(ec_explicit_not_allowed, &decl_state->start_pos);

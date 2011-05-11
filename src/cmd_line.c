@@ -2061,6 +2061,7 @@ by a command line option.
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
   ms_declspec_attributes_enabled = TRUE;
+  if (cppcli_enabled) explicit_conversion_functions_enabled = TRUE;
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2588,6 +2589,7 @@ not always enabled in default mode (e.g., exception handling).
        option, disable it in C++0x mode. */
     export_template_allowed = FALSE;
   }  /* if */
+  explicit_conversion_functions_enabled = TRUE;
 }  /* check_and_set_cpp0x_mode_options */
 
 
@@ -3573,6 +3575,11 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
        keyword (the decltype keyword is only enabled in C++0x mode). */
     decltype_enabled = TRUE;
     enable_underscore_decltype_only = TRUE;
+  }  /* if */
+  if (gnu_version >= 40500) {
+    /* GCC 4.5 and later accept explicit conversion functions even in non-C++0x
+       mode (with a warning, which we don't issue). */
+    explicit_conversion_functions_enabled = TRUE;
   }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
@@ -9278,6 +9285,7 @@ variables declared in cmd_line.h.
   gnu_restrict_keyword_enabled = FALSE;
   nonstd_gnu_keywords_enabled = FALSE;
   long_lifetime_temps = FALSE;
+  explicit_conversion_functions_enabled = FALSE;
   explicit_enum_base_enabled = FALSE;
   enum_qualifiers_enabled = FALSE;
   lambdas_enabled = DEFAULT_LAMBDAS_ENABLED;
