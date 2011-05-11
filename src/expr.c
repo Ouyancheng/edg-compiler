@@ -1813,6 +1813,44 @@ argument list contains exactly one expression, return it in
 }  /* scan_dependent_parenthesized_initializer */
 
 
+static void scan_error_parenthesized_initializer(
+                                               a_rescan_control_block *rcblock)
+
+/*
+Scan and discard a list of expressions that are inside a parenthesized
+initializer in a context where the destination type is unknown because of
+an error.  In such cases, a list of expressions must be scanned
+because the target type might have been a class with a constructor.
+On entry, the current token is after the opening parenthesis.  On
+return, it is following the closing parenthesis.  If rcblock is non-NULL,
+we are redoing semantic analysis on a previously-scanned initializer
+list; do nothing.
+*/
+{
+  if (rcblock != NULL) {
+    /* Rescanning an initializer. */
+  } else {
+    /* Scan the argument list. */
+    an_arg_operand   *arg_operand_list, *arg_operand;
+    an_expr_node_ptr arg_list;
+    scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
+                        /*already_after_left_paren=*/TRUE,
+                        &arg_list,
+                        /*return_raw_arguments=*/TRUE,
+                        /*unknown_dependent_function=*/FALSE,
+                        rcblock, &arg_operand_list,
+                        (an_operand *)NULL, (a_boolean *)NULL,
+                        (a_source_position *)NULL);
+    for (arg_operand = arg_operand_list;
+         arg_operand != NULL;
+         arg_operand = arg_operand->next) {
+      operand_will_not_be_used_because_of_error(&arg_operand->operand);
+    }  /* for */
+    free_arg_operand_list(arg_operand_list);
+  }  /* if */
+}  /* scan_error_parenthesized_initializer */
+
+
 void check_closing_paren_after_expr_list(void)
 /*
 Check for the required closing parenthesis after an expression list, and
@@ -14596,6 +14634,12 @@ expression, and return the result in *result (or an error indication in
       if (rcblock == NULL) end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       needs_initialization = TRUE;
+    } else if (is_error_type(base_new_type)) {
+      /* The type is not known.  Scan the argument list and discard it. */
+      scan_error_parenthesized_initializer(rcblock);
+      needs_initialization = FALSE;
+      dip = NULL;
+      err = TRUE;
     } else {
       /* Not a class with a constructor. */
       if (!empty_parens) {
@@ -18768,6 +18812,11 @@ as the cast in place of rcblock->expr.
       end_position = curr_construct_end_position;
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  } else if (is_error_type(type_cast_to)) {
+    /* The destination type is not known.  Scan the argument list and
+       discard it. */
+    scan_error_parenthesized_initializer(rcblock);
+    make_error_operand(result);
   } else {
     /* Not a constructor case; obeys the same rules as a C-style cast. */
     if (rcblock == NULL) add_matching_stop_token(tok_rparen);

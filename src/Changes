@@ -1,5 +1,19 @@
 Version 4.4
 
+5/10/11  [EDGcpfe/11652]
+Better error recovery on casts and new operators with multiple arguments
+
+Error recovery is now improved for functional-notation casts and
+"new" operators with more than one expression between the parentheses
+when the cast or "new" type is unknown because of a previous error.
+
+  int main() {
+    typedef xx T;    // Error here, "xx" is undefined
+    T(4, 5, 6);      // Now no additional error here
+    new T(4, 5, 6);  // Now no additional error here
+  }
+
+
 5/10/11  [EDGcpfe/11659]
 GNU compatibility: Explicit conversion functions
 
