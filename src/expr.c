@@ -1105,7 +1105,11 @@ constructs, in which case offsetof_case is TRUE.
                                      result, &processed);
       if (offsetof_case && processed) {
         /* An overloaded operator cannot be used with __builtin_offsetof. */
-        if (!is_error_operand(result)) {
+        if (is_expression_operand(result) &&
+            is_operation_node(result->variant.expression) &&
+            node_operator_is(result->variant.expression, eok_subscript)) {
+          /* A generic subscripting operation is okay. */
+        } else if (!is_error_operand(result)) {
           expr_pos_error(ec_no_overloaded_subscript_with_offsetof,
                          &operator_position);
           conv_to_error_operand(result);
