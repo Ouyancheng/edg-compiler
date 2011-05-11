@@ -19219,9 +19219,9 @@ any non-empty template parameter lists that were scanned.
         if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
       } /* if */
     } else {
-      a_symbol_locator    locator;
-      a_func_info_block   func_info;
-
+      a_symbol_locator   locator;
+      a_func_info_block  func_info;
+      a_boolean          is_function_template;
       /* Scan the decl. specifiers and the declaration. */
       clear_func_info(&func_info);
       scan_template_declaration(dps, /*is_initial_decl=*/TRUE,
@@ -19249,7 +19249,8 @@ any non-empty template parameter lists that were scanned.
       if (decl_state->decl_scope_err) {
         set_to_named_error_locator(locator);
       }  /* if */
-      if (!is_function_type(dps->type) && locator.specific_symbol != NULL) {
+      is_function_template = is_function_type(dps->type);
+      if (!is_function_template && locator.specific_symbol != NULL) {
         sym = template_static_data_member_declaration(
                                                  decl_state, &locator, &tssp);
         /* Save a pointer to the token cache for the initializer.  tssp
@@ -19258,7 +19259,7 @@ any non-empty template parameter lists that were scanned.
         if (tssp != NULL) {
           p_template_body_cache = &tssp->cache.tokens;
         }  /* if */
-      } else if (is_function_type(dps->type)) {
+      } else if (is_function_template) {
         sym = function_template_declaration(decl_state, &locator, &func_info);
         complete_function_template_decl(decl_state, sym, &func_info,
                                         &tssp, &locator.source_position);

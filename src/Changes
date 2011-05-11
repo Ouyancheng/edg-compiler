@@ -1,5 +1,26 @@
 Version 4.4
 
+5/11/11  [EDGcpfe/11448]
+GNU attributes on function template redeclarations
+
+GNU compilers appear to ignore attributes specified on function template
+declarations that are redeclarations.  For example:
+
+  int volatile x;  // To model side effects.
+  template<typename T> void f();
+  template<typename T> __attribute__((noinline)) void f() { x = 1; }
+  int main() {
+    f<int>();  // GCC will inline this call at high optimization levels
+  }            // (e.g., with option -O3), ignoring the noinline attribute.
+
+The front end previously applied the attributes collected over all declarations
+to the instantiations (i.e., in the example above, noinline was not ignored on
+f<int>).  Now, the front end emulates the GCC behavior by marking attributes
+on redeclaration as "unrecognized": This inhibits their effect without
+altogether dropping all indication of their presence (e.g., the C++-generating
+back end renders them).
+
+
 5/11/11  [EDGcpfe/11722]
 C++-generating back end: pointers to members of globally-qualified classes
 

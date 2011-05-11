@@ -401,6 +401,30 @@ prefix_attributes).
   }  /* if */
 }  /* attach_param_attributes */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void deactivate_gnu_decl_attributes(a_decl_parse_state  *dps)
+/*
+Mark all the id attributes and prefix attributes of the declaration described
+by dps as "unrecognized", thereby deactivating any effects those attributes
+might otherwise have had.
+*/
+{
+  an_attribute_ptr  ap;
+
+  for (ap = dps->id_attributes; ap != NULL; ap = ap->next) {
+    if (ap->family == (a_byte_attribute_family)af_gnu) {
+      make_attr_unrecognized(ap);
+    }  /* if */
+  }  /* for */
+  for (ap = dps->prefix_attributes; ap != NULL; ap = ap->next) {
+    if (ap->family == (a_byte_attribute_family)af_gnu) {
+      make_attr_unrecognized(ap);
+    }  /* if */
+  }  /* for */
+}  /* deactivate_gnu_decl_attributes */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 void f_check_pending_qualifiers_used(a_decl_parse_state  *state)
 /*
@@ -8614,13 +8638,19 @@ definition of a member function of a class template.
                                                  NO_SCOPE_DEPTH);
     }  /* if */
   } else {
+    redeclaration = TRUE;
     if (func_info->is_inline) {
       if (!rout_ptr->is_inline) {
         set_inline_flag(rout_ptr, TRUE);
         changed_to_inline = TRUE;
       }  /* if */
     }  /* if */
-    redeclaration = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+    /* GNU attributes on a function template redeclaration appear to have no
+       effect.  However, we still want to record their presence in the
+       prototype instantiation (e.g., for source analysis purposes). */
+    deactivate_gnu_decl_attributes(dps);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   attach_decl_attributes(dps, func_info->is_definition);
   check_defaulted_or_deleted_function(dps, func_info,
