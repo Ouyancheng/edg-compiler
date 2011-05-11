@@ -5992,6 +5992,7 @@ GNU also allows the "case range" form:
     range_end = scan_case_label_constant(sssep);
     /* Check that *range_end > *constant_ptr. */
     if (range_end != NULL &&
+        constant_ptr != NULL &&
         constant_ptr->kind == (a_constant_repr_kind)ck_integer &&
         range_end->kind == (a_constant_repr_kind)ck_integer &&
         cmp_integer_constants(constant_ptr, range_end) > 0) {
