@@ -119,9 +119,6 @@ extern void lower_c99_nonreal_float_types(void);
 
 extern void lower_c99_complex_constant(a_constant_ptr  constant);
 
-extern a_boolean is_lowered_complex_constant(a_constant_ptr con,
-                                             a_type_ptr     *type);
-
 extern void lower_c99_complex_cast(an_expr_node_ptr  expr);
 
 void lower_c99_xnegate(an_expr_node_ptr  expr);

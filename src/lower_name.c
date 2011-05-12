@@ -2527,9 +2527,7 @@ static void repr_for_complex_constant(a_constant_ptr           con,
                                       an_internal_float_value *imag)
 /*
 This routine returns the real and imaginary values of a complex constant
-(which can be a ck_complex or ck_aggregate).  In the aggregate case, the
-aggregate can be a constant created by the front end, or it can be a lowered
-complex constant.
+(which can be a ck_complex or ck_aggregate).
 */
 {
   check_assertion(con->kind == (a_constant_repr_kind)ck_complex ||
@@ -2539,17 +2537,7 @@ complex constant.
     /* Values are part of the complex constant. */
     *real = con->variant.complex_value->real;
     *imag = con->variant.complex_value->imag;
-#if LOWER_COMPLEX
-  } else if (is_lowered_complex_constant(con, (a_type_ptr *)NULL)) {
-    check_assertion(con->variant.aggregate.first_constant->kind ==
-                                          (a_constant_repr_kind)ck_aggregate);
-    /* The complex constant has been lowered into a structure that contains
-       an array of two elements; set con to point to the array aggregate and
-       extract the values below. */
-    con = con->variant.aggregate.first_constant;
-#endif /* LOWER_COMPLEX */
-  }  /* if */
-  if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+  } else if (con->kind == (a_constant_repr_kind)ck_aggregate) {
     /* The values are in the aggregate. */
     check_assertion(con->variant.aggregate.first_constant->kind ==
                                               (a_constant_repr_kind)ck_float &&
@@ -2581,10 +2569,6 @@ lengths of literals.  old_form is significant only in the Cfront ABI.
 
   /* Extract the values to be encoded from the constant. */
   repr_for_complex_constant(con, &real, &imag);
-#if LOWER_COMPLEX
-  /* Use unlowered complex type if the complex constant has been lowered. */
-  (void)is_lowered_complex_constant(con, &con_type);
-#endif /* LOWER_COMPLEX */
 #if !IA64_ABI
   /* Complex float: the Cfront-like ABI encoding mangles both real and
      imaginary portions of the value as floating point numbers:
@@ -3801,13 +3785,8 @@ do_unknown_function:
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case ck_aggregate:
-      /* Mangle a complex aggregate.  Since complex constants are shared, it's
-         possible that we've run into one that's already been lowered. */
-      if (con->type->kind == (a_type_kind)tk_complex
-#if LOWER_COMPLEX
-          || is_lowered_complex_constant(con, (a_type_ptr *)NULL)
-#endif /* LOWER_COMPLEX */
-                                             ) {
+      /* Mangle a complex aggregate. */
+      if (con->type->kind == (a_type_kind)tk_complex) {
         mangled_encoding_for_complex_constant(con, old_form, mctl);
       } else {
         unexpected_condition();
@@ -3858,10 +3837,6 @@ operation that is part of certain template constants is suppressed
     a_type_ptr con_type = con->type;
     add_to_mangled_name('C', mctl);
     /* Put out the constant type. */
-#if LOWER_COMPLEX
-    /* Use unlowered complex type if the complex constant has been lowered. */
-    (void)is_lowered_complex_constant(con, &con_type);
-#endif /* LOWER_COMPLEX */
     mangled_encoding_for_type(con_type, mctl);
   }  /* if */
 #endif /* !IA64_ABI */

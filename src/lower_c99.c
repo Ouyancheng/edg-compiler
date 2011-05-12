@@ -3449,32 +3449,6 @@ constructs.
   }  /* if */
 }  /* lower_c99_constant_expr */
 
-#if LOWER_COMPLEX
-
-a_boolean is_lowered_complex_constant(a_constant_ptr con,
-                                      a_type_ptr     *type)
-/*
-Returns TRUE if the constant is a complex constant that has been lowered.
-If the constant represents a lowered complex constant and type != NULL, then
-*type is set to the unlowered complex type for the constant.
-*/
-{
-  a_boolean result = FALSE;
-
-  if (con->kind == (a_constant_repr_kind)ck_aggregate &&
-      con->assoc_var != NULL &&
-      con->source_corresp.assoc_info != NULL &&
-      is_complex_type(con->assoc_var->type)) {
-    result = TRUE;
-    if (type != NULL) {
-      /* Return the unlowered type if the caller requested it. */
-      *type = con->assoc_var->type;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_lowered_complex_constant */
-
-#endif /* LOWER_COMPLEX */
 
 static void lower_c99_temp_init(an_expr_node_ptr expr)
 /*
