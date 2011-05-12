@@ -403,26 +403,62 @@ prefix_attributes).
 
 #if GNU_EXTENSIONS_ALLOWED
 
-static void deactivate_gnu_decl_attributes(a_decl_parse_state  *dps)
+static void deactivate_gnu_decl_attributes_on_template_redecl(
+                                        a_decl_parse_state  *dps,
+                                        an_attribute_ptr    prev_attributes)
 /*
 Mark all the id attributes and prefix attributes of the declaration described
 by dps as "unrecognized", thereby deactivating any effects those attributes
-might otherwise have had.
+might otherwise have had.  Issue a warning if there is such an attribute and
+an attribute of the same kind did not appear on the list pointed to by
+prev_attributes (attributes that were recorded when the first declaration
+of the template was seen; NULL if none).
 */
 {
-  an_attribute_ptr  ap;
+  an_attribute_ptr  ap, diag_ap = NULL;
 
-  for (ap = dps->id_attributes; ap != NULL; ap = ap->next) {
-    if (ap->family == (a_byte_attribute_family)af_gnu) {
-      make_attr_unrecognized(ap);
-    }  /* if */
-  }  /* for */
   for (ap = dps->prefix_attributes; ap != NULL; ap = ap->next) {
     if (ap->family == (a_byte_attribute_family)af_gnu) {
+      if (diag_ap == NULL && !is_unapplicable_attr(ap) &&
+          find_attribute(ap->kind, prev_attributes) == NULL) {
+        /* This is the first deactivated attribute not mentioned in the
+           original template declaration. */
+        diag_ap = ap;
+      }  /* if */
       make_attr_unrecognized(ap);
     }  /* if */
   }  /* for */
-}  /* deactivate_gnu_decl_attributes */
+  for (ap = dps->id_attributes; ap != NULL; ap = ap->next) {
+    if (ap->family == (a_byte_attribute_family)af_gnu) {
+      if (!is_unapplicable_attr(ap)) {
+        if (diag_ap == NULL &&
+            find_attribute(ap->kind, prev_attributes) == NULL) {
+          /* This is the first deactivated attribute not mentioned in the
+             original template declaration. */
+          diag_ap = ap;
+        }  /* if */
+        make_attr_unrecognized(ap);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (diag_ap != NULL) {
+    /* Issue a warning on the first deactivated attribute that did not appear
+       in the original declaration.  If the original declaration had
+       attributes, the warning affirms that those are not deactivated. */
+    /* Make sure that the previous attribute referred to has a position (i.e.,
+       that it is not compiler-generated). */
+    for (; prev_attributes != NULL; prev_attributes = prev_attributes->next) {
+      if (prev_attributes->position.seq != 0) break;
+    }  /* for */
+    if (prev_attributes == NULL) {
+      pos_warning(ec_gnu_attr_on_template_redecl, &diag_ap->position);
+    } else {
+      pos2_diagnostic(es_warning,
+                      ec_gnu_attr_on_template_redecl_but_original_kept,
+                      &diag_ap->position, &prev_attributes->position);
+    }  /* if */
+  }  /* if */
+}  /* deactivate_gnu_decl_attributes_on_template_redecl */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -8646,10 +8682,15 @@ definition of a member function of a class template.
       }  /* if */
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-    /* GNU attributes on a function template redeclaration appear to have no
-       effect.  However, we still want to record their presence in the
-       prototype instantiation (e.g., for source analysis purposes). */
-    deactivate_gnu_decl_attributes(dps);
+    if (!sym->is_class_member) {
+      /* GNU attributes on a function template redeclaration appear to have no
+         effect.  However, we still want to record their presence in the
+         prototype instantiation (e.g., for source analysis purposes).
+         Attributes on out-of-class definitions are not deactivated in this
+         way. */
+      deactivate_gnu_decl_attributes_on_template_redecl(
+                                    dps, rout_ptr->source_corresp.attributes);
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   attach_decl_attributes(dps, func_info->is_definition);

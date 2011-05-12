@@ -2235,6 +2235,8 @@ ec_duplicate_constraint;;"duplicate constraint"
 ec_multiple_class_constraints;;"more than one class constraint: %t1 and %t2"
 ec_multiple_constraint_clauses;;"more than one constraint clause for %n"
 ec_initonly_static_data_member_not_initialized;;"initonly static data members must have an initializer or be initialized in a static constructor"
+ec_gnu_attr_on_template_redecl;;"GNU attributes on a template redeclaration have no effect"
+ec_gnu_attr_on_template_redecl_but_original_kept;;"GNU attributes on a template redeclaration have no effect (the attributes of the original declaration %p apply instead)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
