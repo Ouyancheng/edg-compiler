@@ -12260,6 +12260,36 @@ future.
 }  /* is_cli_enum_type */
 
 
+a_param_type_ptr cli_param_array_from_routine_type(a_type_ptr routine_type)
+/*
+Return a pointer to the C++/CLI parameter array in routine_type or NULL if
+there is no parameter array.  The caller must ensure that routine_type is a
+tk_routine entry.
+*/
+{
+  a_param_type_ptr  result = NULL, ptp;
+
+  check_assertion (routine_type->kind == (a_type_kind)tk_routine);
+  ptp = function_type_params(routine_type);
+  if (ptp != NULL) {
+    /* Traverse to the end of the parameter list to check for a C++/CLI
+       parameter array. */
+    while (ptp->next != NULL) ptp = ptp->next;
+    if (ptp->is_cli_param_array) result = ptp;
+  }  /* if */
+  return result;
+}  /* cli_param_array_from_routine_type */
+
+
+a_boolean routine_type_has_cli_param_array(a_type_ptr tp)
+/*
+Returns TRUE if tp is a type for a routine with a C++/CLI parameter array.
+(tp can be a typeref.)
+*/
+{
+  return cli_param_array_from_routine_type(skip_typerefs(tp)) != NULL;
+}  /* routine_type_has_cli_param_array */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean compatible_ms_bit_field_container_types(a_type_ptr  tp1,

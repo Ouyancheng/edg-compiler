@@ -1101,6 +1101,12 @@ new fields are set properly.
         pos_error(ec_static_conversion_function_must_have_one_parameter,
                   &locator->source_position);
         err = TRUE;
+      } else if (routine_type_has_cli_param_array(rout_type)) {
+        /* A C++/CLI parameter array cannot be used in a static conversion
+           operator. */
+        pos_error(ec_parameter_array_on_operator_function,
+                  &locator->source_position);
+        err = TRUE;
       } else {
         /* Ensure the argument type or conversion-id type is T, T&, T&&, T%,
            or T^, with T the type indicated by class_type. */
@@ -1239,6 +1245,13 @@ new fields are set properly.
           }  /* if */
         }  /* if */
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled && routine_type_has_cli_param_array(rout_type)) {
+      /* All overloaded operators (except "call" and "new", which are handled
+         above) require a specific number of arguments.  A C++/CLI parameter
+         array is therefore not allowed here. */
+      error_code = ec_parameter_array_on_operator_function;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (rtsp->has_ellipsis) {
       /* All overloaded operators (except function call and new, handled
          above) require a specific number of arguments, so ellipsis is not
@@ -4312,17 +4325,36 @@ without a default is found.
 
 static void check_default_args(a_type_ptr  type)
 /*
-Given a routine type based on a current declaration, where there is no
-prior declaration with which to merge it, look for the case in which a
-parameter with a default argument is followed in the parameter list by
-one without a default argument, and report the error.
+Given a routine type based on a current declaration, where there is no prior
+declaration with which to merge it, look for the case in which a parameter
+with a default argument is followed in the parameter list by one without a
+default argument, and report the error.  If a C++/CLI param array is present,
+issue an error if a default argument is encountered at all.
 */
 {
   a_param_type_ptr  ptp;
 
   /* Loop through the single list. */
   ptp = skip_typerefs(type)->variant.routine.extra_info->param_type_list;
-  check_default_args_for_param_type(ptp, &error_position);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && routine_type_has_cli_param_array(type)) {
+    a_param_type_ptr  p;
+    a_boolean         found_default_arg = FALSE;
+    for (p = ptp; p != NULL; p = p->next) {
+      if (p->has_default_arg) {
+        found_default_arg = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+    if (found_default_arg) {
+      /* Default arguments are not allowed in a function with a param array. */
+      pos_error(ec_default_arg_used_in_param_array_function, &error_position);
+    }  /* if */
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  {
+    check_default_args_for_param_type(ptp, &error_position);
+  }  /* if */
 }  /* check_default_args */
 
 

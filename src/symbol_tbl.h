@@ -5132,6 +5132,9 @@ extern a_type_ptr underlying_function_type(a_symbol_ptr  sym);
 #define is_finalizer_symbol(sym)                                      \
   is_special_function_symbol(sym,                                     \
                              (a_special_function_kind)sfk_finalizer)
+
+extern a_boolean routine_symbol_has_cli_param_array(a_symbol_ptr sp);
+
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_static_constructor_symbol(sym) /*lint --e(506)*/FALSE
 #define is_finalizer_symbol(sym) /*lint --e(506)*/FALSE

@@ -2237,6 +2237,10 @@ ec_multiple_constraint_clauses;;"more than one constraint clause for %n"
 ec_initonly_static_data_member_not_initialized;;"initonly static data members must have an initializer or be initialized in a static constructor"
 ec_gnu_attr_on_template_redecl;;"GNU attributes on a template redeclaration have no effect"
 ec_gnu_attr_on_template_redecl_but_original_kept;;"GNU attributes on a template redeclaration have no effect (the attributes of the original declaration %p apply instead)"
+ec_cli_param_array_must_be_last_parameter;;"a C++/CLI parameter array must be the last parameter"
+ec_default_arg_used_in_param_array_function;;"a function with a C++/CLI parameter array cannot have default arguments"
+ec_ellipsis_after_param_array;;"a C++/CLI parameter array cannot be followed by an ellipsis parameter"
+ec_parameter_array_on_operator_function;;"a C++/CLI parameter array is not allowed in an operator function parameter list"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

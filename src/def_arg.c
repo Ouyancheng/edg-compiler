@@ -266,6 +266,9 @@ which the default argument is associated.
 {
   a_param_type_ptr  ptp;
   a_boolean         err = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean         discard_default_arg = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "delayed_scan_of_default_arg_expr");
   if (param_type_entry->default_arg_expr != NULL &&
@@ -273,6 +276,15 @@ which the default argument is associated.
     pos_error(ec_default_arg_already_defined, &pos_curr_token);
   }  /* if */
   if (check_for_errors) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Verify that this is not a function with a C++/CLI param array. */
+    if (cppcli_enabled && routine_symbol_has_cli_param_array(rout_sym)) {
+      /* Default arguments are not allowed with C++/CLI parameter arrays. */
+      pos_error(ec_default_arg_used_in_param_array_function, &pos_curr_token);
+      err = TRUE;
+      discard_default_arg = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Make a pass over all the param type entries that follow the current one.
        It is an error if there are any without a default argument. */
    for (ptp = param_type_entry->next; ptp != NULL; ptp = ptp->next) {
@@ -297,6 +309,16 @@ which the default argument is associated.
                  param_type_entry->entities_defined_in_default_arg, rout_sym,
                  param_type_entry->default_arg_appeared_in_class_definition);
 #endif /* NEED_NAME_MANGLING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (discard_default_arg) {
+    /* Treat the parameter as not having a default argument for error recovery
+       purposes. */
+    check_assertion(err);
+    param_type_entry->has_default_arg = FALSE;
+    param_type_entry->default_arg_appeared_in_class_definition = FALSE;
+    param_type_entry->default_arg_expr = NULL;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* In the normal case the current token should be end_of_source,
      which was inserted to mark the end of the cached token
      stream. */

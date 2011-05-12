@@ -1625,7 +1625,8 @@ mode.)
     (void)get_token();
   }  /* for */
 }  /* scan_microsoft_function_modifiers */
-  
+
+
 static void check_param_array_type(a_param_type_ptr   ptp,
                                    a_source_position  *diag_pos)
 /*
@@ -2787,11 +2788,26 @@ TRUE if this is the function declarator in a friend function declaration.
           if (!any_variadic_params) done = TRUE;
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        param_array_next = FALSE;
+        if (param_array_next) {
+          if (!done) {
+            /* A C++/CLI parameter array was just scanned, but there are more
+               parameters: Issue an error. */
+            pos_error(ec_cli_param_array_must_be_last_parameter,
+                      &param_state.declarator_pos);
+          } else if (curr_token == tok_ellipsis) {
+            /* A C++/CLI parameter array was followed by an ellipsis indicating
+               a C-style variadic function: Issue an error. */
+            pos_error(ec_ellipsis_after_param_array, &pos_curr_token);
+            /* Skip over the ellipsis for error recovery. */
+            (void)get_token();
+          }  /* if */
+          param_array_next = FALSE;
+        } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not add code here. */
         if (curr_token == tok_ellipsis) {
-          /* The parameter list ends with an ellipsis.  Set the ellipsis
-             flag on the parameter type list, and exit the loop. */
+          /* The parameter list ends with an ellipsis or the next parameter is
+             a C++/CLI parameter array. */
           ellipsis_pos = pos_curr_token;
           (void)get_token();
 #if ASM_FUNCTION_ALLOWED
@@ -2808,7 +2824,8 @@ TRUE if this is the function declarator in a friend function declaration.
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
-          {
+          { /* Set the ellipsis flag on the parameter type list, and exit the
+               loop. */
             extra_info->has_ellipsis = TRUE;
             done = TRUE;
             /* The call to begin_potential_pack_expansion_context above may

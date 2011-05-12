@@ -5873,7 +5873,26 @@ corresponding to the enclosing class definition.
   /* Accessors cannot be called directly: Make them invisible. */
   sym->is_invisible = TRUE;
   return sym;
-}  /* if */
+}  /* enter_cli_accessor */
+
+
+a_boolean routine_symbol_has_cli_param_array(a_symbol_ptr  sym)
+/*
+Return TRUE if sym is a symbol for a routine with a C++/CLI parameter array.
+*/
+{
+  a_type_ptr  rout_type;
+
+  if (is_simple_function_symbol(sym)) {
+    rout_type = sym->variant.routine.ptr->type;
+  } else if (symbol_is(sym, sk_function_template)) {
+    rout_type = sym->variant.template_info->variant.function.routine->type;
+  } else {
+    rout_type = NULL;
+  }  /* if */
+  return rout_type != NULL && routine_type_has_cli_param_array(rout_type);
+}  /* routine_symbol_has_cli_param_array */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_base_class_ptr find_base_with_type(a_type_ptr        base_type,
