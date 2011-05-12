@@ -559,6 +559,8 @@ extern int fileno(FILE *);
 #endif /* !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 #if !GNU_EXTENSIONS_ALLOWED
 /*lint -esym(769,a_builtin_operation_kind_tag::bok_types_compatible)*/
+/*lint -esym(769,ec_gnu_attr_on_template_redecl)*/
+/*lint -esym(769,ec_gnu_attr_on_template_redecl_but_original_kept)*/
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 /*lint -esym(759,is_wide_string_constant)*/
 /*lint -esym(765,is_wide_string_constant)*/
