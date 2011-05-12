@@ -108,6 +108,7 @@ Clear an output control block to default values.
   octl->defer_vector_attribute    = FALSE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   octl->suppress_template_args    = FALSE;
+  octl->suppress_ptr_to_data_member_parens = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -1912,8 +1913,9 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
                          /*need_trailing_space=*/TRUE,
                          TQ_NONE, options, octl);
     /* Output Classname::*. */
-    if (octl->gen_compilable_code &&
-        type->variant.ptr_to_member.type->kind != (a_type_kind)tk_routine) {
+    if (type->variant.ptr_to_member.type->kind != (a_type_kind)tk_routine &&
+        octl->gen_compilable_code &&
+        !octl->suppress_ptr_to_data_member_parens) {
       /* The class name might be put out as a qualified name with a leading
          "::", so the declarator must be enclosed in parentheses to prevent
          something like "T (::C::*p)" from being interpreted as "T::C::*p".
@@ -2334,8 +2336,9 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
                           options, octl);
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
-    if (octl->gen_compilable_code &&
-        type->variant.ptr_to_member.type->kind != (a_type_kind)tk_routine) {
+    if (type->variant.ptr_to_member.type->kind != (a_type_kind)tk_routine &&
+        octl->gen_compilable_code &&
+        !octl->suppress_ptr_to_data_member_parens) {
       /* When we put out the first part of the type, we added a "(" to
          separate the member type from a possible leading global qualifier
          "::" on the class type.  We need to put out the matching ")"

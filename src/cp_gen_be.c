@@ -2416,7 +2416,9 @@ etc.)
   type = rout->type;
   type = skip_typerefs(type);
   type = type->variant.routine.return_type;
+  octl.suppress_ptr_to_data_member_parens = TRUE;
   gen_type(type);
+  octl.suppress_ptr_to_data_member_parens = FALSE;
 }  /* gen_conversion_function_name */
 
 

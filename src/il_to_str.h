@@ -262,6 +262,17 @@ typedef struct an_il_to_str_output_control_block {
 	suppress_template_args;
 			/* Suppress the output of template arguments in
 			   type names. */
+  a_byte_boolean
+	suppress_ptr_to_data_member_parens;
+			/* If TRUE, do not parenthesize the declarator of a
+			   type that is a pointer to data member.  The
+			   parentheses are normally put out to prevent the
+			   member type from being interpreted as part of a
+			   globally-qualified name designating the class
+			   type, e.g., "T (::X::*)", but the parentheses
+			   are not permitted (or needed) in a
+			   conversion-type-id and must be suppressed in
+			   that context. */
 } an_il_to_str_output_control_block;
 
 /*
