@@ -462,7 +462,6 @@ static an_expr_node_ptr make_reusable_copy_full(
                                    a_boolean        *temp_init_used,
                                    a_boolean        treat_as_potential_rvalue);
 static void lower_type(a_type_ptr type);
-static void lower_os_constant(a_constant_ptr constant);
 static void lower_variable(a_variable_ptr variable);
 static void lower_field_list(a_type_ptr class_type);
 static void lower_field(a_field_ptr field);
@@ -2308,7 +2307,7 @@ static an_expr_node_ptr make_operands_for_ne_0(an_expr_node_ptr expr)
 The given operand must be compared against zero (or null).  Apply integral
 promotions to the expression if needed, append a zero of the proper type as
 the next operand, and return the resulting operand pair.  (The appended zero
-is not lowered.)
+is not lowered -- but needs to be -- see lower_ne_0_normalization.)
 */
 {
   a_constant  zero;
@@ -2322,6 +2321,8 @@ is not lowered.)
      type is already lowered. */
   make_zero_of_proper_type(get_underlying_type(expr->type), &zero);
   expr->next = alloc_node_for_constant(&zero);
+  /* Make sure the zero is properly lowered by marking it not visited. */
+  mark_as_not_visited(expr->next->variant.constant);
   return expr;
 }  /* make_operands_for_ne_0 */
 
@@ -2378,6 +2379,7 @@ by lowering (as opposed to that resulting from direct lowering of source code).
     result = make_operator_node((an_expr_operator_kind)eok_ne,
                                 integer_type((an_integer_kind)ik_int),
                                 make_operands_for_ne_0(expr));
+    lower_ne_0_normalization(result);
   }  /* if */
   return result;
 }  /* boolean_controlling_expr */
@@ -4071,9 +4073,9 @@ constant is being assigned, e.g.,
        troublesome aggregate. */
     troublesome = TRUE;
     /* See if the variable has been allocated already.  If so, a pointer to
-       the variable will have been stored in the assoc_info field. */
-    if (constant->assoc_var_assigned) {
-      assoc_var = (a_variable_ptr)constant->source_corresp.assoc_info;
+       the variable will have been stored in the constant. */
+    if (constant->assoc_var != NULL) {
+      assoc_var = constant->assoc_var;
     } else {
       a_type_ptr var_type = constant->type;
       /* The variable must be allocated. */
@@ -4105,10 +4107,8 @@ constant is being assigned, e.g.,
                                               constant,
                                               (a_dynamic_init_ptr)NULL);
       }  /* if */
-      /* Save the pointer in the assoc_info field so the variable can be
-         reused. */
-      constant->source_corresp.assoc_info = (char *)assoc_var;
-      constant->assoc_var_assigned = TRUE;
+      /* Save the pointer in the constant so the variable can be reused. */
+      constant->assoc_var = assoc_var;
     }  /* if */
   }  /* if */
   *temp_var = assoc_var;
@@ -4442,9 +4442,9 @@ variable.
   check_assertion(constant->kind == (a_constant_repr_kind)ck_string &&
                   constant->variant.string.sequence_number != 0);
   /* See if the variable has been allocated already.  If so, a pointer to
-     the variable will have been stored in the assoc_info field. */
-  if (constant->assoc_var_assigned) {
-    string_var = (a_variable_ptr)constant->source_corresp.assoc_info;
+     the variable will have been stored in the constant. */
+  if (constant->assoc_var != NULL) {
+    string_var = constant->assoc_var;
   } else {
     /* The variable must be allocated.  We make a local static variable
        and then promote it to get it processed like other local static
@@ -4480,10 +4480,8 @@ variable.
                                             innermost_function_scope,
                                             routine);
     switch_back_to_original_region(region_to_switch_back_to);
-    /* Save the pointer in the assoc_info field so the variable can be
-       reused. */
-    constant->source_corresp.assoc_info = (char *)string_var;
-    constant->assoc_var_assigned = TRUE;
+    /* Save the pointer in the constant so the variable can be reused. */
+    constant->assoc_var = string_var;
   }  /* if */
   return string_var;
 }  /* get_variable_for_string_constant */
@@ -4718,7 +4716,7 @@ Do IL lowering of the indicated constant and everything under it.
 }  /* lower_constant */
 
 
-static void lower_os_constant(a_constant_ptr constant)
+void lower_os_constant(a_constant_ptr constant)
 /*
 A "possibly other scope" version of lower_constant; does nothing for
 constants in other scopes.

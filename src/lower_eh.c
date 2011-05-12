@@ -3948,7 +3948,7 @@ the clone.
        source_con != NULL;
        source_con = source_con->next) {
     /* Make a copy of the constant. */
-    copy_con = alloc_unshared_constant(source_con);
+    copy_con = alloc_unshared_constant_full(source_con, /*source_in_il=*/TRUE);
     /* Add the constant to the list of the aggregate copy. */
     if (con_list == NULL) {
       con_list = copy_con;

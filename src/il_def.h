@@ -2278,13 +2278,6 @@ typedef struct a_source_correspondence {
 			   end, points to the associated front end symbol,
 			   or NULL if there is no associated symbol.  Must
 			   be cast to the proper pointer type for use. */
-#if DO_IL_LOWERING
-			/* When IL lowering is done, this is used in
-			   some constants to point to a variable that should
-			   be used in place of the constant, e.g., for
-			   pointer to member constants.  assoc_var_assigned
-			   is set to TRUE when the pointer is set. */
-#endif /* DO_IL_LOWERING */
   char          *name;
 			/* Pointer to null-terminated name, or NULL if
 			   there is no corresponding source entity. */
@@ -3354,6 +3347,17 @@ typedef struct a_constant {
 			   rescanned later to redo semantic analysis,
 			   points to extra front-end-only information that
 			   is needed for the rescan.  NULL otherwise. */
+#if DO_IL_LOWERING || BACK_END_IS_C_GEN_BE
+  a_variable_ptr
+                assoc_var;
+                        /* When non-NULL, points to an associated variable
+                           that has been assigned by IL lowering.  Used during
+                           lowering of pointer-to-member, complex, and string
+                           literal constants.  Also used in the C-generating
+                           back end, as a "next" pointer to maintain a list of
+                           wide string literal constants that are rewritten to
+                           refer to a variable.  NULL otherwise. */
+#endif /* DO_IL_LOWERING || BACK_END_IS_C_GEN_BE */
   a_bit_field	character_kind:NUM_BITS_FOR_CHARACTER_KIND;
 			/* If this constant represents a character or string
 			   literal, this field indicates the character kind
@@ -3395,16 +3399,6 @@ typedef struct a_constant {
 			/* TRUE if the original version of this constant
 			   was simply "0".  This is significant for the
 			   case of a virtual function pure specifier in C++. */
-#if DO_IL_LOWERING || BACK_END_IS_C_GEN_BE
-  a_bit_field	assoc_var_assigned:1;
-			/* If TRUE, an associated variable has been assigned
-			   by IL lowering, and source_corresp.assoc_info
-			   points to it.  Used for pointer-to-member, complex,
-			   and string literal constants.  Also used in the
-			   C-generating back end, for wide string literal
-			   constants that are rewritten to refer to a
-			   variable. */
-#endif /* DO_IL_LOWERING || BACK_END_IS_C_GEN_BE */
   a_bit_field	null_pointer_constant_ruled_out:1;
 			/* If TRUE, this constant has been subjected to casts
 			   or other operations that rule it out as a null

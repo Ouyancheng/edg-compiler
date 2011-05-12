@@ -288,6 +288,14 @@ static a_constant_ptr
 			   to variables must be broken at the end of the
 			   current scope. */
 
+static a_constant
+		wide_string_constant_marker;
+			/* Used to mark the end of the list pointed to by
+			   wide_string_constants_to_unbind_at_end_of_scope as
+			   NULL cannot be used.  As this is basically a
+			   "dummy" constant, only the address is used,
+			   not the value. */
+
 static a_scope_ptr
 		entry_routine_scope;
 			/* If non-NULL, we are expanding the body of an
@@ -6660,7 +6668,7 @@ out in this way to guarantee their alignment.
 */
 {
   /* If we've already generated the variable, don't do it again. */
-  if (!constant->assoc_var_assigned) {
+  if (constant->assoc_var == NULL) {
     set_output_position(&constant->source_corresp.decl_position);
     write_tok_str("static ");
     dump_general_declaration_using_type(constant->type, NO_SCP,
@@ -6671,13 +6679,11 @@ out in this way to guarantee their alignment.
     write_tok_str(" = {");
     dump_exploded_wide_string(constant);
     write_tok_str("};");
-    /* Mark the constant as having an associated variable for this scope. */
-    constant->assoc_var_assigned = TRUE;
     /* Put the constant on a list of constants to unbind at the end of the
-       scope.  Use the assoc_info field as a next pointer in order not to
+       scope.  Use the assoc_var field as a next pointer in order not to
        disturb the "next" field. */
-    constant->source_corresp.assoc_info =
-                       (char *)wide_string_constants_to_unbind_at_end_of_scope;
+    constant->assoc_var =
+               (a_variable_ptr)wide_string_constants_to_unbind_at_end_of_scope;
     wide_string_constants_to_unbind_at_end_of_scope = constant;
   }  /* if */
 }  /* dump_var_for_wide_string_constant */
@@ -6692,11 +6698,16 @@ in the current scope.  Then set wide_string_constants_to_unbind_at_end_of_scope
 to saved_list, the saved value from the scope surrounding the current one.
 */
 {
-  a_constant_ptr con = wide_string_constants_to_unbind_at_end_of_scope;
+  a_constant_ptr next, con = wide_string_constants_to_unbind_at_end_of_scope;
 
-  /* The constant entries are linked using the assoc_info field. */
-  for (; con != NULL; con = (a_constant_ptr)(con->source_corresp.assoc_info)) {
-    con->assoc_var_assigned = FALSE;
+  /* The constant entries are linked using the assoc_var field, and terminated
+     when the address of wide_string_constant_marker is reached (NULL cannot
+     be used to terminate the list since a non-NULL assoc_var field is
+     already used to indicate that the entry is a member of the list). */
+  for (; con != &wide_string_constant_marker; con = next) {
+    check_assertion(con != NULL);
+    next = (a_constant_ptr)(con->assoc_var);
+    con->assoc_var = NULL;
   }  /* for */
   wide_string_constants_to_unbind_at_end_of_scope = saved_list;
 }  /* unbind_wide_string_constants */
@@ -7912,7 +7923,8 @@ is TRUE.
     }  /* if */
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  wide_string_constants_to_unbind_at_end_of_scope = NULL;
+  wide_string_constants_to_unbind_at_end_of_scope =
+                                                  &wide_string_constant_marker;
   dump_block_declarations(statement);
   dump_statement_list(statement->variant.block.statements, is_statement_expr);
   curr_scope = saved_curr_scope;
@@ -9718,7 +9730,8 @@ must be redone for each generated C file.
   output_initializer_code_directly = FALSE;
   innermost_function_scope = NULL;
   curr_scope = NULL;
-  wide_string_constants_to_unbind_at_end_of_scope = NULL;
+  wide_string_constants_to_unbind_at_end_of_scope =
+                                                  &wide_string_constant_marker;
   entry_routine_scope = NULL;
   master_routine_scope = NULL;
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN

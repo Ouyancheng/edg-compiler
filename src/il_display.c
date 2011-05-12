@@ -978,6 +978,11 @@ Display the indicated constant entry.
   if (ptr->expr != NULL) {
     disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
   }  /* if */
+#if DO_IL_LOWERING || BACK_END_IS_C_GEN_BE
+  if (ptr->assoc_var != NULL) {
+    disp_ptr("assoc_var", (char *)ptr->assoc_var, iek_variable);
+  }  /* if */
+#endif /* DO_IL_LOWERING || BACK_END_IS_C_GEN_BE */
   if (ptr->implicit_cast) {
     disp_boolean("implicit_cast", TRUE);
   }  /* if */
@@ -993,10 +998,6 @@ Display the indicated constant entry.
   if (ptr->is_simple_zero) {
     disp_boolean("is_simple_zero", TRUE);
   }  /* if */
-#if DO_IL_LOWERING || BACK_END_IS_C_GEN_BE
-  /* Do not print out ptr->assoc_var_assigned, which is used only during IL
-     lowering and the C-generating back end. */
-#endif /* DO_IL_LOWERING || BACK_END_IS_C_GEN_BE */
   if (ptr->null_pointer_constant_ruled_out) {
     disp_boolean("null_pointer_constant_ruled_out", TRUE);
   }  /* if */

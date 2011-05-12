@@ -4569,7 +4569,7 @@ precedence confusion.  Do the output in the way described by octl.
         int           out_len = 0;
         a_character_kind  character_kind = constant->character_kind;
 #if BACK_END_IS_C_GEN_BE
-        if (octl->c_generating_back_end && constant->assoc_var_assigned &&
+        if (octl->c_generating_back_end && constant->assoc_var != NULL &&
             !is_normal_character_kind(character_kind)) {
           /* The C-generating back end transforms wide string literals: it
              creates a variable initialized with the string value and then

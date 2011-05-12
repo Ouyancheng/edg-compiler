@@ -5030,6 +5030,49 @@ side-effects.  The constants passed as parameters should be unshared.
 }  /* combine_initializer_constants */
 
 
+a_constant_ptr alloc_unshared_constant_full(a_constant *cp,
+                                            a_boolean  source_in_il)
+/*
+Allocate a constant in the current IL memory region, copy the value of *cp
+into it, and return a pointer to the allocated constant.  This routine
+is used when a constant cannot be shared, as when it is an initializer
+value.  Several fields are cleared or adjusted.  Note that the subtree
+of the constant is not copied unless memory region issues force that;
+in general, it is assumed that this routine can allocate a new constant
+entry, do a shallow copy into it, and use any subtree without copying
+(either it's unshared already, or it can be pointed to by multiple
+constants).  source_in_il is TRUE in cases where the given constant is
+an allocated IL entry, in which case the il_lowering_flag value of the
+source constant is copied to the returned constant.
+*/
+{
+  a_constant_ptr ucp;
+
+  if (curr_il_region_number == file_scope_region_number &&
+      has_non_file_scope_ref(cp)) {
+    ucp = copy_constant_full(cp, (a_constant *)NULL,
+                             source_in_il? CE_NO_OPTIONS :
+                                           CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL);
+  } else {
+    ucp = alloc_constant(cp->kind);
+    copy_constant(cp, ucp);
+    if (source_in_il) {
+      /* Copy the value of the il_lowering_flag from one constant to the other
+         (otherwise, when initial_value_for_il_lowering_flag is TRUE, it
+         appears that a copied constant has become lowered and this isn't
+         the case). */
+      copy_il_lowering_flag(cp, ucp);
+    }  /* if */
+  }  /* if */
+  /* Clear the source correspondence information.  This version of the
+     constant isn't the one directly associated with the source entity,
+     if any. */
+  break_constant_source_corresp(ucp);
+  fix_memory_region_problems_in_copied_constant(ucp);
+  return ucp;
+}  /* alloc_unshared_constant_full */
+
+
 a_constant_ptr alloc_unshared_constant(a_constant *cp)
 /*
 Allocate a constant in the current IL memory region, copy the value of *cp
@@ -5040,26 +5083,12 @@ of the constant is not copied unless memory region issues force that;
 in general, it is assumed that this routine can allocate a new constant
 entry, do a shallow copy into it, and use any subtree without copying
 (either it's unshared already, or it can be pointed to by multiple
-constants).  The source constant is not assumed to be an allocated IL
-constant; it can be on the stack.
+constants).  The source constant is assumed to be on the stack; for cases
+where the source constant is an allocated IL entry, see
+alloc_unshared_constant_full.
 */
 {
-  a_constant_ptr ucp;
-
-  if (curr_il_region_number == file_scope_region_number &&
-      has_non_file_scope_ref(cp)) {
-    ucp = copy_constant_full(cp, (a_constant *)NULL,
-                             CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL);
-  } else {
-    ucp = alloc_constant(cp->kind);
-    copy_constant(cp, ucp);
-  }  /* if */
-  /* Clear the source correspondence information.  This version of the
-     constant isn't the one directly associated with the source entity,
-     if any. */
-  break_constant_source_corresp(ucp);
-  fix_memory_region_problems_in_copied_constant(ucp);
-  return ucp;
+  return alloc_unshared_constant_full(cp, /*source_in_il=*/FALSE);
 }  /* alloc_unshared_constant */
 
 

@@ -826,15 +826,15 @@ associated variant fields to default values.
   cp->type           = NULL;
   cp->expr           = NULL;
   cp->rescan_info    = NULL;
+#if DO_IL_LOWERING || BACK_END_IS_C_GEN_BE
+  cp->assoc_var      = NULL;
+#endif /* DO_IL_LOWERING || BACK_END_IS_C_GEN_BE */
   cp->character_kind = (a_character_kind)chk_default;
   cp->implicit_cast  = FALSE;
   cp->explicit_cast_applied = FALSE;
   cp->is_reinterpret_cast = FALSE;
   cp->non_arithmetic = FALSE;
   cp->is_simple_zero = FALSE;
-#if DO_IL_LOWERING || BACK_END_IS_C_GEN_BE
-  cp->assoc_var_assigned = FALSE;
-#endif /* DO_IL_LOWERING || BACK_END_IS_C_GEN_BE */
   cp->null_pointer_constant_ruled_out = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
   cp->null_keyword = FALSE;

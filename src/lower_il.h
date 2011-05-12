@@ -1073,6 +1073,8 @@ extern a_boolean should_drop_const_on_this_param_variable(
 
 extern void lower_os_type(a_type_ptr type);
 
+extern void lower_os_constant(a_constant_ptr constant);
+
 extern void lower_expr_list(an_expr_node_ptr expr_list,
                             unsigned int     is_bool_controlling_expr_mask,
                             unsigned int     assume_expr_is_non_null_mask);

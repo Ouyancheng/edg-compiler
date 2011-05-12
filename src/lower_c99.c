@@ -3408,9 +3408,9 @@ constructs.
     a_constant_ptr  constant = expr->variant.constant;
     /* See if the variable has been allocated already.  If so, a pointer to
        the variable will have been stored in the assoc_info field. */
-    if (constant->assoc_var_assigned) {
+    if (constant->assoc_var != NULL) {
       /* Reuse the previously created temporary. */
-      tmp = (a_variable_ptr)constant->source_corresp.assoc_info;
+      tmp = constant->assoc_var;
     } else {
       /* No static variable was created for this constant yet. */
       tmp = make_temporary_in_scope(expr->type,
@@ -3424,13 +3424,18 @@ constructs.
            scope so it can be pointed to from the file-scope variable. */
         a_memory_region_number region_to_switch_back_to;
         switch_to_file_scope_region(&region_to_switch_back_to);
-        constant = alloc_unshared_constant(constant);
+        constant = alloc_unshared_constant_full(constant,
+                                                /*source_in_il=*/TRUE);
         switch_back_to_original_region(region_to_switch_back_to);
       }  /* if */
       tmp->initializer.constant = constant;
-      lower_c99_constant(tmp->initializer.constant);
-      constant->source_corresp.assoc_info = (char*)tmp;
-      constant->assoc_var_assigned = TRUE;
+      /* Lower the complex constant.  If the constant is in the file scope,
+         lowering of the constant will be delayed until the file scope is
+         lowered; this is necessary in cases where the constant may be
+         shared and portions of the front end may not be expecting a lowered
+         complex constant (i.e., a ck_aggregate) in certain circumstances. */
+      lower_os_constant(tmp->initializer.constant);
+      constant->assoc_var = tmp;
     }  /* if */
     overwrite_node(expr, var_rvalue_expr(tmp));
   } else
@@ -3457,14 +3462,13 @@ If the constant represents a lowered complex constant and type != NULL, then
   a_boolean result = FALSE;
 
   if (con->kind == (a_constant_repr_kind)ck_aggregate &&
-      con->assoc_var_assigned &&
+      con->assoc_var != NULL &&
       con->source_corresp.assoc_info != NULL &&
-      is_complex_type(((a_variable_ptr)con->source_corresp.assoc_info)->type))
-                                                                              {
+      is_complex_type(con->assoc_var->type)) {
     result = TRUE;
     if (type != NULL) {
       /* Return the unlowered type if the caller requested it. */
-      *type = ((a_variable_ptr)con->source_corresp.assoc_info)->type;
+      *type = con->assoc_var->type;
     }  /* if */
   }  /* if */
   return result;

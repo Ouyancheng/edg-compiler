@@ -1,5 +1,24 @@
 Version 4.4
 
+5/12/11  [EDGcpfe/10894]
+Lowering of complex constants
+
+Previously, the lowering of a shared complex constant had resulted in
+undefined behavior in some cases (because a lowered complex constant -- i.e.,
+an aggregate -- was unexpected in parts of the front end).  A change has been
+made to delay lowering of complex constants in the file scope.  As part of this
+change, the assoc_var_assigned field in a_constant has been removed and
+replaced with the assoc_var variable pointer, so this is a slight IL CHANGE.
+This example (with --g++ --c++0x) had generated a segmentation violation
+(in find_friend_functions_for_class) and now compiles without error:
+
+  template <class T> auto f(T x) -> decltype(__I__,x);
+  void g() {
+    f(__I__);
+  }
+  auto x = f(0);
+
+
 5/11/11  [EDGcpfe/11695]
 Internal error on macro in static data member initializer
 

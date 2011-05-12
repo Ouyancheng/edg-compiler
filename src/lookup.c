@@ -5555,6 +5555,7 @@ the entry to to symbol_list.
   a_symbol_list_entry_ptr	slep;
 
   cssp = symbol_supplement_for_class(class_type);
+  check_assertion(cssp != NULL);
   for (sym = cssp->friend_functions; sym != NULL; sym = sym->next) {
     if (sym->header == locator->symbol_header) break;
   }  /* for */
