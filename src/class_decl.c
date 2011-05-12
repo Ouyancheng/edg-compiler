@@ -11901,7 +11901,6 @@ constant and entering the name in the symbol table.
         pos_ty_error(ec_invalid_literal_type, &init_pos, member_type);
       }  /* if */
       scan_and_discard_initializer_expression(dps);
-      dps->has_initializer = FALSE;
     }  /* if */
   }  /* if */
   db_exit();
@@ -12225,7 +12224,6 @@ specific information about the member declaration, respectively.
         }  /* if */
       }  /* if */
       scan_and_discard_initializer_expression(decl_state);
-      decl_state->has_initializer = FALSE;
     }  /* if */
     if (restore_member_visibility) {
       /* Restore the member's visibility. */
