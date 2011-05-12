@@ -1304,8 +1304,6 @@ extern a_boolean is_value_class_or_fundamental_type(a_type_ptr tp);
 
 extern a_boolean is_cli_enum_type(a_type_ptr tp);
 
-extern a_param_type_ptr cli_param_array_from_routine_type(a_type_ptr tp);
-
 extern a_boolean routine_type_has_cli_param_array(a_type_ptr tp);
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

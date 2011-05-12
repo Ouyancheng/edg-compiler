@@ -12260,7 +12260,8 @@ future.
 }  /* is_cli_enum_type */
 
 
-a_param_type_ptr cli_param_array_from_routine_type(a_type_ptr routine_type)
+static a_param_type_ptr cli_param_array_from_routine_type(
+                                                      a_type_ptr routine_type)
 /*
 Return a pointer to the C++/CLI parameter array in routine_type or NULL if
 there is no parameter array.  The caller must ensure that routine_type is a
