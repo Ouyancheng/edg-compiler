@@ -10,7 +10,7 @@ made to delay lowering of complex constants in the file scope.  As part of this
 change, the assoc_var_assigned field in a_constant has been removed and
 replaced with the assoc_var variable pointer, so this is a slight IL CHANGE
 (though these fields are intended to be used only by IL lowering and the C
-generating back).  This example (with --g++ --c++0x) had generated a
+generating back end).  This example (with --g++ --c++0x) had generated a
 segmentation violation (in find_friend_functions_for_class) and now compiles
 without error:
 
