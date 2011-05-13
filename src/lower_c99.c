@@ -3407,7 +3407,7 @@ constructs.
     a_variable_ptr  tmp;
     a_constant_ptr  constant = expr->variant.constant;
     /* See if the variable has been allocated already.  If so, a pointer to
-       the variable will have been stored in the assoc_info field. */
+       the variable will have been stored in the assoc_var field. */
     if (constant->assoc_var != NULL) {
       /* Reuse the previously created temporary. */
       tmp = constant->assoc_var;

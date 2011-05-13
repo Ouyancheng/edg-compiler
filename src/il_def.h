@@ -3347,7 +3347,7 @@ typedef struct a_constant {
 			   rescanned later to redo semantic analysis,
 			   points to extra front-end-only information that
 			   is needed for the rescan.  NULL otherwise. */
-#if DO_IL_LOWERING || BACK_END_IS_C_GEN_BE
+#if DO_IL_LOWERING
   a_variable_ptr
                 assoc_var;
                         /* When non-NULL, points to an associated variable
@@ -3357,7 +3357,7 @@ typedef struct a_constant {
                            back end, as a "next" pointer to maintain a list of
                            wide string literal constants that are rewritten to
                            refer to a variable.  NULL otherwise. */
-#endif /* DO_IL_LOWERING || BACK_END_IS_C_GEN_BE */
+#endif /* DO_IL_LOWERING */
   a_bit_field	character_kind:NUM_BITS_FOR_CHARACTER_KIND;
 			/* If this constant represents a character or string
 			   literal, this field indicates the character kind

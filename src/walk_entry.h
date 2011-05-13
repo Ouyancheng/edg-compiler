@@ -696,9 +696,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->type, a_type_ptr, iek_type);
         walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
         conditionally_clear_fe_pointer(ptr->rescan_info);
-#if DO_IL_LOWERING || BACK_END_IS_C_GEN_BE
+#if DO_IL_LOWERING
         conditionally_clear_fe_pointer(ptr->assoc_var);
-#endif /* DO_IL_LOWERING || BACK_END_IS_C_GEN_BE */
+#endif /* DO_IL_LOWERING */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         if (ptr->type != NULL) {
           definition_needed_if_class(ptr->type);
