@@ -9481,6 +9481,10 @@ make_new_type:
             new_ptp = make_param_type(tp, &null_source_position);
             new_ptp->declared_type = declared_type;
             new_ptp->param_num = ptp->param_num;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            /* Copy the C++/CLI param array state to the deduced parameter. */
+            new_ptp->is_cli_param_array = ptp->is_cli_param_array;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             if (ptp->is_parameter_pack) {
               /* If the type is a pack, make the new parameter a pack
                  as well, otherwise make the new parameter a pack

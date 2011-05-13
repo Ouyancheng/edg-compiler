@@ -13225,6 +13225,10 @@ typedef struct an_expr_node {
 		is_safe_cast:1;
 			/* TRUE when the operation is a C++/CLI safe_cast
 			   in the source.  Similar to is_static_cast. */
+  a_bit_field
+		element_of_cli_param_array_arg:1;
+			/* TRUE when this is an argument matching a
+			   C++/CLI parameter array. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   union {

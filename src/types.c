@@ -5622,6 +5622,7 @@ Clear a standard conversion description to default values.
   std_conv->gpp_conv_of_real_to_complex = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   std_conv->conv_of_string_literal_to_cli_string = FALSE;
+  std_conv->param_array_conversion = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* clear_std_conv_descr */
 
@@ -12282,14 +12283,14 @@ tk_routine entry.
 }  /* cli_param_array_from_routine_type */
 
 
-a_boolean routine_type_has_cli_param_array(a_type_ptr tp)
+a_boolean is_cli_param_array_routine_type(a_type_ptr tp)
 /*
 Returns TRUE if tp is a type for a routine with a C++/CLI parameter array.
 (tp can be a typeref.)
 */
 {
   return cli_param_array_from_routine_type(skip_typerefs(tp)) != NULL;
-}  /* routine_type_has_cli_param_array */
+}  /* is_cli_param_array_routine_type */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

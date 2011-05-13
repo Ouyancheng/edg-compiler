@@ -895,6 +895,10 @@ typedef struct a_std_conv_descr {
 		conv_of_string_literal_to_cli_string;
 			/* TRUE if the conversion is the conversion of a
 			   string literal to a C++/CLI System::String^. */
+  a_byte_boolean
+		param_array_conversion;
+			/* TRUE if this is a conversion to the element type of
+			   a C++/CLI parameter array. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_std_conv_descr;
 
@@ -1304,7 +1308,7 @@ extern a_boolean is_value_class_or_fundamental_type(a_type_ptr tp);
 
 extern a_boolean is_cli_enum_type(a_type_ptr tp);
 
-extern a_boolean routine_type_has_cli_param_array(a_type_ptr tp);
+extern a_boolean is_cli_param_array_routine_type(a_type_ptr tp);
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

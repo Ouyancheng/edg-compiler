@@ -5876,7 +5876,7 @@ corresponding to the enclosing class definition.
 }  /* enter_cli_accessor */
 
 
-a_boolean routine_symbol_has_cli_param_array(a_symbol_ptr  sym)
+a_boolean is_cli_param_array_routine_symbol(a_symbol_ptr  sym)
 /*
 Return TRUE if sym is a symbol for a routine with a C++/CLI parameter array.
 */
@@ -5890,8 +5890,8 @@ Return TRUE if sym is a symbol for a routine with a C++/CLI parameter array.
   } else {
     rout_type = NULL;
   }  /* if */
-  return rout_type != NULL && routine_type_has_cli_param_array(rout_type);
-}  /* routine_symbol_has_cli_param_array */
+  return rout_type != NULL && is_cli_param_array_routine_type(rout_type);
+}  /* is_cli_param_array_routine_symbol */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

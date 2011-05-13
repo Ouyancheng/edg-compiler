@@ -2987,6 +2987,7 @@ its kind to the indicated kind.
   node->is_pack_expansion = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   node->is_safe_cast = FALSE;
+  node->element_of_cli_param_array_arg = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CENTERLINE_CHECKING
   node->avoid_codecenter_warnings = 0;

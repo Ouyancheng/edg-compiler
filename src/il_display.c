@@ -3592,6 +3592,9 @@ Display the indicated expression node.
   if (ptr->is_safe_cast) {
     disp_boolean("is_safe_cast", TRUE);
   }  /* if */
+  if (ptr->element_of_cli_param_array_arg) {
+    disp_boolean("element_of_cli_param_array_arg", TRUE);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   disp_name("kind");
   switch (ptr->kind) {

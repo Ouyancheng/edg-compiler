@@ -278,7 +278,7 @@ which the default argument is associated.
   if (check_for_errors) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Verify that this is not a function with a C++/CLI param array. */
-    if (cppcli_enabled && routine_symbol_has_cli_param_array(rout_sym)) {
+    if (cppcli_enabled && is_cli_param_array_routine_symbol(rout_sym)) {
       /* Default arguments are not allowed with C++/CLI parameter arrays. */
       pos_error(ec_default_arg_used_in_param_array_function, &pos_curr_token);
       err = TRUE;

@@ -6208,6 +6208,12 @@ case).
       rep = NULL;
       force_indefinite_function = TRUE;
       cppcli_overloaded_case = TRUE;
+    } else if (cppcli_enabled &&
+               is_cli_param_array_routine_symbol(member_sym)) {
+      /* In C++/CLI mode, a symbol representing a routine with a parameter
+         array must be processed through overload resolution. */
+      rep = NULL;
+      force_indefinite_function = TRUE;
     } else if (symbol_is(member_sym, sk_property_set)) {
       rep = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -23871,6 +23877,12 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       force_indefinite_function = TRUE;
       rep = NULL;
       cppcli_overloaded_case = TRUE;
+    } else if (cppcli_enabled &&
+               is_cli_param_array_routine_symbol(sym_ptr)) {
+      /* In C++/CLI mode, a symbol representing a routine with a parameter
+         array must be processed through overload resolution. */
+      force_indefinite_function = TRUE;
+      rep = NULL;
     } else if (symbol_is(sym_ptr, sk_property_set)) {
       /* Properties are potentially overloaded. */
       rep = NULL;

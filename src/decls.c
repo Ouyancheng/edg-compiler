@@ -1101,7 +1101,7 @@ new fields are set properly.
         pos_error(ec_static_conversion_function_must_have_one_parameter,
                   &locator->source_position);
         err = TRUE;
-      } else if (routine_type_has_cli_param_array(rout_type)) {
+      } else if (is_cli_param_array_routine_type(rout_type)) {
         /* A C++/CLI parameter array cannot be used in a static conversion
            operator. */
         pos_error(ec_parameter_array_on_operator_function,
@@ -1246,7 +1246,7 @@ new fields are set properly.
         }  /* if */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && routine_type_has_cli_param_array(rout_type)) {
+    } else if (cppcli_enabled && is_cli_param_array_routine_type(rout_type)) {
       /* All overloaded operators (except "call" and "new", which are handled
          above) require a specific number of arguments.  A C++/CLI parameter
          array is therefore not allowed here. */
@@ -4337,7 +4337,7 @@ issue an error if a default argument is encountered at all.
   /* Loop through the single list. */
   ptp = skip_typerefs(type)->variant.routine.extra_info->param_type_list;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && routine_type_has_cli_param_array(type)) {
+  if (cppcli_enabled && is_cli_param_array_routine_type(type)) {
     a_param_type_ptr  p;
     a_boolean         found_default_arg = FALSE;
     for (p = ptp; p != NULL; p = p->next) {

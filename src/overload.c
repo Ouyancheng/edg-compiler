@@ -3567,6 +3567,10 @@ the point of call.
   a_boolean                function_template_case = FALSE;
   a_template_arg_ptr       local_template_arg_list = NULL;
   a_boolean                microsoft_explicit_constructor_case = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean                param_array_expanded_case = FALSE;
+  a_type_ptr               param_array_element_type;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   *discarded_because_post_decl = FALSE;
   if (proj_function_symbol != NULL) {
@@ -3674,6 +3678,19 @@ the point of call.
       param = NULL;
       arg_operand = NULL;
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled && param->is_cli_param_array) {
+      /* A C++/CLI parameter array can match all the remaining arguments. */
+      if (arg_operand->next != NULL) {
+        /* There are more arguments after the one that lines up with the
+           parameter array parameter, so this is an expanded case where
+           several arguments will be wrapped into one parameter array. */
+        param_array_expanded_case = TRUE;
+      }  /* if */
+      param = NULL;
+      arg_operand = NULL;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     param = param->next;
   }  /* for */
@@ -3686,6 +3703,16 @@ the point of call.
        default_arg_expr is accepted if it has an unevaluated template
        value, because we know this value can be produced when the call
        is generated. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* If we ran out of arguments but the next parameter is a C++/CLI param
+       array, then we can accept this function by creating a zero-length
+       parameter array. */
+    if (param->is_cli_param_array) {
+      check_assertion(cppcli_enabled);
+      param_array_expanded_case = TRUE;
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not add code here. */
     /* A parameter pack can also make the call okay, because it can be
        matched with zero arguments. */
     if (!param->has_unevaluated_template_default &&
@@ -3699,6 +3726,12 @@ the point of call.
 #endif /* DEBUG */
   }  /* if */
   /* The function looks okay from the standpoint of argument count. */
+  /* At this point when processing a routine with a C++/CLI parameter array,
+     if param_array_expanded_case is TRUE we are processing the expanded
+     case (the one where an array is allocated and passed for the final
+     parameter), but if it's FALSE, we still might discover we have the
+     expanded case if the last argument does not match the array parameter
+     type. */
   /* Look at each argument and see whether or not it can match the formal
      parameter, and if so, how well.  For a template, we match the
      nondependent parameters on the first pass, and only if they all
@@ -3707,6 +3740,9 @@ the point of call.
      instantiating some things we don't really need. */
   first_pass = TRUE;
   for (;;) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    a_boolean processing_expanded_case = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     param = rtsp->param_type_list;
     reached_end_of_param_list = FALSE;
     param_before_deduction = first_param_before_deduction;
@@ -3775,6 +3811,24 @@ the point of call.
         a_boolean param_type_is_deduced = FALSE;
         /* Both the actual argument and formal parameter are available.
            See how well they match. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (!reached_end_of_param_list && param->is_cli_param_array) {
+          /* If we encountered a param array, do not advance past it. */
+          /* A parameter array should always be the last parameter. */
+          check_assertion (cppcli_enabled && param->next == NULL);
+          /* FIXME: If we see a C++/CLI parameter array that involves a
+             template parameter, we are never considering it a viable
+             candidate, i.e., it can never be invoked because template argument
+             deduction has not been updated to handle parameter arrays.  We
+             will need to resolve this as a bug fix later. */
+          if (function_template_case) {
+            if (param_before_deduction->type_involves_template_param) {
+              goto reject_function;
+            }  /* if */
+          }  /* if */
+          reached_end_of_param_list = TRUE;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (function_template_case) {
           /* Note that we test param_before_deduction rather than param because
              we want to get the same result on the first and second passes. */
@@ -3795,13 +3849,69 @@ the point of call.
            so we keep the already-allocated match list intact. */
         if (!first_pass) saved_arg_match_next = arg_match->next;
         /* See how well the argument matches the parameter. */
-        determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
-                                  param->type,
-                                  param,
-                                  param_type_is_deduced,
-                                  /*try_user_conversions=*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (param->is_cli_param_array) {
+          /* C++/CLI parameter array. */
+          check_assertion(cppcli_enabled);
+          if (!processing_expanded_case) {
+            if (!param_array_expanded_case) {
+              /* At this point, we don't know whether the expanded case should
+                 be used or not because the number of arguments equals the
+                 number of parameters.  Decide definitively now. */
+              determine_arg_match_level(&arg_operand->operand,
+                                        (a_type_ptr)NULL,
+                                        param->type,
+                                        param,
+                                        param_type_is_deduced,
+                                        /*try_user_conversions=*/
                                                         allow_udc_on_arguments,
-                                  arg_match);
+                                        arg_match);
+              if (arg_match->match_level == aml_none ||
+                  arg_match->match_level == aml_error) {
+                /* The last argument does not match the parameter array so try
+                   the expanded case. */
+                param_array_expanded_case = TRUE;
+              }  /* if */
+            }  /* if */
+            /* At this point, we know definitively whether this is an exact or
+               expanded case for a function with a C++/CLI param array.  If it
+               is the expanded case, begin processing the arguments that will
+               become elements in the parameter array. */
+            if (param_array_expanded_case) {
+              processing_expanded_case = TRUE;
+              if (is_handle_to_cli_array_type(param->type)) {
+                param_array_element_type = cli_array_element_type(
+                                                 type_pointed_to(param->type));
+              } else {
+                param_array_element_type = error_type();
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          if (processing_expanded_case) {
+            /* Match the argument with the C++/CLI parameter array element
+               type. */
+            determine_arg_match_level(
+                          &arg_operand->operand, (a_type_ptr)NULL,
+                          param_array_element_type,
+                          param,
+                          param_type_is_deduced,
+                          /*try_user_conversions=*/allow_udc_on_arguments,
+                          arg_match);
+            arg_match->conversion.std.param_array_conversion = TRUE;
+          }  /* if */
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          /* Normal argument matching */
+          determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
+                                    param->type,
+                                    param,
+                                    param_type_is_deduced,
+                                    /*try_user_conversions=*/
+                                                        allow_udc_on_arguments,
+                                    arg_match);
+        }  /* if */
         if (!first_pass) arg_match->next = saved_arg_match_next;
         /* If no match is possible, go on to the next function. */
         if (arg_match->match_level == aml_none) goto reject_function;
@@ -3849,8 +3959,16 @@ next_argument:;
   }  /* if */
   /* If param != NULL here, there are default arguments (because we got past
      the argument-count check above). */
-  check_assertion_str(param == NULL || param->has_default_arg,
+#if CHECKING
+  if (!(param == NULL ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        param->is_cli_param_array ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        param->has_default_arg)) {
+    unexpected_condition_str(
                      "determine_function_viability: no param, no default arg");
+  }  /* if */
+#endif /* CHECKING */
   /* All the arguments can be made to match the parameters. */
   /* See if the "this" parameter, if any, matches. */
   /* Do not process the "this" parameter for constructors in a conversion
@@ -4931,6 +5049,23 @@ for a Microsoft bug).
   int cmp = 0;
 
   /* Compare the gross match levels. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (arg_match1->conversion.std.param_array_conversion !=
+      arg_match2->conversion.std.param_array_conversion) {
+    /* A parameter array match is more expensive than any other conversion
+       except for an ellipsis conversion.  This test must be performed
+       before comparing the argument match levels (and probably any other test)
+       because the argument match level for a parameter array match indicates
+       how well the argument matches the param array element type, not the
+       parameter type itself. */
+    if (arg_match1->conversion.std.param_array_conversion) {
+      cmp = (arg_match2->match_level == aml_ellipsis) ? 1 : -1;
+    } else {
+      cmp = (arg_match1->match_level == aml_ellipsis) ? -1 : 1;
+    }  /* if */
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not add code here. */
   if (arg_match1->match_level == aml_none ||
       arg_match2->match_level == aml_none) {
     /* The match for the "this parameter" of a static member function
@@ -5358,6 +5493,22 @@ other.  Return
                                      cfp2->function_symbol,
                                      /*entire_type=*/FALSE,
                                      maxn);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && 
+             is_cli_param_array_routine_symbol(cfp1->function_symbol) !=
+             is_cli_param_array_routine_symbol(cfp2->function_symbol)) {
+    /* The presence of a C++/CLI parameter array can serve as a tie-breaker.
+       The C++/CLI standard states that an ellipsis match should be worse
+       than a param array match, but we deviate from that behavior for a
+       zero-argument function call, for which an ellipsis conversion is
+       be chosen over a param array conversion.  That matches the
+       VC++ behavior. */
+    if (is_cli_param_array_routine_symbol(cfp1->function_symbol)) {
+      cmp = -1;
+    } else {
+      cmp = 1;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   return cmp;
 }  /* compare_candidate_functions */
@@ -6769,6 +6920,7 @@ in_instantiation:
              function_symbol->kind == (a_symbol_kind)sk_member_function) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
             !hide_by_sig_lookup_applies(symbol_list->symbol) &&
+            !is_cli_param_array_routine_symbol(symbol_list->symbol) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             candidate_function_is_visible(symbol_list->symbol,
                                           is_template_id,
@@ -9538,6 +9690,29 @@ specific function being called.
          for template functions it is possible the instantiation ended
          up with a different parameter type. */
       arg = error_node();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (arg_match->conversion.std.param_array_conversion) {
+      /* This argument is part of a param array.  Therefore, it is not a
+         "real" argument, but instead part of the initializer for an element
+         of a C++/CLI array. */
+      a_type_ptr element_type;
+
+      check_assertion (is_handle_to_cli_array_type(param->type));
+      element_type = cli_array_element_type(type_pointed_to(param->type));
+      prep_initializer_operand(
+                     &arg_operand->operand,
+                     element_type,
+                     (a_boolean *)NULL,
+                     &arg_match->conversion,
+                     /*initializing_return_value=*/FALSE,
+                     /*initializing_variable=*/FALSE,
+                     /*static_lifetime=*/FALSE,
+                     /*is_copy_initialization=*/FALSE,
+                     is_template_param_constant_operand(&arg_operand->operand),
+                     ec_incompatible_param);
+      arg = make_node_from_operand_for_expr_list(&arg_operand->operand);
+      arg->element_of_cli_param_array_arg = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* Cast the argument to the right type. */
       prep_possible_ellipsis_argument_operand(&arg_operand->operand, param,
@@ -9646,12 +9821,15 @@ overloaded operator cases.
     /* Scan through the argument list. */
     for (arg_operand = arg_operand_list,
              param = routine_type->variant.routine.extra_info->param_type_list;
-         arg_operand != NULL || param != NULL;) {
+         arg_operand != NULL || (param != NULL
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                 && !param->is_cli_param_array
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                              );) {
       check_assertion(arg_match != NULL ||
                       arg_operand == NULL);  /* For Coverity */
-      arg = node_for_arg_of_overloaded_function_call(
-                                         arg_operand, arg_match, param,
-                                         routine);
+      arg = node_for_arg_of_overloaded_function_call(arg_operand, arg_match,
+                                                     param, routine);
       /* Add this argument to the end of the expression-form argument list
          being built up. */
       if (prev_arg == NULL) {
@@ -9667,8 +9845,16 @@ overloaded operator cases.
         arg_match = arg_match->next;
       }  /* if */
       /* Advance to the next parameter unless we've run out (additional
-         arguments will be processed under an ellipsis). */
-      if (param != NULL) param = param->next;
+         arguments will be processed under an ellipsis) or this is a
+         C++/CLI parameter array (additional arguments will be processed
+         under the same parameter, as elements of the parameter array). */
+      if (param != NULL
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          && !param->is_cli_param_array
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                       ) {
+          param = param->next;
+        }  /* if */
     }  /* for */
   } else if (unknown_dependent_function) {
     /* The called function is unknown because some of the arguments
