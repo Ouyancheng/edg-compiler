@@ -978,11 +978,11 @@ Display the indicated constant entry.
   if (ptr->expr != NULL) {
     disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
   }  /* if */
-#if DO_IL_LOWERING || BACK_END_IS_C_GEN_BE
+#if DO_IL_LOWERING
   if (ptr->assoc_var != NULL) {
     disp_ptr("assoc_var", (char *)ptr->assoc_var, iek_variable);
   }  /* if */
-#endif /* DO_IL_LOWERING || BACK_END_IS_C_GEN_BE */
+#endif /* DO_IL_LOWERING */
   if (ptr->implicit_cast) {
     disp_boolean("implicit_cast", TRUE);
   }  /* if */

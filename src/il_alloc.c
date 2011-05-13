@@ -826,9 +826,9 @@ associated variant fields to default values.
   cp->type           = NULL;
   cp->expr           = NULL;
   cp->rescan_info    = NULL;
-#if DO_IL_LOWERING || BACK_END_IS_C_GEN_BE
+#if DO_IL_LOWERING
   cp->assoc_var      = NULL;
-#endif /* DO_IL_LOWERING || BACK_END_IS_C_GEN_BE */
+#endif /* DO_IL_LOWERING */
   cp->character_kind = (a_character_kind)chk_default;
   cp->implicit_cast  = FALSE;
   cp->explicit_cast_applied = FALSE;
