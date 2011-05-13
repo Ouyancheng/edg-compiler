@@ -6848,6 +6848,7 @@ in_instantiation:
              function_symbol->kind == (a_symbol_kind)sk_member_function) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
             !hide_by_sig_lookup_applies(overloaded_function_symbol) &&
+            !is_cli_param_array_routine_symbol(overloaded_function_symbol) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             (known_to_be_visible ||
              candidate_function_is_visible(
