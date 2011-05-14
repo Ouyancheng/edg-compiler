@@ -3106,6 +3106,7 @@ specifier) for which bindings are sought.
 
 
 static a_boolean deduce_one_parameter(a_param_type_ptr   ptp,
+                                      a_type_ptr         param_type,
                                       an_arg_operand     **p_arg_operand,
                                       a_type_ptr         arg_type,
                                       a_symbol_ptr       template_sym,
@@ -3113,20 +3114,21 @@ static a_boolean deduce_one_parameter(a_param_type_ptr   ptp,
 /*
 Do template argument deduction on one parameter of a function
 template.  ptp identifies the parameter (which requires deduction).
-**p_arg_operand gives the argument; p_arg_operand can be NULL, in
-which case arg_type gives the argument type.  If it isn't NULL,
-*p_arg_operand is advanced past the right number of arguments on
-return (usually one, more than one for a parameter pack; note that
-the zero-length parameter pack case won't get here because this routine
-gets called only when there's an argument to match to the parameter).
-template_sym is the symbol for the function_template (not a projection
-symbol).  *template_arg_list points to the template argument list so
-far; anything deduced is added to that.  Return TRUE if the deduction
-succeeds, FALSE if it fails.
+If param_type is non-NULL, param_type is used for deduction instead
+of ptp->type, and ptp is not used for any other attributes of the
+parameter either.  **p_arg_operand gives the argument; p_arg_operand
+can be NULL, in which case arg_type gives the argument type.  If it
+isn't NULL, *p_arg_operand is advanced past the right number of
+arguments on return (usually one, more than one for a parameter pack;
+note that the zero-length parameter pack case won't get here because
+this routine gets called only when there's an argument to match to the
+parameter).  template_sym is the symbol for the function_template (not
+a projection symbol).  *template_arg_list points to the template
+argument list so far; anything deduced is added to that.  Return TRUE
+if the deduction succeeds, FALSE if it fails.
 */
 {
   a_boolean            deduction_okay = TRUE;
-  a_type_ptr           param_type;
   an_arg_operand       *arg_operand = NULL;
   an_operand           *operand = NULL;
   a_template_param_ptr templ_params;
@@ -3136,8 +3138,13 @@ succeeds, FALSE if it fails.
   a_pack_expansion_stack_entry_ptr
                        pesep = NULL;
 
+  if (param_type == NULL) {
+    param_type = ptp->type;
+  } else {
+    ptp = NULL;
+  }  /* if */
   if (p_arg_operand != NULL) arg_operand = *p_arg_operand;
-  if (!ptp->type_involves_deduced_template_param) {
+  if (ptp != NULL && !ptp->type_involves_deduced_template_param) {
     /* For a nondeduced parameter, we advance over the argument, do no
        deduction, and return TRUE.  However, if the nondeduced parameter is
        a parameter pack, we fail because there will be no way of ever
@@ -3152,7 +3159,7 @@ succeeds, FALSE if it fails.
   }  /* if */
   templ_params = template_supplement_for_symbol(template_sym)
                           ->variant.function.decl_cache.decl_info->parameters;
-  if (ptp->is_parameter_pack) {
+  if (ptp != NULL && ptp->is_parameter_pack) {
     /* For a parameter pack, we'll be iterating over several arguments
        that match the same parameter. */
     begin_pack_deduction_context(ptp->pack_expansion_descr,
@@ -3167,7 +3174,7 @@ succeeds, FALSE if it fails.
       operand = &arg_operand->operand;
       arg_type = operand->type;
     }  /* if */
-    param_type = ptp->type;
+    if (ptp != NULL) param_type = ptp->type;
     /* Adjust the types (e.g., for references) to prepare for the
        deduction. */
     if (!adjust_deduction_pair(&param_type, &arg_type, operand,
@@ -3179,7 +3186,7 @@ succeeds, FALSE if it fails.
            one way.  Keep going without adding anything to the template
            argument list and see if we can resolve this later as a nondeduced
            context. */
-        if (ptp->is_parameter_pack) {
+        if (ptp != NULL && ptp->is_parameter_pack) {
           /* But if the parameter is a parameter pack there won't be any
              way to deduce it later so we fail right away. */
           deduction_okay = FALSE;
@@ -3239,6 +3246,11 @@ template arguments, or NULL if deduction failed.
   an_arg_operand_ptr arg_operand;
   a_template_symbol_supplement_ptr
                      tssp;
+  a_boolean          suppress_param_advance = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean          processing_param_array_expanded_case = FALSE;
+  a_type_ptr         cli_param_array_element_type;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "function_template_call_argument_deduction");
   check_assertion(template_sym->kind == (a_symbol_kind)sk_function_template);
@@ -3260,14 +3272,72 @@ template arguments, or NULL if deduction failed.
   /* Look through the arguments/parameters to do template argument
      deduction. */
   for (ptp = rtsp->param_type_list, arg_operand = arg_operand_list;
-       ptp != NULL && arg_operand != NULL;
-       ptp = ptp->next) {
-    if (!deduce_one_parameter(ptp, &arg_operand,
+       ptp != NULL && arg_operand != NULL;) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (ptp->is_cli_param_array) {
+      /* C++/CLI parameter array. */
+      suppress_param_advance = TRUE;
+      if (!processing_param_array_expanded_case) {
+        processing_param_array_expanded_case = TRUE; /* Assume */
+        if (arg_operand->next == NULL) {
+          /* The number of arguments matches the number of parameters.
+             Check if we can successfully deduce the handle-to-CLI-array
+             parameter type.  Do a "tentative" match first so as not to
+             mess up the deduced template argument list. */
+          a_template_param_ptr templ_params =
+                        template_supplement_for_symbol(template_sym)
+                           ->variant.function.decl_cache.decl_info->parameters;
+          if (tentatively_matches_template_type(arg_operand->operand.type,
+                                                ptp->type,
+                                                templ_params,
+                                                *template_arg_list)) {
+            /* The last argument successfully matched the exact form.  This is
+               not the expanded case. */
+            processing_param_array_expanded_case = FALSE;
+          }  /* if */
+        }  /* if */
+        if (processing_param_array_expanded_case) {
+          /* In the expanded case, the list of arguments is collected into
+             a C++/CLI array, so the deduction is against the element type
+             of that array. */
+          if (is_handle_to_cli_array_type(ptp->type)) {
+            /* The element type of the C++/CLI array will be used for
+               subsequent deductions. */
+            cli_param_array_element_type = cli_array_element_type(
+                                                   type_pointed_to(ptp->type));
+          } else {
+            /* If the param array type is not a handle to a C++/CLI array type,
+               this is a deduction failure.  This behavior matches VC++. */
+            goto done;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (processing_param_array_expanded_case) {
+        if (!deduce_one_parameter(ptp, cli_param_array_element_type,
+                                  &arg_operand, (a_type_ptr)NULL,
+                                  template_sym, template_arg_list)) {
+          goto done;
+        }  /* if */
+      } else {
+        /* Not the expanded case.  We've already determined that deduction
+           can be done via a tentative match above.  Now do the deduction for
+           real. */
+        if (!deduce_one_parameter(ptp, (a_type_ptr)NULL,
+                                  &arg_operand, (a_type_ptr)NULL,
+                                  template_sym, template_arg_list)) {
+          unexpected_condition();
+        }  /* if */
+      }  /* if */
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not add code here. */
+    if (!deduce_one_parameter(ptp, (a_type_ptr)NULL, &arg_operand,
                               (a_type_ptr)NULL,
                               template_sym, template_arg_list)) {
       /* Deduction failed. */
       goto done;
     }  /* if */
+    if (!suppress_param_advance) ptp = ptp->next;
   }  /* for */
 #if CHECKING
   if (arg_operand != NULL) {
@@ -3277,9 +3347,18 @@ template arguments, or NULL if deduction failed.
                 "function_template_call_argument_deduction: missing ellipsis");
   } else if (ptp != NULL) {
     /* We ran out of arguments, but we still have parameters.  The parameter
-       should have a default argument expression or a parameter pack. */
-    check_assertion_str(ptp->has_default_arg || ptp->is_parameter_pack,
+       should have a default argument expression, a C++/CLI param array, or
+       a parameter pack. */
+#if CHECKING
+    if (!(ptp->has_default_arg ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          ptp->is_cli_param_array ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          ptp->is_parameter_pack)) {
+      unexpected_condition_str(
         "function_template_call_argument_deduction: missing default arg expr");
+    }  /* if */
+#endif /* CHECKING */
     if (ptp->is_parameter_pack && ptp->next != NULL) {
       /* A parameter pack can be deduced only if there are no other parameters
          following it. */
@@ -3559,7 +3638,7 @@ the point of call.
 #if DEBUG
   unsigned long            narg;
 #endif /* DEBUG */
-  a_boolean                reached_end_of_param_list, first_pass;
+  a_boolean                suppress_param_advance, first_pass;
   an_arg_match_summary_ptr this_match, this_match_next;
   an_arg_match_summary_ptr arg_match = NULL, saved_arg_match_next;
   an_arg_match_summary_ptr arg_match_list = NULL;
@@ -3744,7 +3823,7 @@ the point of call.
     a_boolean processing_expanded_case = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     param = rtsp->param_type_list;
-    reached_end_of_param_list = FALSE;
+    suppress_param_advance = FALSE;
     param_before_deduction = first_param_before_deduction;
 #if DEBUG
     narg = 0;
@@ -3777,7 +3856,7 @@ the point of call.
       if (param == NULL) {
         /* More arguments than required.  Since the function was not rejected
            in the initial argument-count check, it must have an ellipsis. */
-        reached_end_of_param_list = TRUE;
+        suppress_param_advance = TRUE;
         if (rtsp->has_ellipsis) {
           /* There is an ellipsis, so there is a match, but with a low
              desirability. */
@@ -3812,21 +3891,11 @@ the point of call.
         /* Both the actual argument and formal parameter are available.
            See how well they match. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (!reached_end_of_param_list && param->is_cli_param_array) {
-          /* If we encountered a param array, do not advance past it. */
+        if (!suppress_param_advance && param->is_cli_param_array) {
+          /* If we encounter a C++/CLI param array, do not advance past it. */
           /* A parameter array should always be the last parameter. */
           check_assertion (cppcli_enabled && param->next == NULL);
-          /* FIXME: If we see a C++/CLI parameter array that involves a
-             template parameter, we are never considering it a viable
-             candidate, i.e., it can never be invoked because template argument
-             deduction has not been updated to handle parameter arrays.  We
-             will need to resolve this as a bug fix later. */
-          if (function_template_case) {
-            if (param_before_deduction->type_involves_template_param) {
-              goto reject_function;
-            }  /* if */
-          }  /* if */
-          reached_end_of_param_list = TRUE;
+          suppress_param_advance = TRUE;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (function_template_case) {
@@ -3840,8 +3909,7 @@ the point of call.
                was processed on the first pass). */
             if (!first_pass) goto next_parameter;
           }  /* if */
-          if (param_before_deduction != NULL &&
-              param_before_deduction->type_involves_deduced_template_param) {
+          if (param_before_deduction->type_involves_deduced_template_param) {
             param_type_is_deduced = TRUE;
           }  /* if */
         }  /* if */
@@ -3854,6 +3922,9 @@ the point of call.
           /* C++/CLI parameter array. */
           check_assertion(cppcli_enabled);
           if (!processing_expanded_case) {
+            /* First argument that corresponds to the parameter array
+               parameter (i.e., not one of the arguments after that, in the
+               expanded case). */
             if (!param_array_expanded_case) {
               /* At this point, we don't know whether the expanded case should
                  be used or not because the number of arguments equals the
@@ -3918,7 +3989,7 @@ the point of call.
       }  /* if */
 next_parameter:
       /* Go on to the next parameter. */
-      if (!reached_end_of_param_list) {
+      if (!suppress_param_advance) {
         check_assertion(param != NULL);
         param = param->next;
         if (function_template_case) {
@@ -3926,10 +3997,10 @@ next_parameter:
           if (!param_before_deduction->is_parameter_pack) {
             param_before_deduction = param_before_deduction->next;
           }  /* if */
-          if (!first_pass) arg_match = arg_match->next;
         }  /* if */
       }  /* if */
-next_argument:;
+next_argument:
+      if (!first_pass) arg_match = arg_match->next;
     }  /* for */
     if (!first_pass || !function_template_case) break;
     /* For a template, do a second pass to match the dependent parameters. */
@@ -9694,7 +9765,7 @@ specific function being called.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (arg_match->conversion.std.param_array_conversion) {
       /* This argument is part of a param array.  Therefore, it is not a
-         "real" argument, but instead part of the initializer for an element
+         "real" argument, but instead the initializer for an element
          of a C++/CLI array. */
       a_type_ptr element_type;
 
@@ -17466,7 +17537,8 @@ constructor.
         rtsp = routine_type->variant.routine.extra_info;
         ptp = rtsp->param_type_list;
         if (ptp == NULL /* Error recovery */ ||
-            !deduce_one_parameter(ptp, (an_arg_operand **)NULL, arg_type,
+            !deduce_one_parameter(ptp, (a_type_ptr)NULL,
+                                  (an_arg_operand **)NULL, arg_type,
                                   sym, &template_arg_list)) {
           /* Deduction failed. */
           goto reject_function;

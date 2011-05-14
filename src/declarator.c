@@ -1627,24 +1627,25 @@ mode.)
 }  /* scan_microsoft_function_modifiers */
 
 
-static void check_param_array_type(a_param_type_ptr   ptp,
-                                   a_source_position  *diag_pos)
+a_boolean check_param_array_type(a_param_type_ptr   ptp,
+                                 a_source_position  *diag_pos)
 /*
-The given parameter description describes a C++/CLI parameter array.  Check
-that its type is a handle to a one-dimensional cli::array; if not, issue a
-diagnostic at the given position.
+Return TRUE if the given C++/CLI parameter array is a handle to a
+one-dimensional CLI array; if not and diag_pos is non-NULL, issue a diagnostic
+at *diag_pos.
 */
 {
   a_boolean  err = FALSE;
+  a_type_ptr param_type = ptp->type;
 
-  if (!is_handle_type(ptp->type)) {
-    err = !is_error_type(ptp->type);
+  if (!is_handle_type(param_type)) {
+    err = !is_error_type(param_type) && !is_template_param_type(param_type);
   } else {
     /* Check that the handle "points to" a C++/CLI array type. */
-    a_type_ptr  tp = type_pointed_to(ptp->type);
+    a_type_ptr  tp = type_pointed_to(param_type);
     tp = skip_typerefs(tp);
     if (!is_cli_array_type(tp)) {
-      err = !is_error_type(tp);
+      err = !is_error_type(tp) && !is_template_param_type(tp);
     } else {
       /* Check that the C++/CLI array type is one-dimensional.  Template-
          dependent dimensions are not acceptable. */
@@ -1662,9 +1663,12 @@ diagnostic at the given position.
     }  /* if */
   }  /* if */
   if (err) {
-    pos_error(ec_invalid_param_array_type, diag_pos);
+    if (diag_pos != NULL) {
+      pos_error(ec_invalid_param_array_type, diag_pos);
+    }  /* if */
     ptp->type = error_type();
   }  /* if */
+  return !err;
 }  /* check_param_array_type */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2498,7 +2502,7 @@ TRUE if this is the function declarator in a friend function declaration.
         }  /* if */
         if (param_array_next) {
           ptp->is_cli_param_array = TRUE;
-          check_param_array_type(ptp, &param_state.specifiers_pos);
+          (void)check_param_array_type(ptp, &param_state.specifiers_pos);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           local_decl_pos_block.specifiers_range.start = ellipsis_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

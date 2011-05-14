@@ -359,6 +359,9 @@ extern a_boolean f_check_cli_type_pointed_to(a_type_ptr         tp,
                                              a_boolean          is_handle,
                                              a_source_position  *pos);
 
+extern a_boolean check_param_array_type(a_param_type_ptr   ptp,
+                                        a_source_position  *diag_pos);
+
 #define check_cli_type_pointed_to(tp, is_ref, is_handle, pos)                \
   (!cppcli_enabled ||                                                        \
    f_check_cli_type_pointed_to((tp), (is_ref), (is_handle), (pos)))

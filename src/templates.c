@@ -9498,6 +9498,14 @@ make_new_type:
                 new_ptp->pack_expansion_descr = ptp->pack_expansion_descr;
               }  /* if */
             }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (new_ptp->is_cli_param_array &&
+                !check_param_array_type(new_ptp, (a_source_position *)NULL)) {
+              /* A C++/CLI parameter array, and the deduced type doesn't match
+                 the requirements for a parameter array. */
+              *copy_error = TRUE;
+            }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             if (ptp->has_default_arg) {
               new_ptp->has_default_arg = TRUE;
               new_ptp->default_arg_appeared_in_class_definition =
