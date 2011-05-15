@@ -13154,9 +13154,6 @@ template.  sym is the symbol of the nested class being defined.  type_kind
 is the type kind associated with this declaration.
 */
 {
-  a_scope_stack_entry_ptr	ssep;
-
-  ssep = &scope_stack[depth_innermost_instantiation_scope];
   if (sym->is_class_member) {
     /* This processing is only done for prototype instantiations.  The
        template instance test below excludes local classes. */
