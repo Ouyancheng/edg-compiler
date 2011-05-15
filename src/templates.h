@@ -80,6 +80,9 @@ typedef struct a_tmpl_decl_state {
 			/* TRUE if the declaration is being processed as
 			   part of the prototype instantiation of an
 			   enclosing class template. */
+  a_boolean	in_generic_definition;
+			/* TRUE if the declaration is being processed as
+			   part of the definition of a C++/CLI generic. */
   a_boolean	decl_scope_err;
 			/* TRUE if the template declaration is invalid in the
 			   current scope. */
@@ -225,6 +228,14 @@ typedef struct a_tmpl_decl_state {
 			   specified, or null_source position. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_tmpl_decl_state;
+
+
+/*
+TRUE if we are in a prototype instantiation or C++/CLI generic definition.
+*/
+#define in_prototype_instantiation_or_cli_generic(decl_state)		\
+  ((decl_state)->in_prototype_instantiation ||				\
+   (decl_state)->in_generic_definition)
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 

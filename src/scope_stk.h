@@ -636,6 +636,11 @@ typedef struct a_scope_stack_entry {
 			   what is being instantiated is the definition of a
 			   C++/CLI generic.  Also true for scopes nested within
 			   a generic definition. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	instantiation_from_metadata;
+			/* TRUE for instantiation scopes for C++/CLI generic
+			   entities that were imported from metadata. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	in_class_specialization:1;
 			/* TRUE for scopes that are template class explicit
 			   specialization scopes or scopes nested within such
@@ -1410,6 +1415,39 @@ TRUE if implicit typename processing should be done.
   (depth_scope_stack != NO_SCOPE_DEPTH ?				\
    scope_stack[depth_scope_stack].implicit_typename : FALSE)
 
+/*
+TRUE if we are processing code that was imported from metadata or the
+instantiation of a generic imported from metadata.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define in_code_generated_from_metadata()				\
+  (is_scanning_generated_code_from_metadata ||				\
+   (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH ||		\
+    scope_stack[depth_scope_stack].instantiation_from_metadata))
+#else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define in_code_generated_from_metadata() /*lint --e(506)*/FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+TRUE if we are in a C++/CLI generic definition context, which
+includes template declaration scopes.  This is similar to
+is_template_dependent_context, but excludes nonreal instantiations.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_cli_generic_definition_context()				\
+  (depth_template_declaration_scope != NO_SCOPE_DEPTH ||		\
+   scope_stack[depth_scope_stack].in_generic_definition)
+#else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_cli_generic_definition_context() /*lint --e(506)*/FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Return TRUE if the symbol is a prototype instantiation or C++/CLI generic
+class definition.
+*/
+#define is_prototype_instantiation_or_cli_generic_context()	\
+  (is_prototype_instantiation_context() ||				\
+   is_cli_generic_definition_context())
 
 /*
 Safe version of is_template_dependent_context that can be used in

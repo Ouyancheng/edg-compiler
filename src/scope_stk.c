@@ -2546,6 +2546,9 @@ the scope being pushed.
   ssep->in_prototype_instantiation = FALSE;
   ssep->in_nonreal_instantiation = FALSE;
   ssep->in_generic_definition    = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ssep->instantiation_from_metadata = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ssep->in_class_specialization  = FALSE;
   ssep->in_template_deduction_context = FALSE;
   ssep->in_variadic_template     = FALSE;
@@ -2894,6 +2897,10 @@ the scope being pushed.
         tssp = template_supplement_for_symbol(template_sym);
         ssep->in_variadic_template = tssp->is_variadic ||
                                      (ssep-1)->in_variadic_template;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        ssep->instantiation_from_metadata =
+                  tssp->from_metadata || (ssep-1)->instantiation_from_metadata;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       if ((template_sym != NULL &&
            template_sym->kind == (a_symbol_kind)sk_static_data_member) ||

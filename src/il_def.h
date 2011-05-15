@@ -7514,6 +7514,10 @@ typedef struct a_type {
 			   This is similar to a prototype instantiation of
 			   a template except that generics do not make use
 			   of dependent types. */
+     a_bit_field
+		is_generic_instance:1;
+			/* TRUE if this is an instantiation of a C++/CLI
+			   generic class or a nested class within a generic. */
 #if BACK_END_IS_CP_GEN_BE
       a_bit_field
 		defined_with_abstract_class_modifier:1;

@@ -1862,6 +1862,9 @@ Display the indicated type entry.
       if (ptr->variant.class_struct_union.is_generic_definition) {
         disp_boolean("generic_definition", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.is_generic_instance) {
+        disp_boolean("generic_instance", TRUE);
+      }  /* if */
 #if BACK_END_IS_CP_GEN_BE
       if (ptr->variant.class_struct_union
                                       .defined_with_abstract_class_modifier) {

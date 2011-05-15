@@ -832,6 +832,10 @@ typedef struct a_class_def_state {
   a_bit_field	is_generic_definition:1;
 			/* TRUE if the class is the definition of a C++/CLI
 			   generic. */
+  a_bit_field	is_generic_instance:1;
+			/* TRUE if the class is the instantiation of a C++/CLI
+			   generic, including classes nested with a generic
+			   instantiation. */
   a_bit_field	is_local_class:1;
 			/* TRUE if the class is local to a function. */
   a_bit_field	last_field_is_incomplete_array:1;
@@ -911,6 +915,7 @@ class being defined.
   cdsp->is_template_instantiation = FALSE;
   cdsp->is_nonreal_instantiation = FALSE;
   cdsp->is_generic_definition = FALSE;
+  cdsp->is_generic_instance = FALSE;
   cdsp->is_local_class = FALSE;
   cdsp->last_field_is_incomplete_array = FALSE;
   cdsp->default_ctor_is_nontrivial = FALSE;
@@ -3412,7 +3417,7 @@ implement an interface member.
                          currently do not load private members from metadata
                          and those private members may provide a valid
                          override. */
-                      if (class_type_supp(class_type)->assembly_index == 0) {
+                      if (!in_code_generated_from_metadata()) {
                         pos_sy_error(ec_interface_not_implemented,
                                      &error_position, symbol_for(rp));
                       }  /* if */
@@ -4730,6 +4735,10 @@ information about the function declarator.
       pos_remark(ec_virtual_has_no_effect, &dps->virtual_pos);
     }  /* if */
     goto done;
+  } else if (class_state->is_generic_instance) {
+    /* Override checking is done on the generic itself, not on the
+       instantiations. */
+    goto done;
   }  /* if */
 next_named_override:
   if (cppcli_enabled && named_override != NULL) {
@@ -5059,7 +5068,7 @@ done:
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (func_info->override && !dps->override_okay) {
-    if (cppcli_enabled && class_type_supp(class_type)->assembly_index != 0) {
+    if (cppcli_enabled && in_code_generated_from_metadata()) {
       /* The class was loaded from an assembly file.  Because of limitations
          of the metadata, the code generated from such a file can contain
          extraneous "override" modifiers; these should just be silently
@@ -5076,7 +5085,7 @@ done:
                      ec_override_member_does_not_override, source_pos);
     }  /* if */
   } else if (func_info->new_member && !new_okay) {
-    if (cppcli_enabled && class_type_supp(class_type)->assembly_index != 0) {
+    if (cppcli_enabled && in_code_generated_from_metadata()) {
       /* The class was loaded from an assembly file.  Because of limitations
          of the metadata, the code generated from such a file can contain
          extraneous "new" modifiers; these should just be silently ignored. */
@@ -15722,10 +15731,14 @@ The routine body is not generated until it is known to be needed.
   if (cppcli_enabled &&
       (cli_class_type_kind_is(class_type, cctk_ref) ||
        cli_class_type_kind_is(class_type, cctk_value))) {
-    /* Determine if the class implements the System::IDisposable interface. */
+    /* Determine if the class implements the System::IDisposable interface.
+       We don't want to instantiate class_type, because we are currently in
+       the complete_class_definition call that is in the midst of doing that,
+       and by this point all base classes have been scanned. */
     cssp->is_disposable =
-        find_base_class_of(class_type,
-                           cli_class_type_for(csk_system_idisposable)) != NULL;
+        find_base_class_of_full(class_type,
+                                cli_class_type_for(csk_system_idisposable),
+                                /*instantiate_if_necessary=*/FALSE) != NULL;
     if (class_type_supp(class_type)->assembly_index == 0 &&
         !class_type->variant.class_struct_union.is_prototype_instantiation) {
       /* The class was not defined in metadata.  Generate the dispose pattern
@@ -20765,7 +20778,11 @@ bits of information that were acquired while parsing.
       check_names_reserved_by_cli_properties_and_events(class_type);
       check_for_subscript_mechanism_conflict(class_type);
       check_quasi_overrides(class_state);
-      check_initonly_members(class_state);
+      if (!in_code_generated_from_metadata()) {
+        /* Don't check initonly members imported from metadata.  That was
+           the responsibility of the producer of the metadata. */
+        check_initonly_members(class_state);
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Check for missing or erroneous uses of the "hiding" attribute and
@@ -20981,6 +20998,8 @@ classes.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (class_type->variant.class_struct_union.is_generic_definition) {
       class_state.is_generic_definition = TRUE;
+    } else if (class_type->variant.class_struct_union.is_generic_instance) {
+      class_state.is_generic_instance = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_template_instantiation && tag_sym->is_class_member) {
       /* An instance of a member template.  Mark it as nonreal if the

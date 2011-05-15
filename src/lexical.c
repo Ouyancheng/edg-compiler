@@ -7306,11 +7306,15 @@ white_space_loop:
       /* Carriage return is treated as white space, as an extension.
          In strict mode, this is an error.  Note that carriage returns
          immediately preceding newlines are ignored as line terminators
-         during the reading of the source line and never get here. */
-      diagnostic_at_line_pos(strict_ansi_mode ?
+         during the reading of the source line and never get here.
+         The strings generated for C++/CLI metadata can include carriage
+         return characters. */
+      if (!cppcli_enabled || !is_scanning_generated_code_from_metadata) {
+        diagnostic_at_line_pos(strict_ansi_mode ?
                                strict_ansi_discretionary_severity : es_remark,
-                             ec_stray_carriage_return,
-                             curr_char_loc);
+                               ec_stray_carriage_return,
+                               curr_char_loc);
+      }  /* if */
       curr_char_loc++;
       kind_skipped |= WHITE_SPACE_OTHER;
       goto white_space_loop;
@@ -7774,7 +7778,8 @@ the kind of token.
         any_hex_digits = TRUE;
       }  /* while */
       /* Check for floating point. */
-      if (hex_floating_point_constants_allowed || fixed_point_enabled) {
+      if (hex_floating_point_constants_allowed || fixed_point_enabled ||
+         is_scanning_generated_code_from_metadata) {
         /* C99 permits floating point constants specified in hexadecimal. */
         if ((ch = *curr_char_loc) == '.') goto float_accum_1;
         if (ch == 'p' || ch == 'P')       goto float_accum_2;
@@ -8091,7 +8096,8 @@ fixed_point_suffix:
     while (is_id_char[(ch = *curr_char_loc)-CHAR_MIN] || ch == '.' ||
            ((ch == '+' || ch == '-') &&
             ((ch = *(curr_char_loc-1)) == 'e' || ch == 'E' ||
-             ((hex_floating_point_constants_allowed || fixed_point_enabled) &&
+             ((hex_floating_point_constants_allowed || fixed_point_enabled ||
+               is_scanning_generated_code_from_metadata) &&
               (ch == 'p' || ch == 'P'))))) {
       /* 0-9, a-z, A-Z, "_", ".", or sign preceded by "e" or "E" or "p"
          or "P".  Keep accumulating. */
@@ -8151,7 +8157,9 @@ fixed_point_suffix:
         break;
 #endif /* FIXED_POINT_ALLOWED */
       case k_float:
-	if (is_hex_fp_value && !hex_floating_point_constants_allowed) {
+        if (is_hex_fp_value &&
+            !(hex_floating_point_constants_allowed ||
+              is_scanning_generated_code_from_metadata)) {
           diagnostic_at_line_pos(strict_ansi_error_severity,
                                  ec_hex_fp_constant, start_of_curr_token);
         }  /* if */
@@ -18466,6 +18474,7 @@ C++/CLI delegate class types.)
     /* Delegate definitions are a special kind of class definition that is
        nor handled by the call to scan_class_definition below. */
     scan_cli_delegate_definition_from_assembly_import();
+    (void)get_token();
   } else {
     (void)scan_class_definition(
                     class_type, depth_innermost_namespace_scope,
@@ -18478,8 +18487,8 @@ C++/CLI delegate class types.)
                     (a_decl_pos_block_ptr)NULL);
     process_deferred_class_fixups_and_instantiations(
                                                   /*for_instantiation=*/TRUE);
+    (void)get_token();
   }  /* if */
-  (void)get_token();
   expand_macros = save_expand_macros;
   pop_template_instantiation_scope();
   free_template_decl_info(tdip);

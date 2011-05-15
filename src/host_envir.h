@@ -2645,7 +2645,7 @@ EXTERN struct a_preinclude_file
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #ifndef METADATA_IMPORT_BUFFER_SIZE
-#define METADATA_IMPORT_BUFFER_SIZE 0x30000
+#define METADATA_IMPORT_BUFFER_SIZE 0x500000
 			/* The initial size of the buffer used to import
 			   metadata.  This should be large enough to
 			   handle mscorlib. */

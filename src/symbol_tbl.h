@@ -2257,6 +2257,11 @@ typedef struct a_template_symbol_supplement {
   a_bit_field
 		is_generic:1;
 			/* TRUE for C++/CLI generics. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	from_metadata:1;
+			/* TRUE if this is a C++/CLI generic that was
+			   imported from metadata. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When symbol kind = sk_class_template (note that this symbol kind is used
