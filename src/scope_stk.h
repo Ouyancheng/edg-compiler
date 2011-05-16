@@ -1331,6 +1331,15 @@ Convenience macro to access the top of the scope stack.
 
 
 /*
+Convenience macro to test the scope kind for a scope stack entry or for an IL
+scope entry.
+*/
+#define scope_is(scope, sck)                                                \
+  ((scope)->kind == (a_scope_kind)sck)
+
+
+
+/*
 Given a scope depth, return a pointer to the scope stack entry or
 a NULL pointer if the scope depth is NO_SCOPE_DEPTH.
 */

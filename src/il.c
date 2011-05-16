@@ -15987,10 +15987,9 @@ potentially_evaluated is TRUE if the expression is potentially evaluated.
   if (ptp == NULL) {
     /* Nothing to copy. */
   } else if (ptp->is_parameter_pack) {
-    /* Assume this parameter will be instantiated as an empty pack; it cannot
-       have a default in any case. */
-  } else if (ptp->is_pack_element) {
-    /* This is only possible in error cases. */
+    /* Assume this parameter will be instantiated as an empty pack. */
+  } else if (ptp->is_pack_element && !ptp->has_default_arg) {
+    /* This is possible in error cases. */
     check_assertion(is_error_type(ptp->type));
     expect_error();
   } else {

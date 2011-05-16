@@ -2132,7 +2132,6 @@ TRUE if this is the function declarator in a friend function declaration.
     ellipsis_pos = pos_curr_token;
     /* Advance past the ellipsis. */
     (void)get_token();
-    any_params = FALSE;
     if (is_destructor) {
       /* Destructors are allowed no arguments. */
       pos_error(ec_too_many_params_for_destructor, &ellipsis_pos);
@@ -2141,6 +2140,7 @@ TRUE if this is the function declarator in a friend function declaration.
     } else if (is_finalizer) {
       /* Finalizers are allowed no arguments. */
       error(ec_too_many_params_for_finalizer);
+      any_params = FALSE;
     } else if (cppcli_enabled && is_type_start(/*is_expr_context=*/FALSE)) {
       /* Presumably a C++/CLI parameter array. */
       param_array_next = TRUE;
@@ -2169,8 +2169,7 @@ TRUE if this is the function declarator in a friend function declaration.
   } else {
     /* Determine whether this is an old-style list of identifiers or
        a prototyped parameter list. */
-    if (!C_mode() &&
-        (!allow_anachronisms || parent_type != NULL)) {
+    if (!C_mode() && (!allow_anachronisms || parent_type != NULL)) {
       /* If this is a C++ member function, it must be prototyped.  If
          anachronism support is not the default or was not explicitly
          requested, always parse the declaration as a prototyped param list
@@ -2185,15 +2184,11 @@ TRUE if this is the function declarator in a friend function declaration.
     any_params = TRUE;
   }  /* if */
   if (extra_info->prototyped) {
-    /* ANSI function prototype, as in
-
-         int f(int a, char *b)
-               or
-         int f(int, char *)
-
-    */
-    a_pack_expansion_stack_entry_ptr	pesep = NULL;
-    a_boolean			        any_variadic_params = FALSE;
+    /* ANSI function prototype, as in "int f(int a, char *b)" or
+       "int f(int, char *)". */
+    a_pack_expansion_stack_entry_ptr  pesep = NULL;
+    a_boolean                         any_variadic_params = FALSE;
+    unsigned long                     param_number = 0;
     if (any_params && !disallow_default_args) {
       /* In C++ mode a default argument may be declared with the parameter
          unless the function is a user-defined overloaded operator (except
@@ -2223,19 +2218,29 @@ TRUE if this is the function declarator in a friend function declaration.
     /* Remember the scope number for later use if and when a body appears. */
     func_info->scope_number = scope_stack[depth_scope_stack].number;
     if (any_params) {
-      /* If there appear to be parameters, check for the presence of an
-         empty function parameter pack. */
-      any_params = begin_potential_pack_expansion_context(&pesep);
+      /* If there appear to be parameters, check for empty function parameter
+         packs. */
+      while (!(any_params = begin_potential_pack_expansion_context(&pesep))) {
+        /* An empty pack expansions: Skip a parameter number (i.e., there is
+           no parameter in this instance that matches the parameter pack in
+           the template). */
+        param_number += 1;
+        if (curr_token == tok_ellipsis) {
+          /* An empty pack expansion immediately followed by an ellipsis: This
+             is similar to "(...)". */
+          (void)get_token();
+          extra_info->has_ellipsis = TRUE;
+          break;
+        } else if (curr_token == tok_rparen) {
+          /* Nothing follows the empty pack expansion. */
+          break;
+        } else {
+          /* Continue checking for additional empty expansions. */
+        }  /* if */
+      }  /* while */
       any_variadic_params = any_params;
-      if (!any_params && curr_token == tok_ellipsis) {
-        /* An empty pack expansion immediately followed by an ellipsis: This
-           is similar to "(...)". */
-        (void)get_token();
-        extra_info->has_ellipsis = TRUE;
-      }  /* if */
-    }  /* if */
+    }  /* while */
     if (any_params) {
-      unsigned long	param_number = 0;
       a_boolean		is_new_param = TRUE;
       last_param_type = NULL;
       do {
@@ -2484,14 +2489,18 @@ TRUE if this is the function declarator in a friend function declaration.
         ptp->declared_type = param_state.declared_type;
         ptp->qualifiers = param_qualifiers;
         if (param_state.has_pack_ellipsis && is_template_dependent_context()) {
-          /* This looks like the declaration of a function parameter pack. */
-          default_arg_allowed_on_curr_param = FALSE;
+          /* This looks like the declaration of a function parameter pack.
+             If it is a real pack (for a function template), default arguments
+             are not permitted.  However, if it is a pack in an ordinary member
+             of a class template, then default arguments are okay. */
+          if (scope_is(&scope_stack_top()-1, sck_template_declaration)) {
+            default_arg_allowed_on_curr_param = FALSE;
+          }  /* if */
         } else {
           ptp->is_pack_element = is_pack_element;
           ptp->duplicate_name = is_non_initial_pack_element;
-          /* Default arguments are not allowed on packs, so disallow them
-             on instantiations. */
-          if (is_pack_element) {
+          if (is_pack_element &&
+              scope_is(&scope_stack_top()-1, sck_template_instantiation)) {
             default_arg_allowed_on_curr_param = FALSE;
           }  /* if */
         }  /* if */
