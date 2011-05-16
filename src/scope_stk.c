@@ -2930,7 +2930,6 @@ the scope being pushed.
         ssep->in_nonreal_instantiation = FALSE;
         ssep->in_variadic_template = FALSE;
         ssep->in_generic_definition = FALSE;
-        ssep->in_generic_instantiation = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         ssep->instantiation_from_metadata = FALSE;
         ssep->in_generic_instantiation = FALSE;
