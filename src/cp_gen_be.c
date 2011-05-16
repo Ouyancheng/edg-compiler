@@ -2410,15 +2410,18 @@ etc.)
 */
 {
   a_type_ptr type;
+  a_boolean  saved_suppress_parens = octl.suppress_ptr_to_data_member_parens;
 
   write_tok_str("operator");
   write_space();
   type = rout->type;
   type = skip_typerefs(type);
   type = type->variant.routine.return_type;
+  /* Parentheses are not allowed in the conversion-declarator of a
+     conversion-type-id. */
   octl.suppress_ptr_to_data_member_parens = TRUE;
   gen_type(type);
-  octl.suppress_ptr_to_data_member_parens = FALSE;
+  octl.suppress_ptr_to_data_member_parens = saved_suppress_parens;
 }  /* gen_conversion_function_name */
 
 
@@ -15330,6 +15333,9 @@ Initialize for the C++/C-generating back end.
   /* In C99 mode we want to see "_Bool" rather than "bool" or the type
      underlying _Bool. */
   octl.render_c99_bool = c99_mode || gcc_mode;
+  /* The Microsoft compiler has a bug that causes it to issue spurious
+     errors for parenthesized pointer-to-data-member declarators. */
+  octl.suppress_ptr_to_data_member_parens = msvc_is_generated_code_target;
   in_template_argument_list = FALSE;
   in_parameter_pack_declaration = FALSE;
 #if USER_CONTROL_OF_STRUCT_PACKING
