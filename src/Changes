@@ -1,5 +1,17 @@
 Version 4.4
 
+5/14/11  [EDGcpfe/11543,EDGcpfe/11545]
+Microsoft attributes in C mode
+
+In Microsoft C mode with microsoft_version >= 1400, the front end now accepts
+bracketed attributes (see Changes entry of 7/30/03) as part of declaration
+specifiers (and particularly, at the start of parameter declarations).
+
+  int f([SA_Pre(Null=SA_No)] int *x);  /* Now accepted in some Microsoft C
+                                          modes.  Previously, only accepted
+                                          in Microsoft C++ modes. */
+
+
 5/12/11  [EDGcpfe/10894]
 Lowering of complex constants
 

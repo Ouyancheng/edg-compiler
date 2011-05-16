@@ -7838,10 +7838,12 @@ storage_class_specifier:
         if (next_token() == tok_lbracket) {
           /* A C++0x standard attribute. */
           if (!std_attributes_enabled) goto something_unexpected;
-        } else if (any_decl_specifiers_seen || !microsoft_mode || C_mode() ||
+        } else if (any_decl_specifiers_seen || !microsoft_mode ||
+                   (C_mode() && microsoft_version < 1400) ||
                    (input_flags & DSI_MICROSOFT_ATTRIBUTES_ALLOWED) == 0) {
           /* Microsoft attributes have to precede any specifiers.  They are
-             only recognized in Microsoft C++ mode. */
+             only recognized in Microsoft C++ mode and, when microsoft_version
+             is at least 1400, in Microsoft C mode. */
           goto something_unexpected;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else {
