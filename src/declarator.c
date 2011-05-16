@@ -2221,7 +2221,7 @@ TRUE if this is the function declarator in a friend function declaration.
       /* If there appear to be parameters, check for empty function parameter
          packs. */
       while ((any_params =
-                     begin_potential_pack_expansion_context(&pesep)) = TRUE) {
+                    begin_potential_pack_expansion_context(&pesep)) == TRUE) {
         /* An empty pack expansions: Skip a parameter number (i.e., there is
            no parameter in this instance that matches the parameter pack in
            the template). */
