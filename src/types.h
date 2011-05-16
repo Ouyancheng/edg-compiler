@@ -1274,6 +1274,17 @@ a class type.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+Return TRUE if type is an instantiation of a C++/CLI generic.  type is
+required to be a class type.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_cli_generic_instance_type(type)				\
+  (type->variant.class_struct_union.is_generic_instance)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_cli_generic_instance_type(type) /*lint --e(506)*/(FALSE)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
 Return TRUE if type is a prototype instantiation or a C++/CLI generic
 definition.  type is required to be a class type.
 */

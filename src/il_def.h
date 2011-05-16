@@ -11704,6 +11704,17 @@ typedef struct a_routine {
 			/* TRUE for a C++/CLI static conversion operator that
 			   converts from the argument to the enclosing class
 			   type. */
+  a_bit_field
+		is_generic_definition:1;
+			/* TRUE if this is the routine that resulted from
+			   the initial scanning of a C++/CLI generic function.
+			   This is similar to a prototype instantiation of
+			   a template except that generics do not make use
+			   of dependent types. */
+  a_bit_field
+		is_generic_instance:1;
+			/* TRUE if this is an instantiation of a C++/CLI
+			   generic function. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

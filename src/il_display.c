@@ -2967,6 +2967,12 @@ Display the indicated routine.
   if (ptr->is_reverse_conversion_function) {
     disp_boolean("is_reverse_conversion_function", TRUE);
   }  /* if */
+  if (ptr->is_generic_definition) {
+    disp_boolean("is_generic_definition", TRUE);
+  }  /* if */
+  if (ptr->is_generic_instance) {
+    disp_boolean("is_generic_instance", TRUE);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

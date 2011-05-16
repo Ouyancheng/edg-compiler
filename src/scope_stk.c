@@ -2548,6 +2548,7 @@ the scope being pushed.
   ssep->in_generic_definition    = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ssep->instantiation_from_metadata = FALSE;
+  ssep->in_generic_instantiation = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ssep->in_class_specialization  = FALSE;
   ssep->in_template_deduction_context = FALSE;
@@ -2900,6 +2901,8 @@ the scope being pushed.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         ssep->instantiation_from_metadata =
                   tssp->from_metadata || (ssep-1)->instantiation_from_metadata;
+        ssep->in_generic_instantiation = tssp->is_generic &&
+                                         !ssep->in_generic_definition;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       if ((template_sym != NULL &&
@@ -2927,6 +2930,11 @@ the scope being pushed.
         ssep->in_nonreal_instantiation = FALSE;
         ssep->in_variadic_template = FALSE;
         ssep->in_generic_definition = FALSE;
+        ssep->in_generic_instantiation = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        ssep->instantiation_from_metadata = FALSE;
+        ssep->in_generic_instantiation = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         ssep->in_prototype_instantiation =
                                           (ssep-1)->in_prototype_instantiation;
@@ -2936,6 +2944,12 @@ the scope being pushed.
                                           (ssep-1)->in_generic_definition;
         ssep->in_variadic_template =
                                           (ssep-1)->in_variadic_template;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        ssep->instantiation_from_metadata =
+                                         (ssep-1)->instantiation_from_metadata;
+        ssep->in_generic_instantiation = 
+                                            (ssep-1)->in_generic_instantiation;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
     if (reactivate_template_params) {
@@ -3157,6 +3171,10 @@ the scope being pushed.
          a declaration from metadata. */ 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    } else if (ssep->in_generic_instantiation) {
+      /* Don't generate source sequence entries for instantiations of C++/CLI
+         generics. */
+      source_sequence_entries_disallowed = TRUE;
     } else if (cli_symbols[csk_cli_namespace] != NULL && assoc_type != NULL &&
                is_member_of_namespace_cli(assoc_type)) {
       /* Do not generate source sequence entries for members of namespace
@@ -4886,6 +4904,7 @@ the outermost class was defined in an unnamed namespace.
       rout_sym->referenced &&
       (rp->storage_class == (a_storage_class)sc_extern &&
        !rp->is_prototype_instantiation &&
+       !rout_is_generic_instance(rp) &&
        (!rp->is_template_function || !will_be_instantiated(rout_sym)))) {
     check_constituent_types_have_linkage(rout_sym,
                                          &rout_sym->decl_position,

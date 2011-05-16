@@ -2248,7 +2248,8 @@ nested class.
       scope_stack[scope_depth].ss_list_instantiation_insert_point = NULL;
     }  /* if */
     if (!class_type->source_corresp.is_local_to_function &&
-        !is_nonreal_template_instantiation) {
+        !is_nonreal_template_instantiation &&
+        !is_cli_generic_instance_type(class_type)) {
       /* Temporarily remove source sequence entries, if any that have been
          entered after the end-of-construct entry for the class that was just
          defined.  Here's an example why:  Sometimes the definition of a
@@ -11144,8 +11145,9 @@ implicitly declared member functions.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       tssp->is_generic =
                   class_type->variant.class_struct_union.is_generic_definition;
+      rtn->is_generic_definition = tssp->is_generic;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      rtn->is_prototype_instantiation = TRUE;
+      rtn->is_prototype_instantiation = !tssp->is_generic;
       rtn->is_template_function = TRUE;
       tip->prototype_scope_symbols = func_info->prototype_scope_symbols;
       if (!decl_info->is_trivial_default_constructor) {
@@ -14504,7 +14506,8 @@ operator should be created.  No routine body is generated at this time.
             assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
   check_assertion(decl_info->decl_state.sym != NULL);
   routine = decl_info->decl_state.sym->variant.routine.ptr;
-  if (instantiate_extern_inline && !routine->is_prototype_instantiation) {
+  if (instantiate_extern_inline && !routine->is_prototype_instantiation &&
+      !rout_is_generic_definition(routine)) {
     /* When inline functions are instantiated like templates, add the function
        to the list of inline functions if it is inline.  (Members of prototype
        instantiations don't need to be treated that way, of course.) */

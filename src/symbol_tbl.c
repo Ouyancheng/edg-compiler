@@ -6172,7 +6172,12 @@ instantiation.
   a_symbol_kind			kind;
   a_symbol_ptr			sym;
   a_template_instance_ptr	tip;
+  a_template_symbol_supplement_ptr
+				tssp;
+  a_boolean			is_generic;
 
+  tssp = template_supplement_for_symbol(template_sym);
+  is_generic = tssp->is_generic;
   /* If the template is a class member make the prototype instantiation
      a member function, otherwise make it a normal routine. */
   kind = template_sym->is_class_member ? (a_symbol_kind)sk_member_function
@@ -6187,9 +6192,19 @@ instantiation.
   sym->is_class_member = template_sym->is_class_member;
   sym->parent = template_sym->parent;
   /* Create the template argument list for the prototype routine. */
-  rout_ptr->template_arg_list = create_prototype_arg_list(templ_param_list);
-  rout_ptr->is_prototype_instantiation = TRUE;
+  if (!is_generic) {
+    rout_ptr->template_arg_list = create_prototype_arg_list(templ_param_list);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else {
+    /* Create the types used for lookup in generic type variables */
+    rout_ptr->template_arg_list = create_generic_arg_list(templ_param_list);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+  rout_ptr->is_prototype_instantiation = !is_generic;
   rout_ptr->is_template_function = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  rout_ptr->is_generic_definition = is_generic;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return sym;
 }  /* make_function_template_prototype_symbol */
 

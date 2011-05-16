@@ -637,9 +637,15 @@ typedef struct a_scope_stack_entry {
 			   C++/CLI generic.  Also true for scopes nested within
 			   a generic definition. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_bit_field	instantiation_from_metadata;
+  a_bit_field	instantiation_from_metadata:1;
 			/* TRUE for instantiation scopes for C++/CLI generic
 			   entities that were imported from metadata. */
+  a_bit_field	in_generic_instantiation:1;
+			/* TRUE if kind is sck_template_instantiation and
+			   a C++/CLI generic is being instantiated (but not
+			   TRUE when in_generic_definition is TRUE).  Also
+			   true for scopes nested within a generic
+			   instantiation. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	in_class_specialization:1;
 			/* TRUE for scopes that are template class explicit

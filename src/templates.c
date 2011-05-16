@@ -3336,7 +3336,9 @@ loading of classes.
          This causes the correspondence of the class members to be
          established. */
       establish_class_instantiation_corresp(class_type);
-      set_instantiation_required_for_template_class_members(class_type);
+      if (!tssp->is_generic) {
+        set_instantiation_required_for_template_class_members(class_type);
+      }  /* if */
       if (defer_function_prototype_instantiations) {
         /* Restore the declaration sequence number if it was updated above. */
         decl_seq_counter = saved_decl_seq_counter;
@@ -5971,10 +5973,12 @@ is returned.
     }  /* if */
 #endif /* DEBUG */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && is_member_of_namespace_cli(class_type)) {
-      /* Members of namespace cli cannot be specialized and should therefore
-         not trigger source sequence entries that would be interpreted as
-         specializations. */
+    if (cppcli_enabled &&
+        (is_member_of_namespace_cli(class_type) ||
+         !is_standard_class_type(class_type))) {
+      /* Members of namespace cli and instances of C++/CLI generics cannot
+         be specialized and should therefore not trigger source sequence
+         entries that would be interpreted as specializations. */
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
@@ -10289,6 +10293,9 @@ created.
   rout = alloc_routine();
   rout->type = create_error_routine_type(templ_rout, parent_class);
   rout->is_template_function = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  rout->is_generic_instance = tssp->is_generic;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   rout->assoc_template = tssp->il_template_entry;
   templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
   /* Create an appropriate argument list with empty argument values. */
@@ -11142,6 +11149,9 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
 #endif /* DO_IL_LOWERING && IA64_ABI */
     rp->is_explicit_constructor = templ_rout->is_explicit_constructor;
     rp->is_template_function = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    rp->is_generic_instance = tssp->is_generic;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     set_source_corresp(&rp->source_corresp, sym);
     set_membership_in_source_corresp(&rp->source_corresp, sym);
     rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
@@ -12045,6 +12055,9 @@ and create a function instantiation entry to bind the two symbols together.
     rout_sym->variant.routine.instance_ptr = tip;
     /* Mark the routine entry as an instance of a member function template. */
     rout_sym->variant.routine.ptr->is_template_function = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    rout_sym->variant.routine.ptr->is_generic_instance = tssp->is_generic;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* A placeholder a_template entry was created in the prototype
        instantiation.  It serves as the associated "template". */
     rout_sym->variant.routine.ptr->assoc_template =
@@ -13397,7 +13410,7 @@ Add base_class as a direct base class of proxy_class.
 }  /* add_base_class_to_proxy_class */
 
 
-static a_template_arg_ptr create_generic_arg_list(
+a_template_arg_ptr create_generic_arg_list(
 			a_template_param_ptr	generic_param_list)
 /*
 Build the generic argument list for the declaration of a C++/CLI generic.

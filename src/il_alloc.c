@@ -2441,6 +2441,8 @@ to it.  The entry is allocated in the file scope memory region.
   rp->direct_linkage_specifier_on_nondef_decl = FALSE;
   rp->is_reverse_conversion_function
                                   = FALSE;
+  rp->is_generic_definition       = FALSE;
+  rp->is_generic_instance         = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

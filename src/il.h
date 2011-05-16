@@ -1357,10 +1357,14 @@ Macros to examine property and event members (and their accessor functions).
 #define rout_is_cli_accessor(rp) \
   ((rp)->special_kind >= (int)sfk_first_accessor && \
    (rp)->special_kind <= (int)sfk_last_accessor)
+#define rout_is_generic_definition(rp) (rp)->is_generic_definition
+#define rout_is_generic_instance(rp) (rp)->is_generic_instance
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define field_is_property_or_event(fp)  /*lint --e(506)*/FALSE
 #define field_is_nontrivial_property_or_event(fp)  /*lint --e(506)*/FALSE
 #define rout_is_cli_accessor(rp)  /*lint --e(506)*/FALSE
+#define rout_is_generic_definition(rp)  /*lint --e(506)*/FALSE
+#define rout_is_generic_instance(rp)  /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean is_compound_assignment_operator(an_expr_operator_kind op);

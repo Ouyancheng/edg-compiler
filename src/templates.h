@@ -869,6 +869,9 @@ extern a_boolean check_cli_internal_template_instantiation(
 extern a_symbol_ptr make_cli_array_type(a_type_ptr             element_type,
                                         a_host_large_unsigned  rank);
 
+extern a_template_arg_ptr create_generic_arg_list(
+			a_template_param_ptr	generic_param_list);
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if DEBUG
