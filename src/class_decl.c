@@ -7353,10 +7353,6 @@ skip_base_class:
     /* Advance past the next comma, if any, and scan the next base class
        specifier. */
     remove_stop_token(tok_comma);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    /* FIXME: Work around for metadata problem. */
-    if (cppcli_enabled && curr_token == tok_excl_or) (void)get_token();
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } while (loop_token(tok_comma));
   db_exit();
 }  /* scan_base_specifier_list */
