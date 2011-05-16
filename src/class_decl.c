@@ -3654,7 +3654,7 @@ and it meets the requirements of the "CLI Dispose pattern", set
   }  /* if */
   return finalize_routine;
 }  /* find_finalize_routine */
- 
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void record_virtual_function_override(
@@ -6068,7 +6068,7 @@ class_type.  Also set the flag in each of class_type's base classes.
     }  /* for */
   }  /* if */
 }  /* set_target_of_conversion_function_flag */
-    
+
 
 static void add_indirect_base_class(a_base_class_ptr      base_class_to_copy,
                                     a_base_class_ptr      directly_derived_bcp,
@@ -9290,7 +9290,7 @@ overload set to which sym belongs; it may be NULL.
     cssp->assignment_operator = overload_sym;
   }  /* if */
 }  /* record_assignment_operator_in_class_symbol */
-  
+
 
 void check_member_decl_is_copy_constructor(
 				a_routine_ptr		rout_ptr,
@@ -12020,7 +12020,7 @@ unnamed class.
   }  /* if */
   return unnamed;
 }  /* is_or_is_nested_within_unnamed_class */
-    
+
 #if GNU_EXTENSIONS_ALLOWED
 
 #if !GNU_VISIBILITY_ATTRIBUTE_ALLOWED
@@ -18364,6 +18364,7 @@ being parsed), *decl_info describes the current member declaration, and
   a_class_type_supplement_ptr
                         ctsp = class_type_supp(class_type);
   a_decl_flag_set       dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
+                                    DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
                                     DSI_NO_TAG_DEFINITION |
                                     DSI_VACUOUS_TAG_DECL_ALLOWED |
                                     DSI_IS_MEMBER_DECLARATION;
@@ -18371,6 +18372,7 @@ being parsed), *decl_info describes the current member declaration, and
                         pdp = alloc_property_or_event_descr();
   a_boolean             ptr_to_member_scanned;
   a_source_position     decl_pos, type_pos;
+  a_source_position     *p_virtual_or_static_pos = NULL;
   a_boolean             is_property = dps->has_cli_property_keyword;
 
   add_stop_token(tok_semicolon);
@@ -18398,12 +18400,7 @@ being parsed), *decl_info describes the current member declaration, and
     }  /* if */
     (void)get_token();
   }  /* while */
-  if (pdp->is_static && pdp->is_virtual) {
-    pos_error(is_property ? ec_virtual_static_property
-                          : ec_virtual_static_event,
-              &decl_pos);
-    pdp->is_static = FALSE;
-  }  /* if */
+  if (pdp->is_static || pdp->is_virtual) p_virtual_or_static_pos = &decl_pos;
   check_assertion(is_property ? curr_token_is_identifier_string("property")
                               : curr_token_is_identifier_string("event"));
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -18421,9 +18418,44 @@ being parsed), *decl_info describes the current member declaration, and
      caused check_for_cli_field_modifier not to treat "property" or "event" as
      a keyword): */
   if (dps->dso_flags & DSO_VIRTUAL) {
-    pos_error(ec_virtual_not_allowed, &dps->virtual_pos);
-    if (!pdp->is_static) pdp->is_virtual = TRUE;
-  }  /* if */            
+    /* ECMA-372 requires "virtual" to precede the context-sensitive keywords
+       "property" and "event", but Microsoft's compiler also accepts it after
+       those keywords. */
+    if (pdp->is_virtual) {
+      pos_warning(ec_dupl_decl_specifier, &dps->virtual_pos);
+    } else {
+      pdp->is_virtual = TRUE;
+      p_virtual_or_static_pos = &dps->virtual_pos;
+    }  /* if */
+  }  /* if */
+  if (dps->declared_storage_class == (a_storage_class)sc_static) {
+    /* ECMA-372 requires "static" to precede the context-sensitive keywords
+       "property" and "event", but Microsoft's compiler also accepts it after
+       those keywords. */
+    if (pdp->is_static) {
+      pos_warning(ec_dupl_decl_specifier, &dps->storage_class_pos);
+    } else {
+      pdp->is_static = TRUE;
+      p_virtual_or_static_pos = &dps->storage_class_pos;
+    }  /* if */
+  } else if (dps->declared_storage_class != (a_storage_class)sc_unspecified ||
+             (dps->dso_flags & DSO_MUTABLE)) {
+    /* All other storage class specifiers should be disallowed. */
+    pos_error(dps->declared_storage_class == (a_storage_class)sc_typedef ?
+                ec_typedef_not_allowed : ec_storage_class_not_allowed,
+              &dps->storage_class_pos);
+  } else if (dps->dso_flags & DSO_INLINE) {
+    /* Enabling storage-class specifiers in the call to decl_specifiers also
+       enables __inline and __forceinline in Microsoft mode, but they are not
+       accepted here. */
+    pos_error(ec_microsoft_inline_not_allowed_here, &dps->specifiers_pos);
+  }  /* if */
+  if (pdp->is_static && pdp->is_virtual) {
+    pos_error(is_property ? ec_virtual_static_property
+                          : ec_virtual_static_event,
+              p_virtual_or_static_pos);
+    pdp->is_static = FALSE;
+  }  /* if */
   dps->type = pointer_declarator(dps->type, dps, /*reference_allowed=*/TRUE,
                                  (a_call_conv_descr_ptr)NULL,
                                  (a_call_conv_descr_ptr)NULL,
@@ -18989,7 +19021,7 @@ templ_param_list is non-NULL for function template declarations.
 decl_pos_block_ptr is non-NULL when then extra source position information
 collected during this declaration needs to be returned to the caller.
 If prototype instantiations are recorded in the IL, the template header is
-passed via template_decl.  
+passed via template_decl.
 */
 {
   a_boolean            missing_declarator = FALSE;
@@ -19495,7 +19527,7 @@ passed via template_decl.
       } else if (func_info.abstract) {
         /* The function modifier "abstract" means the same thing as "= 0" (but
            it always requires an explicit "virtual" specifier, which was
-           checked earlier). */ 
+           checked earlier). */
         make_virtual_function_pure(rout_sym->variant.routine.ptr, class_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
@@ -19553,13 +19585,13 @@ passed via template_decl.
     } else if (dso_flags & (DSO_FRIEND | DSO_VIRTUAL | DSO_INLINE)) {
       if (dso_flags & DSO_FRIEND) {
         pos_error(ec_bad_friend_decl, &decl_state->start_pos);
-      }  /* if */            
+      }  /* if */
       if (dso_flags & DSO_VIRTUAL) {
         pos_error(ec_virtual_not_allowed, &decl_state->start_pos);
-      }  /* if */            
+      }  /* if */
       if (dso_flags & DSO_INLINE) {
         pos_error(ec_inline_and_nonfunction, &decl_state->start_pos);
-      }  /* if */            
+      }  /* if */
       remove_stop_token(tok_comma);
       discard_curr_construct_pragmas();
       break;
@@ -19596,7 +19628,7 @@ passed via template_decl.
                                       !no_decl_specifiers);
       }  /* if */
       /* Typedef declaration. */
-      decl_typedef(&locator, decl_state, class_type, 
+      decl_typedef(&locator, decl_state, class_type,
                    &decl_info.decl_pos_block);
       /* Note: access will have been set in decl_typedef. */
       if (curr_routine_fixup != NULL &&
@@ -20274,7 +20306,7 @@ not inherited) property or event named X.
   return result;
 }  /* check_conflict_with_direct_property_or_event */
 
-                                    
+
 static void check_names_reserved_by_cli_properties_and_events(
                                                        a_type_ptr  class_type)
 /*
