@@ -779,6 +779,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_default_arg_used_in_param_array_function)*/
 /*lint -esym(769,ec_ellipsis_after_param_array)*/
 /*lint -esym(769,ec_parameter_array_on_operator_function)*/
+/*lint -esym(769,ec_microsoft_inline_not_allowed_here)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_enum)*/
