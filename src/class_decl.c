@@ -18440,11 +18440,22 @@ being parsed), *decl_info describes the current member declaration, and
     pos_error(dps->declared_storage_class == (a_storage_class)sc_typedef ?
                 ec_typedef_not_allowed : ec_storage_class_not_allowed,
               &dps->storage_class_pos);
-  } else if (dps->dso_flags & DSO_INLINE) {
+  }  /* if */
+  if (dps->dso_flags & DSO_INLINE) {
     /* Enabling storage-class specifiers in the call to decl_specifiers also
        enables __inline and __forceinline in Microsoft mode, but they are not
        accepted here. */
     pos_error(ec_microsoft_inline_not_allowed_here, &dps->specifiers_pos);
+#if CHECKING
+  } else {
+    a_decl_flag_set  okay_output_flags = DSO_HAS_EXPLICIT_TYPE_SPECIFIER |
+                                         DSO_VIRTUAL |
+                                         DSO_DECLARES_SOMETHING |
+                                         DSO_DEFINES_SOMETHING |
+                                         DSO_JUST_VOID |
+                                         DSO_TYPENAME;
+    check_assertion_or_expect_error(!(dps->dso_flags & ~okay_output_flags));
+#endif /* CHECKING */
   }  /* if */
   if (pdp->is_static && pdp->is_virtual) {
     pos_error(is_property ? ec_virtual_static_property
