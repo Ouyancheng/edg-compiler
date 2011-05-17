@@ -2242,6 +2242,10 @@ ec_default_arg_used_in_param_array_function;;"a function with a C++/CLI paramete
 ec_ellipsis_after_param_array;;"a C++/CLI parameter array cannot be followed by an ellipsis parameter"
 ec_parameter_array_on_operator_function;;"a C++/CLI parameter array is not allowed in an operator function parameter list"
 ec_microsoft_inline_not_allowed_here;;"__inline and __forceinline are not allowed here"
+ec_data_member_with_interface_type;;"a data member cannot be an interface"
+ec_variable_with_interface_type;;"a variable cannot be an interface"
+ec_parameter_with_interface_type;;"a parameter cannot be an interface"
+ec_return_type_is_interface;;"a function return type cannot be an interface"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

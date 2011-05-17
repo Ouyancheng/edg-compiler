@@ -750,6 +750,8 @@ position recorded in *dps (depending on the diagnostic).
       /* A pin pointer cannot be used as a return type. */
       pos_error(ec_pin_ptr_return_type_not_allowed, diag_pos);
       err = TRUE;
+    } else if (is_cli_interface_type(type)) {
+      pos_error(ec_return_type_is_interface, diag_pos);
     } else {
       err = !check_invalid_use_of_special_cli_class_type(type, diag_pos);
     }  /* if */

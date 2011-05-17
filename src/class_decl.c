@@ -12079,6 +12079,9 @@ specific information about the member declaration, respectively.
     /* In C++/CLI, an interior_ptr or pin_ptr cannot be a class member. */
     type_error(ec_type_cannot_be_class_member, member_type);
     member_type = error_type();
+  } else if (cppcli_enabled && is_cli_interface_type(member_type)) {
+    /* Static data members cannot be interfaces. */
+    pos_error(ec_data_member_with_interface_type, &decl_state->declarator_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* The Microsoft compiler instantiates a template class used as the type
@@ -13794,7 +13797,6 @@ declarations.
                      is_array_type(field_type) : is_handle_type(field_type)) {
       /* Array types are disallowed in managed class types and handles are
          disallowed in non-managed (i.e., standard) class types. */
-      
       pos_error(is_immediate_managed_class_type(class_type) ?
                   ec_standard_array_field_in_managed_class :
                   ec_handle_field_in_standard_class,
@@ -13805,6 +13807,11 @@ declarations.
       /* In C++/CLI, an interior_ptr or pin_ptr cannot be a class member. */
       pos_ty_error(ec_type_cannot_be_class_member, 
                    &locator->source_position, field_type);
+      field_type = error_type();
+    } else if (cppcli_enabled && is_cli_interface_type(field_type)) {
+      /* Fields cannot be interfaces. */
+      pos_error(ec_data_member_with_interface_type,
+                &decl_state->declarator_pos);
       field_type = error_type();
     } else if (cppcli_enabled && is_value_class_type(class_type) &&
                is_class_struct_union_type(field_type) &&

@@ -780,6 +780,10 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_ellipsis_after_param_array)*/
 /*lint -esym(769,ec_parameter_array_on_operator_function)*/
 /*lint -esym(769,ec_microsoft_inline_not_allowed_here)*/
+/*lint -esym(769,ec_data_member_with_interface_type)*/
+/*lint -esym(769,ec_variable_with_interface_type)*/
+/*lint -esym(769,ec_parameter_with_interface_type)*/
+/*lint -esym(769,ec_return_type_is_interface)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* FIXME */
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_enum)*/

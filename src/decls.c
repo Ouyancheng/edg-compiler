@@ -1001,6 +1001,10 @@ error checking and type adjustments as required.
     } else if (cppcli_enabled && is_pin_ptr_type(*type_ptr)) { 
       /* A pin pointer cannot be used as a parameter type. */
       pos_error(ec_pin_ptr_param_not_allowed, error_pos);
+    } else if (cppcli_enabled && is_cli_interface_type(*type_ptr)) { 
+      /* A pin pointer cannot be used as a parameter type. */
+      pos_error(ec_parameter_with_interface_type, error_pos);
+      *type_ptr = error_type();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       if (!C_mode() && !(ptr_to_unknown_bound_array_allowed_in_param_type &&
@@ -14638,6 +14642,9 @@ if one is present.
       abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
                                 state->type, &locator->source_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled && is_cli_interface_type(var_ptr->type)) {
+      /* Variables cannot have a C++/CLI interface type. */
+      pos_error(ec_variable_with_interface_type, &locator->source_position);
     } else if (cppcli_enabled && 
                has_static_storage_duration(var_ptr->storage_class)) {
       /* Variables with static storage duration cannot have a C++/CLI type
