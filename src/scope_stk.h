@@ -1335,7 +1335,7 @@ Convenience macro to test the scope kind for a scope stack entry or for an IL
 scope entry.
 */
 #define scope_is(scope, sck)                                                \
-  ((scope)->kind == (a_scope_kind)sck)
+  ((scope)->kind == (a_scope_kind)(sck))
 
 
 

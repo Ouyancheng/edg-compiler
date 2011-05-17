@@ -10165,7 +10165,7 @@ is needed for a call.
     while (ptp != NULL) {
       if (templ_ptp != NULL) {
         /* Empty pack expansions can result in templ_ptp having no
-           no corresponding ptp. */
+           corresponding ptp. */
         if (templ_ptp->param_num != ptp->param_num) {
           check_assertion(variadic_templates_enabled &&
                           templ_ptp->param_num < ptp->param_num);
