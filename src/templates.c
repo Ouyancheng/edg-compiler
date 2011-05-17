@@ -9997,18 +9997,25 @@ instantiated.
 {
   a_def_arg_expr_fixup_ptr		daefp;
   a_param_type_ptr			templ_ptp;
+  a_param_type_ptr			ptp;
   a_routine_ptr				templ_rout;
   a_routine_ptr				rout_ptr;
   a_type_ptr				templ_rout_type;
   a_type_ptr				rout_type;
   a_template_instance_ptr		tip;
   a_symbol_ptr				template_sym;
+  int					arg_num, i;
   a_template_symbol_supplement_ptr	tssp;
 
   check_assertion(rout_sym->kind == (a_symbol_kind)sk_routine ||
                   rout_sym->kind == (a_symbol_kind)sk_member_function);
   rout_ptr = rout_sym->variant.routine.ptr;
   rout_type = skip_typerefs(rout_ptr->type);
+  ptp = rout_type->variant.routine.extra_info->param_type_list;
+  /* Determine the argument number that "param" represents. */
+  for (arg_num = 1; ptp != NULL; ptp = ptp->next, arg_num++) {
+    if (ptp == param) break;
+  }  /* for */
   if (param->default_being_instantiated) {
     /* This default argument (for this instance) is already being instantiated.
        Don't attempt another instantiation. */
@@ -10033,10 +10040,13 @@ instantiated.
   templ_rout_type = skip_typerefs(templ_rout->type);
   daefp = tssp->variant.function.def_arg_expr_list;
   /* Find the param type entry for the "prototype" template routine that
-     corresponds to the given parameter (param). */
+     corresponds to the argument number determined above. */
   templ_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
-  for (; templ_ptp != NULL; templ_ptp = templ_ptp->next) {
-    if (templ_ptp->param_num == param->param_num) break;
+  for (i = arg_num; i > 1; i--, templ_ptp = templ_ptp->next) {
+    if (daefp == NULL || templ_ptp == NULL) {
+      daefp = NULL;
+      break;
+    }  /* if */
     /* Only skip to the next default argument fixup entry when we encounter
        a parameter with a default argument. */
     if (templ_ptp->has_default_arg) daefp = daefp->next;
@@ -10085,10 +10095,10 @@ instantiated.
     saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     num_pending_default_arg_instantiations++;
-    delayed_scan_of_default_arg_expr(param, rout_sym,
+    delayed_scan_of_default_arg_expr(ptp, rout_sym,
                                      /*check_for_errors=*/FALSE);
     num_pending_default_arg_instantiations--;
-    record_default_arg_instantiation(rout_ptr, param);
+    record_default_arg_instantiation(rout_ptr, ptp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -10096,13 +10106,6 @@ instantiated.
     /* Copy the default argument expression into the corresponding param
        type entry of the declared type, if any. */
     if (tip->declared_type_for_default_arg_fixup != NULL) {
-      a_param_type_ptr  ptp;
-      int               arg_num, i;
-      /* Determine the argument number that "param" represents. */
-      ptp = rout_type->variant.routine.extra_info->param_type_list;
-      for (arg_num = 1; ptp != NULL; ptp = ptp->next, arg_num++) {
-        if (ptp == param) break;
-      }  /* for */
       ptp = tip->declared_type_for_default_arg_fixup->
                        variant.routine.extra_info->param_type_list;
       for (i = arg_num; i > 1; i--, ptp = ptp->next) {
@@ -10162,18 +10165,7 @@ is needed for a call.
     /* Loop through the two linked lists of param_type entries and the
        default argument expression fixup entries, and update the default
        argument flags in the corresponding param_type entries. */
-    while (ptp != NULL) {
-      if (templ_ptp != NULL) {
-        /* Empty pack expansions can result in templ_ptp having no
-           no corresponding ptp. */
-        if (templ_ptp->param_num != ptp->param_num) {
-          check_assertion(variadic_templates_enabled &&
-                          templ_ptp->param_num < ptp->param_num);
-          do {
-            templ_ptp = templ_ptp->next;
-          } while (templ_ptp != NULL && templ_ptp->param_num < ptp->param_num);
-        }  /* if */
-      }  /* if */
+    for (; ptp != NULL; ptp = ptp->next, templ_ptp = templ_ptp->next) {
       if (templ_ptp == NULL) {
         /* There is a mismatch in the number of default arguments between
            the template and the instance.  This should only occur as the
@@ -10181,7 +10173,6 @@ is needed for a call.
         check_assertion(total_errors != 0);
         break;
       }  /* if */
-      check_assertion(templ_ptp->param_num == ptp->param_num);
       if (templ_ptp->has_default_arg) {
 	check_assertion(daefp != NULL);
         /* Mark the parameter as having a default argument that can be
@@ -10192,26 +10183,10 @@ is needed for a call.
         ptp->has_unevaluated_template_default = TRUE;
         ptp->orig_param_type_for_unevaluated_default_arg_expr =
                                                              daefp->param_type;
-      }  /* if */
-      ptp = ptp->next;
-      /* Don't move templ_ptp (or daefp) ahead if ptp is a new element of the
-         same pack expansion. */
-      if (ptp == NULL) {
-#if CHECKING
         daefp = daefp->next;
-        templ_ptp = templ_ptp->next;
-        /* Usually daefp and templ_ptp end with ptp.  However, in error cases,
-           there may be extra fixup entries, an empty expansions of a parameter
-           pack can also result in the instantiated list being shorter than the
-           generically parsed lists. */
-        check_assertion(daefp == NULL || total_errors != 0 ||
-                        (templ_ptp != NULL && templ_ptp->is_parameter_pack));
-#endif /* CHECKING */
-      } else if (ptp->param_num > templ_ptp->param_num) {
-        if (templ_ptp->has_default_arg) daefp = daefp->next;
-        templ_ptp = templ_ptp->next;
       }  /* if */
-    }  /* while */
+    }  /* for */
+    check_assertion(daefp == NULL || total_errors != 0);
   }  /* if */
 }  /* check_for_function_template_default_args */
 
