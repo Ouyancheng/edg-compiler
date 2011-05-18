@@ -785,12 +785,6 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_parameter_with_interface_type)*/
 /*lint -esym(769,ec_return_type_is_interface)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-/* FIXME */
-/*lint -esym(769,a_cli_symbol_kind_tag::csk_system_enum)*/
-/*lint -esym(769,a_cli_symbol_kind_tag::csk_system_delegate)*/
-/*lint -esym(769,a_cli_symbol_kind_tag::csk_none)*/
-/*lint -esym(769,a_cli_symbol_kind_tag::csk_system_idisposable)*/
-/*lint -esym(769,a_cli_symbol_kind_tag::csk_system_gc)*/
 
 #endif /* ifndef LINT_H */
 
