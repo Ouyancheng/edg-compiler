@@ -4624,6 +4624,7 @@ a copy of the previous type).
             a_type_qualifier_set  saved_qualifiers = rout_type_ptp->qualifiers;
             a_type_ptr            declared_type = rout_type_ptp->declared_type;
             char                  *saved_name = rout_type_ptp->name;
+            uint32_t              saved_param_num = rout_type_ptp->param_num;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
             a_decl_position_supplement_ptr saved_decl_pos_info =
                                                 rout_type_ptp->decl_pos_info;
@@ -4646,6 +4647,8 @@ a copy of the previous type).
             }  /* if */
             /* Restore the name that is associated with the routine type. */
             rout_type_ptp->name = saved_name;
+            /* Restore the parameter's ordinal number. */
+            rout_type_ptp->param_num = saved_param_num;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
             /* Restore the source-range information that was recorded for
                the routine type. */

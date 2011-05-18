@@ -4533,13 +4533,12 @@ typedef struct a_param_type {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   uint32_t	param_num;
-			/* The ordinal position of the parameter (0, 1,
-			   2, ...).  In the instantiation of a variadic
-			   template, this is the position of the corresponding
-			   parameter from the original template.  In other
-			   words, there can be missing or repeated values in
-			   the parameter list of the instantiation of a
-			   variadic template. */
+			/* The ordinal position of the parameter (1, 2, ...).
+			   In the instantiation of a variadic template, this
+			   is the position of the corresponding parameter from
+			   the original template.  In other words, there can
+			   be missing or repeated values in the parameter list
+			   of the instantiation of a variadic template. */
   an_expr_node_ptr
 		default_arg_expr;
 			/* Expression node representing the default value

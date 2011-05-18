@@ -10198,7 +10198,7 @@ is needed for a call.
          same pack expansion. */
       if (ptp == NULL) {
 #if CHECKING
-        daefp = daefp->next;
+        if (daefp != NULL) daefp = daefp->next;
         templ_ptp = templ_ptp->next;
         /* Usually daefp and templ_ptp end with ptp.  However, in error cases,
            there may be extra fixup entries, an empty expansions of a parameter
