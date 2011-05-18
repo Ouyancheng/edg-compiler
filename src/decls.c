@@ -1002,7 +1002,7 @@ error checking and type adjustments as required.
       /* A pin pointer cannot be used as a parameter type. */
       pos_error(ec_pin_ptr_param_not_allowed, error_pos);
     } else if (cppcli_enabled && is_cli_interface_type(*type_ptr)) { 
-      /* A pin pointer cannot be used as a parameter type. */
+      /* A C++/CLI interface cannot be used as a parameter type. */
       pos_error(ec_parameter_with_interface_type, error_pos);
       *type_ptr = error_type();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
