@@ -9402,8 +9402,13 @@ set to FALSE (and FALSE is always returned).
       case sfk_event_raise:
         /* Static constructors, properties, and events are allowed on C++/CLI
            managed interface types (e.g. "interface class"), but not on
-           non-CLI "__interface" types. */
+           non-CLI "__interface" types.  (Static interface constructors are
+           not implicitly pure virtual and need not be implemented by derived
+           classes.) */
         check_assertion(!type->variant.class_struct_union.is_interface);
+        is_implicitly_pure_virtual =
+                                in_interface &&
+                                !special_kind_is(rtn, sfk_static_constructor);
         break;
       case sfk_finalizer:
         /* Finalizers are only allowed in C++/CLI ref class types. */
