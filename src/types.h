@@ -1260,7 +1260,7 @@ Return TRUE if type is a prototype instantiation.  type is required to be
 a class type.
 */
 #define is_prototype_instantiation_type(type)				\
-  (type->variant.class_struct_union.is_prototype_instantiation)
+  ((type)->variant.class_struct_union.is_prototype_instantiation)
 
 /*
 Return TRUE if type is a C++/CLI generic definition.  type is required to be
@@ -1268,9 +1268,9 @@ a class type.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_cli_generic_definition_type(type)				\
-  (type->variant.class_struct_union.is_generic_definition)
+  ((type)->variant.class_struct_union.is_generic_definition)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_cli_generic_definition_type(type) /*lint --e(506)*/(FALSE)
+#define is_cli_generic_definition_type(type) /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -1279,9 +1279,9 @@ required to be a class type.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_cli_generic_instance_type(type)				\
-  (type->variant.class_struct_union.is_generic_instance)
+  ((type)->variant.class_struct_union.is_generic_instance)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_cli_generic_instance_type(type) /*lint --e(506)*/(FALSE)
+#define is_cli_generic_instance_type(type) /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*

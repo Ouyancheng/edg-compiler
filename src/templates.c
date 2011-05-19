@@ -3033,8 +3033,8 @@ loading of classes.
              tssp_of_prototype->variant.class_template.prototype_instantiation;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (tssp_of_prototype->is_generic) {
-      /* If this is a C++/CLI imported from an assembly, make sure the
-         definition has been imported. */
+      /* If this is an instance of a C++/CLI generic imported from an
+         assembly, make sure the definition has been imported. */
       a_type_ptr	prototype_instantiation_type;
       prototype_instantiation_type =
                   prototype_instantiation_sym->variant.class_struct_union.type;
@@ -13469,7 +13469,6 @@ for the generic parameter.  Return a pointer to the newly created list.
       /* This parameter has no constraints.  The type Object is to be used
          as the type of the parameter. */
      arg_type = cli_system_object_type();
-    } else {
     }  /* if */
     if (arg_type == NULL) {
      /* FIXME: Temporary code until constraints are implemented. */

@@ -7911,7 +7911,7 @@ typedef struct a_type {
 			/* TRUE if this is a template parameter pack. */
       a_bit_field
 		is_generic_param:1;
-			/* TRUE if this is a generic type parameter. */
+			/* TRUE if this is a C++/CLI generic type parameter. */
       a_template_param_type_supplement_ptr
 		extra_info;
 			/* Pointer to a supplement containing additional

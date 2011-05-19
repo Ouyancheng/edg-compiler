@@ -225,7 +225,7 @@ typedef struct a_tmpl_decl_state {
   a_source_position
 		cli_visibility_pos;
 			/* The source position if a cli_visibility was
-			   specified, or null_source position. */
+			   specified, or null_source_position. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_tmpl_decl_state;
 

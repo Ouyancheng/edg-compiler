@@ -73,7 +73,8 @@ typedef int a_push_scope_options_set;
 			   scope for template rescan purposes. */
 #define PS_GENERIC_DEFINITION		0x2000
 			/* TRUE if the scope being pushed is the template
-			   instantiation scope for a generic definition. */
+			   instantiation scope for a C++/CLI generic
+			   definition. */
 #define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
 			/* Size of the shareable constants hash table for
 			   a function. */
