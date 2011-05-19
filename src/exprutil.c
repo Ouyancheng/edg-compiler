@@ -38,13 +38,33 @@ static a_boolean is_bit_field_expr(an_expr_node_ptr node);
 static a_boolean check_for_taking_the_address_of_a_bit_field(
                                                   an_operand        *operand,
                                                   a_source_position *err_pos);
+
+/*
+Options for conv_rvalue_expr_to_lvalue.
+*/
+typedef int a_conv_rvalue_to_lvalue_options_set;
+#define CRTL_NO_OPTIONS 0
+#define CRTL_GCC_LVALUE 0x1
+                        /* TRUE if we're rewriting the operand in a case where
+                           gcc (not g++) allows treating an rvalue as an
+                           lvalue. */
+#define CRTL_IGNORE_CASTS 0x2
+                        /* TRUE to ignore any casts on top of the expression
+                           (throw them away, then turn the expression into an
+                           lvalue; this will affect the returned expression
+                           pointer even if no transformation is done). */
+#define CRTL_RETAIN_RVALUE_TYPE 0x4
+                        /* TRUE if the re-written node should retain its
+                           rvalue type.  Used when converting an expression
+                           that has already been lowered. */
+
 static
-an_expr_node_ptr conv_rvalue_expr_to_lvalue(an_expr_node_ptr node,
-                                            a_boolean        *converted,
-                                            a_boolean        see_if_possible,
-                                            a_boolean        gcc_lvalue,
-                                            a_boolean        ignore_casts,
-                                            a_type_ptr       *p_lvalue_type);
+an_expr_node_ptr conv_rvalue_expr_to_lvalue(
+                           an_expr_node_ptr                    node,
+                           a_boolean                           *converted,
+                           a_boolean                           see_if_possible,
+                           a_conv_rvalue_to_lvalue_options_set options,
+                           a_type_ptr                          *p_lvalue_type);
 
 /*
 Information on references to symbols, held until the kind of reference to
@@ -8422,6 +8442,9 @@ when gnu_version would ordinarily indicate they should not be.
       an_expr_node_ptr      expr = skip_parens(operand->variant.expression);
       an_expr_operator_kind op;
       a_boolean             same_size_cast_case = FALSE;
+      a_conv_rvalue_to_lvalue_options_set options = CRTL_NO_OPTIONS;
+      if (ignore_casts) options |= CRTL_IGNORE_CASTS;
+      if (gcc_mode) options |= CRTL_GCC_LVALUE;
       if (gpp_mode && gnu_version < 40000 &&
           is_operation_node(expr) &&
           expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
@@ -8461,8 +8484,7 @@ when gnu_version would ordinarily indicate they should not be.
         /* See whether we can find an underlying lvalue. */
         expr = conv_rvalue_expr_to_lvalue(expr, &do_recovery,
                                           /*see_if_possible=*/TRUE,
-                                          /*gcc_lvalue=*/gcc_mode,
-                                          ignore_casts,
+                                          options,
                                           (a_type_ptr *)NULL);
         if (ignore_casts && do_recovery && cast_on_top_originally &&
             expr != orig_expr) {
@@ -8545,8 +8567,7 @@ when gnu_version would ordinarily indicate they should not be.
         } else {
           expr = conv_rvalue_expr_to_lvalue(expr, &do_recovery,
                                             /*see_if_possible=*/FALSE,
-                                            /*gcc_lvalue=*/gcc_mode,
-                                            ignore_casts,
+                                            options,
                                             (a_type_ptr *)NULL);
           if (cast_type != NULL) {
             /* Adjust the result lvalue type if necessary because of
@@ -13291,6 +13312,8 @@ result type for the lvalue operation.
   a_boolean  okay = FALSE;
   a_type_ptr res_type, type2, type3;
   a_boolean  op2_possible, op3_possible;
+  a_conv_rvalue_to_lvalue_options_set options = CRTL_GCC_LVALUE;
+
 
   /* Note that by the time a "?" operation gets here, it has
      been validated as a correct rvalue operation, so a certain
@@ -13300,14 +13323,15 @@ result type for the lvalue operation.
      see whether they can be converted to lvalues and to find out what
      their lvalue types are.  The lvalue types may have cv-qualifiers
      that the rvalue versions don't. */
+  if (ignore_casts) options |= CRTL_IGNORE_CASTS;
   (void)conv_rvalue_expr_to_lvalue(op2, &op2_possible,
                                    /*see_if_possible=*/TRUE,
-                                   /*gcc_lvalue=*/TRUE,
-                                   ignore_casts, &type2);
+                                   options,
+                                   &type2);
   (void)conv_rvalue_expr_to_lvalue(op3, &op3_possible,
                                    /*see_if_possible=*/TRUE,
-                                   /*gcc_lvalue=*/TRUE,
-                                   ignore_casts, &type3);
+                                   options,
+                                   &type3);
   if (!op2_possible || !op3_possible) {
     /* One or both of the operands cannot be converted to an lvalue,
        so give up. */
@@ -13375,24 +13399,27 @@ node pointed to by that sequence.  Otherwise, return node.
 
 
 static an_expr_node_ptr conv_rvalue_expr_to_lvalue(
-                                              an_expr_node_ptr node,
-                                              a_boolean        *converted,
-                                              a_boolean        see_if_possible,
-                                              a_boolean        gcc_lvalue,
-                                              a_boolean        ignore_casts,
-                                              a_type_ptr       *p_lvalue_type)
+                           an_expr_node_ptr                    node,
+                           a_boolean                           *converted,
+                           a_boolean                           see_if_possible,
+                           a_conv_rvalue_to_lvalue_options_set options,
+                           a_type_ptr                          *p_lvalue_type)
 /*
 node is an rvalue expression.  If possible, rewrite it as an lvalue
 for the object, and return a pointer to the rvalue expression along
 with *converted TRUE.  If such a conversion is not possible, set
 *converted FALSE and return the unmodified original expression.  If
 see_if_possible is TRUE, just see if the rewriting is possible, set
-set *converted accordingly, and return the unmodified expression.  If
-gcc_lvalue is TRUE, we're rewriting the operand in a case where gcc
-(not g++) allows treating an rvalue as an lvalue.  If ignore_casts is
-TRUE, ignore any casts on top of the expression (throw them away, then
+set *converted accordingly, and return the unmodified expression.  options
+is a bit set which allows the caller to modify the conversion.  If
+CRTL_GCC_LVALUE is set, we're rewriting the operand in a case where gcc
+(not g++) allows treating an rvalue as an lvalue.  If CRTL_IGNORE_CASTS is
+set, ignore any casts on top of the expression (throw them away, then
 turn the expression into an lvalue; this will affect the returned
-expression pointer even if no transformation is done).  If
+expression pointer even if no transformation is done).  Setting
+CRTL_RETAIN_RVALUE_TYPE forces a re-written node to retain its rvalue
+type (used in cases where the expression has already been lowered
+and const qualification of rvalues have been stripped).  If
 p_lvalue_type is non-NULL, *p_lvalue_type is set to the type of the
 lvalue; it might differ from the original node type in having extra
 cv-qualifiers.  It is set even when see_if_possible is TRUE (in fact,
@@ -13411,6 +13438,8 @@ e.g., in a back end.
 */
 {
   a_boolean        possible = FALSE;
+  a_boolean        gcc_lvalue = (options & CRTL_GCC_LVALUE) != 0;
+  a_boolean        ignore_casts = (options & CRTL_IGNORE_CASTS) != 0;
   a_type_ptr       lvalue_type;
 
   if (ignore_casts) {
@@ -13512,8 +13541,7 @@ e.g., in a back end.
         /* Parentheses: just do a recursive call on the operand. */
         op1 = conv_rvalue_expr_to_lvalue(op1, &possible,
                                          see_if_possible,
-                                         gcc_lvalue,
-                                         ignore_casts,
+                                         options,
                                          &lvalue_type);
         if (possible && !see_if_possible) {
           node->variant.operation.operands = op1;
@@ -13535,8 +13563,8 @@ e.g., in a back end.
                doesn't guarantee that they can be converted to lvalues. */
             (void)conv_rvalue_expr_to_lvalue(op2, &op2_possible,
                                              /*see_if_possible=*/TRUE,
-                                             /*gcc_lvalue=*/FALSE,
-                                             ignore_casts, &lvalue_type);
+                                             options & ~CRTL_GCC_LVALUE,
+                                             &lvalue_type);
             if (!op2_possible &&
                 skip_parens(op2)->kind == (an_expr_node_kind)enk_throw) {
               op2_is_throw = TRUE;
@@ -13544,8 +13572,8 @@ e.g., in a back end.
             }  /* if */
             (void)conv_rvalue_expr_to_lvalue(op3, &op3_possible,
                                              /*see_if_possible=*/TRUE,
-                                             /*gcc_lvalue=*/FALSE,
-                                             ignore_casts, &lvalue_type);
+                                             options & ~CRTL_GCC_LVALUE,
+                                             &lvalue_type);
             if (!op3_possible &&
                 skip_parens(op3)->kind == (an_expr_node_kind)enk_throw) {
               op3_is_throw = TRUE;
@@ -13567,15 +13595,13 @@ e.g., in a back end.
               if (!op2_is_throw) {
                 op2 = conv_rvalue_expr_to_lvalue(op2, &op2_possible,
                                                  /*see_if_possible=*/FALSE,
-                                                 gcc_lvalue,
-                                                 ignore_casts,
+                                                 options,
                                                  (a_type_ptr *)NULL);
               }  /* if */
               if (!op3_is_throw) {
                 op3 = conv_rvalue_expr_to_lvalue(op3, &op3_possible,
                                                  /*see_if_possible=*/FALSE,
-                                                 gcc_lvalue,
-                                                 ignore_casts,
+                                                 options,
                                                  (a_type_ptr *)NULL);
               }  /* if */
               if (gcc_lvalue) {
@@ -13602,8 +13628,7 @@ e.g., in a back end.
         if (!C_mode() || gcc_lvalue) {
           op2 = conv_rvalue_expr_to_lvalue(op2, &possible,
                                            see_if_possible,
-                                           gcc_lvalue,
-                                           ignore_casts,
+                                           options,
                                            &lvalue_type);
           if (possible && !see_if_possible) {
             node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
@@ -13618,8 +13643,7 @@ e.g., in a back end.
            an lvalue. */
         op2 = conv_rvalue_expr_to_lvalue(op2, &possible,
                                          see_if_possible,
-                                         gcc_lvalue,
-                                         ignore_casts,
+                                         options,
                                          &lvalue_type);
         if (possible && !see_if_possible) {
           op1->next = op2;
@@ -13632,25 +13656,23 @@ e.g., in a back end.
            to lvalues. */
         (void)conv_rvalue_expr_to_lvalue(op1, &op1_possible,
                                          /*see_if_possible=*/TRUE,
-                                         /*gcc_lvalue=*/FALSE,
-                                         ignore_casts, &lvalue_type);
+                                         options & ~CRTL_GCC_LVALUE,
+                                         &lvalue_type);
         (void)conv_rvalue_expr_to_lvalue(op2, &op2_possible,
                                          /*see_if_possible=*/TRUE,
-                                         /*gcc_lvalue=*/FALSE,
-                                         ignore_casts, &lvalue_type);
+                                         options & ~CRTL_GCC_LVALUE,
+                                         &lvalue_type);
         possible = (op1_possible && op2_possible);
         if (possible) {
           if (!see_if_possible) {
             op1->next = NULL;
             op1 = conv_rvalue_expr_to_lvalue(op1, &op1_possible,
                                              /*see_if_possible=*/FALSE,
-                                             gcc_lvalue,
-                                             ignore_casts,
+                                             options,
                                              (a_type_ptr *)NULL);
             op2 = conv_rvalue_expr_to_lvalue(op2, &op2_possible,
                                              /*see_if_possible=*/FALSE,
-                                             gcc_lvalue,
-                                             ignore_casts,
+                                             options,
                                              (a_type_ptr *)NULL);
             node->variant.operation.operands = op1;
             op1->next = op2;
@@ -13671,8 +13693,7 @@ e.g., in a back end.
                convert the first operand to an lvalue. */
             (void)conv_rvalue_expr_to_lvalue(op1, &op1_possible,
                                              /*see_if_possible=*/TRUE,
-                                             gcc_lvalue,
-                                             ignore_casts,
+                                             options,
                                              &class_type);
             if (op1_possible) {
               possible = TRUE;
@@ -13680,8 +13701,7 @@ e.g., in a back end.
                 op1->next = NULL;
                 op1 = conv_rvalue_expr_to_lvalue(op1, &op1_possible,
                                                  /*see_if_possible=*/FALSE,
-                                                 gcc_lvalue,
-                                                 ignore_casts,
+                                                 options,
                                                  (a_type_ptr *)NULL);
                 node->variant.operation.operands = op1;
                 op1->next = op2;
@@ -13712,8 +13732,7 @@ e.g., in a back end.
            Try to transform the operand to an lvalue. */
         op1 = conv_rvalue_expr_to_lvalue(op1, &possible,
                                          see_if_possible,
-                                         gcc_lvalue,
-                                         /*ignore_casts=*/FALSE,
+                                         options & ~CRTL_IGNORE_CASTS,
                                          &lvalue_type);
         if (possible) {
           lvalue_type = type_plus_qualifiers_from_second_type(node->type,
@@ -13739,8 +13758,7 @@ e.g., in a back end.
            into an lvalue. */
         op1 = conv_rvalue_expr_to_lvalue(op1, &possible,
                                          see_if_possible,
-                                         gcc_lvalue,
-                                         /*ignore_casts=*/FALSE,
+                                         options & ~CRTL_IGNORE_CASTS,
                                          (a_type_ptr *)NULL);
         if (possible && !see_if_possible) {
           /* Change the eok_class_rvalue_adjust to an eok_lvalue_adjust
@@ -13783,8 +13801,17 @@ assignment_case:
   /* If the node was transformed, update its type to the lvalue type (that
      might add cv-qualifiers) and mark the node as an lvalue. */
   if (!see_if_possible && possible) {
+    a_type_ptr orig_type = node->type;
     node->type = lvalue_type;
     node->is_lvalue = TRUE;
+    if ((options & CRTL_RETAIN_RVALUE_TYPE) != 0 && orig_type != lvalue_type) {
+      /* If this node has already been lowered (presumably stripping any
+         const qualification), don't re-add it -- simply adjust the type of
+         the resulting lvalue to have the original type. */
+      node = make_lvalue_operator_node(
+                                      (an_expr_operator_kind)eok_lvalue_adjust,
+                                      orig_type, copy_node(node));
+    }  /* if */
   }  /* if */
   *converted = possible;
   if (p_lvalue_type != NULL) *p_lvalue_type = lvalue_type;
@@ -13793,20 +13820,22 @@ assignment_case:
 
 
 void conv_rvalue_expr_to_object_pointer(an_expr_node_ptr *p_node,
-                                        a_boolean        *converted)
+                                        a_boolean        *converted,
+                                        a_boolean        has_been_lowered)
 /*
 *p_node is an expression tree for an rvalue.  If possible, rewrite it
 as an object pointer for the object, and set *p_node to the new
 pointer and *converted to TRUE.  If not possible, return *converted FALSE
-and *p_node unchanged.
+and *p_node unchanged.  has_been_lowered is TRUE if the expression has
+already been lowered.
 */
 {
   an_expr_node_ptr node = *p_node;
 
   node = conv_rvalue_expr_to_lvalue(node, converted,
                                     /*see_if_possible=*/FALSE,
-                                    /*gcc_lvalue=*/FALSE,
-                                    /*ignore_casts=*/FALSE,
+                                    has_been_lowered ? CRTL_RETAIN_RVALUE_TYPE:
+                                                       CRTL_NO_OPTIONS,
                                     (a_type_ptr *)NULL);
   if (*converted) {
     /* Turn an lvalue into a pointer. */
@@ -13884,8 +13913,7 @@ initializing it from the rvalue.  This routine is used only in C++ mode.
       /* Change the rvalue to an lvalue if possible. */
       node = conv_rvalue_expr_to_lvalue(node, &optimized_case,
                                         /*see_if_possible=*/FALSE,
-                                        /*gcc_lvalue=*/FALSE,
-                                        /*ignore_casts=*/FALSE,
+                                        CRTL_NO_OPTIONS,
                                         (a_type_ptr *)NULL);
       if (optimized_case) {
         /* The expression has been rewritten as an lvalue. */
@@ -14029,8 +14057,7 @@ Convert it to an lvalue.
   check_assertion(is_rvalue_reference_object_expr(expr));
   expr = conv_rvalue_expr_to_lvalue(expr, &converted,
                                     /*see_if_possible=*/FALSE,
-                                    /*gcc_lvalue=*/FALSE,
-                                    /*ignore_casts=*/FALSE,
+                                    CRTL_NO_OPTIONS,
                                     (a_type_ptr *)NULL);
   check_assertion(converted);
   make_lvalue_expression_operand(expr, operand);

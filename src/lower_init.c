@@ -6542,7 +6542,7 @@ expression can be either an lvalue or rvalue and lvalueness is preserved.
         op1 = add_address_of_to_node(op1);
         op1 = add_cast(op1, void_star_type());
         /* op2 is an rvalue, but we need a pointer for the memcpy. */
-        op2 = rvalue_pointer_for_class_rvalue(op2);
+        op2 = rvalue_pointer_for_class_rvalue(op2, /*has_been_lowered=*/TRUE);
         op2 = add_cast(op2, make_pointer_type(
                                 make_qualified_type(void_type(), TQ_CONST)));
         op1->next = op2;
