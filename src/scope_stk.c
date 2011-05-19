@@ -3165,7 +3165,7 @@ the scope being pushed.
     ssep->source_sequence_entries_disallowed =
     source_sequence_entries_disallowed = TRUE;
   } else if (kind == (a_scope_kind)sck_template_instantiation) {
-    if (is_scanning_generated_code_from_metadata) {
+    if (scanning_generated_code_from_metadata) {
       /* Don't update source_sequence_entries_disallowed when scanning
          a declaration from metadata. */ 
 #if MICROSOFT_EXTENSIONS_ALLOWED

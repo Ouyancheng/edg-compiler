@@ -1106,7 +1106,7 @@ EXTERN a_boolean
 			   (number of generic parameters) can exist in the
 			   same scope and if a generic class and non-generic
 			   class can have the same name in a given scope.
-			   This support is always allowed for generics
+			   This feature is always allowed for generics
 			   imported from metadata.  This controls the
 			   availability of the feature as a source feature. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
