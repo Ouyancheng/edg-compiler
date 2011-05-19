@@ -2364,14 +2364,14 @@ typedef struct a_template_symbol_supplement {
 		non_generic_class;
 			/* In addition to generics of varying arity described
 			   above, a non-generic class can exist in the same
-			   scope as a one or more generic of the same name.
+			   scope as one or more generic of the same name.
 			   In such cases, the generic is found by name
 			   lookup and this pointer can be used if it is
 			   determined that the reference is to the non-generic
-			   version.  It is NULL if their is no non-generic
+			   version.  It is NULL if there is no non-generic
 			   version. */
        uint32_t	arity;
-			/* For C++/CLI generics classes, the number of generic
+			/* For C++/CLI generic classes, the number of generic
 			   parameters for this generic. */
        uint32_t	min_arity;
 			/* For C++/CLI generics, this field is set in the
@@ -4843,18 +4843,19 @@ Return TRUE if the symbol is a class template, but not a C++/CLI generic.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 /*
-Return a pointer to the non-generic class symbol pointer (which may be NULL)
+Return the non-generic class symbol pointer (which may be NULL)
 for a C++/CLI generic class.
 */
 #define non_generic_class_for_cli_generic(sym)				\
-   (&(sym)->variant.template_info->variant.class_template.non_generic_class)
+   ((sym)->variant.template_info->variant.class_template.non_generic_class)
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 /*
 Return TRUE if the symbol is a C++/CLI generic.
 */
-#if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_cli_generic_class_symbol(sym)				\
   (is_class_template_symbol(sym) &&					\
    (sym)->variant.template_info->is_generic)

@@ -1436,7 +1436,7 @@ instantiation of a generic imported from metadata.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define in_code_generated_from_metadata()				\
-  (is_scanning_generated_code_from_metadata ||				\
+  (scanning_generated_code_from_metadata ||				\
    (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH ||		\
     scope_stack[depth_scope_stack].instantiation_from_metadata))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
