@@ -1454,7 +1454,6 @@ Enter the standard predeclared functions for GCC.
   a_type_ptr  float_star_type;
   a_type_ptr  double_star_type;
   a_type_ptr  long_double_star_type;
-  a_type_ptr  generic_function_type;
   a_type_ptr  va_list_type;
   an_integer_kind
               u4_kind, u8_kind;
@@ -1508,9 +1507,6 @@ Enter the standard predeclared functions for GCC.
   float_star_type = make_pointer_type(floating_type);
   double_star_type = make_pointer_type(double_type);
   long_double_star_type = make_pointer_type(long_double_type);
-  generic_function_type = make_routine_type(void_star_type, void_star_type,
-                                            (a_type_ptr)NULL, (a_type_ptr)NULL,
-                                            (a_type_ptr)NULL);
   if (builtin_va_list_type != NULL) {
     /* If there is a predeclared va_list type use it.  (This is the case when
        GCC_BUILTIN_VARARGS is true.) */
