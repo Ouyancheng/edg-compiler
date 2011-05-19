@@ -1,5 +1,26 @@
 Version 4.4
 
+5/19/11  [EDGcpfe/11750]
+Attributes on function template definitions and their instantiations
+
+Previously, if a function template was first declared without a definition,
+then used, and then defined, only attributes on the initial declaration were
+applied to the used specialization and any attributes on the definition had
+no effect on that specialization.  For example:
+
+  template<typename T> void f(T);
+  int main() {
+    f(7);  // Use of f<int>(int).
+  }
+  template<typename T> __declspec(nothrow) void f(T) {}
+    // f<int>(int) may be fully instantiated at this point.  Previously,
+    // such instantiation ignored the "nothrow" attribute from the definition.
+    // Now the attribute is picked up.
+
+(The Changes entry for EDGcpfe/9913 of 2/23/10 documents a related issue for
+member functions of class templates.)
+
+
 5/18/11  [EDGcpfe/11735]
 Assertion failure in optimize_node_if_possible during lowering
 

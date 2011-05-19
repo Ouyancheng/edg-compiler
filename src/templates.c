@@ -4500,6 +4500,22 @@ in one-instantiation-per-object mode.
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
+static a_boolean routine_includes_definition_attribute(a_routine_ptr  rp)
+/*
+Return TRUE if the given routine entry has an attribute whose
+on_primary_declaration flag is TRUE.
+*/
+{
+  
+  an_attribute_ptr  ap;
+
+  for (ap = rp->source_corresp.attributes; ap != NULL; ap = ap->next) {
+    if (ap->on_primary_declaration) break;
+  }  /* for */
+  return ap != NULL;
+}  /* routine_includes_definition_attribute */
+
+
 static void attach_attributes_to_routine_instance(
                                a_routine_ptr                     rp,
                                a_template_symbol_supplement_ptr  tssp,
@@ -4659,13 +4675,12 @@ Instantiate the body of the template function associated with tip.
     rout_ptr->source_corresp.name_linkage =
                                 (a_name_linkage_kind)nlk_cplusplus_external;
   }  /* if */
-  if (rout_ptr->source_corresp.is_class_member &&
-      rout_ptr->defined_outside_of_parent &&
-      rout_ptr->template_arg_list == NULL &&
-      proto_rout_ptr->source_corresp.attributes != NULL) {
-    /* A nontemplate member of a class template that was defined outside its
-       parent class.  If the definition included attributes, they have not
-       been applied yet: Do so now. */
+  if (proto_rout_ptr->source_corresp.attributes != NULL &&
+      !routine_includes_definition_attribute(rout_ptr) &&
+      routine_includes_definition_attribute(proto_rout_ptr)) {
+    /* Attributes were specified on the template definition after this instance
+       was created by make_template_function.  Attach the definition attributes
+       now. */
     attach_attributes_to_routine_instance(rout_ptr, proto_tssp,
                                           /*primary_only=*/TRUE);
   }  /* if */
