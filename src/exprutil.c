@@ -13407,7 +13407,10 @@ It is also used in IL lowering, via conv_rvalue_expr_to_object_pointer.
 As will be clear from that, this routine can be called from outside
 of the expression routines; it does not reference things like the
 expr_stack.  However, it can't be called from outside the front end,
-e.g., in a back end.
+e.g., in a back end.  Note that when this routine is called on a
+lowered expression, the resulting lvalue will have the same type as
+the rvalue type (this is necessary to prevent const-qualification
+from being re-introduced once lowering has eliminated it).
 */
 {
   a_boolean        possible = FALSE;
