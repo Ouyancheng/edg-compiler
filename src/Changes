@@ -6,7 +6,7 @@ Attributes on function template definitions and their instantiations
 Previously, if a function template was first declared without a definition,
 then used, and then defined, only attributes on the initial declaration were
 applied to the used specialization and any attributes on the definition had
-no effect on that specialization.  For example:
+no effect on that specialization.  For example (using Microsoft mode):
 
   template<typename T> void f(T);
   int main() {
@@ -17,8 +17,10 @@ no effect on that specialization.  For example:
     // such instantiation ignored the "nothrow" attribute from the definition.
     // Now the attribute is picked up.
 
-(The Changes entry for EDGcpfe/9913 of 2/23/10 documents a related issue for
-member functions of class templates.)
+Note that GNU-style attributes are unaffected because of the issue reported
+by the Changes entry for EDGcpfe/11448 of 5/11/11.  (Also, the Changes entry
+for EDGcpfe/9913 of 2/23/10 documents a related issue for member functions of
+class templates.)
 
 
 5/18/11  [EDGcpfe/11735]
