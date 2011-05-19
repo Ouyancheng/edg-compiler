@@ -14450,7 +14450,7 @@ operator should be created.  No routine body is generated at this time.
     rout_type->variant.routine.return_type = make_reference_type(class_type);
   }  /* if */
   extra_info->param_type_list = ptp;
-  ptp->param_num = 1;
+  if (ptp != NULL) ptp->param_num = 1;
   extra_info->this_class = class_type;
   extra_info->prototyped = TRUE;
   if (ptp != NULL) {
