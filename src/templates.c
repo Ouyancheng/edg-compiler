@@ -10234,6 +10234,7 @@ the error type is a member, or is NULL for a nonmember.
   a_param_type_ptr		last_ptp = NULL;
   a_param_type_ptr		templ_ptp;
   a_type_ptr			error_type_ptr;
+  uint32_t                      param_num = 0;
 
   error_type_ptr = error_type();
   templ_rout_type = templ_rout->type;
@@ -10249,6 +10250,7 @@ the error type is a member, or is NULL for a nonmember.
        templ_ptp = templ_ptp->next) {
     if (templ_ptp->is_parameter_pack) rtsp->is_variadic_instance = TRUE;
     ptp = alloc_param_type(error_type_ptr);
+    ptp->param_num = ++param_num;
     ptp->is_pack_element = templ_ptp->is_parameter_pack;
     if (templ_ptp->has_default_arg) {
       ptp->has_default_arg = TRUE;

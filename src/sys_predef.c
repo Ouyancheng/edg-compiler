@@ -1508,10 +1508,9 @@ Enter the standard predeclared functions for GCC.
   float_star_type = make_pointer_type(floating_type);
   double_star_type = make_pointer_type(double_type);
   long_double_star_type = make_pointer_type(long_double_type);
-  generic_function_type = alloc_type((a_type_kind)tk_routine);
-  generic_function_type->variant.routine.return_type = void_star_type;
-  generic_function_type->variant.routine.extra_info->param_type_list =
-    alloc_param_type(void_star_type);
+  generic_function_type = make_routine_type(void_star_type, void_star_type,
+                                            (a_type_ptr)NULL, (a_type_ptr)NULL,
+                                            (a_type_ptr)NULL);
   if (builtin_va_list_type != NULL) {
     /* If there is a predeclared va_list type use it.  (This is the case when
        GCC_BUILTIN_VARARGS is true.) */

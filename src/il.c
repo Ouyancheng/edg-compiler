@@ -7339,18 +7339,22 @@ the given parameter types (which may be NULL).
   /* Set the first parameter, if any. */
   if (param1_type != NULL) {
     extra_info->param_type_list = make_param_type(param1_type, np);
+    extra_info->param_type_list->param_num = 1;
     /* Set the second parameter, if any. */
     if (param2_type != NULL) {
       a_param_type_ptr  ptp = extra_info->param_type_list;
       ptp->next = make_param_type(param2_type, np);
+      ptp->next->param_num = 2;
       /* Set the third parameter, if any. */
       if (param3_type != NULL) {
         ptp = ptp->next;
         ptp->next = make_param_type(param3_type, np);
+        ptp->next->param_num = 3;
         /* Set the fourth parameter, if any. */
         if (param4_type != NULL) {
           ptp = ptp->next;
           ptp->next = make_param_type(param4_type, np);
+          ptp->next->param_num = 4;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -7359,6 +7363,7 @@ the given parameter types (which may be NULL).
   set_routine_calling_method_flag(rout_type, np);
   return rout_type;
 }  /* make_routine_type */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_routine_ptr routine_from_function_expr(an_expr_node_ptr expr)
@@ -7402,6 +7407,7 @@ even though calls actually always use the rvalue form.
 }  /* routine_from_function_expr */
 
 #if !STANDALONE_UTILITY_PROGRAM
+
 a_type_ptr add_param_type(a_type_ptr  rout_type,
                           a_type_ptr  param_type)
 /*
@@ -7411,9 +7417,14 @@ The updated routine type is returned.
 {
   a_param_type_ptr  *p_ptp = &rout_type->variant.routine.extra_info
                                        ->param_type_list;
+  uint32_t          param_num = 1;
 
-  while (*p_ptp != NULL) p_ptp = &(*p_ptp)->next;
+  while (*p_ptp != NULL) {
+    p_ptp = &(*p_ptp)->next;
+    param_num += 1;
+  }  /* while */
   *p_ptp = make_param_type(param_type, &null_source_position);
+  (*p_ptp)->param_num = param_num;
   return rout_type;
 }  /* add_param_type */
 
