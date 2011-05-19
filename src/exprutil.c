@@ -13383,7 +13383,7 @@ static an_expr_node_ptr conv_rvalue_expr_to_lvalue(
                                               a_type_ptr       *p_lvalue_type)
 /*
 node is an rvalue expression.  If possible, rewrite it as an lvalue
-for the object, and return a pointer to the rvalue expression along
+for the object, and return a pointer to the lvalue expression along
 with *converted TRUE.  If such a conversion is not possible, set
 *converted FALSE and return the unmodified original expression.  If
 see_if_possible is TRUE, just see if the rewriting is possible, set
