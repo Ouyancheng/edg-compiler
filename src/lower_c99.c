@@ -3584,6 +3584,7 @@ second parameter.
 {
   unsigned int bool_controlling_expr_mask;
 
+  mark_as_visited(expr);
   switch (expr->kind) {
     case enk_operation:
 #if LOWER_VARIABLE_LENGTH_ARRAYS

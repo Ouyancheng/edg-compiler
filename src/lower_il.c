@@ -2728,22 +2728,22 @@ found_base_class:;
 
 #endif /* ABI_CHANGES_FOR_RTTI */
 
-an_expr_node_ptr rvalue_pointer_for_class_rvalue(
-                                             an_expr_node_ptr expr,
-                                             a_boolean        has_been_lowered)
+an_expr_node_ptr rvalue_pointer_for_class_rvalue(an_expr_node_ptr expr)
 /*
 Return an rvalue pointer expression for the rvalue class expression, expr.
 Try to convert the rvalue expression into an rvalue pointer if possible;
 otherwise, copy the expression into a temporary and take its address.
-has_been_lowered indicates whether or not the expression has already been
-lowered.  This routine can be used on lowered expressions only if the
-expression is known not to contain any top level base class casts.
+Generally speaking, expr should be an unlowered expression; this allows
+any base class casts (if they exist) to be properly identified and a
+temporary variable (if one is needed) to have the proper (derived) type.
+This routine can be used on lowered expressions if the expression is known
+not to contain any top level base class casts.
 */
 {
   a_boolean converted;
 
   check_assertion(!expr->is_lvalue && is_class_struct_union_type(expr->type));
-  conv_rvalue_expr_to_object_pointer(&expr, &converted, has_been_lowered);
+  conv_rvalue_expr_to_object_pointer(&expr, &converted);
   if (!converted) {
     /* Couldn't extract a pointer from the rvalue.  Copy the class rvalue to a
        temporary and return an expression for a pointer to the temporary. */
@@ -2788,8 +2788,7 @@ expression is known not to contain any top level base class casts.
 
 
 static an_expr_node_ptr rvalue_pointer_for_class_expression(
-                                             an_expr_node_ptr expr,
-                                             a_boolean        has_been_lowered)
+                                                         an_expr_node_ptr expr)
 /*
 Return an rvalue pointer expression for the class expression expr.
 expr is either an rvalue class pointer (in which case no conversion
@@ -2797,8 +2796,9 @@ is necessary), or a class rvalue, or a class lvalue.  In the latter two cases
 convert the expression into an rvalue pointer and return the converted
 expression.  Generally speaking, expr should be an unlowered expression; this
 allows any base class casts (if they exist) to be properly identified and a
-temporary variable (if one is needed) to have the proper (derived) type.
-has_been_lowered is TRUE if the expression has already been lowered.
+temporary variable (if one is needed) to have the proper (derived) type.  This
+routine can be used on lowered expressions if the expression is known not to
+contain any top level base class casts.
 */
 {
   if (expr->is_lvalue) {
@@ -2806,7 +2806,7 @@ has_been_lowered is TRUE if the expression has already been lowered.
     expr = add_address_of_to_node(expr);
   } else if (!is_pointer_type(expr->type)) {
     /* Class rvalue. */
-    expr = rvalue_pointer_for_class_rvalue(expr, has_been_lowered);
+    expr = rvalue_pointer_for_class_rvalue(expr);
   } else {
     /* Rvalue pointer.  No change is necessary. */
   }  /* if */
@@ -2845,15 +2845,12 @@ of the conversion that is performed in rvalue_pointer_for_class_expression.
 }  /* convert_rvalue_pointer_to_original_form */
 
 
-static void lower_class_selector_operand_if_any(
-                                             an_expr_node_ptr expr,
-                                             a_boolean        has_been_lowered)
+static void lower_class_selector_operand_if_any(an_expr_node_ptr expr)
 /*
 This routine is called to examine the specified operation and determine if
 any of its operands are a class selector that is a class lvalue or rvalue
 rather than a pointer to class; if so, the operand is rewritten as a pointer
-to class.  has_been_lowered is TRUE if the expression has already been
-lowered.
+to class.  On input, the expression must be unlowered (and remains so).
 */
 {
   an_expr_node_ptr      node = NULL;
@@ -2870,8 +2867,7 @@ lowered.
     node = expr->variant.operation.operands->next;
   }  /* if */
   if (node != NULL) {
-    overwrite_node(node, rvalue_pointer_for_class_expression(copy_node(node),
-                                                            has_been_lowered));
+    overwrite_node(node, rvalue_pointer_for_class_expression(copy_node(node)));
   }  /* if */
 }  /* lower_class_selector_operand_if_any */
 
@@ -9944,8 +9940,7 @@ more than once.
        pointer, class rvalue, or class lvalue) to the desired form.
        At the end of processing the entire sequence of related casts (in
        lower_related_class_cast), convert this back to its original form. */
-    local_result_node = rvalue_pointer_for_class_expression(source_node,
-                                                    /*has_been_lowered=*/TRUE);
+    local_result_node = rvalue_pointer_for_class_expression(source_node);
     /* Lower the source expression. */
     lower_expr_full(local_result_node, assume_expr_is_non_null);
     /* The offsets for derived class casts are summed on the way back up. */
@@ -11801,7 +11796,7 @@ the top node of the indicated statement (which is an expression statement).
 
   /* If this call takes a class selector object as an operand, convert the
      operand to a pointer to class. */
-  lower_class_selector_operand_if_any(expr, /*has_been_lowered=*/TRUE);
+  lower_class_selector_operand_if_any(expr);
   lower_os_type(expr->type);
   first_arg = arg_node = expr->variant.operation.operands;
   check_assertion(!first_arg->is_lvalue);
@@ -13701,8 +13696,7 @@ rest of lowering only sees an eok_address_of operator.
     an_expr_node_ptr addr_expr;
     if (is_class_struct_union_type(operand->type)) {
       /* Class case. */
-      addr_expr = rvalue_pointer_for_class_rvalue(operand,
-                                                  /*has_been_lowered=*/FALSE);
+      addr_expr = rvalue_pointer_for_class_rvalue(operand);
       lower_expr(addr_expr);
     } else {
       /* Non-class case. */
@@ -13844,13 +13838,13 @@ static void lower_class_rvalue_adjust(an_expr_node_ptr expr)
 /*
 Lower the eok_class_rvalue_adjust expression (which is used to adjust
 cv-qualifiers on a class rvalue).  The underlying expression has not been
-lowered yet rvalue_pointer_for_class_rvalue and is lowered by this routine.
+lowered yet (a requirement for calling rvalue_pointer_for_class_rvalue)
+and is lowered by this routine.
 */
 {
   an_expr_node_ptr  node;
 
-  node = rvalue_pointer_for_class_rvalue(expr->variant.operation.operands,
-                                         /*has_been_lowered=*/FALSE);
+  node = rvalue_pointer_for_class_rvalue(expr->variant.operation.operands);
   node = add_cast(node, make_pointer_type(expr->type));
   node = add_indirection_to_node(node);
   overwrite_node(expr, rvalue_expr_for_lvalue(node));
@@ -13877,6 +13871,7 @@ cast.  See lower_expr for typical invocation.
   unsigned long         checksum;
 #endif /* DEBUG */
 
+  mark_as_visited(expr);
 #if DEBUG
   if (db_flag_is_set("lower_expr")) {
     checksum = compute_checksum_for_expr(expr);
@@ -14131,7 +14126,7 @@ cast.  See lower_expr for typical invocation.
         /* If this operation takes a class selector object as an operand,
            convert the operand to a pointer to class before the operands
            are lowered. */
-        lower_class_selector_operand_if_any(expr, /*has_been_lowered=*/FALSE);
+        lower_class_selector_operand_if_any(expr);
         /* Lower the operands of the expression before lowering the
            expression node itself. */
         lower_expr_list(operand_node,
