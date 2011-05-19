@@ -7749,6 +7749,7 @@ the kind of token.
   a_boolean	is_hex_fp_value = FALSE;
   a_boolean	any_hex_digits = FALSE;
   a_boolean     u_suffix_seen = FALSE;
+  a_boolean	local_allow_hex_fp_constants;
   int           l_suffix_seen = 0;
 #if FIXED_POINT_ALLOWED
   a_boolean     l_before_u_suffix = FALSE;
@@ -7758,6 +7759,11 @@ the kind of token.
   a_boolean     imaginary_literal = FALSE;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 
+  /* Hexadecimal floating point constants are normally controlled by the
+     hex_floating_point_constants_allowed variable, but should also be
+     allowed when scanning C++/CLI metadata. */
+  local_allow_hex_fp_constants = hex_floating_point_constants_allowed ||
+                                 scanning_generated_code_from_metadata;
   /* Collect the characters of the constant, and figure out where it
      ends.  In the process, figure out what kind of token it is.
      This is done according to the syntax for integer constants (3.1.3.2)
@@ -7778,8 +7784,7 @@ the kind of token.
         any_hex_digits = TRUE;
       }  /* while */
       /* Check for floating point. */
-      if (hex_floating_point_constants_allowed || fixed_point_enabled ||
-          scanning_generated_code_from_metadata) {
+      if (local_allow_hex_fp_constants || fixed_point_enabled) {
         /* C99 permits floating point constants specified in hexadecimal. */
         if ((ch = *curr_char_loc) == '.') goto float_accum_1;
         if (ch == 'p' || ch == 'P')       goto float_accum_2;
@@ -8096,8 +8101,7 @@ fixed_point_suffix:
     while (is_id_char[(ch = *curr_char_loc)-CHAR_MIN] || ch == '.' ||
            ((ch == '+' || ch == '-') &&
             ((ch = *(curr_char_loc-1)) == 'e' || ch == 'E' ||
-             ((hex_floating_point_constants_allowed || fixed_point_enabled ||
-               scanning_generated_code_from_metadata) &&
+             ((local_allow_hex_fp_constants || fixed_point_enabled) &&
               (ch == 'p' || ch == 'P'))))) {
       /* 0-9, a-z, A-Z, "_", ".", or sign preceded by "e" or "E" or "p"
          or "P".  Keep accumulating. */
@@ -8157,9 +8161,7 @@ fixed_point_suffix:
         break;
 #endif /* FIXED_POINT_ALLOWED */
       case k_float:
-        if (is_hex_fp_value &&
-            !(hex_floating_point_constants_allowed ||
-              scanning_generated_code_from_metadata)) {
+        if (is_hex_fp_value && !local_allow_hex_fp_constants) {
           diagnostic_at_line_pos(strict_ansi_error_severity,
                                  ec_hex_fp_constant, start_of_curr_token);
         }  /* if */
@@ -18472,7 +18474,7 @@ C++/CLI delegate class types.)
     }  /* if */
   } else if (is_delegate) {
     /* Delegate definitions are a special kind of class definition that is
-       nor handled by the call to scan_class_definition below. */
+       not handled by the call to scan_class_definition below. */
     scan_cli_delegate_definition_from_assembly_import();
     (void)get_token();
   } else {

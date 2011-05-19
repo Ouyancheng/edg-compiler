@@ -383,7 +383,7 @@ Strip the generic arity encoded after the last backtick in the type name.
     type_name.resize(back_tick_index);
   }  /* if */
   return generic_arity;
-}
+}  /* strip_generic_arity */
 
 
 /*
@@ -1526,7 +1526,7 @@ wstring an_import_scope::resolve_type_token(
 {
   return resolve_type_token(token, generic_params_or_args,
                             generic_params_or_args.end(), replace_dots);
-}
+}  /* an_import_scope::resolve_type_token */
 
 
 wstring an_import_scope::resolve_type_token(

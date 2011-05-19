@@ -1857,7 +1857,7 @@ Display the indicated type entry.
         disp_boolean("is_interface_like", TRUE);
       }  /* if */
       if (ptr->variant.class_struct_union.is_delegate_class) {
-        disp_boolean("delegate_class", TRUE);
+        disp_boolean("is_delegate_class", TRUE);
       }  /* if */
       if (ptr->variant.class_struct_union.is_generic_definition) {
         disp_boolean("is_generic_definition", TRUE);

@@ -1357,8 +1357,8 @@ Macros to examine property and event members (and their accessor functions).
 #define rout_is_cli_accessor(rp) \
   ((rp)->special_kind >= (int)sfk_first_accessor && \
    (rp)->special_kind <= (int)sfk_last_accessor)
-#define rout_is_generic_definition(rp) (rp)->is_generic_definition
-#define rout_is_generic_instance(rp) (rp)->is_generic_instance
+#define rout_is_generic_definition(rp) ((rp)->is_generic_definition)
+#define rout_is_generic_instance(rp) ((rp)->is_generic_instance)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define field_is_property_or_event(fp)  /*lint --e(506)*/FALSE
 #define field_is_nontrivial_property_or_event(fp)  /*lint --e(506)*/FALSE
