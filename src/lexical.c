@@ -7309,7 +7309,7 @@ white_space_loop:
          during the reading of the source line and never get here.
          The strings generated for C++/CLI metadata can include carriage
          return characters. */
-      if (!cppcli_enabled || !scanning_generated_code_from_metadata) {
+      if (!cppcli_enabled || !is_scanning_generated_code_from_metadata) {
         diagnostic_at_line_pos(strict_ansi_mode ?
                                strict_ansi_discretionary_severity : es_remark,
                                ec_stray_carriage_return,
@@ -7779,7 +7779,7 @@ the kind of token.
       }  /* while */
       /* Check for floating point. */
       if (hex_floating_point_constants_allowed || fixed_point_enabled ||
-          scanning_generated_code_from_metadata) {
+         is_scanning_generated_code_from_metadata) {
         /* C99 permits floating point constants specified in hexadecimal. */
         if ((ch = *curr_char_loc) == '.') goto float_accum_1;
         if (ch == 'p' || ch == 'P')       goto float_accum_2;
@@ -8097,7 +8097,7 @@ fixed_point_suffix:
            ((ch == '+' || ch == '-') &&
             ((ch = *(curr_char_loc-1)) == 'e' || ch == 'E' ||
              ((hex_floating_point_constants_allowed || fixed_point_enabled ||
-               scanning_generated_code_from_metadata) &&
+               is_scanning_generated_code_from_metadata) &&
               (ch == 'p' || ch == 'P'))))) {
       /* 0-9, a-z, A-Z, "_", ".", or sign preceded by "e" or "E" or "p"
          or "P".  Keep accumulating. */
@@ -8159,7 +8159,7 @@ fixed_point_suffix:
       case k_float:
         if (is_hex_fp_value &&
             !(hex_floating_point_constants_allowed ||
-              scanning_generated_code_from_metadata)) {
+              is_scanning_generated_code_from_metadata)) {
           diagnostic_at_line_pos(strict_ansi_error_severity,
                                  ec_hex_fp_constant, start_of_curr_token);
         }  /* if */
@@ -9721,7 +9721,7 @@ is set to tok_error.
        include directories). */
     a_constant_ptr	cp;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (!cppcli_enabled || !scanning_generated_code_from_metadata) 
+    if (!cppcli_enabled || !is_scanning_generated_code_from_metadata) 
       /* Suppress this error for generated code from metadata.  We use 
          __identifier for template specializations imported from metadata.  
          For example, ref class __identifier("Foo<int>"). */
@@ -13979,10 +13979,10 @@ a routine to lookup the appropriate instance (or generate one if needed).
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (template_sym != NULL &&
                is_cli_generic_class_symbol(template_sym) &&
-               non_generic_class_for_cli_generic(template_sym) != NULL) {
+               *non_generic_class_for_cli_generic(template_sym) != NULL) {
       /* The template_sym is a C++/CLI generic class for which there is also
          a non-generic class of the same name.  Return that symbol. */
-      new_sym = non_generic_class_for_cli_generic(template_sym);
+      new_sym = *non_generic_class_for_cli_generic(template_sym);
       goto skip_processing;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
@@ -14079,7 +14079,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
       /* Scan the generic argument list. */
       arg_list = scan_generic_argument_list(template_sym, &any_errors);
       if (!any_errors) {
-        /* Determine which generic is being referenced based on the number
+        /* Determine the which generic is being referenced based on the number
            of arguments provided. */
         select_generic_based_on_arity(&template_sym, arg_list, &arg_start_pos,
                                       &any_errors);
@@ -18352,7 +18352,7 @@ C++/CLI delegate class types.)
   a_boolean			saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_boolean			saved_scanning_generated_code_from_metadata;
+  a_boolean			saved_is_scanning_generated_code_from_metadata;
   a_boolean			is_delegate;
   a_boolean			is_generic_definition;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -18394,9 +18394,9 @@ C++/CLI delegate class types.)
   source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  saved_scanning_generated_code_from_metadata 
-                                       = scanning_generated_code_from_metadata;
-  scanning_generated_code_from_metadata = TRUE;
+  saved_is_scanning_generated_code_from_metadata 
+                                    = is_scanning_generated_code_from_metadata;
+  is_scanning_generated_code_from_metadata = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tdip = alloc_template_decl_info();
   set_template_decl_info_for_class_definition(tdip, class_type);
@@ -18499,8 +18499,8 @@ C++/CLI delegate class types.)
   class_type->has_been_declared = TRUE;
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  scanning_generated_code_from_metadata 
-                                 = saved_scanning_generated_code_from_metadata;
+  is_scanning_generated_code_from_metadata 
+                             = saved_is_scanning_generated_code_from_metadata;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   source_sequence_entries_disallowed =

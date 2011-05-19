@@ -4135,7 +4135,7 @@ this is not allowed, an error will be issued by the caller.
         err = FALSE;
         /* Record the non-generic symbol in the information about the
            generic. */
-        non_generic_class_for_cli_generic(fund_new_sym) = fund_old_sym;
+        *non_generic_class_for_cli_generic(fund_new_sym) = fund_old_sym;
       } else if (cppcli_enabled &&
                   (is_cli_generic_class_symbol(fund_old_sym) &&
                    is_class_struct_union_symbol(fund_new_sym))) {
@@ -4146,7 +4146,7 @@ this is not allowed, an error will be issued by the caller.
         if (insert_sym != NULL) *insert_sym = old_sym;
         /* Record the non-generic symbol in the information about the
            generic. */
-        non_generic_class_for_cli_generic(fund_old_sym) = fund_new_sym;
+        *non_generic_class_for_cli_generic(fund_old_sym) = fund_new_sym;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */

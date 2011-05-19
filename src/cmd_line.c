@@ -9499,7 +9499,7 @@ variables declared in cmd_line.h.
   microsoft_mode = FALSE;
   microsoft_bugs = FALSE;
   cppcli_enabled = FALSE;
-  scanning_generated_code_from_metadata = FALSE;
+  is_scanning_generated_code_from_metadata = FALSE;
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   microsoft_version = DEFAULT_MICROSOFT_VERSION;

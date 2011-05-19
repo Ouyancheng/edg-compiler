@@ -13688,7 +13688,7 @@ initially used when processing the declaration of a partial specialization.
                            &decl_state->cli_visibility_pos,
                            decl_state->defines_something);
         if (tssp->attributes != NULL && tssp->is_generic &&
-            in_code_generated_from_metadata()) {
+            is_scanning_generated_code_from_metadata) {
           /* This is a generic declaration being loaded from metadata.
              Apply the tag attributes because this will contain the
              assembly_info declspec, which needs to be applied on the
@@ -14421,7 +14421,7 @@ generic_arity_list of primary_arity_sym.  Return the new symbol.
   slep = alloc_symbol_list_entry();
   slep->symbol = sym;
   slep_tail->next = slep;
-  /* Update the minimum and maximum arity fields. */
+    /* Update the minimum and maximum arity fields. */
   if (pas_tssp->variant.class_template.min_arity >
                                                   decl_state->num_parameters) {
     pas_tssp->variant.class_template.min_arity = decl_state->num_parameters;
@@ -14864,11 +14864,12 @@ friend_template_checks_done:
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template &&
       cppcli_enabled &&
-      (generic_arity_overload_allowed || in_code_generated_from_metadata())) {
+      (generic_arity_overload_allowed ||
+       is_scanning_generated_code_from_metadata)) {
     /* See if this is a C++/CLI generic declaration with a different
        arity from the symbol found.  If so, the symbol found will be cleared,
        but saved in primary_arity_sym to we can add the new symbol later
-       to its generic_arity_list.  Generics with varying arity are always
+       to it's generic_arity_list.  Generics with varying arity are always
        allowed when importing code from metadata but otherwise are only
        allowed when generic_arity_overload_allowed is TRUE. */
     check_for_generic_arity_overload(decl_state, &sym, &primary_arity_sym);
@@ -26489,7 +26490,7 @@ which is being imported from metadata.
   cssp = symbol_supplement_for_class(type);
   cssp->member_decl_scope = take_next_scope_number();
   add_scope_to_class_type(type);
-  if (scanning_generated_code_from_metadata) {
+  if (is_scanning_generated_code_from_metadata) {
     /* Flush any tokens until a semicolon is found. */
     while (curr_token != tok_semicolon) {
       (void)get_token();

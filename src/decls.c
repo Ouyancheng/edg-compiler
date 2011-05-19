@@ -12477,7 +12477,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
       nsp = ns_sym->variant.namespace_info.ptr;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* User code is not permitted to extend the cli namespace. */
-      if (cppcli_enabled && !scanning_generated_code_from_metadata && 
+      if (cppcli_enabled && !is_scanning_generated_code_from_metadata && 
           ns_sym == cli_symbol_from_kind(csk_cli_namespace)) {
         pos_error(ec_namespace_cli_cannot_be_extended,
                   &locator.source_position);
@@ -15966,7 +15966,7 @@ by *buffer.
 */
 {
   a_token_cache     cache;
-  a_boolean         saved_scanning_generated_code_from_metadata;
+  a_boolean         saved_is_scanning_generated_code_from_metadata;
   a_boolean         saved_expand_macros;
   a_boolean         saved_next_token_is_top_level_decl_start;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -15980,12 +15980,12 @@ by *buffer.
   scope_stack_top().source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   saved_expand_macros = expand_macros;
-  saved_scanning_generated_code_from_metadata 
-                                       = scanning_generated_code_from_metadata;
+  saved_is_scanning_generated_code_from_metadata 
+                                    = is_scanning_generated_code_from_metadata;
   saved_next_token_is_top_level_decl_start =
                                             next_token_is_top_level_decl_start;
   expand_macros = FALSE;
-  scanning_generated_code_from_metadata = TRUE;
+  is_scanning_generated_code_from_metadata = TRUE;
   check_assertion(scope_stack[depth_scope_stack].kind 
                                                     == (a_scope_kind)sck_file);
   /* Inject an end-of-source token into the token stream to prevent
@@ -16006,8 +16006,8 @@ by *buffer.
   check_assertion(curr_token == tok_end_of_source);
   (void)get_token();
   /* Restore the flags. */
-  scanning_generated_code_from_metadata 
-                                 = saved_scanning_generated_code_from_metadata;
+  is_scanning_generated_code_from_metadata 
+                              = saved_is_scanning_generated_code_from_metadata;
   expand_macros = saved_expand_macros;
   next_token_is_top_level_decl_start =
                                       saved_next_token_is_top_level_decl_start;
@@ -16027,7 +16027,7 @@ Initialize variables that are specific to a given translation unit.
 */
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  scanning_generated_code_from_metadata = FALSE;
+  is_scanning_generated_code_from_metadata = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* decls_trans_unit_init */
 
