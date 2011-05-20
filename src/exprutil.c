@@ -13794,7 +13794,7 @@ assignment_case:
 #if DO_IL_LOWERING
     if (il_lowering_underway &&
         visited_yet(node) &&
-        orig_type != lvalue_type) {
+        !identical_types(orig_type, lvalue_type)) {
       /* If this node has already been lowered (presumably stripping any
          const qualification), don't re-add it -- simply adjust the type of
          the resulting lvalue to have the original type. */
