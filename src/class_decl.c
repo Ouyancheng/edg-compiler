@@ -16306,7 +16306,7 @@ distinguish an alias declaration from a using-declaration.)
   a_symbol_ptr       sym, declared_sym;
   a_symbol_ptr       other_sym, fund_sym;
   a_base_class_ptr   bcp;
-  a_boolean          err = FALSE, bcp_is_dummy = FALSE;
+  a_boolean          err = FALSE, bcp_is_dummy = FALSE, no_il_entry = FALSE;
   a_boolean          is_overloaded;
   a_symbol_locator   locator;
   a_using_decl_ptr   prev_udp = NULL;
@@ -16407,14 +16407,6 @@ distinguish an alias declaration from a using-declaration.)
     } else if (declared_sym == NULL) {
       internal_error("member_using_decl: NULL symbol ptr");
 #endif /* CHECKING */
-    } else if (is_constructor_symbol(declared_sym) ||
-               is_destructor_symbol(declared_sym)) {
-      /* A using-declaration may not specify a constructor or destructor.
-         (C++/CLI static constructors cannot get here.) */
-      pos_diagnostic(microsoft_mode ? es_warning :
-                     strict_ansi_mode ? es_error : es_discretionary_error,
-                     ec_no_ctor_or_dtor_using_declaration, &decl_pos);
-      err = TRUE;
     } else if (cppcli_enabled && is_finalizer_symbol(declared_sym)) {
       /* A using-declaration may not specify a finalizer. */
       pos_error(ec_no_finalizer_using_declaration, &decl_pos);
@@ -16428,7 +16420,22 @@ distinguish an alias declaration from a using-declaration.)
          here. */
       error(ec_template_id_not_allowed);
       err = TRUE;
-    } else {
+    } else if (is_constructor_symbol(declared_sym) ||
+               is_destructor_symbol(declared_sym)) {
+      /* A using-declaration may not specify a constructor or destructor. */
+      an_error_severity  sev = microsoft_mode ? es_warning :
+                               strict_ansi_mode ? es_error :
+                                                  es_discretionary_error;
+      an_error_code      ec = ec_no_ctor_or_dtor_using_declaration;
+      pos_diagnostic(sev, ec, &decl_pos);
+      if (is_effective_error(ec, sev)) {
+        err = TRUE;
+      } else {
+        /* Continue validity checks, but do not generate IL. */
+        no_il_entry = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!err) {
       a_type_ptr  parent_class = qualifier_class_type(locator_for_curr_id);
       if ((could_be_dependent_class_type(parent_class) ||
            has_dependent_base_class(class_type)) &&
@@ -16437,10 +16444,12 @@ distinguish an alias declaration from a using-declaration.)
            dependent base class.  Either way, we cannot in general determine
            which base class the using-declaration refers to.  Suppress the
            base class check and create a dummy base class. */
-        bcp_is_dummy = TRUE;
-        bcp = alloc_base_class();
-        bcp->type = sym_parent_class(declared_sym);
-        bcp->derived_class = class_type;
+        if (!no_il_entry) {
+          bcp_is_dummy = TRUE;
+          bcp = alloc_base_class();
+          bcp->type = sym_parent_class(declared_sym);
+          bcp->derived_class = class_type;
+        }  /* if */
       } else {
         bcp = find_base_class_of(class_type, parent_class);
         if (bcp == NULL) {
@@ -16485,7 +16494,7 @@ distinguish an alias declaration from a using-declaration.)
         }  /* if */
       }  /* if */
     }  /* if */
-    if (!err) {
+    if (!err && !no_il_entry) {
       a_symbol_ptr  existing_sym;
       /* Look up the name in the scope of the current class. */
       clear_locator(&locator, &decl_pos);
@@ -16542,7 +16551,8 @@ distinguish an alias declaration from a using-declaration.)
   } else {
     discard_curr_construct_pragmas();
   }  /* if */
-  if (!err && !is_duplicate_member_using_decl(declared_sym, &using_pos)) {
+  if (!err && !no_il_entry &&
+      !is_duplicate_member_using_decl(declared_sym, &using_pos)) {
     /* No error so far, so enter the using-declaration symbol. */
     other_sym = NULL;
     sym = declared_sym;

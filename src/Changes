@@ -1,5 +1,22 @@
 Version 4.4
 
+5/20/11  [EDGcpfe/11462]
+Invalid in-class using-declarations in Microsoft mode
+
+In Microsoft mode, an in-class using-declaration referring to a constructor or
+destructor only elicits a warning instead of an error (see Changes entry of
+11/22/99).  In such cases, however, the front end failed to check certain
+other constraints of the using-declaration; in particular, it did not check
+that the constructor was a member of a base class.  For example:
+
+  struct X { ~X(); };
+  struct Y {
+    using X::~X;  // Previously triggered just a warning in Microsoft mode,
+  };              // even though X is not a base of Y.  Now an error is issued.
+
+This is now fixed.
+
+
 5/19/11  [EDGcpfe/11750]
 Attributes on function template definitions and their instantiations
 
