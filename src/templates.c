@@ -13449,8 +13449,8 @@ Add base_class as a direct base class of proxy_class.
   bcp->direct_base_number = 1;
   check_assertion(base_classes_of(proxy_class) == NULL);
   base_classes_of(proxy_class) = bcp;
-  update_base_class_derivation(bcp, (a_derivation_step_ptr)NULL,
-                               (an_access_specifier)as_public);
+  (void)update_base_class_derivation(bcp, (a_derivation_step_ptr)NULL,
+                                     (an_access_specifier)as_public);
 }  /* add_base_class_to_proxy_class */
 
 
