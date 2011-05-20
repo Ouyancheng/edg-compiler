@@ -784,6 +784,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_variable_with_interface_type)*/
 /*lint -esym(769,ec_parameter_with_interface_type)*/
 /*lint -esym(769,ec_return_type_is_interface)*/
+/*lint -esym(759,update_base_class_derivation)*/
+/*lint -esym(765,update_base_class_derivation)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
