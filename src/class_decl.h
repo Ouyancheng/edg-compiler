@@ -78,6 +78,11 @@ extern a_type_ptr rescan_member_template_declaration(
 extern void check_for_file_with_unterminated_type_definition(
                                                   a_source_position  *end_pos);
 
+extern a_derivation_step_ptr update_base_class_derivation(
+                                         a_base_class_ptr       base_class,
+                                         a_derivation_step_ptr  path,
+                                         an_access_specifier    access);
+
 extern a_boolean scan_class_definition(
                                    a_type_ptr       class_type,
                                    a_scope_depth    effective_decl_level,

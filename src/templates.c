@@ -13449,27 +13449,21 @@ Add base_class as a direct base class of proxy_class.
   bcp->direct_base_number = 1;
   check_assertion(base_classes_of(proxy_class) == NULL);
   base_classes_of(proxy_class) = bcp;
+  update_base_class_derivation(bcp, (a_derivation_step_ptr)NULL,
+                               (an_access_specifier)as_public);
 }  /* add_base_class_to_proxy_class */
 
 
-a_template_arg_ptr create_generic_arg_list(
+static void create_generic_constraint_types(
 			a_template_param_ptr	generic_param_list)
 /*
-Build the generic argument list for the declaration of a C++/CLI generic.
-Loop through the generic parameters (generic_param_list) and create a
-corresponding generic argument for each based on the constraints
-for the generic parameter.  Return a pointer to the newly created list.
+Loop through the C++/CLI generic parameters (generic_param_list) and create a
+type for each based on the constraints for the generic parameter.
 */
 {
   a_template_param_ptr	tpp;
-  a_template_arg_ptr	arg_list;
-  a_template_arg_ptr	tap;
  
-  /* Start with the prototype argument list, then fill in the constraint
-     type information. */
-  arg_list = create_prototype_arg_list(generic_param_list);
-  begin_template_arg_list_traversal(generic_param_list, arg_list, &tpp, &tap);
-  for (; tpp != NULL; advance_to_next_template_arg(&tpp, &tap)) {
+  for (tpp = generic_param_list; tpp != NULL; tpp = tpp->next) {
     a_symbol_ptr		param_sym = tpp->param_symbol;
     a_type_ptr			templ_param_type = param_sym->variant.type.ptr;
     a_generic_constraint_ptr	gcp;
@@ -13494,8 +13488,7 @@ for the generic parameter.  Return a pointer to the newly created list.
     add_base_class_to_proxy_class(proxy_class, arg_type);
     add_to_types_list(proxy_class, NO_SCOPE_DEPTH);
   }  /* for */
-  return arg_list;
-}  /* create_generic_arg_list */
+}  /* create_generic_constraint_types */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -13629,14 +13622,7 @@ initially used when processing the declaration of a partial specialization.
     templ_param_list = decl_state->decl_info->parameters;
     /* Create a template argument list that corresponds to the template
        parameter list. */
-    if (!is_generic) {
-      templ_arg_list = create_prototype_arg_list(templ_param_list);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else {
-      /* Create the types used for lookup in generic type variables */
-      templ_arg_list = create_generic_arg_list(templ_param_list);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    }  /* if */
+    templ_arg_list = create_prototype_arg_list(templ_param_list);
     if (is_alias_template) {
       prototype_type->variant.typeref.extra_info->template_arg_list
                                                               = templ_arg_list;
@@ -16574,6 +16560,8 @@ to represent the template parameters.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (decl_state->is_generic) {
     decl_state->num_parameters = template_param_list_pos;
+    /* Create the constraint types based on the C++/CLI constraints. */
+    create_generic_constraint_types(template_param_list);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
