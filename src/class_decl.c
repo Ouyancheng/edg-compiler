@@ -19455,7 +19455,6 @@ passed via template_decl.
              established during prototype instantiation. */
           a_symbol_ptr  prototype_sym = class_state->corresp_prototype_tag_sym;
           a_type_ptr    tp = prototype_sym->variant.class_struct_union.type;
-
           if (tp->kind == (a_type_kind)tk_union &&
               tp->variant.class_struct_union.
                     extra_info->anonymous_union_kind !=
@@ -19465,19 +19464,18 @@ passed via template_decl.
                find_member_function_template should not be called, since it
                can't handle this sort of thing. */
           } else if (!is_error_locator(locator)) {
+            a_template_instance_ptr  tip;
             find_member_function_template(rout_sym, prototype_sym);
+            tip = rout_sym->variant.routine.instance_ptr;
+            if (tip != NULL) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-            /* Set the declared_type in the instance entry.  Try to use
-               the declared_type already entered in the func_info block.
-               This is not just to save bytes -- the pointer in the func_info
-               block is the same as the pointer in a secondary-decl source
-               sequence entry; keep the same correspondence in the instance
-               entry, since default arg fixup depends on it. */
-            if (rout_sym->variant.routine.instance_ptr != NULL) {
+              /* Set the declared_type in the instance entry.  Try to use
+                 the declared_type already entered in the func_info block.
+                 This is not just to save bytes -- the pointer in the func_info
+                 block is the same as the pointer in a secondary-decl source
+                 sequence entry; keep the same correspondence in the instance
+                 entry, since default arg fixup depends on it. */
               a_type_ptr  declared_type = func_info.declared_type;
-              a_template_instance_ptr
-                          tip = rout_sym->variant.routine.instance_ptr;
-
               tip->declared_type_for_default_arg_fixup = declared_type;
               if (declared_type == NULL) {
                 declared_type = form_declared_type(decl_state->type,
@@ -19489,8 +19487,23 @@ passed via template_decl.
               tip->param_id_list = func_info.param_id_list;
               /* Do no let the param_id_list be deallocated later on: */
               preserve_param_id_list = TRUE;
-            }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+              if (tip->template_sym != NULL &&
+                  symbol_is(tip->template_sym, sk_member_function) &&
+                  symbol_is(rout_sym, sk_member_function)) {
+                /* Check whether there were attributes on an in-class
+                   definition during the prototype instantiations.  If so, any
+                   attributes recorded here should also be considered to have
+                   appeared on the definition. */
+                an_attribute_ptr  proto_ap=
+                                       tip->template_sym->variant.routine.ptr
+                                          ->source_corresp.attributes;
+                if (proto_ap != NULL && proto_ap->on_primary_declaration) {
+                  mark_primary_decl_attributes(
+                    rout_sym->variant.routine.ptr->source_corresp.attributes);
+                }  /* if */
+              }  /* if */
+            }  /* if */
           }  /* if */
         }  /* if */
         if (dso_flags & DSO_EXPLICIT) {
