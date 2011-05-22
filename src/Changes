@@ -1,5 +1,28 @@
 Version 4.4
 
+5/21/11  [EDGcpfe/11485]
+Microsoft compatibility: source positions in rewritten property compound
+operations
+
+The front end rewrites compound assignment and increment/decrement
+operations involving Microsoft property fields so that the IL reflects the
+calls to the property's accessor functions.  In the process, however,
+certain important source positions were not recorded or were recorded
+incorrectly in the resulting expression nodes.  This has now been fixed.
+For example, given a property reference like
+
+  f()->prop += 15;
+
+and with EXTRA_SOURCE_POSITIONS_IN_IL, the source range in the enk_routine
+nodes of the calls to the property's "get" and "set" routines formerly
+spanned the entire member access expression, "f()->prop"; it now designates
+only the name of the property in the source.  Also, the node corresponding
+to the addition (eok_add, etc.) had no operator position; it now contains
+the position of the "+=" operator.  (The source range in this node
+continues to be null_source_range, reflecting the fact that this operation
+does not actually appear in the source in this form.)
+
+
 5/20/11  [EDGcpfe/11462]
 Invalid in-class using-declarations in Microsoft mode
 

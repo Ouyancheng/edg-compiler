@@ -15453,11 +15453,13 @@ being rewritten; it's used to set a kind in the expression created.
   a_source_position operand_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position operand_end_position;
+  a_source_position operand_id_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   operand_position = operand->position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   operand_end_position = operand->end_position;
+  operand_id_position = operand->id_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Get the "get" or "put" function name from the field. */
   getput_sym = get_property_accessor_symbol(property_sym,
@@ -15572,6 +15574,13 @@ being rewritten; it's used to set a kind in the expression created.
                                     (a_special_function_kind)sfk_property_get :
                                     (a_special_function_kind)sfk_property_set;
 #endif /* !DO_IL_LOWERING */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          /* The processing above left the starting source position of the
+             enk_routine node being that of the beginning of the object
+             expression.  Correct it to reflect the starting position of
+             the property name. */
+          opnd->expr_range.start = operand_id_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           static_case = !routine_type_is_nonstatic_member_function(rp->type);
         }  /* if */
         if (put_operand != NULL) {

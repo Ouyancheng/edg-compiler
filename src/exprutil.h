@@ -437,10 +437,10 @@ typedef struct an_operand {
   a_source_position
   		id_position;
 			/* Extra source position for an identifier, used
-			   for ok_indefinite_function and ok_undefined_symbol.
-			   If the name is "X::f", this gives the position of
-			   "f", where the field position above gives the
-			   position of the "X". */
+			   for ok_indefinite_function, ok_undefined_symbol,
+			   and ok_property_ref.  If the name is "X::f",
+			   this gives the position of "f", where the field
+			   position above gives the position of the "X". */
   a_source_position
 		ampersand_position;
 			/* When is_operand_of_address_of is TRUE, this gives

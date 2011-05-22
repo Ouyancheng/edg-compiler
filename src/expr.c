@@ -4811,6 +4811,7 @@ is a C++/CLI handle.
          operand, which will be rewritten later as a function call. */
       make_property_ref_operand(field_sym, operand_1, is_arrow_operator,
                                 result);
+      result->id_position = field_locator->source_position;
     } else if (property_or_event_kind_is(field, pek_cli_event)) {
       /* An event field in C++/CLI mode.  Render as an ok_event_ref operand:
          It will be rewritten later. */
@@ -22330,6 +22331,14 @@ operation_type_determined:
   if (property_ref_case && !err) {
     /* For a reference to a Microsoft property member, store the result by
        calling a "put" function. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    /* Store the position of the original compound operator as the position
+       of the rewritten simple operator. */
+    an_expr_node_ptr op_expr = expr_node_from_operand(result);
+    if (op_expr != NULL) {
+      op_expr->operator_position = operator_position;
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     rewrite_property_reference(&operand_1_clone, result,
                 (a_rewritten_property_reference_kind)rprk_compound_assignment);
     copy_operand(&operand_1_clone, result);
