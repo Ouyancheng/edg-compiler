@@ -142,6 +142,10 @@ predicates.
 #define is_pointer_or_handle(tp) ((tp)->kind == (a_type_kind)tk_pointer && \
                                   !(tp)->variant.pointer.is_reference)
 #if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_cli_generic_param(tp)                                      \
+   ((tp)->kind == (a_type_kind)tk_template_param &&                   \
+    (tp)->variant.template_param.is_generic_param)
+
 #define is_pointer(tp) (is_pointer_or_handle(tp) &&                   \
                         !(tp)->variant.pointer.is_handle)
 /* This is called is_handle_ptr because there is a field called
@@ -930,6 +934,17 @@ ordinary pointer, interior_ptr, or pin_ptr).
 }  /* is_handle_type_or_any_ref_type */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean is_cli_generic_param_type(a_type_ptr  tp)
+/*
+Return TRUE if the given type entry represents a parameter of a C++/CLI
+generic.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_cli_generic_param(tp);
+}  /* is_cli_generic_param_type */
+
 
 a_boolean is_handle_type(a_type_ptr tp)
 /*

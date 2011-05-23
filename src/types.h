@@ -117,6 +117,7 @@ extern a_boolean is_any_reference_type(a_type_ptr tp);
 extern a_boolean is_any_ptr_or_ref_type(a_type_ptr tp);
 extern a_boolean is_handle_type_or_any_ref_type(a_type_ptr tp);
 #if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean is_cli_generic_param_type(a_type_ptr  tp);
 extern a_boolean is_handle_type(a_type_ptr tp);
 extern a_boolean is_tracking_reference_type(a_type_ptr tp);
 extern a_boolean is_handle_or_tracking_ref_type(a_type_ptr tp);
@@ -910,14 +911,6 @@ extern a_boolean exception_spec_is_less_restrictive(a_type_ptr  type1,
 extern a_boolean same_exception_spec(a_type_ptr type_1, a_type_ptr type_2);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-
-#if 0
-/* FIXME: This is expected to be used shortly. */
-/* A C++/CLI generic parameter type. */
-#define is_cli_generic_param(tp)					\
-   ((tp)->kind == (a_type_kind)tk_template_param &&		\
-    (tp)->variant.template_param.is_generic_param)
-#endif /* 0 */
 
 extern
 a_boolean is_prohibited_interior_ptr_conversion(a_type_ptr source_type,

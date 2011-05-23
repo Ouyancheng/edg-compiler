@@ -573,13 +573,15 @@ and return FALSE.  Otherwise, return TRUE.
     }  /* if */
   }  /* if */
   if (err_code == ec_no_error) {
-    /* A pointer, handle, or reference type to an interior/pin pointer may not
-       be formed.  Similarly, an ordinary pointer or a reference to a C++/CLI
-       array is invalid  (a handle is okay). */
+    /* A pointer, handle, or reference type to an interior/pin pointer or to a
+       generic parameter may not be formed.  Similarly, an ordinary pointer or
+       a reference to a C++/CLI array is invalid  (a handle is okay). */
     if (is_interior_ptr_type(tp)) {
       err_code = ec_ptr_handle_or_ref_to_interior_ptr;
     } else if (is_pin_ptr_type(tp)) {
       err_code = ec_ptr_handle_or_ref_to_pin_ptr;
+    } else if (is_cli_generic_param_type(tp)) {  
+      err_code = ec_ptr_handle_or_ref_to_generic_param;
     } else if (is_cli_array_type(tp) && (is_ref || !is_handle)) {
       err_code = ec_ptr_or_ref_to_cli_array;
     }  /* if */
@@ -850,6 +852,10 @@ the specifiers and declarator that formed the new type.
                    is_immediate_managed_class_type(temp_type)) {
           /* A native array of managed classes is invalid. */
           pos_error(ec_array_of_managed_class, &error_position);
+          err = TRUE;
+        } else if (cppcli_enabled && is_cli_generic_param_type(temp_type)) {
+          /* A native array of a generic parameter is invalid. */
+          pos_error(ec_array_of_generic_param, &error_position);
           err = TRUE;
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
