@@ -2246,7 +2246,7 @@ ec_data_member_with_interface_type;;"a data member cannot have a C++/CLI interfa
 ec_variable_with_interface_type;;"a variable cannot have a C++/CLI interface class type"
 ec_parameter_with_interface_type;;"a parameter cannot have a C++/CLI interface class type"
 ec_return_type_is_interface;;"a function return type cannot be an C++/CLI interface class type"
-ec_array_of_generic_param;;"array of generic parameter type is not allowed"
+ec_array_of_generic_param;;"an array of generic parameter type is not allowed"
 ec_ptr_handle_or_ref_to_generic_param;;"a pointer, handle, or reference to a generic parameter type is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
