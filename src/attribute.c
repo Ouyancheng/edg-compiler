@@ -1251,13 +1251,16 @@ NULL.
       expect_error();
     } else if (!narrow_only ||
                is_ordinary_string_constant(&const_for_curr_token)) {
+      a_memory_region_number  region_to_switch_back_to;
       aap = alloc_attribute_arg();
       aap->kind = (an_attribute_arg_kind)aak_constant;
       aap->position = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       aap->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      switch_to_file_scope_region(&region_to_switch_back_to);
       aap->variant.constant = alloc_shareable_constant(&const_for_curr_token);
+      switch_back_to_original_region(region_to_switch_back_to);
     } else {
       /* A wide string literal where only a narrow one is expected:
          Issue an error. */
