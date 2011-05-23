@@ -7745,6 +7745,14 @@ it's to be moved to another position in the list.
            and should not be handled here. */
         check_assertion(class_type_supp(type_ptr)->is_lambda_closure_class);
         may_be_added = FALSE;
+      } else if (type_ptr->source_corresp.is_local_to_function &&
+                 ssep->in_prototype_instantiation &&
+                 !prototype_instantiations_in_il) {
+        /* A local class parsed during the prototype instantiation of a
+           function when prototype instantiations aren't recorded in the IL:
+           Do not add the local class to the IL since it may contain
+           references to template parameters. */
+        may_be_added = FALSE;
       }  /* if */
     } else if (type_ptr->source_corresp.is_class_member) {
       /* Check for a nested class that is being defined after the definition

@@ -1,5 +1,23 @@
 Version 4.4
 
+5/23/11  [EDGcpfe/11502]
+Abort in set_parent_scope with local class of template
+
+In certain configurations that perform lowering (DO_IL_LOWERING is TRUE), the
+front end could abort with an internal error in set_parent_scope (il.c) during
+the prototype instantiation of a function with a local class type when that
+class type contained elements depending on a template parameter.  For example:
+
+  template<typename T> void f() {
+    struct A: T {    // Previously this class triggered an abort in il.c.
+      A() : T() {}
+    };
+    extern A a;
+  };
+
+This is now fixed.
+
+
 5/21/11  [EDGcpfe/11485]
 Microsoft compatibility: source positions in rewritten property compound
 operations

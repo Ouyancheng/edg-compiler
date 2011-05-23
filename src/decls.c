@@ -5829,9 +5829,12 @@ for use in generating cross-reference output describing this declaration.
     saved_depth_innermost_namespace_scope = NO_SCOPE_DEPTH;
   }  /* if */
   /* alloc_at_file_scope will be TRUE if the IL variable entry must be
-     allocated in the file scope memory region.  This is always true
-     for variables with linkage. */
-  alloc_at_file_scope = (linkage != idl_none);
+     allocated in the file scope memory region.  This is always true for
+     variables with linkage, except for extern variables declared in prototype
+     instantiations when such instantiations are not part of the IL. */
+  alloc_at_file_scope = (linkage != idl_none &&
+                         (!scope_stack_top().in_prototype_instantiation ||
+                          prototype_instantiations_in_il));
   if (linkage != idl_none && linked_symbol != NULL) {
     /* There is a previous identifier of this name in the same scope,
        to which this declaration is linked. */
