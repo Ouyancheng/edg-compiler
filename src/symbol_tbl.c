@@ -2198,7 +2198,8 @@ derived class or interface routine specified by sym.
 Return TRUE if sym is a symbol for which hide-by-sig lookup should be done,
 or FALSE if a normal lookup should be done (in which case "sym" is the
 symbol that will be used).  Note that FALSE is returned for native
-(i.e., non-C++/CLI) classes.
+(i.e., non-C++/CLI) classes, and also for symbols that are not functions
+or not class members.
 
 If hide-by-sig lookup should be done, (and p_hide_by_sig_list is not NULL)
 return a list that identifies the symbols of the functions to be considered,
@@ -2213,6 +2214,7 @@ static method.  The list is returned in *p_hide_by_sig_list.
   a_class_type_supplement_ptr		parent_ctsp;
   a_boolean				is_class;
   a_boolean				result = FALSE;
+  a_symbol				*fund_sym;
 
   if (sym->is_class_member) {
     parent_type = sym_parent_class(sym);
@@ -2227,6 +2229,9 @@ static method.  The list is returned in *p_hide_by_sig_list.
     result = !sym->suppress_hide_by_sig_lookup;
   } else if (!sym->is_class_member) {
     /* This lookup only applies to class members -- return FALSE. */
+  } else if ((fund_sym = fundamental_symbol_of(sym)),
+             !is_function_or_template_symbol(fund_sym)) {
+    /* This lookup only applies to functions -- return FALSE. */
   } else if (sym->is_invisible ||
              (sym->kind == (a_symbol_kind)sk_overloaded_function &&
               sym->variant.overloaded_function.symbols->is_invisible)) {
