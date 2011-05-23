@@ -1,5 +1,31 @@
 Version 4.4
 
+5/23/11  [EDGcpfe/11609]
+GNU C++ compatibility: Using-declaration conflicting with previous declaration
+
+Ordinarily, a using-declaration in a namespace that brings in a function whose
+signature conflicts with a function already declared in that scope is an error.
+Now the front end will accept such using-declarations in GNU C++ mode if the
+function referred to is defined.  An attempt to make use of the resulting
+overload set results in an ambiguity error.  For example:
+
+  double f();
+  namespace N {
+    using ::f;
+    namespace NN {
+      long double f() { return N::f(); }
+    }
+  }
+  using N::NN::f;  // Usually an error.  Now accepted in GNU C++ mode.
+                   // (Requires N::NN::f() to be defined.)
+  int main() {
+    f();         // Ambiguous.
+    ::f();       // Ambiguous.
+    N::f();      // Okay.
+    N::NN::f();  // Okay.
+  }
+
+
 5/23/11  [EDGcpfe/11523]
 Abort on attribute with string literal argument
 

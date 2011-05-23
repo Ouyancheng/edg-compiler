@@ -8758,6 +8758,9 @@ a diagnostic should be issued by the caller.
                                          tp2->variant.routine.return_type)) {
         /* Microsoft compilers do not flag this case as an error
            (though an ambiguity error is issued at a point of use). */
+      } else if (gpp_mode && using_sym->defined) {
+        /* GCC accepts this case even when the return types are incompatible,
+           but an ambiguity will result when trying to call the function. */
       } else {
         *err = compat = TRUE;
       }  /* if */
