@@ -8634,7 +8634,6 @@ lvalue.  If there is an error, change the operand to an error operand.
   a_boolean  okay = FALSE;
   a_type_ptr type;
   a_boolean  is_lvalue_with_complete_type;
-  a_boolean  is_static_initonly_field;
 
   if (gnu_mode) {
     /* Get an lvalue back from what is ordinarily an rvalue in some cases
@@ -8662,6 +8661,7 @@ lvalue.  If there is an error, change the operand to an error operand.
   if (is_lvalue_with_complete_type &&
       !is_const_qualified_type(type)) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    a_boolean is_static_initonly_field;
     if (cppcli_enabled &&
         is_unmodifiable_initonly_field_operand(operand,
                                                &is_static_initonly_field)) {
