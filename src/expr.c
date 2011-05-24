@@ -6325,6 +6325,26 @@ nonstatic_member_function:
             if (curr_expr_kind_is(ek_init_constant)) {
               error_and_make_error_operand(ec_expr_not_constant, result);
             } else {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              if (cppcli_enabled && !is_arrow_operator &&
+                  is_unmodifiable_initonly_field_operand(
+                                       operand_1,
+                                       /*p_is_static_initonly_field=*/NULL)) {
+                /* A member function is being called on an initonly field
+                   outside of the constructor context in which it is allowed
+                   to be modified.  Because the function call may modify the
+                   object, we must make a copy of the object to ensure the
+                   initonly field is not modified.  This is not necessary in
+                   the is_arrow_operator case because the "initonly-ness" does
+                   not extend to indirections of initonly fields of handle
+                   type. */
+                check_assertion(is_value_class_type(operand_1->type));
+                expr_pos_warning(ec_member_function_call_on_initonly_field,
+                                 &member_position);
+                temp_init_from_operand(operand_1,
+                                       /*result_is_lvalue=*/FALSE);
+              }  /* if */
+#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
               if (!force_indefinite_function &&
                   member_sym->kind == (a_symbol_kind)sk_member_function) {
                 /* For a simple non-overloaded function, adjust the selector

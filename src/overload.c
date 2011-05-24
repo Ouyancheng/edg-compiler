@@ -16225,6 +16225,10 @@ been found to be acceptable, and *conversion describes it.
     conv_to_error_operand(source_operand);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled &&
+             is_any_initonly_field_operand(source_operand)) {
+    /* C++/CLI does not allow binding a reference to an initonly field. */
+    error_in_operand(ec_ref_bound_to_initonly_field, source_operand);
+  } else if (cppcli_enabled &&
              !is_tracking_reference_type(dest_type) &&
              is_gc_lvalue_operand(source_operand)) {
     /* C++/CLI does not allow binding a normal (non-tracking) reference

@@ -45,6 +45,12 @@ an_expr_node_ptr conv_rvalue_expr_to_lvalue(an_expr_node_ptr node,
                                             a_boolean        gcc_lvalue,
                                             a_boolean        ignore_casts,
                                             a_type_ptr       *p_lvalue_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static a_boolean check_for_address_of_or_reference_to_initonly_field(
+                                           an_operand        *operand,
+                                           a_source_position *err_pos,
+                                           a_boolean         reference_case);
+#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Information on references to symbols, held until the kind of reference to
@@ -6215,6 +6221,15 @@ is an lvalue reference to const.
   } else {
     (void)check_for_taking_the_address_of_a_bit_field(operand,
                                                       &operand->position);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled) {
+      /* Check for binding a reference to a C++/CLI initonly field. */
+      (void)check_for_address_of_or_reference_to_initonly_field(
+                                                     operand,
+                                                     &operand->position,
+                                                     /*reference_case=*/TRUE);
+    }  /* if */
+#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (is_error_operand(operand)) {
     normalize_error_operand(operand);
@@ -8619,6 +8634,7 @@ lvalue.  If there is an error, change the operand to an error operand.
   a_boolean  okay = FALSE;
   a_type_ptr type;
   a_boolean  is_lvalue_with_complete_type;
+  a_boolean  is_static_initonly_field;
 
   if (gnu_mode) {
     /* Get an lvalue back from what is ordinarily an rvalue in some cases
@@ -8645,19 +8661,35 @@ lvalue.  If there is an error, change the operand to an error operand.
                                   !is_incomplete_type(type));
   if (is_lvalue_with_complete_type &&
       !is_const_qualified_type(type)) {
-    /* In SVR4 C compatibility mode, this routine can be called for an
-       lvalue cast that would normally be illegal.  Issue a warning. */
-    if (SVR4_C_mode && is_expression_operand(operand)) {
-      an_expr_node_ptr expr = skip_parens(operand->variant.expression);
-      if (is_operation_node(expr) &&
-          node_operator_is(expr, eok_lvalue_cast)) {
-        expr_pos_warning(ec_expr_not_a_modifiable_lvalue, &operand->position);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled &&
+        is_unmodifiable_initonly_field_operand(operand,
+                                               &is_static_initonly_field)) {
+      /* A C++/CLI initonly field can be modified only in an appropriate
+         constructor of its own class. */
+      error_in_operand(is_static_initonly_field
+                                   ? ec_modification_of_static_initonly_field
+                                   : ec_modification_of_initonly_field,
+                       operand);
+    } else
+#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      /* In SVR4 C compatibility mode, this routine can be called for an
+         lvalue cast that would normally be illegal.  Issue a warning. */
+      if (SVR4_C_mode && is_expression_operand(operand)) {
+        an_expr_node_ptr expr = skip_parens(operand->variant.expression);
+        if (is_operation_node(expr) &&
+            node_operator_is(expr, eok_lvalue_cast)) {
+          expr_pos_warning(ec_expr_not_a_modifiable_lvalue,
+                           &operand->position);
+        }  /* if */
       }  /* if */
-    }  /* if */
-    okay = TRUE;
-    if (is_class_struct_union_type(type)) {
-      type = skip_typerefs(type);
-      if (type->variant.class_struct_union.any_const_member) okay = FALSE;
+      okay = TRUE;
+      if (is_class_struct_union_type(type)) {
+        type = skip_typerefs(type);
+        if (type->variant.class_struct_union.any_const_member) okay = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (!okay) {
@@ -12915,6 +12947,281 @@ operand.  Return TRUE if an error was issued.
   return err;
 }  /* check_for_taking_the_address_of_a_bit_field */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean r_is_this_parameter_expr(an_expr_node_ptr expr)
+/*
+Helper routine for is_this_parameter_expr_in_current_scope to handle the
+recursive walk of the expression tree.  Traverse the expression and return
+TRUE if it is equivalent to "this" or "*this".  The innermost function scope is
+assumed to be a member function, and the expression is assumed to have the
+same type as "this" or "*this".  The captured "this" of a lambda is not
+considered to match.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_variable_node(expr)) {
+    a_variable_ptr this_var;
+    check_assertion(innermost_function_scope != NULL);
+    this_var = innermost_function_scope->variant.routine.this_param_variable;
+    check_assertion(this_var != NULL);
+    result = (expr->variant.variable == this_var);
+  } else if (is_operation_node(expr)) {
+    an_expr_operator_kind op = expr->variant.operation.kind;
+    an_expr_node_ptr      operand1 = expr->variant.operation.operands;
+    an_expr_node_ptr      operand2 = operand1->next;
+    switch (op) {
+      case eok_parens:
+        /* (x): Okay if x is "this" or "*this". */
+        result = r_is_this_parameter_expr(operand1);
+        break;
+      case eok_indirect:
+        /* *x: Okay if x is "this". */
+        result = r_is_this_parameter_expr(operand1);
+        break;
+      case eok_address_of:
+        /* &x: Okay if x is "*this". */
+        result = r_is_this_parameter_expr(operand1);
+        break;
+      case eok_comma:
+        /* (x, y): Okay if y is "this" or "*this". */
+        result = r_is_this_parameter_expr(operand2);
+        break;
+      case eok_question:
+        /* (x ? y : z): Okay if both y and z are "this" or "*this". */
+        result = r_is_this_parameter_expr(operand2) &&
+                 r_is_this_parameter_expr(operand2->next);
+        break;
+      default:
+        /* An operation was encountered that results in the expression not
+           being equivalent to "this" or "*this". */
+        result = FALSE;
+        break;
+    }  /* switch */
+  } else if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+    /* An object lifetime passes the expression through. */
+    result = r_is_this_parameter_expr(expr->variant.object_lifetime.expr);
+  } else {
+    /* This expression precludes it from being equivalent to "this" or
+       "*this". */
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* r_is_this_parameter_expr */
+
+
+static a_boolean is_this_parameter_expr_in_current_scope(
+                                                        an_expr_node_ptr expr)
+/*
+Return TRUE if the expression is equivalent to "this" or "*this".  Return
+FALSE if the innermost function scope is not a non-static member function.
+The captured "this" of a lambda is not considered to match.  This is used to
+determine if a field selection operator selects a field in the same class
+instance on which the non-static member function was called.  "expr" will be
+the first operand of an eok_dot_field or eok_points_to_field operator, and
+will therefore be of class type, pointer to class type, C++/CLI handle to ref
+class type, or C++/CLI interior_ptr<T> type.
+*/
+{
+  a_boolean is_this_parameter_expr = FALSE;
+
+  if (innermost_function_scope != NULL &&
+      innermost_function_scope->variant.routine.this_param_variable != NULL) {
+    a_variable_ptr this_var = innermost_function_scope->
+                                          variant.routine.this_param_variable;
+    a_type_ptr     this_class_type = type_pointed_to(this_var->type);
+    a_type_ptr     expr_class_type = is_pointer_or_handle_type(expr->type)
+                                                 ? type_pointed_to(expr->type)
+                                                 : expr->type;
+    if (identical_types_ignoring_qualifiers(this_class_type,
+                                            expr_class_type)) {
+      /* The expression has the same type as "this" or "*this", so traverse
+         the expression to see whether it is in fact equivalent to "this" or
+         "*this". */
+      is_this_parameter_expr = r_is_this_parameter_expr(expr);
+    }  /* if */
+  }  /* if */
+  return is_this_parameter_expr;
+}  /* is_this_parameter_expr_in_current_scope */
+
+
+static void examine_expr_for_initonly_field_selection(
+                                   an_expr_node_ptr                    expr,
+                                   an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from the expression traversal routines to process an expression
+as part of seeing whether an expression is a C++/CLI initonly field selection.
+*/
+{
+  an_expr_node_ptr initonly_field_node = NULL;
+  an_expr_node_ptr class_instance_node = NULL;
+
+  if (!expr->is_lvalue) {
+    /* An initonly field selection is an lvalue. */
+    tblock->suppress_subtree_walk = TRUE;
+  } else if (is_operation_node(expr)) {
+    if (node_operator_is(expr, eok_indirect) ||
+        node_operator_is(expr, eok_ref_indirect) ||
+        node_operator_is(expr, eok_subscript) ||
+        node_operator_is(expr, eok_cli_subscript)) {
+      /* These operations do not result in an initonly field selection. */
+      tblock->suppress_subtree_walk = TRUE;
+    } else if (node_operator_is(expr, eok_dot_field) ||
+               node_operator_is(expr, eok_points_to_field)) {
+      if (expr->variant.operation.operands->next->variant.field->
+                                                                is_initonly) {
+        /* A reference to a nonstatic initonly field. */
+        class_instance_node = expr->variant.operation.operands;
+        initonly_field_node = expr->variant.operation.operands->next;
+      }  /* if */
+      if (node_operator_is(expr, eok_points_to_field)) {
+        /* There is no need to inspect the left-hand operand, as it has no
+           bearing on the expression being an initonly field selection.
+           We still must inspect the left-hand operand in the eok_dot_field
+           case to handle cases such as (b ? x : y).z where z is not itself an
+           initonly field selection, but either x or y is. */
+        tblock->suppress_subtree_walk = TRUE;
+      }  /* if */
+    } else if (node_operator_is(expr, eok_dot_static) ||
+               node_operator_is(expr, eok_points_to_static)) {
+      if (is_variable_node(expr->variant.operation.operands->next) &&
+          expr->variant.operation.operands->next->variant.variable->
+                                                                is_initonly) {
+        /* A reference to a static initonly field of the form x.y or p->y. */
+        initonly_field_node = expr->variant.operation.operands->next;
+      }  /* if */
+      /* The left-hand operand has no bearing on this expression being an
+         initonly field selection. */
+      tblock->suppress_subtree_walk = TRUE;
+    }  /* if */
+  } else if (is_variable_node(expr) && expr->variant.variable->is_initonly) {
+    /* A direct reference to a static initonly field. */
+    initonly_field_node = expr;
+  }  /* if */
+  if (initonly_field_node != NULL) {
+    a_boolean skip_node = FALSE;
+    if (tblock->skip_valid_lvalue_uses_of_initonly_fields &&
+        innermost_function_scope != NULL) {
+      /* Skip any initonly field selections that are valid lvalue uses within
+         the innermost function scope. */
+      a_routine_ptr routine = current_routine_entry();
+      if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
+        if (is_field_node(initonly_field_node) &&
+            is_this_parameter_expr_in_current_scope(class_instance_node)) {
+          /* The expression is a nonstatic initonly field selection being
+             evaluated within the context of its parent class' instance
+             constructor.  This is a valid lvalue use of the field. */
+          skip_node = TRUE;
+        }  /* if */
+      } else if (routine->special_kind ==
+                            (a_special_function_kind)sfk_static_constructor) {
+        if (is_variable_node(initonly_field_node) &&
+            same_entities(parent_class_of(routine),
+                          parent_class_of(initonly_field_node->
+                                                         variant.variable))) {
+          /* The expression is a static initonly field selection being
+             evaluated within the context of its parent class' static
+             constructor.  This is a valid lvalue use of the field. */
+          skip_node = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (!skip_node) {
+      /* This expression is a C++/CLI initonly field selection. */
+      tblock->is_static_initonly_field = 
+                                        is_variable_node(initonly_field_node);
+      tblock->result = TRUE;
+      tblock->terminate = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* examine_expr_for_initonly_field_selection */
+
+
+static a_boolean is_initonly_field_operand(
+                                       an_operand *operand,
+                                       a_boolean  skip_valid_lvalue_uses,
+                                       a_boolean  *p_is_static_initonly_field)
+/*
+If skip_valid_lvalue_uses is FALSE, return TRUE if the operand is a C++/CLI
+initonly field reference.  If skip_valid_lvalue_uses is TRUE, return TRUE
+only if the operand is a C++/CLI initonly field reference that should be
+treated as unmodifiable due to its use occurring outside of the constructor
+context in which it is allowed to be modified.
+*/
+{
+  a_boolean is_initonly_field = FALSE;
+
+  check_assertion(cppcli_enabled);
+  if (is_an_lvalue(operand) && is_expression_operand(operand)) {
+    /* Walk the expression's addressing parts to see whether this is a C++/CLI
+       initonly field selection either at the top level or deeper down. */
+    an_expr_or_stmt_traversal_block tblock;
+    clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_expr = examine_expr_for_initonly_field_selection;
+    tblock.follow_addressing_path = TRUE;
+    tblock.skip_valid_lvalue_uses_of_initonly_fields = skip_valid_lvalue_uses;
+    traverse_expr(operand->variant.expression, &tblock);
+    is_initonly_field = tblock.result;
+    if (is_initonly_field && p_is_static_initonly_field != NULL) {
+      *p_is_static_initonly_field = tblock.is_static_initonly_field;
+    }  /* if */
+  }  /* if */
+  return is_initonly_field;
+}  /* is_initonly_field_operand */
+
+
+a_boolean is_any_initonly_field_operand(an_operand *operand)
+/*
+Return TRUE if the operand is a C++/CLI initonly field reference.
+*/
+{
+  check_assertion(cppcli_enabled);
+  return is_initonly_field_operand(operand, /*skip_valid_lvalue_uses=*/FALSE,
+                                   /*p_is_static_initonly_field=*/
+                                                            (a_boolean *)NULL);
+}  /* is_any_initonly_field_operand */
+
+
+a_boolean is_unmodifiable_initonly_field_operand(
+                                       an_operand *operand,
+                                       a_boolean  *p_is_static_initonly_field)
+/*
+Return TRUE if the operand is a C++/CLI initonly field reference that should
+be treated as unmodifiable due to its use occurring outside of the constructor
+context in which it is allowed to be modified.
+*/
+{
+  check_assertion(cppcli_enabled);
+  return is_initonly_field_operand(operand, /*skip_valid_lvalue_uses=*/TRUE,
+                                   p_is_static_initonly_field);
+}  /* is_unmodifiable_initonly_field_operand */
+
+
+static a_boolean check_for_address_of_or_reference_to_initonly_field(
+                                             an_operand        *operand,
+                                             a_source_position *err_pos,
+                                             a_boolean         reference_case)
+/*
+The address of operand is being taken, either explicitly or in a reference
+binding or reference cast.  Check to see whether the operand is an initonly
+field selection, and if so issue an error at *err_pos and convert the operand
+to an error operand.  Return TRUE if an error was issued.
+*/
+{
+  a_boolean err = FALSE;
+
+  check_assertion(cppcli_enabled);
+  if (is_any_initonly_field_operand(operand)) {
+    expr_pos_error(reference_case ? ec_ref_bound_to_initonly_field
+                                  : ec_address_of_initonly_field, err_pos);
+    conv_to_error_operand(operand);
+    err = TRUE;
+  }  /* if */
+  return err;
+}  /* check_for_address_of_or_reference_to_initonly_field */
+
+#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean microsoft_template_arg_constant_lvalue_address(
                                                      an_expr_node_ptr expr,
@@ -13043,6 +13350,15 @@ explicit "&" operator in the source and *operator_position gives its position.
     /* Check for taking the address of a bit field. */
     if (check_for_taking_the_address_of_a_bit_field(operand, err_pos)) {
       /* Error issued by the subroutine. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Check for taking the address of or binding a reference to an initonly
+       field. */
+    } else if (cppcli_enabled &&
+               check_for_address_of_or_reference_to_initonly_field(
+                                                            operand, err_pos,
+                                                            reference_case)) {
+      /* Error issued by the subroutine. */
+#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       a_boolean  did_not_fold = TRUE;
       a_boolean  template_constant = FALSE;

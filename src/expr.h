@@ -461,6 +461,12 @@ Macro that is TRUE if the node is a variable node.
 	((node)->kind == (an_expr_node_kind)enk_variable)
 
 /*
+Macro that is TRUE if the node is a field node.
+*/
+#define is_field_node(node)						\
+	((node)->kind == (an_expr_node_kind)enk_field)
+
+/*
 Macro that is TRUE if the node is a routine node.
 */
 #define is_routine_node(node)						\

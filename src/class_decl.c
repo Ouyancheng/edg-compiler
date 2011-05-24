@@ -19732,6 +19732,9 @@ passed via template_decl.
         if (cli_class_type_kind_is(class_type, cctk_standard)) {
           pos_error(ec_initonly_requires_managed_class,
                     &decl_state->declarator_pos);
+        } else if (is_ref_class_type(decl_state->type)) {
+          /* The type of an initonly field shall not be a ref class. */
+          pos_error(ec_ref_class_initonly_field, &decl_state->declarator_pos);
         } else if (is_const_qualified_type(decl_state->type)) {
           /* "const" is useless on a C++/CLI initonly declaration. */
           a_source_position  *diag_pos = &decl_state->qualifiers_pos;

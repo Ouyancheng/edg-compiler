@@ -2607,6 +2607,10 @@ default values.
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
   tblock->type_predicate_function = NULL;
   tblock->type_tree_traversal_flags = 0;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  tblock->skip_valid_lvalue_uses_of_initonly_fields = FALSE;
+  tblock->is_static_initonly_field = FALSE;
+#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* clear_expr_or_stmt_traversal_block */
 
 

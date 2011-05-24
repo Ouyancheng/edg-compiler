@@ -345,6 +345,20 @@ typedef struct an_expr_or_stmt_traversal_block {
 			/* The type traversal flags to be passed to
 			   traverse_type_tree when processing the types of
 			   expressions. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Fields used by examine_expr_for_initonly_field_selection: */
+  a_boolean	skip_valid_lvalue_uses_of_initonly_fields;
+			/* This is used to determine if C++/CLI initonly field
+			   references are valid.  If this is TRUE, references
+			   to nonstatic initonly fields evaluated within their
+			   containing class's instance constructor are skipped
+			   during the tree walk, as are references to static
+			   initonly fields evaluated within their containing
+			   class's static constructor. */
+  a_boolean	is_static_initonly_field;
+			/* TRUE if the C++/CLI initonly field that was found
+			   during the tree walk is a static member. */
+#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
 } an_expr_or_stmt_traversal_block;
 
 extern void clear_expr_or_stmt_traversal_block(

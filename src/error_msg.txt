@@ -2248,6 +2248,12 @@ ec_parameter_with_interface_type;;"a parameter cannot have a C++/CLI interface c
 ec_return_type_is_interface;;"a function return type cannot be an C++/CLI interface class type"
 ec_array_of_generic_param;;"an array of generic parameter type is not allowed"
 ec_ptr_handle_or_ref_to_generic_param;;"a pointer, handle, or reference to a generic parameter type is not allowed"
+ec_ref_class_initonly_field;;"an initonly field cannot have a ref class type"
+ec_ref_bound_to_initonly_field;;"a reference cannot be bound to an initonly field"
+ec_address_of_initonly_field;;"taking the address of an initonly field is not allowed"
+ec_modification_of_initonly_field;;"an initonly field can only be modified by the instance constructor of its containing class"
+ec_modification_of_static_initonly_field;;"a static initonly field can only be modified by the static constructor of its containing class"
+ec_member_function_call_on_initonly_field;;"member function will be invoked on a copy of the initonly field"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

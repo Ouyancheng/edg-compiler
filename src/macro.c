@@ -8329,7 +8329,9 @@ command line -D options.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled) {
     /* Define a macro that indicates that C++/CLI is enabled. */
-    (void)enter_predef_macro("200509L", "__cplusplus_cli",
+    /* Note that the ECMA-372 standard requires a value of 200509L, but
+       VC10 uses 200406L. */
+    (void)enter_predef_macro("200406L", "__cplusplus_cli",
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
