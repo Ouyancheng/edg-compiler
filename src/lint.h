@@ -788,6 +788,13 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_ptr_handle_or_ref_to_generic_param)*/
 /*lint -esym(759,update_base_class_derivation)*/
 /*lint -esym(765,update_base_class_derivation)*/
+/*lint -esym(755,is_field_node)*/
+/*lint -esym(769,ec_ref_class_initonly_field)*/
+/*lint -esym(769,ec_ref_bound_to_initonly_field)*/
+/*lint -esym(769,ec_address_of_initonly_field)*/
+/*lint -esym(769,ec_modification_of_initonly_field)*/
+/*lint -esym(769,ec_modification_of_static_initonly_field)*/
+/*lint -esym(769,ec_member_function_call_on_initonly_field)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
