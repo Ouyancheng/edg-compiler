@@ -4516,6 +4516,11 @@ the class_object can be a handle to an object.
     if (routine->is_explicit_conversion_function) {
       /* An explicit conversion function cannot be used to convert to a
          surrogate. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (routine->is_reverse_conversion_function) {
+      /* A C++/CLI static conversion function that converts to the class
+         type instead of from it cannot be used. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_ptr_or_ref_type(conversion_type)) {
       a_type_ptr underlying_type = type_pointed_to(conversion_type);
       if (is_reference_type(conversion_type) &&
@@ -4535,11 +4540,23 @@ the class_object can be a handle to an object.
                  this_param_type_for_overload_res(routine_type,
                                                   surrogate_function_conv_sym,
                                                   /*is_conv_func=*/TRUE);
-        determine_selector_match_level(class_object->type,
-                                       /*selector_is_object_pointer=*/
+        if (this_param_type == NULL) {
+          /* C++/CLI has static conversion functions.   For those, match the
+             argument against the first parameter. */
+          a_param_type_ptr ptp = function_type_params(routine_type);
+          check_assertion(cppcli_enabled && ptp != NULL && ptp->next == NULL);
+          determine_arg_match_level(class_object, (a_type_ptr)NULL,
+                                    ptp->type, ptp,
+                                    ptp->type_involves_deduced_template_param,
+                                    /*try_user_conversions=*/FALSE,
+                                    &match);
+        } else {
+          determine_selector_match_level(class_object->type,
+                                         /*selector_is_object_pointer=*/
                                                                    handle_case,
-                                       this_param_type,
-                                       &match);
+                                         this_param_type,
+                                         &match);
+        }  /* if */
         /* coverity[uninit_use] */ /* Coverity bug */
         if (match.match_level != aml_none) {
           /* See how the arguments match up against the surrogate function
