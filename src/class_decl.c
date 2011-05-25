@@ -11244,7 +11244,7 @@ implicitly declared member functions.
         add_to_conversion_list(sym, cssp);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (cppcli_enabled && is_handle_type(dest_type)) {
-          dest_type = skip_typerefs(type_pointed_to(dest_type));
+          dest_type = f_skip_typerefs(type_pointed_to(dest_type));
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (is_immediate_class_type(dest_type)) {
