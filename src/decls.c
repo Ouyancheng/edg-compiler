@@ -1114,16 +1114,27 @@ new fields are set properly.
       } else {
         /* Ensure the argument type or conversion-id type is T, T&, T&&, T%,
            or T^, with T the type indicated by class_type. */
-        if (!valid_static_conversion_class_type(rtsp->param_type_list->type,
-                                                class_type) &&
-            !valid_static_conversion_class_type(
+        if (valid_static_conversion_class_type(rtsp->param_type_list->type,
+                                               class_type)) {
+          /* The destination type is not the parent class.  If it is another
+             class (or a handle thereto), mark that flag as being the target
+             of a user-defined conversion function. */
+          a_type_ptr  dest_type = locator->variant.conversion_result_type;
+          if (is_handle_type(dest_type)) {
+            dest_type = type_pointed_to(dest_type);
+          }  /* if */
+          dest_type = skip_typerefs(dest_type);
+          if (is_immediate_class_type(dest_type)) {
+            set_target_of_conversion_function_flag(dest_type);
+          }  /* if */
+        } else if (!valid_static_conversion_class_type(
                        locator->variant.conversion_result_type, class_type)) {
           pos_ty_error(ec_bad_parameter_type_for_static_member_operator,
                        &locator->source_position, class_type);
           err = TRUE;
         }  /* if */
       }  /* if */
-#endif /*MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (rtsp->param_type_list != NULL || rtsp->has_ellipsis) {
       /* Any parameter is too many for a (standard) conversion function. */
       pos_error(ec_too_many_args_for_conversion, &locator->source_position);

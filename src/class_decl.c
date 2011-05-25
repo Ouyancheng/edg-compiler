@@ -6045,7 +6045,10 @@ the base class.
 }  /* set_shares_virtual_function_info_flag */
 
 
-static void set_target_of_conversion_function_flag(a_type_ptr  class_type)
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+static
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+void set_target_of_conversion_function_flag(a_type_ptr  class_type)
 /*
 If it has not been set yet, set the target_of_conversion_function flag for
 class_type.  Also set the flag in each of class_type's base classes.
@@ -10669,7 +10672,9 @@ implicitly declared member functions.
   a_symbol_ptr                  sym, overload_sym = NULL;
   a_routine_ptr                 rtn;
   a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(class_type);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr                    tp;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_source_sequence_entry_ptr   declarator_ssep = NULL;
   a_name_linkage_kind           def_name_linkage;
   a_routine_type_supplement_ptr rtsp;
@@ -11232,13 +11237,20 @@ implicitly declared member functions.
       } else {
         /* Create a conversion list entry.  This list provides an alternative
            to traversing the entire symbols list for a class to find its
-           conversion functions. */
+           conversion functions.  Also, if the target type of the conversion
+           is a class type, record that that type is the target of a conversion
+           function (to speed up overload resolution). */
+        a_type_ptr  dest_type = f_skip_typerefs(return_type_of(rtn->type));
         add_to_conversion_list(sym, cssp);
-        tp = f_skip_typerefs(return_type_of(rtn->type));
-        if (is_immediate_class_type(tp)) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cppcli_enabled && is_handle_type(dest_type)) {
+          dest_type = skip_typerefs(type_pointed_to(dest_type));
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        if (is_immediate_class_type(dest_type)) {
           /* The target type of the conversion is a class or ref-to-class
              type: set a flag to mark it as target of a conversion. */
-          set_target_of_conversion_function_flag(tp);
+          set_target_of_conversion_function_flag(dest_type);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -15832,30 +15844,85 @@ nontrivial destructor).
 }  /* check_base_class_destructors */
 
 
-static a_boolean is_template_conversion_to_same_type(
-						a_symbol_ptr	sym1,
-						a_symbol_ptr	sym2)
+static a_boolean conversion_template_matches_base_member(a_symbol_ptr  dsym,
+                                                         a_symbol_ptr  bsym)
 /*
-Return TRUE if sym1 and sym2 are conversion templates that convert to the
-same type.
+Return TRUE if dsym (a conversion function template from a derived class) and
+bsym (a conversion function template from a base class) convert to the same
+type.
 */
 {
-  a_type_ptr	tp1, tp2;
-  a_boolean	result;
-  sym1 = fundamental_symbol_of(sym1);
-  check_assertion(sym1->kind == (a_symbol_kind)sk_function_template);
-  tp1 = sym1->variant.template_info->variant.function.
-                                    routine->type->variant.routine.return_type;
-  sym2 = fundamental_symbol_of(sym2);
-  check_assertion(sym2->kind == (a_symbol_kind)sk_function_template);
-  tp2 = sym2->variant.template_info->variant.function.
-                                    routine->type->variant.routine.return_type;
-  /* Nesting depths are ignored for this comparison because "operator T()"
-     and "operator X()" should be considered identical even if one is
-     more deeply nested than the other. */
-  result = f_identical_types(tp1, tp2, ITF_IGNORE_NESTING_DEPTH);
+  a_routine_ptr  rp1, rp2;
+  a_boolean      result;
+
+  dsym = fundamental_symbol_of(dsym);
+  check_assertion(dsym->kind == (a_symbol_kind)sk_function_template);
+  rp1 = dsym->variant.template_info->variant.function.routine;
+  bsym = fundamental_symbol_of(bsym);
+  check_assertion(bsym->kind == (a_symbol_kind)sk_function_template);
+  rp2 = bsym->variant.template_info->variant.function.routine;
+  if (rp1->is_reverse_conversion_function ||
+      rp2->is_reverse_conversion_function) {
+    /* In C++/CLI mode, if one (or both) conversion functions is a "reverse
+       conversion function" (only possible with static conversion functions),
+       they are never considered a "match". */
+    check_assertion(cppcli_enabled);
+    result = FALSE;
+  } else {
+    a_type_ptr  tp1 = rp1->type->variant.routine.return_type;
+    a_type_ptr  tp2 = rp2->type->variant.routine.return_type;
+    /* Nesting depths are ignored for this comparison because "operator T()"
+       and "operator X()" should be considered identical even if one is
+       more deeply nested than the other. */
+    result = f_identical_types(tp1, tp2, ITF_IGNORE_NESTING_DEPTH);
+  }  /* if */
   return result;
-}  /* is_template_conversion_to_same_type */
+}  /* conversion_template_matches_base_member */
+
+
+static a_boolean conversion_matches_base_member(a_symbol_ptr  dsym,
+                                                a_symbol_ptr  bsym)
+/*
+Return TRUE if dsym (a conversion function in a derived class) and bsym (a
+conversion function in a base class) convert to the same type.
+*/
+{
+  a_boolean  result;
+
+  if (!cppcli_enabled) {
+    /* In ordinary (non-CLI) C++, the symbol header is determined by the
+       destination type. */
+    result = dsym->header == bsym->header;
+  } else {
+    /* In C++/CLI, the symbol header doesn't tell the whole story with static
+       conversion functions.  E.g.:
+         ref class D;
+         ref struct B {
+           static operator D^(B%);  // (1)
+         };
+         ref struct D: B {
+           static operator D^(int); // Same header as (1), but doesn't
+         };                         // supersede it.
+      More generally, "reverse conversion functions" don't appear to supersede
+      each other.  E.g.:
+        ref class D;
+        ref struct B { static operator B^(D%); };
+        ref struct D: B { static operator B^(D%); };
+        void f(D %t) {
+          B ^h = t;  // Ambiguous.
+        }
+    */
+    a_routine_ptr  rp1 = fundamental_symbol_of(dsym)->variant.routine.ptr;
+    a_routine_ptr  rp2 = fundamental_symbol_of(bsym)->variant.routine.ptr;
+    if (rp1->is_reverse_conversion_function ||
+        rp2->is_reverse_conversion_function) {
+      result = FALSE;
+    } else {
+      result = dsym->header == bsym->header;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* conversion_matches_base_member */
 
 
 static void check_base_class_conversion_list(a_type_ptr       class_type,
@@ -15886,10 +15953,10 @@ class_type.  Set *updated if a projection symbol is created.
       slep = is_template_list ? cssp->conversion_template_list :
                                 cssp->conversion_list;
       for (; slep != NULL; slep = slep->next) {
-        if (slep->symbol->header == bcslep->symbol->header ||
+        if (conversion_matches_base_member(slep->symbol, bcslep->symbol) ||
             (is_template_list &&
-             is_template_conversion_to_same_type(slep->symbol,
-                                                 bcslep->symbol))) {
+             conversion_template_matches_base_member(slep->symbol,
+                                                     bcslep->symbol))) {
           /* A conversion to the same type.  If this is from the current class
              (i.e., it is not a projection symbol) we should ignore the one
              from the base class.  If the entry on the current class list
@@ -15902,9 +15969,8 @@ class_type.  Set *updated if a projection symbol is created.
           } else {
             /* A projection symbol.  Ignore this entry if it refers to the
 	       same function or template as one already on the list. */
-            a_symbol_ptr	fund_curr_sym =
-                                           fundamental_symbol_of(slep->symbol);
-            a_symbol_ptr	fund_base_sym =
+            a_symbol_ptr  fund_curr_sym = fundamental_symbol_of(slep->symbol);
+            a_symbol_ptr  fund_base_sym =
                                          fundamental_symbol_of(bcslep->symbol);
             if (fund_curr_sym->kind == (a_symbol_kind)sk_function_template) {
               if (same_entities(fund_curr_sym->variant.template_info->

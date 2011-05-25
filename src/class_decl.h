@@ -83,6 +83,10 @@ extern a_derivation_step_ptr update_base_class_derivation(
                                          a_derivation_step_ptr  path,
                                          an_access_specifier    access);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern void set_target_of_conversion_function_flag(a_type_ptr  class_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern a_boolean scan_class_definition(
                                    a_type_ptr       class_type,
                                    a_scope_depth    effective_decl_level,
