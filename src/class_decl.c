@@ -15861,6 +15861,7 @@ type.
   bsym = fundamental_symbol_of(bsym);
   check_assertion(bsym->kind == (a_symbol_kind)sk_function_template);
   rp2 = bsym->variant.template_info->variant.function.routine;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (rp1->is_reverse_conversion_function ||
       rp2->is_reverse_conversion_function) {
     /* In C++/CLI mode, if one (or both) conversion functions is a "reverse
@@ -15868,7 +15869,10 @@ type.
        they are never considered a "match". */
     check_assertion(cppcli_enabled);
     result = FALSE;
-  } else {
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
     a_type_ptr  tp1 = rp1->type->variant.routine.return_type;
     a_type_ptr  tp2 = rp2->type->variant.routine.return_type;
     /* Nesting depths are ignored for this comparison because "operator T()"
@@ -15893,6 +15897,7 @@ conversion function in a base class) convert to the same type.
     /* In ordinary (non-CLI) C++, the symbol header is determined by the
        destination type. */
     result = dsym->header == bsym->header;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   } else {
     /* In C++/CLI, the symbol header doesn't tell the whole story with static
        conversion functions.  E.g.:
@@ -15920,6 +15925,7 @@ conversion function in a base class) convert to the same type.
     } else {
       result = dsym->header == bsym->header;
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   return result;
 }  /* conversion_matches_base_member */
