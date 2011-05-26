@@ -13677,8 +13677,8 @@ because of an error.  This routine is used only in C++ mode.
                                              orig_is_copy_initialization,
                                              is_reference_binding,
                                              &candidate_functions);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     /* If no functions are viable, check for the possibility of a bitwise
        copy from a derived class to a base class. */
