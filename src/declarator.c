@@ -5300,7 +5300,8 @@ declared entity is known to not be a function.
       }  /* if */
     }  /* if */
   } else if (locator->is_conversion_name) {
-    /* A conversion function must be a nonstatic member function.  Allow
+    /* A conversion function must be a nonstatic member function (except in
+       C++/CLI mode, where it can also be a static member function).  Allow
        a Microsoft in-class specialization as this should be treated
        as a redeclaration. */
     if (*p_member_parent_type == NULL ||

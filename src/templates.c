@@ -17828,16 +17828,20 @@ done here.
          to be used.  Such parameters are often intentionally unused and
          are used for techniques like "enable_if". */
       param_used = TRUE;
-    } else if (is_conversion_operator) {
-      /* For conversion operator functions, the template parameters must be
-         used in the return type. */
-      param_used = template_param_used_in_type(
-                          param_sym, rout_type->variant.routine.return_type);
     } else {
       /* Determine whether all template parameters are used by
          function parameter types. */
       param_used = template_param_appears_in_param_list(param_sym,
                                                         rout_type);
+    }  /* if */
+    if (is_conversion_operator && !param_used) {
+      /* For conversion functions, the template parameters can be used in the
+         return type.  (In standard conversion functions that is the only place
+         they can be used since there are no function parameters, but in
+         C++/CLI static conversion functions, there is a function parameter
+         where the template parameter can be used.) */
+      param_used = template_param_used_in_type(
+                          param_sym, rout_type->variant.routine.return_type);
     }  /* if */
     if (pack_seen && !param_used) {
       /* This is a non-initial pack that is not used in the function
