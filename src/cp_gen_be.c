@@ -10210,13 +10210,18 @@ gen_expr that might end up generating this expr as a temporary.
           gen_expr(operand_1, need_parens, obj_expr_of_mfunc_operator);
         }  /* if */
         goto done_with_operation_after_parens;
-      } else if (op == (an_expr_operator_kind)eok_call ||
+      } else if ((op == (an_expr_operator_kind)eok_call &&
+                  !expr->variant.operation.compiler_generated) ||
                  op == (an_expr_operator_kind)eok_dot_member_call ||
                  op == (an_expr_operator_kind)eok_points_to_member_call) {
         /* Suppress parentheses around a function call.  They're not needed
-           (the function call (...) binds at the highest possible precedence)
-           and g++ 3.2 (at least) gets confused by a constructor "call"
-           surrounded by parentheses, e.g., (X()). */
+           (the function call (...) binds at the highest possible
+           precedence) and g++ 3.2 (at least) gets confused by a
+           constructor "call" surrounded by parentheses, e.g., (X()).  The
+           exception for a compiler-generated eok_call detects the case of
+           a C++/CLI static conversion function -- the expression being
+           converted could have lower precedence than the context in which
+           it is used, so the parentheses must not be suppressed. */
         need_parens = FALSE;
       } else if (op == (an_expr_operator_kind)eok_parens) {
         /* No extra parentheses around parentheses. */
