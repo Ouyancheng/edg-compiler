@@ -1119,14 +1119,8 @@ new fields are set properly.
           /* The destination type is not the parent class.  If it is another
              class (or a handle thereto), mark that flag as being the target
              of a user-defined conversion function. */
-          a_type_ptr  dest_type = locator->variant.conversion_result_type;
-          if (is_handle_type(dest_type)) {
-            dest_type = type_pointed_to(dest_type);
-          }  /* if */
-          dest_type = skip_typerefs(dest_type);
-          if (is_immediate_class_type(dest_type)) {
-            set_target_of_conversion_function_flag(dest_type);
-          }  /* if */
+          set_target_of_conversion_function_flag_if_needed(
+                                     locator->variant.conversion_result_type);
         } else if (!valid_static_conversion_class_type(
                        locator->variant.conversion_result_type, class_type)) {
           pos_ty_error(ec_bad_parameter_type_for_static_member_operator,

@@ -6045,10 +6045,7 @@ the base class.
 }  /* set_shares_virtual_function_info_flag */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-static
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-void set_target_of_conversion_function_flag(a_type_ptr  class_type)
+static void set_target_of_conversion_function_flag(a_type_ptr  class_type)
 /*
 If it has not been set yet, set the target_of_conversion_function flag for
 class_type.  Also set the flag in each of class_type's base classes.
@@ -6071,6 +6068,35 @@ class_type.  Also set the flag in each of class_type's base classes.
     }  /* for */
   }  /* if */
 }  /* set_target_of_conversion_function_flag */
+
+
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+static
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+void set_target_of_conversion_function_flag_if_needed(a_type_ptr  tp)
+/*
+If for some (possibly cv-qualified) class type T tp is of the form T, T&, T&&,
+T%, T^, T^&, T^&&, or T^%, set the target_of_conversion_function flag
+associated with T and its base classes.
+*/
+{
+  /* Drop any reference on top of the type. */
+  if (is_any_reference_type(tp)) {
+    tp = type_pointed_to(tp);
+  }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* In C++/CLI mode, drop a "handle" layer (any qualifiers on top will also
+     be dropped). */
+  if (cppcli_enabled && is_handle_type(tp)) {
+    tp = type_pointed_to(tp);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Ignore cv-qualifiers on top of what may be a class type. */
+  tp = skip_typerefs(tp);
+  if (is_immediate_class_type(tp)) {
+    set_target_of_conversion_function_flag(tp);
+  }  /* if */
+}  /* set_target_of_conversion_function_flag_if_needed */
 
 
 static void add_indirect_base_class(a_base_class_ptr      base_class_to_copy,
@@ -11240,18 +11266,9 @@ implicitly declared member functions.
            conversion functions.  Also, if the target type of the conversion
            is a class type, record that that type is the target of a conversion
            function (to speed up overload resolution). */
-        a_type_ptr  dest_type = f_skip_typerefs(return_type_of(rtn->type));
         add_to_conversion_list(sym, cssp);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (cppcli_enabled && is_handle_type(dest_type)) {
-          dest_type = f_skip_typerefs(type_pointed_to(dest_type));
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        if (is_immediate_class_type(dest_type)) {
-          /* The target type of the conversion is a class or ref-to-class
-             type: set a flag to mark it as target of a conversion. */
-          set_target_of_conversion_function_flag(dest_type);
-        }  /* if */
+        set_target_of_conversion_function_flag_if_needed(
+                                                    return_type_of(rtn->type));
       }  /* if */
     }  /* if */
     if (exceptions_enabled && compiler_generated &&

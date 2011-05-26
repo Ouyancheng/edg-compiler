@@ -84,7 +84,8 @@ extern a_derivation_step_ptr update_base_class_derivation(
                                          an_access_specifier    access);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern void set_target_of_conversion_function_flag(a_type_ptr  class_type);
+extern void set_target_of_conversion_function_flag_if_needed(
+                                                      a_type_ptr  class_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean scan_class_definition(
