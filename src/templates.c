@@ -11007,7 +11007,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   a_memory_region_number            region_to_switch_back_to;
   a_template_instance_ptr           tip;
   a_routine_ptr                     templ_rout, rp;
-  a_type_ptr			    rout_type = NULL;
+  a_type_ptr			    rout_type = NULL, return_type;
   a_boolean			    is_member_decl;
   a_type_ptr	      		    parent_class;
   a_boolean			    trans_unit_pushed;
@@ -11160,19 +11160,19 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
        into the symbol table -- it will appear on a function instantiation
        list under the function template symbol and, optionally, in the overload
        list if it is also explicitly declared by the user. */
-    { a_type_ptr	return_type = NULL;
-      if (is_function_type(rout_type)) {
-        a_type_ptr			underlying_rout_type;
-        a_routine_type_supplement_ptr	rtsp;
-        underlying_rout_type = skip_typerefs(rout_type);
-        return_type = underlying_rout_type->variant.routine.return_type;
-        rtsp = underlying_rout_type->variant.routine.extra_info;
-        rtsp->is_variadic_instance = tssp->is_variadic;
-      }  /* if */
-      sym = make_template_function_symbol(templ_sym, &templ_sym->decl_position,
-                                          return_type);
-      sym->variant.routine.ptr = rp;
-    }
+    if (is_function_type(rout_type)) {
+      a_type_ptr			underlying_rout_type;
+      a_routine_type_supplement_ptr	rtsp;
+      underlying_rout_type = skip_typerefs(rout_type);
+      return_type = underlying_rout_type->variant.routine.return_type;
+      rtsp = underlying_rout_type->variant.routine.extra_info;
+      rtsp->is_variadic_instance = tssp->is_variadic;
+    } else {
+      return_type = error_type();
+    }  /* if */
+    sym = make_template_function_symbol(templ_sym, &templ_sym->decl_position,
+                                        return_type);
+    sym->variant.routine.ptr = rp;
     /* Give the routine entry the type passed in, and set other fields in
        accord with the settings in the template. */
     rp->type = rout_type;
@@ -11280,7 +11280,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       locator.variant.opname = rp->variant.opname_kind;
     } else if (rp->special_kind == (a_special_function_kind)sfk_conversion) {
       locator.is_conversion_name = TRUE;
-      locator.variant.conversion_result_type = NULL;
+      locator.variant.conversion_result_type = return_type;
     }  /* if */
     check_operator_function_params(rout_type, parent_class, &locator);
   }
