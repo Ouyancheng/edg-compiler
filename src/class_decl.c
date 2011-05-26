@@ -10529,6 +10529,9 @@ conversions.
 */
 {
   a_boolean                      is_implicitly_callable = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean                      is_static = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_type_ptr                     class_type;
   a_type_ptr                     ret_type;
   a_routine_type_supplement_ptr  rtsp;
@@ -10547,6 +10550,7 @@ conversions.
     }  /* if */
     class_type = skip_typerefs(class_type);
     check_assertion(is_immediate_managed_class_type(class_type));
+    is_static = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Note that return_type_of removes references, which is desired. */
@@ -10567,13 +10571,29 @@ conversions.
     /* Conversion to (possibly qualified) void type is not allowed. */
     is_implicitly_callable = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled &&
-             boxing_conversion_possible(class_type, ret_type,
-                                        (a_std_conv_descr *)NULL)) {
-    /* A conversion function that does a C++/CLI boxing conversion
-       is not allowed. */
-    is_implicitly_callable = FALSE;
-#endif /*MICROSOFT_EXTENSIONS_ALLOWED */
+  } else if (cppcli_enabled) {
+    if (boxing_conversion_possible(class_type, ret_type,
+                                   (a_std_conv_descr *)NULL)) {
+      /* A conversion function that does a C++/CLI boxing conversion
+         is not allowed. */
+      is_implicitly_callable = FALSE;
+    } else if (is_static && is_handle_type(rtsp->param_type_list->type) &&
+               is_handle_type(ret_type)) {
+      /* A C++/CLI static conversion function can provide user-defined
+         conversions between handles.  If the handles are to related class
+         types, standard conversions would take precedence. */
+      a_type_ptr  tp1 = type_pointed_to(rtsp->param_type_list->type);
+      a_type_ptr  tp2 = type_pointed_to(ret_type);
+      tp1 = skip_typerefs(tp1);
+      tp2 = skip_typerefs(tp2);
+      if (is_immediate_class_type(tp1) && is_immediate_class_type(tp2) &&
+          (same_entities(tp1, tp2) ||
+           find_base_class_of(tp1, tp2) != NULL ||
+           find_base_class_of(tp2, tp1) != NULL)) {
+        is_implicitly_callable = FALSE;
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   return is_implicitly_callable;
 }  /* is_implicitly_callable_conversion_function */
