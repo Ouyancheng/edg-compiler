@@ -1793,6 +1793,9 @@ return FALSE.  If ambiguity_list is non-NULL in that case, it is set to
 point to a list describing the set of ambiguous functions; the caller
 must free that list.  If question_conv is TRUE, this is being checked as
 part of determining the conversions on the operands of a "?" operator.
+In C++/CLI mode, this routine can be called with source_operand having
+a handle type.  Use is_potential_conv_function_source as the appropriate
+guard function.
 */
 {
   a_boolean  okay;
@@ -1816,6 +1819,27 @@ part of determining the conversions on the operands of a "?" operator.
        returns a class into an lvalue, we have to test for temp init
        expressions specially. */
     okay = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled &&
+             (cli_handle_user_defined_conversion_possible(
+                                       source_operand,
+                                       base_dest_type,
+                                       /*need_lvalue_result=*/TRUE,
+                                       /*is_copy_initialization=*/FALSE,
+                                       /*orig_is_copy_initialization=*/FALSE,
+                                       /*is_reference_binding=*/TRUE,
+                                       conversion,
+                                       ambiguous,
+                                       ambiguity_list) ||
+              *ambiguous)) {
+    /* A C++/CLI static conversion function involving a handle type
+       can be used to create an lvalue to which the reference can
+       be bound. */
+    if (!*ambiguous) okay = TRUE;
+  } else if (cppcli_enabled &&
+             !is_class_struct_union_type(source_operand->type)) {
+    okay = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     okay = conversion_from_class_possible(source_operand,
                                           base_dest_type,
@@ -2453,7 +2477,12 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     check_assertion(orig_arg_operand != NULL);
     if (param_is_rvalue_reference && !is_an_rvalue(orig_arg_operand)) {
       /* An rvalue reference can only bind to an rvalue. */
-    } else if (param_is_reference && arg_is_class_type &&
+    } else if (param_is_reference &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+               is_potential_conv_function_source(unqual_arg_type) &&
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+               arg_is_class_type &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                (conversion_for_direct_reference_binding_possible(
                                            orig_arg_operand,
                                            orig_param_type,
@@ -2461,7 +2490,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                                            &conversion,
                                            &ambiguous,
                                            (a_candidate_function_ptr *)NULL) ||
-         ambiguous)) {
+                ambiguous)) {
       /* The parameter is a reference, and there exists a conversion function
          that can convert the argument to an lvalue that the reference can
          bind to directly. */
@@ -13820,7 +13849,7 @@ This routine is used only in C++ mode.
   overload_level++;
   if (debug_level >= 4 || db_flag_is_set("overload")) {
     db_display_overload_level();
-    fprintf(f_debug,"Entering conversion_from_class_possible, dest_type = ");
+    fprintf(f_debug, "Entering conversion_from_class_possible, dest_type = ");
     db_abbreviated_type(dest_type);
     fprintf(f_debug, "\n");
   }  /* if */
@@ -13962,6 +13991,135 @@ Issue an error and set *processed to TRUE if the conversion is ambiguous.
   }  /* if */
 }  /* try_to_convert_class_operand_to_builtin_type */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean cli_handle_user_defined_conversion_possible(
+                          an_operand               *source_operand,
+                          a_type_ptr               dest_type,
+                          a_boolean                need_lvalue_result,
+                          a_boolean                is_copy_initialization,
+                          a_boolean                orig_is_copy_initialization,
+                          a_boolean                is_reference_binding,
+                          a_conv_descr             *conversion,
+                          a_boolean                *ambiguous,
+                          a_candidate_function_ptr *ambiguity_list)
+/*
+Return TRUE if a C++/CLI user-defined conversion involving handle types
+is possible as a way of converting source_operand to dest_type, and
+specifically to an lvalue of that type if need_lvalue_result is TRUE.
+Such cases can come up if source_operand or dest_type have handle types,
+if the source or destination class type has a static conversion
+function that deals with handles.  dest_type cannot be a reference.
+If an appropriate conversion function exists, set *conversion to
+describe the conversion and return TRUE.  Otherwise return FALSE.  If
+more than one function matches, set *ambiguous to TRUE and return
+FALSE.  If ambiguity_list is non-NULL in that case, it is set to point
+to a list describing the set of ambiguous functions; the caller must
+free that list.  *ambiguity_list is set to NULL to indicate a case
+that is undecidable because of an error.  If is_reference_binding is
+TRUE, the result will be bound directly to a reference, so consider
+conversions to a derived class of dest_type, and allow appropriate
+cv-qualification adjustments, but do not consider standard conversions
+after the conversion function; otherwise, allow standard conversions
+on the result.  If is_copy_initialization is TRUE, the result will be
+copied for a copy-initialization.  orig_is_copy_initialization
+indicates whether the original initialization was copy-initialization
+(this controls whether explicit conversion functions are considered).
+*/
+{
+  a_boolean okay = FALSE;
+
+  db_enter(4, "cli_handle_user_defined_conversion_possible");
+  *ambiguous = FALSE;
+  if (cppcli_enabled) {
+    a_type_ptr source_type = source_operand->type;
+    clear_conv_descr(conversion);
+#if DEBUG
+    overload_level++;
+    if (debug_level >= 4 || db_flag_is_set("overload")) {
+      db_display_overload_level();
+      fprintf(f_debug,
+         "Entering cli_handle_user_defined_conversion_possible, dest_type = ");
+      db_abbreviated_type(dest_type);
+      fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
+    check_assertion(!is_any_reference_type(dest_type));
+    if (is_handle_type(source_type) ||
+        is_handle_type(dest_type)) {
+      a_boolean        baseward_cast;
+      a_base_class_ptr bcp;
+      if ((is_handle_type(source_type) &&
+           is_handle_type(dest_type)) &&
+          (f_identical_types(type_pointed_to(source_type),
+                             type_pointed_to(dest_type),
+                             ITF_IGNORE_TOP_LEVEL_QUALIFIERS) ||
+           related_class_pointers_or_handles(source_type, dest_type,
+                                             &baseward_cast, &bcp))) {
+        /* For cases where an identity or standard conversion will work,
+           don't look for a conversion function. */
+      } else {
+        a_candidate_function_ptr candidate_functions = NULL;
+        a_boolean                undecidable_because_of_error;
+        try_static_conversion_function_match(source_operand,
+                                             dest_type,
+                                             need_lvalue_result,
+                                             is_copy_initialization,
+                                             orig_is_copy_initialization,
+                                             is_reference_binding,
+                                             &candidate_functions);
+        /* Of the viable functions, select the best. */
+        select_best_candidate_functions(&candidate_functions,
+                                        &source_operand->position,
+                                        &undecidable_because_of_error,
+                                        ambiguous);
+        if (undecidable_because_of_error) {
+          /* Note that candidate_functions is NULL
+             (select_best_candidate_functions returns it that way in this
+             case), so a NULL ambiguity_list will be returned to indicate
+             "undecidable because of error".  *ambiguous is also set to
+             TRUE. */
+        } else if (candidate_functions == NULL) {
+          /* There are no viable conversion functions. */
+        } else if (*ambiguous) {
+          /* There are several equally desirable functions. */
+#if DEBUG
+          if (debug_level >= 4) {
+            db_candidate_function_list(candidate_functions);
+          }  /* if */
+#endif /* DEBUG */
+        } else {
+          /* There is exactly one best conversion function. */
+          okay = TRUE;
+          /* Return information on how the conversion is to be done. */
+          *conversion = candidate_functions->conversion;
+        }  /* if */
+        if (*ambiguous) conversion->unusable = TRUE;
+        if (*ambiguous && ambiguity_list != NULL) {
+          /* Return the candidate functions list to the caller, for use in
+             generating an ambiguity error.  The caller will free the list. */
+          *ambiguity_list = candidate_functions;
+        } else {
+          /* Free the candidate functions list. */
+          free_candidate_function_list(candidate_functions);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("overload")) {
+      db_display_overload_level();
+      fprintf(f_debug,
+              "Leaving cli_handle_user_defined_conversion_possible: %s\n",
+              okay ? "okay" : "not okay");
+    }  /* if */
+    overload_level--;
+#endif /* DEBUG */
+  }  /* if */
+  db_exit();
+  return okay;
+}  /* cli_handle_user_defined_conversion_possible */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean user_defined_conversion_possible(
                                       an_operand   *source_operand,
@@ -14106,6 +14264,26 @@ a reference type (the caller should have rewritten that case).
       err_code = ambiguous ? ec_ambiguous_conversion_function :
                              ec_no_conversion_function;
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled &&
+             (cli_handle_user_defined_conversion_possible(
+                                       source_operand, dest_type,
+                                       need_lvalue_result,
+                                       is_copy_initialization,
+                                       orig_is_copy_initialization,
+                                       is_reference_binding,
+                                       conversion,
+                                       &ambiguous, &ambiguity_list) ||
+              ambiguous)) {
+    /* A C++/CLI static conversion function can be used to do the conversion,
+       in a case where the source or destination is a handle. */
+    if (ambiguous) {
+      *failed = TRUE;
+      err_code = ec_ambiguous_conversion_function;
+    } else {
+      okay = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (is_template_param_type(source_type) ||
              is_template_param_type(dest_type)) {
     /* A template parameter type might be a class type.  Assume the conversion
@@ -16448,7 +16626,7 @@ been found to be acceptable, and *conversion describes it.
     } else {
       /* Direct binding is not possible. */
       if (!curr_expr_kind_is_const() &&
-          is_class_struct_union_type(source_operand->type)) {
+          is_potential_conv_function_source(source_operand->type)) {
         /* It might be possible to convert the source operand to an lvalue
            via a conversion function, and then bind the reference directly to
            the result. */
@@ -17459,7 +17637,7 @@ used only in C++ mode.
       conv->class_object_adjustment_required = TRUE;
       conv->result_is_an_lvalue = TRUE;
     } else if (!curr_expr_kind_is_const() &&
-               is_class_struct_union_type(op1_type)) {
+               is_potential_conv_function_source(op1_type)) {
       /* It might be possible to convert the source operand to an lvalue
          via a conversion function, and then bind the reference directly to
          the result. */

@@ -11543,8 +11543,30 @@ a class object with regard to overloading.  Return TRUE if the given type
   }  /* if */
   return is_overloadable_handle;
 }  /* is_overloadable_handle_type */
-
+  
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+a_boolean is_potential_conv_function_source(a_type_ptr type)
+/*
+Return TRUE if the given type is one for which conversion functions
+may be available to convert to another type.  Usually, that's just
+class types, but in C++/CLI mode it also includes handle-to-class
+types, since static conversion functions can convert from a handle
+type.
+*/
+{
+  a_boolean is_potential_source = FALSE;
+
+  if (is_class_struct_union_type(type)) {
+    is_potential_source = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && is_overloadable_handle_type(type)) {
+    is_potential_source = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+  return is_potential_source;
+}  /* is_potential_conv_function_source */
+
 
 a_boolean is_overloadable_first_operand_type(a_type_ptr type)
 /*

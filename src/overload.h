@@ -716,6 +716,19 @@ extern void bind_member_function_operand_to_selector(
                                          a_boolean  selector_is_object_pointer,
                                          an_operand *function_operand);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean cli_handle_user_defined_conversion_possible(
+                          an_operand               *source_operand,
+                          a_type_ptr               dest_type,
+                          a_boolean                need_lvalue_result,
+                          a_boolean                is_copy_initialization,
+                          a_boolean                orig_is_copy_initialization,
+                          a_boolean                is_reference_binding,
+                          a_conv_descr             *conversion,
+                          a_boolean                *ambiguous,
+                          a_candidate_function_ptr *ambiguity_list);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern a_boolean user_defined_conversion_possible(
                                       an_operand   *source_operand,
                                       a_type_ptr   dest_type,

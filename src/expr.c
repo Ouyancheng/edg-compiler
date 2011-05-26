@@ -16083,7 +16083,7 @@ called only in C++ mode.
           /* An rvalue reference cannot be bound to an lvalue.  Note that
              some cases rejected here may end up being accepted under the
              pointer-rewrite rule for reinterpret_cast, which is correct. */
-        } else if (is_class_struct_union_type(operand->type) &&
+        } else if (is_potential_conv_function_source(operand->type) &&
                    (conversion_for_direct_reference_binding_possible(
                                            operand,
                                            type_cast_to,
@@ -16154,6 +16154,25 @@ called only in C++ mode.
               possible = TRUE;
               determined_conversion = &conversion;
             }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (cppcli_enabled &&
+                     (cli_handle_user_defined_conversion_possible(
+                                       operand,
+                                       eff_type_cast_to,
+                                       /*need_lvalue_result=*/FALSE,
+                                       /*is_copy_initialization=*/TRUE, /*sic*/
+                                       /*orig_is_copy_initialization=*/TRUE,
+                                       /*is_reference_binding=*/FALSE, /*sic*/
+                                       &conversion,
+                                       &ambiguous,
+                                       (a_candidate_function_ptr *)NULL) ||
+                      ambiguous)) {
+            /* A C++/CLI static conversion function involving a handle type
+               can be used to create a temporary to which the reference can
+               be bound. */
+            possible = TRUE;
+            determined_conversion = &conversion;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             /* Neither the source type nor the destination underlying type is
                a class.  See whether the source operand can be converted

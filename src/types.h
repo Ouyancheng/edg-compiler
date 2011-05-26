@@ -1040,6 +1040,7 @@ same test: template parameter type or nonreal class type.
 #if !STANDALONE_UTILITY_PROGRAM
 extern a_boolean is_overloadable_type(a_type_ptr type);
 extern a_boolean is_overloadable_handle_type(a_type_ptr type);
+extern a_boolean is_potential_conv_function_source(a_type_ptr type);
 extern a_boolean is_overloadable_first_operand_type(a_type_ptr type);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
