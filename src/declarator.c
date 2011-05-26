@@ -5397,6 +5397,10 @@ locator->specific_symbol to point to the correct symbol entry.
                   cssp = symbol_supplement_for_class(class_type);
       a_type_ptr  func_type = skip_typerefs(derived_type);
       a_symbol_ptr  conv_op;
+      /* Managed class types don't allow cv-qualifiers on member functions:
+         So we shouldn't get here with managed class types (and hence static
+         conversion functions do not get here either). */
+      check_assertion(!is_immediate_managed_class_type(class_type));
       conv_op = find_conversion_template_instance(
                        locator, cssp->conversion_template_list,
                        /*match_fn_qualifiers=*/TRUE,
