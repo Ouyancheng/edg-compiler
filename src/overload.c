@@ -2566,6 +2566,25 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       set_arg_summary_for_user_conversion(arg_summary, &conversion,
                                           orig_param_type, param_is_reference);
       goto have_level;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled && source_can_be_rvalue &&
+               (cli_handle_user_defined_conversion_possible(
+                                       orig_arg_operand,
+                                       param_type,
+                                       /*need_lvalue_result=*/FALSE,
+                                       /*is_copy_initialization=*/TRUE,
+                                       /*orig_is_copy_initialization=*/TRUE,
+                                       /*is_reference_binding=*/FALSE, /*sic*/
+                                       &conversion,
+                                       &ambiguous,
+                                       (a_candidate_function_ptr *)NULL) ||
+                ambiguous)) {
+      /* A C++/CLI static conversion function involving a handle type
+         can be used. */
+      set_arg_summary_for_user_conversion(arg_summary, &conversion,
+                                          orig_param_type, param_is_reference);
+      goto have_level;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
   /* Case [5] in the ARM, match with ellipsis, is handled by the caller. */

@@ -1729,19 +1729,19 @@ Dump the contents of the indicated expression node for debug purposes.
         db_abbreviated_type(gsp->type);
         fputs("\n", f_debug);
         if (gsp->cli_array_dimension_lengths != NULL) {
-          for (a = 0; a < level; a++) fputs(" ", f_debug);
+          for (a = 0; a < level+2; a++) fputs(" ", f_debug);
           fprintf(f_debug, "dimension lengths:\n");
           for (operand = gsp->cli_array_dimension_lengths;
                operand != NULL;
                operand = operand->next) {
-            db_expr_node(operand, level + 2);
+            db_expr_node(operand, level + 4);
           }  /* for */
         }  /* if */
         if (gsp->dynamic_init != NULL) {
-          for (a = 0; a < level; a++) fputs(" ", f_debug);
+          for (a = 0; a < level+2; a++) fputs(" ", f_debug);
           fprintf(f_debug, "dynamic_init: ");
           db_dynamic_initializer(gsp->dynamic_init,
-                                 level + 2);
+                                 level + 4);
         }  /* if */
       }
       break;
