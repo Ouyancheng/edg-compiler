@@ -5940,7 +5940,7 @@ for use in generating cross-reference output describing this declaration.
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   }  /* if */
   *ext_sym = NULL;
-  if (linkage != idl_none && !redeclaration &&
+  if (alloc_at_file_scope && !redeclaration &&
       !(scope_stack_top().in_prototype_instantiation &&
         is_template_dependent_type(type_ptr))) {
     /* The symbol has external or internal linkage.  Find or create an
