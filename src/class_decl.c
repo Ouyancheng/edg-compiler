@@ -7030,7 +7030,7 @@ to FALSE before returning).
          class A : public B { ... };      // It must be set for B, too.
     */
     if (cssp->target_of_conversion_function) {
-      set_target_of_conversion_function_flag(direct_bcp->type);
+      set_target_of_conversion_function_flag(bcp_type);
     }  /* if */
   }  /* if */
 }  /* add_new_direct_base */
@@ -15620,6 +15620,48 @@ Implement the C++/CLI dispose pattern for this class it is needed.
   }  /* if */
 }  /* implement_dispose_pattern_if_needed */
 
+
+static void check_for_user_defined_inheritance_conversions(
+                                                       a_type_ptr  class_type)
+/*
+Look for user-defined conversions declared in the base classes of class_type
+that now turn out to correspond to derived-to-base or base-to-derived
+conversions: If that is the case, issue a warning on the function and remove
+the function from the conversion functions list associated with the type of
+the base.  With standard nonstatic conversion functions this check is handled
+when they are declared.  However, with C++/CLI static conversion functions
+it couldn't be done if a source or destination class type was incomplete at
+the point of declaration of the conversion function.
+*/
+{
+  a_base_class_ptr  bcp = base_classes_of(class_type);
+
+  for (; bcp != NULL; bcp = bcp->next) {
+    a_class_symbol_supplement_ptr
+                             cssp = symbol_supplement_for_class(bcp->type);
+    a_symbol_list_entry_ptr  *slep = &cssp->conversion_list, to_remove;
+    while (*slep != NULL) {
+      a_symbol_ptr  sym = (*slep)->symbol;
+      a_type_ptr    rtp = sym->variant.routine.ptr->type;
+      if (!routine_type_is_nonstatic_member_function(rtp) &&
+          !is_implicitly_callable_conversion_function(rtp)) {
+        /* A static conversion function (the only kind that cannot always be
+           handled at the point of declaration) that turns out to be marked by
+           a standard conversion after all. */
+        pos_sy_warning(ec_conversion_function_not_usable,
+                       &sym->decl_position, sym);
+        to_remove = *slep;
+        *slep = to_remove->next;
+        to_remove->next = NULL;
+        free_list_of_symbol_list_entries(to_remove);
+      } else {
+        /* This conversion function is not suspect: Move to the next one. */
+        slep = &(*slep)->next;
+      }  /* if */
+    }  /* while */
+  }  /* for */
+}  /* check_for_user_defined_inheritance_conversions */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void check_special_member_functions(a_type_ptr            class_type,
@@ -15809,6 +15851,7 @@ The routine body is not generated until it is known to be needed.
          implementation if one is needed. */
       implement_dispose_pattern_if_needed(class_state);
     }  /* if */
+    check_for_user_defined_inheritance_conversions(class_type);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
