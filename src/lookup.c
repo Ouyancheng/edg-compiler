@@ -5486,9 +5486,10 @@ associated namespaces and classes to "namespace_list" and "class_list".
     case tk_struct:
     case tk_union:
       ctsp = type->variant.class_struct_union.extra_info;
-      if (ctsp->is_predeclared) {
-        /* A predeclared class type (e.g., __builtin_va_list on some 64-bit
-           platforms) doesn't participate in this lookup. */
+      if (ctsp->is_predeclared && !is_namespace_member(type)) {
+        /* A predeclared class type in the global namespace (e.g.,
+           __builtin_va_list on some 64-bit platforms) doesn't participate in
+           this lookup. */
       } else {
         /* The standard specifies different behavior for unions vs. classes.
            Specifically, the class of which a class is a member is not
