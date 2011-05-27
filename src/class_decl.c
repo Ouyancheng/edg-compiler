@@ -10549,14 +10549,18 @@ conversions.
       class_type = type_pointed_to(class_type);
     }  /* if */
     class_type = skip_typerefs(class_type);
-    check_assertion(is_immediate_managed_class_type(class_type));
+    if (is_error_type(class_type)) {
+      class_type = NULL;
+    } else {
+      check_assertion(is_immediate_managed_class_type(class_type));
+    }  /* if */
     is_static = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Note that return_type_of removes references, which is desired. */
   ret_type = f_skip_typerefs(return_type_of(rout_type));
   if (class_type == NULL) {
-    /* This can happen with severe syntax errors. */
+    /* This can happen in error cases. */
     expect_error();
   } else if (same_entities(ret_type, class_type)) {
     /* Converting to same type (possibly qualified) is not allowed. */
@@ -15834,22 +15838,23 @@ The routine body is not generated until it is known to be needed.
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled &&
-      (cli_class_type_kind_is(class_type, cctk_ref) ||
-       cli_class_type_kind_is(class_type, cctk_value))) {
-    /* Determine if the class implements the System::IDisposable interface.
-       We don't want to instantiate class_type, because we are currently in
-       the complete_class_definition call that is in the midst of doing that,
-       and by this point all base classes have been scanned. */
-    cssp->is_disposable =
-        find_base_class_of_full(class_type,
-                                cli_class_type_for(csk_system_idisposable),
-                                /*instantiate_if_necessary=*/FALSE) != NULL;
-    if (class_type_supp(class_type)->assembly_index == 0 &&
-        !class_type->variant.class_struct_union.is_prototype_instantiation) {
-      /* The class was not defined in metadata.  Generate the dispose pattern
-         implementation if one is needed. */
-      implement_dispose_pattern_if_needed(class_state);
+  if (cppcli_enabled && is_immediate_managed_class_type(class_type)) {
+    if (cli_class_type_kind_is(class_type, cctk_ref) ||
+        cli_class_type_kind_is(class_type, cctk_value)) {
+      /* Determine if the class implements the System::IDisposable interface.
+         We don't want to instantiate class_type, because we are currently in
+         the complete_class_definition call that is in the midst of doing that,
+         and by this point all base classes have been scanned. */
+      cssp->is_disposable =
+          find_base_class_of_full(class_type,
+                                  cli_class_type_for(csk_system_idisposable),
+                                  /*instantiate_if_necessary=*/FALSE) != NULL;
+      if (class_type_supp(class_type)->assembly_index == 0 &&
+          !class_type->variant.class_struct_union.is_prototype_instantiation) {
+        /* The class was not defined in metadata.  Generate the dispose pattern
+           implementation if one is needed. */
+        implement_dispose_pattern_if_needed(class_state);
+      }  /* if */
     }  /* if */
     check_for_user_defined_inheritance_conversions(class_type);
   }  /* if */
