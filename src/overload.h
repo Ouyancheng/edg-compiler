@@ -168,6 +168,10 @@ conversion_from_class_possible.
 			   integral). */
 #define BTK_PTRDIFF_T 0x100
 			/* ptrdiff_t */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define BTK_HANDLE 0x200
+			/* Any handle type. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define BTK_NONE 0
 typedef int a_builtin_type_kind_set;
 

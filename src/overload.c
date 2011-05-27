@@ -1453,6 +1453,10 @@ for overload resolution.
 			/* Arithmetic type. */
 #define POINTER_TYPE_CODE 'P'
 			/* Any pointer type. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define HANDLE_TYPE_CODE 'H'
+			/* Any handle type. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define POINTER_TO_OBJECT_TYPE_CODE 'O'
 			/* Pointer to object type. */
 #define POINTER_TO_FUNCTION_TYPE_CODE 'F'
@@ -1496,6 +1500,11 @@ Return a printable string describing a type code.
     case POINTER_TYPE_CODE:
       str = "pointer";
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case HANDLE_TYPE_CODE:
+      str = "handle";
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case POINTER_TO_OBJECT_TYPE_CODE:
       str = "pointer-to-object";
       break;
@@ -10690,6 +10699,10 @@ are considered).  This routine is only used in C++ mode.
                                               is_floating_type(return_type)) ||
           ((builtin_types_allowed & BTK_POINTER) != 0 &&
                                               is_pointer_type(return_type)) ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          ((builtin_types_allowed & BTK_HANDLE) != 0 &&
+                                              is_handle_type(return_type)) ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           ((builtin_types_allowed & BTK_POINTER_TO_OBJECT) != 0 &&
                                      is_pointer_to_object_type(return_type)) ||
           ((builtin_types_allowed & BTK_POINTER_TO_FUNCTION) != 0 &&
@@ -11257,6 +11270,11 @@ type_code.
     case POINTER_TYPE_CODE:
       builtin_types_allowed = BTK_POINTER;
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case HANDLE_TYPE_CODE:
+      builtin_types_allowed = BTK_HANDLE;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case POINTER_TO_OBJECT_TYPE_CODE:
       builtin_types_allowed = BTK_POINTER_TO_OBJECT;
       break;

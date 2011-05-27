@@ -2254,6 +2254,7 @@ ec_address_of_initonly_field;;"taking the address of an initonly field is not al
 ec_modification_of_initonly_field;;"an initonly field can only be modified by the instance constructor of its containing class"
 ec_modification_of_static_initonly_field;;"a static initonly field can only be modified by the static constructor of its containing class"
 ec_member_function_call_on_initonly_field;;"member function will be invoked on a copy of the initonly field"
+ec_expr_not_pointer_nor_handle;;"expression must have pointer or handle type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

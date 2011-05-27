@@ -2265,6 +2265,10 @@ extern void expr_trans_unit_init(void);
 
 extern void expr_init(void);
 
+extern a_boolean check_pointer_or_handle_operand(an_operand     *operand,
+                                                 a_boolean      only_pointers,
+                                                 an_error_code  err_code);
+
 #endif /* ifndef EXPRUTIL_H */
 
 
