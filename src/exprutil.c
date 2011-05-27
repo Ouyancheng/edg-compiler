@@ -7744,7 +7744,6 @@ FALSE if there is an error.
   a_type_ptr       local_operation_type;
   a_boolean        operand_1_is_handle = is_handle_type(operand_1_type);
   a_boolean        operand_2_is_handle = is_handle_type(operand_2_type);
-  a_std_conv_descr std_conv;
 
   if (operand_1_is_handle) {
     /* See if the second operand can be converted to the type of the
@@ -7752,11 +7751,11 @@ FALSE if there is an error.
     if (impl_handle_conversion(operand_2_type,
                                operand_1_type,
                                /*allow_qualifier_or_eh_mismatch=*/TRUE,
-                               &std_conv) ||
+                               (a_std_conv_descr *)NULL) ||
         (operand_2->is_simple_string_literal &&
          cli_string_literal_conversion_possible(operand_2->type,
                                                 operand_1_type,
-                                                &std_conv))) {
+                                                (a_std_conv_descr *)NULL))) {
       local_operation_type = operand_1_type;
       okay = TRUE;
     }  /* if */
@@ -7767,11 +7766,11 @@ FALSE if there is an error.
     if (impl_handle_conversion(operand_1_type,
                                operand_2_type,
                                /*allow_qualifier_or_eh_mismatch=*/TRUE,
-                               &std_conv) ||
+                               (a_std_conv_descr *)NULL) ||
         (operand_1->is_simple_string_literal &&
          cli_string_literal_conversion_possible(operand_1->type,
                                                 operand_2_type,
-                                                &std_conv))) {
+                                                (a_std_conv_descr *)NULL))) {
       local_operation_type = operand_2_type;
       okay = TRUE;
     }  /* if */

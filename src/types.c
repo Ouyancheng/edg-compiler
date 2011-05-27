@@ -2971,7 +2971,7 @@ because any exception it can handle would be caught by type_1's handler.
          implicitly converted to the former. */
       if (impl_handle_conversion(type_2, type_1,
                                  /*allow_qualifier_or_eh_mismatch=*/FALSE,
-                                 &std_conv)) {
+                                 (a_std_conv_descr *)NULL)) {
         masked = TRUE;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7130,9 +7130,10 @@ source_type (any type) to something of type dest_type (a C++/CLI
 handle type).  If allow_qualifier_or_eh_mismatch is TRUE, ignore
 cv-qualifier mismatches (the two types are probably the types of the
 operands of an operation).  If the conversion is possible, *std_conv
-is filled out to describe the conversion.  Doesn't cover boxing
-conversions (value class --> handle to boxed value) or string literal
-conversions (string-literal --> handle to System::String).
+is filled out to describe the conversion.  std_conv can be NULL if
+that information is not needed.  Doesn't cover boxing conversions
+(value class --> handle to boxed value) or string literal conversions
+(string-literal --> handle to System::String).
 */
 {
   a_boolean        okay = FALSE;
@@ -7151,10 +7152,12 @@ conversions (string-literal --> handle to System::String).
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
-  clear_std_conv_descr(std_conv);
-  /* Assume a nontrivial conversion; the flag will be cleared later if in
-     fact there is nothing nontrivial. */
-  std_conv->nontrivial_conversion = TRUE;
+  if (std_conv != NULL) {
+    clear_std_conv_descr(std_conv);
+    /* Assume a nontrivial conversion; the flag will be cleared later if in
+       fact there is nothing nontrivial. */
+    std_conv->nontrivial_conversion = TRUE;
+  }  /* if */
   source_type = skip_typerefs(source_type);
   dest_type = skip_typerefs(dest_type);
 #if CHECKING
@@ -7182,7 +7185,7 @@ conversions (string-literal --> handle to System::String).
                              unqual_dest_type_pointed_to)) {
       /* The types pointed to are compatible. */
       okay = TRUE;
-      std_conv->nontrivial_conversion = FALSE;
+      if (std_conv != NULL) std_conv->nontrivial_conversion = FALSE;
     } else if (is_class_or_struct(unqual_source_type_pointed_to) &&
                is_class_or_struct(unqual_dest_type_pointed_to) &&
                (bcp = find_base_class_of(unqual_source_type_pointed_to,
@@ -7190,7 +7193,7 @@ conversions (string-literal --> handle to System::String).
                                                                      != NULL) {
       /* Conversion from handle-to-derived to handle-to-base. */
       okay = TRUE;
-      std_conv->cast_base_class = bcp;
+      if (std_conv != NULL) std_conv->cast_base_class = bcp;
     } else if (is_template_dependent_context() &&
                (is_template_dependent_type(unqual_dest_type_pointed_to) ||
                 is_template_dependent_type(unqual_source_type_pointed_to))) {
@@ -7204,21 +7207,23 @@ conversions (string-literal --> handle to System::String).
                source_unknown == dest_unknown) {
       /* Source and destination are arrays with the same rank; see if there
          is a handle conversion for the underlying elements. */
-      a_std_conv_descr  element_std_conv;
+      a_std_conv_descr  element_std_conv, *e_std_conv = NULL;
       a_type_ptr        source_element_type, dest_element_type;
+      if (std_conv != NULL) e_std_conv = &element_std_conv;
       source_element_type = cli_array_element_type(
                                                 unqual_source_type_pointed_to);
       dest_element_type = cli_array_element_type(unqual_dest_type_pointed_to);
-      clear_std_conv_descr(&element_std_conv);
       if (is_handle_type(source_element_type) &&
           is_handle_type(dest_element_type) &&
           impl_handle_conversion(source_element_type, dest_element_type,
                                  /*allow_qualifier_or_eh_mismatch=*/FALSE,
-                                 &element_std_conv)) {
+                                 e_std_conv)) {
         /* Array covariance conversion is applicable. */
         okay = TRUE;
-        std_conv->cli_array_covariance_conversion = TRUE;
-        std_conv->cast_base_class = element_std_conv.cast_base_class;
+        if (std_conv != NULL) {
+          std_conv->cli_array_covariance_conversion = TRUE;
+          std_conv->cast_base_class = element_std_conv.cast_base_class;
+        }  /* if */
       }  /* if */
     }  /* if */
   } else if (is_error(source_type)) {
@@ -7241,7 +7246,7 @@ conversions (string-literal --> handle to System::String).
       okay = FALSE;
     } else {
       /* Qualifiers are being added. */
-      std_conv->type_qualifiers_added = TRUE;
+      if (std_conv != NULL) std_conv->type_qualifiers_added = TRUE;
     }  /* if */
   }  /* if */
 #if DEBUG

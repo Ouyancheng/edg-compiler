@@ -14084,17 +14084,22 @@ indicates whether the original initialization was copy-initialization
     check_assertion(!is_any_reference_type(dest_type));
     if (is_handle_type(source_type) ||
         is_handle_type(dest_type)) {
-      a_boolean        baseward_cast;
-      a_base_class_ptr bcp;
-      if ((is_handle_type(source_type) &&
-           is_handle_type(dest_type)) &&
-          (f_identical_types(type_pointed_to(source_type),
-                             type_pointed_to(dest_type),
-                             ITF_IGNORE_TOP_LEVEL_QUALIFIERS) ||
-           related_class_pointers_or_handles(source_type, dest_type,
-                                             &baseward_cast, &bcp))) {
-        /* For cases where an identity or standard conversion will work,
-           don't look for a conversion function. */
+      an_error_code warning_suggested;
+      a_boolean     source_is_constant = is_constant_operand(source_operand);
+      a_constant    *source_constant = source_is_constant ?
+                                            &source_operand->variant.constant :
+                                            (a_constant *)NULL;
+      if (static_cast_conversion_possible(
+                                   source_type,
+                                   source_is_constant,
+                                   source_operand->is_simple_string_literal,
+                                   source_constant,
+                                   dest_type,
+                                   /*allow_qualifier_or_eh_mismatch=*/TRUE,
+                                   ec_no_error,
+                                   &warning_suggested)) {
+        /* This conversion is valid as a built-in conversion, so do not look
+           for a conversion function. */
       } else {
         a_candidate_function_ptr candidate_functions = NULL;
         a_boolean                undecidable_because_of_error;
