@@ -15148,7 +15148,8 @@ in *rcblock).
 */
 {
   a_source_position  start_position, delete_position;
-  a_type_ptr         delete_type, ptr_delete_type, base_delete_type;
+  a_type_ptr         delete_type, base_delete_type;
+  a_type_ptr         ptr_delete_type = NULL;
   an_expr_node_ptr   ptr_node, delete_node;
   a_boolean          use_global_delete = FALSE, is_constant, array_delete;
   a_boolean          err = FALSE, processed = FALSE, template_case = FALSE;
@@ -15291,7 +15292,8 @@ in *rcblock).
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  handle_type_case = is_handle_type(ptr_delete_type);
+  handle_type_case = (ptr_delete_type != NULL &&
+                      is_handle_type(ptr_delete_type));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (err) {
     make_error_operand(result);
