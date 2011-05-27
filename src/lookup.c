@@ -5485,39 +5485,44 @@ associated namespaces and classes to "namespace_list" and "class_list".
     case tk_class:
     case tk_struct:
     case tk_union:
-      /* The standard specifies different behavior for unions vs. classes.
-         Specifically, the class of which a class is a member is not
-         an associated class, and a union is not one of its own associated
-         classes.  These seem to be errors in the standard, so this
-         implementation treats unions and classes equivalently. */
-      /* Add the class itself to the lookup list. */
-      add_class_to_lookup_lists(type, namespace_list, class_list);
-      if (!gpp_mode && (!microsoft_mode || microsoft_version >= 1500)) {
-        /* If this is a template, make sure it is instantiated.  This is not
-           done by the Microsoft (before version 1500) and g++ compilers. */
-        complete_class_type_is_needed(type);
-      }  /* if */
-      /* Add its base classes. */
       ctsp = type->variant.class_struct_union.extra_info;
-      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-        add_class_to_lookup_lists(bcp->type, namespace_list, class_list);
-      }  /* for */
-      /* The enclosing class (if any) and namespace should be included. */
-      add_parent = TRUE;
-      /* A class type.  Add the types and namespaces associated with
-         any template template arguments. */
-      if (type->variant.class_struct_union.is_template_class) {
-        /* Include the types of any template type arguments. */
-        a_template_arg_ptr	tap;
-        begin_template_arg_list_traversal_simple(
+      if (ctsp->is_predeclared) {
+        /* A predeclared class type (e.g., __builtin_va_list on some 64-bit
+           platforms) doesn't participate in this lookup. */
+      } else {
+        /* The standard specifies different behavior for unions vs. classes.
+           Specifically, the class of which a class is a member is not
+           an associated class, and a union is not one of its own associated
+           classes.  These seem to be errors in the standard, so this
+           implementation treats unions and classes equivalently. */
+        /* Add the class itself to the lookup list. */
+        add_class_to_lookup_lists(type, namespace_list, class_list);
+        if (!gpp_mode && (!microsoft_mode || microsoft_version >= 1500)) {
+          /* If this is a template, make sure it is instantiated.  This is not
+             done by the Microsoft (before version 1500) and g++ compilers. */
+          complete_class_type_is_needed(type);
+        }  /* if */
+        /* Add its base classes. */
+        for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+          add_class_to_lookup_lists(bcp->type, namespace_list, class_list);
+        }  /* for */
+        /* The enclosing class (if any) and namespace should be included. */
+        add_parent = TRUE;
+        /* A class type.  Add the types and namespaces associated with
+           any template template arguments. */
+        if (type->variant.class_struct_union.is_template_class) {
+          /* Include the types of any template type arguments. */
+          a_template_arg_ptr	tap;
+          begin_template_arg_list_traversal_simple(
                 type->variant.class_struct_union.extra_info->template_arg_list,
                 &tap);
-        for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
-          if (is_template_templ_arg(tap)) {
-            add_template_template_arg_to_lookup_lists(tap, namespace_list,
-                                                      class_list);
-          } /* if */
-        }  /* for */
+          for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
+            if (is_template_templ_arg(tap)) {
+              add_template_template_arg_to_lookup_lists(tap, namespace_list,
+                                                        class_list);
+            }  /* if */
+          }  /* for */
+        }  /* if */
       }  /* if */
       break;
     case tk_integer:

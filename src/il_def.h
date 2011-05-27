@@ -6533,6 +6533,10 @@ typedef struct a_class_type_supplement {
 			   "inline template" directive, which is used to
 			   cause a vtable to be emitted in a given translation
 			   unit. */
+  a_bit_field   is_predeclared:1;
+                        /* TRUE if this class was predeclared.  Currently used
+                           to disqualify such classes from name lookup
+                           operations. */
   an_anonymous_union_kind
 		anonymous_union_kind;
 			/* Indication of whether this class is an anonymous

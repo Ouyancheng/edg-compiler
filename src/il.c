@@ -21700,6 +21700,11 @@ with the given source position.
   set_namespace_membership(sym, &(predeclared_type->source_corresp), nsp);
   /* The referenced flag may have been reset by set_source_corresp. */
   predeclared_type->source_corresp.referenced = sym->referenced;
+  if (is_class_struct_union_type(predeclared_type)) {
+    /* Mark this class as being predeclared (used to disqualify this type
+       during name lookup). */
+    class_type_supp(f_skip_typerefs(predeclared_type))->is_predeclared = TRUE;
+  }  /* if */
   add_to_types_list(predeclared_type, scope_depth);
 }  /* enter_predeclared_class */
 
