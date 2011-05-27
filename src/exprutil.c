@@ -8908,11 +8908,12 @@ operand.
   if (is_error_operand(operand)) {
     /* If it is an error operand, an error message has already been issued. */
     okay = FALSE;
-  } else if (!is_pointer_type(operand->type)
+  } else if (!is_pointer_type(operand->type) &&
+             (only_pointers
 #if MICROSOFT_EXTENSIONS_ALLOWED
-             && (only_pointers || !is_handle_type(operand->type))
+              || !is_handle_type(operand->type)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-             ) {
+              )) {
     error_in_operand(err_code, operand);
     okay = FALSE;
   }  /* if */
