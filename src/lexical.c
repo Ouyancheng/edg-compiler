@@ -11435,7 +11435,8 @@ end_id_scan:
     case '#':
 check_start_of_pp_directive:
       {
-        a_boolean   first_char_is_digraph;
+        a_boolean first_char_is_digraph;
+        a_boolean no_chars_before_sharp = (curr_char_loc == curr_source_line);
 	/* As the first token on a line, "#" opens a preprocessing directive.
 	   "#" and "##" are also allowed within the body of a #define
 	   (for stringizing and pasting).  */
@@ -11480,9 +11481,11 @@ check_start_of_pp_directive:
 	    ctoken = tok_sharp;
 	  } /* if */
 	} else if (!any_tokens_gotten_from_curr_source_line &&
+                   (!pcc_preprocessing_mode || no_chars_before_sharp) &&
                    !in_token_insertion_from_string) {
-	  /* A sharp that is the first thing on a line -- This is a
-	     preprocessing directive. */
+          /* A sharp that is the first thing on a line (optionally preceded
+             by white space, except in pcc_preprocessing_mode) -- This is a
+             preprocessing directive. */
 	  if (!currently_in_pp_if_skip) {
 	    remember_token_start(); /* For the "#" pseudo-token. */
 	    {

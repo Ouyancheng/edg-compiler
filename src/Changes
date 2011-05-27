@@ -1,5 +1,20 @@
 Version 4.4
 
+5/27/11  [EDGcpfe/11766]
+Preprocessing directives, white space, and old-style preprocessing
+
+Pre-ANSI C preprocessors, as well as the GNU preprocessor with the
+-traditional-cpp option, only recognize a # character as the start of a
+preprocessing directive if it is the first character on the line.
+(Standard preprocessors allow the # to be preceded by white space.)  The
+front end has now been changed to emulate this facet of older preprocessors
+when --old_style_preprocessing is specified.  For example, the front end
+formerly reported an error with --preprocess --old_style_preprocessing but
+no longer does so:
+
+  /* */ # not_a_directive
+
+
 5/27/11  [EDGcpfe/11743,EDGcpfe/11751]
 GNU compatibility: Name lookup with __builtin_va_list on 64-bit platforms
 
