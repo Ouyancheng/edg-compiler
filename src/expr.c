@@ -15250,8 +15250,8 @@ in *rcblock).
   }  /* if */
   if (!processed) {
     do_operand_transformations(&operand, TOPT_NO_OPTIONS);
-    /* The operand of a delete must be a pointer or, in C++/CLI mode,
-       a handle. */
+    /* The operand of a delete must be a pointer or, in C++/CLI mode, a
+       handle. */
     if (!err && !template_case) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (cppcli_enabled) {

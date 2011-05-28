@@ -8909,7 +8909,7 @@ If there is an error, make "operand" into an error operand.
     okay = FALSE;
   }  /* if */
 
-    return okay;
+  return okay;
 }  /* check_pointer_operand */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
