@@ -170,7 +170,7 @@ conversion_from_class_possible.
 			/* ptrdiff_t */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define BTK_HANDLE 0x200
-			/* Any handle type. */
+			/* Any C++/CLI handle type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define BTK_NONE 0
 typedef int a_builtin_type_kind_set;

@@ -1455,7 +1455,7 @@ for overload resolution.
 			/* Any pointer type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define HANDLE_TYPE_CODE 'H'
-			/* Any handle type. */
+			/* Any C++/CLI handle type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define POINTER_TO_OBJECT_TYPE_CODE 'O'
 			/* Pointer to object type. */

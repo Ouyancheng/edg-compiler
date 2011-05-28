@@ -15148,8 +15148,7 @@ in *rcblock).
 */
 {
   a_source_position  start_position, delete_position;
-  a_type_ptr         delete_type, base_delete_type;
-  a_type_ptr         ptr_delete_type = NULL;
+  a_type_ptr         delete_type, ptr_delete_type, base_delete_type;
   an_expr_node_ptr   ptr_node, delete_node;
   a_boolean          use_global_delete = FALSE, is_constant, array_delete;
   a_boolean          err = FALSE, processed = FALSE, template_case = FALSE;
@@ -15254,12 +15253,20 @@ in *rcblock).
     /* The operand of a delete must be a pointer or, in C++/CLI mode,
        a handle. */
     if (!err && !template_case) {
-      if (!check_pointer_or_handle_operand(
-                              &operand,
-                              !cppcli_enabled,
-                              cppcli_enabled ? ec_expr_not_pointer_nor_handle :
-                                               ec_expr_not_pointer)) {
-        err = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled) {
+        if (check_pointer_or_handle_operand(&operand,
+                                            ec_expr_not_pointer_nor_handle)) {
+          handle_type_case = is_handle_type(operand.type);
+        } else {
+          err = TRUE;
+        }  /* if */
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      { if (!check_pointer_operand(&operand, ec_expr_not_pointer)) {
+          err = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   } else if (is_error_operand(&operand)) {
@@ -15291,10 +15298,6 @@ in *rcblock).
       }  /* if */
     }  /* if */
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  handle_type_case = (ptr_delete_type != NULL &&
-                      is_handle_type(ptr_delete_type));
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (err) {
     make_error_operand(result);
   } else {

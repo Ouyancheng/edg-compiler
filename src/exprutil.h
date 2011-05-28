@@ -1764,6 +1764,13 @@ an_expr_node_ptr find_primary_cast_node(an_expr_node_ptr   orig_operand_expr,
 extern a_boolean check_pointer_operand(an_operand    *operand,
 				       an_error_code err_code);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+extern a_boolean check_pointer_or_handle_operand(an_operand     *operand,
+                                                 an_error_code  err_code);
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern void make_expression_operand(an_expr_node_ptr node,
 			            an_operand       *operand);
 
@@ -2264,10 +2271,6 @@ extern void expr_one_time_init(void);
 extern void expr_trans_unit_init(void);
 
 extern void expr_init(void);
-
-extern a_boolean check_pointer_or_handle_operand(an_operand     *operand,
-                                                 a_boolean      only_pointers,
-                                                 an_error_code  err_code);
 
 #endif /* ifndef EXPRUTIL_H */
 

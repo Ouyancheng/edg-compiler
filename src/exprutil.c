@@ -8889,14 +8889,11 @@ enum types).  If there is an error, change the operand to an error operand.
 }  /* check_arithmetic_or_enum_operand */
 
 
-a_boolean check_pointer_or_handle_operand(an_operand     *operand,
-                                          a_boolean      only_pointers,
-                                          an_error_code  err_code)
+a_boolean check_pointer_operand(an_operand    *operand,
+                                an_error_code err_code)
 /*
-Return FALSE and issue an error message if the operand is not a pointer type
-and if it is not a C++/CLI handle type (the latter check is only performed if
-only_pointers is FALSE).  If there is an error, make "operand" into an error
-operand.
+Return FALSE and issue an error message if the operand is not a pointer type.
+If there is an error, make "operand" into an error operand.
 */
 {
   a_boolean okay = TRUE;
@@ -8907,30 +8904,40 @@ operand.
   if (is_error_operand(operand)) {
     /* If it is an error operand, an error message has already been issued. */
     okay = FALSE;
-  } else if (!is_pointer_type(operand->type) &&
-             (only_pointers
+  } else if (!is_pointer_type(operand->type)) {
+    error_in_operand(err_code, operand);
+    okay = FALSE;
+  }  /* if */
+
+    return okay;
+}  /* check_pointer_operand */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
-              || !is_handle_type(operand->type)
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-              )) {
+
+a_boolean check_pointer_or_handle_operand(an_operand     *operand,
+                                          an_error_code  err_code)
+/*
+Return FALSE and issue an error message if the operand is neither a pointer
+type nor a C++/CLI handle type (this check should be called only if
+cppcli_enabled is TRUE).  If there is an error, make "operand" into an
+error operand.
+*/
+{
+  a_boolean okay = TRUE;
+
+  check_assertion(cppcli_enabled);
+  if (is_error_operand(operand)) {
+    /* If it is an error operand, an error message has already been issued. */
+    okay = FALSE;
+  } else if (!is_pointer_type(operand->type) &&
+             !is_handle_type(operand->type)) {
     error_in_operand(err_code, operand);
     okay = FALSE;
   }  /* if */
   return okay;
 }  /* check_pointer_or_handle_operand */
 
-
-a_boolean check_pointer_operand(an_operand    *operand,
-				an_error_code err_code)
-/*
-Return FALSE and issue an error message if the operand is not a pointer type.
-If there is an error, make "operand" into an error operand.
-*/
-{
-  return check_pointer_or_handle_operand(operand, /*only_pointers=*/TRUE,
-                                         err_code);
-}  /* check_pointer_operand */
-
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean check_object_pointer_operand(an_operand    *operand,
 		    		       an_error_code err_code)
