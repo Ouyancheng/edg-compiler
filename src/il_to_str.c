@@ -4784,7 +4784,14 @@ precedence confusion.  Do the output in the way described by octl.
           /* Address of an unknown function, or of an unknown function template
              with an explicit template argument list. */
           if (need_parens) octl->output_str("(", octl);
-          octl->output_str("&", octl);
+          if (!use_gnu_form()) {
+            /* g++, at least in versions 3.4 through 4.6, has a bug that
+               causes it to report a spurious error when & appears in a
+               non-type template argument.  Rely on implicit
+               function-to-pointer decay and suppress the & when g++ is the
+               generated code target. */
+            octl->output_str("&", octl);
+          }  /* if */
           form_unknown_function_constant(constant, octl);
           if (need_parens) octl->output_str(")", octl);
           break;
