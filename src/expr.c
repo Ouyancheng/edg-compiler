@@ -21182,11 +21182,18 @@ that case.
         }  /* if */
       }  /* if */
     } else if (is_class_struct_union_type(operand_2.type) ||
-               is_class_struct_union_type(operand_3.type)) {
+               is_class_struct_union_type(operand_3.type)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+               || is_overloadable_handle_type(operand_2.type)
+               || is_overloadable_handle_type(operand_3.type)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+              ) {
       /* One or both of the operands has a class type, and they do not have
          the same type.  (One could have a cv-qualified version of the type
          of the other.)  Try converting each operand to the type of the
          other.  See 5.16 paragraph 3 in the C++ standard. */
+      /* In C++/CLI, handles can act like class types because static
+         conversion functions can convert from or to them. */
       a_conv_descr conv_2_to_3, conv_3_to_2;
       a_boolean    conv_2_to_3_possible, conv_3_to_2_possible;
       a_boolean    ambig_2_to_3, ambig_3_to_2;

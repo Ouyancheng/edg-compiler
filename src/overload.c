@@ -17628,7 +17628,9 @@ describe the conversion and return TRUE.  If the conversion is ambiguous,
 set *ambiguous to TRUE and return TRUE.  However, if ambiguous == NULL
 in that case, issue the ambiguity error (and still return TRUE).
 One or the other of the operands must have a class type.  This is
-used only in C++ mode.
+used only in C++ mode.  In C++/CLI mode, this routine can be called
+for operands that are handles, because static conversion functions
+can convert to or from handles.
 */
 {
   a_boolean        possible = FALSE, local_ambiguous = FALSE;
@@ -17770,8 +17772,7 @@ used only in C++ mode.
             local_ambiguous) {
           possible = TRUE;
         }  /* if */
-      } else {
-        check_assertion(is_class_struct_union_type(op1_type));
+      } else if (is_class_struct_union_type(op1_type)) {
         if (conversion_from_class_possible(op1,
                                            conv_dest_type,
                                            (a_builtin_type_kind_set)BTK_NONE,
@@ -17785,6 +17786,28 @@ used only in C++ mode.
             local_ambiguous) {
           possible = TRUE;
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (cppcli_enabled &&
+                 (is_handle_type(op1_type) ||
+                  is_handle_type(op2_type))) {
+        /* In C++/CLI a static conversion function can be used to convert 
+           to or from a handle. */
+        if (cli_handle_user_defined_conversion_possible(
+                                       op1,
+                                       conv_dest_type,
+                                       /*need_lvalue_result=*/FALSE,
+                                       /*is_copy_initialization=*/TRUE,
+                                       /*orig_is_copy_initialization=*/TRUE,
+                                       /*is_reference_binding=*/FALSE,
+                                       conv,
+                                       &local_ambiguous,
+                                       p_ambiguity_list) ||
+            local_ambiguous) {
+          possible = TRUE;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      } else {
+        unexpected_condition();
       }  /* if */
     }  /* if */
   }  /* if */
