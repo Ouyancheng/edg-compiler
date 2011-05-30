@@ -11711,7 +11711,7 @@ the target type to be used).
         }  /* if */
       } else if (is_class_struct_union_type(operand_type)
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                 || (cppcli_enabled && is_handle_type(operand_type)) &&
+                 || (cppcli_enabled && is_handle_type(operand_type) &&
                      !impl_conversion_possible(
                                       operand_type,
                                       /*source_is_constant=*/FALSE,
@@ -11720,8 +11720,9 @@ the target type to be used).
                                       eff_specific_type,
                                       /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                       /*suppress_extensions=*/TRUE,
-                                      ec_no_error, &std_conv)) {
+                                      ec_no_error, &std_conv))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                 ) {
         /* The operand has a class type, so see if it can be converted to
            the specific type (which is a non-class type).  In C++/CLI
            mode, a handle is treated the same way, but not if a standard
