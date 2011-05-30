@@ -2216,9 +2216,11 @@ skipping any namespace aliases that might be present.
 extern a_type_ptr init_predeclared_class(a_type_kind  kind,
                                          char         *name);
 
-extern void enter_predeclared_class(a_type_ptr         predeclared_type,
-                                    a_scope_depth      scope_depth,
-                                    a_source_position  *pos);
+extern void enter_predeclared_class(
+                a_type_ptr         predeclared_type,
+                a_scope_depth      scope_depth,
+                a_source_position  *pos,
+                a_boolean          exempt_from_argument_dependent_name_lookup);
 
 extern a_targ_alignment alignment_of_variable(a_variable_ptr  vp);
 

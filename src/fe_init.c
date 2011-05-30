@@ -1413,11 +1413,13 @@ when it is a secondary file.
          type_info type resides in the global namespace. */
       if (!type_info_in_namespace_std || ignore_std_namespace) {
         enter_predeclared_class(type_of_type_info, DEPTH_OF_FILE_SCOPE,
-                                &null_source_position);
+                                &null_source_position,
+                         /*exempt_from_argument_dependent_name_lookup=*/FALSE);
       }  /* if */
       type_of_guid = init_predeclared_class((a_type_kind)tk_struct, "_GUID");
       enter_predeclared_class(type_of_guid, DEPTH_OF_FILE_SCOPE,
-                              &null_source_position);
+                              &null_source_position,
+                         /*exempt_from_argument_dependent_name_lookup=*/FALSE);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Add symbols for ::operator new and ::operator delete to the symbol

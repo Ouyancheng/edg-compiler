@@ -22432,7 +22432,8 @@ Create and return the __va_list_tag struct type that is predefined by certain
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Create a struct with name __va_list_tag. */
   type = init_predeclared_class((a_type_kind)tk_struct, "__va_list_tag");
-  enter_predeclared_class(type, DEPTH_OF_FILE_SCOPE, &null_source_position);
+  enter_predeclared_class(type, DEPTH_OF_FILE_SCOPE, &null_source_position,
+                          /*exempt_from_argument_dependent_name_lookup=*/TRUE);
   sym = symbol_for(type);
   cssp = sym->variant.class_struct_union.extra_info;
   cssp->construction_by_bitwise_copy_allowed = TRUE;

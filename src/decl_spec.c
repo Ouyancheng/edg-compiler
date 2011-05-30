@@ -1437,7 +1437,8 @@ caution when modifying this routine.
            been added to the symbol table yet.  Use the current source
            position. */
         enter_predeclared_class(predeclared_type, computed_decl_level,
-                                &locator_for_curr_id.source_position);
+                                &locator_for_curr_id.source_position,
+                         /*exempt_from_argument_dependent_name_lookup=*/FALSE);
         *is_predeclared_type_decl = TRUE;
       }  /* if */
     }  /* if */

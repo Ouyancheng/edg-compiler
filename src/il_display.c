@@ -5887,8 +5887,8 @@ Display the indicated class type supplement entry.
         (void)printf("**BAD ANONYMOUS UNION KIND**\n");
     }  /* switch */
   }  /* if */
-  if (ptr->is_predeclared) {
-    disp_boolean("is_predeclared", TRUE);
+  if (ptr->exempt_from_argument_dependent_name_lookup) {
+    disp_boolean("exempt_from_argument_dependent_name_lookup", TRUE);
   }  /* if */
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);

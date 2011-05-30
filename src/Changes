@@ -42,8 +42,8 @@ GNU compatibility: Name lookup with __builtin_va_list on 64-bit platforms
 When USE_X86_64 is TRUE, __builtin_va_list is declared as an array of class
 type (see EDGcpfe/10180).  Such types, when used as arguments to functions,
 invoke argument-dependent name lookup, which can change the set of namespaces
-considered during lookup.  A change has been made to disqualify any
-predeclared class types in the global namespace from argument-dependent name
+considered during lookup.  A change has been made to disqualify the
+va_list_tag class type in the global namespace from argument-dependent name
 lookup.  This example had resulted in an error (i.e., more than one instance of
 function "N::f" matches the argument list) and now compiles successfully (with
 --g++):
