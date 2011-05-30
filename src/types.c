@@ -11527,7 +11527,11 @@ could be such a type (an error type or a template parameter type).
                      is_class_struct_union(type) ||
                      (operator_overloading_on_enums_enabled &&
                       is_enum(type)) ||
-                     is_template_param(type));
+                     is_template_param(type))
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                     || (cppcli_enabled && is_overloadable_handle_type(type))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                     ;
   return is_overloadable;
 }  /* is_overloadable_type */
 

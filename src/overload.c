@@ -1833,6 +1833,7 @@ guard function.
              (cli_handle_user_defined_conversion_possible(
                                        source_operand,
                                        base_dest_type,
+                                       (a_builtin_type_kind_set)BTK_NONE,
                                        /*need_lvalue_result=*/TRUE,
                                        /*is_copy_initialization=*/FALSE,
                                        /*orig_is_copy_initialization=*/FALSE,
@@ -2580,6 +2581,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                (cli_handle_user_defined_conversion_possible(
                                        orig_arg_operand,
                                        param_type,
+                                       (a_builtin_type_kind_set)BTK_NONE,
                                        /*need_lvalue_result=*/FALSE,
                                        /*is_copy_initialization=*/TRUE,
                                        /*orig_is_copy_initialization=*/TRUE,
@@ -10306,12 +10308,11 @@ source_operand has a class type.  When cppcli_atypical_case is TRUE,
 however, we are looking for C++/CLI static conversion functions declared
 in the class identified by conv_funcs_class, and the source or
 destination type will be a managed class or a handle to a managed
-class (or reference to a managed class, for the destination type).  In
-that mode builtin_types_allowed must be BTK_NONE.  Note that static
-conversion functions that can do a "normal" conversion from their
-class to another type are considered on calls with
-cppcli_atypical_case FALSE and not on calls with cppcli_atypical_case
-TRUE.
+class (or reference to a managed class, for the destination type).
+Note that static conversion functions that can do a "normal"
+conversion from their class to another type are considered on calls
+with cppcli_atypical_case FALSE and not on calls with
+cppcli_atypical_case TRUE.
 
 In the case of a bitwise copy constructor, dest_type reflects the parameter
 type of the constructor, which can be different from the type actually
@@ -10357,29 +10358,28 @@ are considered).  This routine is only used in C++ mode.
 
   db_enter(4, "try_conversion_function_match_full");
   /* This routine is similar to try_overloaded_function_match. */
+  if (builtin_types_allowed == BTK_BOOL) {
+    /* There's only one type in the BTK_BOOL category, so make this a
+       conversion to a specific type so that templates can be used. */
+    dest_type = requested_type = bool_type();
+    builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
+    boolean_converted_case = (explicit_conversion_functions_enabled &&
+                              !cppcli_enabled);
+  } else if (builtin_types_allowed == BTK_PTRDIFF_T) {
+    /* There's only one type in the BTK_PTRDIFF_T category, so make this a
+       conversion to a specific type so that templates can be used. */
+    dest_type = requested_type = integer_type(targ_ptrdiff_t_int_kind);
+    builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
+  }  /* if */
   source_type = source_operand->type;
   if (!cppcli_atypical_case) {
     check_assertion_str(is_class_struct_union_type(source_type),
                        "try_conversion_function_match_full: source not class");
     check_assertion(conv_funcs_class == NULL);
     conv_funcs_class = skip_typerefs(source_type);
-    if (builtin_types_allowed == BTK_BOOL) {
-      /* There's only one type in the BTK_BOOL category, so make this a
-         conversion to a specific type so that templates can be used. */
-      dest_type = requested_type = bool_type();
-      builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
-      boolean_converted_case = (explicit_conversion_functions_enabled &&
-                                !cppcli_enabled);
-    } else if (builtin_types_allowed == BTK_PTRDIFF_T) {
-      /* There's only one type in the BTK_PTRDIFF_T category, so make this a
-         conversion to a specific type so that templates can be used. */
-      dest_type = requested_type = integer_type(targ_ptrdiff_t_int_kind);
-      builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
-    }  /* if */
   } else {
     /* C++/CLI atypical case. */
-    check_assertion(builtin_types_allowed == BTK_NONE &&
-                    conv_funcs_class != NULL &&
+    check_assertion(conv_funcs_class != NULL &&
                     is_immediate_class_type(conv_funcs_class));
   }  /* if */
   /* If the class in which we want to look for conversion functions is a
@@ -10840,6 +10840,7 @@ parameters.
 static void try_static_conversion_function_match(
                           an_operand               *source_operand,
                           a_type_ptr               dest_type,
+                          a_builtin_type_kind_set  builtin_types_allowed,
                           a_boolean                need_lvalue_result,
                           a_boolean                is_copy_initialization,
                           a_boolean                orig_is_copy_initialization,
@@ -10856,12 +10857,18 @@ class to some other type, or from some other type to the class type or
 a handle or reference to the class type.  This routine can be called
 with any types, and will do nothing if the types do not match one of
 those patterns.  See try_conversion_function_match_full for a
-description of the other parameters.
+description of the other parameters.  When builtin_types_allowed
+is not BTK_NONE, look for a conversion to a built-in type in the
+set described by builtin_types_allowed.  dest_type can be NULL in
+that case, and if non-NULL is only a guide type for the built-in
+type conversion.
 */
 {
-  a_type_ptr conv_funcs_class, underlying_dest_type;
+  a_boolean  builtin_case = (builtin_types_allowed != BTK_NONE);
+  a_type_ptr conv_funcs_class;
 
   if (cppcli_enabled) {
+    check_assertion(dest_type != NULL || builtin_case);
     if (is_handle_type(source_operand->type) &&
         is_managed_class_type(type_pointed_to(source_operand->type))) {
       /* Try a conversion from a handle to class to another type by
@@ -10871,7 +10878,7 @@ description of the other parameters.
       try_conversion_function_match_full(source_operand,
                                          dest_type,
                                          dest_type,
-                                         /*builtin_types_allowed=*/BTK_NONE,
+                                         builtin_types_allowed,
                                          /*cppcli_atypical_case=*/TRUE,
                                          conv_funcs_class,
                                          need_lvalue_result,
@@ -10880,22 +10887,27 @@ description of the other parameters.
                                          is_reference_binding,
                                          candidate_functions);
     }  /* if */
-    underlying_dest_type = dest_type;
-    if (is_any_reference_type(dest_type)) {
-      underlying_dest_type = type_pointed_to(dest_type);
-    }  /* if */
-    if (is_handle_type(underlying_dest_type)) {
-      underlying_dest_type = type_pointed_to(dest_type);
-    }  /* if */
-    if (is_managed_class_type(underlying_dest_type)) {
-      a_class_symbol_supplement_ptr cssp =
+    /* Only look for conversion types in the destination class if we have
+       a destination type, not if we're converting to an unknown
+       built-in type. */
+    if (!builtin_case) {
+      a_type_ptr underlying_dest_type = dest_type;
+      if (is_any_reference_type(dest_type)) {
+        underlying_dest_type = type_pointed_to(dest_type);
+      }  /* if */
+      if (is_handle_type(underlying_dest_type)) {
+        underlying_dest_type = type_pointed_to(dest_type);
+      }  /* if */
+      if (is_managed_class_type(underlying_dest_type)) {
+        a_class_symbol_supplement_ptr cssp =
                              symbol_supplement_for_class(underlying_dest_type);
-      if (cssp->target_of_conversion_function ||
-          cssp->conversion_template_list != NULL) {
-        /* Try a conversion from some other type to the class type, or a handle
-           or reference (or both) to the class type. */
-        conv_funcs_class = skip_typerefs(underlying_dest_type);
-        try_conversion_function_match_full(source_operand,
+        if (cssp->target_of_conversion_function ||
+            cssp->conversion_template_list != NULL) {
+          /* Try a conversion from some other type to the class type, or
+             a handle or reference (or both) to the class type. */
+          conv_funcs_class = skip_typerefs(underlying_dest_type);
+          try_conversion_function_match_full(
+                                           source_operand,
                                            dest_type,
                                            dest_type,
                                            /*builtin_types_allowed=*/BTK_NONE,
@@ -10906,6 +10918,7 @@ description of the other parameters.
                                            orig_is_copy_initialization,
                                            is_reference_binding,
                                            candidate_functions);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -11104,6 +11117,13 @@ as its first operand.
         /* MSVC++ 6.0 does seem not to have enums in the set (MSVC++ 7.0
            does), but it has compensating bugs that make things act mostly
            as if the enums were in the set, so we do that. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cppcli_enabled) {
+          /* C++/CLI allows handles too. */
+          operand_type_pattern = "AA;=PP;=MM;=EE;=HH";
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
         if (operator_overloading_on_enums_enabled) {
           operand_type_pattern = "AA;=PP;=MM;=EE";
         } else {
@@ -11170,8 +11190,8 @@ as its first operand.
       case onk_question:
         /* "?" (which shows up here as a two-operand operator) takes
            two operands (really the second and third) of arithmetic,
-           pointer, or pointer-to-member type (the class and void cases
-           are handled outside of this routine). */
+           pointer, or pointer-to-member type (the class and void cases,
+           and C++/CLI handle cases, are handled outside of this routine). */
         operand_type_pattern = "AA;=PP;=MM";
         break;
       case onk_arrow_star:
@@ -11216,6 +11236,11 @@ it fits that type description or can be converted to it.
     case POINTER_TYPE_CODE:
       matches = is_pointer_type(type);
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case HANDLE_TYPE_CODE:
+      matches = is_handle_type(type);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case POINTER_TO_OBJECT_TYPE_CODE:
       matches = is_pointer_to_object_type(type);
       break;
@@ -11408,6 +11433,60 @@ match, promotion, etc.) for the operand and record it in arg_match.
 }  /* determine_builtin_type_operand_conversion_cost */
 
 
+static a_boolean conversion_from_class_or_handle_possible(
+                          an_operand               *source_operand,
+                          a_type_ptr               dest_type,
+                          a_builtin_type_kind_set  builtin_types_allowed,
+                          a_boolean                need_lvalue_result,
+                          a_boolean                is_copy_initialization,
+                          a_boolean                orig_is_copy_initialization,
+                          a_boolean                is_reference_binding,
+                          a_conv_descr             *conversion,
+                          a_boolean                *ambiguous,
+                          a_candidate_function_ptr *ambiguity_list)
+/*
+Interface routine to conversion_from_class_possible that also handles
+handles in C++/CLI mode (static conversion functions can convert from
+a handle to the class to another type).  See conversion_from_class_possible
+for the meanings of the parameters.
+*/
+{
+  a_boolean possible = FALSE;
+
+  if (
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      (cppcli_enabled && is_handle_type(source_operand->type)) ?
+         /* Look for a static conversion function to convert from a
+            handle type to the required type. */
+         cli_handle_user_defined_conversion_possible(
+                                       source_operand,
+                                       dest_type,
+                                       builtin_types_allowed,
+                                       need_lvalue_result,
+                                       is_copy_initialization,
+                                       orig_is_copy_initialization,
+                                       is_reference_binding,
+                                       conversion,
+                                       ambiguous,
+                                       ambiguity_list) :
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+         conversion_from_class_possible(
+                                       source_operand,
+                                       dest_type,
+                                       builtin_types_allowed,
+                                       need_lvalue_result,
+                                       is_copy_initialization,
+                                       orig_is_copy_initialization,
+                                       is_reference_binding,
+                                       conversion,
+                                       ambiguous,
+                                       ambiguity_list)) {
+    possible = TRUE;
+  }  /* if */
+  return possible;
+}  /* conversion_from_class_or_handle_possible */
+
+
 static void try_builtin_operands_match(
                        an_opname_kind           kind,
                        char                     *operand_type_pattern,
@@ -11436,6 +11515,7 @@ the target type to be used).
   an_arg_match_summary_ptr arg_match, arg_match_list, end_arg_match_list;
   a_type_ptr               operand_type;
   a_conv_descr             conversion;
+  a_std_conv_descr         std_conv;
   a_boolean                ambiguous, need_lvalue_result, operand_is_lvalue;
 #if DEBUG
   unsigned long            narg;
@@ -11491,9 +11571,10 @@ the target type to be used).
     type_code = *type_pattern_position;
     if (specific_type == NULL) {
       /* Non-specific builtin type required. */
-      if (is_class_struct_union_type(operand_type)) {
+      if (is_potential_conv_function_source(operand_type)) {
         /* The operand has a class type, so see if it can be converted to
-           an appropriate built-in type. */
+           an appropriate built-in type.  In C++/CLI mode, the operand
+           might have a handle type. */
         a_type_ptr other_operand_type;
         /* Get the type of the other operand.  This is used to guide selection
            of template conversion functions if it's an appropriate type. */
@@ -11512,16 +11593,17 @@ the target type to be used).
             other_operand_type = NULL;
           }  /* if */
         }  /* if */
-        if (conversion_from_class_possible(&arg_operand->operand,
-                                           other_operand_type,
+        if (conversion_from_class_or_handle_possible(
+                                     &arg_operand->operand,
+                                     other_operand_type,
                                      builtin_type_set_for_type_code(type_code),
-                                           need_lvalue_result,
-                                           /*is_copy_initialization=*/TRUE,
-                                          /*orig_is_copy_initialization=*/TRUE,
-                                           /*is_reference_binding=*/FALSE,
-                                           &conversion,
-                                           &ambiguous,
-                                           (a_candidate_function_ptr *)NULL) ||
+                                     need_lvalue_result,
+                                     /*is_copy_initialization=*/TRUE,
+                                     /*orig_is_copy_initialization=*/TRUE,
+                                     /*is_reference_binding=*/FALSE,
+                                     &conversion,
+                                     &ambiguous,
+                                     (a_candidate_function_ptr *)NULL) ||
             ambiguous) {
           /* The conversion can be done. */
           arg_match->match_level = aml_user_conversion;
@@ -11627,19 +11709,34 @@ the target type to be used).
           arg_match->conversion = conversion;
           arg_match->param_type = eff_specific_type;
         }  /* if */
-      } else if (is_class_struct_union_type(operand_type)) {
+      } else if (is_class_struct_union_type(operand_type)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                 || (cppcli_enabled && is_handle_type(operand_type)) &&
+                     !impl_conversion_possible(
+                                      operand_type,
+                                      /*source_is_constant=*/FALSE,
+                                      /*source_is_string_literal=*/FALSE,
+                                      /*source_constant=*/(a_constant *)NULL,
+                                      eff_specific_type,
+                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                      /*suppress_extensions=*/TRUE,
+                                      ec_no_error, &std_conv)) {
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* The operand has a class type, so see if it can be converted to
-           the specific type (which is a non-class type). */
-        if (conversion_from_class_possible(&arg_operand->operand,
-                                           eff_specific_type,
-                                           (a_builtin_type_kind_set)BTK_NONE,
-                                           need_lvalue_result,
-                                           /*is_copy_initialization=*/TRUE,
+           the specific type (which is a non-class type).  In C++/CLI
+           mode, a handle is treated the same way, but not if a standard
+           conversion is possible below. */
+        if (conversion_from_class_or_handle_possible(
+                                          &arg_operand->operand,
+                                          eff_specific_type,
+                                          (a_builtin_type_kind_set)BTK_NONE,
+                                          need_lvalue_result,
+                                          /*is_copy_initialization=*/TRUE,
                                           /*orig_is_copy_initialization=*/TRUE,
-                                           /*is_reference_binding=*/FALSE,
-                                           &conversion,
-                                           &ambiguous,
-                                           (a_candidate_function_ptr *)NULL) ||
+                                          /*is_reference_binding=*/FALSE,
+                                          &conversion,
+                                          &ambiguous,
+                                          (a_candidate_function_ptr *)NULL) ||
             ambiguous) {
           /* The conversion can be done with a conversion function. */
           arg_match->match_level = aml_user_conversion;
@@ -11648,7 +11745,6 @@ the target type to be used).
         }  /* if */
       } else {
         a_boolean        cfront_null_ptr_constant_case;
-        a_std_conv_descr std_conv;
         a_boolean        source_is_constant;
         a_constant_ptr   source_constant;
         /* A non-class operand. */
@@ -11979,7 +12075,7 @@ in some way, e.g., two pointers that must have the same type.
 */
 {
   an_arg_operand_ptr       arg_operand;
-  a_type_ptr               specific_type, operand_type, class_type;
+  a_type_ptr               specific_type, operand_type;
   char                     *type_pattern_position;
   a_symbol_ptr             conversion_symbol, base_conversion_symbol;
   a_symbol_list_entry_ptr  slep;
@@ -12008,10 +12104,16 @@ in some way, e.g., two pointers that must have the same type.
          second is a pointer to member of the same class.  Don't
          consider any specific types generated from the first operand,
          because they don't fully specify the second operand. */
-    } else if (is_class_struct_union_type(operand_type)) {
+    } else if (is_potential_conv_function_source(operand_type)) {
       /* This operand has a class type.  Look for conversion functions that
-         convert the class type to an appropriate type. */
-      class_type = skip_typerefs(operand_type);
+         convert the class type to an appropriate type.  In C++/CLI mode,
+         a handle is treated similarly. */
+      a_type_ptr class_type = operand_type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_boolean  handle_case = is_handle_type(operand_type);
+      if (handle_case) class_type = type_pointed_to(operand_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      class_type = skip_typerefs(class_type);
       any_approp_conversion_function_this_operand = FALSE;
       /* Look at all the conversion functions for the source class. */
       for (slep = symbol_supplement_for_class(class_type)->conversion_list;
@@ -12019,15 +12121,23 @@ in some way, e.g., two pointers that must have the same type.
            slep = slep->next) {
         conversion_symbol = slep->symbol;
         base_conversion_symbol = fundamental_symbol_of(conversion_symbol);
+        conv_routine_type = routine_symbol_type(base_conversion_symbol);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (!conversion_function_converts_from_class(
+        if (handle_case) {
+          /* We're trying to convert from a handle, so only look at static
+             conversion functions that convert from a handle.  Due to
+             declaration-time checking, it is guaranteed to be a handle
+             to the class of the function (possibly cv-qualified). */
+          a_param_type_ptr ptp = conv_routine_type->variant.routine.
+                                                   extra_info->param_type_list;
+          if (ptp == NULL || !is_handle_type(ptp->type)) continue;
+        } else if (!conversion_function_converts_from_class(
                                 base_conversion_symbol->variant.routine.ptr)) {
           /* A C++/CLI static conversion function that converts to the class
              type instead of from it cannot be used. */
           continue;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        conv_routine_type = routine_symbol_type(base_conversion_symbol);
         return_type = rvalue_return_type_of(conv_routine_type);
         if (type_matches_type_code(return_type, *type_pattern_position)) {
           /* We've found a conversion function to an appropriate type.  Make
@@ -12178,7 +12288,7 @@ can be used, it is added to the candidate_functions list.
     if (!cfront_2_1_mode) first_operand_must_be_lvalue = TRUE;
     first_operand = &arg_operand_list->operand;
     if (!is_an_lvalue(first_operand) &&
-        !is_class_struct_union_type(first_operand->type)) {
+        !is_potential_conv_function_source(first_operand->type)) {
       /* The first operand is not an lvalue so the built-in operator cannot
          be used.  Give up. */
       goto end_of_check;
@@ -12425,7 +12535,7 @@ Adjust the operand type to match the type requirement.
   char       *operand_type_pattern = candidate_function->operand_type_pattern;
   char       type_code = operand_type_pattern[operand_num-1];
 
-  if (!is_class_struct_union_type(operand->type) &&
+  if (!is_potential_conv_function_source(operand->type) &&
       type_code != CLASS_TYPE_CODE) {
     /* Non-class operands need not be adjusted here; the built-in operator
        processing will do it. */
@@ -12467,14 +12577,17 @@ Adjust the operand type to match the type requirement.
         a_boolean                ambiguous;
         a_candidate_function_ptr ambiguity_list;
 
-        if (conversion_from_class_possible(operand, arg_match->guide_type,
+        if (conversion_from_class_or_handle_possible(
+                                     operand,
+                                     arg_match->guide_type,
                                      builtin_type_set_for_type_code(type_code),
-                                           /*need_lvalue_result=*/FALSE,
-                                           /*is_copy_initialization=*/TRUE,
-                                          /*orig_is_copy_initialization=*/TRUE,
-                                           /*is_reference_binding=*/FALSE,
-                                           &conversion,
-                                           &ambiguous, &ambiguity_list)) {
+                                     /*need_lvalue_result=*/FALSE,
+                                     /*is_copy_initialization=*/TRUE,
+                                     /*orig_is_copy_initialization=*/TRUE,
+                                     /*is_reference_binding=*/FALSE,
+                                     &conversion,
+                                     &ambiguous,
+                                     &ambiguity_list)) {
           unexpected_condition_str2("adjust_operand_for_builtin_operator:",
                                     "unusable conversion now succeeds");
         }  /* if */
@@ -12765,12 +12878,20 @@ apply, but we can't tell).
              is_enum_type(operand_2->type)) ||
             is_error_operand(operand_2)))
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            /* In C++/CLI, if one of the arguments is a string literal, then
-               operator overloading applies since it may eventually become a
-               System::String^ */
-            || (cppcli_enabled &&
-                (is_literal_convertible_to_cli_string(operand_1) ||
-                 is_literal_convertible_to_cli_string(operand_2)))
+          /* In C++/CLI, if one of the arguments is a string literal, then
+             operator overloading applies since it may eventually become a
+             System::String^ */
+          /* In C++/CLI, static conversion functions can convert to or from
+             handles. */
+          ||
+          (cppcli_enabled &&
+           (is_literal_convertible_to_cli_string(operand_1) ||
+            (!unary_operator &&
+             is_literal_convertible_to_cli_string(operand_2)) ||
+            (try_conversions &&
+             (is_handle_type(operand_1->type) ||
+              (!unary_operator &&
+               is_handle_type(operand_2->type))))))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
          ) {
         /* Operator overloading may apply.  That is, the operation may be a
@@ -13738,6 +13859,7 @@ because of an error.  This routine is used only in C++ mode.
            class type. */
         try_static_conversion_function_match(source_operand,
                                              dest_type,
+                                             (a_builtin_type_kind_set)BTK_NONE,
                                              /*need_lvalue_result=*/FALSE,
                                              adjusted_is_copy_initialization,
                                              orig_is_copy_initialization,
@@ -13917,6 +14039,7 @@ This routine is used only in C++ mode.
          destination class type. */
       try_static_conversion_function_match(source_operand,
                                            dest_type,
+                                           (a_builtin_type_kind_set)BTK_NONE,
                                            need_lvalue_result,
                                            is_copy_initialization,
                                            orig_is_copy_initialization,
@@ -14033,6 +14156,7 @@ Issue an error and set *processed to TRUE if the conversion is ambiguous.
 a_boolean cli_handle_user_defined_conversion_possible(
                           an_operand               *source_operand,
                           a_type_ptr               dest_type,
+                          a_builtin_type_kind_set  builtin_types_allowed,
                           a_boolean                need_lvalue_result,
                           a_boolean                is_copy_initialization,
                           a_boolean                orig_is_copy_initialization,
@@ -14047,6 +14171,11 @@ specifically to an lvalue of that type if need_lvalue_result is TRUE.
 Such cases can come up if source_operand or dest_type have handle types,
 if the source or destination class type has a static conversion
 function that deals with handles.  dest_type cannot be a reference.
+If builtin_types_allowed is not BTK_NONE, return TRUE if a conversion
+to a built-in type in the set described by builtin_types_allowed
+is possible, and specifically to a non-const lvalue of that type if
+need_lvalue_result is TRUE.  dest_type in that case can be NULL,
+and if non-NULL is used only as a guide type for the conversion.
 If an appropriate conversion function exists, set *conversion to
 describe the conversion and return TRUE.  Otherwise return FALSE.  If
 more than one function matches, set *ambiguous to TRUE and return
@@ -14069,6 +14198,7 @@ indicates whether the original initialization was copy-initialization
   db_enter(4, "cli_handle_user_defined_conversion_possible");
   *ambiguous = FALSE;
   if (cppcli_enabled) {
+    a_boolean  builtin_case = (builtin_types_allowed != BTK_NONE);
     a_type_ptr source_type = source_operand->type;
     clear_conv_descr(conversion);
 #if DEBUG
@@ -14077,19 +14207,24 @@ indicates whether the original initialization was copy-initialization
       db_display_overload_level();
       fprintf(f_debug,
          "Entering cli_handle_user_defined_conversion_possible, dest_type = ");
-      db_abbreviated_type(dest_type);
+      if (builtin_case) {
+        fprintf(f_debug, "built-in");
+      } else {
+        db_abbreviated_type(dest_type);
+      }  /* if */
       fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
-    check_assertion(!is_any_reference_type(dest_type));
+    check_assertion(dest_type == NULL || !is_any_reference_type(dest_type));
     if (is_handle_type(source_type) ||
-        is_handle_type(dest_type)) {
+        (!builtin_case && is_handle_type(dest_type))) {
       an_error_code warning_suggested;
       a_boolean     source_is_constant = is_constant_operand(source_operand);
       a_constant    *source_constant = source_is_constant ?
                                             &source_operand->variant.constant :
                                             (a_constant *)NULL;
-      if (static_cast_conversion_possible(
+      if (!builtin_case &&
+          static_cast_conversion_possible(
                                    source_type,
                                    source_is_constant,
                                    source_operand->is_simple_string_literal,
@@ -14105,6 +14240,7 @@ indicates whether the original initialization was copy-initialization
         a_boolean                undecidable_because_of_error;
         try_static_conversion_function_match(source_operand,
                                              dest_type,
+                                             builtin_types_allowed,
                                              need_lvalue_result,
                                              is_copy_initialization,
                                              orig_is_copy_initialization,
@@ -14310,6 +14446,7 @@ a reference type (the caller should have rewritten that case).
   } else if (cppcli_enabled &&
              (cli_handle_user_defined_conversion_possible(
                                        source_operand, dest_type,
+                                       (a_builtin_type_kind_set)BTK_NONE,
                                        need_lvalue_result,
                                        is_copy_initialization,
                                        orig_is_copy_initialization,
@@ -17795,6 +17932,7 @@ can convert to or from handles.
         if (cli_handle_user_defined_conversion_possible(
                                        op1,
                                        conv_dest_type,
+                                       (a_builtin_type_kind_set)BTK_NONE,
                                        /*need_lvalue_result=*/FALSE,
                                        /*is_copy_initialization=*/TRUE,
                                        /*orig_is_copy_initialization=*/TRUE,

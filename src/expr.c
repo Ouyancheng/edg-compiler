@@ -16188,6 +16188,7 @@ called only in C++ mode.
                      (cli_handle_user_defined_conversion_possible(
                                        operand,
                                        eff_type_cast_to,
+                                       (a_builtin_type_kind_set)BTK_NONE,
                                        /*need_lvalue_result=*/FALSE,
                                        /*is_copy_initialization=*/TRUE, /*sic*/
                                        /*orig_is_copy_initialization=*/TRUE,
