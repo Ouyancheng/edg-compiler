@@ -11077,6 +11077,14 @@ to render.  suppress_parens is TRUE if top-level parentheses should not be
 added to the output.
 */
 {
+  if (suppress_parens) {
+    /* We might still need parentheses if the expression has a top-level
+       eok_comma operation, since this expression might appear in an
+       argument-list context. */
+    if (expr_has_comma_operation(expr)) {
+      suppress_parens = FALSE;
+    }  /* if */
+  }  /* if */
   gen_expr(expr, !suppress_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
 }  /* f_gen_expression */
 
