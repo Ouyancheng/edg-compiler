@@ -6533,10 +6533,14 @@ typedef struct a_class_type_supplement {
 			   "inline template" directive, which is used to
 			   cause a vtable to be emitted in a given translation
 			   unit. */
-  a_bit_field   exempt_from_argument_dependent_name_lookup:1;
-                        /* TRUE if this class should be exempted from
-                           argument-dependent lookup (currently only the
-                           va_list_tag predeclared class).  */
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64
+  a_bit_field   is_va_list_tag:1;
+                        /* TRUE if this class is the __va_list_tag class used
+                           to implement __builtin_va_list on some 64-bit
+                           systems.  This class is given special treatment
+                           during name lookup (where it is exempt from
+                           argument-dependent name lookup). */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64 */
   an_anonymous_union_kind
 		anonymous_union_kind;
 			/* Indication of whether this class is an anonymous

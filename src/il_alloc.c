@@ -1401,8 +1401,9 @@ class is available.
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   ctsp->named_in_inline_template_directive
                                           = FALSE;
-  ctsp->exempt_from_argument_dependent_name_lookup
-                                          = FALSE;
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64
+  ctsp->is_va_list_tag                    = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64 */
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
   ctsp->friend_routines                   = NULL;

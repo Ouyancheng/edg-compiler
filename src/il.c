@@ -21671,22 +21671,17 @@ entered into the symbol table.
 }  /* init_predeclared_class */
 
 
-void enter_predeclared_class(
-                 a_type_ptr         predeclared_type,
-                 a_scope_depth      scope_depth,
-                 a_source_position  *pos,
-                 a_boolean          exempt_from_argument_dependent_name_lookup)
+void enter_predeclared_class(a_type_ptr         predeclared_type,
+                             a_scope_depth      scope_depth,
+                             a_source_position  *pos)
 /*
-Enter the given predeclared class/struct type (e.g., type_info) at the given
-scope depth with the given source position.
-exempt_from_argument_dependent_name_lookup is TRUE if the given predeclared
-class should not participate in argument-dependent name lookup.
+Enter the given predeclared type (e.g., type_info) at the given scope depth
+with the given source position.
 */
 {
   a_symbol_ptr  sym = symbol_for(predeclared_type);
   a_namespace_ptr  nsp;
 
-  check_assertion(is_immediate_class_type(predeclared_type));
   switch (scope_stack[scope_depth].kind) {
     case sck_file:
       nsp = NULL;
@@ -21705,9 +21700,6 @@ class should not participate in argument-dependent name lookup.
   set_namespace_membership(sym, &(predeclared_type->source_corresp), nsp);
   /* The referenced flag may have been reset by set_source_corresp. */
   predeclared_type->source_corresp.referenced = sym->referenced;
-  class_type_supp(predeclared_type)->
-                                   exempt_from_argument_dependent_name_lookup =
-                                   exempt_from_argument_dependent_name_lookup;
   add_to_types_list(predeclared_type, scope_depth);
 }  /* enter_predeclared_class */
 

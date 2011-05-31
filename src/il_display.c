@@ -5887,9 +5887,11 @@ Display the indicated class type supplement entry.
         (void)printf("**BAD ANONYMOUS UNION KIND**\n");
     }  /* switch */
   }  /* if */
-  if (ptr->exempt_from_argument_dependent_name_lookup) {
-    disp_boolean("exempt_from_argument_dependent_name_lookup", TRUE);
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64
+  if (ptr->is_va_list_tag) {
+    disp_boolean("is_va_list_tag", TRUE);
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64 */
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);
   }  /* if */

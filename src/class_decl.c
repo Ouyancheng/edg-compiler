@@ -22377,7 +22377,7 @@ For example:
   return lambda;
 }  /* scan_lambda */
 
-#if USE_X86_64
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64
 
 static void add_field_to_generated_type(char        *name,
                                         a_type_ptr  type)
@@ -22432,8 +22432,8 @@ Create and return the __va_list_tag struct type that is predefined by certain
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Create a struct with name __va_list_tag. */
   type = init_predeclared_class((a_type_kind)tk_struct, "__va_list_tag");
-  enter_predeclared_class(type, DEPTH_OF_FILE_SCOPE, &null_source_position,
-                          /*exempt_from_argument_dependent_name_lookup=*/TRUE);
+  enter_predeclared_class(type, DEPTH_OF_FILE_SCOPE, &null_source_position);
+  class_type_supp(type)->is_va_list_tag = TRUE;
   sym = symbol_for(type);
   cssp = sym->variant.class_struct_union.extra_info;
   cssp->construction_by_bitwise_copy_allowed = TRUE;
@@ -22462,7 +22462,7 @@ Create and return the __va_list_tag struct type that is predefined by certain
   return type;
 }  /* make_va_list_tag_type */
 
-#endif /* USE_X86_64 */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64 */
 
 /* Forward declaration for recursive call. */
 static void check_type_for_linkage_change(a_type_ptr type,

@@ -5486,13 +5486,14 @@ associated namespaces and classes to "namespace_list" and "class_list".
     case tk_struct:
     case tk_union:
       ctsp = type->variant.class_struct_union.extra_info;
-      if (ctsp->exempt_from_argument_dependent_name_lookup &&
-          !type->source_corresp.is_class_member &&
-          !is_namespace_member(type)) {
-        /* Some predeclared class types in the global namespace (e.g.,
-           __builtin_va_list on some 64-bit platforms) don't participate in
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64
+      if (ctsp->is_va_list_tag) {
+        /* The __va_list_tag predeclared class doesn't don't participate in
            this lookup. */
-      } else {
+      } else
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64 */
+      /* Do not insert code here. */
+      {
         /* The standard specifies different behavior for unions vs. classes.
            Specifically, the class of which a class is a member is not
            an associated class, and a union is not one of its own associated
