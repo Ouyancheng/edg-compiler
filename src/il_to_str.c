@@ -4856,8 +4856,9 @@ precedence confusion.  Do the output in the way described by octl.
               output_optional_open_paren(&need_parens, &need_local_close_paren,
                                          octl);
               form_cast(constant->type, octl);
+              cast_already_put_out = TRUE;
             }  /* if */
-            form_constant(op_con, /*need_parens=*/FALSE, octl);
+            form_constant(op_con, cast_already_put_out, octl);
             if (need_local_close_paren) {
               octl->output_str(")", octl);
             }  /* if */
