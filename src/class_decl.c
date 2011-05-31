@@ -3125,7 +3125,7 @@ new_direct_bcp->derived_class.
       new_ovfp->return_adjustment_base_class =
                                 ovfp_to_copy->return_adjustment_base_class;
 #if DEBUG
-      if (debug_level >= 4 || db_flag_is_set("overrides")) {
+      if (debug_level >= 4) {
         fputs("copy for base class ", f_debug);
         db_type_name(new_bcp->type);
         fputs(": ", f_debug);
@@ -3734,7 +3734,7 @@ appears on a linked list pointed to from base_class.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DEBUG
-      if (debug_level >= 4 || db_flag_is_set("overrides")) {
+      if (debug_level >= 4) {
         fputs("existing entry: ", f_debug);
         db_virtual_function_override(ovfp);
       }  /* if */
@@ -3743,7 +3743,7 @@ appears on a linked list pointed to from base_class.
       ovfp->base_class = NULL;
       ovfp->return_adjustment_base_class = return_adjustment_bcp;
 #if DEBUG
-      if (debug_level >= 4 || db_flag_is_set("overrides")) {
+      if (debug_level >= 4) {
         fputs("after modification: ", f_debug);
         db_virtual_function_override(ovfp);
       }  /* if */
@@ -3766,7 +3766,7 @@ appears on a linked list pointed to from base_class.
       while (ovfp->next != NULL &&
              ovfp->next->primary_function == primary_func) {
 #if DEBUG
-        if (debug_level >= 4 || db_flag_is_set("overrides")) {
+        if (debug_level >= 4) {
           fputs("removing: ", f_debug);
           db_virtual_function_override(ovfp->next);
         }  /* if */
@@ -3783,7 +3783,7 @@ appears on a linked list pointed to from base_class.
     ovfp->overriding_function = overriding_func;
     ovfp->return_adjustment_base_class = return_adjustment_bcp;
 #if DEBUG
-    if (debug_level >= 4 || db_flag_is_set("overrides")) {
+    if (debug_level >= 4) {
       fputs("newly created: ", f_debug);
       db_virtual_function_override(ovfp);
     }  /* if */
@@ -5500,7 +5500,7 @@ entries associated with base_class are on the base_classes list of class_type.
       }  /* if */
     }  /* if */
   for (; ovfp != NULL; ovfp = ovfp->next) {
-    if (debug_level >= 5 || db_flag_is_set("overrides")) {
+    if (debug_level >= 5) {
       db_virtual_function_override(ovfp);
     }  /* if */
     if (ovfp->base_class == NULL) {
@@ -6981,7 +6981,7 @@ to FALSE before returning).
       }  /* if */
       if (bcp->overriding_virtual_functions != NULL) {
 #if DEBUG
-        if (debug_level >= 4 || db_flag_is_set("overrides")) {
+        if (debug_level >= 4) {
           fputs("copying virtual function override list from ", f_debug);
           db_base_class(bcp, FALSE);
           db_virtual_function_override_list(bcp);
@@ -6993,7 +6993,7 @@ to FALSE before returning).
            classes list for class_type). */
         copy_virtual_function_override_list(bcp, new_bcp, direct_bcp);
 #if DEBUG
-        if (debug_level >= 4 || db_flag_is_set("overrides")) {
+        if (debug_level >= 4) {
           fputs("new base class ", f_debug);
           db_base_class(bcp, FALSE);
           db_virtual_function_override_list(new_bcp);
