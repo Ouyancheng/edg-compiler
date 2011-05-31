@@ -1,5 +1,23 @@
 Version 4.4
 
+5/31/11  [EDGcpfe/11525]
+GNU compatibility: Effect of attribute gnu_inline in GNU C++ mode
+
+When a function is defined with the gnu_inline attribute in GNU C++ mode, the
+front end now sets the suppress_inline_body flag on the associated routine
+entry, indicating that the function body should only be used for inlining and
+not be emitted as callable code.  For example:
+
+  __attribute((gnu_inline)) inline void f() {}
+  int main() {
+    void (*pf)() = &f;  // Requires a callable code for f.
+    pf();
+  }
+
+Compiling and linking just this code (in GNU C++ mode) should now result in a
+linker error since no definition of f will be emitted.
+
+
 5/30/11  [EDGcpfe/11762]
 GNU compatibility, C++-generating back end: dependent function non-type
 template arguments
