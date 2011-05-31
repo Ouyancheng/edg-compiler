@@ -4819,7 +4819,15 @@ precedence confusion.  Do the output in the way described by octl.
           }
           break;
         case tpck_expression:
-          form_expression(constant->variant.template_param.variant.expr, octl);
+          if (octl->output_expression != NULL) {
+            /* Do not add parentheses gratuitously. */
+            octl->output_expression(
+                                 constant->variant.template_param.variant.expr,
+                                 !need_parens);
+          } else {
+            form_expression(constant->variant.template_param.variant.expr,
+                            octl);
+          }  /* if */
           break;
         case tpck_cast:
           if (constant->type->kind == (a_constant_repr_kind)tk_integer &&

@@ -1,5 +1,25 @@
 Version 4.4
 
+GNU compatibility, C++-generating back end: dependent function non-type
+template arguments
+
+Beginning with version 3.4, the g++ compiler has a bug that causes it to
+issue a spurious error, "'&' cannot appear in a constant-expression," when
+the argument to a function-pointer non-type template argument is expressed
+with an explicit & and enclosed in parentheses.  When
+PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, the C++-generating back end
+previously used that form in the definition of a template when the argument
+refers to a dependent function.  It has now been changed to omit the
+unnecessary parentheses in this case.  For example:
+
+  template<typename T> T f();
+  template<typename T, T fp()> struct S { };
+  template<typename T> struct X {
+    typedef S<void, f<T> > s;   // Previously generated as S<void, (&f<T>)>,
+                                // now as S<void, &f<T> >
+  };
+
+
 5/27/11  [EDGcpfe/11766]
 Preprocessing directives, white space, and old-style preprocessing
 
