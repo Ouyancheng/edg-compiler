@@ -1,5 +1,18 @@
 Version 4.4
 
+6/1/11   [EDGcpfe/11773]
+Pointer arguments to __sync_... functions
+
+When GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED is TRUE the front end now accepts
+pointer operands for the GNU built-in __sync_... functions in GNU C++ mode
+(and no longer issues a warning in GNU C mode).  Such operands are implicitly
+cast to the appropriate integral type.  For example:
+
+  int ptr_cas(void volatile **mem, void *expected, void *replacement) {
+    return __sync_bool_compare_and_swap(mem, expected, replacement);
+  }  // Now accepted in both GNU C++ and GNU C modes.
+
+
 5/31/11  [EDGcpfe/11768]
 GNU compatibility, C-generating back end: __builtin_va_list on 64-bit systems
 

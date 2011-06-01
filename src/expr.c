@@ -3891,6 +3891,14 @@ that the final call needs to be cast to the indicated type.
       for (ap = args; ap != NULL; ap = ap->next) {
         an_expr_node_ptr expr_arg;
         do_operand_transformations(&ap->operand, TOPT_NO_OPTIONS);
+        if (is_pointer_type(ap->operand.type) &&
+            is_integral_type(ptp->type) &&
+            skip_typerefs(ap->operand.type)->size == 
+                                             skip_typerefs(ptp->type)->size) {
+          /* Pointer operands are allowed and must be converted to an integer
+             value. */
+          cast_operand(ptp->type, &ap->operand, /*is_implicit_cast=*/TRUE);
+        }  /* if */
         if (!template_case) {
           check_assertion(ptp != NULL);
           prep_argument_operand(&ap->operand, ptp, (a_conv_descr *)NULL,
