@@ -24568,6 +24568,10 @@ emitted in this translation unit.
   }  /* if */
   if (!body_can_be_generated) {
     /* We can't emit the body if one can't be generated. */
+  } else if (rout_ptr->suppress_inline_body) {
+    /* The front end already decided that should definition should be spilled
+       (e.g., when the GNU attribute gnu_inline is specified). */
+    result = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode &&
              (rout_ptr->explicit_extern_inline ||

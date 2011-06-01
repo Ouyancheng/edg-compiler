@@ -7198,7 +7198,7 @@ for use in generating cross-reference output describing this declaration.
 #if GNU_EXTENSIONS_ALLOWED
       if (use_gnu_c89_inlining && old_decl_has_body && is_function_def &&
           routine_ptr->is_inline &&
-          (routine_ptr->suppress_inline_body ||
+          ((gcc_mode && routine_ptr->suppress_inline_body) ||
            (gpp_mode && !func_info->is_inline))) {
         /* We are either
              - in GNU C mode and this routine was previously defined with
