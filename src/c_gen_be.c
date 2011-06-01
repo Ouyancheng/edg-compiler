@@ -1822,9 +1822,10 @@ or enum.  This is always a reference/declaration, never a definition.
   /* Do not insert code here. */
 #if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64
   if (gcc_is_generated_code_target && class_type_supp(type)->is_va_list_tag) {
-    /* The predefined struct __va_list_tag is not compatible with the
-       type used internally by gcc as the base of __builtin_va_list.  Use
-       the typedef that was defined in dump_type_decl in its place. */
+    /* The predefined struct __va_list_tag is necessarily distinct from,
+       and hence not compatible with, the type used internally by gcc as
+       the base of __builtin_va_list.  Use the typedef that was defined in
+       dump_type_decl in its place. */
     write_tok_str("__va_list_tag_type");
   } else
 #endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64 */
@@ -3675,10 +3676,11 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
 #if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64
       if (gcc_is_generated_code_target &&
           class_type_supp(type)->is_va_list_tag) {
-        /* The predeclared struct __va_list_tag is not compatible with the
-           type used internally by gcc as the base of __builtin_va_list.
-           Define a typedef that refers to the gcc type; it will be used
-           instead of the predeclared struct __va_list_tag. */
+        /* The predeclared struct __va_list_tag is necessarily distinct
+           from, and hence not compatible with, the type used internally by
+           gcc as the base of __builtin_va_list.  Define a typedef that
+           refers to the gcc type; it will be used instead of the
+           predeclared struct __va_list_tag. */
         if (pass == 2) {
           write_tok_str("typedef typeof(((__builtin_va_list*)0)[0][0]) ");
           write_tok_str("__va_list_tag_type;");

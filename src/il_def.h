@@ -6535,20 +6535,12 @@ typedef struct a_class_type_supplement {
 			   unit. */
 #if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64
   a_bit_field   is_va_list_tag:1;
-                        /* TRUE if this class is the __va_list_tag class used
-                           to implement __builtin_va_list on some 64-bit
-                           systems.  This class is given special treatment
-                           during name lookup (where it is exempt from
-                           argument-dependent name lookup). */
-#if BACK_END_IS_C_GEN_BE
-			/* This predeclared class is not compatible with
-			   the type used internally by gcc as the base of
-			   __builtin_va_list.  When
-			   gcc_is_generated_code_target is TRUE, the
-			   C-generating back end will replace it in the
-			   output by a generated typedef to the correct
-			   type. */
-#endif /* BACK_END_IS_C_GEN_BE */
+			/* TRUE if this class is the __va_list_tag class used
+			   to implement __builtin_va_list on some 64-bit
+			   systems.  This class is given special treatment
+			   during name lookup (where it is exempt from
+			   argument-dependent name lookup) and in the
+			   C-generating back end. */
 #endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64 */
   an_anonymous_union_kind
 		anonymous_union_kind;
