@@ -4526,8 +4526,7 @@ typedef struct a_param_type {
 			   that of an earlier parameter, which is allowed in
 			   some GNU modes and for variadic parameters. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_bit_field
-		is_cli_param_array;
+  a_bit_field	is_cli_param_array:1;
 			/* TRUE if this parameter is a C++/CLI "parameter
 			   array" (declared with a leading ellipsis). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
