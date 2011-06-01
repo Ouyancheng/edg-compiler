@@ -7141,6 +7141,11 @@ file.
 #else /* !defined(USE_TEMPLATE_INFO_FILE) */
   comment_undefined_macro_name(USE_TEMPLATE_INFO_FILE);
 #endif /* defined(USE_TEMPLATE_INFO_FILE) */
+#if defined(USE_X86_64)
+  define_numeric_valued_macro(USE_X86_64);
+#else /* !defined(USE_X86_64) */
+  comment_undefined_macro_name(USE_X86_64);
+#endif /* defined(USE_X86_64) */
 #if defined(USING_DECLARATIONS_IN_GENERATED_CODE)
   define_numeric_valued_macro(USING_DECLARATIONS_IN_GENERATED_CODE);
 #else /* !defined(USING_DECLARATIONS_IN_GENERATED_CODE) */
