@@ -10519,6 +10519,53 @@ otherwise, it is NULL.
 }  /* update_class_for_special_member */
 
 
+static a_boolean routine_is_move_constructor(a_routine_ptr  rp)
+/*
+Return TRUE if and only if the given routine is a move constructor.
+*/
+{
+  a_type_qualifier_set  qualifiers;
+
+  return special_kind_is(rp, sfk_constructor) &&
+         is_copy_constructor(rp, parent_class_of(rp), &qualifiers,
+                             /*include_move_ctors=*/TRUE,
+                             /*is_declarative_context=*/TRUE) &&
+         copy_ctor_is_move_ctor(rp);
+}  /* routine_is_move_ctor */
+
+
+static a_boolean routine_is_move_assignment_operator(a_routine_ptr  rp)
+/*
+Return TRUE if and only if the given routine is a move assignment operator.
+*/
+{
+  a_type_qualifier_set  qualifiers;
+  a_boolean             is_ref_arg, base_match_only;
+
+  return special_kind_is(rp, sfk_operator) &&
+         is_assignment_operator_for_copy(symbol_for(rp),
+                                         /*move_assign_okay=*/TRUE,
+                                         &is_ref_arg, &qualifiers,
+                                         &base_match_only) &&
+         !base_match_only &&
+         is_rvalue_reference_type(
+                         function_type_params(skip_typerefs(rp->type))->type);
+}  /* routine_is_move_assignment_operator */
+
+
+static void mark_special_move_parameters(a_routine_ptr  rp)
+/*
+*/
+{
+  if (routine_is_move_constructor(rp) ||
+      routine_is_move_assignment_operator(rp)) {
+    a_type_ptr  rtp;
+    ensure_underlying_function_type_is_modifiable(&rp->type, &rtp);
+    function_type_params(rtp)->move_ctor_or_assign_parameter = TRUE;
+  }  /* if */
+}  /* mark_special_move_parameters */
+
+
 a_boolean is_implicitly_callable_conversion_function(a_type_ptr rout_type)
 /*
 Return TRUE if a conversion function with the indicated routine type is
@@ -11358,6 +11405,7 @@ implicitly declared member functions.
     }  /* if */
     if (!special_kind_is(rtn, sfk_none)) {
       update_class_for_special_member(class_state, decl_info, overload_sym);
+      mark_special_move_parameters(rtn);
     }  /* if */
 #if BACK_END_IS_CP_GEN_BE
     /* Set the "name linkage environment" for this routine. */

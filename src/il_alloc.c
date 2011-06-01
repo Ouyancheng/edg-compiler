@@ -934,6 +934,7 @@ in the file scope memory region.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ptp->is_cli_param_array = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  ptp->move_ctor_or_assign_parameter = FALSE;
 #if CENTERLINE_CHECKING
   ptp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

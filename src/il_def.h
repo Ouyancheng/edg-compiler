@@ -4530,6 +4530,9 @@ typedef struct a_param_type {
 			/* TRUE if this parameter is a C++/CLI "parameter
 			   array" (declared with a leading ellipsis). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_bit_field	move_ctor_or_assign_parameter:1;
+			/* TRUE if this is the first parameter of a move
+			   constructor or a move assignment operator. */
   bitfield_to_avoid_codecenter_warnings()
   uint32_t	param_num;
 			/* The ordinal position of the parameter (1, 2, ...).
