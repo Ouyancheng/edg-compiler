@@ -1819,6 +1819,16 @@ or enum.  This is always a reference/declaration, never a definition.
     }  /* if */
   } else
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
+  /* Do not insert code here. */
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64
+  if (gcc_is_generated_code_target && class_type_supp(type)->is_va_list_tag) {
+    /* The predefined struct __va_list_tag is not compatible with the
+       type used internally by gcc as the base of __builtin_va_list.  Use
+       the typedef that was defined in dump_type_decl in its place. */
+    write_tok_str("__va_list_tag_type");
+  } else
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64 */
+  /* Do not insert code here. */
   {
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
@@ -3662,25 +3672,40 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
         output_defn = FALSE;
       }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-      if (pass == 1) {
-        if (start_unreferenced_bracket(&type->source_corresp,
-                                       (a_boolean *)NULL)) {
-          if (!output_defn) {
-            /* Dump any pragmas associated with the type if no definition
-               will be output on the second pass. */
-            dump_decl_associated_pragmas(&type->source_corresp);
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64
+      if (gcc_is_generated_code_target &&
+          class_type_supp(type)->is_va_list_tag) {
+        /* The predeclared struct __va_list_tag is not compatible with the
+           type used internally by gcc as the base of __builtin_va_list.
+           Define a typedef that refers to the gcc type; it will be used
+           instead of the predeclared struct __va_list_tag. */
+        if (pass == 2) {
+          write_tok_str("typedef typeof(((__builtin_va_list*)0)[0][0]) ");
+          write_tok_str("__va_list_tag_type;");
+        }  /* if */
+      } else
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64 */
+      /* Do not insert code here. */
+      { if (pass == 1) {
+          if (start_unreferenced_bracket(&type->source_corresp,
+                                         (a_boolean *)NULL)) {
+            if (!output_defn) {
+              /* Dump any pragmas associated with the type if no definition
+                 will be output on the second pass. */
+              dump_decl_associated_pragmas(&type->source_corresp);
+            }  /* if */
+            set_output_position(&type->source_corresp.decl_position);
+            dump_tag_reference(type);
+            write_tok_ch(';');
+            end_unreferenced_bracket(&type->source_corresp);
           }  /* if */
-          set_output_position(&type->source_corresp.decl_position);
-          dump_tag_reference(type);
-          write_tok_ch(';');
-          end_unreferenced_bracket(&type->source_corresp);
+        } else if (output_defn) {
+          dump_struct_union_definition(type, /*output_final_semi=*/TRUE);
+          if (type->typedef_pending) {
+            dump_pending_typedefs(type);
+          }  /* if */
         }  /* if */
-      } else if (output_defn) {
-        dump_struct_union_definition(type, /*output_final_semi=*/TRUE);
-        if (type->typedef_pending) {
-          dump_pending_typedefs(type);
-        }  /* if */
-      }  /* if */
+      }
       break;
     case tk_typeref:
       if (type->variant.typeref.is_decltype) {
