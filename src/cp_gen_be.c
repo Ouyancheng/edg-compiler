@@ -4006,6 +4006,7 @@ interpreted as an argument separator rather than an operator).
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = check_for_unprotected_comma_operation;
   tblock.process_expressions_for_constants = TRUE;
+  tblock.process_template_parameter_constants_and_expressions = TRUE;
   traverse_expr(expr, &tblock);
   return tblock.result;
 }  /* expr_has_comma_operation */
@@ -11077,14 +11078,6 @@ to render.  suppress_parens is TRUE if top-level parentheses should not be
 added to the output.
 */
 {
-  if (suppress_parens) {
-    /* We might still need parentheses if the expression has a top-level
-       eok_comma operation, since this expression might appear in an
-       argument-list context. */
-    if (expr_has_comma_operation(expr)) {
-      suppress_parens = FALSE;
-    }  /* if */
-  }  /* if */
   gen_expr(expr, !suppress_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
 }  /* f_gen_expression */
 
