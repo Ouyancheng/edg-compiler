@@ -4006,6 +4006,9 @@ interpreted as an argument separator rather than an operator).
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = check_for_unprotected_comma_operation;
   tblock.process_expressions_for_constants = TRUE;
+  /* Without the following flag, the traversal would not examine
+     dependent expressions in prototype instantiations, which would
+     leave a top-level comma in such an expression unprotected. */
   tblock.process_template_parameter_constants_and_expressions = TRUE;
   traverse_expr(expr, &tblock);
   return tblock.result;
