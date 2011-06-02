@@ -11940,10 +11940,8 @@ typedef struct a_routine {
 			   function is to be used only for inlining.  The
 			   effective declaration for other purposes is an
 			   extern declaration with no body."  In GNU C mode
-			   this flag is set for inline functions that are
-			   defined with the keyword "extern".  Also, in GNU
-			   C++ mode this flag is set for inline functions
-			   defined with the attribute "gnu_inline". */
+			   this flag is also set for inline functions that
+			   are defined with the keyword "extern". */
   a_bit_field	on_inline_function_list:1;
 			/* TRUE if this routine has been added to the inline
 			   function list. */

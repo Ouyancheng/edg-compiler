@@ -7139,20 +7139,15 @@ for use in generating cross-reference output describing this declaration.
       suppress_inline_body = TRUE;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (use_gnu_c89_inlining &&
-             (gpp_mode ||
-              (gcc_mode &&
-               dps->declared_storage_class == (a_storage_class)sc_extern)) &&
+  } else if ((gcc_mode && use_gnu_c89_inlining) &&
+             dps->declared_storage_class == (a_storage_class)sc_extern &&
              func_info->is_inline && func_info->is_definition) {
-    /* In GNU C89 mode, if a function definition uses both the "extern" and
+    /* In GNU C mode, if a function definition uses both the "extern" and
        "inline" keywords then no definition of the function should be emitted,
        even though it has external linkage.  This treatment is analogous to
-       the C99 "inline definition" concept.  GNU C99 follows the standard C99
-       rules only when gnu_version is at least 40300, except when the
-       gnu_inline attribute was specified.  GNU C++ follows standard C++ rules
-       except when the gnu_inline attribute was specified: If the latter is
-       TRUE, no definition should be emitted independently of the presence of
-       an "extern" keyword. */
+       the C99 "inline definition" concept.  (GNU C++ follows the ordinary C++
+       rules.  GNU C99 follows the standard C99 rules only when gnu_version is
+       at least 40300.) */
     suppress_inline_body = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -7198,7 +7193,7 @@ for use in generating cross-reference output describing this declaration.
 #if GNU_EXTENSIONS_ALLOWED
       if (use_gnu_c89_inlining && old_decl_has_body && is_function_def &&
           routine_ptr->is_inline &&
-          ((gcc_mode && routine_ptr->suppress_inline_body) ||
+          (routine_ptr->suppress_inline_body ||
            (gpp_mode && !func_info->is_inline))) {
         /* We are either
              - in GNU C mode and this routine was previously defined with
@@ -7250,6 +7245,7 @@ for use in generating cross-reference output describing this declaration.
         an_error_code     error_code = ec_not_compatible_with_previous_decl;
         a_param_type_ptr  params = skip_typerefs(routine_ptr->type)
                                 ->variant.routine.extra_info->param_type_list;
+
         /* Friend functions that name an existing declaration should not
            introduce default arguments.  Such default arguments are accepted,
            however, in GNU C++ mode or when friend name injection is
@@ -7918,11 +7914,9 @@ skip_overloading:;
       routine_ptr->suppress_inline_body = suppress_inline_body;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (use_gnu_c89_inlining && suppress_inline_body) {
-    /* In GNU the keywords/attributes present at the point of definition
-       determine the suppress_inline_body flag.  (In GNU C++ mode,
-       use_gnu_c89_inlining is TRUE only when the "gnu_inline" attribute is
-       present.) */
+  } else if (gcc_mode && use_gnu_c89_inlining && suppress_inline_body) {
+    /* In GNU C mode only the keywords present at the point of
+       definition matter. */
     routine_ptr->suppress_inline_body = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */

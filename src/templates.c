@@ -24568,10 +24568,6 @@ emitted in this translation unit.
   }  /* if */
   if (!body_can_be_generated) {
     /* We can't emit the body if one can't be generated. */
-  } else if (rout_ptr->suppress_inline_body) {
-    /* The front end already decided that the definition should not be spilled
-       (e.g., when the GNU attribute gnu_inline is specified). */
-    result = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode &&
              (rout_ptr->explicit_extern_inline ||
@@ -25005,17 +25001,15 @@ are instantiated using a mechanism like the template instantiation mechanism.
     a_routine_list_entry_ptr	rlep;
 
     for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
-      a_routine_ptr  routine = rlep->routine;
-      if (routine->storage_class != (a_storage_class)sc_static &&
-          !routine->suppress_inline_body) {
+      if (rlep->routine->storage_class != (a_storage_class)sc_static) {
         /* In the presence of exported templates, static inlines are made
            external so will no longer have a sc_static storage class. */
-        create_instantiation_flags_for_inline_function(routine);
+        create_instantiation_flags_for_inline_function(rlep->routine);
 #if ONE_INSTANTIATION_PER_OBJECT
         /* If we are using one instantiation per object mode, write the
            name of the instantiation object file to the template information
            file. */
-        write_instantiation_file_name_for_inline_function(routine);
+        write_instantiation_file_name_for_inline_function(rlep->routine);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
       }  /* if */
     }  /* for */
