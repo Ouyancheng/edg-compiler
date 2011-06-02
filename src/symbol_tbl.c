@@ -2217,6 +2217,12 @@ static method.  The list is returned in *p_hide_by_sig_list.
   a_symbol				*fund_sym;
 
   if (sym->is_class_member) {
+    if (sym->kind == (a_symbol_kind)sk_projection &&
+        sym->is_super_reference) {
+      /* For a name reference __super::x the hide-by-sig lookup is done on the
+         underlying symbol. */
+      sym = fundamental_symbol_of(sym);
+    }  /* if */
     parent_type = sym_parent_class(sym);
     parent_ctsp = class_type_supp(parent_type);
     is_class = parent_ctsp->cli_class_type_kind ==

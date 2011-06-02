@@ -8127,8 +8127,10 @@ the case where the left operand is a C++/CLI handle.
       if (projection_member_sym->kind == (a_symbol_kind)sk_projection
 #if MICROSOFT_EXTENSIONS_ALLOWED
           /* If C++/CLI hide-by-sig lookup applies, you can't trust the
-             base class in the projection symbol. */
+             base class in the projection symbol.  But you have to for a
+             __super reference. */
           && (!cppcli_enabled ||
+              projection_member_sym->is_super_reference ||
               !hide_by_sig_lookup_applies(projection_member_sym))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                                  ) {
