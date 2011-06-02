@@ -1,5 +1,28 @@
 Version 4.4
 
+6/2/11  [EDGcpfe/11769]
+g++ 4.5 and binding rvalue references to lvalues
+
+A change previously made to emulate g++'s handling of rvalue
+references (see EDGcpfe/11634 below) was incomplete with regard to
+g++ 4.5.  It appears that while most cases of binding an rvalue
+reference to an lvalue are disallowed in g++ 4.5, that is still
+allowed for the parameters of move constructors and move assignment
+operators.  g++ 4.6 seems to have gone all the way to the standard
+restrictions.  The following case is now accepted with
+gnu_version=40500:
+
+  struct pair {
+    pair(const pair&&);
+    pair& operator=(const pair&&);
+  };
+  void foo() {
+    pair* src;
+    pair dest(*src);
+    dest = *src;
+  }
+
+
 6/1/11   [EDGcpfe/11773]
 Pointer arguments to __sync_... functions
 

@@ -1739,6 +1739,7 @@ array).
                                         *arg_type,
                                         param_type,
                                         /*is_cast=*/FALSE,
+                                       /*move_ctor_or_assign_parameter=*/FALSE,
                                         &ref_to_const,
                                         &ref_to_const_volatile,
                                         &binding_to_rvalue_allowed,
@@ -1774,6 +1775,7 @@ pointer transformation should be done.
                                         arg_type,
                                         param_type,
                                         /*is_cast=*/FALSE,
+                                       /*move_ctor_or_assign_parameter=*/FALSE,
                                         &ref_to_const,
                                         &ref_to_const_volatile,
                                         &binding_to_rvalue_allowed,
@@ -2621,7 +2623,9 @@ have_level:;
     if (param_is_rvalue_reference) {
       /* An rvalue reference can only be bound to an rvalue. */
       if (arg_originally_an_lvalue) {
-        if (binding_rvalue_ref_to_lvalue_allowed()) {
+        if (binding_rvalue_ref_to_lvalue_allowed(
+                                         ptp != NULL &&
+                                         ptp->move_ctor_or_assign_parameter)) {
           /* This mode allows binding an rvalue reference to an lvalue.
              For g++, this is less desirable than other matches. */
           if (gpp_mode) arg_summary->anachronism_used = TRUE;
@@ -9902,6 +9906,7 @@ specific function being called.
                      /*initializing_return_value=*/FALSE,
                      /*initializing_variable=*/FALSE,
                      /*static_lifetime=*/FALSE,
+                     /*move_ctor_or_assign_parameter=*/FALSE,
                      /*is_copy_initialization=*/FALSE,
                      is_template_param_constant_operand(&arg_operand->operand),
                      ec_incompatible_param);
@@ -16396,21 +16401,24 @@ The type of the operand will be updated if necessary.
 
 
 a_boolean direct_reference_binding_possible(
-                                       an_operand   *source_operand,
-                                       a_type_ptr   source_type,
-                                       a_type_ptr   dest_type,
-                                       a_boolean    is_cast,
-                                       a_boolean    *ref_to_const,
-                                       a_boolean    *ref_to_const_volatile,
-                                       a_boolean    *binding_to_rvalue_allowed,
-                                       a_boolean    *dropping_qualifiers,
-                                       a_boolean    *p_template_case,
-                                       a_symbol_ptr *function_symbol)
+                                    an_operand   *source_operand,
+                                    a_type_ptr   source_type,
+                                    a_type_ptr   dest_type,
+                                    a_boolean    is_cast,
+                                    a_boolean    move_ctor_or_assign_parameter,
+                                    a_boolean    *ref_to_const,
+                                    a_boolean    *ref_to_const_volatile,
+                                    a_boolean    *binding_to_rvalue_allowed,
+                                    a_boolean    *dropping_qualifiers,
+                                    a_boolean    *p_template_case,
+                                    a_symbol_ptr *function_symbol)
 /*
 See if it is possible to directly bind a reference of type dest_type
 to source_operand.  If so, return TRUE.  source_operand can be NULL, in
 which case source_type gives the operand type.  is_cast is TRUE if the
 context is a cast (source_operand is being cast to dest_type).
+move_ctor_or_assign_parameter is TRUE if the reference is the type
+of the parameter of a move constructor or copy assignment operator.
 *ref_to_const is returned TRUE if the reference is to const.
 *ref_to_const_volatile is returned TRUE if the reference is to const
 volatile.  *binding_to_rvalue_allowed is returned TRUE if the reference
@@ -16546,7 +16554,8 @@ direct binding is "possible" and not whether it is "valid".
     if (source_operand != NULL && !is_an_rvalue(source_operand)) {
       if (is_cast) {
         /* In a cast, the source can be an lvalue. */
-      } else if (binding_rvalue_ref_to_lvalue_allowed()) {
+      } else if (binding_rvalue_ref_to_lvalue_allowed(
+                                              move_ctor_or_assign_parameter)) {
         /* Some versions of g++ allow binding an rvalue reference to an
            lvalue. */
       } else if (binding_rvalue_ref_to_bit_field_allowed() &&
@@ -16726,6 +16735,7 @@ void prep_reference_initializer_operand(
                               a_boolean     initializing_variable,
                               a_boolean     static_lifetime,
                               a_boolean     bitwise_assignment_param,
+                              a_boolean     move_ctor_or_assign_parameter,
                               a_boolean     leave_as_object,
                               an_error_code incompatible_err)
 /*
@@ -16741,8 +16751,10 @@ the initialization is being done to return a value in a return statement.
 initializing_variable is TRUE if this initialization is for a
 variable.  In that case, static_lifetime is TRUE if the variable is
 static.  If bitwise_assignment_param is TRUE, this call is analyzing
-the parameter of a notional generated copy assignment operator.  If
-the operand and type are incompatible, the error incompatible_err is
+the parameter of a notional generated copy assignment operator.
+move_ctor_or_assign_parameter is TRUE if the reference is the type
+of the parameter of a move constructor or copy assignment operator.
+If the operand and type are incompatible, the error incompatible_err is
 issued.  If conversion is non-NULL, the initializer has previously
 been found to be acceptable, and *conversion describes it.
 */
@@ -16784,16 +16796,17 @@ been found to be acceptable, and *conversion describes it.
     /* Compare the operand type and the reference type to see if direct
        binding is possible. */
     direct_binding_possible =
-                  direct_reference_binding_possible(source_operand,
-                                                    (a_type_ptr)NULL,
-                                                    dest_type,
-                                                    /*is_cast=*/FALSE,
-                                                    &ref_to_const,
-                                                    &ref_to_const_volatile,
-                                                    &binding_to_rvalue_allowed,
-                                                    &dropping_qualifiers,
-                                                    &template_case,
-                                                    &function_symbol);
+               direct_reference_binding_possible(source_operand,
+                                                 (a_type_ptr)NULL,
+                                                 dest_type,
+                                                 /*is_cast=*/FALSE,
+                                                 move_ctor_or_assign_parameter,
+                                                 &ref_to_const,
+                                                 &ref_to_const_volatile,
+                                                 &binding_to_rvalue_allowed,
+                                                 &dropping_qualifiers,
+                                                 &template_case,
+                                                 &function_symbol);
     if (direct_binding_possible) {
       /* Direct binding is possible. */
       if (is_rvalue_ref && 
@@ -16905,7 +16918,8 @@ been found to be acceptable, and *conversion describes it.
                                 /*rvalue_expected=*/is_rvalue_ref);
     }  /* if */
   } else if (is_rvalue_ref && !is_an_rvalue(source_operand) &&
-             !binding_rvalue_ref_to_lvalue_allowed()) {
+             !binding_rvalue_ref_to_lvalue_allowed(
+                                              move_ctor_or_assign_parameter)) {
     /* An rvalue reference cannot be bound to an lvalue. */
     expr_pos_error(ec_rvalue_reference_bound_to_lvalue,
                    &source_operand->position);
@@ -17267,6 +17281,7 @@ void prep_initializer_operand(an_operand    *source_operand,
                               a_boolean     initializing_return_value,
                               a_boolean     initializing_variable,
                               a_boolean     static_lifetime,
+                              a_boolean     move_ctor_or_assign_parameter,
                               a_boolean     is_copy_initialization,
                               a_boolean     nontype_template_arg,
                               an_error_code incompatible_err)
@@ -17277,17 +17292,19 @@ operand from an lvalue to an rvalue if necessary (it usually is).
 initializing_return_value is TRUE if the initialization is being done
 to return a value in a return statement.  initializing_variable is
 TRUE if this initialization is for a variable.  In that case,
-static_lifetime is TRUE if the variable is static.  is_copy_initialization
-is TRUE if this is copy-initialization ("="-form); otherwise, it is
-direct-initialization ("()"-form).  nontype_template_arg is TRUE if
-the operand is a nontype template argument.  If the operand and type
-are incompatible, the error incompatible_err is issued.  This routine is
-used for initialization, function call arguments, and return
-expressions, i.e., for "="-type initializations.  It is not used when
-copy constructor elision is possible; see
-prep_elision_initializer_operand.  If conversion is non-NULL, the
-initializer has previously been found to be acceptable, and
-*conversion describes it.  See conversion_possible for the meaning
+static_lifetime is TRUE if the variable is static.
+move_ctor_or_assign_parameter is TRUE if the reference is the type
+of the parameter of a move constructor or copy assignment operator.
+is_copy_initialization is TRUE if this is copy-initialization
+("="-form); otherwise, it is direct-initialization ("()"-form).
+nontype_template_arg is TRUE if the operand is a nontype template
+argument.  If the operand and type are incompatible, the error
+incompatible_err is issued.  This routine is used for initialization,
+function call arguments, and return expressions, i.e., for "="-type
+initializations.  It is not used when copy constructor elision is
+possible; see prep_elision_initializer_operand.  If conversion is
+non-NULL, the initializer has previously been found to be acceptable,
+and *conversion describes it.  See conversion_possible for the meaning
 of is_transparent.
 */
 {
@@ -17312,6 +17329,7 @@ of is_transparent.
                                        initializing_variable,
                                        static_lifetime,
                                        /*bitwise_assignment_param=*/FALSE,
+                                       move_ctor_or_assign_parameter,
                                        /*leave_as_object=*/FALSE,
                                        incompatible_err);
   } else {
@@ -17436,6 +17454,9 @@ to be acceptable (as far as overload resolution checks that), and
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean  is_transparent = formal_param->is_transparent;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  a_boolean  move_ctor_or_assign_parameter =
+                                   formal_param->move_ctor_or_assign_parameter;
+
 
   /* If the parameter is a template class, make sure it is instantiated so
      we know if a copy constructor should be used. */
@@ -17506,6 +17527,7 @@ to be acceptable (as far as overload resolution checks that), and
                                /*initializing_return_value=*/FALSE,
                                /*initializing_variable=*/FALSE,
                                /*static_lifetime=*/FALSE,
+                               move_ctor_or_assign_parameter,
                                /*is_copy_initialization=*/TRUE,
                                /*nontype_template_arg=*/FALSE,
                                err_code);
@@ -17518,6 +17540,7 @@ to be acceptable (as far as overload resolution checks that), and
                                          /*initializing_variable=*/FALSE,
                                          /*static_lifetime=*/FALSE,
                                          /*bitwise_assignment_param=*/FALSE,
+                                         move_ctor_or_assign_parameter,
                                          /*leave_as_object=*/TRUE,
                                          err_code);
       /* Adjust the object type back to the non-const type and then
@@ -17585,6 +17608,7 @@ cases where bitwise copying applies.
                                          /*initializing_variable=*/FALSE,
                                          /*static_lifetime=*/FALSE,
                                          /*bitwise_assignment_param=*/TRUE,
+                                       /*move_ctor_or_assign_parameter=*/FALSE,
                                          /*leave_as_object=*/TRUE,
                                          incompatible_err);
       conv_lvalue_to_rvalue(source_operand);    
@@ -17805,16 +17829,18 @@ can convert to or from handles.
        conversion to "reference to op2_type". */
     conv_dest_type = make_reference_type(op2_type);
     if (!is_an_rvalue(op1) &&
-        direct_reference_binding_possible(op1,
-                                          (a_type_ptr)NULL,
-                                          conv_dest_type,
-                                          /*is_cast=*/FALSE,
-                                          &ref_to_const,
-                                          &ref_to_const_volatile,
-                                          &binding_to_rvalue_allowed,
-                                          &dropping_qualifiers,
-                                          &template_case,
-                                          (a_symbol **)NULL)) {
+        direct_reference_binding_possible(
+                                       op1,
+                                       (a_type_ptr)NULL,
+                                       conv_dest_type,
+                                       /*is_cast=*/FALSE,
+                                       /*move_ctor_or_assign_parameter=*/FALSE,
+                                       &ref_to_const,
+                                       &ref_to_const_volatile,
+                                       &binding_to_rvalue_allowed,
+                                       &dropping_qualifiers,
+                                       &template_case,
+                                       (a_symbol **)NULL)) {
       possible = TRUE;
       conv->class_object_adjustment_required = TRUE;
       conv->result_is_an_lvalue = TRUE;

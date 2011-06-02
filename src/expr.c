@@ -1935,6 +1935,7 @@ indication in *rcblock).
                              /*initializing_return_value=*/FALSE,
                              /*initializing_variable=*/FALSE,
                              /*static_lifetime=*/FALSE,
+                             /*move_ctor_or_assign_parameter=*/FALSE,
                              /*is_copy_initialization=*/FALSE,
                              /*nontype_template_arg=*/FALSE,
                              err_code);
@@ -13507,6 +13508,7 @@ delegate initializer, given by rcblock->argument_list.
                         /*initializing_return_value=*/FALSE,
                         /*initializing_variable=*/FALSE,
                         /*static_lifetime=*/FALSE,
+                        /*move_ctor_or_assign_parameter=*/FALSE,
                         /*is_copy_initialization=*/TRUE,
                         /*nontype_template_arg=*/FALSE,
                         ec_incompatible_delegate_object);
@@ -14780,6 +14782,7 @@ handle_empty_parens_new_initializer:
                         /*initializing_return_value=*/FALSE,
                         /*initializing_variable=*/FALSE,
                         /*static_lifetime=*/FALSE,
+                        /*move_ctor_or_assign_parameter=*/FALSE,
                         /*is_copy_initialization=*/FALSE,
                         is_template_param_constant_operand(&arg_ptr->operand),
                         ec_incompatible_param);
@@ -16074,16 +16077,18 @@ called only in C++ mode.
       /* The is_cast=TRUE argument allows an lvalue expression to be cast
          to an rvalue reference.  For a reference binding that wouldn't
          be allowed. */
-      if (direct_reference_binding_possible(operand,
-                                            operand->type,
-                                            type_cast_to,
-                                            /*is_cast=*/TRUE,
-                                            &ref_to_const,
-                                            &ref_to_const_volatile,
-                                            &binding_to_rvalue_allowed,
-                                            &dropping_qualifiers,
-                                            &template_case,
-                                            &function_symbol)) {
+      if (direct_reference_binding_possible(
+                                       operand,
+                                       operand->type,
+                                       type_cast_to,
+                                       /*is_cast=*/TRUE,
+                                       /*move_ctor_or_assign_parameter=*/FALSE,
+                                       &ref_to_const,
+                                       &ref_to_const_volatile,
+                                       &binding_to_rvalue_allowed,
+                                       &dropping_qualifiers,
+                                       &template_case,
+                                       &function_symbol)) {
         /* The operand can be cast directly to the reference type,
            so don't look for a way to do the cast using a conversion
            function. */
@@ -16271,15 +16276,16 @@ called only in C++ mode.
               determined_conversion->is_explicit_cast = TRUE;
             }  /* if */
             prep_reference_initializer_operand(
-                                           operand,
-                                           type_cast_to,
-                                           determined_conversion,
-                                           /*initializing_return_value=*/FALSE,
-                                           /*initializing_variable=*/FALSE,
-                                           /*static_lifetime=*/FALSE,
-                                           /*bitwise_assignment_param=*/FALSE,
-                                           /*leave_as_object=*/TRUE,
-                                           ec_bad_cast /* arbitrary */);
+                                       operand,
+                                       type_cast_to,
+                                       determined_conversion,
+                                       /*initializing_return_value=*/FALSE,
+                                       /*initializing_variable=*/FALSE,
+                                       /*static_lifetime=*/FALSE,
+                                       /*bitwise_assignment_param=*/FALSE,
+                                       /*move_ctor_or_assign_parameter=*/FALSE,
+                                       /*leave_as_object=*/TRUE,
+                                       ec_bad_cast /* arbitrary */);
             /* Class rvalues get placed in a temporary, which is then treated
                as an lvalue, so we don't expect any rvalues here. */
             check_assertion(is_an_lvalue(operand) ||
@@ -25539,6 +25545,7 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
                                /*initializing_return_value=*/FALSE,
                                /*initializing_variable=*/FALSE,
                                /*static_lifetime=*/FALSE,
+                               /*move_ctor_or_assign_parameter=*/FALSE,
                                /*is_copy_initialization=*/TRUE,
                                /*nontype_template_arg=*/FALSE,
                                ec_captured_var_type_not_copyable);
@@ -26971,6 +26978,7 @@ Return a pointer to the expression.
                            /*initializing_return_value=*/FALSE,
                            /*initializing_variable=*/FALSE,
                            /*static_lifetime=*/FALSE,
+                           /*move_ctor_or_assign_parameter=*/FALSE,
                            /*is_copy_initialization=*/FALSE,
                            /*nontype_template_arg=*/FALSE,
                            err_code);
@@ -28310,6 +28318,7 @@ required_type will be void if the expression should have void type
                                /*initializing_return_value=*/TRUE,
                                /*initializing_variable=*/FALSE,
                                /*static_lifetime=*/FALSE,
+                               /*move_ctor_or_assign_parameter=*/FALSE,
                                /*is_copy_initialization=*/TRUE,
                                /*nontype_template_arg=*/FALSE,
                                err_code);
@@ -28696,6 +28705,7 @@ memory region).  Do various error checks.
                              /*initializing_return_value=*/FALSE,
                              /*initializing_variable=*/FALSE,
                              /*static_lifetime=*/FALSE,
+                             /*move_ctor_or_assign_parameter=*/FALSE,
                              /*is_copy_initialization=*/TRUE,
                              /*nontype_template_arg=*/TRUE,
                              ec_bad_nontype_template_arg);
@@ -30103,6 +30113,7 @@ standard form).  Assumes copy-initialization ("="-form).
                              /*initializing_return_value=*/FALSE,
                              /*initializing_variable=*/TRUE,  /* Arbitrary. */
                              /*static_lifetime=*/FALSE,
+                             /*move_ctor_or_assign_parameter=*/FALSE,
                              /*is_copy_initialization=*/TRUE,
                              /*nontype_template_arg=*/FALSE,
                              ec_bad_initializer_type);
@@ -30211,6 +30222,7 @@ constants; assumes copy-initialization ("="-form).
                              /*initializing_return_value=*/FALSE,
                              /*initializing_variable=*/TRUE,  /* Arbitrary. */
                              /*static_lifetime=*/FALSE,
+                             /*move_ctor_or_assign_parameter=*/FALSE,
                              /*is_copy_initialization=*/TRUE,
                              /*nontype_template_arg=*/FALSE,
                              ec_bad_initializer_type);
@@ -30341,6 +30353,7 @@ scan_class_initializer_expression and scan_aggregate_initializer_expression.
                            /*initializing_return_value=*/FALSE,
                            /*initializing_variable=*/TRUE,
                            static_lifetime,
+                           /*move_ctor_or_assign_parameter=*/FALSE,
                            is_copy_initialization,
                            /*nontype_template_arg=*/FALSE,
                            ec_bad_initializer_type);
@@ -30913,6 +30926,7 @@ required_type_determined:
                              /*initializing_return_value=*/FALSE,
                              /*initializing_variable=*/TRUE,
                              static_lifetime,
+                             /*move_ctor_or_assign_parameter=*/FALSE,
                              /*is_copy_initialization=*/TRUE,
                              /*nontype_template_arg=*/FALSE,
                              ec_bad_initializer_type);
