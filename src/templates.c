@@ -25005,15 +25005,17 @@ are instantiated using a mechanism like the template instantiation mechanism.
     a_routine_list_entry_ptr	rlep;
 
     for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
-      if (rlep->routine->storage_class != (a_storage_class)sc_static) {
+      a_routine_ptr  routine = rlep->routine;
+      if (routine->storage_class != (a_storage_class)sc_static &&
+          !routine->suppress_inline_body) {
         /* In the presence of exported templates, static inlines are made
            external so will no longer have a sc_static storage class. */
-        create_instantiation_flags_for_inline_function(rlep->routine);
+        create_instantiation_flags_for_inline_function(routine);
 #if ONE_INSTANTIATION_PER_OBJECT
         /* If we are using one instantiation per object mode, write the
            name of the instantiation object file to the template information
            file. */
-        write_instantiation_file_name_for_inline_function(rlep->routine);
+        write_instantiation_file_name_for_inline_function(routine);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
       }  /* if */
     }  /* for */
