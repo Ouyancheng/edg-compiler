@@ -10543,6 +10543,7 @@ Return TRUE if and only if the given routine is a move assignment operator.
   a_boolean             is_ref_arg, base_match_only;
 
   return special_kind_is(rp, sfk_operator) &&
+         rp->variant.opname_kind == (an_opname_kind)onk_assign &&
          is_assignment_operator_for_copy(symbol_for(rp),
                                          /*move_assign_okay=*/TRUE,
                                          &is_ref_arg, &qualifiers,
