@@ -9505,8 +9505,16 @@ otherwise.
   if (obj_expr != NULL) {
     /* Check to see if an object expression is needed and generate it if
        necessary before putting out the property/event name. */
-    if (!(is_variable_node(obj_expr) &&
-          obj_expr->variant.variable->is_this_parameter)) {
+    if (is_variable_node(obj_expr) &&
+        obj_expr->variant.variable->is_this_parameter) {
+      /* Omit the "this" keyword. */
+      if (desc != NULL && desc->is_default_indexed) {
+        /* This is a default-indexed property with an implicit "this" as
+           the object expression, which is expressed by using the "default"
+           keyword in place of the property name or handle expression. */
+        write_tok_str("default");
+      }  /* if */
+    } else {
       a_boolean removed_nodes = strip_lvalue_cast_sequence(&obj_expr);
       gen_expr_with_parens(obj_expr);
       if (desc == NULL || desc->is_default_indexed) {
