@@ -1821,7 +1821,8 @@ or enum.  This is always a reference/declaration, never a definition.
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
   /* Do not insert code here. */
 #if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64
-  if (gcc_is_generated_code_target && class_type_supp(type)->is_va_list_tag) {
+  if (gcc_is_generated_code_target && is_immediate_class_type(type) &&
+      class_type_supp(type)->is_va_list_tag) {
     /* The predefined struct __va_list_tag is necessarily distinct from,
        and hence not compatible with, the type used internally by gcc as
        the base of __builtin_va_list.  Use the typedef that was defined in
@@ -3681,7 +3682,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
            gcc as the base of __builtin_va_list.  Define a typedef that
            refers to the gcc type; it will be used instead of the
            predeclared struct __va_list_tag. */
-        if (pass == 2) {
+        if (pass == 2 && output_defn) {
           write_tok_str("typedef typeof(((__builtin_va_list*)0)[0][0]) ");
           write_tok_str("__va_list_tag_type;");
         }  /* if */
