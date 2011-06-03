@@ -1,5 +1,25 @@
 Version 4.4
 
+6/3/11  [EDGcpfe/11784]
+Extraneous diagnostic with missing position on invalid use of dllimport on
+static data member definition
+
+In Microsoft C++ mode, the front end issued an error ("a storage class may not
+be specified here") when defining a static data member with the dllimport
+attribute.  However, the error message did not include a source position and
+was in fact extraneous because a clearer error message followed ("cannot
+define dllimport entity").  For example:
+
+  struct S { 
+    static int sm; 
+  }; 
+  __declspec(dllimport) int S::sm;  // Previously triggered two errors in
+                                    // Microsoft mode, one of which was
+                                    // missing position information.
+
+This is now fixed: The extraneous diagnostic is no longer issued.
+
+
 6/2/11  [EDGcpfe/11769]
 g++ 4.5 and binding rvalue references to lvalues
 

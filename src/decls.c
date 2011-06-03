@@ -9069,12 +9069,19 @@ the symbol through dps->sym and its linkage (which is always "none") through
      were already checked by the caller.)  An exception is GNU C++ mode, which
      accepts and ignores the "extern" case (with a warning). */
   if (dps->storage_class != (a_storage_class)sc_unspecified) {
-    an_error_severity  sev = es_error;
-    if (gpp_mode && dps->storage_class == (a_storage_class)sc_extern) {
-      sev = es_warning;
-      dps->storage_class = (a_storage_class)sc_unspecified;
+    if (dps->declared_storage_class == (a_storage_class)sc_unspecified) {
+      /* This can happen with attributes (like dllimport) in error cases.
+         The error should be issued elsewhere. */
+      expect_error();
+    } else {
+      an_error_severity  sev = es_error;
+      if (gpp_mode && dps->storage_class == (a_storage_class)sc_extern) {
+        sev = es_warning;
+        dps->storage_class = (a_storage_class)sc_unspecified;
+      }  /* if */
+      pos_diagnostic(sev, ec_storage_class_not_allowed,
+                     &dps->storage_class_pos);
     }  /* if */
-    pos_diagnostic(sev, ec_storage_class_not_allowed, &dps->storage_class_pos);
   }  /* if */
   if (microsoft_mode && sym->kind == (a_symbol_kind)sk_projection) {
     /* In Microsoft compatibility mode it's permitted to define a static
