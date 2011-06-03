@@ -12285,7 +12285,10 @@ specific information about the member declaration, respectively.
   var->source_corresp.access = class_state->access;
   attach_decl_attributes(decl_state, /*primary_decl=*/FALSE);
   update_variable_decl_modifiers(decl_state);
-  if (curr_token == tok_assign && is_expr_start_token(next_token())) {
+  if (curr_token == tok_assign &&
+      (is_expr_start_token(next_token()) ||
+       (is_immediate_managed_class_type(class_type) &&
+        next_token() == tok_lbrace))) {
     a_constant         constant;
     a_source_position  init_pos;
     a_boolean          restore_member_visibility = FALSE;
@@ -12305,8 +12308,7 @@ specific information about the member declaration, respectively.
       restore_member_visibility = TRUE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && !var->is_initonly &&
-        is_immediate_managed_class_type(class_type)) {
+    if (is_immediate_managed_class_type(class_type) && !var->is_initonly) {
       /* In managed class types, static data members that aren't init_only can
          have any initializer allowed for a namespace scope variable.  Such a
          declaration is a definition. */
