@@ -12162,18 +12162,19 @@ and *decl_info track general information about the class definition and
 specific information about the member declaration, respectively.
 */
 {
-  a_symbol_ptr          sym, prototype_tag_sym;
+  a_symbol_ptr             sym, prototype_tag_sym;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_symbol_ptr          property_set = NULL;
+  a_symbol_ptr             property_set = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_variable_ptr        var;
+  a_variable_ptr           var;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_name_reference_ptr  name_ref = NULL;
+  a_name_reference_ptr     name_ref = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_decl_parse_state    *decl_state = &decl_info->decl_state;
-  a_type_ptr            class_type = class_state->class_type;
-  a_type_ptr            member_type = decl_state->type;
-  a_source_position     *start_pos = &decl_state->start_pos;
+  a_decl_parse_state       *decl_state = &decl_info->decl_state;
+  a_type_ptr               class_type = class_state->class_type;
+  a_type_ptr               member_type = decl_state->type;
+  a_source_position        *start_pos = &decl_state->start_pos;
+  a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
 
   db_enter(3, "decl_static_data_member");
   if (is_void_type(member_type)) {
@@ -12303,6 +12304,21 @@ specific information about the member declaration, respectively.
       decl_state->sym->is_invisible = TRUE;
       restore_member_visibility = TRUE;
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && !var->is_initonly &&
+        is_immediate_managed_class_type(class_type)) {
+      /* In managed class types, static data members that aren't init_only can
+         have any initializer allowed for a namespace scope variable.  Such a
+         declaration is a definition. */
+      a_boolean  incomplete_type_error_reported = FALSE;
+      initializer(decl_state, &locator->source_position, idl_external,
+                  /*parenthesized_initializer=*/FALSE,
+                  &incomplete_type_error_reported, &decl_info->decl_pos_block);
+      var->storage_class = (a_storage_class)sc_unspecified;
+      srk_flags |= SRK_DEFINITION;
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
     if ((is_const_qualified_type(member_type) &&
          (is_integral_or_enum_type(member_type) ||
           (gpp_mode &&
@@ -12352,7 +12368,7 @@ specific information about the member declaration, respectively.
   }  /* if */
   /* This is entered as a declaration rather than a definition, since the
      definition must appear outside the class definition. */
-  record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
+  record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             decl_state->source_sequence_entry);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   update_decl_pos_info(&var->source_corresp, &decl_info->decl_pos_block);
@@ -12364,7 +12380,8 @@ specific information about the member declaration, respectively.
   if (record_name_references_in_context()) {
     name_ref = qualifiable_name_reference(locator, &var->source_corresp);
   }  /* if */
-  { an_sssd_flag_set  flags = SSSD_NO_FLAGS;
+  if (!(srk_flags & SRK_DEFINITION)) {
+    an_sssd_flag_set  flags = SSSD_NO_FLAGS;
 #if GNU_EXTENSIONS_ALLOWED
     if (decl_state->marked_as_gnu_extension) {
       flags |= SSSD_MARKED_AS_GNU_EXTENSION;
@@ -12372,11 +12389,13 @@ specific information about the member declaration, respectively.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     (void)update_src_seq_secondary_decl((char *)var, member_type, name_ref,
                                         flags, &decl_info->decl_pos_block);
-    wrapup_sse_for_simple_decl(decl_state);
-    if (decl_state->has_initializer) {
-      add_src_seq_end_of_variable_if_needed(decl_state);
-    }  /* if */
+  } else {
+    var->declared_type = member_type;
   }
+  wrapup_sse_for_simple_decl(decl_state);
+  if (decl_state->has_initializer) {
+    add_src_seq_end_of_variable_if_needed(decl_state);
+  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Do processing required for any pragmas that are bound to the current
      declaration. */

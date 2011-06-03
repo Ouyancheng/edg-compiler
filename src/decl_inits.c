@@ -4372,12 +4372,16 @@ returned set to TRUE.
 #endif /* NEED_NAME_MANGLING */
     /* The initializer of a static data member was scanned with the original
        class reactivated (if we're parsing a prototype instantiation, this was
-       done elsewhere).  Restore the scope to what it was before.  (We may
+       done elsewhere).  Restore the scope to what it was before.  An exception
+       can happen in managed class types where static data members can have
+       in-class initializers even when the member is not a constant.  (We may
        also end up here with an sk_variable.) */
     /* Note that this call has to be after the select_destructor call in the
        preceding section of code. */
     if (is_incomplete_type(sym_parent_class(symbol_ptr))) {
-      check_assertion(symbol_ptr->is_error);
+      check_assertion(symbol_ptr->is_error ||
+                      is_immediate_managed_class_type(
+                                               sym_parent_class(symbol_ptr)));
     } else if (reactivation_pushed) {
       pop_class_reactivation_scope();
     }  /* if */
