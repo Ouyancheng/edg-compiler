@@ -1,5 +1,19 @@
 Version 4.4
 
+6/6/11  [EDGcpfe/11752]
+Internal error on empty pack expansion with subsequent parameters
+
+An internal error could occur (in scan_function_body) if a member function
+declaration of a class template contained a pack expansion followed by
+additional parameters, and the class was instantiated with an empty pack.
+Now fixed.
+
+  template <class ...T> struct A {
+    virtual void f(T ..., int ){} 
+  };
+  A<> a;
+
+
 6/3/11  [EDGcpfe/11784]
 Extraneous diagnostic with missing position on invalid use of dllimport on
 static data member definition

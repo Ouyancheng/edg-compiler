@@ -1161,6 +1161,13 @@ of lambda expressions.
     }  /* if */
     for (; param_id != NULL && ptp != NULL;
          advance_param_id_and_param_type(&param_id, &ptp, rout_ptr)) {
+      /* In some cases with empty pack expansions there can be no param
+         type entry for a given parameter.   Skip over those param_ids. */
+      while (param_id != NULL && ptp != NULL &&
+             param_id->param_num < ptp->param_num &&
+             param_id->is_parameter_pack) {
+        param_id = param_id->next;
+      }  /* while */
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
