@@ -1161,6 +1161,9 @@ of lambda expressions.
     }  /* if */
     for (; param_id != NULL && ptp != NULL;
          advance_param_id_and_param_type(&param_id, &ptp, rout_ptr)) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      a_type_ptr  declared_param_type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* In some cases with empty pack expansions there can be no param
          type entry for a given parameter.   Skip over those param_ids. */
       while (param_id != NULL && ptp != NULL &&
@@ -1171,7 +1174,6 @@ of lambda expressions.
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      a_type_ptr  declared_param_type;
       if (orig_ptp != NULL) {
         declared_param_type = orig_ptp->type;
         orig_ptp = orig_ptp->next;
