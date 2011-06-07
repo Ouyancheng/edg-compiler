@@ -2122,6 +2122,7 @@ Clear the fields of the given variable to default values.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   vp->is_initonly                 = FALSE;
   vp->is_for_each_iterator        = FALSE;
+  vp->initializer_in_class        = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   vp->init_kind                   = (an_init_kind)initk_none;
   /* One of the variant fields, chosen arbitrarily, is initialized. */

@@ -12492,6 +12492,7 @@ specific information about the member declaration, respectively.
     a_boolean          restore_member_visibility = FALSE;
     a_boolean          delay_initializer_scan = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    var->initializer_in_class = TRUE;
     if (is_immediate_managed_class_type(class_type) && !var->is_initonly) {
       /* In managed class types, static data members that aren't init_only can
          have any initializer allowed for a namespace scope variable.  Such a

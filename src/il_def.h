@@ -8528,6 +8528,9 @@ typedef struct a_variable {
   a_bit_field	is_for_each_iterator:1;
 			/* TRUE for the iterator variable of a for-each
 			   loop in Microsoft or C++/CLI modes. */
+  a_bit_field	initializer_in_class:1;
+			/* TRUE for static data members with in-class
+			   initializers. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any.
