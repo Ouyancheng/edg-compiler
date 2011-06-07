@@ -105,7 +105,7 @@ typedef struct a_class_fixup_header *a_class_fixup_header_ptr;
 typedef struct a_class_fixup_header {
   unsigned int	defer_inline_function_fixups;
 			/* Nonzero if the fixup of inline function bodies and
-                           should be deferred. */
+                           in-class initializers should be deferred. */
   a_pending_class_definition_count
 		pending_class_definitions;
 			/* The number of class definitions currently in
@@ -116,20 +116,29 @@ typedef struct a_class_fixup_header {
 			/* Pointer to a list of class fixup entries for
 			   class definitions for which default argument
 			   fixup must be done. */
-
   a_class_fixup_ptr
 		def_arg_list_tail;
 			/* End of the def_arg_list. */
-
   a_class_fixup_ptr
 		inline_function_list;
 			/* Pointer to a list of class fixup entries for
-			   class definitions for which default argument
+			   class definitions for which inline function
 			   fixup must be done. */
-
   a_class_fixup_ptr
 		inline_function_list_tail;
 			/* End of the inline_function_list. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_class_fixup_ptr
+		inclass_initializer_list;
+			/* Pointer to a list of class fixup entries for class
+			   definitions for which in-class initializer fixup
+			   must be done. */
+  a_class_fixup_ptr
+		inclass_initializer_list_tail;
+			/* Pointer to the last entry of the list pointed to
+			   by inclass_initializer_list (or NULL if the list
+			   is empty). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_class_fixup_header;
 
 
@@ -951,6 +960,14 @@ typedef struct a_scope_stack_entry {
 			   caching and delayed scanning scheme required for
 			   C++ member functions (routine bodies and default
 			   arguments). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_initializer_fixup_ptr
+		last_initializer_fixup;
+			/* Defined for sck_class_struct_union scopes only:
+			   the tail of a list of entities used in the token
+			   caching and delayed scanning scheme required for
+			   C++ in-class data member initializers. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* The following pointers are the end pointers for the lists begun
      in the current IL scope entry.  They are needed only while the scope
      is active (to add entries to the ends of lists), and are therefore

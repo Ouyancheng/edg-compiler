@@ -45,10 +45,14 @@ typedef struct a_hash_table *a_hash_table_ptr;
 typedef struct a_param_id *a_param_id_ptr;
 typedef struct a_pack_expansion_stack_entry *a_pack_expansion_stack_entry_ptr;
 
-/* The pointer to a_routine_fixup is declared here even though the struct
-   itself is defined in class_decl.c.  This allows the pointer to be made
-   available to symbol_tbl.h without creating recursive reference problems. */
+/* The pointer types to a_routine_fixup and an_initializer_fixup are declared
+   here even though the struct themselves are defined in class_decl.c.  This
+   allows the pointer to be made available to symbol_tbl.h without creating
+   recursive reference problems. */
 typedef struct a_routine_fixup *a_routine_fixup_ptr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+typedef struct an_initializer_fixup *an_initializer_fixup_ptr;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* The pointer to a_def_arg_expr_fixup is declared here even though the struct
    itself is defined in def_arg.h.  This allows the pointer to be made
@@ -933,6 +937,13 @@ typedef struct a_class_symbol_supplement {
 			   caching and delayed scanning scheme required for
 			   C++ member functions (routine bodies and default
 			   arguments). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_initializer_fixup_ptr
+		initializer_fixup_list;
+			/* Pointer to a list of entities used in the token
+			   caching and delayed scanning scheme required for
+			   C++ in-class initializers. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_symbol_ptr  class_template;
                         /* Pointer to a class template symbol.  Present
                            only when this class is an instantiation of

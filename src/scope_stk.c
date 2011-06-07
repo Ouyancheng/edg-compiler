@@ -2618,6 +2618,9 @@ the scope being pushed.
   ssep->shareable_constants_table
                                  = NULL;
   ssep->last_routine_fixup       = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ssep->last_initializer_fixup   = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ssep->last_parameter           = NULL;
   ssep->last_nonstatic_variable  = NULL;
   ssep->last_label               = NULL;
@@ -2721,6 +2724,10 @@ the scope being pushed.
   ssep->class_fixup_header.def_arg_list_tail = NULL;
   ssep->class_fixup_header.inline_function_list = NULL;
   ssep->class_fixup_header.inline_function_list_tail = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ssep->class_fixup_header.inclass_initializer_list = NULL;
+  ssep->class_fixup_header.inclass_initializer_list_tail = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ssep->param_id_list = NULL;
   if (sp != NULL) {
     if (new_il_scope) {
@@ -7468,6 +7475,9 @@ End a name scope by popping an entry off the scope stack.
 #endif /* DEBUG */
   check_assertion(ssep->class_fixup_header.def_arg_list == NULL);
   check_assertion(ssep->class_fixup_header.inline_function_list == NULL);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  check_assertion(ssep->class_fixup_header.inclass_initializer_list == NULL);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!(ssep->kind == (a_scope_kind)sck_file && ssep->is_reactivation)) {
     /* Remove symbols from the symbol table, and reenter them on the
        inactive list if necessary.  For the file scope, this is only done

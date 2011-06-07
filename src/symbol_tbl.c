@@ -3293,6 +3293,9 @@ state.
         cssp->conversion_list = NULL;
         cssp->conversion_template_list = NULL;
         cssp->routine_fixup_list = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        cssp->initializer_fixup_list = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cssp->class_template = NULL;
         cssp->template_info = NULL;
         cssp->member_decl_scope = NO_SCOPE_NUMBER;
@@ -13886,6 +13889,9 @@ for space tracking purposes.
   grand_total = db_show_scope_stack_space_used(grand_total);
   grand_total = db_show_template_space_used(grand_total);
   grand_total = db_show_routine_fixups_used(grand_total);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  grand_total = db_show_initializer_fixups_used(grand_total);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if IA64_ABI
   grand_total = db_show_covariant_overrides_used(grand_total);
 #endif /* IA64_ABI */

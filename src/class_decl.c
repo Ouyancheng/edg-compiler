@@ -126,6 +126,13 @@ typedef struct a_class_fixup {
 			/* Next in a linked list of class fixup blocks for
 			   classes for which inline function fixup must be
 			   done. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_class_fixup_ptr
+		next_in_inclass_initializer_list;
+			/* Next in a linked list of class fixup blocks for
+			   classes for which in-class initializer fixup must
+			   be done. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_type_ptr	class_type;
 			/* Pointer to the class type to be fixed-up. */
   a_boolean	is_template_instantiation;
@@ -190,6 +197,7 @@ unsigned long db_show_class_fixups_used(unsigned long grand_total)
                      num_class_fixups_allocated, a_class_fixup);
   return grand_total;
 }  /* db_show_class_fixups_used */
+
 #endif /* DEBUG */
 
 
@@ -476,6 +484,9 @@ initialize it.
   /* Clear the entity. */
   cfp->next = NULL;
   cfp->next_in_inline_function_list = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  cfp->next_in_inclass_initializer_list = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cfp->class_type = NULL;
   cfp->is_template_instantiation = FALSE;
   return cfp;
@@ -520,8 +531,91 @@ Add a class fixup entry for class_type to the class fixup list.
     cfhp->inline_function_list_tail->next_in_inline_function_list = cfp;
   }  /* if */
   cfhp->inline_function_list_tail = cfp;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cfhp->inclass_initializer_list_tail != NULL) {
+    cfhp->inclass_initializer_list_tail
+        ->next_in_inclass_initializer_list = cfp;
+  } else {
+    cfhp->inclass_initializer_list = cfp;
+  }  /* if */
+  cfhp->inline_function_list_tail = cfp;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* add_to_class_fixup_list */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+typedef struct an_initializer_fixup {
+  an_initializer_fixup_ptr
+		next;
+			/* Next in a linked list of initializer fixup blocks,
+			   each of which is associated with a particular data
+			   member of a given class. */
+  a_symbol_ptr  symbol;
+			/* Pointer to a symbol entry with which the fixup is
+			   associated (always an sk_static_data_member symbol
+			   at this time). */
+  a_token_cache initializer_token_cache;
+			/* A pointer to the token cache that describes the
+			   member initializer. */
+} an_initializer_fixup;
+
+/* Previously allocated fixup entries available for reuse. */
+an_initializer_fixup_ptr
+	avail_initializer_fixup;
+
+#if DEBUG
+static unsigned long
+	num_initializer_fixups_allocated;
+
+unsigned long db_show_initializer_fixups_used(unsigned long grand_total)
+{
+  unsigned long  num, size, total;
+
+  db_space_used_lost("initializer fixups", avail_initializer_fixup,
+                     num_initializer_fixups_allocated, an_initializer_fixup);
+  return grand_total;
+}  /* db_show_initializer_fixups_used */
+
+#endif /* DEBUG */
+
+static an_initializer_fixup_ptr alloc_initializer_fixup(void)
+/*
+Allocate (or take from the available-list) an initializer fixup entry and
+initialize it.
+*/
+{
+  an_initializer_fixup_ptr  ifp;
+  
+  if (avail_initializer_fixup != NULL) {
+    /* Reuse a previously allocated entity. */
+    ifp = avail_initializer_fixup;
+    avail_initializer_fixup = ifp->next;
+  } else {
+    /* Allocate memory for a new entity. */
+    ifp = (an_initializer_fixup_ptr)alloc_fe(sizeof(an_initializer_fixup));
+#if DEBUG
+    num_initializer_fixups_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  /* Clear the entity. */
+  ifp->next = NULL;
+  ifp->symbol = NULL;
+  clear_token_cache(&ifp->initializer_token_cache, /*reusable=*/FALSE);
+  return ifp;
+}  /* alloc_initializer_fixup */
+
+
+static void free_initializer_fixup(an_initializer_fixup_ptr  ifp)
+/*
+Return the given initializer fixup entry to the list of entries available for
+reuse.
+*/
+{
+  ifp->next = avail_initializer_fixup;
+  avail_initializer_fixup = ifp;
+}  /* free_initializer_fixup */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Data structure in which to track partial overriding of an overload set of
@@ -2584,6 +2678,50 @@ nested class.
   db_exit();
 }  /* inline_function_fixup_for_class */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void inclass_initializer_fixup_for_class(a_type_ptr  class_type,
+                                                a_boolean   is_template_based)
+/*
+Process the in-class initializers for the indicated class and its nested
+classes.  is_template_based is TRUE for template instantiations (including
+prototype instantiations).
+*/
+{
+  a_class_symbol_supplement_ptr  cssp;
+  an_initializer_fixup_ptr       ifp, next_ifp;
+
+  cssp = symbol_supplement_for_class(class_type);
+  for (ifp = cssp->initializer_fixup_list; ifp != NULL; ifp = next_ifp) {
+    a_boolean           incomplete_type_error_reported = FALSE;
+    a_decl_parse_state  dps;
+    a_decl_pos_block    decl_pos_block;
+    a_variable_ptr      var;
+    clear_decl_pos_block(&decl_pos_block);
+    /* Re-create a declaration parsing state before parsing the initializer. */
+    init_decl_parse_state(&dps);
+    dps.sym = ifp->symbol;
+    check_assertion(symbol_is(dps.sym, sk_static_data_member));
+    var = dps.sym->variant.static_data_member.variable;
+    dps.type = dps.declared_type = var->type;
+    /* Reactivate the class scope and parse the initializer. */
+    push_class_and_template_reactivation_scope(
+                                 sym_parent_class(dps.sym), is_template_based,
+                                 /*extend_namespace=*/TRUE);
+    rescan_cached_tokens(&ifp->initializer_token_cache);
+    initializer(&dps, &dps.sym->decl_position, idl_external,
+                /*parenthesized_initializer=*/FALSE,
+                &incomplete_type_error_reported, &decl_pos_block);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    var->initializer_range = decl_pos_block.var_init_range;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    pop_class_reactivation_scope();
+    next_ifp = ifp->next;
+    free_initializer_fixup(ifp);
+  }  /* if */
+}  /* inclass_initializer_fixup_for_class */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void check_trans_unit_for_fixup(
 				a_class_fixup_ptr	cfp,
@@ -2659,6 +2797,9 @@ after a class instantiation.
   db_enter(3, "process_deferred_class_fixups");
   cfhp = curr_class_fixup_header(for_instantiation);
   if (cfhp->def_arg_list != NULL ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      cfhp->inclass_initializer_list != NULL ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       cfhp->inline_function_list != NULL) {
     /* Clear the pointers to the start of the fixup lists so that classes
        created by the fixup process can be fixed up by a recursive call to
@@ -2707,6 +2848,24 @@ after a class instantiation.
         free_class_fixup(cfp);
       }  /* for */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* cfhp points into the scope_stack, so refresh the pointer after
+       the above processing. */
+    cfhp = curr_class_fixup_header(for_instantiation);
+    if (cfhp->defer_inline_function_fixups == 0) {
+      cfp = cfhp->inclass_initializer_list;
+      cfhp->inclass_initializer_list = NULL;
+      cfhp->inclass_initializer_list_tail = NULL;
+      for (; cfp != NULL; cfp = next_cfp) {
+        /* Make sure we are in the right translation unit. */
+        check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
+        inclass_initializer_fixup_for_class(cfp->class_type,
+                                            cfp->is_template_instantiation);
+        next_cfp = cfp->next_in_inclass_initializer_list;
+        free_class_fixup(cfp);
+      }  /* for */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* If we pushed a translation unit above, pop it now. */
     if (trans_unit_pushed) pop_translation_unit_stack();
   }  /* if */
@@ -12107,6 +12266,41 @@ by the new property.
   }  /* for */
 }  /* check_for_overloaded_property_conflict */
 
+
+static void record_inclass_initializer_fixup(a_decl_parse_state  *dps)
+/*
+The next tokens must be an in-class initializer for a data member.  Cache
+those tokens and create a fixup record so the initializer can be parsed in the
+context of the completed class later on.
+(See also inclass_initializer_fixup_for_class.)
+*/
+{
+  a_scope_stack_entry       *ssep = &scope_stack_top();
+  a_token_set_array         stop_tokens;
+  an_initializer_fixup_ptr  ifp = alloc_initializer_fixup();
+
+  ifp->symbol = dps->sym;
+  /* Initialize a local stop token set to cache everything up to a semicolon
+     (outside braces, etc.). */
+  clear_token_set_array(stop_tokens);
+  incr_token_set_array_element(stop_tokens, tok_semicolon);
+  /* Cache the initializer tokens. */
+  cache_token_stream(&ifp->initializer_token_cache, stop_tokens);
+  /* Record the fixup in the scope stack. */
+  check_assertion(scope_is(ssep, sck_class_struct_union));
+  /* There's only one fixup-list for a class and its nested classes, and it's
+     associated with the outermost enclosing class.  If this is a nested class,
+     move up the scope stack to find the appropriate entry. */
+  while (scope_is(ssep-1, sck_class_struct_union)) --ssep;
+  if (ssep->last_initializer_fixup == NULL) {
+    symbol_supplement_for_class(ssep->assoc_type)
+                                               ->initializer_fixup_list = ifp;
+  } else {
+    ssep->last_initializer_fixup->next = ifp;
+  }  /* if */
+  ssep->last_initializer_fixup = ifp;
+}  /* record_inclass_initializer_fixup */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean is_or_is_nested_within_unnamed_class(a_type_ptr  tp)
@@ -12292,14 +12486,29 @@ specific information about the member declaration, respectively.
     a_constant         constant;
     a_source_position  init_pos;
     a_boolean          restore_member_visibility = FALSE;
+    a_boolean          delay_initializer_scan = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_immediate_managed_class_type(class_type) && !var->is_initonly) {
+      /* In managed class types, static data members that aren't init_only can
+         have any initializer allowed for a namespace scope variable.  Such a
+         declaration is a definition and the initializer is processed in the
+         context of the completed class. */
+      delay_initializer_scan = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     init_pos = pos_curr_token;
     /* Advance past the "=". */
     (void)get_token();
     decl_state->has_initializer = TRUE;
     if (decl_state->auto_type_specifier_seen && !is_error_type(member_type)) {
-      prescan_initializer_for_auto_type_deduction(decl_state,
+      if (delay_initializer_scan) {
+        pos_error(ec_auto_not_allowed_here, &decl_state->auto_pos);
+        member_type = decl_state->type = error_type();
+      } else {
+        prescan_initializer_for_auto_type_deduction(decl_state,
                                                  /*parenthesized_init=*/FALSE);
-      member_type = decl_state->type;
+        member_type = decl_state->type;
+      }  /* if */
     }  /* if */
     if ((microsoft_bugs || gpp_mode) && decl_state->sym != NULL) {
       /* In Microsoft bugs and GNU mode, the static data member being
@@ -12307,30 +12516,24 @@ specific information about the member declaration, respectively.
       decl_state->sym->is_invisible = TRUE;
       restore_member_visibility = TRUE;
     }  /* if */
+    if (delay_initializer_scan) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (is_immediate_managed_class_type(class_type) && !var->is_initonly) {
-      /* In managed class types, static data members that aren't init_only can
-         have any initializer allowed for a namespace scope variable.  Such a
-         declaration is a definition. */
-      a_boolean  incomplete_type_error_reported = FALSE;
-      initializer(decl_state, &locator->source_position, idl_external,
-                  /*parenthesized_initializer=*/FALSE,
-                  &incomplete_type_error_reported, &decl_info->decl_pos_block);
+      record_inclass_initializer_fixup(decl_state);
       var->storage_class = (a_storage_class)sc_unspecified;
       srk_flags |= SRK_DEFINITION;
-    } else
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      unexpected_condition();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    if ((is_const_qualified_type(member_type) &&
-         (is_integral_or_enum_type(member_type) ||
-          (gpp_mode &&
-           (is_floating_type(member_type) ||
-            (gnu_version < 30300 && is_pointer_type(member_type)))))) ||
+    } else if ((is_const_qualified_type(member_type) &&
+                (is_integral_or_enum_type(member_type) ||
+                 (gpp_mode &&
+                  (is_floating_type(member_type) ||
+                   (gnu_version < 30300 && is_pointer_type(member_type)))))) ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        var->is_initonly ||
+               var->is_initonly ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        (class_state->is_nonreal_instantiation &&
-         is_template_param_type(member_type))) {
+               (class_state->is_nonreal_instantiation &&
+                is_template_param_type(member_type))) {
       /* A const integral or const enumeration type may be initialized inside
          the class definition (9.5.2).   This makes the static data member
          usable as a member constant.  Note that the variable entry will have
@@ -23109,6 +23312,7 @@ One-time initialization for class_decl.c static variables.
       pch_saved_var_array_elem(avail_derivation_steps),
       pch_saved_var_array_elem(avail_override_registry_entries),
 #if MICROSOFT_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(avail_initializer_fixup),
       pch_saved_var_array_elem(avail_quasi_override_descrs),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(deferred_friend_fixup_list),
@@ -23119,6 +23323,7 @@ One-time initialization for class_decl.c static variables.
       pch_saved_var_array_elem(num_class_fixups_allocated),
       pch_saved_var_array_elem(num_override_registry_entries_allocated),
 #if MICROSOFT_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(num_initializer_fixups_allocated),
       pch_saved_var_array_elem(num_quasi_override_descrs_allocated),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* if DEBUG */
@@ -23163,6 +23368,7 @@ Initializations for class declaration processing.
   avail_class_fixup = NULL;
   avail_override_registry_entries = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  avail_initializer_fixup = NULL;
   avail_quasi_override_descrs = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if IA64_ABI
@@ -23176,6 +23382,7 @@ Initializations for class declaration processing.
   num_class_fixups_allocated = 0;
   num_override_registry_entries_allocated = 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  num_initializer_fixups_allocated = 0;
   num_quasi_override_descrs_allocated = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* DEBUG */
