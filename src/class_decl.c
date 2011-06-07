@@ -559,13 +559,17 @@ typedef struct an_initializer_fixup {
 			   member initializer. */
 } an_initializer_fixup;
 
-/* Previously allocated fixup entries available for reuse. */
-an_initializer_fixup_ptr
-	avail_initializer_fixup;
+static an_initializer_fixup_ptr
+		avail_initializer_fixup;
+			/* Previously allocated fixup entries available for
+			   reuse. */
 
 #if DEBUG
 static unsigned long
-	num_initializer_fixups_allocated;
+		num_initializer_fixups_allocated;
+			/* Number of initializer fixup entries allocated
+			   (including those in the avail_initializer_fixup
+			   list). */
 
 unsigned long db_show_initializer_fixups_used(unsigned long grand_total)
 {
