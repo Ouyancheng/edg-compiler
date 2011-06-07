@@ -88,6 +88,7 @@ Clear an output control block to default values.
   octl->output_name_reference     = NULL;
   octl->output_attributes         = NULL;
   octl->is_typedef_invisible      = NULL;
+  octl->has_unprotected_gt_operation = NULL;
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   octl->func_prototype_stack      = NULL;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
@@ -296,114 +297,6 @@ by octl.
 }  /* form_template */
 
 
-static void check_for_unprotected_gt_operation(
-                                    an_expr_node_ptr                    expr,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
-/*
-This routine is called by traverse_expr in a top-down traversal of a
-non-type template argument constant.  It stops the traversal when it either
-finds an eok_gt operation node (setting tblock->result to TRUE) or when it
-finds an operation node that would itself cause an eok_gt operation in one
-of its operands to be parenthesized at that level.
-*/
-{
-  if (is_operation_node(expr)) {
-    switch (expr->variant.operation.kind) {
-      case eok_gt:
-        /* Found an unprotected ">" operator. */
-        tblock->result = TRUE;
-        tblock->terminate = TRUE;
-        break;
-      case eok_address_of:
-      case eok_handle_to:
-      case eok_indirect:
-      case eok_cast:
-      case eok_lvalue_cast:
-      case eok_ref_cast:
-      case eok_box:
-      case eok_handle_to_box:
-      case eok_unbox:
-      case eok_base_class_cast:
-      case eok_derived_class_cast:
-      case eok_pm_base_class_cast:
-      case eok_pm_derived_class_cast:
-      case eok_dynamic_cast:
-      case eok_ref_dynamic_cast:
-      case eok_bool_cast:
-      case eok_dot_vacuous_destructor_call:
-      case eok_points_to_vacuous_destructor_call:
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      case eok_assume:
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      case eok_parens:
-      case eok_negate:
-      case eok_unary_plus:
-      case eok_complement:
-      case eok_not:
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
-      case eok_xconj:
-      case eok_real_part:
-      case eok_imag_part:
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-      case eok_post_incr:
-      case eok_post_decr:
-      case eok_pre_incr:
-      case eok_pre_decr:
-      case eok_add:
-      case eok_subtract:
-      case eok_multiply:
-      case eok_divide:
-      case eok_remainder:
-#if C99_IL_EXTENSIONS_SUPPORTED
-      case eok_jmultiply:
-      case eok_jdivide:
-      case eok_fjadd:
-      case eok_jfadd:
-      case eok_fjsubtract:
-      case eok_jfsubtract:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      case eok_padd:
-      case eok_psubtract:
-      case eok_pdiff:
-      case eok_shiftl:
-      case eok_shiftr:
-      case eok_subscript:
-      case eok_dot_field:
-      case eok_points_to_field:
-      case eok_pm_field:
-      case eok_pm_points_to_field:
-      case eok_dot_static:
-      case eok_points_to_static:
-      case eok_virtual_function_ptr:
-      case eok_call:
-      case eok_dot_member_call:
-      case eok_points_to_member_call:
-      case eok_dot_pm_call:
-      case eok_points_to_pm_call:
-      case eok_cli_subscript:
-      case eok_va_start:
-      case eok_va_arg:
-      case eok_va_end:
-      case eok_va_copy:
-      case eok_va_start_single_operand:
-        if (!expr->variant.operation.compiler_generated) {
-          /* These operators have higher precedence than ">" and thus will
-             cause a ">" in an operand to be parenthesized.  A
-             compiler-generated operation, however, will in general not
-             appear explicitly in the output and must be ignored. */
-          tblock->suppress_subtree_walk = TRUE;
-        }  /* if */
-        break;
-      default:
-        /* The remaining operators are of low enough precedence that a
-           ">" in an operand need not be parenthesized, so continue the
-           traversal. */
-        break;
-    }  /* switch */
-  }  /* if */
-}  /* check_for_unprotected_gt_operation */
-
-
 void form_a_template_arg(a_template_arg_ptr                    tap,
                          an_il_to_str_output_control_block_ptr octl)
 /*
@@ -432,27 +325,20 @@ Output the indicated template argument in the way described by octl.
           check_assertion(!octl->gen_compilable_code);
           octl->output_str("<expression>", octl);
         } else {
-          an_expr_or_stmt_traversal_block tblock;
+          a_boolean need_parens;
           check_assertion(con != NULL);
           /* See whether we need parentheses around the argument to prevent
              a ">" operator from being interpreted as the end of the
-             argument list.  The traversal will set tblock.result to TRUE
-             if an unprotected eok_gt operator is seen, indicating the need
-             for parentheses. */
-          clear_expr_or_stmt_traversal_block(&tblock);
-          tblock.process_expr = check_for_unprotected_gt_operation;
-          tblock.process_expressions_for_constants = TRUE;
-          /* The scan must consider dependent expressions as well, in cases
-             where prototype instantiations are included in the IL. */
-          tblock.process_template_parameter_constants_and_expressions = TRUE;
-          traverse_constant(con, &tblock);
+             argument list. */
+          need_parens = (octl->has_unprotected_gt_operation == NULL ||
+                         octl->has_unprotected_gt_operation(con));
           if (is_any_reference_type(con->type)) {
             /* A reference parameter.  Display specially -- one level of
                indirection must be removed. */
-            form_lvalue_address_constant(con, tblock.result, octl);
+            form_lvalue_address_constant(con, need_parens, octl);
           } else {
             /* Normal (non-reference) case. */
-            form_constant(con, tblock.result, octl);
+            form_constant(con, need_parens, octl);
           }  /* if */
 #if BACK_END_IS_CP_GEN_BE
           if (octl->gen_compilable_code) {

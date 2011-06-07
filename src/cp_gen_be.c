@@ -10050,6 +10050,57 @@ problems.
   return parens_needed;
 }  /* parens_may_be_needed */
 
+
+static void check_for_unprotected_gt_operation(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called via traverse_expr from has_unprotected_gt_operation
+in a top-down traversal of the expression associated with a constant.  It
+stops the traversal when it either finds an eok_gt operation node (setting
+tblock->result to TRUE) or when it finds an operation node that would
+itself cause an eok_gt operation in one of its operands to be parenthesized
+at that level.
+*/
+{
+  if (is_operation_node(expr)) {
+    if (node_operator_is(expr, eok_gt)) {
+        /* Found an unprotected ">" operator. */
+        tblock->result = TRUE;
+        tblock->terminate = TRUE;
+    } else if (!expr->variant.operation.compiler_generated &&
+               generated_precedence[expr->variant.operation.kind] >
+               generated_precedence[(int)eok_gt]) {
+      /* This operator binds more tightly than ">" and thus would cause a
+         ">" in an operand to be parenthesized.  A compiler-generated
+         operation, however, will in general not appear explicitly in the
+         output and must be ignored.  Note that this test reflects the one
+         in parens_may_be_needed(). */
+      tblock->suppress_subtree_walk = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* check_for_unprotected_gt_operation */
+
+
+static a_boolean has_unprotected_gt_operation(a_constant_ptr con)
+/*
+Return TRUE if the code generated for con will have a ">" operator that is
+not enclosed in parentheses.  This is used to ensure that a template
+argument list will not be prematurely terminated by a ">" operator.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = check_for_unprotected_gt_operation;
+  tblock.process_expressions_for_constants = TRUE;
+  /* The scan must consider dependent expressions as well, in cases
+     where prototype instantiations are included in the IL. */
+  tblock.process_template_parameter_constants_and_expressions = TRUE;
+  traverse_constant(con, &tblock);
+  return tblock.result;
+}  /* has_unprotected_gt_operation */
+
 #if GNU_EXTENSIONS_ALLOWED
 
 static void gen_statement_expression(an_expr_node_ptr  expr)
@@ -15345,6 +15396,7 @@ Initialize for the C++/C-generating back end.
   octl.output_name_reference = gen_name_from_name_reference;
   octl.output_attributes = gen_attributes;
   octl.is_typedef_invisible = is_typedef_invisible_in_cp_gen_be;
+  octl.has_unprotected_gt_operation = has_unprotected_gt_operation;
   octl.gen_compilable_code = TRUE;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;
   /* In C99 mode we want to see "_Bool" rather than "bool" or the type

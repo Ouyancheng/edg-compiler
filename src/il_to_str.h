@@ -58,6 +58,8 @@ typedef void an_output_attributes_function(
                            an_attribute_location  syntactic_location,
                            a_boolean              primary_only);
 typedef an_output_attributes_function *an_output_attributes_function_ptr;
+typedef a_boolean a_constant_test_function(a_constant_ptr con);
+typedef a_constant_test_function *a_constant_test_function_ptr;
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 
@@ -166,6 +168,15 @@ typedef struct an_il_to_str_output_control_block {
 			   suppress_typedefs, below) are always done.  This
 			   pointer is non-NULL if additional tests are
 			   needed. */
+  a_constant_test_function_ptr
+	has_unprotected_gt_operation;
+			/* Function that tests whether a ">" will appear
+			   outside parentheses in the text put out for a
+			   given constant.  This is used to test a non-type
+			   template argument to see if it needs to be
+			   enclosed in parentheses to prevent a ">" from
+			   incorrectly terminating the template argument
+			   list. */
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   a_func_prototype_stack_entry_ptr
 	func_prototype_stack;
