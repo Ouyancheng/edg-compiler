@@ -538,7 +538,7 @@ Add a class fixup entry for class_type to the class fixup list.
   } else {
     cfhp->inclass_initializer_list = cfp;
   }  /* if */
-  cfhp->inline_function_list_tail = cfp;
+  cfhp->inclass_initializer_list_tail = cfp;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* add_to_class_fixup_list */
 
@@ -2837,6 +2837,23 @@ after a class instantiation.
     cfhp = curr_class_fixup_header(for_instantiation);
     cfhp->defer_inline_function_fixups--;
     defer_instantiations--;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cfhp->defer_inline_function_fixups == 0) {
+      cfp = cfhp->inclass_initializer_list;
+      cfhp->inclass_initializer_list = NULL;
+      cfhp->inclass_initializer_list_tail = NULL;
+      for (; cfp != NULL; cfp = next_cfp) {
+        /* Make sure we are in the right translation unit. */
+        check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
+        inclass_initializer_fixup_for_class(cfp->class_type,
+                                            cfp->is_template_instantiation);
+        next_cfp = cfp->next_in_inclass_initializer_list;
+      }  /* for */
+    }  /* if */
+    /* cfhp points into the scope_stack, so refresh the pointer after
+       the above processing. */
+    cfhp = curr_class_fixup_header(for_instantiation);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (cfhp->defer_inline_function_fixups == 0) {
       cfp = cfhp->inline_function_list;
       cfhp->inline_function_list = NULL;
@@ -2852,24 +2869,6 @@ after a class instantiation.
         free_class_fixup(cfp);
       }  /* for */
     }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    /* cfhp points into the scope_stack, so refresh the pointer after
-       the above processing. */
-    cfhp = curr_class_fixup_header(for_instantiation);
-    if (cfhp->defer_inline_function_fixups == 0) {
-      cfp = cfhp->inclass_initializer_list;
-      cfhp->inclass_initializer_list = NULL;
-      cfhp->inclass_initializer_list_tail = NULL;
-      for (; cfp != NULL; cfp = next_cfp) {
-        /* Make sure we are in the right translation unit. */
-        check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
-        inclass_initializer_fixup_for_class(cfp->class_type,
-                                            cfp->is_template_instantiation);
-        next_cfp = cfp->next_in_inclass_initializer_list;
-        free_class_fixup(cfp);
-      }  /* for */
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* If we pushed a translation unit above, pop it now. */
     if (trans_unit_pushed) pop_translation_unit_stack();
   }  /* if */
