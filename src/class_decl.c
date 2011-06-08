@@ -121,18 +121,6 @@ typedef struct a_class_fixup {
 			   is included on this list.  Nested classes
 			   defined within another class definition are not
 			   included on the list. */
-  a_class_fixup_ptr
-		next_in_inline_function_list;
-			/* Next in a linked list of class fixup blocks for
-			   classes for which inline function fixup must be
-			   done. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_class_fixup_ptr
-		next_in_inclass_initializer_list;
-			/* Next in a linked list of class fixup blocks for
-			   classes for which in-class initializer fixup must
-			   be done. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_type_ptr	class_type;
 			/* Pointer to the class type to be fixed-up. */
   a_boolean	is_template_instantiation;
@@ -483,10 +471,6 @@ initialize it.
   }  /* if */
   /* Clear the entity. */
   cfp->next = NULL;
-  cfp->next_in_inline_function_list = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  cfp->next_in_inclass_initializer_list = NULL;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cfp->class_type = NULL;
   cfp->is_template_instantiation = FALSE;
   return cfp;
@@ -517,29 +501,12 @@ Add a class fixup entry for class_type to the class fixup list.
   cfp = alloc_class_fixup();
   cfp->class_type = class_type;
   cfp->is_template_instantiation = is_template_instantiation;
-  if (cfhp->def_arg_list == NULL) cfhp->def_arg_list = cfp;
-  /* Add to the end of the default argument fixup list. */
-  if (cfhp->def_arg_list_tail != NULL) {
-    cfhp->def_arg_list_tail->next = cfp;
-  }  /* if */
-  cfhp->def_arg_list_tail = cfp;
-  /* Add to the end of the inline function fixup list. */
-  if (cfhp->inline_function_list == NULL) {
-    cfhp->inline_function_list = cfp;
-  }  /* if */
-  if (cfhp->inline_function_list_tail != NULL) {
-    cfhp->inline_function_list_tail->next_in_inline_function_list = cfp;
-  }  /* if */
-  cfhp->inline_function_list_tail = cfp;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cfhp->inclass_initializer_list_tail != NULL) {
-    cfhp->inclass_initializer_list_tail
-        ->next_in_inclass_initializer_list = cfp;
+  if (cfhp->fixup_list == NULL) {
+    cfhp->fixup_list = cfp;
   } else {
-    cfhp->inclass_initializer_list = cfp;
+    cfhp->fixup_list_tail->next = cfp;
   }  /* if */
-  cfhp->inclass_initializer_list_tail = cfp;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  cfhp->fixup_list_tail = cfp;
 }  /* add_to_class_fixup_list */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2792,29 +2759,23 @@ for_instantiation is TRUE if this routine is being called to do the fixup
 after a class instantiation.
 */
 {
-  a_class_fixup_ptr		cfp;
-  a_class_fixup_ptr		def_arg_list;
-  a_class_fixup_ptr		next_cfp;
-  a_boolean			trans_unit_pushed = FALSE;
   a_class_fixup_header_ptr	cfhp;
+  a_class_fixup_ptr		fixup_list, cfp, next_cfp;
+  a_boolean			trans_unit_pushed = FALSE;
 
   db_enter(3, "process_deferred_class_fixups");
   cfhp = curr_class_fixup_header(for_instantiation);
-  if (cfhp->def_arg_list != NULL ||
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      cfhp->inclass_initializer_list != NULL ||
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      cfhp->inline_function_list != NULL) {
+  if (cfhp->fixup_list != NULL) {
     /* Clear the pointers to the start of the fixup lists so that classes
        created by the fixup process can be fixed up by a recursive call to
        this routine.  This could happen if a function body contains a
        nested class, for example. */
-    def_arg_list = cfhp->def_arg_list;
-    cfhp->def_arg_list = NULL;
-    cfhp->def_arg_list_tail = NULL;
+    fixup_list = cfhp->fixup_list;
+    cfhp->fixup_list = NULL;
+    cfhp->fixup_list_tail = NULL;
     cfhp->defer_inline_function_fixups++;
     defer_instantiations++;
-    for (cfp = def_arg_list; cfp != NULL; cfp = cfp->next) {
+    for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
       /* Make sure we are in the right translation unit. */
       check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
       default_argument_fixup_for_class(cfp->class_type,
@@ -2824,7 +2785,7 @@ after a class instantiation.
     if (nonclass_prototype_instantiations) {
       /* Do the second pass of default argument fixup to do prototype
          instantiations of template default arguments. */
-      for (cfp = def_arg_list; cfp != NULL; cfp = cfp->next) {
+      for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
         /* Make sure we are in the right translation unit. */
         check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
         default_argument_fixup_for_class(cfp->class_type,
@@ -2837,35 +2798,27 @@ after a class instantiation.
     cfhp = curr_class_fixup_header(for_instantiation);
     cfhp->defer_inline_function_fixups--;
     defer_instantiations--;
-#if MICROSOFT_EXTENSIONS_ALLOWED
     if (cfhp->defer_inline_function_fixups == 0) {
-      cfp = cfhp->inclass_initializer_list;
-      cfhp->inclass_initializer_list = NULL;
-      cfhp->inclass_initializer_list_tail = NULL;
-      for (; cfp != NULL; cfp = next_cfp) {
+      /* Fix up in-class initializers and in-class inline function bodies. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
         /* Make sure we are in the right translation unit. */
         check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
         inclass_initializer_fixup_for_class(cfp->class_type,
                                             cfp->is_template_instantiation);
-        next_cfp = cfp->next_in_inclass_initializer_list;
       }  /* for */
-    }  /* if */
-    /* cfhp points into the scope_stack, so refresh the pointer after
-       the above processing. */
-    cfhp = curr_class_fixup_header(for_instantiation);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (cfhp->defer_inline_function_fixups == 0) {
-      cfp = cfhp->inline_function_list;
-      cfhp->inline_function_list = NULL;
-      cfhp->inline_function_list_tail = NULL;
-      for (; cfp != NULL; cfp = next_cfp) {
+      for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
         /* Make sure we are in the right translation unit. */
         check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
         /* Define any defaulted member functions. */
         define_defaulted_special_member_functions(cfp->class_type);
         inline_function_fixup_for_class(cfp->class_type,
                                         cfp->is_template_instantiation);
-        next_cfp = cfp->next_in_inline_function_list;
+      }  /* for */
+      /* All fixups should be completed now: Free the list of fixup entries. */
+      for (cfp = fixup_list; cfp != NULL; cfp = next_cfp) {
+        next_cfp = cfp->next;
         free_class_fixup(cfp);
       }  /* for */
     }  /* if */

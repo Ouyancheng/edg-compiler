@@ -97,9 +97,9 @@ typedef struct a_function_shareable_constants_table {
 typedef unsigned long a_pending_class_definition_count;
 
 /*
-Entry used to keep track of the inline functions and default arguments that
-must be fixed up.  A list is kept for each function scope, and a global scope
-list for non-local classes.
+Entry used to keep track of the inline functions, default arguments, and
+in-class initializers that must be fixed up.  A list is kept for each function
+scope, and a global scope list for non-local classes.
 */
 typedef struct a_class_fixup_header *a_class_fixup_header_ptr;
 typedef struct a_class_fixup_header {
@@ -112,33 +112,15 @@ typedef struct a_class_fixup_header {
 			   process.  This includes normal class definitions
 			   and template class instantiations. */
   a_class_fixup_ptr
-		def_arg_list;
-			/* Pointer to a list of class fixup entries for
-			   class definitions for which default argument
-			   fixup must be done. */
-  a_class_fixup_ptr
-		def_arg_list_tail;
-			/* End of the def_arg_list. */
-  a_class_fixup_ptr
-		inline_function_list;
-			/* Pointer to a list of class fixup entries for
-			   class definitions for which inline function
-			   fixup must be done. */
-  a_class_fixup_ptr
-		inline_function_list_tail;
-			/* End of the inline_function_list. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_class_fixup_ptr
-		inclass_initializer_list;
+		fixup_list;
 			/* Pointer to a list of class fixup entries for class
-			   definitions for which in-class initializer fixup
-			   must be done. */
+			   definitions for which default argument fixup,
+			   in-class inline function fixup, and/or in-class
+			   initializer fixup must be done. */
   a_class_fixup_ptr
-		inclass_initializer_list_tail;
-			/* Pointer to the last entry of the list pointed to
-			   by inclass_initializer_list (or NULL if the list
-			   is empty). */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+		fixup_list_tail;
+			/* Pointer to the last entry on the list pointed to by
+			   fixup_list, or NULL if that list is empty. */
 } a_class_fixup_header;
 
 
