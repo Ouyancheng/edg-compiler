@@ -2208,6 +2208,13 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       if (any_cfront_mode() && !is_class_struct_union_type(param_type)) {
         /* Okay to drop qualifiers. */
         uses_type_qualifiers_dropped_anachronism = TRUE;
+      } else if (gpp_mode && gnu_version < 40600 &&
+                 param_is_rvalue_reference &&
+                 arg_originally_an_lvalue &&
+                 ptp != NULL &&
+                 ptp->move_ctor_or_assign_parameter) {
+        /* g++ allows dropping qualifiers when binding the parameter of
+           a move constructor or move assignment operator. */
       } else {
         ref_type_qualifiers_dropped = TRUE;
         /* If the types are not reference-related, any dropping of
@@ -16803,6 +16810,7 @@ been found to be acceptable, and *conversion describes it.
   a_boolean    ref_to_const_volatile = FALSE;
   a_boolean    operand_was_rvalue;
   a_boolean    warn = FALSE, template_case = FALSE;
+  a_boolean    binding_rvalue_ref_to_lvalue = FALSE;
   a_conv_descr conv_for_direct_binding;
   a_candidate_function_ptr
                ambiguity_list = NULL;
@@ -16951,9 +16959,10 @@ been found to be acceptable, and *conversion describes it.
                                 /*rvalue_expected=*/is_rvalue_ref);
     }  /* if */
   } else if (is_rvalue_ref && !is_an_rvalue(source_operand) &&
-             !binding_rvalue_ref_to_lvalue_allowed(
+             (binding_rvalue_ref_to_lvalue = TRUE,
+              !binding_rvalue_ref_to_lvalue_allowed(
                                               move_ctor_or_assign_parameter,
-                                              &source_operand->position)) {
+                                              &source_operand->position))) {
     /* An rvalue reference cannot be bound to an lvalue. */
     expr_pos_error(ec_rvalue_reference_bound_to_lvalue,
                    &source_operand->position);
@@ -17089,20 +17098,31 @@ been found to be acceptable, and *conversion describes it.
     full_adjust_class_object_type(source_operand, adj_base_dest_type);
     if (dropping_qualifiers) {
       /* Type qualifiers were dropped on this binding. */
-      if (expr_error_should_be_issued()) {
-        if (bitwise_assignment_param) {
-          /* Use a different message for the bitwise operator= case.  The
-             normal message is confusing to programmers. */
-          pos_ty_error(ec_no_suitable_assignment_operator,
-                       &source_operand->position,
-                       f_skip_typerefs(base_dest_type));
-        } else {
-          pos_ty2_error(ec_qualifier_dropped_in_ref_init,
-                        &source_operand->position,
-                        dest_type, orig_source_type);
+      if (gpp_mode && binding_rvalue_ref_to_lvalue &&
+          move_ctor_or_assign_parameter) {
+        /* g++ allows dropping qualifiers when binding the parameter of
+           a move constructor or move assignment operator. */
+        if (expr_error_should_be_issued()) {
+          pos_ty2_warning(ec_qualifier_dropped_in_ref_init,
+                          &source_operand->position,
+                          dest_type, orig_source_type);
         }  /* if */
+      } else {
+        if (expr_error_should_be_issued()) {
+          if (bitwise_assignment_param) {
+            /* Use a different message for the bitwise operator= case.  The
+               normal message is confusing to programmers. */
+            pos_ty_error(ec_no_suitable_assignment_operator,
+                         &source_operand->position,
+                         f_skip_typerefs(base_dest_type));
+          } else {
+            pos_ty2_error(ec_qualifier_dropped_in_ref_init,
+                          &source_operand->position,
+                          dest_type, orig_source_type);
+          }  /* if */
+        }  /* if */
+        conv_to_error_operand(source_operand);
       }  /* if */
-      conv_to_error_operand(source_operand);
     } else if (!binding_to_rvalue_allowed && operand_was_rvalue) {
       /* Can't bind this reference to an rvalue. */
       an_error_severity err_severity = es_error;

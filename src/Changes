@@ -1,5 +1,29 @@
 Version 4.4
 
+6/8/11  [EDGcpfe/11793]
+g++ 4.5 and binding rvalue references to lvalues
+
+Another tweak on the change described below for g++ 4.5 compatibility
+with binding rvalue references to lvalues (EDGcpfe/11769).  It turns
+out that g++ 4.5 also allows dropping cv-qualifiers when it binds
+the parameter of a move constructor or move assignment operator
+to an lvalue.  We now emulate that.  Also, warnings are now issued
+for cases like this, for those covered by EDGcpfe/11769, and in
+general when an rvalue reference is bound to an lvalue, since
+that may destroy a variable that is still in scope.
+
+  struct A {
+    A();
+    A &operator=(A &&);
+    A(A &&);
+  };
+  int main() {
+    const A ca;
+    A a = ca;  // Accepted by g++ 4.5; now accepted, warning issued
+    a = ca;    // Accepted by g++ 4.5; now accepted, warning issued
+  }
+
+
 6/6/11  [EDGcpfe/11752]
 Internal error on empty pack expansion with subsequent parameters
 
