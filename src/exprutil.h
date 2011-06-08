@@ -1005,19 +1005,6 @@ should be consumed before taking more expressions from source or a rescan.
    expr_stack->expression_cache != NULL && \
    anything_cached(expr_stack->expression_cache))
 
-
-/*
-TRUE if the current mode allows binding an rvalue reference to an lvalue.
-g++ 4.3 and 4.4 allow that. (The draft standard allowed that for a while,
-and then changed before it was approved.)  move_ctor_or_assign_parameter
-is TRUE if the reference is the parameter of a move constructor or
-copy assignment operator.
-*/
-#define binding_rvalue_ref_to_lvalue_allowed(move_ctor_or_assign_parameter) \
-  (gpp_mode && \
-   (gnu_version < 40500 || \
-    (gnu_version < 40600 && (move_ctor_or_assign_parameter))))
-
 /*
 TRUE if the current mode allows binding an rvalue reference to an lvalue
 bit-field expression.  MSVC10 allows that.

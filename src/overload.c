@@ -1988,6 +1988,35 @@ of a line of debug output.
 
 #endif /* DEBUG */
 
+static a_boolean binding_rvalue_ref_to_lvalue_allowed(
+                               a_boolean         move_ctor_or_assign_parameter,
+                               a_source_position *warning_pos)
+/*
+Return TRUE if the current mode allows binding an rvalue reference to an
+lvalue.  g++ 4.3 and 4.4 allow that.  (The draft standard allowed that for
+a while, and then changed before it was approved.)
+move_ctor_or_assign_parameter is TRUE if the reference is the parameter
+of a move constructor or copy assignment operator.  If warning_pos is
+non-NULL, a warning is issued at *warning_pos if the binding is allowed.
+*/
+{
+  a_boolean binding_allowed = FALSE;
+
+  if (gpp_mode &&
+      (gnu_version < 40500 ||
+       (gnu_version < 40600 && move_ctor_or_assign_parameter))) {
+    binding_allowed = TRUE;
+    if (warning_pos != NULL) {
+      expr_pos_warning(move_ctor_or_assign_parameter ?
+                         ec_move_ctor_or_assign_copy_of_lvalue :
+                         ec_rvalue_reference_bound_to_lvalue,
+                       warning_pos);
+    }  /* if */
+  }  /* if */
+  return binding_allowed;
+}  /* binding_rvalue_ref_to_lvalue_allowed */
+
+
 /*
 Return TRUE if the given constant is a possible template-dependent
 null pointer constant but not a known null pointer constant.
@@ -2625,7 +2654,8 @@ have_level:;
       if (arg_originally_an_lvalue) {
         if (binding_rvalue_ref_to_lvalue_allowed(
                                          ptp != NULL &&
-                                         ptp->move_ctor_or_assign_parameter)) {
+                                           ptp->move_ctor_or_assign_parameter,
+                                         (a_source_position *)NULL)) {
           /* This mode allows binding an rvalue reference to an lvalue.
              For g++, this is less desirable than other matches. */
           if (gpp_mode) arg_summary->anachronism_used = TRUE;
@@ -16557,7 +16587,8 @@ direct binding is "possible" and not whether it is "valid".
       if (is_cast) {
         /* In a cast, the source can be an lvalue. */
       } else if (binding_rvalue_ref_to_lvalue_allowed(
-                                              move_ctor_or_assign_parameter)) {
+                                              move_ctor_or_assign_parameter,
+                                              (a_source_position *)NULL)) {
         /* Some versions of g++ allow binding an rvalue reference to an
            lvalue. */
       } else if (binding_rvalue_ref_to_bit_field_allowed() &&
@@ -16921,7 +16952,8 @@ been found to be acceptable, and *conversion describes it.
     }  /* if */
   } else if (is_rvalue_ref && !is_an_rvalue(source_operand) &&
              !binding_rvalue_ref_to_lvalue_allowed(
-                                              move_ctor_or_assign_parameter)) {
+                                              move_ctor_or_assign_parameter,
+                                              &source_operand->position)) {
     /* An rvalue reference cannot be bound to an lvalue. */
     expr_pos_error(ec_rvalue_reference_bound_to_lvalue,
                    &source_operand->position);

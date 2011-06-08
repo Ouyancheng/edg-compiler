@@ -2255,6 +2255,7 @@ ec_modification_of_initonly_field;;"an initonly field can only be modified by th
 ec_modification_of_static_initonly_field;;"a static initonly field can only be modified by the static constructor of its containing class"
 ec_member_function_call_on_initonly_field;;"member function will be invoked on a copy of the initonly field"
 ec_expr_not_pointer_nor_handle;;"expression must have pointer or handle type"
+ec_move_ctor_or_assign_copy_of_lvalue;;"a move constructor or move assignment operator is used to copy an lvalue here, which may destroy the source object"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
