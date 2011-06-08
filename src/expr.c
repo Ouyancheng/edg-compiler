@@ -123,6 +123,12 @@ of a default argument expression, mark the new entry the same way.
       transfer_context_from_enclosing_expr_stack_entry(/*direct=*/TRUE,
                                                        saved_stack,
                                                        expr_stack);
+    } else if (expr_stack->rcblock != NULL) {
+      if (expr_stack->rcblock == saved_stack->rcblock) {
+        transfer_context_from_enclosing_expr_stack_entry(/*direct=*/TRUE,
+                                                         saved_stack,
+                                                         expr_stack);
+      }  /* if */
     } else if (saved_stack->scope_number != NO_SCOPE_NUMBER &&
                saved_stack->scope_number == expr_stack->scope_number) {
       transfer_context_from_enclosing_expr_stack_entry(/*direct=*/FALSE,
@@ -3531,9 +3537,11 @@ call, and rcblock->argument_list to the previously-scanned argument list.
        whether we are in a constant-expression prior to updating the stack. */
     a_boolean  saved_favor_constant_result;
     a_boolean  in_constant_expression = curr_expr_kind_is_const();
-    push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                    /*force_object_lifetime=*/FALSE,
-                    /*suppress_object_lifetime=*/FALSE);
+    push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
+                                 &expr_stack_entry,
+                                 /*force_object_lifetime=*/FALSE,
+                                 /*suppress_object_lifetime=*/FALSE,
+                                 rcblock);
     saved_favor_constant_result = expr_stack->favor_constant_result;
     if (bfk == (a_builtin_function_kind)bfk_constant_p) {
       expr_stack->favor_constant_result = TRUE;
@@ -8668,9 +8676,11 @@ indication in *rcblock).
      switch back.  Any expression nodes allocated must be in the function-scope
      memory region. */
   switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
-  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
+  push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
+                               &expr_stack_entry,
+                               /*force_object_lifetime=*/FALSE,
+                               /*suppress_object_lifetime=*/FALSE,
+                               rcblock);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   if (rcblock == NULL) {
     /* Scanning from source. */
@@ -8968,9 +8978,11 @@ previously-scanned sizeof expression, and return the result in *result
      switch back.  Any expression nodes allocated must be in the function-scope
      memory region. */
   switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
-  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
+  push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
+                               &expr_stack_entry,
+                               /*force_object_lifetime=*/FALSE,
+                               /*suppress_object_lifetime=*/FALSE,
+                               rcblock);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
 
   if (rcblock == NULL) {
@@ -9428,9 +9440,11 @@ result in *result (or an error indication in *rcblock).
      switch back.  Any expression nodes allocated must be in the function-scope
      memory region. */
   switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
-  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
+  push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
+                               &expr_stack_entry,
+                               /*force_object_lifetime=*/FALSE,
+                               /*suppress_object_lifetime=*/FALSE,
+                               rcblock);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
 
   if (rcblock == NULL) {
@@ -9809,9 +9823,11 @@ indication in *rcblock).
      as needed. */
   /* The selection operations should be scanned in a "sizeof" context since
      they are not evaluated. */
-  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/TRUE);
+  push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
+                               &expr_stack_entry,
+                               /*force_object_lifetime=*/FALSE,
+                               /*suppress_object_lifetime=*/TRUE,
+                               rcblock);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression.  The
@@ -10506,9 +10522,12 @@ outside of the expression-processing routines.
   expr_scope_depth = scope_depth_to_allocate_decltype_expr();
   switch_to_scope_region(expr_scope_depth, &region_to_switch_back_to);
   save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/(curr_object_lifetime != NULL));
+  push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
+                               &expr_stack_entry,
+                               /*force_object_lifetime=*/FALSE,
+                               /*suppress_object_lifetime=*/
+                                                (curr_object_lifetime != NULL),
+                               rcblock);
   transfer_expr_context_if_applicable(saved_expr_stack);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   expr_stack->is_decltype_or_typeof_arg_expression = TRUE;
@@ -10664,17 +10683,20 @@ saved_curr_object_lifetime are the values returned from the push.
 
 
 static void push_expr_stack_for_expr_rescan(
-                                         an_expression_kind  kind,
-                                         an_expr_stack_entry *expr_stack_entry)
+                                      an_expression_kind     kind,
+                                      a_rescan_control_block *rcblock,
+                                      an_expr_stack_entry    *expr_stack_entry)
 /*
 Push an entry on the expression stack as the context for an expression
-rescan.  kind indicates the kind of entry to push.  expr_stack_entry
-points to the space to be used for the stack entry to be pushed.
+rescan.  kind indicates the kind of entry to push.  rcblock provides
+the rescan control block.  expr_stack_entry points to the space to be
+used for the stack entry to be pushed.
 */
 {
-  push_expr_stack(kind, expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
+  push_expr_stack_with_rcblock(kind, expr_stack_entry,
+                               /*force_object_lifetime=*/FALSE,
+                               /*suppress_object_lifetime=*/FALSE,
+                               rcblock);
   expr_stack_entry->template_deduction_context = TRUE;
   expr_stack_entry->suppress_diagnostics = TRUE;
   /* Following allows rescans that substitute some template arguments,
@@ -10723,6 +10745,7 @@ expression-processing routines.
   push_expr_rescan_context_if_necessary(&rcblock, &tdip, &saved_expr_stack,
                                         &saved_curr_object_lifetime);
   push_expr_stack_for_expr_rescan((an_expression_kind)ek_sizeof,
+                                  &rcblock,
                                   &expr_stack_entry);
   if (!is_typeof) {
     new_type = scan_decltype_operator(&rcblock, (a_decl_pos_block *)NULL);
@@ -10733,10 +10756,10 @@ expression-processing routines.
     unexpected_condition();
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
-  if (rcblock.error_detected) *copy_error = TRUE;
   pop_expr_stack();
   pop_expr_rescan_context_if_necessary(tdip, saved_expr_stack,
                                        saved_curr_object_lifetime);
+  if (rcblock.error_detected) *copy_error = TRUE;
   return new_type;
 }  /* decltype_of_expr_with_substitution */
 
@@ -10847,10 +10870,12 @@ the expression-processing routines.
     expr_scope_depth = scope_depth_to_allocate_decltype_expr();
     switch_to_scope_region(expr_scope_depth, &region_to_switch_back_to);
     save_expr_stack(&saved_expr_stack);
-    push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                    /*force_object_lifetime=*/FALSE,
-                    /*suppress_object_lifetime=*/
-                                              (curr_object_lifetime != NULL));
+    push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
+                                 &expr_stack_entry,
+                                 /*force_object_lifetime=*/FALSE,
+                                 /*suppress_object_lifetime=*/
+                                              (curr_object_lifetime != NULL),
+                                 rcblock);
     transfer_expr_context_if_applicable(saved_expr_stack);
     expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
     expr_stack->is_decltype_or_typeof_arg_expression = TRUE;
@@ -11729,17 +11754,21 @@ indication in *rcblock).
        like a sizeof expression so that function calls etc. are accepted in
        what is otherwise a constant-expression context. */
     switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
-    push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                    /*force_object_lifetime=*/FALSE,
-                    /*suppress_object_lifetime=*/FALSE);
+    push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
+                                 &expr_stack_entry,
+                                 /*force_object_lifetime=*/FALSE,
+                                 /*suppress_object_lifetime=*/FALSE,
+                                 rcblock);
   } else {
     /* Allow objectless references to nonstatic data members.  These are
        permitted only in unevaluated operands, so we will check later and
        issue an error if one appears in the polymorphic lvalue case where
        the operand is evaluated. */
-    push_expr_stack(expr_stack->expression_kind, &expr_stack_entry,
-                    /*force_object_lifetime=*/FALSE,
-                    /*suppress_object_lifetime=*/FALSE);
+    push_expr_stack_with_rcblock(expr_stack->expression_kind,
+                                 &expr_stack_entry,
+                                 /*force_object_lifetime=*/FALSE,
+                                 /*suppress_object_lifetime=*/FALSE,
+                                 rcblock);
     expr_stack->potentially_unevaluated = TRUE;
   }  /* if */
   if (rcblock == NULL) {
@@ -12132,9 +12161,11 @@ indication in *rcblock).  after_keyword is ignored in that case.
      switch back.  Any expression nodes allocated must be in the function-scope
      memory region. */
   switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
-  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
+  push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
+                               &expr_stack_entry,
+                               /*force_object_lifetime=*/FALSE,
+                               /*suppress_object_lifetime=*/FALSE,
+                               rcblock);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   if (curr_expr_kind_is(ek_integral_constant)) {
     /* __uuidof is not allowed in integral constant expression. */
@@ -22705,9 +22736,11 @@ in *rcblock).
        call may be optimized away (the recipient does the destruction
        for the object actually thrown).  This necessitates a call to
        fix_up_dynamic_init_dtors later. */
-    push_expr_stack(expr_stack->expression_kind, &expr_stack_entry,
-                    /*force_object_lifetime=*/FALSE,
-                    /*suppress_object_lifetime=*/FALSE);
+    push_expr_stack_with_rcblock(expr_stack->expression_kind,
+                                 &expr_stack_entry,
+                                 /*force_object_lifetime=*/FALSE,
+                                 /*suppress_object_lifetime=*/FALSE,
+                                 rcblock);
     expr_stack->in_cctor_elision_initializer = TRUE;
     if (rcblock == NULL) {
       /* Scan the expression. */
@@ -29548,7 +29581,9 @@ alternative callable from outside, see rescan_expr_with_substitution.
   if (expr_stack == NULL ||
       eriep->expression_kind != expr_stack->expression_kind ||
       !expr_stack->template_deduction_context) {
-    push_expr_stack_for_expr_rescan(eriep->expression_kind, &expr_stack_entry);
+    push_expr_stack_for_expr_rescan(eriep->expression_kind,
+                                    rcblock,
+                                    &expr_stack_entry);
     stack_pop_needed = TRUE;
     /* Get the non-constant expr flag in the options set to match the
        kind of expression we're scanning now (constant or non-constant). */
@@ -29848,6 +29883,7 @@ function or template.
      want to have the entry on the stack still at the end of this
      routine when we extract the expression from the operand. */
   push_expr_stack_for_expr_rescan((an_expression_kind)ek_sizeof,
+                                  rcblock,
                                   &expr_stack_entry);
   rescan_expr_with_substitution_internal(expr, rcblock,
                                          EOPT_NO_OPTIONS,

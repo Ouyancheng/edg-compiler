@@ -876,6 +876,11 @@ typedef struct an_expr_stack_entry {
 			   may contain queued up expressions that should be
 			   taken before new ones are scanned from source or
 			   rescanned. */
+  a_rescan_control_block
+		*rcblock;
+			/* If non-NULL, points to a rescan control block
+			   controlling the current redoing of semantic analysis
+			   on a previously-scanned expression. */
 } an_expr_stack_entry;
 
 EXTERN an_expr_stack_entry_ptr
@@ -1200,6 +1205,13 @@ extern void push_expr_stack(an_expression_kind      expression_kind,
                             an_expr_stack_entry_ptr new_entry,
                             a_boolean               force_object_lifetime,
                             a_boolean               suppress_object_lifetime);
+
+extern void push_expr_stack_with_rcblock(
+                              an_expression_kind      expression_kind,
+                              an_expr_stack_entry_ptr new_entry,
+                              a_boolean               force_object_lifetime,
+                              a_boolean               suppress_object_lifetime,
+                              a_rescan_control_block  *rcblock);
 
 extern void undo_side_effects_for_discarded_unevaluated_expression(void);
 

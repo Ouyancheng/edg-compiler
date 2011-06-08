@@ -1,5 +1,25 @@
 Version 4.4
 
+6/8/11  [EDGcpfe/11608]
+Hard error in decltype should have been deduction failure
+
+In some cases, an error in a decltype processed in a new-style template
+SFINAE context caused a hard error instead of a deduction failure.
+Now fixed.
+
+  template <class T> decltype(T::g) *f(int);
+  template <class T> void f(...);
+  struct X {
+    static void g(long) {}
+    static void g(void *) {}
+  };
+  int main() {
+    f<X>(0); // decltype(T::g) renders the program ill-formed
+             // because T::g is a set of overloaded functions.
+             // Should cause deduction failure, f(...) is selected
+  }
+
+
 6/8/11  [EDGcpfe/11793]
 g++ 4.5 and binding rvalue references to lvalues
 

@@ -1013,6 +1013,7 @@ is pushed regardless of any of the other factors.
   new_entry->p_end_of_entities_defined_in_expression = NULL;
   new_entry->default_rescan_info = NULL;
   new_entry->expression_cache = NULL;
+  new_entry->rcblock = NULL;
   if (expr_stack != NULL) {
     /* There is a previous stack entry; set any of the flags that are affected
        by the enclosing stack entry. */
@@ -1070,6 +1071,24 @@ is pushed regardless of any of the other factors.
 }  /* push_expr_stack */
 
 
+void push_expr_stack_with_rcblock(
+                              an_expression_kind      expression_kind,
+                              an_expr_stack_entry_ptr new_entry,
+                              a_boolean               force_object_lifetime,
+                              a_boolean               suppress_object_lifetime,
+                              a_rescan_control_block  *rcblock)
+/*
+Interface to push_expr_stack for contexts where there may be a rescan
+control block (rcblock) and if there is one we'd like to record it in
+the expression stack.
+*/
+{
+  push_expr_stack(expression_kind, new_entry, force_object_lifetime,
+                  suppress_object_lifetime);
+  new_entry->rcblock = rcblock;
+}  /* push_expr_stack_with_rcblock */
+
+
 void undo_side_effects_for_discarded_unevaluated_expression(void)
 /*
 The expression associated with the current level of the expression stack
@@ -1123,6 +1142,11 @@ major expression.
       !expr_stack->potentially_evaluated &&
       !expr_stack->unevaluated_expr_will_be_kept_in_il) {
     undo_side_effects_for_discarded_unevaluated_expression();
+  }  /* if */
+  if (expr_stack->rcblock != NULL && expr_stack->any_suppressed_error) {
+    /* If an error was detected in a rescan, record it in the rescan control
+       block. */
+    expr_stack->rcblock->error_detected = TRUE;
   }  /* if */
   new_top = expr_stack->prev;
   if (new_top != NULL) {
