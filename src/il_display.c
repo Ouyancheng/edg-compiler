@@ -2429,10 +2429,10 @@ Display the indicated variable.
   if (ptr->is_for_each_iterator) {
     disp_boolean("is_for_each_iterator", TRUE);
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->initializer_in_class) {
     disp_boolean("initializer_in_class", TRUE);
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   disp_initializer(ptr->init_kind, &ptr->initializer);
   if (ptr->entities_defined_in_initializer != NULL) {
     disp_entity_list("entities_defined_in_initializer",

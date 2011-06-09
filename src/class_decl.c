@@ -2814,14 +2814,16 @@ after a class instantiation.
     cfhp->defer_inline_function_fixups--;
     defer_instantiations--;
     if (cfhp->defer_inline_function_fixups == 0) {
-      /* Fix up in-class initializers and in-class inline function bodies. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
-        /* Make sure we are in the right translation unit. */
-        check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
-        inclass_initializer_fixup_for_class(cfp->class_type,
-                                            cfp->is_template_instantiation);
-      }  /* for */
+      if (cppcli_enabled) {
+        /* Fix up in-class initializers and in-class inline function bodies. */
+        for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
+          /* Make sure we are in the right translation unit. */
+          check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
+          inclass_initializer_fixup_for_class(cfp->class_type,
+                                              cfp->is_template_instantiation);
+        }  /* for */
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
         /* Make sure we are in the right translation unit. */
@@ -12458,8 +12460,8 @@ specific information about the member declaration, respectively.
     a_source_position  init_pos;
     a_boolean          restore_member_visibility = FALSE;
     a_boolean          delay_initializer_scan = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
     var->initializer_in_class = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (is_immediate_managed_class_type(class_type) && !var->is_initonly) {
       /* In managed class types, static data members that aren't init_only can
          have any initializer allowed for a namespace scope variable.  Such a

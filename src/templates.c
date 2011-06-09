@@ -23518,17 +23518,13 @@ Does nothing if called in C mode.
     }  /* if */
 #endif /* DEBUG */
     if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
       if (is_immediate_managed_class_type(sym_parent_class(sym)) &&
           sym->variant.static_data_member.variable->initializer_in_class) {
         /* C++/CLI classes can be defined in-class.  Such members do not need
            a separate instantiation to be defined (they're defined at the
            same time as their enclosing class). */
         tip = NULL;
-      } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Do not insert here. */
-      {
+      } else {
         tip = sym->variant.static_data_member.instance_ptr;
       }  /* if */
     } else {
