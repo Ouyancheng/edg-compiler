@@ -168,6 +168,11 @@ static unsigned long
 		num_class_fixups_allocated;
 
 unsigned long db_show_routine_fixups_used(unsigned long grand_total)
+/*
+Show space used by the routine fixup entries.  This is called by the symbol
+table space used routine.  The space used by these entries is reported as part
+of the symbol table memory used.
+*/
 {
   unsigned long  num, size, total;
 
@@ -178,6 +183,11 @@ unsigned long db_show_routine_fixups_used(unsigned long grand_total)
 
 
 unsigned long db_show_class_fixups_used(unsigned long grand_total)
+/*
+Show space used by the class fixup entries.  This is called by the symbol table
+space used routine.  The space used by these entries is reported as part of the
+symbol table memory used.
+*/
 {
   unsigned long  num, size, total;
 
@@ -539,6 +549,11 @@ static unsigned long
 			   list). */
 
 unsigned long db_show_initializer_fixups_used(unsigned long grand_total)
+/*
+Show space used by the initializer fixup entries.  This is called by the symbol
+table space used routine.  The space used by these entries is reported as part
+of the symbol table memory used.
+*/
 {
   unsigned long  num, size, total;
 
@@ -563,7 +578,7 @@ initialize it.
     avail_initializer_fixup = ifp->next;
   } else {
     /* Allocate memory for a new entity. */
-    ifp = (an_initializer_fixup_ptr)alloc_fe(sizeof(an_initializer_fixup));
+    ifp = alloc_fe_of_type(an_initializer_fixup);
 #if DEBUG
     num_initializer_fixups_allocated++;
 #endif /* DEBUG */
@@ -12528,8 +12543,9 @@ specific information about the member declaration, respectively.
       decl_state->sym->is_invisible = FALSE;
     }  /* if */
   }  /* if */
-  /* This is entered as a declaration rather than a definition, since the
-     definition must appear outside the class definition. */
+  /* Record the symbol declaration.  Usually it is a pure declaration (and the
+     definition must appear outside the class definition), but in C++/CLI an
+     in-class initializer makes the declaration a definition too. */
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             decl_state->source_sequence_entry);
 #if EXTRA_SOURCE_POSITIONS_IN_IL

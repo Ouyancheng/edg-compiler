@@ -3954,7 +3954,11 @@ returned set to TRUE.
          or
            template <class T> struct A {
              static int x;
-             template<> int A<double>::x = 37;   */
+             template<> int A<double>::x = 37;
+         We can also get here with a static data member of a C++/CLI managed
+         class type when that member has an in-class initializer.  E.g.:
+           ref class X { static int i = 3; };  // Definition of X::i
+         There is no need to reactivate the class scope in that case. */
       check_assertion(symbol_ptr->is_error ||
                       !is_file_or_namespace_scope(
                                             &scope_stack[depth_scope_stack]));
