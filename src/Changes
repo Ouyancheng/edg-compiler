@@ -1,5 +1,21 @@
 Version 4.4
 
+6/9/11  [EDGcpfe/11285]
+Spurious error on template-dependent GNU __sync_... function call
+
+A change made in version 4.2 (see EDGcpfe/10150) caused a regression
+in handling certain template-dependent calls of GNU __sync_...
+functions.  Here's one case that failed, now working again:
+
+  template<typename T> void f(T *p, T n) {
+    __sync_fetch_and_add(p, n);
+  }
+  int main() {
+    int* ip = new int;
+    f(ip,3);
+  }
+
+
 6/9/11  [EDGcpfe/11776]
 Bad C generated due to incorrect type list ordering
 

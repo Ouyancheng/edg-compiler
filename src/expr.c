@@ -3817,6 +3817,8 @@ that the final call needs to be cast to the indicated type.
       goto done;
     }  /* if */
     dispatch_type = skip_typerefs(args->operand.type);
+    /* Check that the dispatch type is a pointer (or a template parameter,
+       which could be a pointer). */
     if (is_pointer_type(dispatch_type)) {
       dispatch_type = type_pointed_to(dispatch_type);
       dispatch_type = skip_typerefs(dispatch_type);
@@ -3830,8 +3832,14 @@ that the final call needs to be cast to the indicated type.
       err = TRUE;
       goto done;
     }  /* if */
+    /* Check that the type under the pointer is appropriate. */
     if (template_case) {
-      /* Skip some checks for a template parameter type. */
+      /* The top type is a template parameter type, not a pointer, so we
+         can't check the type under the pointer. */
+    } else if (is_template_param_type(dispatch_type)) {
+      /* The underlying type is a template parameter, i.e., the original
+         dispatch type was pointer to T. */
+      template_case = TRUE;
     } else if (is_error_type(dispatch_type)) {
       /* An error has already been issued. */
       if (expr_error_should_be_issued()) expect_error();
@@ -3841,9 +3849,9 @@ that the final call needs to be cast to the indicated type.
       expr_pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
       err = TRUE;
     } else if (is_template_dependent_type(dispatch_type)) {
-      /* This catches cases like "pointer to T".  Note that the test is
-         after the integer/enum/pointer test above so that we don't let class
-         types get by as dispatch_type. */
+      /* This catches cases like "pointer to pointer to T".  Note that the
+         test is after the integer/enum/pointer test above so that we don't
+         let class types get by as dispatch_type. */
       template_case = TRUE;
     } else if (dispatch_type->size != 1 && dispatch_type->size != 2 &&
                dispatch_type->size != 4 && dispatch_type->size != 8) {
@@ -3900,16 +3908,16 @@ that the final call needs to be cast to the indicated type.
       for (ap = args; ap != NULL; ap = ap->next) {
         an_expr_node_ptr expr_arg;
         do_operand_transformations(&ap->operand, TOPT_NO_OPTIONS);
-        if (is_pointer_type(ap->operand.type) &&
-            is_integral_type(ptp->type) &&
-            skip_typerefs(ap->operand.type)->size == 
-                                             skip_typerefs(ptp->type)->size) {
-          /* Pointer operands are allowed and must be converted to an integer
-             value. */
-          cast_operand(ptp->type, &ap->operand, /*is_implicit_cast=*/TRUE);
-        }  /* if */
         if (!template_case) {
           check_assertion(ptp != NULL);
+          if (is_pointer_type(ap->operand.type) &&
+              is_integral_type(ptp->type) &&
+              skip_typerefs(ap->operand.type)->size == 
+                                              skip_typerefs(ptp->type)->size) {
+            /* Pointer operands are allowed and must be converted to an integer
+               value. */
+            cast_operand(ptp->type, &ap->operand, /*is_implicit_cast=*/TRUE);
+          }  /* if */
           prep_argument_operand(&ap->operand, ptp, (a_conv_descr *)NULL,
                                 ec_incompatible_param);
         }  /* if */
