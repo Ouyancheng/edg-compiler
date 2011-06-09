@@ -6264,6 +6264,26 @@ case).
     } else {
       a_boolean    is_lvalue;
       a_field_ptr  field;
+      if (offsetof_case) {
+        /* For offsetof, only a field is allowed. */
+        if (is_nontype_template_param_symbol(member_sym)) {
+          /* A template-dependent case: We cannot tell yet whether the
+             access will resolve to a field. */
+        } else if (member_sym->kind != (a_symbol_kind)sk_field) {
+          expr_pos_error(ec_offsetof_nonfield, &member_position);
+          make_error_operand(result);
+          goto after_switch;
+        } else if (is_any_reference_type(
+                                        member_sym->variant.field.ptr->type)) {
+          expr_pos_error(ec_offsetof_ref_field, &member_position);
+          make_error_operand(result);
+          goto after_switch;
+        } else if (member_sym->variant.field.ptr->is_bit_field) {
+          expr_pos_error(ec_offsetof_bit_field, &member_position);
+          make_error_operand(result);
+          goto after_switch;
+        }  /* if */
+      }  /* if */
       /* See what kind of member we have. */
       switch (member_sym->kind) {
         case sk_field:
@@ -6492,23 +6512,7 @@ nonstatic_member_function:
           internal_error("scan_field_selection_operator: bad symbol kind");
 #endif /* CHECKING */
       }  /* switch */
-      if (offsetof_case) {
-        /* Enforce a field access.  The field should not be a bit field. */
-        if (is_nontype_template_param_symbol(member_sym)) {
-          /* A template-dependent case: We cannot tell yet whether the
-             access will resolve to a field. */
-        } else if (member_sym->kind != (a_symbol_kind)sk_field) {
-          expr_pos_error(ec_offsetof_nonfield, &member_position);
-          conv_to_error_operand(result);
-        } else if (is_any_reference_type(
-                                        member_sym->variant.field.ptr->type)) {
-          expr_pos_error(ec_offsetof_ref_field, &member_position);
-          conv_to_error_operand(result);
-        } else if (member_sym->variant.field.ptr->is_bit_field) {
-          expr_pos_error(ec_offsetof_bit_field, &member_position);
-          conv_to_error_operand(result);
-        }  /* if */
-      }  /* if */
+after_switch:;
     }  /* if */
   }  /* if */
 

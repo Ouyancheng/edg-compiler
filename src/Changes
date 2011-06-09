@@ -1,5 +1,21 @@
 Version 4.4
 
+6/9/11  [EDGcpfe/10723]
+Abort on __builtin_offsetof applied to function
+
+The front end aborted in scan_offsetof in expr.c while attempting to
+process a GNU __builtin_offsetof where the second operand is a function
+(a field is required, so an error should have been issued).  Now fixed.
+
+  struct A {
+    int x;
+    void f();
+  };
+  void f() {
+    __builtin_offsetof(A, f);
+  }
+
+
 6/9/11  [EDGcpfe/11285]
 Spurious error on template-dependent GNU __sync_... function call
 
