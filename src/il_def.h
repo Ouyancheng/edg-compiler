@@ -12574,11 +12574,6 @@ enum an_expr_operator_kind_tag {
 			   built-in bitwise copy), but the operation is
 			   not rvalueable; the fetch/copy is an inherent
 			   part of the operation. */
-  eok_cli_string,	/* Allocate a C++/CLI System::String with contents
-			   as given by the operand, which is the address of
-			   a string literal (either narrow or wide).  The
-			   result is a handle to the System::String object.
-			   Always compiler-generated. */
   eok_base_class_cast,	/* C++ cast of a class to a direct base class.  The
 			   type of the expression indicates the type to cast
 			   to.  The operand can be a class lvalue, a class
@@ -16190,7 +16185,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #if VAR_INITIALIZERS
 = {"&", "ref-&", "%", "*", "ref-*",
    "cast", "lvalue cast", "ref cast", "lvalue adjust", "class rvalue adjust",
-   "box", "%-box", "unbox", "cli-string",
+   "box", "%-box", "unbox",
    "base class cast", "derived class cast",
    "pm base class cast", "pm derived class cast",
    "dynamic cast", "ref dynamic cast", "bool cast",

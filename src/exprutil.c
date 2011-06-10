@@ -2350,7 +2350,6 @@ cast in some modes.  orig_operand_expr can be NULL.
         case eok_lvalue:
         case eok_lvalue_adjust:
         case eok_class_rvalue_adjust:
-        case eok_cli_string:
           /* These operations are always implicit.  Keep stripping. */
           break;
         default:
@@ -2736,7 +2735,6 @@ that has it.
           case eok_lvalue:
           case eok_lvalue_adjust:
           case eok_class_rvalue_adjust:
-          case eok_cli_string:
             /* These operations are always implicit.  Keep stripping. */
             break;
           case eok_parens:
@@ -5107,23 +5105,32 @@ If make_lvalue is TRUE, an lvalue expression is returned.
 }  /* add_unbox_to_expression */
 
 
-static
-an_expr_node_ptr add_cli_string_creation_to_expression(an_expr_node_ptr expr)
+static an_expr_node_ptr make_cli_string_constant_expression(
+                                                         an_expr_node_ptr expr)
 /*
-Add a C++/CLI string creation operation to the indicated expression (an rvalue
-with a pointer-to-char or pointer-to-wchar_t type), and return the
+Create an enk_constant node of type System::String^ for an address constant
+that refers to the literal designated by the indicated expression (an
+rvalue with a pointer-to-char or pointer-to-wchar_t type), and return the
 resulting expression.
 */
 {
-  a_type_ptr system_string = type_symbol_type(
-                                      cli_symbol_from_kind(csk_system_string));
+  a_type_ptr       string_handle;
+  an_expr_node_ptr cli_string_node;
 
-  check_assertion(!expr->is_lvalue);
-  expr = make_operator_node((an_expr_operator_kind)eok_cli_string,
-                            make_handle_type(system_string), expr);
-  expr->variant.operation.compiler_generated = TRUE;
-  return expr;
-}  /* add_cli_string_creation_to_expression */
+  string_handle = make_handle_type(type_symbol_type(
+                                     cli_symbol_from_kind(csk_system_string)));
+  cli_string_node = alloc_expr_node((an_expr_node_kind)enk_constant);
+  cli_string_node->variant.constant =
+                              alloc_constant((a_constant_repr_kind)ck_address);
+  cli_string_node->type = string_handle;
+  if (constant_rvalue_pointer(expr, cli_string_node->variant.constant,
+                              /*address_escapes=*/TRUE, (a_boolean *)NULL)) {
+    cli_string_node->variant.constant->type = string_handle;
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return cli_string_node;
+}  /* make_cli_string_constant_expression */
 
 
 void convert_operand_to_handle_to_cli_string(an_operand_ptr operand)
@@ -5131,17 +5138,24 @@ void convert_operand_to_handle_to_cli_string(an_operand_ptr operand)
 Convert operand (a string literal) to System::String^.
 */
 {
-  an_expr_node_ptr expr;
+  a_constant       string_constant;
   an_operand       orig_operand;
+  an_expr_node_ptr expr = make_node_from_operand(operand);
 
   check_assertion(is_literal_convertible_to_cli_string(operand));
   orig_operand = *operand;
   /* Convert the operand to an rvalue. */
-  do_operand_transformations(operand, TOPT_NO_OPTIONS);
-  expr = make_node_from_operand(operand);
-  expr = add_cli_string_creation_to_expression(expr);
-  make_expression_operand(expr, operand);
-  restore_operand_details(operand, &orig_operand);
+  if (constant_rvalue_pointer(expr, &string_constant,
+                              /*address_escapes=*/TRUE, (a_boolean *)NULL)) {
+    a_type_ptr string_handle;
+    string_handle = make_handle_type(type_symbol_type(
+                                     cli_symbol_from_kind(csk_system_string)));
+    string_constant.type = string_handle;
+    make_constant_operand(&string_constant, operand);
+    restore_operand_details(operand, &orig_operand);
+  } else {
+    unexpected_condition();
+  }  /* if */
 }  /* convert_operand_to_handle_to_cli_string */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5242,8 +5256,15 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
              cli_string_literal_conversion_possible(old_type, new_type,
                                                    (a_std_conv_descr *)NULL)) {
     /* Do a string literal conversion (string-literal --> System::String^). */
-    check_assertion(is_implicit_cast);
-    (*p_node) = add_cli_string_creation_to_expression(*p_node);
+    check_assertion(!is_reinterpret_cast);
+    if (is_implicit_cast) {
+      /* Create an enk_constant node of the correct type. */
+      (*p_node) = make_cli_string_constant_expression(*p_node);
+    } else {
+      /* Make a cast node to represent the explicit cast. */
+      (*p_node) = make_operator_node((an_expr_operator_kind)eok_cast, new_type,
+                                     *p_node);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* For an ordinary cast, generate the eok_cast node. */

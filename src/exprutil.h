@@ -1347,6 +1347,8 @@ extern void adjust_constant_operand_info_for_microsoft_null_pointer_test(
                                          a_boolean        *operand_is_constant,
                                          a_constant       **operand_constant,
                                          an_expr_node_ptr *con_expr);
+
+extern void convert_operand_to_handle_to_cli_string(an_operand_ptr op);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean check_compatibility_of_pointer_operands(

@@ -3543,6 +3543,9 @@ precedence confusion.  Do the output in the way described by octl.
   a_boolean        reinterpret_cast_needed = FALSE;
   a_boolean        need_reinterpret_cast_close_paren = FALSE;
   a_boolean        formed_useful_lvalue, need_char_star_cast = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean        string_handle_case = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   con_type = skip_typerefs(orig_type);
   /* When the address constant is cast to some strange type (e.g., long),
@@ -3618,10 +3621,19 @@ precedence confusion.  Do the output in the way described by octl.
                                           (an_address_base_kind)abk_constant &&
                constant->variant.address.variant.constant->kind ==
                                              (a_constant_repr_kind)ck_string) {
-      /* Address of a string constant, e.g., &"abc".  Some ANSI/ISO C
-         compilers have difficulty with that, perhaps because they don't
-         believe a string is an lvalue.  Force type decay and a cast. */
-      type_decay_used = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (is_handle_type(con_type)) {
+        /* Omit the cast from a string literal to a handle type. */
+        string_handle_case = TRUE;
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        /* Address of a string constant, e.g., &"abc".  Some ANSI/ISO C
+           compilers have difficulty with that, perhaps because they don't
+           believe a string is an lvalue.  Force type decay and a cast. */
+        type_decay_used = TRUE;
+      }
     } else if (offset != 0) {
       /* Some compilers have difficulty with getting the size right when
          adding an offset to the address of an array. */
@@ -3799,6 +3811,8 @@ precedence confusion.  Do the output in the way described by octl.
     } else if (is_tracking_reference_type(con_type) &&
                !octl->gen_compilable_code) {
         octl->output_str("tracking reference to ", octl);
+    } else if (string_handle_case) {
+      /* No "&" for implicit cast of string literal to handle. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (type_decay_used) {
       /* Using type decay to get a pointer. */
@@ -4189,8 +4203,7 @@ on every expression.
           } else if (op == (an_expr_operator_kind)eok_lvalue_adjust) {
             /* Lvalue type adjustment (always implicit, so ignore). */
             form_expression(operand, octl);
-          } else if (op == (an_expr_operator_kind)eok_class_rvalue_adjust ||
-                     op == (an_expr_operator_kind)eok_cli_string) {
+          } else if (op == (an_expr_operator_kind)eok_class_rvalue_adjust) {
             /* Rvalue type adjustment (always implicit, so ignore). */
             /* Ditto for C++/CLI string creation. */
             form_expression(operand, octl);

@@ -12376,7 +12376,6 @@ tk_unknown is returned.
     case eok_box:
     case eok_handle_to_box:
     case eok_unbox:
-    case eok_cli_string:
       result = (a_type_kind)tk_pointer;
       break;
     case eok_cast:
@@ -17350,10 +17349,8 @@ check_cast_destination_type:
     case eok_box:
     case eok_handle_to_box:
     case eok_unbox:
-    case eok_cli_string:
       /* Box allocates an object on the managed heap. */
       /* Unbox is a lot like a ref cast, but it does a runtime check. */
-      /* cli-string allocates a System::String object on the managed heap. */
       has_side_effects = TRUE;
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -21789,7 +21786,6 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_box: */			LVRV_OPND1_IS_RVALUE,
   /* eok_handle_to_box: */		LVRV_OPND1_IS_RVALUE,
   /* eok_unbox: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_cli_string: */			LVRV_OPND1_IS_RVALUE,
   /* eok_base_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_derived_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_pm_base_class_cast: */		LVRV_OPND1_IS_RVALUE,
