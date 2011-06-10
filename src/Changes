@@ -45,17 +45,6 @@ functions.  Here's one case that failed, now working again:
   }
 
 
-6/9/11  [EDGcpfe/11776]
-Bad C generated due to incorrect type list ordering
-
-When using the C-generating back end (and hence IL lowering), the front end is
-careful to order the type entries on the file-scope types list in a manner
-that will result in a valid sequence of C type definitions.  Changes in this
-area made for version 4.2 of the front end caused it to be unable to generate
-valid C for certain moderately complex Boost library test cases (found in
-Boost 1.46.1).  This problem is now fixed.
-
-
 6/8/11  [EDGcpfe/11608]
 Hard error in decltype should have been deduction failure
 
