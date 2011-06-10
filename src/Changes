@@ -1,5 +1,19 @@
 Version 4.4
 
+6/10/11 [EDGcpfe/10465]
+C++-generating back end abort on template-dependent array bound
+
+The front end aborted in form_array_declarator in il_to_str.c while
+trying to render a template-dependent array bound in the C++-generating
+back end, when the array bound is a simple const variable whose
+value is template-dependent.  Now fixed.
+
+  template <int n> void f(void) {
+    const int b = n;
+    float a[b];  // Caused abort in --g++ mode
+  }
+
+
 6/10/11 [EDGcpfe/10694]
 C++-generating back end and dependent sizeof
 

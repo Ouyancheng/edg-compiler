@@ -10097,12 +10097,16 @@ The expression can then be recovered using find_local_expr_node.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     case lerk_generic_sizeof:
       new_ref->referrer.kind = (a_byte_il_entry_kind)iek_constant;
+      check_assertion(!((a_constant_ptr)referrer)
+         ->variant.template_param.variant.templ_sizeof.local_expr_ref);
       ((a_constant_ptr)referrer)
          ->variant.template_param.variant.templ_sizeof.local_expr_ref = TRUE;
       break;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     case lerk_array_bound:
       new_ref->referrer.kind = (a_byte_il_entry_kind)iek_type;
+      check_assertion(!((a_type_ptr)referrer)->variant.array.
+                             constant_bound_expr_in_local_expr_node_ref);
       ((a_type_ptr)referrer)->variant.array.
                              constant_bound_expr_in_local_expr_node_ref = TRUE;
       break;

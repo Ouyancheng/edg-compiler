@@ -3484,6 +3484,10 @@ constant.
       if (is_constant_bound) {
         /* Save the constant for the bound, which has an attached
            expression. */
+        /* constant.expr will be NULL if one of the template cases below
+           applies, so we will not record more than one local expression
+           for later recovery.  The subroutine has an assertion check
+           to verify that. */
         make_bound_expr_referenceable_from_file_scope(&constant.expr,
                                                       *new_type_ptr);
         il_constant = alloc_shareable_constant(&constant);
