@@ -10064,8 +10064,13 @@ at that level.
 */
 {
   if (is_operation_node(expr)) {
-    if (node_operator_is(expr, eok_gt)) {
-        /* Found an unprotected ">" operator. */
+    if (node_operator_is(expr, eok_gt) ||
+        (msvc_is_generated_code_target && node_operator_is(expr, eok_lt))) {
+        /* Found an unprotected ">" operator.  (Note: the Microsoft
+           compiler has a bug that causes it in some cases to report
+           spurious errors if a top-level "<" appears in a non-type
+           template argument, so we check for that case also when
+           msvc_is_generated_code_target.) */
         tblock->result = TRUE;
         tblock->terminate = TRUE;
     } else if (!expr->variant.operation.compiler_generated &&
