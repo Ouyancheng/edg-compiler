@@ -5239,12 +5239,15 @@ copy_constant_full should be called to start a copy.
             if (!in_file_scope(old_expr) &&
                 curr_il_region_number == file_scope_region_number) {
               /* There's a memory region problem, so drop the expression
-                 (we still have the type).  If the expression turned out to
-                 be needed (PROTOTYPE_INSTANTIATIONS_IN_IL versions),
-                 the code here could set new_expr to old_expr, and
-                 fix_memory_region_problems_in_copied_constant would call
-                 make_local_expr_node_ref. */
+                 (we still have the type). */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+              /* In PROTOTYPE_INSTANTIATIONS_IN_IL versions, keep the old
+                 expression and fix_memory_region_problems_in_copied_constant
+                 will call make_local_expr_node_ref. */
+              new_expr = old_expr;
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
               new_expr = NULL;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
             } else {
               /* Make a copy of the expression tree. */
               new_expr = i_copy_expr_tree(old_expr, options, cblock);
