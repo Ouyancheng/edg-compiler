@@ -5733,6 +5733,7 @@ IL entry.
   mdp->macro = mp;
   mp->is_command_line_definition = (curr_command_line_macro_def != NULL);
   mp->is_predefined = mdp->is_predefined;
+  mp->object_like = mdp->object_like;
   /* Add the macro to the IL list. */
   add_to_macros_list(mp);
   return mp;

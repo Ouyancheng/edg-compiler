@@ -1,5 +1,18 @@
 Version 4.4
 
+6/9/11  [EDGcpfe/11777]
+Distinguishing object-like and function-like macros
+
+The a_macro IL entry, included when RECORD_MACROS_IN_IL is TRUE, previously
+had no indication of whether the macro is object-like, taking no arguments,
+or function-like.  In an IL CHANGE, the a_macro entry now contains a flag,
+object_like, that is TRUE for the former and FALSE for the latter.  For
+example, assuming macrop is a pointer to an a_macro entry,
+
+  #define O 2      // macrop->object_like is TRUE
+  #define F(x) x   // macrop->object_like is FALSE
+
+
 6/9/11  [EDGcpfe/10723]
 Abort on __builtin_offsetof applied to function
 

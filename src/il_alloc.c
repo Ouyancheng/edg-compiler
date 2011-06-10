@@ -4186,6 +4186,7 @@ fields, and return a pointer to it.
   mp->is_undef = FALSE;
   mp->is_command_line_definition = FALSE;
   mp->is_predefined = FALSE;
+  mp->object_like = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   mp->replacement_text_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

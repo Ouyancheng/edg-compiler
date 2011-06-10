@@ -14983,6 +14983,10 @@ typedef struct a_macro {
 		is_predefined;
 			/* TRUE if this entry is for a predefined macro
 			   (e.g., __DATE__). */
+  a_byte_boolean
+		object_like;
+			/* TRUE if this is a simple macro that does not take
+			   arguments, FALSE for a function-style macro. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range
 		replacement_text_range;

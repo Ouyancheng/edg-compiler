@@ -5096,6 +5096,7 @@ Display the indicated macro entry.
   disp_boolean("is_command_line_definition",
                (a_boolean)ptr->is_command_line_definition);
   disp_boolean("is_predefined", (a_boolean)ptr->is_predefined);
+  disp_boolean("object_like", (a_boolean)ptr->object_like);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("replacement_text_range", &ptr->replacement_text_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
