@@ -5111,7 +5111,10 @@ static an_expr_node_ptr make_cli_string_constant_expression(
 Create an enk_constant node of type System::String^ for an address constant
 that refers to the literal designated by the indicated expression (an
 rvalue with a pointer-to-char or pointer-to-wchar_t type), and return the
-resulting expression.
+resulting expression.  Note that such a "constant" actually involves a
+run-time operation (the allocation and construction of a System::String
+object in the gc-heap), but this is treated as a compile-time constant by
+the Microsoft compiler, hence the unusual representation.
 */
 {
   a_type_ptr       string_handle;
@@ -5123,19 +5126,38 @@ resulting expression.
   cli_string_node->variant.constant =
                               alloc_constant((a_constant_repr_kind)ck_address);
   cli_string_node->type = string_handle;
+  /* Attempt to create a ck_address constant referring to the operand of the
+     input expression in the constant to which cli_string_node points. */
   if (constant_rvalue_pointer(expr, cli_string_node->variant.constant,
                               /*address_escapes=*/TRUE, (a_boolean *)NULL)) {
+    /* Set the type to be System::String^. */
     cli_string_node->variant.constant->type = string_handle;
   } else {
     unexpected_condition();
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* Copy the position information from the original constant node,
+     skipping over any compiler-generated nodes like array-decay, which
+     have no source position. */
+  while (is_operation_node(expr) &&
+         expr->variant.operation.compiler_generated) {
+    expr = expr->variant.operation.operands;
+  }  /* while */
+  cli_string_node->expr_range = expr->expr_range;
+  cli_string_node->operator_position = expr->operator_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   return cli_string_node;
 }  /* make_cli_string_constant_expression */
 
 
 void convert_operand_to_handle_to_cli_string(an_operand_ptr operand)
 /*
-Convert operand (a string literal) to System::String^.
+Convert operand (a string literal) to System::String^.  The result will be
+a constant operand designating an address constant that refers to the input
+string literal.  Note that such a "constant" actually involves a run-time
+operation (the allocation and construction of a System::String object in
+the gc-heap), but this is treated as a compile-time constant by the
+Microsoft compiler, hence the unusual representation.
 */
 {
   a_constant       string_constant;
@@ -5144,9 +5166,12 @@ Convert operand (a string literal) to System::String^.
 
   check_assertion(is_literal_convertible_to_cli_string(operand));
   orig_operand = *operand;
-  /* Convert the operand to an rvalue. */
+  /* Attempt to create a ck_address constant referring to the operand of
+     the input expression in string_constant. */
   if (constant_rvalue_pointer(expr, &string_constant,
                               /*address_escapes=*/TRUE, (a_boolean *)NULL)) {
+    /* Succeeded: set the type to System::String^ and create the constant
+       operand. */
     a_type_ptr string_handle;
     string_handle = make_handle_type(type_symbol_type(
                                      cli_symbol_from_kind(csk_system_string)));
@@ -5257,10 +5282,9 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
                                                    (a_std_conv_descr *)NULL)) {
     /* Do a string literal conversion (string-literal --> System::String^). */
     check_assertion(!is_reinterpret_cast);
-    if (is_implicit_cast) {
-      /* Create an enk_constant node of the correct type. */
-      (*p_node) = make_cli_string_constant_expression(*p_node);
-    } else {
+    /* Create an enk_constant node of the correct type. */
+    (*p_node) = make_cli_string_constant_expression(*p_node);
+    if (!is_implicit_cast) {
       /* Make a cast node to represent the explicit cast. */
       (*p_node) = make_operator_node((an_expr_operator_kind)eok_cast, new_type,
                                      *p_node);

@@ -7865,11 +7865,8 @@ indicated by opstr.
     /* Push a name context for the class.  This allows names in the
        second operand to be referred to without qualification.
        The context is pushed even when the class is nonreal. */
-    /* Don't push a scope when the operator has been changed to "," or when
-       the type of the object expression is not a class type.  (The latter
-       case can occur in C++/CLI because of the implicit conversion of a
-       character string literal to System::String.) */
-    if (!use_comma && is_immediate_class_type(operand_1_type)) {
+    /* Don't push a scope when the operator has been changed to ",". */
+    if (!use_comma) {
       push_class_name_context(operand_1_type);
       curr_name_context->field_selection_context = TRUE;
       need_context_pop = TRUE;

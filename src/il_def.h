@@ -3546,7 +3546,17 @@ typedef struct a_constant {
         /* When kind == abk_constant: */
         a_constant_ptr
                 constant;
-			/* The constant may be a shared constant. */
+			/* The constant may be a shared constant.  Note
+			   that in C++/CLI mode, a ck_address/abk_constant
+			   constant of type System::String^, where the
+			   addressed constant is a string literal, is used
+			   to represent the result of implicitly or
+			   explicitly converting a string literal to that
+			   type, even though that is a run-time operation
+			   (allocating the System::String object on the
+			   gc-heap and initializing it).  This is necessary
+			   because the Microsoft compiler treats such a
+			   construct as a compile-time constant. */
         /* When kind == abk_uuidof or abk_typeid: */
         a_type_ptr
 		type;	/* For abk_uuidof, the value of the constant is the
