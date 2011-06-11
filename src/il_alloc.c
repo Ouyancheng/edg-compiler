@@ -1586,6 +1586,7 @@ to default values.
       pte->variant.array.is_variable_size_array = FALSE;
       pte->variant.array.is_vla = FALSE;
       pte->variant.array.constant_bound_expr_in_local_expr_node_ref = FALSE;
+      pte->variant.array.dep_constant_bound_expr_in_local_expr_node_ref=FALSE;
       pte->variant.array.has_assoc_vla_dimension = FALSE;
       pte->variant.array.bound_is_zero = FALSE;
       pte->variant.array.is_static = FALSE;

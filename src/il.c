@@ -10110,6 +10110,13 @@ The expression can then be recovered using find_local_expr_node.
       ((a_type_ptr)referrer)->variant.array.
                              constant_bound_expr_in_local_expr_node_ref = TRUE;
       break;
+    case lerk_dep_array_bound:
+      new_ref->referrer.kind = (a_byte_il_entry_kind)iek_type;
+      check_assertion(!((a_type_ptr)referrer)->variant.array.
+                         dep_constant_bound_expr_in_local_expr_node_ref);
+      ((a_type_ptr)referrer)->variant.array.
+                         dep_constant_bound_expr_in_local_expr_node_ref = TRUE;
+      break;
     case lerk_decltype:
       new_ref->referrer.kind = (a_byte_il_entry_kind)iek_type;
       break;

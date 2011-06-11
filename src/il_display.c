@@ -1834,6 +1834,9 @@ Display the indicated type entry.
       if (ptr->variant.array.constant_bound_expr_in_local_expr_node_ref) {
         disp_boolean("constant_bound_expr_in_local_expr_node_ref", TRUE);
       }  /* if */
+      if (ptr->variant.array.dep_constant_bound_expr_in_local_expr_node_ref) {
+        disp_boolean("dep_constant_bound_expr_in_local_expr_node_ref", TRUE);
+      }  /* if */
       if (ptr->variant.array.bound_constant != NULL) {
         disp_ptr("bound_constant",
                  (char *)ptr->variant.array.bound_constant, iek_constant);
@@ -3557,6 +3560,9 @@ local) memory region.
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     case lerk_array_bound:
       (void)printf("array-bound");
+      break;
+    case lerk_dep_array_bound:
+      (void)printf("dep-array-bound");
       break;
     case lerk_decltype:
       (void)printf("decltype");

@@ -7445,10 +7445,15 @@ typedef struct a_type {
 			   file-scope memory, the expression is represented
 			   as an a_local_expr_node_ref in the function
 			   scope and the associated expr field will be
-			   NULL.  This applies to bound_constant.expr and to
-			   the expr, templ_sizeof.expr, and constant->expr
-			   fields of variant.element_count_constant->
-			   variant.template_param. */
+			   NULL.  This applies to bound_constant.expr. */
+      a_bit_field
+		dep_constant_bound_expr_in_local_expr_node_ref:1;
+			/* Like constant_bound_expr_in_local_expr_node_ref,
+			   but for the expressions inside the
+			   element_count_constant ck_template_param
+			   constant, i.e., the expr, templ_sizeof.expr, and
+			   constant->expr fields of element_count_constant->
+			   variant.template_param.variant. */
       a_bit_field
 		has_assoc_vla_dimension:1;
 			/* TRUE if the variable length array has an associated
@@ -13157,6 +13162,9 @@ enum a_local_expr_node_ref_kind_tag {
 			   can occur for initialized const variables and for
 			   non-const variables that appear in unselected
 			   branches of folded constant expressions. */
+  lerk_dep_array_bound,	/* Like lerk_array_bound, but for the expressions
+			   under a dependent constant giving the bound, rather
+			   than the "expr" field of the constant. */
   lerk_decltype
 			/* An expression used as an argument for a decltype
 			   construct. */

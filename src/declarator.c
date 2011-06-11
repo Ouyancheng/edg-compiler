@@ -3164,7 +3164,8 @@ enk_variable node that refers to a variable in a local scope.
 
 static void make_bound_expr_referenceable_from_file_scope(
                                                         an_expr_node_ptr *expr,
-                                                        a_type_ptr       type)
+                                                        a_type_ptr       type,
+                                                        a_boolean        dep)
 /*
 Process an expression used as an array bound (may be NULL) so that it can
 be referred to by the given type entry.  Because types appear in file scope
@@ -3173,7 +3174,9 @@ expression tree to the current memory region (assumed to be file scope upon
 entry) or create a local expr_node reference to it and mark the type entry
 accordingly.  If the expression tree was copied, the original expression
 pointer is updated to point to the copy; if a local expr_node reference was
-created, the original expression pointer is set to NULL.
+created, the original expression pointer is set to NULL.  dep is TRUE for
+the subexpressions of the ck_template_param for the template-dependent
+bound case, FALSE for the "expr" field of the constant itself.
 */
 {
   if (*expr != NULL && !in_file_scope(*expr)) {
@@ -3184,9 +3187,11 @@ created, the original expression pointer is set to NULL.
       /* The expression refers to a function-scope variable, so we
          can't copy it to file scope.  Create a local expr node
          reference to it instead. */
-      make_local_expr_node_ref(*expr, (a_local_expr_node_ref_kind)
-                                                              lerk_array_bound,
-                               (char *)type, innermost_function_scope);
+      make_local_expr_node_ref(
+                      *expr,
+                      (dep ? (a_local_expr_node_ref_kind)lerk_dep_array_bound :
+                             (a_local_expr_node_ref_kind)lerk_array_bound),
+                      (char *)type, innermost_function_scope);
       *expr = NULL;
     } else {
       /* Copy the expression to file-scope memory. */
@@ -3484,12 +3489,9 @@ constant.
       if (is_constant_bound) {
         /* Save the constant for the bound, which has an attached
            expression. */
-        /* constant.expr will be NULL if one of the template cases below
-           applies, so we will not record more than one local expression
-           for later recovery.  The subroutine has an assertion check
-           to verify that. */
         make_bound_expr_referenceable_from_file_scope(&constant.expr,
-                                                      *new_type_ptr);
+                                                      *new_type_ptr,
+                                                      /*dep=*/FALSE);
         il_constant = alloc_shareable_constant(&constant);
         (*new_type_ptr)->variant.array.bound_constant = il_constant;
       }  /* if */
@@ -3505,19 +3507,22 @@ constant.
         if (tkind == (a_template_param_constant_kind)tpck_expression) {
           make_bound_expr_referenceable_from_file_scope(
                              &il_constant->variant.template_param.variant.expr,
-                             *new_type_ptr);
+                             *new_type_ptr,
+                             /*dep=*/TRUE);
         } else if (tkind == (a_template_param_constant_kind)tpck_cast ||
                    tkind == (a_template_param_constant_kind)tpck_address) {
           make_bound_expr_referenceable_from_file_scope(
                    &il_constant->variant.template_param.variant.constant->expr,
-                   *new_type_ptr);
+                   *new_type_ptr,
+                   /*dep=*/TRUE);
         } else if (tkind == (a_template_param_constant_kind)tpck_sizeof ||
                    tkind == (a_template_param_constant_kind)tpck_alignof ||
                    tkind == (a_template_param_constant_kind)tpck_uuidof ||
                    tkind == (a_template_param_constant_kind)tpck_typeid) {
           make_bound_expr_referenceable_from_file_scope(
                 &il_constant->variant.template_param.variant.templ_sizeof.expr,
-                *new_type_ptr);
+                *new_type_ptr,
+                /*dep=*/TRUE);
         }  /* if */
         (*new_type_ptr)->variant.array.variant.element_count_constant =
                                                                    il_constant;

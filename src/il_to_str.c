@@ -2199,7 +2199,6 @@ the way described by octl.
     an_expr_node_ptr count = type->variant.array.variant.element_count_expr;
     form_expression(count, octl);
   } else if (type->variant.array.constant_bound_expr_in_local_expr_node_ref &&
-             !type->variant.array.is_template_dependent_size_array &&
              innermost_function_scope != NULL &&
              !octl->c_generating_back_end) {
     /* The bound expression has a reference to a local variable and is
@@ -2222,7 +2221,7 @@ the way described by octl.
                             type->variant.array.variant.element_count_constant;
     if (constant != NULL) {
       an_expr_node_ptr *expr_ptr = NULL;
-      if (type->variant.array.constant_bound_expr_in_local_expr_node_ref &&
+      if (type->variant.array.dep_constant_bound_expr_in_local_expr_node_ref &&
           innermost_function_scope != NULL) {
         /* The expression associated with the element count constant referred
            to local variables and thus could not be copied into the file
@@ -2242,13 +2241,11 @@ the way described by octl.
                    tkind == (a_template_param_constant_kind)tpck_uuidof ||
                    tkind == (a_template_param_constant_kind)tpck_typeid) {
           expr_ptr=&constant->variant.template_param.variant.templ_sizeof.expr;
-        } else {
-          expr_ptr = &constant->expr;
         }  /* if */
-        check_assertion(*expr_ptr == NULL);
+        check_assertion(expr_ptr != NULL && *expr_ptr == NULL);
         *expr_ptr = find_local_expr_node(
-                                 (char *)type,
-                                 (a_local_expr_node_ref_kind)lerk_array_bound);
+                             (char *)type,
+                             (a_local_expr_node_ref_kind)lerk_dep_array_bound);
         check_assertion(*expr_ptr != NULL);
       }  /* if */
       form_constant(constant, /*need_parens=*/FALSE, octl);
