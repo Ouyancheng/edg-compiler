@@ -1877,13 +1877,9 @@ for any diagnostics issued.
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled && is_handle_type(new_type) &&
-      (boxing_conversion_possible(constant_type, new_type,
-                                  (a_std_conv_descr *)NULL) ||
-       cli_string_literal_conversion_possible(constant_type, new_type,
-                                              (a_std_conv_descr *)NULL))) {
-    /* A C++/CLI boxing conversion cannot be folded to a constant.
-       Neither can a C++/CLI conversion from a string literal to a
-       System::String. */
+      boxing_conversion_possible(constant_type, new_type,
+                                  (a_std_conv_descr *)NULL)) {
+    /* A C++/CLI boxing conversion cannot be folded to a constant. */
     *did_not_fold = TRUE;
     goto exit;
   }  /* if */
