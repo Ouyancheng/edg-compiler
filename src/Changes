@@ -26,7 +26,7 @@ SFINAE turned off.  Now fixed.
 6/13/11 [EDGcpfe/11796]
 Abort on use of attributes when compiling multiple source files
 
-In configurations with COMPILE_MULTIPLE_SOURCE_FILES set to TRUE the front
+In configurations with COMPILE_MULTIPLE_SOURCE_FILES set to TRUE the front end
 could abort in calls to hash_find when simultaneously compiling multiple
 source files containing attribute specifiers (e.g., GNU __attribute or
 Microsoft __declspec constructs).  This is now fixed.
