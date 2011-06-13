@@ -29,6 +29,7 @@ types.c -- Utility routines that check types.
 #include "symbol_ref.h"
 #include "templates.h"
 #include "func_def.h"
+#include "lookup.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #include "lower_c99.h"
