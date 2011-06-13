@@ -1,5 +1,25 @@
 Version 4.4
 
+6/13/11 [EDGcpfe/11794]
+GNU C compatibility: Implicit function declaration followed by incompatible
+explicit definition
+
+In GNU C mode, the front end accepts an implicit declaration of a function
+(created by a call) followed by an incompatible declaration of that function
+in some cases.  However, previously the later explicit declaration was 
+spuriously marked as "superseded": This caused the C-generating back end to
+ignore the later declaration, and if that declaration was a definition, linker
+errors were likely to ensue.  For example:
+
+  int main() { f(); }  // Implicit declaration of f.
+  void f() {}          // Incompatible definition of f accepted in GNU C mode.
+                       // Previously, this definition was not rendered by the
+                       // C-generating back end.
+
+This is now fixed: The entry corresponding to the implicit declaration is
+marked as superseded instead.
+
+
 6/13/11 [EDGcpfe/11534]
 Abort on substitution of template argument after deduction
 

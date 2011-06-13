@@ -7766,16 +7766,28 @@ skip_overloading:;
       }  /* if */
     }  /* if */
     if (!linked_redecl_error && *ext_sym != NULL &&
-        (*ext_sym)->variant.extern_symbol_descr->
-                                            variant.routine.ptr != NULL) {
-      /* A new routine entry has been created, yet the external symbol
-         already refers to a different routine.  This can occur when there
-         is an error, but it can also occur in SVR4 C mode -- for example:
+        (*ext_sym)->variant.extern_symbol_descr
+                  ->variant.routine.ptr != NULL) {
+      /* A new routine entry has been created, yet the external symbol already
+         refers to a different routine.  This can occur when there is an error,
+         but it can also occur in SVR4 and Microsoft C mode -- for example:
            extern int ff();
            void f(int ff) { { extern float ff(); } }
          where the second declaration of ff has an incompatible type, yet
-         no error is issued. */
-      routine_ptr->superseded_external = TRUE;
+         no error is issued.  Another situation where this can happen: GNU C
+         implicit declarations displaced by an incompatible explicit
+         declaration.  For example:
+           int main() { f(); }  // Implicit declaration of f.
+           void f() {}          // Explicit but incompatible declaration.
+      */
+      if (is_local_scope_kind(scope_stack[effective_decl_level].kind) ||
+          func_info->is_implicit_declaration) {
+        routine_ptr->superseded_external = TRUE;
+      } else {
+        (*ext_sym)->variant.extern_symbol_descr->variant.routine.ptr
+                                               ->superseded_external = TRUE;
+        dps->first_decl = TRUE;
+      }  /* if */
     } else {
       dps->first_decl = TRUE;
     }  /* if */
