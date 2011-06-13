@@ -9747,11 +9747,11 @@ symbol entry, and return a pointer to it in state->sym.
       tp = alloc_type((a_type_kind)tk_typeref);
       tp->variant.typeref.type = type_ptr;
     }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
     if (state->marked_as_gnu_extension) {
       tp->source_corresp.marked_as_gnu_extension = TRUE;
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Create a new symbol for this type and bind it to the new type. */
     sym = enter_typedef_symbol(tp, locator, decl_scope_level,
                                suppress_redecl_error);
