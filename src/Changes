@@ -1,5 +1,18 @@
 Version 4.4
 
+6/13/11 [EDGcpfe/11633]
+GNU __extension__ annotation sometimes dropped
+
+In GNU mode, the front end sometimes failed to record the __extension__
+keyword.  For example:
+
+  __extension__ long long cnt = 0;
+      /* Previously the presence of the __extension__ keyword was not recorded
+         in the IL and hence the C++-generating back end did not render it. */
+
+This is now fixed.
+
+
 6/13/11 [EDGcpfe/9919,EDGcpfe/11661]
 GNU compatibility: __builtin_isfinite and __builtin_isnormal
 

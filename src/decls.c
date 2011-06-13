@@ -15573,11 +15573,6 @@ Broadly speaking, three kinds of declarations are handled here:
   a_source_position            saved_qualifiers_pos;
 
   db_enter(3, "declaration");
-  if (gnu_mode && !marked_as_gnu_extension && curr_token == tok_extension) {
-    /* Ignore the GNU C __extension__ annotation. */
-    (void)get_token();
-    marked_as_gnu_extension = TRUE;
-  }  /* if */
   set_err_pos_to_curr_token();
   /* Initialize structures to hold information about the declaration to be
      parsed. */
@@ -15588,6 +15583,15 @@ Broadly speaking, three kinds of declarations are handled here:
   state.is_old_style_param_decl = is_old_style_param_decl;
   state.is_top_level_declaration = is_top_level_declaration;
   clear_decl_pos_block(&decl_pos_block);
+  if (gnu_mode) {
+    if (marked_as_gnu_extension) {
+      state.marked_as_gnu_extension = TRUE;
+    } else if (curr_token == tok_extension) {
+      /* Record the GNU C __extension__ annotation. */
+      (void)get_token();
+      state.marked_as_gnu_extension = TRUE;
+    }  /* if */
+  }  /* if */
   if (depth_stmt_stack >= 0) {
     decl_stmt = struct_stmt_stack[depth_stmt_stack].curr_decl_statement;
     if (decl_stmt != NULL) {
