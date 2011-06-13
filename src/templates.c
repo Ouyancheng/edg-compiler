@@ -2323,8 +2323,13 @@ Return the template nesting depth of the specified template parameter.
   } else {
    a_symbol_kind	sym_kind= tpp->param_symbol->kind;
     if (sym_kind == (a_symbol_kind)sk_type) {
-      depth = tpp->variant.type->
-                         variant.template_param.extra_info->coordinates.depth;
+      a_type_ptr	tp = tpp->variant.type;
+      if (is_cli_generic_constraint(tp)) {
+        /* If this is a generic constraint, get the associated generic
+           parameter. */
+        tp = template_param_if_proxy_class(tp);
+      }  /* if */
+      depth = tp->variant.template_param.extra_info->coordinates.depth;
     } else if (sym_kind == (a_symbol_kind)sk_constant) {
       depth = tpp->variant.constant.ptr->
                    variant.template_param.variant.coordinates.depth;
@@ -5236,6 +5241,22 @@ the same constant.
          mismatch. */
       a_type_ptr type1 = arg1->variant.type;
       a_type_ptr type2 = arg2->variant.type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled) {
+        /* If the type is a C++/CLI generic constraint, use the associated
+           template parameter for the comparison. */
+        if (type1 != NULL) {
+          if (is_cli_generic_constraint_type(type1)) {
+            type1 = template_param_if_proxy_class(type1);
+          }  /* if */
+        }  /* if */
+        if (type2 != NULL) {
+          if (is_cli_generic_constraint_type(type2)) {
+            type2 = template_param_if_proxy_class(type2);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (type1 == NULL && type2 == NULL) {
         /* Both argument values are unspecified.  Treat this as a match. */
       } else if (type1 == NULL || type2 == NULL) {
@@ -9146,6 +9167,12 @@ a pointer over a reference type or creating an array of references.
       type = error_type();
     } else {
       type = type_symbol_type(sym);
+    }  /* if */
+  } else {
+    if (is_cli_generic_constraint(type)) {
+      /* If this is a generic constraint, get the associated generic
+         parameter. */
+      type = template_param_if_proxy_class(type);
     }  /* if */
   }  /* if */
   /* The CTWS_IS_PARENT flag should only influence the lookup of the parent
@@ -13410,8 +13437,16 @@ to the newly created list.
     }  /* if */
     param_sym = tpp->param_symbol;
     if (param_sym->kind == (a_symbol_kind)sk_type) {
+      a_type_ptr	tp = param_sym->variant.type.ptr;
       tap = alloc_template_arg((a_templ_arg_kind)tak_type);
-      tap->variant.type = param_sym->variant.type.ptr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (tp->variant.template_param.is_generic_param) {
+        /* If this is a C++/CLI generic parameter, the prototype argument
+           points to the constraint type. */
+        tp = constraint_type_for_cli_generic_param_type(tp);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      tap->variant.type = tp;
     } else if (param_sym->kind == (a_symbol_kind)sk_constant) {
       tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
       tap->variant.constant = param_sym->variant.constant;
@@ -13487,6 +13522,10 @@ type for each based on the constraints for the generic parameter.
        class. */
     add_base_class_to_proxy_class(proxy_class, arg_type);
     add_to_types_list(proxy_class, NO_SCOPE_DEPTH);
+    /* Update the template parameter entry to use the proxy class as the
+       template parameter value. */
+    tpp->param_symbol->variant.type.ptr = proxy_class;
+    tpp->variant.type = proxy_class;
   }  /* for */
 }  /* create_generic_constraint_types */
 
@@ -20850,6 +20889,9 @@ Scan an optional set of C++/CLI generic constraints.  The form is:
         /* A valid generic parameter name. */
         check_assertion(sym->kind == (a_symbol_kind)sk_type);
         param_type = sym->variant.type.ptr;
+        /* The lookup returns the constraint type.  Get the associated
+            template parameter type. */
+        param_type = template_param_if_proxy_class(param_type);
         check_assertion(param_type->kind == (a_type_kind)tk_template_param);
         if (param_type->variant.template_param.extra_info->
                                                  generic_constraints != NULL) {

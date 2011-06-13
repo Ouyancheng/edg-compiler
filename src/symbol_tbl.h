@@ -4954,18 +4954,16 @@ class definition.
                    variant.class_struct_union.is_template_class &&    \
    (sym)->variant.class_struct_union.type->			      \
                    variant.class_struct_union.is_nonreal_class)
-#if 0
-/* FIXME: This should be referenced soon. */
 /*
 If type is a proxy class, return the associated template parameter,
 otherwise return NULL.
 */
 #define template_param_if_proxy_class(type)				\
-  (is_immediate_class_type(type)					\
+  (is_immediate_class_type(type) &&					\
+   (type)->variant.class_struct_union.is_proxy_class			\
    ? symbol_for(type)->variant.class_struct_union.extra_info->		\
                                       template_param_for_proxy_class	\
    : NULL)
-#endif /* 0 */
 
 extern a_boolean is_proxy_member_symbol(a_symbol_ptr  sym);
 

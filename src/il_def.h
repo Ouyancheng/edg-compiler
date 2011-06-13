@@ -7546,6 +7546,11 @@ typedef struct a_type {
 		is_generic_instance:1;
 			/* TRUE if this is an instantiation of a C++/CLI
 			   generic class or a nested class within a generic. */
+     a_bit_field
+		is_generic_constraint:1;
+			/* TRUE if this is the type created to represent the
+			   type specified by the constraints of a C++/CLI
+			   generic type parameter. */
 #if BACK_END_IS_CP_GEN_BE
       a_bit_field
 		defined_with_abstract_class_modifier:1;
@@ -7684,6 +7689,11 @@ typedef struct a_type {
 			   instantiated because of a do-not-instantiate
 			   directive (i.e., "extern template" or "#pragma
 			   do_not_instantiate"). */
+      a_bit_field
+		is_proxy_class:1;
+			/* TRUE if this is a proxy class associated with
+			   a template parameter.  This is also TRUE for a
+			   C++/CLI constraint type for a generic parameter. */
 #if MAINTAIN_NEEDED_FLAGS
       a_bit_field
 		definition_needed:1;

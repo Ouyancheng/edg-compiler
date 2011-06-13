@@ -529,9 +529,11 @@ parameters to represent the type specified by the constraints.
                        orig_type->source_corresp.member_of_unknown_base;
     type->source_corresp.qualified_unknown_base_member =
                 orig_type->source_corresp.qualified_unknown_base_member;
+    type->variant.class_struct_union.is_proxy_class = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     type->source_corresp.member_of_unknown_super =
                       orig_type->source_corresp.member_of_unknown_super;
+    type->variant.class_struct_union.is_generic_constraint = is_generic;
     if (is_generic) {
       /* Create a scope so that the class is considered complete. */
       add_scope_to_class_type(type);

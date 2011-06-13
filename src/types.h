@@ -117,7 +117,9 @@ extern a_boolean is_any_reference_type(a_type_ptr tp);
 extern a_boolean is_any_ptr_or_ref_type(a_type_ptr tp);
 extern a_boolean is_handle_type_or_any_ref_type(a_type_ptr tp);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern a_boolean is_cli_generic_param_type(a_type_ptr  tp);
+extern a_boolean is_cli_generic_param_type(a_type_ptr tp);
+extern a_boolean is_cli_generic_constraint_type(a_type_ptr tp);
+extern a_type_ptr constraint_type_for_cli_generic_param_type(a_type_ptr type);
 extern a_boolean is_handle_type(a_type_ptr tp);
 extern a_boolean is_tracking_reference_type(a_type_ptr tp);
 extern a_boolean is_handle_or_tracking_ref_type(a_type_ptr tp);
@@ -1276,6 +1278,18 @@ required to be a class type.
   ((type)->variant.class_struct_union.is_generic_instance)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_cli_generic_instance_type(type) /*lint --e(506)*/FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Return TRUE if type is the type used to represent a C++/CLI generic
+constraint.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_cli_generic_constraint(type)				\
+  (is_immediate_class_type(type) &&				\
+   (type)->variant.class_struct_union.is_generic_constraint)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_cli_generic_constraint(type) /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*

@@ -946,6 +946,45 @@ generic.
 }  /* is_cli_generic_param_type */
 
 
+a_boolean is_cli_generic_constraint_type(a_type_ptr tp)
+/*
+Return TRUE if the given type entry represents the class constraint
+version of a C++/CLI generic parameter.
+*/
+{
+  a_boolean is_constraint = FALSE;
+
+  if (cppcli_enabled) {
+    tp = skip_typerefs(tp);
+    if (is_immediate_class_type(tp) && is_cli_generic_constraint(tp)) {
+      is_constraint = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_constraint;
+}  /* is_cli_generic_constraint_type */
+
+
+a_type_ptr constraint_type_for_cli_generic_param_type(a_type_ptr type)
+/*
+If type is a C++/CLI generic parameter type (possibly cv-qualified),
+return the corresponding constraint type, a synthesized class type.
+Any cv-qualifiers on the original type are replicated on the returned type.
+If type is not a generic parameter type, return the type unchanged.
+*/
+{
+  if (cppcli_enabled && is_cli_generic_param_type(type)) {
+    a_type_qualifier_set qualifiers = get_type_qualifiers(type);
+    type = skip_typerefs(type);
+    check_assertion(is_cli_generic_param(type));
+    type = proxy_class_for_template_param(type);
+    if (qualifiers != TQ_NONE) {
+      type = make_qualified_type(type, qualifiers);
+    }  /* if */
+  }  /* if */
+  return type;
+}  /* constraint_type_for_cli_generic_param_type */
+
+
 a_boolean is_handle_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a C++/CLI handle type.
@@ -4018,6 +4057,20 @@ point to the same type or constant).  FALSE if only equivalence is required.
     /* We are being called after fe_wrapup was called.  Proxy classes are
        not a consideration.  The field source_corresp.assoc_info points
        into freed memory. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled &&
+             is_cli_generic_constraint(type_1) &&
+             is_cli_generic_constraint(type_2)) {
+    /* Check if these are constraint types that should be considered the
+       same. */
+    a_type_ptr	templ_param_type_1;
+    a_type_ptr	templ_param_type_2;
+    templ_param_type_1 = template_param_if_proxy_class(type_1);
+    templ_param_type_2 = template_param_if_proxy_class(type_2);
+    if (identical_types(templ_param_type_1, templ_param_type_2)) {
+      equiv = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if ((type_1->variant.class_struct_union.is_nonreal_class &&
               type_2->variant.class_struct_union.is_nonreal_class) ||
              error_matches_anything) {
