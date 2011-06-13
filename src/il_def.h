@@ -7690,7 +7690,7 @@ typedef struct a_type {
 			   directive (i.e., "extern template" or "#pragma
 			   do_not_instantiate"). */
       a_bit_field
-		is_proxy_class:1;
+		proxy_class:1;
 			/* TRUE if this is a proxy class associated with
 			   a template parameter.  This is also TRUE for a
 			   C++/CLI constraint type for a generic parameter. */

@@ -4960,7 +4960,7 @@ otherwise return NULL.
 */
 #define template_param_if_proxy_class(type)				\
   (is_immediate_class_type(type) &&					\
-   (type)->variant.class_struct_union.is_proxy_class			\
+   (type)->variant.class_struct_union.proxy_class			\
    ? symbol_for(type)->variant.class_struct_union.extra_info->		\
                                       template_param_for_proxy_class	\
    : NULL)
