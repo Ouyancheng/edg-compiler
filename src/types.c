@@ -934,8 +934,8 @@ ordinary pointer, interior_ptr, or pin_ptr).
                                                                            );
 }  /* is_handle_type_or_any_ref_type */
 
-#if !STANDALONE_UTILITY_PROGRAM
 #if MICROSOFT_EXTENSIONS_ALLOWED
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean is_cli_generic_param_type(a_type_ptr  tp)
 /*
