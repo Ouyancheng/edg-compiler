@@ -5800,17 +5800,20 @@ pragmas and macros.  Return TRUE if anything was processed.
 static void gen_assembly_visibility_for_type(a_type_ptr  type)
 /*
 If the given type has a C++/CLI assembly visibility, generate "public " or
-"private " accordingly.  (Since the IL does not record whether a visibility
-was explicitly specified, the visibility is always rendered.)
+"private " accordingly, unless the type is a nested type.  (Since the IL does
+not record whether a visibility was explicitly specified, the visibility is
+always rendered for non-nested types.)
 */
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  switch (get_assembly_visibility_of(type)) {
-    case av_none:     /* Nothing to do. */        break;
-    case av_public:   write_tok_str("public ");   break;
-    case av_private:  write_tok_str("private ");  break;
-    default:          unexpected_condition();
-  }  /* switch */
+  if (!type->source_corresp.is_class_member) {
+    switch (get_assembly_visibility_of(type)) {
+      case av_none:     /* Nothing to do. */        break;
+      case av_public:   write_tok_str("public ");   break;
+      case av_private:  write_tok_str("private ");  break;
+      default:          unexpected_condition();
+    }  /* switch */
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* gen_assembly_visibility_for_type */
 
@@ -6518,9 +6521,7 @@ Render the given delegate type as a C++/CLI delegate definition.  E.g.:
   check_and_take_source_seq_entry_for_type(type);
   /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
-  if (!type->source_corresp.is_class_member) {
-    gen_assembly_visibility_for_type(type);
-  }  /* if */
+  gen_assembly_visibility_for_type(type);
   write_tok_str("delegate ");
   gen_general_declaration_using_type(delegate_invocation_type(type),
                                      &type->source_corresp, iek_type,
