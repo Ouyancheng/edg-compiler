@@ -1636,7 +1636,7 @@ to default values.
       pte->variant.class_struct_union.is_in_class_specialization = FALSE;
       pte->variant.class_struct_union.explicitly_instantiated = FALSE;
       pte->variant.class_struct_union.do_not_instantiate = FALSE;
-      pte->variant.class_struct_union.is_proxy_class = FALSE;
+      pte->variant.class_struct_union.proxy_class = FALSE;
 #if MAINTAIN_NEEDED_FLAGS
       pte->variant.class_struct_union.definition_needed = FALSE;
       pte->variant.class_struct_union.keep_definition_in_il = FALSE;
