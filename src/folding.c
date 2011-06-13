@@ -4534,7 +4534,8 @@ static void accum_array_offset(a_constant_ptr  total_offset,
                                a_constant_ptr  count,
                                a_targ_size_t   elem_size,
                                a_boolean       no_ovflo_on_unsigned_add,
-                               a_boolean       *ovflo)
+                               a_boolean       *ovflo,
+                               a_boolean       *did_not_fold)
 /*
 Perform the multiply-add or multiply-subtract implied by array subscripting
 or pointer arithmetic.  *total_offset is a constant to/from which the implied
@@ -4544,38 +4545,47 @@ signed value (this can be different from the signedness implied by the type).
 count describes the number of array elements "added" or "subtracted", and
 elem_size is the size of each of those elements.  *ovflo is set to TRUE if an
 overflow occurs.  If an overflow resulting from an unsigned addition should
-be ignored, no_ovflo_on_unsigned_add should be set to TRUE.
+be ignored, no_ovflo_on_unsigned_add should be set to TRUE.  If the
+operation could not be folded (because count is not a known integer
+constant), return *did_not_fold TRUE.
 */
 {
-  an_integer_value  array_offset;
-  a_boolean         count_is_signed = int_constant_is_signed(count);
+  *ovflo = FALSE;
+  *did_not_fold = FALSE;
+  if (count->kind != (a_constant_repr_kind)ck_integer) {
+    *did_not_fold = TRUE;
+  } else {
+    an_integer_value  array_offset;
+    a_boolean         count_is_signed = int_constant_is_signed(count);
 
-  set_unsigned_integer_value(&array_offset, elem_size);
-  multiply_integer_values(&array_offset, &count->variant.integer_value,
-                          int_constant_is_signed(count), ovflo);
-  if (!*ovflo) {
-    /* Add/subtract the increment to/from the original offset. */
-    if (subtract) {
-      subtract_mixed_signed_integer_values(
-          &total_offset->variant.integer_value, offset_is_signed,
-          &array_offset, count_is_signed, ovflo);
-    } else {
-      add_mixed_signed_integer_values(
-          &total_offset->variant.integer_value, offset_is_signed,
-          &array_offset, count_is_signed, ovflo);
+    set_unsigned_integer_value(&array_offset, elem_size);
+    multiply_integer_values(&array_offset, &count->variant.integer_value,
+                            int_constant_is_signed(count), ovflo);
+    if (!*ovflo) {
+      /* Add/subtract the increment to/from the original offset. */
+      if (subtract) {
+        subtract_mixed_signed_integer_values(
+            &total_offset->variant.integer_value, offset_is_signed,
+            &array_offset, count_is_signed, ovflo);
+      } else {
+        add_mixed_signed_integer_values(
+            &total_offset->variant.integer_value, offset_is_signed,
+            &array_offset, count_is_signed, ovflo);
+      }  /* if */
+      /* If this was an unsigned integer operation, overflow is ignored. */
+      if (no_ovflo_on_unsigned_add && !offset_is_signed) *ovflo = FALSE;
     }  /* if */
-    /* If this was an unsigned integer operation, overflow is ignored. */
-    if (no_ovflo_on_unsigned_add && !offset_is_signed) *ovflo = FALSE;
   }  /* if */
 }  /* accum_array_offset */
 
 
 static void do_padd(a_constant            *constant_1,
                     an_expr_operator_kind op,
-		    a_constant            *constant_2,
-		    a_constant            *result,
-		    an_error_code         *err_code,
-		    an_error_severity     *err_severity)
+                    a_constant            *constant_2,
+                    a_constant            *result,
+                    a_boolean             *did_not_fold,
+                    an_error_code         *err_code,
+                    an_error_severity     *err_severity)
 /*
 Do addition or subtraction on one pointer (constant_1) and one integer
 (constant_2).  op indicates whether the source form was "+"
@@ -4584,6 +4594,7 @@ Note that the integer can be of any type, specifically unsigned.
 Also used to add or subtract a constant from an address constant
 that has been cast to an integral type, as in "int i = (int)&j + 1;";
 in that case, the operator is eok_add or eok_subtract.
+*did_not_fold is returned TRUE if the operation cannot be folded.
 *err_code and *err_severity are set to indicate any error/warning
 detected, or *err_code == ec_no_error if everything went fine.
 */
@@ -4593,6 +4604,7 @@ detected, or *err_code == ec_no_error if everything went fine.
   a_boolean        err, offset_is_signed = FALSE;
   a_boolean        integer_case = FALSE;
 
+  *did_not_fold = FALSE;
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
@@ -4626,8 +4638,8 @@ detected, or *err_code == ec_no_error if everything went fine.
                      (op == (an_expr_operator_kind)eok_psubtract ||
                       op == (an_expr_operator_kind)eok_subtract),
                       constant_2, size, (integer_case && !offset_is_signed),
-                      &err);
-  if (!err) {
+                      &err, did_not_fold);
+  if (!err && !*did_not_fold) {
     /* Build the result pointer constant. */
     copy_constant(constant_1, result);
     set_pointer_offset(result, &offset, &err);
@@ -4638,6 +4650,8 @@ detected, or *err_code == ec_no_error if everything went fine.
     /* Some folding error. */
     *err_code = ec_integer_overflow;
     *err_severity = es_error;
+  } else if (*did_not_fold) {
+    set_error_constant(result);
   } else {
     /* Check that the offset lies within the base object. */
     if (!integer_case && !valid_address_constant(result)) {
@@ -5096,8 +5110,8 @@ error.  *err_pos is used as the position for any diagnostics issued.
           internal_error("binary_operation: address constant +- non-integer");
         }  /* if */
 #endif /* CHECKING */
-        do_padd(constant_1, op, constant_2, result, &err_code,
-                &err_severity);
+        do_padd(constant_1, op, constant_2, result, did_not_fold,
+                &err_code, &err_severity);
       } else if ((gcc_mode ||
                   (gpp_mode && gnu_version < 40000)) &&
                  op == (an_expr_operator_kind)eok_subtract &&
@@ -5131,7 +5145,7 @@ error.  *err_pos is used as the position for any diagnostics issued.
 #endif /* CHECKING */
         /* Note that we reverse the operands in the call so that the address
            constant is first. */
-        do_padd(constant_2, op, constant_1, result, &err_code,
+        do_padd(constant_2, op, constant_1, result, did_not_fold, &err_code,
                 &err_severity);
       } else if (gnu_mode &&
                  op == (an_expr_operator_kind)eok_and &&
@@ -5178,12 +5192,12 @@ error.  *err_pos is used as the position for any diagnostics issued.
           switch (operation_type_kind) {
             case tk_integer:
               do_isubtract(constant_1, constant_2, result, &err_code,
-                      &err_severity);
+                           &err_severity);
               break;
 #if FIXED_POINT_ALLOWED
             case tk_fixed_point:
               do_fxsubtract(constant_1, constant_2, result,
-                       did_not_fold, &err_code, &err_severity);
+                            did_not_fold, &err_code, &err_severity);
               break;
 #endif /* FIXED_POINT_ALLOWED */
             case tk_float:
@@ -5191,7 +5205,7 @@ error.  *err_pos is used as the position for any diagnostics issued.
             case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
               do_fsubtract(constant_1, constant_2, result, &err_code,
-                      &err_severity, &depends_on_fp_mode);
+                           &err_severity, &depends_on_fp_mode);
               break;
 #if C99_IL_EXTENSIONS_SUPPORTED
             case tk_complex:
@@ -5397,12 +5411,13 @@ error.  *err_pos is used as the position for any diagnostics issued.
               ptr_con = constant_2;
               int_con = constant_1;
             }  /* if */
-            do_padd(ptr_con, op, int_con, result, &err_code, &err_severity);
+            do_padd(ptr_con, op, int_con, result, did_not_fold,
+                    &err_code, &err_severity);
           }
           break;
         case eok_psubtract:
-          do_padd(constant_1, op, constant_2, result, &err_code,
-                  &err_severity);
+          do_padd(constant_1, op, constant_2, result, did_not_fold,
+                  &err_code, &err_severity);
           break;
 #if CHECKING
         default:
@@ -5534,7 +5549,7 @@ static a_boolean constant_padd_or_subscript(
 /*
 expr is an expression for an eok_padd, eok_psubtract, or eok_subscript
 operation.  If its result (eok_padd, eok_psubtract) or address (lvalue
-eok_subscript) is constant, return the value/address in *con.
+eok_subscript) is constant, return the value/address in *con, and return TRUE.
 address_escapes and template_constant are as for constant_lvalue_address
 (except that template_constant is always non-NULL).
 */
@@ -5557,14 +5572,16 @@ address_escapes and template_constant are as for constant_lvalue_address
     a_constant_ptr    int_con = int_op->variant.constant;
     an_error_code     err_code;
     an_error_severity err_severity;
+    a_boolean         did_not_fold;
     if (int_con->kind == (a_constant_repr_kind)ck_template_param ||
         ptr_con.kind  == (a_constant_repr_kind)ck_template_param) {
       /* At least one constant is a template parameter, so we're not going
          to fold this to a constant address. */
     } else {
       do_padd(&ptr_con, expr->variant.operation.kind, int_con, con,
-              &err_code, &err_severity);
-      if (err_code == ec_no_error || err_severity == es_warning) {
+              &did_not_fold, &err_code, &err_severity);
+      if (!did_not_fold &&
+          (err_code == ec_no_error || err_severity == es_warning)) {
         is_constant = TRUE;
       }  /* if */
     }  /* if */
@@ -6198,6 +6215,7 @@ it is non-NULL).  Otherwise, return TRUE.
     case eok_subscript:
       { a_type_ptr       elem_type = type_pointed_to(args->type);
         an_expr_node_ptr arg2 = skip_parens(args->next);
+        a_boolean        did_not_fold;
         check_assertion(is_constant_node(arg2));
         /* Note that while eok_subscript in general allows operands in
            either order, in offsetof the subscript is always the second
@@ -6205,7 +6223,12 @@ it is non-NULL).  Otherwise, return TRUE.
         accum_array_offset(offset, /*offset_is_signed=*/FALSE,
                            /*subtract=*/FALSE, arg2->variant.constant,
                            skip_typerefs(elem_type)->size,
-                           /*no_ovflo_on_unsigned_add=*/FALSE, &ovflo);
+                           /*no_ovflo_on_unsigned_add=*/FALSE, &ovflo,
+                           &did_not_fold);
+        if (did_not_fold) {
+          okay = FALSE;
+          if (pos != NULL) pos_error(ec_nonconstant_offsetof, pos);
+        }  /* if */
       }
       break;
     case eok_base_class_cast:

@@ -1,5 +1,19 @@
 Version 4.4
 
+6/13/11 [EDGcpfe/10387]
+Incorrect folding of array offset with non-compile-time-constant subscript
+
+The folding code for the following example (characterized by a pointer
+addition or subscript operation with a second operand that is an address
+constant cast to an integral type) performed a reference to the wrong
+variant of a front end internal structure, which might, depending on the
+host architecture, cause an abort.  Now fixed.
+
+  void f();
+  void g();
+  char *x = ((char*)&f+(long)(char*)&g);
+
+
 6/10/11 [EDGcpfe/10465]
 C++-generating back end abort on template-dependent array bound
 
