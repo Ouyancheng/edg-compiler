@@ -1,5 +1,28 @@
 Version 4.4
 
+6/13/11 [EDGcpfe/11534]
+Abort on substitution of template argument after deduction
+
+Due to a regression introduced as part of the 4.2 new-style SFINAE
+changes, the front end aborted while doing template parameter substitution
+on an explicit template argument that's part of a deduced type.
+The error was "missing rescan info on explicit template argument"
+and only occurred when compilation was done with new-style (C++0x)
+SFINAE turned off.  Now fixed.
+
+  struct A {
+    template <int I> void f();
+  };
+  template <class T, class C> struct B {
+    template <T> struct E;
+    template <class U> static int s(E<&U::template f<50> > *);
+    static const int x = sizeof(s<C>(0));
+  };
+  int main() {
+    return B<void (A::*)(),A>::x;
+  }
+
+
 6/13/11 [EDGcpfe/11796]
 Abort on use of attributes when compiling multiple source files
 

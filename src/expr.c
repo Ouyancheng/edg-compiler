@@ -5454,17 +5454,19 @@ be called from outside of the expression processing routines.
 {
   if (is_nontype_templ_arg(tap) && !tap->is_array_bound_of_unknown_type) {
     an_operand_ptr                operand;
-    an_expr_rescan_info_entry_ptr eriep;
     check_assertion(is_nontype_templ_arg(orig_tap) &&
                     !orig_tap->is_array_bound_of_unknown_type);
-    eriep = orig_tap->variant.constant->rescan_info;
-    check_assertion_str(eriep != NULL,
-                        "missing rescan info on explicit template argument");
     check_assertion(tap->arg_operand == NULL);
     tap->arg_operand = alloc_arg_operand();
     operand = &tap->arg_operand->operand;
     make_constant_operand(tap->variant.constant, operand);
-    restore_operand_info_from_expr_rescan_info_entry(operand, eriep);
+    if (cpp0x_sfinae_enabled) {
+      an_expr_rescan_info_entry_ptr eriep =
+                                       orig_tap->variant.constant->rescan_info;
+      check_assertion_str(eriep != NULL,
+                          "missing rescan info on explicit template argument");
+      restore_operand_info_from_expr_rescan_info_entry(operand, eriep);
+    }  /* if */
   }  /* if */
 }  /* transfer_arg_operand_for_template_arg */
 
