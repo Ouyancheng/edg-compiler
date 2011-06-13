@@ -32,13 +32,14 @@ source files containing attribute specifiers (e.g., GNU __attribute or
 Microsoft __declspec constructs).  This is now fixed.
 
 
-6/13/11 [EDGcpfe/11633]
+6/13/11 [EDGcpfe/11633,EDGcpfe/11799]
 GNU __extension__ annotation sometimes dropped
 
-In GNU mode, the front end sometimes failed to record the __extension__
-keyword.  For example:
+In GNU mode, the front end often failed to record the __extension__ keyword.
+For example:
 
   __extension__ long long cnt = 0;
+  __extension__ typedef long long int64_type;
       /* Previously the presence of the __extension__ keyword was not recorded
          in the IL and hence the C++-generating back end did not render it. */
 

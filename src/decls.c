@@ -9529,10 +9529,16 @@ symbol entry, and return a pointer to it in state->sym.
           reload_source_sequence_entry(state);
           if (!(ref_kind & SRK_DEFINITION)) {  /*lint !e774*/
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+            an_sssd_flag_set  sssd_flags = SSSD_NO_FLAGS;
+#if GNU_EXTENSIONS_ALLOWED
+            if (state->marked_as_gnu_extension) {
+              sssd_flags |= SSSD_MARKED_AS_GNU_EXTENSION;
+            }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
             (void)update_src_seq_secondary_decl(
                                           (char *)sym->variant.type.ptr,
                                           type_ptr, (a_name_reference_ptr)NULL,
-                                          SSSD_NO_FLAGS, decl_pos_block);
+                                          sssd_flags, decl_pos_block);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           } else {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -9741,6 +9747,11 @@ symbol entry, and return a pointer to it in state->sym.
       tp = alloc_type((a_type_kind)tk_typeref);
       tp->variant.typeref.type = type_ptr;
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+    if (state->marked_as_gnu_extension) {
+      tp->source_corresp.marked_as_gnu_extension = TRUE;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Create a new symbol for this type and bind it to the new type. */
     sym = enter_typedef_symbol(tp, locator, decl_scope_level,
                                suppress_redecl_error);
