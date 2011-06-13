@@ -756,6 +756,7 @@ value.
   return result;
 }  /* fp_is_infinity */
 
+#if GNU_EXTENSIONS_ALLOWED
 
 a_boolean fp_is_normalized(an_internal_float_value  *value,
                            a_float_kind  kind)
@@ -812,6 +813,7 @@ the encoding of an infinity or NaN, and the encoded exponent is not zero).
   return result;
 }  /* fp_is_normalized */
   
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if FIXED_POINT_ALLOWED
 
 a_boolean fp_is_nan_or_infinity(an_internal_float_value	*value,
