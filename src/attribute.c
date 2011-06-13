@@ -1080,6 +1080,7 @@ there is an applicable one; otherwise, return NULL.
       }  /* if */
     }  /* if */
   }  /*  if */
+  if (attr_name_map == NULL) init_attr_name_map();
   p_ep = (an_attr_name_map_entry_ptr*)hash_find(attr_name_map, name,
                                               /*create=*/FALSE);
   if (p_ep != NULL) {
@@ -7041,6 +7042,8 @@ be initialized for each compilation.
 #endif /* DEBUG */
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
   memzero((char*)attr_family_seen, sizeof(attr_family_seen));
+  attr_name_map = NULL;
+  attr_corresp_checking_map = NULL;
 }  /* attribute_init */
 
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
