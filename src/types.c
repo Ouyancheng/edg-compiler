@@ -934,6 +934,7 @@ ordinary pointer, interior_ptr, or pin_ptr).
                                                                            );
 }  /* is_handle_type_or_any_ref_type */
 
+#if !STANDALONE_UTILITY_PROGRAM
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 a_boolean is_cli_generic_param_type(a_type_ptr  tp)
@@ -985,6 +986,7 @@ If type is not a generic parameter type, return the type unchanged.
   return type;
 }  /* constraint_type_for_cli_generic_param_type */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_handle_type(a_type_ptr tp)
 /*
