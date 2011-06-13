@@ -7145,6 +7145,16 @@ Otherwise, return FALSE.
         result = fp_is_infinity(&cp->variant.float_value,
                                 cp->type->variant.float_kind);
         break;
+      case bfk_isfinite:
+        result = !fp_is_infinity(&cp->variant.float_value,
+                                 cp->type->variant.float_kind) &&
+                 !fp_is_nan(&cp->variant.float_value,
+                            cp->type->variant.float_kind);
+        break;
+      case bfk_isnormal:
+        result = fp_is_normalized(&cp->variant.float_value,
+                                  cp->type->variant.float_kind);
+        break;
       default:
         unexpected_condition();
     }  /* switch */

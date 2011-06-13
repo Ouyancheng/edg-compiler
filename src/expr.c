@@ -2936,6 +2936,8 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_infl:
       case bfk_isnan:
       case bfk_isinf:
+      case bfk_isfinite:
+      case bfk_isnormal:
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
       case bfk_fpclassify:
       case bfk_ffs:
@@ -3246,6 +3248,8 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
 #if TARG_HAS_IEEE_FLOATING_POINT
         case bfk_isnan:
         case bfk_isinf:
+        case bfk_isfinite:
+        case bfk_isnormal:
           /* Unlike some other functions handled here, __builtin_isnan and
              __builtin_isinf are ellipsis functions, and hence ordinary call
              processing will not diagnose invalid arguments.  GCC, however,

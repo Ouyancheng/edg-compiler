@@ -84,18 +84,21 @@ extern void conv_mantissa_to_floating_point(
 				a_boolean			*err,
 				a_boolean			*inexact);
 
+
 #if FIXED_POINT_ALLOWED
-
 extern a_boolean mantissa_is_zero(a_mantissa_ptr	mp);
+#endif /* FIXED_POINT_ALLOWED */
 
+#if FIXED_POINT_ALLOWED || \
+    GNU_EXTENSIONS_ALLOWED && TARG_HAS_IEEE_FLOATING_POINT
 extern void load_hex_fp_value(an_internal_float_value	*float_value,
 			      a_float_kind		kind,
 			      a_mantissa_ptr		mp,
 			      long			*exponent,
 			      a_boolean			*is_negative,
 			      a_boolean			restore_implicit_bit);
+#endif /* FIXED_POINT_ALLOWED || (GNU_EXTENSIONS_ALLOWED && ...) */
 
-#endif /* FIXED_POINT_ALLOWED */
 
 extern a_host_fp_value fetch_host_fp_value(
 				a_float_kind            kind,
@@ -113,6 +116,11 @@ extern a_boolean fp_is_nan(an_internal_float_value  *value,
 
 extern a_boolean fp_is_infinity(an_internal_float_value  *value,
                                 a_float_kind  kind);
+
+#if GNU_EXTENSIONS_ALLOWED
+extern a_boolean fp_is_normalized(an_internal_float_value  *value,
+                                  a_float_kind  kind);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if FIXED_POINT_ALLOWED
 extern a_boolean fp_is_nan_or_infinity(an_internal_float_value	*value,

@@ -1929,6 +1929,8 @@ Enter the standard predeclared functions for GCC.
 #if TARG_HAS_IEEE_FLOATING_POINT
   enter_gnu_builtin_vararg_func0(_isnan, int);
   enter_gnu_builtin_vararg_func0(_isinf, int);
+  enter_gnu_builtin_vararg_func0(_isfinite, int);
+  enter_gnu_builtin_vararg_func0(_isnormal, int);
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
   if (gnu_version >= 40400) {
     enter_gnu_builtin_vararg_func5(_fpclassify, int, int, int, int, int, int);

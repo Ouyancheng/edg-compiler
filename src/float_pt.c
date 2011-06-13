@@ -756,6 +756,62 @@ value.
   return result;
 }  /* fp_is_infinity */
 
+
+a_boolean fp_is_normalized(an_internal_float_value  *value,
+                           a_float_kind  kind)
+/*
+Return TRUE if value is a normalized floating point value (i.e., it is not
+the encoding of an infinity or NaN, and the encoded exponent is not zero).
+*/
+{
+  a_boolean  result;
+
+  if (fp_is_infinity(value, kind)) {
+    result = FALSE;
+  } else if (fp_is_nan(value, kind)) {
+    result = FALSE;
+  } else {
+    an_fp_value_part  fp_part;
+    char              *fp_bytes = (char*)value;
+    /* Check if the exponent is encoded as zeros.  The location of the zeros
+       depends on the precision (i.e., the IEEE encoding format). */
+    if (kind == (a_float_kind)fk_float) {
+      /* A single-precision floating-point value. */
+      memcpy((char*)&fp_part, fp_bytes, sizeof(fp_part));
+      result = (long)((fp_part & 0x7f800000) >> 23) != 0;
+    } else if (kind == (a_float_kind)fk_double ||
+               (kind == (a_float_kind)fk_long_double &&
+                targ_ldbl_mant_dig == 53)) {
+      /* A 64-bit floating-point representation (with 53 mantissa bits).
+         On little-endian systems, the most significant part is the second
+         (i.e., last) word. */
+      if (host_little_endian) fp_bytes += sizeof(fp_part);
+      memcpy((char*)&fp_part, fp_bytes, sizeof(fp_part));
+      result = ((long)((fp_part & 0x7fffffff) >> 20)) != 0;
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+    } else if (kind == (a_float_kind)fk_long_double) {
+      if (targ_ldbl_mant_dig == 64) {
+        /* In little-endian 80/96-bit long double representations, the most
+           significant part is the third (i.e., last) word. */
+        if (host_little_endian) fp_bytes += 2*sizeof(fp_part);
+        memcpy((char*)&fp_part, fp_bytes, sizeof(fp_part));
+        result = ((long)(fp_part & 0x7fff)) != 0;
+      } else if (targ_ldbl_mant_dig == 113) {
+        /* In little-endian 128-bit long double representations, the most
+           significant part is the fourth (i.e., last) word. */
+        if (host_little_endian) fp_bytes += 3*sizeof(fp_part);
+        memcpy((char*)&fp_part, fp_bytes, sizeof(fp_part));
+        result = ((long)((fp_part & 0x7fffffff) >> 16)) != 0;
+      }  /* if */
+#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE  */
+    } else {
+      unexpected_condition();
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* fp_is_normalized */
+  
 #if FIXED_POINT_ALLOWED
 
 a_boolean fp_is_nan_or_infinity(an_internal_float_value	*value,

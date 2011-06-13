@@ -1,5 +1,14 @@
 Version 4.4
 
+6/13/11 [EDGcpfe/9919,EDGcpfe/11661]
+GNU compatibility: __builtin_isfinite and __builtin_isnormal
+
+In GNU modes (in configurations that have TARG_HAS_IEEE_FLOATING_POINT set to
+TRUE) the front end now supports the GNU built-in function __builtin_isfinite
+and __builtin_isnormal.  Calls to these functions with constant floating-point
+values are folded in the front end.
+
+
 6/13/11 [EDGcpfe/10387]
 Incorrect folding of array offset with non-compile-time-constant subscript
 
