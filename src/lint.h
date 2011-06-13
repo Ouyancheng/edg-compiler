@@ -796,6 +796,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_modification_of_static_initonly_field)*/
 /*lint -esym(769,ec_member_function_call_on_initonly_field)*/
 /*lint -esym(769,ec_expr_not_pointer_nor_handle)*/
+/*lint -esym(769,ec_generic_selection_with_points_to)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */

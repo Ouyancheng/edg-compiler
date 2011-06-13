@@ -5989,6 +5989,12 @@ case).
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (cppcli_enabled && is_handle_type(operand_1->type)) {
           orig_class_struct_union_type = type_pointed_to(operand_1->type);
+        } else if (cppcli_enabled &&
+                   is_cli_generic_constraint_type(operand_1->type)) {
+          /* Uses of C++/CLI generic parameters have to use the "->" form,
+             but they are handled like ".". */
+          is_arrow_operator = FALSE;
+          orig_class_struct_union_type = operand_1->type;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (check_pointer_operand(operand_1, ec_expr_not_pointer)) {
           orig_class_struct_union_type = type_pointed_to(operand_1->type);
@@ -6023,6 +6029,14 @@ case).
             }  /* if */
           }  /* if */
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cppcli_enabled &&
+            is_cli_generic_constraint_type(orig_class_struct_union_type)) {
+          /* Uses of C++/CLI generic parameters have to use the "->" form. */
+          expr_pos_error(ec_generic_selection_with_points_to,
+                         &operator_position);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (is_an_lvalue(operand_1)) using_lvalue(operand_1);
       }  /* if */
     }  /* if */

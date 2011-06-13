@@ -935,7 +935,6 @@ ordinary pointer, interior_ptr, or pin_ptr).
 }  /* is_handle_type_or_any_ref_type */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean is_cli_generic_param_type(a_type_ptr  tp)
 /*
@@ -956,15 +955,14 @@ version of a C++/CLI generic parameter.
 {
   a_boolean is_constraint = FALSE;
 
-  if (cppcli_enabled) {
-    tp = skip_typerefs(tp);
-    if (is_immediate_class_type(tp) && is_cli_generic_constraint(tp)) {
-      is_constraint = TRUE;
-    }  /* if */
+  tp = skip_typerefs(tp);
+  if (is_immediate_class_type(tp) && is_cli_generic_constraint(tp)) {
+    is_constraint = TRUE;
   }  /* if */
   return is_constraint;
 }  /* is_cli_generic_constraint_type */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_type_ptr constraint_type_for_cli_generic_param_type(a_type_ptr type)
 /*

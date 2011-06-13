@@ -7573,7 +7573,13 @@ the expression reflects an implicit member access ("this->y"), so the
   } else {
     /* Normal "." case. */ 
     gen_expr_with_parens(object_expr);
-    m_write_tok_ch('.');
+    if (is_cli_generic_constraint_type(object_expr->type)) {
+      /* C++/CLI generic member selections must be written as "->" even though
+         the semantics are like ".". */
+      write_tok_str("->");
+    } else {
+      m_write_tok_ch('.');
+    }  /* if */
   }  /* if */
   if (il_header.source_language == sl_Cplusplus) {
     a_class_type_supplement_ptr  ctsp;
@@ -7811,6 +7817,11 @@ indicated by opstr.
        which we removed via strip_lvalue_cast_sequence; make sure we don't
        use "->" with a non-pointer value. */
     opstr = ".";
+  }  /* if */
+  if (is_cli_generic_constraint_type(operand_1->type)) {
+    /* C++/CLI generic member selections must be written as "->" even though
+       the semantics are like ".". */
+    opstr = "->";
   }  /* if */
   gen_expr_with_parens(operand_1);
   if (operand_1->is_lvalue &&
@@ -8640,6 +8651,11 @@ function reference.
          expression from an lvalue to a pointer; change the operator
          accordingly. */
       use_arrow = FALSE;
+    }  /* if */
+    if (is_cli_generic_constraint_type(object_expr->type)) {
+      /* C++/CLI generic member selections must be written as "->" even though
+         the semantics are like ".". */
+      use_arrow = TRUE;
     }  /* if */
     if (use_arrow) {
       /* Use a pointer and "->". */
