@@ -48,6 +48,11 @@ extern void scan_cli_delegate_definition(a_decl_parse_state  *dps);
 
 extern void scan_cli_delegate_definition_from_assembly_import(void);
 
+extern void complete_generic_constraint_type(a_type_ptr  proxy_class);
+
+extern void create_generic_constraint_types(
+                                    a_template_param_ptr  generic_param_list);
+
 extern a_boolean in_cli_property_or_event_definition(void);
 
 extern a_boolean in_static_cli_property_or_event_definition(void);

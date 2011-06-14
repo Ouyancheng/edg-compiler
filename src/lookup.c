@@ -534,10 +534,6 @@ parameters to represent the type specified by the constraints.
     type->source_corresp.member_of_unknown_super =
                       orig_type->source_corresp.member_of_unknown_super;
     type->variant.class_struct_union.is_generic_constraint = is_generic;
-    if (is_generic) {
-      /* Create a scope so that the class is considered complete. */
-      add_scope_to_class_type(type);
-    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     sym->variant.class_struct_union.type = type;
     if (orig_type->source_corresp.is_class_member) {

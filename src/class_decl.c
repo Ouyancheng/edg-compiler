@@ -3474,6 +3474,13 @@ implement an interface member.
        compliance cannot be checked reliably. */
     check_abstract = FALSE;
     check_interfaces = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (class_type->variant.class_struct_union.is_generic_constraint) {
+    /* Generic constraint classes are somewhat like nonreal classes in this
+       context. */
+    check_abstract = FALSE;
+    check_interfaces = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* If we already know that the given class type is abstract (e.g.,
        because it contains a pure virtual member declaration), we need not
@@ -7522,6 +7529,31 @@ skip_base_class:
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+static void add_direct_base_of_type(
+                a_type_ptr             tp,
+                a_class_def_state_ptr  cdsp,
+                a_base_class_sequence_number
+                                       direct_base_number,
+                a_base_class_ptr       *p_last_base,
+                a_boolean              *p_may_be_first_direct_nonvirtual_base)
+/*
+Add a public direct base of the given type to the class described by cdsp.
+*/
+{
+  a_base_class_ptr  new_direct_bcp = alloc_base_class();
+
+  new_direct_bcp->orig_type = tp;
+  new_direct_bcp->type = skip_typerefs(tp);
+  complete_type_is_needed(new_direct_bcp->type);
+  new_direct_bcp->derived_class = cdsp->class_type;
+  new_direct_bcp->direct = TRUE;
+  new_direct_bcp->is_implicit_direct_base = TRUE;
+  new_direct_bcp->direct_base_number = direct_base_number;
+  add_new_direct_base(new_direct_bcp, cdsp, (an_access_specifier)as_public,
+                      p_last_base, p_may_be_first_direct_nonvirtual_base);
+}  /* add_direct_base_of_type */
+
+
 static void add_implicit_cli_bases(a_class_def_state_ptr  class_state)
 /*
 The given class is being defined in C++/CLI mode and its explicit base classes
@@ -7546,7 +7578,7 @@ type, add an implicit derivation from System::ObjectType or System::ValueType
       }  /* if */
     }  /* for */
     if (add_implicit_base && !is_cli_system_object_type(class_type)) {
-      a_base_class_ptr              new_direct_bcp, last_bcp = NULL;
+      a_base_class_ptr              last_bcp = NULL;
       a_boolean                     may_be_first_direct_nonvirtual_base = TRUE;
       a_base_class_sequence_number  direct_base_number = 0;
       /* Determine the last base class entry and the last direct base
@@ -7564,19 +7596,11 @@ type, add an implicit derivation from System::ObjectType or System::ValueType
            base class. */
         may_be_first_direct_nonvirtual_base = FALSE;
       }  /* if */
-      new_direct_bcp = alloc_base_class();
-      new_direct_bcp->type =
-        cli_class_type_kind_is(class_type, cctk_ref) ? cli_system_object_type()
-                                                     : cli_system_value_type();
-      complete_type_is_needed(new_direct_bcp->type);
-      new_direct_bcp->orig_type = new_direct_bcp->type;
-      new_direct_bcp->derived_class = class_type;
-      new_direct_bcp->direct = TRUE;
-      new_direct_bcp->is_implicit_direct_base = TRUE;
-      new_direct_bcp->direct_base_number = direct_base_number+1;
-      add_new_direct_base(new_direct_bcp, class_state,
-                          (an_access_specifier)as_public, &last_bcp,
-                          &may_be_first_direct_nonvirtual_base);
+      add_direct_base_of_type(
+                   cli_class_type_kind_is(class_type, cctk_ref) ?
+                           cli_system_object_type() : cli_system_value_type(),
+                   class_state, direct_base_number+1, &last_bcp,
+                   &may_be_first_direct_nonvirtual_base);
     }  /* if */
   }  /* if */
 }  /* add_implicit_cli_bases */
@@ -15686,7 +15710,7 @@ implementation of IDisposable::Dispose().)
 {
   a_type_ptr                     class_type = class_state->class_type;
   a_class_symbol_supplement_ptr  cssp;
-  a_base_class_ptr               bcp, new_direct_bcp, last_bcp = NULL;
+  a_base_class_ptr               bcp, last_bcp = NULL;
   a_boolean                      may_be_first_direct_nonvirtual_base = TRUE;
   a_base_class_sequence_number   direct_base_number = 0;
 
@@ -15706,17 +15730,9 @@ implementation of IDisposable::Dispose().)
         base class. */
     may_be_first_direct_nonvirtual_base = FALSE;
   }  /* if */
-  new_direct_bcp = alloc_base_class();
-  new_direct_bcp->type = cli_class_type_for(csk_system_idisposable);
-  complete_type_is_needed(new_direct_bcp->type);
-  new_direct_bcp->orig_type = new_direct_bcp->type;
-  new_direct_bcp->derived_class = class_type;
-  new_direct_bcp->direct = TRUE;
-  new_direct_bcp->is_implicit_direct_base = TRUE;
-  new_direct_bcp->direct_base_number = direct_base_number+1;
-  add_new_direct_base(new_direct_bcp, class_state,
-                      (an_access_specifier)as_public, &last_bcp,
-                      &may_be_first_direct_nonvirtual_base);
+  add_direct_base_of_type(cli_class_type_for(csk_system_idisposable),
+                          class_state, direct_base_number+1,
+                          &last_bcp, &may_be_first_direct_nonvirtual_base);
   cssp->is_disposable = TRUE;
   /* Unlike other base classes, this one is added after the body of the class
      is completely parsed: Call wrapup_base_classes again to ensure the base
@@ -18306,21 +18322,17 @@ base_type_symbol (which is a System::... type).  The given class should have
 no other base classes.
 */
 {
-  a_type_ptr        class_type = class_state->class_type;
-  a_base_class_ptr  bcp = alloc_base_class(), last_base = NULL;
+  a_type_ptr        type;
+  a_base_class_ptr  last_base = NULL;
   a_boolean         may_be_first_direct_nonvirtual_base = TRUE;
 
-  check_assertion(base_classes_of(class_type) == NULL);
+  check_assertion(base_classes_of(class_state->class_type) == NULL);
   check_assertion(base_type_symbol != NULL);
-  bcp->type = type_symbol_type(base_type_symbol);
-  complete_type_is_needed(bcp->type);
-  check_assertion(bcp->type != NULL && is_class_struct_union_type(bcp->type));
-  bcp->orig_type = bcp->type;
-  bcp->derived_class = class_type;
-  bcp->direct = TRUE;
-  bcp->direct_base_number = 1;
-  add_new_direct_base(bcp, class_state, (an_access_specifier)as_public,
-                      &last_base, &may_be_first_direct_nonvirtual_base);
+  type = type_symbol_type(base_type_symbol);
+  complete_type_is_needed(type);
+  check_assertion(type != NULL && is_class_struct_union_type(type));
+  add_direct_base_of_type(type, class_state, /*direct_base_number=*/1,
+                          &last_base, &may_be_first_direct_nonvirtual_base);
 }  /* add_cli_system_base_class */
 
 
@@ -19168,6 +19180,116 @@ and record the overridden base class members in decl_info->named_overrides.
 done:;
   }  /* if */
 }  /* scan_named_overrides_if_any */
+
+
+void complete_generic_constraint_type(a_type_ptr  proxy_class)
+/*
+The given type is a generic constraint type (i.e., the proxy class type
+associated with a generic parameter).  Complete the class by 
+*/
+{
+  a_type_ptr                    templ_param_type;
+  a_generic_constraint_ptr      gcp, gc_list;
+  a_class_type_supplement       *ctsp;
+  a_class_def_state             class_state;
+  a_base_class_ptr              last_bcp = NULL;
+  a_base_class_sequence_number  direct_base_number = 1;
+  a_boolean                     may_be_first_direct_nonvirtual_base = TRUE;
+
+  templ_param_type = symbol_supplement_for_class(proxy_class)
+                                            ->template_param_for_proxy_class;
+  gc_list = templ_param_type->variant.template_param.extra_info
+                            ->generic_constraints;
+  initialize_class_def_state(proxy_class, &class_state);
+  ctsp = class_type_supp(proxy_class);
+  if (gc_list == NULL) {
+    /* No constraints: The constraint type derives from System::Object. */
+    add_direct_base_of_type(cli_system_object_type(), &class_state,
+                            direct_base_number, &last_bcp,
+                            &may_be_first_direct_nonvirtual_base);
+  } else {
+    /* Add bases corresponding to the various constraints. */
+    for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
+      if (gcp->kind == (a_generic_constraint_kind)gck_type) {
+        add_direct_base_of_type(gcp->type, &class_state, direct_base_number++,
+                                &last_bcp,
+                                &may_be_first_direct_nonvirtual_base);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  add_implicit_cli_bases(&class_state);
+  /* Complete the proxy class. */
+  class_state.access = (an_access_specifier)as_public;
+  ctsp->assoc_scope =
+           push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
+                      proxy_class, (a_routine_ptr)NULL);
+  scope_stack_top().class_def_state = &class_state;
+  complete_class_definition(proxy_class, depth_scope_stack-1, &class_state);
+  /* Pop the class scope and the file scope reactivation. */
+  pop_scope();
+}  /* complete_generic_constraint_type */
+
+
+void create_generic_constraint_types(a_template_param_ptr  generic_param_list)
+/*
+Loop through the C++/CLI generic parameters (generic_param_list) and create a
+type for each based on the constraints for the generic parameter.
+*/
+{
+  a_template_param_ptr        tpp;
+ 
+  for (tpp = generic_param_list; tpp != NULL; tpp = tpp->next) {
+    a_symbol_ptr              param_sym = tpp->param_symbol;
+    a_type_ptr                templ_param_type = param_sym->variant.type.ptr;
+    a_type_ptr                proxy_class;
+    a_generic_constraint_ptr  gcp, gc_list;
+    a_class_type_supplement_ptr
+                              ctsp;
+    /* Create a proxy class that will be used as the class type representing
+       the constraints. */
+    proxy_class = proxy_class_for_template_param(templ_param_type);
+    ctsp = class_type_supp(proxy_class);
+    ctsp->is_hide_by_sig = TRUE;
+    /* Determine the CLI class type kind of the constraint type. */
+    gc_list = templ_param_type->variant.template_param.extra_info
+                              ->generic_constraints;
+    if (gc_list == NULL) {
+      /* No constraints: The constraint type is a ref class deriving from
+         System::Object. */
+      ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
+    } else {
+      /* Depending on the constraints, this constraint type could be a value
+         class, a ref class, or some hybrid. */
+      ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_interface;
+      for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
+        if (gcp->kind == (a_generic_constraint_kind)gck_value_class) {
+          ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_value;
+        } else if (gcp->kind == (a_generic_constraint_kind)gck_ref_class) {
+          ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
+        } else if (gcp->kind == (a_generic_constraint_kind)gck_type) {
+          a_type_ptr  ctp = skip_typerefs(gcp->type);
+          if (is_immediate_class_type(ctp)) {
+            ctsp->cli_class_type_kind =
+                                    class_type_supp(ctp)->cli_class_type_kind;
+          }  /* if */
+        }  /* if */
+        if (!cli_class_type_kind_is(proxy_class, cctk_interface)) break;
+      }  /* for */
+      if (cli_class_type_kind_is(proxy_class, cctk_interface)) {
+        /* The class is a sort of hybrid value/ref class. */
+        ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
+        proxy_class->variant.class_struct_union.is_hybrid_constraint = TRUE;
+      }  /* if */
+    }  /* if */
+    /* Update the template parameter entry to use the proxy class as the
+       template parameter value. */
+    tpp->param_symbol->variant.type.ptr = proxy_class;
+    tpp->variant.type = proxy_class;
+    if (!scanning_generated_code_from_metadata) {
+      complete_generic_constraint_type(proxy_class);
+    }  /* if */
+  }  /* for */
+}  /* create_generic_constraint_types */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

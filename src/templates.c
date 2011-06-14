@@ -2940,7 +2940,8 @@ Note that this routine is called for all kinds of incomplete classes, not
 just those that are template-based.  Normally, a call for a non-template
 class has no effect.  When GET_DEFINITION_OF_CLASS_NEEDED is TRUE, this
 routine calls get_definition_of_class.  This is a hook to allow the lazy
-loading of classes.
+loading of classes.  Similarly, constraint types for C++/CLI generics may
+be completed here.
 */
 {
   a_symbol_ptr                      instance_sym;
@@ -2970,12 +2971,16 @@ loading of classes.
       is_cli_generic_class_definition_symbol(instance_sym)) {
     /* Not a class based on a class template or the class that is generated
        to represent the definition of a C++/CLI generic class. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (class_type->variant.class_struct_union.is_generic_constraint) {
+      complete_generic_constraint_type(class_type);
 #if GET_DEFINITION_OF_CLASS_NEEDED
-    /* Call a routine to potentially find a definition of this class. */
-    if (class_type_supp(class_type)->assoc_scope == NULL) {
+    } else if (class_type_supp(class_type)->assoc_scope == NULL) {
+      /* Call a routine to potentially find a definition of this class. */
       get_definition_of_class(class_type);
-    }  /* if */
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (class_type->variant.class_struct_union.is_nonreal_class &&
              !is_cli_generic_instance_type(class_type)) {
     /* Don't try to instantiate a template class without real template
@@ -13468,70 +13473,6 @@ to the newly created list.
   return list_head;
 } /* create_prototype_arg_list */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static void add_base_class_to_proxy_class(a_type_ptr	proxy_class,
-					  a_type_ptr	base_class)
-/*
-Add base_class as a direct base class of proxy_class.
-*/
-{
-  a_base_class_ptr	bcp;
-
-  bcp = alloc_base_class();
-  bcp->type = base_class;
-  bcp->orig_type = bcp->type;
-  bcp->derived_class = proxy_class;
-  bcp->direct = TRUE;
-  bcp->direct_base_number = 1;
-  check_assertion(base_classes_of(proxy_class) == NULL);
-  base_classes_of(proxy_class) = bcp;
-  (void)update_base_class_derivation(bcp, (a_derivation_step_ptr)NULL,
-                                     (an_access_specifier)as_public);
-}  /* add_base_class_to_proxy_class */
-
-
-static void create_generic_constraint_types(
-			a_template_param_ptr	generic_param_list)
-/*
-Loop through the C++/CLI generic parameters (generic_param_list) and create a
-type for each based on the constraints for the generic parameter.
-*/
-{
-  a_template_param_ptr	tpp;
- 
-  for (tpp = generic_param_list; tpp != NULL; tpp = tpp->next) {
-    a_symbol_ptr		param_sym = tpp->param_symbol;
-    a_type_ptr			templ_param_type = param_sym->variant.type.ptr;
-    a_generic_constraint_ptr	gcp;
-    a_type_ptr			arg_type = NULL;
-    a_type_ptr			proxy_class;
-    /* Create a proxy class that will be used as the class type representing
-       the constraints. */
-    proxy_class = proxy_class_for_template_param(templ_param_type);
-    gcp = templ_param_type->
-                        variant.template_param.extra_info->generic_constraints;
-    if (gcp == NULL) {
-      /* This parameter has no constraints.  The type Object is to be used
-         as the type of the parameter. */
-     arg_type = cli_system_object_type();
-    }  /* if */
-    if (arg_type == NULL) {
-     /* FIXME: Temporary code until constraints are implemented. */
-     arg_type = cli_system_object_type();
-    }  /* if */
-    /* Add the type specified by arg_type as a base class of the proxy
-       class. */
-    add_base_class_to_proxy_class(proxy_class, arg_type);
-    add_to_types_list(proxy_class, NO_SCOPE_DEPTH);
-    /* Update the template parameter entry to use the proxy class as the
-       template parameter value. */
-    tpp->param_symbol->variant.type.ptr = proxy_class;
-    tpp->variant.type = proxy_class;
-  }  /* for */
-}  /* create_generic_constraint_types */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void rename_prototype_arg_list(
 		a_template_symbol_supplement_ptr	tssp,

@@ -7551,6 +7551,12 @@ typedef struct a_type {
 			/* TRUE if this is the type created to represent the
 			   type specified by the constraints of a C++/CLI
 			   generic type parameter. */
+     a_bit_field
+		is_hybrid_constraint:1;
+			/* TRUE if is_generic_constraint is TRUE and the
+			   associated constraints permit both a ref class and
+			   a value class (i.e., the constraint type is treated
+			   as a kind of hybrid value/ref class). */
 #if BACK_END_IS_CP_GEN_BE
       a_bit_field
 		defined_with_abstract_class_modifier:1;
