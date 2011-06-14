@@ -83,11 +83,6 @@ extern a_type_ptr rescan_member_template_declaration(
 extern void check_for_file_with_unterminated_type_definition(
                                                   a_source_position  *end_pos);
 
-extern a_derivation_step_ptr update_base_class_derivation(
-                                         a_base_class_ptr       base_class,
-                                         a_derivation_step_ptr  path,
-                                         an_access_specifier    access);
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void set_target_of_conversion_function_flag_if_needed(
                                                       a_type_ptr  class_type);

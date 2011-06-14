@@ -6018,7 +6018,7 @@ subobject (e.g., C).
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
 
-a_derivation_step_ptr update_base_class_derivation(
+static a_derivation_step_ptr update_base_class_derivation(
                                          a_base_class_ptr       base_class,
                                          a_derivation_step_ptr  path,
                                          an_access_specifier    access)
