@@ -82,7 +82,7 @@ The folding code for the following example (characterized by a pointer
 addition or subscript operation with a second operand that is an address
 constant cast to an integral type) performed a reference to the wrong
 variant of a front end internal structure, which might, depending on the
-host architecture, cause an abort.  Now fixed.
+host architecture, cause an incorrect result or an abort.  Now fixed.
 
   void f();
   void g();
