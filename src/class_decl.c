@@ -7025,6 +7025,8 @@ to FALSE before returning).
   }
   if (bcp_cssp->any_nonreal_base_classes ||
       (bcp_type->variant.class_struct_union.is_nonreal_class &&
+       /* FIXME: The following is not needed if generic instances are real. */
+       !is_cli_generic_instance_type(bcp_type) &&
        !(bcp_type->variant.class_struct_union.is_prototype_instantiation ||
          !bcp_type->variant.class_struct_union.is_template_class))) {
     /* Do not set the any_nonreal_base_classes field for a base that is a
@@ -11383,7 +11385,7 @@ implicitly declared member functions.
       tssp->is_variadic = scope_stack_top().in_variadic_template;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       tssp->is_generic =
-                  class_type->variant.class_struct_union.is_generic_definition;
+                  class_type->variant.class_struct_union.is_generic_instance;
       rtn->is_generic_definition = tssp->is_generic;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       rtn->is_prototype_instantiation = !tssp->is_generic;
@@ -21478,6 +21480,9 @@ classes.
       if (allow_in_class_specializations &&
           class_type->variant.class_struct_union.is_specialized) {
         class_state.is_nonreal_instantiation = TRUE;
+      } else if (is_cli_generic_instance_type(class_type)) {
+        /* An open constructed (i.e., nonreal) instantiation of a C++/CLI
+           generic. */
       } else {
         /* This can only occur in strange error situations, such as:
              template<template <class X> class T> struct S struct T<int> {};

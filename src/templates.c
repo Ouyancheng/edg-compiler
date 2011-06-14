@@ -2976,7 +2976,8 @@ loading of classes.
       get_definition_of_class(class_type);
     }  /* if */
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
-  } else if (class_type->variant.class_struct_union.is_nonreal_class) {
+  } else if (class_type->variant.class_struct_union.is_nonreal_class &&
+             !is_cli_generic_instance_type(class_type)) {
     /* Don't try to instantiate a template class without real template
        arguments. */
   } else if (class_type->variant.class_struct_union.is_specialized) {
@@ -5969,14 +5970,15 @@ is returned.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
-  class_type->incomplete =
-                   !class_type->variant.class_struct_union.is_nonreal_class;
+  class_type->incomplete = tssp->is_generic ||
+                     !class_type->variant.class_struct_union.is_nonreal_class;
   if (!class_type->variant.class_struct_union.is_nonreal_class) {
     record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION,
                               sym, &sym->decl_position,
                               (a_source_sequence_entry_ptr)NULL);
   }  /* if */
-  if (class_type->variant.class_struct_union.is_nonreal_class) {
+  if (!tssp->is_generic &&
+      class_type->variant.class_struct_union.is_nonreal_class) {
     a_class_symbol_supplement_ptr	cssp;
     cssp = sym->variant.class_struct_union.extra_info;
     cssp->member_decl_scope = take_next_scope_number();
@@ -13718,6 +13720,8 @@ initially used when processing the declaration of a partial specialization.
         class_type_supp(class_type)->cli_class_type_kind =
                                                decl_state->cli_class_type_kind;
         class_type->variant.class_struct_union.is_generic_definition =
+                                                                    is_generic;
+        class_type->variant.class_struct_union.is_generic_instance =
                                                                     is_generic;
         if (decl_state->cli_class_type_kind !=
                                         (a_cli_class_type_kind)cctk_standard) {

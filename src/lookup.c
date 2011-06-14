@@ -4040,8 +4040,9 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
         is_proxy_or_nonreal_class_lookup = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (class_type->
-                            variant.class_struct_union.is_generic_definition) {
-        /* A lookup in a C++/CLI generic definition. */
+                            variant.class_struct_union.is_generic_instance) {
+        /* A lookup in a C++/CLI generic definition or open constructed
+           (i.e., nonreal) generic instance. */
         /* FIXME: This should be eliminated if they are made real classes. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (class_type
