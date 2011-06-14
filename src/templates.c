@@ -16603,8 +16603,6 @@ to represent the template parameters.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (decl_state->is_generic) {
     decl_state->num_parameters = template_param_list_pos;
-    /* Create the constraint types based on the C++/CLI constraints. */
-    create_generic_constraint_types(template_param_list);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
@@ -20893,9 +20891,6 @@ Scan an optional set of C++/CLI generic constraints.  The form is:
         /* A valid generic parameter name. */
         check_assertion(sym->kind == (a_symbol_kind)sk_type);
         param_type = sym->variant.type.ptr;
-        /* The lookup returns the constraint type.  Get the associated
-            template parameter type. */
-        param_type = template_param_if_proxy_class(param_type);
         check_assertion(param_type->kind == (a_type_kind)tk_template_param);
         if (param_type->variant.template_param.extra_info->
                                                  generic_constraints != NULL) {
@@ -21130,6 +21125,8 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
   if (decl_state.is_generic) {
     /* For C++/CLI generics, scan any constraints that may be present. */
     scan_generic_constraint_clauses(&decl_state);
+    /* Create the constraint types based on the C++/CLI constraints. */
+    create_generic_constraint_types(decl_state.decl_info->parameters);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (decl_state.is_specialization) {
