@@ -22457,6 +22457,10 @@ process_referenced_type_for_ordering for the description of must_be_complete.
   switch (type->kind) {
     case tk_typeref:
       /* A typedef or cv-qualifier.  Process the underlying type. */
+      if (!must_be_complete && type_is_typedef(type) && is_array_type(type)) {
+        /* Array typedefs must be complete in C. */
+        must_be_complete = TRUE;
+      }  /* if */
       process_referenced_type_for_ordering(type->variant.typeref.type,
                                            must_be_complete);
       break;
@@ -22516,14 +22520,37 @@ complete.  The type passed in must be one that appears on the file-scope types
 list (i.e., struct, union, enum, or typedef).
 */
 {
+  a_boolean  append_type_early = FALSE;
+
   /* Set the flags indicating that this type has been processed before actually
      traversing the subtree to avoid unnecessary recursion. */
   type->type_processed_for_ordering = TRUE;
-  if (must_be_complete) type->type_processed_as_complete_for_ordering = TRUE;
-  /* Process any types referenced from this type. */
-  process_referenced_types_for_ordering(type, must_be_complete);
-  /* Add the type to the list of processed types. */
-  append_type_to_reordering(type);
+  if (must_be_complete) {
+    type->type_processed_as_complete_for_ordering = TRUE;
+    if (type_is_typedef(type)) {
+      a_type_ptr  utype =
+                       skip_typerefs_not_typedefs(type->variant.typeref.type);
+      if (is_immediate_class_type(utype)) {
+        /* A typedef for a class type and we are traversing it completely.
+           Emit the typedef before emitting any required types for the
+           class and its members, because otherwise we may end up needing the
+           typedef for one of its members and we will already have committed
+           to emitting it later */
+        append_type_early = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (append_type_early) {
+    /* Add the type to the list of processed types before adding the class
+       type that it depends on. */
+    append_type_to_reordering(type);
+    process_referenced_types_for_ordering(type, must_be_complete);
+  } else {
+    /* Process any types referenced from this type before adding the type
+       itself. */
+    process_referenced_types_for_ordering(type, must_be_complete);
+    append_type_to_reordering(type);
+  }  /* if */
 }  /* process_type_for_ordering */
 
 
