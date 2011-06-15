@@ -15999,15 +15999,18 @@ The routine body is not generated until it is known to be needed.
                       (ctsp->is_lambda_closure_class ||
                        cssp->constructor != NULL ||
                        !cssp->construction_by_bitwise_copy_allowed);
-  declare_dtor = (class_state->member_destruction_required ||
-                  class_state->base_destruction_required) &&
-                 cssp->destructor == NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  declare_copy_ctor = declare_copy_ctor &&
+                      !(cli_class_type_kind_is(class_type, cctk_ref) ||
+                        cli_class_type_kind_is(class_type, cctk_interface));
   declare_static_ctor = cppcli_enabled &&
                         !cli_class_type_kind_is(class_type, cctk_standard) &&
                         !cli_class_type_kind_is(class_type, cctk_interface) &&
                         cssp->static_constructor == NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  declare_dtor = (class_state->member_destruction_required ||
+                  class_state->base_destruction_required) &&
+                 cssp->destructor == NULL;
   if (microsoft_mode && !is_prototype_instantiation_context() &&
       (declare_copy_asgn_op || declare_copy_ctor || declare_dtor)) {
     /* The Microsoft compiler does not implicitly declare some special
