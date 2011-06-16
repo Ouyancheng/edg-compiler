@@ -13326,7 +13326,7 @@ Return TRUE if the operand is a C++/CLI initonly field reference.
 }  /* is_any_initonly_field_operand */
 
 
-a_boolean is_unmodifiable_initonly_field_operand(
+static a_boolean is_unmodifiable_initonly_field_operand(
                                        an_operand *operand,
                                        a_boolean  *p_is_static_initonly_field)
 /*
