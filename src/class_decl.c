@@ -15322,6 +15322,13 @@ definition described by class_state.
     } else if (class_type_supp(class_type)->is_lambda_closure_class) {
       /* A deleted constructor was already declared (but not recorded in
          cssp->constructor if it was trivial). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (class_type->variant.class_struct_union.is_generic_constraint &&
+               !cli_class_type_kind_is(class_type, cctk_value)) {
+      /* Constraint types aren't default-constructable unless they are
+         value-type-constrained or the gcnew() constraint was specified (in
+         the latter case, the default constructor was already generated). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* A default constructor needs to be generated. */
       generate_default_constructor(class_state, /*is_deleted=*/FALSE);
@@ -19221,6 +19228,10 @@ associated with a generic parameter).  Complete the class by
         add_direct_base_of_type(gcp->type, &class_state, direct_base_number++,
                                 &last_bcp,
                                 &may_be_first_direct_nonvirtual_base);
+      } else if (gcp->kind == (a_generic_constraint_kind)gck_gcnew) {
+        /* The "gcnew()" constraint indicates that the constraint type has
+           a default constructor. */
+        generate_default_constructor(&class_state, /*is_deleted=*/FALSE);
       }  /* if */
     }  /* for */
   }  /* if */
