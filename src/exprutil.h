@@ -1254,10 +1254,6 @@ extern a_boolean is_bit_field_whose_address_can_be_taken(a_field_ptr field);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean is_any_initonly_field_operand(an_operand *operand);
-
-extern a_boolean is_unmodifiable_initonly_field_operand(
-                                       an_operand *operand,
-                                       a_boolean  *p_is_static_initonly_field);
 #endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean microsoft_template_arg_constant_lvalue_address(

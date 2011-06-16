@@ -50,6 +50,9 @@ static a_boolean check_for_address_of_or_reference_to_initonly_field(
                                            an_operand        *operand,
                                            a_source_position *err_pos,
                                            a_boolean         reference_case);
+static a_boolean is_unmodifiable_initonly_field_operand(
+                                       an_operand *operand,
+                                       a_boolean  *p_is_static_initonly_field);
 #endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -12654,6 +12657,28 @@ error cases.
   }  /* if */
 }  /* make_function_call */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean is_unboxed_unmodifiable_initonly_field(an_operand *operand)
+/*
+Return TRUE if operand directly references an initonly field as an lvalue
+outside of a constructor context in which it is modifiable.
+*/
+{
+  a_boolean result = FALSE;
+  if (is_expression_operand(operand)) {
+    an_expr_node_ptr expr = operand->variant.expression;
+    if (expr->is_lvalue && is_operation_node(expr) &&
+        (node_operator_is(expr, eok_dot_field) ||
+         node_operator_is(expr, eok_points_to_field)) &&
+        is_unmodifiable_initonly_field_operand(operand, (a_boolean *)NULL)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_unboxed_unmodifiable_initonly_field */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void assemble_function_call(an_operand        *function_operand,
                             an_operand        *bound_function_selector,
@@ -12747,6 +12772,30 @@ some error cases.
                        /*is_implicit_cast=*/TRUE);
         } else {
           /* The selector is a class lvalue or rvalue. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (cppcli_enabled && is_routine_node(function_node)) {
+            a_routine_ptr rout = function_node->variant.routine.ptr;
+            if (rout->source_corresp.is_class_member &&
+                is_value_class_type(parent_class_of(rout)) &&
+                is_unboxed_unmodifiable_initonly_field(
+                                                    bound_function_selector)) {
+              /* A member function is being called on an initonly field
+                 outside of a constructor context in which it is allowed to
+                 be modified.  Because the function call may modify the
+                 object, we must make a copy of the object to ensure that
+                 the initonly field is not modified.  (Note that we do not
+                 need to consider the case when rout is a member of a base
+                 class of the value class type; such a call involves
+                 casting the bound function selector to the base class,
+                 which implies a boxing operation and thus does not require
+                 an additional copy here.) */
+              expr_pos_warning(ec_member_function_call_on_initonly_field,
+                               &bound_function_selector->position);
+              temp_init_from_operand(bound_function_selector,
+                                     /*result_is_lvalue=*/FALSE);
+            }  /* if */
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           adjust_class_object_type(bound_function_selector,
                                    type_pointed_to(this_type),
                                    (a_base_class_ptr)NULL);
