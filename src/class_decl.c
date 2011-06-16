@@ -21328,10 +21328,19 @@ bits of information that were acquired while parsing.
     /* Reset the access to "public" for compiler-generated functions, if
        any. */
     class_state->access = (an_access_specifier)as_public;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cli_class_type_kind_is(class_type, cctk_value)) {
+      /* C++/CLI value classes a bitwise copyable aggregate types "by fiat". */
+      cssp->is_class_aggregate = TRUE;
+      cssp->construction_by_bitwise_copy_allowed = TRUE;
+      cssp->assignment_by_bitwise_copy_allowed = TRUE;
+    } else 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
     if (!class_state->class_aggregate_ruled_out) {
       /* Classes with no constructors, no private or protected nonstatic
          data members, no base classes, and no virtual functions are used to
-         declare "aggregate" objects (WP 8.5.1). */
+         declare "aggregate" objects. */
       cssp->is_class_aggregate = TRUE;
     }  /* if */
     /* Issue a diagnostic on a class with no user-defined constructor and
