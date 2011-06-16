@@ -5076,6 +5076,7 @@ If handle_to_form is TRUE, the source form uses the unary "%" operator.
   a_type_ptr boxed_type = make_unqualified_type(expr->type);
 
   check_assertion(!expr->is_lvalue);
+  check_assertion(!(is_implicit && handle_to_form));
   expr = make_operator_node((handle_to_form ?
                                (an_expr_operator_kind)eok_handle_to_box :
                                (an_expr_operator_kind)eok_box),
@@ -6027,7 +6028,7 @@ used only in C++ mode.
         expr = rvalue_expr_for_lvalue(expr);
       }  /* if */
       expr = add_box_to_expression(expr, /*is_implicit=*/TRUE,
-                                   /*handle_to_form=*/TRUE);
+                                   /*handle_to_form=*/FALSE);
       if (class_object_case) {
         expr = add_indirection_to_node(expr);
       }  /* if */
