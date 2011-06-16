@@ -22457,12 +22457,14 @@ process_referenced_type_for_ordering for the description of must_be_complete.
   switch (type->kind) {
     case tk_typeref:
       /* A typedef or cv-qualifier.  Process the underlying type. */
-      if (!must_be_complete && type_is_typedef(type) && is_array_type(type)) {
+      if (!must_be_complete && type_is_typedef(type) && is_array_type(type) &&
+          !type->type_processed_for_ordering) {
         /* Array typedefs must be complete in C. */
-        must_be_complete = TRUE;
+        process_type_for_ordering(type, /*must_be_complete=*/TRUE);
+      } else {
+        process_referenced_type_for_ordering(type->variant.typeref.type,
+                                             must_be_complete);
       }  /* if */
-      process_referenced_type_for_ordering(type->variant.typeref.type,
-                                           must_be_complete);
       break;
     case tk_pointer:
       /* A pointer type.  Process the underlying type, which does
@@ -22524,6 +22526,7 @@ list (i.e., struct, union, enum, or typedef).
 
   /* Set the flags indicating that this type has been processed before actually
      traversing the subtree to avoid unnecessary recursion. */
+  check_assertion(!type->type_processed_for_ordering);
   type->type_processed_for_ordering = TRUE;
   if (must_be_complete) {
     type->type_processed_as_complete_for_ordering = TRUE;
