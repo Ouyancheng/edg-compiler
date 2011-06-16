@@ -1,5 +1,24 @@
 Version 4.4
 
+6/16/11 [EDGcpfe/11805]
+Diagnostic position for certain catch clauses without a declarator
+
+Certain diagnostics on catch clauses with no declarator were previously
+issued at the position of the right parenthesis of the catch clause.  For
+example:
+
+  struct A { A(A const&) = delete; };
+  void f() {
+    try {
+      f();
+    } catch (A) {
+          //  ^-- Error position was previously here; now on "A".
+    }
+  }
+
+Now, the error position in such cases is that of the type specifier.
+
+
 6/15/11 [EDGcpfe/11776]
 Bad C generated due to incorrect type list ordering
 

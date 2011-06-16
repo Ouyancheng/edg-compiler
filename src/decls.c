@@ -11446,7 +11446,7 @@ a normal try.
           if (state.sym != NULL) {
             pos = state.sym->decl_position;
           } else {
-            pos = pos_curr_token;
+            pos = state.specifiers_pos;
           }  /* if */
           /* Both the copy constructor and destructor must be accessible in
              the context of the handler.  (However, the Microsoft compiler
