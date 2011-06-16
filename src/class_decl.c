@@ -3981,6 +3981,10 @@ the overridden symbol.
   } else if (is_error_type(tp1) || is_error_type(tp2)) {
     /* Assume compatibility. */
     compatible = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cli_class_type_kind_is(class_state->class_type, cctk_interface)) {
+    /* Don't consider covariant overrides for C++/CLI interface members. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* They're not "simply" compatible.  Do the other checking. */
     if ((types_are_references_of_the_same_kind(tp1, tp2) &&
