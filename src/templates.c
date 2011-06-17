@@ -1944,6 +1944,27 @@ compare_function_templates.
 }  /* wrapup_function_template_argument_deduction */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_type_ptr generic_param_if_generic_definition_argument(a_type_ptr	type)
+/*
+If type is the type used to represent a C++/CLI generic parameter within
+a generic definition, return the associated generic parameter type, otherwise
+return NULL.
+*/
+{
+  a_type_ptr	result_type;
+
+  if (is_handle_ptr(type)) {
+    type = type->variant.pointer.type;
+  }  /* if */
+  /* The following will return NULL if type is not a proxy class. */
+  result_type = template_param_if_proxy_class(type);
+  return result_type;
+}  /* generic_param_if_generic_definition_argument */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 static int compare_variadic_template_arg_lists(
 				a_template_arg_ptr	templ_arg_list1,
 				a_template_arg_ptr	templ_arg_list2)
@@ -14321,25 +14342,6 @@ because the extra parameter clause is not in fact ignored.
 }  /* allow_extra_gpp_mode_param_clauses */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-
-
-a_type_ptr generic_param_if_generic_definition_argument(a_type_ptr	type)
-/*
-If type is the type used to represent a C++/CLI generic parameter within
-a generic definition, return the associated generic parameter type, otherwise
-return NULL.
-*/
-{
-  a_type_ptr	result_type;
-
-  if (is_handle_ptr(type)) {
-    type = type->variant.pointer.type;
-  }  /* if */
-  /* The following will return NULL if type is not a proxy class. */
-  result_type = template_param_if_proxy_class(type);
-  return result_type;
-}  /* generic_param_if_generic_definition_argument */
-
 
 static void check_for_generic_arity_overload(
 				a_tmpl_decl_state_ptr	decl_state,
