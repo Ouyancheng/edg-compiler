@@ -5504,6 +5504,9 @@ default arguments should be suppressed (needed for template specializations).
                                        /*under_lhs_declarator=*/FALSE, &octl);
           in_parameter_pack_declaration = saved_in_parameter_pack_declaration;
         }  /* if */
+        gen_attributes(param->attributes, al_postfix, /*primary_only=*/FALSE);
+        gen_attributes(param->attributes, al_id_equivalent,
+                       /*primary_only=*/FALSE);
         if (!suppress_def_args) {
           /* Put out a default argument expression if there is one. */
           in_ctor_default_argument = rtsp->assoc_routine_is_ctor;

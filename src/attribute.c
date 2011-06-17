@@ -582,7 +582,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_error, "r", NO_APPL_FN },
   { ak_externally_visible, "r:+x|v:+x", NO_APPL_FN },
   { ak_flatten, "r", NO_APPL_FN },
-  { ak_format, "t|r|v|d", apply_format_attr },
+  { ak_format, "t|r|v|d|p", apply_format_attr },
   { ak_format_arg, "r", apply_format_arg_attr },
   { ak_gnu_inline, "r", apply_gnu_inline_attr },
   { ak_hot, "r", NO_APPL_FN },
