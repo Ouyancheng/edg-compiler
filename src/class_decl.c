@@ -11694,6 +11694,7 @@ declarations.)
   a_scope_depth                     effective_decl_level;
 
   db_enter(3, "decl_member_function_template");
+  check_assertion(scope_is(&scope_stack_top(), sck_template_declaration));
   dps->is_definition = func_info->is_definition;
   if (!is_error_locator(*locator)) {
     if (is_single_param_operator_new_or_delete(locator, member_type)) {
@@ -11789,6 +11790,9 @@ declarations.)
                      prototype_instantiations_in_il && !sym->is_error
                                      ? effective_decl_level : NO_SCOPE_DEPTH);
   tssp = template_supplement_for_symbol(sym);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  tssp->is_generic = scope_stack_top().tmpl_decl_state->is_generic;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tssp->variant.function.routine = rtn;
   /* Copy the func_info block and then null out its param-id pointer so that
      it won't be freed. */

@@ -8696,6 +8696,9 @@ definition of a member function of a class template.
     dps->first_decl = TRUE;
     switch_to_file_scope_region(&region_to_switch_back_to);
     tssp->variant.function.routine = rout_ptr = alloc_routine();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    tssp->is_generic = decl_state->is_generic;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     switch_back_to_original_region(region_to_switch_back_to);
     rout_ptr->type = type_ptr;
     rout_ptr->storage_class = storage_class;

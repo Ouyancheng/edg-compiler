@@ -18289,7 +18289,6 @@ caller.
     tssp->is_variadic = decl_state->is_variadic;
     /* Update the exported flag, if necessary. */
     update_export_flag_for_function(decl_state, rout_ptr, sym, tssp);
-    tssp->is_generic = decl_state->is_generic;
   }  /* if */
   /* Make sure that the template parameter list is compatible with
      any previous declaration (i.e., the declaration of the class
