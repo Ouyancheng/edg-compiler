@@ -630,6 +630,23 @@ character type.
 }  /* is_narrow_or_wide_character_type */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+a_boolean is_cli_generic_definition_argument_type(a_type_ptr	type)
+/*
+Return TRUE if type is the type created to represent a generic argument
+within the definition of a C++/CLI generic.  The type will be either a
+value class or a handle to a ref or interface class.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (is_handle_ptr(type)) {
+    type = type->variant.pointer.type;
+  }  /* if */
+  result = is_cli_generic_constraint(type);
+  return result;
+}  /* is_cli_generic_definition_argument_type */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if FIXED_POINT_ALLOWED
 
@@ -5110,23 +5127,6 @@ of member functions).
   }  /* if */
   return compatible;
 }  /* calling_conventions_are_compatible */
-
-
-a_boolean is_cli_generic_definition_argument_type(a_type_ptr	type)
-/*
-Return TRUE if type is the type created to represent a generic argument
-within the definition of a C++/CLI generic.  The type will be either a
-value class or a handle to a ref or interface class.
-*/
-{
-  a_boolean	result = FALSE;
-
-  if (is_handle_ptr(type)) {
-    type = type->variant.pointer.type;
-  }  /* if */
-  result = is_cli_generic_constraint(type);
-  return result;
-}  /* is_cli_generic_definition_argument_type */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
