@@ -12662,16 +12662,19 @@ error cases.
 
 static a_boolean is_unboxed_unmodifiable_initonly_field(an_operand *operand)
 /*
-Return TRUE if operand directly references an initonly field as an lvalue
-outside of a constructor context in which it is modifiable.
+Return TRUE if operand directly references an initonly field or initonly
+static data member as an lvalue outside of a constructor context in which
+it is modifiable.
 */
 {
   a_boolean result = FALSE;
   if (is_expression_operand(operand)) {
     an_expr_node_ptr expr = operand->variant.expression;
-    if (expr->is_lvalue && is_operation_node(expr) &&
-        (node_operator_is(expr, eok_dot_field) ||
-         node_operator_is(expr, eok_points_to_field)) &&
+    if (expr->is_lvalue &&
+        (is_variable_node(expr) ||
+         (is_operation_node(expr) &&
+          (node_operator_is(expr, eok_dot_field) ||
+           node_operator_is(expr, eok_points_to_field)))) &&
         is_unmodifiable_initonly_field_operand(operand, (a_boolean *)NULL)) {
       result = TRUE;
     }  /* if */
