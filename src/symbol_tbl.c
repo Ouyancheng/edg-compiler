@@ -2226,7 +2226,8 @@ static method.  The list is returned in *p_hide_by_sig_list.
     parent_type = sym_parent_class(sym);
     parent_ctsp = class_type_supp(parent_type);
     is_class = parent_ctsp->cli_class_type_kind ==
-                                               (a_cli_class_type_kind)cctk_ref;
+                                            (a_cli_class_type_kind)cctk_ref &&
+               !parent_type->variant.class_struct_union.is_hybrid_constraint;
   }  /* if */
   if (sym->hide_by_sig_lookup_done) {
     /* We have already done the hide-by-sig processing.   Return the results
