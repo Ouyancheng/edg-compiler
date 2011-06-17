@@ -303,7 +303,16 @@ Output the indicated template argument in the way described by octl.
   switch (tap->kind) {
     case tak_type:
       /* Type argument. */
-      form_type(tap->variant.type, octl);
+      { a_type_ptr	tp = tap->variant.type;
+  #if MICROSOFT_EXTENSIONS_ALLOWED
+        if (is_cli_generic_definition_argument_type(tp)) {
+          /* If this is a generic definition argument, strip the handle
+             type if one is present. */
+          if (is_handle_ptr(tp)) tp = tp->variant.pointer.type;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        form_type(tp, octl);
+      }
       break;
     case tak_nontype:
       /* Nontype argument. */
