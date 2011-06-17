@@ -955,29 +955,6 @@ version of a C++/CLI generic parameter.
   return is_constraint;
 }  /* is_cli_generic_constraint_type */
 
-#if !STANDALONE_UTILITY_PROGRAM
-
-a_type_ptr constraint_type_for_cli_generic_param_type(a_type_ptr type)
-/*
-If type is a C++/CLI generic parameter type (possibly cv-qualified),
-return the corresponding constraint type, a synthesized class type.
-Any cv-qualifiers on the original type are replicated on the returned type.
-If type is not a generic parameter type, return the type unchanged.
-*/
-{
-  if (cppcli_enabled && is_cli_generic_param_type(type)) {
-    a_type_qualifier_set qualifiers = get_type_qualifiers(type);
-    type = skip_typerefs(type);
-    check_assertion(is_cli_generic_param(type));
-    type = proxy_class_for_template_param(type);
-    if (qualifiers != TQ_NONE) {
-      type = make_qualified_type(type, qualifiers);
-    }  /* if */
-  }  /* if */
-  return type;
-}  /* constraint_type_for_cli_generic_param_type */
-
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_handle_type(a_type_ptr tp)
 /*

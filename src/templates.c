@@ -1946,6 +1946,7 @@ compare_function_templates.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+static
 a_type_ptr generic_param_if_generic_definition_argument(a_type_ptr	type)
 /*
 If type is the type used to represent a C++/CLI generic parameter within
