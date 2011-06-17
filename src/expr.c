@@ -2895,8 +2895,8 @@ function.
 }  /* is_gnu_builtin_function */
 
 
-static a_boolean is_foldable_gnu_builtin_function(a_routine_ptr rp,
-                                                  a_boolean     *pseudo_call)
+a_boolean is_foldable_gnu_builtin_function(a_routine_ptr rp,
+                                           a_boolean     *pseudo_call)
 /*
 Return TRUE if and only if the routine rp is a GNU built-in function and
 calls to that function might be valid constant-expressions.

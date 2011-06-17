@@ -115,11 +115,12 @@ extern a_boolean fp_is_nan(an_internal_float_value  *value,
                            a_float_kind  kind);
 
 extern a_boolean fp_is_infinity(an_internal_float_value  *value,
-                                a_float_kind  kind);
+                                a_float_kind             kind);
 
 #if GNU_EXTENSIONS_ALLOWED
 extern a_boolean fp_is_normalized(an_internal_float_value  *value,
-                                  a_float_kind  kind);
+                                  a_float_kind             kind,
+                                  a_boolean                *unknown);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if FIXED_POINT_ALLOWED

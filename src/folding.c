@@ -7125,7 +7125,7 @@ is a constant, set *result_con to the result of the test and return TRUE.
 Otherwise, return FALSE.
 */
 {
-  a_boolean   success = FALSE;
+  a_boolean   success = FALSE, unknown_result = FALSE;
   a_type_ptr  result_type;
 
   check_assertion(is_gnu_builtin_function(rp));
@@ -7153,14 +7153,17 @@ Otherwise, return FALSE.
         break;
       case bfk_isnormal:
         result = fp_is_normalized(&cp->variant.float_value,
-                                  cp->type->variant.float_kind);
+                                  cp->type->variant.float_kind,
+                                  &unknown_result);
         break;
       default:
         unexpected_condition();
     }  /* switch */
-    set_integer_constant(result_con, (a_host_large_integer)result,
-                         result_type->variant.integer.int_kind);
-    success = TRUE;
+    if (!unknown_result) {
+      set_integer_constant(result_con, (a_host_large_integer)result,
+                           result_type->variant.integer.int_kind);
+      success = TRUE;
+    }  /* if */
   }  /* if */
   return success;
 }  /* fold_fptest_if_possible */

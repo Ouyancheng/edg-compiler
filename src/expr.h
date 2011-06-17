@@ -508,6 +508,9 @@ Return TRUE if "node" is a function call operation.
 
 extern a_boolean is_gnu_builtin_function(a_routine_ptr  rp);
 
+extern a_boolean is_foldable_gnu_builtin_function(a_routine_ptr rp,
+                                                  a_boolean     *pseudo_call);
+
 /*
 Return TRUE if the given operator is a gnu min/max operator (>? or <?).
 */

@@ -9411,6 +9411,31 @@ format string can be deduced, set appropriate fields in arg_block.
   }  /* if */
 }  /* obtain_format_string_from_arg */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static a_boolean ellipsis_arguments_do_not_promote(
+                                                an_arg_check_block *arg_block)
+/*
+Return TRUE if arg_block is associated with the call to a GNU built-in
+function that requires ellipsis arguments not to be promoted.  An example
+is __builtin_isnormal: Promoting a float argument to double might turn a
+denormal floating-point value into a normal floating-point value.
+(These functions are type-generic to some degree and must therefore be
+implemented directly by the front end or the back end.)
+*/
+{
+  a_boolean  result = FALSE, pseudo_call;
+
+  /* The GNU built-in functions with this property are exactly those
+     functions with an ellipsis property that are foldable. */
+  if (arg_block->routine != NULL &&
+      is_foldable_gnu_builtin_function(arg_block->routine, &pseudo_call)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* ellipsis_arguments_do_not_promote */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void process_call_argument(an_arg_operand_ptr arg_operand,
                                   an_arg_check_block *arg_block)
@@ -9489,7 +9514,19 @@ next parameter.
   if (do_default_promotion) {
     /* Either an ellipsis was encountered or this is an old-style argument
        list; do the default argument promotion. */
-    arg_default_promote_operand(operand, arg_block->has_ellipsis);
+#if GNU_EXTENSIONS_ALLOWED
+    if (gnu_mode && arg_block->has_ellipsis &&
+        ellipsis_arguments_do_not_promote(arg_block)) {
+      /* Certain GNU built-in functions use ellipsis to indicate that any
+         argument type is permitted (possibly with limitations imposed
+         elsewhere in the front end), but the original argument must be
+         preserved and hence promotions should not be applied. */
+    } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      arg_default_promote_operand(operand, arg_block->has_ellipsis);
+    }  /* if */
     /* If this is an old-style call and we have the list of types as
        defined by the function body, check the promoted type of the
        actual against the formal. */
