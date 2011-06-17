@@ -140,8 +140,6 @@ predicates.
   (is_integer_or_unscoped_enum(tp) || is_floating(tp)                 \
    or_is_fixed_point_type(tp))
 
-#define is_pointer_or_handle(tp) ((tp)->kind == (a_type_kind)tk_pointer && \
-                                  !(tp)->variant.pointer.is_reference)
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_cli_generic_param(tp)                                      \
    ((tp)->kind == (a_type_kind)tk_template_param &&                   \
@@ -149,11 +147,6 @@ predicates.
 
 #define is_pointer(tp) (is_pointer_or_handle(tp) &&                   \
                         !(tp)->variant.pointer.is_handle)
-/* This is called is_handle_ptr because there is a field called
-   is_handle in il_def.h and old preprocessors have problems with
-   that. */
-#define is_handle_ptr(tp) (is_pointer_or_handle(tp) &&                \
-                           (tp)->variant.pointer.is_handle)
 #define is_non_cli_pointer(tp) (is_pointer(tp) && \
                                !(tp)->variant.pointer.is_interior_ptr && \
                                !(tp)->variant.pointer.is_pin_ptr)
@@ -5140,6 +5133,23 @@ of member functions).
   }  /* if */
   return compatible;
 }  /* calling_conventions_are_compatible */
+
+
+a_boolean is_cli_generic_definition_argument_type(a_type_ptr	type)
+/*
+Return TRUE if type is the type created to represent a generic argument
+within the definition of a C++/CLI generic.  The type will be either a
+value class or a handle to a ref or interface class.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (is_handle_ptr(type)) {
+    type = type->variant.pointer.type;
+  }  /* if */
+  result = is_cli_generic_constraint(type);
+  return result;
+}  /* is_cli_generic_definition_argument_type */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

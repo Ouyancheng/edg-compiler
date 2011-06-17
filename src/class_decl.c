@@ -19260,12 +19260,14 @@ type for each based on the constraints for the generic parameter.
     a_symbol_ptr              param_sym = tpp->param_symbol;
     a_type_ptr                templ_param_type = param_sym->variant.type.ptr;
     a_type_ptr                proxy_class;
+    a_type_ptr                definition_arg_type;
     a_generic_constraint_ptr  gcp, gc_list;
     a_class_type_supplement_ptr
                               ctsp;
     /* Create a proxy class that will be used as the class type representing
        the constraints. */
     proxy_class = proxy_class_for_template_param(templ_param_type);
+    definition_arg_type = proxy_class;
     ctsp = class_type_supp(proxy_class);
     ctsp->is_hide_by_sig = TRUE;
     /* Determine the CLI class type kind of the constraint type. */
@@ -19299,10 +19301,15 @@ type for each based on the constraints for the generic parameter.
         proxy_class->variant.class_struct_union.is_hybrid_constraint = TRUE;
       }  /* if */
     }  /* if */
+    if (!is_cli_value_type(proxy_class)) {
+      /* Except for constraints known to be value classes, the type used
+         to process the generic definition is a handle type. */
+      definition_arg_type = make_handle_type(proxy_class);
+    }  /* if */
     /* Update the template parameter entry to use the proxy class as the
        template parameter value. */
-    tpp->param_symbol->variant.type.ptr = proxy_class;
-    tpp->variant.type = proxy_class;
+    tpp->param_symbol->variant.type.ptr = definition_arg_type;
+    tpp->variant.type = definition_arg_type;
     if (!scanning_generated_code_from_metadata) {
       complete_generic_constraint_type(proxy_class);
     }  /* if */

@@ -2324,10 +2324,10 @@ Return the template nesting depth of the specified template parameter.
    a_symbol_kind	sym_kind= tpp->param_symbol->kind;
     if (sym_kind == (a_symbol_kind)sk_type) {
       a_type_ptr	tp = tpp->variant.type;
-      if (is_cli_generic_constraint(tp)) {
-        /* If this is a generic constraint, get the associated generic
+      if (is_cli_generic_definition_argument_type(tp)) {
+        /* If this is a generic definition argument, get the associated generic
            parameter. */
-        tp = template_param_if_proxy_class(tp);
+        tp = generic_param_if_generic_definition_argument(tp);
       }  /* if */
       depth = tp->variant.template_param.extra_info->coordinates.depth;
     } else if (sym_kind == (a_symbol_kind)sk_constant) {
@@ -5252,13 +5252,13 @@ the same constant.
         /* If the type is a C++/CLI generic constraint, use the associated
            template parameter for the comparison. */
         if (type1 != NULL) {
-          if (is_cli_generic_constraint_type(type1)) {
-            type1 = template_param_if_proxy_class(type1);
+          if (is_cli_generic_definition_argument_type(type1)) {
+            type1 = generic_param_if_generic_definition_argument(type1);
           }  /* if */
         }  /* if */
         if (type2 != NULL) {
-          if (is_cli_generic_constraint_type(type2)) {
-            type2 = template_param_if_proxy_class(type2);
+          if (is_cli_generic_definition_argument_type(type2)) {
+            type2 = generic_param_if_generic_definition_argument(type2);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -13446,13 +13446,6 @@ to the newly created list.
     if (param_sym->kind == (a_symbol_kind)sk_type) {
       a_type_ptr	tp = param_sym->variant.type.ptr;
       tap = alloc_template_arg((a_templ_arg_kind)tak_type);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (tp->variant.template_param.is_generic_param) {
-        /* If this is a C++/CLI generic parameter, the prototype argument
-           points to the constraint type. */
-        tp = constraint_type_for_cli_generic_param_type(tp);
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       tap->variant.type = tp;
     } else if (param_sym->kind == (a_symbol_kind)sk_constant) {
       tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
@@ -14326,6 +14319,25 @@ because the extra parameter clause is not in fact ignored.
 }  /* allow_extra_gpp_mode_param_clauses */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
+
+a_type_ptr generic_param_if_generic_definition_argument(a_type_ptr	type)
+/*
+If type is the type used to represent a C++/CLI generic parameter within
+a generic definition, return the associated generic parameter type, otherwise
+return NULL.
+*/
+{
+  a_type_ptr	result_type;
+
+  if (is_handle_ptr(type)) {
+    type = type->variant.pointer.type;
+  }  /* if */
+  /* The following will return NULL if type is not a proxy class. */
+  result_type = template_param_if_proxy_class(type);
+  return result_type;
+}  /* generic_param_if_generic_definition_argument */
+
 
 static void check_for_generic_arity_overload(
 				a_tmpl_decl_state_ptr	decl_state,
