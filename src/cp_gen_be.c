@@ -10441,8 +10441,17 @@ gen_expr that might end up generating this expr as a temporary.
           /* Related-class casts, boxing/unboxing. */
           if (expr->variant.operation.compiler_generated) {
             /* For an implicit cast, just put out the underlying operand. */
-            gen_expr(operand_1, /*need_parens=*/FALSE,
-                     obj_expr_of_mfunc_operator);
+            if (op == (an_expr_operator_kind)eok_box &&
+                is_operation_node(operand_1) &&
+                node_operator_is(operand_1, eok_indirect) &&
+                operand_1->variant.operation.compiler_generated) {
+              /* Ignore a compiler-generated "%*" sequence. */
+              gen_expr(operand_1->variant.operation.operands,
+                       /*need_parens=*/FALSE, obj_expr_of_mfunc_operator);
+            } else {
+              gen_expr(operand_1, /*need_parens=*/FALSE,
+                       obj_expr_of_mfunc_operator);
+            }  /* if */
           } else {
             gen_full_cast(expr);
           }  /* if */
