@@ -7547,6 +7547,11 @@ typedef struct a_type {
 			/* TRUE if this is an instantiation of a C++/CLI
 			   generic class or a nested class within a generic. */
      a_bit_field
+		is_open_constructed_type:1;
+			/* TRUE for generic instances for which one or more
+			   of the generic arguments is an open constructed
+			   type. */
+     a_bit_field
 		is_generic_constraint:1;
 			/* TRUE if this is the type created to represent the
 			   type specified by the constraints of a C++/CLI

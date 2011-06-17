@@ -1296,7 +1296,7 @@ new fields are set properly.
         ptp = rout_type->variant.routine.extra_info->param_type_list;
         if (!is_nonstatic_member_function) ptp = ptp->next;
         tp = skip_typerefs(ptp->type);
-        if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
+        if (!is_error_type(tp) && !is_template_dependent_type(tp)) {
           if (!is_integral_type(tp) ||
               tp->variant.integer.int_kind != (an_integer_kind)ik_int) {
             pos_st_error(ec_bad_extra_arg_for_postfix_operator,
@@ -9314,8 +9314,8 @@ end up being compatible during an actual instantiation.
 {
   a_boolean	result = FALSE;
 
-  if (is_or_contains_template_param(type1) ||
-      is_or_contains_template_param(type2)) {
+  if (is_template_dependent_type(type1) ||
+      is_template_dependent_type(type2)) {
     result = TRUE;
   }  /* if */
   return result;

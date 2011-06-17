@@ -2727,7 +2727,7 @@ the ck_template_param constant.
 
   cssp = symbol_supplement_for_class(class_type);
   if (class_type->variant.class_struct_union.is_nonreal_class ||
-      is_or_contains_template_param(conv_result)) {
+      is_template_dependent_type(conv_result)) {
     /* A template context where either the source object type or the
        result type is dependent.  Create an unknown function symbol to
        represent the conversion function. */
@@ -4063,7 +4063,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
      function symbol to be created later. */
   if (locator->is_conversion_name && (options & IDL_IS_EXPR_CONTEXT) != 0) {
     dependent_conversion_operator =
-        is_or_contains_template_param(locator->variant.conversion_result_type);
+           is_template_dependent_type(locator->variant.conversion_result_type);
   }  /* if */
   sym = locator->specific_symbol;
   if (is_error_locator(*locator)) {

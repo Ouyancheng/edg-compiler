@@ -1308,6 +1308,34 @@ Return TRUE if the given type is the C++/CLI root type System::Object.
 }  /* is_cli_system_object_type */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+a_boolean is_cli_open_constructed_type(a_type_ptr	tp)
+/*
+Return TRUE if tp is a C++/CLI open constructed type (ECMA-372 31.2.1).
+*/
+{
+  a_boolean	result = FALSE;
+
+  tp = skip_typerefs(tp);
+  /* If the type provided is a handle, strip off the handle. */
+  if (is_handle_type(tp)) tp = type_pointed_to(tp);
+  tp = skip_typerefs(tp);
+  if (is_immediate_class_type(tp)) {
+    if (is_cli_generic_constraint_type(tp)) {
+      /* A generic parameter is an open constructed type. */
+      result = TRUE;
+    } else if (tp->variant.class_struct_union.is_open_constructed_type) {
+      /* This is a generic instance with one or more generic arguments that
+         are open constructed types. */
+      result = TRUE;
+    }  /* if */
+  } else if (is_cli_array_type(tp)) {
+    /* A C++/CLI array is an open constructed type if its element type is. */
+    result = is_cli_open_constructed_type(cli_array_element_type(tp));
+  }  /* if */
+  return result;
+}  /* is_cli_open_constructed_type */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean is_scalar_type(a_type_ptr tp)
@@ -4061,6 +4089,8 @@ point to the same type or constant).  FALSE if only equivalence is required.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if ((type_1->variant.class_struct_union.is_nonreal_class &&
               type_2->variant.class_struct_union.is_nonreal_class) ||
+             (is_cli_open_constructed_instance(type_1) &&
+              is_cli_open_constructed_instance(type_1)) ||
              error_matches_anything) {
     /* The pointers aren't the same, so the classes probably aren't
        equivalent, but do some special checking to see if they are equivalent
@@ -4096,6 +4126,8 @@ point to the same type or constant).  FALSE if only equivalence is required.
              class template, or equivalent nonreal templates. */
           if ((type_1->variant.class_struct_union.is_nonreal_class &&
                type_2->variant.class_struct_union.is_nonreal_class) ||
+              (is_cli_open_constructed_instance(type_1) &&
+               is_cli_open_constructed_instance(type_1)) ||
               error_matches_anything) {
             an_equiv_templ_arg_options_set	eta_options = ETA_NO_OPTIONS;
             a_symbol_ptr			templ_sym_1;
@@ -10685,8 +10717,12 @@ its parameters?).
 	   here. */
         if (!C_mode()) {
           /* If this class is a proxy class, traverse its associated
-             template parameter. */
-          if (in_front_end) {
+             template parameter.  If this is a C++/CLI constraint type,
+             the associated generic parameter is only traversed if requested
+             by the caller. */
+          if (in_front_end &&
+              (!is_cli_generic_constraint(type_ptr) ||
+               (flags & TTT_CLI_GENERIC_PARAMETERS) != 0)) {
             a_symbol_ptr			class_sym;
             a_class_symbol_supplement_ptr	cssp;
             class_sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
@@ -10964,6 +11000,39 @@ it is or contains a tk_template_param type entry or a nonreal class.
 }  /* is_template_dependent_type */
 
 
+static
+a_boolean is_template_dependent_type_or_cli_generic_param(a_type_ptr  type_ptr)
+/*
+Return TRUE if the type pointed to by type_ptr is template-dependent, i.e.,
+it is or contains a tk_template_param type entry or a nonreal class.  Also
+returns TRUE for types that contain C++/CLI generic parameters.
+*/
+{
+  a_boolean result = FALSE;
+
+  /* Template parameter types come up only in C++ mode. */
+  if (!C_mode()) {
+    a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                                 TTT_THIS_PARAM_TYPE |
+                                                 TTT_PARAM_TYPES |
+                                                 TTT_TEMPLATE_ARGS |
+                                                 TTT_SKIP_TYPEREFS |
+                                                 TTT_CLI_GENERIC_PARAMETERS |
+                                                 TTT_PARENT_CLASSES);
+
+    /* Setting these pointers to NULL indicates that any template param type
+       or constant will do. */
+    specific_template_param_type = NULL;
+    specific_template_param_constant = NULL;
+    deduced_contexts_only = FALSE;
+    find_all_dependent_types = TRUE;
+    result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
+                                ttt_flags);
+  }  /* if */
+  return result;
+}  /* is_template_dependent_type_or_cli_generic_param */
+
+
 a_boolean is_instantiation_dependent_type(a_type_ptr  type_ptr)
 /*
 Return TRUE if the type pointed to by type_ptr is instantiation-dependent,
@@ -11010,6 +11079,7 @@ a template parameter constant.
     a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                  TTT_PARAM_TYPES |
                                                  TTT_TEMPLATE_ARGS |
+                                                 TTT_CLI_GENERIC_PARAMETERS |
                                                  TTT_PARENT_CLASSES);
 
     /* Setting these pointers to NULL indicates that any template param type
@@ -11037,6 +11107,7 @@ parameter can be deduced.
                                                TTT_PARAM_TYPES |
                                                TTT_SKIP_TYPEREFS |
 					       TTT_DEDUCED_CONTEXTS_ONLY |
+                                               TTT_CLI_GENERIC_PARAMETERS |
                                                TTT_TEMPLATE_ARGS);
 
   check_assertion_str(!C_mode(),
@@ -11075,7 +11146,8 @@ used in expression contexts.
   check_assertion(is_function_type(rout_type));
   ptp = skip_typerefs(rout_type)->variant.routine.extra_info->param_type_list;
   for (; ptp != NULL; ptp = ptp->next) {
-    ptp->type_involves_template_param = is_template_dependent_type(ptp->type);
+    ptp->type_involves_template_param =
+                    is_template_dependent_type_or_cli_generic_param(ptp->type);
     if (ptp->type_involves_template_param) {
       /* The type can only involve a deduced template parameter if it
          involves a template parameter in any context.  Parameter packs
@@ -11100,6 +11172,7 @@ containing such a reference to the type.
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_PARAM_TYPES |
                                                TTT_TEMPLATE_ARGS |
+                                               TTT_CLI_GENERIC_PARAMETERS |
 					       TTT_DEDUCED_CONTEXTS_ONLY);
 
   /* This indicates that only a specific template parameter may be found. */

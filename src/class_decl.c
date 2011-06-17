@@ -3972,8 +3972,8 @@ the overridden symbol.
   if (identical_types(tp1, tp2)) {
     /* The types are identical. */
     compatible = TRUE;
-  } else if (is_or_contains_template_param(tp1) ||
-             is_or_contains_template_param(tp2)) {
+  } else if (is_template_dependent_type(tp1) ||
+             is_template_dependent_type(tp2)) {
     /* We must be within a prototype instantiation.  The types may be
        compatible depending on the template argument in a real instantiation,
        so issue no error now. */
@@ -6506,7 +6506,7 @@ information).
 
   check_assertion(bcp->direct);
   if (class_state->is_nonreal_instantiation) {
-    if (is_or_contains_template_param(bcp->type)) {
+    if (is_template_dependent_type(bcp->type)) {
       bcp->ignore_during_dependent_lookup = TRUE;
       symbol_supplement_for_class(class_state->class_type)
                                           ->any_dependent_base_classes = TRUE;
@@ -8204,7 +8204,7 @@ instantiations are recorded in the IL.
        it is probably not what was intended. */
     if (warning_on_non_template_friend && !guiding_decls_allowed &&
         !locator->is_qualified_name && !locator->is_template_id &&
-        is_or_contains_template_param(function_type)) {
+        is_template_dependent_type(function_type)) {
       pos_sy_warning(ec_probable_guiding_friend, &locator->source_position,
                      sym);
     }  /* if */
@@ -9270,7 +9270,7 @@ when exception support is enabled.
      merge the exception specifications. */
   bcp = base_classes_of(class_type);
   for (; bcp != NULL; bcp = bcp->next) {
-    if (is_or_contains_template_param(bcp->type)) {
+    if (is_template_dependent_type(bcp->type)) {
       /* We cannot tell what dependent bases might end up throwing. */
       throw_any = TRUE;
     } else if (bcp->direct) {
@@ -9295,7 +9295,7 @@ when exception support is enabled.
       tp = fp->type;
       if (is_array_type(tp)) tp = underlying_array_element_type(tp);
       tp = skip_typedefs(tp);
-      if (is_or_contains_template_param(tp)) {
+      if (is_template_dependent_type(tp)) {
         /* We cannot tell what dependent fields might end up throwing. */
         throw_any = TRUE;
       } else if (is_immediate_class_type(tp)) {
@@ -14508,7 +14508,7 @@ be entered.
     }  /* if */
     /* Record that there is at least one nonstatic data member in the class. */
     cssp->any_nonstatic_data_members = TRUE;
-    if (is_or_contains_template_param(member_type)) {
+    if (is_template_dependent_type(member_type)) {
       /* The field is template parameter dependent and hence the POD/non-POD
          character of the containing class may not be certain. */
       cssp->any_template_dependent_fields = TRUE;
@@ -16807,7 +16807,7 @@ distinguish an alias declaration from a using-declaration.)
     } else {
       sym = locator_for_curr_id.specific_symbol;
       if (sym != NULL && sym->is_class_member &&
-          is_or_contains_template_param(sym_parent_class(sym))) {
+          is_template_dependent_type(sym_parent_class(sym))) {
         /* The using-declaration was for a member of a dependent class type.
            Normally this should be a base class type, but we may also end
            up here with the following invalid code:

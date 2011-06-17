@@ -5541,6 +5541,24 @@ specified by tssp.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+static a_boolean is_open_constructed_generic_arg_list(
+				a_template_arg_ptr	generic_arg_list)
+/*
+Return TRUE if the C++/CLI generic argument list pointed to by
+generic_arg_list identifies an open constructed type (ECMA-372 31.2.1).
+*/
+{
+  a_boolean		result = FALSE;
+  a_template_arg_ptr	tap;
+
+  for (tap = generic_arg_list; tap != NULL; tap = tap->next) {
+    result = is_cli_open_constructed_type(tap->variant.type);
+    if (result) break;
+  }  /* for */
+  return result;
+}  /* is_open_constructed_generic_arg_list */
+
+
 static a_boolean is_valid_cli_array_instantiation(
                                          a_template_arg_ptr template_arg_list,
                                          a_source_position  *diag_pos)
@@ -5888,6 +5906,13 @@ is returned.
                                     tssp->variant.class_template.is_interface;
   class_type->variant.class_struct_union.is_generic_instance =
                                                               tssp->is_generic;
+  if (tssp->is_generic) {
+    /* If this is a C++/CLI generic and the argument list involves open
+       constructed types, mark the class as open constructed. */
+    if (is_open_constructed_generic_arg_list(template_arg_list)) {
+      class_type->variant.class_struct_union.is_open_constructed_type = TRUE;
+    }  /* if */
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   class_type->variant.class_struct_union.is_template_class = TRUE;
   sym->variant.class_struct_union.type = class_type;
@@ -13184,8 +13209,14 @@ the prototype instantiation and updates the friend information for
 any classes that declared the nested class as a template friend.
 */
 {
-  if (sym->is_class_member) {
-    a_type_ptr   class_type = sym->variant.class_struct_union.type;
+  a_type_ptr   class_type = sym->variant.class_struct_union.type;
+
+  /* In some error cases the class type may not be a class member even though
+     the symbol is. */
+  if (sym->is_class_member &&
+      class_type->source_corresp.is_class_member) {
+    a_type_ptr	parent_class;
+    parent_class = parent_class_of(class_type);
     if (!is_prototype_instantiation_or_cli_generic_context()) {
       /* Look for the prototype symbol that corresponds to this nested class
          symbol. */
@@ -13207,6 +13238,8 @@ any classes that declared the nested class as a template friend.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         class_type->variant.class_struct_union.is_generic_instance =
                                                               tssp->is_generic;
+        class_type->variant.class_struct_union.is_open_constructed_type =
+             parent_class->variant.class_struct_union.is_open_constructed_type;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Update the friend information associated with this template.
            These are the classes that declared this template as a friend. */
@@ -13223,15 +13256,11 @@ any classes that declared the nested class as a template friend.
          hence we create a placeholder a_template entry for it. */
       a_template_symbol_supplement_ptr	tssp;
       a_template_ptr			templ = alloc_template();
-      if (class_type->source_corresp.is_class_member) {
-        a_type_ptr			parent_class;
-        parent_class = parent_class_of(class_type);
-        templ->kind = (a_template_kind)templk_member_class;
-        set_source_corresp(&templ->source_corresp, sym);
-        set_class_membership((a_symbol_ptr)NULL, &templ->source_corresp,
-                             parent_class);
-        templ->is_exported = class_is_exported(parent_class);
-      }  /* if */
+      templ->kind = (a_template_kind)templk_member_class;
+      set_source_corresp(&templ->source_corresp, sym);
+      set_class_membership((a_symbol_ptr)NULL, &templ->source_corresp,
+                           parent_class);
+      templ->is_exported = class_is_exported(parent_class);
       templ->source_corresp.access = class_type->source_corresp.access;
       templ->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
@@ -13660,7 +13689,7 @@ initially used when processing the declaration of a partial specialization.
     prototype_cssp = prototype_sym->variant.class_struct_union.extra_info;
     prototype_type->
            variant.class_struct_union.is_prototype_instantiation = !is_generic;
-    prototype_type->variant.class_struct_union.is_nonreal_class = TRUE;
+    prototype_type->variant.class_struct_union.is_nonreal_class = !is_generic;
     prototype_cssp->template_info = tssp;
     if (sym->kind == (a_symbol_kind)sk_class_template) {
       /* Call a routine that manages the correspondence of entities between

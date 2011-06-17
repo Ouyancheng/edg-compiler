@@ -1871,6 +1871,9 @@ Display the indicated type entry.
       if (ptr->variant.class_struct_union.is_generic_instance) {
         disp_boolean("is_generic_instance", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.is_open_constructed_type) {
+        disp_boolean("is_open_constructed_type", TRUE);
+      }  /* if */
       if (ptr->variant.class_struct_union.is_generic_constraint) {
         disp_boolean("is_generic_constraint", TRUE);
       }  /* if */

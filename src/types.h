@@ -163,6 +163,7 @@ extern a_type_ptr delegate_invocation_type(a_type_ptr delegate_type);
 #if !STANDALONE_UTILITY_PROGRAM
 extern a_boolean is_cli_system_object_type(a_type_ptr tp);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+extern a_boolean is_cli_open_constructed_type(a_type_ptr	tp);
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_immediate_managed_class_type(tp) /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1206,6 +1207,9 @@ typedef int a_type_tree_traversal_flag_set;
 #define TTT_DECLTYPE_AND_TYPEOF_EXPRS 0x400
 			/* If a decltype or typeof typeref is found, traverse
 			   the expression under the decltype or typeof. */
+#define TTT_CLI_GENERIC_PARAMETERS 0x800
+			/* If the type is a C++/CLI constraint type, traverse
+			   the associated generic parameter. */
 
 /* Type of service function called by traverse_type_tree to return TRUE or
    FALSE status regarding a given type in a type tree. */
@@ -1274,6 +1278,17 @@ a class type.
   ((type)->variant.class_struct_union.is_generic_definition)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_cli_generic_definition_type(type) /*lint --e(506)*/FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Return TRUE if type is an instance of a C++/CLI generic that is an
+open constructed type.  type is required to be a class type.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_cli_open_constructed_instance(type)				\
+  ((type)->variant.class_struct_union.is_open_constructed_type)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_cli_open_constructed_instance(type) /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
