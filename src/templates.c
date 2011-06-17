@@ -2324,11 +2324,13 @@ Return the template nesting depth of the specified template parameter.
    a_symbol_kind	sym_kind= tpp->param_symbol->kind;
     if (sym_kind == (a_symbol_kind)sk_type) {
       a_type_ptr	tp = tpp->variant.type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
       if (is_cli_generic_definition_argument_type(tp)) {
         /* If this is a generic definition argument, get the associated generic
            parameter. */
         tp = generic_param_if_generic_definition_argument(tp);
       }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       depth = tp->variant.template_param.extra_info->coordinates.depth;
     } else if (sym_kind == (a_symbol_kind)sk_constant) {
       depth = tpp->variant.constant.ptr->
