@@ -14819,6 +14819,11 @@ if one is present.
            variables can only have one value and should therefore always be
            treated as having a value. */
         mark_variable_value_set(state->sym);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (cppcli_enabled && is_handle_type(state->type)) {
+        /* Handles are initialized to null by the CLI virtual machine. */
+        mark_variable_value_set(state->sym);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
   } else if (state->sym->kind == (a_symbol_kind)sk_variable &&
