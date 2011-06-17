@@ -19209,6 +19209,7 @@ associated with a generic parameter).  Complete the class by
   a_base_class_ptr              last_bcp = NULL;
   a_base_class_sequence_number  direct_base_number = 1;
   a_boolean                     may_be_first_direct_nonvirtual_base = TRUE;
+  a_boolean                     add_default_constructor = FALSE;
 
   templ_param_type = symbol_supplement_for_class(proxy_class)
                                             ->template_param_for_proxy_class;
@@ -19231,7 +19232,7 @@ associated with a generic parameter).  Complete the class by
       } else if (gcp->kind == (a_generic_constraint_kind)gck_gcnew) {
         /* The "gcnew()" constraint indicates that the constraint type has
            a default constructor. */
-        generate_default_constructor(&class_state, /*is_deleted=*/FALSE);
+        add_default_constructor = TRUE;
       }  /* if */
     }  /* for */
   }  /* if */
@@ -19242,6 +19243,9 @@ associated with a generic parameter).  Complete the class by
            push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
                       proxy_class, (a_routine_ptr)NULL);
   scope_stack_top().class_def_state = &class_state;
+  if (add_default_constructor) {
+    generate_default_constructor(&class_state, /*is_deleted=*/FALSE);
+  }  /* if */
   complete_class_definition(proxy_class, depth_scope_stack-1, &class_state);
   /* Pop the class scope and the file scope reactivation. */
   pop_scope();
