@@ -616,30 +616,6 @@ when bool_is_keyword is FALSE (which, among other times, means when in C mode).
 }  /* is_bool_type */
 
 
-a_boolean is_char16_t_type(a_type_ptr tp)
-/*
-Return TRUE if the given type is the char16_t type.  The char16_t type does not
-exist when char16_t_and_char32_t_are_keywords is FALSE (which, among other
-times, means when in C mode).
-*/
-{
-  tp = skip_typerefs(tp);
-  return is_char16_t(tp);
-}  /* is_char16_t_type */
-
-
-a_boolean is_char32_t_type(a_type_ptr tp)
-/*
-Return TRUE if the given type is the char32_t type.  The char32_t type does not
-exist when char16_t_and_char32_t_are_keywords is FALSE (which, among other
-times, means when in C mode).
-*/
-{
-  tp = skip_typerefs(tp);
-  return is_char32_t(tp);
-}  /* is_char32_t_type */
-
-
 a_boolean is_character_type(a_type_ptr tp)
 /*
 Return TRUE if the type is a character type (signed, unsigned, or "plain").
