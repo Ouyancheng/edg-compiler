@@ -6883,11 +6883,11 @@ compatible, and return the type of the result.  Note that this routine assumes
 that the type is arithmetic, and does not actually change the operand types.
 See section 6.1.2.5 of the ISO C89 standard.  In C++, when wchar_t is a
 keyword, wchar_t is represented by one of the normal integral types and
-obeys the same conversion rules as its underlying type.  Likewise for bool.
-The operands can be lvalues or rvalues.  If operand_1 is available only
-as a type, operand_1 == NULL and operand_1_type indicates the type.
-Likewise for operand_2/operand_2_type.  Note that for some operations the
-operation type is different from the result type, and this routine does not
+obeys the same conversion rules as its underlying type.  Likewise for bool,
+char16_t, and char32_t.  The operands can be lvalues or rvalues.  If operand_1
+is available only as a type, operand_1 == NULL and operand_1_type indicates the
+type.  Likewise for operand_2/operand_2_type.  Note that for some operations
+the operation type is different from the result type, and this routine does not
 determine a separate operation type.  Also see determine_vector_operation_type
 and determine_imaginary_operation_type, which handle some special cases in GNU
 and C99 modes (with operations having vector operands or imaginary operands):

@@ -379,6 +379,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_imaginary_unit */
    (an_opname_kind)onk_none,          /* tok_nan */
    (an_opname_kind)onk_none,          /* tok_infinity */
+   (an_opname_kind)onk_none,          /* tok_char16_t */
+   (an_opname_kind)onk_none,          /* tok_char32_t */
    (an_opname_kind)onk_none,          /* tok_fract */
    (an_opname_kind)onk_none,          /* tok_accum */
    (an_opname_kind)onk_none,          /* tok_sat */

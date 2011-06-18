@@ -113,6 +113,8 @@ delete_unneeded_entries()
   unneeded="$unneeded __GXX_RTTI"
   unneeded="$unneeded __GNUC_GNU_INLINE__"
   unneeded="$unneeded __GNUC_STDC_INLINE__"
+  unneeded="$unneeded __CHAR16_TYPE__"
+  unneeded="$unneeded __CHAR32_TYPE__"
   for name in $unneeded
   do
     sed -e "/:$name:/ d" output.tmp >$$

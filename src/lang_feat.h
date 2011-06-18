@@ -1284,6 +1284,37 @@ which may be modified using command line options.
 #endif /* ifndef DEFAULT_WCHAR_T_IS_KEYWORD */
 
 /*
+Flag that is TRUE if, in C++ mode, char16_t and char32_t are keywords by
+default.  This is the default value for the global flag
+char16_t_and_char32_t_are_keywords, the value of which may be modified using
+command line options.
+*/
+#ifndef DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS
+#define DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS FALSE
+#endif /* ifndef DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS */
+
+/*
+Flag that is TRUE if, when char16_t and char32_t are keywords, a preprocessing
+symbol should be defined to prevent the system header files from attempting to
+redefine char16_t and char32_t as a typedef.
+*/
+#ifndef DEFINE_MACRO_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS
+#define DEFINE_MACRO_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS TRUE
+#endif /* ifndef DEFINE_MACRO_WHEN_WCHAR_T_AND_CHAR32_T_ARE_KEYWORDS */
+
+/*
+The name of the macro to be defined when char16_t and char32_t are keywords.
+This is only used when DEFINE_MACRO_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS
+is TRUE.
+*/
+#if DEFINE_MACRO_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS
+#ifndef MACRO_DEFINED_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS
+#define MACRO_DEFINED_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS \
+                                                      "__CHAR16_T_AND_CHAR32_T"
+#endif /* ifndef MACRO_DEFINED_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS */
+#endif /* DEFINE_MACRO_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS */
+
+/*
 Flag that is TRUE if, when wchar_t is a keyword, a preprocessing symbol
 should be defined to prevent the system header files from attempting to
 redefine wchar_t as a typedef.

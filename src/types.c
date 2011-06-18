@@ -79,6 +79,16 @@ predicates.
 #define is_bool(tp) \
   (type_kind_is_integer(tp) && (tp)->variant.integer.bool_type)
 
+/* The char16_t type is an integral type that is tagged as char16_t.  It only
+   exists when char16_t_and_char32_t_are_keywords is TRUE. */
+#define is_char16_t(tp) \
+  (type_kind_is_integer(tp) && (tp)->variant.integer.char16_t_type)
+
+/* The char32_t type is an integral type that is tagged as char32_t.  It only
+   exists when char16_t_and_char32_t_are_keywords is TRUE. */
+#define is_char32_t(tp) \
+   (type_kind_is_integer(tp) && (tp)->variant.integer.char32_t_type)
+
 /* The nullptr type is the type of the nullptr keyword in C++ (i.e.,
    std::nullptr_t) and also includes the managed nullptr type in
    C++/CLI. */
@@ -91,6 +101,8 @@ predicates.
     (tp)->variant.integer.int_kind == (an_integer_kind)ik_unsigned_char || \
     (tp)->variant.integer.int_kind == (an_integer_kind)ik_signed_char) && \
    !(tp)->variant.integer.wchar_t_type && \
+   !(tp)->variant.integer.char16_t_type && \
+   !(tp)->variant.integer.char32_t_type && \
    !(tp)->variant.integer.bool_type)
 
 /* A general character is a char-type, a wchar_t, a char16_t, or a char32_t. */
@@ -103,9 +115,13 @@ predicates.
     (!wchar_t_is_keyword && \
      ((tp)->variant.integer.int_kind == targ_wchar_t_int_kind)) || \
     (uliterals_enabled && \
-     ((tp)->variant.integer.int_kind == targ_char16_t_int_kind || \
-      (tp)->variant.integer.int_kind == targ_char32_t_int_kind)) || \
-    (tp)->variant.integer.wchar_t_type))
+     ((!char16_t_and_char32_t_are_keywords && \
+       ((tp)->variant.integer.int_kind == targ_char16_t_int_kind)) || \
+      (!char16_t_and_char32_t_are_keywords && \
+       ((tp)->variant.integer.int_kind == targ_char32_t_int_kind)))) || \
+    (tp)->variant.integer.wchar_t_type || \
+    (tp)->variant.integer.char16_t_type || \
+    (tp)->variant.integer.char32_t_type))
 
 #if FIXED_POINT_ALLOWED
 #define is_fixed_point(tp) ((tp)->kind == (a_type_kind)tk_fixed_point)
@@ -598,6 +614,30 @@ when bool_is_keyword is FALSE (which, among other times, means when in C mode).
   tp = skip_typerefs(tp);
   return is_bool(tp);
 }  /* is_bool_type */
+
+
+a_boolean is_char16_t_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is the char16_t type.  The char16_t type does not
+exist when char16_t_and_char32_t_are_keywords is FALSE (which, among other
+times, means when in C mode).
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_char16_t(tp);
+}  /* is_char16_t_type */
+
+
+a_boolean is_char32_t_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is the char32_t type.  The char32_t type does not
+exist when char16_t_and_char32_t_are_keywords is FALSE (which, among other
+times, means when in C mode).
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_char32_t(tp);
+}  /* is_char32_t_type */
 
 
 a_boolean is_character_type(a_type_ptr tp)
@@ -1430,6 +1470,64 @@ Return TRUE if the given type is an array of wchar_t.
   }  /* if */
   return is_wchar_t_array;
 }  /* is_wchar_t_array_type */
+
+
+a_boolean is_char16_t_array_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an array of char16_t.
+*/
+{
+  a_boolean  is_char16_t_array = FALSE;
+  a_type_ptr elem_type;
+
+  tp = skip_typerefs(tp);
+  if (is_array(tp)) {
+    elem_type = skip_typerefs(tp->variant.array.element_type);
+    if (is_integral(elem_type)) {
+      if (!char16_t_and_char32_t_are_keywords) {
+        /* In C mode, or C++ mode when char16_t is not a distinct type.
+           See if the element type is the appropriate integer kind for
+           char16_t. */
+        is_char16_t_array = elem_type->variant.integer.int_kind ==
+                                                        targ_char16_t_int_kind;
+      } else {
+        /* In C++0x mode when char16_t is a distinct type.  Make sure this is
+           a char16_t type. */
+        is_char16_t_array = elem_type->variant.integer.char16_t_type;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_char16_t_array;
+}  /* is_char16_t_array_type */
+
+
+a_boolean is_char32_t_array_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an array of char32_t.
+*/
+{
+  a_boolean  is_char32_t_array = FALSE;
+  a_type_ptr elem_type;
+
+  tp = skip_typerefs(tp);
+  if (is_array(tp)) {
+    elem_type = skip_typerefs(tp->variant.array.element_type);
+    if (is_integral(elem_type)) {
+      if (!char16_t_and_char32_t_are_keywords) {
+        /* In C mode, or C++ mode when char32_t is not a distinct type.
+           See if the element type is the appropriate integer kind for
+           char32_t. */
+        is_char32_t_array = elem_type->variant.integer.int_kind ==
+                                                        targ_char32_t_int_kind;
+      } else {
+        /* In C++0x mode when char32_t is a distinct type.  Make sure this is
+           a char32_t type. */
+        is_char32_t_array = elem_type->variant.integer.char32_t_type;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_char32_t_array;
+}  /* is_char32_t_array_type */
 
 
 a_boolean is_string_type(a_type_ptr tp)
@@ -3300,16 +3398,18 @@ expects to receive an rvalue type.
       promoted_type = integer_type((an_integer_kind)ik_int);
     } else if (!C_mode() &&
                 (unqual_type->variant.integer.enum_type ||
-                 unqual_type->variant.integer.wchar_t_type) &&
+                 unqual_type->variant.integer.wchar_t_type ||
+                 unqual_type->variant.integer.char16_t_type ||
+                 unqual_type->variant.integer.char32_t_type) &&
                 targ_sizeof_int == targ_sizeof_long &&
                (ikind == (an_integer_kind)ik_long ||
                 ikind == (an_integer_kind)ik_unsigned_long)) {
-      /* In C++, enums and wchar_t (when a keyword) go through the
-         normal promotion processing for the underlying type.  If the type
-         is unchanged, it will be converted to the corresponding plain
+      /* In C++, enums, wchar_t, char16_t, and char32_t (when  keywords) go
+         through the normal promotion processing for the underlying type.  If
+         the type is unchanged, it will be converted to the corresponding plain
          integral type (see below).  However, there's one anomaly:
-         if long and int are the same size, enums and wchar_t of
-         size long promote to int or unsigned int. */
+         if long and int are the same size, enums, wchar_t, char16_t, and
+         char32_t of size long promote to int or unsigned int. */
       if (ikind == (an_integer_kind)ik_long) {
         promoted_type = integer_type((an_integer_kind)ik_int);
       } else { /* ikind == (an_integer_kind)ik_unsigned_long */
@@ -3390,14 +3490,17 @@ do_signed_char:;
 #endif /* CHECKING */
       }  /* switch */
       if (C_dialect == C_dialect_cplusplus) {
-        /* enums and wchar_t get promoted to the corresponding integral type
-           (and lose their special properties) if they were not promoted
-           above. */
+        /* enums, wchar_t, char16_t, and char32_t get promoted to the
+           corresponding integral type (and lose their special properties) if
+           they were not promoted above. */
         unqual_type = skip_typerefs(promoted_type);
         if (unqual_type->variant.integer.enum_type ||
-            unqual_type->variant.integer.wchar_t_type) {
+            unqual_type->variant.integer.wchar_t_type ||
+            unqual_type->variant.integer.char16_t_type ||
+            unqual_type->variant.integer.char32_t_type) {
           /* Make a "plain" version of this type, i.e., the same underlying
-             integral type but not tagged as an enum or wchar_t. */
+             integral type but not tagged as an enum, wchar_t, char16_t, or
+             char32_t. */
           promoted_type = integer_type(unqual_type->variant.integer.int_kind);
         }  /* if */
       }  /* if */
@@ -4653,6 +4756,10 @@ check_typerefs:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               type_1->variant.integer.wchar_t_type ==
                                       type_2->variant.integer.wchar_t_type &&
+              type_1->variant.integer.char16_t_type ==
+                                      type_2->variant.integer.char16_t_type &&
+              type_1->variant.integer.char32_t_type ==
+                                      type_2->variant.integer.char32_t_type &&
               type_1->variant.integer.bool_type ==
                                       type_2->variant.integer.bool_type) {
             identical = TRUE;
@@ -5306,6 +5413,10 @@ check_typerefs:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                 type_1->variant.integer.wchar_t_type ==
                                         type_2->variant.integer.wchar_t_type &&
+                type_1->variant.integer.char16_t_type ==
+                                       type_2->variant.integer.char16_t_type &&
+                type_1->variant.integer.char32_t_type ==
+                                       type_2->variant.integer.char32_t_type &&
                 type_1->variant.integer.bool_type ==
                                         type_2->variant.integer.bool_type) {
               compat = TRUE;
@@ -5781,6 +5892,10 @@ that are not present in standalone back ends and utilities.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                    type_1->variant.integer.wchar_t_type ==
                                         type_2->variant.integer.wchar_t_type &&
+                   type_1->variant.integer.char16_t_type ==
+                                       type_2->variant.integer.char16_t_type &&
+                   type_1->variant.integer.char32_t_type ==
+                                       type_2->variant.integer.char32_t_type &&
                    type_1->variant.integer.bool_type ==
                                             type_2->variant.integer.bool_type);
       break;

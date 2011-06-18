@@ -2721,6 +2721,12 @@ to the character position following what was demangled.
       case 'u':
         s = "auto";
         break;
+      case 'g':
+        s = "char16_t";
+        break;
+      case 'k':
+        s = "char32_t";
+        break;
       case 't':
         /* typeof(type) */
         write_id_str("typeof(", dctl);
@@ -4647,6 +4653,12 @@ demangled as part of the template function instead).
           case 'N':
             /* EDG extension for C++/CLI managed __nullptr. */
             s = "__nullptr";
+            break;
+          case 's':
+            s = "char16_t";
+            break;
+          case 'i':
+            s = "char32_t";
             break;
           default:
             bad_mangled_name(dctl);

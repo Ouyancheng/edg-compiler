@@ -1,5 +1,18 @@
 Version 4.4
 
+6/17/11 [EDGcpfe/8403,EDGcpfe/10669,EDGcpfe/11510,EDGcpfe/11628,EDGcpfe/11684,
+         EDGcpfe/11800]
+C++0x: Changes for char16_t/char32_t types
+
+A change has been made to enable decoding of the new C++0x char16_t and
+char32_t types.  In the Cfront-like ABI, these types have been assigned the
+encodings "g" and "k", respectively.
+
+The make_predef_macro_table script has been updated to suppress the
+__CHAR16_TYPE__ and __CHAR32_TYPE__ macros from the predefined_macros.txt file.
+These macros are now set by the front end.
+
+
 4/8/11   [EDGcpfe/11620]
 Add --c_to_obj_option option to eccp
 

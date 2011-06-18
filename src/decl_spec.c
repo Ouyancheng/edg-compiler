@@ -5788,6 +5788,8 @@ typedef enum {
   bt_void,
   bt_char,
   bt_wchar_t,
+  bt_char16_t,
+  bt_char32_t,
   bt_bool,
   bt_int,
 #if FIXED_POINT_ALLOWED
@@ -6061,6 +6063,20 @@ modifier _Sat was specified.
     case bt_wchar_t:
       if (sign == sign_none && size == size_none) {
         *type_ptr = wchar_t_type();
+      } else {
+        bad_combination = TRUE;
+      }  /* if */
+      break;
+    case bt_char16_t:
+      if (sign == sign_none && size == size_none) {
+        *type_ptr = char16_t_type();
+      } else {
+        bad_combination = TRUE;
+      }  /* if */
+      break;
+    case bt_char32_t:
+      if (sign == sign_none && size == size_none) {
+        *type_ptr = char32_t_type();
       } else {
         bad_combination = TRUE;
       }  /* if */
@@ -8259,6 +8275,8 @@ storage_class_specifier:
         /*FALLTHROUGH*/
       case tok_char:
       case tok_wchar_t:
+      case tok_char16_t:
+      case tok_char32_t:
       case tok_c99_bool:
       case tok_bool:
       case tok_int:
@@ -8293,6 +8311,8 @@ storage_class_specifier:
             case tok_void:     basic_type = bt_void;    break;
             case tok_char:     basic_type = bt_char;    break;
             case tok_wchar_t:  basic_type = bt_wchar_t; break;
+            case tok_char16_t: basic_type = bt_char16_t; break;
+            case tok_char32_t: basic_type = bt_char32_t; break;
             case tok_c99_bool:
             case tok_bool:     basic_type = bt_bool;    break;
             case tok_int:      basic_type = bt_int;     break;

@@ -1,5 +1,36 @@
 Version 4.4
 
+6/17/11 [EDGcpfe/8403,EDGcpfe/10669,EDGcpfe/11510,EDGcpfe/11628,EDGcpfe/11684,
+         EDGcpfe/11800]
+C++0x: Implement char16_t and char32_t types
+
+The front end now supports the char16_t and char32_t types as adopted by N2249.
+These types are available as keywords by default in C++0x mode and optionally
+when DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS is TRUE or --uliterals is
+specified in C++ mode.  U-literals (see the Changes entry dated 2/14/06) were
+previously allowed only in C mode are now allowed in C++ mode and enabled by
+default in C++0x mode.
+
+The new DEFINE_MACRO_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS and
+MACRO_DEFINED_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS configuration macros can
+be used to define a macro (which defaults to __CHAR16_T_AND_CHAR32_T) when
+char16_t and char32_t are implemented as keywords.
+
+For GNU compatibility, when emulating version 4.4.0 and later, the
+front end predefines the __CHAR16_TYPE__ and __CHAR32_TYPE__ macros with
+the underlying types used by the char16_t and char32_t types, respectively.
+These macros are defined in both C and C++ modes.
+
+When emulating Microsoft mode (version 1600 and later), the
+_HAS_CHAR16_T_LANGUAGE_SUPPORT macro is also predefined.
+
+Also as part of these changes, the default value for the TARG_CHAR32_T_INT_KIND
+configuration macro has been changed from ik_unsigned_long to ik_unsigned_int.
+
+  char16_t *str = u"A 16-bit character string";
+  char32_t ch = U'\U00012345';  // A 32-bit character literal
+
+
 6/17/11 [EDGcpfe/11809]
 C++-generating back end: Postfix attributes on parameters
 

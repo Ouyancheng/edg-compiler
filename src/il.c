@@ -74,6 +74,8 @@ static a_type_ptr il_error_type;
 static a_type_ptr il_unknown_type;
 static a_type_ptr il_void_type;
 static a_type_ptr il_wchar_t_type;
+static a_type_ptr il_char16_t_type;
+static a_type_ptr il_char32_t_type;
 static a_type_ptr il_bool_type;
 static a_type_ptr il_standard_nullptr_type;
 static a_type_ptr il_managed_nullptr_type;
@@ -1141,6 +1143,10 @@ Dump the contents of the indicated type entry, for debug purposes.
       case tk_integer:
         if (tp->variant.integer.wchar_t_type) {
           fputs("wchar_t", f_debug);
+        } else if (tp->variant.integer.char16_t_type) {
+          fputs("char16_t", f_debug);
+        } else if (tp->variant.integer.char32_t_type) {
+          fputs("char32_t", f_debug);
         } else if (tp->variant.integer.bool_type) {
           fputs("bool", f_debug);
         } else {
@@ -4801,10 +4807,10 @@ character kind.
       result = eff_wchar_t_type();
       break;
     case chk_char16_t:
-      result = integer_type(targ_char16_t_int_kind);
+      result = eff_char16_t_type();
       break;
     case chk_char32_t:
-      result = integer_type(targ_char32_t_int_kind);
+      result = eff_char32_t_type();
       break;
     default:
       unexpected_condition();
@@ -8114,6 +8120,8 @@ primary translation unit.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* for */
   il_wchar_t_type = primary_wchar_t_type();
+  il_char16_t_type = primary_char16_t_type();
+  il_char32_t_type = primary_char32_t_type();
   il_standard_nullptr_type = primary_standard_nullptr_type();
   il_managed_nullptr_type = primary_managed_nullptr_type();
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -8379,6 +8387,66 @@ based on wchar_t_type.
 }  /* wchar_t_type */
 
 
+a_type_ptr char16_t_type(void)
+/*
+Make or find a type entry for a char16_t type and return a pointer to it.
+This is only used when char16_t is a distinct type.
+*/
+{
+  a_type_ptr pit;
+  a_type_ptr *ptype;
+  ptype = &il_char16_t_type;
+
+  if (*ptype != NULL) {
+    /* The type has previously been created, and can be reused. */
+    pit = *ptype;
+  } else {
+    /* The type must be created. */
+    *ptype = pit = alloc_type((a_type_kind)tk_integer);
+    pit->variant.integer.int_kind = targ_char16_t_int_kind;
+    pit->variant.integer.char16_t_type = TRUE;
+    set_type_size(pit);
+#if ORPHAN_PROCESSING_NEEDED
+    /* Record the type entry as an orphan in case it is discarded now
+       and then found again in a later phase (e.g., IL lowering). */
+    add_orphaned_file_scope_il_entry((char *)pit, (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
+    record_builtin_type(pit);
+  }  /* if */
+  return pit;
+}  /* char16_t_type */
+
+
+a_type_ptr char32_t_type(void)
+/*
+Make or find a type entry for a char32_t type and return a pointer to it.
+This is only used when char32_t is a distinct type.
+*/
+{
+  a_type_ptr pit;
+  a_type_ptr *ptype;
+  ptype = &il_char32_t_type;
+
+  if (*ptype != NULL) {
+    /* The type has previously been created, and can be reused. */
+    pit = *ptype;
+  } else {
+    /* The type must be created. */
+    *ptype = pit = alloc_type((a_type_kind)tk_integer);
+    pit->variant.integer.int_kind = targ_char32_t_int_kind;
+    pit->variant.integer.char32_t_type = TRUE;
+    set_type_size(pit);
+#if ORPHAN_PROCESSING_NEEDED
+    /* Record the type entry as an orphan in case it is discarded now
+       and then found again in a later phase (e.g., IL lowering). */
+    add_orphaned_file_scope_il_entry((char *)pit, (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
+    record_builtin_type(pit);
+  }  /* if */
+  return pit;
+}  /* char32_t_type */
+
+
 a_type_ptr eff_wchar_t_type(void)
 /*
 Return the effective type of wchar_t.  This is a distinct type if
@@ -8396,6 +8464,42 @@ and the (cv-unqualified) type of the elements of wide string literals.
   }  /* if */
   return eff_wchar_t;
 }  /* eff_wchar_t_type */
+
+
+a_type_ptr eff_char16_t_type(void)
+/*
+Return the effective type of char16_t.  This is a distinct type if
+char16_t_and_char32_t_are_keywords is TRUE and the appropriate integral type
+otherwise.
+*/
+{
+  a_type_ptr eff_char16_t;
+
+  if (char16_t_and_char32_t_are_keywords) {
+    eff_char16_t = char16_t_type();
+  } else {
+    eff_char16_t = integer_type((an_integer_kind)targ_char16_t_int_kind);
+  }  /* if */
+  return eff_char16_t;
+}  /* eff_char16_t_type */
+
+
+a_type_ptr eff_char32_t_type(void)
+/*
+Return the effective type of char32_t.  This is a distinct type if
+char16_t_and_char32_t_are_keywords is TRUE, and the appropriate integral type
+otherwise.
+*/
+{
+  a_type_ptr eff_char32_t;
+
+  if (char16_t_and_char32_t_are_keywords) {
+    eff_char32_t = char32_t_type();
+  } else {
+    eff_char32_t = integer_type((an_integer_kind)targ_char32_t_int_kind);
+  }  /* if */
+  return eff_char32_t;
+}  /* eff_char32_t_type */
 
 
 a_type_ptr bool_type(void)
@@ -23052,6 +23156,8 @@ in il_init.)
       pch_saved_var_array_elem(il_unknown_type),
       pch_saved_var_array_elem(il_void_type),
       pch_saved_var_array_elem(il_wchar_t_type),
+      pch_saved_var_array_elem(il_char16_t_type),
+      pch_saved_var_array_elem(il_char32_t_type),
       pch_saved_var_array_elem(il_bool_type),
       pch_saved_var_array_elem(il_standard_nullptr_type),
       pch_saved_var_array_elem(il_managed_nullptr_type),
@@ -23132,6 +23238,8 @@ in il_init.)
   register_trans_unit_variable(il_unknown_type);
   register_trans_unit_variable(il_void_type);
   register_trans_unit_variable(il_wchar_t_type);
+  register_trans_unit_variable(il_char16_t_type);
+  register_trans_unit_variable(il_char32_t_type);
   register_trans_unit_variable(il_bool_type);
   register_trans_unit_variable(il_standard_nullptr_type);
   register_trans_unit_variable(il_managed_nullptr_type);

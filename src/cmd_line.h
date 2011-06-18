@@ -1137,6 +1137,13 @@ EXTERN a_boolean
                            mode. */
 
 EXTERN a_boolean
+                char16_t_and_char32_t_are_keywords;
+                        /* Indicates whether char16_t and char32_t are to be
+                           considered keywords.  Once command line processing
+                           has been completed, this value must only be TRUE in
+                           C++ mode. */
+
+EXTERN a_boolean
 		bool_is_keyword;
 			/* Indicates whether bool is to be considered a
 			   keyword in C++.  Also indicates that the result

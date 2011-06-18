@@ -1628,7 +1628,7 @@ Configuration of char16_t and char32_t (C extensions introduced by TR 19769).
 #endif /* !defined(TARG_CHAR16_T_INT_KIND) */
 
 #ifndef TARG_CHAR32_T_INT_KIND
-#define TARG_CHAR32_T_INT_KIND  ((an_integer_kind)ik_unsigned_long)
+#define TARG_CHAR32_T_INT_KIND  ((an_integer_kind)ik_unsigned_int)
 #endif /* !defined(TARG_CHAR32_T_INT_KIND) */
 
 /*

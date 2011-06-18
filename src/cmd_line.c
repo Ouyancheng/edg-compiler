@@ -2593,6 +2593,8 @@ not always enabled in default mode (e.g., exception handling).
     export_template_allowed = FALSE;
   }  /* if */
   explicit_conversion_functions_enabled = TRUE;
+  uliterals_enabled = TRUE;
+  char16_t_and_char32_t_are_keywords = TRUE;
 }  /* check_and_set_cpp0x_mode_options */
 
 
@@ -2684,11 +2686,10 @@ setting is used, and to set various unmentioned settings as needed.
   if (option_kind_used[(int)optk_embedded_c]) {
     command_line_error(ec_cl_embedded_c_option_only_in_C);
   }  /* if */
-  /* U-literals are not currently supported in C++ modes. */
+  /* U-literals are supported in both C and C++ modes. */
   if (option_kind_used[(int)optk_uliterals]) {
-    command_line_error(ec_cl_uliterals_option_only_in_C);
+    uliterals_enabled = TRUE;
   }  /* if */
-  uliterals_enabled = FALSE;
   /* "//" is allowed as a comment delimiter. */
   end_of_line_comments_allowed = TRUE;
   /* Universal character names are allowed. */
@@ -2963,9 +2964,9 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
        strict mode. */
     allow_dollar_in_id_chars = FALSE;
   }  /* if */
-  if (!option_kind_used[(int)optk_uliterals]) {
+  if (!option_kind_used[(int)optk_uliterals] && !cpp0x_mode) {
     /* Support for U-literals (U... and u...) is off by default in strict
-       mode. */
+       mode (but not in strict C++0x mode). */
     uliterals_enabled = FALSE;
   }  /* if */
   if (!option_kind_used[(int)optk_check_concatenations]) {
@@ -4392,6 +4393,11 @@ file.
 #else /* !defined(DEFAULT_C99_MODE) */
   comment_undefined_macro_name(DEFAULT_C99_MODE);
 #endif /* defined(DEFAULT_C99_MODE) */
+#if defined(DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS)
+  define_numeric_valued_macro(DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS);
+#else /* !defined(DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS) */
+  comment_undefined_macro_name(DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS);
+#endif /* defined(DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS) */
 #if defined(DEFAULT_CHECK_CONCATENATIONS)
   define_numeric_valued_macro(DEFAULT_CHECK_CONCATENATIONS);
 #else /* !defined(DEFAULT_CHECK_CONCATENATIONS) */
@@ -4994,6 +5000,13 @@ file.
 #else /* !defined(DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD) */
   comment_undefined_macro_name(DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD);
 #endif /* defined(DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD) */
+#if defined(DEFINE_MACRO_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS)
+  define_numeric_valued_macro(
+                         DEFINE_MACRO_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS);
+#else /* !defined(DEFINE_MACRO_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS) */
+  comment_undefined_macro_name(
+                         DEFINE_MACRO_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS);
+#endif /* defined(DEFINE_MACRO_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS) */
 #if defined(DEFINE_MACRO_WHEN_EXCEPTIONS_ENABLED)
   define_numeric_valued_macro(DEFINE_MACRO_WHEN_EXCEPTIONS_ENABLED);
 #else /* !defined(DEFINE_MACRO_WHEN_EXCEPTIONS_ENABLED) */
@@ -5683,6 +5696,13 @@ file.
 #else /* !defined(MACRO_DEFINED_WHEN_BOOL_IS_KEYWORD) */
   comment_undefined_macro_name(MACRO_DEFINED_WHEN_BOOL_IS_KEYWORD);
 #endif /* defined(MACRO_DEFINED_WHEN_BOOL_IS_KEYWORD) */
+#if defined(MACRO_DEFINED_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS)
+  define_string_valued_macro(
+                        MACRO_DEFINED_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS);
+#else /* !defined(MACRO_DEFINED_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS) */
+  comment_undefined_macro_name(
+                        MACRO_DEFINED_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS);
+#endif /* defined(MACRO_DEFINED_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS) */
 #if defined(MACRO_DEFINED_WHEN_EXCEPTIONS_ENABLED)
   define_string_valued_macro(MACRO_DEFINED_WHEN_EXCEPTIONS_ENABLED);
 #else /* !defined(MACRO_DEFINED_WHEN_EXCEPTIONS_ENABLED) */
@@ -8649,6 +8669,11 @@ enable_microsoft_mode:
     check_upc_mode();
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  if (uliterals_enabled && !C_mode()) {
+    /* U-literal enabling implies enabling char16_t and char32_t keywords
+       (except in C mode). */
+    char16_t_and_char32_t_are_keywords = TRUE;
+  }  /* if */
   if (nonclass_prototype_instantiations &&
       !option_kind_used[(int)optk_implicit_typename]) {
     /* When doing nonclass prototype instantiations, disable implicit typename
@@ -9324,6 +9349,8 @@ variables declared in cmd_line.h.
 #else /* !WCHAR_T_ENABLING_POSSIBLE */
                        FALSE;
 #endif /* WCHAR_T_ENABLING_POSSIBLE */
+  char16_t_and_char32_t_are_keywords =
+                                    DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS;
   bool_is_keyword = 
 #if BOOL_ENABLING_POSSIBLE
                     DEFAULT_BOOL_IS_KEYWORD;

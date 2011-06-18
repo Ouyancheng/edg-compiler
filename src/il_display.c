@@ -1706,6 +1706,12 @@ Display the indicated type entry.
       if (ptr->variant.integer.wchar_t_type) {
         disp_boolean("wchar_t_type", TRUE);
       }  /* if */
+      if (ptr->variant.integer.char16_t_type) {
+        disp_boolean("char16_t_type", TRUE);
+      }  /* if */
+      if (ptr->variant.integer.char32_t_type) {
+        disp_boolean("char32_t_type", TRUE);
+      }  /* if */
       if (ptr->variant.integer.bool_type) {
         disp_boolean("bool_type", TRUE);
       }  /* if */

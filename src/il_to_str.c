@@ -1397,6 +1397,16 @@ by octl.
         } else {
           octl->output_str("wchar_t", octl);
         }  /* if */
+      } else if (type->variant.integer.char16_t_type &&
+                 !octl->c_generating_back_end) {
+        /* Output a char16_t type as "char16_t", except in the C generating
+           back end, where it is output as its underlying type. */
+        octl->output_str("char16_t", octl);
+      } else if (type->variant.integer.char32_t_type &&
+                 !octl->c_generating_back_end) {
+        /* Output a char32_t type as "char32_t", except in the C generating
+           back end, where it is output as its underlying type. */
+        octl->output_str("char32_t", octl);
       } else if (type->variant.integer.bool_type &&
                  (!octl->c_generating_back_end || octl->render_c99_bool)) {
         /* Output a bool type as "bool", except in the C generating

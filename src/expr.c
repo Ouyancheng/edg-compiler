@@ -26400,6 +26400,8 @@ handle_trapped_left_paren:
     case tok_double:
     case tok_void:
     case tok_wchar_t:
+    case tok_char16_t:
+    case tok_char32_t:
     case tok_bool:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_int8:

@@ -232,6 +232,8 @@ void __gen_dummy_typeinfos()
   gen_typeinfos(void); 
   gen_typeinfos(bool); 
   gen_typeinfos(wchar_t);
+  gen_typeinfos(char16_t);
+  gen_typeinfos(char32_t);
   gen_typeinfos(char); 
   gen_typeinfos(signed char); gen_typeinfos(unsigned char); 
   gen_typeinfos(short);       gen_typeinfos(unsigned short); 

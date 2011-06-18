@@ -828,7 +828,15 @@ a_type_ptr other_signedness_integer_type(an_integer_kind ikind);
 
 extern a_type_ptr wchar_t_type(void);
 
+extern a_type_ptr char16_t_type(void);
+
+extern a_type_ptr char32_t_type(void);
+
 extern a_type_ptr eff_wchar_t_type(void);
+
+extern a_type_ptr eff_char16_t_type(void);
+
+extern a_type_ptr eff_char32_t_type(void);
 
 extern a_type_ptr bool_type(void);
 

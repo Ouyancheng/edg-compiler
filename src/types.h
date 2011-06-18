@@ -171,8 +171,12 @@ extern a_boolean is_scalar_type(a_type_ptr tp);
 extern a_boolean is_array_type(a_type_ptr tp);
 extern a_boolean is_vla_type(a_type_ptr tp);
 extern a_boolean is_char_array_type(a_type_ptr tp);
+extern a_boolean is_char16_t_type(a_type_ptr tp);
+extern a_boolean is_char32_t_type(a_type_ptr tp);
 #if !STANDALONE_UTILITY_PROGRAM 
 extern a_boolean is_wchar_t_array_type(a_type_ptr tp);
+extern a_boolean is_char16_t_array_type(a_type_ptr tp);
+extern a_boolean is_char32_t_array_type(a_type_ptr tp);
 extern a_boolean is_string_type(a_type_ptr tp);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 extern a_boolean is_ptrdiff_t_type(a_type_ptr tp);

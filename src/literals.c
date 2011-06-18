@@ -1053,7 +1053,7 @@ processing, and in wide characters if the constant is wide).
       char_size = (unsigned int)targ_sizeof_char32_t;
       centity_bits = char_size*targ_char_bit;
       centity_is_signed = FALSE; 
-      con_type = integer_type(targ_char32_t_int_kind);
+      con_type = eff_char32_t_type();
       temp_ptr = start_of_curr_token+2;
       break;
     case 'u':
@@ -1065,7 +1065,7 @@ processing, and in wide characters if the constant is wide).
          encode_in_char16_t macro). */
       centity_bits = sizeof(unsigned long)*CHAR_BIT;
       centity_is_signed = FALSE; 
-      con_type = integer_type(targ_char16_t_int_kind);
+      con_type = eff_char16_t_type();
       temp_ptr = start_of_curr_token+2;
       break;
     default:

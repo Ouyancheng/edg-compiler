@@ -660,6 +660,10 @@ Install the keywords in the symbol table.
     if (wchar_t_is_keyword) {
       enter_keyword((a_token_kind)tok_wchar_t, "wchar_t");
     }  /* if */
+    if (char16_t_and_char32_t_are_keywords) {
+      enter_keyword((a_token_kind)tok_char16_t, "char16_t");
+      enter_keyword((a_token_kind)tok_char32_t, "char32_t");
+    }  /* if */
     if (microsoft_mode && microsoft_version >= 1300) {
       /* The __wchar_t keyword is entered even when wchar_t_is_keyword is
          FALSE. */

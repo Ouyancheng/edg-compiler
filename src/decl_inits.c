@@ -351,7 +351,6 @@ standard C behavior of trimming the terminating null character if needed),
     /* The constant and the array should have the same underlying character
        element type -- e.g., it's a mismatch if one is a wide string
        and the other a normal string. */
-    a_type_ptr  var_elem_type;
     switch (string_con->character_kind) {
       case chk_char:
         err = !is_char_array_type(*dst_type);
@@ -360,14 +359,10 @@ standard C behavior of trimming the terminating null character if needed),
         err = !is_wchar_t_array_type(*dst_type);
         break;
       case chk_char16_t:
-        var_elem_type  = array_element_type(*dst_type);
-        err = skip_typerefs(var_elem_type)->variant.integer.int_kind !=
-                                                       targ_char16_t_int_kind;
+        err = !is_char16_t_array_type(*dst_type);
         break;
       case chk_char32_t:
-        var_elem_type  = array_element_type(*dst_type);
-        err = skip_typerefs(var_elem_type)->variant.integer.int_kind !=
-                                                       targ_char32_t_int_kind;
+        err = !is_char32_t_array_type(*dst_type);
         break;
       default:
         unexpected_condition();

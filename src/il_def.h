@@ -938,6 +938,9 @@ typedef enum /*a_token_kind*/ {
   tok_nan,
   /* Token for __INFINITY__, for an Infinity constant (C99 and other modes). */
   tok_infinity,
+  /* C++0x types: char16_t and char32_t. */
+  tok_char16_t,
+  tok_char32_t,
   /* Tokens for fixed-point type support ("_Fract", "_Accum", and "_Sat"). */
   tok_fract,
   tok_accum,
@@ -1161,6 +1164,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__builtin_offsetof",
    "restrict", "__restrict",
    "_Bool", "_Complex", "_Imaginary", "__I__", "__NAN__", "__INFINITY__",
+   "char16_t", "char32_t",
    "_Fract", "_Accum", "_Sat", "__declspec",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "abstract", "override", "sealed",
@@ -7293,6 +7297,14 @@ typedef struct a_type {
       a_bit_field
 		wchar_t_type:1;
 			/* TRUE if this type is wchar_t in C++ when wchar_t
+                           is a distinct type. */
+      a_bit_field
+		char16_t_type:1;
+			/* TRUE if this type is char16_t in C++ when char16_t
+                           is a distinct type. */
+      a_bit_field
+		char32_t_type:1;
+			/* TRUE if this type is char32_t in C++ when char32_t
                            is a distinct type. */
       a_bit_field
 		bool_type:1;

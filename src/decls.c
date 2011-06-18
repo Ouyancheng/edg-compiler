@@ -10939,6 +10939,12 @@ types, e.g., "unsigned int".  See ARM 7.1.6 and 5.2.3.
     case tok_bool:
       type = bool_type();
       break;
+    case tok_char16_t:
+      type = eff_char16_t_type();
+      break;
+    case tok_char32_t:
+      type = eff_char32_t_type();
+      break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* The following tokens may or may not be defined, but for each that is,
        the corresponding integer kind will be set to something besides

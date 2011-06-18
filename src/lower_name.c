@@ -44,6 +44,8 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_CODE_FOR_EXTERN_C 'Y'
 #define MANGLING_STRING_FOR_VOID "v"
 #define MANGLING_STRING_FOR_WCHAR_T "w"
+#define MANGLING_STRING_FOR_CHAR16_T "Ds"
+#define MANGLING_STRING_FOR_CHAR32_T "Di"
 #define MANGLING_STRING_FOR_BOOL "b"
 #define MANGLING_STRING_FOR_CHAR "c"
 #define MANGLING_STRING_FOR_SIGNED_CHAR "a"
@@ -174,6 +176,8 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_CODE_FOR_EXTERN_C 'K'
 #define MANGLING_STRING_FOR_VOID "v"
 #define MANGLING_STRING_FOR_WCHAR_T "w"
+#define MANGLING_STRING_FOR_CHAR16_T "g"
+#define MANGLING_STRING_FOR_CHAR32_T "k"
 #define MANGLING_STRING_FOR_BOOL "b"
 #define MANGLING_STRING_FOR_CHAR "c"
 #define MANGLING_STRING_FOR_SIGNED_CHAR "Sc"
@@ -8399,6 +8403,10 @@ top_of_loop:
         }  /* if */
         if (type->variant.integer.wchar_t_type) {
           s = MANGLING_STRING_FOR_WCHAR_T;
+        } else if (type->variant.integer.char16_t_type) {
+          s = MANGLING_STRING_FOR_CHAR16_T;
+        } else if (type->variant.integer.char32_t_type) {
+          s = MANGLING_STRING_FOR_CHAR32_T;
         } else if (type->variant.integer.bool_type) {
           s = MANGLING_STRING_FOR_BOOL;
 #if MICROSOFT_EXTENSIONS_ALLOWED && !IA64_ABI
