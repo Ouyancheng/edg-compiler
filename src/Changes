@@ -1,5 +1,23 @@
 Version 4.4
 
+6/18/11  [EDGcpfe/11808]
+C-generating back end: abort on reference to variable in containing block
+
+C-generating back end configurations could abort (in
+find_local_variable_static_init) on code that takes the address of an
+initialized static variable that is promoted to the global scope from a
+containing block.  This is now fixed.  For example:
+
+  const void* p;
+  void f() {
+    static const int x[] = { 1, -2, 3, 4 };
+    {
+      int i;
+      p = &x;   // Could abort here
+    }
+  }
+
+
 6/17/11 [EDGcpfe/8403,EDGcpfe/10669,EDGcpfe/11510,EDGcpfe/11628,EDGcpfe/11684,
          EDGcpfe/11800]
 C++0x: Implement char16_t and char32_t types

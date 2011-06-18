@@ -11757,26 +11757,28 @@ the variable or the variable's scope must be on the scope stack.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_local_static_variable_init_ptr find_local_static_variable_init(
-                                                      a_variable_ptr  var,
-                                                      a_scope_ptr     scope)
+                                                         a_variable_ptr  var,
+                                                         a_scope_ptr     scope)
 /*
-Return a pointer to the local static variable init entry that appears on the
-linked list for the specified scope and points to the specified variable.
-(It is an internal error for none to be found.)
+Return a pointer to the local static variable init entry that appears on
+the linked list for the specified scope or a containing scope and points to
+the specified variable.  (It is an internal error for none to be found.)
 */
 {
-  a_local_static_variable_init_ptr  lsvip;
+  a_local_static_variable_init_ptr lsvip = NULL;
 
   check_assertion(scope != NULL &&
                   (scope->kind == (a_scope_kind)sck_function ||
                    scope->kind == (a_scope_kind)sck_block));
-  for (lsvip = scope->local_static_variable_inits;
-       lsvip != NULL;
-       lsvip = lsvip->next) {
-    if (lsvip->variable == var) {
-      /* Found it. */
-      break;
-    }  /* if */
+  for (; lsvip == NULL && scope != NULL; scope = scope->parent) {
+    for (lsvip = scope->local_static_variable_inits;
+         lsvip != NULL;
+         lsvip = lsvip->next) {
+      if (lsvip->variable == var) {
+        /* Found it. */
+        break;
+      }  /* if */
+    }  /* for */
   }  /* for */
   check_assertion_str2(lsvip != NULL, "find_local_static_variable_init:",
                        "none found for specified variable and scope");
