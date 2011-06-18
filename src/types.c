@@ -79,16 +79,6 @@ predicates.
 #define is_bool(tp) \
   (type_kind_is_integer(tp) && (tp)->variant.integer.bool_type)
 
-/* The char16_t type is an integral type that is tagged as char16_t.  It only
-   exists when char16_t_and_char32_t_are_keywords is TRUE. */
-#define is_char16_t(tp) \
-  (type_kind_is_integer(tp) && (tp)->variant.integer.char16_t_type)
-
-/* The char32_t type is an integral type that is tagged as char32_t.  It only
-   exists when char16_t_and_char32_t_are_keywords is TRUE. */
-#define is_char32_t(tp) \
-   (type_kind_is_integer(tp) && (tp)->variant.integer.char32_t_type)
-
 /* The nullptr type is the type of the nullptr keyword in C++ (i.e.,
    std::nullptr_t) and also includes the managed nullptr type in
    C++/CLI. */
