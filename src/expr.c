@@ -5014,27 +5014,32 @@ operand, as a way to catch loops.
 end_of_routine:;
 }  /* process_overloaded_operator_arrow */
 
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void box_value_type_operand(an_operand *operand)
+static void box_value_type_operand(an_operand *operand,
+                                   a_boolean  leave_as_handle)
 /*
-operand has a fundamental type that corresponds to a C++/CLI value class
-type.  Box the operand, producing an lvalue for boxed value.  This is
-an implicit operation.
+operand has a C++/CLI value type (possibly a fundamental type that
+corresponds to a C++/CLI value class type).  Box the operand, producing
+an lvalue for the boxed value.  If leave_as_handle is TRUE, produce an
+rvalue handle for the boxed value.  In either case, this is an implicit
+operation.
 */
 {
   an_expr_node_ptr expr;
   an_operand       orig_operand;
 
   orig_operand = *operand;
+  check_assertion(is_cli_value_type(operand->type));
   /* Convert the value to an rvalue. */
   do_operand_transformations(operand, TOPT_NO_OPTIONS);
   expr = make_node_from_operand(operand);
   expr = add_box_to_expression(expr, /*is_implicit=*/TRUE,
                                /*handle_to_form=*/FALSE);
-  expr = add_indirection_to_node(expr);
-  make_expression_operand(expr, operand);
+  if (!leave_as_handle) {
+    expr = add_indirection_to_node(expr);
+  }  /* if */
+  make_lvalue_or_rvalue_expression_operand(expr, operand);
   restore_operand_details(operand, &orig_operand);
 }  /* box_value_type_operand */
 
@@ -5913,14 +5918,32 @@ case).
     operand_will_not_be_used_because_of_error(operand_1);
   } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && !is_arrow_operator &&
-        !is_class_struct_union_type(operand_1->type)) {
-      /* In C++/CLI, the first operand of "." will be boxed if it has a
-         built-in type that has a corresponding value class type. */
-      a_type_ptr sys_type = system_type_from_fundamental_type(
+    if (cppcli_enabled) {
+      if (is_cli_generic_definition_argument_type(operand_1->type)) {
+        /* Uses of C++/CLI generic parameters have to use the "->" form. */
+        if (is_arrow_operator) {
+          /* Okay, but box the operand if it is value-constrained. */
+          if (!is_handle_type(operand_1->type)) {
+            box_value_type_operand(operand_1, /*leave_as_handle=*/TRUE);
+          }  /* if */
+        } else {
+          /* Error, have to use "->". */
+          expr_pos_error(ec_generic_selection_with_points_to,
+                         &operator_position);
+          if (is_handle_type(operand_1->type)) {
+            is_arrow_operator = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (!is_arrow_operator &&
+          !is_class_struct_union_type(operand_1->type)) {
+        /* In C++/CLI, the first operand of "." will be boxed if it has a
+           built-in type that has a corresponding value class type. */
+        a_type_ptr sys_type = system_type_from_fundamental_type(
                                                skip_typerefs(operand_1->type));
-      if (sys_type != NULL) {
-        box_value_type_operand(operand_1);
+        if (sys_type != NULL) {
+          box_value_type_operand(operand_1, /*leave_as_handle=*/FALSE);
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5977,12 +6000,6 @@ case).
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (cppcli_enabled && is_handle_type(operand_1->type)) {
           orig_class_struct_union_type = type_pointed_to(operand_1->type);
-        } else if (cppcli_enabled &&
-                   is_cli_generic_constraint_type(operand_1->type)) {
-          /* Uses of C++/CLI generic parameters have to use the "->" form,
-             but they are handled like ".". */
-          is_arrow_operator = FALSE;
-          orig_class_struct_union_type = operand_1->type;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (check_pointer_operand(operand_1, ec_expr_not_pointer)) {
           orig_class_struct_union_type = type_pointed_to(operand_1->type);
@@ -6017,14 +6034,6 @@ case).
             }  /* if */
           }  /* if */
         }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (cppcli_enabled &&
-            is_cli_generic_constraint_type(orig_class_struct_union_type)) {
-          /* Uses of C++/CLI generic parameters have to use the "->" form. */
-          expr_pos_error(ec_generic_selection_with_points_to,
-                         &operator_position);
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (is_an_lvalue(operand_1)) using_lvalue(operand_1);
       }  /* if */
     }  /* if */

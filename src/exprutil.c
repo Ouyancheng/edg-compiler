@@ -5075,7 +5075,7 @@ If handle_to_form is TRUE, the source form uses the unary "%" operator.
 {
   a_type_ptr boxed_type = make_unqualified_type(expr->type);
 
-  check_assertion(!expr->is_lvalue);
+  check_assertion(!expr->is_lvalue && is_cli_value_type(expr->type));
   check_assertion(!(is_implicit && handle_to_form));
   expr = make_operator_node((handle_to_form ?
                                (an_expr_operator_kind)eok_handle_to_box :

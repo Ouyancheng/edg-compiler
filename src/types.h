@@ -120,7 +120,6 @@ extern a_boolean is_handle_type_or_any_ref_type(a_type_ptr tp);
                                   !(tp)->variant.pointer.is_reference)
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean is_cli_generic_param_type(a_type_ptr tp);
-extern a_boolean is_cli_generic_constraint_type(a_type_ptr tp);
 extern a_boolean is_handle_type(a_type_ptr tp);
 extern a_boolean is_tracking_reference_type(a_type_ptr tp);
 extern a_boolean is_handle_or_tracking_ref_type(a_type_ptr tp);

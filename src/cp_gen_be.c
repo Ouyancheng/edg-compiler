@@ -7576,17 +7576,7 @@ the expression reflects an implicit member access ("this->y"), so the
   } else {
     /* Normal "." case. */ 
     gen_expr_with_parens(object_expr);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (is_cli_generic_constraint_type(object_expr->type)) {
-      /* C++/CLI generic member selections must be written as "->" even though
-         the semantics are like ".". */
-      write_tok_str("->");
-    } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    {
-      m_write_tok_ch('.');
-    }  /* if */
+    m_write_tok_ch('.');
   }  /* if */
   if (il_header.source_language == sl_Cplusplus) {
     a_class_type_supplement_ptr  ctsp;
@@ -7825,13 +7815,6 @@ indicated by opstr.
        use "->" with a non-pointer value. */
     opstr = ".";
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_cli_generic_constraint_type(operand_1->type)) {
-    /* C++/CLI generic member selections must be written as "->" even though
-       the semantics are like ".". */
-    opstr = "->";
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   gen_expr_with_parens(operand_1);
   if (operand_1->is_lvalue &&
       is_template_param_or_nonreal_class_type(operand_1_type)) {
@@ -8661,13 +8644,6 @@ function reference.
          accordingly. */
       use_arrow = FALSE;
     }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (is_cli_generic_constraint_type(object_expr->type)) {
-      /* C++/CLI generic member selections must be written as "->" even though
-         the semantics are like ".". */
-      use_arrow = TRUE;
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (use_arrow) {
       /* Use a pointer and "->". */
       if (is_variable_node(object_expr) &&

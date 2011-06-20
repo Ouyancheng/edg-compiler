@@ -646,8 +646,10 @@ value class or a handle to a ref or interface class.
 {
   a_boolean	result = FALSE;
 
+  type = skip_typerefs(type);
   if (is_handle_ptr(type)) {
     type = type->variant.pointer.type;
+    type = skip_typerefs(type);
   }  /* if */
   result = is_cli_generic_constraint(type);
   return result;
@@ -963,7 +965,7 @@ generic.
 }  /* is_cli_generic_param_type */
 
 
-a_boolean is_cli_generic_constraint_type(a_type_ptr tp)
+static a_boolean is_cli_generic_constraint_type(a_type_ptr tp)
 /*
 Return TRUE if the given type entry represents the class constraint
 version of a C++/CLI generic parameter.
