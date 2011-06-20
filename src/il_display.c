@@ -1886,6 +1886,9 @@ Display the indicated type entry.
       if (ptr->variant.class_struct_union.is_hybrid_constraint) {
         disp_boolean("is_hybrid_constraint", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.any_interface_constraints) {
+        disp_boolean("any_interface_constraints", TRUE);
+      }  /* if */
 #if BACK_END_IS_CP_GEN_BE
       if (ptr->variant.class_struct_union
                                       .defined_with_abstract_class_modifier) {

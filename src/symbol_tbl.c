@@ -2225,9 +2225,12 @@ static method.  The list is returned in *p_hide_by_sig_list.
     }  /* if */
     parent_type = sym_parent_class(sym);
     parent_ctsp = class_type_supp(parent_type);
+    /* Certain generic constraint types are ref classes but are not treated
+       as such for lookup purposes. */
     is_class = parent_ctsp->cli_class_type_kind ==
                                             (a_cli_class_type_kind)cctk_ref &&
-               !parent_type->variant.class_struct_union.is_hybrid_constraint;
+            !parent_type->variant.class_struct_union.is_hybrid_constraint &&
+            !parent_type->variant.class_struct_union.any_interface_constraints;
   }  /* if */
   if (sym->hide_by_sig_lookup_done) {
     /* We have already done the hide-by-sig processing.   Return the results

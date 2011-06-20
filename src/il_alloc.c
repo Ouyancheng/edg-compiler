@@ -1611,6 +1611,7 @@ to default values.
       pte->variant.class_struct_union.is_open_constructed_type = FALSE;
       pte->variant.class_struct_union.is_generic_constraint = FALSE;
       pte->variant.class_struct_union.is_hybrid_constraint = FALSE;
+      pte->variant.class_struct_union.any_interface_constraints = FALSE;
 #if BACK_END_IS_CP_GEN_BE
       pte->variant.class_struct_union.
                  defined_with_abstract_class_modifier = FALSE;

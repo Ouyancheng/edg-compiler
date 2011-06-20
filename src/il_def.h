@@ -7574,6 +7574,11 @@ typedef struct a_type {
 			   associated constraints permit both a ref class and
 			   a value class (i.e., the constraint type is treated
 			   as a kind of hybrid value/ref class). */
+     a_bit_field
+		any_interface_constraints:1;
+			/* TRUE if is_generic_constraint is TRUE and the
+			   associated constraint list contains any type
+			   constraints that refer to interfaces. */
 #if BACK_END_IS_CP_GEN_BE
       a_bit_field
 		defined_with_abstract_class_modifier:1;
