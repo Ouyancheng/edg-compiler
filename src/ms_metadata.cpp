@@ -2265,7 +2265,7 @@ Import a single member of a type.
       IsMdClassConstructorW(method_attributes, method_name.c_str())) {
     method_name = type_name_;
     is_constructor = true;
-  } if (method_semantics != 0) {
+  } else if (method_semantics != 0) {
     /* Any event or property method should be marked as having a special
        name. */
     check_assertion(IsMdSpecialName(method_attributes));
