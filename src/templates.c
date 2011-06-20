@@ -1951,16 +1951,20 @@ a_type_ptr generic_param_if_generic_definition_argument(a_type_ptr	type)
 /*
 If type is the type used to represent a C++/CLI generic parameter within
 a generic definition, return the associated generic parameter type, otherwise
-return NULL.
+return the original type.
 */
 {
   a_type_ptr	result_type;
+  a_type_ptr	orig_type = type;
 
+  type = skip_typerefs(type);
   if (is_handle_ptr(type)) {
     type = type->variant.pointer.type;
+    type = skip_typerefs(type);
   }  /* if */
   /* The following will return NULL if type is not a proxy class. */
   result_type = template_param_if_proxy_class(type);
+  if (result_type == NULL) result_type = orig_type;
   return result_type;
 }  /* generic_param_if_generic_definition_argument */
 
