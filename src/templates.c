@@ -20856,12 +20856,12 @@ Scan an optional set of C++/CLI generic constraints.  The form is:
     a_generic_constraint_clause	gcc;
     clear_generic_constraint_clause(&gcc);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-     gcc.where_position = null_source_position;
+     gcc.where_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Skip over the "where" token. */
     (void)get_token();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-     gcc.colon_position = null_source_position;
+     gcc.colon_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* The current token should be an identifier for the template parameter
        being constrained. */
@@ -20912,6 +20912,7 @@ Scan an optional set of C++/CLI generic constraints.  The form is:
     }  /* if */
     /* Scan the list of constraint items. */
     constraint_item_list = scan_constraint_item_list();
+    gcc.constraints = constraint_item_list;
     if (param_type != NULL) {
       param_type->variant.template_param.extra_info->
                                     generic_constraints = constraint_item_list;
