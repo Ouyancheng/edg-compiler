@@ -2883,18 +2883,6 @@ been scanned: builtin_func represents the reference to the builtin function
 
 #if GNU_EXTENSIONS_ALLOWED
 
-a_boolean is_gnu_builtin_function(a_routine_ptr  rp)
-/*
-Return TRUE if and only if the given routine represents a GNU built-in
-function.
-*/
-{
-  return rp->special_kind == (a_special_function_kind)sfk_none &&
-         rp->variant.builtin_function_kind !=
-                                            (a_builtin_function_kind)bfk_none;
-}  /* is_gnu_builtin_function */
-
-
 a_boolean is_foldable_gnu_builtin_function(a_routine_ptr rp,
                                            a_boolean     *pseudo_call)
 /*

@@ -5701,6 +5701,13 @@ process_assignment:
             if (param != NULL) {
               /* This argument is prototyped, so do not check it. */
               param = param->next;
+#if GNU_EXTENSIONS_ALLOWED
+            } else if (is_routine_node(operand_1) &&
+                       is_gnu_builtin_function(
+                                            operand_1->variant.routine.ptr)) {
+              /* Some GNU built-in functions (like __builtin_isnormal) have
+                 ellipsis arguments that do not undergo promotion. */ 
+#endif /* GNU_EXTENSIONS_ALLOWED */
             } else {
               /* Unprototyped or ellipsis argument. */
               a_type_ptr arg_type = skip_typerefs(call_argument->type);

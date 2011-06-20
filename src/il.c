@@ -4457,6 +4457,20 @@ fix them.
 }  /* fix_memory_region_problems_in_copied_constant */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#if GNU_EXTENSIONS_ALLOWED
+
+a_boolean is_gnu_builtin_function(a_routine_ptr  rp)
+/*
+Return TRUE if and only if the given routine represents a GNU built-in
+function.
+*/
+{
+  return rp->special_kind == (a_special_function_kind)sfk_none &&
+         rp->variant.builtin_function_kind !=
+                                            (a_builtin_function_kind)bfk_none;
+}  /* is_gnu_builtin_function */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 a_source_correspondence *source_corresp_for_il_entry(
                                                  char              *entity_ptr,
