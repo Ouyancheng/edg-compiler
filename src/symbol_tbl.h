@@ -4954,6 +4954,8 @@ class definition.
                    variant.class_struct_union.is_template_class &&    \
    (sym)->variant.class_struct_union.type->			      \
                    variant.class_struct_union.is_nonreal_class)
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
 /*
 If type is a proxy class, return the associated template parameter,
 otherwise return NULL.
@@ -4964,6 +4966,7 @@ otherwise return NULL.
    ? symbol_for(type)->variant.class_struct_union.extra_info->		\
                                       template_param_for_proxy_class	\
    : NULL)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean is_proxy_member_symbol(a_symbol_ptr  sym);
 
