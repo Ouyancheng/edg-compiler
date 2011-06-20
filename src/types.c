@@ -11148,6 +11148,41 @@ render the type dependent.
 }  /* is_instantiation_dependent_type */
 
 
+a_boolean is_instantiation_dependent_type_or_cli_generic_param(
+							a_type_ptr  type_ptr)
+/*
+Return TRUE if the type pointed to by type_ptr is instantiation-dependent,
+i.e., it contains a template parameter, even in a context that does not
+render the type dependent.  Also returns TRUE for types that contain
+C++/CLI generic parameters.
+*/
+{
+  a_boolean result = FALSE;
+
+  /* Template parameter types come up only in C++ mode. */
+  if (!C_mode()) {
+    a_type_tree_traversal_flag_set  ttt_flags =
+			 (TTT_RETURN_TYPE |
+                          TTT_THIS_PARAM_TYPE |
+                          TTT_PARAM_TYPES |
+                          TTT_TEMPLATE_ARGS |
+                          TTT_DECLTYPE_AND_TYPEOF_EXPRS |
+                          TTT_CLI_GENERIC_PARAMETERS |
+                          TTT_PARENT_CLASSES);
+
+    /* Setting these pointers to NULL indicates that any template param type
+       or constant will do. */
+    specific_template_param_type = NULL;
+    specific_template_param_constant = NULL;
+    deduced_contexts_only = FALSE;
+    find_all_dependent_types = TRUE;
+    result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
+                                ttt_flags);
+  }  /* if */
+  return result;
+}  /* is_instantiation_dependent_type_or_cli_generic_param */
+
+
 a_boolean is_or_contains_template_param(a_type_ptr  type_ptr)
 /*
 Return TRUE if the type pointed to by type_ptr is itself a tk_template_param

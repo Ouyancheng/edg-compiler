@@ -9485,12 +9485,14 @@ a pointer over a reference type or creating an array of references.
           ++reusable_param_types;
         }  /* for */
         new_return_type = type->variant.routine.return_type;
-        if (is_instantiation_dependent_type(new_return_type)) {
-          /* The return type is dependent.  Assume we need to make a new
-             type.  The return type could contain a decltype that refers
-             to a parameter name (in the late-specified return type case)
-             so we can't substitute a dependent return type until we have
-             created the new parameter list. */
+        if (is_instantiation_dependent_type_or_cli_generic_param(
+                                                            new_return_type)) {
+          /* The return type is dependent or uses a C++/CLI generic parameter.
+             Assume we need to make a new type.  The return type could
+             contain a decltype that refers to a parameter name (in the
+             late-specified return type case) so we can't substitute a
+             dependent return type until we have created the new parameter
+             list. */
           goto make_new_type;
         }  /* if */
 #if EXPENSIVE_CHECKING

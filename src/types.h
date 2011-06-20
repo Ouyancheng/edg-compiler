@@ -1028,6 +1028,8 @@ extern a_boolean is_invalid_template_arg_type(a_type_ptr  type_ptr,
                                               a_boolean   *is_vla);
 extern a_boolean is_template_dependent_type(a_type_ptr  type_ptr);
 extern a_boolean is_instantiation_dependent_type(a_type_ptr  type_ptr);
+extern a_boolean is_instantiation_dependent_type_or_cli_generic_param(
+							a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_template_param(a_type_ptr  type_ptr);
 extern void set_parameter_list_template_param_flags(a_type_ptr  rout_type);
 extern a_boolean is_or_contains_specific_template_param
