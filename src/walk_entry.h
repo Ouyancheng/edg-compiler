@@ -2024,7 +2024,7 @@ do_set_proper_definition_needed_flag:
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_list(ptr->generic_constraint_clauses,
                   a_generic_constraint_clause_ptr,
-                  iek_generic_constraint);
+                  iek_generic_constraint_clause);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         walk_ptr(ptr->scope, a_scope_ptr, iek_scope);
       }
