@@ -7673,6 +7673,14 @@ points to the template parameter list.
      type checks. */
   new_flags = MTT_NO_FLAGS;
   templ_type = skip_typedefs_not_dependent_decltypes(templ_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_handle_ptr(templ_type) &&
+      is_cli_generic_definition_argument_type(templ_type)) {
+    /* If this is a generic definition argument that is a handle, drop the
+       handle for deduction purposes. */
+    templ_type = templ_type->variant.pointer.type;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_immediate_class_type(templ_type)) {
     /* If the template type is a proxy class for a template parameter,
        substitute the underlying template parameter for the deduction
@@ -9224,12 +9232,14 @@ a pointer over a reference type or creating an array of references.
     } else {
       type = type_symbol_type(sym);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   } else {
-    if (is_cli_generic_constraint(type)) {
-      /* If this is a generic constraint, get the associated generic
+    if (is_cli_generic_definition_argument_type(type)) {
+      /* If this is a generic definition argument, get the associated generic
          parameter. */
-      type = template_param_if_proxy_class(type);
+      type = generic_param_if_generic_definition_argument(type);
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* The CTWS_IS_PARENT flag should only influence the lookup of the parent
      type, if necessary, by copy_parent_type_with_substitution.  Reset the
