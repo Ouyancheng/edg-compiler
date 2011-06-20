@@ -504,7 +504,6 @@ Initialize a template declaration state block.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   tdsp->template_decl = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  tdsp->generic_constraint_clauses = NULL;
   tdsp->num_parameters = 0;
   tdsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_standard;
   tdsp->cli_visibility = (an_assembly_visibility)av_none;
@@ -18859,10 +18858,6 @@ information).  See the definition of a_tmpl_decl_state for details.
         if (prototype_instantiations_in_il) {
           template_decl =
                         make_template_decl(decl_state->decl_info->parameters);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          template_decl->generic_constraint_clauses =
-                                        decl_state->generic_constraint_clauses;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           template_decl->scope = scope_stack_top().il_scope;
           template_decl->template_pos = template_pos;
           if (decl_state->il_template_entry != NULL) {
@@ -20929,7 +20924,7 @@ Scan an optional set of C++/CLI generic constraints.  The form is:
         *gccp = gcc;
         if (gccp_list == NULL) {
           gccp_list = gccp;
-          decl_state->generic_constraint_clauses = gccp_list;
+          decl_state->template_decl->generic_constraint_clauses = gccp_list;
         } else {
           gccp_tail->next = gccp;
         }  /* if */

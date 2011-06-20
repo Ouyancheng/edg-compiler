@@ -205,10 +205,6 @@ typedef struct a_tmpl_decl_state {
 			/* IL representation of the template parameterization
 			   of the entity being declared. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_generic_constraint_clause_ptr
-		generic_constraint_clauses;
-			/* For C++/CLI generics, this points to the list of
-			   constraints clauses specified, and can be NULL. */
   uint32_t	num_parameters;
 			/* The number of parameters for the generic being
 			   declared. */
