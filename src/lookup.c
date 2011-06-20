@@ -518,12 +518,20 @@ parameters to represent the type specified by the constraints.
     sym->decl_scope = file_scope_number;
     /* Create the type for the class. */
     type = alloc_type((a_type_kind)tk_class);
-    /* Set the size and alignment so that the type will be considered to
-       be complete.  No scope is created until members of the proxy class
-       are needed. */
-    type->size = 1;
-    type->alignment = 1;
-    type->incomplete = FALSE;
+    if (!is_generic) {
+      /* Set the size and alignment so that the type will be considered to be
+         complete.  No scope is created until members of the proxy class are
+         needed. */
+      type->size = 1;
+      type->alignment = 1;
+      type->incomplete = FALSE;
+    } else {
+      /* The proxy class associated with a generic parameter behaves much like
+         a real class, but it cannot always be completed at the point of the
+         generic declaration since its constraints may not be complete at that
+         point.  It will be completed by complete_generic_constraint_type.
+         See also create_generic_constraint_types. */
+    }  /* if */
     set_source_corresp(&(type->source_corresp), sym);
     type->source_corresp.member_of_unknown_base =
                        orig_type->source_corresp.member_of_unknown_base;

@@ -19254,7 +19254,7 @@ associated with a generic parameter).  Complete the class by
   if (add_default_constructor) {
     generate_default_constructor(&class_state, /*is_deleted=*/FALSE);
   }  /* if */
-  complete_class_definition(proxy_class, depth_scope_stack-1, &class_state);
+  complete_class_definition(proxy_class, DEPTH_OF_FILE_SCOPE, &class_state);
   /* Pop the class scope and the file scope reactivation. */
   pop_scope();
 }  /* complete_generic_constraint_type */
@@ -19263,7 +19263,16 @@ associated with a generic parameter).  Complete the class by
 void create_generic_constraint_types(a_template_param_ptr  generic_param_list)
 /*
 Loop through the C++/CLI generic parameters (generic_param_list) and create a
-type for each based on the constraints for the generic parameter.
+type for each based on the constraints for the generic parameter.  The
+completion of the types (by complete_generic_constraint_type) is delayed until
+a complete type is actually needed.  This permits constraints to e.g. involve
+the enclosing type of the constrained generic.  For example:
+
+  generic<class T> public ref struct S {
+    generic<class V> where V: S<V>  // Cannot complete V here since it requires
+    void foo(V v, W w) { }          // a complete S<V>.
+  };
+
 */
 {
   a_template_param_ptr        tpp;
@@ -19322,9 +19331,6 @@ type for each based on the constraints for the generic parameter.
        template parameter value. */
     tpp->param_symbol->variant.type.ptr = definition_arg_type;
     tpp->variant.type = definition_arg_type;
-    if (!scanning_generated_code_from_metadata) {
-      complete_generic_constraint_type(proxy_class);
-    }  /* if */
   }  /* for */
 }  /* create_generic_constraint_types */
 
