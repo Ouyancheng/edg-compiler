@@ -4244,6 +4244,11 @@ file.
 #else /* !defined(CPPCLI_ENABLING_POSSIBLE) */
   comment_undefined_macro_name(CPPCLI_ENABLING_POSSIBLE);
 #endif /* defined(CPPCLI_ENABLING_POSSIBLE) */
+#if defined(CPPCLI_PORTABLE_ASSEMBLY_PATH)
+  define_string_valued_macro(CPPCLI_PORTABLE_ASSEMBLY_PATH);
+#else /* !defined(CPPCLI_PORTABLE_ASSEMBLY_PATH) */
+  comment_undefined_macro_name(CPPCLI_PORTABLE_ASSEMBLY_PATH);
+#endif /* defined(CPPCLI_PORTABLE_ASSEMBLY_PATH) */
 #if defined(CPP0X_IL_EXTENSIONS_SUPPORTED)
   define_numeric_valued_macro(CPP0X_IL_EXTENSIONS_SUPPORTED);
 #else /* !defined(CPP0X_IL_EXTENSIONS_SUPPORTED) */
