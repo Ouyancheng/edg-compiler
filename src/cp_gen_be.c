@@ -430,7 +430,8 @@ static void gen_pragma_end(a_pragma_ptr pp);
 #if USER_CONTROL_OF_STRUCT_PACKING
 static void gen_pending_pragma_pack(void);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-static void gen_template_header(a_template_decl_ptr tdp);
+static void gen_template_header(a_template_decl_ptr tdp,
+                                a_boolean           is_cppcli_generic);
 static void gen_template(void);
 static a_boolean strip_lvalue_cast_sequence(an_expr_node_ptr *expr);
 static void gen_initializer_constant(a_constant_ptr constant,
@@ -4983,7 +4984,11 @@ A reference is not the definition.
          member type, either (this can happen with a member of a template
          instance). */
       type->has_been_declared = TRUE;
-    } else if (type->kind == (a_type_kind)tk_template_param) {
+    } else if (type->kind == (a_type_kind)tk_template_param
+#if MICROSOFT_EXTENSIONS_ALLOWED
+               || is_cli_generic_definition_argument_type(type)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+               ) {
       /* Don't use elaborated-type-specifiers for template parameters,
          either. */
       type->has_been_declared = TRUE;
@@ -6601,7 +6606,11 @@ is the one associated with the definition of the class.
   } else {
     /* Put out the name. */
     a_gen_name_options_set options = GN_DECLARATION;
-    if (type_is_prototype_instantiation(type)) {
+    if (type_is_prototype_instantiation(type)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        || type->variant.class_struct_union.is_generic_definition
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        ) {
       /* Suppress the template argument list on a prototype instantiation. */
       options |= GN_NO_TEMPLATE_ARGS;
     }  /* if */
@@ -7130,7 +7139,13 @@ this one is such a continuation.
                                                     ->assoc_template != NULL);
     if (template_decl != NULL) {
       if (assoc_template->canonical_template->is_exported) gen_export();
-      gen_template_header(template_decl);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      gen_template_header(
+                       template_decl,
+                       type->variant.class_struct_union.is_generic_definition);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      gen_template_header(template_decl, /*is_cppcli_generic=*/FALSE);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_specialization) {
       /* A specialization. */
       template_arg_list = type->variant.class_struct_union.
@@ -11673,10 +11688,12 @@ If str is NULL, do nothing.  Otherwise call write_tok_str(str).
 }  /* write_tok_str_if_nonnull */
 
 
-static void gen_template_header(a_template_decl_ptr tdp)
+static void gen_template_header(a_template_decl_ptr tdp,
+                                a_boolean           is_cppcli_generic)
 /*
-Generate a "template<...>" header from the given IL entry.  This also installs
-a mapping of template parameter coordinates to the source sequence entries
+Generate a "template<...>" or "generic<...>" header (depending on the value
+of is_cppcli_generic) from the given IL entry.  This also installs a
+mapping of template parameter coordinates to the source sequence entries
 recorded with this particular header.
 */
 {
@@ -11684,7 +11701,7 @@ recorded with this particular header.
 
 #if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   if (tdp->parent != NULL) {
-    gen_template_header(tdp->parent);
+    gen_template_header(tdp->parent, is_cppcli_generic);
   }  /* if */
 #else /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   /* If template classes are put out as specializations, the parent of a member
@@ -11695,7 +11712,8 @@ recorded with this particular header.
   /* Put a space after the "<" to avoid forming the digraph "<:" if the
      first parameter is a nontype parameter whose type name begins with
      the global scope operator. */
-  write_tok_str("template< ");
+  write_tok_str(is_cppcli_generic ? (char *)"generic< "
+                                  : (char *)"template< ");
   for (; param != NULL; param = param->next) {
     if (param->kind == (a_template_parameter_kind)tpk_nontype) {
       a_constant_ptr  cp = param->variant.nontype.constant;
@@ -11744,7 +11762,8 @@ recorded with this particular header.
       /* Remap the source correspondence entry for output. */
       remap_template_param(&param->variant.templ.class_template->coordinates,
                            &param->source_corresp);
-      gen_template_header(param->variant.templ.class_template->template_decl);
+      gen_template_header(param->variant.templ.class_template->template_decl,
+                          /*is_cppcli_generic=*/FALSE);
       write_tok_str(" class ");
       if (param->is_pack) write_tok_str("...");
       /* Set the source position for the name. */
@@ -11760,6 +11779,51 @@ recorded with this particular header.
     if (param->next != NULL) write_tok_str(", ");
   }  /* for */
   write_tok_str("> ");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (tdp->generic_constraint_clauses != NULL) {
+    /* Put out the list of constraints. */
+    a_generic_constraint_clause_ptr gccp;
+    for (gccp = tdp->generic_constraint_clauses; gccp != NULL;
+         gccp = gccp->next) {
+      a_generic_constraint_ptr gcp;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      set_output_position(&gccp->where_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      write_tok_str(" where ");
+      set_output_position(&gccp->type_position);
+      gen_bare_name(&gccp->type->source_corresp, iek_type);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      set_output_position(&gccp->colon_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      write_tok_str(" : ");
+      for (gcp = gccp->constraints; gcp != NULL; gcp = gcp->next) {
+        /* Put out the list of constraints for this clause. */
+        set_output_position(&gcp->position);
+        switch (gcp->kind) {
+          case gck_type:
+            gen_bare_name(&gcp->type->source_corresp, iek_type);
+            break;
+          case gck_ref_class:
+            write_tok_str("ref class");
+            break;
+          case gck_value_class:
+            write_tok_str("value class");
+            break;
+          case gck_gcnew:
+            write_tok_str("gcnew()");
+            break;
+          default:
+            unexpected_condition();
+        }  /* switch */
+        if (gcp->next != NULL) {
+          write_tok_str(", ");
+        } else {
+          write_space();
+        }  /* if */
+      }  /* for */
+    }  /* for */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* gen_template_header */
 
 
@@ -13667,7 +13731,7 @@ this one is such a continuation.
                   var->assoc_template != NULL);
   if (template_decl != NULL) {
     if (assoc_template->canonical_template->is_exported) gen_export();
-    gen_template_header(template_decl);
+    gen_template_header(template_decl, /*is_cppcli_generic=*/FALSE);
   } else if (is_specialization) {
     adjust_namespace_state_for_specialization(&var->source_corresp,
                                               &common_scope, &orig_scope,
@@ -14540,7 +14604,11 @@ handle_as_definition:
       is_specialization = !rout->specialized_with_old_syntax ||
                           (rout->expl_template_arg_list_used && !friend_decl);
     } else if (rout->is_template_function &&
-               !rout->is_prototype_instantiation) {
+               !rout->is_prototype_instantiation
+#if MICROSOFT_EXTENSIONS_ALLOWED
+               && !rout->is_generic_definition
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+               ) {
       /* A generated instance.  Use the "template<>" prefix if appropriate. */
       is_specialization = !old_specializations_for_generated_instances;
       in_generated_instance = TRUE;
@@ -14591,7 +14659,11 @@ handle_as_definition:
                   rout->assoc_template != NULL);
   if (template_decl != NULL) {
     if (assoc_template->canonical_template->is_exported) gen_export();
-    gen_template_header(template_decl);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    gen_template_header(template_decl, rout->is_generic_definition);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+    gen_template_header(template_decl, /*is_cppcli_generic=*/FALSE);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (is_definition && !rout->is_defaulted && !rout->is_deleted) {
     /* This is a definition of the routine.  Determine the scope for the

@@ -303,16 +303,7 @@ Output the indicated template argument in the way described by octl.
   switch (tap->kind) {
     case tak_type:
       /* Type argument. */
-      { a_type_ptr	tp = tap->variant.type;
-  #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (is_cli_generic_definition_argument_type(tp)) {
-          /* If this is a generic definition argument, strip the handle
-             type if one is present. */
-          if (is_handle_ptr(tp)) tp = tp->variant.pointer.type;
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        form_type(tp, octl);
-      }
+      form_type(tap->variant.type, octl);
       break;
     case tak_nontype:
       /* Nontype argument. */
@@ -1818,6 +1809,14 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     octl->output_str("<something>", octl);
     goto end_of_routine;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_cli_generic_definition_argument_type(type) &&
+      is_handle_type(type)) {
+    /* For a generic definition argument, strip the handle type if one is
+       present. */
+    type = type->variant.pointer.type;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   options &= ~FTO_SUPPRESS_CONST;
   /* Remove type qualifiers but not typedefs.  Also drop typedefs
      that aren't visible here.  Accumulate the type qualifier set. */
@@ -2314,6 +2313,14 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
     /* NULL type pointer.  Handled in form_type_first_part. */
     goto end_of_routine;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_cli_generic_definition_argument_type(type) &&
+      is_handle_type(type)) {
+    /* For a generic definition argument, strip the handle type if one is
+       present. */
+    type = type->variant.pointer.type;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   options &= ~FTO_SUPPRESS_CONST;
   /* Remove type qualifiers but not typedefs.  Also drop typedefs that aren't
      visible here.  The decltype and GNU typeof operators are like visible
