@@ -13280,7 +13280,7 @@ any classes that declared the nested class as a template friend.
       templ->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
       add_to_templates_list(templ, depth_scope_stack);
-      if (prototype_instantiations_in_il) {
+      if (prototype_instantiations_in_il && tssp->is_generic) {
         templ->prototype_instantiation.type = class_type;
       }  /* if */
       templ->canonical_template = templ;
@@ -13641,7 +13641,7 @@ initially used when processing the declaration of a partial specialization.
     set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
     set_membership_in_source_corresp(&(prototype_type->source_corresp),
                                      prototype_sym);
-    if (prototype_instantiations_in_il) {
+    if (prototype_instantiations_in_il || tssp->is_generic) {
       if (decl_state->decl_scope_err) {
         /* Don't add the type to the type list in error cases.  This is done
            to prevent what might be an erroneous local type from being added

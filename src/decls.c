@@ -8726,7 +8726,8 @@ definition of a member function of a class template.
     /* Call a routine that manages the correspondence of entities between
        translation units to notify it of the new instance. */
     record_instantiation(prototype_sym, tssp);
-    if (prototype_instantiations_in_il && !locator->is_error) {
+    if ((prototype_instantiations_in_il || tssp->is_generic) &&
+        !locator->is_error) {
       /* Normally, we let add_to_routines_list determine which scope to add
          the routine to, but for proxy members nominated in friends, that
          would yield a nonexisting scope; instead we just put those on the
