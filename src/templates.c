@@ -20758,7 +20758,8 @@ of the list.
           type = type_symbol_type(sym);
         }  /* if */
         (void)get_token();
-        kind = (a_generic_constraint_kind)gck_type;
+        /* Don't record the constraint unless we scanned a valid type. */
+        if (type != NULL) kind = (a_generic_constraint_kind)gck_type;
         break;
       case tok_ref_class:
       case tok_ref_struct:
