@@ -5641,7 +5641,7 @@ use of the Microsoft header files makes some use of attributes.
 Consequently, the default configuration is now to have attributes
 recognized (in Microsoft mode).  Specifically, the default value of
 RECOGNIZE_MICROSOFT_ATTRIBUTES is now always TRUE.  The default value of
-SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING continues to be FALSE, meaning that
+SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING continues to be TRUE, meaning that
 no semantic processing of attributes beyond verifying the validity of the
 attribute name is done.
 
