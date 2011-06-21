@@ -1287,7 +1287,7 @@ which may be modified using command line options.
 Flag that is TRUE if, in C++ mode, char16_t and char32_t are keywords by
 default.  This is the default value for the global flag
 char16_t_and_char32_t_are_keywords, the value of which may be modified using
-command line options.
+the --[no_]uliterals command line options.
 */
 #ifndef DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS
 #define DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS FALSE
@@ -1300,7 +1300,7 @@ redefine char16_t and char32_t as a typedef.
 */
 #ifndef DEFINE_MACRO_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS
 #define DEFINE_MACRO_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS TRUE
-#endif /* ifndef DEFINE_MACRO_WHEN_WCHAR_T_AND_CHAR32_T_ARE_KEYWORDS */
+#endif /* ifndef DEFINE_MACRO_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS */
 
 /*
 The name of the macro to be defined when char16_t and char32_t are keywords.

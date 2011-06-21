@@ -23,11 +23,11 @@ containing block.  This is now fixed.  For example:
 C++0x: Implement char16_t and char32_t types
 
 The front end now supports the char16_t and char32_t types as adopted by N2249.
-These types are available as keywords by default in C++0x mode and optionally
-when DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS is TRUE or --uliterals is
-specified in C++ mode.  U-literals (see the Changes entry dated 2/14/06) were
-previously allowed only in C mode are now allowed in C++ mode and enabled by
-default in C++0x mode.
+These types are available as keywords in C++0x mode and optionally when
+DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS is TRUE or --uliterals is specified
+in C++ mode.  U-literals (see the Changes entry dated 2/14/06) were previously
+allowed only in C mode are now allowed in C++ mode and enabled by default in
+C++0x mode.
 
 The new DEFINE_MACRO_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS and
 MACRO_DEFINED_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS configuration macros can
