@@ -19215,6 +19215,9 @@ associated with a generic parameter).  Complete the class by
   a_boolean                     may_be_first_direct_nonvirtual_base = TRUE;
   a_boolean                     default_constructible = FALSE;
 
+  /* Push a scope to provide a clean context to the constraint type
+     definition. */
+  push_instantiation_scope_for_constraint_type(proxy_class);
   templ_param_type = symbol_supplement_for_class(proxy_class)
                                             ->template_param_for_proxy_class;
   gc_list = templ_param_type->variant.template_param.extra_info
@@ -19256,8 +19259,9 @@ associated with a generic parameter).  Complete the class by
     generate_default_constructor(&class_state, /*is_deleted=*/FALSE);
   }  /* if */
   complete_class_definition(proxy_class, DEPTH_OF_FILE_SCOPE, &class_state);
-  /* Pop the class scope and the file scope reactivation. */
+  /* Pop the class scope and the "instantiation" scope. */
   pop_scope();
+  pop_instantiation_scope_for_constraint_type();
 }  /* complete_generic_constraint_type */
 
 
