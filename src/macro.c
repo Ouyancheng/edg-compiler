@@ -8093,27 +8093,16 @@ command line -D options.
                                  /*ref_suppresses_pch_file=*/FALSE);
       }  /* if */
     }  /* if */
-
-    if (char16_t_and_char32_t_are_keywords) {
 #if DEFINE_MACRO_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS
+    if (char16_t_and_char32_t_are_keywords) {
       /* Enter a predefined macro that can be used to determine that
          char16_t and char32_t are keywords. */
       (void)enter_predef_macro("1",
                          MACRO_DEFINED_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS,
                          /*cannot_be_redefined=*/TRUE,
                          /*ref_suppresses_pch_file=*/FALSE);
-#endif /* DEFINE_MACRO_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS */
-      if (microsoft_mode && microsoft_version >= 1600) {
-        /* For Microsoft versions 1600 and beyond, also define
-           _HAS_CHAR16_T_LANGUAGE_SUPPORT.  Because _CHAR16T is also defined
-           by the Microsoft header files when char16_t is not a keyword,
-           _HAS_CHAR16_T_LANGUAGE_SUPPORT can be used to determine whether
-           char16_t is a keyword. */
-        (void)enter_predef_macro("1", "_HAS_CHAR16_T_LANGUAGE_SUPPORT",
-                                 /*cannot_be_redefined=*/TRUE,
-                                 /*ref_suppresses_pch_file=*/FALSE);
-      }  /* if */
     }  /* if */
+#endif /* DEFINE_MACRO_WHEN_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS */
 #if DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD
     if (bool_is_keyword) {
       /* Enter a predefined macro that can be used to determine that

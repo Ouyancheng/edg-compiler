@@ -39,9 +39,6 @@ front end predefines the __CHAR16_TYPE__ and __CHAR32_TYPE__ macros with
 the underlying types used by the char16_t and char32_t types, respectively.
 These macros are defined in both C and C++ modes.
 
-When emulating Microsoft mode (version 1600 and later), the
-_HAS_CHAR16_T_LANGUAGE_SUPPORT macro is also predefined.
-
 Also as part of these changes, the default value for the TARG_CHAR32_T_INT_KIND
 configuration macro has been changed from ik_unsigned_long to ik_unsigned_int.
 

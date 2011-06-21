@@ -2593,8 +2593,12 @@ not always enabled in default mode (e.g., exception handling).
     export_template_allowed = FALSE;
   }  /* if */
   explicit_conversion_functions_enabled = TRUE;
-  uliterals_enabled = TRUE;
-  char16_t_and_char32_t_are_keywords = TRUE;
+  if (!option_kind_used[(int)optk_uliterals]) {
+    /* Enable U-literals by default in C++0x mode (unless they were explicitly
+       mentioned on the command line).  This also has the effect of enabling
+       char16_t/char32_t keywords. */
+    uliterals_enabled = TRUE;
+  }  /* if */
 }  /* check_and_set_cpp0x_mode_options */
 
 
@@ -2685,10 +2689,6 @@ setting is used, and to set various unmentioned settings as needed.
 #endif /* NAMED_REGISTERS_ALLOWED */
   if (option_kind_used[(int)optk_embedded_c]) {
     command_line_error(ec_cl_embedded_c_option_only_in_C);
-  }  /* if */
-  /* U-literals are supported in both C and C++ modes. */
-  if (option_kind_used[(int)optk_uliterals]) {
-    uliterals_enabled = TRUE;
   }  /* if */
   /* "//" is allowed as a comment delimiter. */
   end_of_line_comments_allowed = TRUE;
@@ -8315,7 +8315,9 @@ enable_microsoft_mode:
         defer_function_prototype_instantiations = opt_value;
         break;
       case optk_uliterals:
-        /* U... and u... literals should or should not be allowed. */
+        /* U... and u... literals should or should not be allowed.  This also
+           has the effect of enabling or disabling char16_t/char32_t
+           keywords. */
         uliterals_enabled = opt_value;
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
