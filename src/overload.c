@@ -8221,22 +8221,30 @@ the case where the left operand is a C++/CLI handle.
                        fund_sym == fund_member_sym) {
               /* In C++/CLI mode, a symbol can be picked off the hide-by-sig
                  list, and we won't have a projection symbol leading to it. */
-              a_hide_by_sig_list_entry_ptr list = ostblock.hide_by_sig_list;
-              check_assertion(list != NULL && list->base_class != NULL);
-              base_class_cast_operand(operand_1,
-                                      list->base_class,
-                                      (a_type_ptr)NULL,
-                                      /*check_cast_access=*/FALSE,
-                                      /*is_implicit_cast=*/TRUE,
-                                      /*implicit_in_naming=*/TRUE,
-                                      /*is_object_pointer=*/TRUE);
-              /* By choosing fund_sym here, we ensure that the code below
-                 that deals with projections will do nothing. */
-              member_sym = fund_sym;
+              check_assertion(ostblock.hide_by_sig_list != NULL);
+              member_sym = sym;
               break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             }  /* if */
           }  /* for */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (cppcli_enabled && ostblock.hide_by_sig_list != NULL) {
+            /* For a C++/CLI symbol found through hide-by-sig lookup,
+               cast down to the base class where the symbol was found. */
+            a_hide_by_sig_list_entry_ptr list = ostblock.hide_by_sig_list;
+            check_assertion(list->base_class != NULL);
+            base_class_cast_operand(operand_1,
+                                    list->base_class,
+                                    (a_type_ptr)NULL,
+                                    /*check_cast_access=*/FALSE,
+                                    /*is_implicit_cast=*/TRUE,
+                                    /*implicit_in_naming=*/TRUE,
+                                    /*is_object_pointer=*/TRUE);
+            /* By choosing fund_sym here, we ensure that the code below
+               that deals with projections will do nothing. */
+            member_sym = fund_sym;
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Remove any namespace projection symbols. */
           while (member_sym->kind == (a_symbol_kind)sk_namespace_projection) {
             member_sym = namespace_projection_fundamental_symbol(sym);
