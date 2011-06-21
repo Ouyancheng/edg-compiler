@@ -19217,7 +19217,7 @@ associated with a generic parameter).  Complete the class by
 
   /* Push a scope to provide a clean context to the constraint type
      definition. */
-  push_instantiation_scope_for_constraint_type(proxy_class);
+  push_instantiation_scope_for_constraint_type();
   templ_param_type = symbol_supplement_for_class(proxy_class)
                                             ->template_param_for_proxy_class;
   gc_list = templ_param_type->variant.template_param.extra_info

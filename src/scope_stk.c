@@ -4557,21 +4557,19 @@ push_instantiation_scope_for_rescan.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-void push_instantiation_scope_for_constraint_type(a_type_ptr  class_type)
+void push_instantiation_scope_for_constraint_type(void)
 /*
-Push an instantiation scope surrounding the definition of the indicated
-C++/CLI constraint type.
+Push an instantiation scope surrounding the definition of a C++/CLI constraint
+type.
 */
 {
-  a_symbol_ptr              class_sym = symbol_for(class_type);
   a_template_decl_info_ptr  tdip;
 
   tdip = alloc_template_decl_info();
-  tdip->enclosing_scope = class_type->source_corresp.parent_scope;
-  tdip->name_linkage = class_type->source_corresp.name_linkage;
   (void)push_template_instantiation_scope(
-                              tdip, class_type, (a_routine_ptr)NULL,
-                              class_sym, class_sym, (a_template_arg_ptr)NULL,
+                              tdip, (a_type_ptr)NULL, (a_routine_ptr)NULL,
+                              (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                              (a_template_arg_ptr)NULL,
                               /*push_lex_state=*/FALSE, PS_NO_OPTIONS);
   /* Don't include this scope in any diagnostic output that may be produced. */
   scope_stack[depth_innermost_instantiation_scope].
