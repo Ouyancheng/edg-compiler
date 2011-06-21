@@ -2351,6 +2351,7 @@ process.
 #if DO_IL_LOWERING
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
+  char16_t_and_char32_t_are_keywords = FALSE;
 }  /* set_c_mode_flags */
 
 

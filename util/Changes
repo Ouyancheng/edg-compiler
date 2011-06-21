@@ -4,7 +4,7 @@ Version 4.4
          EDGcpfe/11800]
 C++0x: Changes for char16_t/char32_t types
 
-A change has been made to enable decoding of the new C++0x char16_t and
+A change has been made to enable demangling of the new C++0x char16_t and
 char32_t types.  In the Cfront-like ABI, these types have been assigned the
 encodings "g" and "k", respectively.
 

@@ -42,6 +42,9 @@ These macros are defined in both C and C++ modes.
 Also as part of these changes, the default value for the TARG_CHAR32_T_INT_KIND
 configuration macro has been changed from ik_unsigned_long to ik_unsigned_int.
 
+These new types are mangled using the encoding "g" for char16_t and "k" for
+char32_t in the Cfront-like ABI (and the standard encodings for the IA-64 ABI).
+
   char16_t *str = u"A 16-bit character string";
   char32_t ch = U'\U00012345';  // A 32-bit character literal
 
