@@ -13280,9 +13280,6 @@ any classes that declared the nested class as a template friend.
       templ->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
       add_to_templates_list(templ, depth_scope_stack);
-      if (prototype_instantiations_in_il && tssp->is_generic) {
-        templ->prototype_instantiation.type = class_type;
-      }  /* if */
       templ->canonical_template = templ;
       if (curr_token == tok_lbrace || curr_token == tok_colon) {
         templ->definition_template = templ;
@@ -13294,6 +13291,10 @@ any classes that declared the nested class as a template friend.
       make_nested_class_template_supplement(sym, type_kind);
       tssp = template_supplement_for_symbol(sym);
       /* A NULL template supplement can be returned in certain error cases. */
+      if (prototype_instantiations_in_il ||
+          (tssp != NULL && tssp->is_generic)) {
+        templ->prototype_instantiation.type = class_type;
+      }  /* if */
       if (tssp != NULL) tssp->il_template_entry = templ;
       check_for_nested_type_of_prototype_instantiation(sym);
     }  /* if */

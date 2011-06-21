@@ -11439,7 +11439,7 @@ implicitly declared member functions.
         templ->is_exported = class_is_exported(class_type) &&
                              !func_info->is_inline;
         add_to_templates_list(templ, decl_scope_level);
-        if (prototype_instantiations_in_il) {
+        if (prototype_instantiations_in_il || tssp->is_generic) {
           templ->prototype_instantiation.routine = rtn;
         }  /* if */
         templ->canonical_template = templ;
