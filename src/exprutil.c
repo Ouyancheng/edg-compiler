@@ -12674,7 +12674,9 @@ it is modifiable.
         (is_variable_node(expr) ||
          (is_operation_node(expr) &&
           (node_operator_is(expr, eok_dot_field) ||
-           node_operator_is(expr, eok_points_to_field)))) &&
+           node_operator_is(expr, eok_points_to_field) ||
+           node_operator_is(expr, eok_dot_static) ||
+           node_operator_is(expr, eok_points_to_static)))) &&
         is_unmodifiable_initonly_field_operand(operand, (a_boolean *)NULL)) {
       result = TRUE;
     }  /* if */
