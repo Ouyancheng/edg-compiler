@@ -860,7 +860,15 @@ the specifiers and declarator that formed the new type.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (cppcli_enabled && is_handle_type(temp_type)) {
           /* A native array of handles is invalid. */
-          pos_error(ec_array_of_handle, &error_position);
+          a_type_ptr  utp = type_pointed_to(temp_type);
+          if (utp != NULL && is_class_struct_union_type(utp) &&
+              skip_typerefs(utp)
+                         ->variant.class_struct_union.is_generic_constraint) {
+            /* The handle type is really a generic parameter. */
+            pos_error(ec_array_of_generic_param, &error_position);
+          } else {
+            pos_error(ec_array_of_handle, &error_position);
+          }  /* if */
           err = TRUE;
         } else if (cppcli_enabled && 
                    is_immediate_managed_class_type(temp_type)) {
