@@ -552,8 +552,17 @@ and return FALSE.  Otherwise, return TRUE.
            allow tracking references to arrays.) */
         err_code = ec_handle_to_array;
       } else if (is_any_ptr_or_ref_type(tp)) {
-        /* Handles to pointers or references are not allowed. */
-        err_code = ec_handle_to_address_type;
+        /* Handles to handles, pointers or references are not allowed.  If tp
+           is a handle, it may actually represent a generic parameter: Use a
+           more direct diagnostic for that case. */
+        if (is_handle_type(tp)) {
+          a_type_ptr  utp = type_pointed_to(tp);
+          if (is_immediate_class_type(utp) &&
+              utp->variant.class_struct_union.is_generic_constraint) {
+            err_code = ec_ptr_handle_or_ref_to_generic_param;
+          }  /* if */
+        }  /* if */
+        if (err_code == ec_no_error) err_code = ec_handle_to_address_type;
       } else if (is_immediate_class_type(tp) &&
                  cli_class_type_kind_is(tp, cctk_standard)) {
         /* A handle to a non-managed class type is invalid. */
