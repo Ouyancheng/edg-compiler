@@ -3689,6 +3689,9 @@ Return TRUE if the diagnostic should be suppressed.
     } else if (find_prototype_diagnostic(error_code, severity, error_pos)) {
       suppress_diagnostic = TRUE;
     } else if (is_template_dependent_context() ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+               scope_stack_top().in_generic_definition ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                scope_stack_top().in_disambiguation) {
       record_prototype_diagnostic(error_code, severity, error_pos);
     }  /* if */

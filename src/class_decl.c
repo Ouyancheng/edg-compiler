@@ -14069,6 +14069,9 @@ declarations.
       el_type = skip_typerefs(el_type);
       if (class_state->is_nonreal_instantiation &&
           is_immediate_class_type(el_type) &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          !class_type->variant.class_struct_union.is_generic_definition &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           (microsoft_mode ||
            (gpp_mode &&
             (gnu_version < 30400 ||
