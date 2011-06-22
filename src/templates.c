@@ -5364,8 +5364,8 @@ instantiation-dependent.
 
   switch (tap->kind) {
     case tak_type:
-      template_param_found = is_instantiation_dependent_type(
-                                                            tap->variant.type);
+      template_param_found =
+       is_instantiation_dependent_type_or_cli_generic_param(tap->variant.type);
       break;
     case tak_nontype:
       if (tap->arg_operand != NULL) {
@@ -5884,6 +5884,7 @@ is returned.
   a_type_ptr				class_type;
   a_class_type_supplement_ptr		ctsp;
   a_boolean				add_to_instantiation_list = TRUE;
+  a_boolean				open_constructed_arg_list = FALSE;
 
   tssp = class_template_sym->variant.template_info;
   /* Switch to the translation unit containing the template, if needed. */
@@ -5909,10 +5910,16 @@ is returned.
                                     tssp->variant.class_template.is_interface;
   class_type->variant.class_struct_union.is_generic_instance =
                                                               tssp->is_generic;
+  /* If this is a C++/CLI generic and the argument list involves open
+     constructed types, mark the class as open constructed.  We need to
+     check even if the given template is not generic because a template
+     instantiated on a generic parameter is a real class type. */
+  if (cppcli_enabled ) {
+    open_constructed_arg_list = is_open_constructed_generic_arg_list(
+                                                           template_arg_list);
+  }  /* if */
   if (tssp->is_generic) {
-    /* If this is a C++/CLI generic and the argument list involves open
-       constructed types, mark the class as open constructed. */
-    if (is_open_constructed_generic_arg_list(template_arg_list)) {
+    if (open_constructed_arg_list) {
       class_type->variant.class_struct_union.is_open_constructed_type = TRUE;
     }  /* if */
   }  /* if */
@@ -5940,7 +5947,8 @@ is returned.
      some way on a template parameter and is therefore a "nonreal"
      instantiation, give it a size and alignment to permit it to pass
      through subsequent processing without causing spurious errors. */
-  if (template_arg_list_is_dependent(template_arg_list)) {
+  if (!open_constructed_arg_list &&
+      template_arg_list_is_dependent(template_arg_list)) {
     class_type->variant.class_struct_union.is_nonreal_class = TRUE;
   } else if (is_template_dependent_context() &&
              template_arg_list_involves_error_entity(template_arg_list)) {
@@ -9204,6 +9212,8 @@ a pointer over a reference type or creating an array of references.
   an_expr_node_ptr		expr;
   a_variadic_param_info_ptr	saved_vpip;
   a_variadic_param_info_ptr	saved_vpip_tail;
+  a_type_ptr			orig_type = type;
+  a_type_ptr			adjusted_orig_type = NULL;
 
   db_enter(5, "copy_type_with_substitution");
 #if DEBUG
@@ -9241,6 +9251,7 @@ a pointer over a reference type or creating an array of references.
       /* If this is a generic definition argument, get the associated generic
          parameter. */
       type = generic_param_if_generic_definition_argument(type);
+      adjusted_orig_type = type;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -9715,7 +9726,8 @@ done_with_routine:
       case tk_struct:
       case tk_union:
         cssp = symbol_supplement_for_class(type);
-        if (!type->variant.class_struct_union.is_nonreal_class) {
+        if (!type->variant.class_struct_union.is_nonreal_class &&
+            is_cli_open_constructed_instance(type)) {
           /* Reuse the current type. */
           new_type = type;
         } else if (cssp->template_param_for_proxy_class != NULL) {
@@ -9771,6 +9783,7 @@ done_with_routine:
   }
   /* Return an error type pointer if a copy error occurred. */
   if (*copy_error) new_type = error_type();
+  if (new_type == adjusted_orig_type) new_type = orig_type;
 #if DEBUG
   if (debug_level >= 5 || db_flag_is_set("ctws")) {
     fputs("out: ", f_debug);
