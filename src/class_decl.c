@@ -5159,6 +5159,14 @@ next_named_override:
             update_override_registry(registry_ptr, sym_for_override_registry,
                                      rout_sym, bcp);
           }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (cppcli_enabled && rout_is_cli_accessor(rout)) {
+            /* Accessors for different properties or events may share the same
+               symbol header.  So having a found a mismatched symbol in the
+               base class' scope does not mean there cannot be another one. */
+            continue;
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           break;
         }  /* if */
       }  /* for */
