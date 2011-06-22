@@ -4879,10 +4879,6 @@ information about the function declarator.
       pos_remark(ec_virtual_has_no_effect, &dps->virtual_pos);
     }  /* if */
     goto done;
-  } else if (class_state->is_generic_instance) {
-    /* Override checking is done on the generic itself, not on the
-       instantiations. */
-    goto done;
   }  /* if */
 next_named_override:
   if (cppcli_enabled && named_override != NULL) {
@@ -21063,6 +21059,7 @@ that are not irrelevant due to actual overrides.
 */
 {
   a_quasi_override_descr_ptr  qodp;
+  a_type_ptr                  class_type = cdsp->class_type;
 
   check_assertion(cppcli_enabled);
   for (qodp = cdsp->quasi_overrides; qodp != NULL; qodp = qodp->next) {
@@ -21075,7 +21072,7 @@ that are not irrelevant due to actual overrides.
          diagnostic needed. */
       goto next_quasi_override;
     }  /* if */
-    if (class_type_supp(cdsp->class_type)->assembly_index == 0) {
+    if (class_type_supp(class_type)->assembly_index == 0) {
       /* Issue the diagnostic corresponding to the cause of this entry.
          (Currently, no diagnostic is issued for classes loaded by metadata
          because the private members aren't loaded and might have resulted in
@@ -21094,9 +21091,13 @@ that are not irrelevant due to actual overrides.
       } else {
         unexpected_condition();
       }  /* if */
-      /* Since an interface member was not overridden, an error should be
-         issued indicating that the interface was not implemented. */
-      expect_error();
+      if (!class_type->variant.class_struct_union.is_generic_constraint) {
+        /* Since an interface member was not overridden, an error should be
+           issued indicating that the interface was not implemented.
+           (Generic constraint types aren't required to implement all
+           interface members.) */
+        expect_error();
+      }  /* if */
     }  /* if */
 next_quasi_override:;
   }  /* for */ 
