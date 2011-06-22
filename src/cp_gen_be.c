@@ -7142,6 +7142,7 @@ this one is such a continuation.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       gen_template_header(
                        template_decl,
+                       is_immediate_class_type(type) &&
                        type->variant.class_struct_union.is_generic_definition);
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
       gen_template_header(template_decl, /*is_cppcli_generic=*/FALSE);
