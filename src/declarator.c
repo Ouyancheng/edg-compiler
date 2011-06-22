@@ -580,10 +580,15 @@ and return FALSE.  Otherwise, return TRUE.
       err_code = ec_ptr_handle_or_ref_to_interior_ptr;
     } else if (is_pin_ptr_type(tp)) {
       err_code = ec_ptr_handle_or_ref_to_pin_ptr;
-    } else if (is_cli_generic_param_type(tp)) {  
-      err_code = ec_ptr_handle_or_ref_to_generic_param;
     } else if (is_cli_array_type(tp) && (is_ref || !is_handle)) {
       err_code = ec_ptr_or_ref_to_cli_array;
+    } else {
+      if (is_handle_type(tp)) tp = type_pointed_to(tp);
+      tp = skip_typerefs(tp);
+      if (is_immediate_class_type(tp) &&
+          tp->variant.class_struct_union.is_generic_constraint) {
+        err_code = ec_ptr_handle_or_ref_to_generic_param;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (err_code != ec_no_error && pos != NULL) {
