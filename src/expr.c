@@ -21589,6 +21589,14 @@ that case.
                          nullptr_case ? ec_nullptr_conv_to_bool :
                                         ec_ptr_to_member_conv_to_bool,
                          &pos);
+      } else if (operand_2_is_handle || operand_3_is_handle) {
+        /* At least one of the operands has a C++/CLI handle type.
+           This has to be checked before the pointer case so that if
+           we have a System::String^ and a string literal we will
+           convert the string literal to a System::String^. */
+        err = !check_compatibility_of_handle_operands(&operand_2, &operand_3,
+                                                      &colon_position,
+                                                      &result_type);
       } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
@@ -21698,13 +21706,6 @@ that case.
           /* The operands are incompatible. */
           err = TRUE;
         }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (operand_2_is_handle || operand_3_is_handle) {
-        /* At least one of the operands has a C++/CLI handle type. */
-        err = !check_compatibility_of_handle_operands(&operand_2, &operand_3,
-                                                      &colon_position,
-                                                      &result_type);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (operand_2_is_nullptr || operand_3_is_nullptr) {
         /* At least one of the operands has a nullptr type.  See if the
            operands are compatible. */
