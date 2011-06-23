@@ -8464,11 +8464,18 @@ analysis on a previously-scanned expression, and return the result in
   if (C_dialect == C_dialect_cplusplus &&
       is_overloadable_type_first_operand(&operand)) {
     /* Look for C++ operator overloading cases. */
+    a_boolean has_predef_meaning = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && operator_token == tok_not &&
+        is_handle_type(operand.type)) {
+      has_predef_meaning = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
                                    /*unary_operator=*/TRUE,
                                    /*must_be_member_function=*/FALSE,
                                    /*try_conversions=*/TRUE,
-                                   /*has_predef_meaning=*/FALSE,
+                                   has_predef_meaning,
                                    &operand, (an_operand *)NULL,
                                    &operator_position,
                                    operator_tok_seq_number,
