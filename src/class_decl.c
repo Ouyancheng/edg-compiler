@@ -3982,7 +3982,9 @@ the overridden symbol.
     /* Assume compatibility. */
     compatible = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cli_class_type_kind_is(class_state->class_type, cctk_interface)) {
+  } else if (cli_class_type_kind_is(class_state->class_type, cctk_interface) ||
+             cli_class_type_kind_is(sym_parent_class(overridden_sym),
+                                    cctk_interface)) {
     /* Don't consider covariant overrides for C++/CLI interface members. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
