@@ -637,16 +637,18 @@ EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.
 
 a_boolean is_overloadable_type_operand_full(an_operand *operand,
                                             a_boolean  first_operand,
-                                            a_boolean  all_dep_cases)
+                                            a_boolean  CFOO_guard)
 /*
 Return TRUE if the given operand has a type for which operator overloading
 should be considered.  If first_operand is TRUE, this is the first operand
 of an operation (C++/CLI has some special rules for such operands).
 Also return TRUE for error operands (because they might be overloadable).
-When all_dep_cases is TRUE, also return TRUE for operands that are
-template-dependent at other than the top level; that's used to send
-those to check_for_operator_overloading so partially-dependent cases
-don't have to be handled in the general code.
+When CFOO_guard is TRUE, this test is being done to decide about
+calling check_for_operator_overloading, so return TRUE for other cases
+that get handled there (e.g., operands that are template-dependent at
+other than the top level; that's used to send those to
+check_for_operator_overloading so partially-dependent cases don't have
+to be handled in the general code).
 */
 {
   a_boolean is_overloadable =
@@ -656,15 +658,24 @@ don't have to be handled in the general code.
                    is_error_operand(operand);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && !is_overloadable &&
-      operand->is_simple_string_literal &&
-      literal_type_convertible_to_cli_string(operand->type)) {
-    /* In C++/CLI mode, a string literal can act like a System::String
-       and overloading can be done on that. */
-    is_overloadable = TRUE;
+  if (cppcli_enabled && !is_overloadable) {
+    if (operand->is_simple_string_literal &&
+        literal_type_convertible_to_cli_string(operand->type)) {
+      /* In C++/CLI mode, a string literal can act like a System::String
+         and overloading can be done on that. */
+      is_overloadable = TRUE;
+    } else if (CFOO_guard && !first_operand &&
+               is_overloadable_handle_type(operand->type)) {
+      /* In C++/CLI mode, a handle should go to check_for_operator_overloading
+         because with a static conversion function it can be converted to a
+         fundamental type that could make a built-in operator usable.
+         A handle type on a first operand allows direct overloading and
+         is handled above. */
+      is_overloadable = TRUE;
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (!is_overloadable && all_dep_cases &&
+  if (!is_overloadable && CFOO_guard &&
       is_template_dependent_context() &&
       is_template_dependent_type(operand->type)) {
     is_overloadable = TRUE;
@@ -685,7 +696,7 @@ template-dependent at other than the first level.
   a_boolean is_overloadable =
                     is_overloadable_type_operand_full(operand,
                                                       /*first_operand=*/FALSE,
-                                                      /*all_dep_cases=*/TRUE);
+                                                      /*CFOO_guard=*/TRUE);
   return is_overloadable;
 }  /* is_overloadable_type_operand */
 
@@ -704,7 +715,7 @@ template-dependent at other than the first level.
   a_boolean is_overloadable =
                      is_overloadable_type_operand_full(operand,
                                                        /*first_operand=*/TRUE,
-                                                       /*all_dep_cases=*/TRUE);
+                                                       /*CFOO_guard=*/TRUE);
   return is_overloadable;
 }  /* is_overloadable_type_first_operand */
 
@@ -20145,7 +20156,9 @@ that case.
     /* Look for C++ operator overloading cases. */
     a_boolean has_predef_meaning = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && is_handle_type(operand_1->type)) {
+    if (cppcli_enabled &&
+        (is_handle_type(operand_1->type) ||
+         is_handle_type(operand_2.type))) {
       has_predef_meaning = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
