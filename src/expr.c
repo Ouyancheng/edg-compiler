@@ -20756,6 +20756,14 @@ that case.
       (is_overloadable_type_first_operand(operand_1) ||
        is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
+    a_boolean has_predef_meaning = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled &&
+        (is_handle_type(operand_1->type) ||
+         is_handle_type(operand_2.type))) {
+      has_predef_meaning = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Note that we do not test might_be_overloaded here, because we want
        to go to the subroutine to look for conversions from class types
        to built-in types. */
@@ -20763,7 +20771,7 @@ that case.
                                    /*unary_operator=*/FALSE,
                                    /*must_be_member_function=*/FALSE,
                                    /*try_conversions=*/TRUE,
-                                   /*has_predef_meaning=*/FALSE,
+                                   has_predef_meaning,
                                    operand_1, &operand_2,
                                    &operator_position,
                                    operator_tok_seq_number,
