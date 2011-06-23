@@ -13746,18 +13746,20 @@ initially used when processing the declaration of a partial specialization.
         set_cli_visibility(class_type, decl_state->cli_visibility,
                            &decl_state->cli_visibility_pos,
                            decl_state->defines_something);
-        if (tssp->attributes != NULL && tssp->is_generic &&
-            in_code_generated_from_metadata()) {
-          /* This is a generic declaration being loaded from metadata.
-             Apply the tag attributes because this will contain the
-             assembly_info declspec, which needs to be applied on the
-             declaration, not the definition. */
-          attach_tag_attributes(tssp->attributes, prototype_type,
-                            (a_decl_parse_state*)NULL,
-                            /*is_definition=*/decl_state->defines_something,
-                            /*is_forward_decl=*/FALSE,
-                            /*ignore_gnu_attributes=*/FALSE);
-          tssp->attributes = NULL;
+        if (tssp->is_generic && in_code_generated_from_metadata()) {
+          /* This is a generic declaration being loaded from metadata. */
+          tssp->from_metadata = TRUE;
+          if (tssp->attributes != NULL) {
+            /* Apply the tag attributes because this will contain the
+               assembly_info declspec, which needs to be applied on the
+               declaration, not the definition. */
+            attach_tag_attributes(tssp->attributes, prototype_type,
+                              (a_decl_parse_state*)NULL,
+                              /*is_definition=*/decl_state->defines_something,
+                              /*is_forward_decl=*/FALSE,
+                              /*ignore_gnu_attributes=*/FALSE);
+            tssp->attributes = NULL;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

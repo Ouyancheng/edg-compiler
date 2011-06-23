@@ -21071,25 +21071,29 @@ Check all entries describing "quasi-overrides" and issue diagnostics for any
 that are not irrelevant due to actual overrides. 
 */
 {
-  a_quasi_override_descr_ptr  qodp;
-  a_type_ptr                  class_type = cdsp->class_type;
+  a_quasi_override_descr_ptr   qodp;
+  a_type_ptr                   class_type = cdsp->class_type;
+  a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
 
   check_assertion(cppcli_enabled);
-  for (qodp = cdsp->quasi_overrides; qodp != NULL; qodp = qodp->next) {
-    a_routine_ptr     base_rp = qodp->base_member->variant.routine.ptr;
-    a_routine_ptr     orp = base_rp;
-    a_base_class_ptr  obcp = qodp->base_class;
-    find_final_overrider(&obcp, &orp);
-    if (orp != base_rp) {
-      /* The "quasi-overridden" function is really overridden.  No
-         diagnostic needed. */
-      goto next_quasi_override;
-    }  /* if */
-    if (class_type_supp(class_type)->assembly_index == 0) {
-      /* Issue the diagnostic corresponding to the cause of this entry.
-         (Currently, no diagnostic is issued for classes loaded by metadata
-         because the private members aren't loaded and might have resulted in
-         a valid override.  FIXME) */
+  if (ctsp->assembly_index == 0 &&
+      (!class_type->variant.class_struct_union.is_generic_instance ||
+       !f_class_template_for_type(class_type)->variant.template_info
+                                             ->from_metadata)) {
+    /* Check each quasi-override in turn.  (Currently, no diagnostic is issued
+       for classes produced from metadata because the private members aren't
+       loaded and might have resulted in a valid override.  FIXME) */
+    for (qodp = cdsp->quasi_overrides; qodp != NULL; qodp = qodp->next) {
+      a_routine_ptr     base_rp = qodp->base_member->variant.routine.ptr;
+      a_routine_ptr     orp = base_rp;
+      a_base_class_ptr  obcp = qodp->base_class;
+      find_final_overrider(&obcp, &orp);
+      if (orp != base_rp) {
+        /* The "quasi-overridden" function is really overridden.  No
+           diagnostic needed. */
+        goto next_quasi_override;
+      }  /* if */
+      /* Issue the diagnostic corresponding to the cause of this entry. */
       if (qodp->return_type_mismatch) {
         pos_syty_warning(ec_different_return_type_on_virtual_function_override,
                          &qodp->diag_pos, qodp->base_member,
@@ -21111,9 +21115,9 @@ that are not irrelevant due to actual overrides.
            interface members.) */
         expect_error();
       }  /* if */
-    }  /* if */
 next_quasi_override:;
-  }  /* for */ 
+    }  /* for */ 
+  }  /* if */
   free_quasi_override_descr_list(&cdsp->quasi_overrides);
 }  /* check_quasi_overrides */
 
