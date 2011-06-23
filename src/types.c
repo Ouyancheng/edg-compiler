@@ -6750,7 +6750,8 @@ conversion in C++/CLI because it drops gc-ness of an interior_ptr.
   if (cppcli_enabled &&
       is_interior_ptr_type(source_type) &&
       is_pointer_type(dest_type) &&
-      !is_interior_ptr_type(dest_type)) {
+      !is_interior_ptr_type(dest_type) &&
+      !is_pin_ptr_type(dest_type)) {
     prohibited = TRUE;
   }  /* if */
   return prohibited;
