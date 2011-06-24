@@ -167,9 +167,9 @@ extern a_boolean class_is_instance_of_generic_from_metadata(
    from metadata, an instance of a generic class loaded from metadata, or a
    nested class thereof. */
 #define class_is_from_metadata(tp)                                           \
-  (class_type_supp(tp)->assembly_index ||                                    \
+  (class_type_supp((tp))->assembly_index ||                                  \
    (tp->variant.class_struct_union.is_generic_instance &&                    \
-    class_is_instance_of_generic_from_metadata(tp)))
+    class_is_instance_of_generic_from_metadata((tp))))
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 extern a_boolean is_cli_open_constructed_type(a_type_ptr	tp);
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
