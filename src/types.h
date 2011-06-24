@@ -161,8 +161,6 @@ extern a_routine_ptr delegate_invocation_function(a_type_ptr delegate_type);
 extern a_type_ptr delegate_invocation_type(a_type_ptr delegate_type);
 #if !STANDALONE_UTILITY_PROGRAM
 extern a_boolean is_cli_system_object_type(a_type_ptr tp);
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-extern a_boolean is_cli_open_constructed_type(a_type_ptr	tp);
 extern a_boolean class_is_instance_of_generic_from_metadata(
                                                       a_type_ptr  class_type);
 /* Macro that produces TRUE if the given class type entry is a class loaded
@@ -172,6 +170,8 @@ extern a_boolean class_is_instance_of_generic_from_metadata(
   (class_type_supp(tp)->assembly_index ||                                    \
    (tp->variant.class_struct_union.is_generic_instance &&                    \
     class_is_instance_of_generic_from_metadata(tp)))
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+extern a_boolean is_cli_open_constructed_type(a_type_ptr	tp);
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_immediate_managed_class_type(tp) /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

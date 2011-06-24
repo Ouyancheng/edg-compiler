@@ -1315,6 +1315,25 @@ Return TRUE if the given type is the C++/CLI root type System::Object.
   return identical_types(tp, system_object_type);
 }  /* is_cli_system_object_type */
 
+
+a_boolean class_is_instance_of_generic_from_metadata(a_type_ptr  class_type)
+/*
+The given class type is an instance of a C++/CLI class type generic or a
+nested class thereof.  Return TRUE if the generic was imported from metadata.
+*/
+{
+  a_boolean  result;
+
+  if (class_type->source_corresp.is_class_member) {
+    a_type_ptr  parent_class = parent_class_of(class_type);
+    result = class_is_from_metadata(parent_class);
+  } else {
+    result = !f_class_template_for_type(class_type)->variant.template_info
+                                                   ->from_metadata;
+  }  /* if */
+  return result;
+}  /* instance_of_generic_from_metadata */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_cli_open_constructed_type(a_type_ptr	tp)
@@ -1346,25 +1365,6 @@ Return TRUE if tp is a C++/CLI open constructed type (ECMA-372 31.2.1).
   }  /* if */
   return result;
 }  /* is_cli_open_constructed_type */
-
-
-a_boolean class_is_instance_of_generic_from_metadata(a_type_ptr  class_type)
-/*
-The given class type is an instance of a C++/CLI class type generic or a
-nested class thereof.  Return TRUE if the generic was imported from metadata.
-*/
-{
-  a_boolean  result;
-
-  if (class_type->source_corresp.is_class_member) {
-    a_type_ptr  parent_class = parent_class_of(class_type);
-    result = class_is_from_metadata(parent_class);
-  } else {
-    result = !f_class_template_for_type(class_type)->variant.template_info
-                                                   ->from_metadata;
-  }  /* if */
-  return result;
-}  /* instance_of_generic_from_metadata */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
