@@ -10889,7 +10889,7 @@ C++/CLI dispose pattern).
 {
   check_assertion(cppcli_enabled);
   if (is_managed_class_type(class_type) &&
-      class_type_supp(class_type)->assembly_index == 0 &&
+      !class_is_from_metadata(class_type) &&
       locator->symbol_header != NULL) {
     a_boolean  is_dispose = symbol_header_is_for_identifier_string(
                                             locator->symbol_header, "Dispose");
@@ -16142,7 +16142,7 @@ The routine body is not generated until it is known to be needed.
           find_base_class_of_full(class_type,
                                   cli_class_type_for(csk_system_idisposable),
                                   /*instantiate_if_necessary=*/FALSE) != NULL;
-      if (class_type_supp(class_type)->assembly_index == 0 &&
+      if (!class_is_from_metadata(class_type) &&
           !class_type->variant.class_struct_union.is_prototype_instantiation) {
         /* The class was not defined in metadata.  Generate the dispose pattern
            implementation if one is needed. */
@@ -18424,7 +18424,7 @@ definition and record it in the IL (as a special-purpose class type).
   prev_decl = curr_scope_id_lookup(&loc, IDL_MUST_BE_TAG);
   if (prev_decl != NULL) {
     class_type = type_symbol_type(prev_decl);
-    if (class_type_supp(class_type)->assembly_index != 0) {
+    if (class_is_from_metadata(class_type)) {
       /* The delegate was loaded from an assembly file. */
       a_boolean      is_local = FALSE;
       decl_level = scope_depth_of_symbol(prev_decl, &is_local);
@@ -21071,15 +21071,11 @@ Check all entries describing "quasi-overrides" and issue diagnostics for any
 that are not irrelevant due to actual overrides. 
 */
 {
-  a_quasi_override_descr_ptr   qodp;
-  a_type_ptr                   class_type = cdsp->class_type;
-  a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
+  a_quasi_override_descr_ptr  qodp;
+  a_type_ptr                  class_type = cdsp->class_type;
 
   check_assertion(cppcli_enabled);
-  if (ctsp->assembly_index == 0 &&
-      (!class_type->variant.class_struct_union.is_generic_instance ||
-       !f_class_template_for_type(class_type)->variant.template_info
-                                             ->from_metadata)) {
+  if (!class_is_from_metadata(class_type)) {
     /* Check each quasi-override in turn.  (Currently, no diagnostic is issued
        for classes produced from metadata because the private members aren't
        loaded and might have resulted in a valid override.  FIXME) */
