@@ -4268,8 +4268,8 @@ overridden, the corresponding entry is removed from the registry.
       /* Count the number of functions in the overload set that are
          virtual.  There should be at least one if this routine is being
          called. */
-      sym = overridden_sym->variant.overloaded_function.symbols;
       unsigned int  count = 0;
+      sym = overridden_sym->variant.overloaded_function.symbols;
       for (; sym != NULL; sym = next_sym_in_set) {
         next_sym_in_set = sym->next;
         reduce_to_underlying_generic_definition_symbol_if_needed(sym);
