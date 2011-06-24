@@ -21076,10 +21076,10 @@ that are not irrelevant due to actual overrides.
   a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
 
   check_assertion(cppcli_enabled);
-  if (ctsp->assembly_index == 0 /*&&
+  if (ctsp->assembly_index == 0 &&
       (!class_type->variant.class_struct_union.is_generic_instance ||
        !f_class_template_for_type(class_type)->variant.template_info
-                                             ->from_metadata)*/) {
+                                             ->from_metadata)) {
     /* Check each quasi-override in turn.  (Currently, no diagnostic is issued
        for classes produced from metadata because the private members aren't
        loaded and might have resulted in a valid override.  FIXME) */
