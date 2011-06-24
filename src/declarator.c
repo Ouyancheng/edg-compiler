@@ -591,7 +591,9 @@ and return FALSE.  Otherwise, return TRUE.
       err_code = ec_ptr_handle_or_ref_to_pin_ptr;
     } else if (is_cli_array_type(tp) && (is_ref || !is_handle)) {
       err_code = ec_ptr_or_ref_to_cli_array;
-    } else {
+    } else if (!(is_ref && is_handle)) {
+      /* Check for a pointer, handle, or ordinary reference to a generic
+         parameter (a tracking reference is okay). */
       if (is_handle_type(tp)) tp = type_pointed_to(tp);
       tp = skip_typerefs(tp);
       if (is_immediate_class_type(tp) &&
