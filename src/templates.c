@@ -5914,14 +5914,12 @@ is returned.
      constructed types, mark the class as open constructed.  We need to
      check even if the given template is not generic because a template
      instantiated on a generic parameter is a real class type. */
-  if (cppcli_enabled ) {
+  if (cppcli_enabled) {
     open_constructed_arg_list = is_open_constructed_generic_arg_list(
                                                            template_arg_list);
   }  /* if */
-  if (tssp->is_generic) {
-    if (open_constructed_arg_list) {
-      class_type->variant.class_struct_union.is_open_constructed_type = TRUE;
-    }  /* if */
+  if (open_constructed_arg_list) {
+    class_type->variant.class_struct_union.is_open_constructed_type = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   class_type->variant.class_struct_union.is_template_class = TRUE;
@@ -7464,7 +7462,8 @@ matches a class type from the parameter list of a template function.
   if (templ_cssp->class_template != NULL &&
       identical_templates_given_symbol(primary_template,
                                        templ_primary_template) &&
-      templ_type->variant.class_struct_union.is_nonreal_class) {
+      (templ_type->variant.class_struct_union.is_nonreal_class ||
+       is_cli_open_constructed_instance(templ_type))) {
     /* The two classes refer to the same template, but templ_type
        is a nonreal instantiation -- i.e., one based on template
        parameter types instead of real types. */
@@ -9727,7 +9726,7 @@ done_with_routine:
       case tk_union:
         cssp = symbol_supplement_for_class(type);
         if (!type->variant.class_struct_union.is_nonreal_class &&
-            is_cli_open_constructed_instance(type)) {
+            !is_cli_open_constructed_instance(type)) {
           /* Reuse the current type. */
           new_type = type;
         } else if (cssp->template_param_for_proxy_class != NULL) {

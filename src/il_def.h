@@ -7562,7 +7562,8 @@ typedef struct a_type {
 		is_open_constructed_type:1;
 			/* TRUE for generic instances for which one or more
 			   of the generic arguments is an open constructed
-			   type. */
+			   type.  Also TRUE for template classes instantiated
+			   on generic type parameters. */
      a_bit_field
 		is_generic_constraint:1;
 			/* TRUE if this is the type created to represent the
