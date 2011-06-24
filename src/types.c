@@ -1328,8 +1328,8 @@ nested class thereof.  Return TRUE if the generic was imported from metadata.
     a_type_ptr  parent_class = parent_class_of(class_type);
     result = class_is_from_metadata(parent_class);
   } else {
-    result = !f_class_template_for_type(class_type)->variant.template_info
-                                                   ->from_metadata;
+    result = f_class_template_for_type(class_type)->variant.template_info
+                                                  ->from_metadata;
   }  /* if */
   return result;
 }  /* instance_of_generic_from_metadata */
