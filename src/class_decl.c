@@ -3356,7 +3356,7 @@ TRUE and update the IL to record the associated "override".
   a_symbol_header_ptr  sym_header = symbol_for(irp)->header;
 
   /* Search the bases for a member with the same name and type as irp.  This
-     search is somewhat similar to that done in check_for_virtual_function. */
+     search is somewhat similar to that done in check_for_virtual_override. */
   check_assertion(!special_kind_is(irp, sfk_destructor));
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     a_symbol_ptr  sym, sym_next;
@@ -4212,6 +4212,23 @@ TRUE.
 }  /* shares_virtual_function_info */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/*
+If the given symbol is for a function generic, set it to the symbol for the
+underlying "generic definition" routine.
+*/
+#define reduce_to_underlying_generic_definition_symbol_if_needed(sym)        \
+  if (symbol_is((sym), sk_function_template) &&                              \
+      (sym)->variant.template_info->is_generic) {                            \
+    (sym) = symbol_for((sym)->variant.template_info                          \
+                            ->variant.function.routine);                     \
+  }  /* if */
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define reduce_to_underlying_generic_definition_symbol_if_needed(sym)
+  /* Nothing */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 static void update_override_registry(
                              an_override_registry_entry_ptr *registry_ptr,
                              a_symbol_ptr                   overridden_sym,
@@ -4243,6 +4260,7 @@ overridden, the corresponding entry is removed from the registry.
     /* No matching entry was found in the registry.  Only if there is more
        than one virtual function in the overload set do we need a partial-
        override entry. */
+    a_symbol_ptr  sym, next_sym_in_set;
     orep = alloc_override_registry_entry();
     orep->overridden_sym = overridden_sym;
     orep->base_class = bcp;
@@ -4250,9 +4268,11 @@ overridden, the corresponding entry is removed from the registry.
       /* Count the number of functions in the overload set that are
          virtual.  There should be at least one if this routine is being
          called. */
-      a_symbol_ptr  sym = overridden_sym->variant.overloaded_function.symbols;
+      sym = overridden_sym->variant.overloaded_function.symbols;
       unsigned int  count = 0;
-      for (; sym != NULL; sym = sym->next) {
+      for (; sym != NULL; sym = next_sym_in_set) {
+        next_sym_in_set = sym->next;
+        reduce_to_underlying_generic_definition_symbol_if_needed(sym);
         if (sym->kind == (a_symbol_kind)sk_member_function &&
             sym->variant.routine.ptr->is_virtual) {
           ++count;
@@ -4261,7 +4281,11 @@ overridden, the corresponding entry is removed from the registry.
       check_assertion(count > 0);
       orep->virtual_function_count = count;
     } else {
-      check_assertion(overridden_sym->variant.routine.ptr->is_virtual);
+#if CHECKING
+      sym = overridden_sym;
+      reduce_to_underlying_generic_definition_symbol_if_needed(sym);
+      check_assertion(sym->variant.routine.ptr->is_virtual);
+#endif /* CHECKING */
       orep->virtual_function_count = 1;
     }  /* if */
     /* Add the new entry to the end of the registry. */
@@ -4278,6 +4302,8 @@ overridden, the corresponding entry is removed from the registry.
      which case the override count should be bumped. */
   if (nonoverriding_sym != NULL) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    reduce_to_underlying_generic_definition_symbol_if_needed(
+                                                           nonoverriding_sym);
     if (cppcli_enabled &&
         nonoverriding_sym->variant.routine.ptr->overridden_functions != NULL) {
       /* The non-overriding derived class declaration selectively overrides
@@ -4821,7 +4847,7 @@ return_types_are_override_compatible.
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* func_info is not used in some configurations. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static a_boolean check_for_virtual_function(
+static void check_for_virtual_override(
                                      a_boolean               virtual_specified,
                                      a_member_decl_info_ptr  decl_info,
                                      a_class_def_state_ptr   class_state,
@@ -4862,7 +4888,7 @@ information about the function declarator.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_source_position               *source_pos = &dps->declarator_pos;
 
-  db_enter(4, "check_for_virtual_function");
+  db_enter(4, "check_for_virtual_override");
   check_assertion(rout_sym->kind == (a_symbol_kind)sk_member_function);
   sym_header_to_search = rout_sym->header;
   rout = rout_sym->variant.routine.ptr;
@@ -4925,15 +4951,21 @@ next_named_override:
                                               sym_header_to_search);
       /*lint --e{850} sym modified in loop */
       for (sym = symbol_list; sym != NULL; sym = sym_next) {
+        a_symbol_ptr  next_sym_in_set = NULL;
         sym_next = sym->next_in_lookup_table;
         sym_for_override_registry = sym;
         if (sym->decl_scope == base_class_scope->number) {
           /* Symbol represents a member of bcp's class. */
-          if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+          if (symbol_is(sym, sk_overloaded_function)) {
             overloaded = TRUE;
             sym = sym->variant.overloaded_function.symbols;
-          } else if (sym->kind == (a_symbol_kind)sk_member_function) {
+          } else if (symbol_is(sym, sk_member_function)) {
             overloaded = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (rout->is_generic_definition &&
+                     symbol_is(sym, sk_function_template)) {
+            overloaded = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else if (sym->kind == (a_symbol_kind)sk_field ||
                      sym->kind == (a_symbol_kind)sk_static_data_member) {
             /* It's not a symbol for a function, but it's in the same name
@@ -4947,7 +4979,13 @@ next_named_override:
           /* Innermost loop is run only once for simple functions but more
              for overloaded functions. */
           any_override_candidates = FALSE;
-          for (; sym != NULL; sym = overloaded ? sym->next : NULL) {
+          for (; sym != NULL; sym = next_sym_in_set) {
+            if (overloaded) next_sym_in_set = sym->next;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (rout->is_generic_definition) {
+              reduce_to_underlying_generic_definition_symbol_if_needed(sym);
+            }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             if (sym->kind != (a_symbol_kind)sk_member_function) {
               /* An overload set could include other symbol kinds, but only
                  sk_member_functions are checked. */
@@ -5251,6 +5289,7 @@ done:
     class_type->variant.class_struct_union.any_virtual_functions = TRUE;
     class_type->variant.class_struct_union.
                  any_virtual_functions_including_in_base_classes = TRUE;
+    class_state->POD_ruled_out = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled) {
       if (virtual_specified) {
@@ -5285,9 +5324,29 @@ done:
     pos_error(ec_function_modifier_requires_virtual_function, source_pos);
     rout->final = FALSE;
   }  /* if */
+  if (rout->is_virtual) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cli_class_type_kind_is(class_type, cctk_value)) {
+      /* C++/CLI value classes are an exception to the rules implemented
+         below: They're trivially constructible/copyable even when they have
+         virtual member functions. */
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      /* Classes with virtual functions cannot be constructed or assigned
+         by bitwise copying. */
+      a_class_symbol_supplement_ptr
+                               cssp = symbol_supplement_for_class(class_type);
+      cssp->construction_by_bitwise_copy_allowed = FALSE;
+      cssp->assignment_by_bitwise_copy_allowed = FALSE;
+      /* Classes with virtual functions require nontrivial default
+         constructors. */
+      class_state->default_ctor_is_nontrivial = TRUE;
+    }  /* if */
+  }  /* if */
   db_exit();
-  return rout->is_virtual;
-}  /* check_for_virtual_function */
+}  /* check_for_virtual_override */
 
 #if ABI_COMPATIBILITY_VERSION >= 232 && !IA64_ABI
 
@@ -9693,7 +9752,7 @@ to (with its overridden_functions field).
     rp->overridden_functions->entity.ptr = (char*)base_rp;
     rp->compiler_generated = TRUE;
     /* The symbol must be entered in the symbol table so it can be encountered
-       by check_for_virtual_function, but it shouldn't be found by name
+       by check_for_virtual_override, but it shouldn't be found by name
        lookup. */
     result->is_invisible = TRUE;
     enter_symbol_into_completed_class(result);
@@ -11540,7 +11599,6 @@ implicitly declared member functions.
              copy-constructors to set virtual function table pointers.) */
           make_virtual_function_pure(rtn, class_type);
           is_virtual = TRUE;
-          class_state->POD_ruled_out = TRUE;
         }  /* if */
         if (pdp != NULL && pdp->is_virtual) is_virtual = TRUE;
       }  /* if */
@@ -11549,27 +11607,11 @@ implicitly declared member functions.
         /* Compiler-generated members of prototype instantiation cannot
            always be matched to potentially overridden member functions
            because of insufficient type information.  To avoid spurious
-           errors, we do not call check_for_virtual_function in such
+           errors, we do not call check_for_virtual_override in such
            cases. */
-      } else if (check_for_virtual_function(is_virtual, decl_info,
-                                            class_state, func_info)) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (cli_class_type_kind_is(class_type, cctk_value)) {
-          /* C++/CLI value classes are an exception to the rules implemented
-             below: They're trivially constructible/copyable even when they
-             have virtual member functions. */
-        } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* Do not insert code here. */
-        {
-          /* Classes with virtual functions require nontrivial default
-             constructors. */
-          class_state->default_ctor_is_nontrivial = TRUE;
-          /* Classes with virtual functions cannot be constructed or assigned
-             by bitwise copying. */
-          cssp->construction_by_bitwise_copy_allowed = FALSE;
-          cssp->assignment_by_bitwise_copy_allowed = FALSE;
-        }  /* if */
+      } else {
+        check_for_virtual_override(is_virtual, decl_info, class_state,
+                                   func_info);
       }  /* if */
     }  /* if */
     if (!special_kind_is(rtn, sfk_none)) {
@@ -11791,13 +11833,14 @@ declarations.)
     sym = enter_overloaded_symbol((a_symbol_kind)sk_function_template,
                                   locator, is_ctor, sym, &overload_sym);
   }  /* if */
+  set_class_membership(sym, (a_source_correspondence*)NULL, class_type);
   dps->sym = sym;
   rtn = make_routine(member_type, (a_storage_class)sc_unspecified,
                      prototype_instantiations_in_il && !sym->is_error
                                      ? effective_decl_level : NO_SCOPE_DEPTH);
   tssp = template_supplement_for_symbol(sym);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  tssp->is_generic = scope_stack_top().tmpl_decl_state->is_generic;
+  tssp->is_generic = dps->is_generic_declaration;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tssp->variant.function.routine = rtn;
   /* Copy the func_info block and then null out its param-id pointer so that
@@ -11810,9 +11853,7 @@ declarations.)
                                                    sym, rtn, templ_param_list);
   /* Set the source correspondence, including the access specifier. */
   set_source_corresp(&rtn->source_corresp, prototype_sym);
-  set_class_membership(sym, &rtn->source_corresp, class_type);
-  set_class_membership(prototype_sym, (a_source_correspondence*)NULL,
-                       class_type);
+  set_class_membership(prototype_sym, &rtn->source_corresp, class_type);
   rtn->source_corresp.access = class_state->access;
   if (func_info->is_inline) {
     /* Inline member function (either because "inline" was specified or
@@ -11926,6 +11967,22 @@ declarations.)
     }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (tssp->is_generic) {
+      /* Generic functions can be virtual (standard member function templates
+         cannot).  For the purposes of determining overriding, treat this as
+         the declaration of a function instead of that of a member template. */
+      dps->sym = prototype_sym;
+      if (check_virtual_interface_member(class_state, rtn, locator)) {
+        rtn->is_virtual = TRUE;
+        make_virtual_function_pure(rtn, class_type);
+      } else if (dps->dso_flags & DSO_VIRTUAL) {
+        rtn->is_virtual = TRUE;
+      }  /* if */
+      check_for_virtual_override(rtn->is_virtual, decl_info, class_state,
+                                 func_info);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   dps->sym = sym;
   db_exit();
@@ -19680,6 +19737,12 @@ passed via template_decl.
     if (is_member_template) {
       dsi_flags |= DSI_IS_TEMPLATE_DECLARATION;
       decl_info.is_member_template = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (scope_is(&scope_stack_top(), sck_template_declaration) &&
+          scope_stack_top().tmpl_decl_state->is_generic) {
+        decl_state->is_generic_declaration = 1;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
   /* Allow specifier attributes. */
@@ -19986,6 +20049,7 @@ passed via template_decl.
         /* An "= 0" is not valid for a member template, but in some modes
            such a spurious pure specifier is ignored while parsing the
            template (but not when the template is instantiated). */
+/* FIXME: Accept "= 0" on virtual generics. */
         if ((microsoft_mode || (gpp_mode && gnu_version < 40200)) &&
             curr_token == tok_assign && next_token() == tok_int_constant) {
           (void)get_token();

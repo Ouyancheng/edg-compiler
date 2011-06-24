@@ -8193,8 +8193,10 @@ storage_class_specifier:
              specializations of class template member functions. */
           error(ec_bad_specifier_outside_class_decl);
           err = TRUE;
-        } else if (input_flags & DSI_IS_TEMPLATE_DECLARATION) {
-          /* Must be a member function template -- virtual is not allowed. */
+        } else if ((input_flags & DSI_IS_TEMPLATE_DECLARATION) &&
+                   !state->is_generic_declaration) {
+          /* Must be a member function template -- virtual is not allowed.
+             (Virtual C++/CLI member generics are okay.) */
           error(ec_virtual_function_template);
           err = TRUE;
         } else if (decl_specifiers_seen & DS_VIRTUAL) {

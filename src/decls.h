@@ -601,6 +601,9 @@ typedef struct a_decl_parse_state {
 			   top-level uses of such special types is inhibited
 			   (e.g., because higher-level code will issue a more
 			   specific diagnostic). */
+  a_bit_field	is_generic_declaration:1;
+			/* TRUE if this is a MICROSOFT C++/CLI generic
+			   declaration. */
   an_attribute_ptr
 		prefix_attributes;
 			/* A list of non-type-transforming attributes scanned
