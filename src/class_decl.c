@@ -4270,6 +4270,7 @@ overridden, the corresponding entry is removed from the registry.
          called. */
       unsigned int  count = 0;
       sym = overridden_sym->variant.overloaded_function.symbols;
+      /*lint --e{850} sym modified in loop */
       for (; sym != NULL; sym = next_sym_in_set) {
         next_sym_in_set = sym->next;
         reduce_to_underlying_generic_definition_symbol_if_needed(sym);
