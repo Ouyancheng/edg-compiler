@@ -1339,7 +1339,10 @@ Return TRUE if tp is a C++/CLI open constructed type (ECMA-372 31.2.1).
     }  /* if */
   } else if (is_cli_array_type(tp)) {
     /* A C++/CLI array is an open constructed type if its element type is. */
-    result = is_cli_open_constructed_type(cli_array_element_type(tp));
+    /* Following done as two lines to avoid a bug in gcc 4.0.2 on Solaris
+       with -O2. */
+    tp = cli_array_element_type(tp);
+    result = is_cli_open_constructed_type(tp);
   }  /* if */
   return result;
 }  /* is_cli_open_constructed_type */
