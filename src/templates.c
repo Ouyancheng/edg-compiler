@@ -25802,11 +25802,12 @@ instantiation.
     done_with_func_info(func_info);
     remove_declarator_sse(&state, depth_scope_stack);
   }  /* if */
-  /* The Microsoft compiler silently ignores cases in which no matching
-     template is found for an explicit instantiation or an "extern template"
-     directive.  In Microsoft bugs mode we issue a warning for an explicit
-     instantiation and a remark for an "extern template". */
-  if (microsoft_bugs && !is_pragma) {
+  /* The Microsoft compiler (versions 1300 and earlier) silently ignores
+     cases in which no matching template is found for an explicit
+     instantiation or an "extern template" directive.  In Microsoft
+     bugs mode we issue a warning for an explicit instantiation and a
+     remark for an "extern template". */
+  if (microsoft_bugs && microsoft_version <= 1300 && !is_pragma) {
     severity_if_not_found = kind == (a_pragma_kind)pk_do_not_instantiate
                                                ? (an_error_severity)es_remark
                                                : (an_error_severity)es_warning;

@@ -1,5 +1,19 @@
 Version 4.4
 
+6/24/11  [EDGcpfe/11781]
+Microsoft compatibility: acceptance of invalid explicit instantiations now
+version-dependent
+
+The front end accepts certain invalid explicit instantiation directives in
+Microsoft bugs mode (see 2/17/98 entry).  This was fixed in VC 7.1, so we
+now only provide this bug emulation when microsoft_version <= 1300.
+
+  template <class T> struct A {
+    template <class U> int f(int i) { return 0; }
+  };
+  template int A<int>::f<char>();  // now error instead of warning
+
+
 6/18/11  [EDGcpfe/11808]
 C-generating back end: abort on reference to variable in containing block
 
