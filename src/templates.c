@@ -13193,10 +13193,7 @@ and create the template symbol supplement for the class.
        created within a prototype instantiation.  Don't mark such symbols
        as prototype instantiations. */
   } else {
-    class_type->variant.class_struct_union.is_prototype_instantiation = TRUE;
-    class_type->variant.class_struct_union.is_nonreal_class =
-                      parent_type->variant.class_struct_union.is_nonreal_class;
-    class_type->variant.class_struct_union.is_template_class = TRUE;
+    a_boolean	is_generic = FALSE;
     if (parent_type->variant.class_struct_union.is_in_class_specialization) {
       /* This will be true for a Microsoft in-class specialization.  Such
          classes, and classes nested within them, are treated as template
@@ -13208,6 +13205,7 @@ and create the template symbol supplement for the class.
          associated with this position in the class symbol supplement.
          This will be used during real instantiations to determine which
          declaration in the real instantiation matches this one. */
+      is_generic = parent_tssp->is_generic;
       cssp->prototype_token_sequence_number = curr_token_sequence_number;
       tssp = alloc_template_symbol_supplement(sym->kind);
       tssp->variant.class_template.name_linkage =
@@ -13216,9 +13214,23 @@ and create the template symbol supplement for the class.
       cssp->template_info = tssp;
       cssp->corresp_prototype_sym = sym;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      tssp->is_generic = parent_tssp->is_generic;
+      if (cppcli_enabled) {
+        tssp->is_generic = parent_tssp->is_generic;
+        class_type->variant.class_struct_union.is_generic_definition =
+                                                                    is_generic;
+        class_type->variant.class_struct_union.is_generic_instance =
+                                                                    is_generic;
+        if (tssp->is_generic && in_code_generated_from_metadata()) {
+          /* This is a generic declaration being loaded from metadata. */
+          tssp->from_metadata = TRUE;
+        }  /* if */
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
+    class_type->variant.class_struct_union.is_prototype_instantiation =
+                                                                   !is_generic;
+    class_type->variant.class_struct_union.is_nonreal_class = !is_generic;
+    class_type->variant.class_struct_union.is_template_class = TRUE;
   }  /* if */
 }  /* make_nested_class_template_supplement */
 
@@ -13307,7 +13319,13 @@ any classes that declared the nested class as a template friend.
           (tssp != NULL && tssp->is_generic)) {
         templ->prototype_instantiation.type = class_type;
       }  /* if */
-      if (tssp != NULL) tssp->il_template_entry = templ;
+      if (tssp != NULL) {
+        tssp->il_template_entry = templ;
+#if 0
+        /* FIXME: This is a partial fix for another issue. */
+        tssp->variant.class_template.prototype_instantiation = sym;
+#endif /* 0 */
+      }  /* if */
       check_for_nested_type_of_prototype_instantiation(sym);
     }  /* if */
   }  /* if */
