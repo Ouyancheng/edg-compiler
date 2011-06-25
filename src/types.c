@@ -4181,7 +4181,7 @@ point to the same type or constant).  FALSE if only equivalence is required.
   } else if ((type_1->variant.class_struct_union.is_nonreal_class &&
               type_2->variant.class_struct_union.is_nonreal_class) ||
              (is_cli_open_constructed_instance(type_1) &&
-              is_cli_open_constructed_instance(type_1)) ||
+              is_cli_open_constructed_instance(type_2)) ||
              error_matches_anything) {
     /* The pointers aren't the same, so the classes probably aren't
        equivalent, but do some special checking to see if they are equivalent
@@ -4218,7 +4218,7 @@ point to the same type or constant).  FALSE if only equivalence is required.
           if ((type_1->variant.class_struct_union.is_nonreal_class &&
                type_2->variant.class_struct_union.is_nonreal_class) ||
               (is_cli_open_constructed_instance(type_1) &&
-               is_cli_open_constructed_instance(type_1)) ||
+               is_cli_open_constructed_instance(type_2)) ||
               error_matches_anything) {
             an_equiv_templ_arg_options_set	eta_options = ETA_NO_OPTIONS;
             a_symbol_ptr			templ_sym_1;
