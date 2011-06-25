@@ -13137,6 +13137,48 @@ apply, but we can't tell).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           }  /* if */
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* If the second operand has a C++/CLI managed class type (or a handle
+           to such a class), also look in that class for static operator
+           functions. */
+        if (cppcli_enabled && !unary_operator) {
+          a_type_ptr eff_operand_2_type = operand_2->type;
+          if (is_handle_type(eff_operand_2_type)) {
+            eff_operand_2_type = type_pointed_to(eff_operand_2_type);
+          }  /* if */
+          if (is_managed_class_type(eff_operand_2_type)) {
+            /* Instantiate the type if it is a template class.  This ensures
+               that member operator functions that could apply are declared. */
+            instantiate_template_class(eff_operand_2_type);
+            member_functions_symbol = opname_member_function_symbol(kind,
+                                            skip_typerefs(eff_operand_2_type));
+            if (member_functions_symbol != NULL) {
+              /* There are member functions for this class type.  Try to match
+                 a C++/CLI static operator function to the operands we have. */
+              try_overloaded_function_match(
+                                         member_functions_symbol,
+                                         /*is_template_id=*/FALSE,
+                                         (a_template_arg_ptr)NULL,
+                                         arg_operand_list,
+                                         /*have_selector=*/FALSE,
+                                         (an_operand *)NULL,
+                                         /*ctor_conversion_case=*/FALSE,
+                                         /*initializing_return_value=*/FALSE,
+                                         /*effects_copy_initialization=*/FALSE,
+                                         /*allow_udc_on_arguments=*/TRUE,
+                                         /*arg_dep_lookup_done=*/FALSE,
+                                         /*from_arg_dep_lookup=*/FALSE,
+                                         dependent_call,
+                                         /*forced_dependent=*/FALSE,
+                                         /*known_to_be_visible=*/TRUE,
+                                         /*is_overloaded_operator=*/TRUE,
+                                         &candidate_functions,
+                                         &matched_except_for_missing_selector,
+                                         &matched_except_for_selector);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Find any non-member function for the operator. */
         if (!must_be_member_function) {
           a_symbol_ptr             normal_sym, proj_normal_sym;
