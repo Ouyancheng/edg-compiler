@@ -5272,7 +5272,7 @@ list pointer in type_list.  *type_list should be NULL on the first call.
   for (; orig_type != arg_type ;) {
     orig_type = arg_type;
     switch (arg_type->kind) {
-      case tk_pointer:  /* Includes C++ reference too. */
+      case tk_pointer:  /* Includes reference too, and C++/CLI handles. */
         arg_type = type_pointed_to(arg_type);
         break;
       case tk_array:
