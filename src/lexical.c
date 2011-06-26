@@ -18374,8 +18374,6 @@ C++/CLI delegate class types.)
     define_class = FALSE;
   }  /* if */
   if (class_type->incomplete) {
-    a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
-
     if (ctsp->assembly_index != 0 && ctsp->metadata_type_def_token != 0) {
       /* The class is from an assembly.  Load the definition of the class
          now. */
