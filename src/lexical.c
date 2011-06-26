@@ -18488,6 +18488,7 @@ C++/CLI delegate class types.)
        "generic <typename T> ref class X<T>::Y". */
     a_class_type_supplement_ptr	parent_ctsp = class_type_supp(parent_class);
     a_template_arg_ptr		tap = parent_ctsp->template_arg_list;
+    char			*class_tag;
     check_assertion_str2(tap != NULL, "get_definition_of_class:",
                          "NULL parent template arg list");
     /* Set up for use of form_name. */
@@ -18495,18 +18496,18 @@ C++/CLI delegate class types.)
     octl.output_str = put_str_into_text_buffer;
     reset_text_buffer(class_def_buffer);
     octl.text_buffer = class_def_buffer;
-    add_to_text_buffer(class_def_buffer, "generic <", 9);
+    (void)add_to_text_buffer(class_def_buffer, "generic <", 9);
     for (; tap != NULL; tap = tap->next) {
-      add_to_text_buffer(class_def_buffer, "typename ", 9);
+      (void)add_to_text_buffer(class_def_buffer, "typename ", 9);
       /* Generate the name of this entity. */
       form_a_template_arg(tap, &octl);
       if (tap->next != NULL) {
-        add_to_text_buffer(class_def_buffer, ", ", 2);
+        (void)add_to_text_buffer(class_def_buffer, ", ", 2);
       }  /* if */
     }  /* for */
-    add_to_text_buffer(class_def_buffer, "> ", 2);
-    add_string_to_text_buffer(class_def_buffer,
-                              cli_managed_class_tag_keyword(class_type));
+    (void)add_to_text_buffer(class_def_buffer, "> ", 2);
+    class_tag = cli_managed_class_tag_keyword(class_type);
+    (void)add_string_to_text_buffer(class_def_buffer, class_tag);
     add_char_to_text_buffer(class_def_buffer, ' ');
     form_name(&class_type->source_corresp, iek_type, &octl);
     add_char_to_text_buffer(class_def_buffer, '\0');
