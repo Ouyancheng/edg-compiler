@@ -3076,17 +3076,20 @@ be completed here.
       a_type_ptr	prototype_instantiation_type;
       prototype_instantiation_type =
                   prototype_instantiation_sym->variant.class_struct_union.type;
-      complete_class_type_is_needed(prototype_instantiation_type);
+      if (class_type_supp(prototype_instantiation_type)->assoc_scope == NULL) {
+        complete_class_type_is_needed(prototype_instantiation_type);
 #if 0
 #else /* !0 */
-      if (prototype_instantiation_type->
+        if (prototype_instantiation_type->
                                 variant.class_struct_union.is_delegate_class) {
-        /* FIXME: We can't instantiate delegates yet.  For now, just mark the
-           delegate class as defined.  Calling scan_cli_generic... is a
-           convenient way of doing this for now. */
-        scan_cli_generic_delegate_definition_from_assembly_import(class_type);
-      }  /* if */
+          /* FIXME: We can't instantiate delegates yet.  For now, just mark the
+             delegate class as defined.  Calling scan_cli_generic... is a
+             convenient way of doing this for now. */
+          scan_cli_generic_delegate_definition_from_assembly_import(
+                                                                   class_type);
+        }  /* if */
 #endif /* 0 */
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     body_cache = cache_for_template(tssp_of_prototype);
@@ -13321,10 +13324,7 @@ any classes that declared the nested class as a template friend.
       }  /* if */
       if (tssp != NULL) {
         tssp->il_template_entry = templ;
-#if 0
-        /* FIXME: This is a partial fix for another issue. */
         tssp->variant.class_template.prototype_instantiation = sym;
-#endif /* 0 */
       }  /* if */
       check_for_nested_type_of_prototype_instantiation(sym);
     }  /* if */
@@ -15721,10 +15721,13 @@ present, the nesting depth "0" is used.
      because only active instantiation scopes will be on the linked
      list of previous scopes that are examined.  Microsoft specialization
      scopes are ignored because they represent specializations and not
-     actual instantiations. */
+     actual instantiations.  Ignore scopes without types as they are used to
+     establish contexts for the definitions of entities, such as C++/CLI
+     generics. */
   for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
     if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
-      if (!ssep->microsoft_specialization_instantiation_scope) {
+      if (!ssep->microsoft_specialization_instantiation_scope &&
+          ssep->assoc_type != NULL) {
         curr_depth++;
       }  /* if */
     }  /* if */

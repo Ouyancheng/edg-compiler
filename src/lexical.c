@@ -18331,8 +18331,10 @@ Set the fields of tdip to values suitable to process the definition of
 class_type by get_definition_of_class.
 */
 {
-  tdip->enclosing_scope = class_type->source_corresp.parent_scope;
-  tdip->name_linkage = class_type->source_corresp.name_linkage;
+  if (class_type != NULL) {
+    tdip->enclosing_scope = class_type->source_corresp.parent_scope;
+    tdip->name_linkage = class_type->source_corresp.name_linkage;
+  }  /* if */
 }  /* set_template_decl_info_for_class_definition */
 
 
@@ -18347,12 +18349,14 @@ C++/CLI delegate class types.)
 */
 {
   a_symbol_ptr			class_sym;
+  a_symbol_ptr			class_sym_for_context;
   a_template_decl_info_ptr	tdip;
   a_boolean			define_class = FALSE;
   an_assembly_index		assembly_index;
   a_cpp_cli_token		metadata_type_def_token;
   a_boolean			save_expand_macros = expand_macros;
   sizeof_t			size = 0;
+  a_type_ptr			class_type_for_context = class_type;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean			saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -18360,6 +18364,9 @@ C++/CLI delegate class types.)
   a_boolean			saved_scanning_generated_code_from_metadata;
   a_boolean			is_delegate;
   a_boolean			is_generic_definition;
+  a_boolean			has_generic_header;
+  a_class_type_supplement_ptr	ctsp = class_type_supp(class_type);
+  a_type_ptr			parent_class = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   /* This routine cannot handle local classes. */
@@ -18386,6 +18393,7 @@ C++/CLI delegate class types.)
   }  /* if */
 #endif /* DEBUG */
   class_sym = symbol_for(class_type);
+  class_sym_for_context = class_sym;
   /* The template instantiation scope stack management infrastructure is used
      to reestablish the context in which the tokens of the class definition
      should be processed.  A special template declaration information entry
@@ -18402,12 +18410,26 @@ C++/CLI delegate class types.)
   saved_scanning_generated_code_from_metadata 
                                        = scanning_generated_code_from_metadata;
   scanning_generated_code_from_metadata = TRUE;
+  is_generic_definition = class_type->
+                              variant.class_struct_union.is_generic_definition;
+  has_generic_header = ctsp->template_arg_list != NULL;
+  /* For nested classes of generic definitions, don't attempt to push an
+     instantiation type for the nested class because we don't have the
+     appropriate information to pass for the template decl info. */
+  if (is_generic_definition && !has_generic_header) {
+    class_type_for_context = NULL;
+    class_sym_for_context = NULL;
+  }  /* if */
+  if (class_type->source_corresp.is_class_member) {
+    parent_class = sym_parent_class(class_sym);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tdip = alloc_template_decl_info();
-  set_template_decl_info_for_class_definition(tdip, class_type);
+  set_template_decl_info_for_class_definition(tdip, class_type_for_context);
   (void)push_template_instantiation_scope(
-                              tdip, class_type, (a_routine_ptr)NULL, class_sym,
-                              class_sym, (a_template_arg_ptr)NULL,
+                              tdip, class_type_for_context,
+                              (a_routine_ptr)NULL, class_sym_for_context,
+                              class_sym_for_context, (a_template_arg_ptr)NULL,
                               /*push_lex_state=*/TRUE, PS_NO_OPTIONS);
   /* By default, the instantiation scope context pushed by the call to
      push_template_instantiation_scope just copies the name linkage from the
@@ -18463,9 +18485,37 @@ C++/CLI delegate class types.)
   expand_macros = FALSE;
   insert_string_into_token_stream(class_def_buffer->buffer,
                                   /*insert_after=*/FALSE);
+  if (is_generic_definition && !has_generic_header) {
+    /* For a nested class of a generic, add a generic header such as
+       "generic <typename T> ref class X<T>::Y". */
+    a_class_type_supplement_ptr	parent_ctsp = class_type_supp(parent_class);
+    a_template_arg_ptr		tap = parent_ctsp->template_arg_list;
+    check_assertion_str2(tap != NULL, "get_definition_of_class:",
+                         "NULL parent template arg list");
+    /* Set up for use of form_name. */
+    clear_il_to_str_output_control_block(&octl);
+    octl.output_str = put_str_into_text_buffer;
+    reset_text_buffer(class_def_buffer);
+    octl.text_buffer = class_def_buffer;
+    add_to_text_buffer(class_def_buffer, "generic <", 9);
+    for (; tap != NULL; tap = tap->next) {
+      add_to_text_buffer(class_def_buffer, "typename ", 9);
+      /* Generate the name of this entity. */
+      form_a_template_arg(tap, &octl);
+      if (tap->next != NULL) {
+        add_to_text_buffer(class_def_buffer, ", ", 2);
+      }  /* if */
+    }  /* for */
+    add_to_text_buffer(class_def_buffer, "> ", 2);
+    add_string_to_text_buffer(class_def_buffer,
+                              cli_managed_class_tag_keyword(class_type));
+    add_char_to_text_buffer(class_def_buffer, ' ');
+    form_name(&class_type->source_corresp, iek_type, &octl);
+    add_char_to_text_buffer(class_def_buffer, '\0');
+    insert_string_into_token_stream(class_def_buffer->buffer,
+                                    /*insert_after=*/FALSE);
+  }  /* if */
   is_delegate = strncmp(class_def_buffer->buffer, "delegate ", 9) == 0;
-  is_generic_definition = class_type->
-                              variant.class_struct_union.is_generic_definition;
   /* Generics are processed differently than other types.  They are cached
      for instantiation purposes, then an initial scan is done to do the
      semantic analysis of the generic definition. */

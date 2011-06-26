@@ -304,7 +304,6 @@ template arguments on template classes.
 #endif /* DEBUG */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-static
 void put_str_into_text_buffer(char                                  *str,
                               an_il_to_str_output_control_block_ptr octl)
 /*

@@ -709,6 +709,10 @@ extern void put_str_to_temp_text_buffer_octl(
                                char                                  *str,
                                an_il_to_str_output_control_block_ptr octl);
 
+extern
+void put_str_into_text_buffer(char                                  *str,
+                              an_il_to_str_output_control_block_ptr octl);
+
 extern void put_ch_to_temp_text_buffer(char ch);
 
 extern void set_error_constant(a_constant *cp);

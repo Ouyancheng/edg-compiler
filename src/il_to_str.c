@@ -1093,6 +1093,39 @@ Do the output in the way described by octl.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+char *cli_managed_class_tag_keyword(a_type_ptr type)
+/*
+Return a string that describes the tag kind for the indicated CLI class type.
+The caller should have already determined that type is a CLI class type.
+*/
+{
+  char                         *result;
+  a_class_type_supplement_ptr  ctsp = class_type_supp(type);
+
+  switch (type->kind) {
+    case tk_class:
+      switch (ctsp->cli_class_type_kind) {
+        case cctk_ref:       result = "ref class";       break;
+        case cctk_value:     result = "value class";     break;
+        case cctk_interface: result = "interface class"; break;
+        default:             unexpected_condition();
+      }  /* switch */
+      break;
+    case tk_struct:
+      switch (ctsp->cli_class_type_kind) {
+        case cctk_ref:       result = "ref struct";        break;
+        case cctk_value:     result = "value struct";      break;
+        case cctk_interface: result = "interface struct";  break;
+        default:             unexpected_condition();
+      }  /* switch */
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* cli_managed_class_tag_keyword */
+
+
 void form_pointer_modifiers(a_pointer_modifier_set                 modifiers,
                             an_il_to_str_output_control_block_ptr  octl)
 /*
