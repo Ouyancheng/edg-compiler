@@ -15866,7 +15866,8 @@ check_for_semicolon:
   }  /* if */
 advance_past_final_token:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (decl_stmt != NULL) decl_stmt->end_position = pos_curr_token;
+  if (decl_stmt != NULL) decl_stmt->end_position = end_pos_curr_token;
+  curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (state.is_linkage_spec_decl) {
     pop_name_linkage();

@@ -1,5 +1,21 @@
 Version 4.4
 
+6/27/11  [EDGcpfe/11830]
+Incorrect end position recorded on some dependent statements
+
+The end position recorded for a while- or if-statement was sometimes incorrect
+if the dependent statement of that construct was a declaration not enclosed in
+braces (such end positions are recorded when EXTRA_SOURCE_POSITIONS_IN_IL is
+set to TRUE).  For example:
+
+  struct S { S(); };
+  void g(int i) {
+    while (i--) S x;  // End position of the while statement was previously
+  }                   // not the position of the semicolon.
+
+This is now fixed.
+
+
 6/27/11  [EDGcpfe/11831]
 Abort on invalid bit field declaration
 
