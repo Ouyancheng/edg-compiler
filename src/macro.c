@@ -660,19 +660,31 @@ preserved; otherwise, the specified context will be saved in newly-created
 text map entries.
 */
 {
+  char *adj_start_of_curr_token = start_of_curr_token;
+
   tmpt->next_active_tracker = active_text_map_position_trackers;
   active_text_map_position_trackers = tmpt;
-  if (within_curr_source_line(start_of_curr_token)) {
+  if (!within_curr_source_line(start_of_curr_token)) {
+    a_source_line_modif_ptr slmp =
+                                  assoc_source_line_modif(start_of_curr_token);
+    if (slmp->is_whitespace_kwd) {
+      /* This is the canonical representation of a whitespace keyword.  Use
+         its parent or the source line, as appropriate, for tracking. */
+      adj_start_of_curr_token = loc_of_insert(slmp);
+    }  /* if */
+  }  /* if */
+  if (within_curr_source_line(adj_start_of_curr_token)) {
     /* Tokens are coming from the current source line. */
-    tmpt->src_region_starting_offset = start_of_curr_token - curr_source_line;
+    tmpt->src_region_starting_offset = adj_start_of_curr_token -
+                                                              curr_source_line;
     tmpt->src_slmp = NULL;
     tmpt->starting_pos.seq = pos_curr_token.seq;
     tmpt->starting_pos.column = pos_curr_token.column;
   } else {
     /* Tokens are coming from a source line modification. */
-    tmpt->src_slmp = assoc_source_line_modif(start_of_curr_token);
+    tmpt->src_slmp = assoc_source_line_modif(adj_start_of_curr_token);
     ++tmpt->src_slmp->num_active_position_trackers;
-    tmpt->src_region_starting_offset = start_of_curr_token -
+    tmpt->src_region_starting_offset = adj_start_of_curr_token -
                                                  tmpt->src_slmp->inserted_text;
     tmpt->starting_pos.seq = 0;
     tmpt->starting_pos.column = SP_COL_UNKNOWN;
@@ -704,6 +716,7 @@ text map entry must be created.
   sizeof_t  rel_src_offset;
   sizeof_t  rel_targ_offset;
   a_boolean new_region_required = FALSE;
+  char      *adj_start_of_curr_token = start_of_curr_token;
 
   if (tmpt->src_slmp != NULL) {
     /* Previous tokens were from the inserted text of a source line
@@ -736,8 +749,27 @@ text map entry must be created.
                                    tmpt->targ_region_starting_offset,
                                    tmpt->macro_context);
       if (!in_curr_slmp) {
-        /* Release the associated source line modification. */
+        /* Release the associated source line modification and switch to
+           the new one, if any. */
         --tmpt->src_slmp->num_active_position_trackers;
+        if (!within_curr_source_line(token_part_start)) {
+          tmpt->src_slmp = assoc_source_line_modif(token_part_start);
+          if (tmpt->src_slmp->is_whitespace_kwd) {
+            /* This is the canonical representation of a whitespace keyword,
+               which has no map.  Use the location of the original text of
+               the keyword. */
+            if (token_part_start == tmpt->src_slmp->inserted_text) {
+              token_part_start = loc_of_insert(tmpt->src_slmp);
+            } else {
+              check_assertion(token_part_start ==
+                                        tmpt->src_slmp->end_inserted_text - 1);
+              token_part_start = loc_of_insert(tmpt->src_slmp) +
+                                       tmpt->src_slmp->num_chars_to_delete - 1;
+            }  /* if */
+            adj_start_of_curr_token = loc_of_insert(tmpt->src_slmp);
+            tmpt->src_slmp = parent_source_line_modif(tmpt->src_slmp);
+          }  /* if */
+        }  /* if */
       }  /* if */
       if (within_curr_source_line(token_part_start)) {
         /* We fell out of the source line modification back to the original
@@ -751,7 +783,6 @@ text map entry must be created.
         if (!in_curr_slmp) {
           /* We entered or re-entered a different source line modification
              from the one we were in. */
-          tmpt->src_slmp = assoc_source_line_modif(token_part_start);
           ++tmpt->src_slmp->num_active_position_trackers;
         }  /* if */
         tmpt->src_region_starting_offset = token_part_start -
@@ -806,7 +837,7 @@ text map entry must be created.
     }  /* if */
   }  /* if */
   tmpt->src_region_len = rel_src_offset + len_of_curr_token -
-                                      (token_part_start - start_of_curr_token);
+                                  (token_part_start - adj_start_of_curr_token);
   check_assertion(!(tmpt->src_slmp != NULL &&
                     tmpt->src_slmp->inserted_text + tmpt->src_region_len >
                     tmpt->src_slmp->end_inserted_text));

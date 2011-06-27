@@ -5708,10 +5708,9 @@ macro_line_loc_to_source_pos should be used when speed is critical.
     *position_var = token_insertion_position;
     goto done;
   }  /* if */
-  adj_loc_in_line = loc_in_line;
   orig_slmp = NULL;
-  if (!within_curr_source_line(adj_loc_in_line)) {
-    orig_slmp = assoc_source_line_modif(adj_loc_in_line);
+  if (!within_curr_source_line(loc_in_line)) {
+    orig_slmp = assoc_source_line_modif(loc_in_line);
     if (orig_slmp->is_whitespace_kwd) {
       /* This source line modification is either the canonical
          representation of a whitespace keyword or a line-start
@@ -5720,12 +5719,12 @@ macro_line_loc_to_source_pos should be used when speed is critical.
          expansion, and thus positions within its text must be calculated
          differently. */
       a_boolean skip_position_calculation = TRUE;
-      if (adj_loc_in_line == orig_slmp->inserted_text) {
+      if (loc_in_line == orig_slmp->inserted_text) {
         /* The starting position of the first token was stored in the
            source line modification when it was created.  Use it
            directly. */
         *position_var = orig_slmp->source_position;
-      } else if (adj_loc_in_line == orig_slmp->end_inserted_text - 1) {
+      } else if (loc_in_line == orig_slmp->end_inserted_text - 1) {
         if (orig_slmp->line_loc == NULL) {
           /* This is the first token of a failed multi-line whitespace
              keyword.  Because the end of that token was in a line that has
@@ -5740,9 +5739,11 @@ macro_line_loc_to_source_pos should be used when speed is critical.
         } else {
           /* This is the canonical representation of a whitespace keyword,
              so at least the ending position is still in the current source
-             line and should be calculated from that character position. */
-          adj_loc_in_line = loc_of_insert(orig_slmp) +
+             line or parent modification and should be calculated from that
+             character position. */
+          loc_in_line = loc_of_insert(orig_slmp) +
                                             orig_slmp->num_chars_to_delete - 1;
+          orig_slmp = NULL;
           skip_position_calculation = FALSE;
         }  /* if */
       } else {
@@ -5758,6 +5759,7 @@ macro_line_loc_to_source_pos should be used when speed is critical.
       }  /* if */
     }  /* if */
   }  /* if */
+  adj_loc_in_line = loc_in_line;
   if (!within_curr_source_line(adj_loc_in_line)) {
     /* If loc_in_line is now not in curr_source_line, it must be in a macro
        expansion or macro argument.  Find the location in curr_source_line
