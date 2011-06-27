@@ -10174,9 +10174,10 @@ an error indication in *rcblock).
 }  /* scan_is_convertible_to */
 
 
-static void scan_is_constructible(a_builtin_operation_kind kind,
-                                  a_rescan_control_block   *rcblock,
-                                  an_operand               *result)
+/*ARGSUSED*/  /* <-- FIXME: Function body not yet implemented. */
+static void scan_is_constructible(a_builtin_operation_kind_tag kind,
+                                  a_rescan_control_block       *rcblock,
+                                  an_operand                   *result)
 /*
 Scan a constant-expression having one of the following forms:
       __is_constructible( T , Args... )

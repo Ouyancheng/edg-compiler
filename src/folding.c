@@ -6504,6 +6504,7 @@ constant will be set as well.
 }  /* fold_is_convertible_to */
 
 
+/*ARGSUSED*/  /* <-- FIXME: Function body not yet implemented. */
 static void fold_is_constructible(an_expr_node_ptr   expr,
                                   a_constant_ptr     constant,
                                   a_boolean          maintain_expression)
@@ -6953,12 +6954,14 @@ constant will be set as well.
         result = cssp->finalizer != NULL;
         break;
       case bok_is_delegate:
-        result = cppcli_enabled && 
+        { a_type_ptr  delegate_tp = cli_class_type_for(csk_system_delegate);
+          a_type_ptr  multicast_delegate_tp =
+                            cli_class_type_for(csk_system_multicast_delegate);
+          result = cppcli_enabled && 
                  (type->variant.class_struct_union.is_delegate_class ||
-                  identical_types(type, cli_class_type_for(
-                                                      csk_system_delegate)) ||
-                  identical_types(type, cli_class_type_for(
-                                             csk_system_multicast_delegate)));
+                  identical_types(type, delegate_tp) ||
+                  identical_types(type, multicast_delegate_tp));
+        }
         break;
       case bok_is_interface_class:
         result = cli_class_type_kind_is(type, cctk_interface);
@@ -6967,8 +6970,10 @@ constant will be set as well.
         /* System::Array isn't technically a ref array, but it supports the
            subscript operator, and ref arrays all derive from it, so it is
            considered a ref array. */
-        result = class_type_supp(type)->is_cli_array ||
-                 identical_types(type, cli_class_type_for(csk_system_array));
+        { a_type_ptr  array_tp = cli_class_type_for(csk_system_array);
+          result = class_type_supp(type)->is_cli_array ||
+                   identical_types(type, array_tp);
+        }
         break;
       case bok_is_ref_class:
         result = cli_class_type_kind_is(type, cctk_ref) && 

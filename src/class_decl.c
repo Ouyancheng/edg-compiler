@@ -6929,17 +6929,17 @@ issue an error and return FALSE.
                 if (class_type_supp(type)->assembly_index == 0 &&
                     class_type_supp(base_type)->assembly_index != 0 &&
                     ((!class_type_supp(base_type)->is_cli_array &&
-                      identical_types(base_class_type,
+                      f_same_entities(base_class_type,
                                       cli_class_type_for(csk_system_array))) ||
-                     identical_types(
+                     f_same_entities(
                                    base_class_type,
                                    cli_class_type_for(csk_system_delegate)) ||
-                     identical_types(
+                     f_same_entities(
                          base_class_type,
                          cli_class_type_for(csk_system_multicast_delegate)) ||
-                     identical_types(base_class_type,
+                     f_same_entities(base_class_type,
                                      cli_class_type_for(csk_system_enum)) ||
-                     identical_types(base_class_type,
+                     f_same_entities(base_class_type,
                                      cli_system_value_type()))) {
                   pos_ty_error(ec_invalid_specific_ref_class_base,
                                &error_position, base_class_type);
