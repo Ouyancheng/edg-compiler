@@ -5012,6 +5012,10 @@ next_named_override:
                    members (which should be sealed) in managed class types
                    when determining overriding. */
                 continue;
+              } else if (rout->is_generic_definition !=
+                                                  rp->is_generic_definition) {
+                /* A generic cannot override a nongeneric, not vice versa. */
+                continue;
               }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             }  /* if */
