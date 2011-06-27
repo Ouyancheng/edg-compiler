@@ -288,6 +288,12 @@ typedef struct a_candidate_function {
 			   the "function" is a built-in operator or for a
 			   surrogate function case.  Can be a projection
 			   symbol. */
+  a_symbol_ptr	overloaded_function_symbol;
+			/* The overloaded function symbol we started from
+			   that contains function_symbol.  Can be a
+			   projection symbol, or a non-overloaded symbol.
+			   Can be NULL if not applicable (e.g., when
+			   function_symbol is a conversion function). */
   a_byte_boolean
 		is_function_template;
 			/* TRUE if function_symbol is a function template. */

@@ -1040,6 +1040,7 @@ are used in resolving calls to overloaded functions.
   }  /* if */
   cfp->next = NULL;
   cfp->function_symbol = NULL;
+  cfp->overloaded_function_symbol = NULL;
   cfp->is_function_template = FALSE;
   cfp->expl_template_arg_list_used = FALSE;
   cfp->template_arg_list = NULL;
@@ -1147,19 +1148,23 @@ Print a candidate function entry list for debugging purposes.
 #endif /* DEBUG */
 
 static void add_function_to_candidate_functions_list(
-                                 a_symbol_ptr             function_symbol,
-                                 an_arg_match_summary_ptr arg_matches,
-                                 a_candidate_function_ptr *candidate_functions)
+                           a_symbol_ptr             function_symbol,
+                           a_symbol_ptr             overloaded_function_symbol,
+                           an_arg_match_summary_ptr arg_matches,
+                           a_candidate_function_ptr *candidate_functions)
 /*
 Add the function identified by function_symbol to the front of the
-candidate_functions list.  arg_matches gives information about how well
-the actual arguments we have match the function's formal parameters.
+candidate_functions list.  overloaded_function_symbol is the corresponding
+overloaded symbol; it may be NULL if not applicable.  arg_matches gives
+information about how well the actual arguments we have match the function's
+formal parameters.
 */
 {
   a_candidate_function_ptr candidate;
 
   candidate = alloc_candidate_function();
   candidate->function_symbol = function_symbol;
+  candidate->overloaded_function_symbol = overloaded_function_symbol;
   candidate->arg_matches = arg_matches;
   candidate->next = *candidate_functions;
   *candidate_functions = candidate;
@@ -1232,23 +1237,27 @@ the operands we have match the operator's required operand types.
 
 static void add_function_template_to_candidate_functions_list(
                           a_symbol_ptr             function_symbol,
+                          a_symbol_ptr             overloaded_function_symbol,
                           a_boolean                expl_template_arg_list_used,
                           a_template_arg_ptr       template_arg_list,
                           an_arg_match_summary_ptr arg_matches,
                           a_candidate_function_ptr *candidate_functions)
 /*
 Add the function template identified by function_symbol to the front of the
-candidate_functions list.  If template_arg_list is non-NULL, it gives a
-list of explicit template arguments.  Some part of the argument list was
-explicitly specified if expl_template_arg_list_used is TRUE.
-arg_matches gives information about how well the actual arguments we
-have match the function's formal parameters.
+candidate_functions list.  overloaded_function_symbol is the corresponding
+overloaded symbol; it may be NULL if not applicable.  If
+template_arg_list is non-NULL, it gives a list of explicit template
+arguments.  Some part of the argument list was explicitly specified if
+expl_template_arg_list_used is TRUE.  arg_matches gives information
+about how well the actual arguments we have match the function's
+formal parameters.
 */
 {
   a_candidate_function_ptr candidate;
 
   candidate = alloc_candidate_function();
   candidate->function_symbol = function_symbol;
+  candidate->overloaded_function_symbol = overloaded_function_symbol;
   candidate->is_function_template = TRUE;
   candidate->expl_template_arg_list_used = expl_template_arg_list_used;
   candidate->template_arg_list = template_arg_list;
@@ -3657,6 +3666,7 @@ end_of_function:
 
 static void determine_function_viability(
                  a_symbol_ptr             proj_function_symbol,
+                 a_symbol_ptr             overloaded_function_symbol,
                  a_boolean                is_template_id,
                  a_template_arg_ptr       template_arg_list,
                  a_symbol_ptr             surrogate_function_conv_sym,
@@ -3681,24 +3691,29 @@ static void determine_function_viability(
                  a_boolean                *discarded_because_post_decl)
 /*
 Determine whether a function is viable in overload resolution, which
-means whether it has the right number of parameters of the right types.
-proj_function_symbol indicates the function; it may be a projection
-symbol, but it is not an overloaded function.  is_template_id is TRUE if
-the symbol has an associated explicit template argument list; if so,
-template_arg_list gives the argument list.  If
-surrogate_function_conv_sym is non-NULL, we are evaluating a surrogate
-function call (see [over.call.object] in the C++ standard);
-proj_function_symbol is NULL and routine_type gives the function type.
-The argument list for the call is given by arg_operand_list, and the
-selector is given by bound_function_selector (if have_selector is
-TRUE).  have_selector can be TRUE and bound_function_selector NULL
-when calling constructors.  bound_function_selector is an object
-pointer if bound_function_selector->selector_is_object_pointer is
-TRUE, an object otherwise.  implicit_selector_type indicates the type
-of an implicit "this->" selector, if applicable, or is NULL otherwise.
-Any viable functions are added to the candidate_functions list along
-with information on the level of argument matches.  If a match would
-have been found except for the absence of a selector, set
+means whether it has the right number of parameters of the right
+types.  proj_function_symbol indicates the function; it may be a
+projection symbol, but it is not an overloaded function.
+overloaded_function_symbol is the overloaded function symbol that gave
+rise to proj_function_symbol; it also may be a projection symbol, or
+the same symbol as proj_function_symbol, or it may be NULL if it
+doesn't apply (e.g., when proj_function_symbol is a conversion
+function).  is_template_id is TRUE if the symbol has an associated
+explicit template argument list; if so, template_arg_list gives the
+argument list.  If surrogate_function_conv_sym is non-NULL, we are
+evaluating a surrogate function call (see [over.call.object] in the
+C++ standard); proj_function_symbol is NULL and routine_type gives the
+function type.  The argument list for the call is given by
+arg_operand_list, and the selector is given by bound_function_selector
+(if have_selector is TRUE).  have_selector can be TRUE and
+bound_function_selector NULL when calling constructors.
+bound_function_selector is an object pointer if
+bound_function_selector->selector_is_object_pointer is TRUE, an object
+otherwise.  implicit_selector_type indicates the type of an implicit
+"this->" selector, if applicable, or is NULL otherwise.  Any viable
+functions are added to the candidate_functions list along with
+information on the level of argument matches.  If a match would have
+been found except for the absence of a selector, set
 *matched_except_for_missing_selector TRUE, and if a match would have
 been found except for a mismatch on the selector, set
 *matched_except_for_selector TRUE; those allow different error
@@ -4244,6 +4259,7 @@ accept_function:
     /* The symbol is a function template. */
     add_function_template_to_candidate_functions_list(
                                              proj_function_symbol,
+                                             overloaded_function_symbol,
                                              is_template_id,
                                              local_template_arg_list,
                                              arg_match_list,
@@ -4257,6 +4273,7 @@ accept_function:
   } else {
     /* The symbol is a normal function. */
     add_function_to_candidate_functions_list(proj_function_symbol,
+                                             overloaded_function_symbol,
                                              arg_match_list,
                                              candidate_functions);
     if (microsoft_explicit_constructor_case) {
@@ -4466,6 +4483,7 @@ retry:
     /* Determine whether the function is viable by looking at the arguments.
        Add the function to the candidates list if it is viable. */
     determine_function_viability(proj_function_symbol,
+                                 overloaded_function_symbol,
                                  is_template_id,
                                  template_arg_list,
                                  (a_symbol_ptr)NULL,
@@ -4710,6 +4728,7 @@ the class_object can be a handle to an object.
              parameters. */
           a_boolean discarded_because_post_decl;
           determine_function_viability((a_symbol_ptr)NULL,
+                                       (a_symbol_ptr)NULL,
                                        /*is_template_id=*/FALSE,
                                        (a_template_arg_ptr)NULL,
                                        surrogate_function_conv_sym,
@@ -10862,6 +10881,7 @@ accept_function:
     if (function_template_case) {
       add_function_template_to_candidate_functions_list(
                                          conversion_symbol,
+                                         (a_symbol_ptr)NULL,
                                          /*expl_template_arg_list_used=*/FALSE,
                                          template_arg_list,
                                          this_match_ptr,
@@ -10872,6 +10892,7 @@ accept_function:
     } else {
       /* The routine is not a template. */
       add_function_to_candidate_functions_list(conversion_symbol,
+                                               (a_symbol_ptr)NULL,
                                                this_match_ptr,
                                                candidate_functions);
       candidate = *candidate_functions;
@@ -13542,9 +13563,9 @@ no_applicable_operator_function:
             nonstatic_member_is_best_match =
                      (member_is_best_match &&
                       routine_type_is_nonstatic_member_function(routine_type));
-            overloaded_function_symbol = member_is_best_match ?
-                                                    member_functions_symbol :
-                                                    nonmember_functions_symbol;
+            overloaded_function_symbol =
+                               candidate_functions->overloaded_function_symbol;
+            check_assertion(overloaded_function_symbol != NULL);
             if (do_dependent_name_processing &&
                 is_prototype_instantiation_context()) {
               /* Record the outcome of overload resolution for a nondependent
@@ -18274,6 +18295,7 @@ constructor.
 */
 {
   a_symbol_ptr                   sym, cctor_sym = NULL, uncallable_sym = NULL;
+  a_symbol_ptr                   overloaded_sym;
   a_boolean                      is_overloaded_function;
   a_type_qualifier_set           qualifiers;
   a_boolean                      multiple_uncallable = FALSE;
@@ -18322,7 +18344,7 @@ constructor.
     }  /* if */
   } else {
     arg_type = make_qualified_type(class_type, required_qualifiers);
-    sym = cssp->constructor;
+    sym = overloaded_sym = cssp->constructor;
 #if CHECKING
     if (sym == NULL) {
       internal_error("select_overloaded_copy_constructor: NULL constructor");
@@ -18424,6 +18446,7 @@ constructor.
         /* The symbol is a function template. */
         add_function_template_to_candidate_functions_list(
                                          sym,
+                                         overloaded_sym,
                                          /*expl_template_arg_list_used=*/FALSE,
                                          template_arg_list,
                                          arg_match,
@@ -18431,6 +18454,7 @@ constructor.
       } else {
         /* The symbol is a normal function. */
         add_function_to_candidate_functions_list(sym,
+                                                 overloaded_sym,
                                                  arg_match,
                                                  &candidate_functions);
       }  /* if */
