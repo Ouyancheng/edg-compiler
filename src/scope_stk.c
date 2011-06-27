@@ -4129,9 +4129,11 @@ The following fixups need to be performed:
   /* The previous_scope of the initial definition context scope will have
      already been set properly. */
   /* The scope pushed after the definition namespace context has been
-     restored needs to have its previous scope field updated to point
-     to the definition context. */
-  scope_stack[after_definition_depth].previous_scope = definition_depth;
+     restored, if any, needs to have its previous scope field updated to
+     point to the definition context. */
+  if (after_definition_depth <= depth_scope_stack) {
+    scope_stack[after_definition_depth].previous_scope = definition_depth;
+  }  /* if */
 }  /* fixup_instantiation_scopes */
 
 
