@@ -5558,8 +5558,10 @@ generic_arg_list identifies an open constructed type (ECMA-372 31.2.1).
   a_template_arg_ptr	tap;
 
   for (tap = generic_arg_list; tap != NULL; tap = tap->next) {
-    result = is_cli_open_constructed_type(tap->variant.type);
-    if (result) break;
+    if (is_type_templ_arg(tap)) {
+      result = is_cli_open_constructed_type(tap->variant.type);
+      if (result) break;
+    }  /* if */
   }  /* for */
   return result;
 }  /* is_open_constructed_generic_arg_list */
