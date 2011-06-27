@@ -6926,10 +6926,9 @@ issue an error and return FALSE.
                    System::ValueType.  The only exception is the cli::array
                    ref class template, which is required to derive from
                    System::Array. */
-#if /*FIXME*/0
                 if (class_type_supp(type)->assembly_index == 0 &&
-                    class_type_supp(base_type)->assembly_index != 0 &&
-                    ((!class_type_supp(base_type)->is_cli_array &&
+                    class_type_supp(base_class_type)->assembly_index != 0 &&
+                    ((!class_type_supp(type)->is_cli_array &&
                       f_same_entities(base_class_type,
                                       cli_class_type_for(csk_system_array))) ||
                      f_same_entities(
@@ -6946,7 +6945,6 @@ issue an error and return FALSE.
                                &error_position, base_class_type);
                   break;
                 }  /* if */
-#endif
               } else {
                 pos_error(ec_invalid_ref_class_base, &error_position);
               }  /* if */

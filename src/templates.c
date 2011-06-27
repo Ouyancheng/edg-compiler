@@ -13663,12 +13663,6 @@ initially used when processing the declaration of a partial specialization.
       prototype_sym->variant.class_struct_union.type = prototype_type;
       prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
       prototype_ctsp->assoc_template = decl_state->il_template_entry;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (sym == cli_symbol_from_kind(csk_cli_array)) {
-        /* This is a C++/CLI array type. */
-        prototype_ctsp->is_cli_array = TRUE;
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     prototype_type->source_corresp.access = access_for_symbol(sym);
     set_source_corresp(&(prototype_type->source_corresp), prototype_sym);

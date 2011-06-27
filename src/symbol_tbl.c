@@ -6825,6 +6825,11 @@ from ECMA-372, subsection 8.2.3.)
      "  ref class array;"
      "}"
    );
+  cli_symbols[(int)csk_cli_array]
+      ->variant.template_info
+      ->variant.class_template.prototype_instantiation
+      ->variant.class_struct_union.type
+      ->variant.class_struct_union.extra_info->is_cli_array = TRUE;
   scan_top_level_metadata_declarations(
      "namespace cli {"
      "  template <typename T, int rank>"
