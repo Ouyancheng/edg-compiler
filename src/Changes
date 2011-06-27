@@ -1,5 +1,20 @@
 Version 4.4
 
+6/27/11  [EDGcpfe/11831]
+Abort on invalid bit field declaration
+
+In configurations with TARG_MICROSOFT_BIT_FIELD_ALLOCATION set to TRUE, the
+front end could abort with an internal error in set_field_size_and_alignment
+(layout.c, "bad curr_container_avail_bits adjustment") after issuing an error
+on a bit field with an invalid type and an invalid size.  For example:
+
+  struct S {
+    b:200;  // Missing bit field type and invalid size: Previously could
+  };        // trigger an internal error.
+
+This is now fixed.
+
+
 6/24/11  [EDGcpfe/11781]
 Microsoft compatibility: acceptance of invalid explicit instantiations now
 version-dependent

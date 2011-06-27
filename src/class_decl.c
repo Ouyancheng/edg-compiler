@@ -13826,7 +13826,7 @@ be updated on return.
 #endif /* CHECKING */
     /* The size of the bit field must be non-negative and must not exceed
        the size of the underlying type. */
-    if (templated_type || is_error_type(*p_base_type)) {
+    if (templated_type) {
       max_size_allowed =
                   (unsigned long)(TARG_SIZEOF_LARGEST_INTEGER*targ_char_bit);
     } else {
@@ -13838,7 +13838,10 @@ be updated on return.
     /* Note that one reason for ovflo to be TRUE is if the constant is
        less than zero. */
     if (ovflo || bit_field_size > max_size_allowed) {
-      if (ovflo || (C_mode() && !(gcc_mode && gnu_version < 30400))) {
+      if (is_error_type(*p_base_type)) {
+        /* An error has already been issued. */
+        expect_error();
+      } else if (ovflo || (C_mode() && !(gcc_mode && gnu_version < 30400))) {
         /* Force the declared size to something reasonable. */
         error(ec_bad_bit_field_size);
         declared_bit_field_size = max_size_allowed;
