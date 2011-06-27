@@ -23401,6 +23401,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
   }  /* if */
   if (tssp->is_generic) {
     /* C++/CLI generics are not put on the list. */
+    add_to_list = FALSE;
   } else if (instantiation_mode == tim_can_instantiate) {
     /* Leave the instantiation_required flag unchanged in this mode. */
   } else if (instantiation_mode == tim_all && !value) {
