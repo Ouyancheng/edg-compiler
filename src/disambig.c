@@ -522,10 +522,10 @@ Return TRUE if token can follow a typeof of the form "typeof(expression)".
 }  /* is_token_allowed_after_typeof */
 
 
-static void prescan_typeof_operator(a_disambig_state_ptr       state,
-				    a_disambig_flag_set        flags)
+static void prescan_type_operator(a_disambig_state_ptr       state,
+				  a_disambig_flag_set        flags)
 /*
-Scan past (and cache) a decltype or typeof specifier.
+Scan past (and cache) a decltype, __underlying_type, or typeof specifier.
 
 The typeof operator can be used with or without parentheses in g++
 (but not gcc) mode:
@@ -535,7 +535,8 @@ The typeof operator can be used with or without parentheses in g++
 */
 {
   a_boolean	is_typeof = curr_token == tok_typeof;
-  /* Bypass the decltype or typeof (or __typeof__) token. */
+  /* Bypass the decltype, __underlying_type, or typeof (or __typeof__)
+     token. */
   (void)get_token();
   if (curr_token == tok_lparen) {
     /* Advance past the left paren. */
@@ -559,7 +560,7 @@ The typeof operator can be used with or without parentheses in g++
       cache_tokens_until(tok_rparen, /*coalesce=*/TRUE);
     }  /* if */
   }  /* if */
-}  /* prescan_typeof_operator */
+}  /* prescan_type_operator */
 
 
 static a_boolean is_ctor_dtor_or_finalizer(void)
@@ -812,10 +813,11 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
            "int ...". */
         break;
       case tok_decltype:
+      case tok_underlying_type:
       case tok_typeof:
         is_decl_specifier_token = TRUE;
         type_specifier_seen = TRUE;
-        prescan_typeof_operator(state, flags);
+        prescan_type_operator(state, flags);
         break;
       case tok_lbracket:
         if (std_attribute_tokens_next()) {

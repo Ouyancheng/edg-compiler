@@ -1335,6 +1335,8 @@ expression if available, or NULL otherwise.
 {
   an_expr_node_ptr  expr = type->variant.typeref.extra_info->expr;
 
+  /* __underlying_type constructs don't allow expression arguments. */
+  check_assertion(!type->variant.typeref.is_underlying_type);
   if (expr == NULL && innermost_function_scope != NULL) {
     a_local_expr_node_ref_kind  lerk = type->variant.typeref.is_decltype ?
                                    (a_local_expr_node_ref_kind)lerk_decltype :
@@ -1496,8 +1498,8 @@ by octl.
       form_tag_reference(type, octl);
       break;
     case tk_typeref:
-      /* A typeref here should be a typedef, a decltype operator, or a typeof
-         operator. */
+      /* A typeref here should be a typedef, a decltype operator, an
+         __underlying_type operator, or a typeof operator. */
       if (type->variant.typeref.is_decltype) {
         if (octl->gen_compilable_code && octl->output_name != NULL) {
           /* It may seem strange to use "output_name" to render a type that
@@ -1541,6 +1543,19 @@ by octl.
           }  /* if */
           octl->output_str(")", octl);
         }  /* if */
+      } else if (type->variant.typeref.is_underlying_type) {
+        if (octl->gen_compilable_code && octl->output_name != NULL) {
+          /* It may seem strange to use "output_name" to render a type that
+             doesn't really have a name.  However, this uses the same
+             mechanisms required to render non-autonomous unnamed tag types,
+             and those use "output_name" for uniformity with named tag
+             types. */
+          octl->output_name((char*)type, iek_type);
+        } else {
+          octl->output_str("__underlying_type(", octl);
+          form_type(type->variant.typeref.type, octl);
+          octl->output_str(")", octl);
+        } /* if */
 #if GNU_EXTENSIONS_ALLOWED
       } else if (type->variant.typeref.is_typeof) {
         if (octl->gen_compilable_code && octl->output_name != NULL) {
@@ -1752,26 +1767,29 @@ members of template classes.
 }  /* is_member_typedef_that_should_be_ignored */
 
 
-static a_boolean is_decltype_or_typeof_to_be_rendered(
+static a_boolean is_type_operator_to_be_rendered(
                                    a_type_ptr                            type,
                                    an_il_to_str_output_control_block_ptr octl)
 /*
-Return TRUE if the given typeref type is a decltype or typeof construct that
-should be rendered.  Otherwise, the underlying type should be rendered (e.g.,
-in diagnostics the underlying type is more helpful, and in the C-generating
-back end typeof/decltype constructs are either not available or not portable).
+Return TRUE if the given typeref type is a decltype, __underlying_type, or
+typeof construct that should be rendered.  Otherwise, the underlying type
+should be rendered (e.g., in diagnostics the underlying type is more helpful,
+and in the C-generating back end typeof/decltype constructs are either not
+available or not portable).
 */
 {
   a_boolean render = FALSE;
 
-  if (typeref_is_decltype_or_typeof(type)) {
+  if (typeref_is_type_operator(type)) {
     if (octl->c_generating_back_end) {
-      /* Never render a decltype or typeof in the C-generating back end. */
+      /* Never render a decltype, __underlying_type, or typeof in the
+         C-generating back end. */
       render = FALSE;
-    } else if (!type->variant.typeref.is_decltype &&
-               decltype_arg(type) == NULL) {
-      /* A non-expression case: typeof applied to a type name.  Might as well
-         just generate the type name. */
+    } else if (type->variant.typeref.is_underlying_type ||
+               (!type->variant.typeref.is_decltype &&
+                decltype_arg(type) == NULL)) {
+      /* A non-expression case: __underlying_type or typeof applied to a type
+         name.  Might as well just generate the type name. */
       render = FALSE;
     } else {
       /* The decltype or typeof is based on an expression. */
@@ -1791,7 +1809,7 @@ back end typeof/decltype constructs are either not available or not portable).
     }  /* if */
   }  /* if */
   return render;
-}  /* is_decltype_or_typeof_to_be_rendered */
+}  /* is_type_operator_to_be_rendered */
 
 
 void form_type_first_part(
@@ -1861,7 +1879,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
           !is_member_typedef_that_should_be_ignored(type, octl)) {
         break;
       }  /* if */
-    } else if (is_decltype_or_typeof_to_be_rendered(type, octl)) {
+    } else if (is_type_operator_to_be_rendered(type, octl)) {
       /* A decltype or typeof operator that should be rendered in its
          original form (instead of rendering the underlying type). */
       break;
@@ -2366,7 +2384,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
           !is_member_typedef_that_should_be_ignored(type, octl)) {
         break;
       }  /* if */
-    } else if (is_decltype_or_typeof_to_be_rendered(type, octl)) {
+    } else if (is_type_operator_to_be_rendered(type, octl)) {
       /* A decltype or typeof operator that should be rendered in its
          original form (instead of rendering the underlying type). */
       break;

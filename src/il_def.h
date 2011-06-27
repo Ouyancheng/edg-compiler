@@ -1119,6 +1119,24 @@ typedef enum /*a_token_kind*/ {
   tok_is_union,
   tok_is_trivial,
   tok_is_standard_layout,
+  tok_is_trivially_copyable,
+  tok_is_literal_type,
+  tok_has_trivial_move_constructor,
+  tok_has_trivial_move_assign,
+  tok_has_nothrow_move_assign,
+  tok_is_constructible,
+  tok_is_nothrow_constructible,
+  tok_underlying_type,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  tok_has_finalizer,
+  tok_is_delegate,
+  tok_is_interface_class,
+  tok_is_ref_array,
+  tok_is_ref_class,
+  tok_is_sealed,
+  tok_is_simple_value_class,
+  tok_is_value_class,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_nullptr,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_native_nullptr,
@@ -1236,6 +1254,24 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__is_union",
    "__is_trivial",
    "__is_standard_layout",
+   "__is_trivially_copyable",
+   "__is_literal_type",
+   "__has_trivial_move_constructor",
+   "__has_trivial_move_assign",
+   "__has_nothrow_move_assign",
+   "__is_constructible",
+   "__is_nothrow_constructible",
+   "__underlying_type",
+#if MICROSOFT_EXTENSIONS_ALLOWED
+   "__has_finalizer",
+   "__is_delegate",
+   "__is_interface_class",
+   "__is_ref_array",
+   "__is_ref_class",
+   "__is_sealed",
+   "__is_simple_value_class",
+   "__is_value_class",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "nullptr",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__nullptr",
@@ -6863,9 +6899,11 @@ typedef struct a_typeref_type_supplement {
 			   find_local_expr_node.  For typeof, this field is
 			   also NULL for the typeof(type) variant, which is
 			   indicated by the is_typeof_with_type_operand
-			   field.  The function decltype_arg can be used to
-			   fetch the expression (if there is one) in all
-			   cases. */
+			   field.  This field is always NULL for an
+			   __underlying_type construct (is_underlying_type),
+			   as expression arguments are not allowed.  The
+			   function decltype_arg can be used to fetch the
+			   expression (if there is one) in all cases.*/
   int32_t	min_template_arguments;
 			/* The minimum number of template arguments used to
 			   refer to this instance in the source (using
@@ -7895,6 +7933,10 @@ typedef struct a_type {
 			   id-expressions and member access operators).
 			   So, for example, TRUE for "decltype(x.y)" and
 			   FALSE for "decltype((x.y))". */
+      a_bit_field
+		is_underlying_type:1;
+			/* The type was created by an __underlying_type
+			   operator. */
 #if GNU_EXTENSIONS_ALLOWED
       a_bit_field
 		is_typeof:1;
@@ -7907,11 +7949,12 @@ typedef struct a_type {
 			   typeof(type-name) rather than typeof(expr). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       a_bit_field
-		is_dependent_decltype_or_typeof:1;
-			/* TRUE if the type was created by decltype or typeof,
-			   and it's dependent (including cases where there are
-			   dependent subexpressions but the final result has
-			   a non-dependent type). */
+		is_dependent_type_operator:1;
+			/* TRUE if the type was created by decltype,
+			   __underlying_type, or typeof, and it's dependent
+			   (including cases where there are dependent
+			   subexpressions but the final result has a
+			   non-dependent type). */
       a_bit_field
 		for_type_attributes:1;
 			/* When TRUE, the underlying type has type-transforming
@@ -12982,6 +13025,31 @@ typedef enum a_builtin_operation_kind_tag {
   bok_is_trivial,	/* __is_trivial. One operand: A type. */
   bok_is_standard_layout,
 			/* __is_standard_layout. One operand: A type. */
+  bok_is_trivially_copyable,
+			/* __is_trivially_copyable.  One operand: A type. */
+  bok_is_literal_type,	/* __is_literal_type.  One operand: A type. */
+  bok_has_trivial_move_constructor,
+			/* __has_trivial_move_constructor.  One operand: A type. */
+  bok_has_trivial_move_assign,
+			/* __has_trivial_move_assign.  One operand: A type. */
+  bok_has_nothrow_move_assign,
+			/* __has_nothrow_move_assign.  One operand: A type. */
+  bok_is_constructible,
+			/* __is_constructible.  One or more operands, all types. */
+  bok_is_nothrow_constructible,
+			/* __is_nothrow_constructible.  One or more operands, all types. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  bok_has_finalizer,	/* __has_finalizer.  One operand: A type. */
+  bok_is_delegate,	/* __is_delegate.  One operand: A type. */
+  bok_is_interface_class,
+			/* __is_interface_class.  One operand: A type. */
+  bok_is_ref_array,	/* __is_ref_array.  One operand: A type. */
+  bok_is_sealed,	/* __is_sealed.  One operand: A type. */
+  bok_is_ref_class,	/* __is_ref_class.  One operand: A type. */
+  bok_is_simple_value_class,
+			/* __is_simple_value_class.  One operand: A type. */
+  bok_is_value_class,	/* __is_value_class.  One operand: A type. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
@@ -16321,6 +16389,23 @@ EXTERN char     *builtin_operation_names[(int)bok_last+1]
   "__INTADDR__",
   "__is_trivial",
   "__is_standard_layout",
+  "__is_trivially_copyable",
+  "__is_literal_type",
+  "__has_trivial_move_constructor",
+  "__has_trivial_move_assign",
+  "__has_nothrow_move_assign",
+  "__is_constructible",
+  "__is_nothrow_constructible",
+#if MICROSOFT_EXTENSIONS_ALLOWED
+   "__has_finalizer",
+   "__is_delegate",
+   "__is_interface_class",
+   "__is_ref_array",
+   "__is_ref_class",
+   "__is_sealed",
+   "__is_simple_value_class",
+   "__is_value_class",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   "last"
 }
 #endif /* VAR_INITIALIZERS */

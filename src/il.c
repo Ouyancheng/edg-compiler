@@ -1484,6 +1484,9 @@ Dump the contents of the indicated type entry, for debug purposes.
           if (tp->variant.typeref.is_decltype) {
             fputs("decltype ", f_debug);
           }  /* if */
+          if (tp->variant.typeref.is_underlying_type) {
+            fputs("__underlying_type ", f_debug);
+          }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
           if (tp->variant.typeref.is_typeof) {
             fputs("__typeof__ ", f_debug);
@@ -10937,7 +10940,7 @@ function type is replaced).
         tp = tp->variant.ptr_to_member.type;
         break;
       case tk_typeref:
-        if (typeref_is_typedef(tp) || typeref_is_decltype_or_typeof(tp)) {
+        if (typeref_is_typedef(tp) || typeref_is_type_operator(tp)) {
           make_new_type = TRUE;
         } else {
           tp = tp->variant.typeref.type;
@@ -10955,7 +10958,7 @@ function type is replaced).
     while (!done) {
       a_boolean  attrib_only = tp->kind == (a_type_kind)tk_typeref &&
                                (typeref_is_typedef(tp) ||
-                                typeref_is_decltype_or_typeof(tp));
+                                typeref_is_type_operator(tp));
       if (attrib_only) {
         /* If there is an intervening typedef/decltype/typeof entry, do not
            copy the entry proper, but record any attributes that it may

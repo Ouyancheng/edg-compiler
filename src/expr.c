@@ -360,7 +360,7 @@ C++).  Other transformations are done in all cases.
   /* Do lvalue-to-rvalue transformations, etc. as appropriate. */
   do_void_operand_transformations(operand,
                                   /*force_lvalue_to_rvalue=*/FALSE);
-  if (expr_stack->is_decltype_or_typeof_arg_expression) {
+  if (expr_stack->is_type_operator_arg_expression) {
     /* decltype expressions are sometimes written to check SFINAE
        conditions, so do not warn inside them. */
     suppress_warning = TRUE;
@@ -10174,6 +10174,26 @@ an error indication in *rcblock).
 }  /* scan_is_convertible_to */
 
 
+static void scan_is_constructible(a_builtin_operation_kind kind,
+                                  a_rescan_control_block   *rcblock,
+                                  an_operand               *result)
+/*
+Scan a constant-expression having one of the following forms:
+      __is_constructible( T , Args... )
+      __is_nothrow_constructible( T , Args... )
+The result is a boolean of value true if the following variable definition
+would be well-formed for some invented variable t:
+      T t(declval<Args>()...);
+If kind is bok_is_nothrow_constructible, the definition must be known not to
+throw any exceptions.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned __is_constructible/__is_nothrow_constructible expression,
+and return the result in *result (or an error indication in *rcblock).
+*/
+{
+  /* FIXME: Not yet implemented. */
+}
+
+
 static void scan_unary_type_trait_helper(a_rescan_control_block *rcblock,
                                          an_operand             *result)
 /*
@@ -10222,6 +10242,26 @@ indication in *rcblock).
       case tok_is_union:                bok = bok_is_union; break;
       case tok_is_trivial:              bok = bok_is_trivial; break;
       case tok_is_standard_layout:      bok = bok_is_standard_layout; break;
+      case tok_is_trivially_copyable:   bok = bok_is_trivially_copyable;
+                                        break;
+      case tok_is_literal_type:         bok = bok_is_literal_type; break;
+      case tok_has_trivial_move_constructor:
+                                bok = bok_has_trivial_move_constructor; break;
+      case tok_has_trivial_move_assign: bok = bok_has_trivial_move_assign;
+                                        break;
+      case tok_has_nothrow_move_assign: bok = bok_has_nothrow_move_assign;
+                                        break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_has_finalizer:           bok = bok_has_finalizer; break;
+      case tok_is_delegate:             bok = bok_is_delegate; break;
+      case tok_is_interface_class:      bok = bok_is_interface_class; break;
+      case tok_is_ref_array:            bok = bok_is_ref_array; break;
+      case tok_is_ref_class:            bok = bok_is_ref_class; break;
+      case tok_is_sealed:               bok = bok_is_sealed; break;
+      case tok_is_simple_value_class:   bok = bok_is_simple_value_class;
+                                        break;
+      case tok_is_value_class:          bok = bok_is_value_class; break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition();
     }  /* switch */
@@ -10557,7 +10597,7 @@ outside of the expression-processing routines.
                                rcblock);
   transfer_expr_context_if_applicable(saved_expr_stack);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
-  expr_stack->is_decltype_or_typeof_arg_expression = TRUE;
+  expr_stack->is_type_operator_arg_expression = TRUE;
   if (rcblock != NULL) {
     /* This call is done late because we need the expression stack to be pushed
        already. */
@@ -10596,7 +10636,7 @@ outside of the expression-processing routines.
                                                      &no_parens_matters);
     tp->variant.typeref.is_decltype = TRUE;
     tp->variant.typeref.decltype_expr_not_parenthesized = no_parens_matters;
-    tp->variant.typeref.is_dependent_decltype_or_typeof = dependent_arg;
+    tp->variant.typeref.is_dependent_type_operator = dependent_arg;
     if (dependent_arg) {
       prep_generic_operand(&operand);
     }  /* if */
@@ -10606,7 +10646,7 @@ outside of the expression-processing routines.
          expression is instantiation-dependent. */
       if (is_template_dependent_context() &&
           expr_is_instantiation_dependent(expr)) {
-        tp->variant.typeref.is_dependent_decltype_or_typeof = TRUE;
+        tp->variant.typeref.is_dependent_type_operator = TRUE;
       }  /* if */
     }  /* if */
     /* The type entry is stored in the file scope memory region.  If the
@@ -10760,6 +10800,8 @@ expression-processing routines.
   a_boolean                is_typeof = FALSE;
 
   check_assertion(type->kind == (a_type_kind)tk_typeref);
+  /* __underlying_type constructs don't allow expression arguments. */
+  check_assertion(!type->variant.typeref.is_underlying_type);
 #if GNU_EXTENSIONS_ALLOWED
   if (type->variant.typeref.is_typeof) is_typeof = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -10789,6 +10831,52 @@ expression-processing routines.
   if (rcblock.error_detected) *copy_error = TRUE;
   return new_type;
 }  /* decltype_of_expr_with_substitution */
+
+
+a_type_ptr scan_underlying_type_operator(void)
+/*
+Scan the __underlying_type operator.  This is a C++0x construct that is
+similar to decltype.  It is used in type contexts, not expression contexts.
+
+Syntax:
+        __underlying_type( type-name )
+
+The parentheses are required.  If the operand is an enumeration type, the
+result is the underlying type of the enumeration.  Issue an error if the
+operand is not an enumeration type.  This routine is intended to be called
+from outside of the expression-processing routines.
+*/
+{
+  a_type_ptr result = NULL;
+
+  if (!type_traits_helpers_enabled) {
+    /* __underlying_type is not accepted in some modes. */
+    pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
+                 token_names[(int)tok_underlying_type]);
+  }  /* if */
+  /* Skip the __underlying_type token. */
+  check_assertion(curr_token == tok_underlying_type);
+  (void)get_token();
+  /* Check for and pass over the left parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_matching_stop_token(tok_rparen);
+  result = error_type();
+  type_name(&result);
+  /* Check for and pass over the right parenthesis. */
+  remove_matching_stop_token(tok_rparen);
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  if (!type_traits_helpers_enabled) {
+    /* Turn the result into an error type to avoid any surprises later on. */
+    result = error_type();
+  } else {
+    if (is_enum_type(result)) {
+      /* Extract the underlying integral type. */
+      result = skip_typerefs(result);
+      result = integer_type(result->variant.integer.int_kind);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* scan_underlying_type_operator */
 
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -10905,7 +10993,7 @@ the expression-processing routines.
                                  rcblock);
     transfer_expr_context_if_applicable(saved_expr_stack);
     expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
-    expr_stack->is_decltype_or_typeof_arg_expression = TRUE;
+    expr_stack->is_type_operator_arg_expression = TRUE;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (rcblock == NULL) {
@@ -10987,7 +11075,7 @@ the expression-processing routines.
     typeof_type->variant.typeref.type = result;
     typeof_type->variant.typeref.is_typeof = TRUE;
     typeof_type->variant.typeref.is_typeof_with_type_operand = is_type;
-    typeof_type->variant.typeref.is_dependent_decltype_or_typeof=dependent_arg;
+    typeof_type->variant.typeref.is_dependent_type_operator=dependent_arg;
     if (!is_type) {
       if (dependent_arg) {
         prep_generic_operand(&operand);
@@ -10998,7 +11086,7 @@ the expression-processing routines.
            expression is instantiation-dependent. */
         if (is_template_dependent_context() &&
             expr_is_instantiation_dependent(expr)) {
-          typeof_type->variant.typeref.is_dependent_decltype_or_typeof = TRUE;
+          typeof_type->variant.typeref.is_dependent_type_operator = TRUE;
         }  /* if */
       }  /* if */
       /* The type entry is stored in the file scope memory region.  If the
@@ -22640,7 +22728,22 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_union:
     case tok_is_trivial:
     case tok_is_standard_layout:
+    case tok_is_trivially_copyable:
+    case tok_is_literal_type:
+    case tok_has_trivial_move_constructor:
+    case tok_has_trivial_move_assign:
+    case tok_has_nothrow_move_assign:
+    case tok_is_constructible:
+    case tok_is_nothrow_constructible:
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_has_finalizer:
+    case tok_is_delegate:
+    case tok_is_interface_class:
+    case tok_is_ref_array:
+    case tok_is_ref_class:
+    case tok_is_sealed:
+    case tok_is_simple_value_class:
+    case tok_is_value_class:
     case tok_gcnew:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_dynamic_cast:
@@ -23540,7 +23643,7 @@ indicates that the symbol is an anonymous union and cannot be captured.
         }  /* if */
       } else if (!strict_ansi_mode &&
                  !expr_stack->potentially_evaluated &&
-                 (!expr_stack->is_decltype_or_typeof_arg_expression ||
+                 (!expr_stack->is_type_operator_arg_expression ||
                   depth_innermost_function_scope == NO_SCOPE_DEPTH) &&
                   !is_vla_type(var->type)) {
         /* As an extension, allow references to nonstatic variables
@@ -26238,6 +26341,21 @@ handle_identifier:
     case tok_is_union:
     case tok_is_trivial:
     case tok_is_standard_layout:
+    case tok_is_trivially_copyable:
+    case tok_is_literal_type:
+    case tok_has_trivial_move_constructor:
+    case tok_has_trivial_move_assign:
+    case tok_has_nothrow_move_assign:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_has_finalizer:
+    case tok_is_delegate:
+    case tok_is_interface_class:
+    case tok_is_ref_array:
+    case tok_is_ref_class:
+    case tok_is_sealed:
+    case tok_is_simple_value_class:
+    case tok_is_value_class:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Various single-type unary traits helpers. */
       scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);
@@ -26249,6 +26367,18 @@ handle_identifier:
     case tok_is_convertible_to:
       /* __is_convertible_to construct: */
       scan_is_convertible_to((a_rescan_control_block *)NULL, &local_result);
+      break;
+    case tok_is_constructible:
+      /* __is_constructible construct: */
+      scan_is_constructible(bok_is_constructible,
+                            (a_rescan_control_block *)NULL,
+                            &local_result);
+      break;
+    case tok_is_nothrow_constructible:
+      /* __is_nothrow_constructible construct: */
+      scan_is_constructible(bok_is_nothrow_constructible,
+                            (a_rescan_control_block *)NULL,
+                            &local_result);
       break;
 
 #if GNU_EXTENSIONS_ALLOWED
@@ -26441,6 +26571,7 @@ handle_trapped_left_paren:
     case tok_typename:
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
     case tok_decltype:
+    case tok_underlying_type:
 type_start:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
       /* In C++, these type keywords begin a functional-notation type
@@ -26462,6 +26593,8 @@ type_start:
         } else if (curr_token == tok_decltype) {
           cast_type = scan_decltype_operator((a_rescan_control_block *)NULL,
                                              (a_decl_pos_block*)NULL);
+        } else if (curr_token == tok_underlying_type) {
+          cast_type = scan_underlying_type_operator();
         } else if (gpp_mode && gnu_version < 30400 &&
                    (is_class_type_keyword(curr_token) ||
                     curr_token == tok_enum)) {
@@ -29526,6 +29659,12 @@ set accordingly.
       case bok_intaddr:
         operator_token = tok_intaddr;
         break;
+      case bok_is_constructible:
+        operator_token = tok_is_constructible;
+        break;
+      case bok_is_nothrow_constructible:
+        operator_token = tok_is_nothrow_constructible;
+        break;
       default:
         operator_token = tok_has_assign;  /* Representing the generic case
                                              with a single type operand. */
@@ -29766,6 +29905,14 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_is_convertible_to:
         /* __is_convertible_to construct: */
         scan_is_convertible_to(rcblock, result);
+        break;
+      case tok_is_constructible:
+        /* __is_constructible construct: */
+        scan_is_constructible(bok_is_constructible, rcblock, result);
+        break;
+      case tok_is_nothrow_constructible:
+        /* __is_nothrow_constructible construct: */
+        scan_is_constructible(bok_is_nothrow_constructible, rcblock, result);
         break;
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
       case tok_gnu_real:

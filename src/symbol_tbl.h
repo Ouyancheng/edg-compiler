@@ -3986,10 +3986,13 @@ enum a_cli_symbol_kind_tag {
   csk_system_void,				/* void_type() */
   csk_system_object,
   csk_system_value_type,
+  csk_system_enum,
   csk_system_type,
   csk_system_string,
+  csk_system_delegate,
   csk_system_multicast_delegate,
   csk_system_idisposable,
+  csk_system_array,
   csk_cli_namespace,
   csk_system_namespace,
   csk_cli_array,
@@ -4048,12 +4051,15 @@ EXTERN a_cli_symbol_name
   { "Void", csk_system_namespace },     /* csk_system_void */
   { "Object", csk_system_namespace },   /* csk_system_object */
   { "ValueType", csk_system_namespace },/* csk_system_value_type */
+  { "Enum", csk_system_namespace },	/* csk_system_enum */
   { "Type", csk_system_namespace },     /* csk_system_type */
   { "String", csk_system_namespace },   /* csk_system_string */
+  { "Delegate", csk_system_namespace },	/* csk_system_delegate */
   { "MulticastDelegate", csk_system_namespace },
                                         /* csk_system_multicast_delegate */
   { "IDisposable", csk_system_namespace },
                                         /* csk_system_idisposable */
+  { "Array", csk_system_namespace },	/* csk_system_array */
   { NULL, csk_none },                   /* csk_cli_namespace */
   { NULL, csk_none },                   /* csk_system_namespace */
   { NULL, csk_none },                   /* csk_cli_array */

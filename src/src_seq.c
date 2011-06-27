@@ -2346,7 +2346,7 @@ here).
       case iek_type:
         { a_type_ptr  tp = ss_entry_ptr(ssep, a_type_ptr);
           if (tp->kind == (a_type_kind)tk_typeref &&
-              typeref_is_decltype_or_typeof(tp)) {
+              typeref_is_type_operator(tp)) {
             /* Remove source sequence entries associated with a decltype or
                typeof construct. */
             ssep = drop_decltype_from_src_seq_list(ssep);
@@ -2867,7 +2867,7 @@ successor of ssep.
         /* ssep is the end of a type construct. */
         tag_type = (a_type_ptr)sseocp->entity.ptr;
         if (tag_type->kind == (a_type_kind)tk_typeref &&
-            typeref_is_decltype_or_typeof(tag_type)) {
+            typeref_is_type_operator(tag_type)) {
           /* decltype/typeof constructs can never be autonomous. */
           tag_type = NULL;
         } else if (tag_type->autonomous_primary_tag_decl ||
@@ -2996,7 +2996,7 @@ check_next_ssep:
             /* ssep is the end of a type construct. */
             a_type_ptr  etp = (a_type_ptr)sseocp->entity.ptr;
             if (etp->kind == (a_type_kind)tk_typeref &&
-                typeref_is_decltype_or_typeof(etp)) {
+                typeref_is_type_operator(etp)) {
               make_autonomous = FALSE;
             }  /* if */
           }  /* if */

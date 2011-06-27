@@ -137,6 +137,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_NULLPTR "Dn"
 #define MANGLING_STRING_FOR_DECLTYPE_TYPE "Dt"
 #define MANGLING_STRING_FOR_DECLTYPE_EXPR "DT"
+#define MANGLING_STRING_FOR_UNDERLYING_TYPE "Du"
 #define MANGLING_STRING_FOR_CAST "cv"
 #define MANGLING_STRING_FOR_STATIC_CAST "sc"
 #define MANGLING_STRING_FOR_CONST_CAST "cc"
@@ -266,6 +267,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_CAST "cs"
 #define MANGLING_STRING_FOR_DECLTYPE_TYPE "y"
 #define MANGLING_STRING_FOR_DECLTYPE_EXPR "Y"
+#define MANGLING_STRING_FOR_UNDERLYING_TYPE "ut"
 #define MANGLING_STRING_FOR_STATIC_CAST "sc"
 #define MANGLING_STRING_FOR_CONST_CAST "cc"
 #define MANGLING_STRING_FOR_REINTERPRET_CAST "rc"
@@ -657,7 +659,7 @@ entity unchanged.
     } else if (emulate_gnu_abi_bugs &&
                type->kind == (a_type_kind)tk_typeref &&
                type->variant.typeref.is_decltype &&
-               type->variant.typeref.is_dependent_decltype_or_typeof &&
+               type->variant.typeref.is_dependent_type_operator &&
                !gnu_requires_decltype_mangling(type)) {
       /* This is a dependent decltype and typically gets its own substitution,
          but if we're emulating GNU and GNU doesn't believe the decltype
@@ -4310,7 +4312,7 @@ mangling was needed and that logic is reflected in this routine.
   if (expr == NULL) {
     result = FALSE;
   } else {
-    if (type->variant.typeref.is_dependent_decltype_or_typeof) {
+    if (type->variant.typeref.is_dependent_type_operator) {
       /* The front end believes this decltype is instantiation-dependent, i.e.,
          it or one of its subexpressions is dependent.  There are some cases
          where GNU believes such types do not need decltype mangling; each
@@ -8149,9 +8151,11 @@ specified type.  Substitutions are not allocated for <builtin-type>s
          typerefs (for which substitutions are created). */
 #if GNU_EXTENSIONS_ALLOWED
       check_assertion(type->variant.typeref.is_decltype ||
+                      type->variant.typeref.is_underlying_type ||
                       type->variant.typeref.is_typeof);
 #else /* !GNU_EXTENSIONS_ALLOWED */
-      check_assertion(type->variant.typeref.is_decltype);
+      check_assertion(type->variant.typeref.is_decltype ||
+                      type->variant.typeref.is_underlying_type);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       result = TRUE;
       break;
@@ -8301,7 +8305,7 @@ top_of_loop:
         } else {
           /* To be GNU compatible, don't use decltype mangling for this
              type. */
-          if (type->variant.typeref.is_dependent_decltype_or_typeof) {
+          if (type->variant.typeref.is_dependent_type_operator) {
             /* Typically, using the type under the decltype typeref is the
                correct thing to do, but if the decltype is marked as dependent,
                get the type from the expression under the decltype and
@@ -8322,15 +8326,19 @@ top_of_loop:
       } else
 #endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION >= 402 */
       {
-        if (type->variant.typeref.is_dependent_decltype_or_typeof) {
+        if (type->variant.typeref.is_dependent_type_operator) {
           /* This decltype needs to appear in the mangled name. */
           break;
         }  /* if */
       }  /* if */
+    } else if (type->variant.typeref.is_underlying_type &&
+               type->variant.typeref.is_dependent_type_operator) {
+      /* This __underlying_type needs to appear in the mangled name. */
+      break;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (type->variant.typeref.is_typeof &&
-        type->variant.typeref.is_dependent_decltype_or_typeof) {
+        type->variant.typeref.is_dependent_type_operator) {
       /* This typeof needs to appear in the mangled name. */
       break;
     }  /* if */
@@ -8640,14 +8648,16 @@ top_of_loop:
         }  /* if */
         break;
       case tk_typeref:
-        /* typedefs, cv-qualifiers, aliases and non-dependent decltypes/typeofs
-           should have been stripped, leaving only dependent decltype/typeof
-           typerefs. */
+        /* typedefs, cv-qualifiers, aliases and non-dependent decltypes/
+           __underlying_types/typeofs should have been stripped, leaving only
+           dependent decltype/__underlying_type/typeof typerefs. */
 #if GNU_EXTENSIONS_ALLOWED
         check_assertion(type->variant.typeref.is_decltype ||
+                        type->variant.typeref.is_underlying_type ||
                         type->variant.typeref.is_typeof);
 #else /* !GNU_EXTENSIONS_ALLOWED */
-        check_assertion(type->variant.typeref.is_decltype);
+        check_assertion(type->variant.typeref.is_decltype ||
+                        type->variant.typeref.is_underlying_type);
 #endif /* GNU_EXTENSIONS_ALLOWED */
         if (type->variant.typeref.is_decltype) {
           /* Provide mangling for decltype. */
@@ -8660,6 +8670,14 @@ top_of_loop:
           }  /* if */
           mangled_encoding_for_expression(decltype_expr,
                                           /*in_dependent_expr=*/TRUE, mctl);
+#if IA64_ABI
+          add_to_mangled_name('E', mctl);
+#endif /* IA64_ABI */
+          goto have_whole_mangled_name;
+        } else if (type->variant.typeref.is_underlying_type) {
+          /* Provide mangling for __underlying_type. */
+          add_str_to_mangled_name(MANGLING_STRING_FOR_UNDERLYING_TYPE, mctl);
+          mangled_encoding_for_type(type->variant.typeref.type, mctl);
 #if IA64_ABI
           add_to_mangled_name('E', mctl);
 #endif /* IA64_ABI */

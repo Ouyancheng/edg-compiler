@@ -333,6 +333,30 @@ modes.
   enter_keyword((a_token_kind)tok_is_union, "__is_union");
   enter_keyword((a_token_kind)tok_is_trivial, "__is_trivial");
   enter_keyword((a_token_kind)tok_is_standard_layout, "__is_standard_layout");
+  enter_keyword((a_token_kind)tok_is_trivially_copyable,
+                "__is_trivially_copyable");
+  enter_keyword((a_token_kind)tok_is_literal_type, "__is_literal_type");
+  enter_keyword((a_token_kind)tok_has_trivial_move_constructor,
+                "__has_trivial_move_constructor");
+  enter_keyword((a_token_kind)tok_has_trivial_move_assign,
+                "__has_trivial_move_assign");
+  enter_keyword((a_token_kind)tok_has_nothrow_move_assign,
+                "__has_nothrow_move_assign");
+  enter_keyword((a_token_kind)tok_is_constructible, "__is_constructible");
+  enter_keyword((a_token_kind)tok_is_nothrow_constructible,
+                "__is_nothrow_constructible");
+  enter_keyword((a_token_kind)tok_underlying_type, "__underlying_type");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  enter_keyword((a_token_kind)tok_has_finalizer, "__has_finalizer");
+  enter_keyword((a_token_kind)tok_is_delegate, "__is_delegate");
+  enter_keyword((a_token_kind)tok_is_interface_class, "__is_interface_class");
+  enter_keyword((a_token_kind)tok_is_ref_array, "__is_ref_array");
+  enter_keyword((a_token_kind)tok_is_ref_class, "__is_ref_class");
+  enter_keyword((a_token_kind)tok_is_sealed, "__is_sealed");
+  enter_keyword((a_token_kind)tok_is_simple_value_class,
+                "__is_simple_value_class");
+  enter_keyword((a_token_kind)tok_is_value_class, "__is_value_class");
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* enter_type_traits_helpers */
 
 

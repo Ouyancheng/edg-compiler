@@ -325,7 +325,7 @@ Note that cv-qualifiers ARE stripped off.
 */
 {
   while (type_ptr->kind == (a_type_kind)tk_typeref &&
-         !type_ptr->variant.typeref.is_dependent_decltype_or_typeof) {
+         !type_ptr->variant.typeref.is_dependent_type_operator) {
     type_ptr = type_ptr->variant.typeref.type;
   }  /* while */
   return type_ptr;
@@ -345,7 +345,7 @@ type, without changing the type represented, for deduction purposes."
 {
   while (type_ptr->kind == (a_type_kind)tk_typeref &&
          !typeref_is_qualified(type_ptr) &&
-         !type_ptr->variant.typeref.is_dependent_decltype_or_typeof) {
+         !type_ptr->variant.typeref.is_dependent_type_operator) {
     type_ptr = type_ptr->variant.typeref.type;
   }  /* while */
   return type_ptr;
@@ -4389,11 +4389,11 @@ Return TRUE if such an adjustment was made.
      after cv-qualifiers have been checked, so they are irrelevant at
      this point.) */
   while (type_1->kind == (a_type_kind)tk_typeref &&
-         !typeref_is_decltype_or_typeof(type_1)) {
+         !typeref_is_type_operator(type_1)) {
     type_1 = type_1->variant.typeref.type;
   }  /* while */
   while (type_2->kind == (a_type_kind)tk_typeref &&
-         !typeref_is_decltype_or_typeof(type_2)) {
+         !typeref_is_type_operator(type_2)) {
     type_2 = type_2->variant.typeref.type;
   }  /* while */
   /* If one is a decltype for a non-reference type and the other is
@@ -4500,7 +4500,10 @@ is encountered.  If the type returned is one of those typerefs,
 {
   *check_expr = FALSE;
   while (type->kind == (a_type_kind)tk_typeref) {
-    if (type->variant.typeref.is_dependent_decltype_or_typeof
+    if (type->variant.typeref.is_dependent_type_operator &&
+        /* Don't stop on __underlying_types, since they are not based on
+           expressions. */
+        !type->variant.typeref.is_underlying_type
 #if GNU_EXTENSIONS_ALLOWED
         /* Don't stop on typeofs without expressions, since you can't compare
            expressions on those. */
@@ -10173,7 +10176,7 @@ types, i.e., also for nonreal classes.
     *force_end_of_traversal = found = TRUE;
   } else if (find_all_dependent_types &&
              type_ptr->kind == (a_type_kind)tk_typeref &&
-             type_ptr->variant.typeref.is_dependent_decltype_or_typeof) {
+             type_ptr->variant.typeref.is_dependent_type_operator) {
     /* A dependent decltype or typeof. */
     *force_end_of_traversal = found = TRUE;
   } else {
@@ -10260,7 +10263,7 @@ from which a template parameter value can be deduced.
       *force_end_of_traversal = found = TRUE;
     }  /* if */
   } else if (type_ptr->kind == (a_type_kind)tk_typeref &&
-             typeref_is_decltype_or_typeof(type_ptr)) {
+             typeref_is_type_operator(type_ptr)) {
     /* The type under a decltype or typeof is not deduced. */
     *force_end_of_traversal = TRUE;
   } else {
@@ -12197,8 +12200,7 @@ to the caller.  If no modification is done return the original type.
       }  /* if */
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-    if (!is_local && !is_nonreal &&
-        typeref_is_decltype_or_typeof(type)) {
+    if (!is_local && !is_nonreal && typeref_is_type_operator(type)) {
       if (type->variant.typeref.extra_info->expr == NULL &&
           !type->variant.typeref.is_typeof_with_type_operand) {
         /* This is a decltype or typeof applied to a local expression (which

@@ -941,12 +941,12 @@ as in a decltype.
   if (direct) {
     new_entry->evaluated = old_entry->evaluated;
     new_entry->potentially_evaluated = old_entry->potentially_evaluated;
-    new_entry->is_decltype_or_typeof_arg_expression =
-                               old_entry->is_decltype_or_typeof_arg_expression;
+    new_entry->is_type_operator_arg_expression =
+                                   old_entry->is_type_operator_arg_expression;
     new_entry->inside_conditional_expression =
-                                      old_entry->inside_conditional_expression;
+                                     old_entry->inside_conditional_expression;
     new_entry->template_deduction_context |=
-                                         old_entry->template_deduction_context;
+                                        old_entry->template_deduction_context;
     new_entry->suppress_diagnostics |= old_entry->suppress_diagnostics;
     new_entry->possible_rescan_context |= old_entry->possible_rescan_context;
     new_entry->in_static_initializer |= old_entry->in_static_initializer;
@@ -983,7 +983,7 @@ is pushed regardless of any of the other factors.
   new_entry->potentially_evaluated = TRUE;
   new_entry->potentially_unevaluated = FALSE;
   new_entry->objectless_nonstatic_data_ref_seen = FALSE;
-  new_entry->is_decltype_or_typeof_arg_expression = FALSE;
+  new_entry->is_type_operator_arg_expression = FALSE;
   new_entry->is_default_arg_expression = FALSE;
   new_entry->is_template_arg_expression = FALSE;
   new_entry->is_vla_dimension_expression = FALSE;

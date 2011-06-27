@@ -73,7 +73,12 @@ extern void scan_microsoft_class_modifiers(a_type_kind  type_kind,
                                            a_boolean    *is_sealed);
 
 extern void check_for_microsoft_class_modifiers(a_token_kind  *next_tok,
-                                                a_token_kind  body_start);
+                                                a_token_kind  body_start,
+                                                a_boolean     tag_name_first);
+
+extern void apply_microsoft_class_modifiers(a_type_ptr class_type,
+                                            a_boolean  is_abstract,
+                                            a_boolean  is_sealed);
 
 extern void update_dll_info_for_class(a_type_ptr         class_type,
                                       a_decl_modifier    flags,

@@ -3711,8 +3711,10 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
       }
       break;
     case tk_typeref:
-      if (type->variant.typeref.is_decltype) {
-        /* Decltype types do not need to be declared separately. */
+      if (type->variant.typeref.is_decltype ||
+          type->variant.typeref.is_underlying_type) {
+        /* Decltype and __underlying_type types do not need to be declared
+           separately. */
 #if GNU_EXTENSIONS_ALLOWED
       } else if (type->variant.typeref.is_typeof) {
         /* Typeof types do not need to be declared separately. */

@@ -6503,6 +6503,27 @@ constant will be set as well.
   constant->type = expr->type;
 }  /* fold_is_convertible_to */
 
+
+static void fold_is_constructible(an_expr_node_ptr   expr,
+                                  a_constant_ptr     constant,
+                                  a_boolean          maintain_expression)
+/*
+expr is an enk_builtin_operation node for an __is_constructible or
+__is_nothrow_constructible operation.  Store a boolean constant in *constant
+whose value is "true" if the following variable definition
+would be well-formed for some invented variable t:
+      T t(declval<Args>()...);
+If the built-in operation kind is bok_is_nothrow_constructible, the definition
+must be known not to throw any exceptions.  If any of the operand types is
+dependent, store a ck_template_param constant in *constant.  The constant will
+be of the tpck_expression variant and will point to the given expression.
+If maintain_expression is TRUE, the backing expression for the returned
+constant will be set as well.
+*/
+{
+  /* FIXME: Not yet implemented. */
+}
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean microsoft_has_assign_predicate(a_type_ptr                type,
@@ -6673,10 +6694,24 @@ constant will be set as well.
     a_class_symbol_supplement_ptr
                               cssp = NULL;
     if (kind == (a_builtin_operation_kind)bok_is_trivial ||
-        kind == (a_builtin_operation_kind)bok_is_standard_layout) {
+        kind == (a_builtin_operation_kind)bok_is_standard_layout ||
+        kind == (a_builtin_operation_kind)bok_is_literal_type) {
       type = skip_array_types(type);
     }  /* if */
     type = skip_typerefs(type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled &&
+        (kind == (a_builtin_operation_kind)bok_is_sealed ||
+         kind == (a_builtin_operation_kind)bok_is_simple_value_class ||
+         kind == (a_builtin_operation_kind)bok_is_value_class)) {
+      /* Convert a built-in type to the corresponding CLI value class type,
+         e.g., int to System::Int32. */
+      a_type_ptr system_type = system_type_from_fundamental_type(type);
+      if (system_type != NULL) {
+        type = system_type;
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (!is_immediate_class_type(type)) {
       /* Non-class types. */
       /* Note that g++ (checked in 4.5) treats scoped enums the same as
@@ -6692,6 +6727,10 @@ constant will be set as well.
         case bok_has_trivial_copy:
         case bok_has_trivial_destructor:
         case bok_is_pod:
+        case bok_is_trivially_copyable:
+        case bok_has_trivial_move_constructor:
+        case bok_has_trivial_move_assign:
+        case bok_has_nothrow_move_assign:
           if (microsoft_mode) {
             /* MSVC returns FALSE for all of these (which is, at least in
                some cases, weird, but there you have it). */
@@ -6707,8 +6746,20 @@ constant will be set as well.
         case bok_is_empty:
         case bok_is_polymorphic:
         case bok_is_union:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case bok_has_finalizer:
+        case bok_is_delegate:
+        case bok_is_interface_class:
+        case bok_is_ref_array:
+        case bok_is_ref_class:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           result = FALSE;
           break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case bok_is_simple_value_class:
+        case bok_is_value_class:
+          /* Microsoft compilers consider enums to be simple value classes. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case bok_is_enum:
           result = is_immediate_enum_type(type);
           break;
@@ -6716,6 +6767,15 @@ constant will be set as well.
         case bok_is_standard_layout:
           result = is_object_type(type);
           break;
+        case bok_is_literal_type:
+          /* FIXME: Not yet implemented. */
+          result = FALSE;
+          break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case bok_is_sealed:
+          result = TRUE;
+          break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         default:
           unexpected_condition();
       }  /* switch */
@@ -6818,14 +6878,22 @@ constant will be set as well.
         break;
       case bok_has_virtual_destructor:
         check_assertion(cssp != NULL);  /* For Coverity. */
+        /* In C++/CLI mode, ref class destructors are never virtual; however,
+           because they are only ever called by Dispose(bool), which is
+           virtual, they are considered virtual. */
         result = cssp->destructor != NULL &&
-                 cssp->destructor->variant.routine.ptr->is_virtual;
+                 (cssp->destructor->variant.routine.ptr->is_virtual
+                  if_microsoft_extensions(
+                                  || cli_class_type_kind_is(type, cctk_ref)));
         break;
       case bok_is_abstract:
         result = type->variant.class_struct_union.abstract;
         break;
       case bok_is_class:
-        result = is_class_or_struct(type);
+        /* In C++/CLI mode this really means: is_native_class. */
+        result = is_class_or_struct(type)
+                 if_microsoft_extensions(
+                              && cli_class_type_kind_is(type, cctk_standard));
         break;
       case bok_is_empty:
         result = is_empty_class_type(type);
@@ -6839,7 +6907,11 @@ constant will be set as well.
         result = cssp->is_POD;
         break;
       case bok_is_polymorphic:
-        result = is_polymorphic_class_type(type);
+        /* C++/CLI value classes are not polymorphic even though they can
+           implement interfaces. */
+        result = is_polymorphic_class_type(type)
+                 if_microsoft_extensions(
+                                && !cli_class_type_kind_is(type, cctk_value));
         break;
       case bok_is_union:
         result = (type->kind == (a_type_kind)tk_union);
@@ -6855,6 +6927,63 @@ constant will be set as well.
         check_assertion(cssp != NULL);  /* For Coverity. */
         result = cssp->standard_layout;
         break;
+      case bok_is_trivially_copyable:
+        /* FIXME: Not yet implemented. */
+        result = FALSE;
+        break;
+      case bok_is_literal_type:
+        /* FIXME: Not yet implemented. */
+        result = FALSE;
+        break;
+      case bok_has_trivial_move_constructor:
+        /* FIXME: Not yet implemented. */
+        result = FALSE;
+        break;
+      case bok_has_trivial_move_assign:
+        /* FIXME: Not yet implemented. */
+        result = FALSE;
+        break;
+      case bok_has_nothrow_move_assign:
+        /* FIXME: Not yet implemented. */
+        result = FALSE;
+        break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case bok_has_finalizer:
+        check_assertion(cssp != NULL);  /* For Coverity. */
+        result = cssp->finalizer != NULL;
+        break;
+      case bok_is_delegate:
+        result = cppcli_enabled && 
+                 (type->variant.class_struct_union.is_delegate_class ||
+                  identical_types(type, cli_class_type_for(
+                                                      csk_system_delegate)) ||
+                  identical_types(type, cli_class_type_for(
+                                             csk_system_multicast_delegate)));
+        break;
+      case bok_is_interface_class:
+        result = cli_class_type_kind_is(type, cctk_interface);
+        break;
+      case bok_is_ref_array:
+        /* System::Array isn't technically a ref array, but it supports the
+           subscript operator, and ref arrays all derive from it, so it is
+           considered a ref array. */
+        result = class_type_supp(type)->is_cli_array ||
+                 identical_types(type, cli_class_type_for(csk_system_array));
+        break;
+      case bok_is_ref_class:
+        result = cli_class_type_kind_is(type, cctk_ref) && 
+                 !class_type_supp(type)->is_cli_array;
+        break;
+      case bok_is_sealed:
+        result = type->variant.class_struct_union.final;
+        break;
+      case bok_is_simple_value_class:
+        result = is_simple_value_class_type(type);
+        break;
+      case bok_is_value_class:
+        result = cli_class_type_kind_is(type, cctk_value);
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition();
     }  /* if */
@@ -6984,6 +7113,16 @@ constant is set as well.
       case bok_is_polymorphic:
       case bok_is_trivial:
       case bok_is_standard_layout:
+      case bok_is_trivially_copyable:
+      case bok_is_literal_type:
+      case bok_has_trivial_move_constructor:
+      case bok_has_trivial_move_assign:
+      case bok_has_nothrow_move_assign:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case bok_has_finalizer:
+      case bok_is_sealed:
+      case bok_is_simple_value_class:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Various type trait helpers that require their single argument to be
            a complete class type. */
         fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,
@@ -6992,6 +7131,13 @@ constant is set as well.
       case bok_is_class:
       case bok_is_enum:
       case bok_is_union:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case bok_is_delegate:
+      case bok_is_interface_class:
+      case bok_is_ref_array:
+      case bok_is_ref_class:
+      case bok_is_value_class:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Various type trait helpers that take a single argument. */
         fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,
                                      /*complete_class_property=*/FALSE);
@@ -7001,6 +7147,10 @@ constant is set as well.
         break;
       case bok_is_convertible_to:
         fold_is_convertible_to(expr, constant, maintain_expression);
+        break;
+      case bok_is_constructible:
+      case bok_is_nothrow_constructible:
+        fold_is_constructible(expr, constant, maintain_expression);
         break;
       default:
         unexpected_condition();

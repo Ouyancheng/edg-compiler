@@ -1704,7 +1704,7 @@ to indicate a primary declaration.
     /* typeof and decltype tags are never autonomous.  All other non-tag
        types that get here are always autonomous. */
     autonomous = !(type->kind == (a_type_kind)tk_typeref &&
-                   typeref_is_decltype_or_typeof(type));
+                   typeref_is_type_operator(type));
   } else {
     /* Tag. Check flag. */
     if (sec_decl == NULL) {
@@ -1795,7 +1795,7 @@ end of the type definition.
 {
   check_and_take_source_seq_entry_for_type(type);
   if (is_tag_type(type) || (type->kind == (a_type_kind)tk_typeref &&
-                            typeref_is_decltype_or_typeof(type))) {
+                            typeref_is_type_operator(type))) {
     /* For a class, enum or decltype/typeof type, loop through source sequence
        entries looking for the end-of-construct entry for the type. */
     for (;;) {
@@ -3047,10 +3047,10 @@ is called.
            underlying_type != NULL &&
                               underlying_type->kind == (a_type_kind)tk_typeref;
            underlying_type = underlying_type->variant.typeref.type) {
-        if (typeref_is_decltype_or_typeof(underlying_type)) {
-          /* The operand or result of a decltype or typeof can refer to
-             inaccessible names, so we should just use the original
-             typedef. */
+        if (typeref_is_type_operator(underlying_type)) {
+          /* The operand or result of a decltype, __underlying_type, or typeof
+             can refer to inaccessible names, so we should just use the
+             original typedef. */
           invisible = FALSE;
           break;
         } else if (typeref_is_typedef(underlying_type)) {
@@ -4779,17 +4779,20 @@ al_tag_name attributes (if any).
 }  /* gen_tag_reference */
 
 
-static void gen_decltype_or_typeof(a_type_ptr tp)
+static void gen_type_operator(a_type_ptr tp)
 /*
-Render a decltype(<expr>), __typeof__(<expr>), or __typeof__(<type>) construct.
-If the argument to the construct has associated source sequence entries, the
-type previously had its definition_delayed flag set to TRUE (at which time
-those source sequence entries were skipped); the source sequence entries
-associated with the argument should be reactivated in such cases.
+Render a decltype(<expr>), __underlying_type(<type>), __typeof__(<expr>), or
+__typeof__(<type>) construct.  If the argument to the construct has associated
+source sequence entries, the type previously had its definition_delayed flag
+set to TRUE (at which time those source sequence entries were skipped); the
+source sequence entries associated with the argument should be reactivated in
+such cases.
 */
 {
   a_source_sequence_scan_state  saved_state;
   a_boolean                     is_decltype = tp->variant.typeref.is_decltype;
+  a_boolean                     is_underlying_type =
+                                       tp->variant.typeref.is_underlying_type;
   char                          *kwd;
 
   if (is_decltype) {
@@ -4801,6 +4804,8 @@ associated with the argument should be reactivated in such cases.
     } else {
       kwd = (char *)"decltype(";
     }  /* if */
+  } else if (is_underlying_type) {
+    kwd = (char *)"__underlying_type(";
   } else {
     kwd = (char *)"__typeof__(";
   }  /* if */
@@ -4855,7 +4860,11 @@ srq_seq_sublist_parent_found:
   } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
-  {
+  if (is_underlying_type) {
+    /* __underlying_type(<type>). */
+    skip_embedded_declarations();
+    gen_type(tp->variant.typeref.type);
+  } else {
     /* __typeof__(<expr>) or decltype(<expr>). */
     an_expr_node_ptr expr = decltype_arg(tp);
     check_assertion(expr != NULL);
@@ -4873,7 +4882,7 @@ srq_seq_sublist_parent_found:
     tp->definition_delayed = FALSE;
   }  /* if */
   write_tok_str(")");
-}  /* gen_decltype_or_typeof */
+}  /* gen_type_operator */
 
 
 static void gen_type_reference(a_type_ptr type)
@@ -4903,8 +4912,8 @@ A reference is not the definition.
       /* This is the "va_list" or "std::va_list" type, but render it using
          the name of the GNU predefined primitive. */
       write_tok_str("__builtin_va_list");
-    } else if (typeref_is_decltype_or_typeof(type)) {
-      gen_decltype_or_typeof(type);
+    } else if (typeref_is_type_operator(type)) {
+      gen_type_operator(type);
     } else {
       gen_name(&orig_type->source_corresp, iek_type, options,
                (a_boolean *)NULL);
@@ -14197,7 +14206,7 @@ declarator (or NULL if it wasn't recorded).
      in the presence of Microsoft qualifiers like near/far. */
   while (rout_type->kind == (a_type_kind)tk_typeref &&
          !(typeref_is_typedef(rout_type) ||
-           typeref_is_decltype_or_typeof(rout_type))) {
+           typeref_is_type_operator(rout_type))) {
     rout_type = rout_type->variant.typeref.type;
   }  /* while */
   if (rout_type->kind != (a_type_kind)tk_routine) {

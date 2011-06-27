@@ -705,7 +705,7 @@ typedef struct an_expr_stack_entry {
 			   reference to a nonstatic data member occurs in a
 			   context that permits such constructs. */
   a_byte_boolean
-		is_decltype_or_typeof_arg_expression;
+		is_type_operator_arg_expression;
 			/* TRUE if the expression is the argument for a C++0x
 			   decltype construct or a GNU typeof construct. */
   a_byte_boolean

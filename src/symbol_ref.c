@@ -1983,7 +1983,7 @@ IL entry in place of whatever is pointed to by the symbol.
           for(;;) {
             if (tp->kind == (a_type_kind)tk_typeref) {
               if (typeref_is_qualified(tp) ||
-                  typeref_is_decltype_or_typeof(tp)) {
+                  typeref_is_type_operator(tp)) {
                 tp = tp->variant.typeref.type;
               } else {
                 sym_for_xref = (a_symbol_ptr)tp->source_corresp.assoc_info;

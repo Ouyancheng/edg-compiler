@@ -7727,7 +7727,7 @@ points to the template parameter list.
     templ_type = skip_typerefs_not_dependent_decltypes(templ_type);
   }  /* if */
   if (templ_type->kind == (a_type_kind)tk_typeref &&
-      templ_type->variant.typeref.is_dependent_decltype_or_typeof) {
+      templ_type->variant.typeref.is_dependent_type_operator) {
     /* decltype and typeof should be considered nondeduced.  Consider
        this a match for now. */
     match = TRUE;
@@ -9348,8 +9348,8 @@ a pointer over a reference type or creating an array of references.
         }  /* if */
         break;
       case tk_typeref:
-        if (typeref_is_decltype_or_typeof(type) &&
-            type->variant.typeref.is_dependent_decltype_or_typeof &&
+        if (typeref_is_type_operator(type) &&
+            type->variant.typeref.is_dependent_type_operator &&
             (expr = decltype_arg(type)) != NULL &&
             expr->rescan_info != NULL) {
           /* decltype or typeof based on an expression: do substitution on the
@@ -9380,7 +9380,7 @@ a pointer over a reference type or creating an array of references.
             qualifiers |= type_without_typerefs->variant.typeref.qualifiers;
             type_without_typerefs= type_without_typerefs->variant.typeref.type;
           } while (type_without_typerefs->kind == (a_type_kind)tk_typeref &&
-                   !typeref_is_decltype_or_typeof(type_without_typerefs));
+                   !typeref_is_type_operator(type_without_typerefs));
           tp = copy_type_with_substitution(type_without_typerefs,
                                            templ_arg_list,
                                            templ_param_list, source_pos,
@@ -14761,7 +14761,8 @@ declaration of a partial specialization declared outside of its class.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && microsoft_version >= 1400 &&
       next_tok == tok_identifier) {
-    check_for_microsoft_class_modifiers(&next_tok, tok_lbrace);
+    check_for_microsoft_class_modifiers(
+                              &next_tok, tok_lbrace, /*tag_name_first=*/TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   is_definition = (next_tok == tok_colon || next_tok == tok_lbrace);
@@ -18650,7 +18651,8 @@ the declaration token cache.
       if (microsoft_mode && microsoft_version >= 1400) {
         next_tok = next_token();
         if (next_tok == tok_identifier) {
-          check_for_microsoft_class_modifiers(&next_tok, tok_end_of_source);
+          check_for_microsoft_class_modifiers(&next_tok, tok_end_of_source,
+                                              /*tag_name_first=*/TRUE);
         }  /* if */
       } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

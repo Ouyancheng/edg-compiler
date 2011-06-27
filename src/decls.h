@@ -230,11 +230,12 @@ specifier.
 Macro that is TRUE if the current token is the start of a type
 specifier (except for the typedef and friend cases).  (3.5.2)
 */
-#define is_type_specifier()                                                \
- (is_type_keyword(curr_token)      || is_class_type_keyword(curr_token) || \
-  is_enum_type_keyword(curr_token) || curr_token == tok_typename        || \
-  curr_token == tok_typeof         || curr_token == tok_decltype        || \
-  (auto_type_specifier_enabled && curr_token == tok_auto)                  \
+#define is_type_specifier()                                                 \
+ (is_type_keyword(curr_token)       || is_class_type_keyword(curr_token) || \
+  is_enum_type_keyword(curr_token)  || curr_token == tok_typename        || \
+  curr_token == tok_typeof          || curr_token == tok_decltype        || \
+  curr_token == tok_underlying_type ||                                      \
+  (auto_type_specifier_enabled && curr_token == tok_auto)                   \
   or_is_cli_assembly_visibility_specifier(curr_token))
 
 #if NAMED_ADDRESS_SPACES_ALLOWED

@@ -797,7 +797,8 @@ type_info type may be defined.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 void check_for_microsoft_class_modifiers(a_token_kind  *next_tok,
-                                         a_token_kind  body_start)
+                                         a_token_kind  body_start,
+                                         a_boolean     tag_name_first)
 /*
 Microsoft compilers accept constructs like:
     struct S sealed abstract: B { ... };
@@ -808,14 +809,15 @@ determine whether or not a definition follows.  (In particular,
     struct S sealed;
 should be treated as a declaration of a variable named "sealed", and not a
 declaration of a sealed type "S".)
-This routine assumes that the token stream contains a generalized identifier
-followed by one or more plain identifiers.  If these plain identifiers turn
-out to be context-sensitive keywords, the tokens are transformed accordingly
-(i.e., they become "tok_abstract" or "tok_sealed" keywords).  *next_tok is
-set to the token kind that follows the tag name and the class modifiers (if
-any).  body_start is the token that represents the beginning of a class body:
-tok_lbrace in the normal case, and tok_end_of_source during template
-prescanning.
+If tag_name_first is TRUE, this routine assumes that the token stream contains
+a generalized identifier followed by one or more plain identifiers.  If
+tag_name_first is FALSE, this routine assumes that the token stream contains
+one or more plain identifiers.  If these plain identifiers turn out to be
+context-sensitive keywords, the tokens are transformed accordingly (i.e., they
+become "tok_abstract" or "tok_sealed" keywords).  *next_tok is set to the token
+kind that follows the tag name and the class modifiers (if any).  body_start is
+the token that represents the beginning of a class body: tok_lbrace in the
+normal case, and tok_end_of_source during template prescanning.
 */
 {
   a_token_cache  orig_token_cache;
@@ -824,18 +826,24 @@ prescanning.
   a_token_kind   orig_next_tok;
   a_boolean      valid = FALSE;
   a_boolean      transformed_cache_used = FALSE;
+  a_boolean      identifier_cached = FALSE;
 
+  check_assertion(curr_token == tok_identifier);
   clear_token_cache(&orig_token_cache, /*reusable=*/TRUE);
-  /* First cache the tag name. */
+  /* Cache the first identifier. */
   cache_curr_token(&orig_token_cache);
-  orig_next_tok = get_token();
-  /* Cache additional identifiers (we know there is at least one). */
-  do {
+  if (!tag_name_first) {
+    identifier_cached = TRUE;
+  }  /* if */
+  tok = orig_next_tok = get_token();
+  /* Cache additional identifiers (if any). */
+  while (tok == tok_identifier) {
+    identifier_cached = TRUE;
     cache_curr_token(&orig_token_cache);
     tok = get_token();
-  } while (tok == tok_identifier);
+  }  /* while */
   terminate_token_cache(&orig_token_cache);
-  if (tok == body_start || tok == tok_colon) {
+  if (identifier_cached && (tok == body_start || tok == tok_colon)) {
     /* A class definition: The cached identifiers should have been
        context-sensitive keywords.  Make an additional pass over the
        cached tokens, turning the identifiers into keywords when
@@ -843,9 +851,11 @@ prescanning.
     rescan_reusable_cache(&orig_token_cache);
     *next_tok = tok;
     clear_token_cache(&transformed_token_cache, /*reusable=*/FALSE);
-    cache_curr_token(&transformed_token_cache);
-    transformed_cache_used = TRUE;
-    (void)get_token();
+    if (tag_name_first) {
+      cache_curr_token(&transformed_token_cache);
+      transformed_cache_used = TRUE;
+      (void)get_token();
+    }  /* if */
     for (; curr_token != tok_end_of_source; (void)get_token()) {
       if (check_context_sensitive_keyword(tok_abstract, "abstract") ||
           check_context_sensitive_keyword(tok_sealed, "sealed")) {
@@ -1039,7 +1049,8 @@ caution when modifying this routine.
         !is_ref_within_new_expr) {
       /* The next token is an identifier: It could be a declarator-id, or it
          might be a context-sensitive token "sealed" or "abstract". */
-      check_for_microsoft_class_modifiers(&next_tok, tok_lbrace);
+      check_for_microsoft_class_modifiers(
+                &next_tok, tok_lbrace, /*tag_name_first=*/TRUE);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     is_tag_definition = tag_definition_next(next_tok, tag_kind,
@@ -2151,6 +2162,27 @@ in a union definition.
   }  /* for */
 }  /* scan_microsoft_class_modifiers */
 
+
+void apply_microsoft_class_modifiers(a_type_ptr class_type,
+                                     a_boolean  is_abstract,
+                                     a_boolean  is_sealed)
+/*
+Update the class type entry to account for any "abstract" or "sealed"
+context-sensitive keywords encountered while scanning the class definition.
+*/
+{
+  if (is_abstract) {
+    class_type->variant.class_struct_union.abstract = TRUE;
+#if BACK_END_IS_CP_GEN_BE
+    class_type
+      ->variant.class_struct_union.defined_with_abstract_class_modifier = TRUE;
+#endif /* BACK_END_IS_CP_GEN_BE */
+  }  /* if */
+  if (is_sealed) {
+    class_type->variant.class_struct_union.final = TRUE;
+  }  /* if */
+}
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
 
@@ -3237,8 +3269,11 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       a_source_position  pos_after_name;
       pos_after_name = pos_curr_token;
       scan_microsoft_class_modifiers(type_kind, &is_abstract, &is_sealed);
-      if (cli_type_kind == (a_cli_class_type_kind)cctk_interface &&
-          is_sealed) {
+      if (cli_type_kind == (a_cli_class_type_kind)cctk_value) {
+        /* Value classes are implicitly sealed. */
+        is_sealed = TRUE;
+      } else if (cli_type_kind == (a_cli_class_type_kind)cctk_interface &&
+                 is_sealed) {
         pos_error(ec_sealed_cli_interface, &pos_after_name);
         is_sealed = FALSE;
       }  /* if */
@@ -3927,16 +3962,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_abstract) {
-    class_type->variant.class_struct_union.abstract = TRUE;
-#if BACK_END_IS_CP_GEN_BE
-    class_type
-      ->variant.class_struct_union.defined_with_abstract_class_modifier = TRUE;
-#endif /* BACK_END_IS_CP_GEN_BE */
-  }  /* if */
-  if (is_sealed) {
-    class_type->variant.class_struct_union.final = TRUE;
-  }  /* if */
+  apply_microsoft_class_modifiers(class_type, is_abstract, is_sealed);
   if (dps->ms_attributes != NULL && !is_local_class) {
     if (!is_class_definition && curr_token != tok_semicolon) {
       /* This is a non-autonomous declaration of the class: The attributes
@@ -8665,6 +8691,23 @@ process_enum_specifier:
                size != size_none)) {
             /* We've already seen specifiers that cannot be combined with
                decltype: Ignore them and issue an error. */
+            pos_error(ec_bad_combination_of_type_specifiers, &decltype_pos);
+            *type_ptr = error_type();
+            sign = sign_none;
+            size = size_none;
+          }  /* if */
+          basic_type = bt_typedef;
+          decl_specifiers_seen |= DS_TYPE;
+          goto no_get_token;
+        }
+      case tok_underlying_type:
+        { a_source_position  decltype_pos = pos_curr_token;
+          *type_ptr = scan_underlying_type_operator();
+          if (!is_error_type(*type_ptr) &&
+              (basic_type != bt_none || sign != sign_none ||
+               size != size_none)) {
+            /* We've already seen specifiers that cannot be combined with
+               __underlying_type: Ignore them and issue an error. */
             pos_error(ec_bad_combination_of_type_specifiers, &decltype_pos);
             *type_ptr = error_type();
             sign = sign_none;

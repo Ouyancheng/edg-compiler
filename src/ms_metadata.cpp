@@ -860,6 +860,7 @@ private:
                           const a_generic_parameter_list &generic_parameters);
 
   a_top_level_kind classify_type(
+                       const wstring                  &full_type_name,
                        DWORD                          attributes,
                        const a_generic_parameter_list &generic_parameters,
                        mdToken                        extends_token);
@@ -1101,6 +1102,7 @@ Close all the open namespace scopes.
 
 
 a_top_level_kind an_import_scope::classify_type(
+                       const wstring                  &full_type_name,
                        DWORD                          attributes,
                        const a_generic_parameter_list &generic_parameters,
                        mdToken                        extends_token)
@@ -1113,19 +1115,19 @@ attributes associated with the type and/or the type that this type extends.
 
   if (IsTdInterface(attributes)) {
     kind = tlk_interface;
+  } else if (full_type_name == L"System.Enum" ||
+             full_type_name == L"System.MulticastDelegate") {
+    kind = tlk_ref_class;
   } else if (!IsNilToken(extends_token)) {
     wstring extends_class_name = resolve_type_token(extends_token,
                                                     generic_parameters,
                                                     /*replaces_dots=*/false);
-    /* FIXME: This is wrong.  Any type (except System.Enum) that derives
-       directly or indirectly from System.ValueType is a value type.  Any
-       type that derives directly or indirectly from System.Delegate is a
-       delegate type. */
     if (extends_class_name == L"System.ValueType") {
       kind = tlk_value_type;
     } else if (extends_class_name == L"System.Enum") {
       kind = tlk_enumeration;
-    } else if (extends_class_name == L"System.MulticastDelegate") {
+    } else if (extends_class_name == L"System.Delegate" ||
+               extends_class_name == L"System.MulticastDelegate") {
       kind = tlk_delegate;
     } else {
       /* Not one of the above so this must be a ref-class. */
@@ -1909,12 +1911,14 @@ private:
 public:
   a_type_definition(mdTypeDef                      typedef_token,
                     const wstring                  &type_name,
+                    DWORD                          attributes,
                     mdToken                        extends_token,
                     const a_generic_parameter_list &generic_parameters,
                     an_import_scope                &import_scope,
                     a_top_level_kind               kind)
     : typedef_token_(typedef_token),
       type_name_(type_name),
+      attributes_(attributes),
       extends_token_(extends_token),
       generic_parameters_(generic_parameters),
       import_scope_(import_scope),
@@ -1959,6 +1963,8 @@ private:
   const wstring
                 &type_name_;
                         /* The name of the type. */
+  DWORD         attributes_;
+                        /* The attributes for this type. */
   mdToken       extends_token_;
                         /* The token for the type that this type extends. */
   const a_generic_parameter_list&
@@ -2789,6 +2795,12 @@ Create the definition for the current type.
   a_cpp_cli_feature_set supported_features = import_scope_.
                                    containing_assembly().supported_features();
 
+  if (IsTdAbstract(attributes_)) {
+    buffer << " abstract";
+  }  /* if */
+  if (IsTdSealed(attributes_)) {
+    buffer << " sealed";
+  }  /* if */
   process_extends(buffer);
   process_interfaces(buffer);
   buffer << " {" << END_OF_LINE;
@@ -2953,7 +2965,8 @@ omitted.
   }  /* if */
   if (!skip_type) {
     /* Classify the type - ref class, value class, interface etc. */
-    kind = classify_type(attributes, generic_parameters, extends_token);
+    kind = classify_type(full_type_name, attributes, generic_parameters,
+                         extends_token);
     /* Check whether the top level kind is supported. */
     switch (kind) {
       case tlk_ref_class:
@@ -3067,7 +3080,7 @@ omitted.
       if (!class_body_only || generic_arity != 0) buffer << type_name;
       if (want_definition || define_all_types) {
         a_type_definition type_definition(typedef_token, type_name,
-                                          extends_token,
+                                          attributes, extends_token,
                                           generic_parameters,
                                           *this, kind);
 

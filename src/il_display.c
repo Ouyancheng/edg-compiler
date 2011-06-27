@@ -2042,6 +2042,9 @@ Display the indicated type entry.
       if (ptr->variant.typeref.decltype_expr_not_parenthesized) {
         disp_boolean("decltype_expr_not_parenthesized", TRUE);
       }  /* if */
+      if (ptr->variant.typeref.is_underlying_type) {
+        disp_boolean("is_underlying_type", TRUE);
+      }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
       if (ptr->variant.typeref.is_typeof) {
         disp_boolean("is_typeof", TRUE);
@@ -2050,8 +2053,8 @@ Display the indicated type entry.
         disp_boolean("is_typeof_with_type_operand", TRUE);
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-      if (ptr->variant.typeref.is_dependent_decltype_or_typeof) {
-        disp_boolean("is_dependent_decltype_or_typeof", TRUE);
+      if (ptr->variant.typeref.is_dependent_type_operator) {
+        disp_boolean("is_dependent_type_operator", TRUE);
       }  /* if */
       if (ptr->variant.typeref.for_type_attributes) {
         disp_boolean("for_type_attributes", TRUE);

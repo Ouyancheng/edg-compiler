@@ -6920,6 +6920,31 @@ issue an error and return FALSE.
                     break;
                   }  /* if */
                 }  /* for */
+                /* A ref class type cannot derive from any of the following
+                   types: System::Array, System::Delegate,
+                   System::MulticastDelegate, System::Enum, or
+                   System::ValueType.  The only exception is the cli::array
+                   ref class template, which is required to derive from
+                   System::Array. */
+                if (class_type_supp(type)->assembly_index == 0 &&
+                    class_type_supp(base_type)->assembly_index != 0 &&
+                    ((!class_type_supp(base_type)->is_cli_array &&
+                      identical_types(base_class_type,
+                                      cli_class_type_for(csk_system_array))) ||
+                     identical_types(
+                                   base_class_type,
+                                   cli_class_type_for(csk_system_delegate)) ||
+                     identical_types(
+                         base_class_type,
+                         cli_class_type_for(csk_system_multicast_delegate)) ||
+                     identical_types(base_class_type,
+                                     cli_class_type_for(csk_system_enum)) ||
+                     identical_types(base_class_type,
+                                     cli_system_value_type()))) {
+                  pos_ty_error(ec_invalid_specific_ref_class_base,
+                               &error_position, base_class_type);
+                  break;
+                }  /* if */
               } else {
                 pos_error(ec_invalid_ref_class_base, &error_position);
               }  /* if */
@@ -21835,6 +21860,18 @@ classes.
       push_class_reactivation_scope(sym_parent_class(tag_sym),
                                     /*extend_namespace=*/TRUE);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (ctsp->assembly_index != 0 && curr_token == tok_identifier) {
+      /* When loading a definition from metadata, the "sealed" and "abstract"
+         modifiers are added at the start of the definition. */
+      a_token_kind  next_tok;
+      a_boolean     is_abstract = FALSE, is_sealed = FALSE;
+      check_for_microsoft_class_modifiers(&next_tok, tok_lbrace,
+                                          /*tag_name_first=*/FALSE);
+      scan_microsoft_class_modifiers(tk_class, &is_abstract, &is_sealed);
+      apply_microsoft_class_modifiers(class_type, is_abstract, is_sealed);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (curr_token == tok_colon) {
       /* Scan the list of base specifiers. */
       add_stop_token(tok_lbrace);

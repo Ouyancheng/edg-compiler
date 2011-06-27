@@ -540,6 +540,24 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_is_union */
    (an_opname_kind)onk_none,          /* tok_is_trivial */
    (an_opname_kind)onk_none,          /* tok_is_standard_layout */
+   (an_opname_kind)onk_none,          /* tok_is_trivially_copyable */
+   (an_opname_kind)onk_none,          /* tok_is_literal_type */
+   (an_opname_kind)onk_none,          /* tok_has_trivial_move_constructor */
+   (an_opname_kind)onk_none,          /* tok_has_trivial_move_assign */
+   (an_opname_kind)onk_none,          /* tok_has_nothrow_move_assign */
+   (an_opname_kind)onk_none,          /* tok_is_constructible */
+   (an_opname_kind)onk_none,          /* tok_is_nothrow_constructible */
+   (an_opname_kind)onk_none,          /* tok_underlying_type */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+   (an_opname_kind)onk_none,          /* tok_has_finalizer */
+   (an_opname_kind)onk_none,          /* tok_is_delegate */
+   (an_opname_kind)onk_none,          /* tok_is_interface_class */
+   (an_opname_kind)onk_none,          /* tok_is_ref_array */
+   (an_opname_kind)onk_none,          /* tok_is_ref_class */
+   (an_opname_kind)onk_none,          /* tok_is_sealed */
+   (an_opname_kind)onk_none,          /* tok_is_simple_value_class */
+   (an_opname_kind)onk_none,          /* tok_is_value_class */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED*/
    (an_opname_kind)onk_none,          /* tok_nullptr */
 #if MICROSOFT_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_native_nullptr */
