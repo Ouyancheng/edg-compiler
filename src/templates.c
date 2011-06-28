@@ -20802,7 +20802,9 @@ of the list.
           record_potential_pack_reference(
                                     sym, &locator_for_curr_id.source_position);
         }  /* if */
-        if (!err && sym == NULL) {
+        if (err) {
+          /* An error occurred coalescing the identifier. */
+        } else if (sym == NULL) {
           str_error(ec_undefined_identifier,
                     locator_for_curr_id.symbol_header->identifier);
         } else if (!is_type_symbol(sym)) {
