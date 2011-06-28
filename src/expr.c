@@ -14683,6 +14683,14 @@ expression, and return the result in *result (or an error indication in
       } else if (gcnew_cli_array) {
         /* The new-init is not required for a C++/CLI array type so long as an
            array-init follows.  We'll check for the array-init later. */
+      } else if (operator_token == tok_gcnew &&
+                 is_cli_generic_definition_argument_type(new_type)) {
+        /* This is a gcnew of a generic type, and it doesn't have a gcnew
+           constraint, because no default constructor was found above. */
+        if (expr_error_should_be_issued()) {
+          pos_ty_error(ec_invalid_gcnew_type, &type_position, new_type);
+        }  /* if */
+        err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* Note that this case comes up if the class type is incomplete.
