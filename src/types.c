@@ -1352,6 +1352,9 @@ Return TRUE if tp is a C++/CLI open constructed type (ECMA-372 31.2.1).
     if (is_cli_generic_constraint_type(tp)) {
       /* A generic parameter is an open constructed type. */
       result = TRUE;
+    } else if (is_cli_generic_definition_type(tp)) {
+      /* Something like A<T> referenced from within A. */
+      result = TRUE;
     } else if (tp->variant.class_struct_union.is_open_constructed_type) {
       /* This is a generic instance with one or more generic arguments that
          are open constructed types. */
