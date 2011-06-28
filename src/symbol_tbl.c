@@ -6341,10 +6341,12 @@ and attach them to rout_sym, and return the function template symbol.
   a_template_instance_ptr  tip;
 
 #if CHECKING
-  if (!sym_parent_class(rout_sym)->
-                                 variant.class_struct_union.is_nonreal_class) {
-    internal_error("make_member_function_template_symbol: real class member");
-  }  /* if */
+  { a_type_ptr	parent_type = sym_parent_class(rout_sym);
+    if (!parent_type->variant.class_struct_union.is_nonreal_class &&
+        !is_cli_generic_definition_type(parent_type)) {
+      internal_error("make_member_function_template_symbol: bad class member");
+    }  /* if */
+  }
 #endif /* CHECKING */
   tip = rout_sym->variant.routine.instance_ptr;
   if (tip != NULL) {

@@ -6581,7 +6581,8 @@ information).
   a_type_ptr        proto_type;
 
   check_assertion(bcp->direct);
-  if (class_state->is_nonreal_instantiation) {
+  if (class_state->is_nonreal_instantiation ||
+      class_state->is_generic_definition) {
     if (is_template_dependent_type(bcp->type)) {
       bcp->ignore_during_dependent_lookup = TRUE;
       symbol_supplement_for_class(class_state->class_type)
@@ -12715,11 +12716,13 @@ specific information about the member declaration, respectively.
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   /* Special processing for static data members of template classes. */
   prototype_tag_sym = class_state->corresp_prototype_tag_sym;
-  if (prototype_tag_sym != NULL || class_state->is_nonreal_instantiation) {
+  if (prototype_tag_sym != NULL || class_state->is_nonreal_instantiation ||
+      class_state->is_generic_definition) {
     /* A nonnull instance_ptr marks this static data member as a member of
        a (real or nonreal) instantiation of a class template. */
     if (!is_error_locator(*locator)) {
-      if (class_state->is_nonreal_instantiation) {
+      if (class_state->is_nonreal_instantiation ||
+          class_state->is_generic_definition) {
         /* A member of a prototype instantiation. */
         a_template_ptr		 templ;
         a_template_instance_ptr  tip = alloc_template_instance();
@@ -20204,7 +20207,8 @@ passed via template_decl.
         decl_member_function(&locator, &func_info, class_state, &decl_info,
                              /*compiler_generated=*/FALSE);
         rout_sym = decl_info.decl_state.sym;
-        if (class_state->is_nonreal_instantiation &&
+        if ((class_state->is_nonreal_instantiation ||
+             class_state->is_generic_definition) &&
             !class_type->
                        variant.class_struct_union.is_in_class_specialization) {
           /* During the prototype instantiation, save the token sequence
@@ -21824,8 +21828,12 @@ classes.
          detects classes nested within a Microsoft/Sun in-class
          specialization.   Note that for nested classes the flag is set
          later. */
-      class_state.is_nonreal_instantiation = TRUE;
-      class_type->variant.class_struct_union.is_nonreal_class = TRUE;
+      if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+        class_state.is_nonreal_instantiation = TRUE;
+        class_type->variant.class_struct_union.is_nonreal_class = TRUE;
+      } else if (scope_stack[depth_scope_stack].in_generic_definition) {
+        class_state.is_generic_definition = TRUE;
+      }  /* if */
       if (tag_sym->is_class_member &&
           class_tssp != NULL &&
           (curr_token == tok_lbrace || curr_token == tok_colon)) {
