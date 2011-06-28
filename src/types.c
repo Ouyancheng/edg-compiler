@@ -1324,6 +1324,7 @@ nested class thereof.  Return TRUE if the generic was imported from metadata.
 {
   a_boolean  result;
 
+  check_assertion(is_immediate_managed_class_type(class_type));
   if (class_type->source_corresp.is_class_member) {
     a_type_ptr  parent_class = parent_class_of(class_type);
     result = class_is_from_metadata(parent_class);
@@ -1332,7 +1333,7 @@ nested class thereof.  Return TRUE if the generic was imported from metadata.
                                                   ->from_metadata;
   }  /* if */
   return result;
-}  /* instance_of_generic_from_metadata */
+}  /* class_is_instance_of_generic_from_metadata */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
