@@ -5002,14 +5002,15 @@ next_named_override:
 #if MICROSOFT_EXTENSIONS_ALLOWED
             } else if (cppcli_enabled &&
                        is_immediate_managed_class_type(class_type)) {
-              if (!matching_cli_accessors(rout, rp)) {
+              if (named_override == NULL &&
+                  !matching_cli_accessors(rout, rp)) {
                 /* One or both routines is a property accessor and the other
                    one doesn't match (either because it is not an accessor, or
                    because it is an accessor for a non-matching property). */
                 continue;
-              } else if (rp->source_corresp.access ==
-                                            (an_access_specifier)as_private &&
-                         named_override == NULL) {
+              } else if (named_override == NULL &&
+                         rp->source_corresp.access ==
+                                            (an_access_specifier)as_private) {
                 /* Microsoft compilers appear to ignore private virtual
                    members (which should be sealed) in managed class types
                    when determining overriding. */

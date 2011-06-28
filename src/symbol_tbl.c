@@ -489,6 +489,37 @@ from db_symbol.
 }  /* str_name_linkage */
 
 
+static void db_property_or_event_suffix(a_symbol_ptr  sym)
+/*
+If the given symbol is for a C++/CLI accessor function, output a phrase
+identifying which property or event it is for.
+*/
+{
+  if (symbol_is(sym, sk_member_function)) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled) {
+      a_routine_ptr  rp = sym->variant.routine.ptr;
+      if (rout_is_cli_accessor(rp)) {
+        /* A property or event accessor: Display the property or event name. */
+        a_source_correspondence    *scp;
+        a_property_or_event_descr  *pedp = rp->variant.property_or_event_descr;
+        if (pedp->is_static) {
+          scp = &pedp->variant.variable->source_corresp;
+        } else {
+          scp = &pedp->variant.field->source_corresp;
+        }  /* if */
+        if (pedp->kind == (a_property_or_event_kind)pek_cli_event) {
+          fprintf(f_debug, " for event %s", unmangled_name_of(scp));
+        } else {
+          fprintf(f_debug, " for property %s", unmangled_name_of(scp));
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+}  /* db_property_or_event_suffix */
+
+
 void db_symbol_name(a_symbol_ptr  sym)
 /*
 Write out the name (including function parameters if there are any) of the
@@ -503,15 +534,16 @@ specified symbol.
       sym->kind == (a_symbol_kind)sk_member_function) {
     a_type_ptr  tp = routine_symbol_type(sym);
     if (tp != NULL) {
-       a_type_qualifier_set	qualifiers;
-       tp = skip_typerefs(tp);
-       db_function_param_list(tp);
-       qualifiers = tp->variant.routine.extra_info->qualifiers |
-                    tp->variant.routine.extra_info->this_qualifiers;
-       if (qualifiers != TQ_NONE) {
-         fprintf(f_debug, " %s", db_qualifiers_str(qualifiers));
-       }  /* if */
+      a_type_qualifier_set	qualifiers;
+      tp = skip_typerefs(tp);
+      db_function_param_list(tp);
+      qualifiers = tp->variant.routine.extra_info->qualifiers |
+                   tp->variant.routine.extra_info->this_qualifiers;
+      if (qualifiers != TQ_NONE) {
+        fprintf(f_debug, " %s", db_qualifiers_str(qualifiers));
+      }  /* if */
     }  /* if */
+    db_property_or_event_suffix(sym);
   }  /* if */
   fprintf(f_debug, "\"");
 }  /* db_symbol_name */
@@ -593,6 +625,7 @@ and indentation is the indentation desired.
   fprintf(f_debug, "\"%s\"", str);
   col += strlen(str) + 2;
 
+  db_property_or_event_suffix(sym);
   if (sym->kind == (a_symbol_kind)sk_projection) {
     a_symbol_ptr fsym = sym->variant.projection.extra_info->fundamental_symbol;
     if (fsym != NULL) str = str_qualified_name(buffer, fsym);
