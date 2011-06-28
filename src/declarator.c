@@ -6117,6 +6117,16 @@ function_lparen:
           disallow_default_args = TRUE;
         }  /* if */
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* Default arguments are also disallowed for generic functions and for
+         members of managed class types. */
+      if (cppcli_enabled &&
+          (state->is_generic_declaration ||
+           (is_nonstatic_member_function && member_parent_type != NULL &&
+            is_immediate_managed_class_type(member_parent_type)))) {
+        disallow_default_args = TRUE;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Pass in a flag to indicate whether exception specifications are
          allowed.  They are allowed on a declaration of a function, a pointer
          or reference to function, or a pointer to member function.  The

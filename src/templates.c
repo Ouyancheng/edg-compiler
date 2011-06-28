@@ -21206,6 +21206,7 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
   scan_template_param_clauses(&decl_state, /*is_template_param=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (decl_state.is_generic) {
+    decl_state.decl_parse.is_generic_declaration = TRUE;
     /* For C++/CLI generics, scan any constraints that may be present. */
     scan_generic_constraint_clauses(&decl_state);
     /* Create the constraint types based on the C++/CLI constraints. */
