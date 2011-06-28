@@ -6139,6 +6139,7 @@ error type is used.
   a_symbol_ptr				instance_sym;
   a_type_ptr				type;
   a_type_ptr				parent_class = NULL;
+  a_boolean				open_constructed_arg_list = FALSE;
 
   tssp = template_sym->variant.template_info;
   /* Switch to the translation unit containing the template, if needed. */
@@ -6170,6 +6171,16 @@ error type is used.
     instance_sym->variant.type.ptr = type;
     set_source_corresp(&(type->source_corresp), instance_sym);
     set_membership_in_source_corresp(&(type->source_corresp), instance_sym);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Check if this the argument list involves open constructed types.
+       We need to check even for templates (as opposed to C++/CLI generics)
+       because an alias instantiated on a generic parameter is a real class
+       type. */
+    if (cppcli_enabled) {
+      open_constructed_arg_list = is_open_constructed_generic_arg_list(
+                                                           template_arg_list);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (instance_sym->is_class_member) {
       parent_class = sym_parent_class(instance_sym);
       /* If the enclosing class is nonreal, then any instances of the member
@@ -6179,7 +6190,8 @@ error type is used.
       }  /* if */
     }  /* if */
     /* See if the template arguments involve any nonreal types. */
-    if (template_arg_list_is_dependent(template_arg_list)) {
+    if (!open_constructed_arg_list &&
+        template_arg_list_is_dependent(template_arg_list)) {
       type->variant.typeref.is_nonreal = TRUE;
     }  /* if */
     /* Record the argument list in the type. */
