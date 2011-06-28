@@ -4521,6 +4521,7 @@ pointer to it.
 #endif /* DEBUG */
   gcp->next = NULL;
   gcp->type = NULL;
+  gcp->type_cache = NULL;
   gcp->position = null_source_position;
   gcp->kind = (a_generic_constraint_kind)gck_none;
   return gcp;

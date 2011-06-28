@@ -576,6 +576,13 @@ static a_constant_ptr
 			   storage) for use with token caching entries,
 			   freed and available for reuse. */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static a_token_cache_ptr
+		avail_token_cache_entries;
+			/* List of token cache entries that have been freed
+			   and are available for reuse. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 /*
 Information about data structures used for working with persistent token
 caches.
@@ -748,6 +755,9 @@ static unsigned long
                 num_lexical_state_stack_entries_allocated,
 		num_reusable_cache_entries_allocated,
 		num_compares_in_source_line_modif_hash_table,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+		num_token_caches_allocated,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 		num_lookups_in_source_line_modif_hash_table;
 
 #endif /* DEBUG */
@@ -813,6 +823,7 @@ void clear_token_cache(a_token_cache *cache,
 Initialize a token cache, presumably so tokens can be added to it.
 */
 {
+  cache->next = NULL;
   cache->first_token = NULL;
   cache->last_token  = NULL;
   cache->is_reusable = reusable;
@@ -822,6 +833,41 @@ Initialize a token cache, presumably so tokens can be added to it.
 #endif /* DEBUG */
 }  /* clear_token_cache */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_token_cache_ptr alloc_token_cache(void)
+/*
+Allocate a token cache entry.  Reuse a freed entry if possible.
+*/
+{
+  a_token_cache_ptr	tcp;
+
+  if (avail_token_cache_entries != NULL) {
+    /* Reuse a freed entry. */
+    tcp = avail_token_cache_entries;
+    avail_token_cache_entries = avail_token_cache_entries->next;
+  } else {
+    /* Allocate a new entry. */
+    tcp = alloc_fe_of_type(a_token_cache);
+#if DEBUG
+    num_token_caches_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  clear_token_cache(tcp, /*reusable=*/FALSE);
+  return tcp;
+}  /* alloc_token_cache */
+
+
+void free_token_cache(a_token_cache_ptr tcp)
+/*
+Free a token cache entry.
+*/
+{
+  tcp->next = avail_token_cache_entries;
+  avail_token_cache_entries = tcp;
+}  /* free_reusable_cache */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void free_reusable_cache_entry(a_reusable_cache_entry_ptr rsep)
 /*
@@ -18702,6 +18748,10 @@ Display and return the amount of space used for various lexical tables.
                      num_cached_tokens_allocated, a_cached_token);
   db_space_used("reusable cached token",
                  num_cached_tokens_in_reusable_caches, a_cached_token);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  db_space_used("token cache",
+                 num_token_caches_allocated, a_token_cache);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_space_used_lost("cached constant", avail_cached_constants,
                      num_cached_constants_allocated, a_constant);
   db_space_used_lost("cache stack entry", avail_reusable_cache_entries,
@@ -19000,6 +19050,9 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(avail_cached_tokens),
       pch_saved_var_array_elem(avail_cached_constants),
       pch_saved_var_array_elem(avail_reusable_cache_entries),
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(avail_token_cache_entries),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(avail_pending_pragmas),
       pch_saved_var_array_elem(avail_stop_token_stack_entries),
       pch_saved_var_array_elem(avail_lexical_state_stack_entries),
@@ -19019,6 +19072,9 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(num_pragmas_in_reusable_caches),
       pch_saved_var_array_elem(num_cached_constants_allocated),
       pch_saved_var_array_elem(num_reusable_cache_entries_allocated),
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(num_token_caches_allocated),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(num_pending_pragmas_allocated),
       pch_saved_var_array_elem(num_pragma_descriptions_allocated),
       pch_saved_var_array_elem(num_stop_token_stack_entries_allocated),
@@ -19179,6 +19235,7 @@ of the front end.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   metadata_import_buffer = NULL;
   scanning_for_whitespace_keyword = FALSE;
+  avail_token_cache_entries = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   in_token_insertion_from_string = FALSE;
   token_insertion_position = null_source_position;
@@ -19203,6 +19260,9 @@ of the front end.
   num_pragmas_in_reusable_caches = 0;
   num_cached_constants_allocated = 0;
   num_reusable_cache_entries_allocated = 0;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  num_token_caches_allocated = 0;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   num_pending_pragmas_allocated = 0;
   num_stop_token_stack_entries_allocated = 0;
   num_lexical_state_stack_entries_allocated = 0;

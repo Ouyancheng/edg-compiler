@@ -228,6 +228,10 @@ typedef enum /* an_identifier_lookup_mode */ {
 typedef struct a_token_cache {
   /* Data structure used to hold a token cache, i.e., some number of
      tokens that are being saved for later rescanning. */
+  a_token_cache_ptr
+		next;
+			/* Pointer to the next entry on the available list
+			   of freed entries. */
   a_cached_token_ptr
 		first_token,
 		last_token;
@@ -2530,6 +2534,8 @@ extern void check_for_unclosed_if_exists_blocks(void);
 extern void init_whitespace_keywords(void);
 
 extern char *generate_top_level_metadata_code(an_assembly_index index);
+extern a_token_cache_ptr alloc_token_cache(void);
+extern void free_token_cache(a_token_cache_ptr tcp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LEXICAL_H */

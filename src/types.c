@@ -1360,6 +1360,9 @@ Return TRUE if tp is a C++/CLI open constructed type (ECMA-372 31.2.1).
     /* A C++/CLI array is an open constructed type if its element type is. */
     tp = cli_array_element_type(tp);
     result = is_cli_open_constructed_type(tp);
+  } else if (is_cli_generic_param_type(tp)) {
+    /* A generic parameter. */
+    result = TRUE;
   }  /* if */
   return result;
 }  /* is_cli_open_constructed_type */
@@ -4174,7 +4177,10 @@ point to the same type or constant).  FALSE if only equivalence is required.
     a_type_ptr	templ_param_type_2;
     templ_param_type_1 = template_param_if_proxy_class(type_1);
     templ_param_type_2 = template_param_if_proxy_class(type_2);
-    if (identical_types(templ_param_type_1, templ_param_type_2)) {
+    if (templ_param_type_1 == templ_param_type_2) {
+      equiv = TRUE;
+    } else if (!exact_templ_arg_match_required &&
+               identical_types(templ_param_type_1, templ_param_type_2)) {
       equiv = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

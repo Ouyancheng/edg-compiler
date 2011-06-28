@@ -14770,6 +14770,13 @@ typedef struct a_generic_constraint {
   a_type_ptr	type;
 			/* When kind is gck_type, this points to the type
 			   specified. */
+  struct a_token_cache
+		*type_cache;
+			/* When kind is gtk_type and the type is one that must
+			   be rescanned after the complete set of constraints
+			   has been scanned, this points to a token cache
+			   containing the tokens to be rescanned.  This is
+			   for front end use only. */
   a_source_position
 		position;
 			/* The starting position of the constraint item. */

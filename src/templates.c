@@ -1945,7 +1945,6 @@ compare_function_templates.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static
 a_type_ptr generic_param_if_generic_definition_argument(a_type_ptr	type)
 /*
 If type is the type used to represent a C++/CLI generic parameter within
@@ -5278,7 +5277,7 @@ the same constant.
       a_type_ptr type1 = arg1->variant.type;
       a_type_ptr type2 = arg2->variant.type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled) {
+      if (cppcli_enabled && is_prototype) {
         /* If the type is a C++/CLI generic constraint, use the associated
            template parameter for the comparison. */
         if (type1 != NULL) {
@@ -20770,7 +20769,17 @@ of the list.
     a_symbol_ptr		sym;
     a_boolean			err;
     a_source_position		pos = pos_curr_token;
+    a_token_sequence_number	first_tsn;
+    a_token_sequence_number	last_tsn;
+    a_token_cache_ptr		tcp = NULL;
+
+    /* Start caching tokens in case this is an identifier that we need to be
+       able to rescan later. */
+    first_tsn = curr_token_sequence_number;
+    begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
     (void)is_generalized_identifier_start(GID_NO_OPTIONS);
+    end_caching_fetched_tokens();
+    last_tsn = last_token_sequence_number_of_token;
     switch (curr_token) {
       case tok_identifier:
         /* A type name constraint.  Look up the name and make sure it is
@@ -20789,6 +20798,15 @@ of the list.
                     locator_for_curr_id.symbol_header->identifier);
         } else {
           type = type_symbol_type(sym);
+          if (is_immediate_class_type(type) &&
+              is_cli_open_constructed_instance(type)) {
+            /* If this is a type like A<T>, save the cached tokens so that
+               it can be rescanned later. */
+            tcp = alloc_token_cache();
+            copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
+                                   last_tsn, /*include_last_token=*/TRUE,
+                                   tcp);
+          }  /* if */
         }  /* if */
         (void)get_token();
         /* Don't record the constraint unless we scanned a valid type. */
@@ -20839,6 +20857,7 @@ of the list.
       a_generic_constraint_ptr	gcp;
       gcp = alloc_generic_constraint();
       gcp->type = type;
+      gcp->type_cache = tcp;
       gcp->kind = kind;
       gcp->position = pos;
       if (result_list == NULL) {

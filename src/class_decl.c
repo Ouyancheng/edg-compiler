@@ -19364,6 +19364,52 @@ associated with a generic parameter).  Complete the class by
 }  /* complete_generic_constraint_type */
 
 
+static void rescan_open_constructed_type_constraints(
+				a_template_param_ptr	generic_param_list)
+/*
+Go through the constraint types of the generic parameter list specified by
+generic_param_list and look for any that have open constructed type
+constraints.  Such constraints are identified by the presence of a
+token cache for the type constraint.  Rescan the type for any such
+constraint so that the correct constructed type will be available if and
+when the constraint type is completed.
+*/
+{
+  a_template_param_ptr        tpp;
+ 
+  for (tpp = generic_param_list; tpp != NULL; tpp = tpp->next) {
+    a_symbol_ptr		param_sym = tpp->param_symbol;
+    a_type_ptr			constraint_type = param_sym->variant.type.ptr;
+    a_type_ptr			templ_param_type;
+    a_generic_constraint_ptr	gcp;
+    a_generic_constraint_ptr	gc_list;
+
+    templ_param_type = generic_param_if_generic_definition_argument(
+                                                              constraint_type);
+    gc_list = templ_param_type->variant.template_param.extra_info
+                                                         ->generic_constraints;
+    for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
+      if (gcp->kind == (a_generic_constraint_kind)gck_type &&
+          gcp->type_cache != NULL) {
+        a_symbol_ptr	sym;
+        a_boolean	err = FALSE;
+        /* Rescan the tokens of the constraint type. */
+        rescan_cached_tokens(gcp->type_cache);
+        sym = coalesce_and_lookup_generalized_identifier(
+                                            GID_NO_OPTIONS, ilm_normal, &err);
+        /* The result should always be a valid class type. */
+        check_assertion(!err && sym != NULL &&
+                        is_class_struct_union_symbol(sym));
+        gcp->type = type_symbol_type(sym);
+        free_token_cache(gcp->type_cache);
+        gcp->type_cache = NULL;
+        (void)get_token();
+      }  /* if */
+    }  /* for */
+  }  /* for */
+}  /* rescan_open_constructed_type_constraints */
+
+
 void create_generic_constraint_types(a_template_param_ptr  generic_param_list)
 /*
 Loop through the C++/CLI generic parameters (generic_param_list) and create a
@@ -19436,6 +19482,9 @@ the enclosing type of the constrained generic.  For example:
     tpp->param_symbol->variant.type.ptr = definition_arg_type;
     tpp->variant.type = definition_arg_type;
   }  /* for */
+  /* If any of the type constraints are of the form X<T>, rescan the
+     constraint now that we have the correct type for T. */
+  rescan_open_constructed_type_constraints(generic_param_list);
 }  /* create_generic_constraint_types */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
