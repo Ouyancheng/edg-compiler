@@ -4885,7 +4885,7 @@ information about the function declarator.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_symbol_list_entry_ptr         named_override = decl_info->named_overrides;
   a_symbol_ptr                    matching_interface_member = NULL;
-  a_boolean                       new_okay = FALSE;
+  a_boolean                       new_okay = FALSE, rout_is_member_generic;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_source_position               *source_pos = &dps->declarator_pos;
 
@@ -4899,6 +4899,8 @@ information about the function declarator.
   if (rout->compiler_generated) source_pos = &rout_sym->decl_position;
   registry_ptr = &class_state->override_registry;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  rout_is_member_generic = rout->is_generic_definition &&
+                           rout->template_arg_list != NULL;
   if (cppcli_enabled && decl_info->is_destructor &&
       is_immediate_managed_class_type(class_type)) {
     /* A destructor of a managed type is never virtual even when "virtual" is
@@ -5012,10 +5014,14 @@ next_named_override:
                    members (which should be sealed) in managed class types
                    when determining overriding. */
                 continue;
-              } else if (rout->is_generic_definition !=
-                                                  rp->is_generic_definition) {
-                /* A generic cannot override a nongeneric, not vice versa. */
-                continue;
+              } else {
+                a_boolean  rp_is_member_generic;
+                rp_is_member_generic = rp->is_generic_definition &&
+                                       rp->template_arg_list != NULL;
+                if (rout_is_member_generic != rp_is_member_generic) {
+                  /* A generic cannot override a nongeneric, not vice versa. */
+                  continue;
+                }  /* if */
               }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             }  /* if */
