@@ -18578,7 +18578,13 @@ definition and record it in the IL (as a special-purpose class type).
     (void)find_symbol("Invoke", sizeof("Invoke")-1, &member_loc);
     initialize_member_decl_info(&member_info, &dps->specifiers_pos);
     mdps->declared_type = dps->declared_type;
-    mdps->type = dps->type;
+    /* The type of Invoke is the declared type of the delegate with the
+       addition of a type for "this" (i.e., a nonstatic member function
+       type). */
+    mdps->type = copy_routine_type_with_param_types(
+                                       dps->type, /*copy_default_args=*/FALSE);
+    check_assertion(mdps->type->kind == (a_type_kind)tk_routine);
+    mdps->type->variant.routine.extra_info->this_class = class_type;
     decl_member_function(&member_loc, &func_info, &class_state, &member_info,
                          /*compiler_generated=*/TRUE);
   }  /* if */
