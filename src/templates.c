@@ -14673,6 +14673,13 @@ declaration of a partial specialization declared outside of its class.
     default:
       unexpected_condition();
   }  /* switch */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (decl_state->decl_parse.is_generic_declaration &&
+      decl_state->cli_class_type_kind ==
+                                       (a_cli_class_type_kind)cctk_standard) {
+    pos_error(ec_generic_class_must_be_managed, &pos_curr_token);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* Set the specifiers end position here; it will be overwritten later unless
      there is an error in scanning the identifier. */
