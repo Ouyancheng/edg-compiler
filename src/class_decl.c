@@ -19341,12 +19341,16 @@ associated with a generic parameter).  Complete the class by
     /* Add bases corresponding to the various constraints. */
     for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
       if (gcp->kind == (a_generic_constraint_kind)gck_type) {
-        add_direct_base_of_type(gcp->type, &class_state, direct_base_number++,
-                                &last_bcp,
-                                &may_be_first_direct_nonvirtual_base);
-        if (is_cli_interface_type(gcp->type)) {
-          proxy_class->
+        if (is_template_param_type(gcp->type)) {
+          /* FIXME: Implement naked type parameter constraints. */
+        } else {
+          add_direct_base_of_type(gcp->type, &class_state,
+                                  direct_base_number++, &last_bcp,
+                                  &may_be_first_direct_nonvirtual_base);
+          if (is_cli_interface_type(gcp->type)) {
+            proxy_class->
                    variant.class_struct_union.any_interface_constraints = TRUE;
+          }  /* if */
         }  /* if */
       } else if (gcp->kind == (a_generic_constraint_kind)gck_gcnew) {
         /* The "gcnew()" constraint indicates that the constraint type is
