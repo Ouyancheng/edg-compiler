@@ -3039,6 +3039,7 @@ the scope being pushed.
         kind == (a_scope_kind)sck_namespace ||
         kind == (a_scope_kind)sck_namespace_extension ||
         kind == (a_scope_kind)sck_pragma ||
+        kind == (a_scope_kind)sck_instantiation_context ||
         (kind == (a_scope_kind)sck_template_instantiation &&
          (options & PS_MICROSOFT_SPECIALIZATION) == 0) ||
         (kind == (a_scope_kind)sck_class_struct_union &&
