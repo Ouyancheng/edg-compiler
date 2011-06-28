@@ -3275,7 +3275,8 @@ next_entry_from_old_list:;
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean matching_cli_accessors(a_routine_ptr  overrider,
-                                        a_routine_ptr  candidate)
+                                        a_routine_ptr  candidate,
+                                        a_symbol_ptr   named_sym)
 /*
 Overrider is a function that might override virtual function "candidate".
 If either function is a C++/CLI property or event accessor return FALSE if
@@ -3300,12 +3301,31 @@ return TRUE.
   } else if (pdp1->is_static || pdp2->is_static) {
     /* If one property is static, it cannot participate in overriding. */
     mismatch = TRUE;
-  } else {
+  } else if (named_sym == NULL) {
     a_field_ptr  fp1 = pdp1->variant.field, fp2 = pdp2->variant.field;
     if (strcmp(fp1->source_corresp.name, fp2->source_corresp.name) != 0) {
       /* Properties with different names don't match. */
       mismatch = TRUE;
     }  /* if */
+  } else if (symbol_is(named_sym, sk_member_function)) {
+    /* overrider is named overrider.  Check that the property/event name of
+       candidate matches the name mentioned in the name overrider. */
+    a_routine_ptr  named_rp = named_sym->variant.routine.ptr;
+    if (rout_is_cli_accessor(named_rp)) {
+      a_field_ptr  fp1, fp2 = pdp2->variant.field;
+      pdp1 = named_rp->variant.property_or_event_descr;
+      check_assertion(!pdp1->is_static);
+      fp1 = pdp1->variant.field;
+      if (strcmp(fp1->source_corresp.name, fp2->source_corresp.name) != 0) {
+        /* Properties with different names don't match. */
+        mismatch = TRUE;
+      }  /* if */
+    } else {
+      mismatch = TRUE;
+    }  /* if */
+  } else {
+    /* The named overrider does not designate an accessor. */
+    mismatch = TRUE;
   }  /* if */
   return !mismatch;
 }  /* matching_cli_accessors */
@@ -3417,7 +3437,7 @@ TRUE and update the IL to record the associated "override".
                                                /*check_as_operands=*/FALSE)) {
               /* The types don't match. */
               continue;
-            } else if (!matching_cli_accessors(irp, rp)) {
+            } else if (!matching_cli_accessors(irp, rp, (a_symbol_ptr)NULL)) {
               /* One or both routines is a property accessor and the other one
                  doesn't match (either because it is not an accessor, or
                  because it is an accessor for a non-matching property). */
@@ -4884,6 +4904,7 @@ information about the function declarator.
   an_override_registry_entry_ptr  *registry_ptr;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_symbol_list_entry_ptr         named_override = decl_info->named_overrides;
+  a_symbol_ptr                    named_override_sym = NULL;
   a_symbol_ptr                    matching_interface_member = NULL;
   a_boolean                       new_okay = FALSE, rout_is_member_generic;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4913,7 +4934,8 @@ information about the function declarator.
   }  /* if */
 next_named_override:
   if (cppcli_enabled && named_override != NULL) {
-    sym_header_to_search = named_override->symbol->header;
+    named_override_sym = named_override->symbol;
+    sym_header_to_search = named_override_sym->header;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Outer loop:  go through the base classes of the current class. */
@@ -5002,8 +5024,7 @@ next_named_override:
 #if MICROSOFT_EXTENSIONS_ALLOWED
             } else if (cppcli_enabled &&
                        is_immediate_managed_class_type(class_type)) {
-              if (named_override == NULL &&
-                  !matching_cli_accessors(rout, rp)) {
+              if (!matching_cli_accessors(rout, rp, named_override_sym)) {
                 /* One or both routines is a property accessor and the other
                    one doesn't match (either because it is not an accessor, or
                    because it is an accessor for a non-matching property). */
@@ -5054,7 +5075,7 @@ next_named_override:
                   is_immediate_managed_class_type(class_type)) {
                 /* Check for C++/CLI-style named overriding. */
                 if (named_override != NULL &&
-                    !identical_types(sym_parent_class(named_override->symbol),
+                    !identical_types(sym_parent_class(named_override_sym),
                                      bcp->type)) {
                   /* named_override does not correspond to the current base. */
                   goto next_base_class;
@@ -5237,6 +5258,7 @@ next_base_class:;
          now be recycled. */
       free_list_of_symbol_list_entries(decl_info->named_overrides);
       named_override = NULL;
+      named_override_sym = NULL;
       if (!func_info->new_member &&
           !cli_class_type_kind_is(class_type, cctk_interface)) {
         /* If the declaration included named override specifiers but not the

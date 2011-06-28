@@ -3172,7 +3172,8 @@ be completed here.
       } else {
         /* An instance of a nested class of a class template. */
         orig_ssep = class_type->source_corresp.source_sequence_entry;
-        if (ss_entry_kind(orig_ssep) == iek_src_seq_secondary_decl) {
+        if (orig_ssep != NULL &&
+            ss_entry_kind(orig_ssep) == iek_src_seq_secondary_decl) {
           a_src_seq_secondary_decl_ptr
                 sssdp = ss_entry_ptr(orig_ssep, a_src_seq_secondary_decl_ptr);
           if (sssdp->originally_nonautonomous_definition) {
