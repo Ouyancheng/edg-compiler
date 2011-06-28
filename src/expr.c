@@ -14130,6 +14130,14 @@ expression, and return the result in *result (or an error indication in
     expr_stack->expression_cache = NULL;
     set_up_initializer_rescan(&dps);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (operator_token == tok_gcnew &&
+      is_cli_generic_definition_argument_type(new_type)) {
+    /* This is a gcnew of a generic type.  Drop the added handle if it's
+       present. */
+    if (is_handle_type(new_type)) new_type = type_pointed_to(new_type);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   unqual_new_type = skip_typerefs(new_type);
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(new_type);
