@@ -12309,6 +12309,23 @@ Also, add the instance to the definitions list for the template.
         if (sym->kind == (a_symbol_kind)sk_static_data_member &&
             sym->variant.static_data_member.instance_ptr != NULL) {
           break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (sym->kind == (a_symbol_kind)sk_property_set) {
+          /* A Microsoft property set.  Look for a static data member in
+             the associated set of properties. */
+          a_symbol_ptr	prop_sym;
+          for (prop_sym = sym->variant.property_info->properties;
+               prop_sym != NULL; prop_sym = prop_sym->next) {
+            if (prop_sym->kind == (a_symbol_kind)sk_static_data_member &&
+                prop_sym->variant.static_data_member.instance_ptr != NULL) {
+              break;
+            }  /* if */
+          }  /* for */
+          if (prop_sym != NULL) {
+            sym = prop_sym;
+            break;
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
       }  /* for */
     }  /* if */
