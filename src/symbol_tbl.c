@@ -2117,7 +2117,12 @@ It will be NULL for the most derived class.
       } else {
         rout_sym = result_sym;
       }  /* if */
-      rout_type = rout_sym->variant.routine.ptr->type;
+      if (rout_sym->kind == (a_symbol_kind)sk_function_template) {
+        rout_type = rout_sym->variant.template_info->
+                                                variant.function.routine->type;
+      } else {
+        rout_type = rout_sym->variant.routine.ptr->type;
+      }  /* if */
       if (!routine_type_is_nonstatic_member_function(rout_type)) {
         /* We either have a non-mixed list (so all the list entries are either
            static or nonstatic) or a single symbol.  So we can just
