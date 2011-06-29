@@ -77,6 +77,13 @@ static an_arg_operand *rescan_expr_list(an_expr_node_ptr       expr_list,
 static a_boolean var_declared_in_current_routine(a_variable_ptr var);
 static void make_param_ref_operand(an_operand    *result,
                                    a_symbol_ptr  param_sym);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static a_boolean process_runtime_checked_safe_cast(
+                                            a_type_ptr         type_cast_to,
+                                            an_operand         *operand,
+                                            a_source_position  *start_position,
+                                            a_cast_source_form source_form);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* Interface to scan_expr_full for the simple case where a bound function
    cannot be returned. */
 #define scan_expr(result, prec_level, local_options)                  \
@@ -17026,6 +17033,15 @@ indicates which.
              turns the lvalue cast into a simple cast if the cast lvalue is
              then converted to an rvalue (the usual case). */
           lvalue_cast(type_cast_to, operand, /*compiler_generated=*/FALSE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcli_enabled &&
+                   process_runtime_checked_safe_cast(adj_type_cast_to,
+                                                     operand,
+                                                     start_position,
+                                                     source_form)) {
+          /* A C++/CLI cast that requires runtime checking.  The cast has
+             already been applied to operand. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           a_boolean      reinterpret_semantics = FALSE;
           a_boolean      operand_is_constant;
@@ -17769,39 +17785,47 @@ indication in *rcblock).
 }  /* scan_static_cast_operator */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
 static a_boolean process_runtime_checked_safe_cast(
-                                     a_type_ptr                type_cast_to,
-                                     an_operand                *operand,
-                                     a_source_position         *start_position)
+                                            a_type_ptr         type_cast_to,
+                                            an_operand         *operand,
+                                            a_source_position  *start_position,
+                                            a_cast_source_form source_form)
 /*
 Determine whether a C++/CLI safe_cast of *operand to type_cast_to
 requires a runtime check, and if so apply the checked cast to the
 operand and return TRUE.  The source position of the start of the cast
-is start_position.
+is start_position.  The source form of the cast is given by source_form.
 */
 {
   a_boolean        is_runtime_checked_cast = FALSE;
   a_boolean        is_cast_to_tracking_ref = FALSE;
   a_boolean        might_be_runtime_checked = FALSE;
-  a_type_ptr       source_type, dest_type;
+  a_boolean        requires_boxing = FALSE;
+  a_boolean        is_generic_cast = FALSE;
+  a_type_ptr       source_type = operand->type, dest_type = type_cast_to;
   a_base_class_ptr bcp;
 
-  if (is_handle_type(operand->type) &&
-      is_handle_type(type_cast_to)) {
-    source_type = type_pointed_to(operand->type);
-    dest_type = type_pointed_to(type_cast_to);
+  if (is_handle_type(dest_type) && is_cli_value_type(source_type)) {
+    /* If the source is a value type, consider it boxed. */
+    requires_boxing = TRUE;
+    source_type = make_handle_type(source_type);
+  }  /* if */
+  if (is_handle_type(source_type) &&
+      is_handle_type(dest_type)) {
+    source_type = type_pointed_to(source_type);
+    dest_type = type_pointed_to(dest_type);
     might_be_runtime_checked = TRUE;
-  } else if (is_tracking_reference_type(type_cast_to)) {
+  } else if (is_tracking_reference_type(dest_type)) {
     is_cast_to_tracking_ref = TRUE;
-    source_type = operand->type;
-    dest_type = type_pointed_to(type_cast_to);
+    dest_type = type_pointed_to(dest_type);
     might_be_runtime_checked = TRUE;
   }  /* if */
   if (might_be_runtime_checked &&
-      is_cli_ref_or_interface_class_type(source_type) &&
-      is_cli_ref_or_interface_class_type(dest_type) &&
+      is_managed_class_type(source_type) &&
+      is_managed_class_type(dest_type) &&
       /* Don't allow casting away constness. */
-      !cast_removes_qualifiers(operand->type, type_cast_to,
+      !cast_removes_qualifiers(source_type, dest_type,
                                (an_error_code *)NULL)) {
     /* We have a cast from handle-to-class to handle-to-class,
        or from class to tracking-reference-to-class.  Depending on
@@ -17816,6 +17840,11 @@ is start_position.
       if (bcp != NULL) {
         /* A cast to a base class, so no runtime check is needed. */
         is_runtime_checked_cast = FALSE;
+      } else if (is_cli_generic_definition_argument_type(source_type) ||
+                 is_cli_generic_definition_argument_type(dest_type)) {
+        /* Casts between generic types are allowed but checked. */
+        is_runtime_checked_cast = TRUE;
+        is_generic_cast = TRUE;
       } else {
         /* Unrelated classes, or a cast to a derived class.  A runtime
            check will be needed. */
@@ -17839,6 +17868,9 @@ is start_position.
       eliminate_unusual_operand_kinds(operand);
       conv_reference_cast_operand_to_lvalue_if_necessary(operand);
     } else {
+      if (requires_boxing) {
+        box_value_type_operand(operand, /*leave_as_handle=*/TRUE);
+      }  /* if */
       /* Convert the handle to an rvalue if necessary. */
       do_operand_transformations(operand, TOPT_NO_OPTIONS);
     }  /* if */
@@ -17852,6 +17884,13 @@ is start_position.
                               /*requires_runtime_check=*/TRUE,
                               &expr, start_position,
                               (a_boolean *)NULL);
+    } else if (is_generic_cast) {
+      /* A cast between generic types, which requires a runtime check. */
+      check_assertion(!is_cast_to_tracking_ref);
+      expr = make_operator_node((an_expr_operator_kind)eok_cast,
+                                type_cast_to, expr);
+      if (source_form == csf_safe_cast) expr->is_safe_cast = TRUE;
+      expr->variant.operation.requires_runtime_cast_check = TRUE;
     } else {
       /* A cast between unrelated classes, allowed only for the tracking
          reference case.  Use an eok_ref_cast. */
@@ -17859,7 +17898,7 @@ is start_position.
       expr = make_lvalue_operator_node((an_expr_operator_kind)eok_ref_cast,
                                        dest_type, expr);
       mark_as_reference_cast(expr, type_cast_to);
-      expr->is_safe_cast = TRUE;
+      if (source_form == csf_safe_cast) expr->is_safe_cast = TRUE;
       expr->variant.operation.requires_runtime_cast_check = TRUE;
     }  /* if */
     make_lvalue_or_rvalue_expression_operand(expr, operand);
@@ -17893,7 +17932,7 @@ investigate whether a safe_cast can be done, only to actually do one
      allows, but for casts involving managed class objects, use a runtime
      check to make sure the result really has the type expected." */
   if (process_runtime_checked_safe_cast(type_cast_to, operand,
-                                        start_position)) {
+                                        start_position, csf_safe_cast)) {
     /* The cast requires a runtime check and has been processed that way. */
     *ruled_out_expr_kinds |= (ROEK_INTEGRAL_CONSTANT | ROEK_CONSTANT);
   } else {
