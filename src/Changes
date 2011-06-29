@@ -1,5 +1,33 @@
 Version 4.4
 
+6/29/11  [EDGcpfe/11194,EDGcpfe/11783,EDGcpfe/11787]
+Template template parameter mismatch should cause substitution failure
+
+When doing template argument substitution, the front end failed to
+detect cases where a substituted template template argument had
+a template parameter list that was incompatible with the associated
+template template parameter.  This resulted in spurious ambiguities in
+cases such as the example below.  Now fixed.
+
+  typedef char (&no_tag)[1];
+  typedef char (&yes_tag)[2];
+  
+  template <typename T> struct has_xxx {
+    template <template <typename V0> class V> struct has_xxx0 { };
+    template <template <typename V0, typename V1> class V> struct has_xxx1 { };
+    template <typename V> static no_tag  has_xxx_fn(...);
+    template <typename V>
+      static yes_tag has_xxx_fn(void *, has_xxx0 <V::template xxx>* = 0);
+    template <typename V>
+      static yes_tag has_xxx_fn(void *, has_xxx1 <V::template xxx>* = 0);
+      static const bool value = sizeof(has_xxx_fn<T>(0)) == sizeof(yes_tag);
+  };
+  struct x {
+    template <typename T> struct xxx {};
+  };
+  bool b = has_xxx<x>::value;
+
+
 6/27/11  [EDGcpfe/11830]
 Incorrect end position recorded on some dependent statements
 

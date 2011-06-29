@@ -1669,6 +1669,68 @@ symbol supplement.
 }  /* all_templ_params_have_values */
 
 
+static a_boolean template_template_arg_matches_param(
+				a_template_arg_ptr	tap,
+				a_template_param_ptr	tpp,
+				a_template_arg_ptr	templ_arg_list,
+				a_template_param_ptr	templ_param_list,
+				a_source_position	*source_pos)
+/*
+Check whether the template template argument specified by tap is compatible
+with the template parameter specified by tpp.  If the template template
+parameter depends on another template parameter, this can involve doing
+substitution of the template using templ_param_list and templ_arg_list.
+The template argument has its substituted_param_template field updated if
+substitution is done (even if the substituted template is later found not
+to match).  source_pos is the position passed into copy_type_with_substitution,
+if needed.
+
+Return TRUE if there is a match, FALSE otherwise.
+*/
+{
+  a_template_ptr			param_template;
+  a_template_param_ptr			param_list_for_param;
+  a_template_param_ptr			param_list_for_arg;
+  a_template_symbol_supplement_ptr	arg_template;
+  a_template_symbol_supplement_ptr	param_tssp;
+  a_boolean				match = TRUE;
+
+  param_template = tpp->variant.templ->il_template_entry;
+  if (tpp->variant.templ->variant.class_template.involves_template_param) {
+    /* The template template parameter depends on another template
+       parameter (e.g., "template <class T, template <T t> class X>...").
+       Substitute the template template parameter declaration to create a
+       new parameter template. */
+    a_boolean		copy_error = FALSE;
+    a_ctws_state	ctws_state;
+    init_ctws_state(&ctws_state);
+    param_template = copy_template_with_substitution(
+                                                param_template, templ_arg_list,
+                                                templ_param_list,
+                                                source_pos,
+                                                CTWS_NO_OPTIONS, &copy_error,
+                                                &ctws_state);
+    tap->variant.templ.substituted_param_template = param_template;
+    if (copy_error) match = FALSE;
+  }  /* if */
+  /* Compare the parameter list of the (potentially) rescanned template
+     template parameter with the template supplied as an argument. */
+  param_tssp = template_supplement_for_template(param_template);
+  param_list_for_param = param_tssp->cache.decl_info->parameters;
+  arg_template = template_supplement_for_template(tap->variant.templ.ptr);
+  param_list_for_arg = arg_template->cache.decl_info->parameters;
+  if (!equiv_template_param_lists(param_list_for_param,
+                                  param_list_for_arg,
+                                  /*issue_errors=*/FALSE,
+                                  ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
+                                  (a_source_position*)NULL,
+                                  es_error)) {
+    match = FALSE;
+  }  /* if */
+  return match;
+}  /* template_template_arg_matches_param */
+
+
 static a_boolean wrapup_template_argument_deduction(
 				a_template_arg_ptr   templ_arg_list,
                                 a_symbol_ptr         template_sym,
@@ -1777,47 +1839,9 @@ during wrapup processing by compare_function_templates.
       } else if (is_template_templ_arg(tap)) {
         /* Check whether this template template parameter must be rescanned
            because of a dependence on another template argument. */
-        a_template_ptr		param_template;
-        a_template_param_ptr	param_list_for_param;
-        a_template_param_ptr	param_list_for_arg;
-        a_template_symbol_supplement_ptr
-				arg_template;
-        a_template_symbol_supplement_ptr
-				param_tssp;
-        param_template = tpp->variant.templ->il_template_entry;
-        if (tpp->variant.templ->
-                              variant.class_template.involves_template_param) {
-          /* The template template parameter depends on another template
-             parameter (e.g., "template <class T, template <T t> class X>...").
-             Substitute the template template parameter declaration to create a
-             new parameter template. */
-          a_boolean	copy_error = FALSE;
-          a_ctws_state	ctws_state;
-          init_ctws_state(&ctws_state);
-          param_template = copy_template_with_substitution(
-                                                param_template, templ_arg_list,
-                                                templ_param_list,
-                                                &template_sym->decl_position,
-                                                CTWS_NO_OPTIONS, &copy_error,
-                                                &ctws_state);
-          tap->variant.templ.substituted_param_template = param_template;
-          if (copy_error) match = FALSE;
-        }  /* if */
-        /* Compare the parameter list of the (potentially) rescanned template
-           template parameter with the template supplied as an argument. */
-        param_tssp = template_supplement_for_template(param_template);
-        param_list_for_param = param_tssp->cache.decl_info->parameters;
-        arg_template = template_supplement_for_template(
-                                                       tap->variant.templ.ptr);
-        param_list_for_arg = arg_template->cache.decl_info->parameters;
-        if (!equiv_template_param_lists(param_list_for_param,
-                                        param_list_for_arg,
-                                        /*issue_errors=*/FALSE,
-				        ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
-                                        (a_source_position*)NULL,
-                                        es_error)) {
-          match = FALSE;
-        }  /* if */
+        match = template_template_arg_matches_param(
+                                    tap, tpp, templ_arg_list, templ_param_list,
+                                    &template_sym->decl_position);
 #if GNU_EXTENSIONS_ALLOWED
       } else {
         /* A type parameter. */
@@ -8556,13 +8580,24 @@ parameters.
     }  /* if */
   } else {
     /* A template template argument. */
-    tap->variant.templ.ptr = copy_template_with_substitution(
-                                 tap->variant.templ.ptr,
+    a_template_ptr			templ;
+    a_template_ptr			orig_templ = tap->variant.templ.ptr;
+    templ = copy_template_with_substitution(
+                                 orig_templ,
                                  templ_arg_list,
                                  templ_param_list,
                                  source_pos, options, copy_error,
                                  ctws_state);
-    tap->is_pack = tap->variant.templ.ptr->is_pack;
+    tap->variant.templ.ptr = templ;
+    tap->is_pack = templ->is_pack;
+    if (have_params && templ != orig_templ) {
+      /* Make sure the substituted template matches the template parameter. */
+      if (!template_template_arg_matches_param(
+                                    tap, tpp, templ_arg_list, templ_param_list,
+                                    source_pos)) {
+        *copy_error = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* substitute_template_argument */
 
