@@ -7508,6 +7508,14 @@ End a name scope by popping an entry off the scope stack.
 #endif /* DEBUG */
   check_assertion(ssep->class_fixup_header.fixup_list == NULL);
   if (!(ssep->kind == (a_scope_kind)sck_file && ssep->is_reactivation)) {
+    if (ssep->kind == (a_scope_kind)sck_file) {
+      /* When the file scope is popped the first time, transfer any symbols
+         that are not associated with a scope list from the active list to
+         the inactive list.  This is done before the wrapup_scope call
+         below so that these symbols will be on the inactive list before
+         the ones added below. */
+      wrap_up_symbols_with_no_scope();
+    }  /* if */
     /* Remove symbols from the symbol table, and reenter them on the
        inactive list if necessary.  For the file scope, this is only done
        the first time that it is popped. */
@@ -7517,10 +7525,6 @@ End a name scope by popping an entry off the scope stack.
        turn may have triggered a reallocation of the scope stack. */
     ssep = &scope_stack[depth_scope_stack];
     if (ssep->kind == (a_scope_kind)sck_file) {
-      /* When the file scope is popped the first time, transfer any symbols
-         that are not associated with a scope list from the active list to
-         the inactive list. */
-      wrap_up_symbols_with_no_scope();
       /* In C99 mode, issue diagnostics for any local static variables that
          were defined in "inline definitions". */
       verify_c99_inline_definitions();

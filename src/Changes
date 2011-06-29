@@ -1,5 +1,28 @@
 Version 4.4
 
+6/29/11  [EDGcpfe/11353]
+Incorrect lookup of macro name when the file scope is reactivated
+
+In modes in which the file scope is reactivated (when using multiple
+translation unit mode or implicit inclusion), if a keyword and macro
+had the same name, after the file scope was reactivated the keyword
+symbol would incorrectly be found in preference to the macro symbol.
+Now fixed.  If the example below was compiled with a command such
+as "edgcpfe -B x1.c", an error would have been issued during the implicit
+inclusion of x2.c.
+
+  file: x1.c:
+  #include "x2.h"
+  A<int> a;
+  #define char abc
+
+  file: x2.h:
+  template <class T> struct A { A(); };
+
+  file: x2.c:
+  int char;  // spurious "invalid combination of type specifiers"
+
+
 6/29/11  [EDGcpfe/11194,EDGcpfe/11783,EDGcpfe/11787]
 Template template parameter mismatch should cause substitution failure
 
