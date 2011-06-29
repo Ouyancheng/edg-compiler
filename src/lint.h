@@ -801,6 +801,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_generic_selection_with_points_to)*/
 /*lint -esym(769,ec_invalid_specific_ref_class_base)*/
 /*lint -esym(769,ec_generic_class_must_be_managed)*/
+/*lint -esym(769,ec_sealed_constraint)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */

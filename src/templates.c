@@ -20822,6 +20822,50 @@ FALSE.  pos is the source position to be used for diagnostics.
 }  /* check_for_constraint_conflict */
 
 
+static a_type_ptr validate_type_name_constraint(a_symbol_ptr      sym,
+                                                a_symbol_locator  *loc)
+/*
+A constraint assumed to be a type name constraint has been scanned.  loc is
+the symbol locator for the name and sym is the result of looking up that name
+(which could be null).  Issue an error and return NULL if the name does not
+designate a valid type in this context.  Otherwise, return the indicated type.
+*/
+{
+  a_type_ptr  type = NULL;
+
+  if (sym == NULL) {
+    pos_st_error(ec_undefined_identifier, &loc->source_position,
+                 loc->symbol_header->identifier);
+  } else if (!is_type_symbol(sym)) {
+    pos_st_error(ec_not_a_type_name, &loc->source_position,
+                 loc->symbol_header->identifier);
+  } else {
+    type = type_symbol_type(sym);
+    if (is_error_type(type)) {
+      /* Set type to NULL in the error type case (to avoid creating a
+         constraint entry). */
+      expect_error();
+      type = NULL;
+    } else if (is_cli_generic_param_type(type)) {
+      /* Presumably a naked type parameter constraint. */
+    } else if (is_cli_interface_type(type)) {
+      /* The usual case. */
+    } else if (is_ref_class_type(type)) {
+      /* Ref classes are okay if they are not sealed. */
+      if (skip_typerefs(type)->variant.class_struct_union.final) {
+        pos_error(ec_sealed_constraint, &loc->source_position);
+        type = NULL;
+      }  /* if */
+    } else {
+      /* Any other type (e.g. a value class or enum) is invalid. */
+      pos_error(ec_invalid_constraint, &loc->source_position);
+      type = NULL;
+    }  /* if */
+  }  /* if */
+  return type;
+}  /* validate_type_name_constraint */
+
+
 static a_generic_constraint_ptr scan_constraint_item_list(void)
 /*
 Scan a C++/CLI generic constraint-item-list and return the list.
@@ -20862,16 +20906,12 @@ of the list.
           record_potential_pack_reference(
                                     sym, &locator_for_curr_id.source_position);
         }  /* if */
-        if (err) {
-          /* An error occurred coalescing the identifier. */
-        } else if (sym == NULL) {
-          str_error(ec_undefined_identifier,
-                    locator_for_curr_id.symbol_header->identifier);
-        } else if (!is_type_symbol(sym)) {
-          str_error(ec_not_a_type_name,
-                    locator_for_curr_id.symbol_header->identifier);
-        } else {
-          type = type_symbol_type(sym);
+        if (!err) {
+          type = validate_type_name_constraint(sym, &locator_for_curr_id);
+        }  /* if */
+        /* Don't record the constraint unless we scanned a valid type. */
+        if (type != NULL) {
+          kind = (a_generic_constraint_kind)gck_type;
           if (is_immediate_class_type(type) &&
               is_cli_open_constructed_instance(type)) {
             /* If this is a type like A<T>, save the cached tokens so that
@@ -20883,8 +20923,6 @@ of the list.
           }  /* if */
         }  /* if */
         (void)get_token();
-        /* Don't record the constraint unless we scanned a valid type. */
-        if (type != NULL) kind = (a_generic_constraint_kind)gck_type;
         break;
       case tok_ref_class:
       case tok_ref_struct:

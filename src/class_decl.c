@@ -6916,6 +6916,7 @@ issue an error and return FALSE.
 {
   a_boolean   okay = TRUE;
   a_type_ptr  base_class_type = skip_typerefs(base_type);
+
   /* If it is the class now being defined or if it is a union or if it has
      been declared but not yet defined, issue an error and skip over this
      class: it is not a valid base class name. */
