@@ -5996,6 +5996,9 @@ Display the indicated class type supplement entry.
     disp_ptr("base_object_finalize_routine",
              (char*)ptr->base_object_finalize_routine, iek_routine);
   }  /* if */
+  if (ptr->invocation_type != NULL) {
+    disp_ptr("invocation_type", (char*)ptr->invocation_type, iek_type);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* disp_class_type_supplement */
 

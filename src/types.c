@@ -1298,9 +1298,8 @@ a_type_ptr delegate_invocation_type(a_type_ptr delegate_type)
 Given a delegate class type, return the associated function type.
 */
 {
-  a_routine_ptr rp = delegate_invocation_function(delegate_type);
-
-  return rp->type;
+  check_assertion(is_immediate_delegate_type(delegate_type));
+  return class_type_supp(delegate_type)->invocation_type;
 }  /* delegate_invocation_type */
 
 #if !STANDALONE_UTILITY_PROGRAM

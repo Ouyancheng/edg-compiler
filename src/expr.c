@@ -13628,9 +13628,7 @@ delegate initializer, given by rcblock->argument_list.
     } else {
       /* For known functions, check that the type of the function matches
          the delegate invocation type. */
-      if (!f_types_are_compatible(needed_type, function_operand->type,
-                                 TCF_IGNORE_THIS_CLASS_TYPE |
-                                 TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
+      if (!types_are_compatible(needed_type, function_operand->type)) {
         expr_pos_error(ec_mismatched_function_for_delegate,
                        &function_operand->position);
         err = TRUE;

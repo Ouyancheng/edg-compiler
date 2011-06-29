@@ -18612,6 +18612,7 @@ definition and record it in the IL (as a special-purpose class type).
     (void)find_symbol("Invoke", sizeof("Invoke")-1, &member_loc);
     initialize_member_decl_info(&member_info, &dps->specifiers_pos);
     mdps->declared_type = dps->declared_type;
+    ctsp->invocation_type = dps->type;
     /* The type of Invoke is the declared type of the delegate with the
        addition of a type for "this" (i.e., a nonstatic member function
        type). */

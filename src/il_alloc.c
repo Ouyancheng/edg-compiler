@@ -1508,6 +1508,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->base_dispose_bool_routine         = NULL;
   ctsp->base_idisposable_dispose_routine  = NULL;
   ctsp->base_object_finalize_routine      = NULL;
+  ctsp->invocation_type                   = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* clear_class_type_supplement */
 

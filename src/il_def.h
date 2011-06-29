@@ -6789,6 +6789,11 @@ typedef struct a_class_type_supplement {
 			   the corresponding functions don't exist.  The
 			   Dispose(bool) implementation in this class invokes
 			   these routines. */
+  a_type_ptr	invocation_type;
+			/* If this entry is for a delegate class, the function
+			   type with which the delegate was declared.  This is
+			   a type that doesn't include a "this" parameter.
+			   NULL if this entry isn't for a delegate class. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_class_type_supplement;
 

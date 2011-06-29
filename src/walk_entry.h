@@ -2888,6 +2888,7 @@ after_entry_from_class:
                             a_routine_ptr, iek_routine);
         walk_ptr_not_needed(ptr->base_object_finalize_routine, a_routine_ptr,
                             iek_routine);
+        walk_ptr(ptr->invocation_type, a_type_ptr, iek_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }
       break;
