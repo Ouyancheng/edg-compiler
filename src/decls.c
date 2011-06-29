@@ -4946,7 +4946,8 @@ associated sk_external_variable or sk_external_routine symbol, if any.
         /* Linkage is not the same, but it's no error as long as the current
            specification is implicit.   In non-strict modes, we only warn in
            the case of variables. */
-        if (ssep->name_linkage_is_explicit) {
+        if (ssep->name_linkage_is_explicit &&
+            !(gpp_mode && idlbp->is_friend_decl)) {
           if (is_function) {
             sev = es_error;
           } else if (strict_ansi_mode) {
@@ -4959,8 +4960,11 @@ associated sk_external_variable or sk_external_routine symbol, if any.
            was explicitly specified whereas the previous one was not, or when
            one of the declarations specified internal linkage and the other
            didn't (in which case the later declaration is favored, except in
-           Microsoft mode where the later name linkage is ignored). */
+           Microsoft mode where the later name linkage is ignored).  For
+           friend declarations in GNU C++ mode, a surrounding name linkage
+           specification is ignored. */
         if ((idlbp->name_linkage_is_explicit && !microsoft_mode &&
+            !(gpp_mode && idlbp->is_friend_decl) &&
              !sym->explicit_linkage_specifier) ||
             scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
             idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {

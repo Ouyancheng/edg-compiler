@@ -1,5 +1,27 @@
 Version 4.4
 
+6/29/11  [EDGcpfe/11815]
+Infinite loop on function definition after friend declaration in GNU mode
+
+In GNU C++ mode, a friend declaration in an extern "C" block that uses a
+qualified name to refer to a namespace function originally not declared with
+with extern "C" previously triggered an error in GNU C++ mode (and in other
+modes too).  If a non-"extern C" definition of the friend function followed,
+the front end entered a non-terminating loop.
+
+  namespace N { void f(); }
+  extern "C" {
+    struct A {
+      friend void N::f();  // Now accepted in GNU C++ mode.
+    };
+  }
+  void N::f() {}  // Previously triggered an infinite loop.
+
+
+Now, no error is issued anymore (to match the behavior of GCC) and the front
+end terminates as expected.
+
+
 6/29/11  [EDGcpfe/11353]
 Incorrect lookup of macro name when the file scope is reactivated
 
