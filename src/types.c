@@ -1282,6 +1282,7 @@ Given a delegate class type, return its Invoke function.
 {
   a_routine_ptr  rp;
 
+  delegate_type = skip_typerefs(delegate_type);
   check_assertion(is_immediate_delegate_type(delegate_type));
   rp = class_type_supp(delegate_type)->assoc_scope->routines;
 #if CHECKING
@@ -1318,6 +1319,7 @@ a_type_ptr delegate_invocation_type(a_type_ptr delegate_type)
 Given a delegate class type, return the associated function type.
 */
 {
+  delegate_type = skip_typerefs(delegate_type);
   check_assertion(is_immediate_delegate_type(delegate_type));
   return class_type_supp(delegate_type)->invocation_type;
 }  /* delegate_invocation_type */
