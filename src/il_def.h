@@ -13514,14 +13514,16 @@ typedef struct an_expr_node {
 #endif /* BACK_END_IS_CP_GEN_BE */
       a_bit_field
                 call_uses_operator_syntax:1;
-                        /* TRUE for a call expression that results from
-                           operator syntax rather than function-call syntax
-                           (e.g., "a+b" as opposed to "operator+(a,b)").  The
-                           C++-generating back end must maintain this form when
-                           the operator is found via argument-dependent lookup
-                           and the call occurs in a context in which a
-                           member operator might be found by ordinary
-                           lookup of the name and thus suppress ADL. */
+			/* TRUE for a call expression that results from
+			   operator syntax rather than function-call syntax
+			   (e.g., "a+b" as opposed to "operator+(a,b)").  The
+			   C++-generating back end must maintain this form when
+			   the operator is found via argument-dependent lookup
+			   and the call occurs in a context in which a
+			   member operator might be found by ordinary
+			   lookup of the name and thus suppress ADL.  Also
+			   TRUE for implicit calls of the Invoke function of
+			   a C++/CLI delegate. */
 #if GNU_EXTENSIONS_ALLOWED
       a_bit_field
 		is_gnu_two_operand_question_mark:1;

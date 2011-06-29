@@ -1293,6 +1293,26 @@ Given a delegate class type, return its Invoke function.
 }  /* delegate_invocation_function */
 
 
+a_boolean is_delegate_invocation_function(a_routine_ptr rp)
+/*
+Return TRUE if the given function is the Invoke function of a C++/CLI
+delegate.
+*/
+{
+  a_boolean is_invocation_func = FALSE;
+
+  if (cppcli_enabled && rp->source_corresp.is_class_member) {
+    a_type_ptr parent_class = parent_class_of(rp);
+    if (is_immediate_delegate_type(parent_class)) {
+      if (rp == delegate_invocation_function(parent_class)) {
+        is_invocation_func = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_invocation_func;
+}  /* is_delegate_invocation_function */
+
+
 a_type_ptr delegate_invocation_type(a_type_ptr delegate_type)
 /*
 Given a delegate class type, return the associated function type.

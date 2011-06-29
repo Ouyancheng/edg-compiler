@@ -3988,6 +3988,7 @@ are expected to be NULL in that case.
   a_symbol_ptr      member_func_sym = NULL;
   a_boolean         handle_case = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean         implicit_delegate_invocation = FALSE;
   a_boolean         ignore_call = FALSE;
   a_boolean         saved_evaluated, saved_potentially_evaluated;
   an_expr_node_ptr  unneeded_selector = NULL;
@@ -4161,6 +4162,7 @@ are expected to be NULL in that case.
            function is called. */
         a_routine_ptr invoke_rout = delegate_invocation_function(class_type);
         member_function_symbol = symbol_for(invoke_rout);
+        implicit_delegate_invocation = TRUE;
         /* A delegate doesn't have surrogate functions, so don't bother
            looking for them. */
         try_surrogate_functions = FALSE;
@@ -4615,6 +4617,12 @@ are expected to be NULL in that case.
            reconstruct the original source form (e.g., "x()" instead of
            "x.operator()()"). */
         uses_operator_syntax = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (implicit_delegate_invocation) {
+        /* An implicit invocation of a C++/CLI delegate has the same
+           issue. */
+        uses_operator_syntax = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
     assemble_function_call(operand, bound_function_selector, argument_list,

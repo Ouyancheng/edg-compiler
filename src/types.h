@@ -158,6 +158,7 @@ extern a_boolean is_cli_generic_definition_argument_type(a_type_ptr	type);
    (tp)->variant.class_struct_union.is_delegate_class)
 extern a_boolean is_delegate_type(a_type_ptr tp);
 extern a_routine_ptr delegate_invocation_function(a_type_ptr delegate_type);
+extern a_boolean is_delegate_invocation_function(a_routine_ptr rp);
 extern a_type_ptr delegate_invocation_type(a_type_ptr delegate_type);
 #if !STANDALONE_UTILITY_PROGRAM
 extern a_boolean is_cli_system_object_type(a_type_ptr tp);

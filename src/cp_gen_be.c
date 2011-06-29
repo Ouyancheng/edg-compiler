@@ -7469,12 +7469,19 @@ syntax ("a->b") rather than an explicit function call.
     a_routine_ptr    rp = routine_from_function_expr(func_expr);
 
     check_assertion(rp != NULL);
-    check_assertion_str(rp->special_kind ==
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_delegate_invocation_function(rp)) {
+      /* A C++/CLI delegate invocation. */
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      check_assertion_str(rp->special_kind ==
 	                                 (a_special_function_kind)sfk_operator,
       "is_operator_syntax_arrow: non-operator function using operator syntax");
-
-    if (rp->variant.opname_kind == (an_opname_kind)onk_arrow) {
-      result = TRUE;
+      if (rp->variant.opname_kind == (an_opname_kind)onk_arrow) {
+        result = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -8924,6 +8931,7 @@ return FALSE and let the caller generate the code normally.
   if (expr->variant.operation.call_uses_operator_syntax) {
     an_expr_node_ptr              func_expr = expr->variant.operation.operands;
     a_routine_ptr                 rp = routine_from_function_expr(func_expr);
+    a_boolean                     is_delegate_invocation_fcn;
     a_type_ptr                    rout_type;
     a_routine_type_supplement_ptr rtsp;
     a_param_type_ptr              param;
@@ -8937,15 +8945,27 @@ return FALSE and let the caller generate the code normally.
 
     check_assertion_str(rp != NULL,
                      "handle_operator_call: operand not a function constant.");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    is_delegate_invocation_fcn = is_delegate_invocation_function(rp);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+    is_delegate_invocation_fcn = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     check_assertion_str(rp->special_kind ==
-	                                 (a_special_function_kind)sfk_operator,
+                                       (a_special_function_kind)sfk_operator ||
+                        is_delegate_invocation_fcn,
           "handle_operator_call: non-operator function using operator syntax");
 
     rout_type = skip_typerefs(rp->type);
     rtsp = rout_type->variant.routine.extra_info;
     param = rtsp->param_type_list;
     arg = func_expr->next;
-    op = rp->variant.opname_kind;
+    if (is_delegate_invocation_fcn) {
+      /* The invocation of a C++/CLI delegate.  This is handled just like a
+         call operator (operator()). */
+      op = (an_opname_kind)onk_function_call;
+    } else {
+      op = rp->variant.opname_kind;
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (expr->variant.operation.rewritten_property_reference_kind !=
                               (a_rewritten_property_reference_kind)rprk_none) {
@@ -8982,7 +9002,7 @@ return FALSE and let the caller generate the code normally.
 
       /* For postfix operators, there's no need to enclose the generated
          expression in parentheses because the precedence is already higher
-         than all the other operators.. */
+         than all the other operators. */
       outer_parens_needed = !(op == (an_opname_kind)onk_function_call ||
                               op == (an_opname_kind)onk_subscript ||
                               op == (an_opname_kind)onk_arrow ||

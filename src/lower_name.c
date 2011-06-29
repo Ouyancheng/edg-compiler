@@ -4964,6 +4964,9 @@ this expression is part of a template-dependent expression.
     a_boolean        is_prefix = FALSE;
 #endif /* IA64_ABI */
     check_assertion(rp != NULL);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    check_assertion(!is_delegate_invocation_function(rp));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (member != NULL) num_arguments++;
     if (rp->variant.opname_kind == (an_opname_kind)onk_plus_plus ||
         rp->variant.opname_kind == (an_opname_kind)onk_minus_minus) {
