@@ -2261,6 +2261,7 @@ ec_invalid_specific_ref_class_base;;"a ref class type cannot derive from %t"
 ec_generic_class_must_be_managed;;"a generic class must be managed (i.e., a ref class, a value class, or an interface class)"
 ec_sealed_constraint;;"a sealed class cannot be used as a constraint"
 ec_dynamic_cast_to_value_generic;;"the type in a dynamic_cast cannot be a generic type that might be a value type"
+ec_UCN_names_invalid_code_point;;"a universal character name must designate a valid code point"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

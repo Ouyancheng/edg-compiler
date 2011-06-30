@@ -1,5 +1,18 @@
 Version 4.4
 
+6/30/11  [EDGcpfe/11811]
+Diagnose invalid universal-character-names
+
+A change has been made to issue a warning (error in strict mode) when
+the hexadecimal value for a universal-character-name exceeds the range of
+valid Universal Coded Character Set code points (i.e., is greater than
+0x10FFFF).  This change affects both C and C++ modes.  A change was also made
+to enable C++0x-style U-literal checking when U-literals are enabled in C++
+mode (see the Changes entry of 6/17/11).  For example:
+
+  unsigned long u = U'\U12345678'; // now gets a warning (error in strict mode)
+
+
 6/29/11  [EDGcpfe/11815]
 Infinite loop on function definition after friend declaration in GNU mode
 

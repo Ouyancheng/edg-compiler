@@ -8330,11 +8330,14 @@ are different.
 {
   an_error_code	err_code = ec_no_error;
 
-  if (cpp0x_mode) {
+  if (cpp0x_mode || uliterals_enabled) {
     if (ucn >= 0xd800 && ucn <= 0xdfff) {
       /* Values reserved for ISO 10646 surrogate code points are never
          allowed. */
       err_code = ec_UCN_names_surrogate_code_point;
+    } else if (ucn > 0x10ffff) {
+      /* Not a valid code point. */
+      err_code = ec_UCN_names_invalid_code_point;
     } else if (is_identifier) {
       /* Other restrictions only apply when the UCN is used in an
          identifier. */
@@ -8392,6 +8395,9 @@ Issue a diagnostic if it is not.
     /* A UCN cannot name a character in the range of 0xd800-0xdfff (the ISO
        10646 surrogate code points). */
     err_code = ec_UCN_names_surrogate_code_point;
+  } else if (ucn > 0x10ffff) {
+    /* Not a valid code point. */
+    err_code = ec_UCN_names_invalid_code_point;
   } else if (is_identifier) {
     /* Check whether this is a valid identifier character. */
     err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
