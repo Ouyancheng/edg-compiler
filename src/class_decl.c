@@ -19524,7 +19524,7 @@ the enclosing type of the constrained generic.  For example:
         proxy_class->variant.class_struct_union.is_hybrid_constraint = TRUE;
       }  /* if */
     }  /* if */
-    if (!is_cli_value_type(proxy_class)) {
+    if (!is_value_class_type(proxy_class)) {
       /* Except for constraints known to be value classes, the type used
          to process the generic definition is a handle type. */
       definition_arg_type = make_handle_type(proxy_class);
