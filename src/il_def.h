@@ -7623,6 +7623,11 @@ typedef struct a_type {
 			/* TRUE if is_generic_constraint is TRUE and the
 			   associated constraint list contains any type
 			   constraints that refer to interfaces. */
+     a_bit_field
+		unconstrained:1;
+			/* TRUE if is_generic_constraint is TRUE and the
+			   no constraints were specified for in the 
+			   associated constraint list. */
 #if BACK_END_IS_CP_GEN_BE
       a_bit_field
 		defined_with_abstract_class_modifier:1;
