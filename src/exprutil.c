@@ -5068,14 +5068,14 @@ an_expr_node_ptr add_box_to_expression(an_expr_node_ptr expr,
                                        a_boolean        handle_to_form)
 /*
 Add a C++/CLI "box" operation to the indicated expression (an rvalue
-with a CLI value type), and return the boxed expression.  is_implicit
+with a boxable CLI value type), and return the boxed expression.  is_implicit
 is TRUE if the boxing is implicit (as opposed to coming from an explicit cast).
 If handle_to_form is TRUE, the source form uses the unary "%" operator.
 */
 {
   a_type_ptr boxed_type = make_unqualified_type(expr->type);
 
-  check_assertion(!expr->is_lvalue && is_cli_value_type(expr->type));
+  check_assertion(!expr->is_lvalue && is_boxable_type(expr->type));
   check_assertion(!(is_implicit && handle_to_form));
   expr = make_operator_node((handle_to_form ?
                                (an_expr_operator_kind)eok_handle_to_box :

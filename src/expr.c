@@ -5045,7 +5045,7 @@ end_of_routine:;
 static void box_value_type_operand(an_operand *operand,
                                    a_boolean  leave_as_handle)
 /*
-operand has a C++/CLI value type (possibly a fundamental type that
+operand has a C++/CLI boxable type (possibly a fundamental type that
 corresponds to a C++/CLI value class type).  Box the operand, producing
 an lvalue for the boxed value.  If leave_as_handle is TRUE, produce an
 rvalue handle for the boxed value.  In either case, this is an implicit
@@ -5056,7 +5056,7 @@ operation.
   an_operand       orig_operand;
 
   orig_operand = *operand;
-  check_assertion(is_cli_value_type(operand->type));
+  check_assertion(is_boxable_type(operand->type));
   /* Convert the value to an rvalue. */
   do_operand_transformations(operand, TOPT_NO_OPTIONS);
   expr = make_node_from_operand(operand);
@@ -17806,7 +17806,7 @@ is start_position.  The source form of the cast is given by source_form.
   a_type_ptr       source_type = operand->type, dest_type = type_cast_to;
   a_base_class_ptr bcp;
 
-  if (is_handle_type(dest_type) && is_cli_value_type(source_type)) {
+  if (is_handle_type(dest_type) && is_boxable_type(source_type)) {
     /* If the source is a value type, consider it boxed. */
     requires_boxing = TRUE;
     source_type = make_handle_type(source_type);

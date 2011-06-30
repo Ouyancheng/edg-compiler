@@ -1263,6 +1263,24 @@ standard 12.1.
   return result;
 }  /* is_cli_value_type */
 
+
+a_boolean is_boxable_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++/CLI value type that can be boxed.
+See ECMA-372 14.2.6 ("Boxing Conversions").
+*/
+{
+  a_boolean result = FALSE;
+
+  if (cppcli_enabled) {
+    if (is_cli_value_type(tp) &&
+        !is_pointer_type(tp)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_boxable_type */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_delegate_type(a_type_ptr tp)
@@ -7499,8 +7517,7 @@ conversion.  std_conv can be NULL if that information is not needed.
     /* The source type has to be a value type, but not a pointer type.
        The destination type has to be a handle type. */
     if (is_handle_type(dest_type) &&
-        is_cli_value_type(source_type) &&
-        !is_pointer_type(source_type)) {
+        is_boxable_type(source_type)) {
       a_base_class_ptr bcp = NULL;
       a_type_ptr       corresp_type;
       /* cv-qualifiers on the source type are dropped, since the value gets
@@ -7565,8 +7582,7 @@ can be NULL if that information is not needed.
     /* The source type has to be a handle type.  The destination type has
        to be a value type, but not a pointer type. */
     if (is_handle_type(source_type) &&
-        is_cli_value_type(dest_type) &&
-        !is_pointer_type(dest_type)) {
+        is_boxable_type(dest_type)) {
       a_base_class_ptr bcp = NULL;
       a_type_ptr       corresp_type;
       source_type = type_pointed_to(source_type);
