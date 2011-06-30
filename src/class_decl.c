@@ -19496,33 +19496,27 @@ the enclosing type of the constrained generic.  For example:
     /* Determine the CLI class type kind of the constraint type. */
     gc_list = templ_param_type->variant.template_param.extra_info
                               ->generic_constraints;
-    if (gc_list == NULL) {
-      /* No constraints: The constraint type is a ref class deriving from
-         System::Object. */
-      ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
-    } else {
-      /* Depending on the constraints, this constraint type could be a value
-         class, a ref class, or some hybrid. */
-      ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_interface;
-      for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
-        if (gcp->kind == (a_generic_constraint_kind)gck_value_class) {
-          ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_value;
-        } else if (gcp->kind == (a_generic_constraint_kind)gck_ref_class) {
-          ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
-        } else if (gcp->kind == (a_generic_constraint_kind)gck_type) {
-          a_type_ptr  ctp = skip_typerefs(gcp->type);
-          if (is_immediate_class_type(ctp)) {
-            ctsp->cli_class_type_kind =
-                                    class_type_supp(ctp)->cli_class_type_kind;
-          }  /* if */
-        }  /* if */
-        if (!cli_class_type_kind_is(proxy_class, cctk_interface)) break;
-      }  /* for */
-      if (cli_class_type_kind_is(proxy_class, cctk_interface)) {
-        /* The class is a sort of hybrid value/ref class. */
+    /* Depending on the constraints, this constraint type could be a value
+       class, a ref class, or some hybrid. */
+    ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_interface;
+    for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
+      if (gcp->kind == (a_generic_constraint_kind)gck_value_class) {
+        ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_value;
+      } else if (gcp->kind == (a_generic_constraint_kind)gck_ref_class) {
         ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
-        proxy_class->variant.class_struct_union.is_hybrid_constraint = TRUE;
+      } else if (gcp->kind == (a_generic_constraint_kind)gck_type) {
+        a_type_ptr  ctp = skip_typerefs(gcp->type);
+        if (is_immediate_class_type(ctp)) {
+          ctsp->cli_class_type_kind =
+                                    class_type_supp(ctp)->cli_class_type_kind;
+        }  /* if */
       }  /* if */
+      if (!cli_class_type_kind_is(proxy_class, cctk_interface)) break;
+    }  /* for */
+    if (cli_class_type_kind_is(proxy_class, cctk_interface)) {
+      /* The class is a sort of hybrid value/ref class. */
+      ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
+      proxy_class->variant.class_struct_union.is_hybrid_constraint = TRUE;
     }  /* if */
     if (!is_value_class_type(proxy_class)) {
       /* Except for constraints known to be value classes, the type used
