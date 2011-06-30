@@ -2956,7 +2956,7 @@ table for base class A of class D, B::f() or C::f()?  This ambiguity must be
 reported to the user.
 
 The technique is as follows.  A list of overriding virtual functions is
-maintained for each base class.  For instance, for base class A in class C
+maintained for each base class.  For instance, for base class A in class D
 entries would have been created for both B::f() and C::f() when the base
 classes were declared; both would have indicated that A::f() was being
 overridden.  If D::f() were then defined, it would be added to the list
@@ -7557,6 +7557,10 @@ or struct definition.  The syntax is
         if (microsoft_mode) {
           if (interface_definition && !is_interface_like(base_class_type)) {
             error(ec_interface_must_derive_from_interface);
+          } else if (cli_class_type_kind_is(base_class_type, cctk_interface)) {
+            /* C++/CLI interfaces behave like virtual base classes when
+               derived from. */
+            is_virtual = TRUE;
           }  /* if */
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7679,6 +7683,12 @@ Add a public direct base of the given type to the class described by cdsp.
   complete_type_is_needed(new_direct_bcp->type);
   new_direct_bcp->derived_class = cdsp->class_type;
   new_direct_bcp->direct = TRUE;
+  if (is_immediate_class_type(new_direct_bcp->type) &&
+      cli_class_type_kind_is(new_direct_bcp->type, cctk_interface)) {
+    /* C++/CLI interfaces behave like virtual base classes when derived
+       from. */
+    new_direct_bcp->is_virtual = TRUE;
+  }  /* if */
   new_direct_bcp->is_implicit_direct_base = TRUE;
   new_direct_bcp->direct_base_number = direct_base_number;
   add_new_direct_base(new_direct_bcp, cdsp, (an_access_specifier)as_public,
@@ -19401,6 +19411,7 @@ associated with a generic parameter).  Complete the class by
     }  /* for */
   }  /* if */
   add_implicit_cli_bases(&class_state);
+  wrapup_base_classes(&class_state);
   /* Complete the proxy class. */
   class_state.access = (an_access_specifier)as_public;
   ctsp->assoc_scope =
@@ -21644,7 +21655,18 @@ bits of information that were acquired while parsing.
        the failure to redeclare a virtual function originally declared in
        a virtual base class. */
     if (class_type->variant.class_struct_union.any_virtual_base_classes) {
-      report_virtual_function_ambiguities(class_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (0 && is_immediate_managed_class_type(class_type)) {
+        /* Since there is no true multiple inheritance in managed classes,
+           traditional virtual function ambiguities don't exist there.
+           Named overriding can result in a virtual function being overridden
+           more than once, but that is diagnosed elsewhere. */
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        report_virtual_function_ambiguities(class_type);
+      }  /* if */
     }  /* if */
     /* If necessary, run through the base classes to determine (a) if the
        class is abstract as a consequence of inheriting a pure virtual member

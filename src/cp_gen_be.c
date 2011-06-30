@@ -6404,21 +6404,22 @@ Put out the list of direct base classes of the class associated with ctsp
         }  /* if */
         gen_attributes(bcp->attributes, al_base_specifier,
                        /*primary_only=*/TRUE);
-        if (bcp->is_virtual) {
-          write_tok_str("virtual ");
-          /* Find the direct derivation for a virtual base class. */
-          for (; !bcdp->direct; bcdp = bcdp->next) {}
-        }  /* if */
-        /* Display the derivation access (except for C++/CLI managed
-           classes). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (ctsp->cli_class_type_kind !=
                                        (a_cli_class_type_kind)cctk_standard) {
-          /* Managed classes cannot specify access for base classes. */
+          /* Managed classes cannot specify access for base classes, nor can
+             they explicitly specify "virtual" (even though interface
+             derivation is treated as virtual inheritance). */
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
         {
+          if (bcp->is_virtual) {
+            write_tok_str("virtual ");
+            /* Find the direct derivation for a virtual base class. */
+            for (; !bcdp->direct; bcdp = bcdp->next) {}
+          }  /* if */
+          /* Display the derivation access. */
           gen_access_specifier(bcdp->access);
         }  /* if */
         write_space();
