@@ -865,7 +865,7 @@ Free a token cache entry.
 {
   tcp->next = avail_token_cache_entries;
   avail_token_cache_entries = tcp;
-}  /* free_reusable_cache */
+}  /* free_token_cache */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

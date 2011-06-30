@@ -1957,6 +1957,9 @@ Display the indicated type entry.
       if (ptr->variant.class_struct_union.do_not_instantiate) {
         disp_boolean("do_not_instantiate", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.proxy_class) {
+        disp_boolean("proxy_class", TRUE);
+      }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
       disp_boolean("definition_needed",
                  (a_boolean)ptr->variant.class_struct_union.definition_needed);
