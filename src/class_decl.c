@@ -3308,8 +3308,8 @@ return TRUE.
       mismatch = TRUE;
     }  /* if */
   } else if (symbol_is(named_sym, sk_member_function)) {
-    /* overrider is named overrider.  Check that the property/event name of
-       candidate matches the name mentioned in the name overrider. */
+    /* The overrider is a named overrider.  Check that the property/event name
+       of the candidate matches the name mentioned in the named overrider. */
     a_routine_ptr  named_rp = named_sym->variant.routine.ptr;
     if (rout_is_cli_accessor(named_rp)) {
       a_field_ptr  fp1, fp2 = pdp2->variant.field;
