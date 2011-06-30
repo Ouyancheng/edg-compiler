@@ -19464,9 +19464,9 @@ when the constraint type is completed.
 }  /* rescan_open_constructed_type_constraints */
 
 
-void create_generic_constraint_types(a_template_param_ptr  generic_param_list)
+void create_generic_constraint_types(a_template_decl_info_ptr	decl_info)
 /*
-Loop through the C++/CLI generic parameters (generic_param_list) and create a
+Loop through the C++/CLI generic parameters of decl_info and create a
 type for each based on the constraints for the generic parameter.  The
 completion of the types (by complete_generic_constraint_type) is delayed until
 a complete type is actually needed.  This permits constraints to e.g. involve
@@ -19480,7 +19480,12 @@ the enclosing type of the constrained generic.  For example:
 */
 {
   a_template_param_ptr        tpp;
- 
+  a_template_param_ptr        generic_param_list = decl_info->parameters;
+
+  /* If there is an enclosing generic parameter list, process it first. */
+  if (decl_info->enclosing_template_decl != NULL) {
+    create_generic_constraint_types(decl_info->enclosing_template_decl);
+  }  /* if */
   for (tpp = generic_param_list; tpp != NULL; tpp = tpp->next) {
     a_symbol_ptr              param_sym = tpp->param_symbol;
     a_type_ptr                templ_param_type = param_sym->variant.type.ptr;

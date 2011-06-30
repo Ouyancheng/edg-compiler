@@ -50,8 +50,8 @@ extern void scan_cli_delegate_definition_from_assembly_import(void);
 
 extern void complete_generic_constraint_type(a_type_ptr  proxy_class);
 
-extern void create_generic_constraint_types(
-                                    a_template_param_ptr  generic_param_list);
+extern
+void create_generic_constraint_types(a_template_decl_info_ptr	decl_info);
 
 extern a_boolean in_cli_property_or_event_definition(void);
 

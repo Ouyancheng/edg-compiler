@@ -21291,7 +21291,7 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
     /* For C++/CLI generics, scan any constraints that may be present. */
     scan_generic_constraint_clauses(&decl_state);
     /* Create the constraint types based on the C++/CLI constraints. */
-    create_generic_constraint_types(decl_state.decl_info->parameters);
+    create_generic_constraint_types(decl_state.decl_info);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (decl_state.is_specialization) {
