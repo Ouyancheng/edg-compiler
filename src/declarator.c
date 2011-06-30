@@ -555,14 +555,11 @@ and return FALSE.  Otherwise, return TRUE.
         /* Handles to handles, pointers or references are not allowed.  If tp
            is a handle, it may actually represent a generic parameter: Use a
            more direct diagnostic for that case. */
-        if (is_handle_type(tp)) {
-          a_type_ptr  utp = type_pointed_to(tp);
-          if (is_immediate_class_type(utp) &&
-              utp->variant.class_struct_union.is_generic_constraint) {
-            err_code = ec_ptr_handle_or_ref_to_generic_param;
-          }  /* if */
+        if (is_cli_generic_definition_argument_type(tp)) {
+          err_code = ec_ptr_handle_or_ref_to_generic_param;
+        } else {
+          err_code = ec_handle_to_address_type;
         }  /* if */
-        if (err_code == ec_no_error) err_code = ec_handle_to_address_type;
       } else if (is_immediate_class_type(tp) &&
                  cli_class_type_kind_is(tp, cctk_standard)) {
         /* A handle to a non-managed class type is invalid. */
@@ -594,10 +591,7 @@ and return FALSE.  Otherwise, return TRUE.
     } else if (!(is_ref && is_handle)) {
       /* Check for a pointer, handle, or ordinary reference to a generic
          parameter (a tracking reference is okay). */
-      if (is_handle_type(tp)) tp = type_pointed_to(tp);
-      tp = skip_typerefs(tp);
-      if (is_immediate_class_type(tp) &&
-          tp->variant.class_struct_union.is_generic_constraint) {
+      if (is_cli_generic_definition_argument_type(tp)) {
         err_code = ec_ptr_handle_or_ref_to_generic_param;
       }  /* if */
     }  /* if */
@@ -862,10 +856,7 @@ the specifiers and declarator that formed the new type.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (cppcli_enabled && is_handle_type(temp_type)) {
           /* A native array of handles is invalid. */
-          a_type_ptr  utp = type_pointed_to(temp_type);
-          if (utp != NULL && is_class_struct_union_type(utp) &&
-              skip_typerefs(utp)
-                         ->variant.class_struct_union.is_generic_constraint) {
+          if (is_cli_generic_definition_argument_type(temp_type)) {
             /* The handle type is really a generic parameter. */
             pos_error(ec_array_of_generic_param, &error_position);
           } else {

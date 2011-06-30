@@ -15473,7 +15473,7 @@ definition described by class_state.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (class_type->variant.class_struct_union.is_generic_constraint &&
                !cli_class_type_kind_is(class_type, cctk_value)) {
-      /* Constraint types aren't default-constructable unless they are
+      /* Constraint types aren't default-constructible unless they are
          value-type-constrained or the gcnew() constraint was specified (in
          the latter case, the default constructor was already generated). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -19362,7 +19362,8 @@ done:;
 void complete_generic_constraint_type(a_type_ptr  proxy_class)
 /*
 The given type is a generic constraint type (i.e., the proxy class type
-associated with a generic parameter).  Complete the class by 
+associated with a generic parameter).  Complete the class by adding base
+classes and possibly a default constructor as indicated by the constraints.
 */
 {
   a_type_ptr                    templ_param_type;
@@ -19886,7 +19887,7 @@ passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (scope_is(&scope_stack_top(), sck_template_declaration) &&
           scope_stack_top().tmpl_decl_state->is_generic) {
-        decl_state->is_generic_declaration = 1;
+        decl_state->is_generic_declaration = TRUE;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */

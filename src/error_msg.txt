@@ -2258,7 +2258,7 @@ ec_expr_not_pointer_nor_handle;;"expression must have pointer or handle type"
 ec_move_ctor_or_assign_copy_of_lvalue;;"a move constructor or move assignment operator is used to copy an lvalue here, which may destroy the source object"
 ec_generic_selection_with_points_to;;"member selection on a C++/CLI generic entity must use the \"->\" syntax, not \".\""
 ec_invalid_specific_ref_class_base;;"a ref class type cannot derive from %t"
-ec_generic_class_must_be_managed;;"a generic class must be managed (i.e., a ref class, an value class, or an interface class)"
+ec_generic_class_must_be_managed;;"a generic class must be managed (i.e., a ref class, a value class, or an interface class)"
 ec_sealed_constraint;;"a sealed class cannot be used as a constraint"
 ec_dynamic_cast_to_value_generic;;"the type in a dynamic_cast cannot be a generic type that might be a value type"
 ###############################################################################

@@ -141,7 +141,7 @@ extern a_boolean is_standard_class_type(a_type_ptr tp);
 extern a_boolean is_managed_class_type(a_type_ptr tp);
 extern a_boolean is_cli_interface_type(a_type_ptr tp);
 extern a_boolean is_cli_ref_or_interface_class_type(a_type_ptr tp);
-extern a_boolean is_cli_generic_definition_argument_type(a_type_ptr	type);
+extern a_boolean is_cli_generic_definition_argument_type(a_type_ptr  type);
 /* This is called is_handle_ptr because there is a field called
    is_handle in il_def.h and old preprocessors have problems with
    that. */
@@ -170,11 +170,11 @@ extern a_boolean class_is_instance_of_generic_from_metadata(
    from metadata, an instance of a generic class loaded from metadata, or a
    nested class thereof. */
 #define class_is_from_metadata(tp)                                           \
-  (class_type_supp((tp))->assembly_index ||                                  \
+  (class_type_supp((tp))->assembly_index != 0 ||                             \
    (tp->variant.class_struct_union.is_generic_instance &&                    \
     class_is_instance_of_generic_from_metadata((tp))))
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-extern a_boolean is_cli_open_constructed_type(a_type_ptr	tp);
+extern a_boolean is_cli_open_constructed_type(a_type_ptr  tp);
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_immediate_managed_class_type(tp) /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -562,8 +562,8 @@ set *bcp to point to the base class entry that shows the relationship.
 
 extern a_boolean type_masks_handler_param_type(a_type_ptr  type_1,
                                                a_type_ptr  type_2);
-extern a_boolean set_array_type_size(a_type_ptr	array_type,
-				     a_boolean		suppress_error);
+extern a_boolean set_array_type_size(a_type_ptr  array_type,
+                                     a_boolean   suppress_error);
 extern void set_type_size(a_type_ptr type_ptr);
 extern a_type_ptr type_after_integral_promotion(a_type_ptr type);
 extern a_type_ptr default_argument_promotion(a_type_ptr old_type);
