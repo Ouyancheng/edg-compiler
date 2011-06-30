@@ -7557,10 +7557,6 @@ or struct definition.  The syntax is
         if (microsoft_mode) {
           if (interface_definition && !is_interface_like(base_class_type)) {
             error(ec_interface_must_derive_from_interface);
-          } else if (cli_class_type_kind_is(base_class_type, cctk_interface)) {
-            /* C++/CLI interfaces behave like virtual base classes when
-               derived from. */
-            is_virtual = TRUE;
           }  /* if */
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7683,12 +7679,6 @@ Add a public direct base of the given type to the class described by cdsp.
   complete_type_is_needed(new_direct_bcp->type);
   new_direct_bcp->derived_class = cdsp->class_type;
   new_direct_bcp->direct = TRUE;
-  if (is_immediate_class_type(new_direct_bcp->type) &&
-      cli_class_type_kind_is(new_direct_bcp->type, cctk_interface)) {
-    /* C++/CLI interfaces behave like virtual base classes when derived
-       from. */
-    new_direct_bcp->is_virtual = TRUE;
-  }  /* if */
   new_direct_bcp->is_implicit_direct_base = TRUE;
   new_direct_bcp->direct_base_number = direct_base_number;
   add_new_direct_base(new_direct_bcp, cdsp, (an_access_specifier)as_public,
