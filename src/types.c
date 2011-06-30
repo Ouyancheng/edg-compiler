@@ -1004,9 +1004,12 @@ generic type that might in some cases be a value type.
     tp = type_pointed_to(tp);
     tp = skip_typerefs(tp);
     if (is_cli_generic_constraint(tp) &&
-        tp->variant.class_struct_union.is_hybrid_constraint) {
+        tp->variant.class_struct_union.unconstrained) {
       /* This is a generic type that could be either a handle to a ref class
-         or a value class type. */
+         or a value class type.  Note that it would seem sensible also to
+         do the same for a generic constrained to derive from an interface,
+         since that could also be a value class, but that's not how VC10
+         does it. */
       result = FALSE;
     }  /* if */
   }  /* if */
