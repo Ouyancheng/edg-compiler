@@ -20911,8 +20911,8 @@ that case.
     a_boolean has_predef_meaning = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled &&
-        (is_handle_type(operand_1->type) ||
-         is_handle_type(operand_2.type))) {
+        (is_handle_type_not_value_generic(operand_1->type) ||
+         is_handle_type_not_value_generic(operand_2.type))) {
       has_predef_meaning = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

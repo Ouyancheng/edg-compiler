@@ -991,6 +991,29 @@ Return TRUE if the given type is a C++/CLI handle type.
 }  /* is_handle_type */
 
 
+a_boolean is_handle_type_not_value_generic(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++/CLI handle type, but not a
+generic type that might in some cases be a value type.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_handle_type(tp)) {
+    result = TRUE;
+    tp = type_pointed_to(tp);
+    tp = skip_typerefs(tp);
+    if (is_cli_generic_constraint(tp) &&
+        tp->variant.class_struct_union.is_hybrid_constraint) {
+      /* This is a generic type that could be either a handle to a ref class
+         or a value class type. */
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_handle_type_not_value_generic */
+
+
 a_boolean is_tracking_reference_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a C++/CLI tracking reference type.
