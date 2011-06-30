@@ -21656,7 +21656,7 @@ bits of information that were acquired while parsing.
        a virtual base class. */
     if (class_type->variant.class_struct_union.any_virtual_base_classes) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (0 && is_immediate_managed_class_type(class_type)) {
+      if (is_immediate_managed_class_type(class_type)) {
         /* Since there is no true multiple inheritance in managed classes,
            traditional virtual function ambiguities don't exist there.
            Named overriding can result in a virtual function being overridden
