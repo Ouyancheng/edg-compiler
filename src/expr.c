@@ -12690,6 +12690,13 @@ indication in *rcblock).
                                                  ec_bad_dynamic_cast_type,
                        &type_position);
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (handle_case &&
+               !is_handle_type_not_value_generic(cast_type)) {
+      /* Can't cast to a C++/CLI generic type that might be a value class. */
+      expr_pos_error(ec_dynamic_cast_to_value_generic, &type_position);
+      err = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
   if (!err) {
