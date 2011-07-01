@@ -3941,10 +3941,12 @@ the set of option flags passed into the push scope routines.
      scope stack. */
   (void)push_scope((a_scope_kind)sck_instantiation_context, NO_SCOPE_NUMBER,
                    (a_type_ptr)NULL, (a_routine_ptr)NULL);
-  /* Push the namespace containing the point of instantiation. */
-  if (reference_nsp !=
+  /* Push the namespace containing the point of instantiation.  This is not
+     needed for classes being loaded by get_definition_of_class. */
+  if ((options & PS_CLASS_DEFINITION_CONTEXT) == 0 &&
+      (reference_nsp !=
               scope_stack[depth_innermost_namespace_scope].assoc_namespace ||
-      depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+       depth_innermost_instantiation_scope != NO_SCOPE_DEPTH)) {
     /* The namespace that contains the first reference of this template
        that requires its instantiation is different than the current
        namespace.  If we are already in an instantiation we force the
@@ -4132,7 +4134,18 @@ The following fixups need to be performed:
   /* The scope pushed after the definition namespace context has been
      restored, if any, needs to have its previous scope field updated to
      point to the definition context. */
-  if (after_definition_depth <= depth_scope_stack) {
+  if (after_definition_depth > depth_scope_stack) {
+    /* When this routine is called (indirectly) by get_definition_of_class
+       there is not always a scope pushed after the definition namespace
+       context has been set up (when called from other contexts there is
+       at least a template instantiation scope).  Adjust the after
+       definition depth in such cases. */
+    after_definition_depth = depth_scope_stack;
+    check_assertion((options & PS_CLASS_DEFINITION_CONTEXT) != 0);
+  }  /* if */
+  /* after_definition_depth will only be the same as definition_depth if
+     it was adjusted in the code above. */
+  if (after_definition_depth != definition_depth) {
     scope_stack[after_definition_depth].previous_scope = definition_depth;
   }  /* if */
 }  /* fixup_instantiation_scopes */

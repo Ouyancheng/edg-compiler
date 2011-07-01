@@ -18482,7 +18482,8 @@ C++/CLI delegate class types.)
                               tdip, class_type_for_context,
                               (a_routine_ptr)NULL, class_sym_for_context,
                               class_sym_for_context, (a_template_arg_ptr)NULL,
-                              /*push_lex_state=*/TRUE, PS_NO_OPTIONS);
+                              /*push_lex_state=*/TRUE,
+                              PS_CLASS_DEFINITION_CONTEXT);
   /* By default, the instantiation scope context pushed by the call to
      push_template_instantiation_scope just copies the name linkage from the
      previous entry on the scope stack, which may not be related to that of

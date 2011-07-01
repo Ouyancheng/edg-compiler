@@ -75,6 +75,12 @@ typedef int a_push_scope_options_set;
 			/* TRUE if the scope being pushed is the template
 			   instantiation scope for a C++/CLI generic
 			   definition. */
+#define PS_CLASS_DEFINITION_CONTEXT	0x4000
+			/* TRUE when push_template_instantiation_scope is
+			   being used to push the context for loading
+			   a class definition from get_definition_of_class.
+			   This indicates that there may not actually be
+			   an instantiation scope pushed. */
 #define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
 			/* Size of the shareable constants hash table for
 			   a function. */

@@ -1,5 +1,14 @@
 Version 4.4
 
+7/1/11   [EDGcpfe/11466]
+Incorrect namespace context when using get_definition_of_class
+
+For customers that have provided their own code that makes use of the
+hooks for lazy loading of classes (see 1/29/10 entry), the namespace
+lookup context was sometimes not set properly when loading classes
+defined in namespaces.  Now fixed.
+
+
 6/30/11  [EDGcpfe/11811]
 Diagnose invalid universal-character-names (UCNs)
 
