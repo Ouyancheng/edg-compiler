@@ -3334,7 +3334,7 @@ return TRUE.
 static a_boolean is_quasi_direct_base_interface(a_base_class_ptr  bcp)
 /*
 Return TRUE if bcp is a base of C++/CLI interface type that is either a direct
-base or whose derivation path includes only interfaces (not including the
+base or whose derivation paths include only interfaces (not including the
 derived class).
 */
 {
@@ -3345,15 +3345,20 @@ derived class).
     if (!bcp->direct) {
       a_base_class_derivation_ptr  derivation = bcp->derivation;
       a_derivation_step_ptr        step;
-      check_assertion(derivation->next == NULL);
-      for (step = derivation->path; step != NULL; step = step->next) {
-        if (!cli_class_type_kind_is(step->base_class->type, cctk_interface)) {
-          result = FALSE;
-          break;
-        }  /* if */
+      for (; derivation != NULL; derivation = derivation->next) {
+        for (step = derivation->path; step != NULL; step = step->next) {
+          if (!cli_class_type_kind_is(step->base_class->type,
+                                      cctk_interface)) {
+            /* At least one derivation path includes a non-interface base
+               class. */
+            result = FALSE;
+            goto done;
+          }  /* if */
+        }  /* for */
       }  /* for */
     }  /* if */
   }  /* if */
+done:
   return result;
 }  /* is_quasi_direct_base_interface */
 
