@@ -13891,7 +13891,7 @@ initially used when processing the declaration of a partial specialization.
       if (cppcli_enabled) {
         a_type_ptr			class_type;
         class_type = tssp->variant.class_template.prototype_instantiation
-                                                            ->variant.type.ptr;
+                                             ->variant.class_struct_union.type;
         class_type_supp(class_type)->cli_class_type_kind =
                                                decl_state->cli_class_type_kind;
         class_type->variant.class_struct_union.is_generic_definition =
@@ -15271,7 +15271,7 @@ friend_template_checks_done:
           if (cppcli_enabled && !err) {
             a_type_ptr  class_type = 
                           tssp->variant.class_template.prototype_instantiation
-                              ->variant.type.ptr;
+                              ->variant.class_struct_union.type;
             if (class_type_supp(class_type)->cli_class_type_kind !=
                                              decl_state->cli_class_type_kind) {
               pos_sy_error(ec_conflicting_cli_class_template_kinds,
