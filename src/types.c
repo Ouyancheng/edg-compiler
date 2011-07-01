@@ -1314,12 +1314,12 @@ The given type must be a boxable type.  Return the corresponding boxed type
 (which in the case of a value class type is the type itself, minus typerefs).
 */
 {
-  a_type_ptr  result;
+  a_type_ptr  result, orig_type = unboxed_type;
 
   unboxed_type = skip_typerefs(unboxed_type);
   if (is_immediate_class_type(unboxed_type)) {
     check_assertion(cli_class_type_kind_is(unboxed_type, cctk_value));
-    result = unboxed_type;
+    result = orig_type;
   } else if (is_enum(unboxed_type)) {
     an_integer_type_supplement_ptr  itsp = integer_type_supp(unboxed_type);
     if (itsp->boxed_type == NULL) {
