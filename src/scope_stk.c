@@ -4593,6 +4593,40 @@ push_instantiation_scope_for_constraint_type.
   free_template_decl_info(tdip);
 }  /* pop_instantiation_scope_for_constraint_type */
 
+
+void push_instantiation_scope_for_boxed_enum_type(void)
+/*
+Push an instantiation scope surrounding the definition of a C++/CLI boxed enum
+type.
+*/
+{
+  a_template_decl_info_ptr  tdip;
+
+  tdip = alloc_template_decl_info();
+  (void)push_template_instantiation_scope(
+                              tdip, (a_type_ptr)NULL, (a_routine_ptr)NULL,
+                              (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                              (a_template_arg_ptr)NULL,
+                              /*push_lex_state=*/FALSE, PS_NO_OPTIONS);
+  /* Don't include this scope in any diagnostic output that may be produced. */
+  scope_stack[depth_innermost_instantiation_scope].
+                                            exclude_from_context_output = TRUE;
+}  /* push_instantiation_scope_for_boxed_enum_type */
+
+
+void pop_instantiation_scope_for_boxed_enum_type(void)
+/*
+Pop the instantiation scope pushed by
+push_instantiation_scope_for_boxed_enum_type.
+*/
+{
+  a_template_decl_info_ptr	tdip;
+
+  tdip = scope_stack[depth_innermost_instantiation_scope].template_decl_info;
+  pop_template_instantiation_scope();
+  free_template_decl_info(tdip);
+}  /* pop_instantiation_scope_for_boxed_enum_type */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void push_template_declaration_scope(

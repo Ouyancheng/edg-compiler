@@ -1188,6 +1188,7 @@ a pointer to it.
   itsp->assembly_index = 0;
   itsp->metadata_type_def_token = 0;
   itsp->uuid_string = NULL;
+  itsp->boxed_type = NULL;
 #if DO_IL_LOWERING
   itsp->uuid_variable = NULL;
 #endif /* DO_IL_LOWERING */

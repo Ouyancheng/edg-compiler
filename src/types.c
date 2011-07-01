@@ -1307,6 +1307,32 @@ See ECMA-372 14.2.6 ("Boxing Conversions").
   return result;
 }  /* is_boxable_type */
 
+
+a_type_ptr boxed_type_for(a_type_ptr  unboxed_type)
+/*
+The given type must be a boxable type.  Return the corresponding boxed type
+(which in the case of a value class type is the type itself, minus typerefs).
+*/
+{
+  a_type_ptr  result;
+
+  unboxed_type = skip_typerefs(unboxed_type);
+  if (is_immediate_class_type(unboxed_type)) {
+    check_assertion(cli_class_type_kind_is(unboxed_type, cctk_value));
+    result = unboxed_type;
+  } else if (is_enum(unboxed_type)) {
+    an_integer_type_supplement_ptr  itsp = integer_type_supp(unboxed_type);
+    if (itsp->boxed_type == NULL) {
+      make_boxed_enum_type(unboxed_type);
+    }  /* if */
+    result = itsp->boxed_type;
+  } else {
+    result = system_type_from_fundamental_type(unboxed_type);
+  }  /* if */
+  check_assertion(result != NULL);
+  return result;
+}  /* boxed_type_for */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_delegate_type(a_type_ptr tp)

@@ -6955,6 +6955,10 @@ typedef struct an_integer_type_supplement {
 		*uuid_string;
 			/* Pointer to a character string representing the
 			   argument of a uuid decl-modifier (enums only). */
+  a_type_ptr	boxed_type;
+			/* For C++/CLI enumeration types, the corresponding
+			   ref class type representing the boxed version of
+			   the enumeration type. */
 #if DO_IL_LOWERING
   a_variable_ptr
 		uuid_variable;

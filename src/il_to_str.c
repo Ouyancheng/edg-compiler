@@ -736,6 +736,17 @@ static void form_tag_reference(a_type_ptr                            type,
 Output a reference to a tag, doing output in the way described by octl.
 */
 {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_immediate_class_type(type) &&
+      class_type_supp(type)->corresponding_basic_type != NULL &&
+      is_immediate_enum_type(
+                           class_type_supp(type)->corresponding_basic_type)) {
+    /* The given type represents a boxed enum type in C++/CLI mode.  The type
+       cannot be written explicitly in source form.  Use the unboxed type
+       instead. */
+    type = class_type_supp(type)->corresponding_basic_type;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* See if there is a routine to do specialized name output. */
   if (octl->output_name != NULL) {
     /* Use the specialized routine. */

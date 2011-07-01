@@ -130,6 +130,7 @@ extern a_boolean is_handle_to_cli_array_type(a_type_ptr tp);
 extern a_boolean is_cli_array_type(a_type_ptr tp);
 extern a_boolean is_cli_value_type(a_type_ptr tp);
 extern a_boolean is_boxable_type(a_type_ptr tp);
+extern a_type_ptr boxed_type_for(a_type_ptr  unboxed_type);
 extern a_type_ptr cli_array_element_type(a_type_ptr tp);
 extern a_constant_ptr cli_array_rank_constant(a_type_ptr tp);
 extern a_host_large_unsigned cli_array_rank(a_type_ptr tp,

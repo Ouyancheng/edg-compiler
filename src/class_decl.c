@@ -18602,10 +18602,8 @@ definition and record it in the IL (as a special-purpose class type).
   }  /* if */
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, dps->sym,
                             &loc.source_position, dps->source_sequence_entry);
-  if (cppcli_enabled) {
-    set_cli_visibility(class_type, visibility, &visibility_pos,
-                       /*is_definition=*/TRUE);
-  }  /* if */
+  set_cli_visibility(class_type, visibility, &visibility_pos,
+                     /*is_definition=*/TRUE);
   /* Start the class definition (and associated class scope). */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   class_type->autonomous_primary_tag_decl = TRUE;
@@ -19557,6 +19555,73 @@ the enclosing type of the constrained generic.  For example:
      constraint now that we have the correct type for T. */
   rescan_open_constructed_type_constraints(generic_param_list);
 }  /* create_generic_constraint_types */
+
+
+void make_boxed_enum_type(a_type_ptr  tp)
+/*
+Create a C++/CLI class type representing the boxed version of the given
+enumeration type.  Update the given type to point to its boxed version and
+vice versa.
+*/
+{
+  a_type_ptr                   btp;
+  a_symbol_ptr                 bsym;
+  a_symbol_locator             loc;
+  a_class_type_supplement_ptr  ctsp;
+  a_class_def_state            class_state;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean                    saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+  check_assertion(is_immediate_enum_type(tp));
+  /* Create a symbol for the boxed type.  It is not added to the symbol
+     table since it would conflict with the symbol of the enum type. */
+  make_locator_for_symbol(symbol_for(tp), &loc);
+  bsym = make_symbol((a_symbol_kind)sk_class_or_struct_tag, &loc);
+  /* Create the type entry itself. */
+  btp = alloc_type((a_type_kind)tk_struct);
+  ctsp = class_type_supp(btp);
+  ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_value;
+  ctsp->is_hide_by_sig = TRUE;
+  btp->variant.class_struct_union.final = TRUE;
+  bsym->variant.class_struct_union.type = btp;
+  set_source_corresp(&(btp->source_corresp), bsym);
+  set_name_linkage_for_type(btp);
+  add_to_types_list(btp, DEPTH_OF_FILE_SCOPE);
+  /* Start the class definition (and associated class scope). */
+  initialize_class_def_state(btp, &class_state);
+  push_instantiation_scope_for_boxed_enum_type();
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  btp->autonomous_primary_tag_decl = TRUE;
+  /* Don't issue source sequence entries for generated entities. */
+  saved_source_sequence_entries_disallowed =
+                                            source_sequence_entries_disallowed;
+  scope_stack_top().source_sequence_entries_disallowed = TRUE;
+  source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Add System::Enum as a base class. */
+  add_cli_system_base_class(
+                         &class_state, cli_symbol_from_kind(csk_system_enum));
+  class_state.access = (an_access_specifier)as_public;
+  ctsp->assoc_scope =
+             push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
+                        btp, (a_routine_ptr)NULL);
+  scope_stack_top().class_def_state = &class_state;
+  /* Wrap up the definition. */
+  complete_class_definition(btp, DEPTH_OF_FILE_SCOPE, &class_state);
+  pop_scope();
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Restore the previous state wrt. generating source sequence entries. */
+  source_sequence_entries_disallowed =
+                                     saved_source_sequence_entries_disallowed;
+  scope_stack_top().source_sequence_entries_disallowed 
+                                    = saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  pop_instantiation_scope_for_boxed_enum_type();
+  /* Link the enum type with the boxed type and vice versa. */
+  integer_type_supp(tp)->boxed_type = btp;
+  ctsp->corresponding_basic_type = tp;
+}  /* make_boxed_enum_type */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

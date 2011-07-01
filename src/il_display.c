@@ -1526,6 +1526,9 @@ Display the indicated integer type supplement.
     disp_string_ptr("uuid_string", ptr->uuid_string,
                     iek_other_text, (sizeof_t)0);
   }  /* if */
+  if (ptr->boxed_type != NULL) {
+    disp_ptr("boxed_type", (char *)ptr->boxed_type, iek_type);
+  }  /* if */
   /* uuid_variable not displayed since it is used for IL lowering only. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->base_type != NULL) {

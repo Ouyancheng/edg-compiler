@@ -1754,6 +1754,10 @@ extern void pop_instantiation_scope_for_rescan(void);
 extern void push_instantiation_scope_for_constraint_type(void);
 
 extern void pop_instantiation_scope_for_constraint_type(void);
+
+extern void push_instantiation_scope_for_boxed_enum_type(void);
+
+extern void pop_instantiation_scope_for_boxed_enum_type(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void push_instantiation_scope_for_templ_param_rescan(

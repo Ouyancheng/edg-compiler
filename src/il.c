@@ -9380,9 +9380,9 @@ an existing entry if possible.
 {
   a_type_ptr ptr;
 
-  /* Box built-in types when creating handles. */
-  ptr = system_type_from_fundamental_type(skip_typerefs(pointed_to_type));
-  if (ptr != NULL) {
+  /* Box built-in types and enum types when creating handles. */
+  if (is_boxable_type(pointed_to_type)) {
+    ptr = boxed_type_for(pointed_to_type);
     pointed_to_type = type_plus_qualifiers_from_second_type(ptr,
                                                             pointed_to_type);
   }  /* if */

@@ -3335,6 +3335,7 @@ after_entry_from_class:
                                     (an_integer_type_supplement_ptr)entry_ptr;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_string_ptr(ptr->uuid_string, iek_other_text, 0);
+        remap_ptr(ptr->boxed_type, a_type_ptr, iek_type);
 #if DO_IL_LOWERING
         conditionally_clear_fe_pointer(ptr->uuid_variable);
 #endif /* DO_IL_LOWERING */
