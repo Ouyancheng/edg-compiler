@@ -1,5 +1,22 @@
 Version 4.4
 
+7/1/11   [EDGcpfe/11864]
+Internal error on friend template declaration in local class
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the front
+aborted with an internal error in get_scope_for_list (il.c) when processing a
+friend function template declaration in a local class (which is an invalid C++
+construct).  For example:
+
+  void f() {
+    struct S {
+      template<typename T> friend void g(T);  // Erroneous code previously
+    };                                        // triggered an internal error
+  }                                           // in some configurations.
+
+This is now fixed.
+
+
 7/1/11   [EDGcpfe/11466]
 Incorrect namespace context when using get_definition_of_class
 
