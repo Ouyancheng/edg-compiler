@@ -4869,6 +4869,40 @@ return_types_are_override_compatible.
   }  /* if */
 }  /* check_virtual_function_override */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void check_constraints_for_generic_override(a_symbol_ptr  d_templ,
+                                                   a_symbol_ptr  b_templ)
+/*
+The current scope stack entry is an sck_template_declaration entry for a
+C++/CLI member generic (d_templ) that overrides the generic represented by
+b_templ.  If the constraint clauses associated with these generics do not
+match, issue an appropriate error.
+*/
+{
+  a_template_param_ptr      d_params, b_params;
+  a_generic_constraint_ptr  mismatched_constraint = NULL;
+
+  check_assertion(scope_is(&scope_stack_top(), sck_template_declaration));
+  d_params = scope_stack_top().template_decl_info->parameters;
+  b_params = b_templ->variant.template_info->cache.decl_info->parameters;
+  if (!equivalent_generic_constraints_for_param_lists(
+                                d_params, b_params, &mismatched_constraint)) {
+    a_source_position_ptr  diag_pos = NULL;
+    if (mismatched_constraint != NULL) {
+      /* A specific constraint in the overriding generic was found without a
+         match in the base class list: Point to it for the diagnostic. */
+      diag_pos = &mismatched_constraint->position;
+    } else {
+      /* No specific conflicting constraint was identified in the overriding
+         generic.  Point to the generic itself for the diagnostic. */
+      diag_pos = &d_templ->decl_position;
+    }  /* if */
+    pos_sy_error(ec_override_with_constraint_mismatch, diag_pos, d_templ);
+  }  /* if */
+}  /* check_constraints_for_generic_override */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* func_info is not used in some configurations. */
@@ -4912,10 +4946,26 @@ information about the function declarator.
   a_symbol_ptr                    named_override_sym = NULL;
   a_symbol_ptr                    matching_interface_member = NULL;
   a_boolean                       new_okay = FALSE, rout_is_member_generic;
+  a_symbol_ptr                    rout_templ = NULL, rp_templ = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_source_position               *source_pos = &dps->declarator_pos;
 
   db_enter(4, "check_for_virtual_override");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (symbol_is(rout_sym, sk_function_template)) {
+    /* A member generic.  We mostly work with the routine entry (the "generic
+       definition"), but record the template entry to check for matching
+       constraints later on. */
+    check_assertion(rout_sym->variant.template_info->is_generic);
+    rout_is_member_generic = TRUE;
+    rout_templ = rout_sym;
+    /* For override processing, proceed with the generic definition symbol. */
+    reduce_to_underlying_generic_definition_symbol_if_needed(rout_sym);
+    dps->sym = rout_sym;
+  } else {
+    rout_is_member_generic = FALSE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   check_assertion(rout_sym->kind == (a_symbol_kind)sk_member_function);
   sym_header_to_search = rout_sym->header;
   rout = rout_sym->variant.routine.ptr;
@@ -4925,8 +4975,6 @@ information about the function declarator.
   if (rout->compiler_generated) source_pos = &rout_sym->decl_position;
   registry_ptr = &class_state->override_registry;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  rout_is_member_generic = rout->is_generic_definition &&
-                           rout->template_arg_list != NULL;
   if (cppcli_enabled && decl_info->is_destructor &&
       is_immediate_managed_class_type(class_type)) {
     /* A destructor of a managed type is never virtual even when "virtual" is
@@ -5012,7 +5060,12 @@ next_named_override:
           for (; sym != NULL; sym = next_sym_in_set) {
             if (overloaded) next_sym_in_set = sym->next;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (rout->is_generic_definition) {
+            if (rout->is_generic_definition &&
+                symbol_is(sym, sk_function_template)) {
+              /* A potential generic override: Record the associated template
+                 entry (to check for matching constraints later on) and use
+                 the symbol for the generic definition after that. */
+              rp_templ = sym;
               reduce_to_underlying_generic_definition_symbol_if_needed(sym);
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5204,6 +5257,10 @@ next_named_override:
                    value types cannot be base classes. */
                 matching_interface_member = sym;
               }  /* if */
+              if (rout_is_member_generic) {
+                /* Diagnose any mismatch in generic constraints. */
+                check_constraints_for_generic_override(rout_templ, rp_templ);
+              }  /* if */
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* Match */
@@ -5384,6 +5441,12 @@ done:
       class_state->default_ctor_is_nontrivial = TRUE;
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (rout_templ != NULL) {
+    /* Restore the template symbol in the parse state. */
+    dps->sym = rout_templ;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
 }  /* check_for_virtual_override */
 
@@ -12048,9 +12111,7 @@ declarations.)
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (tssp->is_generic) {
       /* Generic functions can be virtual (standard member function templates
-         cannot).  For the purposes of determining overriding, treat this as
-         the declaration of a function instead of that of a member template. */
-      dps->sym = prototype_sym;
+         cannot). */
       if (check_virtual_interface_member(class_state, rtn, locator)) {
         rtn->is_virtual = TRUE;
         make_virtual_function_pure(rtn, class_type);

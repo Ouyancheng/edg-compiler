@@ -1990,6 +1990,88 @@ return the original type.
   return result_type;
 }  /* generic_param_if_generic_definition_argument */
 
+
+static a_boolean equivalent_generic_constraint_lists(
+                               a_generic_constraint_ptr  list1,
+                               a_generic_constraint_ptr  list2,
+                               a_generic_constraint_ptr  *p_mismatch_in_list1)
+/*
+Return TRUE if the given lists of generic constraints are equivalent.
+Otherwise, return FALSE and if the first list (list1) contains a constraint
+that has no match in the second list, return the first such constraint in
+*p_mismatch_in_list1.
+*/
+{
+  a_boolean                 result = TRUE;
+  a_generic_constraint_ptr  gcp1, gcp2;
+  unsigned long             n1 = 0, n2 = 0;
+
+  /* For every constraint in list1, find the matching constraint in list2. */
+  for (gcp1 = list1; gcp1 != NULL; gcp1 = gcp1->next) {
+    ++n1;
+    for (gcp2 = list2; gcp2 != NULL; gcp2 = gcp2->next) {
+      if (gcp1->kind == gcp2->kind) {
+        /* The constraint kinds match.  If the kind is gck_type, the
+           associated type must also match. */
+        if (gcp1->kind != (a_generic_constraint_kind)gck_type ||
+            identical_types(gcp1->type, gcp2->type)) {
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (gcp2 == NULL) {
+      /* No match found for *gcp1. */
+      result = FALSE;
+      *p_mismatch_in_list1 = gcp1;
+      goto done;
+    }  /* if */
+  }  /* for */
+  /* Each constraint in the first list has a match in the second list.  To
+     ensure that the converse is true, it is sufficient to establish that
+     both lists have the same length. */
+  for (gcp2 = list2; gcp2 != NULL; gcp2 = gcp2->next) ++n2;
+  result = (n1 == n2);
+done:
+  return result;
+}  /* equivalent_generic_constraint_lists */
+
+
+a_boolean equivalent_generic_constraints_for_param_lists(
+                               a_template_param_ptr      list1,
+                               a_template_param_ptr      list2,
+                               a_generic_constraint_ptr  *p_mismatch_in_list1)
+/*
+Return TRUE if the generic constraints for the given lists of template
+parameters are equivalent.  Otherwise, return FALSE and if the first list
+(list1) contains a constraint that has no match in the second list, return the
+first such constraint in *p_mismatch_in_list1.
+*/
+{
+  a_boolean             result = TRUE;
+  a_template_param_ptr  tpp1 = list1, tpp2 = list2;
+
+  /* Check the constraints for every parameter pair from the given pair of
+     lists. */
+  for (; tpp1 != NULL; tpp1 = tpp1->next, tpp2 = tpp2->next) {
+    a_generic_constraint_ptr  gclist1, gclist2;
+    check_assertion(tpp2 != NULL);
+    check_assertion(symbol_is(tpp1->param_symbol, sk_type) &&
+                    symbol_is(tpp2->param_symbol, sk_type));
+    gclist1 = generic_param_if_generic_definition_argument(tpp1->variant.type)
+                                           ->variant.template_param.extra_info
+                                           ->generic_constraints;
+    gclist2 = generic_param_if_generic_definition_argument(tpp2->variant.type)
+                                           ->variant.template_param.extra_info
+                                           ->generic_constraints;
+    if (!equivalent_generic_constraint_lists(gclist1, gclist2,
+                                             p_mismatch_in_list1)) {
+      result = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* equivalent_generic_constraints_for_param_lists */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static int compare_variadic_template_arg_lists(

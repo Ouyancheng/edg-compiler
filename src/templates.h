@@ -855,6 +855,11 @@ extern a_boolean is_nontemplate_routine_from_exported_trans_unit(
 extern
 a_type_ptr generic_param_if_generic_definition_argument(a_type_ptr	type);
 
+extern a_boolean equivalent_generic_constraints_for_param_lists(
+                              a_template_param_ptr      list1,
+                              a_template_param_ptr      list2,
+                              a_generic_constraint_ptr  *p_mismatch_in_list1);
+
 extern void scan_cli_generic_class_definition_from_assembly_import(void);
 
 extern void scan_cli_generic_delegate_definition_from_assembly_import(
