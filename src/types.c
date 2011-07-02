@@ -7455,8 +7455,13 @@ that information is not needed.  Doesn't cover boxing conversions
     qualifiers_checked = TRUE;
   } else if (is_nullptr(source_type)) {
     /* Values of nullptr types can be converted to any handle type. */
-    okay = TRUE;
-    qualifiers_checked = TRUE;
+    if (!is_handle_type_not_value_generic(dest_type)) {
+      /* ... except a handle that is implicit on a generic type that might
+         be a value type. */
+    } else {
+      okay = TRUE;
+      qualifiers_checked = TRUE;
+    }  /* if */
   } else if (is_handle_ptr(source_type)) {
     /* Handle --> handle. */
     /* Get the type pointed to and drop type qualifiers and typedefs. */
