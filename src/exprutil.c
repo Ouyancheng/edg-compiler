@@ -7832,7 +7832,11 @@ FALSE if there is an error.
         (operand_2->is_simple_string_literal &&
          cli_string_literal_conversion_possible(operand_2->type,
                                                 operand_1_type,
-                                                (a_std_conv_descr *)NULL))) {
+                                                (a_std_conv_descr *)NULL)) ||
+        /* Conversion of nullptr to a value-constrained generic is not allowed
+           in general, but it is allowed in a handle comparison. */
+        (is_nullptr_type(operand_2_type) &&
+         !is_handle_type_not_value_generic(operand_1_type))) {
       local_operation_type = operand_1_type;
       okay = TRUE;
     }  /* if */
@@ -7847,7 +7851,11 @@ FALSE if there is an error.
         (operand_1->is_simple_string_literal &&
          cli_string_literal_conversion_possible(operand_1->type,
                                                 operand_2_type,
-                                                (a_std_conv_descr *)NULL))) {
+                                                (a_std_conv_descr *)NULL)) ||
+        /* Conversion of nullptr to a value-constrained generic is not allowed
+           in general, but it is allowed in a handle comparison. */
+        (is_nullptr_type(operand_1_type) &&
+         !is_handle_type_not_value_generic(operand_2_type))) {
       local_operation_type = operand_2_type;
       okay = TRUE;
     }  /* if */
