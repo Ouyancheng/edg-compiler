@@ -22950,6 +22950,15 @@ in *rcblock).
       end_position = operand.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && 
+        !is_handle_type(operand.type) &&
+        is_cli_generic_definition_argument_type(operand.type)) {
+      /* Box a value-constrained generic type.  (This isn't done for
+         non-generic value types.) */
+      box_value_type_operand(&operand, /*leave_as_handle=*/TRUE);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     incomp_test_type = operand.type;
     if (!is_class_struct_union_type(operand.type)) {
       /* Array decays to pointer, function decays to pointer.  Don't do
