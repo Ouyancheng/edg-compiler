@@ -1311,7 +1311,7 @@ See ECMA-372 14.2.6 ("Boxing Conversions").
 a_type_ptr boxed_type_for(a_type_ptr  unboxed_type)
 /*
 The given type must be a boxable type.  Return the corresponding boxed type
-(which in the case of a value class type is the type itself, minus typerefs).
+(which in the case of a value class type is the type itself).
 */
 {
   a_type_ptr  result, orig_type = unboxed_type;
@@ -7571,14 +7571,12 @@ conversion.  std_conv can be NULL if that information is not needed.
     if (is_handle_type(dest_type) &&
         is_boxable_type(source_type)) {
       a_base_class_ptr bcp = NULL;
-      a_type_ptr       corresp_type;
       /* cv-qualifiers on the source type are dropped, since the value gets
          copied into the box. */
       source_type = skip_typerefs(source_type);
       /* Convert a built-in type to the corresponding CLI type, e.g.,
-         int to System::Int32. */
-      corresp_type = system_type_from_fundamental_type(source_type);
-      if (corresp_type != NULL) source_type = corresp_type;
+         int to System::Int32.  Also box an enum. */
+      source_type = boxed_type_for(source_type);
       dest_type = type_pointed_to(dest_type);
       /* cv-qualifiers are ignored on the destination type, since it's okay
          to add cv-qualifiers. */
@@ -7636,7 +7634,6 @@ can be NULL if that information is not needed.
     if (is_handle_type(source_type) &&
         is_boxable_type(dest_type)) {
       a_base_class_ptr bcp = NULL;
-      a_type_ptr       corresp_type;
       source_type = type_pointed_to(source_type);
       /* cv-qualifiers on the source type are dropped. */
       source_type = skip_typerefs(source_type);
@@ -7644,9 +7641,8 @@ can be NULL if that information is not needed.
          to add cv-qualifiers. */
       dest_type = skip_typerefs(dest_type);
       /* Convert a built-in type to the corresponding CLI type, e.g.,
-         int to System::Int32. */
-      corresp_type = system_type_from_fundamental_type(dest_type);
-      if (corresp_type != NULL) dest_type = corresp_type;
+         int to System::Int32.  Also box an enum. */
+      dest_type = boxed_type_for(dest_type);
       if (types_are_compatible(source_type, dest_type)) {
         /* A boxing conversion is possible:  cv1 V^ --> cv2 V. */
         okay = TRUE;
