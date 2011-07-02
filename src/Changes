@@ -1,5 +1,35 @@
 Version 4.4
 
+7/2/11   [EDGcpfe/11826]
+Conversion to any cv-qualified version of pointer for first operand of ->*
+
+The search for a conversion from a class to a pointer to match the
+first operand of a "->*" operator now considers conversion functions
+to any cv-qualified version of the necessary pointer type.  For
+example, in the following, the conversion to "pointer to const C"
+is now considered, where previously the front end only looked for
+a conversion to "pointer to C".
+
+  struct C {};
+  struct W {
+    operator const C*() const;
+  };
+  struct X {
+    typedef void (C::*pmf)() const;
+    pmf f_;
+  };
+  void f() {
+    X* xp = 0;
+    W w;
+    (w->*xp->f_)();  // Now accepted
+  }
+
+The implementation of this change includes a fairly large reworking of
+the many context flags that were being passed into conversion routines.
+There is now a bit-set of those, a_conv_context_set, so that a single
+argument can be passed around instead of a cluster of individual flags.
+
+
 7/1/11   [EDGcpfe/11864]
 Internal error on friend template declaration in local class
 

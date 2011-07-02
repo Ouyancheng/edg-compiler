@@ -1956,12 +1956,8 @@ indication in *rcblock).
     /* Convert to the required type. */
     prep_initializer_operand(&result, dest_type, (a_boolean *)NULL,
                              (a_conv_descr_ptr)NULL,
-                             /*initializing_return_value=*/FALSE,
-                             /*initializing_variable=*/FALSE,
-                             /*static_lifetime=*/FALSE,
-                             /*move_ctor_or_assign_parameter=*/FALSE,
                              /*is_copy_initialization=*/FALSE,
-                             /*nontype_template_arg=*/FALSE,
+                             CCO_DEFAULT,
                              err_code);
     if (rcblock == NULL) {
       /* Check for the required closing parenthesis. */
@@ -13674,12 +13670,8 @@ delegate initializer, given by rcblock->argument_list.
                         make_handle_type(class_type),
                         /*is_transparent=*/(a_boolean *)NULL,
                         (a_conv_descr_ptr)NULL,
-                        /*initializing_return_value=*/FALSE,
-                        /*initializing_variable=*/FALSE,
-                        /*static_lifetime=*/FALSE,
-                        /*move_ctor_or_assign_parameter=*/FALSE,
                         /*is_copy_initialization=*/TRUE,
-                        /*nontype_template_arg=*/FALSE,
+                        CCO_DEFAULT,
                         ec_incompatible_delegate_object);
       if (is_error_operand(object_operand)) err = TRUE;
     }  /* if */
@@ -14964,12 +14956,10 @@ handle_empty_parens_new_initializer:
           prep_initializer_operand(
                         &arg_ptr->operand, param_type, (a_boolean *)NULL,
                         (a_conv_descr_ptr)NULL,
-                        /*initializing_return_value=*/FALSE,
-                        /*initializing_variable=*/FALSE,
-                        /*static_lifetime=*/FALSE,
-                        /*move_ctor_or_assign_parameter=*/FALSE,
                         /*is_copy_initialization=*/FALSE,
-                        is_template_param_constant_operand(&arg_ptr->operand),
+                        is_template_param_constant_operand(&arg_ptr->operand) ?
+                          CCO_NONTYPE_TEMPLATE_ARG :
+                          CCO_DEFAULT,
                         ec_incompatible_param);
           if (arg_ptr->operand.kind == (an_operand_kind)ok_constant &&
               arg_ptr->operand.variant.constant.kind ==
@@ -16243,11 +16233,15 @@ called only in C++ mode.
   a_boolean    unbox_case = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_conv_descr conversion, ctor_arg_conversion;
+  a_conv_context_set
+               conv_context = CCO_DEFAULT,
+               conv_context_temp = CCO_DEFAULT;
 
   *processed = FALSE;
   *allow_rvalue_on_rewrite = FALSE;
   cast_to_reference = is_any_reference_type(type_cast_to);
   cast_to_rvalue_reference = is_rvalue_reference_type(type_cast_to);
+  if (source_form == csf_functional) conv_context |= CCO_FUNC_NOTATION_CAST;
   /* Don't check for user-defined conversions in constant expressions. */
   if (!curr_expr_kind_is_const()) {
     if (cast_to_reference) {
@@ -16267,7 +16261,7 @@ called only in C++ mode.
                                        operand->type,
                                        type_cast_to,
                                        /*is_cast=*/TRUE,
-                                       /*move_ctor_or_assign_parameter=*/FALSE,
+                                       conv_context,
                                        &ref_to_const,
                                        &ref_to_const_volatile,
                                        &binding_to_rvalue_allowed,
@@ -16349,11 +16343,10 @@ called only in C++ mode.
                                   operand,
                                   eff_type_cast_to,
                                   /*try_bitwise_copy=*/TRUE,
-                                  /*initializing_return_value=*/FALSE,
-                                  /*is_func_notation_cast=*/FALSE, /*sic*/
                                   /*is_copy_initialization=*/TRUE, /*sic*/
                                   /*orig_is_copy_initialization=*/TRUE, /*sic*/
                                   /*is_reference_binding=*/FALSE, /*sic*/
+                                  conv_context_temp,
                                   &conversion, (a_conv_descr *)NULL,
                                   &ambiguous,
                                   (a_candidate_function_ptr*)NULL) ||
@@ -16372,6 +16365,7 @@ called only in C++ mode.
                                        /*is_copy_initialization=*/TRUE, /*sic*/
                                        /*orig_is_copy_initialization=*/TRUE,
                                        /*is_reference_binding=*/FALSE, /*sic*/
+                                       conv_context_temp,
                                        &conversion,
                                        &ambiguous,
                                        (a_candidate_function_ptr *)NULL) ||
@@ -16391,6 +16385,7 @@ called only in C++ mode.
                                        /*is_copy_initialization=*/TRUE, /*sic*/
                                        /*orig_is_copy_initialization=*/TRUE,
                                        /*is_reference_binding=*/FALSE, /*sic*/
+                                       conv_context_temp,
                                        &conversion,
                                        &ambiguous,
                                        (a_candidate_function_ptr *)NULL) ||
@@ -16464,12 +16459,8 @@ called only in C++ mode.
                                        operand,
                                        type_cast_to,
                                        determined_conversion,
-                                       /*initializing_return_value=*/FALSE,
-                                       /*initializing_variable=*/FALSE,
-                                       /*static_lifetime=*/FALSE,
-                                       /*bitwise_assignment_param=*/FALSE,
-                                       /*move_ctor_or_assign_parameter=*/FALSE,
                                        /*leave_as_object=*/TRUE,
+                                       conv_context_temp,
                                        ec_bad_cast /* arbitrary */);
             /* Class rvalues get placed in a temporary, which is then treated
                as an lvalue, so we don't expect any rvalues here. */
@@ -16495,12 +16486,10 @@ called only in C++ mode.
         if (user_defined_conversion_possible(
                                          operand, type_cast_to,
                                          /*need_lvalue_result=*/FALSE,
-                                         /*initializing_return_value=*/FALSE,
-                                         /*is_func_notation_cast=*/
-                                               (source_form == csf_functional),
                                          /*is_copy_initialization=*/FALSE,
                                          /*orig_is_copy_initialization=*/FALSE,
                                          /*is_reference_binding=*/FALSE,
+                                         conv_context,
                                          &conversion,
                                          &ctor_arg_conversion,
                                          &failed)) {
@@ -23030,9 +23019,8 @@ in *rcblock).
         /* For a class type operand, generate a dynamic initialization that
            copies the value to an undesignated location. */
         prep_elision_initializer_operand(&operand, throw_type,
-                                         /*initializing_return_value=*/FALSE,
-                                         /*move_optimization_allowed=*/TRUE,
                                          /*fill_in_dtor=*/FALSE,
+                                         CCO_MOVE_OPTIMIZATION_ALLOWED,
                                          ec_bad_initializer_type, &dip);
         if (dip == NULL) err = TRUE;
         /* Determine the destructor to be called.  This is done as
@@ -25787,12 +25775,8 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
                                dest_type,
                                (a_boolean *)NULL,
                                (a_conv_descr_ptr)NULL,
-                               /*initializing_return_value=*/FALSE,
-                               /*initializing_variable=*/FALSE,
-                               /*static_lifetime=*/FALSE,
-                               /*move_ctor_or_assign_parameter=*/FALSE,
                                /*is_copy_initialization=*/TRUE,
-                               /*nontype_template_arg=*/FALSE,
+                               CCO_DEFAULT,
                                ec_captured_var_type_not_copyable);
       dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
       dip->variant.expression = make_node_from_operand(&operand);
@@ -27252,12 +27236,8 @@ Return a pointer to the expression.
   /* Convert to the required type. */
   prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
                            (a_conv_descr_ptr)NULL,
-                           /*initializing_return_value=*/FALSE,
-                           /*initializing_variable=*/FALSE,
-                           /*static_lifetime=*/FALSE,
-                           /*move_ctor_or_assign_parameter=*/FALSE,
                            /*is_copy_initialization=*/FALSE,
-                           /*nontype_template_arg=*/FALSE,
+                           CCO_DEFAULT,
                            err_code);
   expression = make_node_from_operand(&result);
   expression = wrap_up_full_expression(expression);
@@ -28553,9 +28533,9 @@ required_type will be void if the expression should have void type
     check_return_value_optimization(&result);
     /* Build a dynamic initialization entry for the return statement. */
     prep_elision_initializer_operand(&result, required_type,
-                                     /*initializing_return_value=*/TRUE,
-                                     /*move_optimization_allowed=*/TRUE,
                                      /*fill_in_dtor=*/FALSE,
+                                     (CCO_INITIALIZING_RETURN_VALUE |
+                                      CCO_MOVE_OPTIMIZATION_ALLOWED),
                                      err_code, dip);
     wrap_up_dynamic_init_full_expression(*dip);
     /* Fix up destructor references in the overall expression. */
@@ -28592,12 +28572,8 @@ required_type will be void if the expression should have void type
       prep_initializer_operand(&result, required_type, 
                                (a_boolean *)NULL,
                                (a_conv_descr_ptr)NULL,
-                               /*initializing_return_value=*/TRUE,
-                               /*initializing_variable=*/FALSE,
-                               /*static_lifetime=*/FALSE,
-                               /*move_ctor_or_assign_parameter=*/FALSE,
                                /*is_copy_initialization=*/TRUE,
-                               /*nontype_template_arg=*/FALSE,
+                               CCO_INITIALIZING_RETURN_VALUE,
                                err_code);
       expression = make_node_from_operand(&result);
       if (!is_any_reference_type(required_type)) {
@@ -28979,12 +28955,8 @@ memory region).  Do various error checks.
        conversions. */
     prep_initializer_operand(operand, param_type, (a_boolean *)NULL,
                              (a_conv_descr_ptr)NULL,
-                             /*initializing_return_value=*/FALSE,
-                             /*initializing_variable=*/FALSE,
-                             /*static_lifetime=*/FALSE,
-                             /*move_ctor_or_assign_parameter=*/FALSE,
                              /*is_copy_initialization=*/TRUE,
-                             /*nontype_template_arg=*/TRUE,
+                             CCO_NONTYPE_TEMPLATE_ARG,
                              ec_bad_nontype_template_arg);
     /* Make a constant from the operand. */
     extract_constant_from_operand_with_fs_fixup(operand, constant);
@@ -30404,12 +30376,8 @@ standard form).  Assumes copy-initialization ("="-form).
     /* Convert to the required type. */
     prep_initializer_operand(&result, dps->type, (a_boolean *)NULL,
                              (a_conv_descr_ptr)NULL,
-                             /*initializing_return_value=*/FALSE,
-                             /*initializing_variable=*/TRUE,  /* Arbitrary. */
-                             /*static_lifetime=*/FALSE,
-                             /*move_ctor_or_assign_parameter=*/FALSE,
                              /*is_copy_initialization=*/TRUE,
-                             /*nontype_template_arg=*/FALSE,
+                             CCO_INITIALIZING_VARIABLE, /* Arbitrary. */
                              ec_bad_initializer_type);
     /* Make a constant from the operand. */
     extract_constant_from_operand(&result, constant);
@@ -30513,12 +30481,8 @@ constants; assumes copy-initialization ("="-form).
     /* Convert to the required type. */
     prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
                              (a_conv_descr_ptr)NULL,
-                             /*initializing_return_value=*/FALSE,
-                             /*initializing_variable=*/TRUE,  /* Arbitrary. */
-                             /*static_lifetime=*/FALSE,
-                             /*move_ctor_or_assign_parameter=*/FALSE,
                              /*is_copy_initialization=*/TRUE,
-                             /*nontype_template_arg=*/FALSE,
+                             CCO_INITIALIZING_VARIABLE, /* Arbitrary. */
                              ec_bad_initializer_type);
     /* The operand could be a constant or an error. */
     extract_constant_from_operand(&result, constant);
@@ -30592,6 +30556,7 @@ scan_class_initializer_expression and scan_aggregate_initializer_expression.
   an_expr_stack_entry expr_stack_entry;
   a_variable_ptr      sdm_var = NULL;
   a_boolean           local_is_pack_expansion;
+  a_conv_context_set  conv_context;
 
   db_enter(3, "scan_initializer_expression");
   check_assertion(dps != NULL);
@@ -30642,14 +30607,12 @@ scan_class_initializer_expression and scan_aggregate_initializer_expression.
   process_microsoft_null_pointer_constant_bug(&result, required_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Convert to the required type. */
+  conv_context = CCO_INITIALIZING_VARIABLE;
+  if (static_lifetime) conv_context |= CCO_STATIC_LIFETIME;
   prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
                            (a_conv_descr_ptr)NULL,
-                           /*initializing_return_value=*/FALSE,
-                           /*initializing_variable=*/TRUE,
-                           static_lifetime,
-                           /*move_ctor_or_assign_parameter=*/FALSE,
                            is_copy_initialization,
-                           /*nontype_template_arg=*/FALSE,
+                           conv_context,
                            ec_bad_initializer_type);
   local_is_pack_expansion = (result.pack_expansion_descr != NULL);
   /* Return a constant or expression depending on what was scanned. */
@@ -30905,9 +30868,8 @@ As indicated, this is initialization with the "=" semantics
   /* Find out whether or not the conversion is possible, and
      build a dynamic initialization entry to describe the initialization. */
   prep_elision_initializer_operand(&result, dps->type,
-                                   /*initializing_return_value=*/FALSE,
-                                   /*move_optimization_allowed=*/FALSE,
                                    /*fill_in_dtor=*/TRUE,
+                                   CCO_INITIALIZING_VARIABLE,
                                    ec_bad_initializer_type, dip);
   wrap_up_dynamic_init_full_expression(*dip);
   /* *dip == NULL means there was an error. */
@@ -31070,11 +31032,10 @@ a thrown exception) if that is appropriate.
             (conversion_to_class_possible(&result,
                                           required_type,
                                           /*try_bitwise_copy=*/TRUE,
-                                          /*initializing_return_value=*/FALSE,
-                                          /*is_func_notation_cast=*/FALSE,
                                           /*is_copy_initialization=*/TRUE,
                                           /*orig_is_copy_initialization=*/TRUE,
                                           /*is_reference_binding=*/FALSE,
+                                          CCO_DEFAULT,
                                           &conversion,
                                           (a_conv_descr *)NULL,
                                           &ambiguous,
@@ -31204,9 +31165,8 @@ required_type_determined:
          The entity here is never a complete object, so destruction
          is not filled in. */
       prep_elision_initializer_operand(&result, required_type,
-                                       /*initializing_return_value=*/FALSE,
-                                       /*move_optimization_allowed=*/FALSE,
                                        /*fill_in_dtor=*/FALSE,
+                                       CCO_DEFAULT,
                                        ec_bad_initializer_type, dip);
       wrap_up_dynamic_init_full_expression(*dip);
       /* *dip == NULL means there was an error. */
@@ -31215,14 +31175,12 @@ required_type_determined:
   } else {
     /* The entity being initialized has a non-class type. */
     /* Convert to the required type. */
+    a_conv_context_set conv_context = CCO_INITIALIZING_VARIABLE;
+    if (static_lifetime) conv_context |= CCO_STATIC_LIFETIME;
     prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
                              (a_conv_descr_ptr)NULL,
-                             /*initializing_return_value=*/FALSE,
-                             /*initializing_variable=*/TRUE,
-                             static_lifetime,
-                             /*move_ctor_or_assign_parameter=*/FALSE,
                              /*is_copy_initialization=*/TRUE,
-                             /*nontype_template_arg=*/FALSE,
+                             conv_context,
                              ec_bad_initializer_type);
     switch (result.kind) {
       case ok_error:

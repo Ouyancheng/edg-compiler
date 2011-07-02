@@ -177,6 +177,44 @@ typedef int a_builtin_type_kind_set;
 
 
 /*
+Bit flags used to indicate information about the context of a conversion
+that may allow or suppress certain conversions or diagnostics.
+*/
+typedef int a_conv_context_set;
+#define CCO_DEFAULT ((a_conv_context_set)0x0)
+#define CCO_INITIALIZING_VARIABLE ((a_conv_context_set)0x1)
+			/* The result of the conversion initializes a
+			   variable. */
+#define CCO_INITIALIZING_RETURN_VALUE ((a_conv_context_set)0x2)
+			/* The result of the conversion initializes the
+			   return value of a function. */
+#define CCO_NONTYPE_TEMPLATE_ARG ((a_conv_context_set)0x4)
+			/* The result of the conversion is the value of
+			   a nontype template argument. */
+#define CCO_FUNC_NOTATION_CAST ((a_conv_context_set)0x8)
+			/* The conversion is being done by a functional-
+			   notation cast. */
+#define CCO_BITWISE_ASSIGNMENT_PARAM ((a_conv_context_set)0x10)
+			/* The result of the conversion initializes the
+			   notional parameter of a bitwise copy assignment
+			   operator. */
+#define CCO_MOVE_CTOR_OR_ASSIGN_PARAMETER ((a_conv_context_set)0x20)
+			/* The result of the conversion initializes the
+			   parameter of a move constructor or move assignment
+			   operator. */
+#define CCO_MOVE_OPTIMIZATION_ALLOWED ((a_conv_context_set)0x40)
+			/* The result of the conversion is potentially
+			   subject to the move optimization. */
+#define CCO_ANY_CV_QUAL_ON_PTR_ALLOWED ((a_conv_context_set)0x80)
+			/* The result of the conversion is a pointer type,
+			   and we will accept any cv-qualification on the
+			   type underlying the pointer. */
+#define CCO_STATIC_LIFETIME ((a_conv_context_set)0x100)
+			/* When CCO_INITIALIZING_VARIABLE is TRUE, this
+			   is also TRUE if the variable being initialized
+			   has static lifetime. */
+
+/*
 Argument match levels for overloaded function call resolution; See ARM 13.2.
 */
 typedef enum /*an_arg_match_level*/ {
@@ -236,6 +274,12 @@ typedef struct an_arg_match_summary {
 			   to an rvalue.  This follows the C++ standard
 			   definition, which includes function --> pointer
 			   and array --> pointer. */
+  a_byte_boolean
+		on_conv_allow_any_cv_qual_on_ptr;
+			/* TRUE if in looking for the user-defined conversion
+			   we wanted a conversion to a pointer type but were
+			   willing to accept any cv-qualification on the
+			   underlying type. */
   uint32_t	param_num;
 			/* The parameter number of the parameter matched
 			   against the argument.  Zero for the "this"
@@ -681,6 +725,7 @@ extern a_boolean conversion_from_class_possible(
                           a_boolean                is_copy_initialization,
                           a_boolean                orig_is_copy_initialization,
                           a_boolean                is_reference_binding,
+                          a_conv_context_set       conv_context,
                           a_conv_descr             *conversion,
                           a_boolean                *ambiguous,
                           a_candidate_function_ptr *ambiguity_list);
@@ -709,11 +754,10 @@ extern a_boolean conversion_to_class_possible(
                           an_operand               *source_operand,
                           a_type_ptr               dest_type,
                           a_boolean                try_bitwise_copy,
-                          a_boolean                initializing_return_value,
-                          a_boolean                is_func_notation_cast,
                           a_boolean                is_copy_initialization,
                           a_boolean                orig_is_copy_initialization,
                           a_boolean                is_reference_binding,
+                          a_conv_context_set       conv_context,
                           a_conv_descr             *conversion,
                           a_conv_descr             *ctor_arg_conversion,
                           a_boolean                *ambiguous,
@@ -733,23 +777,23 @@ extern a_boolean cli_handle_user_defined_conversion_possible(
                           a_boolean                is_copy_initialization,
                           a_boolean                orig_is_copy_initialization,
                           a_boolean                is_reference_binding,
+                          a_conv_context_set       conv_context,
                           a_conv_descr             *conversion,
                           a_boolean                *ambiguous,
                           a_candidate_function_ptr *ambiguity_list);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean user_defined_conversion_possible(
-                                      an_operand   *source_operand,
-                                      a_type_ptr   dest_type,
-                                      a_boolean    need_lvalue_result,
-                                      a_boolean    initializing_return_value,
-                                      a_boolean    is_func_notation_cast,
-                                      a_boolean    is_copy_initialization,
-                                      a_boolean    orig_is_copy_initialization,
-                                      a_boolean    is_reference_binding,
-                                      a_conv_descr *conversion,
-                                      a_conv_descr *ctor_arg_conversion,
-                                      a_boolean    *failed);
+                                an_operand         *source_operand,
+                                a_type_ptr         dest_type,
+                                a_boolean          need_lvalue_result,
+                                a_boolean          is_copy_initialization,
+                                a_boolean          orig_is_copy_initialization,
+                                a_boolean          is_reference_binding,
+                                a_conv_context_set conv_context,
+                                a_conv_descr       *conversion,
+                                a_conv_descr       *ctor_arg_conversion,
+                                a_boolean          *failed);
 
 extern void user_convert_operand(an_operand   *operand,
                                  a_type_ptr   dest_type,
@@ -773,9 +817,8 @@ extern a_boolean is_temp_init_usable_in_optimization(
 extern void prep_elision_initializer_operand(
                                   an_operand         *source_operand,
                                   a_type_ptr         dest_type,
-                                  a_boolean          initializing_return_value,
-                                  a_boolean          move_optimization_allowed,
                                   a_boolean          fill_in_dtor,
+                                  a_conv_context_set conv_context,
                                   an_error_code      err_code,
                                   a_dynamic_init_ptr *dip);
 
@@ -795,41 +838,33 @@ extern void determine_arg_match_level(
                                a_boolean            try_user_conversions,
                                an_arg_match_summary *arg_summary);
 extern a_boolean direct_reference_binding_possible(
-                                    an_operand   *source_operand,
-                                    a_type_ptr   source_type,
-                                    a_type_ptr   dest_type,
-                                    a_boolean    is_cast,
-                                    a_boolean    move_ctor_or_assign_parameter,
-                                    a_boolean    *ref_to_const,
-                                    a_boolean    *ref_to_const_volatile,
-                                    a_boolean    *binding_to_rvalue_allowed,
-                                    a_boolean    *dropping_qualifiers,
-                                    a_boolean    *p_template_case,
-                                    a_symbol_ptr *function_symbol);
-extern void prep_reference_initializer_operand(
-                              an_operand    *source_operand,
-                              a_type_ptr    dest_type,
-                              a_conv_descr  *conversion,
-                              a_boolean     initializing_return_value,
-                              a_boolean     initializing_variable,
-                              a_boolean     static_lifetime,
-                              a_boolean     bitwise_assignment_param,
-                              a_boolean     move_ctor_or_assign_parameter,
-                              a_boolean     leave_as_object,
-                              an_error_code incompatible_err);
+                                 an_operand         *source_operand,
+                                 a_type_ptr         source_type,
+                                 a_type_ptr         dest_type,
+                                 a_boolean          is_cast,
+                                 a_conv_context_set conv_context,
+                                 a_boolean          *ref_to_const,
+                                 a_boolean          *ref_to_const_volatile,
+                                 a_boolean          *binding_to_rvalue_allowed,
+                                 a_boolean          *dropping_qualifiers,
+                                 a_boolean          *p_template_case,
+                                 a_symbol_ptr       *function_symbol);
+extern
+void prep_reference_initializer_operand(an_operand         *source_operand,
+                                        a_type_ptr         dest_type,
+                                        a_conv_descr       *conversion,
+                                        a_boolean          leave_as_object,
+                                        a_conv_context_set conv_context,
+                                        an_error_code      incompatible_err);
 
-extern void prep_initializer_operand(
-                              an_operand    *source_operand,
-                              a_type_ptr    dest_type,
-                              a_boolean     *is_transparent,
-                              a_conv_descr  *conversion,
-                              a_boolean     initializing_return_value,
-                              a_boolean     initializing_variable,
-                              a_boolean     static_lifetime,
-                              a_boolean     move_ctor_or_assign_parameter,
-                              a_boolean     is_copy_initialization,
-                              a_boolean     nontype_template_arg,
-                              an_error_code incompatible_err);
+extern
+void prep_initializer_operand(an_operand         *source_operand,
+                              a_type_ptr         dest_type,
+                              a_boolean          *is_transparent,
+                              a_conv_descr       *conversion,
+                              a_boolean          is_copy_initialization,
+                              a_conv_context_set conv_context,
+                              an_error_code      incompatible_err);
 
 extern void prep_arg_passed_via_copy_constructor(an_operand    *source_operand,
                                                  a_type_ptr    param_type,
