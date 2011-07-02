@@ -4882,7 +4882,11 @@ NULL.
                     new_type_pointed_to, bcp->type);
     }  /* if */
     *p_node = error_node();
-  } else if (any_virtual_steps_in_derivation(bcp)) {
+  } else if (any_virtual_steps_in_derivation(bcp)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+             && !is_cli_interface_type(bcp->type)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            ) {
     /* The base class is a virtual base of the derived class, or there's a
        virtual step on the derivation path. */
     if (error_detected != NULL) {
