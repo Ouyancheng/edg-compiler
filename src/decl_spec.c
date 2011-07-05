@@ -2171,6 +2171,7 @@ Update the class type entry to account for any "abstract" or "sealed"
 context-sensitive keywords encountered while scanning the class definition.
 */
 {
+  check_assertion(is_immediate_class_type(class_type));
   if (is_abstract) {
     class_type->variant.class_struct_union.abstract = TRUE;
 #if BACK_END_IS_CP_GEN_BE

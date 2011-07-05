@@ -10860,6 +10860,7 @@ from outside of the expression-processing routines.
 */
 {
   a_type_ptr result = NULL;
+  a_source_position type_position;
 
   if (!type_traits_helpers_enabled) {
     /* __underlying_type is not accepted in some modes. */
@@ -10872,7 +10873,7 @@ from outside of the expression-processing routines.
   /* Check for and pass over the left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_matching_stop_token(tok_rparen);
-  result = error_type();
+  type_position = pos_curr_token;
   type_name(&result);
   /* Check for and pass over the right parenthesis. */
   remove_matching_stop_token(tok_rparen);
@@ -10885,6 +10886,13 @@ from outside of the expression-processing routines.
       /* Extract the underlying integral type. */
       result = skip_typerefs(result);
       result = integer_type(result->variant.integer.int_kind);
+    } else if (is_template_param_type(result)) {
+      /* A template parameter type is fine since it may turn out to be an enum
+         type. */
+      result = type_of_unknown_templ_param_nontype;
+    } else {
+      pos_error(ec_no_error, &type_position);
+      result = error_type();
     }  /* if */
   }  /* if */
   return result;

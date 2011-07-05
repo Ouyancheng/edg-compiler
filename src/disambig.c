@@ -526,12 +526,6 @@ static void prescan_type_operator(a_disambig_state_ptr       state,
 				  a_disambig_flag_set        flags)
 /*
 Scan past (and cache) a decltype, __underlying_type, or typeof specifier.
-
-The typeof operator can be used with or without parentheses in g++
-(but not gcc) mode:
-
-        typeof ( type-name )
-        typeof expression
 */
 {
   a_boolean	is_typeof = curr_token == tok_typeof;
@@ -557,6 +551,7 @@ The typeof operator can be used with or without parentheses in g++
         check_assertion(!state->set_decl_class_type);
       }  /* if */
     } else {
+      /* The type operator argument is a type name. */
       cache_tokens_until(tok_rparen, /*coalesce=*/TRUE);
     }  /* if */
   }  /* if */

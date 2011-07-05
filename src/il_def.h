@@ -7950,7 +7950,7 @@ typedef struct a_type {
       a_bit_field
 		is_underlying_type:1;
 			/* The type was created by an __underlying_type
-			   operator. */
+			   operator (a Microsoft extension). */
 #if GNU_EXTENSIONS_ALLOWED
       a_bit_field
 		is_typeof:1;

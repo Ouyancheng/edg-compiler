@@ -707,7 +707,8 @@ typedef struct an_expr_stack_entry {
   a_byte_boolean
 		is_type_operator_arg_expression;
 			/* TRUE if the expression is the argument for a C++0x
-			   decltype construct or a GNU typeof construct. */
+			   decltype construct, a GNU typeof construct, or an
+			   __underlying_type construct. */
   a_byte_boolean
 		is_default_arg_expression;
 			/* TRUE if the expression is or is inside of a

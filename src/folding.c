@@ -6803,11 +6803,10 @@ constant will be set as well.
         (kind == (a_builtin_operation_kind)bok_is_sealed ||
          kind == (a_builtin_operation_kind)bok_is_simple_value_class ||
          kind == (a_builtin_operation_kind)bok_is_value_class)) {
-      /* Convert a built-in type to the corresponding CLI value class type,
-         e.g., int to System::Int32. */
-      a_type_ptr system_type = system_type_from_fundamental_type(type);
-      if (system_type != NULL) {
-        type = system_type;
+      /* These operators apply to the boxed version of non-pointer value
+         types. */
+      if (is_boxable_type(type)) {
+        type = boxed_type_for(type);
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -6857,7 +6856,12 @@ constant will be set as well.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         case bok_is_simple_value_class:
         case bok_is_value_class:
-          /* Microsoft compilers consider enums to be simple value classes. */
+          /* Microsoft compilers appear to use the boxed type when there is
+             one (see above).  So enumerations are handled via the class
+             case. */
+          check_assertion(!is_immediate_enum_type(type));
+          result = FALSE;
+          break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case bok_is_enum:
           result = is_immediate_enum_type(type);
@@ -7046,14 +7050,16 @@ constant will be set as well.
         result = cssp->finalizer != NULL;
         break;
       case bok_is_delegate:
-        { a_type_ptr  delegate_tp = cli_class_type_for(csk_system_delegate);
+        if (cppcli_enabled) {
+          a_type_ptr  delegate_tp = cli_class_type_for(csk_system_delegate);
           a_type_ptr  multicast_delegate_tp =
                             cli_class_type_for(csk_system_multicast_delegate);
-          result = cppcli_enabled && 
-                 (type->variant.class_struct_union.is_delegate_class ||
-                  identical_types(type, delegate_tp) ||
-                  identical_types(type, multicast_delegate_tp));
-        }
+          result = (type->variant.class_struct_union.is_delegate_class ||
+                    identical_types(type, delegate_tp) ||
+                    identical_types(type, multicast_delegate_tp));
+        }  else {
+          result = FALSE;
+        }  /* if */
         break;
       case bok_is_interface_class:
         result = cli_class_type_kind_is(type, cctk_interface);
@@ -7062,10 +7068,13 @@ constant will be set as well.
         /* System::Array isn't technically a ref array, but it supports the
            subscript operator, and ref arrays all derive from it, so it is
            considered a ref array. */
-        { a_type_ptr  array_tp = cli_class_type_for(csk_system_array);
+        if (cppcli_enabled) {
+          a_type_ptr  array_tp = cli_class_type_for(csk_system_array);
           result = class_type_supp(type)->is_cli_array ||
                    identical_types(type, array_tp);
-        }
+        }  else {
+          result = FALSE;
+        }  /* if */
         break;
       case bok_is_ref_class:
         result = cli_class_type_kind_is(type, cctk_ref) && 

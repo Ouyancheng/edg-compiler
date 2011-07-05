@@ -1196,7 +1196,6 @@ value type.
          curr != NULL;
          curr = curr->next) {
       a_type_ptr curr_type = skip_typerefs(curr->type);
-
       if (!(system_type_from_fundamental_type(curr_type) != NULL ||
             fundamental_type_from_system_type(curr_type) != NULL ||
             is_enum(curr_type) ||
