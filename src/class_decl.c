@@ -15557,6 +15557,33 @@ definition described by class_state.
 }  /* add_default_ctor_if_needed */
 
 
+static a_param_type_ptr make_copy_function_param(
+                                             a_type_ptr            class_type,
+                                             a_type_qualifier_set  qualifiers)
+/*
+Create a parameter entry for a generated copy constructor or copy assignment
+operator for the given class type X.  The type of the parameter is usually
+X cv& where cv are the const/volatile qualifiers specified by qualifiers, but
+for C++/CLI managed classes the type of the parameter is X cv%.
+*/
+{
+  a_type_ptr  tp = make_qualified_type(class_type, qualifiers);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_immediate_managed_class_type(class_type)) {
+    /* The parameter of a copy constructor or assignment operator is a tracking
+       reference in managed class types. */
+    tp = make_tracking_reference_type(tp);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    tp = make_reference_type(tp);
+  }  /* if */
+  return alloc_param_type(tp);
+}  /* make_copy_function_param */
+
+
 static void generate_assignment_operator(a_class_def_state_ptr  class_state,
                                          a_boolean              is_deleted,
                                          a_type_qualifier_set   qualifiers)
@@ -15572,12 +15599,10 @@ qualified parent class type) and qualifiers describes the qualifiers in X.
   a_source_position   *pos = &class_type->source_corresp.decl_position;
   a_member_decl_info  decl_info;
   a_param_type_ptr    ptp;
-  a_type_ptr          ptype;
   a_func_info_block   func_info;
 
   initialize_member_decl_info(&decl_info, pos);
-  ptype = make_qualified_type(class_type, qualifiers);
-  ptp = alloc_param_type(make_reference_type(ptype));
+  ptp = make_copy_function_param(class_type, qualifiers);
   clear_func_info(&func_info);
   generate_special_function(class_state, &decl_info, &func_info, ptp);
   if (is_deleted) {
@@ -15593,7 +15618,7 @@ qualified parent class type) and qualifiers describes the qualifiers in X.
                                                      TQ_CONST|TQ_FAR);
     /* Don't create the "far" operator= if the default one is "far" (e.g.,
        because the class is declared "far"). */
-    if (!identical_types(far_ptype, ptype)) {
+    if (!identical_types(far_ptype, type_pointed_to(ptp->type))) {
       ptp = alloc_param_type(make_reference_type(far_ptype));
       initialize_member_decl_info(&decl_info, pos);
       clear_func_info(&func_info);
@@ -16272,8 +16297,7 @@ The routine body is not generated until it is known to be needed.
       class_type->variant.class_struct_union.copy_ctor_decl_suppressed = TRUE;
     } else {
       /* Generate a copy constructor. */
-      ptp = alloc_param_type(make_reference_type(
-                            make_qualified_type(class_type, ctor_qualifiers)));
+      ptp = make_copy_function_param(class_type, ctor_qualifiers);
       initialize_member_decl_info(&decl_info, pos);
       decl_info.is_constructor = TRUE;
       clear_func_info(&func_info);
