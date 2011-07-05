@@ -1,5 +1,20 @@
 Version 4.4
 
+7/5/11   [EDGcpfe/11495,EDGcpfe/11495]
+Additional C++0x type traits helpers
+
+When type traits helpers are enabled (see entry of 3/21/06), the front end
+now accepts additional type trait pseudo-functions: __is_literal_type,
+__is_trivially_copyable, __is_constructible, __is_nothrow_constructible,
+__has_trivial_move_constructor, __has_trivial_move_assign,
+__has_nothrow_move_assign, and __underlying_type.  The latter produces the
+underlying integer type of an enumeration type.  The other pseudo-functions
+are boolean predicates testing for C++0x language concepts (usually supporting
+standard library type traits templates).  Some of these pseudo-functions (like
+__is_literal_type) will apply to a broader class of types when additional
+C++0x features (like the constexpr specifier) are implemented in the future.
+
+
 7/2/11   [EDGcpfe/11826]
 Conversion to any cv-qualified version of pointer for first operand of ->*
 

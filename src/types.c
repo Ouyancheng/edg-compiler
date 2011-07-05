@@ -1474,6 +1474,49 @@ Return TRUE if the given type is a scalar type (3.1.2.5).
 }  /* is_scalar_type */
 
 
+a_boolean is_trivially_copyable_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is trivially copyable.
+*/
+{
+  a_boolean  result;
+
+  tp = skip_array_types(tp);
+  tp = skip_typerefs(tp);
+  if (is_scalar(tp)) {
+    result = TRUE;
+  } else if (is_immediate_class_type(tp)) {
+    a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
+    result = cssp->has_trivial_destructor &&
+             cssp->construction_by_bitwise_copy_allowed &&
+             cssp->assignment_by_bitwise_copy_allowed;
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_trivially_copyable_type */
+
+
+a_boolean is_literal_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a literal type.
+*/
+{
+  a_boolean  result;
+
+  tp = skip_array_types(tp);
+  tp = skip_typerefs(tp);
+  if (is_scalar(tp) || is_any_reference(tp)) {
+    result = TRUE;
+  } else {
+    /* When support for the "constexpr" specifier is added, certain class
+       types will also qualify as "literal types". */
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_literal_type */
+
+
 a_boolean is_array_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an array type (3.1.2.5).  Note that

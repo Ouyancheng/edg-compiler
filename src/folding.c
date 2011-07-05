@@ -6656,6 +6656,104 @@ of declaration of the constructors.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean has_trivial_move_constructor(a_type_ptr  type)
+/*
+Return TRUE if the given class type has a trivial move constructor.
+*/
+{
+  a_boolean  result;
+
+  type = skip_array_types(type);
+  type = skip_typerefs(type);
+  if (is_immediate_class_type(type)) {
+    /* We currently do not implicitly generate move constructors.  A trivial
+       move therefore corresponds to a trivial copy. */
+    a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(type);
+    if (cssp->construction_by_bitwise_copy_allowed) {
+      result = TRUE;
+    } else {
+      result = FALSE;
+    }  /* if */
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* has_trivial_move_constructor */
+
+
+static a_boolean has_trivial_move_assign(a_type_ptr  type)
+/*
+Return TRUE if the given class type has a trivial move assignment operator.
+*/
+{
+  a_boolean  result;
+
+  type = skip_array_types(type);
+  type = skip_typerefs(type);
+  if (is_immediate_class_type(type)) {
+    /* We currently do not implicitly generate move assignment operators.
+       A trivial move therefore corresponds to a trivial copy. */
+    a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(type);
+    if (cssp->assignment_by_bitwise_copy_allowed) {
+      result = TRUE;
+    } else {
+      result = FALSE;
+    }  /* if */
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* has_trivial_move_assign */
+
+
+static a_boolean has_nothrow_move_assign(a_type_ptr  type)
+/*
+Return TRUE if the given class type has a trivial move assignment operator.
+*/
+{
+  a_boolean  result;
+
+  type = skip_array_types(type);
+  type = skip_typerefs(type);
+  if (is_immediate_class_type(type)) {
+    a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(type);
+    if (cssp->assignment_by_bitwise_copy_allowed) {
+      result = TRUE;
+    } else {
+      a_symbol_ptr  sym = cssp->assignment_operator;
+      a_boolean     overloaded = symbol_is(sym, sk_overloaded_function);
+      a_boolean     has_move_assign = FALSE;
+      if (overloaded) sym = sym->variant.overloaded_function.symbols;
+      result = TRUE;
+      /* Look among the assignment operators for one that moves but doesn't
+         throw. */
+      for (; sym != NULL; sym = overloaded ? sym->next : NULL) {
+        if (sym->kind == (a_symbol_kind)sk_member_function) {
+          a_routine_ptr  rp = sym->variant.routine.ptr;
+          if (routine_is_move_assignment_operator(rp)) {
+            has_move_assign = TRUE;
+            if (!rp->never_throws &&
+                !is_nothrow_type(skip_typerefs(rp->type))) {
+              /* We found a move-assignment operator that might throw. */
+              result = FALSE;
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      /* If there was no move assignment operator at all, the result should be
+         FALSE. */
+      result = result && has_move_assign;
+    }  /* if */
+  } else {
+    /* The argument type is not a class type and therefore has no copy
+       assignment operators. */
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* has_nothrow_move_assign */
+
+
 static void fold_unary_type_trait_helper(
                                     an_expr_node_ptr   expr,
                                     a_constant_ptr     constant,
@@ -6769,8 +6867,7 @@ constant will be set as well.
           result = is_object_type(type);
           break;
         case bok_is_literal_type:
-          /* FIXME: Not yet implemented. */
-          result = FALSE;
+          result = is_literal_type(type);
           break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         case bok_is_sealed:
@@ -6929,24 +7026,19 @@ constant will be set as well.
         result = cssp->standard_layout;
         break;
       case bok_is_trivially_copyable:
-        /* FIXME: Not yet implemented. */
-        result = FALSE;
+        result = is_trivially_copyable_type(type);
         break;
       case bok_is_literal_type:
-        /* FIXME: Not yet implemented. */
-        result = FALSE;
+        result = is_literal_type(type);
         break;
       case bok_has_trivial_move_constructor:
-        /* FIXME: Not yet implemented. */
-        result = FALSE;
+        result = has_trivial_move_constructor(type);
         break;
       case bok_has_trivial_move_assign:
-        /* FIXME: Not yet implemented. */
-        result = FALSE;
+        result = has_trivial_move_assign(type);
         break;
       case bok_has_nothrow_move_assign:
-        /* FIXME: Not yet implemented. */
-        result = FALSE;
+        result = has_nothrow_move_assign(type);
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case bok_has_finalizer:

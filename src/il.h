@@ -1117,6 +1117,10 @@ extern a_boolean is_copy_constructor(
 
 extern a_boolean copy_ctor_is_move_ctor(a_routine_ptr  rp);
 
+extern a_boolean routine_is_move_constructor(a_routine_ptr  rp);
+
+extern a_boolean routine_is_move_assignment_operator(a_routine_ptr  rp);
+
 extern void switch_il_region(a_memory_region_number region_number);
 
 extern void switch_to_file_scope_region(
