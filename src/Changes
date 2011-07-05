@@ -1,6 +1,6 @@
 Version 4.4
 
-7/5/11   [EDGcpfe/11495,EDGcpfe/11495]
+7/5/11   [EDGcpfe/11495,EDGcpfe/11860,EDGcpfe/11833]
 Additional C++0x type traits helpers
 
 When type traits helpers are enabled (see entry of 3/21/06), the front end
