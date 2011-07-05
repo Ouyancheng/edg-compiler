@@ -6857,10 +6857,10 @@ constant will be set as well.
         case bok_is_simple_value_class:
         case bok_is_value_class:
           /* Microsoft compilers appear to use the boxed type when there is
-             one (see above).  So enumerations are handled via the class
-             case. */
-          check_assertion(!is_immediate_enum_type(type));
-          result = FALSE;
+             one (see above).  However, in non-C++/CLI modes, they also report
+             enumerations as value classes. */
+          check_assertion(!(cppcli_mode && is_immediate_enum_type(type)));
+          result = is_immediate_enum_type(type);
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case bok_is_enum:

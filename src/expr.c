@@ -11095,7 +11095,7 @@ the expression-processing routines.
     typeof_type->variant.typeref.type = result;
     typeof_type->variant.typeref.is_typeof = TRUE;
     typeof_type->variant.typeref.is_typeof_with_type_operand = is_type;
-    typeof_type->variant.typeref.is_dependent_type_operator=dependent_arg;
+    typeof_type->variant.typeref.is_dependent_type_operator = dependent_arg;
     if (!is_type) {
       if (dependent_arg) {
         prep_generic_operand(&operand);
