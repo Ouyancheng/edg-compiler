@@ -15616,9 +15616,10 @@ qualified parent class type) and qualifiers describes the qualifiers in X.
     /* Generate also an operator= that can copy a "far" object. */
     a_type_ptr       far_ptype = make_qualified_type(class_type,
                                                      TQ_CONST|TQ_FAR);
+    a_type_ptr       default_ptype = type_pointed_to(ptp->type);
     /* Don't create the "far" operator= if the default one is "far" (e.g.,
        because the class is declared "far"). */
-    if (!identical_types(far_ptype, type_pointed_to(ptp->type))) {
+    if (!identical_types(far_ptype, default_ptype)) {
       ptp = alloc_param_type(make_reference_type(far_ptype));
       initialize_member_decl_info(&decl_info, pos);
       clear_func_info(&func_info);
