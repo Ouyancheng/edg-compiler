@@ -10872,11 +10872,11 @@ from outside of the expression-processing routines.
   (void)get_token();
   /* Check for and pass over the left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
-  add_matching_stop_token(tok_rparen);
+  add_stop_token(tok_rparen);
   type_position = pos_curr_token;
   type_name(&result);
   /* Check for and pass over the right parenthesis. */
-  remove_matching_stop_token(tok_rparen);
+  remove_stop_token(tok_rparen);
   (void)required_token(tok_rparen, ec_exp_rparen);
   if (!type_traits_helpers_enabled) {
     /* Turn the result into an error type to avoid any surprises later on. */
