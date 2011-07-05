@@ -6859,7 +6859,7 @@ constant will be set as well.
           /* Microsoft compilers appear to use the boxed type when there is
              one (see above).  However, in non-C++/CLI modes, they also report
              enumerations as value classes. */
-          check_assertion(!(cppcli_mode && is_immediate_enum_type(type)));
+          check_assertion(!(cppcli_enabled && is_immediate_enum_type(type)));
           result = is_immediate_enum_type(type);
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
