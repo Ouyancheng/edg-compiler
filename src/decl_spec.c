@@ -2182,7 +2182,7 @@ context-sensitive keywords encountered while scanning the class definition.
   if (is_sealed) {
     class_type->variant.class_struct_union.final = TRUE;
   }  /* if */
-}
+}  /* apply_microsoft_class_modifiers */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
@@ -3963,20 +3963,22 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  apply_microsoft_class_modifiers(class_type, is_abstract, is_sealed);
-  if (dps->ms_attributes != NULL && !is_local_class) {
-    if (!is_class_definition && curr_token != tok_semicolon) {
-      /* This is a non-autonomous declaration of the class: The attributes
-         do not apply to the class type, but to the entity associated with
-         the declarator. */
-    } else {
-      an_ms_attribute_target  attr_target =
+  if (microsoft_mode && is_immediate_class_type(class_type)) {
+    apply_microsoft_class_modifiers(class_type, is_abstract, is_sealed);
+    if (dps->ms_attributes != NULL && !is_local_class) {
+      if (!is_class_definition && curr_token != tok_semicolon) {
+        /* This is a non-autonomous declaration of the class: The attributes
+           do not apply to the class type, but to the entity associated with
+           the declarator. */
+      } else {
+        an_ms_attribute_target  attr_target =
                       is_interface                          ? MSAT_INTERFACE :
                       (type_kind == (a_type_kind)tk_struct) ? MSAT_STRUCT :
                       (type_kind == (a_type_kind)tk_class)  ? MSAT_CLASS :
                                                               MSAT_UNION;
-      apply_microsoft_attributes(&dps->ms_attributes, (char*)class_type,
-                                 (an_il_entry_kind)iek_type, attr_target);
+        apply_microsoft_attributes(&dps->ms_attributes, (char*)class_type,
+                                   (an_il_entry_kind)iek_type, attr_target);
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
