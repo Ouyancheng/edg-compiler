@@ -1,5 +1,26 @@
 Version 4.4
 
+7/6/11   [EDGcpfe/11551,EDGcpfe/11701,EDGcpfe/11816]
+Microsoft C++ compatibility: Attributes on member functions
+
+In Microsoft C++ mode the front end now accepts bracketed attributes (see
+Changes entry of 7/30/03) on member functions of class templates.
+For example:
+
+  template<typename T> struct X {
+    [returnvalue:SA_Post(MustCheck=SA_Yes)] int* f(T *x);
+              // Attributes are now accepted here.
+  };
+  S<int> s;
+
+In addition, such attributes are now also accepted on out-of-class member
+function definitions.  For example:
+
+  struct S { int f(); };
+  [returnvalue:SA_Post(MustCheck=SA_Yes)] int S::f() { return 0; }
+              // Attributes are now also accepted here.
+
+
 7/6/11   [EDGcpfe/11873]
 GNU compatibility: ELF visibility and friends
 

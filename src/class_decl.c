@@ -20103,7 +20103,6 @@ passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && decl_state->ms_attributes != NULL) {
     if (is_member_template || is_member_template_rescan ||
-        is_template_context() ||
         class_type->source_corresp.is_local_to_function) {
       /* Microsoft attributes cannot be specified on templates, nor on members
          of local class types.  When rescanning member templates, there is no

@@ -31,6 +31,9 @@ func_def.c -- Processing for function definitions (both user supplied and
 #include "lower_il.h"
 #include "il_walk.h"
 #endif /* DO_IL_LOWERING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#include "ms_attrib.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #include "statements.h"
 #if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
@@ -1795,6 +1798,12 @@ member declaration (allowed in some Microsoft modes only).
   if (!is_error_locator(*locator)) {
     /* Apply attributes. */
     attach_decl_attributes(dps, func_info->is_definition);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (dps->ms_attributes != NULL) {
+      apply_microsoft_attributes(&dps->ms_attributes, (char*)rp,
+                                 (an_il_entry_kind)iek_routine, MSAT_METHOD);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Temporarily restore the position of the original declaration in the
        associated symbol so that diagnostics come out right. */
     saved_pos = sym->decl_position;
@@ -1805,6 +1814,11 @@ member declaration (allowed in some Microsoft modes only).
                                   !microsoft_out_of_class_redecl,
                                   (a_boolean)func_info->is_inline);
     sym->decl_position = saved_pos;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else {
+    /* Clear the attributes pointer to avoid cascading errors. */
+    dps->ms_attributes = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (any_deferred_access_checks()) {
     /* Now that we know which function has been declared, recheck any
