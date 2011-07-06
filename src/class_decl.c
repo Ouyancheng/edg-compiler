@@ -16218,6 +16218,9 @@ The routine body is not generated until it is known to be needed.
                        cssp->constructor != NULL ||
                        !cssp->construction_by_bitwise_copy_allowed);
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  declare_copy_asgn_op = declare_copy_asgn_op &&
+                         !(cli_class_type_kind_is(class_type, cctk_ref) ||
+                           cli_class_type_kind_is(class_type, cctk_interface));
   declare_copy_ctor = declare_copy_ctor &&
                       !(cli_class_type_kind_is(class_type, cctk_ref) ||
                         cli_class_type_kind_is(class_type, cctk_interface));
