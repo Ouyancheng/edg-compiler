@@ -4898,7 +4898,7 @@ match, issue an appropriate error.
          generic.  Point to the generic itself for the diagnostic. */
       diag_pos = &d_templ->decl_position;
     }  /* if */
-    pos_sy_error(ec_override_with_constraint_mismatch, diag_pos, d_templ);
+    pos_sy_error(ec_override_with_constraint_mismatch, diag_pos, b_templ);
   }  /* if */
 }  /* check_constraints_for_generic_override */
 
