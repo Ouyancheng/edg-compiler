@@ -1,5 +1,12 @@
 Version 4.4
 
+7/6/11   [EDGcpfe/11089]
+EDG_WIN32 missing in configuration output
+
+The configuration macro EDG_WIN32 was missing from the output produced for the
+command-line option --dump_configuration.  This is now fixed.
+
+
 7/5/11   [EDGcpfe/11495,EDGcpfe/11860,EDGcpfe/11833]
 Additional C++0x type traits helpers
 

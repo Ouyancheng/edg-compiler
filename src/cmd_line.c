@@ -5155,6 +5155,11 @@ file.
 #else /* !defined(EDG_NATIVE_MULTIBYTE_TEST_MODE) */
   comment_undefined_macro_name(EDG_NATIVE_MULTIBYTE_TEST_MODE);
 #endif /* defined(EDG_NATIVE_MULTIBYTE_TEST_MODE) */
+#if defined(EDG_WIN32)
+  define_numeric_valued_macro(EDG_WIN32);
+#else /* !defined(EDG_WIN32) */
+  comment_undefined_macro_name(EDG_WIN32);
+#endif /* defined(EDG_WIN32) */
 #if defined(EMBEDDED_C_ALLOWED)
   define_numeric_valued_macro(EMBEDDED_C_ALLOWED);
 #else /* !defined(EMBEDDED_C_ALLOWED) */
