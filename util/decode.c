@@ -2751,6 +2751,12 @@ to the character position following what was demangled.
         p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
         s = "))";
         break;
+      case 'o':
+        /* __underlying_type(type) */
+        write_id_str("__underlying_type(", dctl);
+        p = demangle_type(p, dctl);
+        s = ")";
+        break;
       default:
         bad_mangled_name(dctl);
         s = "";
@@ -4474,15 +4480,15 @@ Macro to determine if the character string pointed to by "p" is a
 <builtin-type>.  <builtin-type>s are a single lower-case letter or two
 characters starting with the character "D".  Exceptions to this rule are
 the mangling for decltype (i.e., "DT" and "Dt") as well as the EDG extension
-for typeof (i.e., "DY" and "Dy") and pack expansions (i.e., "Dp").  The lower
-case letter "r" is used in <CV-qualifiers> for "restrict" and is not a
-<builtin-type>.
+for typeof (i.e., "DY" and "Dy"), __underlying_type (i.e., "Du") and pack
+expansions (i.e., "Dp").  The lower case letter "r" is used in <CV-qualifiers>
+for "restrict" and is not a <builtin-type>.
 */
 #define is_builtin_type(p)                                                \
   ((islower((unsigned char)*(p)) &&                                       \
     *(p) != 'r') ||                                                       \
    (*(p) == 'D' &&                                                        \
-    !((p)[1] == 'p' ||                                                    \
+    !((p)[1] == 'p' || (p)[1] == 'u' ||                                   \
       (p)[1] == 'T' || (p)[1] == 't' ||                                   \
       (p)[1] == 'Y' || (p)[1] == 'y')))
 
@@ -4511,6 +4517,7 @@ to the character position following what was demangled.  The syntax is:
          ::= DT <expression> E  # decltype of an expression (C++0x)
          ::= Dy <type> E        # typeof(type) (EDG extension)
          ::= DY <expression> E  # typeof(expression) (EDG extension)
+         ::= Du <type> E        # __underlying_type(type) (EDG extension)
 
 Other parts of <type> are handled in demangle_type_first_part and
 demangle_type_second_part.  In particular, substitutions are handled
@@ -4573,6 +4580,17 @@ demangled as part of the template function instead).
       } else {
         p = demangle_expression(p+2, dctl);
       }  /* if */
+      write_id_ch(')', dctl);
+      p = advance_past('E', p, dctl);
+    } else if (*p == 'D' && p[1] == 'u') {
+      /* __underlying_type:
+         This is an EDG extension to the IA-64 ABI spec to handle
+         __underlying_type (a Microsoft extension):
+
+            <type> ::= Du <type> E       # __underlying_type(type)
+         */
+      write_id_str("__underlying_type(", dctl);
+      p = demangle_type(p+2, dctl);
       write_id_ch(')', dctl);
       p = advance_past('E', p, dctl);
     } else {
