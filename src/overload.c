@@ -5758,7 +5758,9 @@ other.  Return
                                      /*entire_type=*/FALSE,
                                      maxn);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && 
+  } else if (cppcli_enabled &&
+             cfp1->function_symbol != NULL &&
+             cfp2->function_symbol != NULL &&
              is_cli_param_array_routine_symbol(cfp1->function_symbol) !=
              is_cli_param_array_routine_symbol(cfp2->function_symbol)) {
     /* The presence of a C++/CLI parameter array can serve as a tie-breaker.
