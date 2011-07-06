@@ -4585,7 +4585,8 @@ demangled as part of the template function instead).
     } else if (*p == 'D' && p[1] == 'u') {
       /* __underlying_type:
          This is an EDG extension to the IA-64 ABI spec to handle
-         __underlying_type (a Microsoft extension):
+         __underlying_type (a helper function used to implement the C++0x
+         underlying_type type trait):
 
             <type> ::= Du <type> E       # __underlying_type(type)
          */
