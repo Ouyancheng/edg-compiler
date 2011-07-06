@@ -1163,6 +1163,7 @@ a pointer to it.
   ttsp->template_arg_list = NULL;
   ttsp->assoc_template = NULL;
   ttsp->proxy_class = NULL;
+  ttsp->operator_type_arg = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   ttsp->type_id_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

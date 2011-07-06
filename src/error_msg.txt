@@ -2263,6 +2263,7 @@ ec_sealed_constraint;;"a sealed class cannot be used as a constraint"
 ec_dynamic_cast_to_value_generic;;"the type in a dynamic_cast cannot be a generic type that might be a value type"
 ec_UCN_names_invalid_code_point;;"a universal character name must designate a valid code point"
 ec_override_with_constraint_mismatch;;"generic constraints do not match those of %nd"
+ec_bad_argument_for_underlying_type;;"__underlying_type only applies to enumeration types"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

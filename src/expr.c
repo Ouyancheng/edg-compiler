@@ -10859,7 +10859,7 @@ operand is not an enumeration type.  This routine is intended to be called
 from outside of the expression-processing routines.
 */
 {
-  a_type_ptr result = NULL;
+  a_type_ptr result, type_arg;
   a_source_position type_position;
 
   if (!type_traits_helpers_enabled) {
@@ -10874,7 +10874,7 @@ from outside of the expression-processing routines.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   type_position = pos_curr_token;
-  type_name(&result);
+  type_name(&type_arg);
   /* Check for and pass over the right parenthesis. */
   remove_stop_token(tok_rparen);
   (void)required_token(tok_rparen, ec_exp_rparen);
@@ -10882,17 +10882,27 @@ from outside of the expression-processing routines.
     /* Turn the result into an error type to avoid any surprises later on. */
     result = error_type();
   } else {
-    if (is_enum_type(result)) {
+    if (is_enum_type(type_arg)) {
       /* Extract the underlying integral type. */
-      result = skip_typerefs(result);
+      result = skip_typerefs(type_arg);
       result = integer_type(result->variant.integer.int_kind);
-    } else if (is_template_param_type(result)) {
+    } else if (is_template_param_type(type_arg)) {
       /* A template parameter type is fine since it may turn out to be an enum
-         type. */
-      result = type_of_unknown_templ_param_nontype;
+         type.  Use it also as a placeholder type. */
+      result = type_arg;
     } else {
-      pos_error(ec_no_error, &type_position);
+      pos_error(ec_bad_argument_for_underlying_type, &type_position);
       result = error_type();
+    }  /* if */
+    if (!is_error_type(result)) {
+      a_boolean   dependent_arg = is_template_dependent_context() &&
+                                  is_template_dependent_type(result);
+      a_type_ptr  ut_type = alloc_type((a_type_kind)tk_typeref);
+      ut_type->variant.typeref.type = result;
+      ut_type->variant.typeref.is_underlying_type = TRUE;
+      ut_type->variant.typeref.is_dependent_type_operator = dependent_arg;
+      ut_type->variant.typeref.extra_info->operator_type_arg = type_arg;
+      result = ut_type;
     }  /* if */
   }  /* if */
   return result;
@@ -10925,7 +10935,7 @@ in *rcblock).  This routine is intended to be called from outside of
 the expression-processing routines.
 */
 {
-  a_type_ptr                  result;
+  a_type_ptr                  result, type_arg = NULL;
   an_expr_stack_entry         expr_stack_entry;
   an_expr_node_ptr            expr = NULL;
   an_operand                  operand;
@@ -10986,6 +10996,7 @@ the expression-processing routines.
         is_type = TRUE;
         add_stop_token(tok_rparen);
         type_name(&result);
+        type_arg = result;
         (void)required_token(tok_rparen, ec_exp_rparen);
         remove_stop_token(tok_rparen);
       }  /* if */
@@ -11096,6 +11107,7 @@ the expression-processing routines.
     typeof_type->variant.typeref.is_typeof = TRUE;
     typeof_type->variant.typeref.is_typeof_with_type_operand = is_type;
     typeof_type->variant.typeref.is_dependent_type_operator = dependent_arg;
+    typeof_type->variant.typeref.extra_info->operator_type_arg = type_arg;
     if (!is_type) {
       if (dependent_arg) {
         prep_generic_operand(&operand);

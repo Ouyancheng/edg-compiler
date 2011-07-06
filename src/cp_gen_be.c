@@ -4852,18 +4852,14 @@ srq_seq_sublist_parent_found:
     }  /* if */
     adv_curr_source_sequence_entry();
   }  /* if */
+  if (is_underlying_type
 #if GNU_EXTENSIONS_ALLOWED
-  if (tp->variant.typeref.is_typeof_with_type_operand) {
-    /* A __typeof__(<type>) form. */
-    skip_embedded_declarations();
-    gen_type(tp->variant.typeref.type);
-  } else
+      || tp->variant.typeref.is_typeof_with_type_operand
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  if (is_underlying_type) {
-    /* __underlying_type(<type>). */
+                                                        ) {
+    /* __underlying_type(<type>) or __typeof__(<type>). */
     skip_embedded_declarations();
-    gen_type(tp->variant.typeref.type);
+    gen_type(tp->variant.typeref.extra_info->operator_type_arg);
   } else {
     /* __typeof__(<expr>) or decltype(<expr>). */
     an_expr_node_ptr expr = decltype_arg(tp);

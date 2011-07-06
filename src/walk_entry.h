@@ -2911,6 +2911,7 @@ after_entry_from_class:
         remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
         walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
         walk_ptr(ptr->proxy_class, a_type_ptr, iek_type);
+        walk_ptr(ptr->operator_type_arg, a_type_ptr, iek_type);
       }
       break;
     case iek_constructor_init:

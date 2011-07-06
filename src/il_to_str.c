@@ -1346,9 +1346,9 @@ expression if available, or NULL otherwise.
 {
   an_expr_node_ptr  expr = type->variant.typeref.extra_info->expr;
 
-  /* __underlying_type constructs don't allow expression arguments. */
-  check_assertion(!type->variant.typeref.is_underlying_type);
-  if (expr == NULL && innermost_function_scope != NULL) {
+  if (type->variant.typeref.is_underlying_type) {
+    /* __underlying_type constructs don't allow expression arguments. */
+  } else if (expr == NULL && innermost_function_scope != NULL) {
     a_local_expr_node_ref_kind  lerk = type->variant.typeref.is_decltype ?
                                    (a_local_expr_node_ref_kind)lerk_decltype :
                                    (a_local_expr_node_ref_kind)lerk_typeof;
@@ -1564,7 +1564,7 @@ by octl.
           octl->output_name((char*)type, iek_type);
         } else {
           octl->output_str("__underlying_type(", octl);
-          form_type(type->variant.typeref.type, octl);
+          form_type(type->variant.typeref.extra_info->operator_type_arg, octl);
           octl->output_str(")", octl);
         } /* if */
 #if GNU_EXTENSIONS_ALLOWED
@@ -1800,8 +1800,11 @@ available or not portable).
                (!type->variant.typeref.is_decltype &&
                 decltype_arg(type) == NULL)) {
       /* A non-expression case: __underlying_type or typeof applied to a type
-         name.  Might as well just generate the type name. */
-      render = FALSE;
+         name.  Render the operator in the C++-generating back end (to match
+         the source form) or when the argument is template-dependent.
+         Otherwise, render the underlying type. */
+      render = octl->gen_compilable_code ||
+               type->variant.typeref.is_dependent_type_operator;
     } else {
       /* The decltype or typeof is based on an expression. */
       a_type_ptr underlying_type = type->variant.typeref.type;

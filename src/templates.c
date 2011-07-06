@@ -9494,6 +9494,21 @@ a pointer over a reference type or creating an array of references.
                                             templ_param_list,
                                             (options | CTWS_NON_CONSTANT_EXPR),
                                             copy_error, ctws_state);
+        } else if (type->variant.typeref.is_underlying_type) {
+          /* The __underlying_type operator. */
+          /* Substitute the type and extract the underlying type if it's
+             an enumeration type. */
+          tp = copy_type_with_substitution(type->variant.typeref.type,
+                                           templ_arg_list, templ_param_list,
+                                           source_pos, options, copy_error,
+                                           ctws_state);
+          tp = skip_typerefs(tp);
+          if (is_immediate_enum_type(tp)) {
+            new_type = integer_type(tp->variant.integer.int_kind);
+          } else {
+            /* __underlying_type doesn't apply to non-enum types. */
+            *copy_error = TRUE;
+          }  /* if */
         } else {
           /* Make an identically qualified type of a copy (or reuse) of the
              type that underlies the typeref. */
