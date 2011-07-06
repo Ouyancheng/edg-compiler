@@ -1673,6 +1673,8 @@ static void scan_call_arguments(
                              a_boolean              return_raw_arguments,
                              a_boolean              unknown_dependent_function,
                              a_rescan_control_block *rcblock,
+                             a_boolean              arg_list_supplied,
+                             an_arg_operand_ptr     arg_list,
                              an_arg_operand_ptr     *p_arg_operand_list,
                              an_operand             *single_operand,
                              a_boolean              *single_operand_returned,
@@ -1703,7 +1705,10 @@ If rcblock is non-NULL, redo semantic analysis on a previously-scanned
 argument list, given by rcblock->argument_list.  The arguments are
 returned in either *p_argument_list or *p_arg_operand_list, as specified
 by return_raw_arguments.  already_after_left_paren is ignored.
-*closing_paren_position is not set or altered.
+*closing_paren_position is not set or altered.  If arg_list_supplied
+is TRUE, a third interface alternative: the possibly-empty list of
+arguments is supplied by arg_list, and no source is scanned.  arg_list
+is freed after it's used.
 
 If the expression stack indicates that one or more expressions have
 been cached, those are consumed before any more expressions are read
@@ -1743,6 +1748,9 @@ to TRUE.
        rescan we only know about the arguments, and not about the surrounding
        parentheses.  It's not set to NULL because the caller is likely to
        have set it correctly already. */
+  } else if (arg_list_supplied) {
+    /* Use the argument list supplied. */
+    arg_operand_list = arg_list;
   } else {
     /* The argument list needs to be scanned from source. */
     if (!already_after_left_paren) {
@@ -1780,7 +1788,7 @@ to TRUE.
     *p_argument_list = arg_block.argument_head;
     /* process_call_argument_list frees the arg operand list. */
   }  /* if */
-  if (rcblock == NULL) {
+  if (rcblock == NULL && !arg_list_supplied) {
     /* Check for the closing parenthesis. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = end_pos_curr_token;
@@ -1792,9 +1800,11 @@ to TRUE.
 
 
 static void scan_dependent_parenthesized_initializer(
-                                       a_rescan_control_block *rcblock,
-                                       an_operand             *single_operand,
-                                       a_dynamic_init_ptr     *dip)
+                                      a_rescan_control_block *rcblock,
+                                      a_boolean              arg_list_supplied,
+                                      an_arg_operand_ptr     arg_list,
+                                      an_operand             *single_operand,
+                                      a_dynamic_init_ptr     *dip)
 /*
 Scan and process a parenthesized list of expressions that is the
 initializer of an entity of a template-dependent type.  Build a
@@ -1804,28 +1814,36 @@ following the opening parenthesis.  On return, the current token is the
 one following the closing parenthesis.  If rcblock is non-NULL, redo
 semantic analysis on a previously-scanned initializer list (given by
 rcblock->argument_list) and return the result as usual (or an error
-indication in *rcblock).  If single_operand is non-NULL, then if the
-argument list contains exactly one expression, return it in
-*single_operand instead of any other processing specified, and return
-*dip set to NULL.
+indication in *rcblock).  If arg_list_supplied is TRUE, a third
+interface alternative: the possibly-empty list of arguments is
+supplied by arg_list, and no source is scanned.  arg_list is freed
+after it's used.  If single_operand is non-NULL, then if the argument
+list contains exactly one expression, return it in *single_operand
+instead of any other processing specified, and return *dip set to
+NULL.
 */
 {
-  an_expr_node_ptr  arg_list;
+  an_expr_node_ptr  expr_arg_list;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean         single_operand_returned;
+  a_boolean         scanning_source = (rcblock == NULL &&
+                                       !arg_list_supplied);
 
   /* Scan the argument list. */
   scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
                       /*already_after_left_paren=*/TRUE,
-                      &arg_list, /*return_raw_arguments=*/FALSE,
+                      &expr_arg_list, /*return_raw_arguments=*/FALSE,
                       /*unknown_dependent_function=*/TRUE,
-                      rcblock, (an_arg_operand_ptr *)NULL,
+                      rcblock,
+                      arg_list_supplied,
+                      arg_list,
+                      (an_arg_operand_ptr *)NULL,
                       single_operand, &single_operand_returned,
                       (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (rcblock == NULL) end_position = curr_construct_end_position;
+  if (scanning_source) end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (single_operand_returned) {
     *dip = NULL;
@@ -1833,18 +1851,20 @@ argument list contains exactly one expression, return it in
     /* Set the dynamic init entry to represent "constructor" initialization,
        leaving the constructor pointer NULL. */
     *dip = alloc_expr_ctor_dynamic_init((a_routine_ptr)NULL,
-                                        arg_list,
+                                        expr_arg_list,
                                         /*add_default_args=*/FALSE,
                                         /*implied_source=*/FALSE);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (rcblock == NULL) curr_construct_end_position = end_position;
+  if (scanning_source) curr_construct_end_position = end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* scan_dependent_parenthesized_initializer */
 
 
 static void scan_error_parenthesized_initializer(
-                                               a_rescan_control_block *rcblock)
+                                      a_rescan_control_block *rcblock,
+                                      a_boolean              arg_list_supplied,
+                                      an_arg_operand_ptr     arg_list)
 
 /*
 Scan and discard a list of expressions that are inside a parenthesized
@@ -1854,21 +1874,35 @@ because the target type might have been a class with a constructor.
 On entry, the current token is after the opening parenthesis.  On
 return, it is following the closing parenthesis.  If rcblock is non-NULL,
 we are redoing semantic analysis on a previously-scanned initializer
-list; do nothing.
+list; do nothing.  Likewise, if arg_list_supplied is TRUE, we have
+an argument list created some other way; discard and free the operands
+on the list given by arg_list.
 */
 {
+  an_arg_operand *arg_operand_list, *arg_operand;
+
   if (rcblock != NULL) {
     /* Rescanning an initializer. */
+  } else if (arg_list_supplied) {
+    /* Argument list was already created. */
+    for (arg_operand = arg_list;
+         arg_operand != NULL;
+         arg_operand = arg_operand->next) {
+      operand_will_not_be_used_because_of_error(&arg_operand->operand);
+    }  /* for */
+    free_arg_operand_list(arg_list);
   } else {
     /* Scan the argument list. */
-    an_arg_operand   *arg_operand_list, *arg_operand;
-    an_expr_node_ptr arg_list;
+    an_expr_node_ptr expr_arg_list;
     scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
                         /*already_after_left_paren=*/TRUE,
-                        &arg_list,
+                        &expr_arg_list,
                         /*return_raw_arguments=*/TRUE,
                         /*unknown_dependent_function=*/FALSE,
-                        rcblock, &arg_operand_list,
+                        rcblock,
+                        /*arg_list_supplied=*/FALSE,
+                        (an_arg_operand *)NULL,
+                        &arg_operand_list,
                         (an_operand *)NULL, (a_boolean *)NULL,
                         (a_source_position *)NULL);
     for (arg_operand = arg_operand_list;
@@ -1990,6 +2024,8 @@ static void scan_ctor_arguments(a_symbol_ptr           constructor_sym,
                                 a_boolean              fill_in_dtor,
                                 a_boolean              elision_allowed,
                                 a_rescan_control_block *rcblock,
+                                a_boolean              arg_list_supplied,
+                                an_arg_operand_ptr     arg_list,
                                 a_boolean              *trivial_ctor,
                                 a_boolean              *unboxing_conv,
                                 an_operand             *unboxing_conv_operand,
@@ -2042,7 +2078,9 @@ remove it later, as this routine takes care of that.
 
 If rcblock is non-NULL, redo semantic analysis on a previously-scanned
 expression, and return the result as usual (or an error indication in
-*rcblock).
+*rcblock).  If arg_list_supplied is TRUE, a third interface
+alternative: the possibly-empty list of arguments is supplied by
+arg_list, and no source is scanned.  arg_list is freed after it's used.
 */
 {
   a_boolean           overloaded_function_case = FALSE;
@@ -2114,7 +2152,7 @@ expression, and return the result as usual (or an error indication in
                       /*already_after_left_paren=*/TRUE,
                       &arg_expr_list, overloaded_function_case,
                       /*unknown_dependent_function=*/FALSE,
-                      rcblock,
+                      rcblock, arg_list_supplied, arg_list,
                       &arg_operand_list,
                       (an_operand *)NULL, (a_boolean *)NULL,
                       closing_paren_position);
@@ -4414,6 +4452,8 @@ are expected to be NULL in that case.
                       (overloaded_function_case || gnu_sync_function_case),
                       unknown_dependent_function,
                       rcblock,
+                      /*arg_list_supplied=*/FALSE,
+                      (an_arg_operand *)NULL,
                       &arg_operand_list,
                       (an_operand *)NULL, (a_boolean *)NULL,
                       &closing_paren_position);
@@ -10016,20 +10056,24 @@ static void scan_call_like_builtin_operation(
                                    a_type_ptr                     type,
                                    an_il_entry_kind               arg1_kind,
                                    an_il_entry_kind               arg2_kind,
-                                   an_il_entry_kind               arg3_kind,
+                                   a_boolean                      arg2_repeats,
                                    an_operand                     *result)
 /*
 Scan a constant operation of the general form
 	operation-name ( <comma-separated-list-of-arguments> )
-with up to three arguments described by arg1_kind, arg2_kind, and arg3_kind.
-(argX_kind is iek_none if there is no corresponding parameter, iek_type if
-the argument should be a type name, iek_constant if it should be a constant-
-expression, and iek_expr_node if it can be any expression.) Produce a constant
-operand of the given type in *result.  (Although an enk_builtin_operation node
-can represent a non-constant operation, this routine is only meant to handle
-the constant cases.)  If rcblock is non-NULL, redo semantic analysis
-on a previously-scanned builtin operation expression, and return the
-result in *result (or an error indication in *rcblock).
+with arguments described by arg1_kind and arg2_kind (argX_kind
+is iek_none if there is no corresponding parameter, iek_type if the
+argument should be a type name, iek_constant if it should be a constant-
+expression, and iek_expr_node if it can be any expression.).  An
+operation with one or more arguments is allowed if arg2_repeats is TRUE,
+in which case the first argument is described by arg1_kind, and
+arguments after that are described by arg2_kind.  Produce a constant
+operand of the given type in *result.  (Although an
+enk_builtin_operation node can represent a non-constant operation,
+this routine is only meant to handle the constant cases.)  If rcblock
+is non-NULL, redo semantic analysis on a previously-scanned builtin
+operation expression, and return the result in *result (or an error
+indication in *rcblock).
 */
 {
   a_boolean          err = FALSE;
@@ -10037,7 +10081,7 @@ result in *result (or an error indication in *rcblock).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position  end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  an_expr_node_ptr   arg1 = NULL, arg2, arg3;
+  an_expr_node_ptr   arg1 = NULL, arg2;
 
   /* Currently, only type arguments are implemented.  I.e., argX_kind must
      be iek_none or iek_type. */
@@ -10063,17 +10107,25 @@ result in *result (or an error indication in *rcblock).
   }  /* if */
   if (arg1_kind != iek_none) {
     arg1 = scan_builtin_operation_arg(rcblock, arg1_kind);
-    err |= (int)(arg1->kind == (an_expr_node_kind)enk_error);
+    err |= (int)is_error_node(arg1);
     if (arg2_kind != iek_none) {
-      if (rcblock == NULL) (void)required_token(tok_comma, ec_exp_comma);
-      arg2 = scan_builtin_operation_arg(rcblock, arg2_kind);
-      err |= (int)(arg2->kind == (an_expr_node_kind)enk_error);
-      arg1->next = arg2;
-      if (arg3_kind != iek_none) {
+      if (arg2_repeats) {
+        /* A (possibly empty) list of arguments after the first. */
+        an_expr_node_ptr argn, last_arg = arg1;
+        while ((rcblock == NULL) ? curr_token == tok_comma :
+                                   rcblock->argument_list != NULL) {
+          if (rcblock == NULL) (void)required_token(tok_comma, ec_exp_comma);
+          argn = scan_builtin_operation_arg(rcblock, arg2_kind);
+          err |= (int)is_error_node(argn);
+          last_arg->next = argn;
+          last_arg = argn;
+        }  /* while */
+      } else {
+        /* Two arguments. */
         if (rcblock == NULL) (void)required_token(tok_comma, ec_exp_comma);
-        arg3 = scan_builtin_operation_arg(rcblock, arg3_kind);
-        err |= (int)(arg3->kind == (an_expr_node_kind)enk_error);
-        arg2->next = arg3;
+        arg2 = scan_builtin_operation_arg(rcblock, arg2_kind);
+        err |= (int)is_error_node(arg2);
+        arg1->next = arg2;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -10140,7 +10192,7 @@ in *rcblock).
     result_type = bool_type();
   }  /* if */
   scan_call_like_builtin_operation(rcblock, bok_is_base_of, result_type,
-                                   iek_type, iek_type, iek_none,
+                                   iek_type, iek_type, /*arg2_repeats=*/FALSE,
                                    result);
   if (!type_traits_helpers_enabled) {
     /* Turn the operand into an error operand to avoid any surprises later
@@ -10176,7 +10228,8 @@ an error indication in *rcblock).
     result_type = bool_type();
   }  /* if */
   scan_call_like_builtin_operation(rcblock, bok_is_convertible_to, result_type,
-                                   iek_type, iek_type, iek_none, result);
+                                   iek_type, iek_type, /*arg2_repeats=*/FALSE,
+                                   result);
   if (!type_traits_helpers_enabled) {
     /* Turn the operand into an error operand to avoid any surprises later
        on. */
@@ -10185,7 +10238,6 @@ an error indication in *rcblock).
 }  /* scan_is_convertible_to */
 
 
-/*ARGSUSED*/  /* <-- FIXME: Function body not yet implemented. */
 static void scan_is_constructible(a_builtin_operation_kind_tag kind,
                                   a_rescan_control_block       *rcblock,
                                   an_operand                   *result)
@@ -10195,15 +10247,35 @@ Scan a constant-expression having one of the following forms:
       __is_nothrow_constructible( T , Args... )
 The result is a boolean of value true if the following variable definition
 would be well-formed for some invented variable t:
-      T t(declval<Args>()...);
+      T t(create<Args>()...);
 If kind is bok_is_nothrow_constructible, the definition must be known not to
 throw any exceptions.  If rcblock is non-NULL, redo semantic analysis on a
 previously-scanned __is_constructible/__is_nothrow_constructible expression,
 and return the result in *result (or an error indication in *rcblock).
 */
 {
-  /* FIXME: Not yet implemented. */
-}
+  a_type_ptr  result_type;
+
+  if (!type_traits_helpers_enabled) {
+    /* __is_constructible is not accepted in some modes. */
+    if (expr_error_should_be_issued()) {
+      check_assertion(rcblock == NULL);
+      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
+                   builtin_operation_names[(int)kind]);
+    }  /* if */
+    result_type = boolean_result_type();
+  } else {
+    result_type = bool_type();
+  }  /* if */
+  scan_call_like_builtin_operation(rcblock, kind, result_type,
+                                   iek_type, iek_type, /*arg2_repeats=*/TRUE,
+                                   result);
+  if (!type_traits_helpers_enabled) {
+    /* Turn the operand into an error operand to avoid any surprises later
+       on. */
+    conv_to_error_operand(result);
+  }  /* if */
+}  /* scan_is_constructible */
 
 
 static void scan_unary_type_trait_helper(a_rescan_control_block *rcblock,
@@ -10290,7 +10362,7 @@ indication in *rcblock).
     result_type = bool_type();
   }  /* if */
   scan_call_like_builtin_operation(rcblock, bok, result_type,
-                                   iek_type, iek_none, iek_none,
+                                   iek_type, iek_none, /*arg2_repeats=*/FALSE,
                                    result);
   if (!type_traits_helpers_enabled) {
     /* Turn the operand into an error operand to avoid any surprises later
@@ -10322,7 +10394,7 @@ is returned through *result.
   }  /* if */
   scan_call_like_builtin_operation((a_rescan_control_block *)NULL,
                                    bok_types_compatible, result_type,
-                                   iek_type, iek_type, iek_none,
+                                   iek_type, iek_type, /*arg2_repeats=*/FALSE,
                                    result);
   if (!C_mode()) {
     /* Turn the operand into an error operand to avoid any surprises later
@@ -11682,6 +11754,8 @@ This is allowed in both Microsoft C and C++ modes.
                         /*return_raw_arguments=*/FALSE,
                         /*unknown_dependent_function=*/FALSE,
                         (a_rescan_control_block *)NULL,
+                        /*arg_list_supplied=*/FALSE,
+                        (an_arg_operand *)NULL,
                         (an_arg_operand_ptr *)NULL,
                         (an_operand *)NULL, (a_boolean *)NULL,
                         &end_position);
@@ -13921,6 +13995,8 @@ expression, and return the result in *result (or an error indication in
                           &dummy, /*return_raw_arguments=*/TRUE,
                           /*unknown_dependent_function=*/FALSE,
                           rcblock,
+                          /*arg_list_supplied=*/FALSE,
+                          (an_arg_operand *)NULL,
                           &arg_operand_list,
                           (an_operand *)NULL, (a_boolean *)NULL,
                           (a_source_position *)NULL);
@@ -14046,6 +14122,8 @@ expression, and return the result in *result (or an error indication in
                               &dummy, /*return_raw_arguments=*/TRUE,
                               /*unknown_dependent_function=*/FALSE,
                               (a_rescan_control_block *)NULL,
+                              /*arg_list_supplied=*/FALSE,
+                              (an_arg_operand *)NULL,
                               &arg_operand_list,
                               (an_operand *)NULL, (a_boolean *)NULL,
                               (a_source_position *)NULL);
@@ -14778,7 +14856,10 @@ expression, and return the result in *result (or an error indication in
                           /*already_after_left_paren=*/TRUE, &dummy,
                           /*return_raw_arguments=*/TRUE,
                           /*unknown_dependent_function=*/FALSE,
-                          rcblock, &init_raw_args,
+                          rcblock,
+                          /*arg_list_supplied=*/FALSE,
+                          (an_arg_operand *)NULL,
+                          &init_raw_args,
                           (an_operand_ptr)NULL,
                           (a_boolean *)NULL,
                           &end_new_init_position);
@@ -14836,6 +14917,8 @@ expression, and return the result in *result (or an error indication in
                              allocation. */
                           /*elision_allowed=*/(new_routine != NULL),
                           rcblock,
+                          /*arg_list_supplied=*/FALSE,
+                          (an_arg_operand *)NULL,
                           &trivial_ctor,
                           /*unboxing_conv=*/(a_boolean *)NULL,
                           /*unboxing_conv_operand=*/(an_operand *)NULL,
@@ -14866,7 +14949,10 @@ expression, and return the result in *result (or an error indication in
                           /*already_after_left_paren=*/TRUE,
                           &dummy, /*return_raw_arguments=*/TRUE,
                           /*unknown_dependent_function=*/FALSE,
-                          rcblock, &init_raw_args,
+                          rcblock,
+                          /*arg_list_supplied=*/FALSE,
+                          (an_arg_operand *)NULL,
+                          &init_raw_args,
                           /*single_operand=*/NULL,
                           /*single_operand_returned=*/NULL,
                           &end_new_init_position);
@@ -14876,7 +14962,9 @@ expression, and return the result in *result (or an error indication in
       needs_initialization = TRUE;
     } else if (is_error_type(base_new_type)) {
       /* The type is not known.  Scan the argument list and discard it. */
-      scan_error_parenthesized_initializer(rcblock);
+      scan_error_parenthesized_initializer(rcblock,
+                                           /*arg_list_supplied=*/FALSE,
+                                           (an_arg_operand *)NULL);
       needs_initialization = FALSE;
       dip = NULL;
       err = TRUE;
@@ -18963,12 +19051,14 @@ start_position gives the source start position.
 
 
 static void scan_functional_notation_type_conversion(
-                                      a_rescan_control_block   *rcblock,
-                                      a_dynamic_init_ptr       rescan_dip,
-                                      a_type_ptr               type_cast_to,
-                                      a_source_position        *start_position,
-                                      an_operand               *result,
-                                      a_local_expr_options_set local_options)
+                                    a_rescan_control_block   *rcblock,
+                                    a_dynamic_init_ptr       rescan_dip,
+                                    a_boolean                arg_list_supplied,
+                                    an_arg_operand_ptr       arg_list,
+                                    a_type_ptr               type_cast_to,
+                                    a_source_position        *start_position,
+                                    an_operand               *result,
+                                    a_local_expr_options_set local_options)
 /*
 Scan a C++ functional-notation type conversion, e.g., "int(1.5)" or "A(1,2)".
 The type keyword or identifier has been scanned over (the current token is
@@ -18981,7 +19071,10 @@ same semantics, at least for the cases they have in common), and
 return the result in *result (or an error indication in *rcblock).  In
 that case, type_cast_to and start_position are ignored, and set from
 the information in rcblock.  If rescan_dip is non-NULL, use that
-as the cast in place of rcblock->expr.
+as the cast in place of rcblock->expr.  If arg_list_supplied is TRUE,
+a third interface alternative: the possibly-empty list of arguments is
+supplied by arg_list, and no source is scanned.  arg_list is freed
+after it's used.
 */
 {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -18998,6 +19091,8 @@ as the cast in place of rcblock->expr.
   an_expr_node_ptr              temp_init_node, orig_operand_expression = NULL;
   a_source_position             local_start_position, type_position;
   a_boolean                     expr_not_present = FALSE;
+  a_boolean                     scanning_source = (rcblock == NULL &&
+                                                   !arg_list_supplied);
 
   db_enter(4, "scan_functional_notation_type_conversion");
 
@@ -19036,7 +19131,7 @@ as the cast in place of rcblock->expr.
     if (ctor_sym != NULL) {
       /* The class has a constructor. */
       ctor_case = TRUE;
-      if (any_cfront_mode() && rcblock == NULL &&
+      if (any_cfront_mode() && scanning_source &&
           cssp->target_of_conversion_function &&
           conversion_has_one_argument()) {
         /* Old rules for cfront mode: conversion functions compete with
@@ -19051,7 +19146,7 @@ as the cast in place of rcblock->expr.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (rcblock == NULL) {
+  if (scanning_source) {
     /* Check for a left parenthesis. */
     (void)required_token(tok_lparen, ec_exp_lparen);
   }  /* if */
@@ -19068,11 +19163,13 @@ as the cast in place of rcblock->expr.
                         /*fill_in_dtor=*/TRUE,
                         /*elision_allowed=*/TRUE,
                         rcblock,
+                        arg_list_supplied, arg_list,
                         /*trivial_ctor=*/(a_boolean *)NULL,
                         &unboxing_conv,
                         /*unboxing_conv_operand=*/result,
                         &dip, &temp_init_node,
                         end_position_arg);
+    arg_list = NULL;  /* Called routine frees the list if present. */
     error_position = *start_position;
     if (unboxing_conv) {
       /* The cast is actually a C++/CLI unboxing conversion.  Go
@@ -19097,7 +19194,10 @@ as the cast in place of rcblock->expr.
     /* A cast to a template parameter type (which might be a class) or a
        nonreal class in a prototype instantiation.  This is handled specially
        because it may have more than one argument or zero arguments. */
-    scan_dependent_parenthesized_initializer(rcblock, result, &dip);
+    scan_dependent_parenthesized_initializer(rcblock,
+                                             arg_list_supplied, arg_list,
+                                             result, &dip);
+    arg_list = NULL;  /* Called routine frees the list if present. */
     if (dip == NULL) {
       /* The argument list turned out to have a single expression,
          so treat it like a simple cast. */
@@ -19130,22 +19230,25 @@ as the cast in place of rcblock->expr.
       rule_out_expr_kinds(ROEK_CONSTANT, result);
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (rcblock == NULL) {
+    if (scanning_source) {
       end_position = curr_construct_end_position;
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else if (is_error_type(type_cast_to)) {
     /* The destination type is not known.  Scan the argument list and
        discard it. */
-    scan_error_parenthesized_initializer(rcblock);
+    scan_error_parenthesized_initializer(rcblock, arg_list_supplied, arg_list);
+    arg_list = NULL;  /* Called routine frees the list if present. */
     make_error_operand(result);
   } else {
     /* Not a constructor case; obeys the same rules as a C-style cast. */
-    if (rcblock == NULL) add_matching_stop_token(tok_rparen);
-    if ((rcblock == NULL) ? (curr_token == tok_rparen) :
-                            (rcblock->argument_list == NULL)) {
-      /* Empty parentheses (or no expressions in the argument list, on
-         a rescan). */
+    if (scanning_source) add_matching_stop_token(tok_rparen);
+    if (scanning_source ? (curr_token == tok_rparen) :
+                          (arg_list_supplied ?
+                                 (arg_list == NULL) :
+                                 (rcblock->argument_list == NULL))) {
+      /* Empty parentheses (or no expressions in the argument list
+         provided). */
 empty_parentheses:
       if (err) {
         /* Some previous error. */
@@ -19247,6 +19350,19 @@ empty_parentheses:
                                               &local_bound_function_selector,
                                               &expr_not_present);
         }  /* if */
+      } else if (arg_list_supplied) {
+        /* Using an argument list passed by the caller. */
+        check_assertion(arg_list != NULL);
+        if (arg_list->next != NULL) {
+          /* Multiple operand expressions in a cast that can only take one. */
+          expr_pos_error(ec_too_many_cast_operands,
+                         &arg_list->next->operand.position);
+          make_error_operand(result);
+        } else {
+          copy_operand(&arg_list->operand, result);
+        }  /* if */
+        free_arg_operand_list(arg_list);
+        arg_list = NULL;
       } else {
         /* Scan the expression inside the parentheses. */
         /* Since the expression in parentheses is syntactically an
@@ -19277,7 +19393,7 @@ non_ctor_case_after_expr_scan:
       } else {
         /* Check compatibility of the types and do the cast. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        if (rcblock == NULL) end_position = end_pos_curr_token;
+        if (scanning_source) end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         orig_operand_expression = expr_node_from_operand(result);
         do_cast(type_cast_to, result, &local_bound_function_selector,
@@ -19286,13 +19402,22 @@ non_ctor_case_after_expr_scan:
                 end_position_or_null(&end_position));
       }  /* if */
     }  /* if */
-    if (rcblock == NULL) {
+    if (scanning_source) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Check for the closing parenthesis. */
       check_closing_paren_after_expr_list();
       remove_matching_stop_token(tok_rparen);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    } else if (arg_list_supplied) {
+      /* Determine the end position on the last operand. */
+      an_arg_operand *arg;
+      end_position = *start_position;
+      for (arg = arg_list; arg != NULL; arg = arg->next) {
+        end_position = arg->operand.end_position;
+      }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
   }  /* if */
   set_operand_position(result, start_position, &end_position, start_position);
@@ -24688,12 +24813,15 @@ overloaded_function:
               okay_after_typename = TRUE;
             }  /* if */
             (void)get_token();
-            scan_functional_notation_type_conversion(rcblock,
-                                                     (a_dynamic_init_ptr)NULL,
-                                                     cast_type,
-                                                     &start_position,
-                                                     result,
-                                                     local_options);
+            scan_functional_notation_type_conversion(
+                                                   rcblock,
+                                                   (a_dynamic_init_ptr)NULL,
+                                                   /*arg_list_supplied=*/FALSE,
+                                                   (an_arg_operand *)NULL,
+                                                   cast_type,
+                                                   &start_position,
+                                                   result,
+                                                   local_options);
             okay_for_integral_const_expr = TRUE;
             goto after_advance_past_id;
           } else {
@@ -26711,6 +26839,8 @@ type_start:
           scan_functional_notation_type_conversion(
                                                 (a_rescan_control_block *)NULL,
                                                 (a_dynamic_init_ptr)NULL,
+                                                /*arg_list_supplied=*/FALSE,
+                                                (an_arg_operand *)NULL,
                                                 cast_type,
                                                 &start_position,
                                                 &local_result,
@@ -29945,6 +30075,8 @@ alternative callable from outside, see rescan_expr_with_substitution.
            cases they have in common. */
         scan_functional_notation_type_conversion(rcblock,
                                                  (a_dynamic_init_ptr)NULL,
+                                                 /*arg_list_supplied=*/FALSE,
+                                                 (an_arg_operand *)NULL,
                                                  (a_type_ptr)NULL,
                                                  (a_source_position *)NULL,
                                                  result,
@@ -30210,6 +30342,8 @@ dynamic initialization after substitution.
     check_assertion(dip->rescan_info != NULL);
     scan_functional_notation_type_conversion(rcblock,
                                              dip,
+                                             /*arg_list_supplied=*/FALSE,
+                                             (an_arg_operand *)NULL,
                                              (a_type_ptr)NULL,
                                              (a_source_position *)NULL,
                                              result,
@@ -31356,6 +31490,8 @@ overall errors.
                       object_class_type, (a_type_ptr)NULL,
                       fill_in_dtor, /*elision_allowed=*/TRUE,
                       (a_rescan_control_block *)NULL,
+                      /*arg_list_supplied=*/FALSE,
+                      (an_arg_operand *)NULL,
                       /*trivial_ctor=*/(a_boolean *)NULL,
                       /*unboxing_conv=*/(a_boolean *)NULL,
                       /*unboxing_conv_operand=*/(an_operand *)NULL,
@@ -31408,6 +31544,8 @@ current token is the one following the closing parenthesis.
   transfer_expr_context_if_applicable(saved_expr_stack);
   set_up_initializer_rescan(dps);
   scan_dependent_parenthesized_initializer((a_rescan_control_block *)NULL,
+                                           /*arg_list_supplied=*/FALSE,
+                                           (an_arg_operand *)NULL,
                                            (an_operand *)NULL,
                                            dip);
   /* If there's an object lifetime around the initialization, transfer it
@@ -32021,7 +32159,7 @@ of this where the source should be considered an rvalue.
      has something on it.  If there is already something on the stack,
      save it, clear the stack, and restore it later. */
   save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
   if (is_any_reference_type(src_type)) {
@@ -32050,16 +32188,9 @@ of this where the source should be considered an rvalue.
     result = FALSE;
   } else {
     an_operand              src_op;
-    a_variable              src_var;
     an_arg_match_summary    arg_match;
     /* Test whether the conversion is possible. */
-    /* Make a variable with the given type. */
-    clear_variable(&src_var);
-    src_var.type = src_type;
-    make_lvalue_variable_operand(&src_var,
-                                 &null_source_position,
-                                 &null_source_position,
-                                 &src_op, (a_ref_entry_ptr)NULL);
+    make_dummy_lvalue_operand(src_type, &src_op);
     if (src_is_rvalue &&
         !is_array_type(src_type) &&
         !is_function_type(src_type)) { 
@@ -32080,6 +32211,98 @@ of this where the source should be considered an rvalue.
   restore_expr_stack(saved_expr_stack);
   return result;
 }  /* compute_is_convertible */
+
+
+/*ARGSUSED*/  /* FIXME: kind not used yet (nothrow variant). */
+a_boolean compute_is_constructible(a_builtin_operation_kind kind,
+                                   a_type_ptr               dst_type,
+                                   an_expr_node_ptr         args)
+/*
+Compute the "is_constructible" type relationship predicate of the C++
+standard.  It determines whether an invented variable of type dst_type
+can be constructed from arguments with types as given by the (possibly
+empty) list of type operands args, and returns TRUE if so.
+*/
+{
+  a_boolean               result = FALSE;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
+  an_arg_operand_ptr      arg_operand_list = NULL, end_arg_operand_list = NULL;
+
+  /* Even though this is not an expression scan, make sure the expr_stack
+     has something on it.  If there is already something on the stack,
+     save it, clear the stack, and restore it later. */
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  complete_type_is_needed(dst_type);
+  if (is_void_type(dst_type) ||
+      is_array_type(dst_type) ||
+      is_function_type(dst_type) ||
+      is_incomplete_type(dst_type) ||
+      is_abstract_class_type(dst_type)) {
+    result = FALSE;
+  } else {
+    /* Make a list of arg_operands of the required types. */
+    an_arg_operand_ptr arg;
+    an_operand         operand;
+    an_expr_node_ptr   argn;
+    for (argn = args; argn != NULL; argn = argn->next) {
+      a_boolean  make_lvalue = FALSE;
+      a_type_ptr typen;
+      check_assertion(argn->kind == (an_expr_node_kind)enk_type_operand);
+      typen = argn->variant.type_operand.type;
+      if (is_lvalue_reference_type(typen)) {
+        make_lvalue = TRUE;
+        typen = type_pointed_to(typen);
+      } else if (is_rvalue_reference_type(typen)) {
+        make_lvalue = FALSE;
+        typen = type_pointed_to(typen);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (is_tracking_reference_type(typen)) {
+        make_lvalue = TRUE;
+        typen = type_pointed_to(typen);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
+      complete_type_is_needed(typen);
+      if (is_incomplete_type(typen)) {
+        result = FALSE;
+        goto have_result;
+      }  /* if */
+      arg = alloc_arg_operand();
+      if (arg_operand_list == NULL) {
+        arg_operand_list = arg;
+      } else {
+        end_arg_operand_list->next = arg;
+      }  /* if */
+      end_arg_operand_list = arg;
+      make_dummy_lvalue_operand(typen, &arg->operand);
+      if (!make_lvalue) {
+        do_operand_transformations(&arg->operand, TOPT_NO_OPTIONS);
+      }  /* if */
+    }  /* for */
+    expr_stack->suppress_diagnostics = TRUE;
+    /* Model the initialization as a functional-notation cast, with
+       error suppressed. */
+    scan_functional_notation_type_conversion((a_rescan_control_block *)NULL,
+                                             (a_dynamic_init_ptr)NULL,
+                                             /*arg_list_supplied=*/TRUE,
+                                             arg_operand_list,
+                                             dst_type,
+                                             &null_source_position,
+                                             &operand,
+                                             EOPT_NO_OPTIONS);
+    arg_operand_list = NULL;  /* Called routine frees the list. */
+    result = !expr_stack->any_suppressed_error;
+  }  /* if */
+have_result:
+  free_arg_operand_list(arg_operand_list);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  return result;
+}  /* compute_is_constructible */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *

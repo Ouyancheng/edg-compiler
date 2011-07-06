@@ -6504,7 +6504,6 @@ constant will be set as well.
 }  /* fold_is_convertible_to */
 
 
-/*ARGSUSED*/  /* <-- FIXME: Function body not yet implemented. */
 static void fold_is_constructible(an_expr_node_ptr   expr,
                                   a_constant_ptr     constant,
                                   a_boolean          maintain_expression)
@@ -6513,7 +6512,7 @@ expr is an enk_builtin_operation node for an __is_constructible or
 __is_nothrow_constructible operation.  Store a boolean constant in *constant
 whose value is "true" if the following variable definition
 would be well-formed for some invented variable t:
-      T t(declval<Args>()...);
+      T t(create<Args>()...);
 If the built-in operation kind is bok_is_nothrow_constructible, the definition
 must be known not to throw any exceptions.  If any of the operand types is
 dependent, store a ck_template_param constant in *constant.  The constant will
@@ -6522,8 +6521,50 @@ If maintain_expression is TRUE, the backing expression for the returned
 constant will be set as well.
 */
 {
-  /* FIXME: Not yet implemented. */
-}
+  a_builtin_operation_kind
+                    kind = expr->variant.builtin_operation.kind;
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
+                    argn;
+  a_type_ptr        type1, typen;
+  a_boolean         dependent = FALSE, result;
+
+  /* eok_parens shouldn't appear here, since the construct is generated. */
+  check_assertion(arg1 != NULL &&
+                  arg1->kind == (an_expr_node_kind)enk_type_operand);
+  type1 = arg1->variant.type_operand.type;
+  if (is_template_dependent_type(type1)) {
+    dependent = TRUE;
+  } else {
+    for (argn = arg1->next; argn != NULL; argn = argn->next) {
+      check_assertion(argn->kind == (an_expr_node_kind)enk_type_operand);
+      typen = argn->variant.type_operand.type;
+      if (is_template_dependent_type(typen)) {
+        dependent = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (dependent) {
+    /* One or more of the types is dependent, so the result is still
+       unknown. */
+    clear_constant(constant, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(
+                   constant, (a_template_param_constant_kind)tpck_expression);
+    constant->variant.template_param.variant.expr = expr;
+  } else {
+    result = compute_is_constructible(kind, type1, arg1->next);
+    arg1->variant.type_operand.definition_needed = TRUE;
+    for (argn = arg1->next; argn != NULL; argn = argn->next) {
+      check_assertion(argn->kind == (an_expr_node_kind)enk_type_operand);
+      argn->variant.type_operand.definition_needed = TRUE;
+    }  /* for */
+    clear_constant(constant, (a_constant_repr_kind)ck_integer);
+    set_integer_value(&constant->variant.integer_value,
+                      (a_host_large_integer)result);
+    if (maintain_expression) constant->expr = expr;
+  }  /* if */
+  constant->type = expr->type;
+}  /* fold_is_constructible */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 

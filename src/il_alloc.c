@@ -2083,7 +2083,7 @@ pointer to it.
 }  /* alloc_vla_dimension */
 
 
-void clear_variable(a_variable_ptr vp)
+static void clear_variable(a_variable_ptr vp)
 /*
 Clear the fields of the given variable to default values.
 */

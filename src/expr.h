@@ -444,6 +444,11 @@ extern a_boolean compute_is_convertible(a_type_ptr  src_type,
                                         a_type_ptr  dst_type,
                                         a_boolean   src_is_rvalue);
 
+extern
+a_boolean compute_is_constructible(a_builtin_operation_kind kind,
+                                   a_type_ptr               dst_type,
+                                   an_expr_node_ptr         args);
+
 /*
 Macro that is TRUE if the node is an operation node.
 */
