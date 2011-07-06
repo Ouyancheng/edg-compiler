@@ -4399,11 +4399,6 @@ file.
 #else /* !defined(DEFAULT_C99_MODE) */
   comment_undefined_macro_name(DEFAULT_C99_MODE);
 #endif /* defined(DEFAULT_C99_MODE) */
-#if defined(DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS)
-  define_numeric_valued_macro(DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS);
-#else /* !defined(DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS) */
-  comment_undefined_macro_name(DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS);
-#endif /* defined(DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS) */
 #if defined(DEFAULT_CHECK_CONCATENATIONS)
   define_numeric_valued_macro(DEFAULT_CHECK_CONCATENATIONS);
 #else /* !defined(DEFAULT_CHECK_CONCATENATIONS) */
@@ -9362,8 +9357,6 @@ variables declared in cmd_line.h.
 #else /* !WCHAR_T_ENABLING_POSSIBLE */
                        FALSE;
 #endif /* WCHAR_T_ENABLING_POSSIBLE */
-  char16_t_and_char32_t_are_keywords =
-                                    DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS;
   bool_is_keyword = 
 #if BOOL_ENABLING_POSSIBLE
                     DEFAULT_BOOL_IS_KEYWORD;
@@ -9550,6 +9543,7 @@ variables declared in cmd_line.h.
   microsoft_version = DEFAULT_MICROSOFT_VERSION;
   c99_mode = DEFAULT_C99_MODE;
   uliterals_enabled = DEFAULT_ULITERALS_ENABLED;
+  char16_t_and_char32_t_are_keywords = DEFAULT_ULITERALS_ENABLED;
   type_traits_helpers_enabled = DEFAULT_TYPE_TRAITS_HELPERS_ENABLED;
   cpp0x_mode = DEFAULT_CPP0X_MODE;
   right_shift_can_be_angle_brackets = FALSE;

@@ -1284,16 +1284,6 @@ which may be modified using command line options.
 #endif /* ifndef DEFAULT_WCHAR_T_IS_KEYWORD */
 
 /*
-Flag that is TRUE if, in C++ mode, char16_t and char32_t are keywords by
-default.  This is the default value for the global flag
-char16_t_and_char32_t_are_keywords, the value of which may be modified using
-the --[no_]uliterals command line options.
-*/
-#ifndef DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS
-#define DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS FALSE
-#endif /* ifndef DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS */
-
-/*
 Flag that is TRUE if, when char16_t and char32_t are keywords, a preprocessing
 symbol should be defined to prevent the system header files from attempting to
 redefine char16_t and char32_t as a typedef.
@@ -2084,8 +2074,15 @@ initial value of the global variable check_concatenations.
 #endif /* ifndef DEFAULT_CHECK_CONCATENATIONS */
 
 /*
-Flag that is TRUE if U-literals (as specified by ISO/IEC TR 19769) should be
-accepted by default.
+Flag that is TRUE if U-literals (as specified by ISO/IEC TR 19769 and C++0x)
+should be accepted by default (i.e., it's the initial value of the global
+variable uliterals_enabled).  The flag is also the default value for
+char16_t_and_char32_t_are_keywords which specifies whether, in C++ mode,
+char16_t and char32_t are keywords.  In C++ mode, it's likely that these global
+variables will have the same value (though they need not).  In C mode,
+char16_t_and_char32_t_are_keywords is always FALSE.  These options are both
+enabled in C++0x mode.  The default can be overridden using the
+--[no_]uliterals command line options.
 */
 #ifndef DEFAULT_ULITERALS_ENABLED
 #define DEFAULT_ULITERALS_ENABLED FALSE

@@ -1,5 +1,16 @@
 Version 4.4
 
+7/6/11   [EDGcpfe/11849]
+Removal of DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS configuration macro
+
+The recently added (see Changes entry of 6/17/11) configuration macro
+DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS has been removed and the
+DEFAULT_ULITERALS_ENABLED macro is now used in its place.  Using the same
+configuration macro as the initial value for both uliterals_enabled and
+char16_t_and_char32_t_are_keywords reduces the likelihood that these global
+variables are mis-configured.
+
+
 7/6/11   [EDGcpfe/11089]
 EDG_WIN32 missing in configuration output
 
