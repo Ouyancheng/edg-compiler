@@ -45,7 +45,8 @@ extern an_ELF_visibility_kind ELF_visibility_from_string(
                                                        char  *visibility_str);
 
 extern void update_for_default_ELF_visibility(
-                                         an_ELF_visibility_kind  *visibility);
+                                     an_ELF_visibility_kind  *visibility,
+                                     a_boolean               is_class_member);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
 extern a_type_ptr get_type_with_mode(a_type_ptr        type,

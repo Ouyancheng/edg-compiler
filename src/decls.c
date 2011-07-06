@@ -6126,7 +6126,7 @@ for use in generating cross-reference output describing this declaration.
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   /* Update the ELF visibility if applicable. */
   { an_ELF_visibility_kind  visibility = variable_ptr->ELF_visibility;
-    update_for_default_ELF_visibility(&visibility);
+    update_for_default_ELF_visibility(&visibility, /*is_class_member=*/FALSE);
     variable_ptr->ELF_visibility = visibility;
   }
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -8126,7 +8126,7 @@ skip_overloading:;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   /* Update the ELF visibility if applicable. */
   { an_ELF_visibility_kind  visibility = routine_ptr->ELF_visibility;
-    update_for_default_ELF_visibility(&visibility);
+    update_for_default_ELF_visibility(&visibility, /*is_class_member=*/FALSE);
     routine_ptr->ELF_visibility = visibility;
   }
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */

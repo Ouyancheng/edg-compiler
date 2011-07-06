@@ -10395,7 +10395,7 @@ functions.
     routine->ELF_visibility = class_type_supp(class_type)->ELF_visibility;
   }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-}  /* copy_class_gnu_properties_to_routine */
+}  /* copy_gnu_class_properties_to_routine */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED

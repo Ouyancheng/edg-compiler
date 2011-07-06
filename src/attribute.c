@@ -5722,14 +5722,17 @@ evk_unspecified if the string is not recognized.
 }  /* ELF_visibility_from_string */
 
 
-void update_for_default_ELF_visibility(an_ELF_visibility_kind  *visibility)
+void update_for_default_ELF_visibility(an_ELF_visibility_kind  *visibility,
+                                       a_boolean               is_class_member)
 /*
 If the given ELF visibility is evk_unspecified, replace it by the default
 visibility implied by the ELF visibility stack or the enclosing class scope.
+is_class_member is TRUE if the visibility is that of a class member.
 */
 {
   if (*visibility == (an_ELF_visibility_kind)evk_unspecified) {
-    if (scope_stack_top().kind == (a_scope_kind)sck_class_struct_union) {
+    if (scope_is(&scope_stack_top(), sck_class_struct_union) &&
+        is_class_member) {
       *visibility = scope_stack_top().ELF_visibility;
     } else if (depth_innermost_namespace_scope != NO_SCOPE_DEPTH &&
                depth_innermost_function_scope == NO_SCOPE_DEPTH) {

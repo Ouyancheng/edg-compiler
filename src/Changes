@@ -1,5 +1,19 @@
 Version 4.4
 
+7/6/11   [EDGcpfe/11873]
+GNU compatibility: ELF visibility and friends
+
+In GNU C++ mode, the front end previously applied the ELF visibility of the
+enclosing class to friend function and friend class declarations.  However,
+that does not match the behavior of GCC and is now no longer done.
+For example:
+
+  struct __attribute__ ((visibility("hidden"))) S {
+    friend void f();
+  };
+  void f() {}  // No longer a "hidden" function.
+
+
 7/6/11   [EDGcpfe/11849]
 Removal of DEFAULT_CHAR16_T_AND_CHAR32_T_ARE_KEYWORDS configuration macro
 

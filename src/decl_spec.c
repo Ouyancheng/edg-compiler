@@ -3990,7 +3990,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
          enclosing class or namespace (if any). */
       a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
       an_ELF_visibility_kind       visibility = ctsp->ELF_visibility;
-      update_for_default_ELF_visibility(&visibility);
+      update_for_default_ELF_visibility(
+                     &visibility, class_type->source_corresp.is_class_member);
       ctsp->ELF_visibility = visibility;
     }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
