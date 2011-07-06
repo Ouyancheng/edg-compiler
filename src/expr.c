@@ -1826,10 +1826,10 @@ NULL.
   an_expr_node_ptr  expr_arg_list;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_boolean         single_operand_returned;
   a_boolean         scanning_source = (rcblock == NULL &&
                                        !arg_list_supplied);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_boolean         single_operand_returned;
 
   /* Scan the argument list. */
   scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
