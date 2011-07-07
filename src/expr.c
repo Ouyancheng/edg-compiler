@@ -13262,6 +13262,25 @@ the entire array.
 }  /* add_array_nonconstant_aggregate_init */
 
 
+a_type_ptr new_delete_base_type_from_operation_type(a_type_ptr type)
+/*
+type is the type operated on in a new or delete operation.
+Extract and return the underlying entity type.
+*/
+{
+  a_type_ptr base_type;
+
+  base_type = type;
+  /* For multi-dimensional array cases, drop down to the underlying class
+     type. */
+  while (is_array_type(base_type)) {
+    base_type = array_element_type(base_type);
+  }  /* while */
+  base_type = skip_typerefs(base_type);
+  return base_type;
+}  /* new_delete_base_type_from_operation_type */
+
+
 a_boolean new_or_delete_type_requires_array_handling(
                                                   a_type_ptr type,
                                                   a_boolean  check_constructor)
@@ -15667,17 +15686,17 @@ in *rcblock).
       }  /* if */
       /* Note that delete_routine will be NULL if an ambiguity was found or
          when template_case is TRUE. */
-  #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
+#if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
       if (array_delete && !template_case) {
         /* If a deleting an array and a runtime routine will be used, the
            delete routine can be implicit if it is the default global
            delete. */
         a_boolean check_constructor = TRUE;
-  #if IA64_ABI
+#if IA64_ABI
         /* The IA-64 ABI requires no cookie for a class array new where the
            class has a constructor but no destructor. */
         check_constructor = FALSE;
-  #endif /* IA64_ABI */
+#endif /* IA64_ABI */
         if (new_or_delete_type_requires_array_handling(base_delete_type,
                                                        check_constructor)) {
           an_opname_kind array_opname_kind = array_new_and_delete_enabled ?
@@ -15705,17 +15724,17 @@ in *rcblock).
           }  /* if */
         }  /* if */
       } else {
-  #endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
-  #if DELETE_CAN_BE_FOLDED_INTO_DTOR
+#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
         if (dtor_routine != NULL
-  #if DO_IL_LOWERING && IA64_ABI
+#if DO_IL_LOWERING && IA64_ABI
             /* In the IA-64 ABI, deletion can be done by a deleting destructor.
                However, we use that only if the class has a virtual destructor.
                The IA-64 spec requires this unless one is willing to put out
                a definition of the deleting destructor everywhere it is
                used. */
             && dtor_routine->is_virtual
-  #endif /* DO_IL_LOWERING && IA64_ABI */
+#endif /* DO_IL_LOWERING && IA64_ABI */
                                        ) {
           /* For a class with a destructor, see if the delete can be folded
              into the destructor. */
@@ -15731,10 +15750,10 @@ in *rcblock).
             delete_routine = NULL;
           }  /* if */
         }  /* if */
-  #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
-  #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
+#if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
       }  /* if */
-  #endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
       if (delete_routine != NULL) {
         /* The delete routine is actually being called. */
         /* Mark the routine referenced. */
@@ -32213,7 +32232,6 @@ of this where the source should be considered an rvalue.
 }  /* compute_is_convertible */
 
 
-/*ARGSUSED*/  /* FIXME: kind not used yet (nothrow variant). */
 a_boolean compute_is_constructible(a_builtin_operation_kind kind,
                                    a_type_ptr               dst_type,
                                    an_expr_node_ptr         args)
@@ -32295,6 +32313,14 @@ empty) list of type operands args, and returns TRUE if so.
                                              EOPT_NO_OPTIONS);
     arg_operand_list = NULL;  /* Called routine frees the list. */
     result = !expr_stack->any_suppressed_error;
+    if (result &&
+        kind == (a_builtin_operation_kind)bok_is_nothrow_constructible &&
+        is_expression_operand(&operand) &&
+        expr_might_throw(operand.variant.expression)) {
+      /* The generated expression might throw, so the predicate fails
+         for the __is_nothrow_constructible case. */
+      result = FALSE;
+    }  /* if */
   }  /* if */
 have_result:
   free_arg_operand_list(arg_operand_list);

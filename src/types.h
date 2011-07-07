@@ -935,6 +935,7 @@ typedef struct a_std_conv_descr {
 
 extern void clear_std_conv_descr(a_std_conv_descr_ptr std_conv);
 extern a_boolean is_nothrow_type(a_type_ptr  type);
+extern a_boolean is_non_throwing_routine(a_routine_ptr rp);
 extern a_boolean exception_spec_is_less_restrictive(a_type_ptr  type1,
                                                     a_type_ptr  type2);
 extern a_boolean same_exception_spec(a_type_ptr type_1, a_type_ptr type_2);

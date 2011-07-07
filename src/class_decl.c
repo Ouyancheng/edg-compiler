@@ -21586,8 +21586,7 @@ Microsoft mode, additional checking is needed.)
                                      /*include_move_ctors=*/FALSE,
                                      /*is_declarative_context=*/TRUE)) {
           found_copy_ctor = TRUE;
-          if (rp->is_trivial_copy_function || rp->never_throws ||
-              is_nothrow_type(skip_typerefs(rp->type))) {
+          if (is_non_throwing_routine(rp)) {
             /* This copy constructor is known not to throw exceptions:
                Continue checking other constructors (if any). */
           } else {
@@ -21625,8 +21624,7 @@ Microsoft mode, additional checking is needed.)
                                   sym, /*move_assign_okay=*/FALSE, &ref_param,
                                   &qualifiers, &is_base_class_match)) {
           found_copy_assign = TRUE;
-          if (rp->is_trivial_copy_function || rp->never_throws ||
-              is_nothrow_type(skip_typerefs(rp->type))) {
+          if (is_non_throwing_routine(rp)) {
             /* This copy assignment operator is known not to throw exceptions:
                Continue checking other operators (if any). */
           } else {

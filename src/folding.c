@@ -6611,8 +6611,7 @@ of declaration of the assignment operators.
                operators are declared with "throw()" or a "nothrow"
                attribute. */
             found_copy_assign = TRUE;
-            result = rp->never_throws ||
-                     is_nothrow_type(skip_typerefs(rp->type));
+            result = is_non_throwing_routine(rp);
             /* Microsoft compilers only consider the first declared copy
                assignment operator.  Since we store those operators in reverse
                order of declaration, continue the loop in case another such
@@ -6674,8 +6673,7 @@ of declaration of the constructors.
             /* __has_nothrow_copy: Return TRUE if the copy constructors are
                declared with "throw()" or a "nothrow" attribute. */
             found_copy_ctor = TRUE;
-            result = rp->never_throws ||
-                     is_nothrow_type(skip_typerefs(rp->type));
+            result = is_non_throwing_routine(rp);
             /* Microsoft compilers only consider the first declared copy
                constructor.  Since we store the constructors in reverse order
                of declaration, continue the loop in case another copy
@@ -6773,8 +6771,7 @@ Return TRUE if the given class type has a trivial move assignment operator.
           a_routine_ptr  rp = sym->variant.routine.ptr;
           if (routine_is_move_assignment_operator(rp)) {
             has_move_assign = TRUE;
-            if (!rp->never_throws &&
-                !is_nothrow_type(skip_typerefs(rp->type))) {
+            if (!is_non_throwing_routine(rp)) {
               /* We found a move-assignment operator that might throw. */
               result = FALSE;
               break;
@@ -6980,8 +6977,7 @@ constant will be set as well.
             if (is_default_constructor(rp, /*is_declarative_context=*/TRUE)) {
               /* There may be more than one default constructor.  E.g.:
                    struct S { S(int = 0); S(short = 0); };  */
-              result = (rp->compiler_generated ||
-                        is_nothrow_type(skip_typerefs(rp->type)));
+              result = is_non_throwing_routine(rp);
               if (microsoft_mode) {
                 /* Microsoft compilers only consider the first declared default
                    constructor.  Since we store the constructors in reverse

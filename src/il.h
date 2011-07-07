@@ -1047,6 +1047,8 @@ extern a_boolean is_invariant_expr(an_expr_node_ptr expr,
                                    a_boolean        vars_can_change,
                                    a_boolean        treat_as_rvalue);
 
+extern a_boolean expr_might_throw(an_expr_node_ptr expr);
+
 extern a_boolean has_statement_expression(an_expr_node_ptr expr);
 
 extern a_boolean expr_is_instantiation_dependent(an_expr_node_ptr expr);

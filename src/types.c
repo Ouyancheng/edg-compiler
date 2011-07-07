@@ -6367,6 +6367,21 @@ the function is not expected to throw an exception either).
 }  /* is_nothrow_type */
 
 
+a_boolean is_non_throwing_routine(a_routine_ptr rp)
+/*
+Return TRUE if the given routine cannot throw an exception.  See the
+definition of "non-throwing exception specification" in [except.spec]
+of the C++0x standard.
+*/
+{
+  a_boolean result = (rp->is_trivial_default_constructor ||
+                      rp->is_trivial_copy_function ||
+                      rp->never_throws ||
+                      is_nothrow_type(f_skip_typerefs(rp->type)));
+  return result;
+}  /* is_non_throwing_routine */
+
+
 a_boolean exception_spec_is_less_restrictive(a_type_ptr  type1,
                                              a_type_ptr  type2)
 /*

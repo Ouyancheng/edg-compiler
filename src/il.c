@@ -17002,7 +17002,7 @@ initialization doing nothing should be suppressed.
   } else if (con->kind == (a_constant_repr_kind)ck_template_param) {
     switch (con->variant.template_param.kind) {
       case tpck_sizeof:
-        /* A sizeof doesn't have size effects, but more than that its
+        /* A sizeof doesn't have side effects, but more than that its
            expression is unevaluated and can't have side effects. */
         if (vla_enabled &&
             is_vla_type(con->variant.template_param.variant.
@@ -17637,7 +17637,7 @@ doing nothing should be suppressed.
       has_side_effects = TRUE;
       break;
     case enk_sizeof:
-      /* A sizeof doesn't have size effects, but more than that its
+      /* A sizeof doesn't have side effects, but more than that its
          expression is unevaluated and can't have side effects. */
       if (vla_enabled && node->variant.sizeof_info.is_type &&
           is_vla_type(node->variant.sizeof_info.variant.type)) {
@@ -17892,6 +17892,298 @@ treat_as_potential_rvalue should always be FALSE when called during lowering
   return is_invariant;
 }  /* is_invariant_expr */
 
+
+static a_routine_ptr alloc_or_dealloc_routine_from_new_delete(
+                                                         an_expr_node_ptr expr)
+/*
+Return the allocation or deallocation routine that will be called for the
+indicated new or delete.
+*/
+{
+  a_routine_ptr               rout;
+  a_new_delete_supplement_ptr ndsp;
+
+  check_assertion(expr->kind == (an_expression_kind)enk_new_delete);
+  ndsp = expr->variant.new_delete;
+  rout = ndsp->routine;
+  if (rout == NULL) {
+    /* An implied allocation or deallocation routine.  Figure out which
+       routine gets called. */
+    a_type_ptr base_type=new_delete_base_type_from_operation_type(ndsp->type);
+    if (ndsp->is_new) {
+      /* Allocation routine. */
+      if (is_array_type(ndsp->type) &&
+          new_or_delete_type_requires_array_handling(base_type,
+                                                 /*check_constructor=*/TRUE)) {
+        /* Array new. */
+#if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
+        an_opname_kind array_opname_kind = array_new_and_delete_enabled ?
+                                             (an_opname_kind)onk_array_new :
+                                             (an_opname_kind)onk_new;
+        a_boolean      ambiguous;
+        a_symbol_ptr   sym = opname_function_symbol(array_opname_kind);
+        check_assertion(sym != NULL);
+        sym = find_default_operator_new_sym(sym, &ambiguous);
+        check_assertion(sym != NULL &&
+                        is_simple_function_symbol(sym));
+        rout = sym->variant.routine.ptr;
+#else /* !NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+        unexpected_condition();
+#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+      } else {
+        /* Non-array new. */
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+        check_assertion(is_class_struct_union_type(base_type));
+        rout = class_type_supp(base_type)->assoc_operator_new_routine;
+#else /* !NEW_CAN_BE_FOLDED_INTO_CTOR */
+        unexpected_condition();
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+      }  /* if */
+    } else {
+      /* Deallocation routine. */
+      a_boolean check_constructor = TRUE;
+#if IA64_ABI
+      /* The IA-64 ABI requires no cookie for a class array new where the
+         class has a constructor but no destructor. */
+      check_constructor = FALSE;
+#endif /* IA64_ABI */
+      if (ndsp->array_delete &&
+          new_or_delete_type_requires_array_handling(base_type,
+                                                     check_constructor)) {
+        /* Array delete. */
+#if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
+        an_opname_kind array_opname_kind = array_new_and_delete_enabled ?
+                                             (an_opname_kind)onk_array_delete :
+                                             (an_opname_kind)onk_delete;
+        a_boolean      ambiguous;
+        a_symbol_ptr   sym = opname_function_symbol(array_opname_kind);
+        check_assertion(sym != NULL);
+        sym = find_default_operator_delete_sym(sym, &ambiguous);
+        check_assertion(sym != NULL &&
+                        is_simple_function_symbol(sym));
+        rout = sym->variant.routine.ptr;
+#else /* !NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+        unexpected_condition();
+#endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+      } else {
+        /* Non-array delete. */
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
+        check_assertion(is_class_struct_union_type(base_type));
+        rout = class_type_supp(base_type)->assoc_operator_delete_routine;
+#else /* !DELETE_CAN_BE_FOLDED_INTO_DTOR */
+        unexpected_condition();
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  check_assertion(rout != NULL);
+  return rout;
+}  /* alloc_or_dealloc_routine_from_new_delete */
+
+
+static void examine_constant_for_throwing_exception(
+                                    a_constant_ptr                      con,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Examine the indicated constant to see if it might throw an exception; called
+by the expression traversal routines.  Set tblock->result to TRUE if so.
+*/
+{
+  if (con->kind == (a_constant_repr_kind)ck_error) {
+    /* An error constant could have been anything, including something
+       that throws. */
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  } else if (con->kind == (a_constant_repr_kind)ck_template_param) {
+    /* Assume that a template-dependent constant might do anything. */
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* examine_constant_for_throwing_exception */
+
+
+static void examine_dynamic_init_for_throwing_exception(
+                                    a_dynamic_init_ptr                  dip,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Examine the indicated dynamic initialization to see if it might throw
+an exception; called by the expression traversal routines.
+Set tblock->result to TRUE if so.
+*/
+{
+  a_boolean might_throw = FALSE;
+
+  if (dip->destructor != NULL &&
+      !is_non_throwing_routine(dip->destructor)) {
+    /* The destructor call might throw. */
+    might_throw = TRUE;
+  } else {
+    switch (dip->kind) {
+      case dik_constructor:
+        /* A constructor call might throw. */
+        { a_routine_ptr rout = dip->variant.constructor.ptr;
+          /* A null routine means a dependent call, so assume the selected
+             constructor might throw. */
+          if (rout == NULL ||
+              !is_non_throwing_routine(rout)) might_throw = TRUE;
+        }
+        break;
+      case dik_constant:
+      default:
+        /* Others do not throw at this level.  The subtree might still
+           throw. */
+        break;
+    }  /* switch */
+  }  /* if */
+  if (might_throw) {
+    /* The dynamic initialization might throw, even without
+       considering its subtree. */
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* examine_dynamic_init_for_throwing_exception */
+
+
+static void examine_expr_for_throwing_exception(
+                                    an_expr_node_ptr                    node,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Examine node to see if it might throw an exception; called by the
+expression-traversal routines.  Set tblock->result to TRUE if so.
+*/
+{
+  a_boolean might_throw = FALSE;
+
+  switch (node->kind) {
+    case enk_error:
+      /* Who knows what an error node might have done -- it might have
+         thrown something. */
+      might_throw = TRUE;
+      break;
+    case enk_operation:
+      if (is_call_node(node)) {
+        /* For a call, see if the called routine might throw. */
+        a_routine_ptr rout = routine_from_function_expr(node);
+        if (rout != NULL) {
+          if (!is_non_throwing_routine(rout)) might_throw = TRUE;
+        } else {
+          a_type_ptr func_type = node->variant.operation.operands->type;
+          might_throw = TRUE;
+          if (is_pointer_type(func_type)) {
+            func_type = f_skip_typerefs(type_pointed_to(func_type));
+            if (is_function_type(func_type) &&
+                is_nothrow_type(func_type)) {
+              might_throw = FALSE;
+            } /* if */
+          }  /* if */
+        }  /* if */
+      } else if (node_operator_is(node, eok_ref_dynamic_cast)) {
+        /* A dynamic_cast to a reference type can throw. */
+        might_throw = TRUE;
+      }  /* if */
+      break;
+    case enk_new_delete:
+      /* A new or delete throws if the allocation or deallocation routine
+         throws.  The freeing_of_storage_on_exception dynamic init on a new,
+         if present, will be processed by the normal tree scan. */
+      { a_routine_ptr rout = alloc_or_dealloc_routine_from_new_delete(node);
+        if (!is_non_throwing_routine(rout)) might_throw = TRUE;
+      }
+      break;
+    case enk_lambda:
+      /* Assume conservatively that a lambda might throw.  We don't
+         currently have a way to walk the statements of a lambda. */
+      might_throw = TRUE;
+      break;
+    case enk_throw:
+      might_throw = TRUE;
+      break;
+    case enk_sizeof:
+    case enk_sizeof_pack:
+      tblock->suppress_subtree_walk = TRUE;
+      break;
+    case enk_typeid:
+      if (node->variant.typeid_info.expr != NULL) {
+        /* A typeid applied to an expression that is a pointer to a
+           polymorphic class type can throw an exception if the pointer is
+           NULL. */
+        if (is_polymorphic_class_type(node->variant.typeid_info.type) ||
+            could_be_dependent_class_type(node->variant.typeid_info.type)) {
+          might_throw = TRUE;
+        }  /* if */
+      }  /* if */
+      break;
+#if GNU_EXTENSIONS_ALLOWED
+    case enk_statement:
+      /* Assume a statement expression might throw.  We don't currently
+         have a way to walk the statements. */
+      might_throw = TRUE;
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    case enk_result_of_overriding_function:
+      /* Node generated as part of the body of an entry function used
+         as a wrapper for a call of an overriding virtual function
+         with a covariant return type. */
+      /* Probably not expected, but give the safe answer just in case. */
+      might_throw = TRUE;
+      break;
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+    case enk_constant:
+    case enk_variable:
+    case enk_temp_init:
+    case enk_condition:
+    case enk_param_ref:
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+    /* Nodes generated by IL lowering for partial lowering of exception
+       handling features. */
+    case enk_lowered_eh_construct:
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+    case enk_reuse_value:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case enk_gcnew:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    default:
+      /* Others do not throw at this level.  The subtree might still throw. */
+      break;
+  }  /* switch */
+  if (might_throw) {
+    /* The node might throw, even without considering its operands. */
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* examine_expr_for_throwing_exception */
+
+
+static void set_up_might_throw_traversal_block(
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Set up the control block used for the might-throw discovery traversal.
+*/
+{
+  clear_expr_or_stmt_traversal_block(tblock);
+  tblock->process_expr = examine_expr_for_throwing_exception;
+  tblock->process_dynamic_init = examine_dynamic_init_for_throwing_exception;
+  tblock->process_constant = examine_constant_for_throwing_exception;
+  tblock->process_template_parameter_constants_and_expressions = TRUE;
+}  /* set_up_might_throw_traversal_block */
+
+
+a_boolean expr_might_throw(an_expr_node_ptr expr)
+/*
+Return TRUE if evaluating the given expression might cause an exception
+to be thrown.  See the definition of the "noexcept" operator in the
+C++0x standard [expr.unary.noexcept].
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  set_up_might_throw_traversal_block(&tblock);
+  if (exceptions_enabled) {
+    traverse_expr(expr, &tblock);
+  }  /* if */
+  return tblock.result;
+}  /* expr_might_throw */
 
 #if GNU_EXTENSIONS_ALLOWED
 

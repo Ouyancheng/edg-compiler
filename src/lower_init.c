@@ -2207,25 +2207,6 @@ all dimensions.
 }  /* num_elem_node_if_array */
 
 
-static a_type_ptr new_delete_base_type_from_operation_type(a_type_ptr type)
-/*
-type is the type operated on in a new or delete operation.
-Extract and return the underlying entity type.
-*/
-{
-  a_type_ptr base_type;
-
-  base_type = type;
-  /* For multi-dimensional array cases, drop down to the underlying class
-     type. */
-  while (is_array_type(base_type)) {
-    base_type = array_element_type(base_type);
-  }  /* while */
-  base_type = skip_typerefs(base_type);
-  return base_type;
-}  /* new_delete_base_type_from_operation_type */
-
-
 static an_expr_node_ptr size_elem_node_from_pointer_type(a_type_ptr ptr_type)
 /*
 Build an expression node for the constant that is the size of the element
