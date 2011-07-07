@@ -2434,6 +2434,7 @@ the scope being pushed.
       sp->depth_in_scope_stack = depth_scope_stack;
       ssep->il_memory_region = curr_il_region_number;
       break;
+    case sck_instantiation_context:
     case sck_template_instantiation:
       /* Template instantiations should always take place in the file scope
          memory region. */
