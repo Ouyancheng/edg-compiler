@@ -1,5 +1,23 @@
 Version 4.4
 
+7/7/11   [EDGcpfe/11888]
+Binding a reference to const volatile to an rvalue in overload resolution
+
+The front end has been updated for a subtlety in the overload
+resolution rules for parameters that are references to const volatile.
+In the C++0X standard, an attempt to bind such a parameter to an
+argument that is an rvalue causes the function to be not viable.  The
+2003 standard left the function as viable, and an error would be
+issued if the function was selected.
+
+  extern "C" int printf(const char*, ...);
+  void g(const volatile int&) { printf("FAILED\n"); }
+  void g(...) { printf("PASSED\n"); }
+  int main() {
+    g(int());  // Formerly got an error; now, selects the g(...) version
+  }
+
+
 7/6/11   [EDGcpfe/11551,EDGcpfe/11701,EDGcpfe/11816]
 Microsoft C++ compatibility: Attributes on member functions
 

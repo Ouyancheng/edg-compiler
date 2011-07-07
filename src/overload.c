@@ -2203,12 +2203,20 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       source_can_be_rvalue = TRUE;
     } else {
       /* Normal case.  An lvalue reference can bind to an rvalue only if it's
-         a reference to const. */
-      /* Note that the C++ Standard does not require the test for
-         const volatile here.  (A core working group discussed it in
-         Austin in March 1995 and decided it didn't care to bring it
-         up in full committee.) */
+         a reference to non-volatile const. */
       source_can_be_rvalue = ((param_type_qualifiers & TQ_CONST) != 0);
+      if (param_type_qualifiers & TQ_VOLATILE) {
+        /* The const volatile part was not added to the draft until after
+           the 2003 standard.  All versions of g++ from 3.2 on seem to
+           handle it the modern way.  MSVC changed to that in version 7.1. */
+        if (microsoft_mode && microsoft_version < 1310) {
+          /* Microsoft did not do this until version 7.1. */
+        } else if (strict_ansi_mode && !cpp0x_mode) {
+          /* The 2003 standard did not do this. */
+        } else {
+          source_can_be_rvalue = FALSE;
+        }  /* if */
+      }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* __unaligned and __restrict can be dropped. */
