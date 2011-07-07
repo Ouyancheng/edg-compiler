@@ -1,5 +1,23 @@
 Version 4.4
 
+7/7/11   [EDGcpfe/11889]
+Identifier characters in Unicode source
+
+When processing source files written in a Unicode encoding, the front end
+previously determined whether a character in the range 0x80-0xff is an
+identifier character or not using the default locale or the one specified
+by LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED.  This could lead to
+incorrect handling of characters in the upper half of ISO Latin-1 and
+spurious "unrecognized token" errors.  The front end has now been changed
+to use the specification of identifier characters from Annex E.1 of the C++
+Standard (ISO/IEC 14882:2011), regardless of the locale in effect.  For
+example:
+
+  int risqué;   // Last character is e with acute accent, previously
+                   // treated as a non-identifier character in some
+                   // configurations.
+
+
 7/7/11   [EDGcpfe/11888]
 Binding a reference to const volatile to an rvalue in overload resolution
 

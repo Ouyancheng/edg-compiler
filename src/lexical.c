@@ -18998,8 +18998,24 @@ are handled in lexical_init.)
      UTF-8 multibyte characters have been turned into a single code point,
      and change is_id_char to return TRUE only for non-multibyte characters. */
   for (c = CHAR_MIN; c <= CHAR_MAX; c++) {
-    is_id_char_no_mbc[(unsigned char)c] = is_id_char[c-CHAR_MIN];
-    if ((unsigned char)c > 0x7f) is_id_char[c-CHAR_MIN] = FALSE;
+    unsigned char uc = (unsigned char)c;
+    if (uc < 0x80) {
+      /* Copy the values set above for characters in the range 0-0x7f. */
+      is_id_char_no_mbc[uc] = is_id_char[c-CHAR_MIN];
+    } else {
+      /* The C++ Standard (ISO/IEC 14882:2011, Annex E.1) specifies the
+         Unicode code points in the range 0x80-0xff that are considered
+         identifier characters. */
+      if (uc == 0xa8 || uc == 0xaa || uc == 0xad || uc == 0xaf ||
+          (uc >= 0xb2 && uc <= 0xb5) || (uc >= 0xb7 && uc <= 0xba) ||
+          (uc >= 0xbc && uc <= 0xbe) || (uc >= 0xc0 && uc <= 0xd6) ||
+          (uc >= 0xd8 && uc <= 0xf6) || uc >= 0xf8) {
+        is_id_char_no_mbc[uc] = TRUE;
+      } else {
+        is_id_char_no_mbc[uc] = FALSE;
+      }  /* if */
+      is_id_char[c-CHAR_MIN] = FALSE;
+    }  /* if */
   }  /* for */
 #endif /* UNICODE_SOURCE_SUPPORTED */
   /* Also initialize pp_lexical_category, used to determine whether or
