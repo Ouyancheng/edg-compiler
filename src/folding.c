@@ -6697,7 +6697,8 @@ of declaration of the constructors.
 
 static a_boolean has_trivial_move_constructor(a_type_ptr  type)
 /*
-Return TRUE if the given class type has a trivial move constructor.
+Return TRUE if the given type is a class type that has a trivial move
+constructor or if it is an array of such a class type.
 */
 {
   a_boolean  result;
@@ -6722,7 +6723,8 @@ Return TRUE if the given class type has a trivial move constructor.
 
 static a_boolean has_trivial_move_assign(a_type_ptr  type)
 /*
-Return TRUE if the given class type has a trivial move assignment operator.
+Return TRUE if the given type is a class type that has a trivial move
+assignment operator or if it is an array of such a class type.
 */
 {
   a_boolean  result;
@@ -6747,7 +6749,8 @@ Return TRUE if the given class type has a trivial move assignment operator.
 
 static a_boolean has_nothrow_move_assign(a_type_ptr  type)
 /*
-Return TRUE if the given class type has a trivial move assignment operator.
+Return TRUE if the given type is a class type whose move assignment operators
+are known not to throw exceptions, or if it is an array of such a class type.
 */
 {
   a_boolean  result;
