@@ -46,7 +46,7 @@ char16_t_and_char32_t_are_keywords reduces the likelihood that these global
 variables are mis-configured.
 
 
-7/6/11   [EDGcpfe/11089]
+7/6/11   [EDGcpfe/11881]
 EDG_WIN32 missing in configuration output
 
 The configuration macro EDG_WIN32 was missing from the output produced for the
