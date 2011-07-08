@@ -4098,6 +4098,18 @@ returned set to TRUE.
         init_dip->destructor = select_destructor(vp_type, vp_type, source_pos);
       }  /* if */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && is_value_class_type(vp_type) &&
+             is_cli_generic_definition_argument_type(vp_type)) {
+    /* A constraint type can be a value class type, but should not be treated
+       as an aggregate type since its subobject structure is not known.  E.g.:
+         generic<class T> where T: value class
+         void f(T x) { T y = { x }; }  // Treat as simple initialization and
+                                       // not as aggregate initialization.
+    */
+    init_con = simple_initializer(dps, static_lifetime, vp_type, &init_dip,
+                                  decl_pos_block);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (is_aggregate_or_union_type(vp_type) ||
              (first_token == tok_lbrace &&
               (is_error_type(vp_type) ||
