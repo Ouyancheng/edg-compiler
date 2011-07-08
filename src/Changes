@@ -1,5 +1,15 @@
 Version 4.4
 
+7/8/11   [EDGcpfe/11823]
+GNU-mode built-in vector function corrections
+
+The Changes entry of 3/3/11 (for EDGcpfe/11429) mentions how a change of type
+was made for the built-in vector functions __builtin_ia32_loadhps,
+__builtin_ia32_loadlps, __builtin_ia32_storehps, and __builtin_ia32_store_lps
+when gnu_version >= 40000.  The version value for the change was unfortunately
+incorrect: The change now applies when gnu_version >= 40400 instead.
+
+
 7/7/11   [EDGcpfe/11889]
 Identifier characters in Unicode source
 

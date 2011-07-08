@@ -788,9 +788,9 @@ extensions.)
   enter_gnu_builtin_func2(_ia32_storeups, no_return, sf_star, v4sf);
   enter_gnu_builtin_func1(_ia32_loadss, v4sf, sf_const_star);
   enter_gnu_builtin_func2(_ia32_storess, no_return, sf_star, v4sf);
-  /* GCC 4 changed the pointer type in the following partial-vector load/store
-     functions. */
-  if (gnu_version < 40000) {
+  /* GCC 4.4 changed the pointer type in the following partial-vector
+     load/store functions. */
+  if (gnu_version < 40400) {
     enter_gnu_builtin_func2(_ia32_loadhps, v4sf, v4sf, v2si_star);
     enter_gnu_builtin_func2(_ia32_loadlps, v4sf, v4sf, v2si_star);
     enter_gnu_builtin_func2(_ia32_storehps, no_return, v2si_star, v4sf);
