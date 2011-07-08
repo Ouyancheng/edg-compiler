@@ -191,6 +191,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(769,ec_non_unicode_char_in_ident)*/
 /*lint -esym(769,ec_non_unicode_char_in_header)*/
 /*lint -esym(769,ec_invalid_locale)*/
+/*lint -esym(769,ec_bad_unicode_char_in_string)*/
 #endif /* !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #if !BACK_END_IS_C_GEN_BE
 /*lint -esym(759,form_char)*/

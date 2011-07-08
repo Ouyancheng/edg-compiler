@@ -2388,8 +2388,9 @@ Use the value from the host environment (MB_LEN_MAX) if available.
 
 extern
 int unicode_to_multibyte_char(unsigned long uc,
-	                      char          chars[MAX_MULTIBYTE_CHAR_LENGTH],
-			      a_boolean	    *err);
+                              char          chars[MAX_MULTIBYTE_CHAR_LENGTH],
+                              a_boolean     *err,
+                              a_boolean     to_native);
 
 #if EDG_WIN32
 

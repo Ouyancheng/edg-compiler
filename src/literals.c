@@ -690,26 +690,29 @@ the character position of the error.
 }  /* conv_float_literal */
 
 
-void conv_single_char(char          **temp_ptr,
-                      int           *remaining_mbc_char_count,
-                      a_boolean     process_escapes,
-                      unsigned long *ch,
-                      unsigned long centity_mask)
+void conv_single_char(a_char_conversion_state_ptr state,
+                      a_boolean                   process_escapes,
+                      unsigned long               *ch,
+                      unsigned long               centity_mask)
 /*
 Fetch one character of a character constant or string literal.  The current
-position in the token is *temp_ptr (it is incremented appropriately for what
-is taken).  Escapes (beginning with "\") are recognized and processed if
-process_escapes is TRUE.  The character gotten is returned (not
-sign-extended) in ch.  centity_mask defines the size of the character
-entity into which this character is going (char, wchar_t, char16_t, or
-char32_t).  When multibyte characters are enabled, each byte of the
-multibyte character is returned on a separate call of this routine.
-*remaining_mbc_char_count is set to the number of characters remaining
-to be extracted on subsequent calls, and serves to disable recognition of
-escapes etc. on bytes after the first in a multibyte character.  The
-caller must set *remaining_mbc_char_count to zero before the first call of
-this routine in a given string, even if multibyte character are not
-enabled.
+position in the token is *state->next_token_char (it is incremented
+appropriately for what is taken).  Escapes (beginning with "\") are
+recognized and processed if process_escapes is TRUE.  The character gotten
+is returned (not sign-extended) in ch.  centity_mask defines the size of
+the character entity into which this character is going (char, wchar_t,
+char16_t, or char32_t).  When multibyte characters are enabled, each byte
+of the multibyte character is returned on a separate call of this routine.
+state->remaining_mbc_char_count is set to the number of characters
+remaining to be extracted on subsequent calls, and serves to disable
+recognition of escapes, etc., on bytes after the first in a multibyte
+character.  The caller must set state->remaining_mbc_char_count to zero
+before the first call of this routine in a given string, even if multibyte
+character are not enabled.  When
+NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE and
+state->translate_utf8_to_mbc are TRUE, the bytes returned for a UTF-8
+character will be those of the corresponding character in the system
+default locale.
 */
 {
   unsigned long targ_ch;
@@ -719,16 +722,31 @@ enabled.
   a_boolean     range_error = FALSE;
   a_boolean     unrecognized;
 
-  lptr = *temp_ptr;
-  if (*remaining_mbc_char_count != 0) {
+  lptr = *state->next_token_char;
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+  if (state->remaining_mbc_char_count != 0) {
     /* We are in the middle of a multibyte character sequence started on a
        previous call of this routine.  Return another character and
        decrement the count of remaining characters. */
-    targ_ch = (unsigned char)*lptr;
-    lptr++;
-    (*remaining_mbc_char_count)--;
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+    if (curr_file_unicode_source_kind != usk_none &&
+        state->translate_utf8_to_mbc) {
+      /* The UTF-8 character that was seen was translated into the default
+         system locale multibyte character set; state->next_mbc_char points
+         to the translated byte to return on this call. */
+      targ_ch = (unsigned char)*state->next_mbc_char;
+      ++state->next_mbc_char;
+    } else
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+    /* Do not insert code here. */
+    {
+      targ_ch = (unsigned char)*lptr;
+      lptr++;
+    }  /* if */
+    --state->remaining_mbc_char_count;
     goto return_point;
   }  /* if */
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 get_another:
   targ_ch = (unsigned char)*lptr;
   if (targ_ch == LE_ESCAPE) {
@@ -746,11 +764,40 @@ get_another:
          the current character.  Since we're returning one character on this
          call, the remaining count is one less than the size. */
       a_boolean err;
-      *remaining_mbc_char_count = lex_mbc_length(lptr, &err) - 1;
+      state->remaining_mbc_char_count = lex_mbc_length(lptr, &err) - 1;
       if (err) {
         /* Invalid multibyte character sequence. */
         conv_line_loc_to_source_pos(lptr, &error_position);
         warning(ec_bad_multibyte_char);
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+      } else if (curr_file_unicode_source_kind != usk_none &&
+                 state->translate_utf8_to_mbc) {
+        /* Translate the Unicode character into the system default
+           multibyte character set and set up state to return the
+           translated bytes instead of the bytes from the source token. */
+        unsigned  long uc;
+        int       translated_len;
+        (void)mbc_to_wide_char(lptr, &uc, (a_boolean *)NULL,
+                               /*is_native=*/FALSE);
+        translated_len =
+                     unicode_to_multibyte_char(uc, state->translated_utf8_char,
+                                               &err, /*to_native=*/FALSE);
+        if (err) {
+          /* The code point could not be converted to a suitable
+             representation. Issue a diagnostic. */
+          char buf[30];
+          (void)sprintf(buf, "%lx", uc);
+          conv_line_loc_to_source_pos(lptr, &error_position);
+          str_warning(ec_bad_unicode_char_in_string, buf);
+        }  /* if */
+        /* Advance the input scan to the next complete Unicode character
+           and set up for returning the bytes of the translated
+           character. */
+        lptr += state->remaining_mbc_char_count;
+        state->remaining_mbc_char_count = translated_len - 1;
+        targ_ch = state->translated_utf8_char[0];
+        state->next_mbc_char = state->translated_utf8_char + 1;
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
       }  /* if */
     }  /* if */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
@@ -818,7 +865,8 @@ get_another:
         /* Hexadecimal escape.  There can be many digits, but there must be
            at least one.  If not, treat as just "x". */
         if (!isxdigit((unsigned char)*lptr)) {
-          conv_line_loc_to_source_pos(*temp_ptr+2, &error_position);
+          conv_line_loc_to_source_pos(*state->next_token_char+2,
+                                      &error_position);
           if (C_dialect == C_dialect_pcc || SVR4_C_mode) {
             warning(ec_bad_hex_digit);
           } else {
@@ -873,7 +921,7 @@ other_chars:
     /* Unrecognized escapes cause a warning but translate to the escaped
        character. */
     if (unrecognized) {
-      conv_line_loc_to_source_pos(*temp_ptr, &error_position);
+      conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
       warning(ec_unrecognized_char_escape);
       targ_ch = tch;
     }  /* if */
@@ -888,7 +936,7 @@ return_point:
        string. */
     while (*lptr == LE_ESCAPE && lptr[1] == LE_NULL) lptr += 2;
   }  /* if */
-  *temp_ptr = lptr;
+  *state->next_token_char = lptr;
   return;
 
 range_check:
@@ -909,7 +957,7 @@ range_check:
     /* A range error is allowed to be an error in C, but not in C++.  So,
        in C we issue a strict-ANSI diagnostic, while in C++ we always issue
        a warning. */
-    conv_line_loc_to_source_pos(*temp_ptr, &error_position);
+    conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
     if (C_mode() && strict_ansi_mode) {
       diagnostic(strict_ansi_error_severity, ec_bad_character_value);
     } else {
@@ -934,21 +982,23 @@ gotten is returned (not sign-extended) in ch.  centity_mask defines
 the size of character.
 */
 {
-  int remaining_mbc_char_count = 0;
+  a_char_conversion_state conv_state;
 
+  /* conv_single_char is only called from this routine for cases where
+     translation from UTF-8 to multibyte characters does not occur. */
+  clear_char_conversion_state(&conv_state, temp_ptr,
+                              /*translate_utf8=*/FALSE);
 #if !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Simple version: no multibyte characters to consider. */
-  conv_single_char(temp_ptr, &remaining_mbc_char_count,
-                   /*process_escapes=*/TRUE, ch, centity_mask);
+  conv_single_char(&conv_state, /*process_escapes=*/TRUE, ch, centity_mask);
 #else /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   /* Multibyte character processing may be needed. */
   if (!multibyte_chars_in_source_enabled || **temp_ptr == '\\' ||
       **temp_ptr == LE_ESCAPE) {
     /* Use simple routine if multibyte characters are disabled or if
        the character is an escape. */
-    conv_single_char(temp_ptr, &remaining_mbc_char_count,
-                     /*process_escapes=*/TRUE, ch, centity_mask);
-    check_assertion(remaining_mbc_char_count == 0);
+    conv_single_char(&conv_state, /*process_escapes=*/TRUE, ch, centity_mask);
+    check_assertion(conv_state.remaining_mbc_char_count == 0);
   } else {
     unsigned  long wc;
     int       numch;
@@ -995,7 +1045,7 @@ processing, and in wide characters if the constant is wide).
   unsigned long     centity_mask;
   a_boolean         centity_is_signed;
   int               centity_bits;
-  int               remaining_mbc_char_count = 0, encoding_length;
+  int               encoding_length;
   a_character_kind  character_kind;
 
   /* Determine the constant type as follows:
@@ -1074,6 +1124,10 @@ processing, and in wide characters if the constant is wide).
   centity_mask = (unsigned long)1 << (centity_bits-1);
   centity_mask = centity_mask | (centity_mask - 1);
   if (!too_many_chars) {
+    a_char_conversion_state conv_state;
+    /* UTF-8 characters should be translated to multibyte characters only
+       in Microsoft mode. */
+    clear_char_conversion_state(&conv_state, &temp_ptr, microsoft_mode);
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
     /* Initialize for scanning multibyte characters in the string. */
     mbc_scan_init_if_multibyte_chars_in_source_enabled();
@@ -1083,8 +1137,8 @@ processing, and in wide characters if the constant is wide).
       /* Skip leading characters until what remains can fit. */
       check_assertion(gnu_mode);
       for (i = 0; i < skip_count; ++i) {
-        conv_single_char(&temp_ptr, &remaining_mbc_char_count,
-                         /*process_escapes=*/TRUE, &ch, centity_mask);
+        conv_single_char(&conv_state, /*process_escapes=*/TRUE, &ch,
+                         centity_mask);
       }  /* for */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -1095,8 +1149,8 @@ processing, and in wide characters if the constant is wide).
       /* Convert one character of the char constant. */
       switch (character_kind) {
         case chk_char:
-          conv_single_char(&temp_ptr, &remaining_mbc_char_count,
-                           /*process_escapes=*/TRUE, &ch, centity_mask);
+          conv_single_char(&conv_state, /*process_escapes=*/TRUE, &ch,
+                           centity_mask);
           break;
         case chk_wchar_t:
           conv_single_wide_char(&temp_ptr, &ch, centity_mask);
@@ -1238,14 +1292,15 @@ is a char16_t string of the form u"...", num_chars may be larger (but not
 smaller) than the number of characters needed to represent the string.
 */
 {
-  unsigned long     i, ch, centity_mask;
-  char              *temp_ptr, *pstr, *str_start, *prev_pos;
-  sizeof_t          constant_size;
-  a_targ_size_t     num_elems;
-  int               remaining_mbc_char_count = 0, encoding_length;
-  unsigned int      char_size;
-  a_character_kind  character_kind;
-  unsigned short    char16_t_vals[MAX_CHAR16_T_ENCODING_LENGTH];
+  unsigned long           i, ch, centity_mask;
+  char                    *temp_ptr, *pstr, *str_start, *prev_pos;
+  sizeof_t                constant_size;
+  a_targ_size_t           num_elems;
+  int                     encoding_length;
+  unsigned int            char_size;
+  a_character_kind        character_kind;
+  unsigned short          char16_t_vals[MAX_CHAR16_T_ENCODING_LENGTH];
+  a_char_conversion_state conv_state;
 
   /* The number of array elements is one more than the number of characters,
      to leave space for the terminating null.  (For char16_t strings, this
@@ -1257,7 +1312,21 @@ smaller) than the number of characters needed to represent the string.
     case '"':
       /* Normal string literal. */
       character_kind = (a_character_kind)chk_char;
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+      if (curr_file_unicode_source_kind != usk_none && microsoft_mode) {
+        /* UTF-8 characters will be translated to multibyte characters, so
+           there is no fixed correspondence between the number of bytes in
+           the token and the number of bytes in the constant.  In the worst
+           case, each single-byte Unicode character could require
+           MAX_MULTIBYTE_CHAR_LENGTH bytes in the translated character, so
+           we set that as the character size to be safe. */
+        char_size = (unsigned int)MAX_MULTIBYTE_CHAR_LENGTH;
+      } else {
+        char_size = 1;
+      }  /* if */
+#else /* !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
       char_size = 1;
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
       break;
     case 'L':
       /* Wide string literal. */
@@ -1302,6 +1371,9 @@ smaller) than the number of characters needed to represent the string.
      to it.  (This may be more than strictly needed in the case of char16_t
      strings.) */
   str_start = pstr = alloc_text_of_string_literal(constant_size);
+  /* UTF-8 characters should be translated to multibyte characters only in
+     Microsoft mode. */
+  clear_char_conversion_state(&conv_state, &temp_ptr, microsoft_mode);
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Initialize for scanning multibyte characters in the string. */
   mbc_scan_init_if_multibyte_chars_in_source_enabled();
@@ -1311,8 +1383,8 @@ smaller) than the number of characters needed to represent the string.
     /* Convert one character of the string literal. */
     switch (character_kind) {
       case chk_char:
-        conv_single_char(&temp_ptr, &remaining_mbc_char_count,
-                         /*process_escapes=*/TRUE, &ch, centity_mask);
+        conv_single_char(&conv_state, /*process_escapes=*/TRUE, &ch,
+                         centity_mask);
         *pstr++ = (char)ch;
         break;
       case chk_wchar_t:
@@ -1364,13 +1436,23 @@ smaller) than the number of characters needed to represent the string.
   }  /* switch */
 #if CHECKING
   /* Check that the length calculation was correct. */
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+  if (curr_file_unicode_source_kind != usk_none && microsoft_mode) {
+    check_assertion_str(pstr - str_start <= constant_size,
+                        "conv_string_literal: length miscalculated");
+  } else {
+    check_assertion_str(pstr - str_start == constant_size,
+                        "conv_string_literal: length miscalculated");
+  }  /* if */
+#else /* !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
   check_assertion_str(pstr - str_start == constant_size,
                       "conv_string_literal: length miscalculated");
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* CHECKING */
   /* Make the constant entry for the string. */
   clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_string);
   const_for_curr_token.type = string_literal_type(character_kind, num_elems);
-  const_for_curr_token.variant.string.length = constant_size;
+  const_for_curr_token.variant.string.length = pstr - str_start;
   const_for_curr_token.variant.string.value  = str_start;
   const_for_curr_token.character_kind = character_kind;
   /* Currently, no error is returned through err_code or err_pos. */

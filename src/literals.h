@@ -39,11 +39,74 @@ extern void conv_fixed_point_literal(a_boolean      is_hexadecimal,
 extern void conv_float_literal(a_boolean	is_hexadecimal,
 			       an_error_code	*err_code,
 	                       char		**err_pos);
-extern void conv_single_char(char          **temp_ptr,
-                             int           *remaining_mbc_char_count,
-                             a_boolean     process_escapes,
-                             unsigned long *ch,
-                             unsigned long centity_mask);
+
+/*
+Structure to maintain the current state of the processing of
+conv_single_char.
+*/
+typedef struct a_char_conversion_state *a_char_conversion_state_ptr;
+typedef struct a_char_conversion_state {
+  char		**next_token_char;
+			/* Points to a pointer to the next character in the
+			   token string to be processed.  This can point
+			   within a multibyte character (both native and
+			   UTF-8) unless we are translating from UTF-8 to
+			   multibyte characters; in that case, this will
+			   point to the next complete UTF-8 character in
+			   the token string. */
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+  int		remaining_mbc_char_count;
+			/* Number of bytes left in the current multibyte
+			   character.  conv_single_char is called multiple
+			   times for a multibyte character, each call
+			   returning one byte of the result. */
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+  char		*next_mbc_char;
+			/* When translating from UTF-8 to multibyte
+			   characters, if remaining_mbc_char_count is
+			   nonzero, points to the next byte from
+			   translated_utf8_char to be returned. */
+  a_byte_boolean
+		translate_utf8_to_mbc;
+			/* If TRUE and the current file is Unicode, UTF-8
+			   characters appearing in the token string will be
+			   replaced in the converted output by their
+			   corresponding multibyte character in the system
+			   default locale.  This should be set
+			   appropriately by the caller, e.g., TRUE for
+			   Microsoft-mode character and string literals,
+			   FALSE for header names. */
+  char		translated_utf8_char[MAX_MULTIBYTE_CHAR_LENGTH];
+			/* When translating from UTF-8 to multibyte
+			   characters, contains the translated version of
+			   the current UTF-8 character. */
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+} a_char_conversion_state;
+
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+#define clear_char_conversion_state(state, ptr, translate_utf8) \
+  { (state)->next_token_char = ptr;                             \
+    (state)->remaining_mbc_char_count = 0;                      \
+    (state)->translate_utf8_to_mbc = translate_utf8;            \
+  }  /* clear_char_conversion_state */
+#else /* !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+#define clear_char_conversion_state(state, ptr, translate_utf8) \
+  { (state)->next_token_char = ptr;                             \
+    (state)->remaining_mbc_char_count = 0;                      \
+  }  /* clear_char_conversion_state */
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+#else /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+#define clear_char_conversion_state(state, ptr, translate_utf8) \
+  { (state)->next_token_char = ptr;                             \
+  }  /* clear_char_conversion_state */
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+
+extern void conv_single_char(a_char_conversion_state_ptr state,
+                             a_boolean                   process_escapes,
+                             unsigned long               *ch,
+                             unsigned long               centity_mask);
 extern void conv_char_literal(unsigned long num_chars,
                               an_error_code *err_code,
                               char          **err_pos);

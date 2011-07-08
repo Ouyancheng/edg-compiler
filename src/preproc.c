@@ -1124,14 +1124,14 @@ When UNICODE_SOURCE_SUPPORTED is TRUE, this can also involve the
 translation of certain characters to UTF-8.
 */
 {
-  char			*name_start_pos, *in_pos;
-  sizeof_t		name_len, i;
-  int			remaining_mbc_char_count = 0;
-  unsigned long		ch;
-  unsigned long		centity_mask;
-  a_text_buffer_ptr	buf = header_name_buffer;
-  char			*result;
-  sizeof_t		result_length;
+  char                    *name_start_pos, *in_pos;
+  sizeof_t                name_len, i;
+  unsigned long           ch;
+  unsigned long           centity_mask;
+  a_text_buffer_ptr       buf = header_name_buffer;
+  char                    *result;
+  sizeof_t                result_length;
+  a_char_conversion_state conv_state;
 
   /* Build a mask used to mask individual characters. */
   centity_mask = (unsigned long)1 << (targ_host_string_char_bit-1);
@@ -1147,6 +1147,10 @@ translation of certain characters to UTF-8.
                                                   *start_of_curr_token == '<');
   }  /* if */
   reset_text_buffer(buf);
+  /* UTF-8 characters should not be translated to native multibyte
+     characters. */
+  clear_char_conversion_state(&conv_state, &in_pos,
+                              /*translate_utf8=*/FALSE);
   /* Copy the string, processing escapes if appropriate.  The copy is done
      in two steps.  The first step processes one character (after processing
      of escapes, etc.) at a time.  The second step executed later in
@@ -1155,8 +1159,7 @@ translation of certain characters to UTF-8.
   /*lint --e{850} i modified in loop */
   for (i = 1; i <= name_len; i++) {
     char *prev_pos = in_pos;
-    conv_single_char(&in_pos, &remaining_mbc_char_count, process_escapes,
-                     &ch, centity_mask);
+    conv_single_char(&conv_state, process_escapes, &ch, centity_mask);
     i += (in_pos - prev_pos) - 1;
 #if UNICODE_SOURCE_SUPPORTED && !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
     if (curr_file_unicode_source_kind == usk_none &&

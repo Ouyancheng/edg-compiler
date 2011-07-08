@@ -3974,18 +3974,20 @@ Return TRUE if the locale_name is invalid, FALSE otherwise.
 /*ARGSUSED*/ /* <-- "uc" is not used in that case. */
 #endif /* !EDG_WIN32 */
 int unicode_to_multibyte_char(unsigned long uc,
-	                      char          chars[MAX_MULTIBYTE_CHAR_LENGTH],
-			      a_boolean	    *err)
+                              char          chars[MAX_MULTIBYTE_CHAR_LENGTH],
+                              a_boolean     *err,
+                              a_boolean     to_native)
 /*
-Convert the Unicode code point uc to a native multibyte character sequence.
-Put the bytes of the multibyte representation in the array chars, and return
+Convert the Unicode code point uc to a multibyte character sequence.  Put
+the bytes of the multibyte representation in the array chars, and return
 the length.  If the conversion could not be done, a "?" and length of 1 are
 returned.  err is set to TRUE if the conversion failed, FALSE otherwise.
 
 The EDG-supplied version of this routine only supports this capability when
 EDG_WIN32 is TRUE (because it relies on Windows routines), in which case
 the locale to be used for the multibyte encoding is specified by
-native_multibyte_locale.
+native_multibyte_locale if to_native is TRUE and by system_default_locale
+otherwise.
 */
 {
   int len;
@@ -3995,7 +3997,8 @@ native_multibyte_locale.
   /* Convert the Unicode character to a multibyte character in the specified
      locale. */
   if (_wctomb_s_l(&len, chars, MAX_MULTIBYTE_CHAR_LENGTH, (wchar_t)uc,
-                  native_multibyte_locale)) {
+                  to_native ? native_multibyte_locale
+                            : system_default_locale)) {
     /* The conversion failed.  Return "?". */
     chars[0] = '?';
     len = 1;
@@ -4426,7 +4429,7 @@ be used until that point.
       len = mbc_to_wide_char(p, &wc, (a_boolean*)NULL, /*is_native=*/FALSE);
       /* Convert the Unicode character to a native multibyte
          character sequence.  "?" will be returned in "arr" on error. */
-      mb_len = unicode_to_multibyte_char(wc, arr, &err);
+      mb_len = unicode_to_multibyte_char(wc, arr, &err, /*to_native=*/TRUE);
       for (i = 0; i < mb_len; i++) {
         add_char_to_text_buffer(mbc_buffer, arr[i]);
       }  /* if */
