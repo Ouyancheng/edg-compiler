@@ -16074,7 +16074,14 @@ Implement the C++/CLI dispose pattern for this class it is needed.
        already provided by a base class dispose pattern implementation. */
     if (is_value_class ||
         !base_cssp->has_dispose_pattern_idisposable_dispose) {
+      clear_func_info(&func_info);
+      func_info.sealed = TRUE;
       if (is_ref_class) {
+        if (base_cssp->needs_new_idisposable_dispose) {
+          func_info.new_member = TRUE;
+        } else if (base_cssp->idisposable_dispose != NULL) {
+          func_info.override = TRUE;
+        }  /* if */
         /* Since an IDisposable::Dispose() implementation is about to be
            generated, mark the class as implementing System::IDisposable. */
         add_cli_system_idisposable_base(class_state);
@@ -16083,13 +16090,6 @@ Implement the C++/CLI dispose pattern for this class it is needed.
       initialize_member_decl_info(&decl_info, pos);
       decl_info.is_idisposable_dispose = TRUE;
       decl_info.decl_state.dso_flags |= DSO_VIRTUAL;
-      clear_func_info(&func_info);
-      func_info.sealed = TRUE;
-      if (base_cssp->needs_new_idisposable_dispose) {
-        func_info.new_member = TRUE;
-      } else if (base_cssp->idisposable_dispose != NULL) {
-        func_info.override = TRUE;
-      }  /* if */
       generate_special_function(class_state, &decl_info, &func_info,
                                 (a_param_type_ptr)NULL);
       check_assertion(cssp->idisposable_dispose != NULL);
