@@ -12693,6 +12693,8 @@ tk_unknown is returned.
     case eok_points_to_field:
     case eok_pm_field:
     case eok_pm_points_to_field:
+    case eok_dot_pm_func_ptr:
+    case eok_points_to_pm_func_ptr:
     case eok_dot_static:
     case eok_points_to_static:
     case eok_virtual_function_ptr:
@@ -17328,6 +17330,13 @@ process_ptr_to_member_selection:
               if (!is_ptr_to_member_type(op2->type)) break;
               does_fetch = TRUE;
               fetched_type = make_pm_selection_type(operand_type, op2->type);
+              break;
+            case eok_dot_pm_func_ptr:
+            case eok_points_to_pm_func_ptr:
+              /* These fetch a function pointer, from a pointer to member
+                 or a virtual function table. */
+              does_fetch = TRUE;
+              fetched_type = node->type;
               break;
             case eok_subscript:
               /* Swap operands if the pointer operand is second. */
@@ -22366,6 +22375,9 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_pm_field: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
 					LVRV_OPND2_IS_RVALUE,
   /* eok_pm_points_to_field: */		LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_dot_pm_func_ptr */		LVRV_OPND2_IS_RVALUE,
+  /* eok_points_to_pm_func_ptr */	LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
   /* eok_dot_static: */			LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
   /* eok_points_to_static: */		LVRV_OPND1_IS_RVALUE |

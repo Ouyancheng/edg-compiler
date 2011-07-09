@@ -74,6 +74,10 @@ static an_arg_operand_ptr scan_expr_list(a_token_kind closing_token,
                                          a_boolean    trailing_comma_okay);
 static an_arg_operand *rescan_expr_list(an_expr_node_ptr       expr_list,
                                         a_rescan_control_block *rcblock);
+static void bound_function_in_cast(a_type_ptr        type_cast_to,
+                                   a_source_position *start_position,
+                                   an_operand        *operand,
+                                   an_operand        *bound_function_selector);
 static a_boolean var_declared_in_current_routine(a_variable_ptr var);
 static void make_param_ref_operand(an_operand    *result,
                                    a_symbol_ptr  param_sym);
@@ -12616,8 +12620,23 @@ indication in *rcblock).
     /* Check for and pass over the "(". */
     (void)required_token(tok_lparen, ec_exp_lparen);
     add_matching_stop_token(tok_rparen);
-    /* Scan the expression. */
-    scan_expr(operand, PREC_LOWEST, EOPT_OPERAND_OF_CAST);
+    { an_operand               bound_function_selector;
+      a_local_expr_options_set options = EOPT_OPERAND_OF_CAST;
+      if (gpp_mode && gnu_version >= 40400 &&
+          source_form == csf_reinterpret_cast &&
+          is_pointer_type(*cast_type)) {
+        /* g++ 4.4 and beyond allow a cast of a bound function to some
+           pointer types. */
+        options |= EOPT_ALLOW_BOUND_FUNCTION;
+      }  /* if */
+      /* Scan the expression. */
+      scan_expr_full(operand, &bound_function_selector, PREC_LOWEST, options);
+      if (operand->bound_function) {
+        bound_function_in_cast(*cast_type, start_position, operand,
+                               &bound_function_selector);
+        check_assertion(!operand->bound_function);
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (allow_array && is_array_type(*cast_type)) {
     /* Catch cast-to-error cases allowed by above. */
@@ -16881,6 +16900,23 @@ merely transformed to something to which the cast may apply.
       operand->bound_function = FALSE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else if (gpp_mode && gnu_version >= 40400 &&
+             (is_void_star_type(type_cast_to) ||
+              (is_pointer_type(type_cast_to) &&
+               is_function_type(type_pointed_to(type_cast_to)))) &&
+             is_ptr_to_member_type(operand->type)) {
+    /* g++ 4.4 and after allows a cast of the result of a pointer-to-member
+       selection to void * or a pointer-to-function type. */
+    an_expr_node_ptr object_node, pm_node, func_ptr_node;
+    object_node = make_node_from_operand(bound_function_selector);
+    pm_node = make_node_from_operand(operand);
+    object_node->next = pm_node;
+    func_ptr_node = make_operator_node(
+                         (bound_function_selector->selector_is_object_pointer ?
+                             (an_expr_operator_kind)eok_points_to_pm_func_ptr :
+                             (an_expr_operator_kind)eok_dot_pm_func_ptr),
+                         type_cast_to, object_node);
+    make_expression_operand(func_ptr_node, operand);
   } else {
     /* Any other use of a bound function.  Error. */
     error_in_operand(ec_bound_function_must_be_called, operand);
@@ -29545,9 +29581,11 @@ set accordingly.
         operator_token = tok_arrow;
         break;
       case eok_pm_field:
+      case eok_dot_pm_func_ptr:
         operator_token = tok_period_star;
         break;
       case eok_pm_points_to_field:
+      case eok_points_to_pm_func_ptr:
         operator_token = tok_arrow_star;
         break;
       case eok_post_incr:

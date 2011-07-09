@@ -1,5 +1,27 @@
 Version 4.4
 
+7/9/10   [EDGcpfe/11893]
+g++ compatibility: ability to cast member function pointers to void *
+
+g++ 4.4.0 and later allow casts of a pointer-to-member function to void *.  The
+front end now emulates that behavior in GNU C++ modes when gnu_version >=
+40400.  Two new expression operators (eok_dot_pm_func_ptr and
+eok_points_to_pm_func_ptr) have been added.  Here's an example:
+
+  struct A {
+    void f() {}
+  };
+  struct B : A {};
+  int main() {
+    void (A::*amf)() = &A::f;
+    void (B::*bmf)() = &B::f;
+    A a;
+    B b, *pb = &b;
+    return !(reinterpret_cast<void *>(a.*amf) ==
+             reinterpret_cast<void *>(pb->*bmf));
+  }
+
+
 7/8/11   [EDGcpfe/11712]
 Microsoft compatibility: string literals in Unicode-encoded files
 

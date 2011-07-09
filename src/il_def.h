@@ -12873,6 +12873,19 @@ enum an_expr_operator_kind_tag {
 			   The first operand is an rvalue pointer to class.
 			   The second operand is an rvalue of pointer-to-data-
 			   member type. */
+  eok_dot_pm_func_ptr,	/* For the pointer-to-member-function selection x.*pm,
+			   returns the address of the function.  The first
+			   operand is an lvalue or rvalue of class type.  The
+			   second operand is an rvalue of pointer-to-member-
+			   function type.  Used for a nonstandard g++
+			   feature. */
+  eok_points_to_pm_func_ptr,
+			/* For the pointer-to-member-function selection x->*y,
+			   returns the address of the function.  The first
+			   operand is an rvalue pointer to class.  The
+			   second operand is an rvalue of pointer-to-member-
+			   function type.  Used for a nonstandard g++
+			   feature. */
   eok_dot_static,	/* Selection of a static member of a class, source
 			   form x.y.  The first operand is an lvalue
 			   or rvalue of class type, which is evaluated
@@ -16367,7 +16380,10 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "p+=", "p-=",
    "b=",
    "&&", "||", ",",
-   "[]", ".", "->", ".*", "->*", ".static", "->static",
+   "[]", ".", "->", ".*", "->*",
+   ".* func ptr",
+   "->* func ptr",
+   ".static", "->static",
    "virt func ptr",
    "?",
    "call",

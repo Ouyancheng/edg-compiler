@@ -3440,6 +3440,9 @@ Display the name of an expression operator.
     case eok_points_to_field:   s = "eok_points_to_field";        break;
     case eok_pm_field:          s = "eok_pm_field";               break;
     case eok_pm_points_to_field:s = "eok_pm_points_to_field";     break;
+    case eok_dot_pm_func_ptr:   s = "eok_dot_pm_func_ptr";        break;
+    case eok_points_to_pm_func_ptr:
+                                s = "eok_points_to_pm_func_ptr";  break;
     case eok_dot_static:        s = "eok_dot_static";             break;
     case eok_points_to_static:  s = "eok_points_to_static";       break;
     case eok_virtual_function_ptr:

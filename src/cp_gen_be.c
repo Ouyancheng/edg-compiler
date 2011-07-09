@@ -637,6 +637,8 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_POSTFIX,		/* eok_points_to_field */
   PREC_PTR_TO_MEMBER,	/* eok_pm_field */
   PREC_PTR_TO_MEMBER,	/* eok_pm_points_to_field */
+  PREC_PTR_TO_MEMBER,	/* eok_dot_pm_func_ptr */
+  PREC_PTR_TO_MEMBER,	/* eok_points_to_pm_func_ptr */
   PREC_POSTFIX,		/* eok_dot_static */
   PREC_POSTFIX,		/* eok_points_to_static */
   PREC_POSTFIX,		/* eok_virtual_function_ptr */
@@ -10481,10 +10483,12 @@ gen_expr that might end up generating this expr as a temporary.
           /* Handled above. */
           unexpected_condition();
         case eok_pm_field:
+        case eok_dot_pm_func_ptr:
           gen_pm_simple_field_selection(operand_1, operand_2,
                                         /*use_arrow_star=*/FALSE);
           goto done_with_operation;
         case eok_pm_points_to_field:
+        case eok_points_to_pm_func_ptr:
           gen_pm_simple_field_selection(operand_1, operand_2,
                                         /*use_arrow_star=*/TRUE);
           goto done_with_operation;

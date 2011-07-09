@@ -2858,7 +2858,8 @@ to class.  On input, the expression must be unlowered (and remains so).
 
   check_assertion(is_operation_node(expr));
   op = expr->variant.operation.kind;
-  if (op == (an_expr_operator_kind)eok_pm_field) {
+  if (op == (an_expr_operator_kind)eok_pm_field ||
+      op == (an_expr_operator_kind)eok_dot_pm_func_ptr) {
     /* First operand is a class selector. */
     node = expr->variant.operation.operands;
   } else if (op == (an_expr_operator_kind)eok_dot_member_call ||
@@ -11416,72 +11417,55 @@ have already been lowered.  The expression is an rvalue.
 }  /* lower_virtual_function_ptr */
 
 
-static void lower_pm_call(an_expr_node_ptr expr)
+static an_expr_node_ptr make_expr_for_pm_func_ptr(
+                                              an_expr_node_ptr object_node,
+                                              an_expr_node_ptr pmf_node,
+                                              a_variable_ptr   *this_temp_var,
+                                              a_variable_ptr   *func_temp_var,
+                                              an_expr_node_ptr *func_addr_node)
 /*
-Do IL lowering of a pointer-to-member function call.  The operands of
-the expression have already been lowered.
+This is a utility function that creates an expression for the address of a
+pointer-to-member function (which is returned in *func_addr_node).  This
+utility is most commonly used during the invocation of a pointer-to-member
+function (but the actual call operation is performed by the caller).  See the
+comments below for the details on the contents of the returned expressions.  As
+part of creating the address of the pointer-to-member function, a temporary is
+created to represent "this", and that temporary is returned in *this_temp_var.
+In most cases (i.e., when pointer_to_member_call_optimization_allowed is FALSE
+or virtual functions exist) a temporary is also created to contain the
+pointer-to-member function address, and that is returned in *func_temp_var.
+When a function temporary is not used, *func_temp_var is set to NULL.  The
+return value is typically a comma expression that contains two assignment
+statements: one for the "this" temporary and one for the "function" temporary,
+but in the case where optimization is possible, the two returned expressions
+(i.e., the return value and *func_addr_node) are separate expressions and it
+the responsibility of the caller to ensure that they are evaluated in the
+proper order (i.e., assignment of "this" temporary, then *func_addr_node).
+object_node is the object pointer and pmf_node is an rvalue pointer-to- member.
 */
 {
-  an_expr_node_ptr pmf_node, object_node, additional_args, cast_object_node;
-  an_expr_node_ptr this_temp_node, select_d_node, padd_node, call_node;
-  an_expr_node_ptr this_temp_assign_node, vtbl_temp_assign_node;
+  an_expr_node_ptr select_d_node, padd_node, cast_object_node;
   an_expr_node_ptr compare_node, select_f_node;
-  an_expr_node_ptr return_node = NULL;
-  a_routine_type_supplement_ptr
-                   rtsp;
+  an_expr_node_ptr comma_node, this_temp_assign_node, func_temp_assign_node;
+  an_expr_node_ptr offset_node, vtbl_f_value, question_mark_node;
+  an_expr_node_ptr vtbl_addr_node, vtbl_temp_assign_node;
+  an_expr_node_ptr cast_node; /*lint !e578*/
+  a_variable_ptr   vtbl_temp_var;
+  a_type_ptr       ptr_to_vtbl_entry_type;
+  a_type_ptr       object_type = object_node->type;
+  a_type_ptr       class_type = pm_class_type_possibly_lowered(pmf_node->type);
+  a_type_ptr       routine_type =
+                               pm_member_type_possibly_lowered(pmf_node->type);
+  a_type_ptr       ptr_routine_type = make_pointer_type(routine_type);
 #if !IA64_ABI
-  an_expr_node_ptr select_i_node;
+  an_expr_node_ptr select_i_node, this_temp_node;
   an_expr_node_ptr select_f_for_cast_node, vtbl_d_value, this_increment_node;
 #else /* IA64_ABI */
   an_expr_node_ptr select_fd_node;
 #endif /* !IA64_ABI */
-  an_expr_node_ptr vtbl_addr_node;
-  an_expr_node_ptr cast_node; /*lint !e578*/
-  an_expr_node_ptr offset_node, vtbl_f_value;
-  an_expr_node_ptr comma_node, question_mark_node;
-  an_expr_node_ptr func_addr_node, func_temp_assign_node;
-  a_variable_ptr   this_temp_var, func_temp_var, vtbl_temp_var;
-  a_type_ptr       ptr_to_vtbl_entry_type, routine_type, object_type;
-  a_type_ptr       class_type, ptr_routine_type;
 
-  /* The original tree has an eok_dot_pm_call or eok_points_to_pm_call
-     node with operands as follows:
-       (1) a node giving the rvalue of the pointer-to-member.
-       (2) a node for the object pointer.  (For the eok_dot_pm_call case, this
-           has already been converted to a pointer.)
-       (3..n) optional additional arguments.
-     Or, in C notation,
-       pm_call(pmf, object, additional_args ...)
-  */
-  pmf_node = expr->variant.operation.operands;
-  check_assertion(!pmf_node->is_lvalue);
-  routine_type = pm_member_type_possibly_lowered(pmf_node->type);
-  ptr_routine_type = make_pointer_type(routine_type);
-  class_type = pm_class_type_possibly_lowered(pmf_node->type);
-  rtsp = routine_type->variant.routine.extra_info;
-  object_node = pmf_node->next;
-  additional_args = object_node->next;
-  if (rtsp->value_returned_as_parameter) {
-    /* The function returns its value via an added return value address
-       parameter. */
-    if (rtsp->return_value_parameter_follows_this) {
-      /* The parameter added for the return address follows the "this"
-         parameter. */
-      return_node = additional_args;
-    } else {
-      /* The parameter added for the return address precedes the "this"
-         parameter. */
-      return_node = object_node;
-      object_node = additional_args;
-    }  /* if */
-    additional_args = additional_args->next;
-    return_node->next = NULL;
-  }  /* if */
-  pmf_node->next = NULL;
-  object_node->next = NULL;
-  object_type = object_node->type;
   /* For the Cfront-like ABI, the rewritten form is as follows:
-       ((this_temp = (object_type *)((char *)object + pmf.d)),
+       (this_temp = (object_type *)((char *)object + pmf.d),
                                        -- Adjust "this" pointer by delta
                                           from pointer-to-member.
         (func_temp = (function_type *) -- The computed function address
@@ -11504,10 +11488,7 @@ the expression have already been lowered.
                                        -- Adjust "this" pointer to get pointer
                                           to subobject expected by the virtual
                                           function.
-                    vtbl_temp->f)),    -- Address of virtual function to call.
-         func_temp(                    -- Call the function.
-                   this_temp,          -- "this" pointer for call.
-                   additional_args ...))
+                    vtbl_temp->f))     -- Address of virtual function.
      If "pmf" is not a reusable expression, the first occurrence of
      "pmf" above is replaced by "(pmf_temp = pmf)", and the rest by
      "pmf_temp".  See ARM 8.1.2.c for some insight into the pointer-to-
@@ -11525,10 +11506,10 @@ the expression have already been lowered.
      is initialized before the call is begun.
   */
   /* For the IA-64 ABI:
-       ((this_temp = (object_type *)((char *)object + pmf.d)),
+        (this_temp = (object_type *)((char *)object + pmf.d),
                                        -- Adjust "this" pointer by delta
                                           from pointer-to-member.
-        (func_temp = (function_type *) -- The computed function address
+         func_temp = (function_type *) -- The computed function address
                                           gets cast to the proper function
                                           type.
                  ((pmf.f & 1) == 0) ?  -- Check virtual/non-virtual
@@ -11546,16 +11527,13 @@ the expression have already been lowered.
                          ((ptrdiff_t)pmf.f - 1)),
                                        -- Offset into table, dropping low-order
                                           bit indicating virtual function.
-                    *vtbl_temp))),     -- Address of virtual function to call.
-         func_temp(                    -- Call the function.
-                   this_temp,          -- "this" pointer for call.
-                   additional_args ...))
+                    *vtbl_temp)))      -- Address of virtual function.
   */
   /* Make sure __mptr (the struct that represents lowered pointers to member
      functions) has been created. */
   (void)make_mptr_type();
   /* Make the temporary variable for the "this_temp". */
-  this_temp_var = make_local_temporary(object_type);
+  *this_temp_var = make_local_temporary(object_type);
   /* Make "(char *)object + pmf.d". */
   select_d_node = node_to_select_field_from_rvalue(pmf_node, mptr_d_field);
 #if IA64_ABI
@@ -11577,7 +11555,7 @@ the expression have already been lowered.
   /* Cast back to the object pointer type. */
   cast_node = add_cast(padd_node, object_type);
   /* Make "(this_temp = (object_type *)((char *)object + pmf.d)". */
-  this_temp_assign_node = make_var_assignment_expr(this_temp_var, cast_node);
+  this_temp_assign_node = make_var_assignment_expr(*this_temp_var, cast_node);
   if (pointer_to_member_call_optimization_allowed &&
       class_type->variant.class_struct_union.extra_info->assoc_scope != NULL &&
       !class_type->variant.class_struct_union.
@@ -11587,7 +11565,8 @@ the expression have already been lowered.
     pmf_node = make_reusable_copy(pmf_node, /*vars_can_change=*/FALSE);
     select_f_node = node_to_select_field_from_rvalue(pmf_node, mptr_f_field);
     /* Add the cast to the right pointer to routine type. */
-    func_addr_node = add_cast_if_necessary(select_f_node, ptr_routine_type);
+    *func_addr_node = add_cast_if_necessary(select_f_node, ptr_routine_type);
+    *func_temp_var = NULL;
   } else {
     /* Virtual functions, so use the more general form. */
     pmf_node = make_reusable_copy(pmf_node, /*vars_can_change=*/FALSE);
@@ -11640,12 +11619,12 @@ the expression have already been lowered.
     cast_node = add_cast(select_f_for_cast_node,
                          integer_type(TARG_DELTA_INT_KIND));
     /* Add a cast to "char *" to avoid scaling on the pointer addition. */
-    this_temp_node = add_cast_to_char_star(var_rvalue_expr(this_temp_var));
+    this_temp_node = add_cast_to_char_star(var_rvalue_expr(*this_temp_var));
     this_temp_node->next = cast_node;
     padd_node = make_operator_node((an_expr_operator_kind)eok_padd,
                                    this_temp_node->type, this_temp_node);
 #else /* IA64_ABI */
-    padd_node = var_rvalue_expr(this_temp_var);
+    padd_node = var_rvalue_expr(*this_temp_var);
 #endif /* IA64_ABI */
     /* We now have a pointer to the virtual table pointer in the object.
        Cast it to a pointer to a pointer and indirect to get the value of 
@@ -11698,15 +11677,15 @@ the expression have already been lowered.
        function. */
     vtbl_d_value = field_rvalue_selection_expr(var_rvalue_expr(vtbl_temp_var),
                                                mptr_d_field);
-    this_temp_node = var_rvalue_expr(this_temp_var);
+    this_temp_node = var_rvalue_expr(*this_temp_var);
     this_temp_node = add_cast_to_char_star(this_temp_node);
     this_temp_node->next = vtbl_d_value;
     padd_node = make_operator_node((an_expr_operator_kind)eok_padd,
                                    this_temp_node->type,
                                    this_temp_node);
     cast_node = add_cast(padd_node, object_type);
-    this_increment_node = make_var_assignment_expr(this_temp_var, cast_node);
-    /* Make "vtbl_temp->f", the address of the virtual function to call. */
+    this_increment_node = make_var_assignment_expr(*this_temp_var, cast_node);
+    /* Make "vtbl_temp->f", the address of the virtual function. */
     vtbl_f_value = field_rvalue_selection_expr(var_rvalue_expr(vtbl_temp_var),
                                                mptr_f_field);
     /* Combine the three expressions that make up the virtual function
@@ -11714,7 +11693,7 @@ the expression have already been lowered.
     comma_node = make_comma_node(vtbl_temp_assign_node, this_increment_node);
     comma_node = make_comma_node(comma_node, vtbl_f_value);
 #else /* IA64_ABI */
-    /* Make "*vtbl_temp", the address of the virtual function to call. */
+    /* Make "*vtbl_temp", the address of the virtual function. */
     vtbl_f_value = var_rvalue_expr(vtbl_temp_var);
     vtbl_f_value = add_cast(vtbl_f_value,
                             make_pointer_type(select_f_node->type));
@@ -11730,19 +11709,128 @@ the expression have already been lowered.
                                            make_vptp_type(), compare_node);
     /* Cast the generic function pointer returned from the question mark
        operator to the proper function type. */
-    func_addr_node = add_cast_if_necessary(question_mark_node,
+    *func_addr_node = add_cast_if_necessary(question_mark_node,
                                            ptr_routine_type);
     /* Store it in func_temp. */
-    func_temp_var = make_local_temporary(ptr_routine_type);
-    func_temp_assign_node = make_var_assignment_expr(func_temp_var,
-                                                     func_addr_node);
+    *func_temp_var = make_local_temporary(ptr_routine_type);
+    func_temp_assign_node = make_var_assignment_expr(*func_temp_var,
+                                                     *func_addr_node);
     /* Combine the assignment to this_temp and the assignment to
        func_temp into one expression using a comma operator. */
     this_temp_assign_node = make_comma_node(this_temp_assign_node,
                                             func_temp_assign_node);
-    /* Get the address of the function from func_temp for the call. */
-    func_addr_node = var_rvalue_expr(func_temp_var);
+    /* Get the address of the function from func_temp. */
+    *func_addr_node = var_rvalue_expr(*func_temp_var);
   }  /* if */
+  return this_temp_assign_node;
+}  /* make_expr_for_pm_func_ptr */
+
+
+static void lower_pm_func_ptr(an_expr_node_ptr expr)
+/*
+Lower an eok_dot_pm_func_ptr or eok_points_to_pm_func_ptr expression which are
+used to implement a g++ extension to return the value of a pointer to member
+function.  Such expressions are found only as arguments to cast expressions.
+*/
+{
+  an_expr_node_ptr  object_node, pmf_node, func_temp_node;
+  an_expr_node_ptr  func_addr_node, this_temp_assign_node;
+  a_variable_ptr    this_temp_var, func_temp_var;
+
+  /* Note that the first operand of eok_dot_pm_func_ptr is originally an lvalue
+     or rvalue of class type, but has been changed to an rvalue class pointer
+     by this point (see lower_class_selector_operand_if_any). */
+  check_assertion(node_operator_is(expr, eok_dot_pm_func_ptr) ||
+                  node_operator_is(expr, eok_points_to_pm_func_ptr));
+  object_node = expr->variant.operation.operands;
+  pmf_node = object_node->next;
+  pmf_node->next = NULL;
+  object_node->next = NULL;
+  /* Call make_expr_for_pm_func_ptr to do the heavy lifting involved in
+     creating an expression that computes the function address. */
+  this_temp_assign_node = make_expr_for_pm_func_ptr(object_node,
+                                                    pmf_node,
+                                                    &this_temp_var,
+                                                    &func_temp_var,
+                                                    &func_addr_node);
+  if (func_temp_var == NULL) {
+    /* Pointer to member call optimization was performed, so the result
+       we're looking for is in func_addr_node.  Replace the original
+       expression with a comma expression with func_addr_node (suitably cast)
+       as the second argument. */
+    check_assertion(pointer_to_member_call_optimization_allowed);
+    func_addr_node = add_cast_if_necessary(func_addr_node, expr->type);
+    this_temp_assign_node->next = func_addr_node;
+  } else {
+    /* this_temp_assign_node is already a comma node with assignments
+       to a "this" temporary as well as a "function" temporary.  Replace the
+       original node by a comma node whose second argument is the value
+       of the "function" temporary (suitably cast). */
+    func_temp_node = var_rvalue_expr(func_temp_var);
+    func_temp_node = add_cast_if_necessary(func_temp_node, expr->type);
+    this_temp_assign_node->next = func_temp_node;
+  }  /* if */
+  set_node_operator(expr, (an_expr_operator_kind)eok_comma,
+                    expr->type, expr->is_lvalue, this_temp_assign_node);
+}  /* lower_pm_func_ptr */
+
+
+static void lower_pm_call(an_expr_node_ptr expr)
+/*
+Do IL lowering of a pointer-to-member function call.  The operands of
+the expression have already been lowered.
+*/
+{
+  an_expr_node_ptr pmf_node, object_node, additional_args;
+  an_expr_node_ptr this_temp_node, call_node;
+  an_expr_node_ptr this_temp_assign_node;
+  an_expr_node_ptr return_node = NULL;
+  a_routine_type_supplement_ptr
+                   rtsp;
+  an_expr_node_ptr func_addr_node;
+  a_variable_ptr   this_temp_var, func_temp_var;
+  a_type_ptr       routine_type;
+
+  /* The original tree has an eok_dot_pm_call or eok_points_to_pm_call
+     node with operands as follows:
+       (1) a node giving the rvalue of the pointer-to-member.
+       (2) a node for the object pointer.  (For the eok_dot_pm_call case, this
+           has already been converted to a pointer.)
+       (3..n) optional additional arguments.
+     Or, in C notation,
+       pm_call(pmf, object, additional_args ...)
+  */
+  pmf_node = expr->variant.operation.operands;
+  check_assertion(!pmf_node->is_lvalue);
+  routine_type = pm_member_type_possibly_lowered(pmf_node->type);
+  rtsp = routine_type->variant.routine.extra_info;
+  object_node = pmf_node->next;
+  additional_args = object_node->next;
+  if (rtsp->value_returned_as_parameter) {
+    /* The function returns its value via an added return value address
+       parameter. */
+    if (rtsp->return_value_parameter_follows_this) {
+      /* The parameter added for the return address follows the "this"
+         parameter. */
+      return_node = additional_args;
+    } else {
+      /* The parameter added for the return address precedes the "this"
+         parameter. */
+      return_node = object_node;
+      object_node = additional_args;
+    }  /* if */
+    additional_args = additional_args->next;
+    return_node->next = NULL;
+  }  /* if */
+  pmf_node->next = NULL;
+  object_node->next = NULL;
+  /* Call make_expr_for_pm_func_ptr to do the heavy lifting involved in
+     creating an expression that computes the function address. */
+  this_temp_assign_node = make_expr_for_pm_func_ptr(object_node,
+                                                    pmf_node,
+                                                    &this_temp_var,
+                                                    &func_temp_var,
+                                                    &func_addr_node);
   /* Make the call operands: func_addr_node (giving the function pointer),
      the this_temp (giving the object address), and any additional
      arguments.  In the IA64 ABI, if there is a return value address
@@ -14376,6 +14464,12 @@ cast.  See lower_expr for typical invocation.
           case eok_pm_points_to_field:
             /* Pointer-to-member selection of a data member. */
             lower_pm_field(expr);
+            break;
+          case eok_dot_pm_func_ptr:
+          case eok_points_to_pm_func_ptr:
+            /* Lower an expression for the address of a pointer-to-member
+               function (a g++ feature). */
+            lower_pm_func_ptr(expr);
             break;
           case eok_dot_field:
             /* See if an optimization applies. */

@@ -9309,9 +9309,11 @@ returned string to an appropriate buffer before this routine is invoked again.
       break;
 #if ABI_COMPATIBILITY_VERSION >= 402
     case eok_pm_points_to_field:
+    case eok_points_to_pm_func_ptr:
       opkind = (an_opname_kind)onk_arrow_star;
       break;
     case eok_pm_field:
+    case eok_dot_pm_func_ptr:
       name = MANGLING_STRING_FOR_OPERATOR_DOT_STAR;
       break;
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
