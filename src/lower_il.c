@@ -11425,23 +11425,24 @@ static an_expr_node_ptr make_expr_for_pm_func_ptr(
                                               an_expr_node_ptr *func_addr_node)
 /*
 This is a utility function that creates an expression for the address of a
-pointer-to-member function (which is returned in *func_addr_node).  This
-utility is most commonly used during the invocation of a pointer-to-member
+bound pointer-to-member-function (which is returned in *func_addr_node).  This
+utility is most commonly used during the invocation of a pointer-to-member-
 function (but the actual call operation is performed by the caller).  See the
 comments below for the details on the contents of the returned expressions.  As
-part of creating the address of the pointer-to-member function, a temporary is
-created to represent "this", and that temporary is returned in *this_temp_var.
-In most cases (i.e., when pointer_to_member_call_optimization_allowed is FALSE
-or virtual functions exist) a temporary is also created to contain the
-pointer-to-member function address, and that is returned in *func_temp_var.
-When a function temporary is not used, *func_temp_var is set to NULL.  The
-return value is typically a comma expression that contains two assignment
-statements: one for the "this" temporary and one for the "function" temporary,
-but in the case where optimization is possible, the two returned expressions
-(i.e., the return value and *func_addr_node) are separate expressions and it
-the responsibility of the caller to ensure that they are evaluated in the
-proper order (i.e., assignment of "this" temporary, then *func_addr_node).
-object_node is the object pointer and pmf_node is an rvalue pointer-to- member.
+part of creating the address of the bound pointer-to-member-function, a
+temporary is created to represent "this", and that temporary is returned in
+*this_temp_var.  In most cases (i.e., when
+pointer_to_member_call_optimization_allowed is FALSE or virtual functions
+exist) a temporary is also created to contain the address of the bound
+pointer-to-member-function, and that is returned in *func_temp_var.  When a
+function temporary is not used, *func_temp_var is set to NULL.  The return
+value is typically a comma expression that contains two assignment statements:
+one for the "this" temporary and one for the "function" temporary, but in the
+case where optimization is possible, the two returned expressions (i.e., the
+return value and *func_addr_node) are separate expressions and it is the
+responsibility of the caller to ensure that they are evaluated in the proper
+order (i.e., assignment of "this" temporary, then *func_addr_node).
+object_node is the object pointer and pmf_node is an rvalue pointer-to-member.
 */
 {
   an_expr_node_ptr select_d_node, padd_node, cast_object_node;
@@ -11728,9 +11729,10 @@ object_node is the object pointer and pmf_node is an rvalue pointer-to- member.
 
 static void lower_pm_func_ptr(an_expr_node_ptr expr)
 /*
-Lower an eok_dot_pm_func_ptr or eok_points_to_pm_func_ptr expression which are
-used to implement a g++ extension to return the value of a pointer to member
-function.  Such expressions are found only as arguments to cast expressions.
+Lower an eok_dot_pm_func_ptr or eok_points_to_pm_func_ptr expression.  These
+expressions are used to implement a g++ extension to return the address from
+a bound pointer-to-member-function.  Such expressions are found only as
+arguments to cast expressions.
 */
 {
   an_expr_node_ptr  object_node, pmf_node, func_temp_node;
