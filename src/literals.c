@@ -708,7 +708,7 @@ remaining to be extracted on subsequent calls, and serves to disable
 recognition of escapes, etc., on bytes after the first in a multibyte
 character.  The caller must set state->remaining_mbc_char_count to zero
 before the first call of this routine in a given string, even if multibyte
-character are not enabled.  When
+characters are not enabled.  When
 NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE and
 state->translate_utf8_to_mbc are TRUE, the bytes returned for a UTF-8
 character will be those of the corresponding character in the system
@@ -779,9 +779,9 @@ get_another:
         int       translated_len;
         (void)mbc_to_wide_char(lptr, &uc, (a_boolean *)NULL,
                                /*is_native=*/FALSE);
-        translated_len =
-                     unicode_to_multibyte_char(uc, state->translated_utf8_char,
-                                               &err, /*to_native=*/FALSE);
+        translated_len = unicode_to_multibyte_char(
+                                         uc, state->translated_utf8_char, &err,
+                                         /*use_system_default_locale=*/TRUE);
         if (err) {
           /* The code point could not be converted to a suitable
              representation. Issue a diagnostic. */

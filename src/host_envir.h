@@ -2390,7 +2390,7 @@ extern
 int unicode_to_multibyte_char(unsigned long uc,
                               char          chars[MAX_MULTIBYTE_CHAR_LENGTH],
                               a_boolean     *err,
-                              a_boolean     to_native);
+                              a_boolean     use_system_default_locale);
 
 #if EDG_WIN32
 
