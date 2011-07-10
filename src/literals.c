@@ -779,9 +779,8 @@ get_another:
         int       translated_len;
         (void)mbc_to_wide_char(lptr, &uc, (a_boolean *)NULL,
                                /*is_native=*/FALSE);
-        translated_len = unicode_to_multibyte_char(
-                                         uc, state->translated_utf8_char, &err,
-                                         /*use_system_default_locale=*/TRUE);
+        translated_len =
+              unicode_to_multibyte_char(uc, state->translated_utf8_char, &err);
         if (err) {
           /* The code point could not be converted to a suitable
              representation. Issue a diagnostic. */

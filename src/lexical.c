@@ -3337,9 +3337,7 @@ is TRUE.
                 char		arr[MAX_MULTIBYTE_CHAR_LENGTH];
                 /* Convert the Unicode character to a multibyte character
                    sequence.  "?" will be returned on error. */
-                mb_len = unicode_to_multibyte_char(
-                                           wc, arr, &err,
-                                           /*use_system_default_locale=*/TRUE);
+                mb_len = unicode_to_multibyte_char(wc, arr, &err);
                 for (i = 0; i < mb_len; i++) putc(arr[i], f_pp_output);
                 ch = '\0';  /* Suppress output of ch below. */
 #else /* !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */

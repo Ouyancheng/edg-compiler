@@ -3975,8 +3975,7 @@ Return TRUE if the locale_name is invalid, FALSE otherwise.
 #endif /* !EDG_WIN32 */
 int unicode_to_multibyte_char(unsigned long uc,
                               char          chars[MAX_MULTIBYTE_CHAR_LENGTH],
-                              a_boolean     *err,
-                              a_boolean     use_system_default_locale)
+                              a_boolean     *err)
 /*
 Convert the Unicode code point uc to a multibyte character sequence.  Put
 the bytes of the multibyte representation in the array chars, and return
@@ -3986,8 +3985,7 @@ returned.  err is set to TRUE if the conversion failed, FALSE otherwise.
 The EDG-supplied version of this routine only supports this capability when
 EDG_WIN32 is TRUE (because it relies on Windows routines), in which case
 the locale to be used for the multibyte encoding is specified by
-system_default_locale if to_system_default_locale is TRUE and by
-native_multibyte_locale otherwise.
+system_default_locale.
 */
 {
   int len;
@@ -3997,8 +3995,7 @@ native_multibyte_locale otherwise.
   /* Convert the Unicode character to a multibyte character in the specified
      locale. */
   if (_wctomb_s_l(&len, chars, MAX_MULTIBYTE_CHAR_LENGTH, (wchar_t)uc,
-                  use_system_default_locale ? system_default_locale
-                                            : native_multibyte_locale)) {
+                  system_default_locale)) {
     /* The conversion failed.  Return "?". */
     chars[0] = '?';
     len = 1;
@@ -4429,9 +4426,7 @@ be used until that point.
       len = mbc_to_wide_char(p, &wc, (a_boolean*)NULL, /*is_native=*/FALSE);
       /* Convert the Unicode character to a native multibyte
          character sequence.  "?" will be returned in "arr" on error. */
-      mb_len = unicode_to_multibyte_char(
-                                        wc, arr, &err,
-                                        /*use_system_multibyte_locale=*/FALSE);
+      mb_len = unicode_to_multibyte_char(wc, arr, &err);
       for (i = 0; i < mb_len; i++) {
         add_char_to_text_buffer(mbc_buffer, arr[i]);
       }  /* if */
@@ -4478,8 +4473,8 @@ null-terminated.
   native_multibyte_locale = system_default_locale;
 #endif /* EDG_WIN32 */
   /* File names are stored internally in UTF-8.  If the default Unicode
-     source kind is usk_none, convert the file name to the native multibyte
-     character set. */
+     source kind is usk_none, convert the file name to the system default
+     locale character set. */
   if (DEFAULT_UNICODE_SOURCE_KIND == usk_none) {  /*lint !e506*/
     a_text_buffer_ptr	buf;
     buf = utf8_to_multibyte_char(name);
