@@ -12570,14 +12570,25 @@ new-style cast, and return the result in *operand (or an error
 indication in *rcblock).
 */
 {
-  a_boolean err = FALSE, explicit_cv_qualifiers, allow_array = FALSE;
+  a_boolean  err = FALSE, explicit_cv_qualifiers, allow_array = FALSE;
+  an_operand bound_function_operand,
+             *bound_function_selector = NULL;
+  a_local_expr_options_set
+             options = EOPT_OPERAND_OF_CAST;
 
+  if (gpp_mode && gnu_version >= 40400 &&
+      source_form == csf_reinterpret_cast) {
+    /* g++ 4.4 and beyond allow a cast of a bound function to some
+       pointer types. */
+    options |= EOPT_ALLOW_BOUND_FUNCTION;
+    bound_function_selector = &bound_function_operand;
+  }  /* if */
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
     make_cast_rescan_operands(rcblock, (a_dynamic_init_ptr)NULL,
                               start_position,
                               cast_type, type_position, operand,
-                              (an_operand *)NULL);
+                              bound_function_selector);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     *end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -12620,23 +12631,16 @@ indication in *rcblock).
     /* Check for and pass over the "(". */
     (void)required_token(tok_lparen, ec_exp_lparen);
     add_matching_stop_token(tok_rparen);
-    { an_operand               bound_function_selector;
-      a_local_expr_options_set options = EOPT_OPERAND_OF_CAST;
-      if (gpp_mode && gnu_version >= 40400 &&
-          source_form == csf_reinterpret_cast &&
-          is_pointer_type(*cast_type)) {
-        /* g++ 4.4 and beyond allow a cast of a bound function to some
-           pointer types. */
-        options |= EOPT_ALLOW_BOUND_FUNCTION;
-      }  /* if */
-      /* Scan the expression. */
-      scan_expr_full(operand, &bound_function_selector, PREC_LOWEST, options);
-      if (operand->bound_function) {
-        bound_function_in_cast(*cast_type, start_position, operand,
-                               &bound_function_selector);
-        check_assertion(!operand->bound_function);
-      }  /* if */
-    }  /* if */
+    /* Scan the expression. */
+    scan_expr_full(operand, bound_function_selector, PREC_LOWEST, options);
+  }  /* if */
+  if (operand->bound_function) {
+    /* For the g++ reinterpret_cast cases, make sure the bound function is
+       handled now and not returned to the caller. */
+    check_assertion(bound_function_selector != NULL);
+    bound_function_in_cast(*cast_type, start_position, operand,
+                           bound_function_selector);
+    check_assertion(!operand->bound_function);
   }  /* if */
   if (allow_array && is_array_type(*cast_type)) {
     /* Catch cast-to-error cases allowed by above. */
@@ -16838,6 +16842,8 @@ the cast.  Note that the cast is not actually done; the operand is
 merely transformed to something to which the cast may apply.
 */
 {
+  an_operand orig_operand;
+
   check_assertion(operand->bound_function);
   /* Convert function to pointer, etc. */
   do_operand_transformations(operand,
@@ -16869,6 +16875,7 @@ merely transformed to something to which the cast may apply.
       /* The function is a virtual function, so use an
          eok_virtual_function_ptr operation to compute the address at
          runtime. */
+      orig_operand = *operand;
       /* Make a node for the function pointer. */
       func_ptr_node = make_node_from_operand(operand);
       /* Make a node for the bound selector object. */
@@ -16880,6 +16887,8 @@ merely transformed to something to which the cast may apply.
                                (an_expr_operator_kind)eok_virtual_function_ptr,
                                operand->type, func_ptr_node);
       make_expression_operand(func_ptr_node, operand);
+      restore_operand_details(operand, &orig_operand);
+      operand->bound_function = FALSE;
     } else {
       /* The function is not a virtual function, so discard the
          selector object pointer and just use the routine address. */
@@ -16908,6 +16917,7 @@ merely transformed to something to which the cast may apply.
     /* g++ 4.4 and after allows a cast of the result of a pointer-to-member
        selection to void * or a pointer-to-function type. */
     an_expr_node_ptr object_node, pm_node, func_ptr_node;
+    orig_operand = *operand;
     object_node = make_node_from_operand(bound_function_selector);
     pm_node = make_node_from_operand(operand);
     object_node->next = pm_node;
@@ -16917,6 +16927,9 @@ merely transformed to something to which the cast may apply.
                              (an_expr_operator_kind)eok_dot_pm_func_ptr),
                          type_cast_to, object_node);
     make_expression_operand(func_ptr_node, operand);
+    restore_operand_details(operand, &orig_operand);
+    operand->bound_function = FALSE;
+    expr_pos_warning(ec_conv_of_pm_to_func_ptr, start_position);
   } else {
     /* Any other use of a bound function.  Error. */
     error_in_operand(ec_bound_function_must_be_called, operand);

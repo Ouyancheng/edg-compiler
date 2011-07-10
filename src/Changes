@@ -1,12 +1,14 @@
 Version 4.4
 
 7/9/10   [EDGcpfe/11893]
-g++ compatibility: ability to cast member function pointers to void *
+g++ compatibility: ability to cast bound member function pointers to pointer
 
-g++ 4.4.0 and later allow casts of a pointer-to-member function to void *.  The
-front end now emulates that behavior in GNU C++ modes when gnu_version >=
-40400.  Two new expression operators (eok_dot_pm_func_ptr and
-eok_points_to_pm_func_ptr) have been added.  Here's an example:
+g++ 4.4.0 and later allow nonstandard casts of a bound
+pointer-to-member function to "void *" or a pointer to function type.
+The front end now emulates that behavior in GNU C++ modes when
+gnu_version >= 40400.  Two new expression operators
+(eok_dot_pm_func_ptr and eok_points_to_pm_func_ptr) have been added
+(IL CHANGE).  Here's an example:
 
   struct A {
     void f() {}
