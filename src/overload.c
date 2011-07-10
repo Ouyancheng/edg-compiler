@@ -2084,6 +2084,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   a_type_ptr        unqual_arg_type, unqual_param_type;
   a_conv_context_set
                     conv_context = CCO_DEFAULT;
+  a_boolean         microsoft_const_volatile_anachronism = FALSE;
 
   db_enter(4, "determine_arg_match_level");
 #if DEBUG
@@ -2209,8 +2210,14 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
         /* The const volatile part was not added to the draft until after
            the 2003 standard.  All versions of g++ from 3.2 on seem to
            handle it the modern way.  MSVC changed to that in version 7.1. */
-        if (microsoft_mode && microsoft_version < 1310) {
-          /* Microsoft did not do this until version 7.1. */
+        if (microsoft_mode) {
+          if (microsoft_version < 1310) {
+            /* Microsoft did not do this until version 7.1. */
+          } else {
+            /* At or after version 7.1, this is allowed but it's given
+               an anachronism match level. */
+            microsoft_const_volatile_anachronism = TRUE;
+          }  /* if */
         } else if (strict_ansi_mode && !cpp0x_mode) {
           /* The 2003 standard did not do this. */
         } else {
@@ -2744,6 +2751,10 @@ have_level:;
          such a binding be allowed in overload resolution, and then if the
          function is selected an error would be issued later. */
       arg_summary->match_level = aml_none;
+    } else if (microsoft_const_volatile_anachronism) {
+      /* MSVC allows binding a reference to const volatile to an rvalue
+         but after version 7.1 gives it an anachronism match level. */
+      arg_summary->anachronism_used = TRUE;
     }  /* if */
     if (arg_summary->match_level == aml_none) {
       /* We decided the binding can't be done, so clear any conversion
