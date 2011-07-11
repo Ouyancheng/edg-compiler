@@ -4527,7 +4527,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   db_enter(3, "enum_specifier");
 
   *declares_something = FALSE;
-   if (scope_is(&scope_stack[decl_scope_level], sck_class_struct_union)) {
+  if (scope_is(&scope_stack[decl_scope_level], sck_class_struct_union)) {
     class_of_which_a_member = scope_stack[decl_scope_level].assoc_type;
     access = scope_stack[decl_scope_level].current_access;
 #if MICROSOFT_EXTENSIONS_ALLOWED

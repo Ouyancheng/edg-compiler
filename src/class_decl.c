@@ -17500,7 +17500,8 @@ In C++/CLI mode we also check for the extended forms of access specifiers:
   while (curr_token == tok_public || curr_token == tok_private ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
          (in_managed_class &&
-          (internal_seen = curr_token_is_identifier_string("internal"))) ||
+          (internal_seen =
+                         curr_token_is_identifier_string("internal")) != 0) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
          curr_token == tok_protected) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -17615,7 +17616,8 @@ In C++/CLI mode we also check for the extended forms of access specifiers:
         scope_stack_top().current_assembly_access = state->assembly_access;
       }  /* if */
       if (curr_token == tok_protected || curr_token == tok_private ||
-          (cppcli_enabled && state->assembly_access != as_public)) {
+          (cppcli_enabled &&
+           state->assembly_access != (an_access_specifier)as_public)) {
         /* "protected" and "private" cannot appear in __interface classes nor
            in C++/CLI interfaces. */
         if (class_type->variant.class_struct_union.is_interface ||
