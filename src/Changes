@@ -1,6 +1,6 @@
 Version 4.4
 
-7/11/11/ [EDGcpfe/11903]
+7/11/11  [EDGcpfe/11903]
 Incorrect diagnostic count with MAKE_FRONT_END_CALLABLE
 
 The error count at the end of a compilation could be incorrect when using
