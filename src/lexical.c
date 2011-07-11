@@ -19333,6 +19333,9 @@ the point at which the compilation was terminated.
       close_file_if_open(&input_stack[depth].file);
     }  /* for */
   }  /* if */
+  /* Make sure we don't go through the loop above if this routine is called
+     again before input_stack has been reset. */
+  depth_input_stack = -1;
 }  /* lexical_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */

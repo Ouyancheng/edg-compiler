@@ -1,5 +1,15 @@
 Version 4.4
 
+7/11/11  [EDGcpfe/11905]
+Possible reference to freed memory with MAKE_FRONT_END_CALLABLE
+
+When using MAKE_FRONT_END_CALLABLE, if a compilation was terminated before
+the front end was fully initialized (i.e., by a command-line error),
+lexical_wrapup could make use of the freed input stack from a previous
+compilation.  This could result in an abort or some kind of internal error.
+Now fixed.
+
+
 7/11/11  [EDGcpfe/11903]
 Incorrect diagnostic count with MAKE_FRONT_END_CALLABLE
 
