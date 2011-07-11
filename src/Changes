@@ -1,5 +1,13 @@
 Version 4.4
 
+7/11/11/ [EDGcpfe/11903]
+Incorrect diagnostic count with MAKE_FRONT_END_CALLABLE
+
+The error count at the end of a compilation could be incorrect when using
+MAKE_FRONT_END_CALLABLE if a command-line error occurred after a compilation
+in which diagnostics were issued.  Now fixed.
+
+
 7/9/10   [EDGcpfe/11893]
 g++ compatibility: ability to cast bound member function pointers to pointer
 

@@ -1041,8 +1041,6 @@ source file's compilation.
 
   in_front_end = TRUE;
 
-  /* error.h: */
-  total_remarks = total_warnings = total_errors = total_catastrophes = 0;
   /* statements.h: */
   depth_stmt_stack = -1;
 

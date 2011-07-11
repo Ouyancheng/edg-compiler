@@ -5744,6 +5744,9 @@ line processing is done.
   context_limit = DEFAULT_CONTEXT_LIMIT;
   strict_ansi_error_severity = es_warning;
   strict_ansi_discretionary_severity = es_warning;
+  /* These are initialized here and also during per-compilation
+     initialization. */
+  total_remarks = total_warnings = total_errors = total_catastrophes = 0;
   anachronism_error_severity
 #if DEFAULT_ALLOW_ANACHRONISMS
                              = es_warning;
@@ -5816,6 +5819,7 @@ Perform any initializations necessary for error.c functions at the beginning
 of each compilation.
 */
 {
+  total_remarks = total_warnings = total_errors = total_catastrophes = 0;
   memzero((char *)recorded_diagnostic_table,
           sizeof(recorded_diagnostic_table));
   memzero((a_void_ptr)diagnostic_issued_for_error_code,
