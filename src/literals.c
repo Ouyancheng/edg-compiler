@@ -1311,21 +1311,7 @@ smaller) than the number of characters needed to represent the string.
     case '"':
       /* Normal string literal. */
       character_kind = (a_character_kind)chk_char;
-#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
-      if (curr_file_unicode_source_kind != usk_none && microsoft_mode) {
-        /* UTF-8 characters will be translated to multibyte characters, so
-           there is no fixed correspondence between the number of bytes in
-           the token and the number of bytes in the constant.  In the worst
-           case, each single-byte Unicode character could require
-           MAX_MULTIBYTE_CHAR_LENGTH bytes in the translated character, so
-           we set that as the character size to be safe. */
-        char_size = (unsigned int)MAX_MULTIBYTE_CHAR_LENGTH;
-      } else {
-        char_size = 1;
-      }  /* if */
-#else /* !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
       char_size = 1;
-#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
       break;
     case 'L':
       /* Wide string literal. */
@@ -1365,10 +1351,23 @@ smaller) than the number of characters needed to represent the string.
     for (i = 1; i < char_size; ++i) {
       centity_mask |= (centity_mask << targ_char_bit);
     }  /* for */
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+  } else if (curr_file_unicode_source_kind != usk_none && microsoft_mode) {
+    /* UTF-8 characters will be translated to multibyte characters, so
+       there is no fixed correspondence between the number of bytes in the
+       token and the number of bytes in the constant.  In the worst case,
+       each single-byte Unicode character could require
+       MAX_MULTIBYTE_CHAR_LENGTH bytes in the translated character, so we
+       assume that constant size to be safe.  (The actual length of the
+       constant will be calculated below based on the number of bytes in
+       the translated string.) */
+    constant_size *= MAX_MULTIBYTE_CHAR_LENGTH;
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
   }  /* if */
-  /* Allocate enough space to hold the final string, including the null added
-     to it.  (This may be more than strictly needed in the case of char16_t
-     strings.) */
+  /* Allocate enough space to hold the final string, including the null
+     added to it.  (This may be more than strictly needed in the case of
+     char16_t strings or when translating a string in a Unicode-encoded
+     file to native multibyte characters.) */
   str_start = pstr = alloc_text_of_string_literal(constant_size);
   /* UTF-8 characters should be translated to multibyte characters only in
      Microsoft mode. */
