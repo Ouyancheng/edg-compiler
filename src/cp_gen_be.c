@@ -6118,12 +6118,15 @@ nothing if the current access is already set to that value.
        because an access label appeared in the source.) */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled) {
-      if ((access == as_protected && assembly_access == as_private) ||
-          (access == as_public && assembly_access == as_protected)) {
+      if ((access == (an_access_specifier)as_protected &&
+           assembly_access == (an_access_specifier)as_private) ||
+          (access == (an_access_specifier)as_public &&
+           assembly_access == (an_access_specifier)as_protected)) {
         gen_access_specifier(assembly_access);  
         write_space();
         gen_access_specifier(access);
-      } else if (access == as_public && assembly_access == as_private) {
+      } else if (access == (an_access_specifier)as_public &&
+                 assembly_access == (an_access_specifier)as_private) {
         write_tok_str("internal");
       } else {
         gen_access_specifier(access);  
