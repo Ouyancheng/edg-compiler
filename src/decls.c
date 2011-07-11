@@ -9789,6 +9789,9 @@ symbol entry, and return a pointer to it in state->sym.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         set_class_membership(sym, &tp->source_corresp, class_type);
         tp->source_corresp.access = ssep->current_access;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        tp->source_corresp.assembly_access = ssep->current_assembly_access;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         set_namespace_membership(sym, &tp->source_corresp,
                                  (a_namespace_ptr)NULL);

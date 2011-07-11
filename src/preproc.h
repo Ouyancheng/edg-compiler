@@ -259,6 +259,13 @@ EXTERN a_boolean
 			   suppressed because the file had already been
 			   included. */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+EXTERN an_assembly_index
+		curr_assembly_index;
+			/* When scanning imported metadata this is the index
+			   for the assembly being processed; zero otherwise. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 /* Scan a preprocessing directive. */
 extern void pp_directive(void);
 /* Verify that all #ifs are closed at end of source. */

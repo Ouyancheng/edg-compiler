@@ -1542,8 +1542,9 @@ in the metadata file.
                    cmfp->name_as_written);
     } else if (!is_duplicate) {
       a_boolean         save_fetch_pp_tokens = fetch_pp_tokens;
-      a_boolean         save_in_preprocessing_directive 
+      a_boolean         save_in_preprocessing_directive
                                              = in_preprocessing_directive;
+      an_assembly_index save_assembly_index = curr_assembly_index;
       char              *buffer;
 
 #if DEBUG
@@ -1556,6 +1557,7 @@ in the metadata file.
       /* Import the top level declarations. */
       fetch_pp_tokens = FALSE;
       in_preprocessing_directive = FALSE;
+      curr_assembly_index = cmfp->assembly_index; 
       buffer = generate_top_level_metadata_code(cmfp->assembly_index);
       scan_top_level_metadata_declarations(buffer);
       /* If this is not a preusing, the next token should be tok_newline of 
@@ -1565,6 +1567,7 @@ in the metadata file.
       /* Restore the flags. */
       fetch_pp_tokens = save_fetch_pp_tokens;
       in_preprocessing_directive = save_in_preprocessing_directive;
+      curr_assembly_index = save_assembly_index;
     }  /* if */
   }  /* if */
 }  /* import_metadata */
@@ -4070,6 +4073,7 @@ every translation unit.
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   in_microsoft_implementation_key_mapping_region = FALSE;
+  curr_assembly_index = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* preproc_trans_unit_init */
 

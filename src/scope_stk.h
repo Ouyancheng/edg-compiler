@@ -583,6 +583,15 @@ typedef struct a_scope_stack_entry {
 			   the access to be applied to the enumeration
 			   constants may be derived from the setting of this
 			   field.) */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field /*an_access_specifier*/
+		current_assembly_access:2;
+			/* The assembly access that currently prevails for
+			   declarations in the current scope: as_protected for
+			   assembly family access, as_private for assembly
+			   access, and as_public for universal access.
+			   (C++/CLI only.) */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	inactive_symbols_may_be_visible:1;
 			/* TRUE if the scope stack to this depth contains any
 			   class reactivation entries or class entries for

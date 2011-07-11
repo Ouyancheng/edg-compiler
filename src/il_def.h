@@ -2392,6 +2392,12 @@ typedef struct a_source_correspondence {
 			   declaration.	 Restricted access may be indicated
 			   for class members only; all other entities are
 			   "public" by default.	 In C mode, always "public". */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field /* an_access_specifier */
+		assembly_access:2;
+			/* Access outside of the parent assembly.  (C++/CLI
+			   only.) */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	referenced:1;
 			/* TRUE if the item is referenced in the
 			   intermediate language.  This is always TRUE

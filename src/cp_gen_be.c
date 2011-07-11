@@ -259,6 +259,12 @@ typedef struct a_name_context {
   an_access_specifier
 		access;	/* When putting out a class, the current default
 			   access for a member declaration. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_access_specifier
+		assembly_access;	
+			/* When putting out a class, the current default
+			   assembly access for a member declaration. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_hidden_name_fixup_ptr
 		fixups;	/* Hidden-name fixups to be done at the end of the
 			   name context. */
@@ -853,6 +859,9 @@ This routine is called for both C and C++.
   ncp->class_type = class_type;
   ncp->class_type_for_access_not_naming = NULL;
   ncp->access = (an_access_specifier)as_public;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ncp->assembly_access = (an_access_specifier)as_public;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ncp->fixups = NULL;
   ncp->invisible_to_cfront = FALSE;
   ncp->field_selection_context = FALSE;
@@ -6076,17 +6085,24 @@ Write the string that corresponds to the indicated access specifier value.
 }  /* gen_access_specifier */
 
 
-static void gen_member_access_specifier(an_access_specifier access)
+static void gen_member_access_specifier(an_access_specifier access, 
+                                        an_access_specifier assembly_access)
 /*
 Generate an access specifier in a class definition to change the current
-access mode to the indicated access.  Do nothing if the current access
-is already set to that value.
+access mode to the indicated access.  assembly_access corresponds to the
+C++/CLI assembly-level access, which is ignored in non-C++/CLI modes.  Do
+nothing if the current access is already set to that value.
 */
 {
   a_type_ptr                  class_type = curr_name_context_class();
   a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
 
-  if (access != curr_name_context->access &&
+  if ((access != curr_name_context->access
+#if MICROSOFT_EXTENSIONS_ALLOWED
+       || (cppcli_enabled && 
+           assembly_access != curr_name_context->assembly_access)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */    
+                                                                 ) &&
       !(ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
         || class_type->
@@ -6100,10 +6116,30 @@ is already set to that value.
        (which will be public in an anonymous union), it is because the
        more-restrictive access was inherited from the larger context and not
        because an access label appeared in the source.) */
-    gen_access_specifier(access);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled) {
+      if ((access == as_protected && assembly_access == as_private) ||
+          (access == as_public && assembly_access == as_protected)) {
+        gen_access_specifier(assembly_access);  
+        write_space();
+        gen_access_specifier(access);
+      } else if (access == as_public && assembly_access == as_private) {
+        write_tok_str("internal");
+      } else {
+        gen_access_specifier(access);  
+      }  /* if */
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      gen_access_specifier(access);
+    }  /* if */
     write_tok_ch(':');
     write_space();
     curr_name_context->access = access;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    curr_name_context->assembly_access = assembly_access;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* gen_member_access_specifier */
 
@@ -6122,7 +6158,12 @@ current access mode in the class.  Otherwise, do nothing.
       scp_parent_class(scp) == curr_name_context_class()) {
     /* We're inside a class, and the entity being output is a member of that
        class. */
-    gen_member_access_specifier((an_access_specifier)scp->access);
+    an_access_specifier  assembly_access = (an_access_specifier)as_public;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    assembly_access = (an_access_specifier)scp->assembly_access;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    gen_member_access_specifier((an_access_specifier)scp->access,
+                                assembly_access);
   }  /* if */
 }  /* gen_member_access_specifier_for_decl_of */
 
@@ -6615,6 +6656,9 @@ is the one associated with the definition of the class.
     /* Keep track of the current access category, in order to emit a change
        when necessary. */
     curr_name_context->access = (an_access_specifier)as_public;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    curr_name_context->assembly_access = (an_access_specifier)as_public;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (type->kind == (a_type_kind)tk_class) {
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
       if (type->variant.class_struct_union.is_nonstd_anonymous_union_type) {
@@ -6629,8 +6673,13 @@ is the one associated with the definition of the class.
         write_space();
       } else
 #endif /* ALLOW_NONSTANDARD_ANONYOUS_UNIONS */
-        /* Do not insert code here. */
+      /* Do not insert code here. */
+      {
         curr_name_context->access = (an_access_specifier)as_private;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        curr_name_context->assembly_access = (an_access_specifier)as_private;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Go through the source sequence list and generate the members of the
@@ -12106,7 +12155,11 @@ Generate code for a class member or nonmember using-declaration.
        because in Microsoft bugs mode a nonmember using-declaration can refer
        to a class member. */
     if (curr_name_context_is_a_class()) {
-      gen_member_access_specifier(udp->access);
+      an_access_specifier  assembly_access = (an_access_specifier)as_public;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      assembly_access = (an_access_specifier)scp->assembly_access;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      gen_member_access_specifier(udp->access, assembly_access);
     }  /* if */
     if (msvc_is_generated_code_target &&
         msvc_target_version_number == 1200 &&

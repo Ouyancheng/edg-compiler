@@ -2490,6 +2490,8 @@ may be emitted at the given position.
           class_type->source_corresp.access =
                                scope_stack[depth_scope_stack].current_access;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+          class_type->source_corresp.assembly_access =
+                                    scope_stack_top().current_assembly_access;
           if (microsoft_mode &&
               !class_type_supp(class_type)->is_lambda_closure_class) {
             if (parent->variant.class_struct_union.is_interface) {
@@ -4498,6 +4500,9 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   a_memory_region_number       region_to_switch_back_to;
   a_type_ptr                   class_of_which_a_member;
   an_access_specifier          access;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_access_specifier          assembly_access;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_scope_depth                effective_decl_level = decl_scope_level;
   a_boolean                    inside_class_definition;
   a_boolean                    is_redeclaration, is_definition = FALSE;
@@ -4522,14 +4527,19 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   db_enter(3, "enum_specifier");
 
   *declares_something = FALSE;
-  if (scope_stack[decl_scope_level].kind ==
-                                     (a_scope_kind)sck_class_struct_union) {
+   if (scope_is(&scope_stack[decl_scope_level], sck_class_struct_union)) {
     class_of_which_a_member = scope_stack[decl_scope_level].assoc_type;
     access = scope_stack[decl_scope_level].current_access;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    assembly_access = scope_stack[decl_scope_level].current_assembly_access;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     inside_class_definition = TRUE;
   } else {
     class_of_which_a_member = NULL;
     access = (an_access_specifier)as_public;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    assembly_access = (an_access_specifier)as_public;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     inside_class_definition = FALSE;
   }  /* if */
   clear_decl_pos_block(&local_decl_pos_block);
@@ -4765,6 +4775,9 @@ dsi_flags is the set of input flags passed to decl_specifiers.
        should be set based on the access recorded in the current scope stack
        entry. */
     enum_type->source_corresp.access = access;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    enum_type->source_corresp.assembly_access = assembly_access;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (tag_id_present) {
       /* Note that mark_defined and mark_referenced are called after the
          namespace/class membership has been specified. */

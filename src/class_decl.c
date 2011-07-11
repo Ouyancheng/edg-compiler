@@ -942,6 +942,12 @@ typedef struct a_class_def_state {
   an_access_specifier
 		access;
 			/* The current access. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_access_specifier
+		assembly_access;
+			/* Current access outside of the parent assembly.
+			   (C++/CLI only.) */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_override_registry_entry_ptr
 		override_registry;
 			/* The registry of virtual function overrides for
@@ -1003,6 +1009,9 @@ class being defined.
   cdsp->base_destruction_required = FALSE;
   cdsp->ms_parenthesized_member = FALSE;
   cdsp->access = (an_access_specifier)as_public;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  cdsp->assembly_access = (an_access_specifier)as_public;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cdsp->override_registry = NULL;
   cdsp->end_of_field_list = NULL;
   cdsp->corresp_prototype_tag_sym = NULL;
@@ -11244,6 +11253,9 @@ implicitly declared member functions.
   /* Do not insert code here. */
   {
     rtn->source_corresp.access = class_state->access;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    rtn->source_corresp.assembly_access = class_state->assembly_access;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (locator->is_operator_name) {
     /* Overloaded operator function. */
@@ -11607,6 +11619,9 @@ implicitly declared member functions.
         /* Update the IL template pointer in the template symbol supplement. */
         tssp->il_template_entry = templ;
         templ->source_corresp.access = class_state->access;
+ #if MICROSOFT_EXTENSIONS_ALLOWED
+        templ->source_corresp.assembly_access = class_state->assembly_access;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* A member function of a class template is exported if the enclosing
            class is declared as exported and the function is not inline. */
         templ->is_exported = class_is_exported(class_type) &&
@@ -11963,6 +11978,9 @@ declarations.)
   set_source_corresp(&rtn->source_corresp, prototype_sym);
   set_class_membership(prototype_sym, &rtn->source_corresp, class_type);
   rtn->source_corresp.access = class_state->access;
+ #if MICROSOFT_EXTENSIONS_ALLOWED
+  rtn->source_corresp.assembly_access = class_state->assembly_access;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (func_info->is_inline) {
     /* Inline member function (either because "inline" was specified or
        a function definition is present). */
@@ -12269,6 +12287,9 @@ respectively.
   set_class_membership(sym, &cp->source_corresp, class_type);
   decl_info->decl_state.sym = sym;
   cp->source_corresp.access = class_state->access;
+ #if MICROSOFT_EXTENSIONS_ALLOWED
+  cp->source_corresp.assembly_access = class_state->assembly_access;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                             &locator->source_position,
                             decl_info->decl_state.source_sequence_entry);
@@ -12336,6 +12357,9 @@ constant and entering the name in the symbol table.
       set_source_corresp(&(constant->source_corresp), dps->sym);
       set_class_membership(dps->sym, &constant->source_corresp, class_type);
       constant->source_corresp.access = class_state->access;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      constant->source_corresp.assembly_access = class_state->assembly_access;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, dps->sym,
                                 &locator->source_position,
                                 dps->source_sequence_entry);
@@ -12653,6 +12677,9 @@ specific information about the member declaration, respectively.
                                          /*is_declaration=*/TRUE);
   }  /* if */
   var->source_corresp.access = class_state->access;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  var->source_corresp.assembly_access = class_state->assembly_access;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   attach_decl_attributes(decl_state, /*primary_decl=*/FALSE);
   update_variable_decl_modifiers(decl_state);
   if (curr_token == tok_assign &&
@@ -14674,6 +14701,9 @@ be entered.
   class_state->end_of_field_list = field;
   if (C_dialect == C_dialect_cplusplus) {
     field->source_corresp.access = class_state->access;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    field->source_corresp.assembly_access = class_state->assembly_access;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (decl_state->dso_flags & DSO_MUTABLE) {
       /* The member is declared "mutable". */
       field->is_mutable = TRUE;
@@ -17453,19 +17483,44 @@ static a_boolean scan_access_specification(a_class_def_state  *state)
 /*
 Check for an access specifier in a class definition (described by state).  If
 one is found return TRUE and update state->access accordingly.
+In C++/CLI mode we also check for the extended forms of access specifiers:
+"internal", "public protected", "protected public", "protected private", and
+"private protected".  state->assembly_access is updated accordingly.
 */
 {
-  a_boolean  found = FALSE;
+  a_boolean   found = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_type_ptr  class_type = state->class_type;
+  a_boolean   in_managed_class = is_immediate_managed_class_type(class_type);
+  a_boolean   internal_seen = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   /* The check is implemented as a loop because successive access
      specifications are permitted. */
   while (curr_token == tok_public || curr_token == tok_private ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+         (in_managed_class &&
+          (internal_seen = curr_token_is_identifier_string("internal"))) ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
          curr_token == tok_protected) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && curr_token != tok_protected) {
-      /* A C++/CLI top-level visibility specifier is not handled here. */
-      a_token_kind  next_tok = next_token();
-      if (is_class_type_keyword(next_tok) || next_tok == tok_enum) {
+    a_token_kind       next_tok;
+    a_source_position  pos_access;
+    pos_access = pos_curr_token;
+    if (cppcli_enabled) {
+      next_tok = next_token();
+      if ((is_class_type_keyword(next_tok) || next_tok == tok_enum) &&
+          (curr_token == tok_public || curr_token == tok_private)) {
+        /* A C++/CLI top-level visibility specifier is not handled here. */
+        break;
+      } else if (internal_seen && next_tok != tok_colon &&
+                 is_member_decl_start()) {
+        /* "internal" appeared as an ordinary identifier credibly starting a
+           new member declaration.  Don't attempt to process it as an access
+           specifier.  (The is_member_decl_start() test could be omitted, but
+           if the test fails, an accidentally omitted colon seems the most
+           likely cause of the error and we therefore continue processing the
+           token as an access specifier.) */
         break;
       }  /* if */
     }  /* if */
@@ -17480,12 +17535,94 @@ one is found return TRUE and update state->access accordingly.
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
-      a_type_ptr  class_type = state->class_type;
-      if (curr_token == tok_protected || curr_token == tok_private) {
+      if (in_managed_class) {
+        char  specifier_name[20];
+			/* Large enough for "protected protected". */
+        /* For the C++/CLI extended form of access specifiers state->access
+           and state->assembly_access are set in accordance with the
+           table below:
+              ==============================================================
+             |       access        | state->access | state->assembly_access |
+             |==============================================================|
+             | public              | public        | public                 |
+             |--------------------------------------------------------------|
+             | protected           | protected     | protected              |
+             |--------------------------------------------------------------|
+             | private             | private       | private                |
+             |--------------------------------------------------------------|
+             | internal            | public        | private                |
+             |--------------------------------------------------------------|
+             | protected public    | public        | protected              |
+             | public protected    |               |                        |
+             |--------------------------------------------------------------|
+             | private protected   | protected     | private                |
+             | protected private   |               |                        |
+             |--------------------------------------------------------------|
+             | public public       | public        | public                 |
+             | (deprecated)        |               |                        |
+             |--------------------------------------------------------------|
+             | protected protected | protected     | protected              |
+             | (deprecated)        |               |                        |
+             |--------------------------------------------------------------|
+             | private private     | private       | private                |
+             | (deprecated)        |               |                        |
+             |--------------------------------------------------------------|
+             | public private      | public        | private                |
+             | private public      |               |                        |
+             | (deprecated)        |               |                        |
+              --------------------------------------------------------------
+           Since for many cases state->assembly_access can be set to
+           state->access we start with that and adjust as needed. */
+        state->assembly_access = state->access;
+        if (internal_seen) {
+          /* "internal" access specifier. */
+          state->access = (an_access_specifier)as_public;
+          state->assembly_access = (an_access_specifier)as_private;
+          /* Clear internal_seen in case other access specifiers follow. */
+          internal_seen = FALSE;
+        } else if (curr_token == next_tok) {
+          /* "public public", "private private", or "protected protected".
+             Issue a warning that these are deprecated. */
+          sprintf(specifier_name, "%s %s",
+                  token_names[(int)curr_token], token_names[(int)curr_token]);
+          pos_st2_warning(ec_deprecated_access_specifier, &pos_access,
+                          specifier_name, token_names[(int)curr_token]);
+          (void)get_token();
+        } else if ((curr_token == tok_private && next_tok == tok_public) ||
+                   (curr_token == tok_public && next_tok == tok_private)) {
+          /* "private public" or "public private".  Issue a warning that these
+             are deprecated and correct the access state as if "internal" had
+             appeared. */
+          sprintf(specifier_name, "%s %s",
+                  token_names[(int)curr_token], token_names[(int)next_tok]);
+          pos_st2_warning(ec_deprecated_access_specifier, &pos_access,
+                          specifier_name, "internal");
+          state->access = (an_access_specifier)as_public;
+          state->assembly_access = (an_access_specifier)as_private;
+          (void)get_token();
+        } else if ((curr_token == tok_protected && next_tok == tok_public) ||
+                   (curr_token == tok_public && next_tok == tok_protected)) {
+          state->access = (an_access_specifier)as_public;
+          state->assembly_access = (an_access_specifier)as_protected;
+          (void)get_token();
+        } else if ((curr_token == tok_private && next_tok == tok_protected) ||
+                   (curr_token == tok_protected && next_tok == tok_private)) {
+          state->access = (an_access_specifier)as_protected;
+          state->assembly_access = (an_access_specifier)as_private;
+          (void)get_token();
+        }  /* if */
+        /* Reflect the current assembly-level access in the scope stack. */
+        scope_stack_top().current_assembly_access = state->assembly_access;
+      }  /* if */
+      if (curr_token == tok_protected || curr_token == tok_private ||
+          (cppcli_enabled && state->assembly_access != as_public)) {
+        /* "protected" and "private" cannot appear in __interface classes nor
+           in C++/CLI interfaces. */
         if (class_type->variant.class_struct_union.is_interface ||
             (cppcli_enabled &&
              cli_class_type_kind_is(class_type, cctk_interface))) {
-          error(ec_interface_cannot_have_private_or_protected);
+          pos_error(ec_interface_cannot_have_private_or_protected,
+                    &pos_access);
           state->access = (an_access_specifier)as_public;
         } else {
           state->potentially_interface_like = FALSE;
@@ -21720,6 +21857,7 @@ bits of information that were acquired while parsing.
        any. */
     class_state->access = (an_access_specifier)as_public;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    class_state->assembly_access = (an_access_specifier)as_public;
     if (cli_class_type_kind_is(class_type, cctk_value)) {
       /* C++/CLI value classes a bitwise copyable aggregate types "by fiat". */
       cssp->is_class_aggregate = TRUE;
@@ -22237,6 +22375,10 @@ classes.
         class_state.access = (an_access_specifier)as_public;
       }  /* if */
       scope_stack[decl_scope_level].current_access = class_state.access;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      scope_stack[decl_scope_level].current_assembly_access =
+                                                  class_state.assembly_access;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       do {
         an_ms_attribute_ptr  ms_attributes = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED

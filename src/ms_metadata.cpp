@@ -1770,8 +1770,7 @@ public:
         if (as_friend) {
           result = L"protected";
         } else {
-          /* FIXME: This should be "private protected". */
-          result = L"protected";
+          result = L"private protected";
         }  /* if */
         break;
       case access_family:
@@ -1783,8 +1782,7 @@ public:
         if (as_friend) {
           result = L"public";
         } else {
-          /* FIXME: This should be "internal". */
-          result = L"public";
+          result = L"internal";
         }  /* if */
         break;
       case access_family_or_assembly:
@@ -1793,8 +1791,7 @@ public:
         if (as_friend) {
           result = L"public";
         } else {
-          /* FIXME: This should be "protected public". */
-          result = L"public";
+          result = L"protected public";
         }  /* if */
         break;
       case access_public:

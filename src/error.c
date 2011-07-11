@@ -4836,6 +4836,24 @@ position indicated by error_position.
   pos_st_warning(error_code, &error_position, error_string);
 }  /* str_warning */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void pos_st2_warning(an_error_code     error_code,
+                     a_source_position *error_pos,
+                     char              *error_string1,
+                     char              *error_string2)
+/*
+Report the indicated warning (with the indicated fill-in strings) at the
+position indicated by error_position.
+*/
+{
+  init_error_params();
+  error_msg_strings[1] = error_string1;
+  error_msg_strings[2] = error_string2;
+  diag_message(error_code, error_pos, es_warning, dck_standalone);
+}  /* pos_str2_warning */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void warning(an_error_code error_code)
 /*

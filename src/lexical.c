@@ -18421,6 +18421,7 @@ C++/CLI delegate class types.)
   a_boolean			has_generic_header;
   a_class_type_supplement_ptr	ctsp = class_type_supp(class_type);
   a_type_ptr			parent_class = NULL;
+  an_assembly_index             saved_assembly_index = curr_assembly_index;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   /* This routine cannot handle local classes. */
@@ -18459,6 +18460,7 @@ C++/CLI delegate class types.)
   source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  curr_assembly_index = assembly_index;
   saved_scanning_generated_code_from_metadata 
                                        = scanning_generated_code_from_metadata;
   scanning_generated_code_from_metadata = TRUE;
@@ -18610,6 +18612,7 @@ C++/CLI delegate class types.)
 #if MICROSOFT_EXTENSIONS_ALLOWED
   scanning_generated_code_from_metadata 
                                  = saved_scanning_generated_code_from_metadata;
+  curr_assembly_index = saved_assembly_index;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   source_sequence_entries_disallowed =

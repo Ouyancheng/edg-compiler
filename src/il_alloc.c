@@ -5003,6 +5003,9 @@ in il_alloc_init.)
      for everything except class members.  For the latter the field must be
      set manually. */
   def_source_corresp.access = (an_access_specifier)as_public;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  def_source_corresp.assembly_access = (an_access_specifier)as_public;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* referenced is set TRUE because initially the entity is not associated
      with one in the source program.  All unassociated entities are assumed
      to be referenced (otherwise, they wouldn't be created).  This does away

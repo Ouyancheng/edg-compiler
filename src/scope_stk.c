@@ -2537,6 +2537,9 @@ the scope being pushed.
   /* Fill in the fields of the scope entry. */
   ssep->kind                     = kind;
   ssep->current_access           = (an_access_specifier)as_public;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ssep->current_assembly_access  = (an_access_specifier)as_public;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ssep->inactive_symbols_may_be_visible = FALSE;
   ssep->inside_local_class       = inside_local_class;
   ssep->template_param_decl_scope= FALSE;

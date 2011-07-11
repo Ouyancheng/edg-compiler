@@ -2267,6 +2267,7 @@ ec_bad_argument_for_underlying_type;;"__underlying_type only applies to enumerat
 ec_too_many_cast_operands;;"expected only one operand expression for this cast"
 ec_bad_unicode_char_in_string;;"Unicode character with hex value %s not representable in the system default code page"
 ec_conv_of_pm_to_func_ptr;;"nonstandard conversion of bound pointer-to-member to a function pointer"
+ec_deprecated_access_specifier;;"access specifier %s1 is deprecated -- use %s2 instead"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

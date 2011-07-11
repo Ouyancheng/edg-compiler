@@ -9216,6 +9216,15 @@ It cannot be used for checking access (see have_access_to_symbol).
                          "access_for_symbol:", "invalid symbol kind");
     check_assertion(scp != NULL);
     access = scp->access;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && 
+        class_type_supp(sym_ptr->parent.class_type)->assembly_index !=
+                                                         curr_assembly_index) {
+      /* The symbol comes from an assembly different from the active assembly;
+         set access to the (more limited) assembly access value. */
+      access = scp->assembly_access;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   return access;
 }  /* access_for_symbol */
