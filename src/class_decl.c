@@ -10820,8 +10820,11 @@ otherwise, it is NULL.
       if (decl_info->is_trivial_default_constructor) {
         /* An implicitly-declared trivial default constructor is never
            actually called or declared, so it is not added to the constructor
-           set (which should be empty). */
-        check_assertion(cssp->constructor == NULL);
+           set (which should be empty, except in the case of some C++/CLI
+           value classes). */
+        check_assertion(cssp->constructor == NULL
+                        if_microsoft_extensions(
+                          || cli_class_type_kind_is(class_type, cctk_value)));
         cssp->trivial_default_constructor = sym;
         rtn->is_trivial_default_constructor = TRUE;
       } else {
@@ -15533,6 +15536,13 @@ definition described by class_state.
                   ->is_trivial_default_constructor = FALSE;
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cli_class_type_kind_is(class_type, cctk_value)) {
+    /* Value types always have a default constructor. */
+    generate_default_constructor(class_state, /*is_deleted=*/FALSE);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
   if (cssp->constructor == NULL) {
     /* See if a default constructor declaration is needed. */
     if (!class_state->POD_ruled_out) {
@@ -15542,11 +15552,11 @@ definition described by class_state.
       /* A deleted constructor was already declared (but not recorded in
          cssp->constructor if it was trivial). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (class_type->variant.class_struct_union.is_generic_constraint &&
-               !cli_class_type_kind_is(class_type, cctk_value)) {
+    } else if (class_type->variant.class_struct_union.is_generic_constraint) {
       /* Constraint types aren't default-constructible unless they are
-         value-type-constrained or the gcnew() constraint was specified (in
-         the latter case, the default constructor was already generated). */
+         value-type-constrained (handled above) or the gcnew() constraint was
+         specified (in that case, the default constructor was already
+         generated). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* A default constructor needs to be generated. */
