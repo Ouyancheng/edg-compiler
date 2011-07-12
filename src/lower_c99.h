@@ -135,6 +135,8 @@ void lower_c99_xeq(an_expr_node_ptr  expr);
 
 void lower_c99_xne(an_expr_node_ptr  expr);
 
+void lower_c99_xincr_decr(an_expr_node_ptr expr);
+
 #if GNU_EXTENSIONS_ALLOWED
 
 void lower_xconj(an_expr_node_ptr  expr);

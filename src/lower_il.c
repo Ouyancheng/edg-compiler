@@ -14402,6 +14402,13 @@ cast.  See lower_expr for typical invocation.
               lower_vla_pointer_integer_arithmetic(expr);
             }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+#if LOWER_COMPLEX
+            if (is_complex_type(expr->type)) {
+              /* In GNU modes, increment/decrement of complex numbers are
+                 permitted.  */
+              lower_c99_xincr_decr(expr);
+            }  /* if */
+#endif /* LOWER_COMPLEX */
             break;
 #if LOWER_VARIABLE_LENGTH_ARRAYS
           case eok_pdiff:

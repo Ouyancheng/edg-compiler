@@ -867,6 +867,11 @@ extern a_type_ptr complex_type(a_float_kind kind);
 extern a_boolean imaginary_type_used_in_primary_IL(a_float_kind kind);
 
 extern a_type_ptr imaginary_type(a_float_kind kind);
+
+extern void set_complex_constant(a_float_kind float_kind,
+                                 char         *real,
+                                 char         *imag,
+                                 a_constant   *con);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 extern a_type_ptr string_literal_type(a_character_kind  kind,

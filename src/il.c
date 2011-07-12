@@ -8743,6 +8743,30 @@ return a pointer to it.
   return pft;
 }  /* imaginary_type */
 
+
+void set_complex_constant(a_float_kind float_kind,
+                          char         *real,
+                          char         *imag,
+                          a_constant   *con)
+/*
+Fill in the constant "con" as a complex constant of kind "float_kind" with
+"real" and "imag" components.  Should only be used with floating point strings
+that are known to be representable.
+*/
+{
+  an_internal_float_value float_value;
+  a_boolean               err;
+
+  clear_constant(con, (a_constant_repr_kind)ck_complex);
+  con->type = complex_type(float_kind);
+  fp_string_to_float(float_kind, real, &float_value, &err);
+  check_assertion(!err);
+  con->variant.complex_value->real = float_value;
+  fp_string_to_float(float_kind, imag, &float_value, &err);
+  check_assertion(!err);
+  con->variant.complex_value->imag = float_value;
+}  /* set_complex_constant */
+
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 a_type_ptr string_literal_type(a_character_kind  kind,

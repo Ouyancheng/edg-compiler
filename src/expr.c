@@ -7415,8 +7415,13 @@ case.
           }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
         } else if (is_nonreal_floating_type(operand->type)) {
-          /* Complex and imaginary operands are not allowed. */
-          error_in_operand(ec_complex_type_not_allowed, operand);
+          if (gnu_mode && is_complex_type(operand->type)) {
+            /* GNU allows increment/decrement of complex types in both C and
+               C++ modes. */
+          } else {
+            /* Complex and imaginary operands are not allowed. */
+            error_in_operand(ec_complex_type_not_allowed, operand);
+          }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         }  /* if */
       }  /* if */
@@ -7455,6 +7460,9 @@ case.
           case tk_integer:
           case tk_float:
           case tk_pointer:
+#if C99_IL_EXTENSIONS_SUPPORTED
+          case tk_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
             /* Nothing more to check. */
             break;
 #if FIXED_POINT_ALLOWED
@@ -7669,8 +7677,13 @@ and return the result in *result (or an error indication in *rcblock).
           }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
         } else if (is_nonreal_floating_type(operand.type)) {
-          /* Complex and imaginary operands are not allowed. */
-          error_in_operand(ec_complex_type_not_allowed, &operand);
+          if (gnu_mode && is_complex_type(operand.type)) {
+            /* GNU allows increment/decrement of complex types in both C and
+               C++ modes. */
+          } else {
+            /* Complex and imaginary operands are not allowed. */
+            error_in_operand(ec_complex_type_not_allowed, &operand);
+          }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         }  /* if */
       }  /* if */
@@ -7710,6 +7723,9 @@ and return the result in *result (or an error indication in *rcblock).
           case tk_integer:
           case tk_float:
           case tk_pointer:
+#if C99_IL_EXTENSIONS_SUPPORTED
+          case tk_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
             /* Nothing more to check. */
             break;
 #if FIXED_POINT_ALLOWED

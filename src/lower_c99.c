@@ -1557,6 +1557,127 @@ Transform the given complex expression ("z1!=z2") into a function call
 }  /* lower_c99_xne */
 
 
+void lower_c99_xincr_decr(an_expr_node_ptr expr)
+/*
+Lower a complex pre-/post- increment/decrement of a complex value (allowed only
+in GNU modes).  Only the "real" portion of value is affected (i.e., when
+incrementing/decrementing the value 1.0+0.0i -- of the appropriate type --
+is used for the increment/decrement).
+*/
+{
+  an_expr_operator_kind op = expr->variant.operation.kind;
+  an_expr_node_ptr      op1 = expr->variant.operation.operands;
+  an_expr_node_ptr      op1_for_argument, op1_for_assign, op_node, op2_node;
+  an_expr_node_ptr      con_node;
+  a_variable_ptr        temp_var = NULL;
+  a_boolean             is_post_op, temp_init_used;
+  a_type_ptr            return_type = skip_typerefs(expr->type);
+  char                  *rout_name;
+  char                  **routine_names;
+  a_routine_ptr         *routines;
+  a_float_kind          fkind;
+  a_constant            con;
+
+  check_assertion(op1->is_lvalue && is_complex_type(return_type));
+  switch (op) {
+    case eok_post_incr:
+      is_post_op = TRUE;
+      routine_names = xadd_routine_name;
+      routines = xadd_routine;
+      break;
+    case eok_post_decr:
+      is_post_op = TRUE;
+      routine_names = xsubtract_routine_name;
+      routines = xsubtract_routine;
+      break;
+    case eok_pre_incr:
+      is_post_op = FALSE;
+      routine_names = xadd_routine_name;
+      routines = xadd_routine;
+      break;
+    case eok_pre_decr:
+      is_post_op = FALSE;
+      routine_names = xsubtract_routine_name;
+      routines = xsubtract_routine;
+      break;
+    default:
+      unexpected_condition_str("lower_c99_xincr_decr: bad operator");
+  }  /* switch */
+  fkind = return_type->variant.float_kind;
+  /* Create a complex constant 1.0+0.0i of the appropriate type. */
+  set_complex_constant(fkind, "1.0", "0.0", &con);
+  con_node = alloc_node_for_constant(&con);
+  /* Mark the constant as un-lowered, then lower it.  This will replace the
+     constant expression with a file scope static temporary that will be used
+     in place of the constant. */
+  mark_as_not_visited(con_node->variant.constant);
+  lower_c99_constant_expr(con_node);
+  if (is_post_op && expr->result_is_not_used) {
+    /* We don't need the more complicated post-incr/decr code if the
+       result is not used. */
+    is_post_op = FALSE;
+  }  /* if */
+  /* The normal rewrite of
+       ++x
+     is
+       static_temp = {1.0, 0.0};
+       ...
+       x = __c99_complex_*_add(x, static_temp);
+     Make a copy of op1 to be used as the argument of the call.
+     op1 itself will be used as the left operand of the assignment. */
+  op1_for_argument = make_lvalue_reusable_copy_full(op1,
+                                                    /*vars_can_change=*/FALSE,
+                                                    &temp_init_used);
+  op1_for_assign = op1;
+  if (temp_init_used || is_post_op) {
+    /* op1 is complicated and was assigned to a temporary.  Make sure that
+       the temporary is initialized before it is used by doing the
+       overall rewrite of
+         ++x;
+       as
+         static_temp = {1.0, 0.0};
+         ...
+         ((temp = *(t = &x)), *t = __c99_complex_*_add(temp, static_temp))
+       We also use the temporary if the operation is a post-increment
+       or -decrement, because we want to save and return the original value. */
+    temp_var = make_local_temporary(return_type);
+    op1_for_assign = op1_for_argument;
+    op1_for_argument = var_lvalue_expr(temp_var);
+    /* Make the (temp = *(t = &x)) assignment, to be inserted later. */
+    op2_node = make_var_assignment_expr(temp_var, rvalue_expr_for_lvalue(op1));
+  }  /* if */
+  /* Make the arguments for the call. */
+  op1_for_argument = rvalue_expr_for_lvalue(op1_for_argument);
+  op1_for_argument->next = con_node;
+  /* Select the proper routine based on whether we're incrementing or
+     decrementing, as well as the type of complex expression we're
+     computing. */
+  rout_name = select_name_from_float_kind(fkind, routine_names);
+  op_node = make_prototyped_runtime_call(rout_name, &routines[(int)fkind],
+                                         return_type, return_type, return_type,
+                                         op1_for_argument);
+  /* Assign the result to op1 (or the temporary). */
+  op_node = make_assignment_expr(
+                   op1_for_assign, (an_expr_operator_kind)eok_assign, op_node);
+  if (temp_var != NULL) {
+    /* Combine the assignment to the temporary and the assignment that
+       does the incr/decr call and stores it back in the original
+       operand. */
+    op_node = make_comma_node(op2_node, op_node);
+  }  /* if */
+  /* Here, op_node is "x = __c99_complex_*_add(x, static_temp)" or a fancier
+     but equivalent expression if a temporary was used.  For a pre-operation,
+     that's all we need. */
+  if (is_post_op) {
+    /* A post-increment or post-decrement.  Add a comma expression to
+       return the value of the temporary, which is the original value
+       of the operand. */
+    op_node = make_comma_node(op_node, var_rvalue_expr(temp_var));
+  }  /* if */
+  overwrite_node(expr, op_node);
+}  /* lower_c99_xincr_decr */
+
+
 static an_expr_node_ptr select_complex_vals(an_expr_node_ptr  expr)
 /*
 The given expression node represents a complex lvalue or rvalue.  Return a node
@@ -2730,7 +2851,7 @@ Lower the indicated fixed-point increment or decrement operation.
     default:
       unexpected_condition_str(
                               "lower_c99_fixed_point_incr_decr: bad operator");
-  }  /* if */
+  }  /* switch */
   if (is_post_op && expr->result_is_not_used) {
     /* We don't need the more complicated post-incr/decr code if the
        result is not used. */
@@ -3016,6 +3137,13 @@ _Bool type, and VLA types.  The type_kind of the operation is lowered
           }  /* if */
           break;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+#if LOWER_COMPLEX
+        case tk_complex:
+          /* In GNU modes, increment/decrement of complex numbers are
+             permitted.  */
+          lower_c99_xincr_decr(expr);
+          break;
+#endif /* LOWER_COMPLEX */
         default:
           break;
       }  /* switch */
