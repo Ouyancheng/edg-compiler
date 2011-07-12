@@ -2133,6 +2133,9 @@ X<T>::N inside the real instantiation X<int>.
         a_type_ptr  class_type = parent_scope->variant.assoc_type;
         if (class_type->variant.class_struct_union.is_template_class &&
             !class_type->variant.class_struct_union.is_nonreal_class &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            !class_type->variant.class_struct_union.is_generic_definition &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             !class_type->variant.class_struct_union.is_specialized) {
           /* A parent scope corresponding to a real class template
              instance. */
