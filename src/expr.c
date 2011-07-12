@@ -16384,7 +16384,7 @@ called only in C++ mode.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_conv_descr conversion, ctor_arg_conversion;
   a_conv_context_set
-               conv_context = CCO_DEFAULT,
+               conv_context = CCO_CAST,
                conv_context_temp = CCO_DEFAULT;
 
   *processed = FALSE;

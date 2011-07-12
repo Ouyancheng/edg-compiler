@@ -191,25 +191,28 @@ typedef int a_conv_context_set;
 #define CCO_NONTYPE_TEMPLATE_ARG ((a_conv_context_set)0x4)
 			/* The result of the conversion is the value of
 			   a nontype template argument. */
-#define CCO_FUNC_NOTATION_CAST ((a_conv_context_set)0x8)
+#define CCO_CAST ((a_conv_context_set)0x8)
+			/* The conversion is being done by a cast (of any
+			   kind). */
+#define CCO_FUNC_NOTATION_CAST ((a_conv_context_set)0x10)
 			/* The conversion is being done by a functional-
 			   notation cast. */
-#define CCO_BITWISE_ASSIGNMENT_PARAM ((a_conv_context_set)0x10)
+#define CCO_BITWISE_ASSIGNMENT_PARAM ((a_conv_context_set)0x20)
 			/* The result of the conversion initializes the
 			   notional parameter of a bitwise copy assignment
 			   operator. */
-#define CCO_MOVE_CTOR_OR_ASSIGN_PARAMETER ((a_conv_context_set)0x20)
+#define CCO_MOVE_CTOR_OR_ASSIGN_PARAMETER ((a_conv_context_set)0x40)
 			/* The result of the conversion initializes the
 			   parameter of a move constructor or move assignment
 			   operator. */
-#define CCO_MOVE_OPTIMIZATION_ALLOWED ((a_conv_context_set)0x40)
+#define CCO_MOVE_OPTIMIZATION_ALLOWED ((a_conv_context_set)0x80)
 			/* The result of the conversion is potentially
 			   subject to the move optimization. */
-#define CCO_ANY_CV_QUAL_ON_PTR_ALLOWED ((a_conv_context_set)0x80)
+#define CCO_ANY_CV_QUAL_ON_PTR_ALLOWED ((a_conv_context_set)0x100)
 			/* The result of the conversion is a pointer type,
 			   and we will accept any cv-qualification on the
 			   type underlying the pointer. */
-#define CCO_STATIC_LIFETIME ((a_conv_context_set)0x100)
+#define CCO_STATIC_LIFETIME ((a_conv_context_set)0x200)
 			/* When CCO_INITIALIZING_VARIABLE is TRUE, this
 			   is also TRUE if the variable being initialized
 			   has static lifetime. */

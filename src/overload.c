@@ -13947,7 +13947,17 @@ conversion.
     arg_operand_list = alloc_arg_operand();
     copy_operand(source_operand, &arg_operand_list->operand);
     constructor_symbol = cssp->constructor;
-    if (constructor_symbol != NULL) {
+    if (constructor_symbol != NULL
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* Constructors for C++/CLI managed classes can't be used for casts
+           other than functional-notation casts.  Copy constructors are
+           allowed. */
+        && !(cppcli_enabled && !type_is_same &&
+             (conv_context & CCO_CAST) &&
+             !(conv_context & CCO_FUNC_NOTATION_CAST) &&
+             is_managed_class_type(dest_type))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+       ) {
       /* The class has constructors. */
       /* Try all the constructors with that argument list. */
       try_overloaded_function_match(constructor_symbol,
@@ -14616,6 +14626,16 @@ a reference type (the caller should have rewritten that case).
           err_code = ambiguous ? ec_ambiguous_user_defined_conversion :
                                  ec_no_user_defined_conversion;
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (cppcli_enabled &&
+                 is_managed_class_type(dest_type)) {
+        /* In C++/CLI, conversion functions can go to classes instead of
+           just from them, and constructors of managed classes can only
+           be used by functional-notation casts, so use an error message
+           that's more general. */
+        err_code = ambiguous ? ec_ambiguous_user_defined_conversion :
+                               ec_no_user_defined_conversion;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* The source type is a non-class and the destination type is a class,
            so the message should indicate that constructors were considered. */
