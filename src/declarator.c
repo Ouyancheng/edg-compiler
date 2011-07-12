@@ -2445,11 +2445,12 @@ TRUE if this is the function declarator in a friend function declaration.
           set_to_error_locator(param_locator);
           check_pending_qualifiers_used(&param_state);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (cppcli_enabled && !param_state.no_special_cli_class_type_check) {
+          if (cppcli_enabled && !param_state.no_special_cli_class_type_check &&
+              !check_invalid_use_of_special_cli_class_type(
+                              param_state.type, &param_state.specifiers_pos)) {
             /* Some special C++/CLI class types (e.g., delegates) are invalid
                at this point. */
-            (void)check_invalid_use_of_special_cli_class_type(
-                               param_state.type, &param_state.specifiers_pos);
+            param_state.type = error_type();
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
@@ -6731,11 +6732,12 @@ the parameters.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled &&
       state->declared_storage_class != (a_storage_class)sc_typedef &&
-      !state->no_special_cli_class_type_check) {
+      !state->no_special_cli_class_type_check &&
+      !check_invalid_use_of_special_cli_class_type(
+                                       state->type, &state->specifiers_pos)) {
     /* Some special C++/CLI class types (e.g., delegates) are invalid at this
        point. */
-    (void)check_invalid_use_of_special_cli_class_type(
-                                         state->type, &state->specifiers_pos);
+    state->type = error_type();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* declarator */
