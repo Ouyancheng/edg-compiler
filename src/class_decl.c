@@ -15539,7 +15539,18 @@ definition described by class_state.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cli_class_type_kind_is(class_type, cctk_value)) {
     /* Value types always have a default constructor. */
-    generate_default_constructor(class_state, /*is_deleted=*/FALSE);
+    a_boolean     ambiguous, trivial;
+    if (find_default_constructor(class_type, &ambiguous, &trivial) == NULL) {
+      generate_default_constructor(class_state, /*is_deleted=*/FALSE);
+    } else {
+      /* A default constructor was already declared, but that must have been
+         an error (user-declared default constructors are not allowed in value
+         class types).  Also, note that default arguments are not allowed in
+         managed-class members, and therefore find_default_constructor would
+         not find a constructor with explicit parameters. */
+      check_assertion(!ambiguous);
+      expect_error();
+    }  /* if */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
