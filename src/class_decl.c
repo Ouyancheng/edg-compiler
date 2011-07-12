@@ -11138,10 +11138,18 @@ implicitly declared member functions.
         pos_error(ec_finalizer_requires_reference_type,
                   &decl_state->declarator_pos);
       }  /* if */
-    } else if (pdp != NULL && pdp->is_static) {
-      /* The member function declaration appears as part of a static property
-         declaration. */
-      decl_state->storage_class = (a_storage_class)sc_static;
+    } else if (pdp != NULL) {
+      if (pdp->is_static) {
+        /* The member function declaration appears as part of a static
+           property or event declaration. */
+        decl_state->storage_class = (a_storage_class)sc_static;
+      } else if (decl_state->storage_class == (a_storage_class)sc_static) {
+        /* A static accessor declaration in a non-static property or event
+           definition: Issue an error. */
+        pos_error(ec_static_accessor_in_nonstatic_property_or_event,
+                  &decl_state->storage_class_pos);
+        decl_state->storage_class = (a_storage_class)sc_unspecified;
+      }  /* if */
     }  /* if */
     if (!compiler_generated) {
       check_for_reserved_dispose_pattern_members(locator, decl_state,

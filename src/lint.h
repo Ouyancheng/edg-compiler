@@ -806,6 +806,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_dynamic_cast_to_value_generic)*/
 /*lint -esym(769,ec_override_with_constraint_mismatch)*/
 /*lint -esym(769,ec_deprecated_access_specifier)*/
+/*lint -esym(769,ec_static_accessor_in_nonstatic_property_or_event)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
