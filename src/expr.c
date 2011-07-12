@@ -24309,32 +24309,42 @@ if rescan_is_template_id is TRUE, and return the result in *operand
     { a_token_sequence_number paren_tok_seq_number;
       name_followed_by_left_paren =
              (next_token_with_seq_number(&paren_tok_seq_number) == tok_lparen);
-#if GNU_EXTENSIONS_ALLOWED
-      if (gpp_mode && gnu_version >= 30400 &&
-          do_dependent_name_processing &&
+      if (do_dependent_name_processing &&
           is_nonspecialized_instantiation_context() &&
           !is_template_dependent_context() &&
           arg_dependent_lookup_enabled &&
           !locator.is_qualified_name &&
-          name_followed_by_left_paren &&
-          get_nondependent_call_info(paren_tok_seq_number,
-                                     (a_nondependent_call_depth)0) == NULL) {
-        a_symbol_ptr	new_sym;
-        /* This is a dependent call in a real (not prototype) instantiation.
-           g++ 3.4 has a bug with dependent name lookup -- it does not
-           ignore entities declared later in the compilation.  Redo the
-           lookup, suppressing that part of the processing. */
-        clear_specific_symbol(locator);
-        new_sym = normal_id_lookup(&locator,
-                                   IDL_IS_EXPR_CONTEXT |
-                                   IDL_SUPPRESS_DECL_SEQ_CHECK);
-        if (new_sym != NULL && !is_class_template_symbol(new_sym)){
-          /* Most symbols found by this lookup are acceptable.  Don't accept
-             a class template as it would have had to have been coalesced. */
-          sym_ptr = new_sym;
+          name_followed_by_left_paren) {
+        a_nondependent_call_info_ptr ndcall_info =
+                      get_nondependent_call_info(paren_tok_seq_number,
+                                                 (a_nondependent_call_depth)0);
+        if (ndcall_info != NULL) {
+          /* This is a nondependent call in a real (not prototype)
+             instantiation, so we know which function was selected. */
+          if (ndcall_info->symbol != NULL &&
+              !locator.do_not_clear_specific_symbol) {
+            locator.specific_symbol = ndcall_info->symbol;
+            sym_ptr = fundamental_symbol_of(locator.specific_symbol);
+          }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+        } else if (gpp_mode && gnu_version >= 30400) {
+          a_symbol_ptr	new_sym;
+          /* This is a dependent call in a real (not prototype) instantiation.
+             g++ 3.4 has a bug with dependent name lookup -- it does not
+             ignore entities declared later in the compilation.  Redo the
+             lookup, suppressing that part of the processing. */
+          clear_specific_symbol(locator);
+          new_sym = normal_id_lookup(&locator,
+                                     IDL_IS_EXPR_CONTEXT |
+                                     IDL_SUPPRESS_DECL_SEQ_CHECK);
+          if (new_sym != NULL && !is_class_template_symbol(new_sym)){
+            /* Most symbols found by this lookup are acceptable.  Don't accept
+               a class template as it would have had to have been coalesced. */
+            sym_ptr = new_sym;
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         }  /* if */
       }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     }
     if (microsoft_mode && sym_ptr != NULL && is_constructor_symbol(sym_ptr) &&
         name_followed_by_left_paren) {

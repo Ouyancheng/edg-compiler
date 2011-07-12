@@ -1,5 +1,30 @@
 Version 4.4
 
+7/11/11  [EDGcpfe/7846]
+Honoring determined function in nondependent call, with dependent base class
+
+In modes that do dependent name lookup but also allow name lookup to
+find unqualified names in dependent base classes (e.g., g++ mode with
+gnu_version >= 30400), sometimes a function determined for a
+nondependent call during the prototype instantiation was not used
+during an actual instantiation.  This happened when a nonstatic member
+function in a dependent base class was found by the corresponding
+lookup in the real instantiation.  Now fixed.
+
+  extern "C" int printf(const char*,...);
+  struct B {
+    int foo() { printf("Wrong\n"); return 1; }
+  };
+  int foo() { printf("Right\n"); return 0; }
+  template <class T> struct C : public T {
+    int caller() { return foo(); } // This should be ::foo, not B::foo.
+  };
+  int main() {
+    C<B> c;
+    return c.caller();
+  }
+
+
 7/11/11  [EDGcpfe/11905]
 Possible reference to freed memory with MAKE_FRONT_END_CALLABLE
 
