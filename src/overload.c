@@ -3871,6 +3871,24 @@ the point of call.  conv_context describes the context of the conversion.
         if (routine_type == NULL) goto reject_function;
       }  /* if */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Constructors for C++/CLI managed classes can't be used for casts
+       other than functional-notation casts, nor for copy-initialization.
+       (That's similar to the handling for constructors marked "explicit".)
+       Copy constructors are allowed. */
+    if (cppcli_enabled &&
+        routine->special_kind == (a_special_function_kind)sfk_constructor &&
+        is_managed_class_type(parent_class_of(routine)) &&
+        (effects_copy_initialization ||
+         ((conv_context & CCO_CAST) &&
+           !(conv_context & CCO_FUNC_NOTATION_CAST))) &&
+        !is_copy_constructor(routine, (a_type_ptr)NULL,
+                             (a_type_qualifier_set *)NULL,
+                             /*include_move_ctors=*/TRUE,
+                             /*is_declarative_context=*/FALSE)) {
+      goto reject_function;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Surrogate function call case.  We have routine_type but not
        proj_function_symbol. */
@@ -13947,17 +13965,7 @@ conversion.
     arg_operand_list = alloc_arg_operand();
     copy_operand(source_operand, &arg_operand_list->operand);
     constructor_symbol = cssp->constructor;
-    if (constructor_symbol != NULL
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        /* Constructors for C++/CLI managed classes can't be used for casts
-           other than functional-notation casts.  Copy constructors are
-           allowed. */
-        && !(cppcli_enabled && !type_is_same &&
-             (conv_context & CCO_CAST) &&
-             !(conv_context & CCO_FUNC_NOTATION_CAST) &&
-             is_managed_class_type(dest_type))
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-       ) {
+    if (constructor_symbol != NULL) {
       /* The class has constructors. */
       /* Try all the constructors with that argument list. */
       try_overloaded_function_match(constructor_symbol,
@@ -13987,7 +13995,7 @@ conversion.
     try_as_arg_of_bitwise_cctor = FALSE;
     if (!source_is_class
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        && (!cppcli_enabled || !is_managed_class_type(dest_type))
+        && !(cppcli_enabled && is_managed_class_type(dest_type))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
        ) {
       /* Do not try conversion functions when the source is not a class. */
@@ -13995,16 +14003,28 @@ conversion.
          a class type. */
     } else if (type_is_same_or_derived) {
       /* Do not try conversion functions for a derived-to-base conversion. */
+    } else if (adjusted_is_copy_initialization) {
+      /* Try conversion functions for copy-initialization. */
+      try_conversion_functions = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled &&
                is_managed_class_type(dest_type) &&
                (conv_context & CCO_FUNC_NOTATION_CAST)) {
       /* In C++/CLI, a functional-notation cast to a managed class type
          sees only the constructors, not the conversion functions. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else if (adjusted_is_copy_initialization) {
-      /* Try conversion functions for copy-initialization. */
+    } else if (cppcli_enabled &&
+               is_managed_class_type(dest_type) &&
+               (orig_is_copy_initialization ||
+                (conv_context & CCO_CAST) &&
+                !(conv_context & CCO_FUNC_NOTATION_CAST))) {
+      /* In C++/CLI, a cast that is not a functional-notation cast does
+         not see the constructors, so make it see the conversion functions
+         like a copy-construction case would.  Also consider conversion
+         functions when a copy-initialization in a variable declaration
+         or return was rewritten at a higher level as a
+         direct-initialization. */
       try_conversion_functions = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_reference_binding) {
       /* Try conversion functions when converting to bind to a reference. */
       try_conversion_functions = TRUE;
