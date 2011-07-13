@@ -14015,8 +14015,8 @@ conversion.
     } else if (cppcli_enabled &&
                is_managed_class_type(dest_type) &&
                (orig_is_copy_initialization ||
-                (conv_context & CCO_CAST) &&
-                !(conv_context & CCO_FUNC_NOTATION_CAST))) {
+                ((conv_context & CCO_CAST) &&
+                 !(conv_context & CCO_FUNC_NOTATION_CAST)))) {
       /* In C++/CLI, a cast that is not a functional-notation cast does
          not see the constructors, so make it see the conversion functions
          like a copy-construction case would.  Also consider conversion
