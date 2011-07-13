@@ -17530,7 +17530,7 @@ In C++/CLI mode we also check for the extended forms of access specifiers:
 #if MICROSOFT_EXTENSIONS_ALLOWED
          (in_managed_class &&
           (internal_seen =
-                         curr_token_is_identifier_string("internal")) != 0) ||
+                      curr_token_is_identifier_string("internal")) == TRUE) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
          curr_token == tok_protected) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
