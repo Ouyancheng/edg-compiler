@@ -24882,6 +24882,9 @@ emitted in this translation unit.
   }  /* if */
   if (!body_can_be_generated) {
     /* We can't emit the body if one can't be generated. */
+  } else if (rout_ptr->definition_for_inlining_only) {
+    /* This definition indicated that it should not be emitted as standalone
+       code (e.g., a C99 "inline definition"). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode &&
              (rout_ptr->explicit_extern_inline ||
@@ -25179,6 +25182,7 @@ a body (if needed) for extern inline functions.
        to be unneeded we clear the flag below when we check
        the definition_needed flag. */
     if (rout_ptr->assoc_scope != NULL_region_number &&
+        !rout_ptr->definition_for_inlining_only &&
         (!rout_ptr->suppress_inline_body ||
          rout_ptr->address_taken
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
@@ -25205,7 +25209,7 @@ a body (if needed) for extern inline functions.
         }  /* for */
       }  /* if */
 #endif /* IA64_ABI && DO_IL_LOWERING */
-      if (!definition_needed) {
+      if (!definition_needed || rout_ptr->definition_for_inlining_only) {
         instance_required = can_be_instantiated = FALSE;
       }  /* if */
     }

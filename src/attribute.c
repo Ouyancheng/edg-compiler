@@ -4103,7 +4103,7 @@ return the routine or variable.  This function may also be called for the
       a_routine_ptr  rp = (a_routine_ptr)entity;
       if (gcc_mode && rp->is_inline &&
           rp->assoc_scope != NULL_region_number &&
-          rp->suppress_inline_body) {
+          rp->definition_for_inlining_only) {
         /* GNU C accepts the alias attribute on a function that was previously
            defined as an extern inline function, and ignores that previous
            declaration. */
@@ -4669,6 +4669,12 @@ it and return the entity.
     make_attr_unrecognized(ap);
   } else {
     rp->gnu_c89_inline = TRUE;
+    if (gpp_mode) {
+      /* In GNU C++ mode, this attribute also indicates that an inline function
+         definition should not be emitted as standalone code. */
+      rp->definition_for_inlining_only = TRUE;
+      rp->suppress_inline_body = TRUE;
+    }  /* if */
   }  /* if */
   return entity;
 }  /* apply_gnu_inline_attr */

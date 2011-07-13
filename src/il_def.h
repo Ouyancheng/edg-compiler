@@ -12043,6 +12043,21 @@ typedef struct a_routine {
 			   but not defined. */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* BACK_END_IS_CP_GEN_BE */
+  a_bit_field	definition_for_inlining_only:1;
+			/* TRUE for an inline function that has been defined
+			   in a way that indicates that the definition is only 
+			   to be used for inlining purposes; i.e., a back end
+			   should not emit a stand-alone definition of the
+			   function.  It is set in C99 mode for so-called
+			   "inline definitions" (a definition of an inline
+			   function never declared with "extern" in the same
+			   translation unit), in GNU C modes for inline
+			   functions defined with the "extern" keyword, in
+			   GNU C++ modes for inline functions declared with
+			   the gnu_inline attribute, and in Microsoft mode
+			   for inline functions defined with the dllimport
+			   attribute.  See also the suppress_inline_body flag
+			   below. */
 #if INSTANTIATE_EXTERN_INLINE
   a_bit_field	inline_instance_required:1;
 			/* TRUE for an inline function if the function was
@@ -12053,21 +12068,15 @@ typedef struct a_routine {
 			   after it has been called. */
 #endif /* INSTANTIATE_EXTERN_INLINE */
   a_bit_field	suppress_inline_body:1;
-			/* This field is TRUE when the body of an extern
-			   inline function should not be emitted by the back
-			   end.	 This field is used both in C99 mode, for
-			   so-called "inline definitions" (see 6.7.4), and
+			/* This flag is TRUE when definition_for_inlining_only
+			   (see above) is TRUE, but also when the front end
+			   has determined for reasons not directly apparent in
+			   the source that this inline function's definition 
+			   should not be emitted by the back end, particularly
 			   when INSTANTIATE_EXTERN_INLINE is TRUE (i.e.,
 			   when inline functions are instantiated using a
 			   mechanism similar to the template instantiation
-			   mechanism).  This field is TRUE only when the
-			   storage class is sc_unspecified, and it says "don't
-			   put out an external definition; the body of this
-			   function is to be used only for inlining.  The
-			   effective declaration for other purposes is an
-			   extern declaration with no body."  In GNU C mode
-			   this flag is also set for inline functions that
-			   are defined with the keyword "extern". */
+			   mechanism). */
   a_bit_field	on_inline_function_list:1;
 			/* TRUE if this routine has been added to the inline
 			   function list. */

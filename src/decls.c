@@ -3905,6 +3905,7 @@ be issued at the given position.
       } else if (is_inline) {
         /* The combination of "inline" and "dllimport" indicates that the body
            should only be used for inlining.  It should never be spilled. */
+        routine->definition_for_inlining_only = TRUE;
         routine->suppress_inline_body = TRUE;
       }  /* if */
     } else if (!freeze_dll_import) {
@@ -3937,7 +3938,7 @@ be issued at the given position.
     if (clear_dll_import && (routine->decl_modifiers & DM_DLLIMPORT) != 0) {
       /* Drop any previous dllimport attribute. */
       routine->decl_modifiers &= ~(a_decl_modifier)DM_DLLIMPORT;
-      routine->suppress_inline_body = FALSE;
+      routine->definition_for_inlining_only = FALSE;
       new_dll_export = ((routine->decl_modifiers & DM_DLLEXPORT) != 0);
     }  /* if */
     if (new_dll_export && is_inline) {
@@ -6890,7 +6891,7 @@ for use in generating cross-reference output describing this declaration.
                                            source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_id_linkage_block      idlb;
-  a_boolean                suppress_inline_body = FALSE;
+  a_boolean                definition_for_inlining_only = FALSE;
   a_boolean                notify_correspondence_processing = FALSE;
   a_boolean                microsoft_specialization_redef = FALSE;
   a_type_ptr               type_ptr = dps->type, rtp = skip_typerefs(type_ptr);
@@ -7141,19 +7142,24 @@ for use in generating cross-reference output describing this declaration.
         dps->declared_storage_class == (a_storage_class)sc_unspecified) {
       /* "inline" was present in the declaration, but no storage class was
          specified. */
-      suppress_inline_body = TRUE;
+      definition_for_inlining_only = TRUE;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  } else if ((gcc_mode && use_gnu_c89_inlining) &&
-             dps->declared_storage_class == (a_storage_class)sc_extern &&
-             func_info->is_inline && func_info->is_definition) {
-    /* In GNU C mode, if a function definition uses both the "extern" and
+  } else if (use_gnu_c89_inlining &&
+             (gpp_mode ||
+              (gcc_mode &&
+               dps->declared_storage_class == (a_storage_class)sc_extern)) &&
+               func_info->is_inline && func_info->is_definition) {
+    /* In GNU C89 mode, if a function definition uses both the "extern" and
        "inline" keywords then no definition of the function should be emitted,
        even though it has external linkage.  This treatment is analogous to
-       the C99 "inline definition" concept.  (GNU C++ follows the ordinary C++
-       rules.  GNU C99 follows the standard C99 rules only when gnu_version is
-       at least 40300.) */
-    suppress_inline_body = TRUE;
+       the C99 "inline definition" concept.  GNU C99 follows the standard C99
+       rules only when gnu_version is at least 40300, except when the
+       gnu_inline attribute was specified.  GNU C++ follows standard C++ rules
+       except when the gnu_inline attribute was specified: If the latter is
+       TRUE, no definition should be emitted independently of the presence of
+       an "extern" keyword. */
+    definition_for_inlining_only = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   if (redeclaration) {
@@ -7198,7 +7204,7 @@ for use in generating cross-reference output describing this declaration.
 #if GNU_EXTENSIONS_ALLOWED
       if (use_gnu_c89_inlining && old_decl_has_body && is_function_def &&
           routine_ptr->is_inline &&
-          (routine_ptr->suppress_inline_body ||
+          ((gcc_mode && routine_ptr->definition_for_inlining_only) ||
            (gpp_mode && !func_info->is_inline))) {
         /* We are either
              - in GNU C mode and this routine was previously defined with
@@ -7250,7 +7256,6 @@ for use in generating cross-reference output describing this declaration.
         an_error_code     error_code = ec_not_compatible_with_previous_decl;
         a_param_type_ptr  params = skip_typerefs(routine_ptr->type)
                                 ->variant.routine.extra_info->param_type_list;
-
         /* Friend functions that name an existing declaration should not
            introduce default arguments.  Such default arguments are accepted,
            however, in GNU C++ mode or when friend name injection is
@@ -7910,31 +7915,35 @@ skip_overloading:;
   }  /* if */
   if (func_info->is_inline) set_inline_flag(routine_ptr, TRUE);
   if (use_std_c99_inlining && !idlb.is_block_extern_decl) {
-    /* In C99 mode the suppress_inline_body flag is set only if that is
+    /* In C99 mode the definition_for_inlining_only flag is set only if that is
        justified by every file-scope declaration of a given inline function. */
     if (redeclaration) {
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
-      if ((!suppress_inline_body || !routine_ptr->suppress_inline_body) &&
+      if ((!definition_for_inlining_only ||
+           !routine_ptr->definition_for_inlining_only) &&
           routine_ptr->storage_class == (a_storage_class)sc_unspecified) {
         /* The definition should not be discarded if it was preceded or
-           followed by an extern declaration.  (If the current definition
-           has an inline specifier and routine->suppress_inline_body is FALSE,
-           the previous declaration did not have an "inline" specifier.
+           followed by an extern declaration.  (If the current definition has
+           an inline specifier and routine->definition_for_inlining_only is
+           FALSE, the previous declaration did not have an "inline" specifier.
            If the previous declaration was an inline definition and the
            current declaration has no inline specifier, then
-           suppress_inline_body will be FALSE.) */
+           definition_for_inlining_only will be FALSE.) */
         mark_as_needed((char *)routine_ptr, (an_il_entry_kind)iek_routine);
       }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
-      routine_ptr->suppress_inline_body &= suppress_inline_body;
+      routine_ptr->definition_for_inlining_only &=
+                                                  definition_for_inlining_only;
     } else {
-      routine_ptr->suppress_inline_body = suppress_inline_body;
+      routine_ptr->definition_for_inlining_only = definition_for_inlining_only;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (gcc_mode && use_gnu_c89_inlining && suppress_inline_body) {
-    /* In GNU C mode only the keywords present at the point of
-       definition matter. */
-    routine_ptr->suppress_inline_body = TRUE;
+  } else if (use_gnu_c89_inlining && definition_for_inlining_only) {
+    /* In GNU mode the keywords/attributes present at the point of definition
+       determine the suppress_inline_body flag.  (In GNU C++ mode,
+       use_gnu_c89_inlining is TRUE only when the "gnu_inline" attribute is
+       present.) */
+    routine_ptr->definition_for_inlining_only = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Link the symbol to the IL routine entry. */
@@ -8247,6 +8256,8 @@ skip_overloading:;
     set_parent_routine_for_closure_types_in_default_args(type_ptr, sym);
   }  /* if */
 #endif /* NEED_NAME_MANGLING */
+  routine_ptr->suppress_inline_body =
+                                    routine_ptr->definition_for_inlining_only;
 #if GNU_EXTENSIONS_ALLOWED
   /* Restore dps->type, since it may have been modified by type-transforming
      attributes. */

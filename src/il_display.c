@@ -3117,6 +3117,9 @@ Display the indicated routine.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* BACK_END_IS_CP_GEN_BE */
+  if (ptr->definition_for_inlining_only) {
+    disp_boolean("definition_for_inlining_only", TRUE);
+  }  /* if */
   if (ptr->suppress_inline_body) {
     disp_boolean("suppress_inline_body", TRUE);
   }  /* if */

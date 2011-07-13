@@ -1,5 +1,29 @@
 Version 4.4
 
+7/13/11  [EDGcpfe/11525]
+GNU compatibility: Effect of attribute gnu_inline in GNU C++ mode
+
+When a function is defined with the gnu_inline attribute in GNU C++ mode, the
+front end now sets a new flag definition_for_inlining_only on the associated
+routine entry, indicating that the function body should only be used for
+inlining and not be emitted as callable code.  This flag in turn is used to
+decide whether an inline function should be "instantiated" when
+INSTANTIATE_EXTERN_INLINE is TRUE.  For example:
+
+  __attribute((gnu_inline)) inline void f() {}
+  int main() {
+    void (*pf)() = &f;  // Requires a callable code for f.
+    pf();
+  }
+
+Compiling and linking just this code (in GNU C++ mode) should now result in a
+linker error since no definition of f will be emitted.  The new flag is also
+set for C99 "inline definitions", Microsoft-mode "dllimport" inline functions,
+and GNU C-mode "extern __inline" functions; i.e., it is set whenever the
+source declarations indicate that an inline function definition should not be
+emitted as a standalone function by a back end.
+
+
 7/12/11  [EDGcpfe/7957,EDGcpfe/11897]
 GNU compatibility: increment/decrement on expressions with complex type
 
@@ -809,24 +833,6 @@ TRUE and gcc_is_generated_code_target is also TRUE.  For example:
     __builtin_va_list v;
     f(v);    // Previously caused warnings in the generated code
   }
-
-
-5/31/11  [EDGcpfe/11525]
-GNU compatibility: Effect of attribute gnu_inline in GNU C++ mode
-
-When a function is defined with the gnu_inline attribute in GNU C++ mode, the
-front end now sets the suppress_inline_body flag on the associated routine
-entry, indicating that the function body should only be used for inlining and
-not be emitted as callable code.  For example:
-
-  __attribute((gnu_inline)) inline void f() {}
-  int main() {
-    void (*pf)() = &f;  // Requires a callable code for f.
-    pf();
-  }
-
-Compiling and linking just this code (in GNU C++ mode) should now result in a
-linker error since no definition of f will be emitted.
 
 
 5/30/11  [EDGcpfe/11762]

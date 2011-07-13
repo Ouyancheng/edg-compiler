@@ -2557,13 +2557,15 @@ void set_inline_flag(a_routine_ptr  rp,
                      a_boolean      flag)
 /*
 Set the is_inline flag for the given routine to the given boolean value.
-Update the dependent flag suppress_inline_body if needed: The latter flag
-should be FALSE if is_inline is FALSE.  Also, in Microsoft mode, the
-combination of dllimport and inline indicates that the definition should
-only be used for inlining (i.e., the suppress_inline_body flag should be set).
+Update the dependent flag definition_for_inlining_only if needed: The latter
+flag should be FALSE if is_inline is FALSE.  Also, in Microsoft mode, the
+combination of dllimport and inline indicates that the definition should only
+be used for inlining (i.e., the definition_for_inlining_only flag should be
+set).
 */
 {
   if (!flag) {
+    rp->definition_for_inlining_only = FALSE;
     rp->suppress_inline_body = FALSE;
   } else if (cpp0x_mode && strict_ansi_mode &&
              !rp->is_inline && !rp->compiler_generated && rp->defined) {
@@ -2573,13 +2575,14 @@ only be used for inlining (i.e., the suppress_inline_body flag should be set).
     flag = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode && (rp->decl_modifiers & DM_DLLIMPORT)) {
+    rp->definition_for_inlining_only = TRUE;
     rp->suppress_inline_body = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   } else if (rp->never_inline) {
     warning(ec_inline_gnu_noinline_conflict);
     flag = FALSE;
-    check_assertion(rp->suppress_inline_body == FALSE);
+    check_assertion(rp->definition_for_inlining_only == FALSE);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   rp->is_inline = flag;

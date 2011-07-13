@@ -2525,6 +2525,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->has_been_defined            = FALSE;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* BACK_END_IS_CP_GEN_BE */
+  rp->definition_for_inlining_only = FALSE;
 #if INSTANTIATE_EXTERN_INLINE
   rp->inline_instance_required    = FALSE;
 #endif /* INSTANTIATE_EXTERN_INLINE */

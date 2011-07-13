@@ -1180,8 +1180,8 @@ void check_c99_inline_definition(a_variable_ptr     var,
                                  a_source_position  *pos)
 /*
 In C99 it is an error for a modifiable local static variable to be defined in
-an "inline definition" (indicated by suppress_inline_body).  It is also an
-error to reference a file-scope static entity from such a function.  We
+an "inline definition" (indicated by definition_for_inlining_only).  It is also
+an error to reference a file-scope static entity from such a function.  We
 cannot tell whether the current routine definition is an "inline definition"
 until the end of the translation unit.  So at this time we just record the
 position of the suspect construct if an error is still a possibility.  If var
@@ -1212,7 +1212,7 @@ the suspect construct is a reference to a file-scope static entity.
        definition. */
     a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
     check_assertion(rp != NULL);
-    if (rp->is_inline && rp->suppress_inline_body &&
+    if (rp->is_inline && rp->definition_for_inlining_only &&
 #if GNU_EXTENSIONS_ALLOWED
         !rp->gnu_c89_inline &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -1253,7 +1253,7 @@ therefore called when the file scope is popped for the first time.)
 
   while (entry != NULL) {
     to_verify = entry;
-    if (to_verify->routine->suppress_inline_body) {
+    if (to_verify->routine->definition_for_inlining_only) {
       an_error_severity  severity = strict_ansi_mode ?
                                           strict_ansi_discretionary_severity :
                                           es_discretionary_error;
@@ -6619,9 +6619,9 @@ e.g., because it's externally defined.
                  (rout->decl_modifiers & DM_DLLEXPORT) == 0 &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-                 !(gcc_mode && !rout->suppress_inline_body) &&
+                 !(gcc_mode && !rout->definition_for_inlining_only) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
-		 !(c99_mode && !rout->suppress_inline_body)) {
+		 !(c99_mode && !rout->definition_for_inlining_only)) {
         /* An exception is "extern inline" functions, which are not regarded
            as referenced from elsewhere.  Each compilation unit has its own
            copy, and this copy is needed only if it is referenced in this
