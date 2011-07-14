@@ -1,5 +1,24 @@
 Version 4.4
 
+7/14/11  [EDGcpfe/11895]
+Lowering of variable types with VLA components
+
+Previously it was possible for variables with a VLA component type (i.e.,
+as a parameter) to escape to the back end with a VLA type even when
+LOWER_VARIABLE_LENGTH_ARRAYS was TRUE.  A change has been made to traverse
+all variable types (when LOWER_VARIABLE_LENGTH_ARRAYS is TRUE) to ensure
+that these types are properly lowered.  For example:
+
+  int (*f)(int (*a)[*]);
+
+now lowered (with --c99 and when LOWER_VARIABLE_LENGTH_ARRAYS is TRUE):
+
+  int (*f)(int *a);
+
+A change was also made to suppress the VLA type traversal when no VLA types
+have been seen in the translation unit.
+
+
 7/14/11  [EDGcpfe/11925]
 C++-generating back end: ">>" in template arguments
 

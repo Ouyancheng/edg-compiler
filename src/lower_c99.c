@@ -326,14 +326,17 @@ for later lowering.  Stop at typedefs since variably modified typedefs should
 have been treated separately.
 */
 {
-  a_type_tree_traversal_flag_set  tt_flags = TTT_STOP_AT_TYPEDEFS |
-                                             TTT_RETURN_TYPE |
-                                             TTT_PARAM_TYPES |
-                                             TTT_THIS_PARAM_TYPE |
-                                             TTT_TEMPLATE_ARGS |
-                                             TTT_EXCEPTION_SPECS;
+  /* Don't bother traversing the type if we know there are no VLAs. */
+  if (il_header.vla_used) {
+    a_type_tree_traversal_flag_set  tt_flags = TTT_STOP_AT_TYPEDEFS |
+                                               TTT_RETURN_TYPE |
+                                               TTT_PARAM_TYPES |
+                                               TTT_THIS_PARAM_TYPE |
+                                               TTT_TEMPLATE_ARGS |
+                                               TTT_EXCEPTION_SPECS;
 
-  (void)traverse_type_tree(tp, ttt_record_vla_type_for_lowering, tt_flags);
+    (void)traverse_type_tree(tp, ttt_record_vla_type_for_lowering, tt_flags);
+  }  /* if */
 }  /* record_vla_component_types_for_lowering */
 
 
@@ -4314,10 +4317,13 @@ Do C99 lowering on the indicated variable and its subtree.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-  if (var->has_variably_modified_type) {
-    var->has_variably_modified_type = FALSE;
-    record_vla_component_types_for_lowering(var->type);
-  }  /* if */
+  /* Traverse the variable type looking for VLA components regardless of the
+     setting of has_variably_modified_type because of cases like:
+       int (*f)(int (*a)[*]);
+     where has_variably_modified_type is FALSE (because parameter types
+     aren't considered when setting this flag). */
+  var->has_variably_modified_type = FALSE;
+  record_vla_component_types_for_lowering(var->type);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
   error_position = saved_error_position;
 }  /* lower_c99_variable */
