@@ -13317,6 +13317,18 @@ source and the expression is generated in that form.
     }  /* if */
     parenthesized_init = TRUE;
     force_parens = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (has_one_argument &&
+        dip->kind == (a_dynamic_init_kind)dik_constructor &&
+        is_managed_class_type(init_entity_type)) {
+      /* In C++/CLI, a managed class can have a static conversion operator
+         that converts to the class type, and the old-style cast notation
+         invokes that conversion rather than the constructor, as in standard
+         C++.  A dik_constructor initialization thus must always use the
+         functional notation, even with a single argument. */
+      has_one_argument = FALSE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (has_one_argument) {
       /* Put out a cast that has one argument as an old-style cast.  This
          avoids some ambiguities, e.g.,
