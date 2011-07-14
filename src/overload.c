@@ -6042,14 +6042,27 @@ with the same signature as the builtin operator indicated by builtin_cfp.
      take operands of class types, the real issue is only
      builtin operators that take enum types.
   */
-  if (builtin_cfp->operand_type_pattern[0] == 'E' &&
-      builtin_cfp->operand_type_pattern[1] == 'E') {
+  if ((builtin_cfp->operand_type_pattern[0] == 'E' &&
+       builtin_cfp->operand_type_pattern[1] == 'E')
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* C++/CLI also has the handle case. */
+      || (builtin_cfp->operand_type_pattern[0] == 'H' &&
+          builtin_cfp->operand_type_pattern[1] == 'H')
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+     ) {
     a_candidate_function_ptr cfp;
     for (cfp = candidate_functions; cfp != NULL; cfp = cfp->next) {
       if (builtin_cfp != cfp &&
           cfp->function_symbol != NULL &&
           !cfp->is_function_template &&
-          !cfp->function_symbol->is_class_member) {
+          (!cfp->function_symbol->is_class_member
+#if MICROSOFT_EXTENSIONS_ALLOWED
+           /* C++/CLI has static operator functions. */
+           || (cppcli_enabled &&
+               !routine_type_is_nonstatic_member_function(
+                                    routine_symbol_type(cfp->function_symbol)))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          )) {
         /* Compare the function parameter types to the builtin operator
            operand types. */
         an_arg_match_summary_ptr arg = cfp->arg_matches;
