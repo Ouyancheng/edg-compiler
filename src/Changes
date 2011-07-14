@@ -46,7 +46,7 @@ INSTANTIATE_EXTERN_INLINE is TRUE.  For example:
 
   __attribute((gnu_inline)) inline void f() {}
   int main() {
-    void (*pf)() = &f;  // Requires a callable code for f.
+    void (*pf)() = &f;  // Requires callable code for f.
     pf();
   }
 
