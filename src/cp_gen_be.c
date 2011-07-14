@@ -10121,28 +10121,29 @@ static void check_for_unprotected_gt_operation(
 /*
 This routine is called via traverse_expr from has_unprotected_gt_operation
 in a top-down traversal of the expression associated with a constant.  It
-stops the traversal when it either finds an eok_gt operation node (setting
-tblock->result to TRUE) or when it finds an operation node that would
-itself cause an eok_gt operation in one of its operands to be parenthesized
-at that level.
+stops the traversal when it either finds an eok_gt or eok_shiftr (which can
+be treated as two ">"s in C++0x) operation node (setting tblock->result to
+TRUE) or when it finds an operation node that would itself cause an eok_gt
+or eok_shiftr operation in one of its operands to be parenthesized at that
+level.
 */
 {
   if (is_operation_node(expr)) {
     if (node_operator_is(expr, eok_gt) ||
-        (msvc_is_generated_code_target && 
-         (node_operator_is(expr, eok_lt) ||
-          node_operator_is(expr, eok_shiftr)))) {
-        /* Found an unprotected ">" operator.  (Note: the Microsoft
-           compiler sometimes reports spurious errors if a top-level "<" or
-           ">>" appears in a non-type template argument, so we check for
-           those cases also when msvc_is_generated_code_target.) */
+        node_operator_is(expr, eok_shiftr) ||
+        (msvc_is_generated_code_target && node_operator_is(expr, eok_lt))) {
+        /* Found an unprotected ">" or ">>" operator.  (Note: the Microsoft
+           compiler sometimes reports spurious errors if a top-level "<"
+           appears in a non-type template argument, so we check for that
+           case also when msvc_is_generated_code_target.) */
         tblock->result = TRUE;
         tblock->terminate = TRUE;
     } else if (!expr->variant.operation.compiler_generated &&
                generated_precedence[expr->variant.operation.kind] >
-               generated_precedence[(int)eok_gt]) {
-      /* This operator binds more tightly than ">" and thus would cause a
-         ">" in an operand to be parenthesized.  A compiler-generated
+               generated_precedence[(int)eok_shiftr]) {
+      /* This operator binds more tightly than ">>" and thus would cause a
+         ">>" in an operand to be parenthesized.  (This also covers ">",
+         which binds even less tightly than ">>".)  A compiler-generated
          operation, however, will in general not appear explicitly in the
          output and must be ignored.  Note that this test reflects the one
          in parens_may_be_needed(). */

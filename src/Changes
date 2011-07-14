@@ -1,5 +1,20 @@
 Version 4.4
 
+7/14/11  [EDGcpfe/11925]
+C++-generating back end: ">>" in template arguments
+
+The change for EDGcpfe/11762 caused the C++-generating back end sometimes
+to generate a template non-type argument containing a ">>" operator without
+the parentheses necessary to prevent it from being interpreted (by C++0x
+rules) as the closing delimiter of the template argument list.  This is now
+fixed.  For example:
+
+  template<int N> struct A { };
+  template<int N> struct B {
+    A<(N >> 1)> m;    // Previously sometimes generated as A<N >> 1>
+  };
+
+
 7/13/11  [EDGcpfe/11525]
 GNU compatibility: Effect of attribute gnu_inline in GNU C++ mode
 
