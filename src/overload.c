@@ -7476,6 +7476,7 @@ in_instantiation:
   free_candidate_function_list(candidate_functions);
 have_function:
   if (do_dependent_name_processing && is_prototype_instantiation_context() &&
+      !is_real_instantiation_context() &&
       !dependent_call && do_arg_dep_lookup &&
       !(function_symbol != NULL && is_block_extern_symbol(function_symbol))) {
     /* Record the outcome of overload resolution for a nondependent call
@@ -7486,7 +7487,10 @@ have_function:
        because do_arg_dep_lookup is FALSE for them in standard mode,
        but might come up in other modes, and should not be recorded
        because they might have dependent return types or might depend
-       on (nondependent) typedefs in the prototype instantiation. */
+       on (nondependent) typedefs in the prototype instantiation.  The
+       test of is_real_instantiation_context is done to suppress this
+       processing in calls (e.g., in a decltype) in a member template
+       being scanned inside a real instantiation of the enclosing class. */
     /* Note that function_symbol can be NULL here, e.g., for a call of
        a (possibly dependent) block extern declaration, which must be
        resolved in the real instantiation. */

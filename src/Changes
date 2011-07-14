@@ -1,5 +1,31 @@
 Version 4.4
 
+7/14/11  [EDGcpfe/11923]
+Call in decltype in member template declaration treated as nondependent
+
+If a member template declaration contained a dependent function call in a
+decltype (or other similar context) the call was correctly marked as
+dependent during the prototype instantiation of the enclosing class
+but could later be marked as non-dependent when the member template
+declaration was rescanned as part of a real instantiation of the enclosing
+class.  This could cause the incorrect function to be called or, as in
+the example below, result in spurious errors (note that a mode in which
+dependent name processing is done is required to observe the error).  Now
+fixed.
+
+  template<class T> T& f();
+  template<bool, class T, class... Args> struct A;
+  template<class T, class... Args> struct A<true, T, Args...> {	
+    template<class U> static auto g(int)
+			-> decltype(U(f<Args>()...), int());
+    typedef decltype(g<T>(0)) type;
+  };
+  struct C {};
+  class D {};
+  struct B { B(C, const D&) {} };
+  A<true, B, C, D> x;
+
+
 7/14/11  [EDGcpfe/11895]
 Lowering of variable types with VLA components
 
