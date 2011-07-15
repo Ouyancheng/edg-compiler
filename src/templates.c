@@ -20954,9 +20954,12 @@ scanned yet.
                              (a_generic_constraint_kind)gck_naked_type_param) {
             sub_gcp->type->variant.template_param.being_checked = TRUE;
           }  /* if */
-          check_for_constraint_conflict(param_type, curr_list, naked_type_gcp,
-                                        sub_gcp->kind, sub_gcp->type,
-                                        pos);
+          if (check_for_constraint_conflict(param_type, curr_list,
+                                            naked_type_gcp,
+                                            sub_gcp->kind, sub_gcp->type,
+                                            pos)) {
+            any_errors = TRUE;
+          }  /* if */
           if (sub_gcp->kind ==
                              (a_generic_constraint_kind)gck_naked_type_param) {
             sub_gcp->type->variant.template_param.being_checked = FALSE;

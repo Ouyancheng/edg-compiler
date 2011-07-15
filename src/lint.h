@@ -812,6 +812,9 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_override_with_constraint_mismatch)*/
 /*lint -esym(769,ec_deprecated_access_specifier)*/
 /*lint -esym(769,ec_static_accessor_in_nonstatic_property_or_event)*/
+/*lint -esym(769,ec_invalid_type_constraint)*/
+/*lint -esym(769,ec_both_ref_and_value_constraints)*/
+/*lint -esym(769,ec_circular_constraints)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
