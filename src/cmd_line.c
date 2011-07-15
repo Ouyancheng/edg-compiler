@@ -9342,8 +9342,10 @@ variables declared in cmd_line.h.
   ms_declspec_attributes_enabled = FALSE;
   defaulted_special_members_enabled = FALSE;
   deleted_functions_enabled = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
   default_calling_convention = (a_calling_convention)cc_cdecl;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   microsoft_64bit_pointer_extensions_enabled =
                             DEFAULT_MICROSOFT_64BIT_POINTER_EXTENSIONS_ENABLED;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
