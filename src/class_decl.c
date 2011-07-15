@@ -19586,6 +19586,65 @@ done:;
 }  /* scan_named_overrides_if_any */
 
 
+static void apply_constraints_to_complete_type(
+	a_type_ptr			proxy_class,
+	a_class_def_state_ptr		class_state,
+	a_base_class_sequence_number	*direct_base_number,
+	a_base_class_ptr		*last_bcp,
+	a_boolean			*may_be_first_direct_nonvirtual_base,
+	a_boolean			*default_constructible,
+	a_generic_constraint_ptr	gc_list)
+/*
+Go through the list of constraints specified by gc_list and update the
+type specified by proxy_class with the information from the
+constraints.  This routine is used while forming the complete class of
+proxy_class.  class_state, direct_base_number, last_bcp,
+may_be_first_direct_nonvirtual_base, and default_constructible are
+passed into this routine from complete_generic_constraint_type.  This
+routine then calls itself recursively to process naked type parameter
+constraints.
+*/
+{
+  a_generic_constraint_ptr	gcp;
+
+  for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
+    if (gcp->kind == (a_generic_constraint_kind)gck_type ||
+        gcp->kind == (a_generic_constraint_kind)gck_naked_type_param) {
+      a_type_ptr	type = gcp->type;
+      /* For a naked type parameter constraint, add the proxy class as
+         a base class. */
+      if (gcp->kind == (a_generic_constraint_kind)gck_naked_type_param) {
+        type = proxy_class_for_template_param(type);
+      }  /* if */
+      add_direct_base_of_type(type, class_state,
+                              (*direct_base_number)++, last_bcp,
+                              may_be_first_direct_nonvirtual_base);
+      if (is_cli_interface_type(type)) {
+        proxy_class->
+                   variant.class_struct_union.any_interface_constraints = TRUE;
+      }  /* if */
+    } else if (gcp->kind == (a_generic_constraint_kind)gck_gcnew) {
+      /* The "gcnew()" constraint indicates that the constraint type is
+         default-constructible. */
+      *default_constructible = TRUE;
+    }  /* if */
+    if (gcp->kind == (a_generic_constraint_kind)gck_naked_type_param) {
+      a_generic_constraint_ptr	sub_list;
+      /* For a naked type parameter constraint, apply the indirect
+         constraints. */
+      sub_list = gcp->type->variant.template_param.extra_info->
+                                                          generic_constraints;
+      if (sub_list != NULL) {
+        apply_constraints_to_complete_type(
+                 proxy_class, class_state, direct_base_number, last_bcp,
+                 may_be_first_direct_nonvirtual_base, default_constructible,
+                 sub_list);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* apply_constraints_to_complete_type */
+
+
 void complete_generic_constraint_type(a_type_ptr  proxy_class)
 /*
 The given type is a generic constraint type (i.e., the proxy class type
@@ -19594,7 +19653,7 @@ classes and possibly a default constructor as indicated by the constraints.
 */
 {
   a_type_ptr                    templ_param_type;
-  a_generic_constraint_ptr      gcp, gc_list;
+  a_generic_constraint_ptr      gc_list;
   a_class_type_supplement       *ctsp;
   a_class_def_state             class_state;
   a_base_class_ptr              last_bcp = NULL;
@@ -19618,25 +19677,10 @@ classes and possibly a default constructor as indicated by the constraints.
                             &may_be_first_direct_nonvirtual_base);
   } else {
     /* Add bases corresponding to the various constraints. */
-    for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
-      if (gcp->kind == (a_generic_constraint_kind)gck_type) {
-        if (is_template_param_type(gcp->type)) {
-          /* FIXME: Implement naked type parameter constraints. */
-        } else {
-          add_direct_base_of_type(gcp->type, &class_state,
-                                  direct_base_number++, &last_bcp,
-                                  &may_be_first_direct_nonvirtual_base);
-          if (is_cli_interface_type(gcp->type)) {
-            proxy_class->
-                   variant.class_struct_union.any_interface_constraints = TRUE;
-          }  /* if */
-        }  /* if */
-      } else if (gcp->kind == (a_generic_constraint_kind)gck_gcnew) {
-        /* The "gcnew()" constraint indicates that the constraint type is
-           default-constructible. */
-        default_constructible = TRUE;
-      }  /* if */
-    }  /* for */
+    apply_constraints_to_complete_type(
+                 proxy_class, &class_state, &direct_base_number, &last_bcp,
+                 &may_be_first_direct_nonvirtual_base, &default_constructible,
+                 gc_list);
   }  /* if */
   add_implicit_cli_bases(&class_state);
   wrapup_base_classes(&class_state);
@@ -19648,6 +19692,7 @@ classes and possibly a default constructor as indicated by the constraints.
   scope_stack_top().class_def_state = &class_state;
   if (default_constructible &&
       !cli_class_type_kind_is(proxy_class, cctk_value)) {
+    class_state.default_ctor_is_nontrivial = TRUE;
     generate_default_constructor(&class_state, /*is_deleted=*/FALSE);
   }  /* if */
   complete_class_definition(proxy_class, DEPTH_OF_FILE_SCOPE, &class_state);
@@ -19703,6 +19748,45 @@ when the constraint type is completed.
 }  /* rescan_open_constructed_type_constraints */
 
 
+static void apply_constraints_to_type(
+				a_type_ptr			proxy_class,
+				a_class_type_supplement_ptr	ctsp,
+				a_generic_constraint_ptr	gc_list)
+/*
+Go through the list of constraints specified by gc_list and update the
+type specified by proxy_class and ctsp with the information from the
+constraints.  This routine updates applies the constraints to proxy_class
+while it is an incomplete type.
+*/
+{
+  a_generic_constraint_ptr	gcp;
+
+  for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
+    if (gcp->kind == (a_generic_constraint_kind)gck_value_class) {
+      ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_value;
+    } else if (gcp->kind == (a_generic_constraint_kind)gck_ref_class) {
+      ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
+    } else if (gcp->kind == (a_generic_constraint_kind)gck_type) {
+      a_type_ptr  ctp = skip_typerefs(gcp->type);
+      if (is_immediate_class_type(ctp)) {
+        ctsp->cli_class_type_kind =
+                                    class_type_supp(ctp)->cli_class_type_kind;
+      }  /* if */
+    } else if (gcp->kind == (a_generic_constraint_kind)gck_naked_type_param) {
+      a_generic_constraint_ptr	sub_list;
+      /* For a naked type parameter constraint, apply the indirect
+         constraints. */
+      sub_list = gcp->type->variant.template_param.extra_info->
+                                                          generic_constraints;
+      if (sub_list != NULL) {
+        apply_constraints_to_type(proxy_class, ctsp, sub_list);
+      }  /* if */
+    }  /* if */
+    if (!cli_class_type_kind_is(proxy_class, cctk_interface)) break;
+  }  /* for */
+}  /* apply_constraints_to_type */
+
+
 void create_generic_constraint_types(a_template_decl_info_ptr	decl_info)
 /*
 Loop through the C++/CLI generic parameters of decl_info and create a
@@ -19730,7 +19814,7 @@ the enclosing type of the constrained generic.  For example:
     a_type_ptr                templ_param_type = param_sym->variant.type.ptr;
     a_type_ptr                proxy_class;
     a_type_ptr                definition_arg_type;
-    a_generic_constraint_ptr  gcp, gc_list;
+    a_generic_constraint_ptr  gc_list;
     a_class_type_supplement_ptr
                               ctsp;
     /* Create a proxy class that will be used as the class type representing
@@ -19745,20 +19829,8 @@ the enclosing type of the constrained generic.  For example:
     /* Depending on the constraints, this constraint type could be a value
        class, a ref class, or some hybrid. */
     ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_interface;
-    for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
-      if (gcp->kind == (a_generic_constraint_kind)gck_value_class) {
-        ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_value;
-      } else if (gcp->kind == (a_generic_constraint_kind)gck_ref_class) {
-        ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
-      } else if (gcp->kind == (a_generic_constraint_kind)gck_type) {
-        a_type_ptr  ctp = skip_typerefs(gcp->type);
-        if (is_immediate_class_type(ctp)) {
-          ctsp->cli_class_type_kind =
-                                    class_type_supp(ctp)->cli_class_type_kind;
-        }  /* if */
-      }  /* if */
-      if (!cli_class_type_kind_is(proxy_class, cctk_interface)) break;
-    }  /* for */
+    /* Update the type with the information from the constraints. */
+    apply_constraints_to_type(proxy_class, ctsp, gc_list);
     if (cli_class_type_kind_is(proxy_class, cctk_interface)) {
       /* The class is a sort of hybrid value/ref class. */
       ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;

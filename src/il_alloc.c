@@ -1790,6 +1790,9 @@ to default values.
                                        (a_template_param_type_kind)tptk_param;
         pte->variant.template_param.is_pack = FALSE;
         pte->variant.template_param.is_generic_param = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        pte->variant.template_param.being_checked = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         tptsp = alloc_template_param_type_supplement();
         pte->variant.template_param.extra_info = tptsp;
         tptsp->coordinates.position = 0;
@@ -4524,11 +4527,11 @@ pointer to it.
 #if DEBUG
   num_generic_constraints_allocated++;
 #endif /* DEBUG */
+  gcp->kind = (a_generic_constraint_kind)gck_none;
   gcp->next = NULL;
   gcp->type = NULL;
   gcp->type_cache = NULL;
   gcp->position = null_source_position;
-  gcp->kind = (a_generic_constraint_kind)gck_none;
   return gcp;
 }  /* alloc_generic_constraint */
 

@@ -8043,6 +8043,13 @@ typedef struct a_type {
       a_bit_field
 		is_generic_param:1;
 			/* TRUE if this is a C++/CLI generic type parameter. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_bit_field
+		being_checked:1;
+			/* For a naked type parameter constraint, this is used
+			   by the front end to detect recursive naked type
+			   constraints. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_template_param_type_supplement_ptr
 		extra_info;
 			/* Pointer to a supplement containing additional
@@ -14795,8 +14802,8 @@ Generic constraint kinds.
 */
 enum a_generic_constraint_kind_tag {
   gck_none,		/* Used to specify an unknown or invalid kind. */
-  gck_type,		/* Used for class, interface, and naked type parameter
-			   constraints. */
+  gck_type,		/* Used for class and interface constraints. */
+  gck_naked_type_param,	/* Used for naked type parameter constraints. */
   gck_ref_class,	/* Used for ref class and ref struct constraints. */
   gck_value_class,	/* Used for value class and value struct
 			   constraints. */
@@ -14810,13 +14817,16 @@ typedef a_byte a_generic_constraint_kind;
 Entry used to represent a constraint item of a constraint clause.
 */
 typedef struct a_generic_constraint {
+  a_generic_constraint_kind
+		kind;
+			/* The kind of constraint represented. */
   a_generic_constraint_ptr
 		next;
 			/* The next entry in a list of constraint items, or
 			   NULL for the last entry. */
   a_type_ptr	type;
-			/* When kind is gck_type, this points to the type
-			   specified. */
+			/* When kind is gck_type or gck_naked_type_param, this
+			   points to the type specified. */
   struct a_token_cache
 		*type_cache;
 			/* When kind is gtk_type and the type is one that must
@@ -14827,9 +14837,6 @@ typedef struct a_generic_constraint {
   a_source_position
 		position;
 			/* The starting position of the constraint item. */
-  a_generic_constraint_kind
-		kind;
-			/* The kind of constraint represented. */
 } a_generic_constraint;
 
 /*

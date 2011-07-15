@@ -20882,7 +20882,9 @@ that follows.
 
 
 static a_boolean check_for_constraint_conflict(
+			a_type_ptr			param_type,
 			a_generic_constraint_ptr	curr_list,
+			a_generic_constraint_ptr	naked_type_gcp,
 			a_generic_constraint_kind	kind,
 			a_type_ptr			type,
 			a_source_position		*pos)
@@ -20890,7 +20892,13 @@ static a_boolean check_for_constraint_conflict(
 A new constraint as specified by kind and type is being added.  Check
 whether it conflicts with the existing constraint list specified by
 curr_list.  If so, issue a diagnostic and return TRUE; otherwise return
-FALSE.  pos is the source position to be used for diagnostics.
+FALSE.  pos is the source position to be used for diagnostics.  param_type
+is the template parameter type associated with the generic parameter
+being constrained.  naked_type_gcp is non-NULL if naked type parameter
+constraints should be checked, in which case it points to the naked type
+constraint being checked.   This cannot be done on the initial scan
+because the constraints of the naked type parameter may not have been
+scanned yet.
 */
 {
   a_generic_constraint_ptr	gcp;
@@ -20898,11 +20906,15 @@ FALSE.  pos is the source position to be used for diagnostics.
 
   /* Go through the current list of constraints to check for a conflict. */
   for (gcp = curr_list; gcp != NULL; gcp = gcp->next) {
-    if (gcp->kind == kind) {
-      if (identical_types(gcp->type, type)) {
-        /* Two identical constraints.  Issue an error. */
-        pos_error(ec_duplicate_constraint, pos);
-        any_errors = TRUE;
+    if (gcp->kind == kind && gcp != naked_type_gcp) {
+      if (type != NULL && identical_types(gcp->type, type)) {
+        if (naked_type_gcp == NULL) {
+          /* Two identical constraints.  Issue an error.  This is allowed
+             if the redundant constraint is brought in via a naked type
+             parameter constraint. */
+          pos_error(ec_duplicate_constraint, pos);
+          any_errors = TRUE;
+        }  /* if */
       } else if (kind == (a_generic_constraint_kind)gck_type &&
                  !is_cli_interface_type(gcp->type) &&
                  !is_cli_interface_type(type)) {
@@ -20910,8 +20922,46 @@ FALSE.  pos is the source position to be used for diagnostics.
         pos_ty2_error(ec_multiple_class_constraints, pos, gcp->type,
                       type);
         any_errors = TRUE;
+      }  /* if */
+    } else if ((gcp->kind == (a_generic_constraint_kind)gck_ref_class ||
+                gcp->kind == (a_generic_constraint_kind)gck_value_class) &&
+               (kind == (a_generic_constraint_kind)gck_ref_class ||
+                kind == (a_generic_constraint_kind)gck_value_class)) {
+      /* The parameter has both a value and ref class constraint. */
+      pos_ty_error(ec_both_ref_and_value_constraints, pos, param_type);
+      any_errors = TRUE;
+    }  /* if */
+    if (kind == (a_generic_constraint_kind)gck_naked_type_param) {
+      if (type->variant.template_param.being_checked) {
+        if (kind == (a_generic_constraint_kind)gck_naked_type_param) {
+          pos_ty2_error(ec_circular_constraints, pos,
+                        naked_type_gcp->type, param_type);
+          any_errors = TRUE;
+          /* This constraint is already on the list.  Replace the constraint
+             with one that indicates an invalid constraint. */
+          gcp->kind = (a_generic_constraint_kind)gck_none;
+          gcp->type = NULL;
+        }  /* if */
       } else {
-        /* FIXME: Check for recursive naked type parameters. */
+        a_generic_constraint_ptr	sub_list;
+        a_generic_constraint_ptr	sub_gcp;
+        /* For a new naked type parameter check the indirect constraints
+           against the current list. */
+        sub_list = type->variant.template_param.extra_info->
+                                                           generic_constraints;
+        for (sub_gcp = sub_list; sub_gcp != NULL; sub_gcp = sub_gcp->next) {
+          if (sub_gcp->kind ==
+                             (a_generic_constraint_kind)gck_naked_type_param) {
+            sub_gcp->type->variant.template_param.being_checked = TRUE;
+          }  /* if */
+          check_for_constraint_conflict(param_type, curr_list, naked_type_gcp,
+                                        sub_gcp->kind, sub_gcp->type,
+                                        pos);
+          if (sub_gcp->kind ==
+                             (a_generic_constraint_kind)gck_naked_type_param) {
+            sub_gcp->type->variant.template_param.being_checked = FALSE;
+          }  /* if */
+        }  /* for */
       }  /* if */
     }  /* if */
   }  /* for */
@@ -20945,6 +20995,10 @@ designate a valid type in this context.  Otherwise, return the indicated type.
       type = NULL;
     } else if (is_cli_generic_param_type(type)) {
       /* Presumably a naked type parameter constraint. */
+    } else if (is_cli_generic_definition_argument_type(type)) {
+      /* The class created to represent a generic constraint.  Return
+         the associated tk_template_param type. */
+      type = generic_param_if_generic_definition_argument(type);
     } else if (is_cli_interface_type(type)) {
       /* The usual case. */
     } else if (is_ref_class_type(type)) {
@@ -20955,7 +21009,7 @@ designate a valid type in this context.  Otherwise, return the indicated type.
       }  /* if */
     } else {
       /* Any other type (e.g. a value class or enum) is invalid. */
-      pos_error(ec_invalid_constraint, &loc->source_position);
+      pos_ty_error(ec_invalid_type_constraint, &loc->source_position, type);
       type = NULL;
     }  /* if */
   }  /* if */
@@ -20963,9 +21017,45 @@ designate a valid type in this context.  Otherwise, return the indicated type.
 }  /* validate_type_name_constraint */
 
 
-static a_generic_constraint_ptr scan_constraint_item_list(void)
+static void validate_naked_type_constraints(a_tmpl_decl_state_ptr decl_state)
 /*
-Scan a C++/CLI generic constraint-item-list and return the list.
+Go through the generic parameters of the current declaration and look for
+naked type constraints.  Check that the indirect constraints are consistent
+with the direct constraints.
+*/
+{
+  a_template_param_ptr        tpp;
+  a_template_param_ptr        generic_param_list =
+                                             decl_state->decl_info->parameters;
+
+  for (tpp = generic_param_list; tpp != NULL; tpp = tpp->next) {
+    a_symbol_ptr              param_sym = tpp->param_symbol;
+    a_type_ptr                templ_param_type = param_sym->variant.type.ptr;
+    a_generic_constraint_ptr  gcp;
+    a_generic_constraint_ptr  gc_list;
+
+    gc_list = templ_param_type->variant.template_param.extra_info
+                                                         ->generic_constraints;
+    for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
+      if (gcp->kind == (a_generic_constraint_kind)gck_naked_type_param) {
+        /* For a naked type parameter on the existing list, check the
+           parameter against the indirect constraints. */
+        if (check_for_constraint_conflict(templ_param_type, gc_list, gcp,
+                                          gcp->kind, gcp->type,
+                                          &gcp->position)) {
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* for */
+}  /* validate_naked_type_constraints */
+
+
+static a_generic_constraint_ptr scan_constraint_item_list(
+						a_type_ptr	param_type)
+/*
+Scan a C++/CLI generic constraint-item-list and return the list.  param_type
+is the template parameter type entry associated with the generic param and
+can be NULL in error cases.
 
 See scan_generic_constraints_clauses for more information about the form
 of the list.
@@ -21008,15 +21098,19 @@ of the list.
         }  /* if */
         /* Don't record the constraint unless we scanned a valid type. */
         if (type != NULL) {
-          kind = (a_generic_constraint_kind)gck_type;
-          if (is_immediate_class_type(type) &&
-              is_cli_open_constructed_instance(type)) {
-            /* If this is a type like A<T>, save the cached tokens so that
-               it can be rescanned later. */
-            tcp = alloc_token_cache();
-            copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
-                                   last_tsn, /*include_last_token=*/TRUE,
-                                   tcp);
+          if (is_cli_generic_param_type(type)) {
+            kind = (a_generic_constraint_kind)gck_naked_type_param;
+          } else {
+            kind = (a_generic_constraint_kind)gck_type;
+            if (is_immediate_class_type(type) &&
+                is_cli_open_constructed_instance(type)) {
+              /* If this is a type like A<T>, save the cached tokens so that
+                 it can be rescanned later. */
+              tcp = alloc_token_cache();
+              copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
+                                     last_tsn, /*include_last_token=*/TRUE,
+                                     tcp);
+            }  /* if */
           }  /* if */
         }  /* if */
         (void)get_token();
@@ -21051,17 +21145,22 @@ of the list.
         (void)get_token();
         break;
     }  /* switch */
-    if (kind != (a_generic_constraint_kind)gck_none) {
+    if (kind != (a_generic_constraint_kind)gck_none &&
+        kind != (a_generic_constraint_kind)gck_naked_type_param) {
       /* A valid constraint was scanned.  Make sure the constraint does not
-         conflict with prior ones. */
-      if (check_for_constraint_conflict(result_list, kind, type, &pos)) {
+         conflict with prior ones.  Naked type constraints cannot be checked
+         until all of the constraints have been scanned. */
+      if (param_type != NULL &&
+          check_for_constraint_conflict(param_type, result_list,
+                                        (a_generic_constraint_ptr)NULL,
+                                        kind, type, &pos)) {
         /* The constraint is invalid.  A diagnostic will have already been
            issued.  Set the kind to "none" to prevent it from being added to
            the list below. */
         kind = (a_generic_constraint_kind)gck_none;
       }  /* if */
     }  /* if */
-    if (kind != (a_generic_constraint_kind)gck_none) {
+    if (param_type != NULL && kind != (a_generic_constraint_kind)gck_none) {
       /* A valid constraint was scanned.  Add it to the list. */
       a_generic_constraint_ptr	gcp;
       gcp = alloc_generic_constraint();
@@ -21174,7 +21273,7 @@ Scan an optional set of C++/CLI generic constraints.  The form is:
       (void)get_token();
     }  /* if */
     /* Scan the list of constraint items. */
-    constraint_item_list = scan_constraint_item_list();
+    constraint_item_list = scan_constraint_item_list(param_type);
     gcc.constraints = constraint_item_list;
     if (param_type != NULL) {
       param_type->variant.template_param.extra_info->
@@ -21198,6 +21297,9 @@ Scan an optional set of C++/CLI generic constraints.  The form is:
       }  /* if */
     }  /* if */
   }  /* while */
+  /* Naked type parameter constraints can only be checked once all of the
+     constraints have been scanned. */
+  validate_naked_type_constraints(decl_state);
 }  /* scan_generic_constraint_clauses */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

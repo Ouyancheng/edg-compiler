@@ -2269,6 +2269,9 @@ ec_bad_unicode_char_in_string;;"Unicode character with hex value %s not represen
 ec_conv_of_pm_to_func_ptr;;"nonstandard conversion of bound pointer-to-member to a function pointer"
 ec_deprecated_access_specifier;;"access specifier %s1 is deprecated -- use %s2 instead"
 ec_static_accessor_in_nonstatic_property_or_event;;"a static accessor function is not permitted in a nonstatic property or event definition"
+ec_both_ref_and_value_constraints;;"%t has both a value class and ref class constraint"
+ec_circular_constraints;;"%t1 and %t2 involve circular naked type constraints"
+ec_invalid_type_constraint;;"%t is not a valid type constraint"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
