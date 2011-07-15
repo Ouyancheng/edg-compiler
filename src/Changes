@@ -1,5 +1,25 @@
 Version 4.4
 
+7/15/11  [EDGcpfe/11906]
+Inlining of constructors causes assertion failure in some configurations
+
+In certain C-generating Cfront configurations (i.e., those where
+MINIMAL_INLINING and NEW_CAN_BE_FOLDED_INTO_CTOR are TRUE) an assertion failure
+had occurred (remap_var_for_inlining: wrong kind of remap) during the inlining
+of some constructors.  This occurred when
+assume_this_cannot_be_null_in_conditional_operators was FALSE, which is the
+case in certain modes (e.g., --g++) or when
+ASSUME_THIS_CANNOT_BE_NULL_IN_CONDITIONAL_OPERATORS is FALSE.  For example
+(with --g++ --no_exceptions):
+
+  struct B {
+    B() {}
+  };
+  struct D : B {
+    D() : B() {}
+  } d;
+
+
 7/14/11  [EDGcpfe/11923]
 Call in decltype in member template declaration treated as nondependent
 

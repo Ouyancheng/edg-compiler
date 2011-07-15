@@ -1579,6 +1579,22 @@ is the top node of the indicated statement (which is an expression statement).
         a_boolean          failed = FALSE, inlinable = TRUE;
         an_insert_location insert_location;
         a_scope_ptr        scope;
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+        a_boolean     save_assignment_to_this_done;
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+        if (routine->special_kind == (a_special_function_kind)sfk_constructor){
+          /* Lowering adds code like:
+               if (this || (this = (type *)new(sizeof(type)))) {...}
+             in constructors, but the assignment_to_this_done flag only
+             indicates whether "this" is assigned to in the user portion of
+             the constructor (so it's not set in this case).  Temporarily
+             set this flag to TRUE, then restore it. */
+          save_assignment_to_this_done = routine->assignment_to_this_done;
+          routine->assignment_to_this_done = TRUE;
+        }  /* if */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
         /* The routine can be inlined.  Turn off the inlinable flag for the
            duration of the inlining to avoid problems with recursion. */
         routine->inlinable = FALSE;
@@ -1708,6 +1724,11 @@ is the top node of the indicated statement (which is an expression statement).
         routine->inlinable = inlinable;
         if (failed) issue_inlining_failure_diagnostic(routine);
         routine_scope_being_inlined = NULL;
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+        if (routine->special_kind == (a_special_function_kind)sfk_constructor){
+          routine->assignment_to_this_done = save_assignment_to_this_done;
+        }  /* if */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 #if DEBUG
         if (debug_level >= 4) {
           fprintf(f_debug, "End of inlining of call to ");

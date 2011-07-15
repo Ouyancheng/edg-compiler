@@ -11765,7 +11765,9 @@ typedef struct a_routine {
   a_bit_field	assignment_to_this_done:1;
 			/* TRUE if an assignment to "this" (an anachronism)
 			   was done in this function.  C++ member functions
-			   only. */
+			   only.  This reflects only assignments in user
+			   code and not in code added by lowering (i.e., when
+			   NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE). */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   a_bit_field	is_template_function:1;
 			/* TRUE for: instances and specializations of
