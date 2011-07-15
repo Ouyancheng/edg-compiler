@@ -2761,6 +2761,7 @@ template classes.
 #endif /* IA64_ABI */
 }  /* mangled_encoding_for_address_constant */
 
+#if DO_IL_LOWERING || !IA64_ABI
 
 static char *first_field_name(a_type_ptr              class_type,
                               a_source_correspondence **field_scp)
@@ -2798,7 +2799,6 @@ first named field; leave it unchanged if there is no named field.
   return name;
 }  /* first_field_name */
 
-#if DO_IL_LOWERING || !IA64_ABI
 
 static char *unmangled_or_fabricated_name_of_variable(a_variable_ptr var)
 /*
