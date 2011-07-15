@@ -1615,7 +1615,8 @@ member declaration (allowed in some Microsoft modes only).
       } else if (!calling_conventions_are_compatible(*old_type, rout_type)) {
         /* An out-of-class definition should not change the calling convention
            declared in the class definition (not specifying a calling
-	   convention never amounts to a change). */
+	   convention never amounts to a change).  (A similar GNU mode test is
+           delayed until attributes are applied.) */
         pos_error(ec_conflicting_calling_conventions,
                   &locator->source_position);
       }  /* if */

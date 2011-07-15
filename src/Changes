@@ -1,5 +1,40 @@
 Version 4.4
 
+7/15/11  [EDGcpfe/11928]
+GNU compatibility: Calling convention attributes
+
+When GNU_X86_ATTRIBUTES_ALLOWED is TRUE, the front end accepts the "cdecl" and
+"stdcall" attributes.  Previously, however, the function types resulting from
+this attributes were not considered distinct -- this is now changed.  As a
+consequence, a diagnostic is issued when redeclaring a function with a
+different explicit calling convention (an error in GNU C mode, a warning in
+GNU C++ mode; this matches GCC behavior).  For example:
+
+  __attribute((cdecl)) void f(int);
+  __attribute((stdcall)) void f(int) {}  // An error in GNU C mode; a warning
+                                         // in GNU C++ mode.
+
+Another consequence is that partial specialization for distinct calling
+conventions are now possible.  For example:
+
+  template<typename T> struct S;
+  template<typename T> struct S<__attribute((__cdecl__)) T (*)()> {};
+  template<typename T> struct S<__attribute((__stdcall__) T ()*)()> {};
+    // Now accepted in GNU C++ mode (previously, a redefinition error).
+
+In principle, the front end can handle overloading functions distinguished
+only by the calling convention of the parameters/arguments, but the supported
+ABIs do not encode the calling convention in mangled names.  For example:
+
+  void f(__attribute((cdecl)) void (*pf)()) {}
+  void f(__attribute((stdcall)) void (*pf)()) {}
+    // Accepted by the front end, but likely to result in linker errors or
+    // back-end errors because the mangled names of both functions are
+    // identical.
+
+This also matches GCC behavior
+
+
 7/14/11  [EDGcpfe/11923]
 Call in decltype in member template declaration treated as nondependent
 

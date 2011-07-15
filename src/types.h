@@ -748,10 +748,10 @@ typedef int a_type_compat_flags_set;
 extern a_boolean param_types_are_compatible(a_type_ptr              rout_type1,
                                             a_type_ptr              rout_type2,
                                             a_type_compat_flags_set flags);
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
 extern a_boolean calling_conventions_are_compatible(a_type_ptr type1,
                                                     a_type_ptr type2);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 extern a_boolean f_types_are_compatible(a_type_ptr              type_1,
                                         a_type_ptr              type_2,
                                         a_type_compat_flags_set flags);

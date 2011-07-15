@@ -5069,13 +5069,13 @@ check_typerefs:
                  together. */
               identical = (list1 == NULL && list2 == NULL);
             }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            if (identical && microsoft_mode) {
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
+            if (identical && (microsoft_mode || gnu_mode)) {
               /* The types are identical so far.  Check the calling
                  conventions. */
               identical = calling_conventions_are_compatible(type_1, type_2);
             }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
           }  /* if */
         }
         break;
@@ -5360,7 +5360,7 @@ done:;
   return compatible;  
 }  /* param_types_are_compatible */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
 
 a_boolean calling_conventions_are_compatible(a_type_ptr type1,
                                              a_type_ptr type2)
@@ -5401,7 +5401,7 @@ of member functions).
   return compatible;
 }  /* calling_conventions_are_compatible */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 
 a_boolean f_types_are_compatible(a_type_ptr              type_1,
                                  a_type_ptr              type_2,
@@ -5696,10 +5696,10 @@ check_typerefs:
                              (a_name_linkage_kind)rtsp1->routine_name_linkage,
                              (a_name_linkage_kind)rtsp2->routine_name_linkage,
                              is_impl_conv)
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                && (!microsoft_mode ||
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
+                && (!(microsoft_mode || gnu_mode) ||
                     calling_conventions_are_compatible(type_1, type_2))
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
                                                                        ))) {
               compat = TRUE;
             }  /* if */
@@ -6132,7 +6132,7 @@ that are not present in standalone back ends and utilities.
              together. */
           identical = (list1 == NULL && list2 == NULL);
         }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
         if (identical) {
           /* The types are identical so far.  Check the calling
              conventions.  (Note that this test simply checks that the
@@ -6143,7 +6143,7 @@ that are not present in standalone back ends and utilities.
              variable.) */
           identical = (rtsp1->calling_convention == rtsp2->calling_convention);
         }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
       }
       break;
     case tk_ptr_to_member:

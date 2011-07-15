@@ -4236,11 +4236,14 @@ Apply the GNU "cdecl" attribute to the given entity and return that entity.
   if (func_type != NULL) {
     a_routine_type_supplement_ptr  rtsp =
                                         func_type->variant.routine.extra_info;
-    if (rtsp->calling_convention == (a_calling_convention)cc_default) {
-      /* The GNU C compiler appears to ignore the cdecl attribute if
-         another calling convention is already specified. */
-      rtsp->calling_convention = (a_calling_convention)cc_cdecl;
+    if (rtsp->calling_convention != (a_calling_convention)cc_default &&
+        rtsp->calling_convention != (a_calling_convention)cc_cdecl) {
+      /* gcc issues an error on incompatible calling convention attributes,
+         but g++ silently keeps the cdecl convention. */
+      an_error_severity  sev = gpp_mode ? es_warning : es_error;
+      pos_diagnostic(sev, ec_conflicting_calling_conventions, &ap->position);
     }  /* if */
+    rtsp->calling_convention = (a_calling_convention)cc_cdecl;
   }  /* if */
   return entity;
 }  /* apply_cdecl_attr */
@@ -5236,7 +5239,13 @@ Apply the GNU "stdcall" attribute to the given entity and return that entity.
   if (func_type != NULL) {
     a_routine_type_supplement_ptr  rtsp =
                                         func_type->variant.routine.extra_info;
-    rtsp->calling_convention = (a_calling_convention)cc_stdcall;
+    if (rtsp->calling_convention == (a_calling_convention)cc_default) {
+      rtsp->calling_convention = (a_calling_convention)cc_stdcall;
+    } else if (rtsp->calling_convention != (a_calling_convention)cc_stdcall) {
+      /* gcc issues an error, but g++ silently keeps the cdecl convention. */
+      an_error_severity  sev = gpp_mode ? es_warning : es_error;
+      pos_diagnostic(sev, ec_conflicting_calling_conventions, &ap->position);
+    }  /* if */
   }  /* if */
   return entity;
 }  /* apply_stdcall_attr */

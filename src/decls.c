@@ -7292,13 +7292,14 @@ for use in generating cross-reference output describing this declaration.
             !types_are_compatible(routine_ptr->type, type_ptr)) {
           /* Error -- redeclaration requires type compatibility. */
           routines_compat = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
         } else if (microsoft_mode &&
                    !calling_conventions_are_compatible(routine_ptr->type,
                                                        type_ptr)) {
-          /* Error -- calling conventions are not compatible. */
+          /* Error -- calling conventions are not compatible.  (The GNU mode
+             test is delayed until attributes are applied.) */
           routines_compat = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
         } else if (!C_mode() && !func_info->is_main_function &&
                    !routine_name_linkages_are_compatible(routine_ptr->type,
                                                          type_ptr)) {
