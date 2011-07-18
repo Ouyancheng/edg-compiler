@@ -9347,6 +9347,7 @@ a pointer over a reference type or creating an array of references.
   a_variadic_param_info_ptr	saved_vpip_tail;
   a_type_ptr			orig_type = type;
   a_type_ptr			adjusted_orig_type = NULL;
+  a_routine_type_supplement_ptr	rtsp;
 
   db_enter(5, "copy_type_with_substitution");
 #if DEBUG
@@ -9592,6 +9593,19 @@ a pointer over a reference type or creating an array of references.
         options = options & ~CTWS_IS_PARTIAL_ORDER_CHECK;
         reusable_param_types = 0;
         first_new_type_for_param_types_list = NULL;
+        rtsp = type->variant.routine.extra_info;
+        /* Don't substitute the return type when doing partial ordering.
+           The types in the function type are substituted in the order in
+           which they appear in the source.  So a non-trailing return type
+           is substituted now.  A trailing one is substituted later. */
+        new_return_type = type->variant.routine.return_type;
+        if (!is_partial_order_check && !rtsp->trailing_return_type) {
+          new_return_type = copy_return_type_with_substitution(
+                                        new_return_type,
+                                        templ_arg_list, templ_param_list,
+                                        source_pos, options, copy_error,
+                                        ctws_state);
+        }  /* if */
         this_class = type->variant.routine.extra_info->this_class;
         if (this_class == NULL) {
           new_this_class = NULL;
@@ -9612,7 +9626,9 @@ a pointer over a reference type or creating an array of references.
             *copy_error = TRUE;
           }  /* if */
         }  /* if */
-        if (new_this_class != this_class) {
+        if (new_this_class != this_class ||
+            (!rtsp->trailing_return_type &&
+             new_return_type != type->variant.routine.return_type)) {
           /* A substitution was made on the return type or the this-param
              type, so a new routine type will be required. */
           goto make_new_type;
@@ -9656,7 +9672,7 @@ a pointer over a reference type or creating an array of references.
         }  /* if */
 #if EXPENSIVE_CHECKING
         /* The return type is not substituted when doing partial ordering. */
-        if (!is_partial_order_check) {
+        if (!is_partial_order_check && !rtsp->trailing_return_type) {
           /* Because we check for a dependent return type above, we should
              not end up with a different substituted type here. */
           a_type_ptr	orig_type = skip_typedefs(new_return_type);
@@ -9837,9 +9853,11 @@ make_new_type:
             ctws_state->variadic_param_info_tail = vpip;
           }  /* if */
         }  /* for */
-        new_return_type = type->variant.routine.return_type;
-        /* Don't substitute the return type when doing partial ordering. */
-        if (!is_partial_order_check) {
+        /* Don't substitute the return type when doing partial ordering.
+           The types in the function type are substituted in the order in
+           which they appear in the source.  So a non-trailing return type
+           was substituted above.  A trailing one is substituted now. */
+        if (!is_partial_order_check && rtsp->trailing_return_type) {
           new_return_type = copy_return_type_with_substitution(
                                         new_return_type,
                                         templ_arg_list, templ_param_list,

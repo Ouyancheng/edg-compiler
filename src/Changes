@@ -1,5 +1,27 @@
 Version 4.4
 
+7/18/11  [EDGcpfe/11924]
+Change in order of return type substitution can cause errors
+
+Version 4.3 changed the order in which types were substituted in templates.
+Formerly, the return type was substituted before the function parameters.
+In 4.3 the return type was substituted after the function parameters to
+handle trailing return types.  This could cause hard errors in
+cases where SFINAE is supposed to discard a function based on the return
+type.  Now, only trailing return types are substituted after the
+parameter list.  In other words, the types are substituted in the order
+in which they appear in the source.  With version 4.3, the example below
+causes the instantiation of A<int>, which then results in an error on
+the "T::Y" in the typedef.
+
+  template <typename T> struct A { typedef typename T::Y Y; };
+  template <typename T> typename T::X f(T, typename A<T>::Y);
+  void f(...){}
+  int main() {
+    f(1, 2);
+  }
+
+
 7/15/11  [EDGcpfe/11928]
 GNU compatibility: Calling convention attributes
 
