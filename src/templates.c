@@ -20925,7 +20925,7 @@ scanned yet.
   /* Go through the current list of constraints to check for a conflict. */
   for (gcp = curr_list; gcp != NULL; gcp = gcp->next) {
     if (gcp->kind == kind && gcp != naked_type_gcp) {
-      if (type != NULL && identical_types(gcp->type, type)) {
+      if (type == NULL || identical_types(gcp->type, type)) {
         if (naked_type_gcp == NULL) {
           /* Two identical constraints.  Issue an error.  This is allowed
              if the redundant constraint is brought in via a naked type
