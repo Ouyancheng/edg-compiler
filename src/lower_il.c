@@ -2380,6 +2380,10 @@ by lowering (as opposed to that resulting from direct lowering of source code).
                                 integer_type((an_integer_kind)ik_int),
                                 make_operands_for_ne_0(expr));
     lower_ne_0_normalization(result);
+  } else {
+    /* This boolean controlling expression is not being normalized -- mark
+       it as such. */
+    expr->is_non_normalized_boolean_controlling_expr = TRUE;
   }  /* if */
   return result;
 }  /* boolean_controlling_expr */
@@ -14984,6 +14988,10 @@ a 0/1 value.  This routine is called for both C and C++ expressions.
           normalize_boolean_controlling_expr_if_needed(expr);
         }  /* if */
       }  /* if */
+    } else {
+      /* This boolean controlling expression is not being normalized -- mark
+         it as such. */
+      expr->is_non_normalized_boolean_controlling_expr = TRUE;
     }  /* if */
   }  /* if */
   if (object_lifetime != NULL) {

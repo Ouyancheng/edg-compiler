@@ -13378,17 +13378,28 @@ nodes are the same.
 {
   an_expr_node_ptr node_next;
   a_boolean        result_is_not_used;
+#if DO_IL_LOWERING
+  a_boolean        is_non_normalized_boolean_controlling_expr;
+#endif /* DO_IL_LOWERING */
 
   if (node != source_node) {
-    /* Copy the node.  Preserve the original "next" field and the 
-       result_is_not_used flag. */
+    /* Copy the node.  Preserve the original "next" field, result_is_not_used,
+       and is_non_normalized_boolean_controlling_expr flags. */
     node_next = node->next;
     result_is_not_used = node->result_is_not_used;
+#if DO_IL_LOWERING
+    is_non_normalized_boolean_controlling_expr =
+                              node->is_non_normalized_boolean_controlling_expr;
+#endif /* DO_IL_LOWERING */
     /* Note that the new/delete supplement from the source node is used
        by the destination node; no copy is needed. */
     *node = *source_node;
     node->next = node_next;
     node->result_is_not_used = result_is_not_used;
+#if DO_IL_LOWERING
+    node->is_non_normalized_boolean_controlling_expr =
+                                    is_non_normalized_boolean_controlling_expr;
+#endif /* DO_IL_LOWERING */
     if (result_is_not_used) set_expr_result_not_used(node);
   }  /* if */
 }  /* overwrite_node */

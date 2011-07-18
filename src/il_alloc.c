@@ -3014,6 +3014,9 @@ its kind to the indicated kind.
   node->is_safe_cast = FALSE;
   node->element_of_cli_param_array_arg = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if DO_IL_LOWERING
+  node->is_non_normalized_boolean_controlling_expr = FALSE;
+#endif /* DO_IL_LOWERING */
 #if CENTERLINE_CHECKING
   node->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

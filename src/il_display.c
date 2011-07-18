@@ -3655,6 +3655,11 @@ Display the indicated expression node.
     disp_boolean("element_of_cli_param_array_arg", TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if DO_IL_LOWERING
+  if (ptr->is_non_normalized_boolean_controlling_expr) {
+    disp_boolean("is_non_normalized_boolean_controlling_expr", TRUE);
+  }  /* if */
+#endif /* DO_IL_LOWERING */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:

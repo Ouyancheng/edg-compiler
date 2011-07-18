@@ -667,11 +667,14 @@ an expression during inlining.  See whether it should be adjusted, e.g.,
 because of remapped variables.
 */
 {
-  an_expr_node_kind                     kind = expr->kind;
-  a_type_ptr                            expr_type = expr->type;
-  a_variable_remapping_for_inlining_ptr vrip;
-  a_constant_ptr                        con;
-  an_expr_node_ptr                      constant_expr;
+  an_expr_node_kind     kind = expr->kind;
+  a_type_ptr            expr_type = expr->type;
+  a_variable_remapping_for_inlining_ptr
+                        vrip;
+  a_constant_ptr        con;
+  an_expr_node_ptr      constant_expr;
+  a_constant            constant;
+  a_boolean             is_non_null, has_constant_value = FALSE;
 
   if (kind == (an_expr_node_kind)enk_variable) {
     if (expr->is_lvalue) {
@@ -736,8 +739,6 @@ because of remapped variables.
     an_expr_node_ptr      operand = expr->variant.operation.operands;
     an_expr_node_ptr      operand2 = operand->next;
     a_constant_ptr        con2 = NULL;
-    a_constant            constant;
-    a_boolean             has_constant_value = FALSE;
     if (is_constant_node(operand) &&
         (operand2 == NULL || is_constant_node(operand2))) {
       /* The operands are constant. */
@@ -837,7 +838,6 @@ because of remapped variables.
       /* A special case where we can do folding even with a nonconstant
          operand: &variable != 0 is always 1.  The "== 0" case is
          always 0. */
-      a_boolean is_non_null;
       if (is_constant_valued_expression(operand,
                                         /*local_vars_change=*/TRUE,
                                         /*other_vars_change=*/TRUE,
@@ -860,15 +860,33 @@ because of remapped variables.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (has_constant_value) {
-      /* Replace the expression by a constant value. */
-      constant.type = expr_type;
-      /* Avoid problems like a function-scope constant pointing to a file-scope
-         backing expression. */
-      constant.expr = NULL;
-      set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
-      expr->variant.constant = alloc_shareable_constant(&constant);
+  }  /* if */
+  if (expr->is_non_normalized_boolean_controlling_expr) {
+    /* Non-normalized boolean controlling expressions have an implied "!= 0",
+       so check the inlined expression to see if it has a constant, non-zero
+       value, and if it does, replace the expression with a "1".  This is
+       similar to the eok_ne test above (which often replaces this test in
+       configurations where LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS
+       is TRUE). */
+    if (is_constant_valued_expression(expr,
+                                      /*local_vars_change=*/TRUE,
+                                      /*other_vars_change=*/TRUE,
+                                      /*this_cannot_be_null=*/TRUE,
+                                      &is_non_null) &&
+        is_non_null) {
+      has_constant_value = TRUE;
+      set_integer_constant(&constant, (a_host_large_integer)1L,
+                           (an_integer_kind)ik_int);
     }  /* if */
+  }  /* if */
+  if (has_constant_value) {
+    /* Replace the expression by a constant value. */
+    constant.type = expr_type;
+    /* Avoid problems like a function-scope constant pointing to a file-scope
+       backing expression. */
+    constant.expr = NULL;
+    set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
+    expr->variant.constant = alloc_shareable_constant(&constant);
   }  /* if */
 }  /* adjust_copied_expression_for_inlining */
 

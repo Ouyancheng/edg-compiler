@@ -13428,15 +13428,21 @@ typedef struct an_expr_node {
 			   for an aggregate (there's an is_pack_expansion flag
 			   also in a_constant). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      a_bit_field
-		is_safe_cast:1;
+  a_bit_field	is_safe_cast:1;
 			/* TRUE when the operation is a C++/CLI safe_cast
 			   in the source.  Similar to is_static_cast. */
-  a_bit_field
-		element_of_cli_param_array_arg:1;
+  a_bit_field	element_of_cli_param_array_arg:1;
 			/* TRUE when this is an argument matching a
 			   C++/CLI parameter array. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if DO_IL_LOWERING
+  a_bit_field	is_non_normalized_boolean_controlling_expr:1;
+			/* TRUE when this expression is a boolean controlling
+			   expression that has not been normalized during the
+			   lowering process (presumably because
+			   LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS
+			   is FALSE). */
+#endif /* DO_IL_LOWERING */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == enk_error or enk_address_of_ellipsis, no variant fields. */
