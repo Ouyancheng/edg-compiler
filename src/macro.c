@@ -3672,6 +3672,8 @@ associated global variables will also have been set).
 			   parameters beyond that, a slow linear search
 			   is used. */
   a_macro_arg_ptr arg_values[ARG_VALUES_SIZE];
+  a_source_line_modif_ptr
+                  invocation_slmp = NULL;
 #if FULLY_RESOLVED_MACRO_POSITIONS
   a_text_map_position_tracker
                   tracker;
@@ -3683,8 +3685,6 @@ associated global variables will also have been set).
   sizeof_t        first_text_map_entry;
   sizeof_t        ending_src_offset;
   sizeof_t        bytes_before_token;
-  a_source_line_modif_ptr
-                  invocation_slmp = NULL;
   a_source_position
                   lparen_pos;
   a_macro_invocation_record_index
@@ -3848,9 +3848,7 @@ end_scan_for_macro_modifs:;
        see if it's associated with the macro we are about to expand.  If
        so, the macro name is inert and should be left alone. */
     slmp = assoc_source_line_modif(temp_ptr);
-#if FULLY_RESOLVED_MACRO_POSITIONS
     invocation_slmp = slmp;
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 #if MACRO_INVOCATION_TREE_IN_IL
     parent_macro_invocation_record = slmp->invocation_record;
     macro_invocation_stack_depth = slmp->invocation_depth + 1;
