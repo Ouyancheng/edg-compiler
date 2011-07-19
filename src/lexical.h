@@ -1210,6 +1210,12 @@ typedef struct a_source_line_modif {
 			   (beginning at line_loc).  Greater than zero
 			   (except that when line_loc == NULL, this is
 			   zero). */
+  sizeof_t	num_deleted_chars;
+			/* The number of characters in inserted_text that
+			   have been replaced by a nested source line
+			   modification (less one for the ATTENTION_MARKER)
+			   and thus would be reclaimed if the macro buffer
+			   were compacted. */
   a_bit_field	is_isolated_text:1;
 			/* TRUE if this modification's text isn't connected
 			   to the surrounding context.  When the end of the

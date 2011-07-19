@@ -2691,6 +2691,7 @@ invocations.
   slmp->line_loc            = line_loc;
   slmp->parent_modif        = NULL;
   slmp->num_chars_to_delete = num_chars_to_delete;
+  slmp->num_deleted_chars   = 0;
   slmp->is_isolated_text    = FALSE;
   slmp->is_for_comment      = FALSE;
   slmp->parent_modif_determined

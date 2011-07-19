@@ -1,5 +1,15 @@
 Version 4.4
 
+7/19/11  [EDGcpfe/11932]
+Memory corruption during preprocessing
+
+The calculation of the amount of space available in the macro buffer during
+preprocessing was faulty, leading to undetected buffer overflows and
+consequent memory corruption while processing some extremely complex
+patterns of macro invocations (such as those found in the Boost
+preprocessor library, for example).  This is now fixed.
+
+
 7/18/11  [EDGcpfe/11906]
 Assertion failure during inlining
 

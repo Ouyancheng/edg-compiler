@@ -1551,6 +1551,8 @@ ensure_macro_buffer_space.
   after_end_of_macro_buffer = macro_buffer + new_size;
   next_avail_in_macro_buffer = dst;
   num_chars_deleted_in_macro_buffer = 0;
+  check_assertion(after_end_of_macro_buffer - next_avail_in_macro_buffer >
+                                                                       needed);
   db_exit();
 }  /* expand_macro_buffer */
 
@@ -3566,6 +3568,52 @@ hence its name should not be changed.
 }  /* length_of_replacement_text */
 
 
+static void adjust_deletion_counts(a_source_line_modif_ptr slmp,
+                                   char                    *line_loc,
+                                   sizeof_t                deletion_len)
+/*
+A macro invocation is being replaced by its expansion.  If the text of the
+macro invocation (located at line_loc) is in the part of the macro buffer
+that is subject to compaction, adjust the running count of deleted text in
+the buffer to account for the removal of deletion_len characters (less one
+for the ATTENTION_MARKER character, which will remain after compaction).
+If slmp is non-NULL, adjust its running count of deleted characters as
+well.
+*/
+{
+  if (ptr_in_range(line_loc, macro_buffer + num_compacted_macro_buffer_chars,
+                   after_end_of_macro_buffer)) {
+    /* The text being replaced is in the portion of macro_buffer that is
+       subject to compaction. */
+    if (slmp != NULL) {
+      if (memchr(line_loc + 1, ATTENTION_MARKER, deletion_len - 1) != NULL) {
+        /* The text being replaced already contains a replacement, so this
+           replacement supersedes that one.  Remove the portion of the
+           count of deleted characters in macro_buffer due to the earlier
+           replacement and substitute this count for the previous one in
+           the source line modification.  (Note: this is a conservative
+           calculation and will underestimate the number of deleted
+           characters in macro_buffer if there are other replacements in
+           the inserted text of this modification outside the range of the
+           new replacement.  That is a safe error, however, since it only
+           means that macro_buffer might be expanded when it could
+           otherwise simply have been compacted.  It is thus not worth the
+           time and complexity to get the count exactly right in this
+           case.) */
+        num_chars_deleted_in_macro_buffer -= slmp->num_deleted_chars;
+        slmp->num_deleted_chars = deletion_len - 1;
+      } else {
+        /* Any previous deletions in this modification's inserted text are
+           outside the range currently being replaced, so this deletion
+           count is in addition to those. */
+        slmp->num_deleted_chars += deletion_len - 1;
+      }  /* if */
+      num_chars_deleted_in_macro_buffer += deletion_len - 1;
+    }  /* if */
+  }  /* if */
+}  /* adjust_deletion_counts */
+
+
 a_token_kind macro_invocation(a_symbol_ptr  macro_symbol,
                               a_boolean     *rescan)
 /*
@@ -4591,6 +4639,27 @@ scan_expanded_tokens:
               slmp = slmp->next;
               if (slmp2->sequence_id > sequence_id) {
                 /* Found a modification to this argument.  Remove it. */
+                if (ptr_in_range(
+                               slmp2->line_loc,
+                               macro_buffer + num_compacted_macro_buffer_chars,
+                               after_end_of_macro_buffer)) {
+                  /* The modification contributed to the count of deleted
+                     characters in the macro buffer; reverse that
+                     contribution and, if the parent modification is still
+                     extant, update its count of deleted characters as
+                     well. */
+                  a_source_line_modif_ptr parent_slmp =
+                        assoc_source_line_modif_full(slmp2->line_loc,
+                                                     /*failure_allowed=*/TRUE);
+                  num_chars_deleted_in_macro_buffer -=
+                                                slmp2->num_chars_to_delete - 1;
+                  if (parent_slmp != NULL) {
+                    check_assertion(parent_slmp->num_deleted_chars >=
+                                    slmp2->num_chars_to_delete - 1);
+                    parent_slmp->num_deleted_chars -=
+                                                slmp2->num_chars_to_delete - 1;
+                  }  /* if */
+                }  /* if */
                 rem_source_line_modif(slmp2);
                 free_source_line_modif(&slmp2);
               }  /* if */
@@ -4771,14 +4840,8 @@ end_arg_expansion:;
                             (sizeof_t)(curr_char_loc - delete_source_from_loc),
                             rescan_loc, src_loc);
           slmp->is_isolated_text = TRUE;
-          if (ptr_in_range(delete_source_from_loc,
-                           macro_buffer + num_compacted_macro_buffer_chars,
-                           after_end_of_macro_buffer)) {
-            /* Keep count of storage in macro_buffer no longer needed ("-1"
-               allows for the ATTENTION_MARKER, which must remain). */
-            num_chars_deleted_in_macro_buffer +=
-                                    curr_char_loc - delete_source_from_loc - 1;
-          }  /* if */
+          adjust_deletion_counts(invocation_slmp, delete_source_from_loc,
+                                 slmp->num_chars_to_delete);
           slmp->source_position = start_pos;
 #if FULLY_RESOLVED_MACRO_POSITIONS
           /* Add a terminal entry to macro_text_map and point the source line
@@ -5207,14 +5270,8 @@ copy_done:
                                                        delete_source_from_loc),
                                rescan_loc, rescan_loc + repl_text_len +
                                space_for_end_of_top_level_expansion_escape);
-  if (ptr_in_range(delete_source_from_loc,
-                   macro_buffer + num_compacted_macro_buffer_chars,
-                   after_end_of_macro_buffer)) {
-    /* Keep count of storage in macro_buffer no longer needed ("-1" allows
-       for the ATTENTION_MARKER, which must remain). */
-    num_chars_deleted_in_macro_buffer +=
-                                    curr_char_loc - delete_source_from_loc - 1;
-  }  /* if */
+  adjust_deletion_counts(invocation_slmp, delete_source_from_loc,
+                         slmp->num_chars_to_delete);
   slmp->assoc_macro = mdp;
   slmp->source_position = start_pos;
 #if FULLY_RESOLVED_MACRO_POSITIONS
