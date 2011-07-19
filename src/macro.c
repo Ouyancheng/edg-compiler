@@ -1551,8 +1551,8 @@ ensure_macro_buffer_space.
   after_end_of_macro_buffer = macro_buffer + new_size;
   next_avail_in_macro_buffer = dst;
   num_chars_deleted_in_macro_buffer = 0;
-  check_assertion(after_end_of_macro_buffer - next_avail_in_macro_buffer >
-                                                                       needed);
+  check_assertion((sizeof_t)(after_end_of_macro_buffer -
+                             next_avail_in_macro_buffer) > needed);
   db_exit();
 }  /* expand_macro_buffer */
 
