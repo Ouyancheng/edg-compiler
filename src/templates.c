@@ -21023,7 +21023,10 @@ designate a valid type in this context.  Otherwise, return the indicated type.
     } else if (is_cli_interface_type(type)) {
       /* The usual case. */
     } else if (is_ref_class_type(type)) {
-      /* Ref classes are okay if they are not sealed. */
+      /* Ref classes are okay if they are not sealed.  complete_type_is_needed
+         is not used here because it can cause premature completion of
+         certain types loaded from metadata. */
+      complete_template_instance_is_needed(type);
       if (skip_typerefs(type)->variant.class_struct_union.final) {
         pos_error(ec_sealed_constraint, &loc->source_position);
         type = NULL;

@@ -240,6 +240,21 @@ extern void symbol_ref_one_time_init(void);
   record_complete_class_type_needed(tp);                                \
 }
 
+/*
+If tp is an real instance of a class template, make sure it is fully
+instantiated.
+*/
+#define complete_template_instance_is_needed(tp)			\
+{									\
+  a_type_ptr	cti_type;						\
+  cti_type = skip_typerefs(tp);						\
+  if (is_unspecialized_template_class(cti_type) &&			\
+      !cti_type->variant.class_struct_union.is_nonreal_class &&		\
+      !is_cli_generic_instance_type(cti_type)) {			\
+    complete_class_type_is_needed(cti_type);				\
+  }  /* if */								\
+}  /* complete_template_instance_is_needed */
+
 /* If the variable is a template static data member with an incomplete
    array size, attempt an instantiation of the static data member so
    that the size of the variable can be known. */
