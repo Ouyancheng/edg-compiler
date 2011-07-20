@@ -1,5 +1,15 @@
 Version 4.4
 
+7/20/11  [EDGcpfe/11937]
+Error message when reading a PCH file that is incomplete
+
+When using a precompiled header file that is incomplete (presumably because
+another process is currently writing to it), a catastrophic error
+(check_if_fill_in_used: provided diagnostic fill-in was not used) had been
+issued.  Now, a more appropriate warning diagnostic is used (and the PCH
+file is ignored).
+
+
 7/19/11  [EDGcpfe/11932]
 Memory corruption during preprocessing
 

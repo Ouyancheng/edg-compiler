@@ -1650,7 +1650,7 @@ written.
 */
 {
   a_boolean	match = FALSE;
-  a_boolean	is_complete;
+  a_boolean	is_complete = FALSE;
 
   /* We don't use fread_with_check here because we want to handle
      read errors more gracefully.  After all, we don't yet know
@@ -1670,6 +1670,11 @@ written.
   if (!fread_with_status(&is_complete, sizeof(is_complete), f_pch_input)) {
     /* The read failed - the file must not be complete. */
     is_complete = FALSE;
+  }  /* if */
+  if (!is_complete) {
+    /* Either a read error or the file is still being written, either way
+       the file is incomplete and should not be used. */
+    mismatch_reason = ec_pch_file_incomplete;
   }  /* if */
   return match && is_complete;
 }  /* id_string_matches */
