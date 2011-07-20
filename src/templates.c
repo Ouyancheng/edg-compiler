@@ -17540,7 +17540,8 @@ Make the string version of the template specified by sym and tssp.
         split_token_cache(&decl_state->decl_token_cache, &dummy_cache,
                           tsn_to_split,
                           /*include_prev_token=*/FALSE,
-                          /*okay_if_not_found=*/FALSE);
+                          /*okay_if_not_found=*/FALSE,
+                          /*update_cache_being_scanned=*/FALSE);
         discard_token_cache(&dummy_cache);
       } /* if */
     }  /* if */
@@ -17946,7 +17947,8 @@ template symbol supplement for this template should be returned to the caller.
     split_token_cache(&decl_state->decl_token_cache,
                       p_token_cache, split_location,
                       /*include_prev_token=*/has_parenthesized_initializer,
-                      /*okay_if_not_found=*/FALSE);
+                      /*okay_if_not_found=*/FALSE,
+                      /*update_cache_being_scanned=*/FALSE);
     /* Skip over the tokens that are already part of the token cache. */
     clear_token_set_array(stop_tokens);
     incr_token_set_array_element(stop_tokens, tok_lbrace);
@@ -19385,7 +19387,8 @@ alias
       split_token_cache(&decl_state->decl_token_cache,
                         &dummy_cache, split_location,
                         /*include_prev_token=*/FALSE,
-                        /*okay_if_not_found=*/total_errors != 0);
+                        /*okay_if_not_found=*/total_errors != 0,
+                        /*update_cache_being_scanned=*/FALSE);
       discard_token_cache(&dummy_cache);
     } else {
       discard_token_cache(p_token_cache);
@@ -19475,7 +19478,8 @@ any non-empty template parameter lists that were scanned.
                     &decl_state->decl_token_cache,
                     curr_token_sequence_number,
                     /*include_prev_token=*/FALSE,
-                    /*okay_if_not_found=*/TRUE);
+                    /*okay_if_not_found=*/TRUE,
+                    /*update_cache_being_scanned=*/TRUE);
   /* Skip over any pragma entries for purposes of the following test. */
   ctp = decl_state->decl_token_cache.first_token;
   while (ctp != NULL &&

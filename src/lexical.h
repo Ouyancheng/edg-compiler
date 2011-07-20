@@ -1915,7 +1915,8 @@ void split_token_cache(a_token_cache	       *cache1,
                        a_token_cache	       *cache2,
                        a_token_sequence_number split_location,
                        a_boolean	       include_prev_token,
-                       a_boolean	       okay_if_not_found);
+                       a_boolean	       okay_if_not_found,
+                       a_boolean               update_cache_being_scanned);
 
 /* Move a list of tokens from one cache to another. */
 extern

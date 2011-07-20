@@ -1489,7 +1489,7 @@ If include_last_token is TRUE, last_tsn is included in the cache.
      split into two tokens.  The code below will copy the ">>" and the copied
      token will then be adjusted to a ">". */
   adjust_final_token = last_tsn != NO_TOKEN_SEQUENCE_NUMBER &&
-                       ctp->token_sequence_number > last_tsn;
+                       ctp->token_sequence_number == (last_tsn - 1);
   /* Copy the specified range of tokens to the destination cache. */
   for (ctp = first_ctp_to_copy; ctp != last_ctp_to_copy; ctp = ctp->next) {
     /* Make a copy of the token to be added. */
@@ -2014,7 +2014,8 @@ void split_token_cache(a_token_cache	       *cache1,
                        a_token_cache	       *cache2,
                        a_token_sequence_number split_location,
                        a_boolean	       include_prev_token,
-                       a_boolean	       okay_if_not_found)
+                       a_boolean	       okay_if_not_found,
+                       a_boolean               update_cache_being_scanned)
 /*
 Split cache1 into two pieces.  cache1 will contain all the tokens up
 to the one that precedes the token number specified by split location.
@@ -2022,7 +2023,10 @@ cache2 will contain all the tokens that follow.  If incldue_prev_token
 is TRUE, we should include the token before the split location in the tokens
 that are moved to cache2.  okay_if_not_found is TRUE if it is okay
 if the split location is not found.  This suppresses an internal
-error.
+error.  If update_cache_being_scanned is TRUE, this routine is being
+called at what will be the new break between cache1 and cache2.  In that
+case, update the reusable cache stack to indicate that we are now scanning
+cache2.
 */
 {
   a_cached_token_ptr		ctp;
@@ -2087,6 +2091,16 @@ error.
   /* Add a new terminator to the end of the original. */
   terminate_token_cache(cache1);
 exit:
+  if (update_cache_being_scanned) {
+    /* We were scanning cache1, but now that we have split the cache we are
+       scanning from cache2.  Update the reusable cache stack accordingly. */
+    if (reusable_cache_stack != NULL &&
+        reusable_cache_stack->token_cache == cache1) {
+      reusable_cache_stack->token_cache = cache2;
+    } else {
+      expect_error();
+    }  /* if */
+  }  /* if */
   return;
 }  /* split_token_cache */
 
@@ -2137,16 +2151,20 @@ The token cache *cache has been built but is not needed; free the cached
 tokens therein and clear the cache.
 */
 {
-  a_cached_token_ptr ctp, ctp_next;
+  a_cached_token_ptr		ctp;
+  a_cached_token_ptr		ctp_next;
+  a_reusable_cache_entry_ptr	rcep;
 
-  if (reusable_cache_stack != NULL &&
-      reusable_cache_stack->token_cache == cache) {
+  for (rcep = reusable_cache_stack; rcep != NULL; rcep = rcep->next) {
+    if (rcep->token_cache == cache) break;
+  }  /* for */
+  if (rcep != NULL) {
     /* The token cache is still being rescanned as a reusable cache.
        Defer the discarding until the cache has been fully scanned. */
-    reusable_cache_stack->discard_cache_when_done = TRUE;
+    rcep->discard_cache_when_done = TRUE;
     /* Make a copy of the token cache as the original might be freed or on
        the stack. */
-    reusable_cache_stack->copy_of_token_cache = *cache;
+    rcep->copy_of_token_cache = *cache;
   } else {
 #if DEBUG
     /* This cache was marked as reusable but is now being discarded.

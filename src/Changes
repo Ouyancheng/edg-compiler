@@ -1,5 +1,26 @@
 Version 4.4
 
+7/20/11  [EDGcpfe/11939]
+Spurious errors following error in template declaration
+
+Version 4.3 introduced a problem that could result in spurious errors
+or warnings following other errors in template declarations.  This occurred
+rarely and typically involved syntax errors in the template parameter
+clause portion of the template declaration.  Now fixed.  The example
+below is expected to get two errors on the static data member
+definition.  In version 4.3 it would also get spurious "warning:
+parsing restarts here after previous syntax error" pointing to the ";"
+on line 4.
+
+
+  template <class T> struct A {
+    template <class U> struct B {
+      static char* c;
+    }; // line 4
+  };
+  template <class T> <class U> char* A<T>::B<U>::c = "hello";
+
+
 7/20/11  [EDGcpfe/11937]
 Error message when reading a PCH file that is incomplete
 
