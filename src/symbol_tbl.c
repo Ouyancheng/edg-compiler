@@ -2296,7 +2296,6 @@ static method.  The list is returned in *p_hide_by_sig_list.
   } else if (is_class ||
              parent_ctsp->cli_class_type_kind ==
                                       (a_cli_class_type_kind)cctk_interface) {
-    a_hide_by_sig_list_entry_ptr	list_tail = NULL;
     a_hide_by_sig_state			hbss;
     a_hide_by_sig_list_entry_ptr	sublist;
     a_hide_by_sig_list_entry_ptr	sublist_tail;
@@ -2308,14 +2307,7 @@ static method.  The list is returned in *p_hide_by_sig_list.
                                          parent_type, /*level=*/0,
                                          &any_entries_at_level,
                                          (a_base_class_ptr)NULL);
-    if (sublist != NULL) {
-       if (result_list == NULL) {
-          result_list = sublist;
-       } else {
-         list_tail->next = sublist;
-       }  /* if */
-       list_tail = sublist_tail;
-    }  /* if */
+    result_list = sublist;
     if (hbss.suppress_hide_by_sig) {
       /* Hide-by-sig lookup should be suppressed (e.g., a base interface
          contains a static method).  Return NULL. */
