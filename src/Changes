@@ -1,5 +1,14 @@
 Version 4.4
 
+7/21/11  [EDGcpfe/11929]
+C-generating back end: use of typedef before it is defined
+
+In some complex programs, the C-generating back end could put out a reference
+to a typedef for an array type before putting out the definition of the
+typedef, resulting in code that could not be compiled by the target C
+compiler.  This has now been fixed.
+
+
 7/20/11  [EDGcpfe/11939]
 Spurious errors following error in template declaration
 

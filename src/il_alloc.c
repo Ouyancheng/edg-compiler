@@ -1847,11 +1847,11 @@ variant fields to default values.
   pte->typedef_pending = FALSE;
   pte->generated_as_empty_struct = FALSE;
 #endif /* BACK_END_IS_C_GEN_BE */
+  pte->typedef_definition_has_been_put_out = FALSE;
 #if BACK_END_IS_CP_GEN_BE
   pte->has_been_declared = FALSE;
   pte->definition_delayed = FALSE;
   pte->elaborated_type_specifier_needed = FALSE;
-  pte->typedef_definition_has_been_put_out = FALSE;
   pte->replace_by_generated_typedef = FALSE;
   pte->typedef_for_vacuous_dtor_call_put_out = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED

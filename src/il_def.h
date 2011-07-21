@@ -7176,6 +7176,10 @@ typedef struct a_type {
 			   generates the corresponding struct as empty.  See
 			   USE_EMPTY_STRUCT_IN_GENERATED_C for details. */
 #endif /* BACK_END_IS_C_GEN_BE */
+  a_bit_field	typedef_definition_has_been_put_out:1;
+			/* TRUE if this type is a typedef and its definition
+			   has been put out.  Used only within the C- and
+			   C++-generating back ends. */
 #if BACK_END_IS_CP_GEN_BE
   a_bit_field	has_been_declared:1;
 			/* Initially FALSE and set to TRUE when the type has
@@ -7193,10 +7197,6 @@ typedef struct a_type {
 			/* An elaborated type specifier (e.g., "class X")
 			   is needed when referring to this type.  Used only
 			   within the C++-generating back end. */
-  a_bit_field	typedef_definition_has_been_put_out:1;
-			/* TRUE if this type is a typedef and its definition
-			   has been put out.  Used only within the
-			   C++-generating back end. */
   a_bit_field	replace_by_generated_typedef:1;
 			/* TRUE if references to this type should be replaced
 			   by references to a generated typedef.  This is used

@@ -2643,6 +2643,7 @@ Print a typedef declaration.
     }  /* if */
     end_unreferenced_bracket(&type->source_corresp);
   }  /* if */
+  type->typedef_definition_has_been_put_out = TRUE;
 }  /* dump_typedef_decl */
 
 
@@ -6112,11 +6113,12 @@ static a_boolean is_typedef_invisible_in_c_gen_be(a_type_ptr type)
 /*
 Routine called from the il_to_str routines to determine whether a typedef's
 name or its underlying type should be put out.  The typedef will be
-considered "invisible" if its declaration has been deferred pending the
-definition of a struct to which it refers.
+considered "invisible" if its declaration has not yet been put out (for
+example, if it has been deferred pending the definition of a struct to
+which it refers).
 */
 {
-  return type->typedef_pending;
+  return !type->typedef_definition_has_been_put_out;
 }  /* is_typedef_invisible_in_c_gen_be */
 
 #if CHECKING
