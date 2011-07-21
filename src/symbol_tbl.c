@@ -2154,17 +2154,19 @@ It will be NULL for the most derived class.
       } else {
         rout_sym = result_sym;
       }  /* if */
-      if (rout_sym->kind == (a_symbol_kind)sk_function_template) {
-        rout_type = rout_sym->variant.template_info->
+      if (!is_static_in_interface) {
+        if (rout_sym->kind == (a_symbol_kind)sk_function_template) {
+          rout_type = rout_sym->variant.template_info->
                                                 variant.function.routine->type;
-      } else {
-        rout_type = rout_sym->variant.routine.ptr->type;
-      }  /* if */
-      if (!routine_type_is_nonstatic_member_function(rout_type)) {
-        /* We either have a non-mixed list (so all the list entries are either
-           static or nonstatic) or a single symbol.  So we can just
-           look at the first entry (or the single symbol). */
-        is_static_in_interface = TRUE;
+        } else {
+          rout_type = rout_sym->variant.routine.ptr->type;
+        }  /* if */
+        if (!routine_type_is_nonstatic_member_function(rout_type)) {
+          /* We either have a non-mixed list (so all the list entries are
+             either static or nonstatic) or a single symbol.  So we can just
+             look at the first entry (or the single symbol). */
+          is_static_in_interface = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (is_static_in_interface) {
