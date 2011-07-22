@@ -697,6 +697,36 @@ output in the way described by octl.
       /* Suppress the qualifier for lambda closure classes. */
       form_qualifier(scp->parent_scope, octl);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (kind == iek_routine && cppcli_enabled) {
+      a_routine_ptr			rp = (a_routine_ptr)scp;
+      a_property_or_event_descr_ptr	pedp = NULL;
+      /* Determine if this routine has an associated property or event. */
+      switch (rp->special_kind) {
+        case sfk_property_get:
+        case sfk_property_set:
+        case sfk_event_add:
+        case sfk_event_remove:
+        case sfk_event_raise:
+          pedp = rp->variant.property_or_event_descr;
+          break;
+        default:
+          break;
+      }  /* switch */
+      /* If the routine has an associated property that is not a default
+         indexed property, include the property name as part of the name. */
+      if (pedp != NULL && !pedp->is_default_indexed) {
+        if (pedp->is_static) {
+          form_unqualified_name(&pedp->variant.variable->source_corresp,
+                                iek_variable, octl);
+        } else {
+          form_unqualified_name(&pedp->variant.field->source_corresp,
+                                iek_variable, octl);
+        }  /* if */
+        octl->output_str("::", octl);
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Output the base name. */
     form_unqualified_name(scp, kind, octl);
   }  /* if */
