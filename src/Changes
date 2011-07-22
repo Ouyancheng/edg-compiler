@@ -1,5 +1,34 @@
 Version 4.4
 
+7/22/11  [EDGcpfe/11934]
+Assertion failures in mangling with PROTOTYPE_INSTANTIATIONS_IN_IL
+
+In configurations where both PROTOTYPE_INSTANTIATIONS_IN_IL and
+MANGLE_ALL_NAMES are TRUE, an unnamed type in a class template could result
+in an assertion failure (mangled_class_encoding: tptk_member has no name);
+for example (with --g++):
+
+  template <class T> struct A {
+    struct {
+      int i;
+    } s;
+    int f() { return s.i; }
+  };
+
+Also, template parameters used in certain expressions had also caused
+assertion failures (mangled_encoding_for_type: bad tk_template_param kind);
+for example (with --g++):
+
+  template <int I> struct A {
+    typedef int X;
+  };
+  template <class T> int f(T t) {
+    return A<sizeof(*t)>::X();
+  }
+
+These are now fixed.
+
+
 7/21/11  [EDGcpfe/11929]
 C-generating back end: use of typedef before it is defined
 

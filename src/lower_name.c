@@ -6874,8 +6874,12 @@ that fact should be put out.
           /* For something like T::x, where T is a template parameter, just
              put out "x" here. */
           name = unmangled_or_fabricated_name_of(&type->source_corresp);
-          check_assertion_str(name != NULL,
-                            "mangled_class_encoding: tptk_member has no name");
+          if (name == NULL) {
+            /* Unnamed classes can appear in prototype instantiations; give
+               them a bogus name. */
+            check_assertion(type->variant.class_struct_union.is_nonreal_class);
+            name = "?";
+          }  /* if */
           mangled_name_with_length(name, mctl);
           break;
         case tptk_unknown:
@@ -8625,6 +8629,11 @@ top_of_loop:
                                      /*ok_to_mangle_type=*/TRUE, mctl);
               break;
             case tptk_unknown:
+              /* An unknown template parameter can appear in prototype
+                 instantiations (e.g., in expressions); give it a bogus
+                 name. */
+              mangled_name_with_length("?", mctl);
+              break;
             default:
               unexpected_condition_str(
                       "mangled_encoding_for_type: bad tk_template_param kind");
