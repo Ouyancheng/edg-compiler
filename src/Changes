@@ -26,7 +26,8 @@ for example (with --g++):
     return A<sizeof(*t)>::X();
   }
 
-These are now fixed.
+These failures had occurred in both the Cfront and IA-64 ABIs and are now
+fixed.
 
 
 7/21/11  [EDGcpfe/11929]
