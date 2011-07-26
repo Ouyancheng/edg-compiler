@@ -13142,7 +13142,9 @@ typedef struct a_throw_supplement {
 		expr;
 			/* When IL lowering does partial lowering on a throw,
 			   this points to the lowered code that implements
-			   the dynamic initialization. */
+			   the dynamic initialization.  expr can be NULL in
+			   cases where no initialization is required (i.e.,
+			   zero-initialization of an empty class). */
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #if !ABI_CHANGES_FOR_RTTI
   an_accessible_base_class_ptr
