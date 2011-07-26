@@ -1,5 +1,13 @@
 Version 4.4
 
+7/26/11  [EDGcpfe/11942]
+Useless code in set_routine_declared_type
+
+Some useless code has been removed from set_routine_declared_type.  (The code
+became useless as a result of the changes for EDGcpfe/10110 -- see the Changes
+entry of 9/17/09.)
+
+
 7/26/11  [EDGcpfe/11943]
 Missing diagnostic on invalid C++0x attributes in GNU C++0x mode
 

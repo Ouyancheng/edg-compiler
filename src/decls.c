@@ -6374,9 +6374,15 @@ type entry if appropriate, otherwise using the indicated declared_type.
   }  /* if */
   /* Make the declared type consistent with the routine type. */
   declared_type = update_routine_declared_type(rout_type, declared_type);
+  /* Record the declared type.  Re-use the actual type if possible. */
   rtsp1 = skip_typerefs(rout_type)->variant.routine.extra_info;
   rtsp2 = skip_typerefs(declared_type)->variant.routine.extra_info;
-  if (!identical_types(declared_type, rout_type)) {
+  if (rtsp2->param_type_list != NULL) {
+    /* The name and position information of parameters on this declaration is
+       likely different from that of previous declarations.  Hence, force the
+       use of the type just parsed to correctly record that information. */
+    use_routine_type = FALSE;
+  } else if (!identical_types(declared_type, rout_type)) {
     /* The types are not identical, so the routine's type cannot also be
        used as the declared type. */
     use_routine_type = FALSE;
@@ -6385,24 +6391,6 @@ type entry if appropriate, otherwise using the indicated declared_type.
     /* Exception specification mismatch (usually involves predeclared
        functions like new and delete). */
     use_routine_type = FALSE;
-  } else if (rtsp2->param_type_list != NULL) {
-    /* The name and position information of parameters on this declaration is
-       likely different from that of previous declarations.  Hence, force the
-       use of the type just parsed to correctly record that information. */
-    use_routine_type = FALSE;
-  } else {
-    /* Loop through the param-type entries to see if there are any default
-       arguments -- if so, just use the copy of the routine type instead of
-       the routine type itself. */
-    use_routine_type = TRUE;
-    for (ptp1 = rtsp1->param_type_list, ptp2 = rtsp2->param_type_list;
-         ptp1 != NULL;
-         ptp1 = ptp1->next, ptp2 = ptp2->next) {
-      if (ptp1->has_default_arg || ptp2->has_default_arg) {
-        use_routine_type = FALSE;
-        break;
-      }  /* if */
-    }  /* for */
   }  /* if */
   /* Set the declared_type pointer in the routine entry. */
   if (use_routine_type) {
