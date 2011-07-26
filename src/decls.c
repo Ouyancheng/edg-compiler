@@ -6361,7 +6361,6 @@ type entry if appropriate, otherwise using the indicated declared_type.
   a_type_ptr                     rout_type = routine_ptr->type;
   a_boolean                      use_routine_type;
   a_routine_type_supplement_ptr  rtsp1, rtsp2;
-  a_param_type_ptr               ptp1, ptp2;
 
   if (routine_ptr->declared_type != NULL) {
     check_assertion_str(routine_ptr->is_template_function ||
