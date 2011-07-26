@@ -13673,7 +13673,7 @@ variable (if applicable).
   if (gpp_mode && curr_token == tok_attribute) {
     an_attribute_ptr  attributes = scan_attributes(al_post_initializer);
     an_attribute_ptr  ap = attributes;
-    a_boolean         warning_emitted = FALSE, error_emitted = TRUE;
+    a_boolean         warning_emitted = FALSE, error_emitted = FALSE;
     for (ap = attributes; ap != NULL; ap = ap->next) {
       if (ap->family != (a_byte_attribute_family)af_gnu) {
         if (!error_emitted) {
