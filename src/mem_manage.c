@@ -1749,8 +1749,8 @@ Display the IL entry prefix of the given IL entry.
     }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT
-    fprintf(f_debug, "(entry_number = %u) ",
-            il_entry_prefix_of(entry).entry_number);
+    fprintf(f_debug, "(entry_number = %lu) ",
+            (unsigned long)il_entry_prefix_of(entry).entry_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT */
 #if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
     fprintf(f_debug, "(alloc_seq_number = %lu) ",

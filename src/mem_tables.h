@@ -129,17 +129,10 @@ typedef struct an_il_entry_prefix {
 #define NUM_OF_BIT_FIELDS_IN_PREFIX                                    \
          /*lint --e(506)*/                                             \
          (5 + ((MAINTAIN_NEEDED_FLAGS != 0)?1:0))
-#if EDG_MSDOS
-  /* Under MS-DOS compilers this bit field is probably bigger than
-     an "int", so use "unsigned long". */
-#define BITS_IN_ENTRY_NUMBER                                          \
-  (sizeof(long)*CHAR_BIT - NUM_OF_BIT_FIELDS_IN_PREFIX)
-  unsigned long	entry_number:BITS_IN_ENTRY_NUMBER;
-#else /* !EDG_MSDOS */
-#define BITS_IN_ENTRY_NUMBER                                          \
-  (sizeof(int)*CHAR_BIT - NUM_OF_BIT_FIELDS_IN_PREFIX)
-  unsigned int	entry_number:BITS_IN_ENTRY_NUMBER;
-#endif /* EDG_MSDOS */
+#define BITS_IN_ENTRY_NUMBER                                           \
+  (sizeof(a_prefix_entry_number)*CHAR_BIT - NUM_OF_BIT_FIELDS_IN_PREFIX)
+  a_prefix_entry_number
+                entry_number:BITS_IN_ENTRY_NUMBER;
 			/* Entry number for the IL entry. */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
@@ -149,7 +142,6 @@ typedef struct an_il_entry_prefix {
 			   when this block was allocated. */
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 } an_il_entry_prefix;
-
 
 /*
 Macro used by clear_il_entry_prefix to clear the IL lowering flag in

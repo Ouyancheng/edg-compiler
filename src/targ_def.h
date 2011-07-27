@@ -4418,6 +4418,25 @@ this macro is checked when the front end is executed.
 #endif /* ifndef HOST_POINTER_ALIGNMENT */
 
 /*
+The host type for the entry_number bit-field of the an_il_entry_prefix
+structure.  This field is typically an unsigned 32-bit type, but for some
+complex cases (typically with many long, mangled names), an unsigned 64-bit
+type may be needed.  This is only used when IL_SHOULD_BE_WRITTEN_TO_FILE and
+ALTERNATE_IL_FILE_FORMAT are TRUE.
+*/
+#ifndef TYPE_FOR_PREFIX_ENTRY_NUMBER
+#if EDG_MSDOS
+/* Under MS-DOS compilers this bit field is probably bigger than an "int",
+   so use "unsigned long". */
+#define TYPE_FOR_PREFIX_ENTRY_NUMBER unsigned long
+#else /* !EDG_MSDOS */
+#define TYPE_FOR_PREFIX_ENTRY_NUMBER unsigned int
+#endif /* EDG_MSDOS */
+#endif /* ifndef TYPE_FOR_PREFIX_ENTRY_NUMBER */
+
+typedef TYPE_FOR_PREFIX_ENTRY_NUMBER a_prefix_entry_number;
+
+/*
 The alignment required for the an_il_entry_prefix structure defined in
 mem_tables.h.  This is used to determine the size of the prefix allocated
 as part of each IL entry.  The IL entry prefix alignment must be a multiple

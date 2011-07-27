@@ -7087,6 +7087,11 @@ file.
 #else /* !defined(TYPE_FOR_A_SMALL_TOKEN_KIND) */
   comment_undefined_macro_name(TYPE_FOR_A_SMALL_TOKEN_KIND);
 #endif /* defined(TYPE_FOR_A_SMALL_TOKEN_KIND) */
+#if defined(TYPE_FOR_PREFIX_ENTRY_NUMBER)
+  define_string_valued_macro(TYPE_FOR_PREFIX_ENTRY_NUMBER);
+#else /* !defined(TYPE_FOR_PREFIX_ENTRY_NUMBER) */
+  comment_undefined_macro_name(TYPE_FOR_PREFIX_ENTRY_NUMBER);
+#endif /* defined(TYPE_FOR_PREFIX_ENTRY_NUMBER) */
 #if defined(TYPE_FOR_TARG_ALIGNMENT)
   define_string_valued_macro(TYPE_FOR_TARG_ALIGNMENT);
 #else /* !defined(TYPE_FOR_TARG_ALIGNMENT) */
