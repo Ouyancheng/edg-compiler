@@ -22787,9 +22787,17 @@ next_declaration:
     /* Pop the scope created for the class definition. */
     pop_scope();
     if (delayed_nested_class_def) {
-      /* A nested class defined outside the parent class definition. */
-      class_type->variant.class_struct_union
+      if (class_tssp != NULL &&
+          class_tssp->cache.decl_info->enclosing_scope != NULL &&
+          scope_is(class_tssp->cache.decl_info->enclosing_scope,
+                   sck_class_struct_union)) {
+        /* An instantiation of a nested class template whose definition
+           originally appeared inside the parent class definition. */
+      } else {
+        /* A nested class defined outside the parent class definition. */
+        class_type->variant.class_struct_union
                                .nested_class_defined_outside_of_parent = TRUE;
+      }  /* if */
       if (is_template_instantiation || instantiation_scope_pushed) {
         /* The class reactivation scope is popped along with the template
            instantiation scope. */

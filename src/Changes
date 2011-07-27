@@ -1,5 +1,21 @@
 Version 4.4
 
+7/27/11  [EDGcpfe/11936]
+Incorrect IL flag for nested class template instantiations
+
+The flag nested_class_defined_outside_of_parent was incorrectly set to TRUE
+for instantiations of nested class templates defined in their parent class'
+definition.  For example:
+
+  struct S {
+    template<typename T> struct N {};
+      // "nested_class_defined_outside_of_parent" was mistakenly set to TRUE
+      // for S::N<T>.
+  };
+
+This is now fixed.
+
+
 7/26/11  [EDGcpfe/11942]
 Useless code in set_routine_declared_type
 
