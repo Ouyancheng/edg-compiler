@@ -28041,7 +28041,6 @@ that will get filled if all the semantic checks are successful.
   a_boolean                passed = TRUE;
   a_source_position        pos;
   a_variable_ptr           iterator = extra_info->iterator;
-  a_boolean                is_overloadable_iterator = FALSE;
 
   pos = collection_expr->position;
   collection_type = collection_expr->type;
@@ -28128,7 +28127,6 @@ that will get filled if all the semantic checks are successful.
     } else {
       a_boolean processed;
 
-      is_overloadable_iterator = TRUE;
       /* We need to look for a set of overloaded operators that make this type
          valid for use with "for each". */
       /* Since these calls to operator!=, operator++, operator* do not
