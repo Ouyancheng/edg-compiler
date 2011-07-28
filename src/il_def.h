@@ -14171,6 +14171,21 @@ typedef struct a_for_each_loop {
 		end_routine;
 			/* Pointer to the routine for the "end" member
 			   function of the collection type. */
+      an_expr_node_ptr
+		ne_call_expr;
+			/* Expression for the call to the overloaded "!="
+			   operator on the iterator type.  NULL if the iterator
+			   type cannot be overloaded. */
+      an_expr_node_ptr
+		incr_call_expr;
+			/* Expression for the call to the overloaded "++"
+			   operator on the iterator type.  NULL if the iterator
+			   type cannot be overloaded. */
+      an_expr_node_ptr
+		indirection_call_expr;
+			/* Expression for the call to the overloaded unary "*"
+			   operator on the iterator type.  NULL if the iterator
+			   type cannot be overloaded. */
     } stl_pattern;
     /* When kind is sfepk_cli_pattern: */
     struct {

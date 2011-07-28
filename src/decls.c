@@ -11907,9 +11907,9 @@ Return a pointer to the variable that is declared.
       (void)required_token(tok_in, ec_exp_in);
       vp->is_for_each_iterator = TRUE;
       extra_info_ptr = for_each_statement->variant.for_each_loop.extra_info;
-      for_each_statement->variant.for_each_loop.extra_info->iterator = vp;
+      extra_info_ptr->iterator = vp;
       /* Scan and generate IL for the collection expression. */
-      for_each_statement->expr = scan_for_each_expression(vp, extra_info_ptr);
+      for_each_statement->expr = scan_for_each_expression(extra_info_ptr);
       /* The iteration variable is set by the expansion of the for-each,
          even though there's no initializer recorded on the variable. */
       mark_variable_value_set(sym);

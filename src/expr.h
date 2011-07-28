@@ -186,7 +186,6 @@ extern an_expr_node_ptr scan_typed_expression(a_type_ptr    required_type,
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern an_expr_node_ptr scan_for_each_expression(
-                                             a_variable_ptr      iterator,
                                              a_for_each_loop_ptr extra_info);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
