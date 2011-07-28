@@ -3978,7 +3978,6 @@ and return the entity.
     rp->never_inline = TRUE;
     if (rp->is_inline && ap->family == (a_byte_attribute_family)af_gnu) {
       pos_warning(ec_inline_gnu_noinline_conflict, &ap->position);
-      set_inline_flag(rp, FALSE);
     }  /* if */
   } else {
     an_error_severity  sev;

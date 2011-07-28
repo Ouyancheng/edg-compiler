@@ -1,5 +1,21 @@
 Version 4.4
 
+7/28/11  [EDGcpfe/11940]
+GNU compatibility: Inline functions with noinline attributes
+
+Previously, in GNU modes, a function declaration that was both inline and
+noinline was recorded as not being an inline function (a warning is emitted).
+ Now, such a function is recorded as both "inline" and "noinline" (flag
+never_inline in a_routine entry; a warning is still emitted).  This ensures
+that the code generated for the function definition is treated like an inline
+functions for purposes other than actually inlining -- in particular, such a
+function can be defined in multiple translation units.
+
+This is a slight IL CHANGE: Back ends that only inline functions marked
+"inline" must now explicitly check the never_inline flag to avoid actually
+inlining "noinline" functions.
+
+
 7/27/11  [EDGcpfe/11767]
 Configurable entry_number field in IL entry prefix
 

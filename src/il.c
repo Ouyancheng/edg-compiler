@@ -2579,10 +2579,9 @@ set).
     rp->suppress_inline_body = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (rp->never_inline) {
+  } else if (rp->never_inline && gnu_mode) {
     warning(ec_inline_gnu_noinline_conflict);
-    flag = FALSE;
-    check_assertion(rp->definition_for_inlining_only == FALSE);
+    check_assertion(!rp->definition_for_inlining_only);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   rp->is_inline = flag;
