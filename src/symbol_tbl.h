@@ -5479,6 +5479,10 @@ extern a_hash_data_ptr *hash_find(a_hash_table_ptr	table,
 			    a_void_ptr		key,
 			    a_boolean		create);
 
+#if DEBUG
+void db_hash_statistics(a_hash_table_ptr	table);
+#endif /* DEBUG */
+
 extern a_hash_value hash_source_string(a_void_ptr  key);
 
 #endif /* ifndef SYMBOL_TBL_H */

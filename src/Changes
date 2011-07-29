@@ -1,5 +1,19 @@
 Version 4.4
 
+7/28/11  [EDGcpfe/11958]
+Improved hashing of template instances
+
+The front end builds hash tables to lookup up instances of class
+templates.  The hashing mechanism has been improved to better handle
+template arguments that are function types, pointer to member types,
+or template parameters.  It has also been improved for cases that have
+multiple nontype template parameters of the same type (e.g., template
+argument lists such as "<1,2,3>").  These changes can result in a significant
+improvement in certain cases.  For example, for a Boost case that created
+a large number of instantiations based on function types, the compilation
+time was reduced by about 5%.
+
+
 7/28/11  [EDGcpfe/11940]
 GNU compatibility: Inline functions with noinline attributes
 

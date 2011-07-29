@@ -75,6 +75,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(757,db_long_double)*/
 /*lint -esym(714,db_long_double)*/
 /*lint -esym(714,db_sym)*/
+/*lint -esym(714,db_hash_statistics)*/
 /*lint -esym(714,db_corresp)*/
 /*lint -esym(714,db_stop_tokens)*/
 /*lint -esym(714,db_template_param_list)*/

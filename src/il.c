@@ -5404,14 +5404,18 @@ Return a hash value for the indicated template argument list.
 */
 {
   a_hash_value hash_value = 0;
+  uint32_t     pos = 1;
 
-  for (; tap != NULL; tap = tap->next) {
+  for (; tap != NULL; tap = tap->next, pos++) {
     switch (tap->kind) {
       case tak_type:
         hash_value += hash_type(tap->variant.type) + 37;
         break;
       case tak_nontype:
-        hash_value += hash_constant(tap->variant.constant) + 43;
+        /* The argument position is factored in so that <1,2,3> hashes
+           differently than <3,2,1>. */
+        hash_value = hash_value +
+              (1 + hash_constant(tap->variant.constant) << ((pos * 3) % 32));
         break;
       case tak_template:
         hash_value += hash_name(&tap->variant.templ.ptr->source_corresp);
@@ -5531,6 +5535,23 @@ to refine the hash value developed in hash_constant.
         }  /* if */
       }
       break;
+    case tk_routine:
+      {
+        a_routine_type_supplement_ptr	rtsp;
+        a_param_type_ptr		ptp;
+        rtsp = type->variant.routine.extra_info;
+        hash_value = 0;
+        if (type->variant.routine.return_type != NULL) {
+          hash_value = hash_type(type->variant.routine.return_type);
+        }  /* if */
+        for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
+          hash_value += hash_type(ptp->type);
+        }  /* for */
+        if (rtsp->this_class != NULL) {
+          hash_value += hash_type(rtsp->this_class);
+        }  /* if */
+      }
+      break;
     case tk_typeref:
       unexpected_condition();
       break;
@@ -5542,6 +5563,30 @@ to refine the hash value developed in hash_constant.
       }  /* if */
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+    case tk_template_param:
+      {
+        a_template_param_type_supplement_ptr	tpts;
+        tpts = type->variant.template_param.extra_info;
+        hash_value = 499 + (int)type->variant.template_param.kind +
+                     type->variant.template_param.is_pack;
+        /* If the template parameter has a parent scope, include that in the
+           hash value. */
+        if (type->source_corresp.parent_scope != NULL) {
+          hash_value += type->source_corresp.parent_scope->number;
+        }  /* if */
+        hash_value += type->source_corresp.decl_position.seq +
+                      type->source_corresp.decl_position.column;
+        if (type->variant.template_param.kind ==
+                                      (a_template_param_type_kind)tptk_param) {
+          hash_value += (tpts->coordinates.depth << 8) +
+                                                    tpts->coordinates.position;
+        }  /* if */
+      }
+      break;
+    case tk_ptr_to_member:
+      hash_value = hash_type(type->variant.ptr_to_member.type) +
+                hash_type(type->variant.ptr_to_member.class_of_which_a_member);
+      break;
     default:
       hash_value = (a_hash_value)type->kind;
   }  /* switch */
@@ -5670,6 +5715,17 @@ Return the hash value for the indicated constant.
         if (fp != NULL) hash_value = hash_name(&fp->source_corresp);
       }  /* if */
       hash_value += 250;
+      break;
+    case ck_template_param:
+      hash_value = 499;
+      if (cp->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_param) {
+        hash_value += cp->source_corresp.decl_position.seq +
+                      cp->source_corresp.decl_position.column;
+        hash_value += cp->variant.template_param.variant.coordinates.depth +
+                      cp->variant.template_param.variant.coordinates.position;
+
+      }  /* if */
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case ck_label_difference:

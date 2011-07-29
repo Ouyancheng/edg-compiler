@@ -5676,6 +5676,20 @@ curr_routine points to the routine entry; otherwise, it is NULL.
           }  /* if */
         }  /* for */
       }  /* if */
+#if DEBUG
+      if (db_flag_is_set("hash_stats")) {
+        a_hash_table_ptr	htp;
+        /* Display statistics about any templates with a large number of
+           instances. */
+        htp = tssp->variant.class_template.instantiation_hash_table;
+        if (htp != NULL && htp->num_buckets > 100) {
+          fprintf(f_debug, "Hash statistics for: ");
+          db_symbol_name(sym);
+          fprintf(f_debug, "\n");
+          db_hash_statistics(htp);
+        }  /* if */
+      }  /* if */
+#endif /* DEBUG */
       }
       break;
     case sk_function_template:

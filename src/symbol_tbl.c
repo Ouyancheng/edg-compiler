@@ -13824,6 +13824,46 @@ appropriate user-defined entry.
   return (a_hash_data_ptr*)result;
 }  /* hash_find */
 
+#if DEBUG
+
+void db_hash_statistics(a_hash_table_ptr	table)
+/*
+Display statistics about a hash table.
+*/
+{
+  int32_t		counts[32];
+  a_hash_table_size	i;
+  int			j;
+  int			max_count_entry = 0;
+  uint32_t		entries;
+
+  fprintf(f_debug, "Total entries=%lu, buckets=%lu\n",
+          (unsigned long)table->entry_count,
+          (unsigned long)table->num_buckets);
+  /* Clear the table of entry counts. */
+  for (j = 0; j < 32; j++) counts[j] = 0;
+  /* Loop through the buckets and count the number of entries in each one. */
+  for (i = 0; i < table->num_buckets; i++) {
+    /* Count the entries in this bucket. */
+    a_hash_table_entry_ptr	htep = table->table[i];
+    entries = 0;
+    for (; htep != NULL; htep = htep->next) entries++;
+    /* The count array records the number of entries with at least
+       (2**N)-1 entries. */
+    for (j = 0; j < 32; j++, entries >>= 1) {
+      if (entries == 0) break;
+    }  /* for */
+    counts[j]++;
+    if (j > max_count_entry) max_count_entry = j;
+  }  /* for */
+  entries = 0;
+  for (j = 0; j <= max_count_entry; j++) {
+    fprintf(f_debug, "%5u: %lu\n", entries, (unsigned long)counts[j]);
+    entries = entries == 0 ? 1 : entries*2;
+  }  /* for */
+}  /* db_hash_statistics */
+
+#endif /* DEBUG */
 
 a_hash_value hash_source_string(a_void_ptr  key)
 /*
