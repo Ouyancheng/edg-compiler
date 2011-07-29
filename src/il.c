@@ -5415,7 +5415,7 @@ Return a hash value for the indicated template argument list.
         /* The argument position is factored in so that <1,2,3> hashes
            differently than <3,2,1>. */
         hash_value = hash_value +
-              (1 + hash_constant(tap->variant.constant) << ((pos * 3) % 32));
+              ((1 + hash_constant(tap->variant.constant)) << ((pos * 3) % 32));
         break;
       case tak_template:
         hash_value += hash_name(&tap->variant.templ.ptr->source_corresp);
