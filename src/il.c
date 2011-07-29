@@ -22521,7 +22521,8 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
       /* The builtin operations for stdarg support usually take va_list
          lvalues, but if va_list is an array type they take rvalue pointer
          operands. */
-      check_assertion(builtin_va_list_type != NULL);
+      /* The builtin_va_list_type variable is not always set in back ends. */
+      check_assertion(builtin_va_list_type != NULL || !in_front_end);
       if ((flags & LVRV_OPND1_IS_LVALUE) &&
           !operand_1->is_lvalue &&
           is_pointer_type(operand_1->type)) {
