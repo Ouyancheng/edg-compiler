@@ -1,5 +1,13 @@
 Version 4.4
 
+7/29/11  [EDGcpfe/11953]
+Abort on use of stdarg operation with multiple translation units
+
+When simultaneously compiling multiple translation units, the C-generating
+back end sometimes aborted when rendering uses of stdarg operations.  This is
+now fixed.
+
+
 7/28/11  [EDGcpfe/11958]
 Improved hashing of template instances
 
