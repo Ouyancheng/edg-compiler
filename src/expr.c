@@ -27986,7 +27986,7 @@ checks are successful.
     a_ruled_out_expr_kind_set ruled_out_expr_kinds = ROEK_NONE;
 
     /* Fill the a_for_each_loop IL supplement. */
-    extra_info->kind = (a_byte)sfepk_cli_pattern;
+    extra_info->kind = (a_for_each_pattern_kind)sfepk_cli_pattern;
     extra_info->temporary_variable = temp_var;
     extra_info->variant.cli_pattern.getenumerator_routine =
                                                          getenumerator_routine;
@@ -28179,7 +28179,7 @@ that will get filled if all the semantic checks are successful.
     a_ruled_out_expr_kind_set ruled_out_expr_kinds = ROEK_NONE;
 
     /* Fill the a_for_each_loop IL supplement. */
-    extra_info->kind = (a_byte)sfepk_stl_pattern;
+    extra_info->kind = (a_for_each_pattern_kind)sfepk_stl_pattern;
     extra_info->temporary_variable = temp_var;
     extra_info->variant.stl_pattern.begin_routine = begin_routine;
     extra_info->variant.stl_pattern.end_routine = end_routine;
@@ -28252,7 +28252,7 @@ are successful.
     node = add_indirection_to_node(var_rvalue_expr(temp_var));
     make_lvalue_expression_operand(node, &operand);
     /* Fill the a_for_each_loop IL supplement. */
-    extra_info->kind = (a_byte)sfepk_array_pattern;
+    extra_info->kind = (a_for_each_pattern_kind)sfepk_array_pattern;
     extra_info->temporary_variable = temp_var;
     deduce_auto_type_in_for_each_if_needed(iterator, &operand);
     /* Check conversion and generate IL for the conversion from "*i" to "T". */

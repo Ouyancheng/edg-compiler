@@ -15809,7 +15809,7 @@ enum a_scope_kind_tag {
   sck_condition,
 			/* Used to represent the scope of a C++ condition
 			   that is an initialized declaration for an if,
-			   switch, for, or while statement. */
+			   switch, for, "for each", or while statement. */
   sck_enum,
 			/* The scope associated with a C++0x scoped enum
 			   type. */
@@ -15890,9 +15890,9 @@ typedef struct a_scope {
     /* When kind == sck_condition (C++ only): */
     a_statement_ptr
 		assoc_statement;
-			/* Pointer to the associated if, switch, while, or
-			   for statement in which the condition declaration
-			   appears. */
+			/* Pointer to the associated if, switch, while, for,
+			   or "for each" statement in which the condition
+			   declaration appears. */
     /* When kind == sck_namespace (C++ only): */
     a_namespace_ptr
 		assoc_namespace;
