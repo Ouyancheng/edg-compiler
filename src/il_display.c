@@ -6187,6 +6187,8 @@ Display the indicated source sequence secondary declaration entry.
              iek_name_reference);
   }  /* if */
   disp_ptr("attributes", (char *)sssdp->attributes, iek_attribute);
+  disp_name("declared_storage_class");
+  disp_storage_class_name(sssdp->declared_storage_class);
   if (sssdp->autonomous_tag_decl) disp_boolean("autonomous_tag_decl", TRUE);
   if (sssdp->embedded_source_sequence_entries) {
     disp_boolean("embedded_source_sequence_entries", TRUE);
@@ -6222,11 +6224,9 @@ Display the indicated source sequence secondary declaration entry.
   if (sssdp->explicit_storage_class) {
     disp_boolean("explicit_storage_class", TRUE);
   }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
   if (sssdp->is_alias) {
     disp_boolean("is_alias", TRUE);
   }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* disp_src_seq_secondary_decl */
 
 

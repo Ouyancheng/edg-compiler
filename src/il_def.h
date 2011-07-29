@@ -1524,6 +1524,11 @@ typedef struct a_src_seq_secondary_decl {
 			   in the source correspondence entry for the declared
 			   entity.  I.e., the entries here are copies of those
 			   recorded in "entity" for this declaration.) */
+  a_storage_class
+		declared_storage_class;
+			/* The storage class that explicitly appears in the
+			   source for this declaration; sc_unspecified if the
+			   declaration has no explicit storage class. */
   a_bit_field	autonomous_tag_decl:1;
 			/* If entity refers to a type entry representing a
 			   class, struct, union, or enum, this flag is TRUE if
@@ -1614,11 +1619,9 @@ typedef struct a_src_seq_secondary_decl {
 			   Used by the C++-generating back end to avoid
 			   rendering "int f(), n;" as "extern int f(), n;"
 			   (or vice versa). */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
   a_bit_field	is_alias:1;
 			/* TRUE if this declaration is for a typedef declared
 			   using the alias syntax; e.g., "using T = int;". */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   bitfield_to_avoid_codecenter_warnings()
 } a_src_seq_secondary_decl;
 

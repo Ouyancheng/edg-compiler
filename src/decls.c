@@ -15454,16 +15454,16 @@ required updates in the source sequence entry for this declaration.
          followed by any prefix attributes: We therefore do not copy the
          prefix_attributes list if the id_attributes list is non-empty (since
          that would result in duplicate attributes). */
+      a_src_seq_secondary_decl_ptr
+                     sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
       if (dps->id_attributes != NULL) {
-        ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)->attributes =
-                                  copy_of_attributes_list(dps->id_attributes);
+        sssdp->attributes = copy_of_attributes_list(dps->id_attributes);
       } else if (dps->prefix_attributes != NULL) {
-        ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)->attributes =
-                              copy_of_attributes_list(dps->prefix_attributes);
+        sssdp->attributes = copy_of_attributes_list(dps->prefix_attributes);
       }  /* if */
       if (dps->declared_storage_class != (a_storage_class)sc_unspecified) {
-        ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)
-                                              ->explicit_storage_class = TRUE;
+        sssdp->explicit_storage_class = TRUE;
+        sssdp->declared_storage_class = dps->declared_storage_class;
       }  /* if */
     }  /* if */
   }  /* if */

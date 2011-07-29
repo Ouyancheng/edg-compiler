@@ -1,5 +1,17 @@
 Version 4.4
 
+7/29/11  [EDGcpfe/11949]
+Storage class specifiers
+
+When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, the front end now records the
+storage class specifier (e.g., "extern") that appeared on a declaration in the
+secondary source sequence entry associated with that declaration.  (For
+definitions of variables, the specifier was already recorded in the field
+"declared_storage_class" of the corresponding a_variable entry.  Now such a
+field is also available for the nondefining declarations in the associated
+a_src_seq_secondary_decl entries.)
+
+
 7/29/11  [EDGcpfe/11953]
 Abort on use of stdarg operation with multiple translation units
 
