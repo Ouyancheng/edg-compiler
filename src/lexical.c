@@ -13801,7 +13801,12 @@ Its value is unchanged if no errors are detected.
        argument.  Constraint checking will be done later after we have
        identified the arity of this reference. */
     if (!is_valid_generic_argument(argument_type)) {
-      pos_ty_error(ec_invalid_generic_arg, &start_pos, argument_type);
+      if (!is_or_contains_error_type(argument_type)) {
+        /* Don't issue an error on something that contains an error type. */
+        pos_ty_error(ec_invalid_generic_arg, &start_pos, argument_type);
+      } else {
+        expect_error();
+      }  /* if */
       *any_errors = TRUE;
     }  /* if */
     arg_ptr = alloc_template_arg((a_templ_arg_kind)tak_type);
@@ -14201,6 +14206,12 @@ a routine to lookup the appropriate instance (or generate one if needed).
            of arguments provided. */
         select_generic_based_on_arity(&template_sym, arg_list, &arg_start_pos,
                                       &any_errors);
+        if (!any_errors) {
+          /* Make sure the generic argument list satisfies the constraints
+             of the generic. */
+          verify_generic_arg_list_satisfies_constraints(
+                          template_sym, arg_list, &arg_start_pos, &any_errors);
+        }  /* if */
       }  /* if */
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
