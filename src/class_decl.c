@@ -4880,13 +4880,70 @@ return_types_are_override_compatible.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void check_constraints_for_generic_override(a_symbol_ptr  d_templ,
-                                                   a_symbol_ptr  b_templ)
+static a_boolean param_list_has_constraints(a_template_param_ptr  list)
+/*
+Return TRUE if any of the generic parameters in the given list has an
+associated constraint.
+*/
+{
+  a_boolean             result = FALSE;
+  a_template_param_ptr  tpp = list;
+
+  for (tpp = list; tpp != NULL; tpp = tpp->next) {
+    check_assertion(symbol_is(tpp->param_symbol, sk_type));
+    if (generic_param_if_generic_definition_argument(tpp->variant.type)
+                                    ->variant.template_param.extra_info
+                                    ->generic_constraints != NULL) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* param_list_has_constraints */
+
+
+static void inherit_generic_constraints(a_template_param_ptr  d_list,
+                                        a_template_param_ptr  b_list)
+/*
+Copy the generic constraints of the list pointed to by b_list to that pointed
+to by d_list.  Set the "implicit_constraint" flag in the copied constraints.
+*/
+{
+  a_template_param_ptr  d_tpp = d_list, b_tpp = b_list;
+
+  for (; d_tpp != NULL; d_tpp = d_tpp->next, b_tpp = b_tpp->next) {
+    a_generic_constraint_ptr  b_gcp, *p_d_gcp;
+    check_assertion(b_tpp != NULL);
+    b_gcp = generic_param_if_generic_definition_argument(b_tpp->variant.type)
+                                           ->variant.template_param.extra_info
+                                           ->generic_constraints;
+    p_d_gcp =
+            &generic_param_if_generic_definition_argument(d_tpp->variant.type)
+                                           ->variant.template_param.extra_info
+                                           ->generic_constraints;
+    for (; b_gcp != NULL; b_gcp = b_gcp->next) {
+      *p_d_gcp = alloc_generic_constraint();
+      (*p_d_gcp)->kind = b_gcp->kind;
+      (*p_d_gcp)->type = b_gcp->type;
+      (*p_d_gcp)->implicit_constraint = TRUE;
+      p_d_gcp = &(*p_d_gcp)->next;
+    }  /* for */
+  }  /* for */
+}  /* inherit_generic_constraints */
+
+
+static void check_constraints_for_generic_override(
+                                        a_symbol_ptr  d_templ,
+                                        a_symbol_ptr  b_templ,
+                                        a_boolean     constraints_inheritable)
 /*
 The current scope stack entry is an sck_template_declaration entry for a
 C++/CLI member generic (d_templ) that overrides the generic represented by
 b_templ.  If the constraint clauses associated with these generics do not
-match, issue an appropriate error.
+match, issue an appropriate error.  If constraints_inheritable is TRUE,
+d_templ can inherit the constraints of b_templ it is doesn't specify any
+constraints of its own and this function copies the necessary structures to
+implement that inheritance.
 */
 {
   a_template_param_ptr      d_params, b_params;
@@ -4898,16 +4955,27 @@ match, issue an appropriate error.
   if (!equivalent_generic_constraints_for_param_lists(
                                 d_params, b_params, &mismatched_constraint)) {
     a_source_position_ptr  diag_pos = NULL;
+    a_boolean              inherit_constraints = FALSE;
     if (mismatched_constraint != NULL) {
       /* A specific constraint in the overriding generic was found without a
          match in the base class list: Point to it for the diagnostic. */
       diag_pos = &mismatched_constraint->position;
     } else {
       /* No specific conflicting constraint was identified in the overriding
-         generic.  Point to the generic itself for the diagnostic. */
-      diag_pos = &d_templ->decl_position;
+         generic.  If there were no constraints at all, the overridden
+         constraints should be inherited and no diagnostic should be emitted.
+         Otherwise, point to the generic itself for the diagnostic. */
+      if (constraints_inheritable && !param_list_has_constraints(d_params)) {
+        inherit_constraints = TRUE;
+      } else {
+        diag_pos = &d_templ->decl_position;
+      }  /* if */
     }  /* if */
-    pos_sy_error(ec_override_with_constraint_mismatch, diag_pos, b_templ);
+    if (inherit_constraints) {
+      inherit_generic_constraints(d_params, b_params);
+    } else {
+      pos_sy_error(ec_override_with_constraint_mismatch, diag_pos, b_templ);
+    }  /* if */
   }  /* if */
 }  /* check_constraints_for_generic_override */
 
@@ -4956,6 +5024,7 @@ information about the function declarator.
   a_symbol_ptr                    matching_interface_member = NULL;
   a_boolean                       new_okay = FALSE, rout_is_member_generic;
   a_symbol_ptr                    rout_templ = NULL, rp_templ = NULL;
+  a_boolean                       constraints_inheritable = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_source_position               *source_pos = &dps->declarator_pos;
 
@@ -5268,7 +5337,20 @@ next_named_override:
               }  /* if */
               if (rout_is_member_generic) {
                 /* Diagnose any mismatch in generic constraints. */
-                check_constraints_for_generic_override(rout_templ, rp_templ);
+                a_boolean  may_inherit = FALSE;
+                if (constraints_inheritable &&
+                    !(named_override == NULL &&
+                      cli_class_type_kind_is(bcp->type, cctk_interface))) {
+                  /* Constraints can not be inherited when implicitly
+                     implementing an interface member.  Once constraints
+                     (possibly an empty set) have been inherited from one base
+                     they cannot be inherited from another base. */
+                  may_inherit = TRUE;
+                  constraints_inheritable = FALSE;
+                }  /* if */
+                check_constraints_for_generic_override(
+                                           rout_templ, rp_templ, may_inherit);
+                constraints_inheritable = FALSE;
               }  /* if */
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

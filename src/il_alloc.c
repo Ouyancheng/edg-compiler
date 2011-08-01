@@ -4530,6 +4530,7 @@ pointer to it.
   num_generic_constraints_allocated++;
 #endif /* DEBUG */
   gcp->kind = (a_generic_constraint_kind)gck_none;
+  gcp->implicit_constraint = FALSE;
   gcp->next = NULL;
   gcp->type = NULL;
   gcp->type_cache = NULL;

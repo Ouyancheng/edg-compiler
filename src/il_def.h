@@ -14846,6 +14846,11 @@ typedef struct a_generic_constraint {
   a_generic_constraint_kind
 		kind;
 			/* The kind of constraint represented. */
+  a_bit_field	implicit_constraint:1;
+			/* TRUE if this constraint did not appear explicitly
+			   in the source code (e.g., when a constraint for an
+			   overriding virtual function is "inherited" from an
+			   overridden function). */
   a_generic_constraint_ptr
 		next;
 			/* The next entry in a list of constraint items, or
