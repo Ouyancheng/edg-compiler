@@ -3165,6 +3165,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
   a_boolean               used_qualified_name = FALSE;
   a_source_correspondence *scp_for_unknown_base_member =
                                     (scp->member_of_unknown_base) ? scp : NULL;
+  a_boolean               is_partial_spec_prototype_inst = FALSE;
 
   if (in_class_scope_with_dependent_base &&
       !entity_is_member_of_current_instantiation(scp, entry_kind)) {
@@ -3192,6 +3193,15 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
              still be handled specially. */
           scp_for_unknown_base_member = &tp->variant.class_struct_union.
                                     extra_info->assoc_template->source_corresp;
+        }  /* if */
+        if (tp->variant.class_struct_union.is_prototype_instantiation &&
+            tp->variant.class_struct_union.extra_info->
+                                      partial_spec_template_arg_list != NULL) {
+          /* This is the prototype instantiation of the definition of a
+             partial specialization.  Remember that fact in order to
+             suppress the "template" keyword that would otherwise be added
+             below. */
+          is_partial_spec_prototype_inst = TRUE;
         }  /* if */
       } else if (tp->kind == (a_type_kind)tk_typeref &&
                  tp->variant.typeref.extra_info->template_arg_list != NULL) {
@@ -3364,6 +3374,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         if ((class_type->variant.class_struct_union.is_nonreal_class ||
              (gcc_is_generated_code_target &&
               in_prototype_instantiation_context())) &&
+            !is_partial_spec_prototype_inst &&
             (template_arguments_for_name(
                 scp, entry_kind, /*insert_space=*/(a_boolean *)NULL) != NULL ||
              (options & GN_TEMPLATE))) {

@@ -1,5 +1,22 @@
 Version 4.4
 
+8/1/11   [EDGcpfe/11900]
+C++-generating back end: spurious "template" keyword in partial specialization
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the
+C++-generating back end incorrectly added a "template" keyword in the
+definition of a partial specialization of a nested class template.  This is
+now fixed.  For example:
+
+  template<typename T> struct Outer {
+    template<typename U, typename V> struct Inner;
+  };
+
+  template<typename T> template<typename U>
+  struct Outer<T>::Inner<int, U> { };  // Previously generated as
+                                       // Outer<T>::template Inner<int, U>
+
+
 8/1/11   [EDGcpfe/11957]
 C-generating back end: line numbers for nonstatic member functions
 
