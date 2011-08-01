@@ -14206,12 +14206,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
            of arguments provided. */
         select_generic_based_on_arity(&template_sym, arg_list, &arg_start_pos,
                                       &any_errors);
-        if (!any_errors) {
-          /* Make sure the generic argument list satisfies the constraints
-             of the generic. */
-          verify_generic_arg_list_satisfies_constraints(
-                          template_sym, arg_list, &arg_start_pos, &any_errors);
-        }  /* if */
       }  /* if */
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
