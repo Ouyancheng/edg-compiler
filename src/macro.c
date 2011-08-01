@@ -5991,14 +5991,19 @@ Scan and process a #define directive.
     error(ec_exp_identifier);
     some_error_in_curr_directive = TRUE;
   } else {
+    /* Get the canonical spelling of the identifier. */
+    char     *id_ptr = start_of_curr_token;
+    sizeof_t id_len = len_of_curr_token;
+    if (id_contains_ucn_or_multibyte_char) {
+      id_ptr = make_canonical_identifier(start_of_curr_token, &id_len);
+    }  /* if */
     /* The macro name __VA_ARGS__ is not allowed if variadic macros are
        accepted. */
-    check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
+    check_use_of_VA_ARGS(id_len, id_ptr);
     /* Look to see if there is a macro with this name. */
     /* find_defined_macro cannot be used because if we have "#define defined"
        we want to give an error, not ignore it. */
-    assoc_symbol = find_macro_symbol_by_name(start_of_curr_token,
-                                             len_of_curr_token,
+    assoc_symbol = find_macro_symbol_by_name(id_ptr, id_len,
 	                                     &locator_for_curr_id);
     if (assoc_symbol != NULL) {
       /* This is an attempt to redefine an already-defined symbol;

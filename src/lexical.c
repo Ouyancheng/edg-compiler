@@ -8529,8 +8529,8 @@ are the prefix characters to be used for 4-digit and 8-digit output.
 
 #endif /* !(UNICODE_SOURCE_SUPPORTED && ...) */
 
-static char *make_canonical_identifier(char     *identifier,
-                                       sizeof_t *length)
+char *make_canonical_identifier(char     *identifier,
+                                sizeof_t *length)
 /*
 "identifier" points to the characters of an identifier containing
 universal character names or multibyte characters.  Make a copy of the
@@ -8644,18 +8644,11 @@ lower case and any multibyte characters are converted to canonical form.
 }  /* make_canonical_identifier */
 
 #else /* !(ABI_COMPATIBILITY_VERSION >= 302) */
-
-/*
-No translation of identifiers was done for older ABIs.  Simply
-return the original identifier pointer.
-*/
-#define make_canonical_identifier(identifier, length) (identifier)
-
 #if UNICODE_SOURCE_SUPPORTED
  #error -- cannot support Unicode source at ABI levels < 302
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
-#endif /* !(ABI_COMPATIBILITY_VERSION >= 302) */
+#endif /* ABI_COMPATIBILITY_VERSION >= 302 */
 
 
 #if !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
@@ -10694,7 +10687,6 @@ to speed in some cases.
   a_token_kind          token_kind;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean             gotten_from_cache = FALSE;
-  a_boolean		contains_ucn_or_multibyte_char;
 
   if (any_initial_get_token_tests_needed &&
       !fetching_tokens_from_insert_string()) {
@@ -11268,7 +11260,7 @@ id_scan:
          plus some multibyte characters if those are enabled. */
       remember_token_start();
       ctoken = tok_identifier;
-      contains_ucn_or_multibyte_char = FALSE;
+      id_contains_ucn_or_multibyte_char = FALSE;
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
       /* Initialize for scanning multibyte characters in the string. */
       mbc_scan_init_if_multibyte_chars_in_source_enabled();
@@ -11291,7 +11283,7 @@ id_scan:
           if ((ch == 'u' || ch == 'U') &&
               universal_character_names_allowed) {
             continue_scan = TRUE;
-            contains_ucn_or_multibyte_char = TRUE;
+            id_contains_ucn_or_multibyte_char = TRUE;
             (void)scan_universal_character(&curr_char_loc,
 			                   /*is_identifier=*/TRUE,
 					   /*is_identifier_start=*/
@@ -11306,7 +11298,7 @@ id_scan:
              returns FALSE, which makes us drop out of the loop and treat the
              invalid character as an invalid token. */
           continue_scan = TRUE;
-          contains_ucn_or_multibyte_char = TRUE;
+          id_contains_ucn_or_multibyte_char = TRUE;
           /* Increment curr_char_loc by numch and create any logical
              character index entries. */
           incr_curr_char_loc_for_multibyte_char(numch);
@@ -11333,7 +11325,7 @@ id_scan:
                     (sizeof_t)(end_of_curr_token - start_of_curr_token + 1),
                     start_of_curr_token);
         /* Look up the identifier in the symbol table. */
-        if (contains_ucn_or_multibyte_char) {
+        if (id_contains_ucn_or_multibyte_char) {
           /* If the identifier contains a universal character name or
              a multibyte character, the string must be processed to make
              it canonical. */

@@ -1485,6 +1485,13 @@ EXTERN a_constant_ptr
 			/* A pointer to an array of constants representing
 			   the name linkages that the front end accepts. */
 
+EXTERN a_boolean
+		id_contains_ucn_or_multibyte_char;
+			/* When curr_token is tok_identifier, TRUE if the
+			   the identifier was written using a
+			   universal-character-name or a multibyte
+			   character, FALSE otherwise. */
+
 #if ASM_SUPPORT_NEEDED
 
 EXTERN a_boolean
@@ -2120,6 +2127,17 @@ extern unsigned long scan_universal_character(
 					a_boolean	is_identifier,
 				        a_boolean	is_identifier_start,
 					a_boolean	issue_diagnostics);
+
+#if ABI_COMPATIBILITY_VERSION >= 302
+extern char *make_canonical_identifier(char     *identifier,
+                                       sizeof_t *length);
+#else /* !(ABI_COMPATIBILITY_VERSION >= 302) */
+/*
+No translation of identifiers was done for older ABIs.  Simply
+return the original identifier pointer.
+*/
+#define make_canonical_identifier(identifier, length) (identifier)
+#endif /* ABI_COMPATIBILITY_VERSION >= 302 */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean is_valid_GUID_string(char          *str,

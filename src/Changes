@@ -1,5 +1,18 @@
 Version 4.4
 
+8/1/11   [EDGcpfe/11918, EDGcpfe/11935]
+Non-ASCII macro names
+
+The front end previously failed to translate the name of a macro being
+defined into its internal canonical form when it contained multibyte
+characters.  A reference to that name, however, looked up the identifier
+using its canonical form and thus failed to find it in the symbol table.
+This has now been fixed.  For example:
+
+  #define fé 2  // second character is Latin-1 e with acute accent
+  int i = fé;   // Previously "undefined identifier" error
+
+
 7/29/11  [EDGcpfe/11949]
 Storage class specifiers
 
