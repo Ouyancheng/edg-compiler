@@ -13718,6 +13718,37 @@ all arguments were explicit.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+static a_boolean is_valid_generic_argument(a_type_ptr	argument_type)
+/*
+Check whether argument_type is a type that can be used as a generic
+type argument.  Return TRUE if it is valid, FALSE otherwise.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (is_value_class_or_fundamental_type(argument_type)) {
+    /* A value class, including the fundamental types that have a
+       corresponding value class, can be used as a generic argument. */
+    result = TRUE;
+  } else if (is_template_param_type(argument_type) ||
+             is_cli_generic_definition_argument_type(argument_type)) {
+    /* A generic parameter is allowed.  The ECMA standard does not say
+       that template parameters are allowed, but they are. */
+    result = TRUE;
+  } else if (is_handle_type(argument_type)) {
+    a_type_ptr	tp = type_pointed_to(argument_type);
+    tp = skip_typerefs(tp);
+    if (is_cli_ref_or_interface_class_type(tp)) {
+      /* A handle to a ref class or interface class is allowed. */
+      result = TRUE;
+    } else if (is_cli_array_type(tp)) {
+      /* A handle to a C++/CLI array is allowed. */
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_valid_generic_argument */
+
 static
 a_template_arg_ptr scan_generic_argument_list(a_symbol_ptr	generic_sym,
 					      a_boolean		*any_errors)
@@ -13746,6 +13777,7 @@ Its value is unchanged if no errors are detected.
      caller. */
   do {
     a_type_ptr		argument_type;
+    a_source_position	start_pos;
     if (curr_token == tok_shift_right && right_shift_can_be_angle_brackets) {
       /* Check for the case where a "right shift" could be interpreted as two
          consecutive closing angle brackets. */
@@ -13763,7 +13795,15 @@ Its value is unchanged if no errors are detected.
     }  /* if */
     arity++;
     add_stop_token(tok_comma);
+    start_pos = pos_curr_token;
     argument_type = scan_template_type_argument();
+    /* Make sure that the argument is a type that can be used as a generic
+       argument.  Constraint checking will be done later after we have
+       identified the arity of this reference. */
+    if (!is_valid_generic_argument(argument_type)) {
+      pos_ty_error(ec_invalid_generic_arg, &start_pos, argument_type);
+      *any_errors = TRUE;
+    }  /* if */
     arg_ptr = alloc_template_arg((a_templ_arg_kind)tak_type);
     arg_ptr->variant.type = argument_type;
     /* Link this entry on to the argument list. */
