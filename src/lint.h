@@ -819,6 +819,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_invalid_type_constraint)*/
 /*lint -esym(769,ec_both_ref_and_value_constraints)*/
 /*lint -esym(769,ec_circular_constraints)*/
+/*lint -esym(769,ec_invalid_generic_arg)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
