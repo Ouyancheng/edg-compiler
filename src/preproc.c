@@ -867,14 +867,20 @@ FALSE, respectively).
       some_error_in_curr_directive = TRUE;
     }  /* if */
   } else {
-    a_byte	ifg_state = get_ifg_state();
+    a_byte   ifg_state = get_ifg_state();
+    char     *id_ptr = start_of_curr_token;
+    sizeof_t id_len = len_of_curr_token;
+    /* Get the canonical spelling of the identifier. */
+    if (id_contains_ucn_or_multibyte_char) {
+      id_ptr = make_canonical_identifier(start_of_curr_token, &id_len);
+    }  /* if */
     if (ifg_state == IFG_STATE_START) {
       /* If we are at the start of an include file then record 
          information about this @ifdef so that it can be used later to
          see if subsequent includes can be suppressed. */
-      char *nm = alloc_fe(len_of_curr_token+2);
-      strncpy(nm, start_of_curr_token, size_t_arg(len_of_curr_token));
-      nm[len_of_curr_token] = 0;
+      char *nm = alloc_fe(id_len + 2);
+      strncpy(nm, id_ptr, size_t_arg(id_len));
+      nm[id_len] = 0;
       set_ifg_state(IFG_STATE_INTERMED);
       if (is_ifdef) {
         curr_ise->include_history->ifdef_guard = TRUE;
@@ -889,10 +895,9 @@ FALSE, respectively).
     }  /* if */
     /* The identifier __VA_ARGS__ is not allowed if variadic macros are
        accepted. */
-    check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
+    check_use_of_VA_ARGS(id_len, id_ptr);
     /* Look to see if there is a macro with this name. */
-    sym_hdr = find_symbol_header(start_of_curr_token, len_of_curr_token,
-                                 &locator_for_curr_id);
+    sym_hdr = find_symbol_header(id_ptr, id_len, &locator_for_curr_id);
     assoc_symbol = find_defined_macro(sym_hdr);
     if (assoc_symbol != NULL) {
       condition = TRUE;
@@ -954,14 +959,19 @@ Scan and process an #undef directive.
     syntax_error(ec_exp_identifier);
     some_error_in_curr_directive = TRUE;
   } else {
+    /* Get the canonical spelling of the identifier. */
+    char     *id_ptr = start_of_curr_token;
+    sizeof_t id_len = len_of_curr_token;
+    if (id_contains_ucn_or_multibyte_char) {
+      id_ptr = make_canonical_identifier(start_of_curr_token, &id_len);
+    }  /* if */
     /* The identifier __VA_ARGS__ is not allowed if variadic macros are
        accepted. */
-    check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
+    check_use_of_VA_ARGS(id_len, id_ptr);
     /* Look to see if there is a macro with this name. */
     /* find_defined_macro cannot be used because if we have "#undef defined"
        we want to give an error, not ignore it. */
-    assoc_symbol = find_macro_symbol_by_name(start_of_curr_token,
-                                             len_of_curr_token,
+    assoc_symbol = find_macro_symbol_by_name(id_ptr, id_len,
 	                                     &locator_for_curr_id);
     if (assoc_symbol == NULL) {
       /* No such macro, so #undef is ignored. */
