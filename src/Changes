@@ -1,5 +1,18 @@
 Version 4.4
 
+8/1/11   [EDGcpfe/11957]
+C-generating back end: line numbers for nonstatic member functions
+
+In configurations with gcc_is_generated_code_target and IA64_ABI set to
+TRUE, the C-generating back end inserts alignment directives preceding the
+definition of nonstatic member functions (see the 3/20/07 entry below).
+This alignment directive appeared after the directive setting the
+corresponding source position and thus caused the effective line number of
+the beginning of the function to be incorrect.  The order of these
+directives has now been changed to provide better correspondence with the
+position of the function in the source code.
+
+
 8/1/11   [EDGcpfe/11918, EDGcpfe/11935]
 Non-ASCII macro names
 

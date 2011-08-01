@@ -9288,7 +9288,6 @@ if this routine has a body (dump nothing if it has no body).
       }  /* if */
     }  /* if */
     /* Dump the routine interface. */
-    set_output_position(&rout->source_corresp.decl_position);
 #if IA64_ABI
     if (is_definition &&
         skip_typerefs(rout->type)->variant.routine.extra_info->this_class !=
@@ -9303,6 +9302,7 @@ if this routine has a body (dump nothing if it has no body).
       end_output_line();
     }  /* if */
 #endif /* IA64_ABI */
+    set_output_position(&rout->source_corresp.decl_position);
     /* Determine the proper storage class to display. */
     if (!is_definition) {
       /* The function is not defined (here), so use "extern". */
