@@ -1477,6 +1477,54 @@ Display the indicated based type list.
   }  /* if */
 }  /* disp_based_type_list */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void disp_generic_constraint_clause(a_generic_constraint_clause_ptr ptr)
+/*
+Display the indicated generic constraint clause.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_generic_constraint_clause);
+  disp_ptr("type", (char *)ptr->type, iek_type);
+  disp_source_position("type_position", &ptr->type_position);
+  disp_ptr("constraints", (char *)ptr->constraints, iek_generic_constraint);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_source_position("where_position", &ptr->where_position);
+  disp_source_position("colon_position", &ptr->colon_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* disp_generic_constraint_clause */
+
+
+static void disp_generic_constraint(a_generic_constraint_ptr ptr)
+/*
+Display the indicated generic constraint.
+*/
+{
+  char  *kind_str;
+
+  switch (ptr->kind) {
+    case gck_none:             kind_str = "unknown/invalid";      break;
+    case gck_type:             kind_str = "type";                 break;
+    case gck_naked_type_param: kind_str = "naked type parameter"; break;
+    case gck_ref_class:        kind_str = "ref class";            break;
+    case gck_value_class:      kind_str = "value class";          break;
+    case gck_gcnew:            kind_str = "gcnew";                break;
+    default:                   kind_str = "**BAD CONSTRAINT KIND**";
+  }  /* switch */
+  disp_name("kind");
+  (void)printf("%s\n", kind_str);
+  if (ptr->implicit_constraint) {
+    disp_boolean("implicit_constraint", TRUE);
+  }  /* if */
+  disp_ptr("next", (char *)ptr->next, iek_generic_constraint);
+  if (ptr->type != NULL) {
+    disp_ptr("type", (char *)ptr->type, iek_type);
+  }  /* if */
+  /* Do not display type_cache: Front end pointer only. */
+  disp_source_position("position", &ptr->position);
+}  /* disp_generic_constraint */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void disp_template_param_type_supplement(
                                       a_template_param_type_supplement_ptr ptr)
@@ -1488,6 +1536,12 @@ Display the indicated template parameter type supplement.
   if (ptr->orig_nested_type != NULL) {
     disp_ptr("orig_nested_type", (char *)ptr->orig_nested_type, iek_type);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->generic_constraints != NULL) {
+    disp_ptr("generic_constraints", (char *)ptr->generic_constraints,
+             iek_generic_constraint);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   disp_template_param_coordinate(&ptr->coordinates);
 }  /* disp_template_param_type_supplement */
 
@@ -2622,8 +2676,8 @@ Display the indicated field.
       disp_unsigned_long("declared_bit_size", ptr->declared_bit_size);
 #if BACK_END_IS_C_GEN_BE
       if (ptr->bit_field_alignment_type != NULL) {
-        disp_name("bit_field_alignment_type");
-        disp_type(ptr->bit_field_alignment_type);
+        disp_ptr("bit_field_alignment_type",
+                 (char *)ptr->bit_field_alignment_type, iek_type);
       }  /* if */
 #endif /* BACK_END_IS_C_GEN_BE */
     }  /* if */
@@ -6461,6 +6515,13 @@ This routine is called during IL walking.
         case iek_property_or_event_descr:
           disp_property_or_event_descr(
                                     (a_property_or_event_descr_ptr)entry_ptr);
+          break;
+        case iek_generic_constraint_clause:
+          disp_generic_constraint_clause(
+                                  (a_generic_constraint_clause_ptr)entry_ptr);
+          break;
+        case iek_generic_constraint:
+          disp_generic_constraint((a_generic_constraint_ptr)entry_ptr);
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
