@@ -241,7 +241,7 @@ extern void symbol_ref_one_time_init(void);
 }
 
 /*
-If tp is an real instance of a class template, make sure it is fully
+If tp is a real instance of a class template, make sure it is fully
 instantiated.
 */
 #define complete_template_instance_is_needed(tp)			\
