@@ -8294,7 +8294,7 @@ Make or find a type entry for an explicitly signed integer type of the
 indicated kind, and return a pointer to it.  Keeping track of the difference
 between, e.g., a plain "int" and a "signed int" is necessary because the two
 may be handled differently for bit fields.  Should only be called for kinds
-ik_short, ik_int, ik_long, and ik_long_long.
+ik_short, ik_int, ik_long, ik_long_long, and ik_int128.
 */
 {
   a_type_ptr pit;
@@ -8311,7 +8311,10 @@ ik_short, ik_int, ik_long, and ik_long_long.
 #if LONG_LONG_ALLOWED
         && kind != (an_integer_kind)ik_long_long
 #endif /* LONG_LONG_ALLOWED */
-                                                ) {
+#if INT128_EXTENSIONS_ALLOWED
+        && kind != (an_integer_kind)ik_int128
+#endif /* INT128_EXTENSIONS_ALLOWED */
+                                             ) {
       internal_error("signed_integer_type: bad int kind");
     }  /* if */
 #endif /* CHECKING */
@@ -8422,6 +8425,14 @@ input produces ik_long as output.
       nkind = (an_integer_kind)ik_long_long;
       break;
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+    case ik_int128:
+      nkind = (an_integer_kind)ik_unsigned_int128;
+      break;
+    case ik_unsigned_int128:
+      nkind = (an_integer_kind)ik_int128;
+      break;
+#endif /* INT128_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str("other_signedness_integer_type: bad kind");
   }  /* switch */
@@ -23389,6 +23400,10 @@ floating point types.
   int_field_alignments[(int)ik_unsigned_long_long] =
                                                targ_long_long_field_alignment;
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+  int_field_alignments[(int)ik_int128] = targ_int128_field_alignment;
+  int_field_alignments[(int)ik_unsigned_int128] = targ_int128_field_alignment;
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #if CHECKING
   for (k = 0; k<(int)ik_last; ++k) {
     if (int_field_alignments[k] == 0) {

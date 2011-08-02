@@ -1543,6 +1543,13 @@ EXTERN a_boolean
 			   modes where long long is fully standard (e.g.,
 			   C99 mode). */
 
+#if INT128_EXTENSIONS_ALLOWED
+EXTERN a_boolean
+		int128_extensions_enabled;
+			/* TRUE if the front end must support 128-bit integer
+			   types.  Currently only meaningful in GNU modes. */
+#endif /* INT128_EXTENSIONS_ALLOWED */
+
 EXTERN a_boolean
 		hex_floating_point_constants_allowed;
 			/* TRUE if hexadecimal floating point constants

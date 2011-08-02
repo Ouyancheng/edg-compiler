@@ -7069,7 +7069,8 @@ global pointers.  This function assumes that mscorlib.dll has been imported.
 
 #if CHECKING
   /* Check that the a_cli_symbol_kind_tag enumeration is correctly defined. */
-  if ((int)csk_last_integer - (int)csk_first_integer != (int)ik_last-1 ||
+  if ((int)csk_last_integer - (int)csk_first_integer !=
+                                                 (int)ik_unsigned_long_long ||
       (int)csk_last_float - (int)csk_first_float !=
                                                (int)fk_last-1) /*lint !e506*/ {
     internal_error(

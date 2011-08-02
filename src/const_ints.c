@@ -1879,6 +1879,13 @@ of the indicated kind.
       alignment = targ_alignof_long_long;
       break;
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+    case ik_int128:
+    case ik_unsigned_int128:
+      size = targ_sizeof_int128;
+      alignment = targ_alignof_int128;
+      break;
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #if CHECKING
     default:
       internal_error("get_integer_size_and_alignment: bad integer kind");

@@ -391,6 +391,10 @@ This is done before command line processing.
   targ_sizeof_long_long = TARG_SIZEOF_LONG_LONG;
   targ_alignof_long_long = TARG_ALIGNOF_LONG_LONG;
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+  targ_sizeof_int128 = TARG_SIZEOF_INT128;
+  targ_alignof_int128 = TARG_ALIGNOF_INT128;
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   targ_int8_int_kind = ((an_integer_kind)ik_none);
   targ_unsigned_int8_int_kind = ((an_integer_kind)ik_none);
@@ -459,6 +463,9 @@ This is done before command line processing.
 #if LONG_LONG_ALLOWED
   targ_long_long_field_alignment = TARG_LONG_LONG_FIELD_ALIGNMENT;
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+  targ_int128_field_alignment = TARG_INT128_FIELD_ALIGNMENT;
+#endif /* INT128_EXTENSIONS_ALLOWED */
   targ_float_field_alignment = TARG_FLOAT_FIELD_ALIGNMENT;
   targ_double_field_alignment = TARG_DOUBLE_FIELD_ALIGNMENT;
   targ_long_double_field_alignment = TARG_LONG_DOUBLE_FIELD_ALIGNMENT;

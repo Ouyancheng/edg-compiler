@@ -3918,6 +3918,10 @@ enum an_integer_kind_tag {
   ik_long_long,
   ik_unsigned_long_long,
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+  ik_int128,
+  ik_unsigned_int128,
+#endif /* INT128_EXTENSIONS_ALLOWED */
   ik_last,
   ik_none = ik_last
 };
@@ -3942,6 +3946,10 @@ EXTERN a_byte_boolean
   TRUE,		/* ik_long_long */
   FALSE,	/* ik_unsigned_long_long */
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+  TRUE,		/* ik_int128 */
+  FALSE,	/* ik_uint128 */
+#endif /* INT128_EXTENSIONS_ALLOWED */
   111		/* ik_last ("111" is just an unusual value used to check the
 		   correctness of the initialization order) */
 }
@@ -3967,6 +3975,10 @@ EXTERN an_integer_kind
   (an_integer_kind)ik_unsigned_long_long,	/* ik_long_long */
   (an_integer_kind)ik_unsigned_long_long,	/* ik_unsigned_long_long */
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+  (an_integer_kind)ik_int128,			/* ik_int128 */
+  (an_integer_kind)ik_unsigned_int128,		/* ik_unsigned_int128 */
+#endif /* INT128_EXTENSIONS_ALLOWED */
   111		/* ik_last ("111" is just an unusual value used to check the
 		   correctness of the initialization order) */
 }
@@ -7927,6 +7939,9 @@ typedef struct a_type {
 			/* Bit set with bits set to indicate the presence
 			   of one or more type qualifiers (const, volatile,
 			   or other(s) as defined by the implementation). */
+      a_bit_field
+		predeclared:1;
+			/* TRUE for predeclared typedefs. */
 #if NEAR_AND_FAR_ALLOWED
       a_bit_field
 		explicit_memory_attribute_made_implicit:1;

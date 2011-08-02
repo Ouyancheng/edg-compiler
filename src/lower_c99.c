@@ -4569,6 +4569,14 @@ fixed-point type.
   for (ikind = 0; ; ikind++) {
     check_assertion_str(ikind < (int)ik_last,
             "lowered_integer_type_for_fixed_point_type: no suitable int type");
+#if INT128_EXTENSIONS_ALLOWED
+    if (ikind == (an_integer_kind)ik_int128 ||
+        ikind == (an_integer_kind)ik_unsigned_int128) {
+      /* Don't consider the 128-bit integer kinds.  This could be changed if
+         needed. */
+      continue;
+    }  /* if */
+#endif /* INT128_EXTENSIONS_ALLOWED */
     get_integer_size_and_alignment(ikind, &int_size, &int_alignment);
     if (int_size == fx_type->size &&
         int_alignment == fx_type->alignment &&

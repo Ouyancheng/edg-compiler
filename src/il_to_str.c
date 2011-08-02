@@ -841,6 +841,14 @@ common_long_long_processing:
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
                                 break;
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+    case ik_int128:
+      p = gnu_mode ? "__int128_t" : "**BAD-INT-KIND**";
+      break;
+    case ik_unsigned_int128:
+      p = gnu_mode ? "__uint128_t" : "**BAD-INT-KIND**";
+      break;
+#endif /* INT128_EXTENSIONS_ALLOWED */
     default:                    p = "**BAD-INT-KIND**";
   }  /* switch */
   return p;

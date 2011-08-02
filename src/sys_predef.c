@@ -1989,14 +1989,15 @@ Enter a predefined type.
 static a_type_ptr enter_predefined_typedef(char        *name,
                                             a_type_ptr  type)
 /*
-Create a type entry and associated symbol for a typedef of the given name
-with the given underlying type.  Enter these in the file scope and return
-the type entry.
+Create a type entry and associated symbol for a typedef of the given name with
+the given underlying type.  Mark the type as being a predeclared typedef.
+Enter these in the file scope and return the type entry.
 */
 {
   a_type_ptr  result = alloc_type((a_type_kind)tk_typeref);
 
   result->variant.typeref.type = type;
+  result->variant.typeref.predeclared = TRUE;
   add_to_types_list(result, DEPTH_OF_FILE_SCOPE);
   /* enter_predefined_type also sets the name of the type. */
   enter_predefined_type(result, name);
@@ -2149,6 +2150,21 @@ Enter a predefined type __builtin_va_list.
 }  /* enter_builtin_va_list_type */
 
 #endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
+#if GNU_EXTENSIONS_ALLOWED && INT128_EXTENSIONS_ALLOWED
+
+static void enter_128bit_integer_typedefs(void)
+/*
+Enter typedefs "__int128_t" and "__uint128_t" corresponding to signed and
+unsigned 128-bit integer types, respectively.
+*/
+{
+  enter_predefined_typedef("__int128_t",
+                           integer_type((an_integer_kind)ik_int128));
+  enter_predefined_typedef("__uint128_t",
+                           integer_type((an_integer_kind)ik_unsigned_int128));
+}  /* enter_128bit_integer_typedefs */
+
+#endif /* GNU_EXTENSIONS_ALLOWED && INT128_EXTENSIONS_ALLOWED */
 
 void enter_system_specific_predeclared_symbols(void)
 /*
@@ -2218,6 +2234,11 @@ Enter predeclared symbols as required by the implementation.
 #if GCC_BUILTIN_VARARGS
     enter_builtin_va_list_type();
 #endif /* GCC_BUILTIN_VARARGS */
+#if INT128_EXTENSIONS_ALLOWED
+    if (int128_extensions_enabled) {
+      enter_128bit_integer_typedefs();
+    }  /* if */
+#endif /* INT128_EXTENSIONS_ALLOWED */
     /* Enter the many functions predeclared by GNU compilers.  Note that this
        must happen after builtin_va_list_type is set above since some
        declarations may make use of that type. */

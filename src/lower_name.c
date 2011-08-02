@@ -60,6 +60,10 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_LONG_LONG "x"
 #define MANGLING_STRING_FOR_UNSIGNED_LONG_LONG "y"
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+#define MANGLING_STRING_FOR_INT128 "n"
+#define MANGLING_STRING_FOR_UNSIGNED_INT128 "o"
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #define MANGLING_STRING_FOR_FLOAT "f"
 #define MANGLING_STRING_FOR_DOUBLE "d"
 #define MANGLING_STRING_FOR_LONG_DOUBLE "e"
@@ -193,6 +197,10 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_LONG_LONG "L"
 #define MANGLING_STRING_FOR_UNSIGNED_LONG_LONG "UL"
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+#define MANGLING_STRING_FOR_INT128 "S128"
+#define MANGLING_STRING_FOR_UNSIGNED_INT128 "U128"
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #define MANGLING_STRING_FOR_FLOAT "f"
 #define MANGLING_STRING_FOR_DOUBLE "d"
 #define MANGLING_STRING_FOR_LONG_DOUBLE "r"
@@ -8485,6 +8493,14 @@ top_of_loop:
               s = MANGLING_STRING_FOR_UNSIGNED_LONG_LONG;
               break;
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+            case ik_int128:      
+              s = MANGLING_STRING_FOR_INT128;
+              break;
+            case ik_unsigned_int128:
+              s = MANGLING_STRING_FOR_UNSIGNED_INT128;
+              break;
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #if CHECKING
             default:
               internal_error("mangled_encoding_for_type: bad int kind");

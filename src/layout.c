@@ -944,6 +944,13 @@ Return the longest signed integer type that is not longer than the bit field.
     int_kind = (an_integer_kind)ik_long_long;
   }  /* if */
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+  if (int128_extensions_enabled &&
+      targ_sizeof_int128 > targ_sizeof_long_long &&
+      targ_char_bit * targ_sizeof_int128 <= bit_size) {
+    int_kind = (an_integer_kind)ik_int128;
+  }  /* if */
+#endif /* INT128_EXTENSIONS_ALLOWED */
   return integer_type(int_kind);
 }  /* longest_integer_type_fitting_in_bits */
 

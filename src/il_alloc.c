@@ -1748,6 +1748,7 @@ to default values.
       pte->variant.typeref.upc_block_size = UPC_BLOCK_SIZE_NONE;
 #endif /* UPC_EXTENSIONS_ALLOWED */
       pte->variant.typeref.qualifiers  = TQ_NONE;
+      pte->variant.typeref.predeclared = FALSE;
 #if NEAR_AND_FAR_ALLOWED
       pte->variant.typeref.explicit_memory_attribute_made_implicit = FALSE;
 #endif /* NEAR_AND_FAR_ALLOWED */

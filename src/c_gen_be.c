@@ -2582,7 +2582,10 @@ Print a typedef declaration.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
   if (start_unreferenced_bracket(&type->source_corresp, (a_boolean *)NULL)) {
-    if (type->is_builtin_va_list) {
+    if (type->variant.typeref.predeclared) {
+      /* Don't render predeclared typedefs (since the target compiler
+         presumably will also predeclare it). */
+    } else if (type->is_builtin_va_list) {
       /* This is the declaration of the builtin va_list, from <stdarg.h>. */
       if (gcc_builtin_varargs_in_generated_code) {
         /* This is the intrinsic GNU C/C++ type __builtin_va_list.

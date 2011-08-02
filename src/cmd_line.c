@@ -3414,6 +3414,9 @@ exclude the GNU modes already.  Hence those are not checked again here.)
     nonstd_gnu_keywords_enabled = TRUE;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+  int128_extensions_enabled = TRUE;
+#endif /* INT128_EXTENSIONS_ALLOWED */
 }  /* check_and_set_gnu_mode_options */
 
 
@@ -5595,6 +5598,11 @@ file.
 #else /* !defined(INSTANTIATION_REQUEST_LINES_RESERVED) */
   comment_undefined_macro_name(INSTANTIATION_REQUEST_LINES_RESERVED);
 #endif /* defined(INSTANTIATION_REQUEST_LINES_RESERVED) */
+#if defined(INT128_EXTENSIONS_ALLOWED)
+  define_numeric_valued_macro(INT128_EXTENSIONS_ALLOWED);
+#else /* !defined(INT128_EXTENSIONS_ALLOWED) */
+  comment_undefined_macro_name(INT128_EXTENSIONS_ALLOWED);
+#endif /* defined(INT128_EXTENSIONS_ALLOWED) */
 #if defined(INTEGER_VALUE_REPR_IS_A_HOST_INTEGER)
   define_numeric_valued_macro(INTEGER_VALUE_REPR_IS_A_HOST_INTEGER);
 #else /* !defined(INTEGER_VALUE_REPR_IS_A_HOST_INTEGER) */
@@ -6302,6 +6310,11 @@ file.
 #else /* !defined(TARG_ALIGNOF_INT) */
   comment_undefined_macro_name(TARG_ALIGNOF_INT);
 #endif /* defined(TARG_ALIGNOF_INT) */
+#if defined(TARG_ALIGNOF_INT128)
+  define_numeric_valued_macro(TARG_ALIGNOF_INT128);
+#else /* !defined(TARG_ALIGNOF_INT128) */
+  comment_undefined_macro_name(TARG_ALIGNOF_INT128);
+#endif /* defined(TARG_ALIGNOF_INT128) */
 #if defined(TARG_ALIGNOF_LONG)
   define_numeric_valued_macro(TARG_ALIGNOF_LONG);
 #else /* !defined(TARG_ALIGNOF_LONG) */
@@ -9457,6 +9470,9 @@ variables declared in cmd_line.h.
   va_copy_macro_allowed = FALSE;
   long_long_is_standard = FALSE;
   long_long_promotion_allowed = FALSE;
+#if INT128_EXTENSIONS_ALLOWED
+  int128_extensions_enabled = FALSE;
+#endif /* INT128_EXTENSIONS_ALLOWED */
   hex_floating_point_constants_allowed = FALSE;
 #if EXPORT_ENABLING_POSSIBLE
   export_template_allowed = DEFAULT_EXPORT_TEMPLATE_ALLOWED &&

@@ -1,5 +1,14 @@
 Version 4.4
 
+8/2/11   [EDGcpfe/8739,EDGcpfe/9831,EDGcpfe/9890,EDGcpfe/11024,EDGcpfe/11227]
+GNU compatibility: 128-bit integer types
+
+When the new configuration macro INT128_EXTENSIONS_ALLOWED is set to TRUE, the
+front end now includes 128-bit integer types in GNU modes.  These types can be
+named via the predeclared typedefs __int128_t (a signed type) and __uint128_t
+(an unsigned type) or via the GNU attribute "mode(TI)".
+
+
 8/1/11   [EDGcpfe/11900]
 C++-generating back end: spurious "template" keyword in partial specialization
 

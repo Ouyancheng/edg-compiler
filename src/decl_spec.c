@@ -4408,6 +4408,10 @@ base specifier.
     } else {
       /* No integer type can hold all the values.  We'll use the largest
          available integer type and issue a diagnostic. */
+#if INT128_EXTENSIONS_ALLOWED
+      /* GNU compilers do not consider 128-bit integer types in this context.
+         We emulate that behavior. */
+#endif /* INT128_EXTENSIONS_ALLOWED */
       enum_type->variant.integer.int_kind = largest_enum_int_kind;
       if (!err && !scope_stack[depth_scope_stack].in_prototype_instantiation) {
         pos_diagnostic(strict_ansi_mode ? es_error : es_warning,
@@ -5994,6 +5998,12 @@ such a typedef, return the associated basic type specifier and set *sign and
           /* No holes to fill in. */
           break;
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+        case ik_int128:
+        case ik_unsigned_int128:
+          /* No holes to fill in. */
+          break;
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #if CHECKING
         default:
           internal_error("basic_type_from_typedef: bad typedef int kind");

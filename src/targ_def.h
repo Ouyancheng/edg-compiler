@@ -537,6 +537,17 @@ whether C99 IL extensions are supported, and that is only known here.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && !LONG_LONG_ALLOWED */
 
 /*
+Flag that is TRUE if signed and unsigned 128-bit integer types can be
+enabled in the front end.  Currently, only GNU modes provide a way to refer
+to these types in source code (via typedefs __int128_t and __uint128_t,
+respectively).
+*/
+#ifndef INT128_EXTENSIONS_ALLOWED
+#define INT128_EXTENSIONS_ALLOWED FALSE
+#endif /* ifndef INT128_EXTENSIONS_ALLOWED */
+
+
+/*
 Flag that is TRUE if C++0x lambdas should be enabled in other C++ modes by
 default (they are, of course, always enabled in C++0x mode).  This macro is
 used for the initialization of the global variable lambdas_enabled.
@@ -852,6 +863,18 @@ Integer types:
 			   targ_alignof_long_long. */
 #endif /* !defined(TARG_ALIGNOF_LONG_LONG) */
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+#ifndef TARG_SIZEOF_INT128
+#define TARG_SIZEOF_INT128 16
+			/* Default value, used to initialize global variable
+			   targ_sizeof_int128. */
+#endif /* !defined(TARG_SIZEOF_INT128) */
+#ifndef TARG_ALIGNOF_INT128
+#define TARG_ALIGNOF_INT128 16
+			/* Default value, used to initialize global variable
+			   targ_alignof_int128. */
+#endif /* !defined(TARG_ALIGNOF_INT128) */
+#endif /* INT128_EXTENSIONS_ALLOWED */
 
 /* Specify the size of the largest integer.  Note that this will constrain
    how targ_sizeof_long and targ_sizeof_long_long are configured at runtime,
@@ -873,6 +896,12 @@ Integer types:
 /* A "long int" is the largest integer. */
 #define TARG_SIZEOF_LARGEST_INTEGER TARG_SIZEOF_LONG
 #endif /* !LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+#if TARG_SIZEOF_INT128 > TARG_SIZEOF_LARGEST_INTEGER 
+#undef TARG_SIZEOF_LARGEST_INTEGER
+#define TARG_SIZEOF_LARGEST_INTEGER TARG_SIZEOF_INT128
+#endif /* TARG_SIZEOF_INT128 > TARG_SIZEOF_LARGEST_INTEGER */
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #if TARG_SIZEOF_LARGEST_INTEGER == 4
 #undef TARG_SIZEOF_LARGEST_INTEGER
 #define TARG_SIZEOF_LARGEST_INTEGER 4
@@ -3260,6 +3289,12 @@ we define these equal to the corresponding intrinsic alignments.
 #define TARG_LONG_LONG_FIELD_ALIGNMENT TARG_ALIGNOF_LONG_LONG
 #endif /* TARG_LONG_LONG_FIELD_ALIGNMENT */
 #endif /* LONG_LONG_ALLOWED */
+
+#if INT128_EXTENSIONS_ALLOWED
+#ifndef TARG_INT128_FIELD_ALIGNMENT
+#define TARG_INT128_FIELD_ALIGNMENT TARG_ALIGNOF_INT128
+#endif /* TARG_INT128_FIELD_ALIGNMENT */
+#endif /* INT128_EXTENSIONS_ALLOWED */
 
 #ifndef TARG_FLOAT_FIELD_ALIGNMENT
 #define TARG_FLOAT_FIELD_ALIGNMENT TARG_ALIGNOF_FLOAT

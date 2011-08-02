@@ -152,6 +152,19 @@ EXTERN a_targ_alignment
 			/* Alignment of a long long int.  Initialized to the
 			   default value but reconfigurable. */
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+EXTERN a_targ_size_t
+		targ_sizeof_int128;
+			/* Size of a 128-bit integer type.  Initialized to the
+			   default value but reconfigurable (in practice, this
+			   almost certainly equals 16). */
+
+EXTERN a_targ_alignment
+		targ_alignof_int128;
+			/* Alignment of a 128-bit integer type.  Initialized to
+			   the default value but reconfigurable (in practice,
+			   this almost certainly equals 16). */
+#endif /* INT128_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_boolean
@@ -203,12 +216,14 @@ EXTERN an_integer_kind
 EXTERN an_integer_kind
 		targ_intmax_kind;
 			/* Integer kind associated with the largest signed
-			   integer type.  In C99, this is intmax_t. */
+			   integer type (excluding ik_int128).  In C99, this
+			   is intmax_t. */
 
 EXTERN an_integer_kind
 		targ_uintmax_kind;
 			/* Integer kind associated with the largest unsigned
-			   integer type.  In C99, this is uintmax_t. */
+			   integer type (excluding ik_unsigned_int128).  In
+			   C99, this is uintmax_t. */
 
 EXTERN a_targ_size_t
 		targ_max_class_object_size;
@@ -528,6 +543,13 @@ EXTERN a_targ_alignment
 		targ_long_long_field_alignment;
 			/* Default alignment for fields of type long long. */
 #endif /* LONG_LONG_ALLOWED */
+
+#if INT128_EXTENSIONS_ALLOWED
+EXTERN a_targ_alignment
+		targ_int128_field_alignment;
+			/* Default alignment for fields of the 128-bit integer
+			   type. */
+#endif /* INT128_EXTENSIONS_ALLOWED */
 
 EXTERN a_targ_alignment
 		targ_float_field_alignment;
