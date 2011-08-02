@@ -308,7 +308,7 @@ ABIs do not encode the calling convention in mangled names.  For example:
     // back-end errors because the mangled names of both functions are
     // identical.
 
-This also matches GCC behavior
+This also matches GCC behavior.
 
 
 7/14/11  [EDGcpfe/11923]

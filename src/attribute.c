@@ -5244,6 +5244,8 @@ Apply the GNU "stdcall" attribute to the given entity and return that entity.
       /* gcc issues an error, but g++ silently keeps the cdecl convention. */
       an_error_severity  sev = gpp_mode ? es_warning : es_error;
       pos_diagnostic(sev, ec_conflicting_calling_conventions, &ap->position);
+      check_assertion(
+                  rtsp->calling_convention == (a_calling_convention)cc_cdecl);
     }  /* if */
   }  /* if */
   return entity;
