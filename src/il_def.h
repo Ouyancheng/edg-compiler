@@ -13084,15 +13084,18 @@ typedef enum a_builtin_operation_kind_tag {
 			/* __is_trivially_copyable.  One operand: A type. */
   bok_is_literal_type,	/* __is_literal_type.  One operand: A type. */
   bok_has_trivial_move_constructor,
-			/* __has_trivial_move_constructor.  One operand: A type. */
+			/* __has_trivial_move_constructor.  One operand:
+			   A type. */
   bok_has_trivial_move_assign,
 			/* __has_trivial_move_assign.  One operand: A type. */
   bok_has_nothrow_move_assign,
 			/* __has_nothrow_move_assign.  One operand: A type. */
   bok_is_constructible,
-			/* __is_constructible.  One or more operands, all types. */
+			/* __is_constructible.  One or more operands,
+			   all types. */
   bok_is_nothrow_constructible,
-			/* __is_nothrow_constructible.  One or more operands, all types. */
+			/* __is_nothrow_constructible.  One or more operands,
+			   all types. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   bok_has_finalizer,	/* __has_finalizer.  One operand: A type. */
   bok_is_delegate,	/* __is_delegate.  One operand: A type. */
