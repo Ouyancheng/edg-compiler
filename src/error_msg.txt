@@ -2272,7 +2272,7 @@ ec_static_accessor_in_nonstatic_property_or_event;;"a static accessor function i
 ec_both_ref_and_value_constraints;;"%t has both a value class and ref class constraint"
 ec_circular_constraints;;"%t1 and %t2 involve circular naked type constraints"
 ec_invalid_type_constraint;;"%t is not a valid type constraint"
-ec_pch_file_incomplete;;"precompiled header file %sq is not used (because it is incomplete)"
+ec_pch_file_incomplete;;"precompiled header file %sq not used (because it is incomplete)"
 ec_invalid_generic_arg;;"%t is not a valid generic argument"
 ###############################################################################
 #                                                             \  ___  /       #
