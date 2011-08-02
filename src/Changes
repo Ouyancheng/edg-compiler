@@ -132,7 +132,8 @@ definition.  For example:
       // for S::N<T>.
   };
 
-This is now fixed.
+This is now fixed.  (This problem was introduced by the removal of placeholder
+types; see Changes entry of 5/18/10 for EDGcpfe/10646.)
 
 
 7/26/11  [EDGcpfe/11942]
