@@ -233,7 +233,7 @@ Assertion failure during inlining
 
 In Cfront configurations that use inlining, when NEW_CAN_BE_FOLDED_INTO_CTOR
 is TRUE and LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS is FALSE,
-inlining of some constructor functions had cause an assertion failure
+inlining of some constructor functions had caused an assertion failure
 ("remap_var_for_inlining: wrong kind of remap").  For example (with --g++
 --no_exceptions):
 
