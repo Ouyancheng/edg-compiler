@@ -66,7 +66,7 @@ now fixed.
 7/28/11  [EDGcpfe/11958]
 Improved hashing of template instances
 
-The front end builds hash tables to lookup up instances of class
+The front end builds hash tables to look up instances of class
 templates.  The hashing mechanism has been improved to better handle
 template arguments that are function types, pointer to member types,
 or template parameters.  It has also been improved for cases that have
