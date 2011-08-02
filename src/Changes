@@ -104,7 +104,7 @@ it is possible that the default size of this field (typically 26 bits) may not
 be sufficient to address all of the IL entries (in which case the front end
 reports "program too large or complicated to compile").  A new configuration
 macro, TYPE_FOR_PREFIX_ENTRY_NUMBER, has been introduced to allow configuration
-of the underlying type for the entry_number bit field (to say, an unsigned
+of the underlying type for the entry_number bit field (to, say, an unsigned
 64-bit host type).  The default value for this new macro is "unsigned int"
 (except when EDG_MSDOS is TRUE, in which case it is "unsigned long"), which
 corresponds to the old behavior.
