@@ -1142,7 +1142,9 @@ typedef enum /*a_token_kind*/ {
   tok_native_nullptr,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_internal_alias_decl,
+#if INT128_EXTENSIONS_ALLOWED
   tok_int128,
+#endif /* INT128_EXTENSIONS_ALLOWED */
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1278,7 +1280,9 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__nullptr",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "__internal_alias_decl",
+#if INT128_EXTENSIONS_ALLOWED
    "__int128",
+#endif /* INT128_EXTENSIONS_ALLOWED */
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
