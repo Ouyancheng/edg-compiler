@@ -1,5 +1,13 @@
 Version 4.4
 
+8/3/11  [EDGcpfe/8739,EDGcpfe/9831,EDGcpfe/9890,EDGcpfe/11024,EDGcpfe/11227]
+GNU compatibility: 128-bit integer types
+
+A change has been made to enable demangling of 128-bit integer types.  In the
+Cfront-like ABI, these types have been assigned the encodings "S128" for
+__int128_t and "U128" for __uint128_t.
+
+
 6/17/11 [EDGcpfe/8403,EDGcpfe/10669,EDGcpfe/11510,EDGcpfe/11628,EDGcpfe/11684,
          EDGcpfe/11800]
 C++0x: Changes for char16_t/char32_t types
