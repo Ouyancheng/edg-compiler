@@ -1490,7 +1490,13 @@ EXTERN a_boolean
 			/* When curr_token is tok_identifier, TRUE if the
 			   the identifier was written using a
 			   universal-character-name or a multibyte
-			   character, FALSE otherwise. */
+			   character, FALSE otherwise.  This is only set
+			   upon the initial scan of an identifier from
+			   source text, not, e.g., when the identifier
+			   comes from a token cache, so it should only be
+			   checked in contexts such as preprocessor
+			   directives where it is known that source text is
+			   being scanned. */
 
 #if ASM_SUPPORT_NEEDED
 
