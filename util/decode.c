@@ -2658,117 +2658,115 @@ to the character position following what was demangled.
       write_id_str("_Complex ", dctl);
       p++;
     }  /* if */
-    if ((ch == 'S' || ch == 'U') && start_of_id_is("128", p, dctl)) {
-      /* "S" and "U" are used to introduce a signed or unsigned version of
-         a type, which is typically a single character, but that's not the
-         case for 128-bit integers. */
-      s = "__int128";
-      p += 3;
-    } else {
-      switch (get_char(p++, dctl)) {
-        case 'v':
-          s = "void";
-          break;
-        case 'c':
-          s = "char";
-          break;
-        case 'w':
-          s = "wchar_t";
-          break;
-        case 'b':
-          s = "bool";
-          break;
-        case 's':
-          s = "short";
-          break;
-        case 'i':
-          s = "int";
-          break;
-        case 'l':
-          s = "long";
-          break;
-        case 'L':
-          s = "long long";
-          break;
-        case 'f':
-          s = "float";
-          break;
-        case 'd':
-          s = "double";
-          break;
-        case 'r':
-          s = "long double";
-          break;
-        case 'm':
-          /* Microsoft intrinsic __intN types (Visual C++ 6.0 and later). */
-          switch (get_char(p++, dctl)) {
-            case '1':
+    switch (get_char(p++, dctl)) {
+      case 'v':
+        s = "void";
+        break;
+      case 'c':
+        s = "char";
+        break;
+      case 'w':
+        s = "wchar_t";
+        break;
+      case 'b':
+        s = "bool";
+        break;
+      case 's':
+        s = "short";
+        break;
+      case 'i':
+        s = "int";
+        break;
+      case 'l':
+        s = "long";
+        break;
+      case 'L':
+        s = "long long";
+        break;
+      case 'f':
+        s = "float";
+        break;
+      case 'd':
+        s = "double";
+        break;
+      case 'r':
+        s = "long double";
+        break;
+      case 'm':
+        /* Microsoft intrinsic __intN types (Visual C++ 6.0 and later), as
+           well as GNU 128-bit integers (m16). */
+        switch (get_char(p++, dctl)) {
+          case '1':
+            if (get_char(p, dctl) == '6') {
+              s = "__int128";
+              p++;
+            } else {
               s = "__int8";
-              break;
-            case '2':
-              s = "__int16";
-              break;
-            case '4':
-              s = "__int32";
-              break;
-            case '8':
-              s = "__int64";
-              break;
-            default:
-              bad_mangled_name(dctl);
-              s = "";
-          }  /* switch */
-          break;
-        case 'n':
-          s = "std::nullptr_t";
-          break;
-        case 'j':
-          s = "__nullptr";
-          break;
-        case 'u':
-          s = "auto";
-          break;
-        case 'g':
-          s = "char16_t";
-          break;
-        case 'k':
-          s = "char32_t";
-          break;
-        case 't':
-          /* typeof(type) */
-          write_id_str("typeof(", dctl);
-          p = demangle_type(p, dctl);
-          s = ")";
-          break;
-        case 'p':
-          /* typeof(expression) */
-          write_id_str("typeof(", dctl);
-          p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
-          s = ")";
-          break;
-        case 'y':
-          /* decltype of an id-expression or class member access. */
-          write_id_str("decltype(", dctl);
-          p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
-          s = ")";
-          break;
-        case 'Y':
-          /* decltype of an expression. */
-          write_id_str("decltype((", dctl);
-          p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
-          s = "))";
-          break;
-        case 'o':
-          /* __underlying_type(type) */
-          write_id_str("__underlying_type(", dctl);
-          p = demangle_type(p, dctl);
-          s = ")";
-          break;
-        default:
-          bad_mangled_name(dctl);
-          s = "";
-      }  /* switch */
-    }  /* if */
+            }  /* if */
+            break;
+          case '2':
+            s = "__int16";
+            break;
+          case '4':
+            s = "__int32";
+            break;
+          case '8':
+            s = "__int64";
+            break;
+          default:
+            bad_mangled_name(dctl);
+            s = "";
+        }  /* switch */
+        break;
+      case 'n':
+        s = "std::nullptr_t";
+        break;
+      case 'j':
+        s = "__nullptr";
+        break;
+      case 'u':
+        s = "auto";
+        break;
+      case 'g':
+        s = "char16_t";
+        break;
+      case 'k':
+        s = "char32_t";
+        break;
+      case 't':
+        /* typeof(type) */
+        write_id_str("typeof(", dctl);
+        p = demangle_type(p, dctl);
+        s = ")";
+        break;
+      case 'p':
+        /* typeof(expression) */
+        write_id_str("typeof(", dctl);
+        p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
+        s = ")";
+        break;
+      case 'y':
+        /* decltype of an id-expression or class member access. */
+        write_id_str("decltype(", dctl);
+        p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
+        s = ")";
+        break;
+      case 'Y':
+        /* decltype of an expression. */
+        write_id_str("decltype((", dctl);
+        p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
+        s = "))";
+        break;
+      case 'o':
+        /* __underlying_type(type) */
+        write_id_str("__underlying_type(", dctl);
+        p = demangle_type(p, dctl);
+        s = ")";
+        break;
+      default:
+        bad_mangled_name(dctl);
+        s = "";
+    }  /* switch */
     write_id_str(s, dctl);
   }  /* if */
   return p;
