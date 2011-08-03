@@ -1140,7 +1140,7 @@ integers than the host.
 There is a host integer type that is large enough to hold all target integers,
 so the integer representation is just some host integral type.
 This type must be unsigned; a_signed_integer_value is the signed version.
-If LONG_LONG_ALLOWED is TRUE, the host "long long" and "unsigned long Long"
+If LONG_LONG_ALLOWED is TRUE, the host "long long" and "unsigned long long"
 are used by default.
 */
 #ifndef TYPE_FOR_AN_INTEGER_VALUE
