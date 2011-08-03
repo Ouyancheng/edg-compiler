@@ -9896,7 +9896,8 @@ set to FALSE (and FALSE is always returned).
            non-CLI "__interface" types.  (Static interface constructors are
            not implicitly pure virtual and need not be implemented by derived
            classes.) */
-        check_assertion(!type->variant.class_struct_union.is_interface);
+        check_assertion_or_expect_error(
+                              !type->variant.class_struct_union.is_interface);
         is_implicitly_pure_virtual =
                                 in_interface &&
                                 !special_kind_is(rtn, sfk_static_constructor);
@@ -19297,7 +19298,7 @@ being parsed), *decl_info describes the current member declaration, and
                                     DSI_IS_MEMBER_DECLARATION;
   a_property_or_event_descr_ptr
                         pdp = alloc_property_or_event_descr();
-  a_boolean             ptr_to_member_scanned;
+  a_boolean             ptr_to_member_scanned, use_error_type = FALSE;
   a_source_position     decl_pos, type_pos;
   a_source_position     *p_virtual_or_static_pos = NULL;
   a_boolean             is_property = dps->has_cli_property_keyword;
@@ -19337,6 +19338,7 @@ being parsed), *decl_info describes the current member declaration, and
     pos_error(is_property ? ec_property_requires_managed_class
                           : ec_event_requires_managed_class,
               &pos_curr_token);
+    use_error_type = TRUE;
   }  /* if */
   (void)get_token();
   type_pos = pos_curr_token;
@@ -19406,7 +19408,7 @@ being parsed), *decl_info describes the current member declaration, and
       pos_error(is_array_type(dps->type) ? ec_array_type_not_allowed
                                          : ec_function_type_not_allowed,
                 &type_pos);
-      dps->type = error_type();
+      use_error_type = TRUE;
     }  /* if */
   } else {
     /* An event's type must be handle-to-delegate. */
@@ -19419,13 +19421,13 @@ being parsed), *decl_info describes the current member declaration, and
         complete_type_is_needed(underlying_tp);
         if (!is_delegate_type(underlying_tp)) {
           pos_error(ec_invalid_event_type, &type_pos);
-          dps->type = error_type();
+          use_error_type = TRUE;
         }  /* if */
       }  /* if */
     } else if (!is_template_param_type(dps->type) &&
                !is_error_type(dps->type)) {
       pos_error(ec_invalid_event_type, &type_pos);
-      dps->type = error_type();
+      use_error_type = TRUE;
     }  /* if */
   }  /* if */
   /* An identifier should be next. */
@@ -19469,6 +19471,9 @@ being parsed), *decl_info describes the current member declaration, and
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     pdp->definition_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+  if (use_error_type) {
+    dps->type = error_type();
   }  /* if */
   if (pdp->is_static) {
     decl_static_data_member(&loc, class_state, decl_info);
