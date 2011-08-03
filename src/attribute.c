@@ -5961,7 +5961,7 @@ the type.
     integer_type_supp(tp)->assembly_index = assembly_index;
     integer_type_supp(tp)->metadata_type_def_token = metadata_type_def_token;
   } else {
-    unexpected_condition();
+    pos_error(ec_bad_assembly_info_attribute, &ap->position);
   }  /* if */
 #if BACK_END_IS_CP_GEN_BE
   tp->has_been_declared = TRUE;
