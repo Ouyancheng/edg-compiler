@@ -107,6 +107,16 @@ Microsoft extensions.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+Macro to be used in conjunction with is_type_keyword to check for __int128.
+*/
+#if INT128_EXTENSIONS_ALLOWED
+#define or_is_int128_keyword(tok)                                     \
+  || ((tok) == tok_int128)
+#else /* !INT128_EXTENSIONS_ALLOWED */
+#define or_is_int128_keyword(tok)  /* Nothing */
+#endif /* INT128_EXTENSIONS_ALLOWED */
+
+/*
 Macro to be used in conjunction with is_type_keyword to check for complex
 type extensions.
 */
@@ -164,6 +174,7 @@ If you change this, see also type_keyword.
    or_is_c99_type_keyword(tok)                                        \
    or_is_cxx0x_type_keyword(tok)                                      \
    or_is_microsoft_type_keyword(tok)                                  \
+   or_is_int128_keyword(tok)                                          \
    or_is_fixed_point_type_keyword(tok)                                \
    or_is_extension_type_keyword(tok)) 
 

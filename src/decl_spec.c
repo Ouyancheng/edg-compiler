@@ -5873,6 +5873,9 @@ typedef enum {
   size_int32,
   size_int64
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+  , size_int128,
+#endif /* INT128_EXTENSIONS_ALLOWED */
 } a_type_size;
 /* C99 complex modifiers. */
 typedef enum {
@@ -6213,6 +6216,17 @@ modifier _Sat was specified.
           }  /* if */
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+        case size_int128:
+          if (sign != sign_unsigned) {
+            /* __int128, signed __int128. */
+            ikind = ik_int128;
+          } else {
+            /* unsigned __int128. */
+            ikind = ik_unsigned_int128;
+          }  /* if */
+          break;
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #if CHECKING
         default:
           internal_error("combine_type_specifiers: bad size for int");
@@ -8423,6 +8437,26 @@ storage_class_specifier:
         }  /* if */
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+      case tok_int128:
+        /* The GNU keyword __int128 represents a basic type and a size in
+           combination.  In other words, an explicit size may not be specified
+           in conjunction with it. */
+        if (!type_specifier_allowed) {
+          error(ec_type_specifier_not_allowed);
+          err = TRUE;
+        } else if (basic_type != bt_none || size != size_none) {
+          /* Basic type or size has already been specified in some way. */
+          bad_combination_of_type_specifiers = TRUE;
+          error(ec_bad_combination_of_type_specifiers);
+        } else {
+          /* Set both basic type and size. */
+          basic_type = bt_int;
+          size = size_int128;
+          decl_specifiers_seen |= DS_TYPE;
+        }  /* if */
+        break;
+#endif /* INT128_EXTENSIONS_ALLOWED */
       case tok_short:
       case tok_long:
         /* A type specifier (3.5.2) that modifies the length of a basic

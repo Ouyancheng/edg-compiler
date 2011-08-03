@@ -26871,6 +26871,9 @@ handle_trapped_left_paren:
     case tok_int32:
     case tok_int64:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+    case tok_int128:
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
     case tok_typeof:
 #endif /* GNU_EXTENSIONS_ALLOWED */

@@ -6662,6 +6662,11 @@ file.
 #else /* !defined(TARG_INT_FIELD_ALIGNMENT) */
   comment_undefined_macro_name(TARG_INT_FIELD_ALIGNMENT);
 #endif /* defined(TARG_INT_FIELD_ALIGNMENT) */
+#if defined(TARG_INT128_FIELD_ALIGNMENT)
+  define_numeric_valued_macro(TARG_INT128_FIELD_ALIGNMENT);
+#else /* !defined(TARG_INT128_FIELD_ALIGNMENT) */
+  comment_undefined_macro_name(TARG_INT128_FIELD_ALIGNMENT);
+#endif /* defined(TARG_INT128_FIELD_ALIGNMENT) */
 #if defined(TARG_JMP_BUF_ELEMENTS_ARE_FLOAT)
   define_numeric_valued_macro(TARG_JMP_BUF_ELEMENTS_ARE_FLOAT);
 #else /* !defined(TARG_JMP_BUF_ELEMENTS_ARE_FLOAT) */
@@ -6852,6 +6857,11 @@ file.
 #else /* !defined(TARG_SIZEOF_INT) */
   comment_undefined_macro_name(TARG_SIZEOF_INT);
 #endif /* defined(TARG_SIZEOF_INT) */
+#if defined(TARG_SIZEOF_INT128)
+  define_numeric_valued_macro(TARG_SIZEOF_INT128);
+#else /* !defined(TARG_SIZEOF_INT128) */
+  comment_undefined_macro_name(TARG_SIZEOF_INT128);
+#endif /* defined(TARG_SIZEOF_INT128) */
 #if defined(TARG_SIZEOF_LARGEST_FIXED_POINT)
   define_numeric_valued_macro(TARG_SIZEOF_LARGEST_FIXED_POINT);
 #else /* !defined(TARG_SIZEOF_LARGEST_FIXED_POINT) */

@@ -608,6 +608,11 @@ Install the keywords in the symbol table.
     }  /* if */
     enter_gnu_keyword((a_token_kind)tok_builtin_types_compatible,
                       "__builtin_types_compatible_p");
+#if INT128_EXTENSIONS_ALLOWED
+    if (gnu_version >= 40600 && int128_extensions_enabled) {
+      enter_keyword((a_token_kind)tok_int128, "__int128");
+    }  /* if */
+#endif /*  INT128_EXTENSIONS_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Enable alternative token spellings. */
     enter_gnu_keyword((a_token_kind)tok_inline, "__inline");

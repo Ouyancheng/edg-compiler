@@ -6,7 +6,9 @@ GNU compatibility: 128-bit integer types
 When the new configuration macro INT128_EXTENSIONS_ALLOWED is set to TRUE, the
 front end now includes 128-bit integer types in GNU modes.  These types can be
 named via the predeclared typedefs __int128_t (a signed type) and __uint128_t
-(an unsigned type) or via the GNU attribute "mode(TI)".
+(an unsigned type) or via the GNU attribute "mode(TI)".  The type specifier
+__int128 is also accepted when gnu_version >= 40600: It can be combined with
+the unsigned and signed modifiers.
 
 
 8/1/11   [EDGcpfe/11900]
