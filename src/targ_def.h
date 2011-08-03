@@ -1276,7 +1276,7 @@ typedef unsigned short an_int_value_part;
    values can be done in a_host_large_integer without special coding
    to deal with overflows.  These types are also used to manipulate integer
    values that are a subset of the values that can be represented by
-   an_integer_value when AN_INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is
+   an_integer_value when INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is
    FALSE.  Many operations can be done using these types, because
    most constant values are small.  When the values are too large,
    alternate routines are used. */
