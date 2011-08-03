@@ -10734,12 +10734,17 @@ with and issue diagnostics as needed.
     a_type_ptr  invocation_type;
     check_assertion(rp->special_kind ==
                                    (a_special_function_kind)sfk_event_raise);
-    invocation_type = delegate_invocation_type(type_pointed_to(prop_type));
-    if (!f_types_are_compatible(rtp, invocation_type,
-                                TCF_IGNORE_THIS_CLASS_TYPE |
-                                TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
-      pos_error(ec_event_raise_type_mismatch, &dps->start_pos);
-      err = TRUE;
+    if (is_template_param_type(prop_type)) {
+      /* The event's type is unknown; so we cannot examine the underlying
+         delegate invocation type. */
+    } else {
+      invocation_type = delegate_invocation_type(type_pointed_to(prop_type));
+      if (!f_types_are_compatible(rtp, invocation_type,
+                                  TCF_IGNORE_THIS_CLASS_TYPE |
+                                  TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
+        pos_error(ec_event_raise_type_mismatch, &dps->start_pos);
+        err = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (!err) {
