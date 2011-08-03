@@ -2582,10 +2582,7 @@ Print a typedef declaration.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
   if (start_unreferenced_bracket(&type->source_corresp, (a_boolean *)NULL)) {
-    if (type->variant.typeref.predeclared) {
-      /* Don't render predeclared typedefs (since the target compiler
-         presumably will also predeclare it). */
-    } else if (type->is_builtin_va_list) {
+    if (type->is_builtin_va_list) {
       /* This is the declaration of the builtin va_list, from <stdarg.h>. */
       if (gcc_builtin_varargs_in_generated_code) {
         /* This is the intrinsic GNU C/C++ type __builtin_va_list.
@@ -2608,6 +2605,10 @@ Print a typedef declaration.
 #endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
         write_pp_directive("#include <stdarg.h>", (char *)NULL);
       }  /* if */
+    } else if (type->variant.typeref.predeclared) {
+      /* Don't render predeclared typedefs since the target compiler will
+         (presumably) also predeclare them.  (The builtin va_list type is an
+         exception in some cases, and therefore handled separately above.) */
     } else {
       /* Dump any pragmas associated with the type. */
       dump_decl_associated_pragmas(&type->source_corresp);
