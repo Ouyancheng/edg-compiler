@@ -10422,6 +10422,33 @@ modification will be added to restore the first token to the current line.
     add_deletion_source_line_modif(delete_source_from_loc,
                                    orig_loc - delete_source_from_loc,
                                    /*for_comment=*/FALSE);
+  } else if (*orig_loc == ATTENTION_MARKER) {
+    /* The call to skip_white_space() added one or more deletions in
+       getting to the next token, including deleting the initial token.
+       (This occurs if the scan entered or left source line modifications.)
+       We need to remove those deletions. */
+    unsigned long sequence_id;
+    slmp = nested_source_line_modif(orig_loc);
+    sequence_id = slmp->sequence_id;
+    rem_source_line_modif(slmp);
+    free_source_line_modif(&slmp);
+    if (sequence_id != sequence_id_for_source_line_modifs) {
+      /* There were some deletions for white space in addition to the one
+         for the initial token.  Scan the list of modifications and remove
+         any that were added after the one that deleted the initial
+         token. */
+      a_source_line_modif_ptr slmp2;
+      for (slmp = source_line_modif_list; slmp != NULL;) {
+        slmp2 = slmp;
+        slmp = slmp->next;
+        if (slmp2->sequence_id > sequence_id) {
+          /* This modification was added after the one that deleted the
+             initial token.  Remove it. */
+          rem_source_line_modif(slmp2);
+          free_source_line_modif(&slmp2);
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   delete_source_from_loc = NULL;
   /* Get the length of the next word. */
