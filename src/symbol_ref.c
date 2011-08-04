@@ -1055,6 +1055,23 @@ C++-generating back end.
       /* A qualifiable name. */
       tag_hidden_by_nontag = FALSE;
       hidden_class_or_namespace_member = TRUE;
+      if (is_tag_symbol(old_sym_ptr) && !is_tag_symbol(sym_ptr) &&
+          sym_is_namespace_member(old_sym_ptr) &&
+          !has_name_before_mangling(sym_parent_namespace(old_sym_ptr))) {
+        /* The symbol is a tag symbol and a member of the unnamed
+           namespace; if the current scope is nested within the unnamed
+           namespace, that symbol cannot be referred to using a qualified
+           name, but an elaborated-type-specifier can be used.  Check to
+           see if the unnamed namespace is a parent of this scope. */
+        a_scope_ptr unnamed_ns =
+                        old_sym_ptr->parent.namespace_ptr->variant.assoc_scope;
+        a_scope_ptr sp2;
+        for (sp2 = sp; sp2 != NULL && sp2 != unnamed_ns; sp2 = sp2->parent) {}
+        if (sp2 != NULL) {
+          /* Use an elaborated-type-specifier. */
+          tag_hidden_by_nontag = TRUE;
+        }  /* if */
+      }  /* if */
       record_defeatable_name_hiding(old_sym_ptr, tag_hidden_by_nontag,
                                     hidden_class_or_namespace_member,
                                     /*simulated_hiding=*/FALSE, sp, sym_ptr);

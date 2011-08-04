@@ -1,5 +1,22 @@
 Version 4.4
 
+8/4/11   [EDGcpfe/11983]
+C++-generating back end: hidden names in the unnamed namespace
+
+When a class, struct, union, or enumeration member of the unnamed namespace
+is hidden within a scope nested within the unnamed namespace, the hidden
+type must be referred to using an elaborated-type-specifier.  The
+C++-generating back end previously failed to do so.  This has now been
+fixed.  For example:
+
+  namespace {
+    struct A { };
+    struct B {
+      struct A A;   // Previously omitted the "struct" keyword
+    };
+  }
+
+
 8/4/11   [EDGcpfe/11985]
 Detecting non-existent directory on some Windows systems
 
