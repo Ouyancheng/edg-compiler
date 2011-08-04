@@ -965,7 +965,7 @@ generic.
 }  /* is_cli_generic_param_type */
 
 
-static a_boolean is_cli_generic_constraint_type(a_type_ptr tp)
+a_boolean is_cli_generic_constraint_type(a_type_ptr tp)
 /*
 Return TRUE if the given type entry represents the class constraint
 version of a C++/CLI generic parameter.
@@ -1331,6 +1331,28 @@ The given type must be a boxable type.  Return the corresponding boxed type
   check_assertion(result != NULL);
   return result;
 }  /* boxed_type_for */
+
+a_boolean is_cli_nullable_type(a_type_ptr tp)
+/*
+Return TRUE if tp is an instance of the C++/CLI System::Nullable generic
+value type.
+*/
+{
+  a_boolean	result = FALSE;
+
+  tp = skip_typerefs(tp);
+  if (is_immediate_class_type(tp) && is_cli_generic_instance_type(tp)) {
+    a_class_symbol_supplement_ptr	cssp = symbol_supplement_for_class(tp);
+    /* Note that there is both a generic value class named System::Nullable
+       and a non-generic ref class.  The symbol returned by name lookup
+       is always the generic version. */
+    if (cssp->class_template == cli_symbol_from_kind(csk_system_nullable)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_cli_nullable_type */
+
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -1825,6 +1847,19 @@ Return TRUE if the given type is a template parameter type.
   return is_template_param(tp);
 }  /* is_template_param_type */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean is_template_not_cli_generic_param_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a template parameter type, but not
+a C++/CLI generic parameter type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_template_param(tp) && !is_cli_generic_param(tp);
+}  /* is_template_not_cli_generic_param_type */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean is_template_class_type(a_type_ptr tp)
 /*
@@ -2725,6 +2760,52 @@ provided in types.h.
   }  /* if */
   return has_default_ctor;
 }  /* f_type_has_default_constructor */
+
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean cli_type_has_public_default_constructor(a_type_ptr	tp)
+/*
+Return TRUE if tp has a public default constructor.  This routine should
+only be called on C++/CLI reference type or interface (although it will
+always return FALSE for interfaces).
+*/
+{
+  a_boolean				result = FALSE;
+  a_class_symbol_supplement_ptr		cssp;
+  a_symbol_ptr				sym;
+  a_boolean				is_list = FALSE;
+
+  check_assertion(is_cli_ref_or_interface_class_type(tp));
+  cssp = symbol_supplement_for_class(tp);
+  sym = cssp->constructor;
+  if (sym != NULL && sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    is_list = TRUE;
+    sym = sym->variant.overloaded_function.symbols;
+  }  /* if */
+  /* If the constructor symbol is an overload set, loop through the members
+     of the set. */
+  for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+    a_routine_ptr	rp;
+    a_param_type_ptr	ptp;
+    check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
+    rp = sym->variant.routine.ptr;
+    ptp = rp->type->variant.routine.extra_info->param_type_list;
+    /* If we find an entry with no parameter list, that is the default
+       constructor.  This is sufficient for the purposes of this routine
+       because CLI constructors cannot have default arguments. */
+    if (ptp == NULL) {
+      /* We found an entry -- make sure it is public. */
+      if (access_for_symbol(sym) == (an_access_specifier)as_public) {
+        result = TRUE;
+      }  /* if */
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* cli_type_has_public_default_constructor */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 

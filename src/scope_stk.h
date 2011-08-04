@@ -591,6 +591,11 @@ typedef struct a_scope_stack_entry {
 			   assembly family access, as_private for assembly
 			   access, and as_public for universal access.
 			   (C++/CLI only.) */
+  a_bit_field	defer_constraint_checks:1;
+			/* TRUE if checking of generic constraints should be
+			   deferred and performed later.  This is used to
+			   defer checking of constraints of base-specifiers
+			   and generic "where" clauses. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	inactive_symbols_may_be_visible:1;
 			/* TRUE if the scope stack to this depth contains any
@@ -964,6 +969,11 @@ typedef struct a_scope_stack_entry {
 			   the tail of a list of entities used in the token
 			   caching and delayed scanning scheme required for
 			   C++ in-class data member initializers. */
+  a_deferred_constraint_check_ptr
+		deferred_constraint_checks;
+			/* When defer_constraint_checks is TRUE, this contains
+			   a list of constraint checks to be performed at
+			   a later point in time. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* The following pointers are the end pointers for the lists begun
      in the current IL scope entry.  They are needed only while the scope

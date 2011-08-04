@@ -446,6 +446,18 @@ extern void pos_ty2_error(an_error_code     error_code,
                           a_source_position *error_pos,
                           struct a_type     *type1,
                           struct a_type     *type2);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern void pos_ty3_error(an_error_code      error_code,
+                          a_source_position  *error_pos,
+                          struct a_type      *type1,
+                          struct a_type      *type2,
+                          struct a_type      *type3);
+void pos2_ty_diagnostic(an_error_severity  error_severity,
+                        an_error_code      error_code,
+                        a_source_position  *error_pos,
+                        a_source_position  *other_pos,
+                        struct a_type      *type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern void pos_opt_ty2_error(an_error_code     error_code,
                               a_source_position *error_pos,
                               struct a_type     *type1,

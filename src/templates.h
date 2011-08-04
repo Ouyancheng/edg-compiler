@@ -858,7 +858,14 @@ a_type_ptr generic_param_if_generic_definition_argument(a_type_ptr	type);
 extern a_boolean equivalent_generic_constraints_for_param_lists(
                               a_template_param_ptr      list1,
                               a_template_param_ptr      list2,
+                              a_boolean                 issue_error,
+                              a_source_position_ptr     error_pos,
                               a_generic_constraint_ptr  *p_mismatch_in_list1);
+
+void verify_generic_arg_list_satisfies_constraints(
+				a_symbol_ptr		generic_sym,
+				a_template_arg_ptr	generic_arg_list,
+				a_source_position_ptr	list_start_pos);
 
 extern void scan_cli_generic_class_definition_from_assembly_import(void);
 
@@ -872,6 +879,74 @@ extern a_boolean check_cli_internal_template_instantiation(
 
 extern a_symbol_ptr make_cli_array_type(a_type_ptr             element_type,
                                         a_host_large_unsigned  rank);
+
+/*
+Entry used to represent a C++/CLI generic constraint check that was
+deferred to be performed later.
+*/
+typedef struct a_deferred_constraint_check {
+  a_deferred_constraint_check_ptr
+		next;
+			/* The next entry on a list of entries, or NULL for the
+			   last entry. */
+  a_symbol_ptr
+		generic_symbol;
+			/* The symbol for the class template symbol that
+			   represents the generic for which the generic
+			   arguments are being checked. */
+  a_template_arg_ptr
+		generic_arg_list;
+			/* The generic arguments that are to be checked
+			   against the constraints of generic_symbol. */
+  a_source_position
+		error_position;
+			/* The position to be used for any diagnostics
+			   issued for constraint violations. */
+} a_deferred_constraint_check;
+
+extern void perform_deferred_constraint_checks(a_scope_depth	scope_depth);
+
+extern void f_discard_deferred_constraint_checks(void);
+
+/*
+Set the flag that specifies that constraint errors should be deferred and
+checked later.
+*/
+#define begin_deferral_of_constraint_checks()				\
+{									\
+  if (cppcli_enabled) {							\
+    scope_stack[depth_scope_stack].defer_constraint_checks = TRUE;	\
+  }  /* if */								\
+}
+
+/*
+Clear the flag that specifies that constraint checks should be deferred,
+and perform any checks that were deferred.  scope_depth specifies the
+scope depth at the point that the deferral was started and the original
+constraint checks were done.
+*/
+#define end_deferral_of_constraint_checks(scope_depth)			\
+{									\
+  if (cppcli_enabled) {							\
+    check_assertion(scope_stack[(scope_depth)].defer_constraint_checks); \
+    scope_stack[(scope_depth)].defer_constraint_checks = FALSE;  \
+    if (scope_stack[(scope_depth)].deferred_constraint_checks != NULL) { \
+      /* Only make this call if there are entries on the list. */	\
+      perform_deferred_constraint_checks(scope_depth);			\
+    }  /* if */								\
+  }  /* if */								\
+}
+
+/*
+Throw away any deferred constraint entries.
+*/
+#define discard_deferred_constraint_checks()				\
+{									\
+  if (scope_stack[depth_scope_stack].deferred_constraint_checks != NULL) { \
+    /* Only make this call if there are entries on the list. */	       	\
+    f_discard_deferred_constraint_checks();				\
+  }  /* if */								\
+}
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

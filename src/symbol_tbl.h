@@ -44,6 +44,7 @@ typedef struct a_symbol_list_entry *a_symbol_list_entry_ptr;
 typedef struct a_hash_table *a_hash_table_ptr;
 typedef struct a_param_id *a_param_id_ptr;
 typedef struct a_pack_expansion_stack_entry *a_pack_expansion_stack_entry_ptr;
+typedef struct a_deferred_constraint_check *a_deferred_constraint_check_ptr;
 
 /* The pointer types to a_routine_fixup and an_initializer_fixup are declared
    here even though the struct themselves are defined in class_decl.c.  This
@@ -3993,6 +3994,7 @@ enum a_cli_symbol_kind_tag {
   csk_system_multicast_delegate,
   csk_system_idisposable,
   csk_system_array,
+  csk_system_nullable,
   csk_cli_namespace,
   csk_system_namespace,
   csk_cli_array,
@@ -4060,6 +4062,7 @@ EXTERN a_cli_symbol_name
   { "IDisposable", csk_system_namespace },
                                         /* csk_system_idisposable */
   { "Array", csk_system_namespace },	/* csk_system_array */
+  { "Nullable", csk_system_namespace },	/* csk_system_nullable */
   { NULL, csk_none },                   /* csk_cli_namespace */
   { NULL, csk_none },                   /* csk_system_namespace */
   { NULL, csk_none },                   /* csk_cli_array */

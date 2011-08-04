@@ -2542,6 +2542,7 @@ the scope being pushed.
   ssep->current_access           = (an_access_specifier)as_public;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ssep->current_assembly_access  = (an_access_specifier)as_public;
+  ssep->defer_constraint_checks  = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ssep->inactive_symbols_may_be_visible = FALSE;
   ssep->inside_local_class       = inside_local_class;
@@ -2627,6 +2628,8 @@ the scope being pushed.
   ssep->last_routine_fixup       = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ssep->last_initializer_fixup   = NULL;
+  ssep->deferred_constraint_checks
+                                 = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ssep->last_parameter           = NULL;
   ssep->last_nonstatic_variable  = NULL;

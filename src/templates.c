@@ -397,6 +397,12 @@ static a_variadic_param_info_ptr
 		avail_variadic_param_infos;
 			/* Previously allocated entries available for reuse. */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static a_deferred_constraint_check_ptr
+		avail_deferred_constraint_checks;
+			/* Previously allocated entries available for reuse. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 static a_boolean
 		deferred_instantiations_in_process;
 			/* Flag used by process_deferred_instantiations to
@@ -425,6 +431,9 @@ static unsigned long
 		num_template_lookup_entries_allocated,
                 num_exported_template_files_allocated,
 #endif /* TEMPLATE_LOOKUP_NEEDED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+		num_deferred_constraint_checks_allocated,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 		num_tmpl_decl_states_allocated,
 		num_variadic_param_infos_allocated,
 		num_partial_order_candidates_allocated;
@@ -1999,7 +2008,7 @@ static a_boolean equivalent_generic_constraint_lists(
 Return TRUE if the given lists of generic constraints are equivalent.
 Otherwise, return FALSE and if the first list (list1) contains a constraint
 that has no match in the second list, return the first such constraint in
-*p_mismatch_in_list1.
+*p_mismatch_in_list1 (if it is not NULL).
 */
 {
   a_boolean                 result = TRUE;
@@ -2022,7 +2031,7 @@ that has no match in the second list, return the first such constraint in
     if (gcp2 == NULL) {
       /* No match found for *gcp1. */
       result = FALSE;
-      *p_mismatch_in_list1 = gcp1;
+      if (p_mismatch_in_list1 != NULL) *p_mismatch_in_list1 = gcp1;
       goto done;
     }  /* if */
   }  /* for */
@@ -2039,12 +2048,16 @@ done:
 a_boolean equivalent_generic_constraints_for_param_lists(
                                a_template_param_ptr      list1,
                                a_template_param_ptr      list2,
+                               a_boolean                 issue_error,
+                               a_source_position_ptr     error_pos,
                                a_generic_constraint_ptr  *p_mismatch_in_list1)
 /*
 Return TRUE if the generic constraints for the given lists of template
 parameters are equivalent.  Otherwise, return FALSE and if the first list
 (list1) contains a constraint that has no match in the second list, return the
-first such constraint in *p_mismatch_in_list1.
+first such constraint in *p_mismatch_in_list1 (if it is not NULL).  If
+issue_error is TRUE, a diagnostic is issued at error_pos if a mismatch
+is found.
 */
 {
   a_boolean             result = TRUE;
@@ -2053,20 +2066,28 @@ first such constraint in *p_mismatch_in_list1.
   /* Check the constraints for every parameter pair from the given pair of
      lists. */
   for (; tpp1 != NULL; tpp1 = tpp1->next, tpp2 = tpp2->next) {
-    a_generic_constraint_ptr  gclist1, gclist2;
+    a_generic_constraint_ptr	gclist1, gclist2;
+    a_type_ptr			generic_param1;
+    a_type_ptr			generic_param2;
     check_assertion(tpp2 != NULL);
     check_assertion(symbol_is(tpp1->param_symbol, sk_type) &&
                     symbol_is(tpp2->param_symbol, sk_type));
-    gclist1 = generic_param_if_generic_definition_argument(tpp1->variant.type)
-                                           ->variant.template_param.extra_info
-                                           ->generic_constraints;
-    gclist2 = generic_param_if_generic_definition_argument(tpp2->variant.type)
-                                           ->variant.template_param.extra_info
-                                           ->generic_constraints;
+    generic_param1 = generic_param_if_generic_definition_argument(
+                                                           tpp1->variant.type);
+    generic_param2 = generic_param_if_generic_definition_argument(
+                                                           tpp2->variant.type);
+    gclist1 = generic_param1->variant.template_param.extra_info
+                                                         ->generic_constraints;
+    gclist2 = generic_param2->variant.template_param.extra_info
+                                                         ->generic_constraints;
     if (!equivalent_generic_constraint_lists(gclist1, gclist2,
                                              p_mismatch_in_list1)) {
       result = FALSE;
-      break;
+      /* If we are not issuing errors, we can stop at the first mismatch. */
+      if (!issue_error) break;
+      pos2_ty_diagnostic(es_error, ec_constraint_mismatch,
+                         &tpp2->param_symbol->decl_position,
+                         &tpp1->param_symbol->decl_position, generic_param2);
     }  /* if */
   }  /* for */
   return result;
@@ -12971,6 +12992,17 @@ severity at which any diagnostics should be issued.
                                            /*issue_errors=*/TRUE,
                                            etp_options,
                                            error_pos, error_severity);
+#if 0
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled &&
+      is_cli_generic_class_symbol(class_sym) &&
+      !equivalent_generic_constraints_for_param_lists(
+                                old_tpp, new_tpp, /*issue_error=*/TRUE,
+                                error_pos, (a_generic_constraint_ptr*)NULL)) {
+    any_errors = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* 0 */
   if (!any_errors) {
     /* Update type parameters so that they point to the same template
        parameter type supplement. */
@@ -21099,7 +21131,6 @@ of the list.
   a_generic_constraint_ptr	list_tail = NULL;
   a_boolean			done;
 
-  /* FIXME: check for a class that is sealed, etc. */
   do {
     a_type_ptr			type = NULL;
     a_generic_constraint_kind	kind = (a_generic_constraint_kind)gck_none;
@@ -21114,6 +21145,8 @@ of the list.
        able to rescan later. */
     first_tsn = curr_token_sequence_number;
     begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+    /* Constraint checks will be done when the cache is rescanned later. */
+    begin_deferral_of_constraint_checks();
     (void)is_generalized_identifier_start(GID_NO_OPTIONS);
     end_caching_fetched_tokens();
     last_tsn = last_token_sequence_number_of_token;
@@ -21144,6 +21177,9 @@ of the list.
               copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
                                      last_tsn, /*include_last_token=*/TRUE,
                                      tcp);
+              /* The constraint checks will be done when the tokens are
+                 rescanned from the cache. */
+              discard_deferred_constraint_checks();
             }  /* if */
           }  /* if */
         }  /* if */
@@ -21179,6 +21215,7 @@ of the list.
         (void)get_token();
         break;
     }  /* switch */
+    end_deferral_of_constraint_checks(depth_scope_stack);
     if (kind != (a_generic_constraint_kind)gck_none &&
         kind != (a_generic_constraint_kind)gck_naked_type_param) {
       /* A valid constraint was scanned.  Make sure the constraint does not
@@ -26918,6 +26955,340 @@ followed by "<" and then the class or typename keyword.
 }  /* is_start_of_generic_decl */
 
 
+static a_deferred_constraint_check_ptr alloc_deferred_constraint_check(void)
+/*
+Allocate a deferred constraint check entry, initialize its fields, and return
+a pointer to the entry.
+*/
+{
+  a_deferred_constraint_check_ptr dccp;
+
+  if (avail_deferred_constraint_checks != NULL) {
+    /* Reuse a freed entry. */
+    dccp = avail_deferred_constraint_checks;
+    avail_deferred_constraint_checks = avail_deferred_constraint_checks->next;
+  } else {
+    /* Allocate a new entry. */
+    dccp = alloc_fe_of_type(a_deferred_constraint_check);
+#if DEBUG
+    num_deferred_constraint_checks_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  dccp->next = NULL;
+  dccp->generic_symbol = NULL;
+  dccp->generic_arg_list = NULL;
+  dccp->error_position = null_source_position;
+  return dccp;
+}  /* alloc_deferred_constraint_check */
+	
+
+static void free_deferred_constraint_check(
+					a_deferred_constraint_check_ptr dccp)
+/*
+Free the deferred constraint check entry pointed to by dccp.
+*/
+{
+  dccp->next = avail_deferred_constraint_checks;
+  avail_deferred_constraint_checks = dccp;
+}  /* free_deferred_constraint_check */
+
+
+void f_discard_deferred_constraint_checks(void)
+/*
+Free any deferred constraint checks that may have been created.
+*/
+{
+  a_scope_stack_entry_ptr	ssep = &scope_stack_top();
+
+  if (ssep->deferred_constraint_checks != NULL) {
+    a_deferred_constraint_check_ptr	dccp;
+    a_deferred_constraint_check_ptr	next_dccp;
+    for (dccp = ssep->deferred_constraint_checks;
+         dccp != NULL; dccp = next_dccp) {
+      next_dccp = dccp->next;
+      free_deferred_constraint_check(dccp);
+    }  /* for */
+    ssep->deferred_constraint_checks = NULL;
+  }  /* if */
+}  /* f_discard_deferred_constraint_checks */
+
+
+void perform_deferred_constraint_checks(a_scope_depth	scope_depth)
+/*
+If the scope stack entry specified by scope_depth contains any constraint
+checks that were deferred, perform those checks now.
+*/
+{
+  a_scope_stack_entry_ptr		ssep = &scope_stack[scope_depth];
+  a_deferred_constraint_check_ptr	dccp;
+  a_deferred_constraint_check_ptr	next_dccp;
+
+  /* This routine should not be called while constraint checks are still
+     being deferred. */
+  check_assertion(!ssep->defer_constraint_checks);
+  dccp = ssep->deferred_constraint_checks;
+  ssep->deferred_constraint_checks = NULL;
+  for (; dccp != NULL; dccp = next_dccp) {
+    next_dccp = dccp->next;
+    verify_generic_arg_list_satisfies_constraints(dccp->generic_symbol,
+                                                  dccp->generic_arg_list,
+                                                  &dccp->error_position);
+    free_deferred_constraint_check(dccp);
+  }  /* for */
+}  /* perform_deferred_constraint_checks */
+
+
+static a_boolean is_type_parameter_with_constraint(
+				a_type_ptr			type,
+				a_generic_constraint_kind	kind)
+/*
+Return TRUE if type is a generic parameter with a direct or indirect
+constraint of kind, FALSE otherwise.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (is_cli_generic_param_type(type)) {
+    a_generic_constraint_ptr  gcp;
+    a_generic_constraint_ptr  gc_list;
+    type = skip_typerefs(type);
+    gc_list = type->variant.template_param.extra_info->generic_constraints;
+    /* Check the direct constraints first. */
+    for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
+      if (gcp->kind == kind) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+    if (!result) {
+      /* Check any indirect constraints. */
+      gc_list = type->variant.template_param.extra_info->generic_constraints;
+      for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
+        if (gcp->kind == (a_generic_constraint_kind)gck_naked_type_param) {
+          /* For a naked type parameter on the existing list, check the
+             indirect constraints. */
+          if (is_type_parameter_with_constraint(gcp->type, kind)) {
+            result = TRUE;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_type_parameter_with_constraint */
+
+
+static a_boolean type_satisfies_type_constraint(
+			a_symbol_ptr			generic_sym,
+			a_type_ptr			arg_type,
+			a_type_ptr			constraint_type,
+			a_template_arg_ptr		generic_arg_list,
+			a_template_param_ptr		generic_param_list)
+/*
+Return TRUE if arg_type satisfies the type constraint specified by
+constraint_type.  generic_arg_list and generic_param_list are the
+generic argument list and parameter list of the generic reference.
+generic_sym is the generic that is being referenced.
+*/
+{
+  a_boolean	result = FALSE;
+  a_boolean	copy_error = FALSE;
+  a_ctws_state	ctws_state;
+
+  if (is_cli_generic_param_type(arg_type)) {
+    /* If the argument is a generic parameter (i.e., a tk_template_param
+       type, use the associated constraint type. */
+    arg_type = skip_typerefs(arg_type);
+    arg_type = proxy_class_for_template_param(arg_type);
+  }  /* if */
+  /* Substitute any generic parameters used in the constraint type. */
+  init_ctws_state(&ctws_state);
+  constraint_type = copy_type_with_substitution(
+                                  constraint_type,
+                                  generic_arg_list,
+                                  generic_param_list,
+                                  &generic_sym->decl_position,
+                                  CTWS_NO_OPTIONS, &copy_error, &ctws_state);
+  if (!copy_error) {
+    a_type_ptr	handle_constraint_type = constraint_type;
+    /* If the constraint type is not already a handle, put a handle on top
+       of it for conversion checking. */
+    if (!is_handle_type(constraint_type)) {
+      handle_constraint_type = make_handle_type(constraint_type);
+    }  /* if */
+    if (identical_types(arg_type, handle_constraint_type)) {
+      result = TRUE;
+    } else if (impl_handle_conversion(arg_type, handle_constraint_type,
+                                      /*allow_qualifier_or_eh_mismatch=*/TRUE,
+                                      (a_std_conv_descr *)NULL)) {
+      /* The argument can be converted to the constraint type using a
+         handle conversion. */
+      result = TRUE;
+    } else if (boxing_conversion_possible(arg_type, handle_constraint_type,
+                                          (a_std_conv_descr *)NULL)) {
+      /* The argument can be converted to the constraint type using a
+         boxing conversion. */
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* type_satisfies_type_constraint */
+
+
+static void verify_type_satisfies_constraints(
+			a_symbol_ptr			generic_sym,
+			a_type_ptr			arg_type,
+			a_type_ptr			templ_param_type,
+			a_template_arg_ptr		generic_arg_list,
+			a_template_param_ptr		generic_param_list,
+			a_generic_constraint_ptr	gc_list,
+			a_source_position_ptr		list_start_pos)
+/*
+Go through the list of constraints specified by gc_list and determine
+whether the arg_type satisfies the constraints.  If a constraint is
+violated, issue a diagnostic describing the violation.  generic_sym is the
+generic that is being referenced.  list_start_pos is the position used
+for the diagnostic.  templ_param_type is the generic parameter whose
+constraints are being checked.  generic_arg_list and generic_param_list
+are the generic argument list and parameter list of the generic reference.
+*/
+{
+  a_generic_constraint_ptr	gcp;
+
+  for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
+    switch (gcp->kind) {
+      case gck_none:
+        break;
+      case gck_type:
+      case gck_naked_type_param:
+        if (!type_satisfies_type_constraint(generic_sym, arg_type, gcp->type,
+                                            generic_arg_list,
+                                            generic_param_list)) {
+          pos_ty3_error(ec_type_not_satisfied, list_start_pos,
+                        arg_type, templ_param_type, gcp->type);
+        }  /* if */
+        break;
+      case gck_ref_class:
+        /* The ref class constraint is satisfied if the argument is a handle
+           or a type parameter with the ref class constraint (ECMA 31.4.1). */
+        if (!is_handle_type(arg_type) &&
+            !is_type_parameter_with_constraint(
+                         arg_type, (a_generic_constraint_kind)gck_ref_class)) {
+          pos_ty2_error(ec_ref_class_not_satisfied, list_start_pos,
+                        arg_type, templ_param_type);
+        }  /* if */
+        break;
+      case gck_value_class:
+        /* The value class constraint is satisfied if the argument is a value
+           type other than a pointer type (but not an instance of
+           System::Generic<...>) or a type parameter with the value class
+           constraint (ECMA 31.4.1).  Note that pointer types are not
+           allowed at all as generic argument so that test is not needed
+           here. */
+        if ((!is_cli_value_type(arg_type) &&
+             !is_type_parameter_with_constraint(
+                      arg_type, (a_generic_constraint_kind)gck_value_class)) ||
+            is_cli_nullable_type(arg_type)) {
+          pos_ty2_error(ec_value_class_not_satisfied, list_start_pos,
+                        arg_type, templ_param_type);
+        }  /* if */
+        break;
+      case gck_gcnew:
+        if (is_cli_value_type(arg_type)) {
+          /* All value types meet the gcnew constraint. */
+        } else if (is_handle_type(arg_type)) {
+          a_type_ptr	tp = type_pointed_to(arg_type);
+          if (is_abstract_class_type(tp)) {
+            /* Abstract classes do not satisfy the gcnew constraint. */
+            pos_ty2_error(ec_gcnew_and_abstract, list_start_pos,
+                          arg_type, templ_param_type);
+          } else if (!cli_type_has_public_default_constructor(tp)) {
+            /* The type must have a public default constructor. */
+            pos_ty2_error(ec_gcnew_and_no_ctor, list_start_pos,
+                          arg_type, templ_param_type);
+          }  /* if */
+        } else if (is_cli_generic_param_type(arg_type)) {
+          /* A generic parameter.  See if it has the gcnew constraint. */
+          if (!is_type_parameter_with_constraint(
+                             arg_type, (a_generic_constraint_kind)gck_gcnew)) {
+            pos_ty2_error(ec_gcnew_and_no_gcnew, list_start_pos,
+                          arg_type, templ_param_type);
+          }  /* if */
+        }  /* if */
+        break;
+    }  /* switch */
+  }  /* for */
+}  /* verify_type_satisfies_constraints */
+
+
+void verify_generic_arg_list_satisfies_constraints(
+				a_symbol_ptr		generic_sym,
+				a_template_arg_ptr	generic_arg_list,
+				a_source_position_ptr	list_start_pos)
+/*
+Compare generic_arg_list with the constraints of the generic specified
+by generic_sym.  If any violations are found a diagnostic is issued
+at list_start_pos.  If this routine is called in a context where constraint
+checks could potentially be deferred, the arguments must point to entities
+that will persist until the checks are actually done.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_template_param_ptr			generic_param_list;
+  a_template_arg_ptr			tap;
+  a_template_param_ptr			tpp;
+
+  if (scope_stack_top().defer_constraint_checks) {
+    /* Constraint checks are being deferred.  Save the information about
+       this check so that it can be performed later. */
+    a_deferred_constraint_check_ptr	dccp;
+    a_deferred_constraint_check_ptr	dccp_tail;
+    dccp = alloc_deferred_constraint_check();
+    dccp->generic_symbol = generic_sym;
+    dccp->generic_arg_list = generic_arg_list;
+    dccp->error_position = *list_start_pos;
+    dccp_tail = scope_stack_top().deferred_constraint_checks;
+    /* Add the new entry to the end of the list of the current scope
+       stack entry. */
+    if (dccp_tail == NULL) {
+      scope_stack_top().deferred_constraint_checks = dccp;
+    } else {
+      while (dccp_tail->next != NULL) dccp_tail = dccp_tail->next;
+      dccp_tail->next = dccp;
+    }  /* if */
+    goto done;
+  }  /* if */
+  tssp = template_supplement_for_symbol(generic_sym);
+  generic_param_list = tssp->cache.decl_info->parameters;
+  /* Go through the list of arguments and compare each one against the
+     associated constraints. */
+  for (tap = generic_arg_list, tpp = generic_param_list;
+       tap != NULL; tap = tap->next, tpp = tpp->next) {
+    a_generic_constraint_ptr	gc_list;
+    a_type_ptr			proxy_class;
+    a_type_ptr			templ_param_type;
+    check_assertion(tpp != NULL);
+    proxy_class = tpp->variant.type;
+    templ_param_type =
+                generic_param_if_generic_definition_argument(proxy_class);
+    gc_list = templ_param_type->variant.template_param.extra_info
+                                                         ->generic_constraints;
+    if (is_template_not_cli_generic_param_type(tap->variant.type)) {
+      /* Template parameters are considered to satisfy any constraints. */
+    } else {
+      verify_type_satisfies_constraints(generic_sym, tap->variant.type,
+                                        templ_param_type,
+                                        generic_arg_list,
+                                        generic_param_list, gc_list,
+                                        list_start_pos);
+    }  /* if */
+  }  /* for */
+done:
+  return;
+}  /* verify_generic_arg_list_satisfies_constraints */
+
+
 void scan_cli_generic_class_definition_from_assembly_import(void)
 /*
 Scan the definition of a generic class definition, which is being imported
@@ -26981,6 +27352,12 @@ routines is reported as part of the symbol table memory used.
   db_space_used("variadic param infos",
                  num_variadic_param_infos_allocated,
                  a_variadic_param_info);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  db_space_used_lost("deferred constraint checks",
+                     avail_deferred_constraint_checks,
+                     num_deferred_constraint_checks_allocated,
+                     a_deferred_constraint_check);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if TEMPLATE_LOOKUP_NEEDED
   db_space_used("template lookup entries", 
                  num_template_lookup_entries_allocated,
@@ -27013,6 +27390,9 @@ One-time initialization for templates.c static variables.
       pch_saved_var_array_elem(inline_function_list),
       pch_saved_var_array_elem(avail_partial_order_candidates),
       pch_saved_var_array_elem(avail_variadic_param_infos),
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(avail_deferred_constraint_checks),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(type_of_unknown_templ_param_nontype),
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
       pch_saved_var_array_elem(local_type_used_as_template_type_argument),
@@ -27085,6 +27465,9 @@ Initializations for template.
   deferred_instantiations_tail = NULL;
   avail_partial_order_candidates = NULL;
   avail_variadic_param_infos = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  avail_deferred_constraint_checks = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   deferred_instantiations_in_process = FALSE;
   num_total_pending_instantiations = 0;
   num_pending_default_arg_instantiations = 0;
@@ -27101,6 +27484,9 @@ Initializations for template.
   num_partial_order_candidates_allocated = 0;
   num_tmpl_decl_states_allocated = 0;
   num_variadic_param_infos_allocated = 0;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  num_deferred_constraint_checks_allocated = 0;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if TEMPLATE_LOOKUP_NEEDED
   num_template_lookup_entries_allocated = 0;
   num_exported_template_files_allocated = 0;

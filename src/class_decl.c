@@ -4953,7 +4953,9 @@ implement that inheritance.
   d_params = scope_stack_top().template_decl_info->parameters;
   b_params = b_templ->variant.template_info->cache.decl_info->parameters;
   if (!equivalent_generic_constraints_for_param_lists(
-                                d_params, b_params, &mismatched_constraint)) {
+                                d_params, b_params, /*issue_error=*/FALSE,
+                                (a_source_position_ptr)NULL,
+                                &mismatched_constraint)) {
     a_source_position_ptr  diag_pos = NULL;
     a_boolean              inherit_constraints = FALSE;
     if (mismatched_constraint != NULL) {
@@ -22460,6 +22462,11 @@ classes.
       apply_microsoft_class_modifiers(class_type, is_abstract, is_sealed);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Constraints in base-specifiers cannot be checked until the complete
+       set of base classes is know. */
+    begin_deferral_of_constraint_checks();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (curr_token == tok_colon) {
       /* Scan the list of base specifiers. */
       add_stop_token(tok_lbrace);
@@ -22492,7 +22499,12 @@ classes.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (ctsp->base_classes != NULL) wrapup_base_classes(&class_state);
   }  /* if */
-  if (curr_token == tok_lbrace) {
+  if (curr_token != tok_lbrace) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* There is no class definition -- check the deferred constraints now. */
+    end_deferral_of_constraint_checks(depth_scope_stack);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else {
     /* Scan the structure or union definition. */
     /* Start a scope for the fields and other members.  Since the class type
        is allocated in the file scope memory region, all its members must also
@@ -22521,6 +22533,11 @@ classes.
     push_stop_token_stack();
     /* Record the associated scope in the class type supplement. */
     ctsp->assoc_scope = scope_ptr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Now that the class scope has been established, perform any constraint
+       checks that may have been deferred. */
+    end_deferral_of_constraint_checks(depth_scope_stack-1);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Advance past the left brace. */
     (void)get_token();
     add_stop_token(tok_rbrace);

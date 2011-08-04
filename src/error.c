@@ -4615,6 +4615,25 @@ indicated position, a second position is also provided.
   diag_message(error_code, error_pos, error_severity, dck_standalone);
 }  /* pos2_sy_diagnostic */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void pos2_ty_diagnostic(an_error_severity  error_severity,
+                        an_error_code      error_code,
+                        a_source_position  *error_pos,
+                        a_source_position  *other_pos,
+                        a_type_ptr         type)
+/*
+Report the indicated diagnostic (with the indicated type) at the
+indicated position, a second position is also provided.
+*/
+{
+  init_error_params();
+  error_msg_types[1] = type;
+  error_msg_positions[1] = other_pos;
+  diag_message(error_code, error_pos, error_severity, dck_standalone);
+}  /* pos2_ty_diagnostic */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void pos_sy2_diagnostic(an_error_severity  error_severity,
                         an_error_code      error_code,
@@ -5104,6 +5123,26 @@ indicated position.
   diag_message(error_code, error_pos, es_error, dck_standalone);
 }  /* pos_ty2_error */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void pos_ty3_error(an_error_code     error_code,
+                   a_source_position *error_pos,
+                   a_type_ptr        type1,
+                   a_type_ptr        type2,
+                   a_type_ptr        type3)
+/*
+Report the indicated error (with the three indicated types) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_types[1] = type1;
+  error_msg_types[2] = type2;
+  error_msg_types[3] = type3;
+  diag_message(error_code, error_pos, es_error, dck_standalone);
+}  /* pos_ty3_error */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void pos_opt_ty2_error(an_error_code     error_code,
                        a_source_position *error_pos,

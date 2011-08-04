@@ -13958,6 +13958,9 @@ a routine to lookup the appropriate instance (or generate one if needed).
                                          (options & GID_IS_EXPR_CONTEXT) != 0;
   a_boolean                       sun_gpp_undefined_template = FALSE;
   long                            first_defaulted_arg = -1L;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_source_position               arg_start_pos = null_source_position;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "coalesce_template_class_reference");
 
@@ -14206,7 +14209,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
       !template_sym->variant.template_info->is_error) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (is_cli_generic_class_symbol(template_sym)) {
-      a_source_position	arg_start_pos = pos_curr_token;
+      arg_start_pos = pos_curr_token;
       /* Scan the generic argument list. */
       arg_list = scan_generic_argument_list(template_sym, &any_errors);
       if (!any_errors) {
@@ -14310,6 +14313,19 @@ a routine to lookup the appropriate instance (or generate one if needed).
                         is_templ_member_class_sym;
     new_sym = find_template_class(template_sym, &arg_list, prototype_allowed,
                                   current_instantiation_sym);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_cli_generic_class_symbol(template_sym) &&
+        !is_prototype_instantiation_symbol(new_sym)) {
+      /* Make sure the generic argument list satisfies the constraints
+         of the generic. */
+      verify_generic_arg_list_satisfies_constraints(
+                      template_sym,
+                      new_sym->variant.class_struct_union.type->
+                        variant.class_struct_union.extra_info->
+                                                             template_arg_list,
+                      &arg_start_pos);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (gpp_mode && prototype_allowed &&
         (!is_templ_member_class_sym || !is_outermost_tmc) &&
         ((options & (GID_IS_TEMPLATE_PRESCAN |

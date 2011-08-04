@@ -120,6 +120,8 @@ extern a_boolean is_handle_type_or_any_ref_type(a_type_ptr tp);
                                   !(tp)->variant.pointer.is_reference)
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean is_cli_generic_param_type(a_type_ptr tp);
+extern a_boolean is_cli_generic_constraint_type(a_type_ptr tp);
+extern a_boolean is_template_not_cli_generic_param_type(a_type_ptr tp);
 extern a_boolean is_handle_type(a_type_ptr tp);
 extern a_boolean is_handle_type_not_value_generic(a_type_ptr tp);
 extern a_boolean is_tracking_reference_type(a_type_ptr tp);
@@ -131,6 +133,7 @@ extern a_boolean is_cli_array_type(a_type_ptr tp);
 extern a_boolean is_cli_value_type(a_type_ptr tp);
 extern a_boolean is_boxable_type(a_type_ptr tp);
 extern a_type_ptr boxed_type_for(a_type_ptr  unboxed_type);
+extern a_boolean is_cli_nullable_type(a_type_ptr tp);
 extern a_type_ptr cli_array_element_type(a_type_ptr tp);
 extern a_constant_ptr cli_array_rank_constant(a_type_ptr tp);
 extern a_host_large_unsigned cli_array_rank(a_type_ptr tp,
@@ -143,6 +146,7 @@ extern a_boolean is_managed_class_type(a_type_ptr tp);
 extern a_boolean is_cli_interface_type(a_type_ptr tp);
 extern a_boolean is_cli_ref_or_interface_class_type(a_type_ptr tp);
 extern a_boolean is_cli_generic_definition_argument_type(a_type_ptr  type);
+extern a_boolean cli_type_has_public_default_constructor(a_type_ptr	tp);
 /* This is called is_handle_ptr because there is a field called
    is_handle in il_def.h and old preprocessors have problems with
    that. */
@@ -178,6 +182,7 @@ extern a_boolean class_is_instance_of_generic_from_metadata(
 extern a_boolean is_cli_open_constructed_type(a_type_ptr  tp);
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_immediate_managed_class_type(tp) /*lint --e(506)*/FALSE
+#define is_template_not_cli_generic_param_type(tp) is_template_param_type(tp)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern a_boolean is_scalar_type(a_type_ptr tp);
 extern a_boolean is_trivially_copyable_type(a_type_ptr tp);
