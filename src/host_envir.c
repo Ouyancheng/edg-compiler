@@ -2468,7 +2468,8 @@ a_boolean is_directory(char *file_name)
   DWORD    attr;
 
   attr = GetFileAttributes(file_name);
-  return (attr & FILE_ATTRIBUTE_DIRECTORY) != 0;
+  return attr != INVALID_FILE_ATTRIBUTES &&
+         (attr & FILE_ATTRIBUTE_DIRECTORY) != 0;
 }  /* is_directory */
 /* Define a flag that indicates that a definition of is_directory has
    been supplied. */
