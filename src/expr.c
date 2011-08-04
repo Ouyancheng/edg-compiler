@@ -27903,9 +27903,9 @@ checks are successful.
       enumerator_type = type_pointed_to(enumerator_type);
     }  /* if */
     if (!is_class_struct_type(enumerator_type)) {
-      if (!is_template_dependent_type(enumerator_type)) {
-        /* The type is not template-dependent and is not a class; it cannot be
-           a valid enumerator type. */
+      if (!is_template_param_type(enumerator_type)) {
+        /* The type is not a template parameter and is not a class; it cannot
+           be a valid enumerator type. */
         pos_ty2_error(ec_for_each_getenumerator_return_type_invalid,
                       &pos, collection_type, getenumerator_ret_type);
       }  /* if */
@@ -28039,7 +28039,6 @@ that will get filled if all the semantic checks are successful.
   an_operand               operand;
   an_expr_node_ptr         ne_call_expr = NULL;
   an_expr_node_ptr         incr_call_expr = NULL;
-  an_expr_node_ptr         indirection_call_expr = NULL;
   a_variable_ptr           temp_var;
   a_boolean                passed = TRUE;
   a_source_position        pos;
@@ -28146,7 +28145,10 @@ that will get filled if all the semantic checks are successful.
                                      (a_nondependent_call_depth)1,
                                      &pos, &operand, &processed);
       if (processed && is_expression_operand(&operand)) {
-        ne_call_expr = operand.variant.expression;
+        ne_call_expr = make_node_from_operand(&operand);
+        /* Create a new operand1 as the previous one has been used. */
+        make_lvalue_variable_operand(temp_var, &pos, &pos,
+                                     &operand1, /*rep=*/NULL);
       }  /* if */
       if (!processed) passed = FALSE;
       check_for_operator_overloading((an_opname_kind)onk_plus_plus,
@@ -28154,12 +28156,15 @@ that will get filled if all the semantic checks are successful.
                                      /*must_be_member_function=*/FALSE,
                                      /*try_conversions=*/TRUE,
                                      /*has_predef_meaning=*/FALSE,
-                                     &operand1, &end_call_operand, &pos,
+                                     &operand1, (an_operand *)NULL, &pos,
                                      tok_seq_number,
                                      (a_nondependent_call_depth)2,
                                      &pos, &operand, &processed);
       if (processed && is_expression_operand(&operand)) {
-        incr_call_expr = operand.variant.expression;
+        incr_call_expr = make_node_from_operand(&operand);
+        /* Create a new operand1 as the previous one has been used. */
+        make_lvalue_variable_operand(temp_var, &pos, &pos,
+                                     &operand1, /*rep=*/NULL);
       }  /* if */
       if (!processed) passed = FALSE;
       check_for_operator_overloading((an_opname_kind)onk_star,
@@ -28167,14 +28172,11 @@ that will get filled if all the semantic checks are successful.
                                      /*must_be_member_function=*/FALSE,
                                      /*try_conversions=*/TRUE,
                                      /*has_predef_meaning=*/FALSE,
-                                     &operand1, &end_call_operand, &pos,
+                                     &operand1, (an_operand *)NULL, &pos,
                                      tok_seq_number,
                                      (a_nondependent_call_depth)3,
                                      &pos, &indirection_call_operand, 
                                      &processed);
-      if (processed && is_expression_operand(&indirection_call_operand)) {
-        indirection_call_expr = indirection_call_operand.variant.expression;
-      }  /* if */
       if (!processed) passed = FALSE;
     }  /* if */
   }  /* if */
@@ -28188,8 +28190,6 @@ that will get filled if all the semantic checks are successful.
     extra_info->variant.stl_pattern.end_routine = end_routine;
     extra_info->variant.stl_pattern.ne_call_expr = ne_call_expr;
     extra_info->variant.stl_pattern.incr_call_expr = incr_call_expr;
-    extra_info->variant.stl_pattern.indirection_call_expr =
-                                                         indirection_call_expr;
 
     deduce_auto_type_in_for_each_if_needed(iterator,
                                            &indirection_call_operand);

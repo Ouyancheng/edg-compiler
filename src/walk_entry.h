@@ -1705,8 +1705,6 @@ do_set_proper_definition_needed_flag:
                      an_expr_node_ptr, iek_expr_node);
             walk_ptr(ptr->variant.stl_pattern.incr_call_expr,
                      an_expr_node_ptr, iek_expr_node);
-            walk_ptr(ptr->variant.stl_pattern.indirection_call_expr,
-                     an_expr_node_ptr, iek_expr_node);
             break;
           case sfepk_cli_pattern:
             remap_ptr(ptr->variant.cli_pattern.getenumerator_routine, 

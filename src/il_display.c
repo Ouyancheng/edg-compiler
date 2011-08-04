@@ -4261,9 +4261,6 @@ Display a for-each statement.
       disp_ptr("incr_call_expr",
                (char *)extra_info->variant.stl_pattern.incr_call_expr,
                iek_expr_node);
-      disp_ptr("indirection_call_expr",
-               (char *)extra_info->variant.stl_pattern.indirection_call_expr,
-               iek_expr_node);
       break;
     case sfepk_cli_pattern:
       (void)printf("sfepk_cli_pattern\n");
