@@ -10588,38 +10588,27 @@ Returns TRUE if token is the beginning of a whitespace keyword.
 }  /* is_potential_start_of_whitespace_keyword */
 
 
-static a_boolean check_for_whitespace_keyword(a_symbol_ptr assoc_symbol,
+static a_boolean check_for_whitespace_keyword(a_symbol_ptr symbol,
                                               a_token_kind *token_kind)
 /*
 This function checks if the next two tokens constitute a whitespace keyword,
 in which case it sets *token_kind to the kind of the whitespace keyword and
-returns TRUE.
-
-On input assoc_symbol points to the symbol for the first token.  assoc_symbol
-cannot be NULL.
+returns TRUE.  On input symbol points to the symbol for the first token.
 */
 {
   a_boolean    is_whitespace_keyword = FALSE;
   a_token_kind current_token;
-  a_symbol_ptr symbol = NULL;
 
   /* If the current token could begin a whitespace keyword, scan ahead and
      determine if the next token on the line completes the keyword. */
   if ((cppcli_enabled || (microsoft_mode && !C_mode())) &&
       !suppress_keyword_recognition) {
-    /* Because whitespace keywords should be detected before macro
-       expansion, if assoc_symbol is a macro we still have to look if it is
-       also a keyword for "ref", "value", "interface" or "enum".  For
-       example "interface" is often a macro and can be the start of a
-       whitespace keyword. */
-    if (assoc_symbol->kind == (a_symbol_kind)sk_keyword) {
-      symbol = assoc_symbol;
-    } else if (assoc_symbol->kind == (a_symbol_kind)sk_macro) {
-      symbol = assoc_symbol->next;
-      while (symbol != NULL && symbol->kind != (a_symbol_kind)sk_keyword) {
-        symbol = symbol->next;
-      }  /* while */
-    }  /* if */
+    /* Use of an identifier in a whitespace keyword supersedes any other
+       meaning that has been declared for that identifier.  We thus ignore
+       any non-keyword symbols with this spelling. */
+    while (symbol != NULL && symbol->kind != (a_symbol_kind)sk_keyword) {
+      symbol = symbol->next;
+    }  /* while */
     if (symbol != NULL) {
       current_token = (a_token_kind)symbol->variant.keyword.token;
       if (is_potential_start_of_whitespace_keyword(current_token)) {
