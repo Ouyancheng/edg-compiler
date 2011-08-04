@@ -44,15 +44,16 @@ typedef struct a_symbol_list_entry *a_symbol_list_entry_ptr;
 typedef struct a_hash_table *a_hash_table_ptr;
 typedef struct a_param_id *a_param_id_ptr;
 typedef struct a_pack_expansion_stack_entry *a_pack_expansion_stack_entry_ptr;
-typedef struct a_deferred_constraint_check *a_deferred_constraint_check_ptr;
 
 /* The pointer types to a_routine_fixup and an_initializer_fixup are declared
    here even though the struct themselves are defined in class_decl.c.  This
    allows the pointer to be made available to symbol_tbl.h without creating
-   recursive reference problems. */
+   recursive reference problems.  Similarly, a_deferred_constraint_check
+   is declared in templates.h. */
 typedef struct a_routine_fixup *a_routine_fixup_ptr;
 #if MICROSOFT_EXTENSIONS_ALLOWED
 typedef struct an_initializer_fixup *an_initializer_fixup_ptr;
+typedef struct a_deferred_constraint_check *a_deferred_constraint_check_ptr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* The pointer to a_def_arg_expr_fixup is declared here even though the struct

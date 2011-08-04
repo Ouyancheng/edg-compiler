@@ -27215,6 +27215,8 @@ are the generic argument list and parameter list of the generic reference.
           }  /* if */
         }  /* if */
         break;
+      default:
+        unexpected_condition();
     }  /* switch */
   }  /* for */
 }  /* verify_type_satisfies_constraints */
