@@ -2049,15 +2049,13 @@ a_boolean equivalent_generic_constraints_for_param_lists(
                                a_template_param_ptr      list1,
                                a_template_param_ptr      list2,
                                a_boolean                 issue_error,
-                               a_source_position_ptr     error_pos,
                                a_generic_constraint_ptr  *p_mismatch_in_list1)
 /*
 Return TRUE if the generic constraints for the given lists of template
 parameters are equivalent.  Otherwise, return FALSE and if the first list
 (list1) contains a constraint that has no match in the second list, return the
 first such constraint in *p_mismatch_in_list1 (if it is not NULL).  If
-issue_error is TRUE, a diagnostic is issued at error_pos if a mismatch
-is found.
+issue_error is TRUE, a diagnostic is issued if a mismatch is found.
 */
 {
   a_boolean             result = TRUE;
@@ -12998,7 +12996,7 @@ severity at which any diagnostics should be issued.
       is_cli_generic_class_symbol(class_sym) &&
       !equivalent_generic_constraints_for_param_lists(
                                 old_tpp, new_tpp, /*issue_error=*/TRUE,
-                                error_pos, (a_generic_constraint_ptr*)NULL)) {
+                                (a_generic_constraint_ptr*)NULL)) {
     any_errors = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -20941,6 +20939,89 @@ that follows.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 
+static a_deferred_constraint_check_ptr alloc_deferred_constraint_check(void)
+/*
+Allocate a deferred constraint check entry, initialize its fields, and return
+a pointer to the entry.
+*/
+{
+  a_deferred_constraint_check_ptr dccp;
+
+  if (avail_deferred_constraint_checks != NULL) {
+    /* Reuse a freed entry. */
+    dccp = avail_deferred_constraint_checks;
+    avail_deferred_constraint_checks = avail_deferred_constraint_checks->next;
+  } else {
+    /* Allocate a new entry. */
+    dccp = alloc_fe_of_type(a_deferred_constraint_check);
+#if DEBUG
+    num_deferred_constraint_checks_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  dccp->next = NULL;
+  dccp->generic_symbol = NULL;
+  dccp->generic_arg_list = NULL;
+  dccp->error_position = null_source_position;
+  return dccp;
+}  /* alloc_deferred_constraint_check */
+	
+
+static void free_deferred_constraint_check(
+					a_deferred_constraint_check_ptr dccp)
+/*
+Free the deferred constraint check entry pointed to by dccp.
+*/
+{
+  dccp->next = avail_deferred_constraint_checks;
+  avail_deferred_constraint_checks = dccp;
+}  /* free_deferred_constraint_check */
+
+
+void perform_deferred_constraint_checks(a_scope_depth	scope_depth)
+/*
+If the scope stack entry specified by scope_depth contains any constraint
+checks that were deferred, perform those checks now.
+*/
+{
+  a_scope_stack_entry_ptr		ssep = &scope_stack[scope_depth];
+  a_deferred_constraint_check_ptr	dccp;
+  a_deferred_constraint_check_ptr	next_dccp;
+
+  /* This routine should not be called while constraint checks are still
+     being deferred. */
+  check_assertion(!ssep->defer_constraint_checks);
+  dccp = ssep->deferred_constraint_checks;
+  ssep->deferred_constraint_checks = NULL;
+  for (; dccp != NULL; dccp = next_dccp) {
+    next_dccp = dccp->next;
+    verify_generic_arg_list_satisfies_constraints(dccp->generic_symbol,
+                                                  dccp->generic_arg_list,
+                                                  &dccp->error_position);
+    free_deferred_constraint_check(dccp);
+  }  /* for */
+}  /* perform_deferred_constraint_checks */
+
+
+static void f_discard_deferred_constraint_checks(void)
+/*
+Free any deferred constraint checks that may have been created.
+*/
+{
+  a_scope_stack_entry_ptr	ssep = &scope_stack_top();
+
+  if (ssep->deferred_constraint_checks != NULL) {
+    a_deferred_constraint_check_ptr	dccp;
+    a_deferred_constraint_check_ptr	next_dccp;
+    for (dccp = ssep->deferred_constraint_checks;
+         dccp != NULL; dccp = next_dccp) {
+      next_dccp = dccp->next;
+      free_deferred_constraint_check(dccp);
+    }  /* for */
+    ssep->deferred_constraint_checks = NULL;
+  }  /* if */
+}  /* f_discard_deferred_constraint_checks */
+
+
 static a_boolean check_for_constraint_conflict(
 			a_type_ptr			param_type,
 			a_generic_constraint_ptr	curr_list,
@@ -26953,89 +27034,6 @@ followed by "<" and then the class or typename keyword.
   }  /* if */
   return result;
 }  /* is_start_of_generic_decl */
-
-
-static a_deferred_constraint_check_ptr alloc_deferred_constraint_check(void)
-/*
-Allocate a deferred constraint check entry, initialize its fields, and return
-a pointer to the entry.
-*/
-{
-  a_deferred_constraint_check_ptr dccp;
-
-  if (avail_deferred_constraint_checks != NULL) {
-    /* Reuse a freed entry. */
-    dccp = avail_deferred_constraint_checks;
-    avail_deferred_constraint_checks = avail_deferred_constraint_checks->next;
-  } else {
-    /* Allocate a new entry. */
-    dccp = alloc_fe_of_type(a_deferred_constraint_check);
-#if DEBUG
-    num_deferred_constraint_checks_allocated++;
-#endif /* DEBUG */
-  }  /* if */
-  dccp->next = NULL;
-  dccp->generic_symbol = NULL;
-  dccp->generic_arg_list = NULL;
-  dccp->error_position = null_source_position;
-  return dccp;
-}  /* alloc_deferred_constraint_check */
-	
-
-static void free_deferred_constraint_check(
-					a_deferred_constraint_check_ptr dccp)
-/*
-Free the deferred constraint check entry pointed to by dccp.
-*/
-{
-  dccp->next = avail_deferred_constraint_checks;
-  avail_deferred_constraint_checks = dccp;
-}  /* free_deferred_constraint_check */
-
-
-void f_discard_deferred_constraint_checks(void)
-/*
-Free any deferred constraint checks that may have been created.
-*/
-{
-  a_scope_stack_entry_ptr	ssep = &scope_stack_top();
-
-  if (ssep->deferred_constraint_checks != NULL) {
-    a_deferred_constraint_check_ptr	dccp;
-    a_deferred_constraint_check_ptr	next_dccp;
-    for (dccp = ssep->deferred_constraint_checks;
-         dccp != NULL; dccp = next_dccp) {
-      next_dccp = dccp->next;
-      free_deferred_constraint_check(dccp);
-    }  /* for */
-    ssep->deferred_constraint_checks = NULL;
-  }  /* if */
-}  /* f_discard_deferred_constraint_checks */
-
-
-void perform_deferred_constraint_checks(a_scope_depth	scope_depth)
-/*
-If the scope stack entry specified by scope_depth contains any constraint
-checks that were deferred, perform those checks now.
-*/
-{
-  a_scope_stack_entry_ptr		ssep = &scope_stack[scope_depth];
-  a_deferred_constraint_check_ptr	dccp;
-  a_deferred_constraint_check_ptr	next_dccp;
-
-  /* This routine should not be called while constraint checks are still
-     being deferred. */
-  check_assertion(!ssep->defer_constraint_checks);
-  dccp = ssep->deferred_constraint_checks;
-  ssep->deferred_constraint_checks = NULL;
-  for (; dccp != NULL; dccp = next_dccp) {
-    next_dccp = dccp->next;
-    verify_generic_arg_list_satisfies_constraints(dccp->generic_symbol,
-                                                  dccp->generic_arg_list,
-                                                  &dccp->error_position);
-    free_deferred_constraint_check(dccp);
-  }  /* for */
-}  /* perform_deferred_constraint_checks */
 
 
 static a_boolean is_type_parameter_with_constraint(

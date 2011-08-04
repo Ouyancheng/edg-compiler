@@ -821,6 +821,13 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_circular_constraints)*/
 /*lint -esym(769,ec_invalid_generic_arg)*/
 /*lint -esym(769,ec_bad_assembly_info_attribute)*/
+/*lint -esym(769,ec_ref_class_not_satisfied)*/
+/*lint -esym(769,ec_value_class_not_satisfied)*/
+/*lint -esym(769,ec_gcnew_and_abstract)*/
+/*lint -esym(769,ec_gcnew_and_no_ctor)*/
+/*lint -esym(769,ec_gcnew_and_no_gcnew)*/
+/*lint -esym(769,ec_type_not_satisfied)*/
+/*lint -esym(769,ec_constraint_mismatch)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */

@@ -965,7 +965,7 @@ generic.
 }  /* is_cli_generic_param_type */
 
 
-a_boolean is_cli_generic_constraint_type(a_type_ptr tp)
+static a_boolean is_cli_generic_constraint_type(a_type_ptr tp)
 /*
 Return TRUE if the given type entry represents the class constraint
 version of a C++/CLI generic parameter.

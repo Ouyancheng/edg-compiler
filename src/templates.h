@@ -859,7 +859,6 @@ extern a_boolean equivalent_generic_constraints_for_param_lists(
                               a_template_param_ptr      list1,
                               a_template_param_ptr      list2,
                               a_boolean                 issue_error,
-                              a_source_position_ptr     error_pos,
                               a_generic_constraint_ptr  *p_mismatch_in_list1);
 
 void verify_generic_arg_list_satisfies_constraints(
@@ -905,8 +904,6 @@ typedef struct a_deferred_constraint_check {
 } a_deferred_constraint_check;
 
 extern void perform_deferred_constraint_checks(a_scope_depth	scope_depth);
-
-extern void f_discard_deferred_constraint_checks(void);
 
 /*
 Set the flag that specifies that constraint errors should be deferred and
