@@ -28144,13 +28144,16 @@ that will get filled if all the semantic checks are successful.
                                      tok_seq_number,
                                      (a_nondependent_call_depth)1,
                                      &pos, &operand, &processed);
-      if (processed && is_expression_operand(&operand)) {
-        ne_call_expr = make_node_from_operand(&operand);
+      if (processed) {
         /* Create a new operand1 as the previous one has been used. */
         make_lvalue_variable_operand(temp_var, &pos, &pos,
                                      &operand1, /*rep=*/NULL);
+        if (is_expression_operand(&operand)) {
+          ne_call_expr = make_node_from_operand(&operand);
+        }  /* if */
+      } else {
+        passed = FALSE;
       }  /* if */
-      if (!processed) passed = FALSE;
       check_for_operator_overloading((an_opname_kind)onk_plus_plus,
                                      /*is_unary_op=*/TRUE,
                                      /*must_be_member_function=*/FALSE,
@@ -28160,13 +28163,16 @@ that will get filled if all the semantic checks are successful.
                                      tok_seq_number,
                                      (a_nondependent_call_depth)2,
                                      &pos, &operand, &processed);
-      if (processed && is_expression_operand(&operand)) {
-        incr_call_expr = make_node_from_operand(&operand);
+      if (processed) {
         /* Create a new operand1 as the previous one has been used. */
         make_lvalue_variable_operand(temp_var, &pos, &pos,
                                      &operand1, /*rep=*/NULL);
+        if (is_expression_operand(&operand)) {
+          incr_call_expr = make_node_from_operand(&operand);
+        }  /* if */
+      } else {
+        passed = FALSE;
       }  /* if */
-      if (!processed) passed = FALSE;
       check_for_operator_overloading((an_opname_kind)onk_star,
                                      /*is_unary_op=*/TRUE,
                                      /*must_be_member_function=*/FALSE,
