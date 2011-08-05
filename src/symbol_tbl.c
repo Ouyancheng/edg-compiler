@@ -2693,7 +2693,7 @@ to the symbol supplement associated with sym.
 {
   a_template_cache_segment_ptr  tcsp;
   a_scope_stack_entry_ptr	ssep;
-  a_scope_depth			depth_to_use;
+  a_scope_depth			depth_to_use = NO_SCOPE_DEPTH;
 
   if (avail_template_cache_segments != NULL) {
     /* Reuse an existing entry. */
@@ -2720,7 +2720,13 @@ to the symbol supplement associated with sym.
   /* Add the new entry to the list of template cache segments associated
      with the current instantiation.  If there is no current instantiation,
      use the current template declaration scope. */
-  depth_to_use = depth_innermost_instantiation_scope;
+  for (ssep = &scope_stack_top(); ssep != NULL;
+       ssep = previous_scope_of(ssep)) {
+    if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
+      depth_to_use = scope_depth_of(ssep);
+      break;
+    }  /* if */
+  }  /* for */
   if (depth_to_use == NO_SCOPE_DEPTH) {
     depth_to_use = depth_template_declaration_scope;
     check_assertion(depth_to_use != NO_SCOPE_DEPTH);

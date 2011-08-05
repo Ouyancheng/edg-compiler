@@ -4227,7 +4227,8 @@ template_sym is the template that is being instantiated.
      if we're inside a function. */
   instantiation_ssep = &scope_stack[depth_innermost_instantiation_scope];
   /*lint --e{446} ssep modified in loop (LINTBUG) */
-  for (ssep = &scope_stack[depth_scope_stack]; ssep != instantiation_ssep;
+  for (ssep = &scope_stack[depth_scope_stack];
+       ssep != NULL && ssep != instantiation_ssep;
        ssep = previous_scope_of(ssep)) {
     if (ssep->kind == (a_scope_kind)sck_function) {
       ssep = NULL;
