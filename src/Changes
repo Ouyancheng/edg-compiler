@@ -23,7 +23,11 @@ Detecting non-existent directory on some Windows systems
 On Windows systems, when compiling with EDG_WIN32 set to TRUE and when the
 Unix-like header file <sys/stat.h> isn't available, the is_directory utility
 had returned TRUE if the specified directory didn't exist.  A change has been
-made to return FALSE in that case.
+made to return FALSE in that case.  This isn't a problem for most Windows
+configurations because <sys/stat.h> is available.  Users can tell if their
+configuration is affected by specifying a non-existent directory with the
+--pch_dir command line option which should result in an "invalid PCH directory"
+error.
 
 
 8/2/11   [EDGcpfe/8739,EDGcpfe/9831,EDGcpfe/9890,EDGcpfe/11024,EDGcpfe/11227]
