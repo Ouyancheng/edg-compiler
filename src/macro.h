@@ -103,6 +103,11 @@ extern void adjust_curr_source_line_structure_after_realloc(
                                           char      *new_ptr,
                                           a_boolean adjust_source_line_modifs);
 
+/* Adjust the running deletion counts in the macro_buffer and the source
+   line modification associated with line_loc, if applicable. */
+extern void adjust_deletion_counts(char                    *line_loc,
+                                   sizeof_t                deletion_len);
+
 /* Expand a macro invocation. */
 extern a_token_kind macro_invocation(a_symbol_ptr  macro_symbol,
                                      a_boolean     *rescan);

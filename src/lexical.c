@@ -10523,6 +10523,7 @@ modification will be added to restore the first token to the current line.
                                (int)tok_first_whitespace_token];
     slmp = add_source_line_modif(orig_loc, (sizeof_t)(end_of_word - orig_loc),
                                  kwd->text, kwd->end_of_insertion);
+    adjust_deletion_counts(orig_loc, slmp->num_chars_to_delete);
     slmp->is_whitespace_kwd = TRUE;
     slmp->source_position = start_pos;
     start_of_curr_token = kwd->text;
