@@ -2134,25 +2134,29 @@ It will be NULL for the most derived class.
     a_class_type_supplement_ptr		parent_ctsp;
     a_boolean				is_static_in_interface = FALSE;
     a_boolean				is_class;
+    a_symbol_ptr			fund_result_sym;
     parent_type = sym_parent_class(result_sym);
     parent_ctsp = class_type_supp(parent_type);
     is_class = parent_ctsp->cli_class_type_kind ==
                                                (a_cli_class_type_kind)cctk_ref;
+    fund_result_sym = fundamental_symbol_of(result_sym);
     /* If we encounter a static method in an interface, the original symbol
        should be used and hide-by-sig processing suppressed. */
     if (!is_class) {
       a_symbol_ptr	rout_sym = NULL;
       a_type_ptr	rout_type;
-      if (result_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-        if (result_sym->variant.overloaded_function.mixed_static_nonstatic) {
+      if (fund_result_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+        if (fund_result_sym->
+                          variant.overloaded_function.mixed_static_nonstatic) {
           /* When this flag is set, we know there is at least one static
              method. */
           is_static_in_interface = TRUE;
         } else {
-          rout_sym = result_sym->variant.overloaded_function.symbols;
+          rout_sym = fund_result_sym->variant.overloaded_function.symbols;
+          rout_sym = fundamental_symbol_of(rout_sym);
         }  /* if */
       } else {
-        rout_sym = result_sym;
+        rout_sym = fund_result_sym;
       }  /* if */
       if (!is_static_in_interface) {
         if (rout_sym->kind == (a_symbol_kind)sk_function_template) {
