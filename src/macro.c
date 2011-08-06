@@ -6588,7 +6588,7 @@ Scan and process a #define directive.
         num_entries = macro_text_map.num_entries - first_text_map_entry;
         init_macro_text_map(num_entries, &mdp->text_map, /*resizable=*/FALSE);
         (void)memcpy((char *)mdp->text_map.entries,
-                     (char *)macro_text_map.entries,
+                     (char *)(macro_text_map.entries + first_text_map_entry),
                      size_t_arg(num_entries * sizeof(a_macro_text_map_entry)));
         mdp->text_map.num_entries = num_entries;
       } else {
