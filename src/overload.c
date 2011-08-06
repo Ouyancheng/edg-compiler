@@ -2365,7 +2365,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
        of type qualifiers on the type pointed to (the "T* --> qualified T *"
        case). */
     if ((!param_is_reference ||
-         (microsoft_bugs && !ref_type_qualifiers_dropped)) &&
+         (microsoft_bugs && microsoft_version < 1400 &&
+          !ref_type_qualifiers_dropped)) &&
         is_pointer_type(param_type) &&
         is_pointer_type(arg_type)
 #ifdef pointer_types_have_same_repr
@@ -16747,7 +16748,8 @@ direct binding is "possible" and not whether it is "valid".
 #if MICROSOFT_EXTENSIONS_ALLOWED
     type_is_derived = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if ((any_cfront_mode() || microsoft_bugs) &&
+  } else if ((any_cfront_mode() ||
+              (microsoft_bugs && microsoft_version < 1400)) &&
              is_pointer_type(unqual_dest_type) &&
              is_pointer_type(unqual_source_type) &&
 #ifdef pointer_types_have_same_repr

@@ -1,5 +1,20 @@
 Version 4.4
 
+8/6/11   [EDGcpfe/11992]
+Microsoft compatibility: bug on binding reference to less cv-qualified pointer
+
+MSVC had a bug that allowed binding a reference to a pointer type to
+a pointer whose underlying type is less cv-qualified.  That was 
+fixed in MSVC 8, so our emulation of that is now turned off when
+microsoft_version >= 1400.
+
+  typedef const int *P;
+  int main() {
+    int *p;
+    P &r = p;  // Now gets an error
+  }
+
+
 8/6/11   [EDGcpfe/11913]
 Microsoft compatibility: string literals in Unicode-encoded files
 
