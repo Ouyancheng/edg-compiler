@@ -1424,7 +1424,7 @@ smaller) than the number of characters needed to represent the string.
         constant_size = pstr - str_start;
         num_elems = constant_size;
       }  /* if */
-#endif NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
       break;
     case chk_char16_t:
       /* The allocated number of bytes may be too large due to a conservative
