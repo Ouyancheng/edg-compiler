@@ -1,5 +1,14 @@
 Version 4.4
 
+8/6/11   [EDGcpfe/11913]
+Microsoft compatibility: string literals in Unicode-encoded files
+
+When string literals are translated from a Unicode encoding to native
+multibyte characters (see the entry for EDGcpfe/11712 below), the type given
+by the front end to the string literal reflected the length of the string
+before the translation.  This is now fixed.
+
+
 8/6/11   [EDGcpfe/11951]
 Abort with #define embedded inside macro argument list
 
