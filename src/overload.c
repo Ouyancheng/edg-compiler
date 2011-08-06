@@ -2752,7 +2752,9 @@ have_level:;
          such a binding be allowed in overload resolution, and then if the
          function is selected an error would be issued later. */
       arg_summary->match_level = aml_none;
-    } else if (microsoft_const_volatile_anachronism) {
+    } else if (microsoft_const_volatile_anachronism &&
+               (arg_converted_to_rvalue ||
+                (arg_operand != NULL && is_an_rvalue(arg_operand)))) {
       /* MSVC allows binding a reference to const volatile to an rvalue
          but after version 7.1 gives it an anachronism match level. */
       arg_summary->anachronism_used = TRUE;
