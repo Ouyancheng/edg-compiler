@@ -2206,7 +2206,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       /* Normal case.  An lvalue reference can bind to an rvalue only if it's
          a reference to non-volatile const. */
       source_can_be_rvalue = ((param_type_qualifiers & TQ_CONST) != 0);
-      if (param_type_qualifiers & TQ_VOLATILE) {
+      if (source_can_be_rvalue &&
+          (param_type_qualifiers & TQ_VOLATILE)) {
         /* The const volatile part was not added to the draft until after
            the 2003 standard.  All versions of g++ from 3.2 on seem to
            handle it the modern way.  MSVC changed to that in version 7.1. */

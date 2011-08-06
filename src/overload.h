@@ -245,17 +245,28 @@ typedef struct an_arg_match_summary {
   a_byte_boolean
 		anachronism_used;
 			/* TRUE if the match was possible only because an
-			   anachronism was used.  This is a tie-breaker on
-			   otherwise equal matches.  Note that this is not
-			   set for all anachronisms, just those that act
-			   as tie-breakers. */
+			   anachronism was used.  This acts like a very
+			   weak match level, worse than all others (so,
+			   effectively, match_level means nothing).  Also,
+			   a candidate function with an anachronism match
+			   will not be considered unless there are no other
+			   viable candidates without anachronism matches.
+			   An entry with this flag set should never change
+			   the outcome of overload resolution relative to
+			   the standard unless no function would have applied
+			   under the standard rules, so this allows
+			   anachronisms to interact well with
+			   standard-conforming code. */
   a_byte_boolean
 		tiebreaker_anachronism_used;
 			/* TRUE if the match was possible only because of an
-			   anachronism, but the anachronism is such that
-			   it only counts as a tie-breaker on the
-			   comparisons done in compare_argument_tiebreakers
-			   (which are themselves already tie-breakers). */
+			   anachronism, but the anachronism is a very weak
+			   tie-breaker; it will only allow choosing one
+			   candidate over another if they are otherwise
+			   considered identical.  match_level, therefore,
+			   still matters, and nonstandard results are
+			   possible.  This is used for a number of
+			   Microsoft bug emulations. */
   a_byte_boolean
 		const_anachronism;
 			/* In cfront compatibility mode, TRUE to indicate
