@@ -2178,6 +2178,25 @@ EXTERN a_text_buffer_ptr
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
 /*
+The maximum number of characters in a native multibyte character sequence
+or, if multibyte characters are not supported, in a character specified as
+a universal-character-name.  Use the value from the host environment
+(MB_LEN_MAX) if available.
+*/
+#ifndef MAX_MULTIBYTE_CHAR_LENGTH
+#ifdef MB_LEN_MAX
+#define MAX_MULTIBYTE_CHAR_LENGTH MB_LEN_MAX
+#else /* ifndef MB_LEN_MAX */
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+#define MAX_MULTIBYTE_CHAR_LENGTH 16
+#else /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+/* A universal-character-name can be represented in at most 4 bytes. */
+#define MAX_MULTIBYTE_CHAR_LENGTH 4
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+#endif /* ifdef MB_LEN_MAX */
+#endif /* ifndef MAX_MULTIBYTE_CHAR_LENGTH */
+
+/*
 Routines/macros to deal with multibyte character sequences in source code.
 */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
@@ -2374,18 +2393,6 @@ extern int mbc_to_wide_char(char          *mb,
 #include <locale.h>
 #include <wctype.h>
 
-/*
-The maximum number of characters in a native multibyte character sequence.
-Use the value from the host environment (MB_LEN_MAX) if available.
-*/
-#ifndef MAX_MULTIBYTE_CHAR_LENGTH
-#ifdef MB_LEN_MAX
-#define MAX_MULTIBYTE_CHAR_LENGTH MB_LEN_MAX
-#else /* ifndef MB_LEN_MAX */
-#define MAX_MULTIBYTE_CHAR_LENGTH 16
-#endif /* ifdef MB_LEN_MAX */
-#endif /* ifndef MAX_MULTIBYTE_CHAR_LENGTH */
-
 extern
 int unicode_to_multibyte_char(unsigned long uc,
                               char          chars[MAX_MULTIBYTE_CHAR_LENGTH],
@@ -2499,6 +2506,8 @@ is not defined.
           !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 
+extern int unicode_to_utf8(unsigned long uc,
+                           char          chars[4]);
 #if UNICODE_SOURCE_SUPPORTED
 /* Data structure used by getc_source and getc_utf16 to hold characters
    queued up as source characters (because a UTF-16 sequence maps into
@@ -2515,8 +2524,6 @@ typedef struct {
 			   input file. */
 } a_getc_source_state;
 
-extern int unicode_to_utf8(unsigned long uc,
-                             char          chars[4]);
 extern void clear_getc_source_state(a_getc_source_state   *state,
                                     a_unicode_source_kind ukind);
 extern int getc_utf16(FILE                *file,

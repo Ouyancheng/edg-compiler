@@ -3906,6 +3906,7 @@ have_ch:
   return ch;
 }  /* getc_utf16 */
 
+#endif /* UNICODE_SOURCE_SUPPORTED */
 
 int unicode_to_utf8(unsigned long uc,
                     char          chars[4])
@@ -3941,8 +3942,6 @@ representation in the array chars, and return the length (1-4).
   }  /* if */
   return len;
 }  /* unicode_to_utf8 */
-    
-#endif /* UNICODE_SOURCE_SUPPORTED */
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 

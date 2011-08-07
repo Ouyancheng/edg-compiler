@@ -8720,6 +8720,11 @@ was.  The caller is responsible for issuing error messages.
              Since we don't know how many characters will be needed for the
              encoding, assume the longest. */
           nchars += MAX_CHAR16_T_ENCODING_LENGTH;
+        } else if (character_kind == (a_character_kind)chk_char) {
+          /* The character will be represented as UTF-8, which could take as
+             many as 4 bytes; the actual length will be calculated when the
+             literal is converted. */
+          nchars += 4;
         } else {
           ++nchars;
         }  /* if */
