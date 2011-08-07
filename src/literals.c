@@ -730,7 +730,7 @@ scanning through the second and following bytes (if any).
      first. */
   state->remaining_mbc_char_count = translated_len - 1;
   state->next_mbc_char = state->translated_char + 1;
-  return (unsigned long)state->translated_char[0];
+  return state->translated_char[0];
 }  /* conv_unicode_literal_char */
 
 
