@@ -13509,10 +13509,12 @@ select_best_function:
                                           &interm_result,
                                           operator_position,
                                           result);
-                assignment_op = expr_node_from_operand(result);
-                check_assertion(assignment_op != NULL &&
-                                is_operation_node(assignment_op) &&
-                                node_operator_is(assignment_op, eok_assign));
+                if (!is_error_operand(result)) {
+                  assignment_op = expr_node_from_operand(result);
+                  check_assertion(assignment_op != NULL &&
+                                  is_operation_node(assignment_op) &&
+                                  node_operator_is(assignment_op, eok_assign));
+                }  /* if */
                 *processed = TRUE;
               } else {
                 /* Look for a suitable operator= function. */
@@ -13535,13 +13537,15 @@ select_best_function:
                      Find the node representing the assignment, and then
                      insert the temporary-initialization code from above,
                      if any. */
-                  assignment_op = expr_node_from_operand(result);
-                  check_assertion(assignment_op != NULL &&
-                                  is_operation_node(assignment_op));
-                  if (node_operator_is(assignment_op, eok_ref_indirect)) {
-                    /* Skip over the implicit indirection through a
-                       reference return type. */
-                    assignment_op = assignment_op->variant.operation.operands;
+                  if (!is_error_operand(result)) {
+                    assignment_op = expr_node_from_operand(result);
+                    check_assertion(assignment_op != NULL &&
+                                    is_operation_node(assignment_op));
+                    if (node_operator_is(assignment_op, eok_ref_indirect)) {
+                      /* Skip over the implicit indirection through a
+                         reference return type. */
+                      assignment_op= assignment_op->variant.operation.operands;
+                    }  /* if */
                   }  /* if */
                   insert_temporary_initialization(
                                           temp_init_expr,
