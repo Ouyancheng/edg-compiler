@@ -1182,7 +1182,10 @@ processing, and in wide characters if the constant is wide).
     set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
     /* Accumulate the characters.  A wide literal with no characters (L'')
        is possible in Microsoft mode and must produce a zero value. */
-    for (i = 0; temp_ptr < end_of_curr_token; ++i)  /*lint !e440*/ {
+    for (i = 0;
+         temp_ptr < end_of_curr_token ||
+                                       conv_state.remaining_mbc_char_count > 0;
+         ++i)  /*lint !e440*/ {
       /* Convert one character of the char constant. */
       switch (character_kind) {
         case chk_char:
@@ -1248,6 +1251,17 @@ processing, and in wide characters if the constant is wide).
       } /* if */
       or_integer_values(&number, &ch_int_val);
     }  /* for */
+    if (character_kind == (a_character_kind)chk_char &&
+        num_chars > 1 && i == 1) {
+      /* A universal-character-name might potentially represent as many as
+         four bytes, so num_chars was set conservatively to allow for that
+         case.  If it actually turned out to represent a single character,
+         update the character count and constant type accordingly. */
+      if (!C_mode()) {
+        con_type = integer_type((an_integer_kind)ik_char);
+      }  /* if */
+      num_chars = 1;
+    }  /* if */
   }  /* if */
   if (bad_character) {
     *err_code = ec_no_char16_t_representation;
