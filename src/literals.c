@@ -704,8 +704,7 @@ scanning through the second and following bytes (if any).
   int translated_len;
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
-  if (curr_file_unicode_source_kind != usk_none &&
-      state->translate_utf8_to_mbc) {
+  if (state->translate_utf8_to_mbc) {
     a_boolean err;
     /* Translate the Unicode character into the system default multibyte
        character set. */
