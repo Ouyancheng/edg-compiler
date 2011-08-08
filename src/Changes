@@ -46,9 +46,10 @@ Abort with #define embedded inside macro argument list
 
 In configurations in which FULLY_RESOLVED_MACRO_POSITIONS is TRUE, the
 front end sometimes aborted with an assertion failure
-("clone_macro_text_map_entries offset not found") when processing a macro
-invocation in which a #define appears within the macro argument list.  This
-is now fixed.  For example:
+("clone_macro_text_map_entries offset not found" or
+"clone_macro_text_map_entries map entry pointer past end of entries") when
+processing a macro invocation in which a #define appears within the macro
+argument list.  This is now fixed.  For example:
 
   #define M(a, b) void f(int a, int b);
   #define A x
