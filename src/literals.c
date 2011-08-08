@@ -884,11 +884,19 @@ get_another:
                                            /*is_identifier=*/FALSE,
 					   /*is_identifier_start=*/FALSE,
                                            /*issue_diagnostics=*/TRUE);
-        /* Convert the Unicode character specified by the
-           universal-character-name to either UTF-8 or the system default
-           multibyte character set as appropriate and set up the conversion
-           state to return subsequent bytes of the resulting character. */
-        targ_ch = conv_unicode_literal_char(state, targ_ch);
+        if ((centity_mask >> targ_char_bit) != 0) {
+          /* This is for a wide character or wide string literal.  Return
+             the value directly, subject to the range constraints implied
+             by centity_mask. */
+          goto range_check;
+        } else {
+          /* Convert the Unicode character specified by the
+             universal-character-name to either UTF-8 or the system default
+             multibyte character set as appropriate and set up the
+             conversion state to return subsequent bytes of the resulting
+             character. */
+          targ_ch = conv_unicode_literal_char(state, targ_ch);
+        }  /* if */
         break;
       case 'x':
         /* Hexadecimal escape.  There can be many digits, but there must be
