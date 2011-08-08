@@ -1,20 +1,22 @@
 Version 4.4
 
-8/7/11   [EDGcpfe/11914]
+8/7/11   [EDGcpfe/11914, EDGcpfe/10029]
 universal-character-names in narrow string literals
 
 The way the front end handles universal-character-names in narrow string
 literals has changed.  Previously the Unicode value of a
 universal-character-name appearing in a narrow string literal was truncated
 (with a warning) to the least-significant byte and represented as a single
-character in the value.  Now, in Microsoft mode the value is the
-corresponding character in the system default multibyte character set (see
-the entry for EDGcpfe/11712 below), and in all other modes the value is the
-UTF-8 representation of the Unicode character.  For example, the string
-"\u20AC" (the Euro symbol) was previously equivalent to "\0xAC"; it is now
-equivalent to "\0xE2\0x82\0xAC" except in Microsoft mode.  In Microsoft
-mode the value depends on the system locale; in a locale designating
-Windows code page 1252, for instance, the string is equivalent to "\0x80".
+character in the value.  Now, in Microsoft mode (assuming
+NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is set to TRUE) the value is
+the corresponding character in the system default multibyte character set
+(see the entry for EDGcpfe/11712 below), and in all other cases the value
+is the UTF-8 representation of the Unicode character.  For example, the
+string "\u20AC" (the Euro symbol) was previously equivalent to "\0xAC"; it
+is now equivalent to "\0xE2\0x82\0xAC" except in Microsoft mode.  In
+Microsoft mode the value depends on the system locale; in a locale
+designating Windows code page 1252, for instance, the string is equivalent
+to "\0x80".
 
 
 8/6/11   [EDGcpfe/11992]
