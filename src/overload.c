@@ -10068,8 +10068,12 @@ specific function being called.
          of a C++/CLI array. */
       a_type_ptr element_type;
 
-      check_assertion (is_handle_to_cli_array_type(param->type));
-      element_type = cli_array_element_type(type_pointed_to(param->type));
+      if (is_handle_to_cli_array_type(param->type)) {
+        element_type = cli_array_element_type(type_pointed_to(param->type));
+      } else {
+        check_assertion(is_error_type(param->type));
+        element_type = error_type();
+      }  /* if */
       prep_initializer_operand(
                      &arg_operand->operand,
                      element_type,
