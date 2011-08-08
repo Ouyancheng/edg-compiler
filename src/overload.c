@@ -2084,7 +2084,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   a_type_ptr        unqual_arg_type, unqual_param_type;
   a_conv_context_set
                     conv_context = CCO_DEFAULT;
-  a_boolean         microsoft_const_volatile_anachronism = FALSE;
+  a_boolean         allow_microsoft_const_volatile_case_as_anachronism = FALSE;
 
   db_enter(4, "determine_arg_match_level");
 #if DEBUG
@@ -2217,7 +2217,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
           } else {
             /* At or after version 7.1, this is allowed but it's given
                an anachronism match level. */
-            microsoft_const_volatile_anachronism = TRUE;
+            allow_microsoft_const_volatile_case_as_anachronism = TRUE;
           }  /* if */
         } else if (strict_ansi_mode && !cpp0x_mode) {
           /* The 2003 standard did not do this. */
@@ -2712,13 +2712,18 @@ have_level:;
           arg_summary->match_level = aml_none;
         }  /* if */
       }  /* if */
-    } else if (!source_can_be_rvalue &&
+    } else if ((!source_can_be_rvalue ||
+                allow_microsoft_const_volatile_case_as_anachronism) &&
                (arg_converted_to_rvalue ||
                 (arg_operand != NULL && is_an_rvalue(arg_operand)))) {
       /* You can't bind an lvalue reference to non-const to an rvalue.
          This was a post-ARM change (in the ARM, the binding would be okay
          in overload resolution and would get an error later if chosen). */
-      if (allow_nonconst_ref_anachronism && param_is_class_type) {
+      if (allow_microsoft_const_volatile_case_as_anachronism) {
+        /* MSVC allows binding a reference to const volatile to an rvalue
+           but after version 7.1 gives it an anachronism match level. */
+        arg_summary->anachronism_used = TRUE;
+      } else if (allow_nonconst_ref_anachronism && param_is_class_type) {
         /* The anachronism of binding a reference to nonconst to a class
            rvalue is enabled.  Leave this alone.  A warning will be issued
            if this binding is actually used. */
@@ -2753,12 +2758,6 @@ have_level:;
          such a binding be allowed in overload resolution, and then if the
          function is selected an error would be issued later. */
       arg_summary->match_level = aml_none;
-    } else if (microsoft_const_volatile_anachronism &&
-               (arg_converted_to_rvalue ||
-                (arg_operand != NULL && is_an_rvalue(arg_operand)))) {
-      /* MSVC allows binding a reference to const volatile to an rvalue
-         but after version 7.1 gives it an anachronism match level. */
-      arg_summary->anachronism_used = TRUE;
     }  /* if */
     if (arg_summary->match_level == aml_none) {
       /* We decided the binding can't be done, so clear any conversion
