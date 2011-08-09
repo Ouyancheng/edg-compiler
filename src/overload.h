@@ -476,6 +476,12 @@ typedef struct an_arg_check_block {
 			   we're in a prototype instantiation and the
 			   function to be called is given by a
 			   template-dependent expression. */
+  a_boolean	args_will_be_discarded;
+			/* TRUE if the arguments will be discarded, e.g.,
+			   because the function operand has an error.
+			   More precisely, we won't be calling a function
+			   with these arguments, but we may assemble them into
+			   an argument list for error recovery purposes. */
   a_boolean	have_param_info;
 			/* TRUE if we have information on the remaining
 			   parameters.  Can be FALSE because

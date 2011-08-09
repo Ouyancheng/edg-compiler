@@ -1676,6 +1676,7 @@ static void scan_call_arguments(
                              an_expr_node_ptr       *p_argument_list,
                              a_boolean              return_raw_arguments,
                              a_boolean              unknown_dependent_function,
+                             a_boolean              args_will_be_discarded,
                              a_rescan_control_block *rcblock,
                              a_boolean              arg_list_supplied,
                              an_arg_operand_ptr     arg_list,
@@ -1691,8 +1692,13 @@ not known, or for an overloaded function case.  routine points to the
 routine being called; it's NULL if the specific function being called
 is not known, e.g., when calling through a pointer.
 unknown_dependent_function is TRUE if the function to be called is not
-known because it is specified by a template-dependent expression.  The
-current token is the "(" of the argument list if
+known because it is specified by a template-dependent expression.
+args_will_be_discarded is TRUE if the arguments will be discarded,
+e.g., because the function to be called is not known because of an error.
+The arguments are returned anyway, in case one wants to link them
+together in an argument list, but they are not checked nor converted to
+a parameter type, and unusual operand kinds are replaced by error operands.
+The current token is the "(" of the argument list if
 already_after_left_paren is FALSE, or the token following the left
 parenthesis if already_after_left_paren is TRUE.  (The add_stop_token
 call has not been done in either of those cases.)  On return, the
@@ -1742,6 +1748,9 @@ to TRUE.
     /* The function to be called is unknown because it's template-dependent. */
     check_assertion(!return_raw_arguments && function_type == NULL);
     arg_block.unknown_dependent_function = TRUE;
+  } else if (args_will_be_discarded) {
+    /* Arguments will be discarded, e.g., because of an error. */
+    arg_block.args_will_be_discarded = TRUE;
   } /* if */
 
   if (rcblock != NULL) {
@@ -1840,6 +1849,7 @@ NULL.
                       /*already_after_left_paren=*/TRUE,
                       &expr_arg_list, /*return_raw_arguments=*/FALSE,
                       /*unknown_dependent_function=*/TRUE,
+                      /*args_will_be_discarded=*/FALSE,
                       rcblock,
                       arg_list_supplied,
                       arg_list,
@@ -1903,6 +1913,7 @@ on the list given by arg_list.
                         &expr_arg_list,
                         /*return_raw_arguments=*/TRUE,
                         /*unknown_dependent_function=*/FALSE,
+                        /*args_will_be_discarded=*/TRUE,
                         rcblock,
                         /*arg_list_supplied=*/FALSE,
                         (an_arg_operand *)NULL,
@@ -2156,6 +2167,7 @@ arg_list, and no source is scanned.  arg_list is freed after it's used.
                       /*already_after_left_paren=*/TRUE,
                       &arg_expr_list, overloaded_function_case,
                       /*unknown_dependent_function=*/FALSE,
+                      /*args_will_be_discarded=*/FALSE,
                       rcblock, arg_list_supplied, arg_list,
                       &arg_operand_list,
                       (an_operand *)NULL, (a_boolean *)NULL,
@@ -4455,6 +4467,7 @@ are expected to be NULL in that case.
                       already_after_left_paren, &argument_list,
                       (overloaded_function_case || gnu_sync_function_case),
                       unknown_dependent_function,
+                      /*args_will_be_discarded=*/is_error_operand(operand),
                       rcblock,
                       /*arg_list_supplied=*/FALSE,
                       (an_arg_operand *)NULL,
@@ -6193,24 +6206,26 @@ case).
     /* The first operand is not (a pointer to) a complete class, struct,
        or union.  This check was delayed to this point so that we could
        allow things like vacuous destructor references. */
-    an_error_code err_code;
-    /* If the problem is that the class is incomplete, use a different
-       error message. */
-    if (is_incomplete_type(class_struct_union_type) &&
-        is_class_struct_union_type(class_struct_union_type)) {
-      err_code = is_arrow_operator ?
+    if (!is_error_type(class_struct_union_type)) {
+      an_error_code err_code;
+      /* If the problem is that the class is incomplete, use a different
+         error message. */
+      if (is_incomplete_type(class_struct_union_type) &&
+          is_class_struct_union_type(class_struct_union_type)) {
+        err_code = is_arrow_operator ?
                                   ec_ptr_to_incomplete_class_type_not_allowed :
   				  ec_incomplete_type_not_allowed;
-    } else {
-      if (C_dialect == C_dialect_cplusplus) {
-        err_code = is_arrow_operator ? ec_expr_not_ptr_to_class :
-                                       ec_expr_not_class;
       } else {
-        err_code = is_arrow_operator ? ec_expr_not_ptr_to_struct_or_union :
-                                       ec_expr_not_struct_or_union;
+        if (C_dialect == C_dialect_cplusplus) {
+          err_code = is_arrow_operator ? ec_expr_not_ptr_to_class :
+                                         ec_expr_not_class;
+        } else {
+          err_code = is_arrow_operator ? ec_expr_not_ptr_to_struct_or_union :
+                                         ec_expr_not_struct_or_union;
+        }  /* if */
       }  /* if */
+      error_in_operand(err_code, operand_1);
     }  /* if */
-    error_in_operand(err_code, operand_1);
     err = TRUE;
   }  /* if */
 
@@ -11773,6 +11788,7 @@ This is allowed in both Microsoft C and C++ modes.
                         &arg_list,
                         /*return_raw_arguments=*/FALSE,
                         /*unknown_dependent_function=*/FALSE,
+                        /*args_will_be_discarded=*/TRUE,
                         (a_rescan_control_block *)NULL,
                         /*arg_list_supplied=*/FALSE,
                         (an_arg_operand *)NULL,
@@ -14052,6 +14068,7 @@ expression, and return the result in *result (or an error indication in
                           /*already_after_left_paren=*/TRUE,
                           &dummy, /*return_raw_arguments=*/TRUE,
                           /*unknown_dependent_function=*/FALSE,
+                          /*args_will_be_discarded=*/FALSE,
                           rcblock,
                           /*arg_list_supplied=*/FALSE,
                           (an_arg_operand *)NULL,
@@ -14179,6 +14196,7 @@ expression, and return the result in *result (or an error indication in
                               /*already_after_left_paren=*/TRUE,
                               &dummy, /*return_raw_arguments=*/TRUE,
                               /*unknown_dependent_function=*/FALSE,
+                              /*args_will_be_discarded=*/FALSE,
                               (a_rescan_control_block *)NULL,
                               /*arg_list_supplied=*/FALSE,
                               (an_arg_operand *)NULL,
@@ -14914,6 +14932,7 @@ expression, and return the result in *result (or an error indication in
                           /*already_after_left_paren=*/TRUE, &dummy,
                           /*return_raw_arguments=*/TRUE,
                           /*unknown_dependent_function=*/FALSE,
+                          /*args_will_be_discarded=*/FALSE,
                           rcblock,
                           /*arg_list_supplied=*/FALSE,
                           (an_arg_operand *)NULL,
@@ -15007,6 +15026,7 @@ expression, and return the result in *result (or an error indication in
                           /*already_after_left_paren=*/TRUE,
                           &dummy, /*return_raw_arguments=*/TRUE,
                           /*unknown_dependent_function=*/FALSE,
+                          /*args_will_be_discarded=*/FALSE,
                           rcblock,
                           /*arg_list_supplied=*/FALSE,
                           (an_arg_operand *)NULL,

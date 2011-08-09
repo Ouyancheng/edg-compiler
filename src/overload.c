@@ -9363,6 +9363,7 @@ or NULL otherwise (e.g., for a call through a pointer to function).
   /* Initialize the control block. */
   arg_block->routine = routine;
   arg_block->unknown_dependent_function = FALSE;
+  arg_block->args_will_be_discarded = FALSE;
   arg_block->have_param_info = FALSE;
   arg_block->curr_param_type = NULL;
   arg_block->prototyped = FALSE;
@@ -9568,6 +9569,10 @@ next parameter.
        arguments. */
     arg_block->pack_encountered = TRUE;
     do_default_promotion = FALSE;
+  } else if (arg_block->args_will_be_discarded) {
+    /* Arguments aren't supposed to be processed because they will be
+       discarded. */
+    do_default_promotion = FALSE;
   } else if (!arg_block->have_param_info) {
     /* We have no information on parameter types. */
   } else if (arg_block->prototyped) {
@@ -9669,6 +9674,12 @@ next parameter.
     /* We've encountered a parameter pack or pack expansion, so we can't
        correlate parameters and arguments. */
     prep_generic_operand(operand);
+  } else if (arg_block->args_will_be_discarded) {
+    /* Arguments will be discarded, so don't check them.  Replace unusual
+       operand kinds with error operands so they won't cause problems later. */
+    if (!is_constant_operand(operand) && !is_expression_operand(operand)) {
+      conv_to_error_operand(operand);
+    }  /* if */
   } else {
     /* Parameter is prototyped. */
     /* Check the argument for compatibility against the parameter,
