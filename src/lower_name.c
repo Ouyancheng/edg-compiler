@@ -6537,7 +6537,7 @@ was added to the Itanium ABI in 2009 to make discriminators unambiguous:
 {
 #if ABI_COMPATIBILITY_VERSION >= 401
   /* Make sure the discriminator has been computed. */
-  check_assertion(discriminator != 0);
+  check_assertion(discriminator != 0 || total_errors != 0);
 #else /* ABI_COMPATIBILITY_VERSION < 401 */
   /* When emulating older ABI versions, this routine may be called for
      an entity whose discriminator is zero, indicating that no discriminator
