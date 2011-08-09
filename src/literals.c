@@ -714,7 +714,7 @@ scanning through the second and following bytes (if any).
       /* The code point could not be converted to a suitable
          representation.  Issue a diagnostic. */
       char buf[30];
-      (void)sprintf(buf, "&%lx", unicode_char);
+      (void)sprintf(buf, "%lx", unicode_char);
       conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
       str_warning(ec_bad_unicode_char_in_string, buf);
     }  /* if */
@@ -736,7 +736,8 @@ scanning through the second and following bytes (if any).
 void conv_single_char(a_char_conversion_state_ptr state,
                       a_boolean                   process_escapes,
                       unsigned long               *ch,
-                      unsigned long               centity_mask)
+                      unsigned long               centity_mask,
+                      a_boolean                   narrow_literal)
 /*
 Fetch one character of a character constant or string literal.  The
 current position in the token is *state->next_token_char (it is
@@ -744,7 +745,8 @@ incremented appropriately for what is taken).  Escapes (beginning with
 "\") are recognized and processed if process_escapes is TRUE.  The
 character gotten is returned (not sign-extended) in ch.  centity_mask
 defines the size of the character entity into which this character is
-going (char, wchar_t, char16_t, or char32_t).  When multibyte
+going (char, wchar_t, char16_t, or char32_t); narrow_literal is TRUE
+for narrow-character string and character literals.  When multibyte
 characters are enabled and for universal-character-names, each byte of
 the multibyte character is returned on a separate call of this
 routine.  state->remaining_mbc_char_count is set to the number of
@@ -883,7 +885,7 @@ get_another:
                                            /*is_identifier=*/FALSE,
 					   /*is_identifier_start=*/FALSE,
                                            /*issue_diagnostics=*/TRUE);
-        if ((centity_mask >> targ_char_bit) != 0) {
+        if (!narrow_literal) {
           /* This is for a wide character or wide string literal.  Return
              the value directly, subject to the range constraints implied
              by centity_mask. */
@@ -1026,14 +1028,16 @@ the size of character.
                               /*translate_utf8=*/FALSE);
 #if !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Simple version: no multibyte characters to consider. */
-  conv_single_char(&conv_state, /*process_escapes=*/TRUE, ch, centity_mask);
+  conv_single_char(&conv_state, /*process_escapes=*/TRUE, ch, centity_mask,
+                   /*narrow_literal=*/FALSE);
 #else /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   /* Multibyte character processing may be needed. */
   if (!multibyte_chars_in_source_enabled || **temp_ptr == '\\' ||
       **temp_ptr == LE_ESCAPE) {
     /* Use simple routine if multibyte characters are disabled or if
        the character is an escape. */
-    conv_single_char(&conv_state, /*process_escapes=*/TRUE, ch, centity_mask);
+    conv_single_char(&conv_state, /*process_escapes=*/TRUE, ch, centity_mask,
+                     /*narrow_literal=*/FALSE);
     check_assertion(conv_state.remaining_mbc_char_count == 0);
   } else {
     unsigned  long wc;
@@ -1174,7 +1178,7 @@ processing, and in wide characters if the constant is wide).
       check_assertion(gnu_mode);
       for (i = 0; i < skip_count; ++i) {
         conv_single_char(&conv_state, /*process_escapes=*/TRUE, &ch,
-                         centity_mask);
+                         centity_mask, /*narrow_literal=*/TRUE);
       }  /* for */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -1189,7 +1193,7 @@ processing, and in wide characters if the constant is wide).
       switch (character_kind) {
         case chk_char:
           conv_single_char(&conv_state, /*process_escapes=*/TRUE, &ch,
-                           centity_mask);
+                           centity_mask, /*narrow_literal=*/TRUE);
           break;
         case chk_wchar_t:
           conv_single_wide_char(&temp_ptr, &ch, centity_mask);
@@ -1252,10 +1256,10 @@ processing, and in wide characters if the constant is wide).
     }  /* for */
     if (character_kind == (a_character_kind)chk_char &&
         num_chars > 1 && i == 1) {
-      /* A universal-character-name might potentially represent as many as
-         four bytes, so num_chars was set conservatively to allow for that
-         case.  If it actually turned out to represent a single character,
-         update the character count and constant type accordingly. */
+      /* A universal-character-name might potentially represent a number of
+         bytes, so num_chars was set conservatively to allow for that case.
+         If it actually turned out to represent a single character, update
+         the character count and constant type accordingly. */
       if (!C_mode()) {
         con_type = integer_type((an_integer_kind)ik_char);
       }  /* if */
@@ -1434,7 +1438,7 @@ smaller) than the number of characters needed to represent the string.
     switch (character_kind) {
       case chk_char:
         conv_single_char(&conv_state, /*process_escapes=*/TRUE, &ch,
-                         centity_mask);
+                         centity_mask, /*narrow_literal=*/TRUE);
         *pstr++ = (char)ch;
         break;
       case chk_wchar_t:

@@ -2187,12 +2187,8 @@ a universal-character-name.  Use the value from the host environment
 #ifdef MB_LEN_MAX
 #define MAX_MULTIBYTE_CHAR_LENGTH MB_LEN_MAX
 #else /* ifndef MB_LEN_MAX */
-#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+/* Pick a value that should be large enough for all encodings. */
 #define MAX_MULTIBYTE_CHAR_LENGTH 16
-#else /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-/* A universal-character-name can be represented in at most 4 bytes. */
-#define MAX_MULTIBYTE_CHAR_LENGTH 4
-#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 #endif /* ifdef MB_LEN_MAX */
 #endif /* ifndef MAX_MULTIBYTE_CHAR_LENGTH */
 
