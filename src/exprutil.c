@@ -5122,38 +5122,38 @@ rvalue with a pointer-to-char or pointer-to-wchar_t type), and return the
 resulting expression.  Note that such a "constant" actually involves a
 run-time operation (the allocation and construction of a System::String
 object in the gc-heap), but this is treated as a compile-time constant by
-the Microsoft compiler, hence the unusual representation.
+the Microsoft compiler, hence the unusual representation.  If the expression
+is not a string constant, return NULL.
 */
 {
+  a_constant       constant;
   a_type_ptr       string_handle;
   an_expr_node_ptr cli_string_node;
 
-  string_handle = make_handle_type(type_symbol_type(
-                                     cli_symbol_from_kind(csk_system_string)));
-  cli_string_node = alloc_expr_node((an_expr_node_kind)enk_constant);
-  cli_string_node->variant.constant =
-                              alloc_constant((a_constant_repr_kind)ck_address);
-  cli_string_node->type = string_handle;
   /* Attempt to create a ck_address constant referring to the operand of the
-     input expression in the constant to which cli_string_node points. */
-  if (constant_rvalue_pointer(expr, cli_string_node->variant.constant,
+     input expression. */
+  if (constant_rvalue_pointer(expr, &constant,
                               /*address_escapes=*/TRUE, (a_boolean *)NULL)) {
     /* Set the type to be System::String^. */
-    cli_string_node->variant.constant->type = string_handle;
-  } else {
-    unexpected_condition();
-  }  /* if */
+    string_handle = make_handle_type(type_symbol_type(
+                                     cli_symbol_from_kind(csk_system_string)));
+    constant.type = string_handle;
+    cli_string_node = alloc_node_for_constant(&constant);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  /* Copy the position information from the original constant node,
-     skipping over any compiler-generated nodes like array-decay, which
-     have no source position. */
-  while (is_operation_node(expr) &&
-         expr->variant.operation.compiler_generated) {
-    expr = expr->variant.operation.operands;
-  }  /* while */
-  cli_string_node->expr_range = expr->expr_range;
-  cli_string_node->operator_position = expr->operator_position;
+    /* Copy the position information from the original constant node,
+       skipping over any compiler-generated nodes like array-decay, which
+       have no source position. */
+    while (is_operation_node(expr) &&
+           expr->variant.operation.compiler_generated) {
+      expr = expr->variant.operation.operands;
+    }  /* while */
+    cli_string_node->expr_range = expr->expr_range;
+    cli_string_node->operator_position = expr->operator_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  } else {
+    /* The expression is not a string literal. */
+    cli_string_node = NULL;
+  }  /* if */
   return cli_string_node;
 }  /* make_cli_string_constant_expression */
 
@@ -5218,6 +5218,9 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
   a_type_ptr       old_type = (*p_node)->type, new_type_pointed_to;
   a_boolean        baseward_cast;
   a_base_class_ptr bcp;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_expr_node_ptr expr;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   /* Make sure the next field of the node is cleared.  The caller must 
      make sure it's copied if that's necessary (it can't be done here,
@@ -5287,16 +5290,16 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
                                         /*make_lvalue=*/FALSE);
   } else if (cppcli_enabled &&
              cli_string_literal_conversion_possible(old_type, new_type,
-                                                   (a_std_conv_descr *)NULL)) {
+                                                    (a_std_conv_descr *)NULL)&&
+             (expr = make_cli_string_constant_expression(*p_node)) != NULL) {
     /* Do a string literal conversion (string-literal --> System::String^). */
     check_assertion(!is_reinterpret_cast);
-    /* Create an enk_constant node of the correct type. */
-    (*p_node) = make_cli_string_constant_expression(*p_node);
     if (!is_implicit_cast) {
       /* Make a cast node to represent the explicit cast. */
-      (*p_node) = make_operator_node((an_expr_operator_kind)eok_cast, new_type,
-                                     *p_node);
+      expr = make_operator_node((an_expr_operator_kind)eok_cast, new_type,
+                                expr);
     }  /* if */
+    (*p_node) = expr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* For an ordinary cast, generate the eok_cast node. */
