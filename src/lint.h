@@ -829,6 +829,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_gcnew_and_no_ctor)*/
 /*lint -esym(769,ec_gcnew_and_no_gcnew)*/
 /*lint -esym(769,ec_type_not_satisfied)*/
+/*lint -esym(769,ec_constraint_mismatch)*/
 /*lint -esym(769,ec_standard_array_member_in_managed_class)*/
 /*lint -esym(769,ec_handle_member_in_standard_class)*/
 /*lint -esym(769,ec_tracking_reference_member_in_standard_class)*/
