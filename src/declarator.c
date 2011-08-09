@@ -1895,6 +1895,8 @@ this is a helper function.
                is_managed_class_type(parent_type)) {
       err_code = ec_qualifier_not_allowed_on_managed_member_function;
       qualifier_err = TRUE;
+      this_class = parent_type;
+      qualifiers = TQ_NONE;
     } else if (microsoft_mode && is_destructor && qualifiers == TQ_RESTRICT) {
       /* Microsoft compilers allow destructors to be qualified with
          "__restrict".  This affects the signature (i.e., mangling) of the
