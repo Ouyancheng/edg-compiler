@@ -1,5 +1,24 @@
 Version 4.4
 
+8/9/11   [EDGcpfe/11921]
+End-of-construct source sequence entries for local static variables
+
+When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, the front end sometimes generates
+"end-of-construct" source sequence entries for local variable declarations
+(when such declarations embed other declarations).  However, that entry was
+mistakenly allocated in function-scope memory even for local static variables
+(whose entries are recorded in file-scope memory).  For example:
+
+  void g() {
+    static int v[sizeof(union {})]; // Accepted in some GNU modes. Previously,
+  }                                 // the end-of-construct entry for v was
+                                    // recorded in function-scope memory.  Now
+                                    // it is allocated in file-scope memory.
+
+This is now fixed: The entry is now recorded in file-scope memory (on a
+"sublist" -- see Changes entry of 3/21/94).
+
+
 8/7/11   [EDGcpfe/11914, EDGcpfe/10029]
 universal-character-names in narrow string literals
 

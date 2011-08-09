@@ -889,9 +889,12 @@ sequence list.
   if (!source_sequence_entries_disallowed) {
     /* We are in a context in which source sequence entries are being
        generated. */
-    if (kind == (a_byte_il_entry_kind)iek_type &&
+    if (in_file_scope(ptr) &&
         curr_il_region_number != file_scope_region_number) {
-      /* Local type. */
+      /* We're in a function definition, but the given entity is allocated in
+         file-scope memory (e.g., a local type or a local static variable):
+         The end-of-construct entry must also be allocated in file-scope
+         memory. */
       check_assertion(in_file_scope(ptr));
       force_alloc_in_filescope = TRUE;
       switch_to_file_scope_region(&region_to_switch_back_to);
