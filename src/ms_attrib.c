@@ -258,15 +258,6 @@ return a pointer to the entry.
 }  /* alloc_ms_attribute_param */
 
 
-static void set_initialization_style_arg_allowed(void)
-/*
-Set the initialization-style argument allowed flag for the current attribute.
-*/
-{
-  curr_attribute_descr->initialization_style_arg_allowed = TRUE;
-}  /* set_initiallization_style_arg_allowed */
-
-
 static void add_attribute_parameter(an_ms_attribute_arg_kind	kind,
 				    char			*name,
 				    a_boolean			is_unnamed,
@@ -334,6 +325,17 @@ case.
 }  /* add_attribute_parameter */
 
 #endif /* RECOGNIZE_MICROSOFT_ATTRIBUTES || INCLUDE_EDG_TEST_ATTRIBUTES */
+#if RECOGNIZE_MICROSOFT_ATTRIBUTES
+
+static void set_initialization_style_arg_allowed(void)
+/*
+Set the initialization-style argument allowed flag for the current attribute.
+*/
+{
+  curr_attribute_descr->initialization_style_arg_allowed = TRUE;
+}  /* set_initialization_style_arg_allowed */
+
+#endif /* RECOGNIZE_MICROSOFT_ATTRIBUTES */
 
 static void init_attribute_kinds(void)
 /*
