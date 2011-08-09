@@ -12679,14 +12679,32 @@ specific information about the member declaration, respectively.
     abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
                               member_type, &locator->source_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && (is_interior_ptr_type(member_type) || 
-                                is_pin_ptr_type(member_type))) {
-    /* In C++/CLI, an interior_ptr or pin_ptr cannot be a class member. */
-    type_error(ec_type_cannot_be_class_member, member_type);
-    member_type = error_type();
-  } else if (cppcli_enabled && is_cli_interface_type(member_type)) {
-    /* Static data members cannot be interfaces. */
-    pos_error(ec_data_member_with_interface_type, &decl_state->declarator_pos);
+  } else if (cppcli_enabled) {
+    if (is_interior_ptr_type(member_type) || is_pin_ptr_type(member_type)) {
+      /* In C++/CLI, an interior_ptr or pin_ptr cannot be a class member. */
+      type_error(ec_type_cannot_be_class_member, member_type);
+      member_type = error_type();
+    } else if (is_cli_interface_type(member_type)) {
+      /* Static data members cannot be interfaces. */
+      pos_error(ec_data_member_with_interface_type,
+                &decl_state->declarator_pos);
+    } else if (is_immediate_managed_class_type(class_type)) {
+      /* Limitations applying to members of managed class types only. */
+      if (is_array_type(member_type)) {
+        pos_error(ec_standard_array_member_in_managed_class,
+                  &decl_state->declarator_pos);
+        member_type = error_type();
+      }  /* if */
+    } else {
+      /* Limitations applying to members of non-managed class types only. */
+      if (is_handle_or_tracking_ref_type(member_type)) {
+        pos_error(is_handle_type(member_type) ?
+                    ec_handle_member_in_standard_class :
+                    ec_tracking_reference_member_in_standard_class,
+                  &decl_state->declarator_pos);
+        member_type = error_type();
+      }  /* if */
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* The Microsoft compiler instantiates a template class used as the type
@@ -14445,8 +14463,8 @@ declarations.
       /* Array types are disallowed in managed class types and handles are
          disallowed in non-managed (i.e., standard) class types. */
       pos_error(is_immediate_managed_class_type(class_type) ?
-                  ec_standard_array_field_in_managed_class :
-                  ec_handle_field_in_standard_class,
+                  ec_standard_array_member_in_managed_class :
+                  ec_handle_member_in_standard_class,
                 &decl_state->declarator_pos);
       field_type = error_type();
     } else if (cppcli_enabled && (is_interior_ptr_type(field_type) || 
