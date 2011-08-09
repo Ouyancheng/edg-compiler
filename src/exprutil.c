@@ -5127,7 +5127,6 @@ is not a string constant, return NULL.
 */
 {
   a_constant       constant;
-  a_type_ptr       string_handle;
   an_expr_node_ptr cli_string_node;
 
   /* Attempt to create a ck_address constant referring to the operand of the
@@ -5135,9 +5134,7 @@ is not a string constant, return NULL.
   if (constant_rvalue_pointer(expr, &constant,
                               /*address_escapes=*/TRUE, (a_boolean *)NULL)) {
     /* Set the type to be System::String^. */
-    string_handle = make_handle_type(type_symbol_type(
-                                     cli_symbol_from_kind(csk_system_string)));
-    constant.type = string_handle;
+    constant.type = make_handle_to_system_string();
     cli_string_node = alloc_node_for_constant(&constant);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Copy the position information from the original constant node,
@@ -5180,10 +5177,7 @@ Microsoft compiler, hence the unusual representation.
                               /*address_escapes=*/TRUE, (a_boolean *)NULL)) {
     /* Succeeded: set the type to System::String^ and create the constant
        operand. */
-    a_type_ptr string_handle;
-    string_handle = make_handle_type(type_symbol_type(
-                                     cli_symbol_from_kind(csk_system_string)));
-    string_constant.type = string_handle;
+    string_constant.type = make_handle_to_system_string();
     make_constant_operand(&string_constant, operand);
     restore_operand_details(operand, &orig_operand);
   } else {
@@ -5292,9 +5286,11 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
              cli_string_literal_conversion_possible(old_type, new_type,
                                                     (a_std_conv_descr *)NULL)&&
              (expr = make_cli_string_constant_expression(*p_node)) != NULL) {
-    /* Do a string literal conversion (string-literal --> System::String^). */
+    /* Do a string literal conversion (string-literal --> System::String^ -->
+       dest_type). */
     check_assertion(!is_reinterpret_cast);
-    if (!is_implicit_cast) {
+    if (!is_implicit_cast ||
+        !cast_identical_types(new_type, make_handle_to_system_string())) {
       /* Make a cast node to represent the explicit cast. */
       expr = make_operator_node((an_expr_operator_kind)eok_cast, new_type,
                                 expr);

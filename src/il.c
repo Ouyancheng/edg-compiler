@@ -9502,6 +9502,17 @@ an existing entry if possible.
 }  /* make_handle_type */
 
 
+a_type_ptr make_handle_to_system_string(void)
+/*
+Return the C++/CLI type "handle to System::String".
+*/
+{
+  a_type_ptr string_handle = make_handle_type(type_symbol_type(
+                                     cli_symbol_from_kind(csk_system_string)));
+  return string_handle;
+}  /* make_handle_to_system_string */
+
+
 a_type_ptr make_tracking_reference_type(a_type_ptr pointed_to_type)
 /*
 Allocate a C++/CLI tracking reference type and initialize it.  Attempt to

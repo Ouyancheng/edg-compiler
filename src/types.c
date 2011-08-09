@@ -7510,9 +7510,11 @@ a_boolean cli_string_literal_conversion_possible(
 /*
 Return TRUE if source_type (the type of a string literal operand) can be
 implicitly converted to dest_type (if that is a handle to a C++/CLI
-System::String).  See 14.2.5 in the ECMA-372 standard.
-If the conversion is possible, *std_conv is filled out to describe the
-conversion.  std_conv can be NULL if that information is not needed.
+System::String, or a handle to some other type such that the literal
+can be converted to a handle to System::String and then to dest_type).
+See 14.2.5 in the ECMA-372 standard.  If the conversion is possible,
+*std_conv is filled out to describe the conversion.  std_conv can be NULL
+if that information is not needed.
 */
 {
   a_boolean okay = FALSE;
@@ -7521,16 +7523,21 @@ conversion.  std_conv can be NULL if that information is not needed.
     if (std_conv != NULL) clear_std_conv_descr(std_conv);
     if (literal_type_convertible_to_cli_string(source_type)) {
       /* The source type is an appropriate string literal type.  See if
-         the destination type is a handle to System::String. */
+         the destination type is a handle. */
       if (is_handle_type(dest_type)) {
-        a_type_ptr unqual_dest_type_pointed_to = f_skip_typerefs(
-                                                   type_pointed_to(dest_type));
-        a_type_ptr system_string = type_symbol_type(
-                                      cli_symbol_from_kind(csk_system_string));
-        if (identical_types(unqual_dest_type_pointed_to, system_string)) {
-          /* This is a string-literal -> String^ conversion. */
+        /* The source type can be converted to a System::String^.  Next, test
+           to see if a conversion from System::String^ to dest_type
+           is possible. */
+        if (impl_handle_conversion(make_handle_to_system_string(),
+                                   dest_type,
+                                   /*allow_qualifier_or_eh_mismatch=*/TRUE,
+                                   std_conv)) {
+          /* The conversion from System::String^ --> dest_type is possible. */
           okay = TRUE;
           if (std_conv != NULL) {
+            /* Mark this conversion as one that requires the
+               source_type --> System::String^ conversion (possibly
+               among others). */
             std_conv->nontrivial_conversion = TRUE;
             std_conv->conv_of_string_literal_to_cli_string = TRUE;
           }  /* if */
@@ -8392,7 +8399,7 @@ See conversion_possible.
                cli_string_literal_conversion_possible(source_type, dest_type,
                                                       std_conv)) {
       /* A string literal conversion is possible (string literal -->
-         handle to System::String). */
+         handle to System::String --> dest_type). */
       okay = TRUE;
     } else {
       okay = impl_handle_conversion(source_type, dest_type,

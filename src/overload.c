@@ -2506,9 +2506,14 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
            user-defined conversion. */
         arg_summary->match_level = aml_user_conversion;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (std_conversion.conv_of_string_literal_to_cli_string) {
+      } else if (std_conversion.conv_of_string_literal_to_cli_string &&
+                 f_identical_types(param_type,
+                                   make_handle_to_system_string(),
+                                   ITF_IGNORE_TOP_LEVEL_QUALIFIERS)) {
         /* A C++/CLI conversion of a string literal to a System::String^
-           is considered an exact match. */
+           is considered an exact match (the f_identical_types test rules
+           out cases where the conversion goes by way of System::String^
+           but then on to some other destination handle type). */
         check_assertion(cppcli_enabled);
         arg_summary->match_level = aml_exact;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

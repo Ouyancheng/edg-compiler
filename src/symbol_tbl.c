@@ -7005,8 +7005,7 @@ Create symbols for the builtin System::String operators.
   a_symbol_locator  locator;
   a_type_ptr        hstring_type, hobject_type;
   
-  hstring_type = make_handle_type(
-                    type_symbol_type(cli_symbol_from_kind(csk_system_string)));
+  hstring_type = make_handle_to_system_string();
   hobject_type = make_handle_type(
                     type_symbol_type(cli_symbol_from_kind(csk_system_object)));
   make_opname_locator((an_opname_kind)onk_plus, &locator,
