@@ -17147,9 +17147,9 @@ the conversion.
     /* C++/CLI does not allow binding a reference to an initonly field. */
     error_in_operand(ec_ref_bound_to_initonly_field, source_operand);
   } else if (cppcli_enabled &&
+             !(conv_context & CCO_BITWISE_ASSIGNMENT_PARAM) &&
              !is_tracking_reference_type(dest_type) &&
-             is_gc_lvalue_operand(source_operand) &&
-             !(conv_context & CCO_BITWISE_ASSIGNMENT_PARAM)) {
+             is_gc_lvalue_operand(source_operand)) {
     /* C++/CLI does not allow binding a normal (non-tracking) reference
        to a gc-lvalue.  The invented parameter of a bitwise assignment
        operator doesn't really have this problem. */
