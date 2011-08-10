@@ -19048,8 +19048,6 @@ Also scans GNU statement expressions:
         orig_operand = *result;
         make_lvalue_or_rvalue_expression_operand(expr, result);
         restore_operand_details_incl_ref(result, &orig_operand);
-        result->is_simple_string_literal =
-                                         orig_operand.is_simple_string_literal;
         set_operand_position(result, &start_position, &end_position,
                              &start_position);
       } else if (need_expr_for_constant) {
