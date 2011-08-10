@@ -7798,9 +7798,15 @@ static constructor.  This routine is only used in C++ mode.
   }  /* if */
   check_assertion(!is_static_ctor || cppcli_enabled);
 #endif /* CHECKING */
-  if (locator->symbol_header == unnamed_tag_symbol_header) {
+  if (locator->symbol_header == unnamed_tag_symbol_header
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      && !is_static_ctor
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                        ) {
     /* Let the symbols for an unnamed class and its constructor share the
-       same symbol header. */
+       same symbol header (except for C++/CLI static constructors: They can
+       be unnamed when they are for the boxed type corresponding to an
+       unnamed enumeration type). */
     hdr_ptr = locator->symbol_header;
   } else {
     extra_info = class_symbol->variant.class_struct_union.extra_info;
