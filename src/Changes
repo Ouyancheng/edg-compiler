@@ -1,5 +1,26 @@
 Version 4.4
 
+8/10/11  [EDGcpfe/12011]
+Deprecated string literal conversion not allowed on result of "?" in parens
+
+The (2003) C++ standard allows a const string literal to be converted
+to "char *", as a deprecated conversion:
+
+  char *p = "a";
+
+As an extension, the front end allows this also on the result of a
+"?" operator:
+
+  char *p = 1 ? "a" : "b";
+
+However, in versions that have PARENS_IN_IL TRUE, the equivalent case
+enclosed in parentheses did not work:
+
+  char *p = (1 ? "a" : "b");
+
+That's now fixed, and that case is now accepted.
+
+
 8/9/11   [EDGcpfe/11921]
 End-of-construct source sequence entries for local static variables
 
