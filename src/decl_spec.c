@@ -7080,7 +7080,7 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
        next token is a left parenthesis; (5) the token following the
        left paren is a right paren or the start of a formal parameter
        declaration. */
-    if (is_member_decl &&
+    if (is_member_decl && !result &&
         !(decl_specifiers_seen & ~(DS_VIRTUAL | DS_STORAGE_CLASS |
                                    DS_EXPLICIT | DS_INLINE |
                                    DS_MICROSOFT_INLINE | DS_FORCEINLINE)) &&
