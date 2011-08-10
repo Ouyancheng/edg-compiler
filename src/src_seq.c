@@ -895,7 +895,6 @@ sequence list.
          file-scope memory (e.g., a local type or a local static variable):
          The end-of-construct entry must also be allocated in file-scope
          memory. */
-      check_assertion(in_file_scope(ptr));
       force_alloc_in_filescope = TRUE;
       switch_to_file_scope_region(&region_to_switch_back_to);
     } else {
