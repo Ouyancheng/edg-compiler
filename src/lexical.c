@@ -8723,8 +8723,12 @@ was.  The caller is responsible for issuing error messages.
         } else if (character_kind == (a_character_kind)chk_char) {
           /* The character will be translated into a multibyte character
              set; the actual length will be calculated when the literal is
-             converted. */
-          nchars += MAX_MULTIBYTE_CHAR_LENGTH;
+             converted.  We set 4 as the estimated length because the
+             target encoding may be UTF-8, and the maximum length of a
+             UTF-8 sequence is 4 bytes.  An additional check will be made
+             when the literal is converted to ensure that the converted
+             character does not overflow. */
+          nchars += 4;
         } else {
           ++nchars;
         }  /* if */

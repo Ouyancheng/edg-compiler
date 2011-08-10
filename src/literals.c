@@ -1194,6 +1194,15 @@ processing, and in wide characters if the constant is wide).
         case chk_char:
           conv_single_char(&conv_state, /*process_escapes=*/TRUE, &ch,
                            centity_mask, /*narrow_literal=*/TRUE);
+          if (i >= targ_sizeof_int) {
+            /* The initial size of a narrow-character literal containing a
+               universal-character-name is set to 4, since that is the
+               maximum length of a UTF-8 encoding.  If the character is
+               being translated into a different multibyte encoding,
+               however, the representation can overflow an integer without
+               having been detected above.  Flag this as an error. */
+            too_many_chars = TRUE;
+          }  /* if */
           break;
         case chk_wchar_t:
           conv_single_wide_char(&temp_ptr, &ch, centity_mask);
