@@ -4332,6 +4332,10 @@ on every expression.
           } else if (op == (an_expr_operator_kind)eok_class_rvalue_adjust) {
             /* Rvalue type adjustment (always implicit, so ignore). */
             form_expression(operand, octl);
+          } else if (op == (an_expr_operator_kind)eok_unbox_lvalue) {
+            /* Certain C++/CLI unboxing operations (always implicit, so
+               ignore). */
+            form_expression(operand, octl);
           } else if (operand->next == NULL) {
             /* Unary operators. */
             octl->output_str(op_str, octl);

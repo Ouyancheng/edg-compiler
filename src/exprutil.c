@@ -2353,6 +2353,7 @@ cast in some modes.  orig_operand_expr can be NULL.
         case eok_lvalue:
         case eok_lvalue_adjust:
         case eok_class_rvalue_adjust:
+        case eok_unbox_lvalue:
           /* These operations are always implicit.  Keep stripping. */
           break;
         default:
@@ -2738,6 +2739,7 @@ that has it.
           case eok_lvalue:
           case eok_lvalue_adjust:
           case eok_class_rvalue_adjust:
+          case eok_unbox_lvalue:
             /* These operations are always implicit.  Keep stripping. */
             break;
           case eok_parens:
@@ -5111,6 +5113,32 @@ If make_lvalue is TRUE, an lvalue expression is returned.
   }  /* if */
   return expr;
 }  /* add_unbox_to_expression */
+
+
+an_expr_node_ptr unbox_after_indirection_if_required(an_expr_node_ptr expr)
+/*
+expr is the result of applying a "*" indirection operator.  If the
+result is a C++/CLI value class that has a corresponding fundamental
+type, add an unbox operation to the expression to get an lvalue for
+the fundamental type value within the boxed entity.  Return the
+updated expression, or the original expression if no change was
+needed.
+*/
+{
+  if (cppcli_enabled) {
+    a_type_ptr fund_type =
+                fundamental_type_from_system_type(f_skip_typerefs(expr->type));
+    if (fund_type != NULL) {
+      a_type_ptr unboxed_type =
+                  type_plus_qualifiers_from_second_type(fund_type, expr->type);
+      check_assertion(expr->is_lvalue);
+      expr = make_lvalue_operator_node((an_expr_operator_kind)eok_unbox_lvalue,
+                                       unboxed_type, expr);
+      expr->variant.operation.compiler_generated = TRUE;;
+    }  /* if */
+  }  /* if */
+  return expr;
+}  /* unbox_after_indirection_if_required */
 
 
 static an_expr_node_ptr make_cli_string_constant_expression(
@@ -15040,6 +15068,15 @@ it might produce an error).
                useful. */
             node = NULL;
           }  /* if */
+          break;
+        case eok_unbox:
+        case eok_unbox_lvalue:
+          /* You can get an rvalue by setting is_lvalue to FALSE to cause
+             a fetch from the boxed entity, but the operation is not
+             rvalueable. */
+          node->is_lvalue = FALSE;
+          node->type = rvalue_node_type;
+          processed = TRUE;
           break;
         default:
           break;

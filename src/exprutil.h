@@ -2234,6 +2234,8 @@ an_expr_node_ptr add_box_to_expression(an_expr_node_ptr expr,
 extern an_expr_node_ptr add_unbox_to_expression(an_expr_node_ptr expr,
                                                 a_type_ptr       unboxed_type,
                                                 a_boolean        make_lvalue);
+extern
+an_expr_node_ptr unbox_after_indirection_if_required(an_expr_node_ptr expr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern

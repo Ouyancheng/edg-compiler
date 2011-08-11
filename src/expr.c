@@ -8424,6 +8424,11 @@ error indication in *rcblock).
         node = make_lvalue_operator_node((an_expr_operator_kind)eok_indirect,
                                          operand_type,
                                          make_node_from_operand(&operand));
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cppcli_enabled) {
+          node = unbox_after_indirection_if_required(node);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         make_lvalue_expression_operand(node, result);
         if (is_void_type(operand_type)) {
           /* Indirection through a void * pointer. */

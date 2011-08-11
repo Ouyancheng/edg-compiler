@@ -12644,6 +12644,7 @@ tk_unknown is returned.
     case eok_box:
     case eok_handle_to_box:
     case eok_unbox:
+    case eok_unbox_lvalue:
       result = (a_type_kind)tk_pointer;
       break;
     case eok_cast:
@@ -16379,7 +16380,8 @@ object or an rvalue that is a pointer or handle to an object.
                 tblock->result = TRUE;
                 determined_result = TRUE;
               }  /* if */
-            } else if (op == (an_expr_operator_kind)eok_unbox) {
+            } else if (op == (an_expr_operator_kind)eok_unbox ||
+                       op == (an_expr_operator_kind)eok_unbox_lvalue) {
               /* Unbox returns a gc-lvalue for the value contained within the
                  managed heap object pointed to by its handle operand. */
               tblock->result = TRUE;
@@ -17330,7 +17332,7 @@ already indicates the load.
           case eok_base_class_cast:     /* Ditto. */
           case eok_derived_class_cast:  /* Ditto. */
           case eok_unbox:        /* Not rvalueable: the version with is_lvalue
-                                    FALSE does a fetch, but it's an inherent
+          case_eok_unbox_lvalue:    FALSE does a fetch, but it's an inherent
                                     part of the operation, not an implicit
                                     lvalue-to-rvalue conversion at the end. */
           default:
@@ -17491,6 +17493,7 @@ process_ptr_to_member_selection:
               fetched_type = node->type;
               break;
             case eok_unbox:
+            case eok_unbox_lvalue:
               /* A C++/CLI unbox operation with is_lvalue FALSE fetches the
                  rvalue out of the box. */
               does_fetch = TRUE;
@@ -17637,6 +17640,7 @@ check_cast_destination_type:
     case eok_box:
     case eok_handle_to_box:
     case eok_unbox:
+    case eok_unbox_lvalue:
       /* Box allocates an object on the managed heap. */
       /* Unbox is a lot like a ref cast, but it does a runtime check. */
       has_side_effects = TRUE;
@@ -18941,6 +18945,7 @@ operand.
     case eok_lvalue_cast:
     case eok_ref_cast:
     case eok_lvalue_adjust:
+    case eok_unbox_lvalue:
     case eok_ref_dynamic_cast:
     case eok_assign:
     case eok_add_assign:
@@ -22365,6 +22370,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_box: */			LVRV_OPND1_IS_RVALUE,
   /* eok_handle_to_box: */		LVRV_OPND1_IS_RVALUE,
   /* eok_unbox: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_unbox_lvalue: */		LVRV_OPND1_IS_LVALUE,
   /* eok_base_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_derived_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_pm_base_class_cast: */		LVRV_OPND1_IS_RVALUE,

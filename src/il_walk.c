@@ -2929,8 +2929,11 @@ Tips for proper use of the follow_addressing_path mode:
           }
           break;
         case eok_unbox:
+        case eok_unbox_lvalue:
           /* Unbox returns the address of the value within the object
              pointed to by its handle operand, so continue with the handle. */
+          /* Likewise, eok_unbox_lvalue returns the address of the underlying
+             gc-lvalue, so continue with that lvalue. */
           traverse_expr(operand1, tblock);
           break;
         case eok_class_rvalue_adjust:

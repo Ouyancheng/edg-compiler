@@ -12725,8 +12725,8 @@ enum an_expr_operator_kind_tag {
 			   indicate the case where the source form uses the
 			   unary "%" operator.  Never compiler-generated,
 			   and unlike eok_box never considered a cast. */
-  eok_unbox,		/* C++/CLI unboxing operation.  The operand is a handle
-			   to a value type (other than a pointer) and the
+  eok_unbox,		/* C++/CLI unboxing operation.  The operand is a
+			   handle to a value class or boxed enum and the
 			   result is an lvalue for the unboxed value.  This
 			   does not copy the value; it returns a gc-lvalue
 			   for the value within the boxed object allocated
@@ -12736,7 +12736,17 @@ enum an_expr_operator_kind_tag {
 			   fetches an rvalue from the box (i.e., there's a
 			   built-in bitwise copy), but the operation is
 			   not rvalueable; the fetch/copy is an inherent
-			   part of the operation. */
+			   part of the operation.  Does a runtime check
+			   in some cases. */
+  eok_unbox_lvalue,	/* C++/CLI unboxing operation.  The operand is
+			   a gc-lvalue for a value class or boxed enum and
+			   the result is an lvalue for the unboxed value.
+			   Always compiler-generated, e.g., on top of an
+			   eok_indirect applied to a handle to a value class.
+			   Like eok_unbox, is_lvalue FALSE indicates a
+			   fetch/copy, but the operation is not rvalueable.
+			   The result type is always the same as the operand
+			   type, but a runtime check is still done. */
   eok_base_class_cast,	/* C++ cast of a class to a direct base class.  The
 			   type of the expression indicates the type to cast
 			   to.  The operand can be a class lvalue, a class
@@ -16424,7 +16434,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #if VAR_INITIALIZERS
 = {"&", "ref-&", "%", "*", "ref-*",
    "cast", "lvalue cast", "ref cast", "lvalue adjust", "class rvalue adjust",
-   "box", "%-box", "unbox",
+   "box", "%-box", "unbox", "unbox-l",
    "base class cast", "derived class cast",
    "pm base class cast", "pm derived class cast",
    "dynamic cast", "ref dynamic cast", "bool cast",

@@ -565,6 +565,7 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_CAST,		/* eok_box */
   PREC_PREFIX,		/* eok_handle_to_box */
   PREC_CAST,		/* eok_unbox */
+  PREC_LOWEST,		/* eok_unbox_lvalue */
   PREC_CAST,		/* eok_base_class_cast */
   PREC_CAST,		/* eok_derived_class_cast */
   PREC_CAST,		/* eok_pm_base_class_cast */
@@ -10083,6 +10084,7 @@ problems.
           (node_operator_is(operand, eok_address_of) ||
            node_operator_is(operand, eok_indirect) ||
            node_operator_is(operand, eok_class_rvalue_adjust) ||
+           node_operator_is(operand, eok_unbox_lvalue) ||
            (is_cast_operation_node(operand) &&
             !operand->variant.operation.keep_cast_for_cp_gen_be &&
             !is_const_string_literal_cast(operand)))))) {
@@ -10490,6 +10492,7 @@ gen_expr that might end up generating this expr as a temporary.
         case eok_pm_derived_class_cast:
         case eok_box:
         case eok_unbox:
+        case eok_unbox_lvalue:
           /* Related-class casts, boxing/unboxing. */
           if (expr->variant.operation.compiler_generated) {
             /* For an implicit cast, just put out the underlying operand. */
