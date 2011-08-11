@@ -1160,9 +1160,16 @@ new fields are set properly.
     for (; ptp != NULL; ptp = ptp->next) {
       param_count++;
       tp = ptp->type;
-      if (is_handle_type_or_any_ref_type(tp)) {
+      if (is_any_reference_type(tp)) {
         tp = type_pointed_to(tp);
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled && is_handle_type(tp)) {
+        /* Parameters of the form T^, T^%, and T^& are also acceptable in
+           C++/CLI mode. */
+        tp = type_pointed_to(tp);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (is_class_struct_union_type(tp) ||
           (operator_overloading_on_enums_enabled && is_enum_type(tp))) {
         any_class_or_enum_type_params = TRUE;
