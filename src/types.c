@@ -935,6 +935,7 @@ reference), including C++/CLI handles and tracking references.
   return (tp->kind == (a_type_kind)tk_pointer);
 }  /* is_any_ptr_or_ref_type */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 a_boolean is_handle_type_or_any_ref_type(a_type_ptr tp)
 /*
@@ -945,14 +946,9 @@ ordinary pointer, interior_ptr, or pin_ptr).
 {
   tp = skip_typerefs(tp);
   return tp->kind == (a_type_kind)tk_pointer &&
-         (tp->variant.pointer.is_reference
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                                           || tp->variant.pointer.is_handle
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                           );
+         (tp->variant.pointer.is_reference || tp->variant.pointer.is_handle);
 }  /* is_handle_type_or_any_ref_type */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 a_boolean is_cli_generic_param_type(a_type_ptr  tp)
 /*
