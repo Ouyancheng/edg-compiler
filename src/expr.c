@@ -12182,9 +12182,9 @@ indication in *rcblock).
       typeid_type = skip_typerefs(typeid_type);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && is_value_class_type(typeid_type)) {
+    if (cppcli_enabled) {
       /* Convert the value class version of a fundamental type to the
-         fundamental type.  Note that typerefs have been stripped above. */
+         fundamental type. */
       typeid_type = map_cli_system_type_to_fundamental_type(typeid_type);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -19225,6 +19225,13 @@ after it's used.
     type_position = *start_position;
   }  /* if */
   error_position = *start_position;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled) {
+      /* Convert the value class version of a fundamental type to the
+         fundamental type. */
+      type_cast_to = map_cli_system_type_to_fundamental_type(type_cast_to);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Check the type to see if it is valid in general terms.  Note that
      this does a worthwhile check even in the class case (abstract class).
      However, cv-qualifiers cannot syntactically appear in this sort of
