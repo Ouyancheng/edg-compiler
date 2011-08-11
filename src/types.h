@@ -1373,6 +1373,8 @@ extern a_type_ptr system_type_from_fundamental_type(a_type_ptr tp);
 
 extern a_type_ptr fundamental_type_from_system_type(a_type_ptr tp);
 
+extern a_type_ptr map_cli_system_type_to_fundamental_type(a_type_ptr tp);
+
 extern a_boolean is_value_class_or_fundamental_type(a_type_ptr tp);
 
 extern a_boolean is_cli_enum_type(a_type_ptr tp);

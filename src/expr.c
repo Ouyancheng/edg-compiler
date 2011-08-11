@@ -12185,8 +12185,7 @@ indication in *rcblock).
     if (cppcli_enabled && is_value_class_type(typeid_type)) {
       /* Convert the value class version of a fundamental type to the
          fundamental type.  Note that typerefs have been stripped above. */
-      a_type_ptr basic_type = fundamental_type_from_system_type(typeid_type);
-      if (basic_type != NULL) typeid_type = basic_type;
+      typeid_type = map_cli_system_type_to_fundamental_type(typeid_type);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Instantiate the type if it is a template class. */

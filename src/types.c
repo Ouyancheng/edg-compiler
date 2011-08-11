@@ -12783,6 +12783,23 @@ system_type_from_fundamental_type for the reverse mapping.
 }  /* fundamental_type_from_system_type */
 
 
+a_type_ptr map_cli_system_type_to_fundamental_type(a_type_ptr tp)
+/*
+If tp is a C++/CLI value class type with a corresponding fundamental type,
+return the fundamental type (cv-qualified the same as the original type).
+If not, return the original type.
+*/
+{
+  if (cppcli_enabled) {
+    a_type_ptr fund_type= fundamental_type_from_system_type(skip_typerefs(tp));
+    if (fund_type != NULL) {
+      tp = type_plus_qualifiers_from_second_type(fund_type, tp);
+    }  /* if */
+  }  /* if */
+  return tp;
+}  /* map_cli_system_type_to_fundamental_type */
+
+
 a_boolean is_value_class_or_fundamental_type(a_type_ptr tp)
 /*
 Returns TRUE if this is a C++/CLI value class or a fundamental type with a
