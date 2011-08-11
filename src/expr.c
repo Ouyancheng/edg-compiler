@@ -6325,7 +6325,8 @@ case).
       force_indefinite_function = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled && member_name_followed_by_left_paren &&
-               hide_by_sig_lookup_applies(projection_member_sym)) {
+               hide_by_sig_lookup_applies(projection_member_sym) &&
+               !is_destructor_symbol(member_sym) ) {
       /* In C++/CLI mode, a symbol for which hide-by-sig lookup applies
          has to be processed through overload resolution even if it
          doesn't look overloaded. */

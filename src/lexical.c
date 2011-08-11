@@ -15754,9 +15754,9 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean			result = FALSE;
   a_boolean			err = FALSE;
   a_boolean			can_be_vacuous_dtor_or_finalizer =
-				  (options & GID_VACUOUS_DTOR_RECOGNIZED);
+				  (options & GID_VACUOUS_DTOR_RECOGNIZED) != 0;
   a_boolean			dtor_or_finalizer_must_be_nonclass =
-				  (options & GID_DTOR_MUST_BE_NONCLASS);
+				  (options & GID_DTOR_MUST_BE_NONCLASS) != 0;
   a_boolean			is_vacuous_dtor_or_finalizer = FALSE;
   a_boolean			is_nonclass_dtor_or_finalizer = FALSE;
   a_type_ptr			dtor_or_finalizer_class_type = NULL;
