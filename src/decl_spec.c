@@ -9511,6 +9511,20 @@ exit_loop:
                                    complex_attr, saturating_fixed_point)) {
         err = TRUE;
       } else {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cppcli_enabled && *type_ptr != NULL &&
+            is_immediate_class_type(*type_ptr) &&
+            cli_class_type_kind_is(*type_ptr, cctk_value)) {
+          /* Naming a special value class like System::Int32 is equivalent to
+             denoting the corresponding standard type (e.g., int).  It may
+             later be switched back to the System value type, e.g. if a handle
+             to an int is formed (but not e.g. if a tracking reference to an
+             int is formed). */
+          a_type_ptr  standard_type =
+                                 fundamental_type_from_system_type(*type_ptr);
+          if (standard_type != NULL) *type_ptr = standard_type;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Add any type qualifiers (const, volatile, etc.) to the type. */
         if (!add_type_qualifiers(type_ptr, state)) {
           err = TRUE;
@@ -9547,18 +9561,6 @@ exit_loop:
     (void)fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && *type_ptr != NULL &&
-      is_immediate_class_type(*type_ptr) &&
-      cli_class_type_kind_is(*type_ptr, cctk_value)) {
-    /* Naming a special value class like System::Int32 is equivalent to
-       denoting the corresponding standard type (e.g., int).  It may later be
-       switched back to the System value type, e.g. if a handle to an int is
-       formed (but not e.g. if a tracking reference to an int is formed). */
-    a_type_ptr  standard_type = fundamental_type_from_system_type(*type_ptr);
-    if (standard_type != NULL) *type_ptr = standard_type;
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   state->storage_class = state->declared_storage_class;
   state->decl_specifiers_error = err;
   attach_specifier_attributes(state);
