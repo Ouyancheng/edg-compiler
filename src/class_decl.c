@@ -11419,6 +11419,15 @@ implicitly declared member functions.
     }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && decl_info->is_static_constructor &&
+        is_unnamed_tag_symbol(symbol_for(class_type))) {
+      /* The static constructor for a box type associated with an unnamed
+         enum has a symbol named "<unnamed>" that has a header different from
+         the unnamed tag symbol (to avoid conflicts with the normal instance
+         constructor).  However the IL entry should not point to the name
+         "<unnamed>". */
+      rtn->source_corresp.name = NULL;
+    }  /* if */
   } else if (cppcli_enabled) {
     if (cli_class_type_kind_is(class_type, cctk_value)) {
       /* Issue an error for a default or copy constructor, a destructor, or an
@@ -19985,6 +19994,7 @@ vice versa.
      table since it would conflict with the symbol of the enum type. */
   make_locator_for_symbol(symbol_for(tp), &loc);
   bsym = make_symbol((a_symbol_kind)sk_class_or_struct_tag, &loc);
+  bsym->decl_scope = scope_stack[DEPTH_OF_FILE_SCOPE].number;
   /* Create the type entry itself. */
   btp = alloc_type((a_type_kind)tk_struct);
   ctsp = class_type_supp(btp);
@@ -19995,6 +20005,15 @@ vice versa.
   set_source_corresp(&(btp->source_corresp), bsym);
   set_name_linkage_for_type(btp);
   add_to_types_list(btp, DEPTH_OF_FILE_SCOPE);
+#if NEED_NAME_MANGLING
+  /* When multiple closure types appear in the same scope or context, their
+     mangled names are distinguished using a unique number ("discriminator").
+     Compute that number now if appropriate (in some contexts, such as
+     default arguments, the number will be determined elsewhere).  The notion
+     of "discriminator" here is a generalization of the one defined in the
+     IA-64 ABI. */
+  compute_name_collision_discriminator(bsym, DEPTH_OF_FILE_SCOPE);
+#endif /* NEED_NAME_MANGLING */
   /* Start the class definition (and associated class scope). */
   initialize_class_def_state(btp, &class_state);
   push_instantiation_scope_for_boxed_enum_type();
