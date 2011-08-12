@@ -13456,9 +13456,13 @@ state describes the declaration parsed so far.
     /* The "dangling type specifier" case -- a class, struct, union, or
        enum definition was followed by a type specifier keyword.  This is
        treated as a missing-semicolon error, since the type specifier can
-       be taken as introducing a new declaration.  (A similar case is the
-       identifier-but-not-declarator-id case -- which occurs when a
-       template-id appears where a declarator was expected. */
+       be taken as introducing a new declaration.  In addition, if a class or
+       enumeration type was defined, and what follows does not look like a
+       declarator the error is also handled as a missing-semicolon case (some
+       non-declarators, like template-ids and pointer-to-member constants are
+       treated as "looking like a declarator).  Finally, if a template-id that
+       denotes a type follows, the code is also treated like a dangling type
+       specifier. */
     declarator_omitted = TRUE;
     if (state->decl_specifiers_error) {
       /* Don't issue further errors on this declaration. */
