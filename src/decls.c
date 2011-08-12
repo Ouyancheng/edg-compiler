@@ -13446,9 +13446,10 @@ state describes the declaration parsed so far.
       }  /* if */
     }  /* if */
     cannot_bind_to_curr_construct();
-  } else if ((dso_flags & DSO_DANGLING_TYPE_SPECIFIER) ||
-             !(curr_token == tok_identifier || is_declarator_start() ||
-               curr_token == tok_ptr_to_member) ||
+  } else if ((dso_flags & DSO_DANGLING_TYPE_SPECIFIER) != 0 ||
+             ((dso_flags & DSO_DEFINES_SOMETHING) != 0 && 
+              !(curr_token == tok_identifier || is_declarator_start() ||
+                curr_token == tok_ptr_to_member)) ||
              (!C_mode() && identifier_is_template_id() &&
               locator_for_curr_id.specific_symbol != NULL &&
               is_type_symbol(locator_for_curr_id.specific_symbol))) {
