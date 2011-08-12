@@ -937,6 +937,10 @@ EXTERN a_boolean
 #undef TARG_SIZEOF_LONG_LONG
 #undef TARG_ALIGNOF_LONG_LONG
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+#undef TARG_SIZEOF_INT128
+#undef TARG_ALIGNOF_INT128
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #undef TARG_MAX_CLASS_OBJECT_SIZE
 #undef TARG_MAX_BASE_CLASS_OFFSET
 #undef TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT
@@ -1046,6 +1050,10 @@ EXTERN a_boolean
 #define TARG_SIZEOF_LONG_LONG targ_sizeof_long_long
 #define TARG_ALIGNOF_LONG_LONG targ_alignof_long_long
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+#define TARG_SIZEOF_INT128 targ_sizeof_int128
+#define TARG_ALIGNOF_INT128 targ_alignof_128
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #define TARG_MAX_CLASS_OBJECT_SIZE targ_max_class_object_size
 #define TARG_MAX_BASE_CLASS_OFFSET targ_max_base_class_offset
 #define TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT                           \
