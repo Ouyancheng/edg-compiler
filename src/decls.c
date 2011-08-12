@@ -13460,9 +13460,9 @@ state describes the declaration parsed so far.
        enumeration type was defined, and what follows does not look like a
        declarator the error is also handled as a missing-semicolon case (some
        non-declarators, like template-ids and pointer-to-member constants are
-       treated as "looking like a declarator).  Finally, if a template-id that
-       denotes a type follows, the code is also treated like a dangling type
-       specifier. */
+       treated as "looking like a declarator").  Finally, if a template-id
+       that denotes a type follows, the code is also treated like a dangling
+       type specifier. */
     declarator_omitted = TRUE;
     if (state->decl_specifiers_error) {
       /* Don't issue further errors on this declaration. */
