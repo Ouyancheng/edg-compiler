@@ -546,6 +546,10 @@ respectively).
 #define INT128_EXTENSIONS_ALLOWED FALSE
 #endif /* ifndef INT128_EXTENSIONS_ALLOWED */
 
+#if INT128_EXTENSIONS_ALLOWED && !LONG_LONG_ALLOWED
+ #error -- INT128_EXTENSIONS_ALLOWED requires LONG_LONG_ALLOWED
+#endif /* INT128_EXTENSIONS_ALLOWED && !LONG_LONG_ALLOWED */
+
 
 /*
 Flag that is TRUE if C++0x lambdas should be enabled in other C++ modes by
