@@ -10979,7 +10979,7 @@ types, e.g., "unsigned int".  See ARM 7.1.6 and 5.2.3.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INT128_EXTENSIONS_ALLOWED
     case tok_int128:
-      type = integer_type(ik_int128);
+      type = integer_type((an_integer_kind)ik_int128);
       break;
 #endif /* INT128_EXTENSIONS_ALLOWED */
     default:

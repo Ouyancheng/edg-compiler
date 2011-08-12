@@ -1546,7 +1546,7 @@ EXTERN a_boolean
 #if INT128_EXTENSIONS_ALLOWED
 EXTERN a_boolean
 		int128_extensions_enabled;
-			/* TRUE if the front end must support 128-bit integer
+			/* TRUE if the front end supports 128-bit integer
 			   types.  Currently only meaningful in GNU modes. */
 #endif /* INT128_EXTENSIONS_ALLOWED */
 

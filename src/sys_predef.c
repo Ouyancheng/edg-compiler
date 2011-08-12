@@ -2158,10 +2158,10 @@ Enter typedefs "__int128_t" and "__uint128_t" corresponding to signed and
 unsigned 128-bit integer types, respectively.
 */
 {
-  enter_predefined_typedef("__int128_t",
-                           integer_type((an_integer_kind)ik_int128));
-  enter_predefined_typedef("__uint128_t",
-                           integer_type((an_integer_kind)ik_unsigned_int128));
+  (void)enter_predefined_typedef(
+                      "__int128_t", integer_type((an_integer_kind)ik_int128));
+  (void)enter_predefined_typedef(
+            "__uint128_t", integer_type((an_integer_kind)ik_unsigned_int128));
 }  /* enter_128bit_integer_typedefs */
 
 #endif /* GNU_EXTENSIONS_ALLOWED && INT128_EXTENSIONS_ALLOWED */

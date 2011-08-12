@@ -5874,7 +5874,7 @@ typedef enum {
   size_int64
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INT128_EXTENSIONS_ALLOWED
-  , size_int128,
+  , size_int128
 #endif /* INT128_EXTENSIONS_ALLOWED */
 } a_type_size;
 /* C99 complex modifiers. */
@@ -6220,10 +6220,10 @@ modifier _Sat was specified.
         case size_int128:
           if (sign != sign_unsigned) {
             /* __int128, signed __int128. */
-            ikind = ik_int128;
+            ikind = (an_integer_kind)ik_int128;
           } else {
             /* unsigned __int128. */
-            ikind = ik_unsigned_int128;
+            ikind = (an_integer_kind)ik_unsigned_int128;
           }  /* if */
           break;
 #endif /* INT128_EXTENSIONS_ALLOWED */

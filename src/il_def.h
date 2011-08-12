@@ -3982,7 +3982,7 @@ EXTERN an_integer_kind
   (an_integer_kind)ik_unsigned_long_long,	/* ik_unsigned_long_long */
 #endif /* LONG_LONG_ALLOWED */
 #if INT128_EXTENSIONS_ALLOWED
-  (an_integer_kind)ik_int128,			/* ik_int128 */
+  (an_integer_kind)ik_unsigned int128,		/* ik_int128 */
   (an_integer_kind)ik_unsigned_int128,		/* ik_unsigned_int128 */
 #endif /* INT128_EXTENSIONS_ALLOWED */
   111		/* ik_last ("111" is just an unusual value used to check the

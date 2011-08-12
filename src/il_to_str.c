@@ -843,11 +843,21 @@ common_long_long_processing:
 #endif /* LONG_LONG_ALLOWED */
 #if INT128_EXTENSIONS_ALLOWED
     case ik_int128:
-      p = gnu_mode ? "__int128_t" : "**BAD-INT-KIND**";
-      break;
+                                if (int128_extensions_enabled) {
+                                  check_assertion(gnu_mode);
+                                  p = "__int128_t";
+                                } else {
+                                  p = "**BAD-INT-KIND**";
+                                }  /* if */
+                                break;
     case ik_unsigned_int128:
-      p = gnu_mode ? "__uint128_t" : "**BAD-INT-KIND**";
-      break;
+                                if (int128_extensions_enabled) {
+                                  check_assertion(gnu_mode);
+                                  p = "__uint128_t";
+                                } else {
+                                  p = "**BAD-INT-KIND**";
+                                }  /* if */
+                                break;
 #endif /* INT128_EXTENSIONS_ALLOWED */
     default:                    p = "**BAD-INT-KIND**";
   }  /* switch */
