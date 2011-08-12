@@ -3687,7 +3687,7 @@ do_signed_char:;
         case ik_unsigned_long_long:
 #endif /* LONG_LONG_ALLOWED */
 #if INT128_EXTENSIONS_ALLOWED
-        case ik_int128:  /* FIXME? */
+        case ik_int128:
         case ik_unsigned_int128:
 #endif /* INT128_EXTENSIONS_ALLOWED */
           /* These are deliberately left as they are; they are not supposed

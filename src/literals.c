@@ -399,6 +399,9 @@ ll_check:
       kind = (an_integer_kind)ik_unsigned_long_long;
       goto kind_established;
     } else if (c99_mode &&
+#if INT128_EXTENSIONS_ALLOWED
+               !int128_extensions_enabled &&
+#endif /* INT128_EXTENSIONS_ALLOWED */
                le_max_integer_value_of_kind(
                                      &number, /*is_signed=*/FALSE,
                                      (an_integer_kind)ik_unsigned_long_long)) {
@@ -415,6 +418,22 @@ ll_check:
       goto kind_established;
     }  /* if */
 #endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+    if (int128_extensions_enabled) {
+      /* 128-bit integers are supported. */
+      if (!has_u_suffix &&
+          le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                       (an_integer_kind)ik_int128)) {
+        kind = (an_integer_kind)ik_int128;
+        goto kind_established;
+      } else if (le_max_integer_value_of_kind(
+                                       &number, /*is_signed=*/FALSE,
+                                       (an_integer_kind)ik_unsigned_int128)) {
+        kind = (an_integer_kind)ik_unsigned_int128;
+        goto kind_established;
+      }  /* if */
+    }  /* if */
+#endif /* INT128_EXTENSIONS_ALLOWED */
     /* Doesn't fit in target integers.  This can only happen when the
        host representation for integer values can hold values larger
        than the largest target integer. */

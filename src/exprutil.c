@@ -6852,6 +6852,14 @@ is_gnu_two_operand_form is TRUE if this is a GNU two-operand "?"
 #define is_float(fkind)                                               \
   ((fkind) == (a_float_kind)fk_float)
 
+#if INT128_EXTENSIONS_ALLOWED
+#define is_unsigned_int128(ikind)                                     \
+  ((ikind) == (an_integer_kind)ik_unsigned_int128)
+
+#define is_int128(ikind)                                              \
+  ((ikind) == (an_integer_kind)ik_int128)
+#endif /* INT128_EXTENSIONS_ALLOWED */
+
 #if LONG_LONG_ALLOWED
 #define is_unsigned_long_long(ikind)                                  \
   ((ikind) == (an_integer_kind)ik_unsigned_long_long)
@@ -6997,6 +7005,27 @@ If those routines return TRUE, this routine should not be called.
                   type_1->variant.integer.int_kind : (an_integer_kind)ik_last;
       ikind_2 = is_integral_or_enum_type(type_2) ?
                   type_2->variant.integer.int_kind : (an_integer_kind)ik_last;
+#if INT128_EXTENSIONS_ALLOWED
+      if (int128_extensions_enabled) {
+        if (is_unsigned_int128(ikind_1) || is_unsigned_int128(ikind_2)) {
+          /* If either operand has type "unsigned __int128", the other operand
+             is converted to "unsigned __int128". */
+          result_type = integer_type((an_integer_kind)ik_unsigned_int128);
+          goto done;
+        }  /* if */
+        if (is_int128(ikind_1) || is_int128(ikind_2)) {
+          /* At least one operand has type "__int128". */
+          /* We assume no one wants to have 128-bit integers and also have
+             long long be 128 bits, so we don't have to deal with other
+             unsigned types whose values would not fit in __int128. */
+          check_assertion(targ_sizeof_int128 > targ_sizeof_long_long);
+          /* One operand has type "__int128"; the other operand is
+             converted to "__int128". */
+          result_type = integer_type((an_integer_kind)ik_int128);
+          goto done;
+        }  /* if */
+      }  /* if */
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #if LONG_LONG_ALLOWED
       if (is_unsigned_long_long(ikind_1) || is_unsigned_long_long(ikind_2)) {
         /* If either operand has type "unsigned long long", the other operand
