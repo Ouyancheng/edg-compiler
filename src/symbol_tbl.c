@@ -2287,16 +2287,19 @@ static method.  The list is returned in *p_hide_by_sig_list.
     result = !sym->suppress_hide_by_sig_lookup;
   } else if (!sym->is_class_member) {
     /* This lookup only applies to class members -- return FALSE. */
+  } else if (!parent_ctsp->is_hide_by_sig) {
+    /* The parent class is hide-by-name -- return FALSE. */
   } else if ((fund_sym = fundamental_symbol_of(sym)),
              !is_function_or_template_symbol(fund_sym)) {
     /* This lookup only applies to functions -- return FALSE. */
+  } else if (is_destructor_symbol(fund_sym) ||
+             is_finalizer_symbol(fund_sym)) {
+    /* This lookup does not apply to destructors and finalizers. */
   } else if (sym->is_invisible ||
              (sym->kind == (a_symbol_kind)sk_overloaded_function &&
               sym->variant.overloaded_function.symbols->is_invisible)) {
     /* An invisible symbol (probably a property accessor).  Don't attempt
        hide-by-sig lookup and return FALSE. */
-  } else if (!parent_ctsp->is_hide_by_sig) {
-    /* The derived class is hide-by-name -- return FALSE. */
   } else if (is_class ||
              parent_ctsp->cli_class_type_kind ==
                                       (a_cli_class_type_kind)cctk_interface) {
