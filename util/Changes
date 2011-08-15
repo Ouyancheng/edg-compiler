@@ -6,7 +6,8 @@ GNU compatibility: 128-bit integer types
 A change has been made to enable demangling of 128-bit integer types.  In the
 Cfront-like ABI, these types have been assigned the encodings "m16" for
 __int128_t and "Um16" for __uint128_t (following the types added for the
-Microsoft __intN types -- see the Changes entry of 12/21/99).
+Microsoft __intN types -- see the Changes entry of 12/21/99).  The IA-64 ABI
+standard encodings ("n" and "o") are used in the IA-64 configuration.
 
 
 6/17/11 [EDGcpfe/8403,EDGcpfe/10669,EDGcpfe/11510,EDGcpfe/11628,EDGcpfe/11684,
