@@ -10404,6 +10404,7 @@ modification will be added to restore the first token to the current line.
   a_source_position        start_pos = pos_curr_token;
   a_seq_number             start_seq_number = curr_seq_number;
   char                     *orig_loc = start_of_curr_token;
+  char                     *saved_curr_char_loc = curr_char_loc;
   a_boolean                saved_do_not_advance_past_end_of_file;
   a_whitespace_keyword_ptr kwd;
   a_source_line_modif_ptr  slmp;
@@ -10561,10 +10562,10 @@ modification will be added to restore the first token to the current line.
     len_of_curr_token = start_of_curr_token - curr_char_loc;
     end_of_curr_token = curr_char_loc - 1;
   } else {
-    /* The second word was on the same line, so we just restore the
-       original token pointer (which was set to NULL by the call to
-       skip_white_space above). */
+    /* The second word was on the same line, so we just undo the changes
+       to pointers resulting from the skip_white_space call. */
     start_of_curr_token = orig_loc;
+    curr_char_loc = saved_curr_char_loc;
   }  /* if */
   return return_token;
 }  /* scan_whitespace_keyword */
