@@ -4908,7 +4908,6 @@ in [over.ics.rank].
     }  /* if */
     goto have_cmp;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (conv1->cli_array_covariance_conversion !=
       conv2->cli_array_covariance_conversion) {
     /* One has a C++/CLI array covariance conversion and the other does
@@ -4923,6 +4922,19 @@ in [over.ics.rank].
     }  /* if */
     goto have_cmp;
   }  /* if */
+  if (conv1->boxing_conversion !=
+      conv2->boxing_conversion) {
+    /* One has a C++/CLI boxing conversion and the other does not (it's
+       another kind of promotion).  The one with the boxing conversion is
+       worse than the other one. */
+    if (conv1->boxing_conversion) {
+      cmp = -1;
+    } else {
+      cmp = 1;
+    }  /* if */
+    goto have_cmp;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (gpp_mode &&
       conv1->gpp_conv_of_real_to_complex !=
       conv2->gpp_conv_of_real_to_complex) {
