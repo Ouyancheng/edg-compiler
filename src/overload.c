@@ -1010,9 +1010,14 @@ Print an argument match summary for debug purposes.
   if (amsp->conversion.std.conv_of_string_literal_to_ptr_to_nonconst) {
     fprintf(f_debug, " (const string conv anachronism)");
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (amsp->conversion.std.conv_of_string_literal_to_cli_string) {
+    fprintf(f_debug, " (CLI string literal conv)");
+  }  /* if */
   if (amsp->conversion.std.param_array_conversion) {
     fprintf(f_debug, " (param array conversion)");
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bcp = amsp->conversion.std.cast_base_class;
   if (bcp != NULL) {
     fprintf(f_debug, ", base class ");
