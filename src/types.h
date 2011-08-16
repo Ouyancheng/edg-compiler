@@ -872,7 +872,9 @@ typedef struct a_std_conv_descr {
 			   nullptr type or converting a pointer type to
 			   "void *".  (Note that this does not apply to
 			   conversion of a nullptr type to a pointer or
-			   pointer-to-member type.) */
+			   pointer-to-member type.)  Also covers the C++/CLI
+			   conversion of a handle to interface to a handle to
+			   System::Object^. */
   a_byte_boolean
 		nontrivial_conversion;
 			/* TRUE if the conversion is, in the terms of

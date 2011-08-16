@@ -7618,6 +7618,15 @@ that information is not needed.  Doesn't cover boxing conversions
       okay = TRUE;
       if (std_conv != NULL) std_conv->nontrivial_conversion = FALSE;
     } else if (is_class_or_struct(unqual_source_type_pointed_to) &&
+               is_cli_system_object_type(unqual_dest_type_pointed_to)) {
+      /* A handle to a managed class can be converted to System::Object^.
+         For interfaces, this is possible even though the interface doesn't
+         have Object as a base class.  For other cases, we test this
+         first because we want cast_base_class = NULL to indicate the
+         handle equivalent of a pointer conversion to "void *". */
+      okay = TRUE;
+      if (std_conv != NULL) std_conv->pointer_normalization_needed = TRUE;
+    } else if (is_class_or_struct(unqual_source_type_pointed_to) &&
                is_class_or_struct(unqual_dest_type_pointed_to) &&
                (bcp = find_base_class_of(unqual_source_type_pointed_to,
                                          unqual_dest_type_pointed_to))
@@ -7720,7 +7729,6 @@ conversion.  std_conv can be NULL if that information is not needed.
        The destination type has to be a handle type. */
     if (is_handle_type(dest_type) &&
         is_boxable_type(source_type)) {
-      a_base_class_ptr bcp = NULL;
       /* cv-qualifiers on the source type are dropped, since the value gets
          copied into the box. */
       source_type = skip_typerefs(source_type);
@@ -7736,16 +7744,19 @@ conversion.  std_conv can be NULL if that information is not needed.
         okay = TRUE;
       } else if (is_value_class_type(source_type) &&
                  is_class_struct_union_type(dest_type) &&
-                 (bcp = find_base_class_of(source_type, dest_type)) != NULL) {
+                 impl_handle_conversion(make_handle_type(source_type),
+                                        make_handle_type(dest_type),
+                                       /*allow_qualifier_or_eh_mismatch=*/TRUE,
+                                        std_conv)) {
         /* Boxing to a handle to a type followed by a handle conversion to
-           a base class of that type. */
+           a base class of that type.  If std_conv is non-NULL some of its
+           fields will have been set (e.g., cast_base_class). */
         okay = TRUE;
       }  /* if */
       if (okay && std_conv != NULL) {
         std_conv->nontrivial_conversion = TRUE;
         std_conv->boxing_conversion = TRUE;
         std_conv->promotion = TRUE;
-        std_conv->cast_base_class = bcp;
       }  /* if */
     }  /* if */
   }  /* if */
