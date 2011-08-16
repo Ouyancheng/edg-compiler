@@ -2357,6 +2357,9 @@ cast in some modes.  orig_operand_expr can be NULL.
           /* These operations are always implicit.  Keep stripping. */
           break;
         default:
+          /* Keep stripping for an implicit cast node. */
+          if (expr->variant.operation.compiler_generated &&
+              is_cast_operation_node(expr)) break;
           /* Something else.  Stop stripping. */
           goto end_of_loop;
       }  /* switch */
@@ -5242,6 +5245,7 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
   a_base_class_ptr bcp;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_expr_node_ptr expr;
+  a_boolean        check_need_for_final_cast = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   /* Make sure the next field of the node is cleared.  The caller must 
@@ -5301,13 +5305,20 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
              boxing_conversion_possible(old_type, new_type,
                                         (a_std_conv_descr *)NULL)) {
     /* Do a boxing conversion. */
+    check_assertion(!is_reinterpret_cast);
     (*p_node) = add_box_to_expression(*p_node, is_implicit_cast,
                                       /*handle_to_form=*/FALSE);
+    if (!cast_identical_types(new_type, (*p_node)->type)) {
+      check_need_for_final_cast = TRUE;
+      check_assertion(is_operation_node(*p_node) &&
+                      node_operator_is(*p_node, eok_box));
+      (*p_node)->variant.operation.compiler_generated = FALSE;
+    }  /* if */
   } else if (cppcli_enabled &&
              unboxing_conversion_possible(old_type, new_type,
                                           (a_std_conv_descr *)NULL)) {
     /* Do an unboxing conversion. */
-    check_assertion(!is_implicit_cast);
+    check_assertion(!is_implicit_cast && !is_reinterpret_cast);
     (*p_node) = add_unbox_to_expression(*p_node, new_type,
                                         /*make_lvalue=*/FALSE);
   } else if (cppcli_enabled &&
@@ -5317,13 +5328,8 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
     /* Do a string literal conversion (string-literal --> System::String^ -->
        dest_type). */
     check_assertion(!is_reinterpret_cast);
-    if (!is_implicit_cast ||
-        !cast_identical_types(new_type, make_handle_to_system_string())) {
-      /* Make a cast node to represent the explicit cast. */
-      expr = make_operator_node((an_expr_operator_kind)eok_cast, new_type,
-                                expr);
-    }  /* if */
-    (*p_node) = expr;
+    check_need_for_final_cast = TRUE;
+    *p_node = expr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* For an ordinary cast, generate the eok_cast node. */
@@ -5332,6 +5338,20 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
     (*p_node)->variant.operation.compiler_generated = is_implicit_cast;
     (*p_node)->variant.operation.is_reinterpret_cast = is_reinterpret_cast;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (check_need_for_final_cast) {
+    /* Add a final cast in some cases if the primary transformation did not
+       get us all the way to the final type. */
+    expr = *p_node;
+    if (!is_implicit_cast || !cast_identical_types(new_type, expr->type)) {
+      
+      expr = make_operator_node((an_expr_operator_kind)eok_cast, new_type,
+                                expr);
+      expr->variant.operation.compiler_generated = is_implicit_cast;
+      *p_node = expr;
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* add_cast_to_node */
 
 
