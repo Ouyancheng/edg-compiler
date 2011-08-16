@@ -11121,6 +11121,28 @@ type conversion.  conv_context describes the context of the conversion.
                                          is_reference_binding,
                                          conv_context,
                                          candidate_functions);
+      /* Also look for static conversion functions in base classes of
+         this class, since a handle to the class can be converted to a handle
+         to a base class. */
+      { a_base_class_ptr bcp;
+        for (bcp = base_classes_of(conv_funcs_class);
+             bcp != NULL;
+             bcp = bcp->next) {
+          conv_funcs_class = bcp->type;
+          try_conversion_function_match_full(source_operand,
+                                             dest_type,
+                                             dest_type,
+                                             builtin_types_allowed,
+                                             /*cppcli_atypical_case=*/TRUE,
+                                             conv_funcs_class,
+                                             need_lvalue_result,
+                                             is_copy_initialization,
+                                             orig_is_copy_initialization,
+                                             is_reference_binding,
+                                             conv_context,
+                                             candidate_functions);
+        }  /* for */
+      }
     }  /* if */
     /* Only look for conversion types in the destination class if we have
        a destination type, not if we're converting to an unknown
