@@ -17505,6 +17505,13 @@ indication in *rcblock).
         /* Casting to a pointer or reference to an object type. */
         cast_type_okay = TRUE;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled &&
+               (is_handle_type(cast_type) ||
+                is_tracking_reference_type(cast_type))) {
+      underlying_cast_type = type_pointed_to(cast_type);
+      cast_type_okay = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_ptr_to_member_type(cast_type)) {
       underlying_cast_type = pm_member_type(cast_type);
       if (!is_function_type(underlying_cast_type)) {
