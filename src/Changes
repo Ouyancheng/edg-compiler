@@ -1,5 +1,21 @@
 Version 4.4
 
+8/17/11  [EDGcpfe/12036]
+Microsoft bug with dropping cv-qualifiers on lvalue returned from "?"
+
+The Microsoft bug of dropping cv-qualifiers on the result of a "?"
+operator if it is an lvalue of non-class type was apparently fixed in VC8.
+Accordingly, we have turned off the emulation of that bug when
+microsoft_version >= 1400.
+
+  int f();
+  const int i = f();
+  const int j = f();
+  int main() {
+    (1 ? i : j) = 1;  // Should get an error, and now does when microsoft
+                      // version >= 1400.
+  }
+
 8/17/11  [EDGcpfe/12033]
 GNU C++ __builtin_offsetof did not work right with anonymous unions
 
