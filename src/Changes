@@ -1,5 +1,24 @@
 Version 4.4
 
+8/17/11  [EDGcpfe/12033]
+GNU C++ __builtin_offsetof did not work right with anonymous unions
+
+The __builtin_offsetof operator available in g++ mode did not produce
+correct results when asked to produce the offset of a member of an
+anonymous union.  Now fixed.
+
+  struct S {
+    struct {
+      char c;
+      union {
+        char ar[12];
+      };
+    } t;
+  };
+  int gar[__builtin_offsetof( struct S, t.ar ) ? 1 : -1];
+           // Previously an error because offset of t.ar was computed as 0
+
+
 8/10/11  [EDGcpfe/12011]
 Deprecated string literal conversion not allowed on result of "?" in parens
 

@@ -5463,12 +5463,27 @@ total_offset represents an offset: Add to it the offset of the given field,
 and set *ovflo to TRUE if an overflow occurred.
 */
 {
-  an_integer_value  field_offset;
+  an_integer_value            field_offset;
+  a_type_ptr                  field_class;
+  a_class_type_supplement_ptr ctsp;
 
-  set_unsigned_integer_value(&field_offset, field->offset);
-  add_mixed_signed_integer_values(&total_offset->variant.integer_value,
-                                  int_constant_is_signed(total_offset),
-                                  &field_offset, /*is_signed=*/FALSE, ovflo);
+  for (;;) {
+    set_unsigned_integer_value(&field_offset, field->offset);
+    add_mixed_signed_integer_values(&total_offset->variant.integer_value,
+                                    int_constant_is_signed(total_offset),
+                                    &field_offset, /*is_signed=*/FALSE, ovflo);
+    /* See if the field is from an anonymous union. */
+    field_class = parent_class_of(field);
+    ctsp = class_type_supp(field_class);
+    if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_field) {
+      break;
+    }  /* if */
+    /* Yes, it's from a (standard) anonymous union.  Loop to add in the offset
+       of the parent field.  (Nonstandard anonymous unions/structs have an
+       explicit field selection in the tree, and should not be expanded
+       here.) */
+    field = ctsp->anonymous_union_field;
+  }  /* for */
 }  /* accum_field_offset */
 
 
@@ -5503,28 +5518,6 @@ through the usual interface because a field cannot be passed as a constant.
     get_pointer_offset(constant_1, &offset);
     /* ... and add the offset of the field. */
     accum_field_offset(&offset, field, &err);
-    if (!C_mode()) {
-      /* In C++ mode, special care must be taken with members of (standard)
-         anonymous unions, since such a union may introduce its own offset. */
-      a_symbol_ptr  au_parent_sym =
-                     symbol_for(field)->variant.field.anonymous_parent_object;
-      /* Since anonymous unions can be nested, loop to find the outermost
-         union. */
-      while (au_parent_sym != NULL &&
-             au_parent_sym->kind != (a_symbol_kind)sk_variable) {
-        a_field_ptr  au_parent;
-        check_assertion(au_parent_sym->kind == (a_symbol_kind)sk_field);
-        au_parent = au_parent_sym->variant.field.ptr;
-        if (au_parent->type->kind != (a_type_kind)tk_union) {
-          /* A nonstandard anonymous union: The field selection is explicitly
-             expanded for such cases, and so no special adjustment must be
-             made here. */
-          break;
-        }  /* if */
-        accum_field_offset(&offset, au_parent, &err);
-        au_parent_sym = au_parent_sym->variant.field.anonymous_parent_object;
-      }  /* while */
-    }  /* if */
     /* Put the offset into the result pointer constant.  Note that no
        overflow/object-size checking is needed, since the field has to be
        within the underlying object. */
