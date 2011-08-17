@@ -8953,7 +8953,13 @@ well as C++ mode.
     if (is_cli_pointer(source_type) ||
         is_cli_pointer(dest_type)) {
       /* No reinterpret_cast to/from interior_ptr or pin_ptr in C++/CLI. */
-      okay = FALSE;
+      if (is_interior_ptr_type(source_type) &&
+          is_interior_ptr_type(dest_type)) {
+        /* interior_ptr --> interior_ptr is okay. */
+        okay = TRUE;
+      } else {
+        okay = FALSE;
+      }  /* if */
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
