@@ -7622,8 +7622,10 @@ that information is not needed.  Doesn't cover boxing conversions
       /* A handle to a managed class can be converted to System::Object^.
          For interfaces, this is possible even though the interface doesn't
          have Object as a base class.  For other cases, we test this
-         first because we want cast_base_class = NULL to indicate the
-         handle equivalent of a pointer conversion to "void *". */
+         first because we want pointer_normalization_needed set to indicate
+         the handle equivalent of a pointer conversion to "void *".  The
+         cast_base_class field is left NULL intentionally, even in cases
+         where there is a relationship between the classes. */
       okay = TRUE;
       if (std_conv != NULL) std_conv->pointer_normalization_needed = TRUE;
     } else if (is_class_or_struct(unqual_source_type_pointed_to) &&
