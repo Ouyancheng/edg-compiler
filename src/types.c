@@ -1885,7 +1885,15 @@ Return TRUE if the given type is a class type with virtual functions
       tp->kind == (a_type_kind)tk_struct ||
       tp->kind == (a_type_kind)tk_union) {
     result = tp->variant.class_struct_union.
-                              any_virtual_functions_including_in_base_classes;
+                             any_virtual_functions_including_in_base_classes
+#if MICROSOFT_EXTENSIONS_ALLOWED
+             /* C++/CLI interface classes are polymorphic because they have
+                System::Object as an effective base class (the actual object
+                pointed to has a ref or value class type, and those have
+                System::Object as a base class). */
+             || cli_class_type_kind_is(tp, cctk_interface)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+             ;
   }  /* if */
   return result;
 }  /* is_polymorphic_class_type */
