@@ -2135,6 +2135,12 @@ the same as depth_scope_stack).
           depth = depth_innermost_namespace_scope;
         }  /* if */
         break;
+      } else if (kind == (a_scope_kind)sck_instantiation_context) {
+        /* An instantiation context scope without an intervening instantiation
+           scope.  This can occur when get_definition_of_class is being
+           used. */
+        depth = depth_innermost_namespace_scope;
+        break;
       } else if (kind == (a_scope_kind)sck_template_declaration) {
         /* Must be an error of some sort. */
         depth = depth_innermost_namespace_scope;
