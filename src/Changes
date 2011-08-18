@@ -20,7 +20,7 @@ microsoft_version >= 1400.
 GNU C++ __builtin_offsetof did not work right with anonymous unions
 
 The __builtin_offsetof operator available in g++ mode did not produce
-correct results when asked to produce the offset of a member of an
+correct results when asked to compute the offset of a member of an
 anonymous union.  Now fixed.
 
   struct S {
