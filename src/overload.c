@@ -5022,6 +5022,22 @@ in [over.ics.rank].
         /* bcp_2's type is a base class of bcp_1's type, so bcp_2 is
            preferable. */
         cmp = -1;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (cli_array_covariance_conversion_possible(
+                                                   bcp_2->derived_class,
+                                                   bcp_1->derived_class,
+                                                   (a_std_conv_descr *)NULL)) {
+        /* bcp_2's type can be converted to bcp_1's type by an array
+           covariance conversion, so bcp_1 is preferable. */
+        cmp = 1;
+      } else if (cli_array_covariance_conversion_possible(
+                                                   bcp_1->derived_class,
+                                                   bcp_2->derived_class,
+                                                   (a_std_conv_descr *)NULL)) {
+        /* bcp_1's type can be converted to bcp_2's type by an array
+           covariance conversion, so bcp_1 is preferable. */
+        cmp = -1;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
   } else {

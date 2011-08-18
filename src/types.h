@@ -972,6 +972,11 @@ a_boolean cli_string_literal_conversion_possible(
                                               a_type_ptr           source_type,
                                               a_type_ptr           dest_type,
                                               a_std_conv_descr_ptr std_conv);
+extern
+a_boolean cli_array_covariance_conversion_possible(
+                                              a_type_ptr           source_type,
+                                              a_type_ptr           dest_type,
+                                              a_std_conv_descr_ptr std_conv);
 extern a_boolean impl_handle_conversion(
                          a_type_ptr           source_type,
                          a_type_ptr           dest_type,
