@@ -9235,6 +9235,7 @@ It cannot be used for checking access (see have_access_to_symbol).
     access = scp->access;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled && 
+        sym_ptr->parent.class_type != NULL &&
         class_type_supp(sym_ptr->parent.class_type)->assembly_index !=
                                                          curr_assembly_index) {
       /* The symbol comes from an assembly different from the active assembly;
