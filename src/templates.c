@@ -13011,6 +13011,12 @@ severity at which any diagnostics should be issued.
         a_template_param_type_supplement_ptr old_tptsp;
         a_type_ptr        old_type = old_tpp->variant.type;
         a_type_ptr        new_type = new_tpp->variant.type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* If the template parameter is a handle to a constraint type, get
+           the original template parameter. */
+        old_type = generic_param_if_generic_definition_argument(old_type);
+        new_type = generic_param_if_generic_definition_argument(new_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Update both type entries to point to the same description entry. */
         old_tptsp = old_type->variant.template_param.extra_info;
         old_type->variant.template_param.extra_info = old_tptsp;
