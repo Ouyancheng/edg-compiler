@@ -9005,7 +9005,8 @@ well as C++ mode.
       if (!identical_types(source_type, dest_type)) {
         *warning_suggested = ec_reinterpret_cast_of_handle;
       }  /* if */
-    } else if (is_nullptr(source_type)) {
+    } else if (is_nullptr(source_type) &&
+               !is_cli_generic_definition_argument_type(dest_type)) {
       okay = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
