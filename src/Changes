@@ -1,5 +1,23 @@
 Version 4.4
 
+8/17/11  [EDGcpfe/12048]
+Microsoft bug: cast to non-reference type implemented by conversion function
+returning reference produces lvalue
+
+MSVC produces an lvalue result for a cast to a non-reference type if
+the cast is implemented by calling a conversion function and the
+conversion function returns a reference (the standard says the result
+should be an rvalue).  We now emulate that in Microsoft bugs mode.
+
+  struct A {
+    operator int&();
+  };
+  int main() {
+    A a;
+    (int)a = 1;  // Accepted by MSVC, should be an error
+  }
+
+
 8/17/11  [EDGcpfe/12036]
 Microsoft bug with dropping cv-qualifiers on lvalue returned from "?"
 
