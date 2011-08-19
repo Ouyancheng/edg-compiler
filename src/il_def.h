@@ -2225,6 +2225,7 @@ typedef enum an_attribute_kind_tag {
   ak_novtable,		/* "novtable" (ms). */
   ak_property,		/* "property" (ms). */
   ak_restrict,		/* "restrict" (ms). */
+  ak_safebuffers,	/* "safebuffers" (ms). */
   ak_selectany,		/* "selectany" (ms). */
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   ak_thread,		/* "thread" (ms). */
@@ -5241,6 +5242,7 @@ enum a_decl_modifier_tag {
   dmt_novtable,
   dmt_noalias,
   dmt_restrict,
+  dmt_safebuffers,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
   /* The order of the following link scope values (increasing strictness) is
@@ -5275,6 +5277,7 @@ EXTERN char *decl_modifier_names[(int)dmt_last + 1]
   /* dmt_novtable */		"novtable",
   /* dmt_noalias */		"noalias",
   /* dmt_restrict */		"restrict",
+  /* dmt_safebuffers */		"safebuffers",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
   /* dmt_global_link_scope */	"__global",
@@ -5328,6 +5331,9 @@ about variables and routines.
 #define DM_RESTRICT	((a_decl_modifier)(1 << (int)dmt_restrict))
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(restrict) specifier. */
+#define DM_SAFEBUFFERS	((a_decl_modifier)(1 << (int)dmt_safebuffers))
+			/* TRUE if the declaration includes the Microsoft
+			   __declspec(safebuffers) specifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
 #define DM_GLOBAL_LINK_SCOPE \

@@ -1533,23 +1533,24 @@ in the metadata file.
     pos_str2_catastrophe(ec_cannot_open_file, error_text(ec_metadata),
                          name, pos);
   } else {
-    a_boolean               is_duplicate = FALSE;
-    a_cli_metadata_file_ptr cmfp;
-    a_cpp_cli_feature_set   features = edg_supported_features;
-
+    a_boolean                 is_duplicate = FALSE;
+    a_cli_metadata_file_ptr   cmfp;
+    a_cpp_cli_import_flag_set import_flags = default_cpp_cli_import_flags;
     if (as_friend) {
-      features = features |
-                 (a_cpp_cli_feature_set)cpp_cli_as_friend_assembly;
+      import_flags |= (a_cpp_cli_import_flag_set)cpp_cli_as_friend_assembly;
+    }  /* if */
+    if (wchar_t_is_keyword) {
+      import_flags |= (a_cpp_cli_import_flag_set)cpp_cli_wchar_t_is_keyword;
     }  /* if */
     cmfp = make_cli_metadata_file(name, full_name, as_friend, 
                                    is_system_include, referenced_by_preusing,
                                    pos);
-    cmfp->assembly_index = import_metadata_file(cmfp->full_name, 
-                                                features, 
+    cmfp->assembly_index = import_metadata_file(cmfp->full_name,
+                                                import_flags,
                                                 &is_duplicate);
     if (cmfp->assembly_index == 0) {
       /* Failed to import metadata. */
-      pos_st_error(ec_cannot_import_metadata, &cmfp->position, 
+      pos_st_error(ec_cannot_import_metadata, &cmfp->position,
                    cmfp->name_as_written);
     } else if (!is_duplicate) {
       a_boolean         save_fetch_pp_tokens = fetch_pp_tokens;

@@ -2156,17 +2156,18 @@ is created when the primary source file is reopened between the two fixups.
 
     cmfp = il_header.cli_metadata_files;
     while (cmfp) {
-      an_assembly_index     assembly_index;
-      a_cpp_cli_feature_set features = edg_supported_features;
-
+      an_assembly_index         assembly_index;
+      a_cpp_cli_import_flag_set import_flags = default_cpp_cli_import_flags;
       if (cmfp->as_friend) {
-        features = features |
-                   (a_cpp_cli_feature_set)cpp_cli_as_friend_assembly;
+        import_flags |= (a_cpp_cli_import_flag_set)cpp_cli_as_friend_assembly;
+      }  /* if */
+      if (wchar_t_is_keyword) {
+        import_flags |= (a_cpp_cli_import_flag_set)cpp_cli_wchar_t_is_keyword;
       }  /* if */
       /* Re-register the assemblies that we have imported.  It is important 
          that we import the assemblies in the same order so that they will
          maintain the same assembly index. */
-      assembly_index = import_metadata_file(cmfp->full_name, features, 
+      assembly_index = import_metadata_file(cmfp->full_name, import_flags,
                                             &is_duplicate);
       check_assertion(assembly_index == cmfp->assembly_index);
       cmfp = cmfp->next;

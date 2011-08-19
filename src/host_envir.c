@@ -5057,9 +5057,9 @@ return an error indication.
 
 /*ARGSUSED*/
 an_assembly_index import_metadata_file(
-                          char                  *assembly_full_name,
-                          a_cpp_cli_feature_set supported_features,
-                          a_boolean             *is_duplicate)
+                                char                      *assembly_full_name,
+                                a_cpp_cli_import_flag_set import_flags,
+                                a_boolean                 *is_duplicate)
 /*
 Prepare an assembly for metadata import.  This is a substitute version
 (the real function is in ms_metadata.cpp) that either returns an error or
@@ -5404,7 +5404,7 @@ This is done before command line processing.
 #endif /* CPPCLI_ENABLING_POSSIBLE */
 #else /* !EDG_WIN32 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  edg_supported_features = (int)cpp_cli_none;
+  default_cpp_cli_import_flags = (int)cpp_cli_none;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* EDG_WIN32 */
 #endif /* !STANDALONE_UTILITY_PROGRAM */

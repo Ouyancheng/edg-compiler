@@ -302,6 +302,7 @@ static an_attr_descr known_attr_table[] = {
   { "novtable", "", "m+", ak_novtable },
   { "property", "(*)", "m+", ak_property },
   { "restrict", "", "mx(1400-)", ak_restrict },
+  { "safebuffers", "", "mx", ak_safebuffers },
   { "selectany", "", "mx", ak_selectany },
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   { "thread", "", "mx", ak_thread },
@@ -521,6 +522,7 @@ static an_attr_application_fn apply_noalias_attr;
 static an_attr_application_fn apply_novtable_attr;
 static an_attr_application_fn apply_property_attr;
 static an_attr_application_fn apply_restrict_attr;
+static an_attr_application_fn apply_safebuffers_attr;
 static an_attr_application_fn apply_selectany_attr;
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
 static an_attr_application_fn apply_thread_attr;
@@ -633,6 +635,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_novtable, "c|Wp", apply_novtable_attr },
   { ak_property, "d|Wt|Wp", apply_property_attr },
   { ak_restrict, "r|Wp", apply_restrict_attr },
+  { ak_safebuffers, "r", apply_safebuffers_attr },
   { ak_selectany, "v:+x!|Wr|Wt|Wp|Wd", apply_selectany_attr },
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   { ak_thread, "v|Wt|Wp", apply_thread_attr },
@@ -6254,6 +6257,23 @@ return that entity).
   }  /* if */
   return entity;
 }  /* apply_restrict_attr */
+
+
+/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
+static char* apply_safebuffers_attr(an_attribute_ptr  ap,
+                                    char              *entity,
+                                    an_il_entry_kind  entity_kind)
+/*
+Apply the Microsoft __declspec(safebuffers) attribute to the given entity (and
+return that entity).
+*/
+{
+  a_routine_ptr  rp = (a_routine*)entity;
+
+  check_assertion(entity_kind == iek_routine);
+  rp->decl_modifiers |= DM_SAFEBUFFERS;
+  return entity;
+}  /* apply_safebuffers_attr */
 
 
 /*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */

@@ -4909,6 +4909,7 @@ Display the indicated attribute entry.
     case ak_novtable:            kind_name = "novtable";            break;
     case ak_property:            kind_name = "property";            break;
     case ak_restrict:            kind_name = "restrict";            break;
+    case ak_safebuffers:         kind_name = "safebuffers";         break;
     case ak_selectany:           kind_name = "selectany";           break;
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
     case ak_thread:              kind_name = "thread";              break;

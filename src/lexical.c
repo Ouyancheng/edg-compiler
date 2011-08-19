@@ -18517,9 +18517,7 @@ C++/CLI delegate class types.)
   a_boolean			saved_scanning_generated_code_from_metadata;
   a_boolean			is_delegate;
   a_boolean			is_generic_definition;
-  a_boolean			has_generic_header;
   a_class_type_supplement_ptr	ctsp = class_type_supp(class_type);
-  a_type_ptr			parent_class = NULL;
   an_assembly_index             saved_assembly_index = curr_assembly_index;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -18565,16 +18563,14 @@ C++/CLI delegate class types.)
   scanning_generated_code_from_metadata = TRUE;
   is_generic_definition = class_type->
                               variant.class_struct_union.is_generic_definition;
-  has_generic_header = ctsp->template_arg_list != NULL;
   /* For nested classes of generic definitions, don't attempt to push an
      instantiation type for the nested class because we don't have the
      appropriate information to pass for the template decl info. */
-  if (is_generic_definition && !has_generic_header) {
+  if (is_generic_definition && class_type->source_corresp.is_class_member &&
+      sym_parent_class(class_sym)->
+                           variant.class_struct_union.is_generic_definition) {
     class_type_for_context = NULL;
     class_sym_for_context = NULL;
-  }  /* if */
-  if (class_type->source_corresp.is_class_member) {
-    parent_class = sym_parent_class(class_sym);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tdip = alloc_template_decl_info();
@@ -18639,37 +18635,6 @@ C++/CLI delegate class types.)
   expand_macros = FALSE;
   insert_string_into_token_stream(class_def_buffer->buffer,
                                   /*insert_after=*/FALSE);
-  if (is_generic_definition && !has_generic_header) {
-    /* For a nested class of a generic, add a generic header such as
-       "generic <typename T> ref class X<T>::Y". */
-    a_class_type_supplement_ptr	parent_ctsp = class_type_supp(parent_class);
-    a_template_arg_ptr		tap = parent_ctsp->template_arg_list;
-    char			*class_tag;
-    check_assertion_str2(tap != NULL, "get_definition_of_class:",
-                         "NULL parent template arg list");
-    /* Set up for use of form_name. */
-    clear_il_to_str_output_control_block(&octl);
-    octl.output_str = put_str_into_text_buffer;
-    reset_text_buffer(class_def_buffer);
-    octl.text_buffer = class_def_buffer;
-    (void)add_to_text_buffer(class_def_buffer, "generic <", 9);
-    for (; tap != NULL; tap = tap->next) {
-      (void)add_to_text_buffer(class_def_buffer, "typename ", 9);
-      /* Generate the name of this entity. */
-      form_a_template_arg(tap, &octl);
-      if (tap->next != NULL) {
-        (void)add_to_text_buffer(class_def_buffer, ", ", 2);
-      }  /* if */
-    }  /* for */
-    (void)add_to_text_buffer(class_def_buffer, "> ", 2);
-    class_tag = cli_managed_class_tag_keyword(class_type);
-    (void)add_string_to_text_buffer(class_def_buffer, class_tag);
-    add_char_to_text_buffer(class_def_buffer, ' ');
-    form_name(&class_type->source_corresp, iek_type, &octl);
-    add_char_to_text_buffer(class_def_buffer, '\0');
-    insert_string_into_token_stream(class_def_buffer->buffer,
-                                    /*insert_after=*/FALSE);
-  }  /* if */
   is_delegate = strncmp(class_def_buffer->buffer, "delegate ", 9) == 0;
   /* Generics are processed differently than other types.  They are cached
      for instantiation purposes, then an initial scan is done to do the

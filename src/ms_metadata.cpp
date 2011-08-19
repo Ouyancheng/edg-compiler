@@ -109,6 +109,14 @@ Operator to convert text from wide characters to UTF-8 and output the result.
 }  /* operator<< */
 
 
+/*
+A helper for the an_import_interface class that implements the wrapping of
+calls to functions that require a string buffer of unknown length.  An
+attempt is first made to call the wrapped function with a stack-based
+buffer of reasonable length.  If that buffer was not large enough, a
+heap-based buffer of the required size is allocated and the wrapped
+function is called a second time.
+*/
 #define GET_NAME_WRAPPER(WRAPPED_FUNCTION) \
 { \
   HRESULT             hr; \
@@ -133,6 +141,10 @@ Operator to convert text from wide characters to UTF-8 and output the result.
 
 
 class an_import_interface : public IMetaDataImport2
+/*
+A wrapper for the IMetaDataImport2 interface that facilitates invoking the
+functions that require a string buffer of unknown length.
+*/
 {
 private:
   an_import_interface();
@@ -152,7 +164,6 @@ public:
     GET_NAME_WRAPPER(GetTypeDefProps(
       td, name_buffer, characters_in_name, &characters_required,
       pdwTypeDefFlags, ptkExtends));
-    wstring().assign(L"", 1);
   }  /* GetTypeDefProps */
 
   using IMetaDataImport2::GetTypeRefProps;
@@ -163,6 +174,7 @@ public:
       tr, ptkResolutionScope, name_buffer, characters_in_name,
       &characters_required));
   }  /* GetTypeRefProps */
+
   HRESULT GetTypeRefProps(mdTypeRef tr,
                           mdToken   *ptkResolutionScope) {
     return GetTypeRefProps(tr, ptkResolutionScope, /*szName=*/nullptr,
@@ -225,7 +237,7 @@ public:
     GET_NAME_WRAPPER(GetUserString(
       stk, name_buffer, characters_in_name, &characters_required));
   }  /* GetUserString */
- 
+
   using IMetaDataImport2::GetPinvokeMap;
   HRESULT GetPinvokeMap(mdToken     tk,
                         DWORD       *pdwMappingFlags,
@@ -359,12 +371,16 @@ typedef a_generic_param_or_arg_list::const_iterator
                                               a_generic_param_or_arg_iterator;
 /* A list of generic parameter names. */
 typedef a_generic_param_or_arg_list a_generic_parameter_list;
-/* Empty list of generic parameters. */
-const a_generic_parameter_list no_generic_parameters;
+/* An empty list of generic type parameters. */
+const a_generic_parameter_list no_generic_type_parameters;
+/* An empty list of generic method parameters. */
+const a_generic_parameter_list no_generic_method_parameters;
 /* A list of generic arguments. */
 typedef a_generic_param_or_arg_list a_generic_argument_list;
 /* A list of constraint clauses. */
 typedef vector<const wstring> a_constraint_clause_list;
+/* An empty list of generic constraints. */
+const a_constraint_clause_list no_generic_constraints;
 
 
 BYTE strip_generic_arity(wstring &type_name)
@@ -386,22 +402,59 @@ Strip the generic arity encoded after the last backtick in the type name.
 }  /* strip_generic_arity */
 
 
+static void expand_generic_type_name(
+                wstring                           &type_name,
+                const a_generic_param_or_arg_list &generic_params_or_args,
+                a_generic_param_or_arg_iterator   &generic_params_or_args_end)
+/*
+Strip the generic arity encoded after the last backtick in type_name and
+replace it with the generic parameters or arguments from the list provided in
+generic_params_or_args.  Upon return, generic_params_or_args_end refers to the
+last generic parameter or argument consumed by the expansion.
+*/
+{
+  BYTE generic_arity = strip_generic_arity(type_name);
+  if (generic_arity != 0) {
+    /* The generic parameter names or arguments associated with this
+       generic type or instantiation are at the end of the list. */
+    check_assertion(generic_arity <=
+                              distance(generic_params_or_args.begin(),
+                                        generic_params_or_args_end));
+    type_name += L'<';
+    for (auto iter = generic_params_or_args_end - generic_arity;
+         iter != generic_params_or_args_end;
+         ++iter) {
+      const wstring &param_or_arg_name = *iter;
+      type_name += param_or_arg_name;
+      if (iter + 1 != generic_params_or_args_end)
+        type_name += L", ";
+    }  /* for */
+    type_name += L'>';
+    generic_params_or_args_end = generic_params_or_args_end - generic_arity;
+  }  /* if */
+}  /* expand_generic_type_name */
+
+
 /*
 A class to decode a CLR signature.  It returns the result as a std::wstring.
 */
 class a_signature_decoder {
 public:
   a_signature_decoder(
-                    const an_import_scope&         import_scope,
-                    mdToken                        token,
-                    PCCOR_SIGNATURE                signature,
-                    ULONG                          bytes_in_signature,
-                    const a_generic_parameter_list &generic_type_parameters)
+               const an_import_scope&         import_scope,
+               mdToken                        token,
+               PCCOR_SIGNATURE                signature,
+               ULONG                          bytes_in_signature,
+               const a_generic_parameter_list &generic_type_parameters,
+               const a_generic_parameter_list &generic_method_parameters,
+               a_boolean                      is_system_string_member)
     : import_scope_(import_scope),
       token_(token),
       signature_(signature),
       bytes_in_signature_(bytes_in_signature),
       generic_type_parameters_(generic_type_parameters),
+      generic_method_parameters_(generic_method_parameters),
+      is_system_string_member_(is_system_string_member),
       index_(0)
   {
   }  /* constructor */
@@ -410,7 +463,7 @@ public:
 
   wstring decode_method_signature(const wstring &name,
                                   DWORD         method_attributes,
-                                  bool          is_for_constructor,
+                                  bool          omit_return_type,
                                   bool          is_for_property);
 
   wstring decode_field_signature()
@@ -445,6 +498,13 @@ private:
     index_ += CorSigUncompressToken(&signature_[index_], &value);
     return value;
   }  /* read_token */
+
+
+  CorElementType peek_element_type()
+  {
+    check_assertion(index_ < bytes_in_signature_);
+    return static_cast<CorElementType>(signature_[index_]);
+  }  /* peek_element_type */
 
 
   CorElementType get_element_type()
@@ -484,15 +544,12 @@ private:
                 generic_method_parameters_;
                         /* Any generic method parameters associated with this
                            method signature. */
+  a_boolean     is_system_string_member_;
+                        /* TRUE if this signature is for a member of
+                           System::String. */
   ULONG         index_;
                         /* The current index into the signature. */
 }; /* a_signature_decoder */
-
-
-wstring get_generic_header(
-                     const an_import_scope          &import_scope,
-                     mdToken                        token,
-                     const a_generic_parameter_list &generic_parameters);
 
 
 /*
@@ -616,25 +673,14 @@ cast to the appropriate type.
       } /* case ELEMENT_TYPE_R8 */
     case ELEMENT_TYPE_STRING:
       { wchar_t *ch = (wchar_t*)(constant_value_);
-
-        buffer << L"L\"";
+        buffer << L"L\"" << hex;
         for (ULONG i = 0; i < characters_in_constant_; ++i) {
-          switch (ch[i]) {
-            case L'\n':
-              buffer << L"\\n";
-              break;
-            case L'\\':
-              buffer << L"\\\\";
-              break;
-            case L'"':
-              buffer << L"\\\"";
-              break;
-            default:
-              buffer << ch[i];
-              break;
-          }  /* switch */
+          /* Output every character as a hexadecimal escape sequence to avoid
+             having to special-case characters such as quotes, backslashes,
+             tabs, carriage returns, and nulls. */
+          buffer << L"\\x" << static_cast<unsigned int>(ch[i]);
         }  /* for */
-        buffer << L'\"';
+        buffer << L'\"' << dec;
         break;
       } /* case ELEMENT_TYPE_STRING */
     default:
@@ -654,15 +700,15 @@ multiple import scopes, but only one import scope contains metadata.
 */
 class an_assembly {
 public:
-  an_assembly(const wstring                &full_assembly_name,
-              IALink                       *alink_interface,
-              mdFile                       file_token,
-              a_cpp_cli_feature_set        supported_features)
+  an_assembly(const wstring             &full_assembly_name,
+              IALink                    *alink_interface,
+              mdFile                    file_token,
+              a_cpp_cli_import_flag_set import_flags)
     : full_assembly_name_(full_assembly_name),
       assembly_index_(static_cast<an_assembly_index>(-1)),
       alink_interface_(alink_interface),
       alink_token_(mdTokenNil),
-      supported_features_(supported_features),
+      import_flags_(import_flags),
       md_assembly_import_interface_(nullptr),
       resolution_scope_(mdTokenNil),
       file_token_(file_token),
@@ -676,8 +722,9 @@ public:
       assembly_index_(move(other.assembly_index_)),
       alink_interface_(move(other.alink_interface_)),
       alink_token_(move(other.alink_token_)),
-      supported_features_(move(other.supported_features_)),
-      md_assembly_import_interface_(move(other.md_assembly_import_interface_)),
+      import_flags_(move(other.import_flags_)),
+      md_assembly_import_interface_(
+                                   move(other.md_assembly_import_interface_)),
       resolution_scope_(move(other.resolution_scope_)),
       file_token_(move(other.file_token_)),
       count_of_scopes_(move(other.count_of_scopes_)),
@@ -692,7 +739,7 @@ public:
     assembly_index_ = move(other.assembly_index_);
     alink_interface_ = move(other.alink_interface_);
     alink_token_ = move(other.alink_token_);
-    supported_features_ = move(other.supported_features_);
+    import_flags_ = move(other.import_flags_);
     md_assembly_import_interface_ = move(other.md_assembly_import_interface_);
     resolution_scope_ = move(other.resolution_scope_);
     file_token_ = move(other.file_token_);
@@ -700,14 +747,14 @@ public:
     imported_scopes_ = move(other.imported_scopes_);
     return *this;
   }  /* operator= */
- 
+
   bool process();
   void cleanup();
 
-  a_cpp_cli_feature_set supported_features() const
+  a_cpp_cli_import_flag_set import_flags() const
   {
-    return supported_features_;
-  }  /* supported_features */
+    return import_flags_;
+  }  /* import_flags */
 
 
   an_assembly_index assembly_index() const
@@ -715,7 +762,7 @@ public:
     return assembly_index_;
   }  /* assembly_index */
 
- 
+
   static void reset_index()
   {
     index = 0;
@@ -757,9 +804,9 @@ private:
   mdToken       alink_token_;
                         /* The token to be used when calling any IALink
                            API. */
-  a_cpp_cli_feature_set
-                supported_features_;
-                        /* The currently supported C++/CLI features. */
+  a_cpp_cli_import_flag_set
+                import_flags_;
+                        /* Flags which control the import behavior. */
   IMetaDataAssemblyImport
                 *md_assembly_import_interface_;
                         /* The IMetaDataAssemblyImport interface. */
@@ -827,43 +874,56 @@ public:
                 bool                           want_definition,
                 bool                           class_body_only);
   wstring resolve_type_token(
-                       mdToken                           token,
-                       const a_generic_param_or_arg_list &generic_parameters,
-                       bool                              replaces_dots) const;
+             mdToken                           token,
+             const a_generic_param_or_arg_list &generic_type_params_or_args,
+             const a_generic_param_or_arg_list &generic_method_params_or_args,
+             bool                              replaces_dots) const;
   wstring resolve_type_token(
-                 mdToken                           token,
-                 const a_generic_param_or_arg_list &generic_params_or_args,
-                 a_generic_param_or_arg_iterator   generic_params_or_args_end,
-                 bool                              replaces_dots) const;
+            mdToken                           token,
+            const a_generic_param_or_arg_list &generic_type_params_or_args,
+            a_generic_param_or_arg_iterator   generic_type_params_or_args_end,
+            const a_generic_param_or_arg_list &generic_method_params_or_args,
+            bool                              replaces_dots) const;
   void get_generic_parameters_and_constraints(
-                        mdToken                  token,
-                        BYTE                     generic_arity,
-                        a_generic_parameter_list &generic_parameters,
-                        a_constraint_clause_list &generic_constraints) const;
+           mdToken                        token,
+           const a_generic_parameter_list &generic_type_parameters_for_method,
+           BYTE                           generic_arity,
+           a_generic_parameter_list       &generic_parameters,
+           a_constraint_clause_list       &generic_constraints) const;
   void get_generic_constraints(
-              BYTE                                generic_arity,
-              const a_generic_parameter_info_list &generic_parameters_info,
-              const a_generic_parameter_list      &generic_parameters,
-              a_constraint_clause_list            &generic_constraints) const;
+      mdToken                             token,
+      const a_generic_parameter_list      &generic_type_parameters_for_method,
+      BYTE                                generic_arity,
+      const a_generic_parameter_info_list &generic_parameters_info,
+      const a_generic_parameter_list      &generic_parameters,
+      a_constraint_clause_list            &generic_constraints) const;
+  wstring form_generic_type_header(
+                   mdTypeDef                         typedef_token,
+                   DWORD                             type_attributes,
+                   BYTE                              generic_arity,
+                   const a_generic_param_or_arg_list &generic_parameters,
+                   a_generic_param_or_arg_iterator   generic_parameters_end,
+                   const a_constraint_clause_list    &generic_constraints,
+                   a_boolean                         out_of_class_definition);
   void cleanup();
 
 private:
   void import_enum_definition(
-                          ostringstream                  &buffer,
-                          mdTypeDef                      typedef_token,
-                          const wstring                  &enumeration_name,
-                          const a_generic_parameter_list &generic_parameters);
+                     ostringstream                  &buffer,
+                     mdTypeDef                      typedef_token,
+                     const wstring                  &enumeration_name,
+                     const a_generic_parameter_list &generic_type_parameters);
   void import_delegate_definition(
-                          ostringstream                  &buffer,
-                          mdTypeDef                      typedef_token,
-                          const wstring                  &delegate_name,
-                          const a_generic_parameter_list &generic_parameters);
+                     ostringstream                  &buffer,
+                     mdTypeDef                      typedef_token,
+                     const wstring                  &delegate_name,
+                     const a_generic_parameter_list &generic_type_parameters);
 
   a_top_level_kind classify_type(
-                       const wstring                  &full_type_name,
-                       DWORD                          attributes,
-                       const a_generic_parameter_list &generic_parameters,
-                       mdToken                        extends_token);
+                      const wstring                  &full_type_name,
+                      DWORD                          attributes,
+                      const a_generic_parameter_list &generic_type_parameters,
+                      mdToken                        extends_token);
   wstring top_level_kind_as_wstring(a_top_level_kind kind);
 
   void open_namespace_scopes(ostringstream &buffer,
@@ -938,7 +998,7 @@ Import all the types from an import scope.
     CHECK_API_RESULT(hr, EnumTypeDefs);
     for (ULONG i = 0; i < count_of_typedefs; ++i) {
       import_one_type(buffer, typedefs[i], /*at_top_level=*/true,
-                      no_generic_parameters, /*want_definition=*/false,
+                      no_generic_type_parameters, /*want_definition=*/false,
                       /*class_body_only=*/false);
     }  /* for */
   } while (count_of_typedefs > 0);
@@ -1102,10 +1162,10 @@ Close all the open namespace scopes.
 
 
 a_top_level_kind an_import_scope::classify_type(
-                       const wstring                  &full_type_name,
-                       DWORD                          attributes,
-                       const a_generic_parameter_list &generic_parameters,
-                       mdToken                        extends_token)
+                      const wstring                  &full_type_name,
+                      DWORD                          attributes,
+                      const a_generic_parameter_list &generic_type_parameters,
+                      mdToken                        extends_token)
 /*
 Classify a type into one of the top-level kinds - this depends on the
 attributes associated with the type and/or the type that this type extends.
@@ -1119,9 +1179,11 @@ attributes associated with the type and/or the type that this type extends.
              full_type_name == L"System.MulticastDelegate") {
     kind = tlk_ref_class;
   } else if (!IsNilToken(extends_token)) {
-    wstring extends_class_name = resolve_type_token(extends_token,
-                                                    generic_parameters,
-                                                    /*replaces_dots=*/false);
+    wstring extends_class_name = resolve_type_token(
+                                                 extends_token,
+                                                 generic_type_parameters,
+                                                 no_generic_method_parameters,
+                                                 /*replaces_dots=*/false);
     if (extends_class_name == L"System.ValueType") {
       kind = tlk_value_type;
     } else if (extends_class_name == L"System.Enum") {
@@ -1186,7 +1248,7 @@ import scope will contain any interesting metadata.
 {
   bool processed_an_interesting_scope = false;
   bool result = true;
- 
+
   for (DWORD scope_index = 0; scope_index < count_of_scopes_; ++scope_index) {
     IMetaDataImport  *md_import_inferface  = nullptr;
     IMetaDataImport2 *md_import2_inferface = nullptr;
@@ -1244,10 +1306,10 @@ index.  If fails, the assembly index will be 0.
 
 
 void an_import_scope::import_enum_definition(
-                           ostringstream                  &buffer,
-                           mdTypeDef                      typedef_token,
-                           const wstring                  &enumeration_name,
-                           const a_generic_parameter_list &generic_parameters)
+                      ostringstream                  &buffer,
+                      mdTypeDef                      typedef_token,
+                      const wstring                  &enumeration_name,
+                      const a_generic_parameter_list &generic_type_parameters)
 /*
 Import the definition of an enumeration and emit the code for the definition.
 */
@@ -1275,7 +1337,7 @@ Import the definition of an enumeration and emit the code for the definition.
       PCCOR_SIGNATURE signature;
       ULONG           bytes_in_signature;
       UVCP_CONSTANT   constant_value;
- 
+
       /* Get the name, the type and the constant associated with this
          enumerator. */
       hr = import_interface_->GetMemberProps(members[i], /*pClass=*/nullptr,
@@ -1290,7 +1352,10 @@ Import the definition of an enumeration and emit the code for the definition.
         /* This is the special member: its type is the underlying type of the
            enumeration. */
         a_signature_decoder decoder(*this, members[i], signature,
-                                    bytes_in_signature, generic_parameters);
+                                    bytes_in_signature,
+                                    generic_type_parameters,
+                                    no_generic_method_parameters,
+                                    /*is_system_string_member=*/FALSE);
         check_assertion(IsFdRTSpecialName(attributes) != 0);
         check_assertion(constant_type == ELEMENT_TYPE_VOID);
         check_assertion(underlying_type.empty());
@@ -1331,79 +1396,75 @@ Import the definition of an enumeration and emit the code for the definition.
 
 
 void an_import_scope::import_delegate_definition(
-                           ostringstream                  &buffer,
-                           mdTypeDef                      typedef_token,
-                           const wstring                  &delegate_name,
-                           const a_generic_parameter_list &generic_parameters)
+                      ostringstream                  &buffer,
+                      mdTypeDef                      typedef_token,
+                      const wstring                  &delegate_name,
+                      const a_generic_parameter_list &generic_type_parameters)
 /*
 Import the definition of a delegate.  This is essentially the signature of
 the Invoke method - which every delegate must have.
 */
 {
-  HCORENUM                 enum_methods = nullptr;
-  mdMethodDef              methods[2];
-  ULONG                    count_of_methods;
-  HRESULT                  hr;
-  a_cpp_cli_feature_set    supported_features =
-                                    containing_assembly_.supported_features();
+  HCORENUM                  enum_methods = nullptr;
+  mdMethodDef               methods[2];
+  ULONG                     count_of_methods;
+  HRESULT                   hr;
 
-  /* If this is a generic delegate and we don't support and/or want generic
-     types then we should just return. */
-  if (generic_parameters.empty() ||
-      (supported_features & cpp_cli_generic_types) != 0) {
-    hr = import_interface_->EnumMethodsWithName(&enum_methods,
-                                                typedef_token,
-                                                L"Invoke", methods,
-                                                _countof(methods),
-                                                &count_of_methods);
-    CHECK_API_RESULT(hr, EnumMethodsWithName);
-    /* There should be only one Invoke method.  Get the signature and
-       decode it. */
-    if (count_of_methods == 1) {
-      PCCOR_SIGNATURE signature;
-      ULONG           bytes_in_signature;
-      wstring         method_name;
-      hr = import_interface_->GetMethodProps(methods[0], /*pClass=*/nullptr,
-                                             method_name, /*pdwAttr=*/nullptr,
-                                             &signature, &bytes_in_signature,
-                                             /*pulCodeRVA=*/nullptr,
-                                             /*pdwImplFlags=*/nullptr);
-      CHECK_API_RESULT(hr, GetMethodProps);
-      check_assertion(method_name == L"Invoke");
-      a_signature_decoder decoder(*this, methods[0], signature,
-                                  bytes_in_signature, generic_parameters);
-      buffer << decoder.decode_method_signature(
-                                               delegate_name,
-                                               /*method_attributes*/0,
-                                               /*is_for_constructor=*/false,
-                                               /*is_for_property=*/false);
-      buffer << ';' << END_OF_LINE;
-    } else {
-      unexpected_condition();
-    }  /* if */
-  import_interface_->CloseEnum(enum_methods);
+  hr = import_interface_->EnumMethodsWithName(&enum_methods,
+                                              typedef_token,
+                                              L"Invoke", methods,
+                                              _countof(methods),
+                                              &count_of_methods);
+  CHECK_API_RESULT(hr, EnumMethodsWithName);
+  /* There should be only one Invoke method.  Get the signature and
+     decode it. */
+  if (count_of_methods == 1) {
+    PCCOR_SIGNATURE signature;
+    ULONG           bytes_in_signature;
+    wstring         method_name;
+    DWORD           method_attributes;
+    hr = import_interface_->GetMethodProps(methods[0], /*pClass=*/nullptr,
+                                           method_name, &method_attributes,
+                                           &signature, &bytes_in_signature,
+                                           /*pulCodeRVA=*/nullptr,
+                                           /*pdwImplFlags=*/nullptr);
+    CHECK_API_RESULT(hr, GetMethodProps);
+    check_assertion(method_name == L"Invoke");
+    a_signature_decoder decoder(*this, methods[0], signature,
+                                bytes_in_signature, generic_type_parameters,
+                                no_generic_method_parameters,
+                                /*is_system_string_member=*/FALSE);
+    buffer << decoder.decode_method_signature(delegate_name,
+                                              /*attributes=*/0,
+                                              /*omit_return_type=*/false,
+                                              /*is_for_property=*/false);
+    buffer << ';' << END_OF_LINE;
+  } else {
+    unexpected_condition();
   }  /* if */
+  import_interface_->CloseEnum(enum_methods);
 }  /* an_import_scope::import_delegate_definition */
 
 
 void an_import_scope::get_generic_parameters_and_constraints(
-                          mdToken                  token,
-                          BYTE                     generic_arity,
-                          a_generic_parameter_list &generic_parameters,
-                          a_constraint_clause_list &generic_constraints) const
+           mdToken                        token,
+           const a_generic_parameter_list &generic_type_parameters_for_method,
+           BYTE                           generic_arity,
+           a_generic_parameter_list       &generic_parameters,
+           a_constraint_clause_list       &generic_constraints) const
 /*
 Fill-in the generic parameters and constraints associated with this type or
 method.
 */
 {
-  HRESULT                       hr;
   a_generic_parameter_info_list generic_parameters_info;
-  HCORENUM                      enum_parameters = nullptr;
-  mdGenericParam                parameters[8];
-  ULONG                         count_of_parameters;
 
   if (TypeFromToken(token) == mdtTypeDef ||
       TypeFromToken(token) == mdtMethodDef) {
+    HRESULT        hr;
+    HCORENUM       enum_parameters = nullptr;
+    mdGenericParam parameters[8];
+    ULONG          count_of_parameters;
     do {
       hr = import_interface_->EnumGenericParams(&enum_parameters,
                                                 token, parameters,
@@ -1436,22 +1497,105 @@ method.
     } while (count_of_parameters > 0);
     import_interface_->CloseEnum(enum_parameters);
   }  /* if */
+  if (TypeFromToken(token) == mdtTypeDef) {
+    /* When a generic class is nested within a generic class, parameter names
+       associated with the enclosing generic class can be the same as
+       parameter names associated with the nested generic class.  For example:
+         generic <typename T>
+         public ref struct GenericClass {
+           typedef T OUTER_T;
+           generic <typename T>
+           ref struct NestedGenericClass {
+             T t;
+             OUTER_T ot;
+           };
+         };
+       However, the generated definition would not be valid if duplicate names
+       exist.  For example, the following would be generated as the definition
+       of NestedGenericClass:
+         generic <typename T>
+         generic <typename T>
+         ref struct GenericClass<T>::NestedGenericClass {
+           T t;
+           T ot;
+         };
+       To handle this case, rename any duplicate generic parameter names
+       associated with any enclosing generic classes. */
+    check_assertion(generic_arity <= generic_parameters.size());
+    for (auto param_iter = generic_parameters.begin();
+         param_iter != generic_parameters.end() - generic_arity;
+         ++param_iter) {
+      wstring &param_name = *param_iter;
+      auto    duplicate_count = count(param_iter + 1,
+                                      generic_parameters.end(),
+                                      param_name);
+      if (duplicate_count > 0) {
+        param_name += L"__hidden";
+        param_name += to_wstring((LONGLONG)duplicate_count);
+      }  /* if */
+    }  /* for */
+  } else if (TypeFromToken(token) == mdtMethodDef) {
+    /* When a generic method is nested within a generic class, parameter names
+       associated with the enclosing generic class can be the same as
+       parameter names associated with the nested generic method.  For
+       example:
+         generic <typename T>
+         public ref struct GenericClass {
+           typedef T OUTER_T;
+           generic <typename T>
+           void NestedGenericMethod(T t, OUTER_T ot) {}
+         };
+       However, the generated definition would not be valid if duplicate names
+       exist.  For example, the following would be generated as the definition
+       of GenericClass:
+         generic <typename T>
+         generic <typename T>
+         ref struct GenericClass<T>::NestedGenericClass {
+           generic <typename T>
+           void NestedGenericMethod(T t, T ot) {}
+         };
+       To handle this case, rename any duplicate generic parameter names
+       associated with the generic method. */
+    check_assertion(generic_arity == generic_parameters.size());
+    for (auto param_iter = generic_parameters.begin();
+         param_iter != generic_parameters.end();
+         ++param_iter) {
+      wstring &param_name = *param_iter;
+      if (find(generic_type_parameters_for_method.begin(),
+               generic_type_parameters_for_method.end(),
+               param_name) != generic_type_parameters_for_method.end()) {
+        param_name += L"__method_param";
+      }  /* if */
+    }  /* for */
+  }  /* if */
   if (generic_arity != 0) {
-    get_generic_constraints(generic_arity, generic_parameters_info,
+    get_generic_constraints(token, generic_type_parameters_for_method,
+                            generic_arity, generic_parameters_info,
                             generic_parameters, generic_constraints);
   }
-}  /* an_import_scope::get_generic_parameters */
+}  /* an_import_scope::get_generic_parameters_and_constraints */
 
 
 void an_import_scope::get_generic_constraints(
-               BYTE                                generic_arity,
-               const a_generic_parameter_info_list &generic_parameters_info,
-               const a_generic_parameter_list      &generic_parameters,
-               a_constraint_clause_list            &generic_constraints) const
+      mdToken                             token,
+      const a_generic_parameter_list      &generic_type_parameters_for_method,
+      BYTE                                generic_arity,
+      const a_generic_parameter_info_list &generic_parameters_info,
+      const a_generic_parameter_list      &generic_parameters,
+      a_constraint_clause_list            &generic_constraints) const
 /*
 Return the constraint clauses associated with this generic type or method.
 */
 {
+  const a_generic_parameter_list &generic_type_parameters =
+                                          TypeFromToken(token) == mdtMethodDef
+                                          ? generic_type_parameters_for_method
+                                          : generic_parameters;
+  const a_generic_parameter_list &generic_method_parameters =
+                                          TypeFromToken(token) == mdtMethodDef
+                                          ? generic_parameters
+                                          : no_generic_method_parameters;
+
   check_assertion(generic_arity != 0 &&
                   generic_arity <= generic_parameters_info.size() &&
                   generic_parameters_info.size()==generic_parameters.size());
@@ -1504,7 +1648,8 @@ Return the constraint clauses associated with this generic type or method.
         CHECK_API_RESULT(hr, GetGenericParamConstraintProps);
         check_assertion(constraint_param == param_info.token());
         constraint_items += resolve_type_token(constraint_item,
-                                               generic_parameters,
+                                               generic_type_parameters,
+                                               generic_method_parameters,
                                                /*replace_dots=*/true);
         constraint_items += L", ";
       }  /* for */
@@ -1522,20 +1667,27 @@ Return the constraint clauses associated with this generic type or method.
 
 
 wstring an_import_scope::resolve_type_token(
-                    mdToken                           token,
-                    const a_generic_param_or_arg_list &generic_params_or_args,
-                    bool                              replace_dots) const
+             mdToken                           token,
+             const a_generic_param_or_arg_list &generic_type_params_or_args,
+             const a_generic_param_or_arg_list &generic_method_params_or_args,
+             bool                              replace_dots) const
+/*
+Resolve the type given by the token.  Get the name of the type and replace
+any "." in the name with the C++ scope operator, "::".
+*/
 {
-  return resolve_type_token(token, generic_params_or_args,
-                            generic_params_or_args.end(), replace_dots);
+  return resolve_type_token(token, generic_type_params_or_args,
+                            generic_type_params_or_args.end(),
+                            generic_method_params_or_args, replace_dots);
 }  /* an_import_scope::resolve_type_token */
 
 
 wstring an_import_scope::resolve_type_token(
-                 mdToken                           token,
-                 const a_generic_param_or_arg_list &generic_params_or_args,
-                 a_generic_param_or_arg_iterator   generic_params_or_args_end,
-                 bool                              replace_dots) const
+            mdToken                           token,
+            const a_generic_param_or_arg_list &generic_type_params_or_args,
+            a_generic_param_or_arg_iterator   generic_type_params_or_args_end,
+            const a_generic_param_or_arg_list &generic_method_params_or_args,
+            bool                              replace_dots) const
 /*
 Resolve the type given by the token.  Get the name of the type and replace
 any "." in the name with the C++ scope operator, "::".
@@ -1556,35 +1708,19 @@ any "." in the name with the C++ scope operator, "::".
                                                   &type_flags,
                                                   /*ptkExtends=*/nullptr);
           CHECK_API_RESULT(hr, GetTypeDefProps);
-          BYTE generic_arity = strip_generic_arity(type_name);
-          if (generic_arity != 0) {
-            /* The generic parameter names or arguments associated with this
-               generic type or instantiation are at the end of the list. */
-            check_assertion(generic_arity <=
-                                      distance(generic_params_or_args.begin(),
-                                               generic_params_or_args_end));
-            type_name += L'<';
-            for (auto iter = generic_params_or_args_end - generic_arity;
-                 iter != generic_params_or_args_end;
-                 ++iter) {
-              const wstring &param_or_arg_name = *iter;
-              type_name += param_or_arg_name;
-              if (iter + 1 != generic_params_or_args_end)
-                type_name += L", ";
-            }  /* for */
-            type_name += L'>';
-          }  /* if */
+          expand_generic_type_name(type_name, generic_type_params_or_args,
+                                   generic_type_params_or_args_end);
           if (IsTdNested(type_flags)) {
             mdTypeDef enclosing_typedef;
             hr = import_interface_->GetNestedClassProps(token,
                                                         &enclosing_typedef);
             CHECK_API_RESULT(hr, GetNestedClassProps);
             wstring enclosing_type_name = resolve_type_token(
-                                                  enclosing_typedef,
-                                                  generic_params_or_args,
-                                                  generic_params_or_args_end -
-                                                                generic_arity,
-                                                  replace_dots);
+                                              enclosing_typedef,
+                                              generic_type_params_or_args,
+                                              generic_type_params_or_args_end,
+                                              generic_method_params_or_args,
+                                              replace_dots);
             type_name = enclosing_type_name + L"::" + type_name;
           }  /* if */
           break;
@@ -1595,7 +1731,9 @@ any "." in the name with the C++ scope operator, "::".
                                                   &resolution_scope,
                                                   type_name);
           CHECK_API_RESULT(hr, GetTypeRefProps);
-          /* TypeRefs are not yet supported. */
+          expand_generic_type_name(type_name, generic_type_params_or_args,
+                                   generic_type_params_or_args_end);
+          /* FIXME: TypeRefs to nested classes are not yet supported. */
           break;
         }  /* case mdtTypeRef */
       case mdtInterfaceImpl:
@@ -1606,7 +1744,8 @@ any "." in the name with the C++ scope operator, "::".
                                                       &token);
         CHECK_API_RESULT(hr, GetInterfaceImplProps);
         type_name = resolve_type_token(token,
-                                       generic_params_or_args,
+                                       generic_type_params_or_args,
+                                       generic_method_params_or_args,
                                        replace_dots);
         break;
       case mdtTypeSpec:
@@ -1618,7 +1757,9 @@ any "." in the name with the C++ scope operator, "::".
           CHECK_API_RESULT(hr, GetTypeSpecFromToken);
           a_signature_decoder decoder(*this, token, signature,
                                       bytes_in_signature,
-                                      generic_params_or_args);
+                                      generic_type_params_or_args,
+                                      generic_method_params_or_args,
+                                      /*is_system_string_member=*/FALSE);
           type_name = decoder.decode_type(/*add_handle_to_class=*/false);
           break;
         }  /* case mdtTypeSpec */
@@ -1907,6 +2048,7 @@ private:
 
 public:
   a_type_definition(mdTypeDef                      typedef_token,
+                    const wstring                  &full_type_name,
                     const wstring                  &type_name,
                     DWORD                          attributes,
                     mdToken                        extends_token,
@@ -1921,12 +2063,13 @@ public:
       import_scope_(import_scope),
       import_interface_(import_scope_.import_interface()),
       kind_(kind),
+      is_system_string_type_(full_type_name == L"System.String"),
       is_first_base_class_processed(false)
   {
-    a_cpp_cli_feature_set supported_features =  import_scope_.
-                                   containing_assembly().supported_features();
-    import_as_friend_ = (supported_features &
-                         cpp_cli_as_friend_assembly) != 0;
+    a_cpp_cli_import_flag_set import_flags = import_scope_.
+                                         containing_assembly().import_flags();
+
+    import_as_friend_ = (import_flags & cpp_cli_as_friend_assembly) != 0;
   }  /* constructor */
 
   void import_definition(ostringstream& buffer);
@@ -1976,6 +2119,8 @@ private:
                         /* The appropriate IMetaDataImport2 interface. */
   a_top_level_kind
                 kind_;  /* The top-level kind of this type. */
+  a_boolean     is_system_string_type_;
+                        /* TRUE if this type is System::String. */
   bool          is_first_base_class_processed;
                         /* True if the first case class has been processed. */
   multimap<mdToken, mdToken>
@@ -2001,9 +2146,10 @@ Decode the extends token and emit the appropriate text.
 */
 {
   wstring extends_name = import_scope_.resolve_type_token(
-                                                      extends_token_,
-                                                      generic_parameters_,
-                                                      /*replaces_dots=*/true);
+                                                 extends_token_,
+                                                 generic_parameters_,
+                                                 no_generic_method_parameters,
+                                                 /*replaces_dots=*/true);
   if (kind_ == tlk_value_type) {
     /* By definition all value types extend System.ValueType so there is no
        need to explicitly add it as a base-class. */
@@ -2037,18 +2183,11 @@ Decode the interface tokens (if there are any) and emit the appropriate text.
     CHECK_API_RESULT(hr, EnumInterfaceImpls);
     for (ULONG i = 0; i < count_of_interfaces; ++i) {
       wstring interface_name = import_scope_.resolve_type_token(
-                                                      interfaces[i],
-                                                      generic_parameters_,
-                                                      /*replaces_dots=*/true);
+                                                 interfaces[i],
+                                                 generic_parameters_,
+                                                 no_generic_method_parameters,
+                                                 /*replaces_dots=*/true);
       auto    back_tick = interface_name.find(L'`');
-      a_cpp_cli_feature_set supported_features = import_scope_.
-                                   containing_assembly().supported_features();
-
-      if (back_tick != wstring::npos &&
-          (supported_features & cpp_cli_generic_types) == 0) {
-        /* Skip this interface if generic types are not supported. */
-        continue;
-      }  /* if */
       if (is_first_base_class_processed) {
         buffer << ", ";
       } else {
@@ -2227,9 +2366,10 @@ an override specifier.
       unexpected_condition();
       break;
   }  /* switch */
-  wstring type = import_scope_.resolve_type_token(parent_token,
-                                                  generic_parameters_,
-                                                  /*replace_dots=*/true);
+  wstring type = import_scope_.resolve_type_token(
+                                            parent_token, generic_parameters_,
+                                            no_generic_method_parameters,
+                                            /*replace_dots=*/true);
   return type + L"::" + method_name;
 }  /* get_method_def_or_member_ref_name */
 
@@ -2241,7 +2381,7 @@ void a_type_definition::import_one_method(ostringstream &buffer,
 Import a single member of a type.
 */
 {
-  bool                  is_constructor = false, emit_declaration = true;
+  bool                  omit_return_type = false;
   bool                  skip_member = false;
   HRESULT               hr;
   ULONG                 bytes_in_signature;
@@ -2250,8 +2390,6 @@ Import a single member of a type.
   wstring               method_name;
   wostringstream        declaration;
   an_accessibility      accessibility;
-  a_cpp_cli_feature_set supported_features =
-                     import_scope_.containing_assembly().supported_features();
 
   hr = import_interface_->GetMethodProps(method_token, /*pClass=*/nullptr,
                                          method_name, &method_attributes,
@@ -2267,7 +2405,11 @@ Import a single member of a type.
   if (IsMdInstanceInitializerW(method_attributes, method_name.c_str()) ||
       IsMdClassConstructorW(method_attributes, method_name.c_str())) {
     method_name = type_name_;
-    is_constructor = true;
+    omit_return_type = true;
+  } else if (method_name == (L"~" + type_name_) ||
+             method_name == (L"!" + type_name_)) {
+    /* A return type should not be emitted for destructors or finalizers. */
+    omit_return_type = true;
   } else if (method_semantics != 0) {
     /* Any event or property method should be marked as having a special
        name. */
@@ -2281,10 +2423,12 @@ Import a single member of a type.
     /* Decode the signature and create the appropriate declaration.  This
        can either be a method or a field. */
     a_signature_decoder decoder(import_scope_, method_token, signature,
-                                bytes_in_signature, generic_parameters_);
+                                bytes_in_signature, generic_parameters_,
+                                no_generic_method_parameters,
+                                is_system_string_type_);
     declaration << decoder.decode_method_signature(method_name,
                                                    method_attributes,
-                                                   is_constructor,
+                                                   omit_return_type,
                                                    /*is_for_property=*/false);
     if (IsMdFinal(method_attributes)) {
       declaration << L" sealed";
@@ -2310,16 +2454,7 @@ Import a single member of a type.
         declaration << get_overridden_name(method_impls_iterator->second);
       }  /* for */
     }  /* if */
-    /* Check for any generic types in the declaration. */
-    auto back_tick = declaration.str().find(L'`');
-    if (back_tick != wstring::npos &&
-        (supported_features & cpp_cli_generic_types) == 0) {
-      /* Generics are not supported yet. */
-      emit_declaration = false;
-    }  /* if */
-    if (emit_declaration) {
-      buffer << declaration.str() << ';' << END_OF_LINE;
-    }  /* if */
+    buffer << declaration.str() << ';' << END_OF_LINE;
   }  /* if */
 }  /* a_type_definition::import_one_member */
 
@@ -2391,20 +2526,19 @@ void a_type_definition::import_one_field(ostringstream &buffer,
 Import a single field of a type.
 */
 {
-  bool                  emit_declaration = true;
-  bool                  skip_member = false;
-  HRESULT               hr;
-  ULONG                 bytes_in_signature;
-  ULONG                 characters_in_constant;
-  DWORD                 field_attributes, constant_type;
-  PCCOR_SIGNATURE       signature;
-  UVCP_CONSTANT         constant_value;
-  wstring               field_name;
-  wostringstream        declaration;
-  an_accessibility      accessibility;
-  a_cpp_cli_feature_set supported_features =
-                     import_scope_.containing_assembly().supported_features();
+  bool                      skip_member = false;
+  HRESULT                   hr;
+  ULONG                     bytes_in_signature;
+  ULONG                     characters_in_constant;
+  DWORD                     field_attributes, constant_type;
+  PCCOR_SIGNATURE           signature;
+  UVCP_CONSTANT             constant_value;
+  wstring                   field_name;
+  wostringstream            declaration;
+  an_accessibility          accessibility;
+  a_cpp_cli_import_flag_set import_flags;
 
+  import_flags = import_scope_.containing_assembly().import_flags();
   hr = import_interface_->GetFieldProps(field_token, /*pClass=*/nullptr,
                                         field_name, &field_attributes,
                                         &signature, &bytes_in_signature,
@@ -2419,7 +2553,7 @@ Import a single field of a type.
   }  /* if  */
   if (!skip_member) {
     declaration << accessibility.get_string(import_as_friend_) << L": ";
-    if ((supported_features & cpp_cli_declspec_member_info) != 0) {
+    if ((import_flags & cpp_cli_declspec_member_info) != 0) {
       declaration << L"__declspec(member_info(";
       declaration << L"0x" << setw(8) << setfill(L'0') << hex << field_token;
       declaration << L")) ";
@@ -2427,7 +2561,9 @@ Import a single field of a type.
     /* Decode the signature and create the appropriate declaration.  This
        can either be a method or a field. */
     a_signature_decoder decoder(import_scope_, field_token, signature,
-                                bytes_in_signature, generic_parameters_);
+                                bytes_in_signature, generic_parameters_,
+                                no_generic_method_parameters,
+                                is_system_string_type_);
     wstring field_type;
 
     if (IsFdInitOnly(field_attributes)) {
@@ -2440,7 +2576,13 @@ Import a single field of a type.
     if (IsFdStatic(field_attributes) && !IsFdLiteral(field_attributes)) {
       declaration << L"static ";
     }  /* if */
-    declaration << field_type << L' ' << field_name;
+    declaration << field_type << L' ';
+    if (field_name.find(L'<') != wstring::npos) {
+      /* Use the __identifier keyword. */
+      declaration << L"__identifier(\"" << field_name << L"\")";
+    } else {
+      declaration << field_name;
+    }  /* if */
     if (IsFdHasDefault(field_attributes)) {
       /* Note: we emit the value as a hexadecimal constant cast to the
          appropriate type.  This seems to work best for some corner
@@ -2455,16 +2597,7 @@ Import a single field of a type.
                     << decoder.decode() << L')';
       }  /* if */
     }
-    /* Check for any generic types in the declaration. */
-    auto back_tick = declaration.str().find(L'`');
-    if (back_tick != wstring::npos &&
-        (supported_features & cpp_cli_generic_types) == 0) {
-      /* Generics are not supported yet. */
-      emit_declaration = false;
-    }  /* if */
-    if (emit_declaration) {
-      buffer << declaration.str() << ';' << END_OF_LINE;
-    }  /* if */
+    buffer << declaration.str() << ';' << END_OF_LINE;
   }  /* if */
 }  /* a_type_definition::import_one_field */
 
@@ -2563,7 +2696,9 @@ itself and its associated accessor methods.
        property. */
     ostringstream       declaration;
     a_signature_decoder decoder(import_scope_, property_token, signature,
-                                bytes_in_signature, generic_parameters_);
+                                bytes_in_signature, generic_parameters_,
+                                no_generic_method_parameters,
+                                is_system_string_type_);
     DWORD               method_attributes_mask = mdStatic;
     DWORD               method_attributes = 0;
     if (get_method.exists()) {
@@ -2580,7 +2715,7 @@ itself and its associated accessor methods.
     declaration << decoder.decode_method_signature(
                                                  property_name,
                                                  method_attributes,
-                                                 /*is_for_constructor=*/false,
+                                                 /*omit_return_type=*/false,
                                                  /*is_for_property=*/true);
     declaration << " {" << END_OF_LINE;
     /* Import the get and/or set method. */
@@ -2630,7 +2765,7 @@ Import the definition of an event method.
   HRESULT hr;
   wstring method_name;
   DWORD   attributes;
- 
+
   hr = import_interface_->GetMethodProps(method_token, /*pClass=*/nullptr,
                                          method_name, &attributes,
                                          /*ppvSigBlob=*/nullptr,
@@ -2703,11 +2838,19 @@ itself and its associated methods.
       declaration << "virtual ";
     }  /* if */
     declaration << "event ";
-    event_type = import_scope_.resolve_type_token(event_type_token,
-                                                  generic_parameters_,
-                                                  /*replaces_dots=*/true);
+    event_type = import_scope_.resolve_type_token(
+                                                 event_type_token,
+                                                 generic_parameters_,
+                                                 no_generic_method_parameters,
+                                                 /*replaces_dots=*/true);
     declaration << event_type << "^ ";
-    declaration << event_name << " {" << END_OF_LINE;
+    if (event_name.find(L'.') != wstring::npos) {
+      /* The event name contains a dot; use __identifier to emit it. */
+      declaration << "__identifier(\"" << event_name << "\")";
+    } else {
+      declaration << event_name;
+    }  /* if */
+    declaration << " {" << END_OF_LINE;
     import_one_method(declaration, add_method.token(), msAddOn);
     import_one_method(declaration, remove_method.token(), msRemoveOn);
     if (raise_method.exists()) {
@@ -2789,9 +2932,6 @@ void a_type_definition::import_definition(ostringstream &buffer)
 Create the definition for the current type.
 */
 {
-  a_cpp_cli_feature_set supported_features = import_scope_.
-                                   containing_assembly().supported_features();
-
   if (IsTdAbstract(attributes_)) {
     buffer << " abstract";
   }  /* if */
@@ -2801,17 +2941,11 @@ Create the definition for the current type.
   process_extends(buffer);
   process_interfaces(buffer);
   buffer << " {" << END_OF_LINE;
-  if ((supported_features & cpp_cli_nested_types) != 0) {
-    import_nested_classes(buffer);
-  }  /* if */
+  import_nested_classes(buffer);
   import_all_methods(buffer);
   import_all_fields(buffer);
-  if ((supported_features & cpp_cli_properties) != 0) {
-    import_properties(buffer);
-  }  /* if */
-  if ((supported_features & cpp_cli_events) != 0) {
-    import_events(buffer);
-  }  /* if */
+  import_properties(buffer);
+  import_events(buffer);
   buffer << "};";
 #if DEBUG
   buffer << "  /* " << type_name_ << " */";
@@ -2851,38 +2985,127 @@ Return the appropriate string for the specified top level kind.
 }  /* a_type_definition::top_level_kind_as_wstring */
 
 
-wstring get_generic_header(
-                     BYTE                           generic_arity,
-                     const a_generic_parameter_list &generic_parameters,
-                     a_constraint_clause_list       &generic_constraints)
+wstring form_generic_parameter_list(
+                       BYTE                            generic_arity,
+                       a_generic_param_or_arg_iterator generic_parameters_end)
 /*
-Return the generic header associated with this generic type or method.
+Return a generic parameter list for a generic type or method.
 */
 {
-  check_assertion(generic_arity != 0 &&
-                  generic_arity <= generic_parameters.size());
-  /* Append the generic parameter list.  The generic parameters associated
-     with this generic type are at the end of the parameter list. */
-  wstring generic_header = L"generic<";
-  for (auto iter = generic_parameters.end() - generic_arity;
-       iter != generic_parameters.end();
+  wstring parameter_list;
+
+  check_assertion(generic_arity > 0);
+  parameter_list = L"generic<";
+  for (auto iter = generic_parameters_end - generic_arity;
+       iter != generic_parameters_end;
        ++iter) {
     const wstring &param_name = *iter;
-    generic_header += L"typename " + param_name;
-    if (iter + 1 != generic_parameters.end())
-      generic_header += L", ";
+    parameter_list += L"typename " + param_name;
+    if (iter + 1 != generic_parameters_end)
+      parameter_list += L", ";
   }  /* for */
-  generic_header += L'>';
-  generic_header += L_END_OF_LINE;
+  parameter_list += L'>';
+  parameter_list += L_END_OF_LINE;
+  return parameter_list;
+}  /* form_generic_parameter_list */
+
+
+wstring form_generic_constraint_clause_list(
+                          const a_constraint_clause_list &generic_constraints)
+/*
+Return the constraint clause list for a generic type or method.
+*/
+{
+  wstring constraint_clause_list;
+
   /* Append the generic constraints. */
   for (auto iter = generic_constraints.begin();
         iter != generic_constraints.end();
         ++iter) {
     const wstring &constraint_clause = *iter;
-    generic_header += constraint_clause + L_END_OF_LINE;
+    constraint_clause_list += constraint_clause + L_END_OF_LINE;
   }  /* for */
+  return constraint_clause_list;
+}  /* form_generic_constraint_clause_list */
+
+
+wstring form_generic_method_header(
+                     BYTE                           generic_arity,
+                     const a_generic_parameter_list &generic_parameters,
+                     const a_constraint_clause_list &generic_constraints)
+/*
+Return the generic header associated with this generic method.
+*/
+{
+  wstring generic_header;
+
+  generic_header = form_generic_parameter_list(generic_arity,
+                                               generic_parameters.end());
+  if (!generic_constraints.empty()) {
+    generic_header += form_generic_constraint_clause_list(
+                                                         generic_constraints);
+  }  /* if */
   return generic_header;
-}  /* get_generic_header */
+}  /* form_generic_method_header */
+
+
+wstring an_import_scope::form_generic_type_header(
+                    mdTypeDef                         typedef_token,
+                    DWORD                             type_attributes,
+                    BYTE                              generic_arity,
+                    const a_generic_param_or_arg_list &generic_parameters,
+                    a_generic_param_or_arg_iterator   generic_parameters_end,
+                    const a_constraint_clause_list    &generic_constraints,
+                    a_boolean                         out_of_class_definition)
+/*
+Return the generic header associated with this generic type.
+*/
+{
+  wstring generic_header;
+
+  /* When obtaining the definition of a type that is directly or indirectly a
+     generic type, the generated code should be in the form of an
+     out-of-class definition.  If this is a nested type and all of the generic
+     parameters are not directly associated with it, then recursively generate
+     the generic header for the enclosing generic type(s). */
+  if (out_of_class_definition && IsTdNested(type_attributes) &&
+      generic_arity < distance(generic_parameters.begin(),
+                               generic_parameters_end)) {
+    HRESULT   hr;
+    mdTypeDef enclosing_typedef_token;
+    wstring   enclosing_type_name;
+    DWORD     enclosing_type_attributes;
+    BYTE      enclosing_type_generic_arity;
+    hr = import_interface_->GetNestedClassProps(typedef_token,
+                                                &enclosing_typedef_token);
+    CHECK_API_RESULT(hr, GetNestedClassProps);
+    hr = import_interface_->GetTypeDefProps(enclosing_typedef_token,
+                                            enclosing_type_name,
+                                            &enclosing_type_attributes,
+                                            /*ptkExtends=*/nullptr);
+    CHECK_API_RESULT(hr, GetTypeDefProps);
+    enclosing_type_generic_arity = strip_generic_arity(enclosing_type_name);
+    generic_header = form_generic_type_header(
+                                       enclosing_typedef_token,
+                                       enclosing_type_attributes,
+                                       enclosing_type_generic_arity,
+                                       generic_parameters,
+                                       generic_parameters_end - generic_arity,
+                                       no_generic_constraints,
+                                       out_of_class_definition);
+  }  /* if */
+  if (generic_arity > 0) {
+    check_assertion(generic_arity <= distance(generic_parameters.begin(),
+                                              generic_parameters_end));
+    generic_header += form_generic_parameter_list(generic_arity,
+                                                  generic_parameters_end);
+    if (!generic_constraints.empty()) {
+      generic_header += form_generic_constraint_clause_list(
+                                                         generic_constraints);
+    }  /* if */
+  }  /* if */
+  return generic_header;
+}  /* an_import_scope::form_generic_type_header */
 
 
 void an_import_scope::import_one_type(
@@ -2904,16 +3127,18 @@ If class_body_only is true, the class head and the namespace scopes will be
 omitted.
 */
 {
-  HRESULT                  hr;
-  DWORD                    attributes;
-  mdToken                  extends_token;
-  wstring                  full_type_name;
-  a_generic_parameter_list this_type_generic_parameters;
-  a_constraint_clause_list generic_constraints;
-  a_top_level_kind         kind;
-  bool                     skip_type = false;
-  a_cpp_cli_feature_set    supported_features =
-                                    containing_assembly_.supported_features();
+  HRESULT                   hr;
+  DWORD                     attributes;
+  mdToken                   extends_token;
+  wstring                   full_type_name;
+  a_generic_parameter_list  this_type_generic_parameters;
+  a_constraint_clause_list  generic_constraints;
+  a_top_level_kind          kind;
+  bool                      skip_type = false;
+  a_cpp_cli_import_flag_set import_flags =
+                                          containing_assembly_.import_flags();
+  bool                      define_all_types =
+                               (import_flags & cpp_cli_define_all_types) != 0;
 
   hr = import_interface_->GetTypeDefProps(typedef_token, full_type_name,
                                           &attributes, &extends_token);
@@ -2924,11 +3149,13 @@ omitted.
      as they may be nested within a generic type. */
   if (generic_arity != 0 || (IsTdNested(attributes) && at_top_level &&
                              class_body_only)) {
-    get_generic_parameters_and_constraints(typedef_token, generic_arity,
+    get_generic_parameters_and_constraints(typedef_token,
+                                           no_generic_type_parameters,
+                                           generic_arity,
                                            this_type_generic_parameters,
                                            generic_constraints);
   }  /* if */
-  const a_generic_parameter_list &generic_parameters =
+  const a_generic_parameter_list &generic_type_parameters =
                                           this_type_generic_parameters.empty()
                                                ? enclosing_type_generic_params
                                                : this_type_generic_parameters;
@@ -2940,21 +3167,9 @@ omitted.
          emitted in their enclosing type. */
       skip_type = true;
     }  /* if */
-  } else if (!generic_parameters.empty() &&
-             (supported_features & cpp_cli_generic_types) == 0) {
-    /* Skip this type if generic types are not supported. */
-    skip_type = true;
-  } else if (full_type_name[0] == L'<' &&
-      (supported_features & cpp_cli_implementation_details) == 0) {
-    /* Skip this type if private implemention details are not supported. */
-    check_assertion(
-        full_type_name.compare(0, _countof(L"<CrtImplementationDetails>")-1,
-                               L"<CrtImplementationDetails>") == 0 ||
-        full_type_name.compare(0, _countof(L"<CppImplementationDetails>")-1,
-                               L"<CppImplementationDetails>") == 0 ||
-        full_type_name.compare(0,
-                               _countof(L"<PrivateImplementationDetails>")-1,
-                               L"<PrivateImplementationDetails>") == 0);
+  } else if (full_type_name[0] == L'<') {
+    /* Skip types such as "<CrtImplementationDetails>" and
+       "<CppImplementationDetails>". */
     skip_type = true;
   } else if (full_type_name == L"_GUID") {
     /* _GUID is a built-in type in Microsoft mode.  Skip it. */
@@ -2962,45 +3177,15 @@ omitted.
   }  /* if */
   if (!skip_type) {
     /* Classify the type - ref class, value class, interface etc. */
-    kind = classify_type(full_type_name, attributes, generic_parameters,
+    kind = classify_type(full_type_name, attributes, generic_type_parameters,
                          extends_token);
-    /* Check whether the top level kind is supported. */
-    switch (kind) {
-      case tlk_ref_class:
-        if ((supported_features & cpp_cli_ref_classes) == 0) {
-          skip_type = true;
-        }  /* if */
-        break;
-      case tlk_value_type:
-        if ((supported_features & cpp_cli_value_types) == 0) {
-          skip_type = true;
-        }  /* if */
-        break;
-      case tlk_interface:
-        if ((supported_features & cpp_cli_interfaces) == 0) {
-          skip_type = true;
-        }  /* if */
-        break;
-      case tlk_enumeration:
-        if ((supported_features & cpp_cli_enumerations) == 0) {
-          skip_type = true;
-        }  /* if */
-        break;
-      case tlk_delegate:
-        if ((supported_features & cpp_cli_delegates) == 0) {
-          skip_type = true;
-        } else if (!want_definition) {
-          /* If no definition is required, treat the delegate as a ref class
-             since "delegate ..." is always a definition.  Doing so avoids
-             declaration ordering problems. */
-          kind = tlk_ref_class;
-        }  /* if */
-        break;
-      default:
-        unexpected_condition();
-        break;
-    }  /* switch */
-  }
+    if (kind == tlk_delegate && !want_definition && !define_all_types) {
+      /* If no definition is required, treat the delegate as a ref class
+         since "delegate ..." is always a definition.  Doing so avoids
+         declaration ordering problems. */
+      kind = tlk_ref_class;
+    }  /* if */
+  }  /* if */
   if (!skip_type) {
     wstring::size_type last_dot_index;
     wstring            namespace_name;
@@ -3022,7 +3207,7 @@ omitted.
     /* Emit the namespace scopes and class head if required.  These are
        present on the original declaration and also on the definitions of
        generics. */
-    if (!class_body_only || generic_arity != 0) {
+    if (!class_body_only || !generic_type_parameters.empty()) {
       if (at_top_level && !class_body_only) {
         /* Make sure that the correct namespace scopes are opened. */
         if (!namespace_name.empty()) {
@@ -3031,14 +3216,21 @@ omitted.
           close_all_namespace_scopes(buffer);
         }  /* if */
       }  /* if */
-      /* Emit the generic header if this is a generic type. */
-      if (generic_arity != 0) {
-        buffer << get_generic_header(generic_arity, generic_parameters,
-                                     generic_constraints);
+      /* Emit the generic header if this is directly or indirectly a generic
+         type.  When obtaining the body of such a type, the generated code
+         should be in the form of an out-of-class definition. */
+      if (!generic_type_parameters.empty()) {
+        a_boolean out_of_class_definition = at_top_level && class_body_only;
+        buffer << form_generic_type_header(typedef_token, attributes,
+                                           generic_arity,
+                                           generic_type_parameters,
+                                           generic_type_parameters.end(),
+                                           generic_constraints,
+                                           out_of_class_definition);
       }  /* if */
       /* Emit the assembly level visibility - either public or private. */
       if (at_top_level && want_definition) {
-        bool import_as_friend = (supported_features &
+        bool import_as_friend = (import_flags &
                                              cpp_cli_as_friend_assembly) != 0;
         buffer << an_accessibility(typedef_token, attributes).
                                           get_string(import_as_friend) << ' ';
@@ -3047,9 +3239,10 @@ omitted.
       buffer << top_level_kind_as_wstring(kind) << ' ';
       /* Emit the assembly_info declspec. */
       if (!class_body_only &&
-          (supported_features & cpp_cli_declspec_assemby_info) != 0) {
-        buffer << "__declspec(assembly_info(";
-        buffer << containing_assembly_.assembly_index();
+          (import_flags & cpp_cli_declspec_assemby_info) != 0) {
+        buffer << "__declspec(assembly_info(0x";
+        buffer << setw(8) << setfill('0') << hex <<
+                                        containing_assembly_.assembly_index();
         buffer << ", 0x" << setw(8) << setfill('0') << hex << typedef_token;
         buffer << ")) ";
       }  /* if */
@@ -3063,24 +3256,38 @@ omitted.
     }  /* if  */
     if (kind == tlk_delegate) {
       import_delegate_definition(buffer, typedef_token, type_name,
-                                 generic_parameters);
+                                 generic_type_parameters);
     } else if (kind == tlk_enumeration) {
       /* At the moment we can't forward declare a C++/CLI enumeration so we
          need to import (and emit) the full definition. */
       import_enum_definition(buffer, typedef_token, type_name,
-                             generic_parameters);
+                             generic_type_parameters);
     } else {
-      bool define_all_types =
-                         (supported_features & cpp_cli_define_all_types) != 0;
-
       /* Emit the name of the type. */
-      if (!class_body_only || generic_arity != 0) buffer << type_name;
+      if (!class_body_only || !generic_type_parameters.empty()) {
+        /* Emit the enclosing type name qualifiers for definitions of nested
+           generic types. */
+        if (class_body_only && at_top_level && IsTdNested(attributes)) {
+          mdTypeDef enclosing_typedef;
+          hr = import_interface_->GetNestedClassProps(typedef_token,
+                                                      &enclosing_typedef);
+          CHECK_API_RESULT(hr, GetNestedClassProps);
+          wstring enclosing_type_name = resolve_type_token(
+                                enclosing_typedef,
+                                generic_type_parameters,
+                                generic_type_parameters.end() - generic_arity,
+                                no_generic_method_parameters,
+                                /*replace_dots=*/TRUE);
+          buffer << enclosing_type_name << "::";
+        }  /* if */
+        buffer << type_name;
+      }  /* if */
       if (want_definition || define_all_types) {
-        a_type_definition type_definition(typedef_token, type_name,
-                                          attributes, extends_token,
-                                          generic_parameters,
+        a_type_definition type_definition(typedef_token, full_type_name,
+                                          type_name, attributes,
+                                          extends_token,
+                                          generic_type_parameters,
                                           *this, kind);
-
         type_definition.import_definition(buffer);
       } else {
         buffer << ';' << END_OF_LINE;
@@ -3145,7 +3352,12 @@ Decode a type signature and return it as a std::wstring.
       buffer << L"bool";
       break;
     case ELEMENT_TYPE_CHAR:
-      buffer << L"wchar_t";
+      if ((import_scope_.containing_assembly().import_flags()
+                                         & cpp_cli_wchar_t_is_keyword) != 0) {
+        buffer << L"wchar_t";
+      } else {
+        buffer << L"unsigned short";
+      }  /* if */
       break;
     case ELEMENT_TYPE_I1:
       buffer << L"signed char";
@@ -3181,6 +3393,23 @@ Decode a type signature and return it as a std::wstring.
       buffer << L"System::String^";
       break;
     case ELEMENT_TYPE_PTR:
+      if (is_system_string_member_) {
+        /* If we are decoding a type signature associated with a member of
+           System::String, then we should perform the following conversions:
+           ELEMENT_TYPE_PTR ELEMENT_TYPE_I1   -> 'const char*'
+           ELEMENT_TYPE_PTR ELEMENT_TYPE_CHAR -> 'const wchar_t*' or
+                                                 'const unsigned short*' */
+        if (peek_element_type() == ELEMENT_TYPE_I1) {
+          /* ELEMENT_TYPE_I1 would normally be converted to "signed char", but
+             we only want "char", so we don't recursively call decode_type
+             in this case. */
+          (void)get_element_type();
+          buffer << L"const char*";
+          break;
+        } else if (peek_element_type() == ELEMENT_TYPE_CHAR) {
+          buffer << L"const ";
+        }  /* if */
+      }  /* if */
       /* Decode the pointee type and append a '*'. */
       buffer << decode_type() << L'*';
       break;
@@ -3197,6 +3426,7 @@ Decode a type signature and return it as a std::wstring.
                                        token,
                                        is_generic ? decode_generic_arguments()
                                                   : generic_type_parameters_,
+                                       generic_method_parameters_,
                                        /*replaces_dots=*/true);
         break;
       }  /* case */
@@ -3250,6 +3480,7 @@ Decode a type signature and return it as a std::wstring.
       buffer << "/* CMOD_REQD ";
       buffer << import_scope_.resolve_type_token(read_token(),
                                                  generic_type_parameters_,
+                                                 generic_method_parameters_,
                                                  /*replaces_dots=*/true);
       buffer << " */ ";
       buffer << decode_type();
@@ -3258,6 +3489,7 @@ Decode a type signature and return it as a std::wstring.
       buffer << "/* CMOD_OPT ";
       buffer << import_scope_.resolve_type_token(read_token(),
                                                  generic_type_parameters_,
+                                                 generic_method_parameters_,
                                                  /*replaces_dots=*/true);
       buffer << " */ ";
       buffer << decode_type();
@@ -3281,7 +3513,7 @@ Decode a type signature and return it as a std::wstring.
 wstring a_signature_decoder::decode_method_signature(
                            const wstring                  &name,
                            DWORD                          method_attributes,
-                           bool                           is_for_constructor,
+                           bool                           omit_return_type,
                            bool                           is_for_property)
 /*
 Decode a function signature and then combine the various elements along with
@@ -3297,8 +3529,8 @@ which is almost the same as a method signature.
   wstring        return_type;
   BYTE           generic_arity;
 
-  /* A method cannot be both a constructor and a property method. */
-  check_assertion(!is_for_constructor || !is_for_property);
+  /* The return type should never be omitted for property methods. */
+  check_assertion(!omit_return_type || !is_for_property);
   first_byte = read_one_byte();
   calling_convention = first_byte & IMAGE_CEE_CS_CALLCONV_MASK;
   check_assertion(!is_for_property ||
@@ -3308,20 +3540,22 @@ which is almost the same as a method signature.
      generic types or methods nested within generic types. */
   if ((first_byte & IMAGE_CEE_CS_CALLCONV_GENERIC) != 0) {
     generic_arity = read_one_byte();
-    a_constraint_clause_list generic_constraints;
+    a_constraint_clause_list generic_method_constraints;
+    check_assertion(generic_method_parameters_.empty());
     import_scope_.get_generic_parameters_and_constraints(
-                                                   token_,
-                                                   generic_arity,
-                                                   generic_method_parameters_,
-                                                   generic_constraints);
+                                                  token_,
+                                                  generic_type_parameters_,
+                                                  generic_arity,
+                                                  generic_method_parameters_,
+                                                  generic_method_constraints);
     check_assertion(generic_arity == generic_method_parameters_.size());
-    declaration << get_generic_header(generic_arity,
-                                      generic_method_parameters_,
-                                      generic_constraints);
-  } /* if */
+    declaration << form_generic_method_header(generic_arity,
+                                              generic_method_parameters_,
+                                              generic_method_constraints);
+  }  /* if */
   number_of_parameters = read_four_bytes();
-  if ((import_scope_.containing_assembly().
-                  supported_features() & cpp_cli_declspec_member_info) != 0) {
+  if ((import_scope_.containing_assembly().import_flags()
+                                       & cpp_cli_declspec_member_info) != 0) {
     declaration << L"__declspec(member_info(";
     declaration << L"0x" << setw(8) << setfill(L'0') << hex << token_;
     declaration << L")) ";
@@ -3335,8 +3569,9 @@ which is almost the same as a method signature.
   }  /* if */
   if (is_for_property) declaration << "property ";
   return_type = decode_type();
-  /* Constructors don't have a (visible) return type. */
-  if (is_for_constructor) {
+  /* Constructors, destructors, and finalizers don't have a (visible) return
+     type. */
+  if (omit_return_type) {
     check_assertion(return_type == L"void");
   } else {
     declaration << return_type << L' ';
@@ -3413,9 +3648,10 @@ public:
   }  /* is_initialized */
 
 
-  an_assembly_index import_assembly(char                  *assembly_full_name,
-                                    a_cpp_cli_feature_set supported_features,
-                                    bool                  *is_duplicated);
+  an_assembly_index import_assembly(
+                                char                      *assembly_full_name,
+                                a_cpp_cli_import_flag_set import_flags,
+                                bool                      *is_duplicated);
   void import_all_types(ostringstream     &buffer,
                         an_assembly_index assembly_index);
   void import_class_definition(ostringstream     &buffer,
@@ -3673,9 +3909,9 @@ Clean up and tear down the interface that were created.
 
 
 an_assembly_index a_metadata_reader::import_assembly(
-                                    char                  *assembly_full_name,
-                                    a_cpp_cli_feature_set supported_features,
-                                    bool                  *is_duplicated)
+                                char                      *assembly_full_name,
+                                a_cpp_cli_import_flag_set import_flags,
+                                bool                      *is_duplicated)
 /*
 Import a single assembly.  assembly_full_name contains the full path to the
 assembly to be processed.  If this assembly has been processed,
@@ -3700,7 +3936,7 @@ assembly to be processed.  If this assembly has been processed,
                                             an_assembly(full_assembly_name,
                                                         alink_interface_,
                                                         file_token_,
-                                                        supported_features)));
+                                                        import_flags)));
     assembly.first->second.process();
     result = assembly.first->second.assembly_index();
   }  /* if */
@@ -3747,7 +3983,7 @@ and typedef token.
   check_assertion(iter != end);
   iter->second.find_scope().import_one_type(buffer, typedef_token,
                                             /*at_top_level=*/true,
-                                            no_generic_parameters,
+                                            no_generic_type_parameters,
                                             /*want_definition=*/true,
                                             class_body_only);
 }  /* a_metadata_reader::import_class_definition */
@@ -3936,9 +4172,9 @@ be used on non-Windows systems (for testing purposes).
 
 EXTERN_C_IN_CPP_FILE
 an_assembly_index import_metadata_file(
-                                    char                  *assembly_full_name,
-                                    a_cpp_cli_feature_set supported_features,
-                                    a_boolean             *is_duplicated)
+                                char                      *assembly_full_name,
+                                a_cpp_cli_import_flag_set import_flags,
+                                a_boolean                 *is_duplicated)
 /*
 Import the assembly and return an unique assembly index.  *is_duplicated is
 set to true if this assembly have been imported before.  If so, the previous
@@ -3952,8 +4188,8 @@ assembly will be returned.
   check_assertion(metadata_reader->is_initialized());
   *is_duplicated = FALSE;
   /* Attempt to import this assembly. */
-  result = metadata_reader->import_assembly(assembly_full_name,
-                                            supported_features, &is_dup);
+  result = metadata_reader->import_assembly(assembly_full_name, import_flags,
+                                            &is_dup);
   *is_duplicated = is_dup ? TRUE : FALSE;
 #if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
   if (generate_portable_assemblies && result != 0) {
@@ -4066,18 +4302,8 @@ Cleanup.  Free all memory and release the interfaces.
 
 
 EXTERN_C_IN_CPP_FILE
-a_cpp_cli_feature_set
-                edg_supported_features = cpp_cli_ref_classes |
-                                         cpp_cli_value_types |
-                                         cpp_cli_interfaces |
-                                         cpp_cli_enumerations |
-                                         cpp_cli_nested_types |
-                                         cpp_cli_generic_types |
-                                         cpp_cli_generic_methods |
-                                         cpp_cli_delegates |
-                                         cpp_cli_properties |
-                                         cpp_cli_events |
-                                         cpp_cli_declspec_assemby_info;
+a_cpp_cli_import_flag_set
+                default_cpp_cli_import_flags = cpp_cli_declspec_assemby_info;
 
 #endif /* CPPCLI_ENABLING_POSSIBLE */
 
