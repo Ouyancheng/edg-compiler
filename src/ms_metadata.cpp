@@ -1435,7 +1435,8 @@ the Invoke method - which every delegate must have.
                                 no_generic_method_parameters,
                                 /*is_system_string_member=*/FALSE);
     buffer << decoder.decode_method_signature(delegate_name,
-                                              /*attributes=*/0,
+                                              method_attributes &
+                                                         ~(mdStatic|mdVirtual),
                                               /*omit_return_type=*/false,
                                               /*is_for_property=*/false);
     buffer << ';' << END_OF_LINE;
