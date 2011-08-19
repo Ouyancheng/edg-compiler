@@ -680,6 +680,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_win32_api_error)*/
 #endif /* !(EDG_WIN32 && MICROSOFT_EXTENSIONS_ALLOWED) */
 /*lint -esym(769,a_cpp_cli_feature_tag::*)*/
+/*lint -esym(769,a_cpp_cli_import_flag_tag::*)*/
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES && !WRITE_CPPCLI_PORTABLE_ASSEMBLIES
 /*lint -esym(759,clear_portable_assembly_header)*/
 /*lint -esym(765,clear_portable_assembly_header)*/
@@ -696,6 +697,11 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_single)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_double)*/
 /*lint -esym(769,a_cli_symbol_kind_tag::csk_system_double_is_long)*/
+#if !BACK_END_IS_CP_GEN_BE
+/*lint -esym(759,cli_managed_class_tag_keyword)*/
+/*lint -esym(765,cli_managed_class_tag_keyword)*/
+/*lint -esym(714,cli_managed_class_tag_keyword)*/
+#endif /* !BACK_END_IS_CP_GEN_BE */
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 /*lint -esym(759,is_class_struct_type)*/
 /*lint -esym(765,is_class_struct_type)*/
