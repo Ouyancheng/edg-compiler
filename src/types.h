@@ -1057,7 +1057,8 @@ extern a_boolean is_or_contains_trans_unit_specific_type(a_type_ptr  type_ptr);
 extern a_boolean is_invalid_template_arg_type(a_type_ptr  type_ptr,
                                               a_boolean   *is_unnamed,
                                               a_boolean   *is_local,
-                                              a_boolean   *is_vla);
+                                              a_boolean   *is_vla,
+                                              a_boolean   *is_generic);
 extern a_boolean is_template_dependent_type(a_type_ptr  type_ptr);
 extern a_boolean is_instantiation_dependent_type(a_type_ptr  type_ptr);
 extern a_boolean is_instantiation_dependent_type_or_cli_generic_param(

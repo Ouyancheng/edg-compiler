@@ -11294,11 +11294,51 @@ unnamed type, or type defined in an unnamed namespace.
   return result;
 }  /* is_or_contains_trans_unit_specific_type */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean ttt_is_or_contains_cli_generic_param(
+                                       a_type_ptr  type_ptr,
+                                       a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  Return TRUE if type_ptr is a template parameter
+type for a C++/CLI generic type parameter.
+*/
+{
+  a_boolean  found = FALSE;
+
+  if (is_cli_generic_param(type_ptr)) {
+    *force_end_of_traversal = found = TRUE;
+  }  /* if */
+  return found;
+}  /* ttt_is_or_contains_cli_generic_param */
+
+
+static a_boolean is_or_contains_cli_generic_param(a_type_ptr  type_ptr)
+/*
+Return TRUE if the type pointed to by type_ptr is itself a tk_template_param
+for a C++/CLI generic type parameter or is a type tree containing such a
+type.
+*/
+{
+  a_boolean result;
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                               TTT_PARAM_TYPES |
+                                               TTT_TEMPLATE_ARGS |
+                                               TTT_CLI_GENERIC_PARAMETERS |
+                                               TTT_PARENT_CLASSES);
+  result = traverse_type_tree(type_ptr, ttt_is_or_contains_cli_generic_param,
+                              ttt_flags);
+  return result;
+}  /* is_or_contains_cli_generic_param */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean is_invalid_template_arg_type(a_type_ptr  type_ptr,
                                        a_boolean   *is_unnamed,
                                        a_boolean   *is_local,
-                                       a_boolean   *is_vla)
+                                       a_boolean   *is_vla,
+                                       a_boolean   *is_generic)
 /*
 Return TRUE if the type pointed to by type_ptr contains a class, struct,
 union or enum type that cannot be part of a template argument type.  In
@@ -11312,8 +11352,9 @@ stops early, another component with a different property may also keep
 the type from having linkage without it being reflected in the values
 returned).  GNU C++ mode allows variable-length array types, but they
 are not valid template argument types: If one is encountered, FALSE is
-returned and *is_vla is set to TRUE.  This routine also sets the value
-of local_type_used_as_template_type_argument when needed.
+returned and *is_vla is set to TRUE.  In C++/CLI mode, *is_generic is
+set to TRUE if the type contains a generic type parameter.  This routine also
+sets the value of local_type_used_as_template_type_argument when needed.
 */
 {
   a_boolean	result = FALSE;
@@ -11334,6 +11375,7 @@ of local_type_used_as_template_type_argument when needed.
      ttt_is_type_with_no_name_linkage. */
   *is_local = is_local_type = FALSE;
   *is_unnamed = is_unnamed_type = FALSE;
+  *is_generic = FALSE;
   if (local_type_check_needed) {
     a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                  TTT_THIS_PARAM_TYPE |
@@ -11362,6 +11404,13 @@ of local_type_used_as_template_type_argument when needed.
   } else {
     *is_vla = FALSE;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* In C++/CLI mode, if the type is otherwise valid, check for a type
+     containing a generic type parameter. */
+  if (cppcli_enabled && !result) {
+    result = *is_generic = is_or_contains_cli_generic_param(type_ptr);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* is_invalid_template_arg_type */
 

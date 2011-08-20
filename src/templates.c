@@ -1874,10 +1874,10 @@ during wrapup processing by compare_function_templates.
             /* g++, starting with version 4.1, treats a local type as a
                template argument as a deduction failure (but not unnamed or VLA
                types). */
-            a_boolean		is_unnamed, is_local, is_vla;
+            a_boolean		is_unnamed, is_local, is_vla, is_generic;
             if (!is_lambda_closure_class &&
                 is_invalid_template_arg_type(
-                                        tp, &is_unnamed, &is_local, &is_vla)) {
+                           tp, &is_unnamed, &is_local, &is_vla, &is_generic)) {
               if (is_local) match = FALSE;
             }  /* if */
           }  /* if */
@@ -12658,15 +12658,20 @@ structure.
   while (tap != NULL) {
     if (is_type_templ_arg(tap)) {
       a_type_ptr	type = tap->variant.type;
-      a_boolean		is_unnamed, is_local, is_vla;
+      a_boolean		is_unnamed, is_local, is_vla, is_generic;
       if (is_invalid_template_arg_type(
-                                     type, &is_unnamed, &is_local, &is_vla)) {
+                         type, &is_unnamed, &is_local, &is_vla, &is_generic)) {
         if (is_local) {
           pos_error(ec_local_type_in_template_arg, source_pos);
           tap->variant.type = error_type();
         } else if (is_vla) {
           pos_error(ec_vla_type_in_template_arg, source_pos);
           tap->variant.type = error_type();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (is_generic && !tssp->is_generic) {
+          pos_error(ec_generic_type_in_template_arg, source_pos);
+          tap->variant.type = error_type();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (!microsoft_mode && !(gpp_mode && gnu_version < 30400)) {
           /* Since the type is not local and it has no name linkage, it is
              probably an unnamed type.  However, it could also be a member

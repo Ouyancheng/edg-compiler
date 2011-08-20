@@ -13514,26 +13514,42 @@ all arguments were explicit.
       arg_kind = templ_arg_kind_for_symbol_kind(sym->kind);
       arg_ptr = alloc_template_arg(arg_kind);
       if (is_type_templ_arg(arg_ptr)) {
-        a_boolean		is_unnamed, is_local, is_vla;
+        a_boolean	is_unnamed, is_local, is_vla, is_generic;
+        a_boolean	is_invalid = FALSE;           
         argument_type = scan_template_type_argument();
         /* In standard C++98/C++03, template type arguments must have linkage,
            and therefore cannot be based on local or unnamed classes/enums.  In
            Microsoft and C++0x modes, local class types are acceptable even
            though they have no linkage. */ 
         if (is_invalid_template_arg_type(
-                            argument_type, &is_unnamed, &is_local, &is_vla)) {
+                argument_type, &is_unnamed, &is_local, &is_vla, &is_generic)) {
           if (is_local) {
             pos_error(ec_local_type_in_template_arg, &arg_pos);
+            is_invalid = TRUE;
           } else if (is_unnamed) {
             pos_error(ec_unnamed_type_in_template_arg, &arg_pos);
+            is_invalid = TRUE;
           } else if (is_vla) {
             pos_error(ec_vla_type_in_template_arg, &arg_pos);
+            is_invalid = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (is_generic) {
+            /* A generic parameter cannot be used as a template argument.
+               C++/CLI arrays, pin_ptrs and interior_ptrs are not really
+               templates, so allow generic parameters for them. */
+            if (template_sym != cli_symbol_from_kind(csk_cli_array) &&
+                template_sym != cli_symbol_from_kind(csk_pin_ptr) &&
+                template_sym != cli_symbol_from_kind(csk_interior_ptr)) {
+              pos_error(ec_generic_type_in_template_arg, &arg_pos);
+              is_invalid = TRUE;
+            }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             /* A named type nested in an unnamed class has no linkage in
                C++98/C++03.  Use a different diagnostic for such cases. */
             pos_error(ec_type_with_no_linkage_in_template_arg, &arg_pos);
           }  /* if */
-          argument_type = error_type();
+          if (is_invalid) argument_type = error_type();
         }  /* if */
         arg_ptr->variant.type = argument_type;
       } else if (is_nontype_templ_arg(arg_ptr)) {

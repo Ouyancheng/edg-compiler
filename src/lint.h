@@ -840,6 +840,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_handle_member_in_standard_class)*/
 /*lint -esym(769,ec_tracking_reference_member_in_standard_class)*/
 /*lint -esym(769,ec_reinterpret_cast_of_handle)*/
+/*lint -esym(769,ec_generic_type_in_template_arg)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
