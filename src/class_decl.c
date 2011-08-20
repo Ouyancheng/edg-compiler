@@ -12678,6 +12678,7 @@ specific information about the member declaration, respectively.
   a_type_ptr               member_type = decl_state->type;
   a_source_position        *start_pos = &decl_state->start_pos;
   a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
+  a_scope_depth            effective_decl_level;
 
   db_enter(3, "decl_static_data_member");
   if (is_void_type(member_type)) {
@@ -12757,10 +12758,13 @@ specific information about the member declaration, respectively.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  effective_decl_level = class_type->variant.class_struct_union.extra_info->
+                                           assoc_scope->depth_in_scope_stack;
+  check_assertion(effective_decl_level != NO_SCOPE_DEPTH);
   /* If this is a member template declaration, don't add it to the variables
      list (in part to avoid problems caused by an invalid scope). */
   if (!decl_info->is_member_template || prototype_instantiations_in_il) {
-    add_to_variables_list(var, decl_scope_level);
+    add_to_variables_list(var, effective_decl_level);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (var_is_property_or_event(var) &&
@@ -12769,7 +12773,7 @@ specific information about the member declaration, respectively.
        Multiple properties (static and/or nonstatic) of the same name can be
        recorded under the same symbol (but each property also has its own
        sk_field or sk_static_data_member symbol). */
-    sym = enter_property_set_member(locator, decl_scope_level,
+    sym = enter_property_set_member(locator, effective_decl_level,
                                     var->property_or_event_descr,
                                     &property_set);
   } else
@@ -12777,7 +12781,7 @@ specific information about the member declaration, respectively.
   /* Do not insert code here. */
   {
     sym = enter_symbol((a_symbol_kind)sk_static_data_member, locator,
-                       decl_scope_level, /*suppress_redecl_error=*/FALSE);
+                       effective_decl_level, /*suppress_redecl_error=*/FALSE);
   }  /* if */
   decl_state->sym = sym;
   /* Set the source correspondence fields of the variable. */
@@ -19514,9 +19518,13 @@ being parsed), *decl_info describes the current member declaration, and
                     dps->sym->kind == (a_symbol_kind)sk_static_data_member);
     pdp->variant.variable = dps->sym->variant.static_data_member.variable;
   } else {
+    a_scope_depth effective_decl_level;
+    effective_decl_level = class_type->variant.class_struct_union.extra_info->
+                                           assoc_scope->depth_in_scope_stack;
+    check_assertion(effective_decl_level != NO_SCOPE_DEPTH);
     pdp->variant.field = decl_nonstatic_data_member(&loc, class_state,
                                                     decl_info,
-                                                    depth_scope_stack);
+                                                    effective_decl_level);
   }  /* if */
   ctsp->has_direct_property_or_event = TRUE;
   if (pdp->is_trivial) {
