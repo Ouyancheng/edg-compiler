@@ -13515,7 +13515,7 @@ all arguments were explicit.
       arg_ptr = alloc_template_arg(arg_kind);
       if (is_type_templ_arg(arg_ptr)) {
         a_boolean	is_unnamed, is_local, is_vla, is_generic;
-        a_boolean	is_invalid = FALSE;           
+        a_boolean	is_invalid = FALSE;
         argument_type = scan_template_type_argument();
         /* In standard C++98/C++03, template type arguments must have linkage,
            and therefore cannot be based on local or unnamed classes/enums.  In
@@ -13523,15 +13523,13 @@ all arguments were explicit.
            though they have no linkage. */ 
         if (is_invalid_template_arg_type(
                 argument_type, &is_unnamed, &is_local, &is_vla, &is_generic)) {
+          is_invalid = TRUE;
           if (is_local) {
             pos_error(ec_local_type_in_template_arg, &arg_pos);
-            is_invalid = TRUE;
           } else if (is_unnamed) {
             pos_error(ec_unnamed_type_in_template_arg, &arg_pos);
-            is_invalid = TRUE;
           } else if (is_vla) {
             pos_error(ec_vla_type_in_template_arg, &arg_pos);
-            is_invalid = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           } else if (is_generic) {
             /* A generic parameter cannot be used as a template argument.
@@ -13541,7 +13539,8 @@ all arguments were explicit.
                 template_sym != cli_symbol_from_kind(csk_pin_ptr) &&
                 template_sym != cli_symbol_from_kind(csk_interior_ptr)) {
               pos_error(ec_generic_type_in_template_arg, &arg_pos);
-              is_invalid = TRUE;
+            } else {
+              is_invalid = FALSE;
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
