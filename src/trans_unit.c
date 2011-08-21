@@ -421,7 +421,7 @@ pointed to by the translation unit entry.
        since the top level declarations are in the symbol table already, we
        can skip that step. */
     cmfp = il_header.cli_metadata_files;
-    while (cmfp) {
+    while (cmfp != NULL) {
       an_assembly_index         assembly_index;
       a_cpp_cli_import_flag_set import_flags = default_cpp_cli_import_flags;
       if (cmfp->as_friend) {
