@@ -1266,8 +1266,12 @@ constructs, in which case offsetof_case is TRUE.
       /* Do not insert code here. */
       {
         /* Normal case, not C++/CLI array. */
-        an_operand *pointer_operand, *integer_operand;
-        a_boolean  pointer_operand_is_second = FALSE;
+        an_operand    *pointer_operand, *integer_operand;
+        a_boolean     pointer_operand_is_second = FALSE;
+        an_error_code err_code = ec_expr_not_pointer_to_object;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cppcli_enabled) err_code = ec_expr_not_pointer_or_array_handle;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (subscript_is_expr_list) {
           /* If the contents of the [...] were scanned as an expression list,
              but this did not turn out to be a CLI array case, turn an
@@ -1311,13 +1315,13 @@ constructs, in which case offsetof_case is TRUE.
                    /* Pointer to incomplete array is also allowed. */
                    check_object_or_incomp_array_pointer_operand(
                                                  pointer_operand,
-                                                 ec_expr_not_pointer_to_object,
+                                                 err_code,
                                                  integer_operand)
 #else /* !PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
                    check_object_pointer_operand(pointer_operand,
-                                                ec_expr_not_pointer_to_object)
+                                                err_code)
 #endif /* PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
-                                                                            ) {
+                                                         ) {
           result_type = type_pointed_to(pointer_operand->type);
         } else {
           result_type = error_type();
