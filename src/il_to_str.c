@@ -842,20 +842,29 @@ common_long_long_processing:
                                 break;
 #endif /* LONG_LONG_ALLOWED */
 #if INT128_EXTENSIONS_ALLOWED
+    /* Currently, we only accept 128-bit integer types in GNU modes, where
+       such types can be denoted using the predeclared typedefs __int128_t and
+       __uint128_t.  Other dialects are likely to use a different notation for
+       these types (e.g., "signed __int128" and "unsigned __int128): This code
+       should be revised for such dialects. */ 
     case ik_int128:
-                                if (int128_extensions_enabled) {
-                                  check_assertion(gnu_mode);
+                                if (gnu_mode) {
+#if !STANDALONE_UTILITY_PROGRAM
+                                  check_assertion(int128_extensions_enabled);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
                                   p = "__int128_t";
                                 } else {
-                                  p = "**BAD-INT-KIND**";
+                                  p = "**128-BIT SIGNED INTEGER**";
                                 }  /* if */
                                 break;
     case ik_unsigned_int128:
-                                if (int128_extensions_enabled) {
-                                  check_assertion(gnu_mode);
+                                if (gnu_mode) {
+#if !STANDALONE_UTILITY_PROGRAM
+                                  check_assertion(int128_extensions_enabled);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
                                   p = "__uint128_t";
                                 } else {
-                                  p = "**BAD-INT-KIND**";
+                                  p = "**128-BIT UNSIGNED INTEGER**";
                                 }  /* if */
                                 break;
 #endif /* INT128_EXTENSIONS_ALLOWED */
