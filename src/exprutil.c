@@ -4245,6 +4245,23 @@ cleanup required.
 }  /* operand_will_not_be_used_because_of_error */
 
 
+void arg_operand_list_will_not_be_used_because_of_error(
+                                                  an_arg_operand *operand_list)
+/*
+The indicated operand list will not be used further because an error has
+been detected.  There is also the implication that because of the
+error we cannot tell how the operands would have been used.  Do any
+cleanup required.  The list is not freed.
+*/
+{
+  an_arg_operand *arg_op;
+
+  for (arg_op = operand_list; arg_op != NULL; arg_op = arg_op->next) {
+    operand_will_not_be_used_because_of_error(&arg_op->operand);
+  }  /* for */
+}  /* arg_operand_list_will_not_be_used_because_of_error */
+
+
 void conv_to_error_operand(an_operand *operand)
 /*
 Take an existing operand and convert it to an error operand.  Retain the

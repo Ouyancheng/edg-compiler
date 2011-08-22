@@ -2287,6 +2287,7 @@ ec_handle_member_in_standard_class;;"a member of a non-managed class cannot be a
 ec_tracking_reference_member_in_standard_class;;"a member of a non-managed class cannot be a tracking reference"
 ec_reinterpret_cast_of_handle;;"unsafe reinterpret_cast of handle"
 ec_generic_type_in_template_arg;;"a template argument may not reference a generic type parameter"
+ec_comma_operator_in_cli_subscript;;"an expression list is not allowed in this subscript operation (use parentheses around a top-level comma operator)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

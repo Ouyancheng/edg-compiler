@@ -171,6 +171,8 @@ conversion_from_class_possible.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define BTK_HANDLE 0x200
 			/* Any C++/CLI handle type. */
+#define BTK_HANDLE_TO_CLI_ARRAY 0x400
+			/* Handle to a CLI array type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define BTK_NONE 0
 typedef int a_builtin_type_kind_set;

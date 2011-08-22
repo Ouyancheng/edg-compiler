@@ -998,23 +998,31 @@ constructs, in which case offsetof_case is TRUE.
   if (microsoft_mode) {
     if (cppcli_enabled) {
       a_type_ptr op1_type = operand_1->type;
-      a_boolean  is_handle = is_handle_type(op1_type);
       rewrite_class_with_default_indexed_property_as_property_ref(operand_1);
-      cli_array_case = (is_handle &&
-                        is_cli_array_type(type_pointed_to(op1_type)));
+      cli_array_case = is_handle_to_cli_array_type(op1_type);
+      /* Decide on scanning what's between the [ ... ] as an expression
+         list or a single expression.  The ECMA standard says that it is
+         always scanned as an expression list, but VC10 doesn't do that.
+         We try to distinguish cases where a CLI array might apply, and
+         only scan an expression list in those cases, thus preserving
+         more C/C++ compatibility.  In the case of a class operand, we
+         scan an expression list because the class might be convertible
+         to a handle to CLI array.  If it turns out later that the subscripting
+         is a standard C++ case, and more than one expression was scanned,
+         we'll give an error.  We do that, rather than converting the
+         expression list to a comma-operator list, because that conversion
+         is dangerous or improper once variadic template pack expansions
+         are allowed in the expression list. */
       if (subscript_is_expr_list) {
         /* On a rescan of an enk_cli_subscript, we always go the
            expression-list route.  A rescan of an eok_subscript can go
            either way. */
       } else if (cli_array_case ||
-                 is_template_param_type(op1_type) ||
-                 (is_handle &&
-                  is_template_param_type(type_pointed_to(op1_type))) ||
-                 is_error_type(op1_type) ||
+                 is_overloadable_type_first_operand(operand_1) ||
                  is_property_ref_operand(operand_1)) {
         /* In C++/CLI mode, the [...] brackets contain an expression list
            instead of a single expression if the array is a C++/CLI
-           array or a property reference. */
+           array (or might be convertible to one) or a property reference. */
         subscript_is_expr_list = TRUE;
       }  /* if */
     }  /* if */
@@ -1041,21 +1049,6 @@ constructs, in which case offsetof_case is TRUE.
                                       /*is_delegate_init=*/FALSE,
                                       /*empty_list_okay=*/FALSE,
                                       /*trailing_comma_okay=*/FALSE);
-      check_assertion(operand_2_list != NULL);
-      if (cli_array_case ||
-          is_property_ref_operand(operand_1)) {
-        /* We know we want to handle these specially regardless of the
-           number of subscripts. */
-      } else if (operand_2_list->next == NULL) {
-        /* We scanned the subscripts as a list because the first operand
-           is a template parameter or an error, and therefore might be
-           a C++/CLI array, but it's turned out there is only one subscript,
-           so fall back to the traditional interpretation. */
-        subscript_is_expr_list = FALSE;
-        copy_operand(&operand_2_list->operand, &operand_2);
-        free_arg_operand_list(operand_2_list);
-        operand_2_list = NULL;
-      }  /* if */
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
@@ -1073,6 +1066,9 @@ constructs, in which case offsetof_case is TRUE.
     operand_will_not_be_used_because_of_error(operand_1);
     if (!subscript_is_expr_list) {
       operand_will_not_be_used_because_of_error(&operand_2);
+    } else {
+      arg_operand_list_will_not_be_used_because_of_error(operand_2_list);
+      /* The list is freed at the end below. */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode &&
@@ -1118,30 +1114,67 @@ constructs, in which case offsetof_case is TRUE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     if (C_dialect == C_dialect_cplusplus &&
-        !subscript_is_expr_list &&
         (is_overloadable_type_first_operand(operand_1) ||
          is_overloadable_type_operand(&operand_2))) {
+      a_boolean has_predef_meaning = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (subscript_is_expr_list) {
+        /* If we have an expression list, pass the last expression as
+           the second operand.  If the list has only one member, that's
+           a full representation of the list.  If it has more than
+           one, that models the type and value category the operand
+           would have if it were treated a comma-operator expression.
+           (Even though, for reasons noted above, we don't do that
+           conversion, doing that produces more sensible behavior.)
+           In either case, we want to go to check_for_operator_overloading
+           so we can check for conversions to a handle to CLI array. */
+        an_arg_operand *arg_op = operand_2_list;
+        check_assertion(arg_op != NULL);
+        while (arg_op->next != NULL) arg_op = arg_op->next;
+        copy_operand(&arg_op->operand, &operand_2);
+      }  /* if */
+      if (cppcli_enabled &&
+          (is_class_struct_union_type(operand_1->type) ||
+           is_handle_type(operand_1->type))) {
+        /* In C++/CLI, a class operand can be converted to a handle to
+           CLI array, which has a predefined meaning. */
+        has_predef_meaning = TRUE;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Look for C++ operator overloading cases. */
       check_for_operator_overloading((an_opname_kind)onk_subscript,
                                      /*unary_operator=*/FALSE,
                                      /*must_be_member_function=*/TRUE,
                                      /*try_conversions=*/TRUE,
-                                     /*has_predef_meaning=*/FALSE,
+                                     has_predef_meaning,
                                      operand_1, &operand_2,
                                      &operator_position,
                                      operator_tok_seq_number,
                                      (a_nondependent_call_depth)0,
                                      &closing_bracket_position,
                                      result, &processed);
-      if (offsetof_case && processed) {
-        /* An overloaded operator cannot be used with __builtin_offsetof. */
+      if (processed && (offsetof_case || cppcli_enabled)) {
+        /* An overloaded operator cannot be used with __builtin_offsetof and
+           some C++/CLI cases. */
         if (is_expression_operand(result) &&
             is_operation_node(result->variant.expression) &&
             node_operator_is(result->variant.expression, eok_subscript)) {
           /* A generic subscripting operation is okay. */
-        } else if (!is_error_operand(result)) {
+        } else if (is_error_operand(result)) {
+          /* An error is also okay. */
+        } else if (offsetof_case) {
           expr_pos_error(ec_no_overloaded_subscript_with_offsetof,
                          &operator_position);
+          conv_to_error_operand(result);
+        } else if (subscript_is_expr_list &&
+                   operand_2_list->next != NULL) {
+          /* If an operand[] was selected, and an expression list containing
+             more than one expression was scanned, give an error.  See comment
+             above about not wanting to convert the expression list to a
+             comma-operator expression. */
+          check_assertion(subscript_is_expr_list);
+          expr_pos_error(ec_comma_operator_in_cli_subscript,
+                         &operand_2_list->operand.position);
           conv_to_error_operand(result);
         }  /* if */
       }  /* if */
@@ -1150,13 +1183,18 @@ constructs, in which case offsetof_case is TRUE.
       /* Non-operator-function cases. */
       do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (subscript_is_expr_list) {
+      /* If conversions were done, this might now be a CLI array case. */
+      cli_array_case = is_handle_to_cli_array_type(operand_1->type);
+      if (cli_array_case) {
         /* A C++/CLI array subscripting case. */
         an_arg_operand_ptr    arg_op;
         an_expr_node_ptr      subsc_expr_list = NULL,
                               end_subsc_expr_list = NULL;
         a_host_large_unsigned subsc_count = 0;
         a_boolean             any_subsc_error = FALSE;
+        /* We were supposed to ensure that any case that could be a CLI array
+           was scanned as an expression list. */
+        check_assertion(subscript_is_expr_list);
         /* Check the types of the subscripts and link them into a list
            of expressions. */
         for (arg_op = operand_2_list; arg_op != NULL; arg_op = arg_op->next) {
@@ -1230,6 +1268,23 @@ constructs, in which case offsetof_case is TRUE.
         /* Normal case, not C++/CLI array. */
         an_operand *pointer_operand, *integer_operand;
         a_boolean  pointer_operand_is_second = FALSE;
+        if (subscript_is_expr_list) {
+          /* If the contents of the [...] were scanned as an expression list,
+             but this did not turn out to be a CLI array case, turn an
+             expression list containing a single expression into just an
+             expression, but issue an error for a list containing multiple
+             expressions. */
+          if (operand_2_list->next == NULL) {
+            copy_operand(&operand_2_list->operand, &operand_2);
+          } else {
+            expr_pos_error(ec_comma_operator_in_cli_subscript,
+                           &operand_2_list->operand.position);
+            make_error_operand(&operand_2);
+          }  /* if */
+          subscript_is_expr_list = FALSE;
+          free_arg_operand_list(operand_2_list);
+          operand_2_list = NULL;
+        }  /* if */
         do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
         /* One of the operands must have type "pointer to object type" and the 
            other must be an integral expression. */
@@ -14396,14 +14451,7 @@ expression, and return the result in *result (or an error indication in
       expr_pos_error(ec_type_must_be_object_type, &type_position);
     }  /* if */
     err = TRUE;
-  } else if (is_abstract_class_type(new_type)
-#if MICROSOFT_EXTENSIONS_ALLOWED
-             /* FIXME: The array check here is to work around a bug where a
-                C++/CLI array is seen as an abstract class with unimplemented
-                members.  Remove it once this is fixed. */
-             && !is_cli_array_type(new_type)
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                            ) {
+  } else if (is_abstract_class_type(new_type)) {
     /* The type is an abstract class type, so an object of the type
        cannot be allocated. */
     if (expr_error_should_be_issued()) {

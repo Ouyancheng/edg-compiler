@@ -1474,6 +1474,8 @@ for overload resolution.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define HANDLE_TYPE_CODE 'H'
 			/* Any C++/CLI handle type. */
+#define HANDLE_TO_CLI_ARRAY_TYPE_CODE 'h'
+			/* C++/CLI handle to CLI array type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define POINTER_TO_OBJECT_TYPE_CODE 'O'
 			/* Pointer to object type. */
@@ -1521,6 +1523,9 @@ Return a printable string describing a type code.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case HANDLE_TYPE_CODE:
       str = "handle";
+      break;
+    case HANDLE_TO_CLI_ARRAY_TYPE_CODE:
+      str = "handle-to-CLI-array";
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case POINTER_TO_OBJECT_TYPE_CODE:
@@ -10947,6 +10952,8 @@ are considered).  conv_context describes the context of the conversion.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           ((builtin_types_allowed & BTK_HANDLE) != 0 &&
                                               is_handle_type(return_type)) ||
+          ((builtin_types_allowed & BTK_HANDLE_TO_CLI_ARRAY) != 0 &&
+                                   is_handle_to_cli_array_type(return_type)) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           ((builtin_types_allowed & BTK_POINTER_TO_OBJECT) != 0 &&
                                      is_pointer_to_object_type(return_type)) ||
@@ -11450,6 +11457,12 @@ as its first operand.
         /* "[]" takes pointer[ptrdiff_t] or ptrdiff_t[pointer]. */
         if (sun_mode) {
           operand_type_pattern = "OD";
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcli_enabled) {
+          /* C++/CLI allows handles to CLI arrays too (but we only allow
+             that on the first operand). */
+          operand_type_pattern = "OD;DO;hD";
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           operand_type_pattern = "OD;DO";
         }  /* if */
@@ -11514,6 +11527,9 @@ it fits that type description or can be converted to it.
     case HANDLE_TYPE_CODE:
       matches = is_handle_type(type);
       break;
+    case HANDLE_TO_CLI_ARRAY_TYPE_CODE:
+      matches = is_handle_to_cli_array_type(type);
+      break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case POINTER_TO_OBJECT_TYPE_CODE:
       matches = is_pointer_to_object_type(type);
@@ -11572,6 +11588,9 @@ type_code.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case HANDLE_TYPE_CODE:
       builtin_types_allowed = BTK_HANDLE;
+      break;
+    case HANDLE_TO_CLI_ARRAY_TYPE_CODE:
+      builtin_types_allowed = BTK_HANDLE_TO_CLI_ARRAY;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case POINTER_TO_OBJECT_TYPE_CODE:

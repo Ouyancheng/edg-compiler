@@ -2016,6 +2016,9 @@ extern void expr_overload_check_ambiguity_and_verify_access(
 
 extern void operand_will_not_be_used_because_of_error(an_operand *operand);
 
+extern void arg_operand_list_will_not_be_used_because_of_error(
+                                                 an_arg_operand *operand_list);
+
 extern void conv_to_error_operand(an_operand *operand);
 
 extern void normalize_error_operand(an_operand *operand);
