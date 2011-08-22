@@ -14400,9 +14400,11 @@ conv_context describes the context of the conversion.
                                   &candidate_functions);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled &&
-        dest_type != NULL && is_managed_class_type(dest_type)) {
+        dest_type != NULL &&
+        (is_managed_class_type(dest_type) ||
+         is_overloadable_handle_type(dest_type))) {
       /* Try C++/CLI static conversion functions that convert to the
-         destination class type. */
+         destination class or handle-to-class type. */
       try_static_conversion_function_match(source_operand,
                                            dest_type,
                                            (a_builtin_type_kind_set)BTK_NONE,
