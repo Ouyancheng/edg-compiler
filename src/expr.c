@@ -21470,7 +21470,8 @@ third operands of a "?" operator, have the same type.
   a_type_ptr type_3 = operand_3->type;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_bugs && !is_class_struct_union_type(type_2)) {
+  if (microsoft_bugs && microsoft_version < 1400 &&
+      !is_class_struct_union_type(type_2)) {
     /* In Microsoft mode, cv-qualifiers are ignored in determining
        whether two non-class operands have the same type. */
     if ((is_qualified_type(type_2) && is_bit_field_operand(operand_2)) ||
