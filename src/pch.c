@@ -2155,7 +2155,7 @@ is created when the primary source file is reopened between the two fixups.
     a_boolean               is_duplicate;
 
     cmfp = il_header.cli_metadata_files;
-    while (cmfp) {
+    while (cmfp != NULL) {
       an_assembly_index         assembly_index;
       a_cpp_cli_import_flag_set import_flags = default_cpp_cli_import_flags;
       if (cmfp->as_friend) {
