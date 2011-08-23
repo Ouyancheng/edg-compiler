@@ -10519,6 +10519,7 @@ object types can be incomplete in some cases.
 
 static void try_conversion_function_match_full(
                           an_operand               *source_operand,
+                          a_type_ptr               source_type,
                           a_type_ptr               dest_type,
                           a_type_ptr               requested_type,
                           a_builtin_type_kind_set  builtin_types_allowed,
@@ -10541,6 +10542,10 @@ See if source_operand can be converted by a conversion function to either
     (b) takes precedence, and dest_type is used only to guide the
     selection of template conversion functions and to establish the
     cost of any conversion needed after the conversion function).
+
+If only a source type, and not a source operand, is available,
+it can be indicated by passing it as source_type, and source_operand
+will be ignored.
 
 Usually, this routine is called for standard conversion functions and
 source_operand has a class type.  When cppcli_atypical_case is TRUE,
@@ -10577,7 +10582,7 @@ are considered).  conv_context describes the context of the conversion.
   a_symbol_ptr              conversion_symbol, base_conversion_symbol;
   a_routine_ptr             conversion_routine;
   a_symbol_list_entry_ptr   slep;
-  a_type_ptr                source_type, conv_routine_type, return_type;
+  a_type_ptr                conv_routine_type, return_type;
   a_type_ptr                raw_return_type, eff_this_param_type;
   an_arg_match_summary      this_match;
   an_arg_match_summary_ptr  this_match_ptr;
@@ -10610,7 +10615,12 @@ are considered).  conv_context describes the context of the conversion.
     dest_type = requested_type = integer_type(targ_ptrdiff_t_int_kind);
     builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
   }  /* if */
-  source_type = source_operand->type;
+  if (source_type != NULL) {
+    source_operand = NULL;
+  } else {
+    check_assertion(source_operand != NULL);
+    source_type = source_operand->type;
+  }  /* if */
   if (!cppcli_atypical_case) {
     check_assertion_str(is_class_struct_union_type(source_type),
                        "try_conversion_function_match_full: source not class");
@@ -11004,14 +11014,23 @@ are considered).  conv_context describes the context of the conversion.
          argument against the first parameter. */
       a_param_type_ptr ptp = function_type_params(conv_routine_type);
       check_assertion(cppcli_enabled && ptp != NULL && ptp->next == NULL);
-      determine_arg_match_level(source_operand, (a_type_ptr)NULL,
+      determine_arg_match_level(source_operand,
+                                ((source_operand != NULL) ? (a_type_ptr)NULL :
+                                                            source_type),
                                 ptp->type, ptp,
                                 ptp->type_involves_deduced_template_param,
                                 /*try_user_conversions=*/FALSE,
                                 &this_match);
-    } else {
+    } else if (source_operand != NULL) {
       selector_match_with_this_param(source_operand,
                                      conversion_routine,
+                                     eff_this_param_type,
+                                     &this_match);
+    } else {
+      /* We only have a source type, not a source operand. */
+      determine_selector_match_level(source_type,
+                                     /*selector_is_object_pointer=*/
+                                        is_pointer_or_handle_type(source_type),
                                      eff_this_param_type,
                                      &this_match);
     }  /* if */
@@ -11078,6 +11097,7 @@ parameters.
 */
 {
   try_conversion_function_match_full(source_operand,
+                                     (a_type_ptr)NULL,
                                      dest_type,
                                      requested_type,
                                      builtin_types_allowed,
@@ -11133,6 +11153,7 @@ type conversion.  conv_context describes the context of the conversion.
          a handle to the class as the source parameter. */
       conv_funcs_class=f_skip_typerefs(type_pointed_to(source_operand->type));
       try_conversion_function_match_full(source_operand,
+                                         (a_type_ptr)NULL,
                                          dest_type,
                                          dest_type,
                                          builtin_types_allowed,
@@ -11153,6 +11174,7 @@ type conversion.  conv_context describes the context of the conversion.
              bcp = bcp->next) {
           conv_funcs_class = bcp->type;
           try_conversion_function_match_full(source_operand,
+                                             (a_type_ptr)NULL,
                                              dest_type,
                                              dest_type,
                                              builtin_types_allowed,
@@ -11188,6 +11210,7 @@ type conversion.  conv_context describes the context of the conversion.
           conv_funcs_class = skip_typerefs(underlying_dest_type);
           try_conversion_function_match_full(
                                            source_operand,
+                                           (a_type_ptr)NULL,
                                            dest_type,
                                            dest_type,
                                            /*builtin_types_allowed=*/BTK_NONE,
@@ -14619,6 +14642,27 @@ conv_context describes the context of the conversion.
                                              is_reference_binding,
                                              conv_context,
                                              &candidate_functions);
+        if (is_handle_type(source_type) && !builtin_case) {
+          /* A traditional nonstatic conversion function of class X can
+             be used to convert an X^ to another type.  At least, VC10
+             allows that... */
+          a_type_ptr qual_class_type = type_pointed_to(source_type);
+          if (is_class_struct_union_type(qual_class_type)) {
+            try_conversion_function_match_full((an_operand *)NULL,
+                                               qual_class_type,
+                                               dest_type,
+                                               dest_type,
+                                               builtin_types_allowed,
+                                               /*cppcli_atypical_case=*/FALSE,
+                                               (a_type_ptr)NULL,
+                                               need_lvalue_result,
+                                               is_copy_initialization,
+                                               orig_is_copy_initialization,
+                                               is_reference_binding,
+                                               conv_context,
+                                               &candidate_functions);
+          }  /* if */
+        }  /* if */
         /* Of the viable functions, select the best. */
         select_best_candidate_functions(&candidate_functions,
                                         &source_operand->position,
@@ -15210,6 +15254,16 @@ is used only in C++ mode.
                           (a_conv_descr *)NULL,
                           ec_incompatible_param);
   } else {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && is_handle_type(operand->type) &&
+        !operand->selector_is_object_pointer) {
+      /* VC10 allows calling a traditional nonstatic conversion function
+         to convert from a handle-to-class as if the operand is of class
+         type. */
+      conv_lvalue_to_rvalue(operand);
+      operand->selector_is_object_pointer = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Check for the cfront anachronism that allows a non-const function to be
        called for a const selector (see determine_selector_match_level). */
     if (cfront_2_1_mode &&
