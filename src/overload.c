@@ -14642,7 +14642,7 @@ conv_context describes the context of the conversion.
                                              is_reference_binding,
                                              conv_context,
                                              &candidate_functions);
-        if (is_handle_type(source_type) && !builtin_case) {
+        if (is_handle_type(source_type)) {
           /* A traditional nonstatic conversion function of class X can
              be used to convert an X^ to another type.  At least, VC10
              allows that... */

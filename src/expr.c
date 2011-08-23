@@ -8460,7 +8460,7 @@ error indication in *rcblock).
       check_for_operator_overloading((an_opname_kind)onk_star,
                                      /*unary_operator=*/TRUE,
                                      /*must_be_member_function=*/FALSE,
-                                     /*try_conversions=*/TRUE,
+                                     /*try_conversions=*/!has_predef_meaning,
                                      has_predef_meaning,
                                      &operand, (an_operand *)NULL,
                                      &operator_position,
