@@ -10525,19 +10525,30 @@ modification will be added to restore the first token to the current line.
     }  /* switch */
   }  /* if */
   if (return_token != first_word && return_token != tok_identifier) {
-    /* A whitespace keyword was detected.  Add a source line modification
-       to reduce the whitespace keyword into its canonical form. */
-    check_assertion(return_token >= tok_first_whitespace_token &&
-                    return_token <= tok_last_whitespace_token);
-    kwd = &whitespace_keywords[(int)return_token -
-                               (int)tok_first_whitespace_token];
-    slmp = add_source_line_modif(orig_loc, (sizeof_t)(end_of_word - orig_loc),
-                                 kwd->text, kwd->end_of_insertion);
-    adjust_deletion_counts(orig_loc, slmp->num_chars_to_delete);
-    slmp->is_whitespace_kwd = TRUE;
-    slmp->source_position = start_pos;
-    start_of_curr_token = kwd->text;
-    curr_char_loc = kwd->end_of_insertion;
+    /* A whitespace keyword was detected. */
+    if (!in_token_insertion_from_string) {
+      /* Add a source line modification to reduce the whitespace keyword
+         into its canonical form. */
+      check_assertion(return_token >= tok_first_whitespace_token &&
+                      return_token <= tok_last_whitespace_token);
+      kwd = &whitespace_keywords[(int)return_token -
+                                 (int)tok_first_whitespace_token];
+      slmp = add_source_line_modif(orig_loc,
+                                   (sizeof_t)(end_of_word - orig_loc),
+                                   kwd->text, kwd->end_of_insertion);
+      adjust_deletion_counts(orig_loc, slmp->num_chars_to_delete);
+      slmp->is_whitespace_kwd = TRUE;
+      slmp->source_position = start_pos;
+      start_of_curr_token = kwd->text;
+      curr_char_loc = kwd->end_of_insertion;
+    } else {
+      /* This is in an insertion from a string.  Since it does not come
+         from the source line or from text in the macro buffer, we cannot
+         use a source line modification, so we just take the text in situ
+         as the current token. */
+      start_of_curr_token = orig_loc;
+      curr_char_loc = end_of_word;
+    }  /* if */
     len_of_curr_token = curr_char_loc - start_of_curr_token;
     end_of_curr_token = curr_char_loc - 1;
   } else if (curr_seq_number != start_seq_number) {
