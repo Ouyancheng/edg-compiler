@@ -15706,6 +15706,8 @@ definition described by class_state.
       check_assertion(!ambiguous);
       expect_error();
     }  /* if */
+  } else if (cli_class_type_kind_is(class_type, cctk_interface)) {
+    /* Interface classes never have a default constructor. */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
