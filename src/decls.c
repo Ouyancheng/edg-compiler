@@ -11260,14 +11260,17 @@ specifier is restored.  dps describes the linkage-specification declaration.
 }  /* linkage_specification */
 
 
-static a_boolean is_invalid_catch_type(a_type_ptr type, a_source_position *pos)
+static a_boolean is_invalid_catch_type(a_type_ptr         type,
+                                       a_source_position  *pos)
 /*
 Check whether the given type is a valid catch type: incomplete types, pointers
 and references to incomplete types and abstract class types are not valid.
-pos is used to mark the location that carries any diagnostic.
+Issue diagnostics as appropriate at the given position.  Return TRUE if the
+given type should not be used for error recovery purposes.
 */
 {
   a_boolean result = FALSE;
+
   if (vla_enabled && is_variably_modified_type(type)) {
     pos_error(ec_vla_not_allowed, pos);
     result = TRUE;
@@ -11288,6 +11291,7 @@ pos is used to mark the location that carries any diagnostic.
                is_managed_class_type(type_pointed_to(type))))) {
     /* In C++/CLI, managed types can only be thrown and caught by handle. */
     pos_error(ec_managed_object_not_caught_by_handle, pos);
+    result = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (is_any_ptr_or_ref_type(type)) {
     type = type_pointed_to(type);
