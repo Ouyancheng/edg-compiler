@@ -7910,7 +7910,7 @@ appropriate.
                                            (an_access_specifier)as_public);
         system_object_base->direct = TRUE;
         system_object_base->is_implicit_direct_base = TRUE;
-        system_object_base->direct_base_number = direct_base_number;
+        system_object_base->direct_base_number = direct_base_number+1;
       }  /* if */
     } else if (add_implicit_base && !is_cli_system_object_type(class_type)) {
       a_base_class_ptr              last_bcp = NULL;
