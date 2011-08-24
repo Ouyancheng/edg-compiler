@@ -7159,6 +7159,12 @@ issue an error and return FALSE.
         if (cppcli_enabled &&
             is_immediate_managed_class_type(base_class_type)) {
           pos_error(ec_managed_base_for_standard_class, &error_position);
+          if (cli_class_type_kind_is(base_class_type, cctk_interface)) {
+            /* If the base class is an interface class, do not place it in the
+               list of base classes because its lack of constructors would
+               cause difficulties later on. */
+            okay = FALSE;
+          }  /* if */
         }  /* if */
         if (microsoft_version >= 1300) {
           /* Recent Microsoft compilers apply the dllimport/dllexport
