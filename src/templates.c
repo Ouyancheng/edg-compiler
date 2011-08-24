@@ -12742,10 +12742,10 @@ structure.
                                    /*in_class_specialization=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (cppcli_enabled && tssp->is_generic) {
-          /* Make sure the generic argument list satisfies the constraints
-             of the generic. */
-          verify_generic_arg_list_satisfies_constraints(templ_sym, *new_list,
-                                                        source_pos);
+        /* Make sure the generic argument list satisfies the constraints
+           of the generic. */
+        verify_generic_arg_list_satisfies_constraints(templ_sym, *new_list,
+                                                      source_pos);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
