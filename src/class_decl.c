@@ -12221,15 +12221,19 @@ declarations.)
         add_flags_from_dll_attributes(&dps->decl_modifiers.flags,
                                       dps->prefix_attributes);
       }  /* if */
-    }  /* if */
-    if (cppcli_enabled && decl_info->is_static_constructor) {
-      /* A static constructor member template is invalid. */
-      pos_error(ec_static_constructor_member_template,
-                &locator->source_position);
-      /* For error recovery purposes, treat the prototype instance as a static
-         constructor entry. */
-      set_routine_special_kind(
+      if (dps->ms_attributes != NULL && microsoft_version >= 1400) {
+        apply_microsoft_attributes(&dps->ms_attributes, (char*)rtn,
+                                   (an_il_entry_kind)iek_routine, MSAT_METHOD);
+      }  /* if */
+      if (cppcli_enabled && decl_info->is_static_constructor) {
+        /* A static constructor member template is invalid. */
+        pos_error(ec_static_constructor_member_template,
+                    &locator->source_position);
+        /* For error recovery purposes, treat the prototype instance as a
+           static constructor entry. */
+        set_routine_special_kind(
                         rtn, (a_special_function_kind)sfk_static_constructor);
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     update_routine_decl_modifiers(rtn, &dps->decl_modifiers,
@@ -20527,11 +20531,13 @@ passed via template_decl.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && decl_state->ms_attributes != NULL) {
-    if (is_member_template || is_member_template_rescan ||
+    if ((microsoft_version < 1400 &&
+         (is_member_template || is_member_template_rescan)) ||
         class_type->source_corresp.is_local_to_function) {
-      /* Microsoft attributes cannot be specified on templates, nor on members
-         of local class types.  When rescanning member templates, there is no
-         need to repeat the diagnostic.*/
+      /* Microsoft attributes cannot be specified on members of local class
+         types (and, in earlier versions, not on templates either).  When
+         rescanning member templates, there is no need to repeat the
+         diagnostic.*/
       an_error_code  ec = is_member_template_rescan ? ec_no_error
                                                     : ec_ms_attr_not_allowed;
       dispose_of_unapplied_attributes(&decl_state->ms_attributes, ec);
@@ -21206,26 +21212,29 @@ class (prototype instantiation of a class template).  templ_param_list
 is the template parameter list for the function template.
 */
 {
-  a_class_def_state  *class_state_ptr;
-  a_boolean          skip_semicolon_check;
-  a_scope_depth      scope_level;
-  a_symbol_ptr       sym;
-  a_type_ptr         dummy_type;
+  a_class_def_state       *class_state_ptr;
+  a_boolean               skip_semicolon_check;
+  a_scope_depth           scope_level;
+  a_symbol_ptr            sym;
+  a_type_ptr              dummy_type;
+  a_decl_parse_state_ptr  dps = &scope_stack_top().tmpl_decl_state->decl_parse;
 
   db_enter(3, "class_member_template_declaration");
   /* Get the class definition state, which is pointed to from the scope-stack
      entry. */
-  scope_level = class_type->variant.class_struct_union.extra_info->
-                                       assoc_scope->depth_in_scope_stack;
+  scope_level = class_type_supp(class_type)->assoc_scope->depth_in_scope_stack;
   check_assertion(scope_level != NO_SCOPE_DEPTH);
   class_state_ptr = scope_stack[scope_level].class_def_state;
   sym = class_member_declaration(class_type, class_state_ptr,
-                                 (an_ms_attribute_ptr)NULL,
+                                 dps->ms_attributes,
                                  /*is_member_template=*/TRUE,
                                  templ_param_list, &skip_semicolon_check,
                                  &dummy_type, (a_template_instance_ptr)NULL,
                                  il_template_entry,
                                  decl_pos_block_ptr);
+  /* Clear the dps->ms_attributes pointer to avoid diagnostics issued by the
+     caller.  (Any needed diagnostics will already have been issued.) */
+  dps->ms_attributes = NULL;
   if (curr_routine_fixup != NULL) dispose_of_curr_routine_fixup();
   if (sym == NULL) {
     /* An error has already been issued. */
