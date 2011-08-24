@@ -8782,6 +8782,17 @@ C++ mode.  See [expr.static.cast].
                                               (a_std_conv_descr *)NULL)) {
         /* An unboxing conversion is allowed in C++/CLI. */
         okay = TRUE;
+      } else if (cppcli_enabled &&
+                 is_handle_ptr(source_type) &&
+                 is_interior_ptr_type(dest_type)) {
+        a_type_ptr under_source = type_pointed_to(source_type);
+        a_type_ptr under_dest = type_pointed_to(dest_type);
+        if (is_value_class_type(under_source) &&
+            types_are_compatible(under_source, under_dest)) {
+          /* A conversion from a handle to X to an interior_ptr<X> is
+             allowed for value classes. */
+          okay = TRUE;
+        }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
