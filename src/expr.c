@@ -942,7 +942,9 @@ constructs, in which case offsetof_case is TRUE.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean          err = FALSE, processed = FALSE;
   a_boolean          subscript_is_expr_list = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean          cli_array_case = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_subscript_operator");
 
