@@ -40,6 +40,9 @@ templates.c -- Support for C++ templates.
 #if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#include "ms_attrib.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef lint
 /* Include the definition of an_arg_operand to suppress lint errors. */
 #include "exprutil.h"
@@ -13976,10 +13979,25 @@ initially used when processing the declaration of a partial specialization.
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
+      a_type_ptr  class_type = 
+                          tssp->variant.class_template.prototype_instantiation
+                              ->variant.class_struct_union.type;
+      a_decl_parse_state
+                  *dps = &decl_state->decl_parse;
+      if (dps->ms_attributes != NULL) {
+        /* Apply Microsoft bracketed attributes. */
+        a_boolean    is_interface =
+                          class_type->variant.class_struct_union.is_interface;
+        a_type_kind  type_kind = class_type->kind;
+        an_ms_attribute_target  attr_target =
+                      is_interface                          ? MSAT_INTERFACE :
+                      (type_kind == (a_type_kind)tk_struct) ? MSAT_STRUCT :
+                      (type_kind == (a_type_kind)tk_class)  ? MSAT_CLASS :
+                                                              MSAT_UNION;
+        apply_microsoft_attributes(&dps->ms_attributes, (char*)class_type,
+                                   (an_il_entry_kind)iek_type, attr_target);
+      }  /* if */
       if (cppcli_enabled) {
-        a_type_ptr			class_type;
-        class_type = tssp->variant.class_template.prototype_instantiation
-                                             ->variant.class_struct_union.type;
         class_type_supp(class_type)->cli_class_type_kind =
                                                decl_state->cli_class_type_kind;
         class_type->variant.class_struct_union.is_generic_definition =
@@ -18863,9 +18881,15 @@ the declaration token cache.
   rescan_reusable_cache(token_cache);
   if (curr_token == tok_friend) (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && is_cli_assembly_visibility_specifier(curr_token)) {
-    /* Skip any top-level visibility specifier. */
-    (void)get_token();
+  if (microsoft_mode) {
+    if (curr_token == tok_lbracket && !std_attribute_tokens_next()) {
+      /* Skip over Microsoft attributes. */
+      skip_microsoft_attribute_tokens();
+    }  /* if */
+    if (cppcli_enabled && is_cli_assembly_visibility_specifier(curr_token)) {
+      /* Skip any top-level visibility specifier. */
+      (void)get_token();
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   skip_illegal_class_template_decl_specifiers(/*diagnose=*/FALSE);
@@ -19554,6 +19578,12 @@ any non-empty template parameter lists that were scanned.
        has occurred. */
     decl_state->decl_scope_err = TRUE;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode &&
+      curr_token == tok_lbracket && next_token() != tok_lbracket) {
+    dps->ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
+  };
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* See if it is a class template declaration.  If it is, scan the tokens
      of the definition (if any) and cache them away of later reference. */
   if (is_class_template_decl(&decl_state->decl_token_cache)) {
@@ -19681,6 +19711,12 @@ any non-empty template parameter lists that were scanned.
       function_templ_cache_segments = ssep->first_template_cache_segment;
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (dps->ms_attributes != NULL) {
+    dispose_of_unapplied_attributes(&dps->ms_attributes,
+                                    ec_ms_attr_not_allowed);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Pop all of the template declaration scopes that were pushed earlier.
      Note that this must be done before doing the prototype instantiation. */
   for (; decl_state->number_of_template_decl_scopes != 0;

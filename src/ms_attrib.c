@@ -1948,6 +1948,17 @@ parameter declaration.
   return attr_list;
 }  /* scan_microsoft_attributes */
 
+
+void skip_microsoft_attribute_tokens(void)
+/*
+A Microsoft attribute is next.  Skip over its tokens.
+*/
+{
+  check_assertion(curr_token == tok_lbracket);
+  flush_until_matching_token();
+  (void)get_token();
+}  /* skip_microsoft_attribute_tokens */
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
 static void finalize_ms_attribute_source_sequence_entry(

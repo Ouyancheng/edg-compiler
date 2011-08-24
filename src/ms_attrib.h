@@ -123,6 +123,9 @@ typedef struct an_ms_attribute_kind_descr {
 			   parameters. */
 } an_ms_attribute_kind_descr;
 
+
+extern void skip_microsoft_attribute_tokens(void);
+
 extern an_ms_attribute_ptr scan_microsoft_attributes(a_boolean	is_parameter);
 
 extern
