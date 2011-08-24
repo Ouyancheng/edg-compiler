@@ -2156,6 +2156,7 @@ void template_binary_operation(an_expr_operator_kind   op,
                                a_token_sequence_number operator_tok_seq_number,
                                a_source_position       *operator_position_2);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 extern
 void template_cli_subscript_operation(
                                an_operand              *operand_1,
@@ -2164,6 +2165,7 @@ void template_cli_subscript_operation(
                                a_source_position       *operator_position,
                                a_token_sequence_number operator_tok_seq_number,
                                a_source_position       *operator_position_2);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern
 void do_unary_operation(an_expr_operator_kind   op,
