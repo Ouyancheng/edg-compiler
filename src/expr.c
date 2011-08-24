@@ -1114,9 +1114,42 @@ constructs, in which case offsetof_case is TRUE.
     *result = *operand_1;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
-    if (C_dialect == C_dialect_cplusplus &&
-        (is_overloadable_type_first_operand(operand_1) ||
-         is_overloadable_type_operand(&operand_2))) {
+    if (!C_mode() &&
+        is_template_dependent_context() &&
+        (operand_is_dependent(operand_1) ||
+         (subscript_is_expr_list ?
+                                arg_operand_list_is_dependent(operand_2_list) :
+                                operand_is_dependent(&operand_2)))) {
+      /* There is at least one template-dependent operand, so build an
+         expression with a generic operator.  We can't go to
+         check_for_operator_overloading when we have an expression list,
+         and it's useful to handle the non-list dependent case separately here
+         also because it simplifies some tests below for __builtin_offsetof
+         etc. */
+      if (!subscript_is_expr_list) {
+        make_generic_operation_operand((an_opname_kind)onk_subscript,
+                                       /*unary_operator=*/FALSE,
+                                       operand_1, &operand_2,
+                                       result, &operator_position,
+                                       operator_tok_seq_number,
+                                       &closing_bracket_position);
+      } else {
+        /* We have an expression list for operand 2. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        check_assertion(cppcli_enabled);
+        template_cli_subscript_operation(operand_1, operand_2_list,
+                                         result, &operator_position,
+                                         operator_tok_seq_number,
+                                         &closing_bracket_position);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+        unexpected_condition();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
+      processed = TRUE;
+    } else if (!C_mode() &&
+               (is_overloadable_type_first_operand(operand_1) ||
+                is_overloadable_type_operand(&operand_2))) {
+      /* Look for C++ operator overloading cases. */
       a_boolean has_predef_meaning = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (subscript_is_expr_list) {
@@ -1142,7 +1175,6 @@ constructs, in which case offsetof_case is TRUE.
         has_predef_meaning = TRUE;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Look for C++ operator overloading cases. */
       check_for_operator_overloading((an_opname_kind)onk_subscript,
                                      /*unary_operator=*/FALSE,
                                      /*must_be_member_function=*/TRUE,
@@ -1156,13 +1188,10 @@ constructs, in which case offsetof_case is TRUE.
                                      result, &processed);
       if (processed && (offsetof_case || cppcli_enabled)) {
         /* An overloaded operator cannot be used with __builtin_offsetof and
-           some C++/CLI cases. */
-        if (is_expression_operand(result) &&
-            is_operation_node(result->variant.expression) &&
-            node_operator_is(result->variant.expression, eok_subscript)) {
-          /* A generic subscripting operation is okay. */
-        } else if (is_error_operand(result)) {
-          /* An error is also okay. */
+           some C++/CLI cases.  Note that template-dependent cases were
+           handled above and don't get here. */
+        if (is_error_operand(result)) {
+          /* An error is okay. */
         } else if (offsetof_case) {
           expr_pos_error(ec_no_overloaded_subscript_with_offsetof,
                          &operator_position);

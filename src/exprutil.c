@@ -10450,6 +10450,37 @@ e.g., if the source operand is an lvalue.
 }  /* generic_cast_operand */
 
 
+static an_expr_node_ptr prep_generic_expression_list(
+                                              an_arg_operand *arg_operand_list)
+/*
+Prepare a generic expression list, i.e., one scanned during a prototype
+instantiation for which we do not know the way the list members are going to
+be used.  Return a list of expressions.
+*/
+{
+  an_expr_node_ptr   expr, prev_expr, expr_list;
+  an_arg_operand_ptr arg_operand;
+
+  prev_expr = NULL;
+  expr_list = NULL;
+  for (arg_operand = arg_operand_list;
+       arg_operand != NULL;
+       arg_operand = arg_operand->next) {
+    prep_generic_operand(&arg_operand->operand);
+    expr = make_node_from_operand_for_expr_list(&arg_operand->operand);
+    /* Add this expression to the end of the expression-form list
+       being built up. */
+    if (prev_expr == NULL) {
+      expr_list = expr;
+    } else {
+      prev_expr->next = expr;
+    }  /* if */
+    prev_expr = expr;
+  }  /* for */
+  return expr_list;
+}  /* prep_generic_expression_list */
+
+
 an_expr_node_ptr prep_generic_argument_list(an_arg_operand *arg_operand_list)
 /*
 Prepare a generic argument list, i.e., one scanned during a prototype
@@ -10457,26 +10488,9 @@ instantiation for which we do not know the actual function to be called.
 Return a list of argument expressions.
 */
 {
-  an_expr_node_ptr   arg, prev_arg, arg_list;
-  an_arg_operand_ptr arg_operand;
+  an_expr_node_ptr args = prep_generic_expression_list(arg_operand_list);
 
-  prev_arg = NULL;
-  arg_list = NULL;
-  for (arg_operand = arg_operand_list;
-       arg_operand != NULL;
-       arg_operand = arg_operand->next) {
-    prep_generic_operand(&arg_operand->operand);
-    arg = make_node_from_operand_for_expr_list(&arg_operand->operand);
-    /* Add this argument to the end of the expression-form argument list
-       being built up. */
-    if (prev_arg == NULL) {
-      arg_list = arg;
-    } else {
-      prev_arg->next = arg;
-    }  /* if */
-    prev_arg = arg;
-  }  /* for */
-  return arg_list;
+  return args;
 }  /* prep_generic_argument_list */
 
 
@@ -10536,6 +10550,38 @@ a secondary operator (e.g., the "]" of a subscript operation).
                            operator_position_2);
 }  /* template_binary_operation */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void template_cli_subscript_operation(
+                               an_operand              *operand_1,
+                               an_arg_operand          *subscripts,
+                               an_operand              *result,
+                               a_source_position       *operator_position,
+                               a_token_sequence_number operator_tok_seq_number,
+                               a_source_position       *operator_position_2)
+/*
+Similar to template_binary_operation, but used for a template-dependent
+C++/CLI subscript operation, where the second operand is an expression
+list of the subscripts.
+*/
+{
+  an_expr_node_ptr op_1_expr, subsc_exprs, op_expr;
+
+  prep_generic_operand(operand_1);
+  op_1_expr = make_node_from_operand(operand_1);
+  subsc_exprs = prep_generic_expression_list(subscripts);
+  op_1_expr->next = subsc_exprs;
+  op_expr = make_lvalue_operator_node((an_expr_operator_kind)eok_cli_subscript,
+                                      type_of_unknown_templ_param_nontype,
+                                      op_1_expr);
+  make_lvalue_expression_operand(op_expr, result);
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
+  record_operator_position_in_rescan_info(result, operator_position,
+                                          operator_tok_seq_number,
+                                          operator_position_2);
+}  /* template_cli_subscript_operation */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void do_unary_operation(an_expr_operator_kind   op,
                         an_operand              *operand,

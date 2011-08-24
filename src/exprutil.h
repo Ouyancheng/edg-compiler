@@ -2157,6 +2157,15 @@ void template_binary_operation(an_expr_operator_kind   op,
                                a_source_position       *operator_position_2);
 
 extern
+void template_cli_subscript_operation(
+                               an_operand              *operand_1,
+                               an_arg_operand          *subscripts,
+                               an_operand              *result,
+                               a_source_position       *operator_position,
+                               a_token_sequence_number operator_tok_seq_number,
+                               a_source_position       *operator_position_2);
+
+extern
 void do_unary_operation(an_expr_operator_kind   op,
                         an_operand              *operand,
                         a_type_ptr              result_type,

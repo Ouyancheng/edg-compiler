@@ -613,6 +613,8 @@ a_boolean is_template_dependent_indefinite_function(an_operand *operand);
 
 extern a_boolean operand_is_dependent(an_operand *operand);
 
+extern a_boolean arg_operand_list_is_dependent(an_arg_operand *operand_list);
+
 extern a_symbol_ptr select_overloaded_function(
                          a_symbol_ptr             overloaded_function_symbol,
                          a_boolean                is_template_id,
@@ -756,6 +758,16 @@ extern void try_to_convert_class_operand_to_builtin_type(
                                  an_operand              *operand,
                                  a_builtin_type_kind_set builtin_types_allowed,
                                  a_boolean               *processed);
+
+extern void make_generic_operation_operand(
+                               an_opname_kind          kind,
+                               a_boolean               unary_operator,
+                               an_operand              *operand_1,
+                               an_operand              *operand_2,
+                               an_operand              *result,
+                               a_source_position       *operator_position,
+                               a_token_sequence_number operator_tok_seq_number,
+                               a_source_position       *operator_position_2);
 
 extern void check_for_operator_overloading(
                              an_opname_kind            kind,

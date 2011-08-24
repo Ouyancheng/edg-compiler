@@ -6857,13 +6857,32 @@ function.
 a_boolean operand_is_dependent(an_operand *operand)
 /*
 Return TRUE if the indicated operand is dependent.  Specifically, this
-means type-dependent and not value-dependent.
+means type-dependent rather than value-dependent.
 */
 {
   a_boolean is_dependent = (is_template_dependent_type(operand->type) ||
                            is_template_dependent_indefinite_function(operand));
   return is_dependent;
 }  /* operand_is_dependent */
+
+
+a_boolean arg_operand_list_is_dependent(an_arg_operand *operand_list)
+/*
+Return TRUE if any of the operands on the given list is dependent.
+Specifically, this means type-dependent rather than value-dependent.
+*/
+{
+  a_boolean      is_dependent = FALSE;
+  an_arg_operand *arg_op;
+
+  for (arg_op = operand_list; arg_op != NULL; arg_op = arg_op->next) {
+    if (operand_is_dependent(&arg_op->operand)) {
+      is_dependent = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return is_dependent;
+}  /* arg_operand_list_is_dependent */
 
 
 static a_boolean is_symbol_for_which_overload_resolution_should_be_deferred(
@@ -12980,7 +12999,7 @@ Adjust the operand type to match the type requirement.
 }  /* adjust_operand_for_builtin_operator */
 
 
-static void make_generic_operation_operand(
+void make_generic_operation_operand(
                                an_opname_kind          kind,
                                a_boolean               unary_operator,
                                an_operand              *operand_1,
