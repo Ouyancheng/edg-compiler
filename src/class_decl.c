@@ -7875,24 +7875,27 @@ appropriate.
        derives implicitly from System::Object.  Similarly, if a value class
        does not derive explicitly from a ref class base (which can only be
        System::ValueType) it derives from System::ValueType. */
-    a_boolean         add_implicit_base = TRUE,
-                      has_nonvirtual_ref_base = FALSE;
+    a_boolean         add_implicit_base = TRUE;
     a_base_class_ptr  bcp, system_object_base = NULL;
     for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
       if (is_ref_class_type(bcp->type)) {
-        add_implicit_base = FALSE;
-        if (!bcp->is_virtual) {
-          /* System::Object is the only base that is derived from virtually. */
-          has_nonvirtual_ref_base = TRUE;
+        if (bcp->direct) {
+          add_implicit_base = FALSE;
           break;
-        } else {
+        } else if (bcp->is_virtual) {
           system_object_base = bcp;
         }  /* if */
       }  /* if */
     }  /* for */
-    if (system_object_base != NULL && !system_object_base->direct &&
-        !has_nonvirtual_ref_base &&
-        cli_class_type_kind_is(class_type, cctk_ref)) {
+    if (!add_implicit_base) {
+      /* The given class type already derives directly from a ref class.
+         Nothing more to do. */
+    } else if (system_object_base != NULL &&
+               cli_class_type_kind_is(class_type, cctk_interface)) {
+      /* An interface that already derives (indirectly) from System::Object
+         needs no update. */
+    } else if (system_object_base != NULL &&
+               cli_class_type_kind_is(class_type, cctk_ref)) {
       /* A ref class that already has System::Object as an indirect base but
          no other ref base classes.  This happens when base interfaces are
          specified but not a base ref class: Add a direct (implicit)
@@ -7913,7 +7916,7 @@ appropriate.
         }  /* if */
       }  /* for */
       system_object_base->direct_base_number = direct_base_number+1;
-    } else if (add_implicit_base && !is_cli_system_object_type(class_type)) {
+    } else if (!is_cli_system_object_type(class_type)) {
       a_base_class_ptr              last_bcp = NULL;
       a_boolean                     may_be_first_direct_nonvirtual_base;
       a_base_class_sequence_number  direct_base_number = 0;
