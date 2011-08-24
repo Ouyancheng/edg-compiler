@@ -969,7 +969,7 @@ constructs, in which case offsetof_case is TRUE.
       operand_2_list = rescan_expr_list(
                                rcblock->expr->variant.operation.operands->next,
                                rcblock);
-      subscript_is_expr_list = cli_array_case = TRUE;
+      subscript_is_expr_list = TRUE;
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
@@ -1013,10 +1013,9 @@ constructs, in which case offsetof_case is TRUE.
          expression list to a comma-operator list, because that conversion
          is dangerous or improper once variadic template pack expansions
          are allowed in the expression list. */
-      if (subscript_is_expr_list) {
-        /* On a rescan of an enk_cli_subscript, we always go the
-           expression-list route.  A rescan of an eok_subscript can go
-           either way. */
+      if (rcblock != NULL) {
+        /* On a rescan, keep the form (expression list or single expression)
+           we already have. */
       } else if (cli_array_case ||
                  is_overloadable_type_first_operand(operand_1) ||
                  is_property_ref_operand(operand_1)) {
@@ -1192,19 +1191,21 @@ constructs, in which case offsetof_case is TRUE.
                               end_subsc_expr_list = NULL;
         a_host_large_unsigned subsc_count = 0;
         a_boolean             any_subsc_error = FALSE;
-        /* We were supposed to ensure that any case that could be a CLI array
-           was scanned as an expression list. */
-        check_assertion(subscript_is_expr_list);
         /* Check the types of the subscripts and link them into a list
            of expressions. */
-        for (arg_op = operand_2_list; arg_op != NULL; arg_op = arg_op->next) {
+        check_assertion(!subscript_is_expr_list || operand_2_list != NULL);
+        arg_op = operand_2_list;
+        for (;;) {
           an_expr_node_ptr subsc_expr;
-          do_operand_transformations(&arg_op->operand, TOPT_NO_OPTIONS);
-          if (!is_template_param_type(arg_op->operand.type) &&
-              !check_integral_or_enum_operand(&arg_op->operand)) {
+          an_operand       *subsc_op = subscript_is_expr_list ?
+                                                       &arg_op->operand :
+                                                       &operand_2;
+          do_operand_transformations(subsc_op, TOPT_NO_OPTIONS);
+          if (!is_template_param_type(subsc_op->type) &&
+              !check_integral_or_enum_operand(subsc_op)) {
             any_subsc_error = TRUE;
           }  /* if */
-          subsc_expr = make_node_from_operand(&arg_op->operand);
+          subsc_expr = make_node_from_operand(subsc_op);
           if (subsc_expr_list == NULL) {
             subsc_expr_list = subsc_expr;
           } else {
@@ -1212,6 +1213,9 @@ constructs, in which case offsetof_case is TRUE.
           }  /* if */
           end_subsc_expr_list = subsc_expr;
           subsc_count++;
+          if (!subscript_is_expr_list) break;
+          arg_op = arg_op->next;
+          if (arg_op == NULL) break;
         }  /* for */
         /* The first operand must be a handle to a C++/CLI array. */
         if (is_handle_type(operand_1->type)) {
