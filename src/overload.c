@@ -10538,6 +10538,9 @@ object types can be incomplete in some cases.
 }  /* is_pointer_to_object_type */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- only_std_funcs not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void try_conversion_function_match_full(
                           an_operand               *source_operand,
                           a_type_ptr               source_type,
