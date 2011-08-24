@@ -2360,7 +2360,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
              constructor is used, but does if some trick of using an
              auxiliary class is required to do the copy.  So check that the
              copy can be done via a constructor. */
-          if (!arg_copy_can_be_done_via_constructor(arg_operand,
+          if (arg_operand != NULL &&
+              !arg_copy_can_be_done_via_constructor(arg_operand,
                                                     param_type)) {
             /* No simple copy constructor can be used to do this copy,
                so fail. */
@@ -2557,7 +2558,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
              constructor is used, but does if some trick of using an
              auxiliary class is required to do the copy.  So check that the
              copy can be done via a constructor. */
-          if (!arg_copy_can_be_done_via_constructor(arg_operand,
+          if (arg_operand != NULL &&
+              !arg_copy_can_be_done_via_constructor(arg_operand,
                                                     param_type)) {
             /* No simple copy constructor can be used to do this copy,
                so fail. */
@@ -10543,6 +10545,7 @@ static void try_conversion_function_match_full(
                           a_type_ptr               requested_type,
                           a_builtin_type_kind_set  builtin_types_allowed,
                           a_boolean                cppcli_atypical_case,
+                          a_boolean                only_std_funcs,
                           a_type_ptr               conv_funcs_class,
                           a_boolean                need_lvalue_result,
                           a_boolean                is_copy_initialization,
@@ -10575,7 +10578,9 @@ class (or reference to a managed class, for the destination type).
 Note that static conversion functions that can do a "normal"
 conversion from their class to another type are considered on calls
 with cppcli_atypical_case FALSE and not on calls with
-cppcli_atypical_case TRUE.
+cppcli_atypical_case TRUE.  However, one can also specify
+only_std_funcs TRUE to specify that only standard (nonstatic)
+conversion functions should be considered.
 
 In the case of a bitwise copy constructor, dest_type reflects the parameter
 type of the constructor, which can be different from the type actually
@@ -10701,7 +10706,10 @@ are considered).  conv_context describes the context of the conversion.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled &&
         (cppcli_atypical_case ==
-         conversion_function_converts_from_class(conversion_routine))) {
+         conversion_function_converts_from_class(conversion_routine) ||
+         (only_std_funcs &&
+          !routine_type_is_nonstatic_member_function(conversion_routine->type))
+        )) {
       /* Handle C++/CLI static conversion functions that can do a "typical"
          conversion from a class to another type on the normal calls, and other
          static conversion functions on the cppcli_atypical_case calls. */
@@ -11121,6 +11129,7 @@ parameters.
                                      requested_type,
                                      builtin_types_allowed,
                                      /*cppcli_atypical_case=*/FALSE,
+                                     /*only_std_funcs=*/FALSE,
                                      /*conv_funcs_class=*/(a_type_ptr)NULL,
                                      need_lvalue_result,
                                      is_copy_initialization,
@@ -11177,6 +11186,7 @@ type conversion.  conv_context describes the context of the conversion.
                                          dest_type,
                                          builtin_types_allowed,
                                          /*cppcli_atypical_case=*/TRUE,
+                                         /*only_std_funcs=*/FALSE,
                                          conv_funcs_class,
                                          need_lvalue_result,
                                          is_copy_initialization,
@@ -11198,6 +11208,7 @@ type conversion.  conv_context describes the context of the conversion.
                                              dest_type,
                                              builtin_types_allowed,
                                              /*cppcli_atypical_case=*/TRUE,
+                                             /*only_std_funcs=*/FALSE,
                                              conv_funcs_class,
                                              need_lvalue_result,
                                              is_copy_initialization,
@@ -11234,6 +11245,7 @@ type conversion.  conv_context describes the context of the conversion.
                                            dest_type,
                                            /*builtin_types_allowed=*/BTK_NONE,
                                            /*cppcli_atypical_case=*/TRUE,
+                                           /*only_std_funcs=*/FALSE,
                                            conv_funcs_class,
                                            need_lvalue_result,
                                            is_copy_initialization,
@@ -14673,6 +14685,7 @@ conv_context describes the context of the conversion.
                                                dest_type,
                                                builtin_types_allowed,
                                                /*cppcli_atypical_case=*/FALSE,
+                                               /*only_std_funcs=*/TRUE,
                                                (a_type_ptr)NULL,
                                                need_lvalue_result,
                                                is_copy_initialization,
