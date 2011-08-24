@@ -20382,7 +20382,8 @@ Add the IL template entry pointed to by tp to the indicated scope.
 void add_to_ms_attributes_list(an_ms_attribute_ptr	msap,
                                a_scope_depth		scope_depth)
 /*
-Add the Microsoft attribute entry pointed to by msap to the indicated scope.
+Add the Microsoft attribute entry pointed to by msap to the indicated scope
+(or the nearest enclosing scope for template declaration scopes).
 */
 {
   a_scope_stack_entry_ptr  ssep;
@@ -20391,6 +20392,10 @@ Add the Microsoft attribute entry pointed to by msap to the indicated scope.
 
   assert_is_valid_scope_depth(scope_depth);
   ssep = &scope_stack[scope_depth];
+  /* Skip template declaration scopes. */
+  while (scope_is(ssep, sck_template_declaration)) {
+    --ssep;
+  }  /* while */
   sp = ensure_il_scope_exists(ssep);
   check_assertion_str(sp != NULL, "add_to_attributes_list: NULL IL scope");
   pointers_block = assoc_pointers_block_of(ssep);

@@ -2025,6 +2025,46 @@ it is bound to): Perform that processing.
 }  /* process_microsoft_attribute */
 
 
+static a_boolean entity_is_prototype_instantiation(char              *entity,
+                                                   an_il_entry_kind  kind)
+/*
+Return TRUE if the given entity is a prototype instantiation or a static
+data member of a prototype instantiation.
+*/
+{
+  a_boolean  result = FALSE;
+
+  switch (kind) {
+    case iek_type:
+      { a_type_ptr  tp = (a_type_ptr)entity;
+        if (is_immediate_class_type(tp) &&
+            tp->variant.class_struct_union.is_prototype_instantiation) {
+          result = TRUE;
+        }  /* if */
+      }
+      break;
+    case iek_routine:
+      { a_routine_ptr  rp = (a_routine_ptr)entity;
+        result = rp->is_prototype_instantiation;
+      }
+      break;
+    case iek_variable:
+      { a_variable_ptr  vp = (a_variable_ptr)entity;
+        if (vp->source_corresp.is_class_member) {
+          a_type_ptr  tp = parent_class_of(vp);
+          if (tp->variant.class_struct_union.is_prototype_instantiation) {
+            result = TRUE;
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* entity_is_prototype_instantiation */
+
+
 void apply_microsoft_attributes(an_ms_attribute_ptr	*attributes,
 				char			*entity,
 				an_il_entry_kind	kind,
@@ -2043,8 +2083,15 @@ in the param_type entry).
   an_ms_attribute_ptr		new_tail = NULL;
   a_source_correspondence	*scp;
   an_ms_attribute_ptr		next_msap;
+  a_boolean                     record_entity_in_attribute = TRUE;
 
   scp = source_corresp_for_il_entry(entity, kind);
+  if (!prototype_instantiations_in_il) {
+    /* Since prototype instantiations are not recorded in the IL, we cannot
+       point the attribute to a prototype instantiation. */
+    record_entity_in_attribute =
+                             !entity_is_prototype_instantiation(entity, kind);
+  }  /* if */
   /* Check whether the attributes have the appropriate target. */
   for (msap = *attributes; msap != NULL; msap = next_msap) {
     /*lint --e{550} is_error not referenced in some configurations. */
@@ -2073,9 +2120,11 @@ in the param_type entry).
         new_tail->next = msap;
       }  /* if */
       new_tail = msap;
-      /* Update the entity pointer in the attribute. */
-      msap->entity.kind = (a_byte_il_entry_kind)kind;
-      msap->entity.ptr = entity;
+      if (record_entity_in_attribute) {
+        /* Update the entity pointer in the attribute. */
+        msap->entity.kind = (a_byte_il_entry_kind)kind;
+        msap->entity.ptr = entity;
+      }  /* if */
       /* Except for parameter entries, add the attribute to the scope list. */
       if (kind != (an_il_entry_kind)iek_param_type) {
         add_to_ms_attributes_list(msap, decl_scope_level);
