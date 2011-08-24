@@ -7891,27 +7891,28 @@ appropriate.
       }  /* if */
     }  /* for */
     if (system_object_base != NULL && !system_object_base->direct &&
-        !has_nonvirtual_ref_base) {
-      /* The class already has System::Object as an indirect base but no other
-         ref base classes.  It is possible that it is only inherited indirectly
-         through interface classes, but if this is a ref class it should also
-         be inherited from directly. */
-      if (cli_class_type_kind_is(class_type, cctk_ref)) {
-        a_base_class_sequence_number  direct_base_number = 0;
-        check_assertion(is_cli_system_object_type(system_object_base->type));
-        bcp = base_classes_of(class_type);
-        for (; bcp != NULL; bcp = bcp->next) {
-          if (bcp->direct_base_number > direct_base_number) {
-            direct_base_number = bcp->direct_base_number;
-          }  /* if */
-        }  /* for */
-        (void)update_base_class_derivation(system_object_base,
-                                           (a_derivation_step_ptr)NULL,
-                                           (an_access_specifier)as_public);
-        system_object_base->direct = TRUE;
-        system_object_base->is_implicit_direct_base = TRUE;
-        system_object_base->direct_base_number = direct_base_number+1;
-      }  /* if */
+        !has_nonvirtual_ref_base &&
+        cli_class_type_kind_is(class_type, cctk_ref)) {
+      /* A ref class that already has System::Object as an indirect base but
+         no other ref base classes.  This happens when base interfaces are
+         specified but not a base ref class: Add a direct (implicit)
+         derivation for System::Object. */
+      a_base_class_sequence_number  direct_base_number = 0;
+      check_assertion(is_cli_system_object_type(system_object_base->type));
+      bcp = base_classes_of(class_type);
+      (void)update_base_class_derivation(system_object_base,
+                                         (a_derivation_step_ptr)NULL,
+                                         (an_access_specifier)as_public);
+      system_object_base->direct = TRUE;
+      system_object_base->is_implicit_direct_base = TRUE;
+      /* Find the largest direct base number assigned so far and assign the
+         next number to System::Object. */
+      for (; bcp != NULL; bcp = bcp->next) {
+        if (bcp->direct_base_number > direct_base_number) {
+          direct_base_number = bcp->direct_base_number;
+        }  /* if */
+      }  /* for */
+      system_object_base->direct_base_number = direct_base_number+1;
     } else if (add_implicit_base && !is_cli_system_object_type(class_type)) {
       a_base_class_ptr              last_bcp = NULL;
       a_boolean                     may_be_first_direct_nonvirtual_base;
