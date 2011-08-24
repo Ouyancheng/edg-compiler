@@ -14516,7 +14516,8 @@ expression, and return the result in *result (or an error indication in
     if (operator_token == tok_gcnew) {
       /* Validate that gcnew is used on an appropriate type.
          Any class or struct must be of ref or value type. */
-      if (!(is_managed_class_type(unqual_base_new_type) ||
+      if (!(is_ref_class_type(unqual_base_new_type) ||
+            /* Note, not interfaces. */
             is_cli_enum_type(unqual_base_new_type) ||
             is_value_class_or_fundamental_type(unqual_base_new_type) ||
             is_error_type(unqual_base_new_type) ||
