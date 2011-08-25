@@ -1690,29 +1690,19 @@ do_set_proper_definition_needed_flag:
         remap_ptr(ptr->for_each_scope, a_scope_ptr, iek_scope);
         remap_ptr(ptr->temporary_variable, a_variable_ptr,
                   iek_variable);
-        walk_ptr(ptr->iteration_variable_expr, an_expr_node_ptr,
-                 iek_expr_node);
         switch (ptr->kind) {
           case sfepk_none:
-          case sfepk_array_pattern:
             break;
+          case sfepk_array_pattern:
           case sfepk_stl_pattern:
-            remap_ptr(ptr->variant.stl_pattern.begin_routine, 
-                      a_routine_ptr, iek_routine);
-            remap_ptr(ptr->variant.stl_pattern.end_routine,
-                      a_routine_ptr, iek_routine);          
-            walk_ptr(ptr->variant.stl_pattern.ne_call_expr,
+            walk_ptr(ptr->variant.stl_array_pattern.ne_call_expr,
                      an_expr_node_ptr, iek_expr_node);
-            walk_ptr(ptr->variant.stl_pattern.incr_call_expr,
+            walk_ptr(ptr->variant.stl_array_pattern.incr_call_expr,
                      an_expr_node_ptr, iek_expr_node);
             break;
           case sfepk_cli_pattern:
-            remap_ptr(ptr->variant.cli_pattern.getenumerator_routine, 
-                      a_routine_ptr, iek_routine);
-            remap_ptr(ptr->variant.cli_pattern.movenext_routine,
-                      a_routine_ptr, iek_routine);
-            remap_ptr(ptr->variant.cli_pattern.current_get_routine,
-                      a_routine_ptr, iek_routine);
+            walk_ptr(ptr->variant.cli_pattern.movenext_call_expression,
+                     an_expr_node_ptr, iek_expr_node);
             break;
           default:
             unexpected_condition_str(

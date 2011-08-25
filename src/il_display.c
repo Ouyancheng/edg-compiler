@@ -4238,9 +4238,6 @@ Display a for-each statement.
   disp_ptr("iterator", (char *)extra_info->iterator, iek_variable);
   disp_ptr("for_each_scope", (char *)extra_info->for_each_scope,
            iek_scope);
-  disp_ptr("iteration_variable_expr", 
-           (char *)extra_info->iteration_variable_expr,
-           iek_expr_node);
   disp_ptr("temporary_variable", (char *)extra_info->temporary_variable,
            iek_variable);
   disp_name("for-each pattern kind");
@@ -4250,33 +4247,28 @@ Display a for-each statement.
       break;
     case sfepk_stl_pattern:
       (void)printf("sfepk_stl_pattern\n");
-      disp_ptr("begin routine",
-               (char *)extra_info->variant.stl_pattern.begin_routine,
-               iek_routine);
-      disp_ptr("end routine",
-               (char *)extra_info->variant.stl_pattern.end_routine,
-               iek_routine);
       disp_ptr("ne_call_expr",
-               (char *)extra_info->variant.stl_pattern.ne_call_expr,
+               (char *)extra_info->variant.stl_array_pattern.ne_call_expr,
                iek_expr_node);
       disp_ptr("incr_call_expr",
-               (char *)extra_info->variant.stl_pattern.incr_call_expr,
+               (char *)extra_info->variant.stl_array_pattern.incr_call_expr,
                iek_expr_node);
       break;
     case sfepk_cli_pattern:
       (void)printf("sfepk_cli_pattern\n");
-      disp_ptr("GetEnumerator routine",
-               (char *)extra_info->variant.cli_pattern.getenumerator_routine,
-               iek_routine);
-      disp_ptr("MoveNext routine",
-               (char *)extra_info->variant.cli_pattern.movenext_routine,
-               iek_routine);
-      disp_ptr("Current get routine",
-               (char *)extra_info->variant.cli_pattern.current_get_routine,
-               iek_routine);
+      disp_ptr("movenext_call_expression",
+               (char *)extra_info->
+                               variant.cli_pattern.movenext_call_expression,
+               iek_expr_node);
       break;
     case sfepk_array_pattern:
       (void)printf("sfepk_array_pattern\n");
+      disp_ptr("ne_call_expr",
+               (char *)extra_info->variant.stl_array_pattern.ne_call_expr,
+               iek_expr_node);
+      disp_ptr("incr_call_expr",
+               (char *)extra_info->variant.stl_array_pattern.incr_call_expr,
+               iek_expr_node);
       break;
     default:
       (void)printf("**BAD FOR EACH KIND**\n");

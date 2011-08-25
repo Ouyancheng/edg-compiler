@@ -14139,15 +14139,10 @@ possible rewritings of the for-each statement:
   for each (T t in c) <statement>
 
   // Case A, C++/CLI collection pattern, GetEnumerator returns a handle
-  { E^ e;
-    try {
-      e = c.GetEnumerator();
-      while (e->MoveNext()) {
-        T t = safe_cast<T>(e->Current);
-        <statement>
-      }
-    } finally {
-      delete e;
+  { E^ e = c.GetEnumerator();
+    while (e->MoveNext()) {
+      T t = safe_cast<T>(e->Current);
+      <statement>
     }
   }
 
@@ -14175,71 +14170,48 @@ typedef struct a_for_each_loop *a_for_each_loop_ptr;
 typedef struct a_for_each_loop {
   a_variable_ptr
 		iterator;
-			/* Pointer to the iteration variable. */
+			/* Pointer to the iteration variable ("t" above).
+			   Dynamically initialized to the appropriate value,
+			   i.e.: "safe_cast<T>(e->Current)" when kind is
+			   sfepk_cli_pattern and "e" is a handle type,
+			   "safe_cast<T>(e.Current)" when kind is
+			   sfepk_cli_pattern and "e" is not a handle type and
+			   "*i" with the conversion to type T when kind is
+			   sfepk_stl_pattern or sfepk_array_pattern. */
   a_scope_ptr	for_each_scope;
 			/* Pointer to the sck_condition scope created for names
 			   declared in the for-each statement. */
-  an_expr_node_ptr
-		iteration_variable_expr;
-			/* Pointer to the iteration variable expression
-			   generated for:
-			   "safe_cast<T>(e->Current)" when kind is
-			   fepk_cli_pattern and e is a handle type.
-			   "safe_cast<T>(e.Current)" when kind is
-			   fepk_cli_pattern and e is not a handle type.
-			   "*i" with the conversion to type T when kind is
-			   sfepk_stl_pattern or sfepk_array_pattern.
-			   NULL if there was an error.  If the top of the
-			   expression is an enk_temp_init that should be
-			   taken to be initializing the iteration variable
-			   directly instead of a temporary.  If the variable
-			   is a reference, it is bound to this expression. */
   a_variable_ptr
 		temporary_variable;
 			/* Pointer to the variable representing the temporary
-			   variable "e" when kind is fepk_cli_pattern or "i"
+			   variable "e" when kind is sfepk_cli_pattern or "i"
 			   when kind is sfepk_stl_pattern or
-			   sfepk_array_pattern.  NULL if there was an error. */
+			   sfepk_array_pattern.  Dynamically initialized to
+			   "c.GetEnumerator()" when kind is sfepk_cli_pattern,
+			   "c.begin()" when kind is sfepk_stl_pattern, and
+			   "&c[0]" when kind is sfepk_array_pattern.  NULL
+			   if there was an error. */
   a_for_each_pattern_kind
 		kind;   /* Kind of pattern to which the collection type
 			   conforms. */
   union {
-    /* When kind is sfepk_stl_pattern: */
+    /* When kind is sfepk_stl_pattern or sfepk_array_pattern: */
     struct {
-      a_routine_ptr
-		begin_routine;
-			/* Pointer to the routine for the "begin" member
-			   function of the collection type. */
-      a_routine_ptr
-		end_routine;
-			/* Pointer to the routine for the "end" member
-			   function of the collection type. */
       an_expr_node_ptr
 		ne_call_expr;
-			/* Expression for the call to the overloaded "!="
-			   operator on the iterator type.  NULL if the iterator
-			   type cannot be overloaded. */
+			/* Expression for the call to the "!=" operator on the
+			   iterator type. */
       an_expr_node_ptr
 		incr_call_expr;
-			/* Expression for the call to the overloaded "++"
-			   operator on the iterator type.  NULL if the iterator
-			   type cannot be overloaded. */
-    } stl_pattern;
+			/* Expression for the call to the "++" operator on the
+			   iterator type. */
+    } stl_array_pattern;
     /* When kind is sfepk_cli_pattern: */
     struct {
-      a_routine_ptr
-		getenumerator_routine;
-			/* Pointer to the routine for the "GetEnumerator"
-			   member function of the collection type. */
-      a_routine_ptr
-		movenext_routine;
-			/* Pointer to the routine for the "MoveNext" member
+      an_expr_node_ptr
+		movenext_call_expression;
+			/* Expression for the call to the "MoveNext" member
 			   function of the enumerator type. */
-      a_routine_ptr
-		current_get_routine;
-			/* Pointer to the routine for the "get" accessor 
-			   function of the "Current" property of the enumerator
-			   type. */
     } cli_pattern;
   } variant;
 } a_for_each_loop;

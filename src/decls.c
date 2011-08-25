@@ -11932,8 +11932,7 @@ Return a pointer to the variable that is declared.
       extra_info_ptr->iterator = vp;
       /* Scan and generate IL for the collection expression. */
       for_each_statement->expr = scan_for_each_expression(extra_info_ptr);
-      /* The iteration variable is set by the expansion of the for-each,
-         even though there's no initializer recorded on the variable. */
+      /* The iteration variable is set by the expansion of the for-each. */
       mark_variable_value_set(sym);
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

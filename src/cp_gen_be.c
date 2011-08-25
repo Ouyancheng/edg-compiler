@@ -13788,6 +13788,11 @@ this one is such a continuation.
      constants, they appear on the declaration. */
   consider_initialization = is_definition;
   if (var->is_member_constant) consider_initialization = !is_definition;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Do not generate the initializer for an iterator variable of a for-each
+     statement as the initializer is compiler generated. */
+  if (is_iterator) consider_initialization = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (embedded_constructs) {
     /* Skip over any declarations embedded in the declarator or initializer
        (e.g., in casts or sizeof constructs), setting them up to be generated
