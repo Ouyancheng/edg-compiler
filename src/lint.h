@@ -842,6 +842,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_reinterpret_cast_of_handle)*/
 /*lint -esym(769,ec_generic_type_in_template_arg)*/
 /*lint -esym(769,ec_expr_not_pointer_or_array_handle)*/
+/*lint -esym(769,ec_unrecognized_ms_attr)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
