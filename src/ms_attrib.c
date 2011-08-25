@@ -46,13 +46,6 @@ static a_text_buffer_ptr
 			   attribute argument values. */
 
 static a_boolean
-		accept_unrecognized_attributes;
-			/* TRUE if unrecognized attributes should be accepted.
-			   If this is FALSE, they are still scanned as
-			   unrecognized attributes, but a diagnostic is
-			   issued. */
-
-static a_boolean
 		scan_misc_attributes_as_unrecognized;
 			/* TRUE if most recognized attributes should be scanned
 			   as "unrecognized" attributes.  This means that the
@@ -2407,8 +2400,6 @@ The per-compilation unit initialization routine for variables related to
 Microsoft attribute processing.
 */
 {
-  accept_unrecognized_attributes =
-                                !RECOGNIZE_MICROSOFT_ATTRIBUTES; /*lint !e506*/
   scan_misc_attributes_as_unrecognized =
                                        SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING;
   unrecognized_attribute = NULL;
