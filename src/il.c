@@ -23839,6 +23839,8 @@ need initialization for every (primary and secondary) translation unit.
   memzero((char *)named_register_variables, sizeof(named_register_variables));
 #endif /* NAMED_REGISTERS_ALLOWED */
   il_wchar_t_type = NULL;
+  il_char16_t_type = NULL;
+  il_char32_t_type = NULL;
   il_bool_type = NULL;
   il_error_type = il_unknown_type = il_void_type = NULL;
   il_standard_nullptr_type = NULL;
