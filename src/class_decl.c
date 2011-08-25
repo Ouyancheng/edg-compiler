@@ -11056,25 +11056,32 @@ set the move_ctor_or_assign_parameter flag of its first parameter to TRUE.
 }  /* mark_special_move_parameters */
 
 
-a_boolean is_implicitly_callable_conversion_function(a_type_ptr rout_type)
+#if !(MICROSOFT_EXTENSIONS_ALLOWED && CHECKING)
+/*ARGSUSED*/ /* reverse_fn is not used in some configurations. */
+#endif /* !(MICROSOFT_EXTENSIONS_ALLOWED && CHECKING) */
+static a_boolean is_implicitly_callable_conversion_function_full(
+                                                    a_type_ptr rout_type,
+                                                    a_boolean  is_reverse_fn)
 /*
 Return TRUE if a conversion function with the indicated routine type is
 one that can be implicitly called.  As described in [class.conv.fct],
 a conversion function will not be used implicitly to convert T to T,
 T to T&, or a number of other conversions that are doable as standard
-conversions.
+conversions.  is_reverse_fn is TRUE if this the given type is that of a
+Microsoft C++/CLI static reverse conversion function.
 */
 {
   a_boolean                      is_implicitly_callable = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                      is_static = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_type_ptr                     class_type;
-  a_type_ptr                     ret_type;
+  a_type_ptr                     class_type, ret_type;
   a_routine_type_supplement_ptr  rtsp;
 
   rout_type = skip_typerefs(rout_type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
+  /* Note that return_type_of removes references, which is desired. */
+  ret_type = f_skip_typerefs(return_type_of(rout_type));
   rtsp = rout_type->variant.routine.extra_info;
   class_type = rtsp->this_class;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -11088,14 +11095,14 @@ conversions.
     class_type = skip_typerefs(class_type);
     if (is_error_type(class_type)) {
       class_type = NULL;
-    } else {
+#if CHECKING
+    } else if (!is_reverse_fn) {
       check_assertion(is_immediate_managed_class_type(class_type));
+#endif /* CHECKING */
     }  /* if */
     is_static = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Note that return_type_of removes references, which is desired. */
-  ret_type = f_skip_typerefs(return_type_of(rout_type));
   if (class_type == NULL) {
     /* This can happen in error cases. */
     expect_error();
@@ -11137,8 +11144,19 @@ conversions.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   return is_implicitly_callable;
-}  /* is_implicitly_callable_conversion_function */
+}  /* is_implicitly_callable_conversion_function_full */
 
+
+a_boolean is_implicitly_callable_conversion_function(a_type_ptr rout_type)
+/*
+An interface to is_implicitly_callable_conversion_function_full for cases that
+are known not to involve a Microsoft C++/CLI static reverse conversion
+function.
+*/
+{
+  return is_implicitly_callable_conversion_function_full(
+                                          rout_type, /*is_reverse_fn=*/FALSE);
+}  /* is_implicitly_callable_conversion_function */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void exclude_special_members_from_value_class_type(
@@ -16367,10 +16385,11 @@ the point of declaration of the conversion function.
                              cssp = symbol_supplement_for_class(bcp->type);
     a_symbol_list_entry_ptr  *slep = &cssp->conversion_list, to_remove;
     while (*slep != NULL) {
-      a_symbol_ptr  sym = (*slep)->symbol;
-      a_type_ptr    rtp = sym->variant.routine.ptr->type;
-      if (!routine_type_is_nonstatic_member_function(rtp) &&
-          !is_implicitly_callable_conversion_function(rtp)) {
+      a_symbol_ptr   sym = (*slep)->symbol;
+      a_routine_ptr  rp = sym->variant.routine.ptr;
+      if (!routine_type_is_nonstatic_member_function(rp->type) &&
+          !is_implicitly_callable_conversion_function_full(
+                              rp->type, rp->is_reverse_conversion_function)) {
         /* A static conversion function (the only kind that cannot always be
            handled at the point of declaration) that turns out to be marked by
            a standard conversion after all. */
