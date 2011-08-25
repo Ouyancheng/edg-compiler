@@ -20394,7 +20394,7 @@ Add the Microsoft attribute entry pointed to by msap to the indicated scope
   ssep = &scope_stack[scope_depth];
   /* Skip template declaration scopes. */
   while (scope_is(ssep, sck_template_declaration)) {
-    --ssep;
+    ssep = previous_scope_of(ssep);
   }  /* while */
   sp = ensure_il_scope_exists(ssep);
   check_assertion_str(sp != NULL, "add_to_attributes_list: NULL IL scope");
