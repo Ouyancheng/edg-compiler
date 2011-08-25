@@ -702,6 +702,11 @@ extern int fileno(FILE *);
 /*lint -esym(765,cli_managed_class_tag_keyword)*/
 /*lint -esym(714,cli_managed_class_tag_keyword)*/
 #endif /* !BACK_END_IS_CP_GEN_BE */
+/* FIXME: Should be removed when delegate generics are sufficiently done. */
+/*lint -esym(759,scan_cli_delegate_definition)*/
+/*lint -esym(765,scan_cli_delegate_definition)*/
+/*lint -esym(759,create_cli_delegate_class_definition)*/
+/*lint -esym(765,create_cli_delegate_class_definition)*/
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 /*lint -esym(759,is_class_struct_type)*/
 /*lint -esym(765,is_class_struct_type)*/
@@ -843,11 +848,6 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_generic_type_in_template_arg)*/
 /*lint -esym(769,ec_expr_not_pointer_or_array_handle)*/
 /*lint -esym(769,ec_unrecognized_ms_attr)*/
-/* FIXME: Should be removed when delegate generics are sufficiently done. */
-/*lint -esym(759,scan_cli_delegate_definition)*/
-/*lint -esym(765,scan_cli_delegate_definition)*/
-/*lint -esym(759,create_cli_delegate_class_definition)*/
-/*lint -esym(765,create_cli_delegate_class_definition)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
