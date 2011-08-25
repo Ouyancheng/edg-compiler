@@ -1232,11 +1232,8 @@ Look up the identifier that names the attribute to be processed.
     attr_descr = find_attribute_kind(sym_hdr->identifier,
                                      (sizeof_t)strlen(sym_hdr->identifier));
     if (attr_descr == NULL) {
-      /* An unknown attribute -- issue a diagnostic.  This is only a warning
-         if we accept unrecognized attributes. */
-      pos_st_diagnostic(accept_unrecognized_attributes ? es_warning : es_error,
-                        ec_unrecognized_ms_attr, &pos_curr_token,
-                        sym_hdr->identifier);
+      /* An unknown attribute -- issue a diagnostic. */
+      pos_warning(ec_unrecognized_ms_attr, &pos_curr_token);
     }  /* if */
     /* Bypass the identifier. */
     (void)get_token();
@@ -1793,11 +1790,12 @@ is_parameter is TRUE if the attribute is part of a function parameter
 declaration.
 */
 {
-  an_ms_attribute_kind_descr_ptr	attr_descr;
+  an_ms_attribute_kind_descr_ptr	attr_descr = NULL;
   a_token_sequence_number		first_token;
   a_token_sequence_number		last_token;
   a_source_position			start_position;
   an_ms_attribute_ptr			attr = NULL;
+  a_token_kind				next_tok;
 
   /* Save the token sequence number of the first token of this attribute. */
   first_token = curr_token_sequence_number;
@@ -1808,15 +1806,27 @@ declaration.
      annotation attributes.  These are similar in purpose but have different
      values than the an_ms_attribute_target values in the front end.
      At this time, the values are ignored. */
-  if (curr_token == tok_identifier && next_token() == tok_colon) {
+  next_tok = next_token();
+  if (curr_token == tok_identifier && next_tok == tok_colon) {
     /* Skip past the target value and the colon. */
     (void)get_token();
     (void)get_token();
+  } else if (curr_token == tok_colon_colon ||
+             (next_tok == tok_colon_colon || next_tok == tok_lt)) {
+    /* The attribute name is a qualified identifier.  For now, just coalesce
+       the name and treat it is an "unrecognized" attribute without a
+       diagnostic. */
+    (void)is_generalized_identifier_start(GID_NO_OPTIONS);
+    /* Skip to the token after the identifier. */
+    (void)get_token();
+    attr_descr = unrecognized_attribute;
   }  /* if */
   /* Look up the attribute identifier.  If the identifier is unknown,
      the "unrecognized" attribute will be returned.  In error cases, such
      as a missing attribute name, a NULL attribute description is returned. */
-  attr_descr = look_up_attribute();
+  if (attr_descr == NULL) {
+    attr_descr = look_up_attribute();
+  }  /* if */
   if (attr_descr != NULL) {
     a_boolean	arg_list_present = curr_token == tok_assign ||
                                    curr_token == tok_lparen;

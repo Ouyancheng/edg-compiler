@@ -1,5 +1,18 @@
 Version 4.4
 
+8/25/11  [EDGcpfe/12085]
+Microsoft compatibility: changes in unknown attribute diagnostic
+
+The diagnostic for an unknown Microsoft attribute has been reduced
+from an error to a warning in modes where RECOGNIZE_MICROSOFT_ATTRIBUTES
+is TRUE (it was already a warning otherwise).  In addition, the attribute
+name is no longer included in the diagnostic because the name fill-in
+mechanism was not capable of handling compound attribute names (i.e., those
+containing ":" or "::").
+
+  [xxx] int i;
+
+
 8/25/11  [EDGcpfe/10939,EDGcpfe/11622,EDGcpfe/11883,EDGcpfe/11622,
           EDGcpfe/11967, EDGcpfe/12073]
 Microsoft C++ compatibility: Attributes on templates

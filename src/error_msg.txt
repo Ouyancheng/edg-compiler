@@ -1322,7 +1322,7 @@ ec_ptr_incomplete_throw;;"a throw expression may not have pointer-to-incomplete 
 ec_alignof_incomplete_type;;"alignment-of operator applied to incomplete type"
 ec_invalid_use_of_standalone_ms_attr;;"%sq may only be used as a standalone attribute"
 ec_invalid_use_of_ms_attr;;"%sq attribute cannot be used here"
-ec_unrecognized_ms_attr;;"unrecognized attribute %sq"
+REMOVED;ec_unrecognized_ms_attr;;"unrecognized attribute %sq"
 ec_ms_attr_not_allowed;;"attributes are not allowed here"
 ec_invalid_ms_attr_uuid_value;;"invalid argument value for the %sq attribute parameter"
 ec_too_many_ms_attr_args;;"too many attribute arguments"
@@ -2289,6 +2289,7 @@ ec_reinterpret_cast_of_handle;;"unsafe reinterpret_cast of handle"
 ec_generic_type_in_template_arg;;"a template argument may not reference a generic type parameter"
 ec_comma_operator_in_cli_subscript;;"an expression list is not allowed in this subscript operation (use parentheses around a top-level comma operator)"
 ec_expr_not_pointer_or_array_handle;;"expression must have pointer-to-object or handle-to-CLI-array type"
+ec_unrecognized_ms_attr;;"unrecognized attribute"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
