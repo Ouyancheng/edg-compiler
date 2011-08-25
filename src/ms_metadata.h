@@ -28,14 +28,31 @@ EXTERN a_cpp_cli_import_flag_set
                 default_cpp_cli_import_flags;
                         /* Flags used to control the behavior of metadata
                            import. */
-
+/*
+C++/CLI metadata import flags.
+*/
 enum a_cpp_cli_import_flag_tag {
   cpp_cli_none                   = 0x0000,
+                        /* Default import behavior. */
   cpp_cli_as_friend_assembly     = 0x0001,
+                        /* Treats the imported assembly as a friend
+                           assembly. */
   cpp_cli_declspec_assemby_info  = 0x0002,
+                        /* Adds a __declspec(assembly_info(...)) specifier to
+                           every imported type indicating its metadata token.
+                           This is used to uniquely identify the type in the
+                           assembly and to obtain the definition of the type
+                           on demand. */
   cpp_cli_declspec_member_info   = 0x0004,
+                        /* Adds a __declspec(member_info(...)) specifier to
+                           every imported field or method indicating its
+                           metadata token. */
   cpp_cli_define_all_types       = 0x0008,
+                        /* Import all types in the assembly as opposed to only
+                           the top-level declarations. */
   cpp_cli_wchar_t_is_keyword     = 0x0010
+                        /* Imports wide character types as "wchar_t" instead
+                           of "unsigned short". */
 };
 
 
