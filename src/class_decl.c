@@ -6659,7 +6659,7 @@ done:;
 
 
 static void set_preferred_base_class_derivation(a_type_ptr        class_type,
-                                             a_base_class_ptr  base_class)
+                                                a_base_class_ptr  base_class)
 /*
 When a class is derived from a virtual base class by more than one
 derivation path, only one instance of the virtual base class will actually
@@ -7917,7 +7917,6 @@ derivation from System::ObjectType or System::ValueType if appropriate.
          derivation for System::Object. */
       a_base_class_sequence_number  direct_base_number = 0;
       check_assertion(is_cli_system_object_type(system_object_base->type));
-      bcp = base_classes_of(class_type);
       (void)update_base_class_derivation(system_object_base,
                                          (a_derivation_step_ptr)NULL,
                                          (an_access_specifier)as_public);
@@ -7925,6 +7924,7 @@ derivation from System::ObjectType or System::ValueType if appropriate.
       system_object_base->is_implicit_direct_base = TRUE;
       /* Find the largest direct base number assigned so far and assign the
          next number to System::Object. */
+      bcp = base_classes_of(class_type);
       for (; bcp != NULL; bcp = bcp->next) {
         if (bcp->direct_base_number > direct_base_number) {
           direct_base_number = bcp->direct_base_number;
@@ -18921,7 +18921,6 @@ no other base classes.
   check_assertion(base_classes_of(class_state->class_type) == NULL);
   check_assertion(base_type_symbol != NULL);
   type = type_symbol_type(base_type_symbol);
-  complete_type_is_needed(type);
   check_assertion(type != NULL && is_class_struct_union_type(type));
   add_direct_base_of_type(type, class_state, /*direct_base_number=*/1,
                           &last_base, &may_be_first_direct_nonvirtual_base);
@@ -19040,6 +19039,7 @@ definition and record it in the IL (as a special-purpose class type).
   /* Add System::MulticastDelegate as a base class. */
   add_cli_system_base_class(
             &class_state, cli_symbol_from_kind(csk_system_multicast_delegate));
+  wrapup_base_classes(&class_state);
   class_state.access = (an_access_specifier)as_public;
   ctsp->assoc_scope =
              push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
@@ -20115,6 +20115,7 @@ vice versa.
   /* Add System::Enum as a base class. */
   add_cli_system_base_class(
                          &class_state, cli_symbol_from_kind(csk_system_enum));
+  wrapup_base_classes(&class_state);
   class_state.access = (an_access_specifier)as_public;
   ctsp->assoc_scope =
              push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
