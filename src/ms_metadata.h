@@ -48,7 +48,7 @@ enum a_cpp_cli_import_flag_tag {
                            every imported field or method indicating its
                            metadata token. */
   cpp_cli_define_all_types       = 0x0008,
-                        /* Import all types in the assembly as opposed to only
+                        /* Imports all types in the assembly as opposed to only
                            the top-level declarations. */
   cpp_cli_wchar_t_is_keyword     = 0x0010
                         /* Imports wide character types as "wchar_t" instead
