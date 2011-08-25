@@ -3248,11 +3248,13 @@ omitted.
         buffer << ")) ";
       }  /* if */
     }  /* if */
-    if (class_body_only && kind == tlk_delegate) {
+    if (class_body_only && kind == tlk_delegate &&
+        generic_type_parameters.empty()) {
       /* Even when class_body_only is TRUE, the context-sensitive keyword
          "delegate" is needed so that a delegate class definition can be
          easily distinguished from a more traditional (managed) class
-         definition. */
+         definition.  (This is not needed in the case of a generic delegate
+         since it will have */
       buffer << "delegate ";
     }  /* if  */
     if (kind == tlk_delegate) {

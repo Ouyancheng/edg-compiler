@@ -44,7 +44,18 @@ extern a_routine_ptr find_finalize_routine(a_type_ptr class_type,
 
 extern a_boolean check_for_cli_delegate_definition(void);
 
-extern void scan_cli_delegate_definition(a_decl_parse_state  *dps);
+extern void scan_cli_delegate_definition(a_decl_parse_state  *dps,
+                                         a_symbol_locator    *loc,
+                                         a_func_info_block   *func_info);
+
+extern void create_cli_delegate_class_definition(
+                                              a_type_ptr          class_type,
+                                              a_scope_depth       decl_level,
+                                              a_symbol_locator    *loc,
+                                              a_decl_parse_state  *dps,
+                                              a_func_info_block   *func_info);
+
+extern void scan_and_record_cli_delegate_definition(a_decl_parse_state  *dps);
 
 extern void scan_cli_delegate_definition_from_assembly_import(void);
 

@@ -18927,50 +18927,42 @@ no other base classes.
 }  /* add_cli_system_base_class */
 
 
-void scan_cli_delegate_definition(a_decl_parse_state  *dps)
+void scan_cli_delegate_definition(a_decl_parse_state  *dps,
+                                  a_symbol_locator    *loc,
+                                  a_func_info_block   *func_info)
 /*
 The caller has determined that the upcoming tokens look like a C++/CLI
-delegate definition (by calling check_for_cli_delegate_definition).  Scan the
-definition and record it in the IL (as a special-purpose class type).
+delegate definition.  Scan the specifiers and declarator of that definition
+and record the result in *dps, *loc, and *func_info (the caller should
+initialize *dps, but not *loc or *func_info).  The type recorded in dps->type
+is a function type or an error type (in which case a diagnostic is also
+issued).  This function must be called in namespace scope or in the scope
+of a managed class (possibly a generic class).
 */
 {
-  an_assembly_visibility       visibility;
-  a_source_position            visibility_pos;
-  a_decl_pos_block             decl_pos_block;
-  a_decl_flag_set              dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
-                                           DSI_NO_TAG_DEFINITION |
-                                           DSI_VACUOUS_TAG_DECL_ALLOWED;
-  a_decl_flag_set              di_flags = DI_REAL_DECLARATOR_ALLOWED;
-  a_symbol_locator             loc, member_loc;
-  a_symbol_ptr                 prev_decl = NULL;
-  a_func_info_block            func_info;
-  a_type_ptr                   parent_type = NULL, class_type, htype;
-  a_class_type_supplement_ptr  ctsp;
-  a_scope_depth                decl_level = depth_scope_stack;
-  a_class_def_state            class_state;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_boolean                    saved_source_sequence_entries_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_member_decl_info           member_info;
-  a_decl_parse_state           *mdps = &member_info.decl_state;
+  a_decl_pos_block         decl_pos_block;
+  a_decl_flag_set          dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
+                                       DSI_NO_TAG_DEFINITION |
+                                       DSI_VACUOUS_TAG_DECL_ALLOWED;
+  a_decl_flag_set          di_flags = DI_REAL_DECLARATOR_ALLOWED;
+  a_scope_stack_entry_ptr  ssep = &scope_stack_top();
 
   clear_decl_pos_block(&decl_pos_block);
-  visibility = scan_cli_visibility_specifier_if_any(&visibility_pos);
   check_assertion(curr_token_is_identifier_string("delegate"));
-  if (scope_stack_top().kind == (a_scope_kind)sck_class_struct_union) {
-    parent_type = scope_stack_top().assoc_type;
+  if (scope_is(ssep, sck_template_declaration)) ssep = previous_scope_of(ssep);
+  if (scope_is(ssep, sck_class_struct_union)) {
+    a_type_ptr  parent_type = ssep->assoc_type;
     if (!is_immediate_managed_class_type(parent_type)) {
       pos_error(ec_delegate_requires_managed_class, &pos_curr_token);
     }  /* if */
-  }  /* if */
-  (void)get_token();
-  if (scope_stack_top().kind == (a_scope_kind)sck_class_struct_union) {
     dsi_flags |= DSI_IS_MEMBER_DECLARATION;
   }  /* if */
+  /* Skip over the "delegate" token. */
+  (void)get_token();
   decl_specifiers(dsi_flags, dps, &decl_pos_block);
-  clear_func_info(&func_info);
-  declarator(di_flags, dps, /*member_parent_type=*/(a_type_ptr)NULL, &loc,
-             &func_info, &decl_pos_block);
+  clear_func_info(func_info);
+  declarator(di_flags, dps, /*member_parent_type=*/(a_type_ptr)NULL, loc,
+             func_info, &decl_pos_block);
   if (is_template_dependent_context()) {
     /* Type checks are unreliable: Delay them until a real instantiation.
        E.g. "template<class T> ref struct S { delegate T D; };". */
@@ -18982,6 +18974,144 @@ definition and record it in the IL (as a special-purpose class type).
       dps->type = error_type();
     }  /* if */
   }  /* if */
+}  /* scan_cli_delegate_definition */
+
+
+void create_cli_delegate_class_definition(a_type_ptr          class_type,
+                                          a_scope_depth       decl_level,
+                                          a_symbol_locator    *loc,
+                                          a_decl_parse_state  *dps,
+                                          a_func_info_block   *func_info)
+/*
+class_type is an incomplete delegate class (i.e., a ref class) that is
+declared at the given scope stack depth.  loc, dps, and func_info describe
+the declared properties of the corresponding delegate definition (i.e.,
+the entities produced by the call to scan_cli_delegate_definition).  Create
+the definition of the class by deriving it from System::MulticastDelegate
+and adding the appropriate member functions (including the Invoke member
+with a signature that matches that of the delegate definition).
+*/
+{
+  a_class_def_state            class_state;
+  a_member_decl_info           member_info;
+  a_decl_parse_state           *mdps = &member_info.decl_state;
+  a_symbol_locator             member_loc;
+  a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
+  a_type_ptr                   htype = make_handle_type(class_type);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean                    saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+  /* Start the class definition (and associated class scope). */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  class_type->autonomous_primary_tag_decl = TRUE;
+  /* Don't issue source sequence entries for generated entities. */
+  saved_source_sequence_entries_disallowed =
+                                            source_sequence_entries_disallowed;
+  scope_stack_top().source_sequence_entries_disallowed = TRUE;
+  source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  initialize_class_def_state(class_type, &class_state);
+  /* Add System::MulticastDelegate as a base class. */
+  add_cli_system_base_class(
+            &class_state, cli_symbol_from_kind(csk_system_multicast_delegate));
+  wrapup_base_classes(&class_state);
+  class_state.access = (an_access_specifier)as_public;
+  ctsp->assoc_scope =
+             push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
+                        class_type, (a_routine_ptr)NULL);
+  scope_stack_top().class_def_state = &class_state;
+  if (!is_error_type(dps->type)) {
+    /* Add the Invoke member (declaration only). */
+    clear_locator(&member_loc, &dps->declarator_pos);
+    (void)find_symbol("Invoke", sizeof("Invoke")-1, &member_loc);
+    initialize_member_decl_info(&member_info, &dps->specifiers_pos);
+    mdps->declared_type = dps->declared_type;
+    ctsp->invocation_type = dps->type;
+    /* The type of Invoke is the declared type of the delegate with the
+       addition of a type for "this" (i.e., a nonstatic member function
+       type). */
+    if (is_function_type(dps->type)) {
+      mdps->type = copy_routine_type_with_param_types(
+                                                 skip_typerefs(dps->type),
+                                                 /*copy_default_args=*/FALSE);
+      check_assertion(mdps->type->kind == (a_type_kind)tk_routine);
+      mdps->type->variant.routine.extra_info->this_class = class_type;
+    } else {
+      /* Presumably a template parameter type or an error type. */
+      mdps->type = dps->type;
+    }  /* if */
+    decl_member_function(&member_loc, func_info, &class_state, &member_info,
+                         /*compiler_generated=*/TRUE);
+  }  /* if */
+  /* Add the one-argument constructor (declaration only). */
+  member_loc = *loc;
+  change_class_locator_into_constructor_locator(&member_loc,
+                                                &dps->declarator_pos,
+                                                /*is_static_ctor=*/FALSE);
+  initialize_member_decl_info(&member_info, &dps->specifiers_pos);
+  member_info.is_constructor = TRUE;
+  mdps->declared_type = mdps->type =
+                  make_routine_type(void_type(), make_pointer_type(dps->type),
+                                    /*param2_type=*/(a_type_ptr)NULL,
+                                    /*param3_type=*/(a_type_ptr)NULL,
+                                    /*param4_type=*/(a_type_ptr)NULL);
+  decl_member_function(&member_loc, func_info, &class_state, &member_info,
+                       /*compiler_generated=*/TRUE);
+  /* Add static operators "+" and "-" (again, declarations only). */
+  make_opname_locator((an_opname_kind)onk_plus, &member_loc,
+                      &dps->declarator_pos);
+  initialize_member_decl_info(&member_info, &dps->specifiers_pos);
+  mdps->storage_class = mdps->declared_storage_class =
+                                                   (a_storage_class)sc_static;
+  mdps->declared_type = mdps->type =
+                          make_routine_type(htype, htype, htype,
+                                            /*param3_type=*/(a_type_ptr)NULL,
+                                            /*param4_type=*/(a_type_ptr)NULL);
+  decl_member_function(&member_loc, func_info, &class_state, &member_info,
+                       /*compiler_generated=*/TRUE);
+  make_opname_locator((an_opname_kind)onk_minus, &member_loc,
+                      &dps->declarator_pos);
+  initialize_member_decl_info(&member_info, &dps->specifiers_pos);
+  mdps->storage_class = mdps->declared_storage_class =
+                                                   (a_storage_class)sc_static;
+  mdps->declared_type = mdps->type =
+                          make_routine_type(htype, htype, htype,
+                                            /*param3_type=*/(a_type_ptr)NULL,
+                                            /*param4_type=*/(a_type_ptr)NULL);
+  decl_member_function(&member_loc, func_info, &class_state, &member_info,
+                       /*compiler_generated=*/TRUE);
+  /* Wrap up the definition. */
+  complete_class_definition(class_type, decl_level, &class_state);
+  pop_scope();
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Restore the previous state wrt. generating source sequence entries. */
+  source_sequence_entries_disallowed =
+                                     saved_source_sequence_entries_disallowed;
+  scope_stack_top().source_sequence_entries_disallowed 
+                                    = saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+}  /* create_cli_delegate_class_definition */
+
+
+void scan_and_record_cli_delegate_definition(a_decl_parse_state  *dps)
+/*
+The caller has determined that the upcoming tokens look like a C++/CLI
+delegate definition (e.g., by calling check_for_cli_delegate_definition).
+Scan the definition and record it in the IL (as a special-purpose class type).
+*/
+{
+  an_assembly_visibility       visibility;
+  a_source_position            visibility_pos;
+  a_symbol_locator             loc;
+  a_symbol_ptr                 prev_decl = NULL;
+  a_func_info_block            func_info;
+  a_type_ptr                   class_type;
+  a_class_type_supplement_ptr  ctsp;
+  a_scope_depth                decl_level = depth_scope_stack;
+
+  visibility = scan_cli_visibility_specifier_if_any(&visibility_pos);
+  scan_cli_delegate_definition(dps, &loc, &func_info);
   /* If a delegate is generated from an assembly (metadata) file, it was
      previously loaded as an incomplete ref class.  Only in this case is a
      "redeclaration" allowed. */
@@ -19026,98 +19156,10 @@ definition and record it in the IL (as a special-purpose class type).
                             &loc.source_position, dps->source_sequence_entry);
   set_cli_visibility(class_type, visibility, &visibility_pos,
                      /*is_definition=*/TRUE);
-  /* Start the class definition (and associated class scope). */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  class_type->autonomous_primary_tag_decl = TRUE;
-  /* Don't issue source sequence entries for generated entities. */
-  saved_source_sequence_entries_disallowed =
-                                            source_sequence_entries_disallowed;
-  scope_stack_top().source_sequence_entries_disallowed = TRUE;
-  source_sequence_entries_disallowed = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  initialize_class_def_state(class_type, &class_state);
-  /* Add System::MulticastDelegate as a base class. */
-  add_cli_system_base_class(
-            &class_state, cli_symbol_from_kind(csk_system_multicast_delegate));
-  wrapup_base_classes(&class_state);
-  class_state.access = (an_access_specifier)as_public;
-  ctsp->assoc_scope =
-             push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
-                        class_type, (a_routine_ptr)NULL);
-  scope_stack_top().class_def_state = &class_state;
-  if (!is_error_type(dps->type)) {
-    /* Add the Invoke member (declaration only). */
-    clear_locator(&member_loc, &dps->declarator_pos);
-    (void)find_symbol("Invoke", sizeof("Invoke")-1, &member_loc);
-    initialize_member_decl_info(&member_info, &dps->specifiers_pos);
-    mdps->declared_type = dps->declared_type;
-    ctsp->invocation_type = dps->type;
-    /* The type of Invoke is the declared type of the delegate with the
-       addition of a type for "this" (i.e., a nonstatic member function
-       type). */
-    if (is_function_type(dps->type)) {
-      mdps->type = copy_routine_type_with_param_types(
-                                                 skip_typerefs(dps->type),
-                                                 /*copy_default_args=*/FALSE);
-      check_assertion(mdps->type->kind == (a_type_kind)tk_routine);
-      mdps->type->variant.routine.extra_info->this_class = class_type;
-    } else {
-      /* Presumably a template parameter type or an error type. */
-      mdps->type = dps->type;
-    }  /* if */
-    decl_member_function(&member_loc, &func_info, &class_state, &member_info,
-                         /*compiler_generated=*/TRUE);
-  }  /* if */
-  /* Add the one-argument constructor (declaration only). */
-  member_loc = loc;
-  change_class_locator_into_constructor_locator(&member_loc,
-                                                &dps->declarator_pos,
-                                                /*is_static_ctor=*/FALSE);
-  initialize_member_decl_info(&member_info, &dps->specifiers_pos);
-  member_info.is_constructor = TRUE;
-  mdps->declared_type = mdps->type =
-                  make_routine_type(void_type(), make_pointer_type(dps->type),
-                                    /*param2_type=*/(a_type_ptr)NULL,
-                                    /*param3_type=*/(a_type_ptr)NULL,
-                                    /*param4_type=*/(a_type_ptr)NULL);
-  decl_member_function(&member_loc, &func_info, &class_state, &member_info,
-                       /*compiler_generated=*/TRUE);
-  /* Add static operators "+" and "-" (again, declarations only). */
-  make_opname_locator((an_opname_kind)onk_plus, &member_loc,
-                      &dps->declarator_pos);
-  initialize_member_decl_info(&member_info, &dps->specifiers_pos);
-  mdps->storage_class = mdps->declared_storage_class =
-                                                   (a_storage_class)sc_static;
-  htype = make_handle_type(class_type);
-  mdps->declared_type = mdps->type =
-                          make_routine_type(htype, htype, htype,
-                                            /*param3_type=*/(a_type_ptr)NULL,
-                                            /*param4_type=*/(a_type_ptr)NULL);
-  decl_member_function(&member_loc, &func_info, &class_state, &member_info,
-                       /*compiler_generated=*/TRUE);
-  make_opname_locator((an_opname_kind)onk_minus, &member_loc,
-                      &dps->declarator_pos);
-  initialize_member_decl_info(&member_info, &dps->specifiers_pos);
-  mdps->storage_class = mdps->declared_storage_class =
-                                                   (a_storage_class)sc_static;
-  htype = make_handle_type(class_type);
-  mdps->declared_type = mdps->type =
-                          make_routine_type(htype, htype, htype,
-                                            /*param3_type=*/(a_type_ptr)NULL,
-                                            /*param4_type=*/(a_type_ptr)NULL);
-  decl_member_function(&member_loc, &func_info, &class_state, &member_info,
-                       /*compiler_generated=*/TRUE);
-  /* Wrap up the definition. */
-  complete_class_definition(class_type, decl_level, &class_state);
-  pop_scope();
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* Restore the previous state wrt. generating source sequence entries. */
-  source_sequence_entries_disallowed =
-                                     saved_source_sequence_entries_disallowed;
-  scope_stack_top().source_sequence_entries_disallowed 
-                                    = saved_source_sequence_entries_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-}  /* scan_cli_delegate_definition */
+  /* Create the definition of the delegate class type. */
+  create_cli_delegate_class_definition(class_type, decl_level, &loc, dps,
+                                       &func_info);
+}  /* scan_and_record_cli_delegate_definition */
 
 
 void scan_cli_delegate_definition_from_assembly_import(void)
@@ -19132,7 +19174,7 @@ the assembly file.)
   a_decl_parse_state  dps;
 
   init_decl_parse_state(&dps);
-  scan_cli_delegate_definition(&dps);
+  scan_and_record_cli_delegate_definition(&dps);
 }  /* scan_cli_delegate_definition_from_assembly_import */
 
 
@@ -20511,7 +20553,7 @@ passed via template_decl.
           (void)get_token();
         }  /* if */
       } else if (check_for_cli_delegate_definition()) {
-        scan_cli_delegate_definition(decl_state);
+        scan_and_record_cli_delegate_definition(decl_state);
         cannot_bind_to_curr_construct();
         goto next_declaration;
       }  /* if */
