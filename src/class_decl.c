@@ -7862,9 +7862,9 @@ Add a public direct base of the given type to the class described by cdsp.
       (cli_class_type_kind_is(new_direct_bcp->type, cctk_interface) ||
        (cli_class_type_kind_is(new_direct_bcp->type, cctk_ref) &&
         is_cli_system_object_type(new_direct_bcp->type)))) {
-    /* C++/CLI interfaces behave like virtual base classes when derived
-       from.  System::Object does too (it the root base of every ref and
-       interface class. */
+    /* C++/CLI interfaces behave like virtual base classes when derived from.
+       System::Object does too (it is the root base of every ref and interface
+       class). */
     new_direct_bcp->is_virtual = TRUE;
   }  /* if */
   new_direct_bcp->is_implicit_direct_base = TRUE;
@@ -7878,8 +7878,7 @@ static void add_implicit_cli_bases(a_class_def_state_ptr  class_state)
 /*
 The given class is being defined in C++/CLI mode and its explicit base classes
 have been scanned.  If the class type is a managed class type, add an implicit
-derivation from System::ObjectType or System::ValueType (respectively) if
-appropriate.
+derivation from System::ObjectType or System::ValueType if appropriate.
 */
 {
   a_type_ptr  class_type = class_state->class_type;
@@ -7897,6 +7896,8 @@ appropriate.
           add_implicit_base = FALSE;
           break;
         } else if (bcp->is_virtual) {
+          /* The type of this base must be type System::Object since it is the
+             only ref class that is inherited virtually. */
           system_object_base = bcp;
         }  /* if */
       }  /* if */
