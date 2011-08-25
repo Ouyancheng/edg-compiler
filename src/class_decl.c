@@ -3288,6 +3288,7 @@ static a_boolean matching_cli_accessors(a_routine_ptr  overrider,
                                         a_symbol_ptr   named_sym)
 /*
 Overrider is a function that might override virtual function "candidate".
+named_sym represents a potential "named override specifier" (NULL if none).
 If either function is a C++/CLI property or event accessor return FALSE if
 the properties or events do not match for overriding purposes.  Otherwise,
 return TRUE.
@@ -3304,37 +3305,44 @@ return TRUE.
   }  /* if */
   if (pdp1 == NULL && pdp2 == NULL) {
     /* No accessors involved.  Return TRUE. */
-  } else if (pdp1 == NULL || pdp2 == NULL) {
-    /* One is an accessor and the other not: Mismatch. */
+  } else if (pdp2 == NULL) {
+    /* The candidate overridden function is not an accessor, but the
+       overrider is: Mismatch. */
     mismatch = TRUE;
-  } else if (pdp1->is_static || pdp2->is_static) {
-    /* If one property is static, it cannot participate in overriding. */
-    mismatch = TRUE;
-  } else if (named_sym == NULL) {
-    a_field_ptr  fp1 = pdp1->variant.field, fp2 = pdp2->variant.field;
-    if (strcmp(fp1->source_corresp.name, fp2->source_corresp.name) != 0) {
-      /* Properties with different names don't match. */
-      mismatch = TRUE;
-    }  /* if */
-  } else if (symbol_is(named_sym, sk_member_function)) {
-    /* The overrider is a named overrider.  Check that the property/event name
-       of the candidate matches the name mentioned in the named overrider. */
-    a_routine_ptr  named_rp = named_sym->variant.routine.ptr;
-    if (rout_is_cli_accessor(named_rp)) {
-      a_field_ptr  fp1, fp2 = pdp2->variant.field;
-      pdp1 = named_rp->variant.property_or_event_descr;
-      check_assertion(!pdp1->is_static);
-      fp1 = pdp1->variant.field;
-      if (strcmp(fp1->source_corresp.name, fp2->source_corresp.name) != 0) {
-        /* Properties with different names don't match. */
+  } else if (named_sym != NULL) {
+    if (symbol_is(named_sym, sk_member_function)) {
+      /* The overrider is a named overrider.  Check that the property/event
+         name of the candidate matches the name mentioned in the named
+         overrider. */
+      a_routine_ptr  named_rp = named_sym->variant.routine.ptr;
+      if (rout_is_cli_accessor(named_rp) && !pdp2->is_static) {
+        a_field_ptr  fp1, fp2 = pdp2->variant.field;
+        pdp1 = named_rp->variant.property_or_event_descr;
+        check_assertion(!pdp1->is_static);
+        fp1 = pdp1->variant.field;
+        if (strcmp(fp1->source_corresp.name, fp2->source_corresp.name) != 0) {
+          /* Properties with different names don't match. */
+          mismatch = TRUE;
+        }  /* if */
+      } else {
         mismatch = TRUE;
       }  /* if */
     } else {
       mismatch = TRUE;
     }  /* if */
-  } else {
-    /* The named overrider does not designate an accessor. */
+  } else if (pdp1 == NULL) {
+    /* The candidate is an accessor, but the overrider is not (and it doesn't
+       name the overridden function): Mismatch. */
     mismatch = TRUE;
+  } else if (pdp1->is_static || pdp2->is_static) {
+    /* If one property is static, it cannot participate in overriding. */
+    mismatch = TRUE;
+  } else {
+    a_field_ptr  fp1 = pdp1->variant.field, fp2 = pdp2->variant.field;
+    if (strcmp(fp1->source_corresp.name, fp2->source_corresp.name) != 0) {
+      /* Properties with different names don't match. */
+      mismatch = TRUE;
+    }  /* if */
   }  /* if */
   return !mismatch;
 }  /* matching_cli_accessors */
