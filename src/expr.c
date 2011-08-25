@@ -28179,7 +28179,8 @@ filled.  temp_type is the type of the temporary variable ("i").
   a_boolean         passed = TRUE;
   a_source_position pos = collection_expr->position;
 
-  check_assertion(kind == sfepk_stl_pattern || kind == sfepk_array_pattern);
+  check_assertion(kind == (a_for_each_pattern_kind)sfepk_stl_pattern ||
+                  kind == (a_for_each_pattern_kind)sfepk_array_pattern);
   /* Create a temporary of the proper type. */
   temp_var = alloc_temporary_variable(temp_type, /*force_static=*/FALSE);
   make_lvalue_variable_operand(temp_var, &pos, &pos,
@@ -28198,7 +28199,7 @@ filled.  temp_type is the type of the temporary variable ("i").
         /* Make the "!=" operator node. */
         conv_lvalue_to_rvalue(&operand1);
         build_binary_result_operand_full(&operand1, end_operand,
-                                         eok_ne,
+                                         (an_expr_operator_kind)eok_ne,
                                          boolean_result_type(),
                                          /*result_is_lvalue=*/FALSE,
                                          &operand);
@@ -28402,8 +28403,9 @@ that will get filled if all the semantic checks are successful.
          Fill in the appropriate IL for the STL version of the "for each"
          statement (i.e., operands for "c.begin()" and "c.end()"). */
       fill_in_for_each_il(collection_expr, tok_seq_number, extra_info,
-                          sfepk_stl_pattern, begin_ret_type,
-                          &begin_call_operand, &end_call_operand);
+                          (a_for_each_pattern_kind)sfepk_stl_pattern,
+                          begin_ret_type, &begin_call_operand,
+                          &end_call_operand);
     }  /* if */
   }  /* if */
 }  /* check_for_each_stl_collection_pattern */
@@ -28465,13 +28467,14 @@ checks are successful.
                          (a_host_large_integer)collection_type->size,
                          (an_integer_kind)ik_int);
     make_constant_operand(&size_constant, &size_operand);
-    build_binary_result_operand(&init_operand_copy, &size_operand, eok_padd,
+    build_binary_result_operand(&init_operand_copy, &size_operand,
+                                (an_expr_operator_kind)eok_padd,
                                 decayed_array_type, &end_operand);
     /* Fill in the appropriate IL for the array version of the "for each"
        statement (i.e., operands for "c" and "c+c_size"). */
     fill_in_for_each_il(collection_expr, tok_seq_number, extra_info,
-                        sfepk_array_pattern, decayed_array_type,
-                        &init_operand, &end_operand);
+                        (a_for_each_pattern_kind)sfepk_array_pattern,
+                        decayed_array_type, &init_operand, &end_operand);
   }  /* if */
 }  /* check_for_each_array_pattern */
 
