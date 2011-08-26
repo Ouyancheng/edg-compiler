@@ -5143,7 +5143,8 @@ declared entity is known to not be a function.
           if (!err && (input_flags & DI_NO_TYPE_SPECIFIERS) != 0 &&
               is_constructor_decl(ssep->assoc_type, dps)) {
             if (cppcli_enabled &&
-                dps->declared_storage_class == (a_storage_class)sc_static) {
+                dps->declared_storage_class == (a_storage_class)sc_static &&
+                is_managed_class_type(ssep->assoc_type)) {
               *is_static_constructor = TRUE;
             } else {
               *is_constructor = TRUE;
