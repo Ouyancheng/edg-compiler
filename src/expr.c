@@ -7189,27 +7189,46 @@ early to get the temporary initialized; otherwise, it is set to NULL.
 }  /* clone_property_ref_operand */
 
 
-static void prepare_property_ref_incr_decr(
+static void process_property_ref_incr_decr(
                                           a_boolean         is_increment,
+                                          a_boolean         is_post,
+                                          a_boolean         is_overloaded,
                                           a_source_position *operator_position,
                                           an_operand        *operand,
                                           an_operand        *operand_clone,
-                                          an_expr_node_ptr  *temp_init_expr,
-                                          an_operand        *result,
-                                          a_boolean         *processed)
+                                          an_operand        *get_result_clone,
+                                          an_expr_node_ptr  temp_init_expr,
+                                          an_operand        *result);
+
+
+static void prepare_property_ref_incr_decr(
+                             a_boolean                 is_increment,
+                             a_boolean                 is_post,
+                             a_source_position         *operator_position,
+                             a_token_sequence_number   operator_tok_seq_number,
+                             an_operand                *operand,
+                             an_operand                *operand_clone,
+                             an_operand                *get_result_clone,
+                             an_expr_node_ptr          *temp_init_expr,
+                             an_operand                *result,
+                             a_boolean                 *processed)
 /*
 Do the first part of processing for an increment or decrement of a
 reference to a member declared with the Microsoft property extension.
 is_increment is TRUE if the operation is an increment, FALSE for a
-decrement.  operator_position gives the position of the "++" or "--"
-operator.  operand is the operand of the increment/decrement; it is
+decrement.  is_post is TRUE for postfix, FALSE for prefix.
+operator_position gives the position of the "++" or "--"
+operator, and operator_tok_seq_number gives the token position of
+that operator.  operand is the operand of the increment/decrement; it is
 transformed to an rvalue that is a call of the appropriate "get"
-routine.  operand_clone is set to a clone of the operand, for use
-later when generating the "put" call.  Operator overloading is checked
-for, and if it applies, it is handled, the result is placed in
+routine.  operand_clone is set to a clone of the original operand, for
+use later when generating the "put" call.  For a postfix operator,
+*get_result_clone is set to a clone of the "get" function result, for use
+later as the result of the overall operation.  Operator overloading is
+checked for, and if it applies, it is handled, the result is placed in
 *result, and *processed is set to TRUE.  If the cloning of the operand
 required setting a temporary, *temp_init_expr is set to the code that
-must be evaluated searly to get the temporary initialized; otherwise,
+must be evaluated early to get the temporary initialized; otherwise,
 it is set to NULL.
 */
 {
@@ -7219,20 +7238,53 @@ it is set to NULL.
   /* Transform the operand to a call of the appropriate "get" function. */
   rewrite_property_reference(operand, (an_operand *)NULL,
                              (a_rewritten_property_reference_kind)rprk_none);
+  if (is_post) {
+    /* For postfix operators, save a copy of the result of the "get"
+       function call for use later as the result of the overall operation. */
+    a_boolean temp_used;
+    clone_operand(operand, get_result_clone, /*vars_can_change=*/TRUE,
+                  &temp_used, /*treat_as_potential_rvalue=*/TRUE);
+  }  /* if */
   if (is_overloadable_type_first_operand(operand)) {
     /* Look for C++ operator overloading cases. */
-    check_for_operator_overloading((an_opname_kind)(is_increment ?
-                                                         onk_plus : onk_minus),
-                                   /*unary_operator=*/TRUE,
+    an_operand     one_operand, *second_operand;
+    a_constant     one_constant;
+    an_opname_kind kind;
+    if (is_cppcli_property_or_event(operand_clone->symbol)) {
+      /* For C++/CLI properties, use operator++ or operator--. */
+      kind = (an_opname_kind)(is_increment ? onk_plus_plus : onk_minus_minus);
+      second_operand = NULL;
+    } else {
+      /* For declspec properties, use operator+ and operator-, with an
+         implied "1" as the second operand. */
+      kind = (an_opname_kind)(is_increment ? onk_plus : onk_minus);
+      set_integer_constant(&one_constant, (a_host_large_integer)1L,
+                           (an_integer_kind)ik_int);
+      make_constant_operand(&one_constant, &one_operand);
+      second_operand = &one_operand;
+    }  /* if */
+    check_for_operator_overloading(kind,
+                                   /*unary_operator=*/(second_operand == NULL),
                                    /*must_be_member_function=*/FALSE,
                                    /*try_conversions=*/TRUE,
                                    /*has_predef_meaning=*/FALSE,
-                                   operand, (an_operand *)NULL,
+                                   operand, second_operand,
                                    operator_position,
-                                   (a_token_sequence_number)0,
+                                   operator_tok_seq_number,
                                    (a_nondependent_call_depth)0,
                                    (a_source_position *)NULL,
                                    result, processed);
+    if (*processed) {
+      /* Overloading applied, so finish up the rewrite and return
+         *processed = TRUE to the caller saying everything has been handled. */
+      process_property_ref_incr_decr(is_increment, is_post,
+                                     /*is_overloaded=*/TRUE,
+                                     operator_position,
+                                     result, operand_clone,
+                                     get_result_clone, *temp_init_expr,
+                                     result);
+      *temp_init_expr = FALSE;
+    }  /* if */
   }  /* if */
 }  /* prepare_property_ref_incr_decr */
 
@@ -7271,9 +7323,11 @@ specified by rewritten_kind.
 static void process_property_ref_incr_decr(
                                           a_boolean         is_increment,
                                           a_boolean         is_post,
+                                          a_boolean         is_overloaded,
                                           a_source_position *operator_position,
                                           an_operand        *operand,
                                           an_operand        *operand_clone,
+                                          an_operand        *get_result_clone,
                                           an_expr_node_ptr  temp_init_expr,
                                           an_operand        *result)
 /*
@@ -7283,40 +7337,76 @@ is_increment is TRUE if the operation is an increment, FALSE for a
 decrement.  is_post is TRUE for postfix, FALSE for prefix.
 operator_position gives the source position of the operator.
 "operand" is the operand to be incremented/decremented, already
-transformed into a call of the appropriate "get" function.
-operand_clone is a clone of the original operand, to be transformed
-into a call of the appropriate "put" function.  If temp_init_expr is
-non-NULL, the cloning of the operand required setting a temporary, and
+transformed into a call of the appropriate "get" function.  If
+is_overloaded is TRUE, the operation is overloaded, and operand is
+already the call of the overloaded operator+ or operator- (or
+operator++ or operator--) function on the "get" function result.
+operand_clone is a clone of the original operand, to be used in a call
+of the appropriate "put" function.  For a postfix operator,
+*get_result_clone is a clone of the "get" function result, for use as
+the result of the overall operation.  If temp_init_expr is non-NULL,
+the cloning of the operand required setting a temporary, and
 temp_init_expr points to the code to set the temporary, which must be
 inserted before the overall operation so it will be evaluated before
 any use of the temporary.  The overall result is placed in *result.
 */
 {
-  an_operand                          one_operand;
-  a_constant                          one_constant;
-  a_type_ptr                          result_type;
-  an_expr_operator_kind               op;
+  an_operand                          operator_result;
   a_rewritten_property_reference_kind rprk = (is_post ?
                      (a_rewritten_property_reference_kind)rprk_post_incr_decr :
                      (a_rewritten_property_reference_kind)rprk_pre_incr_decr);
 
-
-  /* Make a constant "1" of the right type. */
-  set_integer_constant(&one_constant, (a_host_large_integer)1L,
-                       (an_integer_kind)ik_int);
-  make_constant_operand(&one_constant, &one_operand);
-  /* Determine the result type. */
-  result_type = determine_arithmetic_conversions(operand, &one_operand);
-  /* Change the type of the operands as needed (usually to the result type). */
-  op = which_binary_operator(is_increment ? tok_plus : tok_minus, result_type);
-  change_binary_operand_types(result_type, operand, &one_operand, op);
-  /* Generate the IL for the operation. */
-  do_binary_operation(op, operand, &one_operand, result_type, result,
-                      operator_position, NO_TOKEN_SEQUENCE_NUMBER);
+  if (!is_overloaded) {
+    /* Add the code to add 1 to the value fetched by the "get" call. */
+    a_constant            one_constant;
+    an_operand            one_operand;
+    a_type_ptr            result_type;
+    an_expr_operator_kind op;
+    /* Make a constant "1" of the right type. */
+    set_integer_constant(&one_constant, (a_host_large_integer)1L,
+                         (an_integer_kind)ik_int);
+    make_constant_operand(&one_constant, &one_operand);
+    /* Determine the result type. */
+    result_type = determine_arithmetic_conversions(operand, &one_operand);
+    /* Change the type of the operands as needed (usually to the result
+       type). */
+    op = which_binary_operator(is_increment ? tok_plus : tok_minus,
+                               result_type);
+    change_binary_operand_types(result_type, operand, &one_operand, op);
+    /* Generate the IL for the operation. */
+    do_binary_operation(op, operand, &one_operand, result_type, result,
+                        operator_position, NO_TOKEN_SEQUENCE_NUMBER);
+  }  /* if */
+  if (!is_post) {
+    /* For a prefix operator, remember the result of the get()+1 computation
+       so we can return that as the value of the operation. */
+    a_boolean temp_used;
+    clone_operand(result, &operator_result, /*vars_can_change=*/TRUE,
+                  &temp_used, /*treat_as_potential_rvalue=*/TRUE);
+  } else {
+    /* For a postfix operator, *get_result_clone was previously set to the
+       result of the "get" function call. */
+    copy_operand(get_result_clone, &operator_result);
+  }  /* if */
   /* Add a call of the appropriate "put" routine. */
   rewrite_property_reference(operand_clone, result, rprk);
-
   copy_operand(operand_clone, result);
+  /* Add code to fetch the previously-evaluated result of the operation.
+     For prefix operators, that is the value of the get()+1 computation.
+     For postfix operators, it is the value of the get call. */
+  { an_expr_node_ptr expr = make_node_from_operand(result);
+    an_operand       orig_operand;
+    orig_operand = *operand;
+    /* In standard C++, the prefix operators return an lvalue, the postfix
+       operators an rvalue.  However, with a property, there is no
+       underlying lvalue, so we return an rvalue in all cases. */
+    if (is_an_lvalue(&operator_result)) {
+      conv_lvalue_to_rvalue(&operator_result);
+    }  /* if */
+    expr = make_comma_node(expr, make_node_from_operand(&operator_result));
+    make_expression_operand(expr, result);
+    restore_operand_details(result, &orig_operand);
+  }
   /* Insert temporary-initialization code if required. */
   insert_temporary_initialization(temp_init_expr, rprk, result);
 }  /* process_property_ref_incr_decr */
@@ -7348,7 +7438,7 @@ case.
                         operator_tok_seq_number;
   a_boolean             property_ref_case = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  an_operand            operand_clone;
+  an_operand            operand_clone, get_result_clone;
   a_boolean             operand_clone_unused = FALSE;
   an_expr_node_ptr      temp_init_expr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7394,8 +7484,12 @@ case.
          property.  The fetch of the member will be made via a call of a
          "get" function, and the store will be made via a call of a "put"
          function. */
-      prepare_property_ref_incr_decr(is_increment, &operator_position,
-                                     operand, &operand_clone, &temp_init_expr,
+      prepare_property_ref_incr_decr(is_increment, /*is_post=*/TRUE,
+                                     &operator_position,
+                                     operator_tok_seq_number,
+                                     operand, &operand_clone,
+                                     &get_result_clone,
+                                     &temp_init_expr,
                                      result, &processed);
       operand_clone_unused = TRUE;
     }  /* if */
@@ -7555,8 +7649,10 @@ case.
       } else if (property_ref_case) {
         /* Operand is a reference to a Microsoft property. */
         process_property_ref_incr_decr(is_increment, /*is_post=*/TRUE,
+                                       /*is_overloaded=*/FALSE,
                                        &operator_position,
-                                       operand, &operand_clone, temp_init_expr,
+                                       operand, &operand_clone,
+                                       &get_result_clone, temp_init_expr,
                                        result);
         operand_clone_unused = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7600,6 +7696,7 @@ case.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (operand_clone_unused) {
     operand_will_not_be_used_because_of_error(&operand_clone);
+    operand_will_not_be_used_because_of_error(&get_result_clone);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   set_operand_position(result, &operand->position, &end_position,
@@ -7710,8 +7807,12 @@ and return the result in *result (or an error indication in *rcblock).
          property.  The fetch of the member will be made via a call of a
          "get" function, and the store will be made via a call of a "put"
          function. */
-      prepare_property_ref_incr_decr(is_increment, &operator_position,
-                                     &operand, &operand_clone, &temp_init_expr,
+      prepare_property_ref_incr_decr(is_increment, /*is_post=*/FALSE,
+                                     &operator_position,
+                                     operator_tok_seq_number,
+                                     &operand, &operand_clone,
+                                     (an_operand *)NULL,
+                                     &temp_init_expr,
                                      result, &processed);
       operand_clone_unused = TRUE;
     }  /* if */
@@ -7818,9 +7919,11 @@ and return the result in *result (or an error indication in *rcblock).
       } else if (property_ref_case) {
         /* Operand is a reference to a Microsoft property. */
         process_property_ref_incr_decr(is_increment, /*is_post=*/FALSE,
+                                       /*is_overloaded=*/FALSE,
                                        &operator_position,
                                        &operand, &operand_clone,
-                                       temp_init_expr, result);
+                                       (an_operand *)NULL, temp_init_expr,
+                                       result);
         operand_clone_unused = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {

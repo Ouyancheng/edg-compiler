@@ -1,5 +1,30 @@
 Version 4.4
 
+8/26/11  [EDGcpfe/12056]
+Bugs in expansion of increment/decrement of Microsoft property references
+
+The expansion for an increment or decrement operator applied to
+a Microsoft property reference was not always done correctly.
+The result of the operation was considered to be the result of
+the "put" function call, rather than the value (incremented or not)
+of the property.  Also, if the underlying type of the property is
+a class, overloaded operator+ or operator- functions were not
+properly found and used (an error was issued instead).  Now fixed.
+
+  struct A {
+    __declspec(property(get=iget,put=iput)) int i;
+    int idata;
+    int iget() { return idata; }
+    void iput(int p) { idata = p; }
+  } a;
+  extern "C" int printf(const char *, ...);
+  int main() {
+    int ii = a.i++ + 5;  // Formerly got error, now accepted
+    printf("ii = %d, a.i = %d\n", ii, a.i);
+    return !(ii == 5 && a.i == 1);
+  }
+
+
 8/26/11  [EDGcpfe/11874]
 Microsoft compatibility: lookup of friend class templates
 
