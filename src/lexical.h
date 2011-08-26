@@ -221,6 +221,8 @@ typedef enum /* an_identifier_lookup_mode */ {
 			/* Uses both IDL_IS_DECLARATOR and
 			   IDL_IS_STATIC_DECL. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  ilm_template_friend,	/* Uses IDL_FRIEND_LOOKUP to do the lookup, create
+			   nonreal members as templates. */
   ilm_last
 } an_identifier_lookup_mode;
 

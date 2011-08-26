@@ -667,6 +667,8 @@ static an_id_lookup_options_set idl_options_for_lookup_mode[(int)ilm_last+1]= {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* ilm_static_declarator */	IDL_IS_DECLARATOR | IDL_IS_STATIC_DECL,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* ilm_template_friend */	IDL_FRIEND_LOOKUP | IDL_TREAT_AS_TEMPLATE_ID |
+				IDL_USE_PROTOTYPE_NOT_NONREAL,
   /* ilm_last */		IDL_NO_OPTIONS
 };
 

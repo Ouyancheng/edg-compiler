@@ -2993,7 +2993,8 @@ that do normal id lookup processing.
          modes) or (except in cfront mode) the first function/block scope. */
       if (((kind == (a_scope_kind)sck_namespace ||
             kind == (a_scope_kind)sck_namespace_extension) &&
-           !(lookup_state->must_be_tag &&
+           !((lookup_state->must_be_tag ||
+              lookup_state->treat_as_template_id) &&
              ((gpp_mode && gnu_version < 40000) ||
               sun_mode || microsoft_mode))) ||
           (!any_cfront_mode() && (kind == (a_scope_kind)sck_function ||

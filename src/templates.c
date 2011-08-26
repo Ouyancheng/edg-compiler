@@ -14961,9 +14961,16 @@ declaration of a partial specialization declared outside of its class.
         locator_for_curr_id.is_qualified_name ||
         locator_for_curr_id.is_template_id) {
       a_boolean	err = FALSE;
+      /* The Microsoft compiler finds names outside of the nearest namespace
+         when looking for template friends.  The ilm_template_friend flag
+         is used for that case. */
       sym = coalesce_and_lookup_generalized_identifier
                              (GID_CLASS_TEMPLATE_REQUIRED,
-                              ilm_template_linkage, &err);
+                              microsoft_mode &&
+                                decl_state->is_template_friend
+                                                 ? ilm_template_friend
+                                                 : ilm_template_linkage,
+                              &err);
       /* If the class name is a template ID, then this is probably a
          declaration of a partial specialization. */
       if (sym != NULL && is_template_class_symbol(sym) &&

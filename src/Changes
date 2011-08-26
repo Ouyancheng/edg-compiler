@@ -1,5 +1,31 @@
 Version 4.4
 
+8/26/11  [EDGcpfe/11874]
+Microsoft compatibility: lookup of friend class templates
+
+When looking up the name of a class template in a friend template declaration,
+the Microsoft compiler considers names declared outside of the nearest
+enclosing namespace.  We now emulate this in Microsoft mode.
+
+  namespace N {
+    template<typename T> class A;
+    namespace M {
+      template<typename T> void f(const T& b) {}
+      template<typename U> class B {
+        // The following finds N::A.  Formerly, it declared a new N::M::A
+        // which was then found by the friend declaration in N::A.
+        template<typename V> friend class A;
+      };
+    }
+    template<typename T> class A : public M::B<T> {
+      friend void M::f<A<T> >(const A<T>& b);
+    };
+  }
+  int main() {
+      N::A<int> a;
+  }
+
+
 8/25/11  [EDGcpfe/12085]
 Microsoft compatibility: changes in unknown attribute diagnostic
 
