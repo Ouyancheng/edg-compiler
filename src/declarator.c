@@ -5142,11 +5142,15 @@ declared entity is known to not be a function.
              leading tilde. */
           if (!err && (input_flags & DI_NO_TYPE_SPECIFIERS) != 0 &&
               is_constructor_decl(ssep->assoc_type, dps)) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
             if (cppcli_enabled &&
                 dps->declared_storage_class == (a_storage_class)sc_static &&
                 is_managed_class_type(ssep->assoc_type)) {
               *is_static_constructor = TRUE;
-            } else {
+            } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            /* Do not insert code here. */
+            {
               *is_constructor = TRUE;
             }  /* if */
           }  /* if */
