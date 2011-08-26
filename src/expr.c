@@ -7404,6 +7404,7 @@ any use of the temporary.  The overall result is placed in *result.
       conv_lvalue_to_rvalue(&operator_result);
     }  /* if */
     expr = make_comma_node(expr, make_node_from_operand(&operator_result));
+    expr->variant.operation.compiler_generated = TRUE;
     make_expression_operand(expr, result);
     restore_operand_details(result, &orig_operand);
   }
