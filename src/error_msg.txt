@@ -2290,6 +2290,8 @@ ec_generic_type_in_template_arg;;"a template argument may not reference a generi
 ec_comma_operator_in_cli_subscript;;"an expression list is not allowed in this subscript operation (use parentheses around a top-level comma operator)"
 ec_expr_not_pointer_or_array_handle;;"expression must have pointer-to-object or handle-to-CLI-array type"
 ec_unrecognized_ms_attr;;"unrecognized attribute"
+ec_standard_class_member_in_managed_class;;"a member of a managed class cannot be of a non-managed class type"
+ec_managed_class_member_in_standard_class;;"a member of a non-managed class cannot be of a managed class type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -12780,6 +12780,10 @@ specific information about the member declaration, respectively.
         pos_error(ec_standard_array_member_in_managed_class,
                   &decl_state->declarator_pos);
         member_type = error_type();
+      } else if (is_standard_class_type(member_type)) {
+        pos_error(ec_standard_class_member_in_managed_class,
+                  &decl_state->declarator_pos);
+        member_type = error_type();
       }  /* if */
     } else {
       /* Limitations applying to members of non-managed class types only. */
@@ -12787,6 +12791,10 @@ specific information about the member declaration, respectively.
         pos_error(is_handle_type(member_type) ?
                     ec_handle_member_in_standard_class :
                     ec_tracking_reference_member_in_standard_class,
+                  &decl_state->declarator_pos);
+        member_type = error_type();
+      } else if (is_managed_class_type(member_type)) {
+        pos_error(ec_managed_class_member_in_standard_class,
                   &decl_state->declarator_pos);
         member_type = error_type();
       }  /* if */
@@ -14535,46 +14543,60 @@ declarations.
       field_type = error_type();
     }  /* if */
   }  /* if */
-  if (!is_error_type(field_type)) {
-    a_boolean  is_ref = is_any_reference_type(field_type);
-    if (is_abstract_class_type(field_type)) {
-      /* Abstract class objects are prohibited (ARM 10.3). */
-      abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
-                                field_type, &locator->source_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && is_tracking_reference_type(field_type)) {
+  if (cppcli_enabled && !is_error_type(field_type)) {
+    a_boolean  in_managed_class = is_immediate_managed_class_type(class_type);
+    /* Check for C++/CLI-specific constraints. */
+    if (is_tracking_reference_type(field_type)) {
       pos_error(ec_field_cannot_be_tracking_reference,
                 &decl_state->declarator_pos);
       field_type = error_type();
-    } else if (cppcli_enabled &&
-               is_immediate_managed_class_type(class_type) ?
+    } else if (in_managed_class ?
                      is_array_type(field_type) : is_handle_type(field_type)) {
       /* Array types are disallowed in managed class types and handles are
          disallowed in non-managed (i.e., standard) class types. */
-      pos_error(is_immediate_managed_class_type(class_type) ?
+      pos_error(in_managed_class ?
                   ec_standard_array_member_in_managed_class :
                   ec_handle_member_in_standard_class,
                 &decl_state->declarator_pos);
       field_type = error_type();
-    } else if (cppcli_enabled && (is_interior_ptr_type(field_type) || 
-                                  is_pin_ptr_type(field_type))) {
+    } else if (in_managed_class && is_standard_class_type(field_type)) {
+      /* Managed classes cannot have fields with standard class types... */
+      pos_error(ec_standard_class_member_in_managed_class,
+                &decl_state->declarator_pos);
+      field_type = error_type();
+    } else if (!in_managed_class && is_managed_class_type(field_type)) {
+      /* ... nor vice versa. */
+      pos_error(ec_managed_class_member_in_standard_class,
+                &decl_state->declarator_pos);
+      field_type = error_type();
+    } else if (is_interior_ptr_type(field_type) ||
+               is_pin_ptr_type(field_type)) {
       /* In C++/CLI, an interior_ptr or pin_ptr cannot be a class member. */
       pos_ty_error(ec_type_cannot_be_class_member, 
                    &locator->source_position, field_type);
       field_type = error_type();
-    } else if (cppcli_enabled && is_cli_interface_type(field_type)) {
-      /* Fields cannot be interfaces. */
+    } else if (is_cli_interface_type(field_type)) {
+      /* Fields cannot be C++/CLI interfaces. */
       pos_error(ec_data_member_with_interface_type,
                 &decl_state->declarator_pos);
       field_type = error_type();
-    } else if (cppcli_enabled && is_value_class_type(class_type) &&
+    } else if (is_value_class_type(class_type) &&
                is_class_struct_union_type(field_type) &&
                !is_value_class_type(field_type)) {
       /* Non-value class types cannot be used for value class members. */
       pos_ty_error(ec_nonvalue_class_type_cannot_be_value_class_member, 
                    &locator->source_position, field_type);
       field_type = error_type();
+    }  /* if */
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (!is_error_type(field_type)) {
+    a_boolean  is_ref = is_any_reference_type(field_type);
+    if (is_abstract_class_type(field_type)) {
+      /* Abstract class objects are prohibited (ARM 10.3). */
+      abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
+                                field_type, &locator->source_position);
     } else if (strict_ansi_mode && is_union_type(class_type) && is_ref) {
       /* Unions are not allowed to have members of reference type. */
       pos_diagnostic(strict_ansi_error_severity, ec_ref_not_allowed_in_union,
