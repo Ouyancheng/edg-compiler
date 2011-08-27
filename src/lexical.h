@@ -2354,8 +2354,10 @@ extern a_template_ptr scan_template_template_argument(
 				a_template_ptr		param_template,
 				a_source_position	*err_pos);
 
-extern void insert_string_into_token_stream(char	*string,
-					    a_boolean	insert_after);
+extern void insert_string_into_token_stream(
+                                        char              *string,
+                                        a_boolean         insert_after,
+                                        a_source_position position_for_tokens);
 
 #if CHECKING
 void check_all_stop_token_entries_are_reset(a_token_set_array stop_tokens);

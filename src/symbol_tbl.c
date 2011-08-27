@@ -6850,10 +6850,12 @@ cli::array or cli::interior_ptr.
   a_template_symbol_supplement_ptr tssp;
   a_symbol_ptr                     result_sym;
 
-  scan_top_level_metadata_declarations(definition_string);
+  scan_top_level_metadata_declarations(definition_string,
+                                       (an_assembly_index)0);
   ns_ptr = cli_symbols[(int)csk_cli_namespace]->variant.namespace_info.ptr;
   result_sym = look_up_name_string_in_namespace(symbol_name, ns_ptr);
-  check_assertion(result_sym->kind == (a_symbol_kind)sk_class_template);
+  check_assertion(result_sym != NULL &&
+                  result_sym->kind == (a_symbol_kind)sk_class_template);
   tssp = result_sym->variant.template_info;
   tssp->variant.class_template.cannot_be_specialized = TRUE;
   return result_sym;
@@ -6885,8 +6887,8 @@ from ECMA-372, subsection 8.2.3.)
      "namespace cli {"
      "  template <typename T, int rank>"
      "  ref class array sealed : System::Array {};"
-     "}"
-   );
+     "}",
+     (an_assembly_index)0);
 }  /* make_symbol_for_cli_array */
 
 

@@ -1818,7 +1818,19 @@ extern void record_start_of_source_file(
                                  a_boolean         is_preinclude,
 				 a_boolean	   preinclude_macros_only,
 				 a_boolean	   is_implicit_include,
-				 a_boolean	   from_system_include_dir);
+				 a_boolean	   from_system_include_dir,
+				 a_boolean	   is_scanned_from_string);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern void record_inclusion_of_assembly_source_file(
+                                     char              *file_name,
+                                     char              *full_name,
+                                     char              *name_as_written,
+                                     a_source_file_ptr *new_file,
+                                     a_boolean         is_system_include,
+                                     a_boolean         is_preinclude,
+                                     a_source_position *inserted_position);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void record_resumption_of_source_file(a_source_file_ptr	curr_file,
 					     a_seq_number	seq_number,
@@ -1838,6 +1850,11 @@ extern void conv_seq_to_file_and_line(a_seq_number  seq_number,
                                       a_boolean     *at_end_of_source);
 
 extern a_source_file_ptr eff_primary_source_file(void);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_cli_metadata_file_ptr map_assembly_index_to_cmfp(
+                                             an_assembly_index assembly_index);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !STANDALONE_UTILITY_PROGRAM
 

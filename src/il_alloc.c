@@ -589,6 +589,9 @@ Allocate a source file entry, initialize it, and return a pointer to it.
   sfp->from_system_include_dir = FALSE;
   sfp->top_level_file = FALSE;
   sfp->top_level_file_from_pch = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  sfp->is_assembly_file = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   return sfp;
 }  /* alloc_source_file */
@@ -609,6 +612,10 @@ a pointer to it.
   cmfp->next            = NULL;
   cmfp->position        = null_source_position;
   cmfp->assembly_index  = 0;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  cmfp->assembly_file   = NULL;
+  cmfp->inserted_position = null_source_position;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cmfp->as_friend       = FALSE;
   cmfp->referenced_by_preusing     = FALSE;
   cmfp->referenced_by_system_using = FALSE;

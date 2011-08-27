@@ -657,9 +657,12 @@ static void form_source_position(a_source_position   *pos,
                                  a_msg_segment_ptr   seg_ptr)
 /*
 Format a source position in the message segment described by seg_ptr.
-The generated format is:
+The generated format is one of:
 
         <prefix_string>at line xxx of "file name"<suffix string>
+        <prefix_string>in "file name"<suffix string>
+
+depending on whether or not the line number is zero (e.g., for assemblies).
 
 If the file is stdin or the file name is identical to that of the error
 position of the diagnostic message being composed, the file name is not
@@ -686,21 +689,32 @@ redundant file names in a diagnostic.*/
     if (at_end_of_source) {
       add_string_to_segment(end_of_source_string, seg_ptr);
     } else {
+      a_boolean file_name_needed = strcmp(file_name, diag_file_name) != 0 &&
+                                   strcmp(file_name, FILE_NAME_FOR_STDIN) != 0;
       add_string_to_segment(prefix_string, seg_ptr);
-      add_string_to_segment(error_text(ec_at_line), seg_ptr);
+      if (line_number == 0) {
+        /* No line number (e.g., C++/CLI assemblies). */
+        if (file_name_needed) {
+          add_string_to_segment(error_text(ec_in), seg_ptr);
+        }  /* if */
+      } else {
+        /* Emit the line number. */
+        add_string_to_segment(error_text(ec_at_line), seg_ptr);
 #if CHECKING
-      if (digits_to_represent((unsigned long)pos->seq)
-                          >= BASE_MSG_SEGMENT_SIZE) {
-        internal_error("form_source_position: buffer size too small");
-      }  /* if */
+        if (digits_to_represent((unsigned long)pos->seq)
+                            >= BASE_MSG_SEGMENT_SIZE) {
+          internal_error("form_source_position: buffer size too small");
+        }  /* if */
 #endif /* CHECKING */
-      (void)sprintf(buffer, "%lu", (unsigned long)line_number);
-      add_string_to_segment(&buffer[0], seg_ptr);
+        (void)sprintf(buffer, "%lu", (unsigned long)line_number);
+        add_string_to_segment(&buffer[0], seg_ptr);
+      }  /* if */
       /* Add the file name if needed. */
-      if (strcmp(file_name, diag_file_name) != 0 &&
-          strcmp(file_name, FILE_NAME_FOR_STDIN) != 0) {
+      if (file_name_needed) {
         char *formatted_file_name;
-        add_string_to_segment(error_text(ec_of), seg_ptr);
+        if (line_number != 0) {
+          add_string_to_segment(error_text(ec_of), seg_ptr);
+        }  /* if */
         add_string_to_segment("\"", seg_ptr);
         formatted_file_name = format_file_name(file_name);
         add_string_to_segment(formatted_file_name, seg_ptr);
@@ -1840,11 +1854,15 @@ form for the file, or usk_none if the file is not Unicode.
   if (physical_line == 0 ||
       at_end_of_source ||
       strcmp(src_file->full_name, FILE_NAME_FOR_STDIN) == 0 ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      src_file->is_assembly_file ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       head_of_file_index_list == NULL) {
     /* Either the file position is strange or unknown, we are at the end of
-       the primary source file, the input is from stdin, or there is no
-       file index information (for example, because we are currently in the
-       back end).  The original source line cannot be recovered. */
+       the primary source file, the input is from stdin, the input is
+       from a C++/CLI assembly file, or there is no file index information (for
+       example, because we are currently in the back end).  The original source
+       line cannot be recovered. */
     goto return_point;
   } else {
     /* Determine the optimum starting position in the file to read the desired
@@ -2456,7 +2474,7 @@ static void write_position(char              *file_name,
                            a_column_number   column_number,
                            int               *line_len)
 /*
-Write the source position (filename and line number) to the
+Write the source position (filename and line number -- when non-zero) to the
 write_diagnostic_buffer text buffer.  If column_number is not SP_COL_UNKNOWN,
 the column number is added into the output.
 */
@@ -2475,7 +2493,6 @@ the column number is added into the output.
     *line_len += add_string_to_text_buffer(buffer, " ");
     *line_len += add_string_to_text_buffer(buffer, number_buffer);
   } else {
-    (void)sprintf(number_buffer, "%lu", line_number);
     *line_len += add_string_to_text_buffer(buffer, "\"");
     /* Don't convert '\' to '\\' in error message output.  The
        name should be displayed as written by the user.  This also
@@ -2483,11 +2500,15 @@ the column number is added into the output.
     *line_len += write_file_name_to_text_buffer(file_name, buffer,
                                           /*process_escapes=*/FALSE,
                                           /*escape_nonprintable_chars=*/FALSE);
-    error_text_string = error_text(ec_line);
-    *line_len += add_string_to_text_buffer(buffer, "\", ");
-    *line_len += add_string_to_text_buffer(buffer, error_text_string);
-    *line_len += add_string_to_text_buffer(buffer, " ");
-    *line_len += add_string_to_text_buffer(buffer, number_buffer);
+    *line_len += add_string_to_text_buffer(buffer, "\"");
+    if (line_number != 0) {
+      (void)sprintf(number_buffer, "%lu", line_number);
+      error_text_string = error_text(ec_line);
+      *line_len += add_string_to_text_buffer(buffer, ", ");
+      *line_len += add_string_to_text_buffer(buffer, error_text_string);
+      *line_len += add_string_to_text_buffer(buffer, " ");
+      *line_len += add_string_to_text_buffer(buffer, number_buffer);
+    }  /* if */
   }  /* if */
   if (column_number != SP_COL_UNKNOWN) {
     (void)sprintf(number_buffer, "%d", column_number);

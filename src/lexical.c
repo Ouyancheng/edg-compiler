@@ -5188,7 +5188,8 @@ used to find this file.
                               is_system_include, is_preinclude,
                               preinclude_macros,
 			      is_implicit_include,
-                              from_system_include_dir);
+                              from_system_include_dir,
+                              /*is_scanned_from_string=*/FALSE);
   /* The two il file pointers start out the same.  They will be made to
      point to distinct entries if a #line directive is processed:
      assoc_il_file will point to the entry for the #line, and
@@ -17885,13 +17886,15 @@ that tokens should be fetched from the insertion string.
 }  /* pop_string_insert_cache_entry */
 
 
-void insert_string_into_token_stream(char	*string,
-				     a_boolean	insert_after)
+void insert_string_into_token_stream(char		*string,
+				     a_boolean		insert_after,
+				     a_source_position	position_for_tokens)
 /*
 Scan "string" as a sequence of tokens.  Build a token cache and insert it
 into the token stream at the current position.  "insert_after" is TRUE
 if the tokens should be inserted after the current token; FALSE if they
-should be inserted before the current token.
+should be inserted before the current token.  position_for_tokens is used
+as the beginning and end source position for each token in the string.
 */
 {
   a_boolean		save_treat_newline_as_token;
@@ -17911,6 +17914,10 @@ should be inserted before the current token.
 			save_curr_char_loc_reg;
   a_pointer_registration_ptr
 			save_registered_pointers = registered_pointers;
+  a_source_position     save_pos_curr_token = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position     save_end_pos_curr_token = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   register_pointer_variable(save_curr_char_loc, save_curr_char_loc_reg);
   if (token_insertion_buffer == NULL) {
@@ -17930,7 +17937,7 @@ should be inserted before the current token.
   /* Save the current token position. */
   save_curr_char_loc = curr_char_loc;
   save_treat_newline_as_token = treat_newline_as_token;
-  token_insertion_position = pos_curr_token;
+  token_insertion_position = position_for_tokens;
   save_no_modifs_to_curr_source_line = no_modifs_to_curr_source_line;
   save_curr_source_line = curr_source_line;
   save_after_end_of_curr_source_line = after_end_of_curr_source_line;
@@ -17962,8 +17969,12 @@ should be inserted before the current token.
 
   /* Fetch tokens from the buffer.  Stop on a newline. */
   while (get_token() != tok_newline) {
-    /* All of the tokens should have the position of the insert point. */
-    pos_curr_token = token_insertion_position;
+    /* All of the tokens should have begin and end positions as specified by
+       the caller. */
+    pos_curr_token = position_for_tokens;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_pos_curr_token = position_for_tokens;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     cache_curr_token(&cache);
   }  /* while */
 
@@ -17975,6 +17986,10 @@ should be inserted before the current token.
   in_token_insertion_from_string = FALSE;
   curr_source_line = save_curr_source_line;
   caching_tokens = save_caching_tokens;
+  pos_curr_token = save_pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_pos_curr_token = save_end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   /* Resume fetching tokens from the previous source. */
   pop_string_insert_cache_entry();
@@ -18538,6 +18553,7 @@ C++/CLI delegate class types.)
   a_boolean			save_expand_macros = expand_macros;
   sizeof_t			size = 0;
   a_type_ptr			class_type_for_context = class_type;
+  a_source_position             position_for_tokens;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean			saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -18658,11 +18674,26 @@ C++/CLI delegate class types.)
      the opening brace of the class) and ends with the closing brace and
      semicolon. */
 #endif /* CPPCLI_ENABLING_POSSIBLE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (assembly_index != 0) {
+    /* The definition is coming from an assembly file; set the position
+       information to reflect that. */
+    a_cli_metadata_file_ptr cmfp = map_assembly_index_to_cmfp(assembly_index);
+    check_assertion(cmfp != NULL);
+    position_for_tokens = cmfp->inserted_position;
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    /* Insert the definition as though it's at the current token. */
+    position_for_tokens = pos_curr_token;
+  }  /* if */
   /* Terminate the buffer. */
   add_char_to_text_buffer(class_def_buffer, '\0');
   expand_macros = FALSE;
   insert_string_into_token_stream(class_def_buffer->buffer,
-                                  /*insert_after=*/FALSE);
+                                  /*insert_after=*/FALSE,
+                                  position_for_tokens);
   is_delegate = strncmp(class_def_buffer->buffer, "delegate ", 9) == 0;
   /* Generics are processed differently than other types.  They are cached
      for instantiation purposes, then an initial scan is done to do the

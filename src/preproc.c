@@ -1461,6 +1461,17 @@ are being generated, the directive is added to that list as well.
     }  /* while */
     cli_metadata_files_tail->next = cmfp;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Create a record of this source file, and map a source position to be
+     used for all tokens read from this file. */
+  record_inclusion_of_assembly_source_file(full_name,
+                                           full_name,
+                                           name,
+                                           &cmfp->assembly_file,
+                                           is_system_include,
+                                           referenced_by_preusing,
+                                           &cmfp->inserted_position);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   add_to_source_sequence_list((char*)cmfp, iek_cli_metadata_file);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -1571,7 +1582,7 @@ in the metadata file.
       in_preprocessing_directive = FALSE;
       curr_assembly_index = cmfp->assembly_index; 
       buffer = generate_top_level_metadata_code(cmfp->assembly_index);
-      scan_top_level_metadata_declarations(buffer);
+      scan_top_level_metadata_declarations(buffer, cmfp->assembly_index);
       /* If this is not a preusing, the next token should be tok_newline of 
          the #using directive. */
       check_assertion(curr_token == tok_newline || 
@@ -1844,7 +1855,13 @@ may have extra operand at end).
                                 (a_boolean)FALSE,
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
                                 (actual_sfp->from_system_include_dir ||
-                                 from_system_include));
+                                 from_system_include),
+#if MICROSOFT_EXTENSIONS_ALLOWED
+				(a_boolean)actual_sfp->is_assembly_file
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+                                (a_boolean)FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                );
   }
   if (generate_pp_output) {
     /* Generate the line-identifying directive if necessary for preprocessing

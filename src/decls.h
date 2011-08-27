@@ -943,7 +943,9 @@ extern void scan_implicitly_included_template_definition_file(void);
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern void scan_top_level_metadata_declarations(char* buffer);
+extern void scan_top_level_metadata_declarations(
+                                             char              *buffer,
+                                             an_assembly_index assembly_index);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean reconcile_external_symbol_types(
