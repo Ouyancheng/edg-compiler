@@ -9268,6 +9268,14 @@ corresponding simple operation.
        code. */
     opnd2 = node->variant.operation.operands->next;
     switch (node->variant.operation.kind) {
+      case eok_post_incr:
+      case eok_pre_incr:
+        compound_operation_string = " ++ ";
+        break;
+      case eok_post_decr:
+      case eok_pre_decr:
+        compound_operation_string = " -- ";
+        break;
       case eok_add:
       case eok_padd:
         /* Could be either ++ or +=.  Set the operation string to "++"
@@ -9377,6 +9385,12 @@ corresponding simple operation.
         case onk_shift_right:
           compound_operation_string = " >>= ";
           opnd2_of_simple_operation = opnd2;
+          break;
+        case onk_plus_plus:
+          compound_operation_string = " ++ ";
+          break;
+        case onk_minus_minus:
+          compound_operation_string = " -- ";
           break;
         default:
           /* Not a simple operator decomposed from a compound operation. */
@@ -10768,26 +10782,47 @@ gen_expr that might end up generating this expr as a temporary.
           opstr = "^";
           break;
         case eok_comma:
+          {
+            a_boolean suppress_opnd1 = FALSE;
+            a_boolean suppress_opnd2 = FALSE;
 #if CHECKING
-          check_result_not_used_flag(operand_1);
+            check_result_not_used_flag(operand_1);
 #endif /* CHECKING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (expr->variant.operation.compiler_generated &&
-              expr->variant.operation.rewritten_property_reference_kind !=
+            if (expr->variant.operation.compiler_generated) {
+              if (expr->variant.operation.rewritten_property_reference_kind !=
                               (a_rewritten_property_reference_kind)rprk_none) {
-            /* This is the initialization for the expansion of a property
-               or event reference or a synthesized compound assignment
-               operation.  operand_1 contains enk_temp_init nodes whose
-               expressions will be generated in the second operand, so
-               suppress it here. */
-          } else
+                /* This is the initialization for the expansion of a
+                   property or event reference or a synthesized compound
+                   assignment operation.  operand_1 contains enk_temp_init
+                   nodes whose expressions will be generated in the second
+                   operand, so suppress it here. */
+                suppress_opnd1 = TRUE;
+              } else if (operand_2->kind ==
+                                          (an_expr_node_kind)enk_reuse_value ||
+                         (is_operation_node(operand_2) &&
+                          operand_2->variant.operation.compiler_generated &&
+                          node_operator_is(operand_2, eok_indirect) &&
+                          operand_2->variant.operation.operands->kind ==
+                                         (an_expr_node_kind)enk_reuse_value)) {
+                /* This is an operation on a property reference that has
+                   been rewritten to reuse the result of the "get" call as
+                   the overall result; suppress the second operand
+                   embodying the reuse. */
+                suppress_opnd2 = TRUE;
+              }  /* if */
+            }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          /* Do not insert code here. */
-          {
-            gen_expr_with_parens(operand_1);
-            write_tok_str(", ");
-          }  /* if */
-          gen_expr_with_parens(operand_2);
+            if (!suppress_opnd1) {
+              gen_expr_with_parens(operand_1);
+              if (!suppress_opnd2) {
+                write_tok_str(", ");
+              }  /* if */
+            }  /* if */
+            if (!suppress_opnd2) {
+              gen_expr_with_parens(operand_2);
+            }  /* if */
+          }
           goto done_with_operation;
         case eok_land:
           gen_boolean_controlling_expression(operand_1);
