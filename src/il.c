@@ -3206,11 +3206,11 @@ is TRUE when using --preusing to include the assembly.
   check_assertion(curr_seq_number_lookup_entry != NULL);
   parent_file = curr_seq_number_lookup_entry->source_file;
   check_assertion(parent_file != NULL);
-  /* Record the assembly as a new source file.  Specify a line number of
-     zero to suppress line number information in any diagnostics. */
+  /* Record the assembly as a new source file.  Specify an unknown line number
+     to suppress line number information in any diagnostics. */
   record_start_of_source_file(parent_file,
                               seq_number_last_read + 1,
-                              (a_line_number)0,
+                              (a_line_number)SP_LINE_UNKNOWN,
                               file_name,
                               full_name,
                               name_as_written,

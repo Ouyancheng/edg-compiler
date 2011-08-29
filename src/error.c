@@ -692,7 +692,7 @@ redundant file names in a diagnostic.*/
       a_boolean file_name_needed = strcmp(file_name, diag_file_name) != 0 &&
                                    strcmp(file_name, FILE_NAME_FOR_STDIN) != 0;
       add_string_to_segment(prefix_string, seg_ptr);
-      if (line_number == 0) {
+      if (line_number == SP_LINE_UNKNOWN) {
         /* No line number (e.g., C++/CLI assemblies). */
         if (file_name_needed) {
           add_string_to_segment(error_text(ec_in), seg_ptr);
@@ -712,7 +712,7 @@ redundant file names in a diagnostic.*/
       /* Add the file name if needed. */
       if (file_name_needed) {
         char *formatted_file_name;
-        if (line_number != 0) {
+        if (line_number != SP_LINE_UNKNOWN) {
           add_string_to_segment(error_text(ec_of), seg_ptr);
         }  /* if */
         add_string_to_segment("\"", seg_ptr);
@@ -2501,7 +2501,7 @@ the column number is added into the output.
                                           /*process_escapes=*/FALSE,
                                           /*escape_nonprintable_chars=*/FALSE);
     *line_len += add_string_to_text_buffer(buffer, "\"");
-    if (line_number != 0) {
+    if (line_number != SP_LINE_UNKNOWN) {
       (void)sprintf(number_buffer, "%lu", line_number);
       error_text_string = error_text(ec_line);
       *line_len += add_string_to_text_buffer(buffer, ", ");

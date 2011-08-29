@@ -809,6 +809,10 @@ typedef struct a_source_position {
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
 } a_source_position;
 
+#define SP_LINE_UNKNOWN 0
+			/* The line number is unknown.  Used for tokens scanned
+			   from C++/CLI assemblies. */
+
 /*
 When the sequence number in a position is 0, the column is one of the
 following, indicating something special:
