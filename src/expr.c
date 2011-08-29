@@ -7247,33 +7247,63 @@ it is set to NULL.
   }  /* if */
   if (is_overloadable_type_first_operand(operand)) {
     /* Look for C++ operator overloading cases. */
-    an_operand     one_operand, *second_operand;
-    a_constant     one_constant;
+    an_operand     gen_operand, *second_operand;
+    a_constant     gen_constant;
+    a_boolean      try_anachronism = FALSE;
+    a_boolean      has_predef_meaning = is_enum_type(operand->type);
     an_opname_kind kind;
     if (is_cppcli_property_or_event(operand_clone->symbol)) {
       /* For C++/CLI properties, use operator++ or operator--. */
       kind = (an_opname_kind)(is_increment ? onk_plus_plus : onk_minus_minus);
-      second_operand = NULL;
+      if (!is_post) {
+        second_operand = NULL;
+      } else {
+        /* For postfix, the usual operator function is a two-argument
+           function, with a zero passed for the second argument. */
+        set_integer_constant(&gen_constant, (a_host_large_integer)0L,
+                             (an_integer_kind)ik_int);
+        make_constant_operand(&gen_constant, &gen_operand);
+        second_operand = &gen_operand;
+        /* If that function fails, we'll try the anachronism of using the
+           one-argument function. */
+        try_anachronism = TRUE;
+      }  /* if */
     } else {
       /* For declspec properties, use operator+ and operator-, with an
          implied "1" as the second operand. */
       kind = (an_opname_kind)(is_increment ? onk_plus : onk_minus);
-      set_integer_constant(&one_constant, (a_host_large_integer)1L,
+      set_integer_constant(&gen_constant, (a_host_large_integer)1L,
                            (an_integer_kind)ik_int);
-      make_constant_operand(&one_constant, &one_operand);
-      second_operand = &one_operand;
+      make_constant_operand(&gen_constant, &gen_operand);
+      second_operand = &gen_operand;
     }  /* if */
     check_for_operator_overloading(kind,
                                    /*unary_operator=*/(second_operand == NULL),
                                    /*must_be_member_function=*/FALSE,
-                                   /*try_conversions=*/TRUE,
-                                   /*has_predef_meaning=*/FALSE,
+                                   /*try_conversions=*/!try_anachronism,
+                                   /*has_predef_meaning=*/has_predef_meaning ||
+                                                          try_anachronism,
                                    operand, second_operand,
                                    operator_position,
                                    operator_tok_seq_number,
                                    (a_nondependent_call_depth)0,
                                    (a_source_position *)NULL,
                                    result, processed);
+    if (!*processed && try_anachronism) {
+      /* Try the one-argument function for postfix ++ or -- after failing to
+         find a two-argument function. */
+      check_for_operator_overloading(kind,
+                                     /*unary_operator=*/TRUE,
+                                     /*must_be_member_function=*/FALSE,
+                                     /*try_conversions=*/TRUE,
+                                     /*has_predef_meaning=*/has_predef_meaning,
+                                     operand, (an_operand *)NULL,
+                                     operator_position,
+                                     operator_tok_seq_number,
+                                     (a_nondependent_call_depth)0,
+                                     (a_source_position *)NULL,
+                                     result, processed);
+    }  /* if */
     if (*processed) {
       /* Overloading applied, so finish up the rewrite and return
          *processed = TRUE to the caller saying everything has been handled. */
