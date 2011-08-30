@@ -6217,6 +6217,8 @@ is returned.
                                     tssp->variant.class_template.is_interface;
   class_type->variant.class_struct_union.is_generic_instance =
                                                               tssp->is_generic;
+  class_type->variant.class_struct_union.is_delegate_class =
+                                                             tssp->is_delegate;
   /* If this is a C++/CLI generic and the argument list involves open
      constructed types, mark the class as open constructed.  We need to
      check even if the given template is not generic because a template
@@ -21624,7 +21626,7 @@ designate a valid type in this context.  Otherwise, return the indicated type.
       type = generic_param_if_generic_definition_argument(type);
     } else if (is_cli_interface_type(type)) {
       /* The usual case. */
-    } else if (is_ref_class_type(type)) {
+    } else if (is_ref_class_type(type) && !is_delegate_type(type)) {
       /* Ref classes are okay if they are not sealed.  complete_type_is_needed
          is not used here because it can cause premature completion of
          certain types loaded from metadata. */
