@@ -1347,28 +1347,6 @@ instantiation.
 }  /* func_info_for_template */
 
 
-static
-a_type_ptr prototype_instantiation_for_template(a_symbol_ptr	sym)
-/*
-Given a symbol (sym) for a class template symbol or nested class of a class
-template, return the type of the prototype instantiation of the class
-template.
-*/
-{
-  a_template_symbol_supplement_ptr	tssp;
-  a_symbol_ptr				prototype_instantiation_sym;
-  a_type_ptr				prototype_instantiation_type;
-
-  sym = prototype_template_if_template_symbol(sym);
-  tssp = template_supplement_for_symbol(sym);
-  prototype_instantiation_sym =
-                          tssp->variant.class_template.prototype_instantiation;
-  prototype_instantiation_type =
-                  prototype_instantiation_sym->variant.class_struct_union.type;
-  return prototype_instantiation_type;
-}  /* prototype_instantiation_for_class_template */
-
-
 a_symbol_ptr primary_template_of(a_symbol_ptr sym)
 /*
 If sym is a partial specialization, return the primary template.  Otherwise,
@@ -3241,6 +3219,28 @@ Instantiate the C++/CLI generic delegate specified by class_type.
   /* If the translation unit stack was pushed above, pop it now. */
   if (trans_unit_pushed) pop_translation_unit_stack();
 }  /* instantiate_cli_generic_delegate */
+
+
+static
+a_type_ptr prototype_instantiation_for_template(a_symbol_ptr	sym)
+/*
+Given a symbol (sym) for a class template symbol or nested class of a class
+template, return the type of the prototype instantiation of the class
+template.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_symbol_ptr				prototype_instantiation_sym;
+  a_type_ptr				prototype_instantiation_type;
+
+  sym = prototype_template_if_template_symbol(sym);
+  tssp = template_supplement_for_symbol(sym);
+  prototype_instantiation_sym =
+                          tssp->variant.class_template.prototype_instantiation;
+  prototype_instantiation_type =
+                  prototype_instantiation_sym->variant.class_struct_union.type;
+  return prototype_instantiation_type;
+}  /* prototype_instantiation_for_class_template */
 
 
 static void get_definition_of_generic_if_needed(a_symbol_ptr	template_sym)
