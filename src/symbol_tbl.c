@@ -3156,6 +3156,7 @@ and return a pointer to it.
   tssp->is_variadic = FALSE;
   tssp->is_generic = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  tssp->is_delegate = FALSE;
   tssp->from_metadata = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CENTERLINE_CHECKING 
@@ -7791,6 +7792,12 @@ static constructor.  This routine is only used in C++ mode.
   a_class_symbol_supplement_ptr extra_info;
   a_symbol_header_ptr           hdr_ptr;
 
+  /* If the symbol is for a class template, get the associated prototype
+     instantiation. */
+  if (is_class_template_symbol(class_symbol)) {
+    class_symbol = class_symbol->variant.template_info->
+                                variant.class_template.prototype_instantiation;
+  }  /* if */
 #if CHECKING
   if (class_symbol == NULL) {
     internal_error(

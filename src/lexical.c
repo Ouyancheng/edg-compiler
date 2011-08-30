@@ -18699,11 +18699,7 @@ C++/CLI delegate class types.)
      for instantiation purposes, then an initial scan is done to do the
      semantic analysis of the generic definition. */
   if (is_generic_definition) {
-    if (is_delegate) {
-      scan_cli_generic_delegate_definition_from_assembly_import(class_type);
-    } else {
-      scan_cli_generic_class_definition_from_assembly_import();
-    }  /* if */
+    scan_cli_generic_class_definition_from_assembly_import();
   } else if (is_delegate) {
     /* Delegate definitions are a special kind of class definition that is
        not handled by the call to scan_class_definition below. */

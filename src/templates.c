@@ -492,6 +492,7 @@ Initialize a template declaration state block.
   tdsp->is_template_template_param_rescan = FALSE;
   tdsp->is_variadic = FALSE;
   tdsp->is_generic = FALSE;
+  tdsp->is_delegate = FALSE;
   tdsp->export_position = null_source_position;
   tdsp->starting_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   tdsp->access = (an_access_specifier)as_public;
@@ -1344,6 +1345,28 @@ instantiation.
   }  /* if */
   return fibp;
 }  /* func_info_for_template */
+
+
+static
+a_type_ptr prototype_instantiation_for_template(a_symbol_ptr	sym)
+/*
+Given a symbol (sym) for a class template symbol or nested class of a class
+template, return the type of the prototype instantiation of the class
+template.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_symbol_ptr				prototype_instantiation_sym;
+  a_type_ptr				prototype_instantiation_type;
+
+  sym = prototype_template_if_template_symbol(sym);
+  tssp = template_supplement_for_symbol(sym);
+  prototype_instantiation_sym =
+                          tssp->variant.class_template.prototype_instantiation;
+  prototype_instantiation_type =
+                  prototype_instantiation_sym->variant.class_struct_union.type;
+  return prototype_instantiation_type;
+}  /* prototype_instantiation_for_class_template */
 
 
 a_symbol_ptr primary_template_of(a_symbol_ptr sym)
@@ -3073,6 +3096,167 @@ in the instance specified by "instance_sym".
   }  /* for */
 }  /* instantiate_out_of_class_partial_specs */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void instantiate_cli_generic_delegate(a_type_ptr  class_type)
+/*
+Instantiate the C++/CLI generic delegate specified by class_type.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_boolean				trans_unit_pushed;
+  a_symbol_ptr				instance_sym;
+  a_symbol_ptr				template_sym;
+  a_class_type_supplement_ptr		ctsp;
+
+  instance_sym = symbol_for(class_type);
+  template_sym = template_symbol_for_class_symbol(instance_sym);
+  tssp = template_sym->variant.template_info;
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  /* Switch to the translation unit containing the template, if needed. */
+  trans_unit_pushed = push_translation_unit_if_needed(template_sym);
+  {
+    a_template_cache_ptr	body_cache;
+    /* The instantiation process may rescan various things and invalidate the
+       current token positions as a result.  Save these positions so that they
+       may be restored when we are done. */
+    a_source_position           saved_pos_curr_token, saved_error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    a_source_position           saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    saved_pos_curr_token = pos_curr_token;
+    saved_error_position = error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    saved_curr_construct_end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    body_cache = &tssp->cache;
+    if (body_cache->tokens.first_token == NULL) {
+      /* The template definition is missing.  This should only occur in error
+         cases.  Leave the type incomplete. */
+      check_assertion(total_errors != 0);
+    } else if (tssp->pending_instantiations >= max_pending_instantiations) {
+      /* This instantiation occurs within the context of other instantiations
+         of the same template.  When the number of such instantiations
+         exceeds max_pending_instantiations, we assume this to be runaway
+         recursion. */
+      sym_error(ec_runaway_recursive_instantiation, instance_sym);
+      /* Set the flag that indicates that this instance is being specialized.
+         This will suppress subsequent attempts to instantiate this class. */
+      class_type->variant.class_struct_union.is_specialized = TRUE;
+    } else {
+      a_decl_parse_state	dps;
+      a_push_scope_options_set	ps_options = PS_DEDUCTION_CONTEXT;
+      a_symbol_locator		locator;
+      a_func_info_block		func_info;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      a_boolean                 saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      if (class_type->variant.class_struct_union.is_nonreal_class) {
+        /* If this is a nonreal alias instantiation, mark the instantiation
+           scope as nonreal. */
+        ps_options |= PS_NONREAL_INSTANTIATION;
+      }  /* if */
+      init_decl_parse_state(&dps);
+      ++(tssp->pending_instantiations);
+      /* Push the template instantiation scope for the instantiation. */
+      (void)push_template_instantiation_scope(body_cache->decl_info,
+					      (a_type_ptr)NULL,
+					      (a_routine_ptr)NULL,
+					      instance_sym, template_sym,
+					      ctsp->template_arg_list,
+                                              /*push_lex_state=*/TRUE,
+                                              ps_options);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Temporarily disallow source sequence entries.  Since generic
+         delegates cannot be explicitly specialized, configurations that
+         represent template instances as specializations cannot do so for
+         generic delegates. */ 
+      saved_sses_disallowed = source_sequence_entries_disallowed;
+      source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      /* Reactivate any pragmas that should be bound to the generated
+         instance. */
+      reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
+      /* Rescan the tokens of the alias. */
+      rescan_reusable_cache(&body_cache->tokens);
+      record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
+                                instance_sym, &instance_sym->decl_position,
+                                (a_source_sequence_entry_ptr)NULL);
+      init_decl_parse_state(&dps);
+      scan_cli_delegate_definition(&dps, &locator, &func_info);
+      /* Set the locator to refer to the instance being generated. */
+      locator.specific_symbol = instance_sym;
+      /* In the normal case the current token should be end_of_source,
+         which was inserted to mark the end of the cached token stream.
+         If necessary, keep flushing until end-of-source is found. */
+      if (curr_token != tok_end_of_source) {
+        pos_error(ec_exp_semicolon, &pos_curr_token);
+      }  /* if */
+      flush_past_token_cache_terminator();
+      --(tssp->pending_instantiations);
+      create_cli_delegate_class_definition(class_type,
+                                           depth_innermost_namespace_scope,
+                                           &locator, &dps, &func_info);
+      /* Process any pragmas that are to be bound to this instance. */
+      process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Restore the previous state wrt. the generation of source sequence
+         entries. */
+      source_sequence_entries_disallowed = saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      /* Pop the template instantiation scope. */
+      pop_template_instantiation_scope();
+    }  /* if */
+    /* Restore the saved position information. */
+    error_position = saved_error_position;
+    pos_curr_token = saved_pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+  ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
+  ctsp->is_hide_by_sig = TRUE;
+  class_type->variant.class_struct_union.is_delegate_class = TRUE;
+  class_type->variant.class_struct_union.final = TRUE;
+  /* Add the type to the types list of the appropriate scope.  Pass
+     NO_SCOPE_DEPTH to force it to compute the scope list to be used. */
+  if (!class_type->variant.typeref.is_nonreal ||
+       prototype_instantiations_in_il) {
+    add_to_types_list(class_type, NO_SCOPE_DEPTH);
+  }  /* if */
+#if DEBUG
+  if (db_sym_trace("instantiations", instance_sym)) {
+    fprintf(f_debug, "Instantiation of delegate: ");
+    db_symbol_name_trans_unit(instance_sym);
+    fprintf(f_debug, " based on ");
+    db_symbol_name_trans_unit(template_sym);
+    fprintf(f_debug, " type is ");
+    db_type(class_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  /* Call a routine that manages the correspondence of entities between
+     translation units to notify it of the new instance. */
+  record_instantiation(instance_sym, tssp);
+  /* If the translation unit stack was pushed above, pop it now. */
+  if (trans_unit_pushed) pop_translation_unit_stack();
+}  /* instantiate_cli_generic_delegate */
+
+
+static void get_definition_of_generic_if_needed(a_symbol_ptr	template_sym)
+/*
+template_sym is a C++/CLI generic class.  Load the generic definition from
+metadata, if needed.
+*/
+{
+  a_type_ptr	proto_type;
+  proto_type = prototype_instantiation_for_template(template_sym);
+  if (class_type_supp(proto_type)->assoc_scope == NULL) {
+    complete_class_type_is_needed(proto_type);
+  }  /* if */
+}  /* get_definition_of_generic_if_needed */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void f_instantiate_template_class(a_type_ptr  class_type)
 /*
@@ -3121,6 +3305,17 @@ be completed here.
      this instantiation. */
   cssp->referencing_namespace = determine_referencing_namespace();
   template_sym = template_symbol_for_class_symbol(instance_sym);
+  tssp = template_sym == NULL ? NULL
+                              : template_supplement_for_symbol(template_sym);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* If class_type is based on a C++/CLI generic, make sure the generic
+     definition has been loaded from metadata, if needed. */
+  if (cppcli_enabled && template_sym != NULL &&
+      class_type->variant.class_struct_union.is_generic_instance &&
+      !class_type->variant.class_struct_union.is_generic_definition) {
+    get_definition_of_generic_if_needed(template_sym);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (template_sym == NULL ||
       is_cli_generic_class_definition_symbol(instance_sym)) {
     /* Not a class based on a class template or the class that is generated
@@ -3148,6 +3343,11 @@ be completed here.
       get_definition_of_class(class_type);
     }  /* if */
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (tssp != NULL && tssp->is_delegate) {
+    /* This is an instance of a C++/CLI generic delegate. */
+    instantiate_cli_generic_delegate(class_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     a_template_cache_ptr	body_cache;
     a_boolean			trans_unit_pushed;
@@ -3166,7 +3366,6 @@ be completed here.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Switch to the translation unit containing the template, if needed. */
     trans_unit_pushed = push_translation_unit_if_needed(template_sym);
-    tssp = template_supplement_for_symbol(template_sym);
     /* Indicate that this template has been used for the purpose of
        generating a full instantiation.  */
     tssp->variant.class_template.any_full_instantiations = TRUE;
@@ -3183,42 +3382,12 @@ be completed here.
         tssp = template_supplement_for_symbol(template_sym);
       }  /* if */
     }  /* if */
-    /* If this is a class template defined within another class template,
-       the prototype instantiation is associated with the definition
-       within the original template.  Get a pointer to the template
-       symbol that is associated with the prototype instantiation. */
-    if (tssp->prototype_template != NULL && !tssp->is_specific_definition) {
-      template_sym_of_prototype = tssp->prototype_template;
-    } else {
-      template_sym_of_prototype = template_sym;
-    }  /* if */
+    template_sym_of_prototype =
+                           prototype_template_if_template_symbol(template_sym);
     tssp_of_prototype =
                      template_supplement_for_symbol(template_sym_of_prototype);
     prototype_instantiation_sym =
              tssp_of_prototype->variant.class_template.prototype_instantiation;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (tssp_of_prototype->is_generic) {
-      /* If this is an instance of a C++/CLI generic imported from an
-         assembly, make sure the definition has been imported. */
-      a_type_ptr	prototype_instantiation_type;
-      prototype_instantiation_type =
-                  prototype_instantiation_sym->variant.class_struct_union.type;
-      if (class_type_supp(prototype_instantiation_type)->assoc_scope == NULL) {
-        complete_class_type_is_needed(prototype_instantiation_type);
-#if 0
-#else /* !0 */
-        if (prototype_instantiation_type->
-                                variant.class_struct_union.is_delegate_class) {
-          /* FIXME: We can't instantiate delegates yet.  For now, just mark the
-             delegate class as defined.  Calling scan_cli_generic... is a
-             convenient way of doing this for now. */
-          scan_cli_generic_delegate_definition_from_assembly_import(
-                                                                   class_type);
-        }  /* if */
-#endif /* 0 */
-      }  /* if */
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     body_cache = cache_for_template(tssp_of_prototype);
     /* There is a class template from which to generate this class and it is
        a real instantiation. */
@@ -14759,6 +14928,250 @@ generic_arity_list of primary_arity_sym.  Return the new symbol.
   return sym;
 }  /* add_arity_overload */
 
+
+static void set_arity_for_generic(
+		a_tmpl_decl_state_ptr			decl_state,
+		a_template_symbol_supplement_ptr	tssp,
+		a_symbol_ptr				primary_arity_sym)
+/*
+Update the arity information in tssp based on decl_state.  If there is
+already more than one arity, primary_arity_sym is the symbol found by
+name lookup.
+*/
+{
+  tssp->variant.class_template.arity = decl_state->num_parameters;
+  if (primary_arity_sym == NULL) {
+    /* This is the first declaration of a generic of this name.  When
+       a new arity is added, these fields are updated by
+       add_arity_overload. */
+    tssp->variant.class_template.min_arity = decl_state->num_parameters;
+    tssp->variant.class_template.max_arity = decl_state->num_parameters;
+  }  /* if */
+}  /* set_arity_for_generic */
+
+
+static void mark_existing_instances_as_delegates(a_symbol_ptr	sym)
+/*
+The generic delegate specified by sym is being defined after first
+being declared as a generic ref class read from metadata.  Go through
+any existing instances (which must be partial instantiations given that
+the delegate was not defined) and mark them as delegates.
+*/
+{
+  a_symbol_list_entry_ptr		slep;
+  a_template_symbol_supplement_ptr	tssp;
+
+  tssp = sym->variant.template_info;
+  for (slep = tssp->variant.class_template.instantiations;
+       slep != NULL; slep = slep->next) {
+    a_type_ptr	type;
+    type = slep->symbol->variant.class_struct_union.type;
+    type->variant.class_struct_union.is_delegate_class = TRUE;
+  }  /* for */
+}  /* mark_existing_instances_as_delegates */
+
+
+static a_symbol_ptr cli_generic_delegate_declaration(
+					a_tmpl_decl_state_ptr decl_state)
+/*
+Scan a generic delegate declaration.  A generic delegate declaration has the
+form:
+
+  generic <generic-parameter-list> type-specifier-seq declarator ;
+
+The type-specifier-seq and declarator must form a function declaration.
+
+The template parameter clause has already been scanned at the time this
+routine has been called, and the current token is the first token of the
+type-specifier-seq.
+
+A generic declaration is essentially always a definition.  Delegates
+loaded from assemblies are an exception.  In such cases the delegate is
+first declared as ref class (without a body) and is later defined by
+a normal delegate definition.
+
+Return a pointer to the class template symbol used to represent the generic
+delegate.
+*/
+{
+  a_decl_parse_state                    *dps = &decl_state->decl_parse;
+  a_symbol_locator			locator;
+  a_scope_stack_entry_ptr		ssep;
+  a_symbol_ptr				sym = NULL;
+  a_template_symbol_supplement_ptr	tssp;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean				saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_func_info_block			func_info;
+  a_type_ptr				prototype_type;
+  a_symbol_ptr				primary_arity_sym = NULL;
+  a_boolean				add_sym_to_symbol_table = FALSE;
+  a_class_type_supplement_ptr		prototype_ctsp;
+
+  /* All delegate declarations are considered definitions. */
+  decl_state->defines_something = TRUE;
+  decl_state->cli_visibility = scan_cli_visibility_specifier_if_any(
+                                              &decl_state->cli_visibility_pos);
+#if GENERATE_SOURCE_SEQUECE_LISTS
+  /* FIXME: Not sure what is needed here. */
+  saved_sses_disallowed = source_sequence_entries_disallowed;
+  source_sequence_entries_disallowed = TRUE;
+  scope_stack_top().source_sequence_entries_disallowed 
+                                    = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  scan_cli_delegate_definition(dps, &locator, &func_info);
+#if GENERATE_SOURCE_SEQUECE_LISTS
+  /* FIXME: Not sure what is needed here. */
+  source_sequence_entries_disallowed = saved_sses_disallowed;
+  scope_stack_top().source_sequence_entries_disallowed 
+                                    = saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (decl_state->decl_scope_err) {
+    /* An error will have already been issued on a template declaration in an
+       invalid scope. */
+    set_to_named_error_locator(locator);
+  } else {
+    /* Look up the symbol in the current scope.  To do this we must
+       temporarily change the decl. scope level to the effective
+       level for this declaration because decl_scope_level currently
+       points to the template declaration scope. */
+    a_scope_depth	saved_decl_scope_level;
+    saved_decl_scope_level = decl_scope_level;
+    decl_scope_level = decl_state->orig_decl_level;
+    sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+    decl_scope_level = saved_decl_scope_level;
+  }  /* if */
+  if (sym != NULL) {
+    /* If a delegate is generated from an assembly (metadata) file, it was
+       previously loaded as an incomplete ref class.  Only in this case is a
+       "redeclaration" allowed.  If this is not a valid redeclaration, clear
+       the symbol which will result in an error when a new symbol is entered
+       later. */
+    if (!is_class_template_symbol(sym)) {
+      /* The symbol found is not a class template symbol, so it could not be
+         a previously declared delegate. */
+      sym = NULL;
+    } else {
+      tssp = sym->variant.template_info;
+      if (!tssp->from_metadata) {
+        /* The initial declaration was not from metadata. */
+        sym = NULL;
+      } else {
+        a_type_ptr	proto_type;
+        proto_type = prototype_instantiation_for_template(sym);
+        /* Make sure the template found is for a ref class that has not been
+           defined. */
+        if (!is_ref_class_type(proto_type) ||
+            !is_incomplete_type(proto_type)) {
+          sym = NULL;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (sym != NULL &&
+      (generic_arity_overload_allowed || in_code_generated_from_metadata())) {
+    /* See if this is a C++/CLI generic declaration with a different
+       arity from the symbol found.  If so, the symbol found will be cleared,
+       but saved in primary_arity_sym to we can add the new symbol later
+       to its generic_arity_list.  Generics with varying arity are always
+       allowed when importing code from metadata but otherwise are only
+       allowed when generic_arity_overload_allowed is TRUE. */
+    check_for_generic_arity_overload(decl_state, &sym, &primary_arity_sym);
+  }  /* if */
+  /* Create the symbol for the delegate.  A class template symbols is used. */
+  if (primary_arity_sym != NULL) {
+    /* This is a new arity for this generic.  Add it to the arity list
+       for the symbol found by the lookup. */
+    sym = add_arity_overload(decl_state, primary_arity_sym, &locator);
+  } else if (sym != NULL) {
+    /* A definition of a delegate initially declared as a ref class from
+       metadata.  Mark any existing partial instantiations as delegates. */
+    mark_existing_instances_as_delegates(sym);
+  } else if (sym == NULL) {
+    /* Create the symbol for the template.  It will be added to
+       the symbol table later after more information about the template
+       has been filled in.  The extra information is needed to check
+       for redeclaration errors. */
+    sym = make_symbol((a_symbol_kind)sk_class_template, &locator);
+    add_sym_to_symbol_table = TRUE;
+  }  /* if */
+  dps->sym = sym;
+  tssp = sym->variant.template_info;
+  tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
+  tssp->is_generic = TRUE;
+  tssp->is_delegate = TRUE;
+  ssep = &scope_stack[decl_state->effective_decl_level];
+  if (ssep->kind == (a_scope_kind)sck_namespace ||
+      ssep->kind == (a_scope_kind)sck_namespace_extension) {
+    set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                             ssep->il_scope->variant.assoc_namespace);
+  } else if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
+    set_class_membership(sym, (a_source_correspondence *)NULL,
+                         decl_state->class_declared_in);
+    tssp->variant.class_template.access = decl_state->access; 
+  }  /* if */
+  /* Save the IL template entry pointer for this symbol. */
+  set_il_template_entry(decl_state, sym, tssp);
+  /* Save the information needed to create an instantiation based
+     on the definition of the template.  First, save the initializer
+     expression. */
+  set_template_cache_info(&tssp->cache, &decl_state->decl_token_cache,
+                          decl_state->decl_info);
+  decl_state->decl_token_cache_used = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (prototype_instantiations_in_il) {
+    /* Prevent the generation of a source sequence entry for the a_template
+       entry since we have one for the recorded prototype instantiation. */
+    saved_sses_disallowed = source_sequence_entries_disallowed;
+    source_sequence_entries_disallowed = TRUE;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if 0
+  /* FIXME */
+  mark_defined(sym, &locator.source_position);
+#endif
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (prototype_instantiations_in_il) {
+    /* Restore the previous state wrt. the generation of source sequence
+       entries. */
+    source_sequence_entries_disallowed = saved_sses_disallowed;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* If the delegate has not been overloaded on arity, enter the symbol
+     into the symbol table now. */
+  if (add_sym_to_symbol_table) {
+    add_symbol_to_symbol_table(sym, decl_state->effective_decl_level,
+                               /*suppress_redecl_error=*/FALSE);
+   }  /* if */
+  /* Update the arity information for this generic. */
+  set_arity_for_generic(decl_state, tssp, primary_arity_sym);
+  /* Create the symbol for the prototype instantiation. */
+  create_prototype_type(decl_state, sym, tssp, (a_symbol_ptr)NULL,
+                        /*is_partial_specialization=*/FALSE);
+  prototype_type = prototype_instantiation_for_template(sym);
+  prototype_ctsp = class_type_supp(prototype_type);
+  prototype_ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
+  prototype_ctsp->is_hide_by_sig = TRUE;
+  prototype_type->variant.class_struct_union.is_delegate_class = TRUE;
+  prototype_type->variant.class_struct_union.final = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (dps->source_sequence_entry != NULL) {
+    /* Discard the entry for the delegate declarator since we already have
+       one for the generic itself. */
+    remove_from_src_seq_list(dps->source_sequence_entry);
+    dps->source_sequence_entry = NULL;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  set_cli_visibility(prototype_type, decl_state->cli_visibility,
+                     &decl_state->cli_visibility_pos,
+                     /*is_definition=*/TRUE);
+  /* Create the definition of the delegate class type. */
+  create_cli_delegate_class_definition(prototype_type,
+                                       decl_state->effective_decl_level,
+                                       &locator, dps, &func_info);
+  return sym;
+}  /* cli_generic_delegate_declaration */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void class_template_declaration(
@@ -15492,14 +15905,8 @@ friend_template_checks_done:
     tssp->variant.class_template.is_interface = is_interface;
     tssp->is_generic = decl_state->is_generic;
     if (tssp->is_generic) {
-      tssp->variant.class_template.arity = decl_state->num_parameters;
-      if (primary_arity_sym == NULL) {
-        /* This is the first declaration of a generic of this name.  When
-           a new arity is added, these fields are updated by
-           add_arity_overload. */
-        tssp->variant.class_template.min_arity = decl_state->num_parameters;
-        tssp->variant.class_template.max_arity = decl_state->num_parameters;
-      }  /* if */
+      /* Update the arity information for this generic. */
+      set_arity_for_generic(decl_state, tssp, primary_arity_sym);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     tssp->is_variadic = decl_state->is_variadic;
@@ -18862,7 +19269,7 @@ function declaration.
 }  /* function_template_declaration */
 
 
-static a_boolean is_class_template_decl(a_token_cache *token_cache)
+static a_boolean is_class_template_decl(a_tmpl_decl_state_ptr	decl_state)
 /*
 Determine whether the template declaration described by token_cache
 is a class template declaration of the form
@@ -18877,12 +19284,16 @@ is a class template declaration of the form
 (In GNU and Microsoft dialects, additional tokens may be involved.)
 Return TRUE if the declaration is a class template declaration.
 Otherwise, return FALSE.  This is done by rescanning the tokens from
-the declaration token cache.
+the declaration declaration token cache pointed in decl_state.
+This routine also checks for a C++/CLI generic delegate declaration,
+in which case the is_delegate flag of decl_state is updated.
 */
 {
   a_pack_expansion_stack_entry_ptr	pesep;
   a_boolean				result = FALSE;
+  a_token_cache_ptr			token_cache;
 
+  token_cache = &decl_state->decl_token_cache;
   /* Don't record pack expansions during the prescan. */
   push_expansion_suppression(&pesep);
   rescan_reusable_cache(token_cache);
@@ -18937,6 +19348,14 @@ the declaration token cache.
     }  /* if */
     result = (next_tok == tok_colon || next_tok == tok_end_of_source ||
               next_tok == tok_lbrace);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (decl_state->is_generic) {
+    if (check_for_cli_delegate_definition()) {
+      /* Check for a generic delegate definition.  We still return FALSE
+         for that case, but indicate in decl_state that this is a delegate. */
+      decl_state->is_delegate = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Flush any remaining tokens from the reusable cache. */
   while (curr_token != tok_end_of_source) (void)get_token();
@@ -19593,7 +20012,7 @@ any non-empty template parameter lists that were scanned.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* See if it is a class template declaration.  If it is, scan the tokens
      of the definition (if any) and cache them away of later reference. */
-  if (is_class_template_decl(&decl_state->decl_token_cache)) {
+  if (is_class_template_decl(decl_state)) {
     class_template_declaration(decl_state, &sym,
 			       &tag_resolution,
                                /*out_of_class_partial_spec=*/FALSE);
@@ -19603,6 +20022,12 @@ any non-empty template parameter lists that were scanned.
       /* Save a pointer to the token cache for class template body. */
       p_template_body_cache = &tssp->cache.tokens;
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (decl_state->is_delegate) {
+    /* A C++/CLI generic delegate declaration. */
+    sym = cli_generic_delegate_declaration(decl_state);
+    tssp = template_supplement_for_symbol(sym);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if ((alias_declarations_enabled && curr_token == tok_using) ||
              curr_token == tok_internal_alias_decl) {
     /* An alias template declaration. */
@@ -19803,6 +20228,9 @@ any non-empty template parameter lists that were scanned.
         !decl_state->decl_scope_err) {
       create_out_of_class_entry_for_partial_spec(decl_state, sym);
     }  /* if */
+  } else if (sym != NULL && decl_state->is_delegate) {
+    /* Mark the prototype instantiation type as being complete. */
+    tssp->variant.class_template.prototype_instantiation_complete = TRUE;
   } else if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template) {
     /* An alias template. */
     check_assertion(tssp->variant.class_template.is_alias_template);
@@ -27364,32 +27792,6 @@ scanned.
               /*marked_as_gnu_extension=*/FALSE,
               (a_param_id_ptr)NULL, (a_source_range *)NULL);
 }  /* scan_cli_generic_class_definition_from_assembly_import */
-
-
-void scan_cli_generic_delegate_definition_from_assembly_import(
-							a_type_ptr	type)
-/*
-Scan the definition of the generic delegate definition specified by type,
-which is being imported from metadata.
-*/
-{
-  /* FIXME: This is just a stub version. */
-  a_class_symbol_supplement_ptr		cssp;
-
-  type->size = 1;
-  type->alignment = 1;
-  type->incomplete = FALSE;
-  type->variant.class_struct_union.is_delegate_class = TRUE;
-  cssp = symbol_supplement_for_class(type);
-  cssp->member_decl_scope = take_next_scope_number();
-  add_scope_to_class_type(type);
-  if (scanning_generated_code_from_metadata) {
-    /* Flush any tokens until a semicolon is found. */
-    while (curr_token != tok_semicolon) {
-      (void)get_token();
-    }  /* while */
-  }  /* if */
-}  /* scan_cli_generic_delegate_definition_from_assembly_import */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

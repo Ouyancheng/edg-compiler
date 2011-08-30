@@ -111,6 +111,8 @@ typedef struct a_tmpl_decl_state {
 			   parameter packs. */
   a_boolean	is_generic;
 			/* TRUE if this a C++/CLI generic declaration. */
+  a_boolean	is_delegate;
+			/* TRUE if this is a C++/CLI delegate. */
   a_source_position
 		export_position;
 			/* If export_present is TRUE, the position of the
@@ -867,9 +869,6 @@ void verify_generic_arg_list_satisfies_constraints(
 				a_source_position_ptr	list_start_pos);
 
 extern void scan_cli_generic_class_definition_from_assembly_import(void);
-
-extern void scan_cli_generic_delegate_definition_from_assembly_import(
-							a_type_ptr	type);
 
 extern a_boolean check_cli_internal_template_instantiation(
                                         a_symbol_ptr       template_sym,
