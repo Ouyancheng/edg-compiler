@@ -12781,6 +12781,8 @@ specific information about the member declaration, respectively.
                   &decl_state->declarator_pos);
         member_type = error_type();
       } else if (is_standard_class_type(member_type)) {
+        /* Members of managed class types cannot be of a standard class
+           type. */
         pos_error(ec_standard_class_member_in_managed_class,
                   &decl_state->declarator_pos);
         member_type = error_type();
@@ -12793,8 +12795,10 @@ specific information about the member declaration, respectively.
                     ec_tracking_reference_member_in_standard_class,
                   &decl_state->declarator_pos);
         member_type = error_type();
-      } else if (is_managed_class_type(member_type)) {
-        pos_error(ec_managed_class_member_in_standard_class,
+      } else if (is_cli_ref_or_interface_class_type(member_type)) {
+        /* Ref class and interface class members cannot be declared in
+           standard classes. */
+        pos_error(ec_ref_or_interface_class_member_in_standard_class,
                   &decl_state->declarator_pos);
         member_type = error_type();
       }  /* if */
@@ -14565,9 +14569,11 @@ declarations.
       pos_error(ec_standard_class_member_in_managed_class,
                 &decl_state->declarator_pos);
       field_type = error_type();
-    } else if (!in_managed_class && is_managed_class_type(field_type)) {
-      /* ... nor vice versa. */
-      pos_error(ec_managed_class_member_in_standard_class,
+    } else if (!in_managed_class &&
+               is_cli_ref_or_interface_class_type(field_type)) {
+      /* ... nor vice versa, except that value class fields can appear in
+         standard classes. */
+      pos_error(ec_ref_or_interface_class_member_in_standard_class,
                 &decl_state->declarator_pos);
       field_type = error_type();
     } else if (is_interior_ptr_type(field_type) ||
