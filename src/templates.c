@@ -3251,7 +3251,7 @@ be completed here.
             };
       */                
       sym_error(ec_runaway_recursive_instantiation, instance_sym);
-      /* Set the flag that indicates that this instance s being specialized.
+      /* Set the flag that indicates that this instance is being specialized.
          This will suppress subsequent attempts to instantiate this class. */
       class_type->variant.class_struct_union.is_specialized = TRUE;
     } else {
