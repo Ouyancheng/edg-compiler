@@ -18984,7 +18984,12 @@ of a managed class (possibly a generic class).
 #endif
   clear_decl_pos_block(&decl_pos_block);
   check_assertion(curr_token_is_identifier_string("delegate"));
-  if (scope_is(ssep, sck_template_declaration)) ssep = previous_scope_of(ssep);
+  if (scope_is(ssep, sck_template_declaration)) {
+    /* Skip the an enclosing template declaration scope.  If one is found,
+       indicate that in the dsi_flags. */
+    ssep = previous_scope_of(ssep);
+    dsi_flags |= DSI_IS_TEMPLATE_DECLARATION;
+  }  /* if */
   if (scope_is(ssep, sck_class_struct_union)) {
     a_type_ptr  parent_type = ssep->assoc_type;
     if (!is_immediate_managed_class_type(parent_type)) {
