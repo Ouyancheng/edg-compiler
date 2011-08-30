@@ -21626,7 +21626,7 @@ designate a valid type in this context.  Otherwise, return the indicated type.
       type = generic_param_if_generic_definition_argument(type);
     } else if (is_cli_interface_type(type)) {
       /* The usual case. */
-    } else if (is_ref_class_type(type) && !is_delegate_type(type)) {
+    } else if (is_ref_class_type(type)) {
       /* Ref classes are okay if they are not sealed.  complete_type_is_needed
          is not used here because it can cause premature completion of
          certain types loaded from metadata. */
