@@ -11274,6 +11274,9 @@ implicitly declared member functions.
 {
   a_decl_parse_state            *decl_state = &decl_info->decl_state;
   a_type_ptr                    class_type = class_state->class_type;
+  a_class_type_supplement_ptr   ctsp = class_type_supp(class_type);
+  a_scope_depth                 scope_depth = ctsp->assoc_scope
+                                                  ->depth_in_scope_stack;
   a_type_ptr                    member_type = decl_state->type;
   a_symbol_ptr                  sym, overload_sym = NULL;
   a_routine_ptr                 rtn;
@@ -11360,7 +11363,7 @@ implicitly declared member functions.
     /* Do not check for redeclarations or overloading here since any errors
        would likely be spurious.  Instead, check_property_accessor or
        check_event_accessor will report duplicates. */
-    sym = enter_cli_accessor(locator, decl_scope_level, pdp);
+    sym = enter_cli_accessor(locator, scope_depth, pdp);
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
@@ -11403,7 +11406,7 @@ implicitly declared member functions.
      will not actually be added to the IL. */
   rtn = make_routine(member_type, (a_storage_class)sc_static,
                      decl_info->is_trivial_default_constructor ?
-                                  NO_SCOPE_DEPTH : decl_scope_level);
+                                  NO_SCOPE_DEPTH : scope_depth);
   sym->variant.routine.ptr = rtn;
   /* Set the source correspondence, including the access specifier. */
   set_source_corresp(&rtn->source_corresp, sym);
@@ -11486,7 +11489,6 @@ implicitly declared member functions.
     if (sun_linker_scope_allowed) {
       /* A linker scope specifier on a class type is applied to all the
          implicit members of that class type. */
-      a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
       rtn->decl_modifiers |= (ctsp->decl_modifiers & DM_ANY_SUN_LINK_SCOPE);
     }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
@@ -11807,7 +11809,7 @@ implicitly declared member functions.
            class is declared as exported and the function is not inline. */
         templ->is_exported = class_is_exported(class_type) &&
                              !func_info->is_inline;
-        add_to_templates_list(templ, decl_scope_level);
+        add_to_templates_list(templ, scope_depth);
         if (prototype_instantiations_in_il || tssp->is_generic) {
           templ->prototype_instantiation.routine = rtn;
         }  /* if */
