@@ -28580,7 +28580,7 @@ checks are successful.
     /* According ECMA-372 16.2.1 the for-each statement is executed as
        follows:
 
-         for (I *i = c; i != c+c_size; ++i) {
+         for (I *i = c; i != c+c_num_elements; ++i) {
            T t = *i;
            <statement>
          }
@@ -28591,19 +28591,20 @@ checks are successful.
     /* Convert the lvalue array to a decayed rvalue pointer. */
     conv_array_operand_to_pointer_operand(&init_operand);
     decayed_array_type = init_operand.type;
-    /* Make the "c+c_size" operator node. */
+    /* Make the "c+c_num_elements" operator node. */
     clone_operand(&init_operand, &init_operand_copy, /*vars_can_change=*/TRUE,
                   &temp_init_used, /*treat_as_potential_rvalue=*/FALSE);
     conv_lvalue_to_rvalue(&init_operand_copy);
     set_integer_constant(&size_constant,
-                         (a_host_large_integer)collection_type->size,
+                         (a_host_large_integer)
+                                           num_array_elements(collection_type),
                          (an_integer_kind)ik_int);
     make_constant_operand(&size_constant, &size_operand);
     build_binary_result_operand(&init_operand_copy, &size_operand,
                                 (an_expr_operator_kind)eok_padd,
                                 decayed_array_type, &end_operand);
     /* Fill in the appropriate IL for the array version of the "for each"
-       statement (i.e., operands for "c" and "c+c_size"). */
+       statement (i.e., operands for "c" and "c+c_num_elements"). */
     fill_in_for_each_il(collection_expr, tok_seq_number, extra_info,
                         (a_for_each_pattern_kind)sfepk_array_pattern,
                         decayed_array_type, &init_operand, &end_operand);
@@ -28647,7 +28648,7 @@ These are the possible rewritings:
   }
 
   // Case D, array pattern
-  for (I *i = c; i != c+c_size; ++i) {
+  for (I *i = c; i != c+c_num_elements; ++i) {
     T t = *i;
     <statement>
   }

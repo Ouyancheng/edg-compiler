@@ -14191,7 +14191,7 @@ possible rewritings of the for-each statement:
   }
 
   // Case D, array pattern
-  for (I i = &c[0]; i != &c[c_size]; ++i) {
+  for (I *i = c; i != c+c_num_elements; ++i) {
     T t = *i;
     <statement>
   }
