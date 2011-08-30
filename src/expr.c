@@ -7319,15 +7319,13 @@ it is set to NULL.
 }  /* prepare_property_ref_incr_decr */
 
 
-void insert_temporary_initialization(
-                            an_expr_node_ptr                    temp_init_expr,
-                            a_rewritten_property_reference_kind rewritten_kind,
-                            an_operand                          *result)
+void insert_temporary_initialization(an_expr_node_ptr temp_init_expr,
+                                     an_operand       *result)
 /*
 If temp_init_expr is non-NULL, insert the temporary-initialization code
 it points to into result so it executes before whatever is originally
-in result.  Mark the resulting eok_comma node with the kind of operation
-specified by rewritten_kind.
+in result.  Mark the resulting eok_comma node as a node in a property
+reference rewrite.
 */
 {
   if (temp_init_expr != NULL) {
@@ -7337,7 +7335,8 @@ specified by rewritten_kind.
     expr = make_node_from_operand(result);
     expr = make_comma_node(temp_init_expr, expr);
     expr->variant.operation.compiler_generated = TRUE;
-    expr->variant.operation.rewritten_property_reference_kind = rewritten_kind;
+    expr->variant.operation.rewritten_property_reference_kind =
+                 (a_rewritten_property_reference_kind)rprk_comma_discard_first;
     make_expression_operand(expr, result);
     if (is_an_lvalue(&orig_operand) ||
         is_a_function_designator(&orig_operand)) {
@@ -7435,11 +7434,13 @@ any use of the temporary.  The overall result is placed in *result.
     }  /* if */
     expr = make_comma_node(expr, make_node_from_operand(&operator_result));
     expr->variant.operation.compiler_generated = TRUE;
+    expr->variant.operation.rewritten_property_reference_kind =
+                (a_rewritten_property_reference_kind)rprk_comma_discard_second;
     make_expression_operand(expr, result);
     restore_operand_details(result, &orig_operand);
   }
   /* Insert temporary-initialization code if required. */
-  insert_temporary_initialization(temp_init_expr, rprk, result);
+  insert_temporary_initialization(temp_init_expr, result);
 }  /* process_property_ref_incr_decr */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -23143,10 +23144,7 @@ operation_type_determined:
                 (a_rewritten_property_reference_kind)rprk_compound_assignment);
     copy_operand(&operand_1_clone, result);
     operand_1_clone_unused = FALSE;
-    insert_temporary_initialization(
-                 temp_init_expr,
-                 (a_rewritten_property_reference_kind)rprk_compound_assignment,
-                 result);
+    insert_temporary_initialization(temp_init_expr, result);
   }  /* if */
   /* The following test is defensive programming: although
      operand_1_clone_unused cannot currently ever be TRUE at this point, it's

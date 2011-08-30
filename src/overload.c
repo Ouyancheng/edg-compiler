@@ -13703,11 +13703,7 @@ select_best_function:
                       assignment_op= assignment_op->variant.operation.operands;
                     }  /* if */
                   }  /* if */
-                  insert_temporary_initialization(
-                                          temp_init_expr,
-                                          (a_rewritten_property_reference_kind)
-                                                      rprk_compound_assignment,
-                                          result);
+                  insert_temporary_initialization(temp_init_expr, result);
                 } else {
                   /* No suitable assignment operator. */
                   if (expr_error_should_be_issued()) {

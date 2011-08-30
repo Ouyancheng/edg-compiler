@@ -10789,28 +10789,19 @@ gen_expr that might end up generating this expr as a temporary.
             check_result_not_used_flag(operand_1);
 #endif /* CHECKING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (expr->variant.operation.compiler_generated) {
-              if (expr->variant.operation.rewritten_property_reference_kind !=
-                              (a_rewritten_property_reference_kind)rprk_none) {
-                /* This is the initialization for the expansion of a
-                   property or event reference or a synthesized compound
-                   assignment operation.  operand_1 contains enk_temp_init
-                   nodes whose expressions will be generated in the second
-                   operand, so suppress it here. */
-                suppress_opnd1 = TRUE;
-              } else if (operand_2->kind ==
-                                          (an_expr_node_kind)enk_reuse_value ||
-                         (is_operation_node(operand_2) &&
-                          operand_2->variant.operation.compiler_generated &&
-                          node_operator_is(operand_2, eok_indirect) &&
-                          operand_2->variant.operation.operands->kind ==
-                                         (an_expr_node_kind)enk_reuse_value)) {
-                /* This is an operation on a property reference that has
-                   been rewritten to reuse the result of the "get" call as
-                   the overall result; suppress the second operand
-                   embodying the reuse. */
-                suppress_opnd2 = TRUE;
-              }  /* if */
+            if (expr->variant.operation.rewritten_property_reference_kind ==
+                (a_rewritten_property_reference_kind)
+                                                    rprk_comma_discard_first) {
+	      /* The first operand is compiler-generated code that should
+		 not appear in the output. */
+              suppress_opnd1 = TRUE;
+            } else if (expr->variant.operation.
+                                           rewritten_property_reference_kind ==
+                       (a_rewritten_property_reference_kind)
+                                                   rprk_comma_discard_second) {
+	      /* The second operand is compiler-generated code that should
+		 not appear in the output. */
+              suppress_opnd2 = TRUE;
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             if (!suppress_opnd1) {

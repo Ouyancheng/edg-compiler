@@ -6408,7 +6408,15 @@ enum a_rewritten_property_reference_kind_tag {
   rprk_compound_assignment,
 			/* Compound assignment, e.g., a.p += 1. */
   rprk_pre_incr_decr,	/* Pre-increment or -decrement, e.g., ++a.p. */
-  rprk_post_incr_decr	/* Post-increment or -decrement, e.g., a.p++. */
+  rprk_post_incr_decr,	/* Post-increment or -decrement, e.g., a.p++. */
+  rprk_comma_discard_first,
+			/* Comma node used as part of a rewrite.  The first
+			   operand is generated (i.e., not part of the
+			   source). */
+  rprk_comma_discard_second
+			/* Comma node used as part of a rewrite.  The second
+			   operand is generated (i.e., not part of the
+			   source). */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_rewritten_property_reference_kind;
@@ -13666,7 +13674,7 @@ typedef struct an_expr_node {
 			   function was named with a qualified name). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       a_bit_field /* a_rewritten_property_reference_kind */
-		rewritten_property_reference_kind:2;
+		rewritten_property_reference_kind:3;
 			/* If this is the "put" call in a rewritten
 			   Microsoft property reference involving a
 			   compound assignment or other operator where both
