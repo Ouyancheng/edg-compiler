@@ -849,7 +849,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_expr_not_pointer_or_array_handle)*/
 /*lint -esym(769,ec_unrecognized_ms_attr)*/
 /*lint -esym(769,ec_standard_class_member_in_managed_class)*/
-/*lint -esym(769,ec_managed_class_member_in_standard_class)*/
+/*lint -esym(769,ec_ref_or_interface_class_member_in_standard_class)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
