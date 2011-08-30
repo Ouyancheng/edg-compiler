@@ -3090,7 +3090,7 @@ Instantiate the C++/CLI generic delegate specified by class_type.
   instance_sym = symbol_for(class_type);
   template_sym = template_symbol_for_class_symbol(instance_sym);
   tssp = template_sym->variant.template_info;
-  ctsp = class_type->variant.class_struct_union.extra_info;
+  ctsp = class_type_supp(class_type);
   /* Switch to the translation unit containing the template, if needed. */
   trans_unit_pushed = push_translation_unit_if_needed(template_sym);
   {
@@ -3126,6 +3126,8 @@ Instantiate the C++/CLI generic delegate specified by class_type.
       a_push_scope_options_set	ps_options = PS_DEDUCTION_CONTEXT;
       a_symbol_locator		locator;
       a_func_info_block		func_info;
+      an_assembly_visibility    visibility;
+      a_source_position         visibility_pos;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       a_boolean                 saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -3161,6 +3163,9 @@ Instantiate the C++/CLI generic delegate specified by class_type.
                                 instance_sym, &instance_sym->decl_position,
                                 (a_source_sequence_entry_ptr)NULL);
       init_decl_parse_state(&dps);
+      visibility = scan_cli_visibility_specifier_if_any(&visibility_pos);
+      set_cli_visibility(class_type, visibility, &visibility_pos,
+                         /*is_definition=*/TRUE);
       scan_cli_delegate_definition(&dps, &locator, &func_info);
       /* Set the locator to refer to the instance being generated. */
       locator.specific_symbol = instance_sym;
@@ -15012,20 +15017,7 @@ delegate.
   decl_state->defines_something = TRUE;
   decl_state->cli_visibility = scan_cli_visibility_specifier_if_any(
                                               &decl_state->cli_visibility_pos);
-#if GENERATE_SOURCE_SEQUECE_LISTS
-  /* FIXME: Not sure what is needed here. */
-  saved_sses_disallowed = source_sequence_entries_disallowed;
-  source_sequence_entries_disallowed = TRUE;
-  scope_stack_top().source_sequence_entries_disallowed 
-                                    = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   scan_cli_delegate_definition(dps, &locator, &func_info);
-#if GENERATE_SOURCE_SEQUECE_LISTS
-  /* FIXME: Not sure what is needed here. */
-  source_sequence_entries_disallowed = saved_sses_disallowed;
-  scope_stack_top().source_sequence_entries_disallowed 
-                                    = saved_source_sequence_entries_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (decl_state->decl_scope_err) {
     /* An error will have already been issued on a template declaration in an
        invalid scope. */

@@ -18975,13 +18975,6 @@ of a managed class (possibly a generic class).
   a_decl_flag_set          di_flags = DI_REAL_DECLARATOR_ALLOWED;
   a_scope_stack_entry_ptr  ssep = &scope_stack_top();
 
-#if 0
-#else
-  /* FIXME: How to handle access specifiers on generic delegates. */
-  while (curr_token == tok_public || curr_token == tok_private) {
-    (void)get_token();
-  }  /* if */
-#endif
   clear_decl_pos_block(&decl_pos_block);
   check_assertion(curr_token_is_identifier_string("delegate"));
   if (scope_is(ssep, sck_template_declaration)) {
