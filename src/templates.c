@@ -15126,10 +15126,7 @@ delegate.
     source_sequence_entries_disallowed = TRUE;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if 0
-  /* FIXME */
   mark_defined(sym, &locator.source_position);
-#endif
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (prototype_instantiations_in_il) {
     /* Restore the previous state wrt. the generation of source sequence
