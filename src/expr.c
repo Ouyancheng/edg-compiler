@@ -28083,23 +28083,32 @@ static void set_for_each_variable_initializer(a_variable_ptr vp,
 Set the initializer for the variable "vp" from the operand "init_expr_operand".
 */
 {
-  a_dynamic_init_ptr dip;
+  a_dynamic_init_ptr dip = NULL;
+  an_expr_node_ptr   node;
 
-  prep_initializer_operand(init_expr_operand, vp->type,
-                           /*is_transparent=*/(a_boolean *)NULL,
-                           /*conversion=*/(a_conv_descr_ptr)NULL,
-                           /*is_copy_initialization=*/TRUE,
-                           CCO_INITIALIZING_VARIABLE,
-                           ec_bad_initializer_type);
-  dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
-  dip->variant.expression = make_node_from_operand(init_expr_operand);
-  vp->init_kind = (an_init_kind)initk_dynamic;
-  vp->initializer.dynamic = dip;
-  dip->variable = vp;
-  /* The iterator variable in a "for each" is marked as set elsewhere;
-     temporary variables are compiler generated and don't have associated
-     symbols. */
-  vp->source_corresp.referenced = TRUE;
+  if (is_class_struct_union_type(vp->type)) {
+    /* See if we can elide the copy for class-typed variables. */
+    prep_elision_initializer_operand(init_expr_operand, vp->type,
+                                     /*fill_in_dtor=*/TRUE,
+                                     CCO_INITIALIZING_VARIABLE,
+                                     ec_bad_initializer_type, &dip);
+    wrap_up_dynamic_init_full_expression(dip);
+  } else {
+    prep_initializer_operand(init_expr_operand, vp->type,
+                             /*is_transparent=*/(a_boolean *)NULL,
+                             /*conversion=*/(a_conv_descr_ptr)NULL,
+                             /*is_copy_initialization=*/TRUE,
+                             CCO_INITIALIZING_VARIABLE,
+                             ec_bad_initializer_type);
+    node = make_node_from_operand(init_expr_operand);
+    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+    dip->variant.expression = wrap_up_full_expression(node);
+  }  /* if */
+  if (dip != NULL) {
+    vp->init_kind = (an_init_kind)initk_dynamic;
+    vp->initializer.dynamic = dip;
+    dip->variable = vp;
+  }  /* if */
 }  /* set_for_each_variable_initializer */
 
 
