@@ -3253,8 +3253,9 @@ omitted.
       /* Even when class_body_only is TRUE, the context-sensitive keyword
          "delegate" is needed so that a delegate class definition can be
          easily distinguished from a more traditional (managed) class
-         definition.  (This is not needed in the case of a generic delegate
-         since it will have */
+         definition.  This is not needed in the case of a generic delegate
+         since its definition is a complete declaration (including the
+         generic<...> header and the keyword "delegate"). */
       buffer << "delegate ";
     }  /* if  */
     if (kind == tlk_delegate) {
