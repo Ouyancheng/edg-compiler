@@ -15024,6 +15024,12 @@ delegate.
   decl_state->cli_visibility = scan_cli_visibility_specifier_if_any(
                                               &decl_state->cli_visibility_pos);
   scan_cli_delegate_definition(dps, &locator, &func_info);
+  if (!decl_state->is_generic) {
+    /* Delegates can be generics, but not templates. */
+    pos_error(ec_template_delegate, &dps->declarator_start_pos);
+    sym = NULL;
+    goto done;
+  }  /* if */
   if (decl_state->decl_scope_err) {
     /* An error will have already been issued on a template declaration in an
        invalid scope. */
@@ -15137,7 +15143,7 @@ delegate.
   if (add_sym_to_symbol_table) {
     add_symbol_to_symbol_table(sym, decl_state->effective_decl_level,
                                /*suppress_redecl_error=*/FALSE);
-   }  /* if */
+  }  /* if */
   /* Update the arity information for this generic. */
   set_arity_for_generic(decl_state, tssp, primary_arity_sym);
   /* Create the symbol for the prototype instantiation. */
@@ -15164,6 +15170,7 @@ delegate.
   create_cli_delegate_class_definition(prototype_type,
                                        decl_state->effective_decl_level,
                                        &locator, dps, &func_info);
+done:
   return sym;
 }  /* cli_generic_delegate_declaration */
 
@@ -19344,7 +19351,7 @@ in which case the is_delegate flag of decl_state is updated.
     result = (next_tok == tok_colon || next_tok == tok_end_of_source ||
               next_tok == tok_lbrace);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (decl_state->is_generic) {
+  } else if (cppcli_enabled) {
     if (check_for_cli_delegate_definition()) {
       /* Check for a generic delegate definition.  We still return FALSE
          for that case, but indicate in decl_state that this is a delegate. */
@@ -20021,7 +20028,7 @@ any non-empty template parameter lists that were scanned.
   } else if (decl_state->is_delegate) {
     /* A C++/CLI generic delegate declaration. */
     sym = cli_generic_delegate_declaration(decl_state);
-    tssp = template_supplement_for_symbol(sym);
+    tssp = sym != NULL ? template_supplement_for_symbol(sym) : NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if ((alias_declarations_enabled && curr_token == tok_using) ||
              curr_token == tok_internal_alias_decl) {
