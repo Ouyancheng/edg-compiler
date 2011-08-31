@@ -11058,7 +11058,7 @@ set the move_ctor_or_assign_parameter flag of its first parameter to TRUE.
 
 
 #if !(MICROSOFT_EXTENSIONS_ALLOWED && CHECKING)
-/*ARGSUSED*/ /* reverse_fn is not used in some configurations. */
+/*ARGSUSED*/ /* is_reverse_fn is not used in some configurations. */
 #endif /* !(MICROSOFT_EXTENSIONS_ALLOWED && CHECKING) */
 static a_boolean is_implicitly_callable_conversion_function_full(
                                                     a_type_ptr rout_type,
