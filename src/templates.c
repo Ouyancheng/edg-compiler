@@ -3200,6 +3200,9 @@ Instantiate the C++/CLI generic delegate specified by class_type.
   ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
   ctsp->is_hide_by_sig = TRUE;
   class_type->variant.class_struct_union.is_delegate_class = TRUE;
+  /* FIXME: The final flag is set both here and for partial instantiations
+     because currently we don't know an that the initial declaration of a
+     delegate read from an assembly is actually a delegate. */
   class_type->variant.class_struct_union.final = TRUE;
   /* Add the type to the types list of the appropriate scope.  Pass
      NO_SCOPE_DEPTH to force it to compute the scope list to be used. */
@@ -6219,6 +6222,7 @@ is returned.
                                                               tssp->is_generic;
   class_type->variant.class_struct_union.is_delegate_class =
                                                              tssp->is_delegate;
+  class_type->variant.class_struct_union.final = tssp->is_delegate;
   /* If this is a C++/CLI generic and the argument list involves open
      constructed types, mark the class as open constructed.  We need to
      check even if the given template is not generic because a template
