@@ -4805,6 +4805,7 @@ declared entity is known to not be a function.
   a_boolean		    is_in_class_specialization = FALSE;
   a_boolean		    is_specialization_or_instantiation;
   a_boolean		    explicit_template_args_allowed = FALSE;
+  a_boolean		    template_args_allowed_only_on_func_decl = FALSE;
   a_boolean		    ignore_explicit_template_args = FALSE;
 
   db_enter(3, "scan_real_declarator_id");
@@ -4861,6 +4862,7 @@ declared entity is known to not be a function.
     */
     if (!(options & GID_IS_TEMPLATE_DECLARATION)) {
       explicit_template_args_allowed = TRUE;
+      template_args_allowed_only_on_func_decl = TRUE;
     } else if (!locator_for_curr_id.is_class_member) {
       ignore_explicit_template_args = TRUE;
     }  /* if */
@@ -5263,6 +5265,17 @@ declared entity is known to not be a function.
     /* A namespace name cannot be a declarator. */
     pos_error(ec_namespace_name_not_allowed, &declarator_pos);
     set_to_error_locator(*locator);
+  }  /* if */
+  if (template_args_allowed_only_on_func_decl && locator->is_template_id &&
+      locator->specific_symbol != NULL &&
+      !is_function_symbol(locator->specific_symbol)) {
+    /* In Microsoft mode, explicit template arguments may be used to indicate
+       an explicit function template specialization without a "template<>"
+       prefix (see above), but in this case the resulting template-id does not
+       resolve to an instance of a function template: Disallow the explicit
+       arguments in what follows. */
+    check_assertion(microsoft_mode);
+    explicit_template_args_allowed = FALSE;
   }  /* if */
   if (!explicit_template_args_allowed && locator->is_template_id &&
       !is_error_locator(*locator)) {

@@ -1,5 +1,19 @@
 Version 4.4
 
+8/31/11  [EDGcpfe/11842]
+Missing error on invalid declarator in Microsoft mode
+
+In Microsoft mode, the front end failed to diagnose an attempt to use the
+name of a class template instance as a member function name.  For example,
+
+  template<typename T> struct S {};
+  class C {
+    void S<int>();  // In Microsoft mode, the front end previously failed to
+  };                // issue an error here.
+
+This is now fixed.
+
+
 8/26/11  [EDGcpfe/12056]
 Bugs in expansion of increment/decrement of Microsoft property references
 
