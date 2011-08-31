@@ -28437,19 +28437,9 @@ filled.  temp_type is the type of the temporary variable ("i").
     /* Check conversion and generate IL for the conversion from "*i" to "T". */
     process_static_cast(iterator->type, &indirection_call_operand, &pos, &pos,
                         /*is_safe_cast=*/FALSE, &ruled_out_expr_kinds);
-#if 0 /*FIXME: needed? */
-    /* Convert to an rvalue if the static_cast didn't do that (in Microsoft
-       mode a static_cast to the same type leaves the operand an lvalue). */
-    do_operand_transformations(&indirection_call_operand, TOPT_NO_OPTIONS);
-#endif /* 0 */
     /* Make an initializer for the iterator variable from the expression
        for the indirection call. */
     set_for_each_variable_initializer(iterator, &indirection_call_operand);
-#if 0 /*FIXME: needed? */
-    /* Mark the collection expression as used. */
-    change_some_ref_kinds(collection_expr->ref_entries_list,
-                          SRK_REFERENCE, SRK_USE);
-#endif /* 0 */
   }  /* if */
 }  /* fill_in_for_each_il */
 
