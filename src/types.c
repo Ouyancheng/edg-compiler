@@ -12884,7 +12884,7 @@ system_type_from_fundamental_type for the reverse mapping.
   return result;
 }  /* fundamental_type_from_system_type */
 
-#if !STANDALONE_IL_DISPLAY
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_type_ptr map_cli_system_type_to_fundamental_type(a_type_ptr tp)
 /*
@@ -12902,7 +12902,7 @@ If not, return the original type.
   return tp;
 }  /* map_cli_system_type_to_fundamental_type */
 
-#endif /* !STANDALONE_IL_DISPLAY */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_value_class_or_fundamental_type(a_type_ptr tp)
 /*
