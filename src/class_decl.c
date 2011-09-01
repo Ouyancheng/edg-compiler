@@ -12913,11 +12913,11 @@ specific information about the member declaration, respectively.
     a_boolean          delay_initializer_scan = FALSE;
     var->initializer_in_class = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (is_immediate_managed_class_type(class_type) && !var->is_initonly) {
-      /* In managed class types, static data members that aren't init_only can
-         have any initializer allowed for a namespace scope variable.  Such a
-         declaration is a definition and the initializer is processed in the
-         context of the completed class. */
+    if (is_immediate_managed_class_type(class_type)) {
+      /* In managed class types, static data members can have any initializer
+         allowed for a namespace scope variable.  Such a declaration is a
+         definition and the initializer is processed in the context of the
+         completed class. */
       delay_initializer_scan = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -22016,7 +22016,7 @@ modify the initonly members that have no in-class initializer.
   a_variable_ptr  var = class_type_supp(class_type)->assoc_scope->variables;
 
   for (; var != NULL; var = var->next) {
-    if (var->is_initonly && !var->is_member_constant) {
+    if (var->is_initonly && !var->initializer_in_class) {
       a_symbol_ptr  static_ctor = symbol_supplement_for_class(class_type)
                                                          ->static_constructor;
       if (static_ctor == NULL ||
