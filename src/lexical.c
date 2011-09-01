@@ -13434,6 +13434,9 @@ all arguments were explicit.
   a_boolean			   any_default_args = FALSE;
   a_boolean                        saved_in_template_arg_list =
                                        scope_stack_top().in_template_arg_list;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_source_position                arg_list_pos;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   scope_stack_top().in_template_arg_list = TRUE;
   *first_defaulted_arg = -1L;
@@ -13486,6 +13489,13 @@ all arguments were explicit.
       }  /* if */
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled) {
+    /* Record the starting position of the argument list in case it is needed
+       for a diagnostic later on. */
+    arg_list_pos = pos_curr_token;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   arg_number = 0;
   do {
     a_source_position			arg_pos;
@@ -13757,7 +13767,7 @@ all arguments were explicit.
        templates.  Check that their arguments meet the requirements of the
        language. */
     *any_errors = !check_cli_internal_template_instantiation(
-                                     template_sym, arg_list, &error_position);
+                                       template_sym, arg_list, &arg_list_pos);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   scope_stack_top().in_template_arg_list = saved_in_template_arg_list;
