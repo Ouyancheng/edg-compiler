@@ -13313,7 +13313,7 @@ state describes the declaration parsed so far.
   a_boolean          declarator_omitted = FALSE;
   a_boolean          declares_something;
   a_boolean          defines_something;
-  a_boolean          inline_specified;
+  a_boolean          inline_specified = ((dso_flags & DSO_INLINE) != 0);
   an_error_severity  severity;
   a_type_ptr         type_ptr = state->specifiers_type;
   a_type_ptr         tp = skip_typerefs(type_ptr);
@@ -13321,7 +13321,6 @@ state describes the declaration parsed so far.
   declares_something = ((dso_flags & DSO_DECLARES_SOMETHING) != 0);
   if (curr_token == tok_semicolon) {
     defines_something = ((dso_flags & DSO_DEFINES_SOMETHING) != 0);
-    inline_specified = ((dso_flags & DSO_INLINE) != 0);
     declarator_omitted = TRUE;
     if (state->decl_specifiers_error) {
       /* Don't issue further errors on this declaration. */
@@ -13445,11 +13444,6 @@ state describes the declaration parsed so far.
                          &state->start_pos);
         }  /* if */
         /* Inline can only be specified for a function (ARM 7.1.2). */
-        if (inline_specified) {
-          /* GNU C (but not GNU C++) allows this. */
-          pos_diagnostic(gcc_mode ? es_warning : es_error,
-                         ec_inline_and_nonfunction, &state->start_pos);
-        }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (defines_something || declares_something) {
           /* This is a class/struct/union or enum declaration. */
@@ -13505,6 +13499,11 @@ state describes the declaration parsed so far.
     discard_curr_construct_pragmas();
   }  /* if */
   if (declarator_omitted) {
+    if (inline_specified && !state->decl_specifiers_error) {
+      /* GNU C (but not GNU C++) allows this. */
+      pos_diagnostic(gcc_mode ? es_warning : es_error,
+                     ec_inline_and_nonfunction, &state->start_pos);
+    }  /* if */
     /* Prefix attributes require a declarator. */
     check_prefix_attributes_without_a_declarator(state);
   }  /* if */
