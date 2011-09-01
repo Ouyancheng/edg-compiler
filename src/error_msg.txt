@@ -2294,6 +2294,7 @@ ec_standard_class_member_in_managed_class;;"a member of a managed class cannot b
 ec_ref_or_interface_class_member_in_standard_class;;"a member of a non-managed class cannot have a ref class type or interface class type"
 ec_in;INTERNAL;"in "
 ec_template_delegate;;"a delegate may not be declared as a template"
+ec_invalid_generic_specialization;;"a generic cannot be explicitly specialized"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

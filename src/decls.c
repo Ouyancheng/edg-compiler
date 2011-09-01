@@ -7587,11 +7587,22 @@ for use in generating cross-reference output describing this declaration.
     } else if (explicit_template_reference) {
       /* A reference to a template instance in a friend declaration or an
          old-style specialization.  Such a declaration cannot be a definition
-         unless we're in Microsoft mode. */
+         unless we're in Microsoft mode (and for the friend declaration case,
+         only Microsoft Visual C++ 7 accepts a definition). */
       check_assertion(linked_symbol != NULL);
       sym = linked_symbol;
       routine_ptr = sym->variant.routine.ptr;
-      if (is_function_def && !microsoft_mode) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (routine_ptr->is_generic_instance) {
+        /* C++/CLI generics cannot be explicitly specialized. */
+        pos_error(ec_invalid_generic_specialization,
+                  &locator->source_position);
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      if (is_function_def &&
+          !(microsoft_mode &&
+            (!is_friend_decl || microsoft_version == 1300))) {
         pos_sy_error(ec_old_specialization_not_allowed,
                      &locator->source_position, sym);
         /* Set a flag to suppress reuse of the existing external-routine

@@ -20870,6 +20870,11 @@ that follows.
           pos_sy_error(ec_deleted_function_cannot_be_specialized,
                        &locator.source_position, sym);
           sym = NULL;
+        } else if (sym->variant.routine.ptr->is_generic_instance) {
+          /* A C++/CLI generic function cannot be specialized. */
+          pos_error(ec_invalid_generic_specialization,
+                    &locator.source_position);
+          sym = NULL;
         } else {
           /* Okay. */
         }  /* if */

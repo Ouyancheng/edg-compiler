@@ -1,5 +1,20 @@
 Version 4.4
 
+9/1/11   [EDGcpfe/11844]
+Missing error on definition of friend function with template arguments
+
+In Microsoft mode, a friend function declaration could previously be a
+definition even when the declaration is for a specific instance of a function
+template (i.e., template arguments are specified).  Now, such cases are
+accepted on when microsoft_version is 1300.  For example:
+
+  template<class T> void f();
+  struct S {
+    friend void f<int>() {}
+                         // Previously accepted in all Microsoft C++ modes.
+  };                     // Now only when microsoft_version == 1300.
+
+
 8/31/11  [EDGcpfe/11842]
 Missing error on invalid declarator in Microsoft mode
 
