@@ -14363,6 +14363,7 @@ declarations.
   a_decl_parse_state  *decl_state = &decl_info->decl_state;
   a_type_ptr          field_type = decl_state->type;
   a_type_ptr          class_type = class_state->class_type;
+  a_boolean           err = is_error_type(field_type);
 
   /* First check whether there was a preceding field of incomplete array type
      for which an error should now be issued. */
@@ -14415,10 +14416,10 @@ declarations.
   if (C_mode() && is_function_type(field_type) &&
       decl_state->storage_class != (a_storage_class)sc_typedef) {
     pos_error(ec_function_type_not_allowed, &locator->source_position);
-    field_type = error_type();
+    err = TRUE;
   } else if (vla_enabled && is_variably_modified_type(field_type)) {
     pos_error(ec_field_cannot_involve_vla_type, &locator->source_position);
-    field_type = error_type();
+    err = TRUE;
   } else if (is_incomplete_type(field_type)) {
     /* The member type is incomplete.  This is not necessarily an error:
        an array of unknown size is sometimes allowed as the last member. */
@@ -14517,7 +14518,7 @@ declarations.
           pos_error(incomplete_type_err_code(field_type),
                     &locator->source_position);
         }  /* if */
-        field_type = error_type();
+        err = TRUE;
       }  /* if */
     }  /* if */
   } else if (flexible_array_members_allowed &&
@@ -14546,17 +14547,17 @@ declarations.
          see C99 standard, 6.7.2.1 para 2). */
       pos_error(ec_flexible_array_member_not_allowed,
                 &locator->source_position);
-      field_type = error_type();
+      err = TRUE;
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && !is_error_type(field_type)) {
+  if (cppcli_enabled && !err) {
     a_boolean  in_managed_class = is_immediate_managed_class_type(class_type);
     /* Check for C++/CLI-specific constraints. */
     if (is_tracking_reference_type(field_type)) {
       pos_error(ec_field_cannot_be_tracking_reference,
                 &decl_state->declarator_pos);
-      field_type = error_type();
+      err = TRUE;
     } else if (in_managed_class ?
                      is_array_type(field_type) : is_handle_type(field_type)) {
       /* Array types are disallowed in managed class types and handles are
@@ -14565,41 +14566,41 @@ declarations.
                   ec_standard_array_member_in_managed_class :
                   ec_handle_member_in_standard_class,
                 &decl_state->declarator_pos);
-      field_type = error_type();
+      err = TRUE;
     } else if (in_managed_class && is_standard_class_type(field_type)) {
       /* Managed classes cannot have fields with standard class types... */
       pos_error(ec_standard_class_member_in_managed_class,
                 &decl_state->declarator_pos);
-      field_type = error_type();
+      err = TRUE;
     } else if (!in_managed_class &&
                is_cli_ref_or_interface_class_type(field_type)) {
       /* ... nor vice versa, except that value class fields can appear in
          standard classes. */
       pos_error(ec_ref_or_interface_class_member_in_standard_class,
                 &decl_state->declarator_pos);
-      field_type = error_type();
+      err = TRUE;
     } else if (is_interior_ptr_type(field_type) ||
                is_pin_ptr_type(field_type)) {
       /* In C++/CLI, an interior_ptr or pin_ptr cannot be a class member. */
       pos_ty_error(ec_type_cannot_be_class_member, 
                    &locator->source_position, field_type);
-      field_type = error_type();
+      err = TRUE;
     } else if (is_cli_interface_type(field_type)) {
       /* Fields cannot be C++/CLI interfaces. */
       pos_error(ec_data_member_with_interface_type,
                 &decl_state->declarator_pos);
-      field_type = error_type();
+      err = TRUE;
     } else if (is_value_class_type(class_type) &&
                is_class_struct_union_type(field_type) &&
                !is_value_class_type(field_type)) {
       /* Non-value class types cannot be used for value class members. */
       pos_ty_error(ec_nonvalue_class_type_cannot_be_value_class_member, 
                    &locator->source_position, field_type);
-      field_type = error_type();
+      err = TRUE;
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (!is_error_type(field_type)) {
+  if (!err) {
     a_boolean  is_ref = is_any_reference_type(field_type);
     if (is_abstract_class_type(field_type)) {
       /* Abstract class objects are prohibited (ARM 10.3). */
@@ -14610,7 +14611,7 @@ declarations.
       pos_diagnostic(strict_ansi_error_severity, ec_ref_not_allowed_in_union,
                      &decl_state->start_pos);
       if ((int)strict_ansi_error_severity > (int)es_warning) {
-        field_type = error_type();
+        err = TRUE;
       } /* if */
 #if NAMED_ADDRESS_SPACES_ALLOWED
     } else if (type_qualified_with_named_address_space(field_type)) {
@@ -14625,19 +14626,17 @@ declarations.
           ec_reference_declared_mutable, &decl_state->start_pos);
     }  /* if */
   }  /* if */
-  if (is_bit_field) {
+  if (is_bit_field && !err) {
     /* Bit-field declaration -- be sure the type is okay. */
     a_type_ptr  unqual_type = skip_typerefs(field_type);
     if (!is_integral_or_enum_type(unqual_type)) {
       /* Error, not an integral or enum type. */
-      if (is_error_type(unqual_type)) {
-        /* An error has already been issued. */
-      } else if (is_template_param_type(unqual_type)) {
+      if (is_template_param_type(unqual_type)) {
         /* We're in a prototype instantiation -- don't issue an error. */
       } else {
         /* Invalid type. */
         pos_error(ec_bad_bit_field_type, &decl_state->start_pos);
-        field_type = error_type();
+        err = TRUE;
       }  /* if */
     } else {
       /* Integral or enum base type.  In strict ANSI C mode, give a
@@ -14656,6 +14655,13 @@ declarations.
         }  /* if */
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (err) {
+    field_type = error_type();
+    /* Since the field type is not a class type anymore, do not attempt to
+       treat this as an anonymous union. */
+    decl_info->is_anonymous_union = FALSE;
+    decl_info->is_nonstd_anonymous_union = FALSE;
   }  /* if */
   decl_state->type = field_type;
 }  /* check_field_type */
