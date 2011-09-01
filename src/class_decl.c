@@ -16416,7 +16416,7 @@ the point of declaration of the conversion function.
                              cssp = symbol_supplement_for_class(bcp->type);
     a_symbol_list_entry_ptr  *slep = &cssp->conversion_list, to_remove;
     while (*slep != NULL) {
-      a_symbol_ptr   sym = (*slep)->symbol;
+      a_symbol_ptr   sym = fundamental_symbol_of((*slep)->symbol);
       a_routine_ptr  rp = sym->variant.routine.ptr;
       if (!routine_type_is_nonstatic_member_function(rp->type) &&
           !is_implicitly_callable_conversion_function_full(
