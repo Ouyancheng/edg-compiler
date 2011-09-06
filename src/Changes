@@ -1,5 +1,19 @@
 Version 4.4
 
+9/6/11   [EDGcpfe/12032]
+Microsoft compatibility: Names qualified with the name of the current class
+
+In Microsoft bugs mode, the front end sometimes sometimes ignores a name
+qualifier "Q::" in a name of the form "Q::X" when Q denotes the class
+currently being defined.  This treatment as now been extended to additional
+contexts, making e.g. the following example valid in Microsoft C++ bugs mode:
+
+  class C;
+  struct S {
+    operator S::C*();  // Now accepted in Microsoft bugs mode even though
+  };                   // there is no S::C ("S::C" is treated as just "C").
+
+
 9/6/11   [EDGcpfe/12109]
 Microsoft compatibility: IL write/read error on attribute in function scope
 

@@ -184,6 +184,12 @@ typedef int an_identifier_options_set;
 			   function declaration. */
 #define GID_IS_TAG_NAME    0x200000
 			/* TRUE when scanning a tag name. */
+#define GID_SIMPLIFY_CURR_CLASS_QUALIFIED_NAME 0x400000
+			/* TRUE if a qualified name of the form Q::X (with no
+			   leading "::") should be treated as just X if Q
+			   denotes the class currently being defined.
+			   Microsoft compilers in particular appear to behave
+			   this way. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)

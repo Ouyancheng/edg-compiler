@@ -16674,6 +16674,16 @@ selection operator, in which case it points to the type of the left operand.
       is_identifier = FALSE;
       is_cli_typeid = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if ((options & GID_SIMPLIFY_CURR_CLASS_QUALIFIED_NAME) != 0 &&
+               scope_is(&scope_stack_top(), sck_class_struct_union) &&
+               same_entities(scope_stack_top().assoc_type, qualifier_type)) {
+      /* Treat e.g. X::Y::N as just N in the body of class X::Y.  See also
+         simplify_curr_class_qualified_name, which achieves the same effect
+         at a higher level (permitting context-sensitive diagnostics). */
+      is_qualified_name = FALSE;
+      qualifier_is_type = FALSE;
+      qualifier_sym = NULL;
+      qualifier_type = NULL;
     }  /* if */
   }  /* if */
   if (is_identifier) {

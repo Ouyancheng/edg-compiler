@@ -654,20 +654,30 @@ expression is permitted.
       is_start = FALSE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (type_name_next(is_expr_context ? GID_IS_EXPR_CONTEXT
-                                            : GID_NO_OPTIONS)) {
-    /* Identifier that is a type name (a typedef name or, in C++,
-       the name of a class, struct, or union). */
-    is_start = TRUE;
+  } else {
+    an_identifier_options_set
+         gid_options = is_expr_context ? GID_IS_EXPR_CONTEXT : GID_NO_OPTIONS;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (curr_token == tok_microsoft_w64) {
-    is_start = TRUE;
+    if (microsoft_bugs) {
+      /* Microsoft treats Q::X as just X if Q denotes the class currently
+         being defined. */
+      gid_options |= GID_SIMPLIFY_CURR_CLASS_QUALIFIED_NAME;
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (curr_token == tok_identifier && locator_for_curr_id.is_error &&
-             locator_for_curr_id.is_template_id) {
-    /* This is an error case -- presumably, an ill-formed template-id -- but
-       it is treated as the start of a type anyway. */
-    is_start = TRUE;
+    if (type_name_next(gid_options)) {
+      /* Identifier that is a type name (a typedef name or, in C++,
+         the name of a class, struct, or union). */
+      is_start = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (curr_token == tok_microsoft_w64) {
+      is_start = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (curr_token == tok_identifier && locator_for_curr_id.is_error &&
+               locator_for_curr_id.is_template_id) {
+      /* This is an error case -- presumably, an ill-formed template-id -- but
+         it is treated as the start of a type anyway. */
+      is_start = TRUE;
+    }  /* if */
   }  /* if */
   return(is_start);
 }  /* is_type_start */
