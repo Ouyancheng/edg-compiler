@@ -1,5 +1,17 @@
 Version 4.4
 
+9/6/11   [EDGcpfe/12109]
+Microsoft compatibility: IL write/read error on attribute in function scope
+
+If a Microsoft attribute appeared in a function scope in a C++-generating
+back end version, an IL write/read error could occur.  Now fixed.  This
+would occur whether or not the attribute was actually valid.
+
+  int main() {
+    [xxx];
+  }
+
+
 9/1/11   [EDGcpfe/11844]
 Missing error on definition of friend function with template arguments
 

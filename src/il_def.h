@@ -16160,9 +16160,7 @@ typedef struct a_scope {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_ms_attribute_ptr
 		ms_attributes;
-			/* Linked list of Microsoft attribute entries.  Such
-			   entries are present only in namespace scopes
-			   (including the file scope) and class scopes. */
+			/* Linked list of Microsoft attribute entries. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   an_ms_if_exists_ptr

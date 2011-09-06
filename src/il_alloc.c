@@ -4409,7 +4409,7 @@ and return a pointer to it.
 {
   an_ms_attribute_ptr msap;
 
-  msap = alloc_il_of_type(an_ms_attribute);
+  msap = alloc_cil_of_type(an_ms_attribute);
 #if DEBUG
   num_ms_attributes_allocated++;
 #endif /* DEBUG */
@@ -4438,7 +4438,7 @@ values, and return a pointer to it.
 {
   an_ms_attribute_arg_ptr msaap;
 
-  msaap = alloc_il_of_type(an_ms_attribute_arg);
+  msaap = alloc_cil_of_type(an_ms_attribute_arg);
 #if DEBUG
   num_ms_attribute_args_allocated++;
 #endif /* DEBUG */
