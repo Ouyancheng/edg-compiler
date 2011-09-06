@@ -11776,6 +11776,12 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     /* In Microsoft mode a member template may be specialized within the
        definition of the parent class.  Don't generate the source sequence
        entry when the parent class is a prototype instantiation. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (rp->is_generic_instance) {
+    /* Generics cannot be explicitly specialized. Since the generated source
+       sequence entries take the form of an explicit specialization, we cannot
+       generate them for instances of generic functions. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Add a secondary source sequence entry to represent the partial
        instantiation -- it will take the form of an explicit specialization. */
