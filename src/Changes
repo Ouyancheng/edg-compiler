@@ -10,7 +10,7 @@ on 12/11/08).  Additional cases are now supported.  For example:
 
   template<typename T, void (*F)(T)> struct C {};
   template <void (*F)(void)> struct M {
-    typedef M<void, F> MF;  // Previously triggered an error for attempting
+    typedef C<void, F> MF;  // Previously triggered an error for attempting
   };                        // to substitute T=void in void (*F)(T); now
                             // accepted in Microsoft mode.
 
