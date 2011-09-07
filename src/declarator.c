@@ -2318,7 +2318,7 @@ TRUE if this is the function declarator in a friend function declaration.
         if (last_param_type == NULL && curr_token == tok_rparen) {
           if (dso_flags & DSO_JUST_VOID) {
             /* The first and only parameter-declaration is just "void", which
-               has a special meaning (no parameters).  (3.5.4.3)  */
+               has a special meaning (no parameters).  */
             remove_stop_token(tok_comma);
             abandon_potential_pack_expansion_context(pesep);
             break;
@@ -2330,21 +2330,16 @@ TRUE if this is the function declarator in a friend function declaration.
                list.  In C99 mode, this is a standard form and no diagnostic
                is needed.  Otherwise, issue an error (in strict mode) or a
                warning. */
-            a_boolean  template_void_param_case =
-                           (microsoft_mode &&
-                            is_nonspecialized_instantiation_context() &&
-                            scope_stack[depth_scope_stack-1].kind ==
-                                        (a_scope_kind)sck_class_struct_union);
-            if ((is_template_dependent_context() ||
-                 is_nonspecialized_instantiation_context()) &&
-                !template_void_param_case) {
+            if (is_template_dependent_context() ||
+                is_nonspecialized_instantiation_context()) {
               /* We usually don't accept such constructs in template contexts,
                  because it could cause the number of parameters seen in the
                  template to differ from the number seen during instantiation.
-                 The only exception occurs in Microsoft mode, where a member
-                 function of a class template with a single parameter type
-                 that instantiates to "void" is treated as a function taking
-                 no parameters. */
+                 (An exception occurs in Microsoft mode, where a function
+                 declarator with a single parameter type that instantiates to
+                 "void" is treated as a function taking no parameters.  Such
+                 a parameter produces the DSO_JUST_VOID flag, however, and is
+                 therefore handled above.) */
               pos_error(ec_void_param_not_allowed, &param_type_pos);
               invalidate_type(&param_state);
             } else {

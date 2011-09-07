@@ -8985,9 +8985,21 @@ process_enum_specifier:
               err = TRUE;
             } else {
               /* Save the type. */
-              basic_type = bt_typedef;
-              *type_ptr = type_symbol_type(curr_token_type_symbol);
-              decl_specifiers_seen |= DS_TYPE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              if (microsoft_mode && !any_decl_specifiers_seen &&
+                  curr_token_type_symbol->is_template_param &&
+                  curr_token_type_symbol->variant.type.ptr->kind ==
+                                                       (a_type_kind)tk_void) {
+                basic_type = bt_void;
+                decl_specifiers_seen = DS_VOID;
+              } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+              /* Do not insert code here. */
+              {
+                basic_type = bt_typedef;
+                *type_ptr = type_symbol_type(curr_token_type_symbol);
+                decl_specifiers_seen |= DS_TYPE;
+              }  /* if */
             }  /* if */
           }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
