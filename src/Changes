@@ -30,11 +30,14 @@ contexts, making e.g. the following example valid in Microsoft C++ bugs mode:
 
 
 9/6/11   [EDGcpfe/12109]
-Microsoft compatibility: IL write/read error on attribute in function scope
+Microsoft compatibility: memory region issue with attributes in function scope
 
-If a Microsoft attribute appeared in a function scope in a C++-generating
-back end version, an IL write/read error could occur.  Now fixed.  This
-would occur whether or not the attribute was actually valid.
+If a Microsoft attribute appeared in a function scope, the attribute was
+allocated in the file scope, but appeared on the function scope attributes
+list, and could point to a function scope source sequence entry.  This could
+result a variety of problems including an IL write/read error in C++-generating
+back end versions.  Now fixed.  The problems would occur whether or not the
+attribute was actually valid.
 
   int main() {
     [xxx];
