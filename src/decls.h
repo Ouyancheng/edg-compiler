@@ -616,6 +616,10 @@ typedef struct a_decl_parse_state {
   a_bit_field	is_generic_declaration:1;
 			/* TRUE if this is a Microsoft C++/CLI generic
 			   declaration. */
+  a_bit_field	template_void_specifier:1;
+			/* TRUE if the type specifier was a type parameter
+			   instantiated to void.  (Used for diagnosing the
+			   use of a Microsoft extension.) */
   an_attribute_ptr
 		prefix_attributes;
 			/* A list of non-type-transforming attributes scanned

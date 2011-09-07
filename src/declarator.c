@@ -2319,6 +2319,11 @@ TRUE if this is the function declarator in a friend function declaration.
           if (dso_flags & DSO_JUST_VOID) {
             /* The first and only parameter-declaration is just "void", which
                has a special meaning (no parameters).  */
+            if (param_state.template_void_specifier) {
+              /* In Microsoft mode, (T) can be a valid (void). */
+              pos_warning(ec_nonstd_template_void_param_list, &param_type_pos);
+              check_assertion(microsoft_mode);
+            }  /* if */
             remove_stop_token(tok_comma);
             abandon_potential_pack_expansion_context(pesep);
             break;
@@ -2349,14 +2354,11 @@ TRUE if this is the function declarator in a friend function declaration.
                 check_assertion(total_errors != 0);
               } else if (!c99_mode) {
                 an_error_severity  sev = es_warning;
-                an_error_code      ec = ec_nonstd_void_param_list;
                 if (strict_ansi_mode) {
                   sev = strict_ansi_discretionary_severity;
                 }  /* if */
-                if (param_state.type->kind != (a_type_kind)tk_typeref) {
-                  ec = ec_nonstd_template_void_param_list;
-                }  /* if */
-                pos_diagnostic(sev, ec, &param_type_pos);
+                pos_diagnostic(sev, ec_nonstd_void_param_list,
+                               &param_type_pos);
               }  /* if */
               remove_stop_token(tok_comma);
               abandon_potential_pack_expansion_context(pesep);

@@ -8992,6 +8992,7 @@ process_enum_specifier:
                                                        (a_type_kind)tk_void) {
                 basic_type = bt_void;
                 decl_specifiers_seen = DS_VOID;
+                state->template_void_specifier = TRUE;
               } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               /* Do not insert code here. */
