@@ -2354,7 +2354,6 @@ TRUE if this is the function declarator in a friend function declaration.
                   sev = strict_ansi_discretionary_severity;
                 }  /* if */
                 if (param_state.type->kind != (a_type_kind)tk_typeref) {
-                  check_assertion(template_void_param_case);
                   ec = ec_nonstd_template_void_param_list;
                 }  /* if */
                 pos_diagnostic(sev, ec, &param_type_pos);
