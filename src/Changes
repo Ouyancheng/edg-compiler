@@ -1,5 +1,26 @@
 Version 4.4
 
+9/7/11   [EDGcpfe/12098]
+Abort in il_to_str.c related to template argument based on array
+
+The front end aborted in form_array_declarator in il_to_str.c while
+trying to generate the source form of an array (e.g., for
+C++-generating back end output) when the array type comes from
+a template parameter deduced from an array whose size if a constant
+variable that is local to a function.  Now fixed.  The following
+aborted in a C++-generating back end version with --g++ -tall:
+
+  void f(const char*);
+  template<typename T> void g(const T&) {
+    f(__PRETTY_FUNCTION__);
+  }
+  void h() {
+    const int N = 3;  // Local const variable
+    int arr[N];       // Array with size based on local const variable
+    g(arr);           // T of g deduced from that array type
+  }
+
+
 9/6/11   [EDGcpfe/12029]
 Microsoft C++ compatibility: void parameters in template instantiations
 

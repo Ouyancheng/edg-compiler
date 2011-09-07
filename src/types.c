@@ -12578,6 +12578,18 @@ to the caller.  If no modification is done return the original type.
     check_assertion(!typeref_is_qualified(type));
     type = type->variant.typeref.type;
   }  /* while */
+  if (type->kind == (a_type_kind)tk_array) {
+    if (type->variant.array.constant_bound_expr_in_local_expr_node_ref) {
+      /* For an array type that has an associated local expression that gives
+         the backing expression for the constant bound, clear the flag and
+         thereby discard the expression.  That's done by making a copy of
+         the array type and clearing the flag in the copy. */
+      a_type_ptr new_type = alloc_type((a_type_kind)tk_array);
+      copy_type(type, new_type);
+      type = new_type;
+      type->variant.array.constant_bound_expr_in_local_expr_node_ref = FALSE;
+    }  /* if */
+  }  /* if */
   return traverse_and_modify_type_tree(type,
 				       tmtt_strip_local_and_nonreal_typedefs,
                                        TTT_NO_INPUT_FLAGS);
