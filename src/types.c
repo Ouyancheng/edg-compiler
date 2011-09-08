@@ -9044,6 +9044,13 @@ well as C++ mode.
                !is_cli_generic_definition_argument_type(dest_type)) {
       okay = TRUE;
     }  /* if */
+  } else if (is_handle_ptr(source_type)) {
+    /* Conversion from a C++/CLI handle type (destination type is not a
+       handle). */
+    if (is_interior_ptr_type(dest_type)) {
+      /* Handle --> interior_ptr is allowed. */
+      okay = TRUE;
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (is_ptr_to_member(source_type) &&
              is_ptr_to_member(dest_type)) {
