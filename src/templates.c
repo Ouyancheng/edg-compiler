@@ -13327,8 +13327,8 @@ This routine is called for template declarations of members of classes.
 It calls reconcile_template_param_lists to compare the template parameters
 of this declaration with the parameter list of the class declaration.
 If this is a member template, the template parameter lists at each level
-are compared.  check_constriants is TRUE if, for members of C++/CLI generic
-classes, the constraints of the parent class should be checked.
+are compared.  check_parent_constraints is TRUE if, for members of C++/CLI
+generic classes, the constraints of the parent class should be checked.
 The Microsoft compiler only checks the parent constraints of members that
 are not themselves classes or generic classes, and then only for the
 immediately enclosing class.  Return TRUE if the parameter lists are
