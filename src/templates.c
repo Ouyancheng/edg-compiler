@@ -21670,19 +21670,26 @@ designate a valid type in this context.  Otherwise, return the indicated type.
       type = generic_param_if_generic_definition_argument(type);
     } else if (is_cli_interface_type(type)) {
       /* The usual case. */
-    } else if (is_ref_class_type(type)) {
-      /* Ref classes are okay if they are not sealed.  complete_type_is_needed
-         is not used here because it can cause premature completion of
-         certain types loaded from metadata. */
-      complete_template_instance_is_needed(type);
-      if (skip_typerefs(type)->variant.class_struct_union.final) {
-        pos_error(ec_sealed_constraint, &loc->source_position);
+    } else {
+      /* A generic parameter to a ref class with have an implicit handle
+         added.  Remove that to get the actual generic argument type. */
+      if (is_handle_type(type)) {
+        type = type_pointed_to(type);
+      }  /* if */
+      if (is_ref_class_type(type)) {
+        /* Ref classes are okay if they are not sealed.
+           complete_type_is_needed is not used here because it can cause
+           premature completion of certain types loaded from metadata. */
+        complete_template_instance_is_needed(type);
+        if (skip_typerefs(type)->variant.class_struct_union.final) {
+          pos_error(ec_sealed_constraint, &loc->source_position);
+          type = NULL;
+        }  /* if */
+      } else {
+        /* Any other type (e.g. a value class or enum) is invalid. */
+        pos_ty_error(ec_invalid_type_constraint, &loc->source_position, type);
         type = NULL;
       }  /* if */
-    } else {
-      /* Any other type (e.g. a value class or enum) is invalid. */
-      pos_ty_error(ec_invalid_type_constraint, &loc->source_position, type);
-      type = NULL;
     }  /* if */
   }  /* if */
   return type;
