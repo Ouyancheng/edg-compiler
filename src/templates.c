@@ -21677,11 +21677,14 @@ designate a valid type in this context.  Otherwise, return the indicated type.
         type = type_pointed_to(type);
       }  /* if */
       if (is_ref_class_type(type)) {
-        /* Ref classes are okay if they are not sealed.
-           complete_type_is_needed is not used here because it can cause
+        /* Ref classes are okay if they are not sealed.  Furthermore, a sealed
+           class is accepted if it appears through the substitution of a
+           generic (or template) parameter. */
+        /* complete_type_is_needed is not used here because it can cause
            premature completion of certain types loaded from metadata. */
         complete_template_instance_is_needed(type);
-        if (skip_typerefs(type)->variant.class_struct_union.final) {
+        if (skip_typerefs(type)->variant.class_struct_union.final &&
+            !sym->is_template_param) {
           pos_error(ec_sealed_constraint, &loc->source_position);
           type = NULL;
         }  /* if */

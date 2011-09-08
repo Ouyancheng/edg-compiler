@@ -19878,7 +19878,6 @@ done:;
 
 
 static void apply_constraints_to_complete_type(
-	a_type_ptr			proxy_class,
 	a_class_def_state_ptr		class_state,
 	a_base_class_sequence_number	*direct_base_number,
 	a_base_class_ptr		*last_bcp,
@@ -19887,21 +19886,22 @@ static void apply_constraints_to_complete_type(
 	a_generic_constraint_ptr	gc_list)
 /*
 Go through the list of constraints specified by gc_list and update the
-type specified by proxy_class with the information from the
-constraints.  This routine is used while forming the complete class of
-proxy_class.  class_state, direct_base_number, last_bcp,
-may_be_first_direct_nonvirtual_base, and default_constructible are
-passed into this routine from complete_generic_constraint_type.  This
-routine then calls itself recursively to process naked type parameter
+constraint type described by class_state (and in the process of being
+completed) with the information from the constraints.  direct_base_number,
+last_bcp, and may_be_first_direct_nonvirtual_base track the state of the base
+classes as they are being added (corresponding to constraints).
+*default_constructible is set to TRUE if a gcnew constraint is encountered.
+This routine calls itself recursively to process naked type parameter
 constraints.
 */
 {
-  a_generic_constraint_ptr	gcp;
+  a_type_ptr                proxy_class = class_state->class_type;
+  a_generic_constraint_ptr  gcp;
 
   for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
     if (gcp->kind == (a_generic_constraint_kind)gck_type ||
         gcp->kind == (a_generic_constraint_kind)gck_naked_type_param) {
-      a_type_ptr	type = gcp->type;
+      a_type_ptr  type = gcp->type;
       /* For a naked type parameter constraint, add the proxy class as
          a base class. */
       if (gcp->kind == (a_generic_constraint_kind)gck_naked_type_param) {
@@ -19911,8 +19911,14 @@ constraints.
                               (*direct_base_number)++, last_bcp,
                               may_be_first_direct_nonvirtual_base);
       if (is_cli_interface_type(type)) {
-        proxy_class->
-                   variant.class_struct_union.any_interface_constraints = TRUE;
+        proxy_class->variant.class_struct_union.any_interface_constraints =
+                                                                         TRUE;
+      } else if (is_class_struct_union_type(type) &&
+                 skip_typerefs(type)->variant.class_struct_union.final) {
+        /* final class types are normally not allowed for generic constraints,
+           but Microsoft does allow them if they result from a instantiation.
+           The resulting constraint type is also marked "final". */
+        proxy_class->variant.class_struct_union.final = TRUE;
       }  /* if */
     } else if (gcp->kind == (a_generic_constraint_kind)gck_gcnew) {
       /* The "gcnew()" constraint indicates that the constraint type is
@@ -19923,13 +19929,13 @@ constraints.
       a_generic_constraint_ptr	sub_list;
       /* For a naked type parameter constraint, apply the indirect
          constraints. */
-      sub_list = gcp->type->variant.template_param.extra_info->
-                                                          generic_constraints;
+      sub_list = gcp->type->variant.template_param.extra_info
+                          ->generic_constraints;
       if (sub_list != NULL) {
         apply_constraints_to_complete_type(
-                 proxy_class, class_state, direct_base_number, last_bcp,
-                 may_be_first_direct_nonvirtual_base, default_constructible,
-                 sub_list);
+                   class_state, direct_base_number, last_bcp,
+                   may_be_first_direct_nonvirtual_base, default_constructible,
+                   sub_list);
       }  /* if */
     }  /* if */
   }  /* for */
@@ -19969,7 +19975,7 @@ classes and possibly a default constructor as indicated by the constraints.
   } else {
     /* Add bases corresponding to the various constraints. */
     apply_constraints_to_complete_type(
-                 proxy_class, &class_state, &direct_base_number, &last_bcp,
+                 &class_state, &direct_base_number, &last_bcp,
                  &may_be_first_direct_nonvirtual_base, &default_constructible,
                  gc_list);
   }  /* if */
