@@ -1,5 +1,35 @@
 Version 4.4
 
+9/8/11   [EDGcpfe/12120]
+Alignment of overlong bit fields and 128-bit integer types
+
+The IA-64 ABI specifies that the alignment of overlong bit fields (i.e.,
+bit fields whose specified length is longer than that of the specified type)
+is the alignment of the largest integer type that would be accommodated by the
+bit field length.  For a class type like:
+
+  struct S {
+    int i;
+    long long b: 130;
+  };
+
+this could result in a different layout when 128-bit integer types are enabled
+(see Changes entry of 8/2/11) since "long long" is commonly aligned at 8-byte
+boundaries whereas 128-bit integers are 16-byte aligned.  The front end
+therefore ignores 128-bit integer types when laying out overlong bit fields in
+the IA-64 ABI, unless the bit field type is specified as a 128-bit type.  When
+emulating GNU ABI bugs, 128-bit integer types are ignored altogether when
+laying out overlong bit fields.  For example, assuming "long long" is 8-byte
+aligned:
+
+  struct X {
+    int i;
+    __int128 b: 130;  // 8-byte aligned when emulating GNU ABI bugs;
+  };                  // 16-byte alignment otherwise.
+
+This matches the somewhat surprising behavior of GCC.
+
+
 9/7/11   [EDGcpfe/12098]
 Abort in il_to_str.c related to template argument based on array
 
