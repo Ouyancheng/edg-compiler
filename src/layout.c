@@ -921,11 +921,12 @@ offset values as though the extra bits actually were being used.
 
 #if IA64_ABI
 
-static a_type_ptr longest_integer_type_fitting_in_bits(unsigned long  bit_size)
+static a_type_ptr longest_integer_type_fitting_in_bit_field(a_field_ptr  field)
 /*
 Return the longest signed integer type that is not longer than the bit field.
 */
 {
+  unsigned long    bit_size = field->declared_bit_size;
   an_integer_kind  int_kind = (an_integer_kind)ik_none;
 
   check_assertion(targ_char_bit <= bit_size);
@@ -947,12 +948,19 @@ Return the longest signed integer type that is not longer than the bit field.
 #if INT128_EXTENSIONS_ALLOWED
   if (int128_extensions_enabled &&
       targ_sizeof_int128 > targ_sizeof_long_long &&
+      field->type->size >= targ_sizeof_int128 &&
       targ_char_bit * targ_sizeof_int128 <= bit_size) {
+    /* Strictly speaking, the ABI requires us to also consider int128 if it
+       fits in the declared bit size.  However, that would create a binary
+       incompatibility when a compiler transitions to enabling int128 for a
+       field like "long long x:130;".  So we only consider int128 if the field
+       type is at least 128 bits wide (in practice, that means the signed or
+       unsigned int128 type). */
     int_kind = (an_integer_kind)ik_int128;
   }  /* if */
 #endif /* INT128_EXTENSIONS_ALLOWED */
   return integer_type(int_kind);
-}  /* longest_integer_type_fitting_in_bits */
+}  /* longest_integer_type_fitting_in_bit_field */
 
 #endif /* IA64_ABI */
 
@@ -1109,8 +1117,7 @@ targ_microsoft_bit_field_allocation is FALSE.)
          aligned the same as this integral type.  The signedness of the
          integral type doesn't matter, because it's used for its alignment
          only; the bit field does not get that type. */
-      a_type_ptr  int_type = longest_integer_type_fitting_in_bits(
-                                                     field->declared_bit_size);
+      a_type_ptr  int_type = longest_integer_type_fitting_in_bit_field(field);
       container_size = int_type->size;
       container_alignment = field_alignment_for(int_type);
 #if BACK_END_IS_C_GEN_BE
