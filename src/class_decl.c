@@ -19916,7 +19916,7 @@ constraints.
       } else if (is_class_struct_union_type(type) &&
                  skip_typerefs(type)->variant.class_struct_union.final) {
         /* final class types are normally not allowed for generic constraints,
-           but Microsoft does allow them if they result from a instantiation.
+           but Microsoft does allow them if they result from an instantiation.
            The resulting constraint type is also marked "final". */
         proxy_class->variant.class_struct_union.final = TRUE;
       }  /* if */
