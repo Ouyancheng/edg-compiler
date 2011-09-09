@@ -6112,9 +6112,7 @@ case).
           !is_class_struct_union_type(operand_1->type)) {
         /* In C++/CLI, the first operand of "." will be boxed if it has a
            built-in type that has a corresponding value class type. */
-        a_type_ptr sys_type = system_type_from_fundamental_type(
-                                               skip_typerefs(operand_1->type));
-        if (sys_type != NULL) {
+        if (is_boxable_type(operand_1->type)) {
           box_value_type_operand(operand_1, /*leave_as_handle=*/FALSE);
         }  /* if */
       }  /* if */

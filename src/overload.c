@@ -2874,6 +2874,13 @@ selector is enabled, allow that kind of mismatch here.
     /* A C++/CLI value class member function can be called with a handle
        selector even though the function expects an interior_ptr "this". */
     arg_type = make_interior_ptr_type(type_pointed_to(arg_type));
+  } else if (cppcli_enabled &&
+             is_handle_type(param_type) &&
+             is_interior_ptr_type(arg_type)) {
+    /* A C++/CLI ref class member function can be called with an interior_ptr
+       selector even though the function expects a handle "this".  This
+       comes up in the members of base classes of value classes. */
+    arg_type = make_handle_type(type_pointed_to(arg_type));
   } else if (microsoft_mode) {
     /* Drop __unaligned as a type qualifier on the argument type.
        MSVC++ allows a member function to be called on an __unaligned
