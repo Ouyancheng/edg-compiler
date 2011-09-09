@@ -22147,6 +22147,16 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
     /* FIXME: different message for generics? */
     pos_error(ec_interface_cannot_have_member_templates,
               &decl_state.decl_parse.start_pos);
+  } else if (decl_state.is_generic && decl_state.is_member_decl &&
+             !is_valid_cli_generic_declaration_context()) {
+    /* A generic cannot be declared in a template. */
+    pos_error(ec_generic_in_template, &decl_state.decl_parse.start_pos);
+    decl_state.decl_scope_err = TRUE;
+  } else if (!decl_state.is_generic && decl_state.is_member_decl &&
+             is_cli_generic_definition_context()) {
+    /* A template cannot be declared in a generic. */
+    pos_error(ec_template_in_generic, &decl_state.decl_parse.start_pos);
+    decl_state.decl_scope_err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (export_present) {

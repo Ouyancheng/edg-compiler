@@ -1487,6 +1487,20 @@ class definition.
   (is_prototype_instantiation_context() ||				\
    is_cli_generic_definition_context())
 
+
+/*
+Return TRUE if the current context is one in which a C++/CLI generic
+declaration is allowed.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_valid_cli_generic_declaration_context()	\
+  (depth_scope_stack != NO_SCOPE_DEPTH &&			\
+   (!scope_stack[depth_scope_stack].in_prototype_instantiation || \
+    scope_stack[depth_scope_stack].in_generic_definition))
+#else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_valid_cli_generic_declaration_context()	/*lint --e(506)*/FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 /*
 Safe version of is_template_dependent_context that can be used in
 back ends (returns TRUE there and FALSE in IL lowering).  Basically guards

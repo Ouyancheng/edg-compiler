@@ -847,6 +847,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_ref_or_interface_class_member_in_standard_class)*/
 /*lint -esym(769,ec_template_delegate)*/
 /*lint -esym(769,ec_invalid_generic_specialization)*/
+/*lint -esym(769,ec_generic_in_template)*/
+/*lint -esym(769,ec_template_in_generic)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
