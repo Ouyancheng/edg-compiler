@@ -1497,8 +1497,6 @@ declaration is allowed.
   (depth_scope_stack != NO_SCOPE_DEPTH &&			\
    (!scope_stack[depth_scope_stack].in_prototype_instantiation || \
     scope_stack[depth_scope_stack].in_generic_definition))
-#else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_valid_cli_generic_declaration_context()	/*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
