@@ -14557,7 +14557,9 @@ declarations.
   if (cppcli_enabled && !err) {
     a_boolean  in_managed_class = is_immediate_managed_class_type(class_type);
     /* Check for C++/CLI-specific constraints. */
-    if (is_tracking_reference_type(field_type)) {
+    if (is_tracking_reference_type(field_type) &&
+        !(class_state->property_or_event_descr != NULL &&
+          property_or_event_kind_is(class_state, pek_cli_property))) {
       pos_error(ec_field_cannot_be_tracking_reference,
                 &decl_state->declarator_pos);
       err = TRUE;
