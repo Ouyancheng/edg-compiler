@@ -8362,7 +8362,9 @@ definition of a member function of a class template.
   in_prototype_instantiation =
           scope_stack[idlb.effective_decl_level].in_prototype_instantiation ||
           scope_stack[idlb.effective_decl_level].in_generic_definition;
-  if (idlb.is_friend_decl && !friend_injection_enabled) {
+  if (idlb.is_friend_decl && !friend_injection_enabled && !gpp_mode) {
+    /* g++ injects function templates even when they don't inject normal
+       functions. */
     set_invisible = TRUE;
   }  /* if */
   if (locator->is_qualified_name && locator->is_class_member &&

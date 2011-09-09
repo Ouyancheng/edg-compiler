@@ -1,5 +1,21 @@
 Version 4.4
 
+9/9/11   [EDGcpfe/12130]
+GNU C++ compatibility: injection of friend function templates
+
+Newer versions of g++ do not inject names from friend declarations into the
+enclosing namespace scope (see 8/9/08 entry).  But while they do not
+inject function or class names, they do still inject function template
+names.  We now emulate this behavior in g++ mode.
+
+  class A {
+    template <class T> friend void f(T) { }
+  };
+  int main() {
+    f(1);  // now allowed in g++ mode
+  }
+
+
 9/8/11   [EDGcpfe/12120]
 Alignment of overlong bit fields and 128-bit integer types
 
