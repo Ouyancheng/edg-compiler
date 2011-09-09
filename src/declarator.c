@@ -2335,16 +2335,19 @@ TRUE if this is the function declarator in a friend function declaration.
                list.  In C99 mode, this is a standard form and no diagnostic
                is needed.  Otherwise, issue an error (in strict mode) or a
                warning. */
-            if (is_template_dependent_context() ||
-                is_nonspecialized_instantiation_context()) {
+            if ((is_template_dependent_context() ||
+                 is_nonspecialized_instantiation_context()) &&
+                !microsoft_mode) {
               /* We usually don't accept such constructs in template contexts,
                  because it could cause the number of parameters seen in the
                  template to differ from the number seen during instantiation.
-                 (An exception occurs in Microsoft mode, where a function
+                 An exception occurs in Microsoft mode, where a function
                  declarator with a single parameter type that instantiates to
-                 "void" is treated as a function taking no parameters.  Such
-                 a parameter produces the DSO_JUST_VOID flag, however, and is
-                 therefore handled above.) */
+                 "void" is treated as a function taking no parameters.  In the
+                 usual case of a template parameter instantiated with "void"
+                 the call to decl_specifiers produced the DSO_JUST_VOID flag,
+                 which is handled above.  However, cases involving a typedef
+                 top of the template parameter are handled below. */
               pos_error(ec_void_param_not_allowed, &param_type_pos);
               invalidate_type(&param_state);
             } else {
