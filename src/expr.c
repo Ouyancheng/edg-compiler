@@ -18244,7 +18244,6 @@ is start_position.  The source form of the cast is given by source_form.
   a_boolean        is_cast_to_tracking_ref = FALSE;
   a_boolean        might_be_runtime_checked = FALSE;
   a_boolean        requires_boxing = FALSE;
-  a_boolean        is_generic_cast = FALSE;
   a_type_ptr       source_type = operand->type, dest_type = type_cast_to;
   a_base_class_ptr bcp;
 
@@ -18286,15 +18285,23 @@ is start_position.  The source form of the cast is given by source_form.
                  is_cli_generic_definition_argument_type(dest_type)) {
         /* Casts between generic types are allowed but checked. */
         is_runtime_checked_cast = TRUE;
-        is_generic_cast = TRUE;
       } else {
         /* Unrelated classes, or a cast to a derived class.  A runtime
            check will be needed. */
         is_runtime_checked_cast = TRUE;
         bcp = find_base_class_of(dest_type, source_type);
-        /* The unrelated class case is allowed only for tracking references. */
-        if (bcp == NULL && !is_cast_to_tracking_ref) {
-          is_runtime_checked_cast = FALSE;
+        if (bcp == NULL) {
+          /* A cast between unrelated classes is only allowed in certain
+             cases. */
+          if (is_cast_to_tracking_ref) {
+            /* A cast to a tracking reference is always allowed. */
+          } else if (is_cli_interface_type(dest_type) ||
+                     is_cli_interface_type(source_type)) {
+            /* A cast to or from an interface type is allowed. */
+          } else {
+            /* Other cases are disallowed. */
+            is_runtime_checked_cast = FALSE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -18326,17 +18333,16 @@ is start_position.  The source form of the cast is given by source_form.
                               /*requires_runtime_check=*/TRUE,
                               &expr, start_position,
                               (a_boolean *)NULL);
-    } else if (is_generic_cast) {
-      /* A cast between generic types, which requires a runtime check. */
-      check_assertion(!is_cast_to_tracking_ref);
+    } else if (!is_cast_to_tracking_ref) {
+      /* A cast between unrelated types, but not to a tracking
+         reference type.  Use an eok_cast. */
       expr = make_operator_node((an_expr_operator_kind)eok_cast,
                                 type_cast_to, expr);
       if (source_form == csf_safe_cast) expr->is_safe_cast = TRUE;
       expr->variant.operation.requires_runtime_cast_check = TRUE;
     } else {
-      /* A cast between unrelated classes, allowed only for the tracking
-         reference case.  Use an eok_ref_cast. */
-      check_assertion(is_cast_to_tracking_ref);
+      /* A cast between unrelated types, to a tracking reference type.
+         Use an eok_ref_cast. */
       expr = make_lvalue_operator_node((an_expr_operator_kind)eok_ref_cast,
                                        dest_type, expr);
       mark_as_reference_cast(expr, type_cast_to);
