@@ -1060,10 +1060,14 @@ declared array new or delete operator.
 a_boolean valid_static_conversion_class_type(a_type_ptr  tp,
                                              a_type_ptr  class_type)
 /*
-Return TRUE if tp is T, T&, T&&, T%, or T^ where T is class_type.
+Return TRUE if tp is T or T^ where T is class_type, or any reference (lvalue,
+rvalue, or tracking) to such a type.
 */
 {
-  if (is_handle_type_or_any_ref_type(tp)) {
+  if (is_any_reference_type(tp)) {
+    tp = type_pointed_to(tp);
+  }  /* if */
+  if (is_handle_type(tp)) {
     tp = type_pointed_to(tp);
   }  /* if */
   tp = skip_typerefs(tp);
@@ -1124,8 +1128,9 @@ new fields are set properly.
                   &locator->source_position);
         err = TRUE;
       } else {
-        /* Ensure the argument type or conversion-id type is T, T&, T&&, T%,
-           or T^, with T the type indicated by class_type. */
+        /* Ensure the argument type or conversion-id type is T or T^ (or any
+           kind of reference to T or T^), with T the type indicated by
+           class_type. */
         if (valid_static_conversion_class_type(rtsp->param_type_list->type,
                                                class_type)) {
           /* The destination type is not the parent class.  If it is another

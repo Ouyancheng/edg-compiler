@@ -11090,7 +11090,10 @@ Microsoft C++/CLI static reverse conversion function.
     /* A C++/CLI managed class type can contain a "static conversion function".
        Use the explicit parameter instead of a "this" parameter. */
     class_type = rtsp->param_type_list->type;
-    if (is_handle_type_or_any_ref_type(class_type)) {
+    if (is_any_reference_type(class_type)) {
+      class_type = type_pointed_to(class_type);
+    }  /* if */
+    if (is_handle_type(class_type)) {
       class_type = type_pointed_to(class_type);
     }  /* if */
     class_type = skip_typerefs(class_type);
