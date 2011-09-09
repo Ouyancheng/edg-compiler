@@ -617,12 +617,14 @@ typedef struct a_scope_stack_entry {
 			   instantiation scope. */
   a_bit_field	is_loop_scope:1;
 			/* TRUE if this scope is associated with the compound
-			   statement of a for, do, or while loop. */
+			   statement of a for, do, while, or "for each"
+			   loop. */
   a_bit_field	is_dissociated_from_loop_scope:1;
 			/* TRUE for for-init scopes and loop condition scopes
 			   that are dissociated from the loop scopes within
-			   them because of a nested for-statement.  Used in
-			   Microsoft mode only. */
+			   them because of a nested for-statement.  Also set
+			   in "for each" loops.  Used in Microsoft mode
+			   only. */
   a_bit_field	slow_lookup_required:1;
 			/* TRUE if this is a scope for which a slow lookup
 			   is required because the scope stack contains a

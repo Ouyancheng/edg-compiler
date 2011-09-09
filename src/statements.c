@@ -3199,7 +3199,11 @@ block under the "try" in a function try block.
     push_block_scope_with_lifetime(function_try_lifetime);
     /* Set appropriate flags in the scope stack entry. */
     kind = struct_stmt_stack[depth_stmt_stack].kind;
-    if (kind == ssk_while || kind == ssk_do || kind == ssk_for) {
+    if (kind == ssk_while || kind == ssk_do || kind == ssk_for
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        || kind == ssk_for_each
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                               ) {
       scope_stack[decl_scope_level].is_loop_scope = TRUE;
     } else if (kind == ssk_try_block) {
       scope_stack[decl_scope_level].is_try_block = TRUE;
@@ -3258,9 +3262,9 @@ the block statement.
 
 static void dependent_statement(void)
 /*
-Scan the dependent statement of an if, switch, while, do-while, or for
-statement.  In C++ and C99, such a dependent statement implicitly defines
-a local scope.
+Scan the dependent statement of an if, switch, while, do-while, for, or
+"for each" statement.  In C++ and C99, such a dependent statement implicitly
+defines a local scope.
 */
 {
   a_boolean         block_added;
@@ -4516,7 +4520,8 @@ The affinity can be an expression or the keyword "continue".
   if (microsoft_mode) {
     /* Microsoft compilers allow declarations in loop scopes to conflict
        with associated condition-scope and for-init-scope declarations when
-       a for loop previously appeared in the loop scope.  For example:
+       a "for" (but not a "for each") loop previously appeared in the loop
+       scope.  For example:
          for (int i = 0; int c = i<10; ++i) {
            for (; false;);
            int i, c;  // Accepted in Microsoft mode.
@@ -4580,6 +4585,13 @@ Where "in" is a context-sensitive keyword.
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
+  /* Disassociate the condition scope from the loop scope so that symbols
+     with the same name as the iterator variable can be defined in the
+     loop statement.  For example:
+       for each (char c in "abc") { char c = 0; }  // MS accepts
+  */
+  check_assertion(scope_stack_top().kind == (a_scope_kind)sck_condition);
+  scope_stack_top().is_dissociated_from_loop_scope = TRUE;
   /* Scan the dependent statement. */
   dependent_statement();
   if (!assume_loop_reachable) warn_if_loop_has_no_labels(&stmt_pos);
