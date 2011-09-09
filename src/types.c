@@ -8974,10 +8974,14 @@ well as C++ mode.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (is_cli_pointer(source_type) ||
         is_cli_pointer(dest_type)) {
-      /* No reinterpret_cast to/from interior_ptr or pin_ptr in C++/CLI. */
+      /* Some casts involving interior_ptr or pin_ptr in C++/CLI are not
+         allowed. */
       if (is_interior_ptr_type(source_type) &&
           is_interior_ptr_type(dest_type)) {
         /* interior_ptr --> interior_ptr is okay. */
+        okay = TRUE;
+      } else if (is_pin_ptr_type(source_type)) {
+        /* pin_ptr --> any pointer type is okay. */
         okay = TRUE;
       } else {
         okay = FALSE;
