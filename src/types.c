@@ -937,19 +937,6 @@ reference), including C++/CLI handles and tracking references.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-a_boolean is_handle_type_or_any_ref_type(a_type_ptr tp)
-/*
-Return TRUE if the given type is a C++/CLI handle type, an ordinary reference
-type, or a tracking reference type (i.e., any tk_pointer variant except an
-ordinary pointer, interior_ptr, or pin_ptr).
-*/
-{
-  tp = skip_typerefs(tp);
-  return tp->kind == (a_type_kind)tk_pointer &&
-         (tp->variant.pointer.is_reference || tp->variant.pointer.is_handle);
-}  /* is_handle_type_or_any_ref_type */
-
-
 a_boolean is_cli_generic_param_type(a_type_ptr  tp)
 /*
 Return TRUE if the given type entry represents a parameter of a C++/CLI
