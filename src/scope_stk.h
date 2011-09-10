@@ -1469,13 +1469,11 @@ instantiation of a generic imported from metadata.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
-TRUE if we are in a C++/CLI generic definition context, which
-includes template declaration scopes.  This is similar to
-is_template_dependent_context, but excludes nonreal instantiations.
+TRUE if we are in a C++/CLI generic definition context.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_cli_generic_definition_context()				\
-  (depth_template_declaration_scope != NO_SCOPE_DEPTH ||		\
+  (depth_scope_stack != NO_SCOPE_DEPTH &&		\
    scope_stack[depth_scope_stack].in_generic_definition)
 #else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_cli_generic_definition_context() /*lint --e(506)*/FALSE
