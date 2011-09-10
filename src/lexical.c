@@ -12101,7 +12101,12 @@ an opening parenthesis).  Flush to the corresponding closing token.
   max_lines = 2;
   switch (curr_token) {
     case tok_lparen:    closing_token = tok_rparen;   break;
-    case tok_lbracket:  closing_token = tok_rbracket; break;
+    case tok_lbracket:
+      closing_token = tok_rbracket;
+      /* In Microsoft mode this could be the start of an attribute, so
+         allow a longer flush. */
+      if (microsoft_mode) max_lines = 10;
+      break;
     case tok_lbrace:    closing_token = tok_rbrace; max_lines = 20; break;
     case tok_lt:        closing_token = tok_gt;       break;
 #if CHECKING
