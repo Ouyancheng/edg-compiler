@@ -1,5 +1,16 @@
 Version 4.4
 
+9/10/11  [EDGcpfe/12129]
+Microsoft compatibility: reduced severity for error in unrecognized attribute
+
+Because the front end does not support the full syntax of Microsoft
+attributes, a spurious "expected an argument list" error could be issued
+on certain forms of attributes considered "unrecognized".  This diagnostic
+is no longer issued for unrecognized attributes.
+
+  [xxx:yyy::zzz("abc")];
+
+
 9/10/11  [EDGcpfe/11865]
 Cast from scoped enum to floating-point type allowed
 

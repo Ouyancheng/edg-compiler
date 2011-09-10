@@ -1860,16 +1860,16 @@ declaration.
          an argument, nor was it followed by anything that looks like an
          attribute separator or end of an attribute list. */
       if (attr->kind == (an_ms_attribute_kind)msak_unrecognized) {
-        /* For an unrecognized attribute, complain of an expected
-           argument list. */
-        str_error(ec_exp_ms_attr_arg_list, attr->name);
+        /* There are forms of Microsoft attributes that we don't currently
+           support.  Don't attempt to diagnose a missing argument list as
+           we probably got lost earlier on. */
         flush_tokens();
       } else {
         /* No parameters were expected.  Complain of a missing "," or "]". */
         syntax_error(ec_exp_comma_or_rbracket);
+        /* The attribute is ill-formed, so discard it. */
+        attr = NULL;
       }  /* if */
-      /* The attribute is ill-formed, so discard it. */
-      attr = NULL;
     }  /* if */
     /* Save the position of the token following the attribute. */
     last_token = curr_token_sequence_number;
