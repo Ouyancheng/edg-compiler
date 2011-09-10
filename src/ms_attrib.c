@@ -1804,8 +1804,10 @@ declaration.
     /* Skip past the target value and the colon. */
     (void)get_token();
     (void)get_token();
-  } else if (curr_token == tok_colon_colon ||
-             (next_tok == tok_colon_colon || next_tok == tok_lt)) {
+    next_tok = next_token();
+  }  /* if */
+  if (curr_token == tok_colon_colon ||
+      (next_tok == tok_colon_colon || next_tok == tok_lt)) {
     /* The attribute name is a qualified identifier.  For now, just coalesce
        the name and treat it is an "unrecognized" attribute without a
        diagnostic. */
