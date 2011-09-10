@@ -8647,6 +8647,9 @@ exception specifications are not checked.
   } else if (is_enum_type(source_type) && is_integral_type(dest_type)) {
     /* Similarly, Core Issue 671 makes scoped enum --> integer valid. */
     okay = TRUE;
+  } else if (is_enum_type(source_type) && is_floating_type(dest_type)) {
+    /* And Core Issue 833 makes scoped enum --> floating valid. */
+    okay = TRUE;
   } else if (!C_mode() &&
              is_bool_type(source_type) && is_enum_type(dest_type)) {
     /* Allow bool --> enum.  [expr.static.cast] paragraphs 6 and 7

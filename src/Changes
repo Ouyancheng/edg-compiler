@@ -1,5 +1,17 @@
 Version 4.4
 
+9/10/11  [EDGcpfe/11865]
+Cast from scoped enum to floating-point type allowed
+
+A cast from a scoped enum type to a floating-point type is now allowed,
+in accordance with core issue 833.
+
+  enum class E { E0 };
+  int main() {
+    double c2 = static_cast<double>(E::E0);
+  }
+
+
 9/9/11   [EDGcpfe/12130]
 GNU C++ compatibility: injection of friend function templates
 
