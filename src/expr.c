@@ -4658,6 +4658,13 @@ are expected to be NULL in that case.
          function name. */
       operand->name_reference = saved_name_reference;
       operand->name_reference_set = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (implicit_delegate_invocation) {
+      /* In an implicit delegate invocation, the Invoke function reference
+         is implicit. */
+      change_ref_kinds(operand->ref_entries_list,
+                       (SRK_REFERENCE | SRK_IMPLICIT));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   } else if (vacuous_destructor_case) {
     /* A vacuous destructor call.  The argument list should have no
