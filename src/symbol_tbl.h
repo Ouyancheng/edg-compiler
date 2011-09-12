@@ -3998,6 +3998,7 @@ enum a_cli_symbol_kind_tag {
   csk_system_idisposable,
   csk_system_array,
   csk_system_nullable,
+  csk_system_runtime_argument_handle,
   csk_cli_namespace,
   csk_system_namespace,
   csk_cli_array,
@@ -4066,6 +4067,8 @@ EXTERN a_cli_symbol_name
                                         /* csk_system_idisposable */
   { "Array", csk_system_namespace },	/* csk_system_array */
   { "Nullable", csk_system_namespace },	/* csk_system_nullable */
+  { "RuntimeArgumentHandle", csk_system_namespace },
+				/* csk_system_runtime_argument_handle */
   { NULL, csk_none },                   /* csk_cli_namespace */
   { NULL, csk_none },                   /* csk_system_namespace */
   { NULL, csk_none },                   /* csk_cli_array */

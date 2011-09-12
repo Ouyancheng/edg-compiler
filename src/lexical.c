@@ -13791,8 +13791,14 @@ type argument.  Return TRUE if it is valid, FALSE otherwise.
 
   if (is_value_class_or_fundamental_type(argument_type)) {
     /* A value class, including the fundamental types that have a
-       corresponding value class, can be used as a generic argument. */
-    result = TRUE;
+       corresponding value class, can be used as a generic argument.
+       System::RuntimeArgumentHandle cannot be used as a generic argument
+       because it points into the CIL evaluation stack.  Void cannot
+       be used as a generic argument. */
+    a_type_ptr	rah_type;
+    rah_type = cli_class_type_for(csk_system_runtime_argument_handle);
+    result = !same_entities(argument_type, rah_type) &&
+                                                  !is_void_type(argument_type);
   } else if (is_template_param_type(argument_type) ||
              is_cli_generic_definition_argument_type(argument_type)) {
     /* A generic parameter is allowed.  The ECMA standard does not say
