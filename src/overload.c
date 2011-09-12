@@ -2876,7 +2876,8 @@ selector is enabled, allow that kind of mismatch here.
     arg_type = make_interior_ptr_type(type_pointed_to(arg_type));
   } else if (cppcli_enabled &&
              is_handle_type(param_type) &&
-             is_interior_ptr_type(arg_type)) {
+             is_interior_ptr_type(arg_type) &&
+             is_managed_class_type(type_pointed_to(arg_type))) {
     /* A C++/CLI ref class member function can be called with an interior_ptr
        selector even though the function expects a handle "this".  This
        comes up in the members of base classes of value classes. */
