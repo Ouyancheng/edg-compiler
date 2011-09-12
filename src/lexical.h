@@ -2363,6 +2363,7 @@ extern a_template_ptr scan_template_template_argument(
 extern void insert_string_into_token_stream(
                                         char              *string,
                                         a_boolean         insert_after,
+                                        a_boolean         p_expand_macros,
                                         a_source_position position_for_tokens);
 
 #if CHECKING

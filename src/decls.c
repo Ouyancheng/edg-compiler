@@ -16094,7 +16094,6 @@ metadata originated (or zero if the buffer did not come from an assembly).
 {
   a_token_cache     cache;
   a_boolean         saved_scanning_generated_code_from_metadata;
-  a_boolean         saved_expand_macros;
   a_boolean         saved_next_token_is_top_level_decl_start;
   a_source_position insert_position;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -16107,12 +16106,10 @@ metadata originated (or zero if the buffer did not come from an assembly).
   source_sequence_entries_disallowed = TRUE;
   scope_stack_top().source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  saved_expand_macros = expand_macros;
   saved_scanning_generated_code_from_metadata 
                                        = scanning_generated_code_from_metadata;
   saved_next_token_is_top_level_decl_start =
                                             next_token_is_top_level_decl_start;
-  expand_macros = FALSE;
   scanning_generated_code_from_metadata = TRUE;
   check_assertion(scope_stack[depth_scope_stack].kind 
                                                     == (a_scope_kind)sck_file);
@@ -16133,6 +16130,7 @@ metadata originated (or zero if the buffer did not come from an assembly).
   rescan_cached_tokens(&cache);
   /* Insert the generated code into the token stream. */
   insert_string_into_token_stream(buffer, /*insert_after=*/FALSE,
+                                  /*p_expand_macros=*/FALSE,
                                   insert_position);
   while (curr_token != tok_end_of_source) {
     declaration(/*function_definition_allowed=*/TRUE,
@@ -16147,7 +16145,6 @@ metadata originated (or zero if the buffer did not come from an assembly).
   /* Restore the flags. */
   scanning_generated_code_from_metadata 
                                  = saved_scanning_generated_code_from_metadata;
-  expand_macros = saved_expand_macros;
   next_token_is_top_level_decl_start =
                                       saved_next_token_is_top_level_decl_start;
 #if GENERATE_SOURCE_SEQUENCE_LISTS

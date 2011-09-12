@@ -17919,13 +17919,15 @@ that tokens should be fetched from the insertion string.
 
 void insert_string_into_token_stream(char		*string,
 				     a_boolean		insert_after,
+				     a_boolean		p_expand_macros,
 				     a_source_position	position_for_tokens)
 /*
 Scan "string" as a sequence of tokens.  Build a token cache and insert it
 into the token stream at the current position.  "insert_after" is TRUE
 if the tokens should be inserted after the current token; FALSE if they
-should be inserted before the current token.  position_for_tokens is used
-as the beginning and end source position for each token in the string.
+should be inserted before the current token.  p_expand_macros is TRUE
+if macros should be expanded while processing the tokens.  position_for_tokens
+is used as the beginning and end source position for each token in the string.
 */
 {
   a_boolean		save_treat_newline_as_token;
@@ -17936,6 +17938,7 @@ as the beginning and end source position for each token in the string.
   char			*save_curr_source_line;
   char			*save_after_end_of_curr_source_line;
   a_boolean		save_caching_tokens;
+  a_boolean		save_expand_macros;
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
      must be registered by calling register_pointer_variable so that they
@@ -17973,6 +17976,7 @@ as the beginning and end source position for each token in the string.
   save_curr_source_line = curr_source_line;
   save_after_end_of_curr_source_line = after_end_of_curr_source_line;
   save_caching_tokens = caching_tokens;
+  save_expand_macros = expand_macros;
 
   /* Reset the information used by get_token to fetch the tokens from
      the string in the text buffer. */
@@ -17983,6 +17987,7 @@ as the beginning and end source position for each token in the string.
   after_end_of_curr_source_line = &buffer->buffer[buffer->size];
   in_token_insertion_from_string = TRUE;
   caching_tokens = TRUE;
+  expand_macros = p_expand_macros;
   clear_token_cache(&cache, /*reusable=*/FALSE);
   /* Push a marker into the cached token rescan list indicating that
      tokens should be fetched from the insert string. */
@@ -18017,6 +18022,7 @@ as the beginning and end source position for each token in the string.
   in_token_insertion_from_string = FALSE;
   curr_source_line = save_curr_source_line;
   caching_tokens = save_caching_tokens;
+  expand_macros = save_expand_macros;
   pos_curr_token = save_pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_pos_curr_token = save_end_pos_curr_token;
@@ -18581,7 +18587,6 @@ C++/CLI delegate class types.)
   a_boolean			define_class = FALSE;
   an_assembly_index		assembly_index;
   a_cpp_cli_token		metadata_type_def_token;
-  a_boolean			save_expand_macros = expand_macros;
   sizeof_t			size = 0;
   a_type_ptr			class_type_for_context = class_type;
   a_source_position             position_for_tokens;
@@ -18721,9 +18726,9 @@ C++/CLI delegate class types.)
   }  /* if */
   /* Terminate the buffer. */
   add_char_to_text_buffer(class_def_buffer, '\0');
-  expand_macros = FALSE;
   insert_string_into_token_stream(class_def_buffer->buffer,
                                   /*insert_after=*/FALSE,
+                                  /*p_expand_macros=*/FALSE,
                                   position_for_tokens);
   is_delegate = strncmp(class_def_buffer->buffer, "delegate ", 9) == 0;
   /* Generics are processed differently than other types.  They are cached
@@ -18750,7 +18755,6 @@ C++/CLI delegate class types.)
                                                   /*for_instantiation=*/TRUE);
     (void)get_token();
   }  /* if */
-  expand_macros = save_expand_macros;
   pop_template_instantiation_scope();
   free_template_decl_info(tdip);
 #if BACK_END_IS_CP_GEN_BE
