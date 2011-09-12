@@ -7922,6 +7922,7 @@ derivation from System::ObjectType or System::ValueType if appropriate.
                                          (an_access_specifier)as_public);
       system_object_base->direct = TRUE;
       system_object_base->is_implicit_direct_base = TRUE;
+      system_object_base->orig_type = system_object_base->type;
       /* Find the largest direct base number assigned so far and assign the
          next number to System::Object. */
       bcp = base_classes_of(class_type);
