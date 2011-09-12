@@ -1,5 +1,14 @@
 Version 4.4
 
+9/12/11  [EDGcpfe/11536]
+Use of "long float" in non-pcc modes
+
+The front end previously accepted "long float" as a synonym for "double" in
+non-strict modes.  To match the behavior of modern compilers, the front end
+now issues an error on "long float" in GNU modes, and issues a warning in
+most other modes (it is still silently accepted in pcc mode).
+
+
 9/12/11  [EDGcpfe/11641]
 Duplicate cross-reference entries
 

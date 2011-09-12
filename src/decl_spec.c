@@ -6308,12 +6308,19 @@ modifier _Sat was specified.
           }  /* if */
         } else {
           if (basic_type == bt_float) {
-            /* long float, which is double in pcc.  Allowed as an extension
-               in ANSI mode. */
+            /* long float, which is double in pcc.  Accepted with a warning
+               in some other modes. */
             fkind = (a_float_kind)fk_double;
-            if (strict_ansi_mode) {
-              diagnostic(strict_ansi_error_severity,
+            if (C_dialect == C_dialect_pcc) {
+              /* No diagnostic */
+            } else if (strict_ansi_mode || gnu_mode) {
+              /* The extension is not accepted in strict mode or in GNU
+                 mode. */
+              diagnostic(gnu_mode ? es_discretionary_error
+                                  : strict_ansi_error_severity,
                          ec_bad_combination_of_type_specifiers);
+            } else {
+              warning(ec_nonstandard_long_float);
             }  /* if */
           } else {
             /* long double. */

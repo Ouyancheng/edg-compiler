@@ -2298,6 +2298,7 @@ ec_invalid_generic_specialization;;"a generic cannot be explicitly specialized"
 ec_generic_in_template;;"a generic cannot be declared in a class template"
 ec_template_in_generic;;"a template cannot be declared in a generic class"
 ec_static_literal_field;;"a literal field cannot be declared \"static\""
+ec_nonstandard_long_float;;"\"long float\" is a nonstandard extension -- use \"double\" instead"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
