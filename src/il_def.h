@@ -8370,7 +8370,11 @@ typedef struct a_variable {
 			   if the definition has no explicit storage class
 			   (including a variable representing a static data
 			   member) or if there is no definition in the current
-			   translation unit. */
+			   translation unit (a C "tentative definition" is not
+			   a definition in this context).  For a declaration
+			   that is not a definition, the declared storage class
+			   is recorded in the a_src_seq_secondary_decl entry
+			   associated with that declaration. */
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
 		decl_modifiers;
