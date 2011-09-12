@@ -7745,6 +7745,9 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
   a_boolean                  multiple_shared_seen = FALSE;
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean                  context_specific_keyword_expected =
+                                            state->has_cli_initonly_keyword ||
+                                            state->has_cli_literal_keyword;
   a_boolean                  microsoft_w64_seen = FALSE;
   a_source_position          microsoft_w64_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -8831,7 +8834,20 @@ process_enum_specifier:
            K&R, we consider an identifier to be a typedef when there is
            just a sign or size (since these are "adjectives" to pcc), but
            not when there is a type specifier. */
-        { a_boolean  unexpected_identifier = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (context_specific_keyword_expected) {
+          /* A "pre-scan" has already determined that the first identifier
+             among the specifiers is a C++/CLI context-sensitive keyword.
+             Since the state already reflects this specifier, it can now be
+             skipped. */
+          check_assertion(cppcli_enabled && curr_token == tok_identifier);
+          context_specific_keyword_expected = FALSE;
+          break;
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          a_boolean  unexpected_identifier = FALSE;
           if (process_nontype_identifier(state, decl_specifiers_seen,
                                          input_flags, &basic_type,
                                          &named_address_space,

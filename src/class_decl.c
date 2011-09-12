@@ -19241,9 +19241,10 @@ encountered (i.e., which kind of context-sensitive keyword appeared:
 
   clear_token_cache(&cache, /*reusable=*/FALSE);
   while (curr_token == tok_static || curr_token == tok_virtual) {
-    /* Only "property" and "event" (i.e., not "initonly" or "literal") may be
-       preceded by "static" or "virtual". */
-    property_or_event_only = TRUE;
+    if (curr_token == tok_virtual) {
+      /* "initonly" and "literal" cannot be combined with "virtual". */
+      property_or_event_only = TRUE;
+    }  /* if */
     cache_curr_token(&cache);
     (void)get_token();
   }  /* if */
@@ -20602,8 +20603,8 @@ passed via template_decl.
           *skip_semicolon_check = TRUE;
           goto next_declaration;
         } else {
-          /* Just skip the "literal" or "initonly" token that is next. */
-          (void)get_token();
+          /* "literal" and "initonly" are consumed by the call to
+             decl_specifiers below. */
         }  /* if */
       } else if (check_for_cli_delegate_definition()) {
         scan_and_record_cli_delegate_definition(decl_state);
@@ -21234,14 +21235,17 @@ passed via template_decl.
            set to an error locator even though there could not possibly be
            a declarator-parsing error.) */
         check_assertion(total_errors != 0);
-      } else if (decl_state->storage_class == (a_storage_class)sc_static) {
-        /* Static data member. */
-        decl_static_data_member(&locator, class_state, &decl_info);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (decl_state->has_cli_literal_keyword) {
         /* C++/CLI literal field */
+        if (decl_state->storage_class == (a_storage_class)sc_static) {
+          pos_error(ec_static_literal_field, &decl_state->storage_class_pos);
+        }  /* if */
         decl_literal_field(&locator, class_state, &decl_info);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      } else if (decl_state->storage_class == (a_storage_class)sc_static) {
+        /* Static data member. */
+        decl_static_data_member(&locator, class_state, &decl_info);
       } else {
         /* Non-static data member (= field). */
         scan_nonstatic_data_member(&locator, class_state, &decl_info);
