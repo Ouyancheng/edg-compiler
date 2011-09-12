@@ -1,5 +1,18 @@
 Version 4.4
 
+9/12/11  [EDGcpfe/11641]
+Duplicate cross-reference entries
+
+Version 4.3 changed the way in which tokens are managed during disambiguation.
+This change resulted in duplicate cross-reference entries in some cases.
+Now fixed.
+
+  struct A { };
+  int main() {
+    void (A::*p)();  // duplicate xref entry for "A"
+  }
+
+
 9/10/11  [EDGcpfe/12129]
 Microsoft compatibility: reduced severity for error in unrecognized attribute
 

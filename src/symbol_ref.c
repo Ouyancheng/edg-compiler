@@ -1981,6 +1981,10 @@ IL entry in place of whatever is pointed to by the symbol.
   check_assertion_str(sym_ptr->kind != (a_symbol_kind)sk_projection &&
                       sym_ptr->kind != (a_symbol_kind)sk_namespace_projection,
                       "record_symbol_reference_full: projection symbol");
+  /* Don't record references during disambiguation.  They will be recorded
+     during the normal processing, so recording them here would result in
+     duplicate entries. */
+  if (scope_stack_top().in_disambiguation) goto done;
   /* If writing cross-reference information, write an entry for this
      declaration. */
   if (f_xref_info != NULL) {
@@ -2291,6 +2295,7 @@ check_label_decl_seq:
     check_use_of_deleted_function(sym_ptr, /*elided_ref=*/FALSE,
                                   source_position);
   }  /* if */
+done:;
 }  /* record_symbol_reference_full */
 
 
