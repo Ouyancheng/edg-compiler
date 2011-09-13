@@ -5012,7 +5012,6 @@ precedence confusion.  Do the output in the way described by octl.
           } else {
             a_constant_ptr op_con =
                              constant->variant.template_param.variant.constant;
-            a_boolean      need_local_close_paren = FALSE;
             if (!cast_already_put_out &&
                 ((is_pointer_or_handle_type(con_type) &&
                   op_con->kind == (a_constant_repr_kind)ck_integer &&
@@ -5025,15 +5024,10 @@ precedence confusion.  Do the output in the way described by octl.
               /* A cast was not put out above, so put one out here if this
                  is a cast of a null pointer constant or if we're producing
                  debug output. */
-              output_optional_open_paren(&need_parens, &need_local_close_paren,
-                                         octl);
               form_cast(constant->type, octl);
               cast_already_put_out = TRUE;
             }  /* if */
             form_constant(op_con, cast_already_put_out, octl);
-            if (need_local_close_paren) {
-              octl->output_str(")", octl);
-            }  /* if */
           }  /* if */
           if (need_parens) octl->output_str(")", octl);
           break;
