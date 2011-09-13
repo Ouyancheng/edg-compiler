@@ -8,7 +8,7 @@ attribute (recognized when GNU_VISIBILITY_ATTRIBUTE_ALLOWED is TRUE) is
 specified on a member function of a class that is defined with a different
 visibility.  For example:
 
-  struct __attribute((visibility(("default")) S {
+  struct __attribute((visibility("default"))) S {
     __attribute((visibility("hidden"))) void f();
   };  // Previously, the "hidden" visibility was diagnosed as conflicting
       // with a "previous declaration".  Now accepted: The member attribute
