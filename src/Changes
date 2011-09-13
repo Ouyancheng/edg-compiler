@@ -1,5 +1,23 @@
 Version 4.4
 
+9/13/11  [EDGcpfe/12100]
+Spurious conflict error on visibility attribute applied to member function
+
+In GNU C++ mode, the front emitted a spurious error if the visibility
+attribute (recognized when GNU_VISIBILITY_ATTRIBUTE_ALLOWED is TRUE) is
+specified on a member function of a class that is defined with a different
+visibility.  For example:
+
+  struct __attribute((visibility(("default")) S {
+    __attribute((visibility("hidden"))) void f();
+  };  // Previously, the "hidden" visibility was diagnosed as conflicting
+      // with a "previous declaration".  Now accepted: The member attribute
+      // takes precedence over the class attribute (for this member).
+
+This is now fixed: A visibility attribute on a member function takes
+precedence over that on the enclosing class.
+
+
 9/13/11  [EDGcpfe/11955]
 GNU C++ compatibility: injection of friend classes
 
