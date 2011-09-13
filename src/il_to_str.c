@@ -5001,7 +5001,9 @@ precedence confusion.  Do the output in the way described by octl.
           }  /* if */
           break;
         case tpck_cast:
-          if (need_parens) octl->output_str("(", octl);
+          if (need_parens && octl->gen_compilable_code) {
+            octl->output_str("(", octl);
+          }  /* if */
           if (constant->type->kind == (a_constant_repr_kind)tk_integer &&
               constant->type->variant.integer.enum_type &&
               has_name(constant) &&
@@ -5029,7 +5031,9 @@ precedence confusion.  Do the output in the way described by octl.
             }  /* if */
             form_constant(op_con, cast_already_put_out, octl);
           }  /* if */
-          if (need_parens) octl->output_str(")", octl);
+          if (need_parens && octl->gen_compilable_code) {
+            octl->output_str(")", octl);
+          }  /* if */
           break;
         case tpck_address:
           if (need_parens) octl->output_str("(", octl);
