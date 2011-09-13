@@ -26,7 +26,7 @@ C++-generating back end: typedefs from different namespaces that refer
 to the same type
 
 The C++ standard allows a using-directive lookup to find two typedefs
-from different namespace that refer to the same type without considering
+from different namespaces that refer to the same type without considering
 the lookup ambiguous.  As a result, the hidden name table processing
 did not consider the "::" qualifier to be needed in examples such as
 the one below, which resulted in the name being emitted as just "fptr".
