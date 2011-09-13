@@ -1,5 +1,26 @@
 Version 4.4
 
+9/13/11  [EDGcpfe/11955]
+GNU C++ compatibility: injection of friend classes
+
+The injection of friend names is disabled when gnu_version >= 40100
+(see 8/9/08 entry).  We have discovered that while the non-injection of
+friend functions was implemented in g++ version 4.1, the non-injection of
+friend classes was implemented in version 4.0.1.  We now emulate this
+g++ behavior.
+
+  struct A { void f(); }; 
+  namespace N {
+    class State {
+       State ( A & );
+       friend class A;
+    };
+    // following failed with --gnu_version=40001
+    State::State ( A & i ) { i.f(); }
+  }
+
+
+
 9/13/11  [EDGcpfe/11994]
 C++-generating back end: typedefs from different namespaces that refer
 to the same type

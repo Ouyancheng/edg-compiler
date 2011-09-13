@@ -1907,7 +1907,7 @@ which it was added.
 {
   *scope_depth = depth_innermost_namespace_scope;
   *sym = enter_copy_of_symbol(*sym, *scope_depth, /*suppress_error=*/FALSE);
-  if (!friend_injection_enabled) (*sym)->is_invisible = TRUE;
+  if (!friend_class_injection_enabled) (*sym)->is_invisible = TRUE;
 }  /* duplicate_friend_sym_in_namespace */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
@@ -3649,7 +3649,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       tag_sym->variant.class_struct_union.type = class_type;
       set_source_corresp(&(class_type->source_corresp), tag_sym);
       if (is_friend_decl) {
-        if (!friend_injection_enabled) {
+        if (!friend_class_injection_enabled) {
           /* The name of a class first declared in a friend declaration is
              entered into the innermost non-class scope, but it's not visible
              to lookup. */
@@ -3755,7 +3755,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     if (!is_template_specific_decl || !(*declares_something)) {
       is_redeclaration = TRUE;
     }  /* if */
-    if (!friend_injection_enabled && !is_friend_decl) {
+    if (!friend_class_injection_enabled && !is_friend_decl) {
       /* In case the previous declaration was a friend declaration, ensure
          that the symbol is henceforth visible for lookup. */
       previously_invisible = tag_sym->is_invisible;

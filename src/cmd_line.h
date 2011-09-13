@@ -558,9 +558,14 @@ EXTERN a_boolean
 			   names should be performed. */
 
 EXTERN a_boolean
-		friend_injection_enabled;
-			/* TRUE if names first declared in friend declarations
-			   are visible. */
+		friend_class_injection_enabled;
+			/* TRUE if class names first declared in friend
+			   declarations are visible. */
+
+EXTERN a_boolean
+		friend_function_injection_enabled;
+			/* TRUE if function names first declared in friend
+			   declarations are visible. */
 
 EXTERN a_boolean
 		do_dependent_name_processing;

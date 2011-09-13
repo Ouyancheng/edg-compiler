@@ -358,12 +358,15 @@ The variable can also be controlled from the command line by
 #endif /* DEFAULT_ARG_DEPENDENT_LOOKUP */
 
 /*
-Flag that is used as the default setting for global variable
-friend_injection_enabled.  This controls whether a class or function
-first declared only in friend declarations is visible to normal lookups.
-The standard specifies that such names are not visible to normal
-lookups.  The variable can also be controlled from the command line by
---[no_]friend_injection.
+Flag that is used as the default setting for global variables
+friend_class_injection_enabled and friend_function_injection_enabled.
+This controls whether a class or function first declared only in
+friend declarations is visible to normal lookups.  The standard specifies
+that such names are not visible to normal lookups.  The variables can also
+be controlled from the command line by --[no_]friend_injection.
+There are two variables because some versions of g++ inject classes but
+not functions.  cmd_line.c handles the setting of the variables based
+on gnu_version.
 */
 #ifndef DEFAULT_FRIEND_INJECTION
 #define DEFAULT_FRIEND_INJECTION TRUE

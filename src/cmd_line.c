@@ -1926,7 +1926,8 @@ by a command line option.
       arg_dependent_lookup_enabled = (microsoft_version >= 1310);
     }  /* if */
     if (!option_kind_used[(int)optk_friend_injection]) {
-      friend_injection_enabled = TRUE;
+      friend_class_injection_enabled = TRUE;
+      friend_function_injection_enabled = TRUE;
     }  /* if */
     if (!option_kind_used[(int)optk_dependent_name_processing]) {
       do_dependent_name_processing = FALSE;
@@ -2155,7 +2156,8 @@ by a command line option.
     do_late_ovl_res_tiebreaker = TRUE;
   }  /* if */
   if (!(option_kind_used[(int)optk_friend_injection])) {
-    friend_injection_enabled = TRUE;
+    friend_class_injection_enabled = TRUE;
+    friend_function_injection_enabled = TRUE;
   }  /* if */
   if (!(option_kind_used[(int)optk_dependent_name_processing])) {
     do_dependent_name_processing = FALSE;
@@ -3141,7 +3143,8 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
     if (!(option_kind_used[(int)optk_friend_injection])) {
       /* If friend injection was not explicitly set by a command line
          option, set it now. */
-      friend_injection_enabled = FALSE;
+      friend_class_injection_enabled = FALSE;
+      friend_function_injection_enabled = FALSE;
     }  /* if */
     if (!(option_kind_used[(int)optk_dependent_name_processing])) {
       /* If dependent name processing was not explicitly set by a command line
@@ -3510,8 +3513,10 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
     nonstandard_instantiation_lookup_enabled = FALSE;
   }  /* if */
   if (!option_kind_used[(int)optk_friend_injection]) {
-    /* g++ versions prior to 4.1 do injection of friends. */
-    friend_injection_enabled = gnu_version < 40100;
+    /* g++ versions prior to 4.0.1 do injection of friend classes.  Versions
+       prior to 4.1 do friend function injection. */
+    friend_class_injection_enabled = gnu_version < 40001;
+    friend_function_injection_enabled = gnu_version < 40100;
   }  /* if */
 #if VLA_ALLOWED
   if (!(option_kind_used[(int)optk_vla])) {
@@ -8096,7 +8101,8 @@ enable_microsoft_mode:
       case optk_friend_injection:
         /* Class and function names declared only in friend declarations
            should or should not be visible to normal lookups. */
-        friend_injection_enabled = opt_value;
+        friend_class_injection_enabled = opt_value;
+        friend_function_injection_enabled = opt_value;
         break;
       case optk_nonstandard_using_decl:
         /* A nonmember using-declaration that specifies an unqualified name
@@ -9265,7 +9271,8 @@ variables declared in cmd_line.h.
   string_literals_are_const = DEFAULT_STRING_LITERALS_ARE_CONST;
   class_name_injection_enabled = DEFAULT_CLASS_NAME_INJECTION;
   arg_dependent_lookup_enabled = DEFAULT_ARG_DEPENDENT_LOOKUP;
-  friend_injection_enabled = DEFAULT_FRIEND_INJECTION;
+  friend_class_injection_enabled = DEFAULT_FRIEND_INJECTION;
+  friend_function_injection_enabled = DEFAULT_FRIEND_INJECTION;
   do_dependent_name_processing = DEFAULT_DEPENDENT_NAME_PROCESSING;
   gpp_dependent_name_lookup = FALSE;
   gpp_using_directive_lookup = FALSE;

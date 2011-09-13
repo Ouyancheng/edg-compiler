@@ -15908,7 +15908,7 @@ friend_template_checks_done:
         sym = make_symbol((a_symbol_kind)sk_class_template, &locator);
         add_sym_to_symbol_table = TRUE;
       }  /* if */
-      if (!friend_injection_enabled) {
+      if (!friend_class_injection_enabled) {
         /* If the class template is initially declared in a friend declaration,
            mark it as invisible. */
         sym->is_invisible = decl_state->is_template_friend;
@@ -16194,7 +16194,7 @@ friend_template_checks_done:
     }  /* if */
   }  /* if */
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template) {
-    if (!friend_injection_enabled) {
+    if (!friend_class_injection_enabled) {
       /* If this is not a friend declaration, mark the symbol as visible.
          A class template declared only in template friend declarations is
          not otherwise visible. */

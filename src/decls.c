@@ -7276,8 +7276,8 @@ for use in generating cross-reference output describing this declaration.
            introduce default arguments.  Such default arguments are accepted,
            however, in GNU C++ mode or when friend name injection is
            enabled. */
-        if (!(friend_injection_enabled || gpp_mode ) && is_friend_decl &&
-            func_info->any_default_args) {
+        if (!(friend_function_injection_enabled || gpp_mode ) &&
+            is_friend_decl && func_info->any_default_args) {
           pos_diagnostic(es_discretionary_error,
                          ec_friend_cannot_add_default_arguments,
                          &locator->source_position);
@@ -7394,7 +7394,7 @@ for use in generating cross-reference output describing this declaration.
       /* Be sure the default arguments, if any, are at the end of the
          parameters list. */
       check_default_args(type_ptr);
-      if (is_friend_decl && !friend_injection_enabled) {
+      if (is_friend_decl && !friend_function_injection_enabled) {
         set_invisible = TRUE;
       }  /* if */
       symbol_for_overloading = overload_symbol == NULL ? homonym_symbol :
@@ -8367,7 +8367,7 @@ definition of a member function of a class template.
   in_prototype_instantiation =
           scope_stack[idlb.effective_decl_level].in_prototype_instantiation ||
           scope_stack[idlb.effective_decl_level].in_generic_definition;
-  if (idlb.is_friend_decl && !friend_injection_enabled &&
+  if (idlb.is_friend_decl && !friend_function_injection_enabled &&
       (!gpp_mode || locator->is_operator_name)) {
     /* g++ injects function templates even when they don't inject normal
        functions. */
