@@ -1,5 +1,21 @@
 Version 4.4
 
+9/13/11  [EDGcpfe/11995]
+C++-generating back end: erroneous elaborated type specifier in class
+definition
+
+The C++-generating back end incorrectly generated a reference to a class
+type within the class definition as an elaborated type specifier (i.e.,
+using the class/struct/union keyword) if another declaration with the same
+name as the class appears in the scope containing the class definition.
+This is now fixed.  For example:
+
+  struct S {
+    S f() { return S(); }  // Both "S"s previously generated as "struct S"
+  };
+  typedef S S;
+
+
 9/13/11  [EDGcpfe/12100]
 Spurious conflict error on visibility attribute applied to member function
 

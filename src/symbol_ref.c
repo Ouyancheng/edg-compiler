@@ -1091,10 +1091,19 @@ C++-generating back end.
                                                IDL_MUST_BE_TAG |
                                                IDL_SKIP_CURR_SCOPE);
       if (old_sym_ptr != NULL) {
+        tag_sym = NULL;
+        if (is_injected_class_symbol(sym_ptr)) {
+          tag_sym = (a_symbol_ptr)(skip_typerefs(type_symbol_type(sym_ptr))->
+                                                    source_corresp.assoc_info);
+        }  /* if */
         if ((old_sym_ptr == sym_ptr) ||
             (old_sym_ptr->decl_scope == sym_ptr->decl_scope)) {
           /* This can happen when the scope to which sym_ptr belongs is
              an unnamed namespace. */
+        } else if (tag_sym != NULL &&
+                   symbols_are_equivalent(old_sym_ptr, tag_sym)) {
+          /* sym_ptr does not hide old_sym_ptr -- they represent the same
+             declaration. */
         } else {
           if (old_sym_ptr->decl_scope == file_scope_number ||
               sym_is_class_or_namespace_member(old_sym_ptr)) {
