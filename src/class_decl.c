@@ -7548,6 +7548,23 @@ or struct definition.  The syntax is
   }  /* if */
   /* Advance past the colon. */
   (void)get_token();
+  /* Consider:
+         class B { protected: class N {} };
+         class D: B::N, B {};
+     In C++03 this is an error because when we see B::N, B is not yet a base
+     and hence we have no special access to a protected member.  In C++11,
+     access checking in base specifiers must be deferred until all bases are
+     known, and hence this example is valid.  Microsoft compilers do something
+     in between in that this example results in an error, but access checking
+     for names in template arguments is apparently deferred.  E.g., the
+     following is accepted by Microsoft compilers (with B as above):
+         template<class T> struct X {};
+         struct E: B, X<B::N> {};
+     As an approximation of that behavior we use the C++11 rule in Microsoft
+     C++ mode. */
+  if (cpp0x_mode || microsoft_mode) {
+    begin_deferral_of_access_checks();
+  }  /* if */
   cssp = symbol_supplement_for_class(type_ptr);
   do {
     a_pack_expansion_stack_entry_ptr	pesep;
@@ -7835,6 +7852,9 @@ skip_base_class:
        specifier. */
     remove_stop_token(tok_comma);
   } while (loop_token(tok_comma));
+  if (cpp0x_mode || microsoft_mode) {
+    end_deferral_of_access_checks();
+  }  /* if */
   db_exit();
 }  /* scan_base_specifier_list */
 

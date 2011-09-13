@@ -3644,10 +3644,11 @@ typedef struct an_access_error_descr {
 			/* If "sym" is a member of an overload set, this
 			   points to the set. */
   a_type_ptr	protected_access_class;
-			/* When non-NULL, the access check was for the
-			   protected member rule of 11.5 in the C++ standard,
-			   and this is the class of the object used to
-			   access the member. */
+			/* When non-NULL, the access check was for the special
+			   protected member rule (11.5 in the C++98 and C++03
+			   standards, 11.4 in the C++11 standard) and this is
+			   the class of the object used to access the
+			   member. */
   a_source_position
 		position;
 			/* Position to be used when the error is issued. */
