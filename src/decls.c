@@ -12886,7 +12886,7 @@ none).
        iteration of this loop. */
     if (is_list) { *overload_sym_ptr = new_sym; }
   } else if (already_in_lookup_set(overload_sym, sym,
-                                   /*is_using_dir=*/FALSE)) {
+                                   /*is_using_dir=*/FALSE, IDL_NO_OPTIONS)) {
     /* Don't try to add a symbol that is already pointed to by
        overload_sym. */
     goto done;
@@ -12976,7 +12976,8 @@ TRUE if and only if a redeclaration error is issued.
         !(other_decl != NULL && is_file_or_namespace_scope(ssep) &&
           symbols_are_lookup_equivalent(fundamental_symbol_of(tag_sym),
                                         fundamental_symbol_of(other_decl),
-                                        /*merge_gpp_c_routines=*/FALSE))) {
+                                        /*merge_gpp_c_routines=*/FALSE,
+                                        IDL_NO_OPTIONS))) {
       /* We found a tag that was masked by another declaration (sym),
          and importing it is not just a redeclaration. */
       create_nonmember_using_declaration(tag_sym, &null_sym_ptr,
@@ -13142,7 +13143,8 @@ current scope.
             other_decl->decl_position.seq != 0 &&
             is_file_or_namespace_scope(ssep) &&
             symbols_are_lookup_equivalent(fund_sym, fund_other_decl,
-                                          /*merge_gpp_c_routines=*/FALSE)) {
+                                          /*merge_gpp_c_routines=*/FALSE,
+                                          IDL_NO_OPTIONS)) {
           /* This is a duplicate using declaration of something other than a
              function or function template.  7.3.3 [namespace.udecl] para 7
              says duplicates are allowed in file or namespace scope, so ignore

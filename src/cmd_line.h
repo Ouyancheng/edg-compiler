@@ -1758,6 +1758,12 @@ EXTERN a_boolean
 			   cause a diagnostic if it results in an invalid
 			   token. */
 
+EXTERN a_boolean
+		equiv_typedefs_are_lookup_equivalent;
+			/* TRUE if two typedefs from different namespaces that
+			   refer to the same type should be considered
+			   equivalent for hidden name processing lookups. */
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

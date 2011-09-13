@@ -249,13 +249,16 @@ a_boolean sym_matches_lookup_options(a_symbol_ptr		sym,
 				     an_id_lookup_options_set	options);
 
 extern a_boolean symbols_are_lookup_equivalent(
-                                           a_symbol_ptr  sym1,
-                                           a_symbol_ptr  sym2,
-					   a_boolean     merge_gpp_c_routines);
+			a_symbol_ptr			sym1,
+			a_symbol_ptr			sym2,
+			a_boolean			merge_gpp_c_routines,
+			an_id_lookup_options_set	options);
 
-extern a_boolean already_in_lookup_set(a_symbol_ptr curr_sym,
-                                       a_symbol_ptr new_sym,
-				       a_boolean    is_using_dir);
+extern
+a_boolean already_in_lookup_set(a_symbol_ptr			curr_sym,
+                                a_symbol_ptr			new_sym,
+				a_boolean			is_using_dir,
+				an_id_lookup_options_set	options);
 
 extern
 a_symbol_ptr f_nonreal_type_if_nested_prototype_type(a_symbol_ptr	sym);

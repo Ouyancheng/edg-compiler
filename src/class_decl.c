@@ -9393,7 +9393,8 @@ using *pos as the error position.
              declarations). */
           a_boolean  merge_gpp_c_routines = gpp_mode && gnu_version >= 30400;
           if (err && !symbols_are_lookup_equivalent(decl_sym, using_sym,
-                                                    merge_gpp_c_routines)) {
+                                                    merge_gpp_c_routines,
+                                                    IDL_NO_OPTIONS)) {
             pos_sy2_error(ec_conflicts_with_using_decl, pos, decl_sym,
                           using_sym);
           }  /* if */

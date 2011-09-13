@@ -1833,6 +1833,7 @@ by a command line option.
   /* Floating-point template parameters are supported by MSVC++ through
      version 7.0. */
   floating_point_template_parameters_allowed = microsoft_version <= 1300;
+  equiv_typedefs_are_lookup_equivalent = FALSE;
   null_chars_allowed_in_source = TRUE;
   if (!(option_kind_used[(int)optk_trigraphs])) {
     /* Trigraphs should be allowed if not disabled by a command-line option. */
@@ -3562,6 +3563,7 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   c_and_cpp_function_types_are_distinct = FALSE;
   allow_default_arg_on_template_member_definition = TRUE;
   floating_point_template_parameters_allowed = FALSE;
+  equiv_typedefs_are_lookup_equivalent = FALSE;
   /* Early GNU C++ compilers do not check accessibility of friend function
      declarations. */
   no_access_check_on_friend_declarator_ids = (gnu_version < 30400);
@@ -9592,6 +9594,7 @@ variables declared in cmd_line.h.
   decltype_enabled = FALSE;
   enable_underscore_decltype_only = FALSE;
   check_concatenations = DEFAULT_CHECK_CONCATENATIONS;
+  equiv_typedefs_are_lookup_equivalent = TRUE;
   va_arg_returns_lvalue = FALSE;
   warn_on_try_statement = FALSE;
   nullptr_enabled = DEFAULT_NULLPTR_ENABLED;
