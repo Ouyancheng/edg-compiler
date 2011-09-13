@@ -11926,15 +11926,15 @@ implicitly declared member functions.
     attach_decl_attributes(decl_state,
                            /*is_primary_decl=*/func_info->is_definition);
 #if GNU_EXTENSIONS_ALLOWED
-  if (gpp_mode) {
-    /* Propagate any class attributes that also apply to its member
-       functions. */
-    copy_gnu_class_properties_to_routine(class_type, rtn);
-    /* Record the assembly name. */
-    if (decl_state->asm_name != NULL) {
-      rtn->asm_name = decl_state->asm_name;
+    if (gpp_mode) {
+      /* Propagate any class attributes that also apply to its member
+         functions. */
+      copy_gnu_class_properties_to_routine(class_type, rtn);
+      /* Record the assembly name. */
+      if (decl_state->asm_name != NULL) {
+        rtn->asm_name = decl_state->asm_name;
+      }  /* if */
     }  /* if */
-  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* If decl-modifiers were declared for the class and/or for the member,
