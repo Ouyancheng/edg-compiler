@@ -1,5 +1,20 @@
 Version 4.4
 
+9/12/11  [EDGcpfe/12065]
+C++-generating back end: parentheses in template arguments
+
+In configurations in which PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, the
+C++-generating back end sometimes omitted necessary parentheses from template
+arguments in the definition of a template generated from the prototype
+instantiation.  This is now fixed.  For example:
+
+  template<bool> struct B;
+  template<int X, int Y> struct S {
+    typedef B<((X == 0) || (Y > 0)) == 0> tp; // previously generated as
+                                              // B<((X == 0) || (Y > 0) == 0)>
+  };
+
+
 9/12/11  [EDGcpfe/11536]
 Use of "long float" in non-pcc modes
 
