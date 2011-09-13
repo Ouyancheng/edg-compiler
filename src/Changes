@@ -15,7 +15,7 @@ C++-generating back end.  We now treat a normal lookup of a name such as
 fptr as ambiguous for hidden name purposes so that the "::" qualifier
 is now emitted by the C++-generating back end.
 
-  extern "C" { typedef int (*fptr)(); }
+  typedef int (*fptr)();
   namespace N {
     typedef int (*fptr)();
   }
