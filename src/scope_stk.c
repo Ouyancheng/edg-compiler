@@ -9667,32 +9667,33 @@ is found, NULL is returned.
   a_pack_expansion_stack_entry_ptr	pesep;
   a_type_ptr				result_type = NULL;
 
-  /* References to "this" shouldn't get here. */
-  check_assertion(expr->kind == (an_expr_node_kind)enk_param_ref &&
-                  expr->variant.param_ref.param_num != 0);
-  /* Look up through the pack expansion stack to find a matching
-     parameter. */
-  for (pesep = pack_expansion_stack;
-       pesep != NULL && !pesep->is_suppression &&
-         pesep->instantiation_descr != NULL; pesep = pesep->next) {
-    /* Only rescan contexts are considered. */
-    if (!pesep->is_rescan) continue;
-    for (arg_prp = pesep->instantiation_descr->pack_status;
-         arg_prp != NULL; arg_prp = arg_prp->next) {
-      if (arg_prp->kind == prk_parameter) {
-        a_variadic_param_info_ptr	vpip;
-        vpip = arg_prp->param_info;
-        if (vpip != NULL &&
-            vpip->orig_param_type->param_num ==
+  check_assertion(expr->kind == (an_expr_node_kind)enk_param_ref);
+  /* A reference to "this" can't match. */
+  if (expr->variant.param_ref.param_num != 0) {
+    /* Look up through the pack expansion stack to find a matching
+       parameter. */
+    for (pesep = pack_expansion_stack;
+         pesep != NULL && !pesep->is_suppression &&
+           pesep->instantiation_descr != NULL; pesep = pesep->next) {
+      /* Only rescan contexts are considered. */
+      if (!pesep->is_rescan) continue;
+      for (arg_prp = pesep->instantiation_descr->pack_status;
+           arg_prp != NULL; arg_prp = arg_prp->next) {
+        if (arg_prp->kind == prk_parameter) {
+          a_variadic_param_info_ptr	vpip;
+          vpip = arg_prp->param_info;
+          if (vpip != NULL &&
+              vpip->orig_param_type->param_num ==
                                  (uint32_t)expr->variant.param_ref.param_num &&
-            vpip->level == expr->variant.param_ref.levels_up) {
-          result_type = arg_prp->curr_argument.param_type->type;
-          break;
+              vpip->level == expr->variant.param_ref.levels_up) {
+            result_type = arg_prp->curr_argument.param_type->type;
+            break;
+          }  /* if */
         }  /* if */
-      }  /* if */
+      }  /* for */
+      if (result_type != NULL) break;
     }  /* for */
-    if (result_type != NULL) break;
-  }  /* for */
+  }  /* if */
   return result_type;
 }  /* get_curr_variadic_param_type */
 

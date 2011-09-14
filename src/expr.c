@@ -25355,15 +25355,12 @@ after_advance_past_id:
 }  /* scan_identifier */
 
 
-static void scan_this(a_rescan_control_block *rcblock,
-                      an_operand             *result)
+static void scan_this(an_operand *result)
 /*
 Scan an occurrence of "this" in an expression.  Return an operand for
 it in *result.  In C++, "this" in a nonstatic member function is an
 rvalue that points to the object for which the member function was
-called.  If rcblock is non-NULL, redo semantic analysis on a
-previously-scanned "this" expression, and return the result in *result
-(or an error indication in *rcblock).
+called.
 */
 {
   a_variable_ptr    this_var;
@@ -25373,24 +25370,11 @@ previously-scanned "this" expression, and return the result in *result
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
-  if (rcblock != NULL) {
-    /* Redoing semantic analysis on a previously-scanned expression. */
-    an_expr_rescan_info_entry_ptr eriep;
-    check_assertion(rcblock->operator_token == tok_this);
-    eriep = get_expr_rescan_info(rcblock->expr,
-                                 (an_expr_rescan_info_entry *)NULL);
-    start_position = eriep->saved_operand.position;
+  check_assertion(curr_token == tok_this);
+  start_position = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = eriep->saved_operand.end_position;
+  end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  } else {
-    /* Normal, non-rescan, processing. */
-    check_assertion(curr_token == tok_this);
-    start_position = pos_curr_token;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  }  /* if */
   if (!variable_this_exists(&this_var, &this_type)) {
     /* No "this" is available, e.g., because we're not inside a nonstatic
        member function. */
@@ -25422,7 +25406,8 @@ previously-scanned "this" expression, and return the result in *result
   set_operand_position(result, &start_position,
                        &end_position, (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
-  if (rcblock == NULL) (void)get_token();
+  /* Advance past "this". */
+  (void)get_token();
 }  /* scan_this */
 
 
@@ -26685,7 +26670,7 @@ handle_identifier:
       break;
     case tok_this:
       /* Scan "this" in a member function. */
-      scan_this((a_rescan_control_block *)NULL, &local_result);
+      scan_this(&local_result);
       break;
     case tok_func_name:
     case tok_function_name:
@@ -29939,11 +29924,9 @@ is TRUE if the expression is the immediate operand of an "&" operator.
      rescan information on this node. */
   eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
   if (expr->kind == (an_expr_node_kind)enk_param_ref) {
-    /* A reference to a parameter name within the header of the function,
-       where a parameter variable is not available. */
+    /* A reference to a parameter name or "this" within the header of the
+       function, where a parameter variable is not available. */
     an_expr_node_ptr expr_copy = copy_node(expr);
-    /* References to "this" should go to scan_this instead. */
-    check_assertion(expr->variant.param_ref.param_num != 0);
     /* See if this is a reference to a pack element.  This routine will
        return NULL if this is not a pack reference. */
     new_type = get_curr_variadic_param_type(expr_copy);
@@ -30430,11 +30413,7 @@ set accordingly.
   } else if (expr->kind == (an_expr_node_kind)enk_param_ref) {
     /* A reference to a parameter name or "this" in the header of the
        function. */
-    if (expr->variant.param_ref.param_num == 0) {
-      operator_token = tok_this;
-    } else {
-      operator_token = tok_identifier;
-    }  /* if */
+    operator_token = tok_identifier;
   } else {
     rescannable = FALSE;
   }  /* if */
@@ -30554,9 +30533,6 @@ alternative callable from outside, see rescan_expr_with_substitution.
                              (local_options & EOPT_OPERAND_OF_ADDRESS_OF) != 0;
     make_operand_for_rescanned_identifier(expr, rcblock,
                                           is_operand_of_address_of, result);
-  } else if (operator_token == tok_this) {
-    /* The expression is a reference to "this". */
-    scan_this(rcblock, result);
   } else if (unary) {
     /* Unary operators. */
     /* The switch statement here should look a lot like the one at the top of
