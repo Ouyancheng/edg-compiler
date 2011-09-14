@@ -3050,6 +3050,9 @@ the scope being pushed.
         kind == (a_scope_kind)sck_namespace_extension ||
         kind == (a_scope_kind)sck_pragma ||
         kind == (a_scope_kind)sck_instantiation_context ||
+        (kind == (a_scope_kind)sck_function &&
+         !assoc_routine->is_lambda_body) ||
+        kind == (a_scope_kind)sck_block ||
         (kind == (a_scope_kind)sck_template_instantiation &&
          (options & PS_MICROSOFT_SPECIALIZATION) == 0) ||
         (kind == (a_scope_kind)sck_class_struct_union &&
@@ -3064,6 +3067,8 @@ the scope being pushed.
                (kind == (a_scope_kind)sck_template_instantiation &&
                 (options & PS_MICROSOFT_SPECIALIZATION) != 0) ||
                kind == (a_scope_kind)sck_class_reactivation ||
+               kind == (a_scope_kind)sck_enum ||
+               kind == (a_scope_kind)sck_condition ||
                (kind == (a_scope_kind)sck_function &&
                 assoc_routine->is_lambda_body) ||
                (kind == (a_scope_kind)sck_class_struct_union &&

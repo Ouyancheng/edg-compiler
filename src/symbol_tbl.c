@@ -10370,21 +10370,38 @@ a context where deferral of errors applies.
        checking. */
     an_access_error_descr_ptr	aedp;
     check_assertion(error_detected == NULL);
-    aedp = alloc_access_error_descr();
-    aedp->sym = sym;
-    aedp->overload_sym = overload_sym;
-    aedp->position = *source_position;
-    aedp->protected_access_class = protected_access_class;
-    aedp->token_sequence_number = curr_token_sequence_number;
-    aedp->severity = severity;
-    aedp->error_code = error_code;
-    if (ssep->deferred_access_checks == NULL) {
-      ssep->deferred_access_checks = aedp;
+    /* Look for an existing entry for this check.  Only create a new entry
+       if none is found. */
+    for (aedp = ssep->deferred_access_checks; aedp != NULL;
+         aedp = aedp->next) {
+      if (aedp->sym == sym &&
+          aedp->overload_sym == overload_sym &&
+          aedp->protected_access_class == protected_access_class &&
+          aedp->token_sequence_number == curr_token_sequence_number &&
+          aedp->severity == severity &&
+          aedp->error_code == error_code &&
+          cmp_source_positions(aedp->position, *source_position) == 0) {
+        break;
+      }  /* if */
     }  /* if */
-    if (ssep->last_deferred_access_check != NULL) {
-      ssep->last_deferred_access_check->next = aedp;
+    if (aedp == NULL) {
+      /* No entry was found above. */
+      aedp = alloc_access_error_descr();
+      aedp->sym = sym;
+      aedp->overload_sym = overload_sym;
+      aedp->position = *source_position;
+      aedp->protected_access_class = protected_access_class;
+      aedp->token_sequence_number = curr_token_sequence_number;
+      aedp->severity = severity;
+      aedp->error_code = error_code;
+      if (ssep->deferred_access_checks == NULL) {
+        ssep->deferred_access_checks = aedp;
+      }  /* if */
+      if (ssep->last_deferred_access_check != NULL) {
+        ssep->last_deferred_access_check->next = aedp;
+      }  /* if */
+      ssep->last_deferred_access_check = aedp;
     }  /* if */
-    ssep->last_deferred_access_check = aedp;
   }  /* if */
 }  /* record_access_error */
 
@@ -10521,23 +10538,26 @@ there was an error, and do not issue any diagnostics (including warnings).
 }  /* f_check_ambiguity_and_verify_access */
 
 
-void perform_deferred_access_checks(void)
+void perform_deferred_access_checks_at_depth(a_scope_depth	depth)
 /*
-Go through the list of deferred access checks and repeat the test.  If
-the symbol is still not accessible, the entry may either stay on the
-list (if the defer_access_checks flag is still set) or an error may be
-issued.  The ability to retain failed checks on the list is needed because
-the deferred access checks need to be done in two phases.  First,
-member access is checked during declarator processing when the class
-reactivation scope has been pushed.  Later, after the entire
-function declaration has been processed, we need to check for friend
-access.
+Go through the list of deferred access checks for the scope scope depth
+specified by depth and repeat the test.  If the symbol is still not
+accessible, the entry may either stay on the list (if the
+defer_access_checks flag is still set) or an error may be issued.  The
+ability to retain failed checks on the list is needed because the
+deferred access checks need to be done in two phases.  First, member
+access is checked during declarator processing when the class
+reactivation scope has been pushed.  Later, after the entire function
+declaration has been processed, we need to check for friend access.
+In addition, the access of base-specifiers is checked while the class
+scope is still active, but there could be other access errors that will
+be reported when access deferral is ended by the enclosing context.
 */
 {
   a_scope_stack_entry_ptr	ssep;
 
-  check_assertion(curr_deferred_access_scope != NO_SCOPE_DEPTH);
-  ssep = &scope_stack[curr_deferred_access_scope];
+  check_assertion(depth != NO_SCOPE_DEPTH);
+  ssep = &scope_stack[depth];
   if (ssep->deferred_access_checks != NULL) {
     an_access_error_descr_ptr	aedp = ssep->deferred_access_checks;
     an_access_error_descr_ptr	new_head = NULL;

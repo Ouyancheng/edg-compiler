@@ -1,5 +1,24 @@
 Version 4.4
 
+9/14/11  [EDGcpfe/11910]
+C++11 and Microsoft compatibility: access checking of base-specifiers
+
+In C++11 the base-specifiers have the same access as members of the class
+being defined.  We now implement the new rules in C++11 mode.  In
+addition, Microsoft compilers do something in between the C++03 and C++11
+rules in that access checking for names in template arguments is
+apparently deferred.  As an approximation of that behavior we use the
+C++11 rules in Microsoft C++ mode.
+
+  class B { protected: class N {} };
+  // now valid in C++11 and Microsoft modes (but rejected by Microsoft)
+  class D: B::N, B {};
+
+  template<class T> struct X {};
+  // Accepted by Microsoft and now allowed in C++11 and Microsoft modes
+  struct E: B, X<B::N> {};
+
+
 9/13/11  [EDGcpfe/11995]
 C++-generating back end: erroneous elaborated type specifier in class
 definition

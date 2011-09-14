@@ -4348,7 +4348,7 @@ extern void f_check_ambiguity_and_verify_access
                                  a_boolean        is_qualifier,
                                  a_boolean        *error_detected);
 
-extern void perform_deferred_access_checks(void);
+extern void perform_deferred_access_checks_at_depth(a_scope_depth	depth);
 
 extern void perform_deferred_access_checks_for_function(a_routine_ptr rp);
 
@@ -4435,6 +4435,12 @@ rechecked later.
     scope_stack[curr_deferred_access_scope].defer_access_checks = TRUE; \
   }  /* if */								\
 }
+
+/*
+Perform deferred access checks for the current deferred access scope.
+*/
+#define perform_deferred_access_checks()				\
+  (perform_deferred_access_checks_at_depth(curr_deferred_access_scope))
 
 /*
 Clear the flag that specifies that access errors should be deferred.

@@ -3628,6 +3628,9 @@ be completed here.
          will not be done until the instantiation scope has been popped. */
       curr_class_fixup_header(/*for_instantiation=*/TRUE)->
                                                    pending_class_definitions++;
+      /* Start deferral of access checks.  This is needed to properly check
+         the access of base-specifiers of the class. */
+      begin_deferral_of_access_checks();
       /* Scan the base specifiers list, if any, and the body of the class. */
       (void)scan_class_definition(
                     class_type, depth_innermost_namespace_scope,
@@ -3639,6 +3642,7 @@ be completed here.
                     (a_decl_pos_block_ptr)NULL);
       curr_class_fixup_header(/*for_instantiation=*/TRUE)->
                                                    pending_class_definitions--;
+      end_deferral_of_access_checks();
       /* Process any pragmas that are to be bound to this instance. */
       process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
       /* Pop the template instantiation scope. */

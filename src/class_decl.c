@@ -22498,6 +22498,7 @@ classes.
   a_routine_ptr                   rout;
 #endif /* DO_IL_LOWERING && IA64_ABI */
   a_source_position               end_pos;
+  a_boolean                       access_checks_deferred = FALSE;
 
   db_enter(3, "scan_class_definition");
   initialize_class_def_state(class_type, &class_state);
@@ -22653,6 +22654,16 @@ classes.
       need_restore_pack_alignment_statate = TRUE;
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+    if ((cpp0x_mode || microsoft_mode) &&
+        !scope_stack_top().defer_access_checks) {
+       /* Access checking of the base specifiers must be done in the context
+          of the complete class.  Defer checks in the current scope if this
+          is not already being done.  See the comments at the call of
+          perform_deferred_access_checks_at_depth below for more
+          information. */
+       begin_deferral_of_access_checks();
+       access_checks_deferred = TRUE;
+    }  /* if */
     if (use_microsoft_specialization_scope && !is_in_class_specialization &&
         is_real_template_instance_specific_def_symbol(tag_sym)) {
       /* The Microsoft compiler permits a class specialization to reference
@@ -22734,6 +22745,11 @@ classes.
     /* There is no class definition -- check the deferred constraints now. */
     end_deferral_of_constraint_checks(depth_scope_stack);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (access_checks_deferred) {
+      /* We started an access-deferral context above.  End the context
+         here for error cases. */
+      end_deferral_of_access_checks();
+    }  /* if */
   } else {
     /* Scan the structure or union definition. */
     /* Start a scope for the fields and other members.  Since the class type
@@ -23123,6 +23139,26 @@ next_declaration:
     scope_stack[class_scope_depth].ss_list_instantiation_insert_point = NULL;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+     /* Perform any deferred access checks from the enclosing scope so that
+        any references from the base-specifiers will be evaluated in the
+        context of the complete class.  For example
+           class B { protected: class N {} };
+           class D: B::N, B {};
+        In C++03 this is an error because when we see B::N, B is not yet a
+        base and hence we have no special access to a protected member.  In
+        C++11, access checking in base specifiers must be deferred until
+        all bases are known, and hence this example is valid.  Microsoft
+        compilers do something in between in that this example results in
+        an error, but access checking for names in template arguments is
+        apparently deferred.  E.g., the following is accepted by Microsoft
+        compilers (with B as above):
+            template<class T> struct X {};
+            struct E: B, X<B::N> {};
+        As an approximation of that behavior we use the C++11 rules in
+        Microsoft C++ mode. */
+    if (cpp0x_mode || microsoft_mode) {
+      perform_deferred_access_checks_at_depth(depth_scope_stack-1);
+    }  /* if */
     /* Pop the scope created for the class definition. */
     pop_scope();
     if (delayed_nested_class_def) {
@@ -23148,6 +23184,14 @@ next_declaration:
     remove_stop_token(tok_rbrace);
     /* Restore the stop token state. */
     pop_stop_token_stack();
+    if (access_checks_deferred) {
+      /* We started an access-deferral context above.  Mark the end now.
+         This normally should not result in any errors as they would
+         have been issued when deferred access checks are processed above.
+         Note this must be done when the top of the scope stack is the
+         same as when deferral started. */
+      end_deferral_of_access_checks();
+    }  /* if */
     /* If entities dependent on this class were declared before the class
        was defined, they will have been recorded on a fixup list.  Now
        go through the fixup list and complete the declarations.  (Note that
