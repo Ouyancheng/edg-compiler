@@ -24411,8 +24411,7 @@ in fact turn out to be a constant.
          selection operator. */
       a_type_ptr this_type;
       if (!C_mode() &&
-          variable_this_exists((a_variable_ptr *)NULL, &this_type) &&
-          is_pointer_type(this_type)) {
+          variable_this_exists((a_variable_ptr *)NULL, &this_type)) {
         /* There is a "this" pointer here.  See if it can be used to
            refer to this member.  Extra tests are to be safe for errors. */
         a_type_ptr this_class = type_pointed_to(this_type);
@@ -24988,10 +24987,13 @@ normal_function:
             } else {
               /* Normal case: "x" is interpreted as "this->x". */
               an_expr_node_ptr node;
+              a_type_ptr       this_type;
               if (curr_expr_is_potentially_unevaluated() &&
                   !field_is_property_or_event(sym_ptr->variant.field.ptr) &&
-                  !variable_this_exists((a_variable_ptr *)NULL,
-                                        (a_type_ptr *)NULL)) {
+                  (!variable_this_exists((a_variable_ptr *)NULL, &this_type) ||
+                   !is_same_class_or_base_class_thereof(
+                                                 type_pointed_to(this_type),
+                                                 sym_parent_class(sym_ptr)))) {
                 /* Some modes allow a use of a nonstatic data member
                    without an available "this" inside a sizeof and other
                    unevaluated contexts.  Use a zero pointer instead of
