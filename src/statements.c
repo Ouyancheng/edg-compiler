@@ -5657,6 +5657,9 @@ See also 3.6.6.4.
         /* No temporary is needed: just evaluate the expression. */
         eval->expr = return_expr;
         return_expr = NULL;
+        /* If this a C-mode "void return" case, we no longer need to create an
+           extra statement expression to evaluate the void expression. */
+        microsoft_C_mode_void_return = FALSE;
       } else {
         a_variable_ptr    tmp_var =
                               alloc_temporary_variable(return_type,
