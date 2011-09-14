@@ -6756,6 +6756,32 @@ to saved_list, the saved value from the scope surrounding the current one.
 }  /* unbind_wide_string_constants */
 
 
+static a_boolean elide_braces_around_designated_initializer_subaggregate(
+                                                            a_constant_ptr con)
+/*
+The structure of the ck_aggregate constant is the same for an initializer
+like
+      { [0].i=1, [0].j=2 }
+and
+      { [0]={.i=1}, [0]={.j=2} }
+and is distinguished only by the explicit_braces_on_aggregate flag on the
+ck_aggregate sub-initializers.  The braces around a subaggregate
+initializer must be suppressed in the former case to avoid generating code
+like the latter.  Return TRUE if con is a non-NULL pointer to a constant
+representing a subaggregate like the former (".i=1") and FALSE otherwise.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (con != NULL && con->kind == (a_constant_repr_kind)ck_aggregate &&
+      con->uses_designated_initializers &&
+      !con->explicit_braces_on_aggregate) {
+    result = TRUE;
+  }
+  return result;
+}  /* elide_braces_around_designated_initializer_subaggregate */
+
+
 static void dump_designator(a_constant_ptr con)
 /*
 Generate code for a ck_designator constant, i.e., a designator in a
@@ -6774,7 +6800,12 @@ designated initializer.
                                        con->variant.designator.array_element);
     write_tok_ch(']');
   }  /* if */
-  write_tok_str(" = ");
+  if (!elide_braces_around_designated_initializer_subaggregate(con->next)) {
+    /* If the braces around a subaggregate initializer will be elided,
+       e.g., for the ".i=1" in something like "[0].i=1", we can't put out
+       "=" between the "[0]" and the ".i". */
+    write_tok_str(" = ");
+  }  /* if */
 }  /* dump_designator */
 
 
@@ -6936,10 +6967,13 @@ block with state information for the processing.
          class, so we need to suppress the braces for the subobject. */
       suppress_brace_for_base_class_subobject = TRUE;
     }  /* if */
-    /* If generating initializer constants and this is not a base class
-       object with tail padding whose members are promoted into the
-       derived class, output a "{". */
-    if (!*gen_assignments && !suppress_brace_for_base_class_subobject) {
+    /* If generating initializer constants and this is neither a base class
+       object with tail padding whose members are promoted into the derived
+       class nor a subaggregate initializer with a designated initializer
+       and elided braces, output a "{". */
+    if (!*gen_assignments && !suppress_brace_for_base_class_subobject &&
+        !(outer_level_pos != NULL &&
+          elide_braces_around_designated_initializer_subaggregate(constant))) {
       initializer_open_brace(icbp);
       need_close_brace = TRUE;
     }  /* if */

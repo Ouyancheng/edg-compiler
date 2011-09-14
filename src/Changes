@@ -1,5 +1,24 @@
 Version 4.4
 
+9/14/11  [EDGcpfe/11962]
+C-generating back end: subaggregate designated initializers
+
+In C-generating back end configurations with LOWER_DESIGNATED_INITIALIZERS
+set to FALSE, subaggregate designated initializers were incorrectly
+generated in cases where the original source code is not fully braced.
+This is now fixed.  For example,
+
+  struct A { int i; int j; };
+  struct A a[1] = { [0].i=1, [0].j=2 };
+
+Previously, the initializer for a in this example was generated as
+
+  { [0]={ .i=1 }, [0]={ .j=2 } }
+
+which has the effect of initializing a[0].i to 0 instead of to 1, as
+intended.
+
+
 9/14/11  [EDGcpfe/11746,EDGcpfe/11557]
 Microsoft compatibility: Friends of local classes
 
