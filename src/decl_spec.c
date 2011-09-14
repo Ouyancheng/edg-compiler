@@ -3654,6 +3654,22 @@ defined.  Detailed position information is recorded in *decl_pos_block.
              entered into the innermost non-class scope, but it's not visible
              to lookup. */
           tag_sym->is_invisible = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (microsoft_mode && is_local_class) {
+          /* Microsoft compilers appear to make friend declarations invisible
+             if they appear in a local class and normal lookup of the name
+             finds something. */
+          a_symbol_locator  friend_loc;
+          friend_loc = locator;
+          clear_specific_symbol(friend_loc);
+          tag_sym->is_invisible = TRUE;
+          if (normal_id_lookup(&friend_loc,
+                               IDL_SKIP_CLASS_SCOPES |
+                               IDL_DO_NOT_ADD_TO_NONREAL_CLASS |
+                               IDL_DO_NOT_CREATE_PROJ_SYM) == NULL) {
+            tag_sym->is_invisible = FALSE;
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
       }  /* if */
       if (locator.is_error) {

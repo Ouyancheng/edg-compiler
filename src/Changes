@@ -1,6 +1,28 @@
 Version 4.4
 
 9/14/11  [EDGcpfe/11746,EDGcpfe/11557]
+Microsoft compatibility: Friends of local classes
+
+If a local class declares a friend class, that class is looked up in the
+enclosing function, and if it is not found, it is injected in the nearest
+block scope.  In Microsoft mode, the injected class name was previously
+always visible in that block scope (as it is in default mode, but not e.g.
+in strict mode).  Now, in Microsoft mode, the injected class name is made
+invisible if that name is already visible at that point.  For example:
+
+  #ifdef GLOBAL_S
+  struct S {};
+  #endif
+  void g() {
+    struct L {
+      friend struct S;
+    };
+    S s;  // If GLOBAL_S is true, the injected friend is invisible and this
+  }       // finds ::S.  Otherwise, the injected friend is found, and this
+          // is an error since that class S is incomplete.
+
+
+9/14/11  [EDGcpfe/11746,EDGcpfe/11557]
 "this" permitted in late-specified return types for member functions
 
 The front end now allows references to "this" in decltype expressions
