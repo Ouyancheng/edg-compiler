@@ -10133,7 +10133,7 @@ the old list.  Only callable in C++ mode.  See ARM 13.
             (old_param->is_parameter_pack !=
                            new_param->is_parameter_pack) ||
             !f_types_are_compatible(old_param->type, new_param->type,
-                                    TCF_NO_FLAGS)) {
+                                    TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
           distinguishable = TRUE;
           goto distinguishable_determined;
         }  /* if */
@@ -10150,9 +10150,9 @@ the old list.  Only callable in C++ mode.  See ARM 13.
       /* The parameter types are compatible, so the only incompatibility
          remaining must have to do with the return types. */
 #if CHECKING
-      if (types_are_strictly_compatible(
-                                  old_type->variant.routine.return_type,
-                                  new_type->variant.routine.return_type)) {
+      if (f_types_are_compatible(old_type->variant.routine.return_type,
+                                 new_type->variant.routine.return_type,
+                                 TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
         /* The caller is supposed to have ensured that the case of
            completely compatible function types does not come here, since
            that's a case of redeclaration rather than overloading. */
