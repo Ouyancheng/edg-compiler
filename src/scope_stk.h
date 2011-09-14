@@ -1249,6 +1249,12 @@ typedef struct a_scope_stack_entry {
 			/* For template declaration scopes, points to the
 			   entry used to record information about the
 			   current template declaration. */
+  struct a_decl_parse_state
+		*decl_parse_state;
+			/* For function prototype scopes, points to the
+			   a_decl_parse_state entry passed to the call to
+			   function_declarator that pushed the scope.
+			   Otherwise, NULL. */
   unsigned long
 		pending_templ_arg_lists;
 			/* The number of opening "<" delimiters that have been

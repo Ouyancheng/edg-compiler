@@ -2239,6 +2239,7 @@ TRUE if this is the function declarator in a friend function declaration.
     /* Push a function prototype scope for the parameters. */
     (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
                      *new_type_ptr, (a_routine_ptr)NULL);
+    scope_stack_top().decl_parse_state = state;
     must_pop_function_prototype_scope = TRUE;
     /* Remember the scope number for later use if and when a body appears. */
     func_info->scope_number = scope_stack[depth_scope_stack].number;

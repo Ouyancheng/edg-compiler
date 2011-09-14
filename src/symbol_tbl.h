@@ -1419,7 +1419,7 @@ typedef struct a_func_info_block {
 			/* A list of entries representing fixups that are
 			   required resulting from a VLA declaration in a
 			   function prototype scope.  Originally the list
-			   appears in the sck_function_prototype scope stack
+			   appears in the sck_func_prototype scope stack
 			   entry; it is moved when the scope stack is popped,
 			   and the fixups are done if the function prototype
 			   is associated with a function definition. */

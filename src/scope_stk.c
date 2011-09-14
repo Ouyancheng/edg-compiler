@@ -2700,6 +2700,7 @@ the scope being pushed.
   ssep->class_def_state          = NULL;
   ssep->names_hidden_by_old_for_init = NULL;
   ssep->tmpl_decl_state		 = NULL;
+  ssep->decl_parse_state	 = NULL;
   ssep->pending_templ_arg_lists  = 0;
   ssep->next_nondependent_call   = NULL;
   ssep->last_pack_expansion_used = NULL;
