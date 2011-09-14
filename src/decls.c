@@ -151,6 +151,8 @@ reflected in start_secondary_declarator.
   ps->no_special_cli_class_type_check = FALSE;
   ps->is_generic_declaration = FALSE;
   ps->template_void_specifier = FALSE;
+  ps->is_inclass_member_function_decl = FALSE;
+  ps->is_out_of_class_member_function_decl = FALSE;
   ps->prefix_attributes = NULL;
   ps->id_attributes = NULL;
   ps->specifier_attributes = NULL;
@@ -15449,6 +15451,8 @@ related-fields of *ps prior to scanning the next declarator.
   ps->no_special_cli_class_type_check = FALSE;
   ps->is_generic_declaration = FALSE;
   ps->template_void_specifier = FALSE;
+  ps->is_inclass_member_function_decl = FALSE;
+  ps->is_out_of_class_member_function_decl = FALSE;
   ps->id_attributes = NULL;
   ps->asm_name = NULL;
   ps->asm_name_pos = null_source_position;

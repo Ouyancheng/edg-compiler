@@ -620,6 +620,14 @@ typedef struct a_decl_parse_state {
 			/* TRUE if the type specifier was a type parameter
 			   instantiated to void.  (Used for diagnosing the
 			   use of a Microsoft extension.) */
+  a_bit_field	is_inclass_member_function_decl:1;
+			/* TRUE for the declaration of a member function
+			   inside a class definition. */
+  a_bit_field	is_out_of_class_member_function_decl:1;
+			/* TRUE if this looks like an out-of-class member
+			   function declaration.  Specifically, this is TRUE
+			   when a function declarator appears at the top-level
+			   in a class reactivation scope. */
   an_attribute_ptr
 		prefix_attributes;
 			/* A list of non-type-transforming attributes scanned

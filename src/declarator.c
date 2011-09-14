@@ -2100,6 +2100,20 @@ TRUE if this is the function declarator in a friend function declaration.
     clear_func_info(&local_func_info_block);
     func_info = &local_func_info_block;
     is_top_level_declarator = FALSE;
+  } else {
+    /* A top-level declarator. */
+    if (!C_mode()) {
+      /* Set some flags in the declaration parsing state block indicating
+         whether this is the declaration of a member function. */
+      if (scope_is(&scope_stack_top(), sck_class_struct_union)) {
+        state->is_inclass_member_function_decl = !is_friend_decl;
+      } else if (scope_is(&scope_stack_top(), sck_class_reactivation)) {
+        /* In some error cases the flag here is set to TRUE even though there
+           is no member function corresponding to the signature that is being
+           parsed). */
+        state->is_out_of_class_member_function_decl = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   last_param_id = NULL;
   *new_type_ptr = alloc_type((a_type_kind)tk_routine);
