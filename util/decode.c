@@ -1126,7 +1126,7 @@ type) as pointed to by ptr:
                 into an entity with an initial length.
         ^^----- Number of "levels up" for this parameter (0-based).  Omitted
                 if zero.
-       ^------- Parameter number (1-based).
+       ^------- Parameter number (1-based) or 0 for "this".
       ^-------- Optional cv-qualifiers.
      ^--------- "I" indicates parameter reference.
 */
@@ -1151,13 +1151,18 @@ type) as pointed to by ptr:
     }  /* if */
   }  /* if */
   if (!dctl->err_in_id) {
-    if (level == 0) {
-      (void)sprintf(buffer, "param#%ld", num);
+    if (num == 0) {
+      /* An explicit "this" in a trailing return type. */
+      write_id_str("this", dctl);
     } else {
-      (void)sprintf(buffer, "param#%ld[up %ld level%s]", num, level, 
-                            level > 1 ? "s" : "");
+      if (level == 0) {
+        (void)sprintf(buffer, "param#%ld", num);
+      } else {
+        (void)sprintf(buffer, "param#%ld[up %ld level%s]", num, level,
+                              level > 1 ? "s" : "");
+      }  /* if */
+      write_id_str(buffer, dctl);
     }  /* if */
-    write_id_str(buffer, dctl);
     p = advance_past('I', p, dctl);
   }  /* if */
   return p;
@@ -4408,7 +4413,8 @@ Return a pointer to the character position following what was demangled.
 A <function-param> encodes a reference to a function parameter.
 The syntax is:
 
-  <function-param> ::= fp <top-level CV-qualifiers> _
+  <function-param> ::= fpT                # "this"
+                   ::= fp <top-level CV-qualifiers> _
                                           # L == 0, first parameter
                    ::= fp <top-level CV-qualifiers>
                           <parameter-2 non-negative number> _
@@ -4445,30 +4451,36 @@ The syntax is:
     goto end_of_routine;
   }  /* if */
   ptr++;
-  if (*ptr != '_' && !isdigit((unsigned char)*ptr)) {
-    /* Optional cv-qualifiers. */
-    ptr = get_cv_qualifiers(ptr, &cv_quals);
-    output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
-  }  /* if */
-  if (*ptr != '_') {
-    /* Parameter number. */
-    ptr = get_number(ptr, &num, dctl);
-    if (num < 0) {
-      bad_mangled_name(dctl);
-      goto end_of_routine;
-    } else {
-      num += 2;
-    }  /* if */
-  }  /* if */
-  ptr = advance_past_underscore(ptr, dctl);
-  write_id_str("param#", dctl);
-  if (level == -1) {
-    (void)sprintf(buffer, "%ld", num);
+  if (*ptr == 'T') {
+    /* Implicit "this" in trailing return type. */
+    ptr++;
+    write_id_str("this", dctl);
   } else {
-    (void)sprintf(buffer, "%ld[up %ld level%s]", num, level, 
-                          level > 1 ? "s" : "");
+    if (*ptr != '_' && !isdigit((unsigned char)*ptr)) {
+      /* Optional cv-qualifiers. */
+      ptr = get_cv_qualifiers(ptr, &cv_quals);
+      output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
+    }  /* if */
+    if (*ptr != '_') {
+      /* Parameter number. */
+      ptr = get_number(ptr, &num, dctl);
+      if (num < 0) {
+        bad_mangled_name(dctl);
+        goto end_of_routine;
+      } else {
+        num += 2;
+      }  /* if */
+    }  /* if */
+    ptr = advance_past_underscore(ptr, dctl);
+    write_id_str("param#", dctl);
+    if (level == -1) {
+      (void)sprintf(buffer, "%ld", num);
+    } else {
+      (void)sprintf(buffer, "%ld[up %ld level%s]", num, level,
+                            level > 1 ? "s" : "");
+    }  /* if */
+    write_id_str(buffer, dctl);
   }  /* if */
-  write_id_str(buffer, dctl);
 end_of_routine:
   return ptr;
 }  /* demangle_parameter_reference */

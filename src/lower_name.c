@@ -3930,14 +3930,19 @@ appear in late-specified return types.
     add_number_to_mangled_name(expr->variant.param_ref.levels_up-1, mctl);
     add_to_mangled_name('p', mctl);
   }  /* if */
-  if (cv_quals != 0 && !emulate_gnu_abi_bugs) {
-    /* Add cv-qualifiers. */
-    mangled_encoding_for_type_qualifiers(cv_quals, mctl);
+  if (expr->variant.param_ref.param_num == 0) {
+    /* An explicit "this" in a return type. */
+    add_to_mangled_name('T', mctl);
+  } else {
+    if (cv_quals != 0 && !emulate_gnu_abi_bugs) {
+      /* Add cv-qualifiers. */
+      mangled_encoding_for_type_qualifiers(cv_quals, mctl);
+    }  /* if */
+    if (expr->variant.param_ref.param_num > 1) {
+      add_number_to_mangled_name(expr->variant.param_ref.param_num-2, mctl);
+    }  /* if */
+    add_to_mangled_name('_', mctl);
   }  /* if */
-  if (expr->variant.param_ref.param_num > 1) {
-    add_number_to_mangled_name(expr->variant.param_ref.param_num-2, mctl);
-  }  /* if */
-  add_to_mangled_name('_', mctl);
 #else /* !IA64_ABI */
   /* Parameter reference.  Output has the form
       v-vv----- These are optional.
@@ -3946,7 +3951,7 @@ appear in late-specified return types.
                 into an entity with an initial length.
         ^^----- Number of "levels up" for this parameter (0-based).  Omitted
                 if zero.
-       ^------- Parameter number (1-based).
+       ^------- Parameter number (1-based) or 0 for "this".
       ^-------- Optional cv-qualifiers.
      ^--------- "I" indicates parameter reference.  */
   add_to_mangled_name('I', mctl);
