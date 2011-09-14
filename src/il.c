@@ -1929,10 +1929,15 @@ Dump the contents of the indicated expression node for debug purposes.
       }  /* while */
       break;
     case enk_param_ref:
-      fprintf(f_debug, "param_ref: param_num = %u, levels_up = %u, type = ",
-              node->variant.param_ref.param_num,
-              node->variant.param_ref.levels_up);
-      db_abbreviated_type(node->type);
+      if (node->variant.param_ref.param_num == 0) {
+        /* A zero parameter number indicates "this". */
+        fprintf(f_debug, "param_ref: this");
+      } else {
+        fprintf(f_debug, "param_ref: param_num = %u, levels_up = %u, type = ",
+                node->variant.param_ref.param_num,
+                node->variant.param_ref.levels_up);
+        db_abbreviated_type(node->type);
+      }  /* if */
       fputs("\n", f_debug);
       break;
     case enk_error:
@@ -17367,8 +17372,12 @@ already indicates the load.
     case enk_temp_init:
     case enk_routine:
     case enk_typeid:
-    case enk_param_ref:
       rvalueable = TRUE;
+      break;
+    case enk_param_ref:
+      /* An enk_param_ref is generally rvalueable, but not when it represents
+         "this". */
+      if (node->variant.param_ref.param_num != 0) rvalueable = TRUE;
       break;
     case enk_lambda:
       /* A lambda expression can have is_lvalue TRUE in some rare cases, but
@@ -18056,7 +18065,8 @@ treat_as_potential_rvalue should always be FALSE when called during lowering
            are considered invariant even though their addresses may change
            between invocations of the function.  enk_param_ref nodes
            represent references to parameters within the function header,
-           and as such are essentially variable references. */
+           and as such are essentially variable references.  An enk_param_ref
+           node for "this" isn't an lvalue and therefore wouldn't get here. */
         is_invariant = TRUE;
       } else if (is_operation_node(expr)) {
         an_expr_node_ptr op1 = expr->variant.operation.operands;

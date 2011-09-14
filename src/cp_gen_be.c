@@ -11252,10 +11252,14 @@ done_with_operation_after_parens:
       gen_lambda(expr);
       break;
     case enk_param_ref:
-      /* A reference to a parameter in a function signature (e.g., in a
-         decltype argument). */
-      gen_param_name_from_param_type(
+      /* A reference to a parameter or "this" in a function signature
+         (e.g., in a decltype argument). */
+      if (expr->variant.param_ref.param_num == 0) {
+        write_tok_str("this");
+      } else {
+        gen_param_name_from_param_type(
                    get_param_for_param_ref(expr, octl.func_prototype_stack));
+      }  /* if */
       break;
     default:
       unexpected_condition_str("gen_expr: bad expr node kind");

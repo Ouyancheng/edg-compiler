@@ -2289,7 +2289,8 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
 #endif /* !IA64_ABI */
   } else if (pack_expr != NULL) {
     /* Function parameter. */
-    check_assertion(pack_expr->kind == (an_expression_kind)enk_param_ref);
+    check_assertion(pack_expr->kind == (an_expression_kind)enk_param_ref &&
+                    pack_expr->variant.param_ref.param_num != 0);
 #if !IA64_ABI
     add_to_mangled_name('X', mctl);
     store_digits_and_underscore((unsigned long)1, /*old_form=*/FALSE, mctl);

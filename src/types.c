@@ -3877,7 +3877,8 @@ object or an rvalue that is a pointer (or C++/CLI handle) to an object.
         suppress_subtree_walk = TRUE;
         break;
       case enk_param_ref:
-        /* The type of the parameter is the complete object type. */
+        /* The type of the parameter is the complete object type.  "this"
+           cases won't get here because they are not lvalues. */
         complete_object_type = node->type;
         break;
       case enk_reuse_value:

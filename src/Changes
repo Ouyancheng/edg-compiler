@@ -1,5 +1,18 @@
 Version 4.4
 
+9/14/11  [EDGcpfe/11746,EDGcpfe/11557]
+"this" permitted in late-specified return types for member functions
+
+The front end now allows references to "this" in decltype expressions
+in late-specified return types in member functions, as required by
+core issue 1207 (see N3282).
+
+  struct A {
+    int i;
+    auto f() const -> decltype(this->i) { return 0; }  // Okay now.
+  };
+
+
 9/14/11  [EDGcpfe/11910]
 C++11 and Microsoft compatibility: access checking of base-specifiers
 

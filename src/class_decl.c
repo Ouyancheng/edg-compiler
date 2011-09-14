@@ -23352,9 +23352,13 @@ caller has already moved past the '[', and this routine leaves the trailing
         if (curr_token == tok_this) {
           /* Capture of "this" from an enclosing class.  (This is not the
              "this" of a closure class member.) */
-          if (!variable_this_exists(&var)) {
+          if (!variable_this_exists(&var, (a_type_ptr *)NULL)) {
             /* We should be in a nonstatic member function. */
             error(ec_this_used_incorrectly);
+          } else if (var == NULL) {
+            /* A "this" in a prototype scope.  There should be an error about
+               the lambda not being allowed in this context. */
+            expect_error();
           } else if (by_ref) {
             /* "&this" is not allowed in a capture list. */
             pos_error(ec_cannot_capture_this_by_reference, &pos_capture);

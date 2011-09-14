@@ -6078,8 +6078,8 @@ done_with_operation:
       }
       break;
     case enk_param_ref:
-      /* A reference to a parameter in a function signature (e.g., in a
-         sizeof argument). */
+      /* A reference to a parameter or "this" in a function signature
+         (e.g., in a sizeof argument). */
       form_param_ref(expr, &octl);
       break;
     case enk_field:

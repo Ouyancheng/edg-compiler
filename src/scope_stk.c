@@ -9666,7 +9666,10 @@ is found, NULL is returned.
   a_pack_expansion_stack_entry_ptr	pesep;
   a_type_ptr				result_type = NULL;
 
-  /* Look up through the pack expansion stack to find a patching
+  /* References to "this" shouldn't get here. */
+  check_assertion(expr->kind == (an_expr_node_kind)enk_param_ref &&
+                  expr->variant.param_ref.param_num != 0);
+  /* Look up through the pack expansion stack to find a matching
      parameter. */
   for (pesep = pack_expansion_stack;
        pesep != NULL && !pesep->is_suppression &&
@@ -9682,8 +9685,8 @@ is found, NULL is returned.
             vpip->orig_param_type->param_num ==
                                  (uint32_t)expr->variant.param_ref.param_num &&
             vpip->level == expr->variant.param_ref.levels_up) {
-            result_type = arg_prp->curr_argument.param_type->type;
-            break;
+          result_type = arg_prp->curr_argument.param_type->type;
+          break;
         }  /* if */
       }  /* if */
     }  /* for */

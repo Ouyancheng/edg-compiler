@@ -4445,25 +4445,30 @@ on every expression.
         }  /* if */
         break;
       case enk_param_ref:
-        /* Describe a parameter for non-compilable output.  If the reference
-           is to the innermost function parameter list or to a parameter list
-           preceding a trailing return type (presumably the most common cases),
-           just give the parameter number.  Otherwise, also indicate how many
-           "levels up" the function prototype scope is. */
-        octl->output_str("<parameter #", octl);
-        form_unsigned_num((a_host_large_unsigned)
-                                            expr->variant.param_ref.param_num,
-                          octl);
-        if (expr->variant.param_ref.levels_up == 2) {
-          octl->output_str(" (one level up)", octl);
-        } else if (expr->variant.param_ref.levels_up > 2) {
-          octl->output_str(" (", octl);
+        if (expr->variant.param_ref.param_num == 0) {
+          /* A zero parameter number indicates "this". */
+          octl->output_str("this", octl);
+        } else {
+          /* Describe a parameter for non-compilable output.  If the reference
+             is to the innermost function parameter list or to a parameter list
+             preceding a trailing return type (presumably the most common
+             cases), just give the parameter number.  Otherwise, also indicate
+             how many "levels up" the function prototype scope is. */
+          octl->output_str("<parameter #", octl);
           form_unsigned_num((a_host_large_unsigned)
+                                            expr->variant.param_ref.param_num,
+                            octl);
+          if (expr->variant.param_ref.levels_up == 2) {
+            octl->output_str(" (one level up)", octl);
+          } else if (expr->variant.param_ref.levels_up > 2) {
+            octl->output_str(" (", octl);
+            form_unsigned_num((a_host_large_unsigned)
                                           expr->variant.param_ref.levels_up-1,
-                             octl);
-          octl->output_str(" levels up)", octl);
+                               octl);
+            octl->output_str(" levels up)", octl);
+          }  /* if */
+          octl->output_str(">", octl);
         }  /* if */
-        octl->output_str(">", octl);
         break;
       default:
         octl->output_str("<expression>", octl);
@@ -5945,7 +5950,10 @@ for the function prototype scope context described by fpsep.
   unsigned          k, levels_up = expr->variant.param_ref.levels_up;
   a_param_type_ptr  ptp;
 
-  check_assertion(fpsep != NULL);
+  /* enk_param_ref nodes representing "this" should not get here. */
+  check_assertion(fpsep != NULL &&
+                  expr->kind == (an_expr_node_kind)enk_param_ref &&
+                  expr->variant.param_ref.param_num != 0);
   if (!fpsep->outside_parameter_list) levels_up -= 1;
   for (k = 0; k<levels_up; ++k) {
     fpsep = fpsep->next;
@@ -5973,11 +5981,16 @@ the function prototype stack.  Callers must therefore ensure that the stack
 is properly maintained.  Do the output as indicated by octl.
 */
 {
-  a_param_type_ptr       ptp = get_param_for_param_ref(
+  check_assertion(expr->kind == (an_expr_node_kind)enk_param_ref);
+  if (expr->variant.param_ref.param_num == 0) {
+    /* This node represents "this". */
+    octl->output_str("this", octl);
+  } else {
+    a_param_type_ptr ptp = get_param_for_param_ref(
                                             expr, octl->func_prototype_stack);
-
-  check_assertion(ptp->name != NULL);
-  octl->output_str(ptp->name, octl);
+    check_assertion(ptp->name != NULL);
+    octl->output_str(ptp->name, octl);
+  }  /* if */
 }  /* form_param_ref */
 
 #endif /* BACK_END_IS_C_GEN_BE */

@@ -674,13 +674,15 @@ extern void cast_pointer_for_field_selection(
                                a_boolean         do_protected_member_check,
                                a_source_position *member_pos);
 
-extern a_boolean variable_this_exists(a_variable_ptr *this_var);
+extern a_boolean variable_this_exists(a_variable_ptr *this_var,
+                                      a_type_ptr     *this_type);
 
 extern an_expr_node_ptr make_selection_for_captured_variable(
                                               a_lambda_capture *lambda_capture,
                                               a_boolean        is_lvalue);
 
 extern void make_this_variable_operand(a_variable_ptr    this_var,
+                                       a_type_ptr        this_type,
                                        a_boolean         is_implicit,
                                        a_source_position *position,
                                        a_source_position *end_position,

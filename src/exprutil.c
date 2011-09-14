@@ -14071,8 +14071,11 @@ from being re-introduced once lowering has eliminated it).
 #endif /* DO_IL_LOWERING */
   } else if (node->kind == (an_expr_node_kind)enk_param_ref) {
     /* A reference to a parameter.  Change it to an lvalue by just changing
-       the is_lvalue flag. */
-    possible = TRUE;
+       the is_lvalue flag.  But a reference to "this" can't be turned into
+       an lvalue. */
+    if (node->variant.param_ref.param_num != 0) {
+      possible = TRUE;
+    }  /* if */
   } else if (node->kind == (an_expr_node_kind)enk_temp_init) {
     /* A temporary initialization indicating the value of a temporary.
        Change it to an lvalue for the temporary. */
@@ -16815,7 +16818,8 @@ that identifies an object or an rvalue that is a pointer to an object.
       }  /* if */
     } else if (expr->kind == (an_expr_node_kind)enk_param_ref) {
       /* An lvalue for a parameter outside an associated function
-         definition. */
+         definition.  An enk_param_ref for "this" won't get here because
+         it's not an lvalue, but the answer would be right even if it did. */
       tblock->result = TRUE;
       tblock->is_temp = FALSE;
       tblock->terminate = TRUE;

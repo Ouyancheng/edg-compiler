@@ -13968,7 +13968,9 @@ typedef struct an_expr_node {
       unsigned int
 		param_num;
 			/* The number of the parameter being referenced (the
-			   first parameter is number one). */
+			   first parameter is number one).  Zero means the
+			   "this" parameter (levels_up is always zero in
+			   that case). */
       unsigned int
 		levels_up;
 			/* The number L of parameter lists enclosing the

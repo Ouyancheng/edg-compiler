@@ -5405,6 +5405,12 @@ mode cases).  Set *err to TRUE if there is an error.
                            class_struct_union_type != NULL &&
                            is_immediate_class_type(class_struct_union_type) &&
                            !is_incomplete_type(class_struct_union_type);
+      if (!operand_1_is_complete_class && cpp0x_mode &&
+          is_this_parameter_operand(operand_1, (a_variable_ptr *)NULL)) {
+        /* In C++11, "this" can be used in a late-specified return type, when
+           the class of "this" is not complete. */
+        operand_1_is_complete_class = TRUE;
+      }  /* if */
       /* Further checking beyond the fact that this is an identifier is not
          possible if there was an error in the first operand. */
       if (operand_1_is_complete_class) {
@@ -6305,27 +6311,33 @@ case).
     /* The first operand is not (a pointer to) a complete class, struct,
        or union.  This check was delayed to this point so that we could
        allow things like vacuous destructor references. */
-    if (!is_error_type(class_struct_union_type)) {
-      an_error_code err_code;
-      /* If the problem is that the class is incomplete, use a different
-         error message. */
-      if (is_incomplete_type(class_struct_union_type) &&
-          is_class_struct_union_type(class_struct_union_type)) {
-        err_code = is_arrow_operator ?
+    if (cpp0x_mode &&
+        is_this_parameter_operand(operand_1, (a_variable_ptr *)NULL)) {
+      /* In C++11, "this" can be used in a late-specified return type, when
+         the class of "this" is not complete. */
+    } else {
+      if (!is_error_type(class_struct_union_type)) {
+        an_error_code err_code;
+        /* If the problem is that the class is incomplete, use a different
+           error message. */
+        if (is_incomplete_type(class_struct_union_type) &&
+            is_class_struct_union_type(class_struct_union_type)) {
+          err_code = is_arrow_operator ?
                                   ec_ptr_to_incomplete_class_type_not_allowed :
   				  ec_incomplete_type_not_allowed;
-      } else {
-        if (C_dialect == C_dialect_cplusplus) {
-          err_code = is_arrow_operator ? ec_expr_not_ptr_to_class :
-                                         ec_expr_not_class;
         } else {
-          err_code = is_arrow_operator ? ec_expr_not_ptr_to_struct_or_union :
-                                         ec_expr_not_struct_or_union;
+          if (C_dialect == C_dialect_cplusplus) {
+            err_code = is_arrow_operator ? ec_expr_not_ptr_to_class :
+                                           ec_expr_not_class;
+          } else {
+            err_code = is_arrow_operator ? ec_expr_not_ptr_to_struct_or_union :
+                                           ec_expr_not_struct_or_union;
+          }  /* if */
         }  /* if */
+        error_in_operand(err_code, operand_1);
       }  /* if */
-      error_in_operand(err_code, operand_1);
+      err = TRUE;
     }  /* if */
-    err = TRUE;
   }  /* if */
 
   /* Set the error position to the starting position. */
@@ -10786,7 +10798,8 @@ id_case:
         result = expr->variant.routine.ptr->type;
       } else if (expr->kind == (an_expr_node_kind)enk_param_ref) {
         /* A reference to a parameter in a function declarator: This is
-           similar to the variable case. */
+           similar to the variable case.  When the enk_param_ref represents
+           "this" it can be handled the same way. */
         result = expr->type;
       } else {
         goto general_case;
@@ -22470,9 +22483,11 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
   a_variable_ptr this_var;
   an_operand     orig_operand;
 
-  if (is_this_parameter_operand(operand, &this_var)) {
+  if (is_this_parameter_operand(operand, &this_var) && this_var != NULL) {
     /* This is an operand for "this".  Issue an anachronism diagnostic
-       and change the operand to an lvalue for the "this" variable. */
+       and change the operand to an lvalue for the "this" variable.
+       Ignore "this" in a prototype instantiation, for which there is
+       no associated variable yet.  That will cause an error later. */
     is_this = TRUE;
     /* Assignment to "this" is not allowed if exceptions are enabled.
        For one thing, the code in IL lowering does not know how to
@@ -24394,13 +24409,13 @@ in fact turn out to be a constant.
     if (is_field_selection_of_type_foldable(field->type)) {
       /* The field has an appropriate type and is followed by a field
          selection operator. */
-      a_variable_ptr this_var;
+      a_type_ptr this_type;
       if (!C_mode() &&
-          variable_this_exists(&this_var) &&
-          is_pointer_type(this_var->type)) {
+          variable_this_exists((a_variable_ptr *)NULL, &this_type) &&
+          is_pointer_type(this_type)) {
         /* There is a "this" pointer here.  See if it can be used to
            refer to this member.  Extra tests are to be safe for errors. */
-        a_type_ptr this_class = type_pointed_to(this_var->type);
+        a_type_ptr this_class = type_pointed_to(this_type);
         this_class = skip_typerefs(this_class);
         if (is_class_struct_union_type(this_class) &&
             is_same_class_or_base_class_thereof(this_class,
@@ -24975,7 +24990,8 @@ normal_function:
               an_expr_node_ptr node;
               if (curr_expr_is_potentially_unevaluated() &&
                   !field_is_property_or_event(sym_ptr->variant.field.ptr) &&
-                  !variable_this_exists(&var_ptr)) {
+                  !variable_this_exists((a_variable_ptr *)NULL,
+                                        (a_type_ptr *)NULL)) {
                 /* Some modes allow a use of a nonstatic data member
                    without an available "this" inside a sizeof and other
                    unevaluated contexts.  Use a zero pointer instead of
@@ -25265,8 +25281,8 @@ overloaded_function:
           check_assertion(cppcli_enabled);
           { /* Create a "this" operand if meaningful. */
             an_operand      *selector = NULL;
-            a_variable_ptr  this_var = NULL;
-            if (variable_this_exists(&this_var) &&
+            if (variable_this_exists((a_variable_ptr *)NULL,
+                                     (a_type_ptr *)NULL) &&
                 make_this_pointer_operand(sym_ptr, projection_sym_ptr,
                                           &locator.source_position,
                                           (a_boolean)locator.
@@ -25339,46 +25355,74 @@ after_advance_past_id:
 }  /* scan_identifier */
 
 
-static void scan_this(an_operand *result)
+static void scan_this(a_rescan_control_block *rcblock,
+                      an_operand             *result)
 /*
-Scan an occurrence of "this" in an expression.  Return an operand for it in
-*result.  In C++, "this" in a nonstatic member function is a non-lvalue that
-points to the object for which the member function was called.
+Scan an occurrence of "this" in an expression.  Return an operand for
+it in *result.  In C++, "this" in a nonstatic member function is an
+rvalue that points to the object for which the member function was
+called.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned "this" expression, and return the result in *result
+(or an error indication in *rcblock).
 */
 {
-  a_variable_ptr this_var;
+  a_variable_ptr    this_var;
+  a_type_ptr        this_type;
+  a_source_position start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
-  check_assertion(curr_token == tok_this);
-  if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
-    /* We're not inside a function. */
-    error_and_make_error_operand(ec_this_used_incorrectly, result);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    an_expr_rescan_info_entry_ptr eriep;
+    check_assertion(rcblock->operator_token == tok_this);
+    eriep = get_expr_rescan_info(rcblock->expr,
+                                 (an_expr_rescan_info_entry *)NULL);
+    start_position = eriep->saved_operand.position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = eriep->saved_operand.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  } else {
+    /* Normal, non-rescan, processing. */
+    check_assertion(curr_token == tok_this);
+    start_position = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+  if (!variable_this_exists(&this_var, &this_type)) {
+    /* No "this" is available, e.g., because we're not inside a nonstatic
+       member function. */
+    if (in_lambda_body()) {
+      /* Special message when in a lambda body. */
+      expr_pos_error(ec_this_in_lambda, &start_position);
+    } else {
+      expr_pos_error(ec_this_used_incorrectly, &start_position);
+    }  /* if */
+    make_error_operand(result);
   } else if (curr_expr_kind_is_const() &&
              /* Some modes allow this->k, where k is a constant, in a
                 constant expression. */
              !(current_mode_allows_field_selection_folding() &&
                next_token() == tok_arrow)) {
     /* "this" cannot be used in a constant expression. */
-    error_and_make_error_operand(ec_expr_not_constant, result);
-  } else if (!variable_this_exists(&this_var)) {
-    /* No "this" is available, e.g., because we're not inside a nonstatic
-       member function. */
-    if (in_lambda_body()) {
-      /* Special message when in a lambda body. */
-      error_and_make_error_operand(ec_this_in_lambda, result);
-    } else {
-      error_and_make_error_operand(ec_this_used_incorrectly, result);
-    }  /* if */
+    expr_pos_error(ec_expr_not_constant, &start_position);
+    make_error_operand(result);
   } else {
     /* Make an rvalue for the "this" variable.  Note that this rewrites
        the "this" in a lambda to the captured "this" from the enclosing
        function. */
-    make_this_variable_operand(this_var, /*is_implicit=*/FALSE,
-                               &pos_curr_token,
-                               end_position_or_null(&end_pos_curr_token),
+    make_this_variable_operand(this_var, this_type,
+                               /*is_implicit=*/FALSE,
+                               &start_position,
+                               end_position_or_null(&end_position),
                                result);
   }  /* if */
+  set_operand_position(result, &start_position,
+                       &end_position, (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
-  (void)get_token();
+  if (rcblock == NULL) (void)get_token();
 }  /* scan_this */
 
 
@@ -26641,7 +26685,7 @@ handle_identifier:
       break;
     case tok_this:
       /* Scan "this" in a member function. */
-      scan_this(&local_result);
+      scan_this((a_rescan_control_block *)NULL, &local_result);
       break;
     case tok_func_name:
     case tok_function_name:
@@ -29898,6 +29942,8 @@ is TRUE if the expression is the immediate operand of an "&" operator.
     /* A reference to a parameter name within the header of the function,
        where a parameter variable is not available. */
     an_expr_node_ptr expr_copy = copy_node(expr);
+    /* References to "this" should go to scan_this instead. */
+    check_assertion(expr->variant.param_ref.param_num != 0);
     /* See if this is a reference to a pack element.  This routine will
        return NULL if this is not a pack reference. */
     new_type = get_curr_variadic_param_type(expr_copy);
@@ -30382,8 +30428,13 @@ set accordingly.
     }  /* switch */
     *unary = TRUE;
   } else if (expr->kind == (an_expr_node_kind)enk_param_ref) {
-    /* A reference to a parameter name in the header of the function. */
-    operator_token = tok_identifier;
+    /* A reference to a parameter name or "this" in the header of the
+       function. */
+    if (expr->variant.param_ref.param_num == 0) {
+      operator_token = tok_this;
+    } else {
+      operator_token = tok_identifier;
+    }  /* if */
   } else {
     rescannable = FALSE;
   }  /* if */
@@ -30503,6 +30554,9 @@ alternative callable from outside, see rescan_expr_with_substitution.
                              (local_options & EOPT_OPERAND_OF_ADDRESS_OF) != 0;
     make_operand_for_rescanned_identifier(expr, rcblock,
                                           is_operand_of_address_of, result);
+  } else if (operator_token == tok_this) {
+    /* The expression is a reference to "this". */
+    scan_this(rcblock, result);
   } else if (unary) {
     /* Unary operators. */
     /* The switch statement here should look a lot like the one at the top of

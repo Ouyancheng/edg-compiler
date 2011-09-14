@@ -4397,14 +4397,12 @@ If an implicit "this" is available in the current context, return its type.
 Otherwise, return NULL.
 */
 {
-  a_type_ptr     implicit_selector_type = NULL;
-  a_variable_ptr this_var;
+  a_type_ptr implicit_selector_type = NULL;
+  a_type_ptr this_type;
 
-  if (variable_this_exists(&this_var)) {
+  if (variable_this_exists((a_variable_ptr *)NULL, &this_type)) {
     /* An implicit selector can be generated. */
-    a_type_ptr this_class = type_pointed_to(this_var->type);
-    implicit_selector_type = add_right_pointer_type_to_this(this_class,
-                                                            this_class);
+    implicit_selector_type = this_type;
   }  /* if */
   return implicit_selector_type;
 }  /* make_implicit_selector_type */
@@ -8438,21 +8436,29 @@ the case where the left operand is a C++/CLI handle.
 
 
 static a_boolean variable_this_exists_full(a_variable_ptr *this_var,
+                                           a_type_ptr     *this_type,
                                            a_boolean      allow_lambda_this)
 /*
-Return TRUE if there is a currently-visible "this" variable.  If there is,
-also set *this_var to point to the variable entry for it.  The captured
-"this" in a lambda body (which is the "this" from the function enclosing the
-lambda, not the "this" that points to the closure class object) is considered
-visible only if allow_lambda_this is TRUE.  This routine is called only
-in C++ mode.  Note that there is no implication yet that the "this" is
-actually being used; we may simply be testing that an implicit "this" is
+Return TRUE if there is a currently-visible "this".  If there is, also
+set *this_var to point to the variable entry for it.  If there is a
+"this" but no "this" variable because we're in a prototype scope
+(e.g., in a late-specified return type), set *this_var to NULL and
+return TRUE.  this_var can be NULL if the variable pointer is not
+needed by the caller.  *this_type will be set to the "this" type, if
+there is one.  this_type can be NULL if the "this" type is not needed
+by the caller.  The captured "this" in a lambda body (which is the
+"this" from the function enclosing the lambda, not the "this" that
+points to the closure class object) is considered visible only if
+allow_lambda_this is TRUE.  This routine is called only in C++ mode.
+Note that there is no implication yet that the "this" is actually
+being used; we may simply be testing that an implicit "this" is
 available, e.g., during overload resolution.
 */
 {
-  a_boolean this_exists = FALSE;
+  a_boolean      this_exists = FALSE;
+  a_variable_ptr local_this_var = NULL;
+  a_type_ptr     local_this_type = NULL;
 
-  *this_var = NULL;
   if (innermost_function_scope != NULL) {
     a_routine_ptr curr_rout = current_routine_entry();
     if (curr_rout->is_lambda_body && allow_lambda_this) {
@@ -8476,34 +8482,61 @@ available, e.g., during overload resolution.
           /* It is, so it has a "this".  We delay until later checking whether
              the "this" is or can be captured. */
           a_scope_ptr scope = scope_for_routine(encl_rout);
-          *this_var = scope->variant.routine.this_param_variable;
-          check_assertion(*this_var != NULL);
+          local_this_var = scope->variant.routine.this_param_variable;
+          check_assertion(local_this_var != NULL);
           this_exists = TRUE;
         }  /* if */
       }  /* if */
     } else {
-      /* Normal case, not inside a lambda. */
-      *this_var= innermost_function_scope->variant.routine.this_param_variable;
-      this_exists = (*this_var != NULL);
+      /* Normal case, not inside a lambda (but inside a function body). */
+      local_this_var =
+                 innermost_function_scope->variant.routine.this_param_variable;
+      this_exists = (local_this_var != NULL);
+    }  /* if */
+  } else if (cpp0x_mode &&
+             scope_stack_top().outside_parameter_list) {
+    /* In C++11, "this" can be referenced in a late-specified return type.
+       There's no "this" variable yet in that case, because there's no
+       function memory region yet. */
+    a_type_ptr class_type;
+    a_type_ptr rout_type = scope_stack_top().assoc_type;
+    check_assertion(rout_type != NULL &&
+                    rout_type->kind == (a_type_kind)tk_routine);
+    class_type = rout_type->variant.routine.extra_info->this_class;
+    if (class_type != NULL) {
+      this_exists = TRUE;
+      if (this_type != NULL) {
+        local_this_type = f_implicit_this_param_type_of(rout_type);
+      }  /* if */
     }  /* if */
   }  /* if */
+  if (local_this_var != NULL) local_this_type = local_this_var->type;
+  if (this_var != NULL) *this_var = local_this_var;
+  if (this_type != NULL) *this_type = local_this_type;
   return this_exists;
 }  /* variable_this_exists_full */
 
 
-a_boolean variable_this_exists(a_variable_ptr *this_var)
+a_boolean variable_this_exists(a_variable_ptr *this_var,
+                               a_type_ptr     *this_type)
 /*
-Return TRUE if there is a currently-visible "this" variable.  If there is,
-also set *this_var to point to the variable entry for it.  The captured
-"this" in a lambda body (which is the "this" from the function enclosing the
-lambda, not the "this" that points to the closure class object) is considered
-visible.  This routine is called only in C++ mode.  It can be called from
-outside the expression-processing routines.
+Return TRUE if there is a currently-visible "this".  If there is, also
+set *this_var to point to the variable entry for it.  If there is a
+"this" but no "this" variable because we're in a prototype scope
+(e.g., in a late-specified return type), set *this_var to NULL and
+return TRUE.  this_var can be NULL if the variable pointer is not
+needed by the caller.  *this_type will be set to the "this" type, if
+there is one.  this_type can be NULL if the "this" type is not needed
+by the caller.  The captured "this" in a lambda body (which is the
+"this" from the function enclosing the lambda, not the "this" that
+points to the closure class object) is considered visible.  This
+routine is called only in C++ mode.  It can be called from outside the
+expression-processing routines.
 */
 {
   a_boolean this_exists;
 
-  this_exists = variable_this_exists_full(this_var,
+  this_exists = variable_this_exists_full(this_var, this_type,
                                           /*allow_lambda_this=*/TRUE);
   return this_exists;
 }  /* variable_this_exists */
@@ -8551,21 +8584,35 @@ if is_lvalue is TRUE.
 /*ARGSUSED*/ /* <-- is_implicit and end_position are not used in that case. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 void make_this_variable_operand(a_variable_ptr    this_var,
+                                a_type_ptr        this_type,
                                 a_boolean         is_implicit,
                                 a_source_position *position,
                                 a_source_position *end_position,
                                 an_operand        *result)
 /*
-Make an operand for the value of the "this" variable this_var.  The reference
-is implicit if is_implicit is TRUE.  The source position of the operand is
-set to *position and its end position (if present) to *end_position.
-The position in the expression, which exists when EXTRA_SOURCE_POSITIONS_IN_IL
-is TRUE, is set only when is_implicit is FALSE.  The operand is an rvalue.
+Make an operand for the value of the "this" variable this_var.  The
+reference is implicit if is_implicit is TRUE.  The source position of
+the operand is set to *position and its end position (if present) to
+*end_position.  The position in the expression, which exists when
+EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, is set only when is_implicit is
+FALSE.  The result operand is an rvalue.  this_var is NULL if the
+reference to "this" is within a prototype instantiation, where there is
+no "this" variable yet.  An enk_param_ref is used for the reference in
+that case, and this_type is used for the type.
 */
 {
   an_expr_node_ptr node;
 
-  if (in_lambda_body()) {
+  if (this_var == NULL) {
+    /* "this" in a prototype instantiation, e.g., in a decltype in a
+       late-specified return type.  There is no variable yet, so use
+       an enk_param_ref with a parameter number of zero. */
+    node = alloc_expr_node((an_expr_node_kind)enk_param_ref);
+    node->type = this_type;
+    node->variant.param_ref.param_num = 0;
+    node->variant.param_ref.levels_up = 0;
+    make_expression_operand(node, result);
+  } else if (in_lambda_body()) {
     /* We're inside a lambda body, so the "this" must be the one from
        the function enclosing the lambda.  It needs to be captured to be
        used. */
@@ -8630,7 +8677,7 @@ wondering if it's available.
 */
 {
   a_variable_ptr   this_var;
-  a_type_ptr       member_class, this_class;
+  a_type_ptr       member_class, this_class, this_type;
   a_boolean        okay, template_case = FALSE;
   a_base_class_ptr bcp;
 
@@ -8642,7 +8689,7 @@ wondering if it's available.
     okay = FALSE;
   } else {
     /* See if a "this" pointer exists and can be used. */
-    if (!variable_this_exists(&this_var)) {
+    if (!variable_this_exists(&this_var, &this_type)) {
       /* We're not inside a function, or the function does not have a "this"
          variable. */
       okay = FALSE;
@@ -8650,7 +8697,7 @@ wondering if it's available.
       /* There is a "this" variable. */
       /* Find the relationship between the "this" variable and the class
          of the member. */
-      this_class = type_pointed_to(this_var->type);
+      this_class = type_pointed_to(this_type);
       this_class = skip_typerefs(this_class);
       check_assertion(projection_member_sym->is_class_member);
       member_class = sym_parent_class(projection_member_sym);
@@ -8680,7 +8727,8 @@ wondering if it's available.
     } else {
       /* The "this" pointer can be used to access the member. */
       /* Make an operand for the value of the "this" pointer. */
-      make_this_variable_operand(this_var, /*is_implicit=*/TRUE, member_pos,
+      make_this_variable_operand(this_var, this_type,
+                                 /*is_implicit=*/TRUE, member_pos,
                                  member_pos, result);
       if (template_case) {
         /* For the template case, just do a direct cast. */
@@ -8690,7 +8738,7 @@ wondering if it's available.
         /* The pointer type has to be qualified the same as the "this"
            pointer type (e.g., if the function is "const", the pointer type
            must be pointer to const). */
-        underlying_this_type = type_pointed_to(this_var->type);
+        underlying_this_type = type_pointed_to(this_type);
         member_ptr = make_identically_qualified_type(
                                                    sym_parent_class(fund_sym),
                                                    underlying_this_type);
@@ -8730,7 +8778,9 @@ a_boolean is_this_parameter_operand(an_operand     *operand,
 Return TRUE if the given operand is for the "this" parameter of the
 current function.  If so, and if p_this_var is non-NULL, also set
 *p_this_var to the "this" variable.  The captured "this" of a lambda
-is not considered to match.
+is not considered to match.  For "this" in a prototype instantiation
+(where there is no variable yet), *p_this_var will be set to NULL
+(if p_this_var is non-NULL), and TRUE will be returned.
 */
 {
   a_boolean        is_this = FALSE;
@@ -8743,7 +8793,9 @@ is not considered to match.
     if (is_variable_node(operand_expr)) {
       /* The operand is an rvalue that is the value of a simple variable. */
       operand_var = operand_expr->variant.variable;
-      if (variable_this_exists_full(&this_var, /*allow_lambda_this=*/FALSE)) {
+      if (variable_this_exists_full(&this_var, (a_type_ptr *)NULL,
+                                    /*allow_lambda_this=*/FALSE) &&
+          this_var != NULL) {
         /* There is a current "this" parameter.  See if it matches the
            variable in the operand. */
         if (this_var == operand_var) {
@@ -8752,6 +8804,13 @@ is not considered to match.
           if (p_this_var != NULL) *p_this_var = this_var;
         }  /* if */
       }  /* if */
+    } else if (operand_expr->kind == (an_expr_node_kind)enk_param_ref &&
+               operand_expr->variant.param_ref.param_num == 0) {
+      /* An enk_param_ref with a parameter number of zero indicates a use
+         of "this" in a prototype instantiation, where there is no variable
+         yet for "this". */
+      is_this = TRUE;
+      /* Leave *p_this_var == NULL. */
     }  /* if */
   }  /* if */
   return is_this;

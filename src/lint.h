@@ -371,8 +371,6 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_cfront_name_lookup_bug)*/
 #endif /* !CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
 #if !ASSIGNMENT_TO_THIS_ALLOWED
-/*lint -esym(759,variable_this_exists)*/
-/*lint -esym(765,variable_this_exists)*/
 /*lint -esym(759,add_constructor_wrapper_code)*/
 /*lint -esym(765,add_constructor_wrapper_code)*/
 /*lint -esym(769,ec_assignment_to_this)*/
