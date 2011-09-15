@@ -30,6 +30,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(755,DSO_NO_OUTPUT_FLAGS)*/
 /*lint -esym(756,a_simple_source_position_ptr)*/
 /*lint -esym(755,set_macro_inv_record_ptr_to_index)*/
+/*lint -esym(755,cpp0x_mode)*/
 /* Entities not used in certain configurations: */
 /*lint -esym(755,EXTERN_C)*/
 /*lint -esym(750,chdir_with_check)*/
