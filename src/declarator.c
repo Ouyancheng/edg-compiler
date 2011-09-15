@@ -1553,37 +1553,6 @@ need not be addressed here.
   return prototyped;
 }  /* is_prototyped_parameter_list_start */
 
-
-static a_boolean function_prototype_scope_is_in_class(a_type_ptr type)
-/*
-Determine whether the current scope (which is a function prototype scope)
-appears in the class scope of the given class type.  For templates, use the
-class template scope.
-(This routine is very similar to set_early_member_function_decl_flags.)
-*/
-{
-  a_boolean                result, instance;
-  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
-
-  check_assertion(ssep->kind == (a_scope_kind)sck_func_prototype);
-  --ssep;
-  instance = (ssep->kind == (a_scope_kind)sck_template_instantiation);
-  if (ssep->kind == (a_scope_kind)sck_template_declaration || instance) {
-    --ssep;
-  }  /* if */
-  /* If an instantiation scope (for a function declaration) sits on top of
-     a class reactivation scope, we are presumably rescanning a function
-     member declared inside a class. */
-  if ((ssep->kind == (a_scope_kind)sck_class_struct_union ||
-       (instance && ssep->kind == (a_scope_kind)sck_class_reactivation)) &&
-      same_entities(ssep->assoc_type, type)) {
-    result = TRUE;
-  } else {
-    result = FALSE;
-  }  /* if */
-  return result;
-} /* function_prototype_scope_is_in_class */
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 /*ARGSUSED*/  /* "state" is currently unused. */
@@ -1878,7 +1847,7 @@ this is a helper function.
       qualifier_err = TRUE;
     } else if (!is_nonstatic_member &&
                !cv_qualifier_with_no_this_class_okay &&
-               (function_prototype_scope_is_in_class(parent_type) ||
+               (state->is_inclass_member_function_decl ||
                 is_static_constructor)) {
       /* This must be the declaration of a static member function inside its
          class definition (or, possibly, a C++/CLI static constructor outside
@@ -1910,7 +1879,7 @@ this is a helper function.
       err_code = is_finalizer ? ec_function_qualifier_on_finalizer
                               : ec_function_qualifier_on_ctor_or_dtor;
       if (microsoft_mode && is_constructor &&
-          !function_prototype_scope_is_in_class(parent_type)) {
+          !state->is_inclass_member_function_decl) {
         /* Microsoft compilers ignore "__restrict" on out-of-class
            constructors. */
         pos_warning(ec_type_qualifier_ignored_on_constructor, &qualifier_pos);
@@ -2031,7 +2000,6 @@ This routine is called when parsing a top-level function declarator (before
 the associated function prototype scope is pushed).  Determine whether this
 declarator is for the declaration (in-class or out-of-class) of a member
 function and update the corresponding flags in *dps.
-(This routine is very similar to function_prototype_scope_is_in_class.)
 */
 {
   a_scope_stack_entry  *ssep = &scope_stack_top();
