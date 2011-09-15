@@ -153,6 +153,7 @@ reflected in start_secondary_declarator.
   ps->template_void_specifier = FALSE;
   ps->is_inclass_member_function_decl = FALSE;
   ps->is_out_of_class_member_function_decl = FALSE;
+  ps->position_of_this_reference_in_trailing_return_set = FALSE;
   ps->prefix_attributes = NULL;
   ps->id_attributes = NULL;
   ps->specifier_attributes = NULL;
@@ -180,6 +181,7 @@ reflected in start_secondary_declarator.
   ps->p_postfix_entities = NULL;
   ps->assoc_func_decl_state = NULL;
   ps->end_of_parse_actions = NULL;
+  ps->position_of_this_reference_in_trailing_return = null_source_position;
 }  /* init_null_decl_parse_state */
 
 
@@ -15457,6 +15459,7 @@ related-fields of *ps prior to scanning the next declarator.
   ps->template_void_specifier = FALSE;
   ps->is_inclass_member_function_decl = FALSE;
   ps->is_out_of_class_member_function_decl = FALSE;
+  ps->position_of_this_reference_in_trailing_return_set = FALSE;
   ps->id_attributes = NULL;
   ps->asm_name = NULL;
   ps->asm_name_pos = null_source_position;

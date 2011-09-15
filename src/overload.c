@@ -8435,9 +8435,42 @@ the case where the left operand is a C++/CLI handle.
 }  /* cast_pointer_for_field_selection */
 
 
-static a_boolean variable_this_exists_full(a_variable_ptr *this_var,
-                                           a_type_ptr     *this_type,
-                                           a_boolean      allow_lambda_this)
+static void check_use_of_this_in_member_decl(a_decl_parse_state *dps)
+/*
+Callback routine called at the end of processing of a member function
+declaration to check whether a reference to "this" in a trailing return
+type was an error because the function turned out to be static.
+*/
+{
+  a_symbol_ptr sym = dps->sym;
+
+  check_assertion(dps != NULL &&
+                  dps->position_of_this_reference_in_trailing_return_set);
+  /* Look at the symbol declared in this declaration. */
+  if (sym != NULL) {
+    a_type_ptr rout_type;
+    if (is_simple_function_symbol(sym)) {
+      rout_type = routine_symbol_type(sym);
+    } else if (sym->kind == (a_symbol_kind)sk_function_template) {
+      rout_type = sym->variant.template_info->variant.function.routine->type;
+    } else {
+      unexpected_condition();
+    }  /* if */
+    check_assertion(rout_type->kind == (a_type_kind)tk_routine);
+    if (rout_type->variant.routine.extra_info->this_class == NULL) {
+      /* The declared routine is static.  Issue an error. */
+      expr_pos_error(ec_this_used_incorrectly,
+                     &dps->position_of_this_reference_in_trailing_return);
+      dps->position_of_this_reference_in_trailing_return_set = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* check_use_of_this_in_member_decl */
+
+
+static a_boolean variable_this_exists_full(a_variable_ptr    *this_var,
+                                           a_type_ptr        *this_type,
+                                           a_boolean         allow_lambda_this,
+                                           a_source_position *used_pos)
 /*
 Return TRUE if there is a currently-visible "this".  If there is, also
 set *this_var to point to the variable entry for it.  If there is a
@@ -8451,8 +8484,9 @@ by the caller.  The captured "this" in a lambda body (which is the
 points to the closure class object) is considered visible only if
 allow_lambda_this is TRUE.  This routine is called only in C++ mode.
 Note that there is no implication yet that the "this" is actually
-being used; we may simply be testing that an implicit "this" is
-available, e.g., during overload resolution.
+being used unless used_pos is non-NULL (in which case it gives the
+position of the reference); we may simply be testing that an
+implicit "this" is available, e.g., during overload resolution.
 */
 {
   a_boolean      this_exists = FALSE;
@@ -8542,7 +8576,15 @@ available, e.g., during overload resolution.
             }  /* if */
           } else {
             /* We don't know if "this" will be valid.  An error check will
-               be needed later. */
+               be needed later.  Only record one reference position in
+               each declarator. */
+            if (used_pos != NULL &&
+                !dps->position_of_this_reference_in_trailing_return_set) {
+              dps->position_of_this_reference_in_trailing_return = *used_pos;
+              dps->position_of_this_reference_in_trailing_return_set = TRUE;
+              /* Get a callback routine invoked to check for the error. */
+              add_end_of_parse_action(check_use_of_this_in_member_decl, dps);
+            }  /* if */
             if (this_type != NULL) {
               /* Use the class from the enclosing class reactivation scope
                  temporarily as the this_class in order to generate the
@@ -8588,7 +8630,8 @@ expression-processing routines.
   a_boolean this_exists;
 
   this_exists = variable_this_exists_full(this_var, this_type,
-                                          /*allow_lambda_this=*/TRUE);
+                                          /*allow_lambda_this=*/TRUE,
+                                          (a_source_position *)NULL);
   return this_exists;
 }  /* variable_this_exists */
 
@@ -8663,6 +8706,13 @@ that case, and this_type is used for the type.
     node->variant.param_ref.param_num = 0;
     node->variant.param_ref.levels_up = 0;
     make_expression_operand(node, result);
+    /* Call variable_this_exists_full again to possibly record a check
+       for an error later.  We already know it returns TRUE. */
+    if (!variable_this_exists_full((a_variable_ptr *)NULL, (a_type_ptr *)NULL,
+                                    /*allow_lambda_this=*/FALSE,
+                                    position)) {
+      unexpected_condition();
+    }  /* if */
   } else if (in_lambda_body()) {
     /* We're inside a lambda body, so the "this" must be the one from
        the function enclosing the lambda.  It needs to be captured to be
@@ -8845,7 +8895,8 @@ is not considered to match.  For "this" in a prototype instantiation
       /* The operand is an rvalue that is the value of a simple variable. */
       operand_var = operand_expr->variant.variable;
       if (variable_this_exists_full(&this_var, (a_type_ptr *)NULL,
-                                    /*allow_lambda_this=*/FALSE) &&
+                                    /*allow_lambda_this=*/FALSE,
+                                    (a_source_position *)NULL) &&
           this_var != NULL) {
         /* There is a current "this" parameter.  See if it matches the
            variable in the operand. */

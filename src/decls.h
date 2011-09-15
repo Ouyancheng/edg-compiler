@@ -628,6 +628,10 @@ typedef struct a_decl_parse_state {
 			   function declaration.  Specifically, this is TRUE
 			   when a function declarator appears at the top-level
 			   in a class reactivation scope. */
+  a_bit_field	position_of_this_reference_in_trailing_return_set:1;
+			/* TRUE if
+			   position_of_this_reference_in_trailing_return is
+			   set to a source position. */
   an_attribute_ptr
 		prefix_attributes;
 			/* A list of non-type-transforming attributes scanned
@@ -754,6 +758,16 @@ typedef struct a_decl_parse_state {
 			   when a feature is encountered with a constraint
 			   that cannot be checked until the whole declaration
 			   has been processed. */
+  a_source_position
+		position_of_this_reference_in_trailing_return;
+			/* If position_of_this_reference_in_trailing_return_set
+			   is TRUE, the source position of a reference to
+			   "this" in the trailing return type of a member
+			   function in a context where we could not check
+			   whether the function is nonstatic or not, and
+			   therefore whether or not "this" can be used.
+			   Checked later in a callback routine to issue an
+			   error. */
 } a_decl_parse_state;
 
 
