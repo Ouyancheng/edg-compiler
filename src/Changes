@@ -62,7 +62,7 @@ This invalid statement entry usually triggered an internal error later on
 This is now fixed.
 
 
-9/14/11  [EDGcpfe/11746,EDGcpfe/11557]
+9/14/11  [EDGcpfe/11876]
 Microsoft compatibility: Friends of local classes
 
 If a local class declares a friend class, that class is looked up in the
