@@ -3536,6 +3536,12 @@ typedef struct a_constant {
 			   expansion.  When that's the case, the correspondence
 			   between initializer constants and initialized
 			   members can't be maintained. */
+#if BACK_END_IS_C_GEN_BE
+  a_bit_field	elide_aggregate_braces:1;
+			/* TRUE for a ck_aggregate constant that should not
+			   be enclosed in braces in the output of the
+			   C-generating back end. */
+#endif /* BACK_END_IS_C_GEN_BE */
   bitfield_to_avoid_codecenter_warnings()
   a_constant_repr_kind
                 kind;

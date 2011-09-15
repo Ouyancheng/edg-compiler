@@ -6774,7 +6774,18 @@ designated initializer.
                                        con->variant.designator.array_element);
     write_tok_ch(']');
   }  /* if */
-  write_tok_str(" = ");
+  if (con->next->kind == (a_constant_repr_kind)ck_aggregate &&
+      con->next->uses_designated_initializers &&
+      !con->next->explicit_braces_on_aggregate) {
+    /* We need to suppress the "=" and braces around a sub-aggregate
+       initializer that did not have them in the source; we do not want to
+       turn something like [0].i=5, which just initializes the i member,
+       into [0]={.i=5}, which zero-initializes all other members of the
+       subaggregate (possibly superseding preceding initializations). */
+    con->next->elide_aggregate_braces = TRUE;
+  } else {
+    write_tok_str(" = ");
+  }  /* if */
 }  /* dump_designator */
 
 
@@ -6936,10 +6947,12 @@ block with state information for the processing.
          class, so we need to suppress the braces for the subobject. */
       suppress_brace_for_base_class_subobject = TRUE;
     }  /* if */
-    /* If generating initializer constants and this is not a base class
-       object with tail padding whose members are promoted into the
-       derived class, output a "{". */
-    if (!*gen_assignments && !suppress_brace_for_base_class_subobject) {
+    /* If generating initializer constants and this is neither a base class
+       object with tail padding whose members are promoted into the derived
+       class nor a subaggregate initializer with a designated initializer
+       and elided braces, output a "{". */
+    if (!*gen_assignments && !suppress_brace_for_base_class_subobject &&
+        !constant->elide_aggregate_braces) {
       initializer_open_brace(icbp);
       need_close_brace = TRUE;
     }  /* if */

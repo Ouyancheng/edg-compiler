@@ -860,6 +860,9 @@ associated variant fields to default values.
   cp->is_literal_field = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cp->is_pack_expansion = FALSE;
+#if BACK_END_IS_C_GEN_BE
+  cp->elide_aggregate_braces = FALSE;
+#endif /* BACK_END_IS_C_GEN_BE */
 #if CENTERLINE_CHECKING
   cp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
