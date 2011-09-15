@@ -203,25 +203,25 @@ a_byte		MANGLED_NAME_OF_UNIQUE_ID_OF_VOID;
 			/* This is used to get the address of the
 			   unique ID for the void type for pointer to
 			   void* conversions. */
-#ifdef __EDG_CPP0X_IL_EXTENSIONS_SUPPORTED
+#ifdef __EDG_CPP11_IL_EXTENSIONS_SUPPORTED
 a_byte		MANGLED_NAME_OF_UNIQUE_ID_OF_NULLPTR;
 			/* This is used to get the address of the
 			   unique ID for the std::nullptr_t type for 
 			   std::nullptr_t to pointer conversions. */
-#endif /* ifdef __EDG_CPP0X_IL_EXTENSIONS_SUPPORTED */
+#endif /* ifdef __EDG_CPP11_IL_EXTENSIONS_SUPPORTED */
 #else /* !ABI_CHANGES_FOR_RTTI */
 a_type_info_impl
                 MANGLED_NAME_OF_VOID;
 			/* This is used to get the address of the
 			   type_info for the void type for pointer to
 			   void* conversions. */
-#ifdef __EDG_CPP0X_IL_EXTENSIONS_SUPPORTED
+#ifdef __EDG_CPP11_IL_EXTENSIONS_SUPPORTED
 a_type_info_impl
                 MANGLED_NAME_OF_NULLPTR;
 			/* This is used to get the address of the
 			   type_info for the std::nullptr_t type for
 			   std::nullptr_t to pointer conversions. */
-#endif /* ifdef __EDG_CPP0X_IL_EXTENSIONS_SUPPORTED */
+#endif /* ifdef __EDG_CPP11_IL_EXTENSIONS_SUPPORTED */
 #endif /* !ABI_CHANGES_FOR_RTTI */
 
 
@@ -1017,7 +1017,7 @@ is returned via nullptr_conv_needed (if it is not NULL).
     }  /* if */
     if (match) {
       /* We already found a match -- doesn't check further. */
-#ifdef __EDG_CPP0X_IL_EXTENSIONS_SUPPORTED
+#ifdef __EDG_CPP11_IL_EXTENSIONS_SUPPORTED
     } else if ((ets_is_ptr ||
                 is_single_level_pointer_to_member(etsp->flags)) &&
 #ifndef __EDG_IA64_ABI
@@ -1035,7 +1035,7 @@ is returned via nullptr_conv_needed (if it is not NULL).
          type. */
       match = TRUE;
       if (nullptr_conv_needed != NULL) *nullptr_conv_needed = TRUE;
-#endif /* ifdef __EDG_CPP0X_IL_EXTENSIONS_SUPPORTED */
+#endif /* ifdef __EDG_CPP11_IL_EXTENSIONS_SUPPORTED */
     } else if (ets_is_ptr != is_ptr) {
       /* One is a pointer and the other is not.  This can't be a match. */
     } else if (!qualifiers_acceptable(etsp->flags, flags)) {

@@ -243,9 +243,9 @@ void __gen_dummy_typeinfos()
   gen_typeinfos(float); 
   gen_typeinfos(double); 
   gen_typeinfos(long double);
-#ifdef __EDG_CPP0X_IL_EXTENSIONS_SUPPORTED
+#ifdef __EDG_CPP11_IL_EXTENSIONS_SUPPORTED
   gen_typeinfos(decltype(nullptr));
-#endif /* ifdef __EDG_CPP0X_IL_EXTENSIONS_SUPPORTED */
+#endif /* ifdef __EDG_CPP11_IL_EXTENSIONS_SUPPORTED */
 #undef gen_typeinfos
 }
   
