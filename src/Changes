@@ -1,5 +1,15 @@
 Version 4.4
 
+9/15/11  [EDGcpfe/EDGcpfe/11716]
+GNU compatibility: Attribute "const" on parameters
+
+In GNU mode, the front end now accepts the "const" attribute on parameter
+declarations.  For example:
+
+  typedef void F();
+  void g(F *pf __attribute((const)));
+
+
 9/15/11  [EDGcpfe/11962]
 C-generating back end: subaggregate designated initializers
 
