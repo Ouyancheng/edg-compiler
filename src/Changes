@@ -1,5 +1,22 @@
 Version 4.4
 
+9/15/11  [EDGcpfe/11956]
+Abort of GNU C redefinition of inline function
+
+In GNU C mode, the front end sometimes accepts a redefinition of an inline
+function (the first definition is ignored after the second one; see Changes
+entry of 6/18/02).  However, if both definitions included an old-style
+parameter declaration, or if the two definition were not compatible, the
+front end was likely to abort later on.  For example:
+
+  extern inline void f(x) int x; {}
+  inline void f(x) int x; {}
+    /* The second definition previously caused an abort in
+       reconcile_routine_types (decls.c). */
+
+This is now fixed.
+
+
 9/15/11  [EDGcpfe/12156]
 C++0x changed to C++11
 
