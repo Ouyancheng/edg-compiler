@@ -6004,7 +6004,7 @@ conv_line_loc_to_source_pos.
 #define macro_line_loc_to_source_pos(loc_in_line, position_var) \
 { if (no_modifs_to_curr_source_line || \
       (within_curr_source_line(loc_in_line) && \
-       orig_line_modif_list == NULL)) { \
+       orig_line_modif_list == NULL && !in_token_insertion_from_string)) { \
     (position_var).seq    = curr_seq_number; \
     (position_var).column = (loc_in_line) - curr_source_line + \
                              1 - logical_column_offset(loc_in_line); \
@@ -18004,15 +18004,16 @@ is used as the beginning and end source position for each token in the string.
   }  /* if */
 
   /* Fetch tokens from the buffer.  Stop on a newline. */
-  while (get_token() != tok_newline) {
+  for (;;) {
     /* All of the tokens should have begin and end positions as specified by
        the caller. */
     pos_curr_token = position_for_tokens;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_pos_curr_token = position_for_tokens;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (get_token() == tok_newline) break;
     cache_curr_token(&cache);
-  }  /* while */
+  }  /* for */
 
   /* Restore the original position from which tokens are being fetched. */
   curr_char_loc = save_curr_char_loc;
