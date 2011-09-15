@@ -1650,6 +1650,10 @@ created for this entity; otherwise, it is NULL.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_source_correspondence  *scptr = NULL;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Don't record cross-references in code from metadata files. */
+  if (in_code_generated_from_metadata()) goto done;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_definition) {
     if (sym_ptr->defined) {
       /* This is a redefinition -- allowed for C variables at file scope, for
@@ -1874,6 +1878,9 @@ created for this entity; otherwise, it is NULL.
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+done:;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* record_symbol_declaration */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -1994,6 +2001,10 @@ IL entry in place of whatever is pointed to by the symbol.
      during the normal processing, so recording them here would result in
      duplicate entries. */
   if (scope_stack_top().in_disambiguation) goto done;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Don't record cross-references in code from metadata files. */
+  if (in_code_generated_from_metadata()) goto done;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* If writing cross-reference information, write an entry for this
      declaration. */
   if (f_xref_info != NULL) {
