@@ -749,10 +749,11 @@ typedef struct a_decl_parse_state {
   a_decl_parse_callback_ptr
 		end_of_parse_actions;
 			/* A list of functions to call at the end of
-			   declaration processing.  Adding items to this list
-			   is handy when a feature is encountered with a
-			   constraint that cannot be checked until the whole
-			   declaration has been processed. */
+			   declaration processing (but before function bodies
+			   are parsed).  Adding items to this list is handy
+			   when a feature is encountered with a constraint
+			   that cannot be checked until the whole declaration
+			   has been processed. */
 } a_decl_parse_state;
 
 
