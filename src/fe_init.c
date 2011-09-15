@@ -183,6 +183,121 @@ Do required initialization for host-dependent things.
 }  /* host_init */
 
 
+static void predeclare_entities(void)
+/*
+Several modes "pre-declare" various entities.  For example, in C++ mode,
+namespace std is commonly predeclared (as are some of its members, like
+type_info).  Other platform-specific entities are also be predeclared here.
+(Additional custom pre-declarations can be added in the function
+enter_system_specific_predeclared_symbols; see sys_predef.c.)
+*/
+{
+  if (!C_mode()) {
+    a_boolean need_std = namespaces_enabled || type_info_in_namespace_std;
+    int       i;
+#if RUNTIME_USES_NAMESPACES
+    need_std = TRUE;
+#endif /* RUNTIME_USES_NAMESPACES */
+    /* coverity[dead_error_line] */
+    if (need_std || ignore_std_namespace ||
+        va_list_in_std_namespace) {  /*lint !e774*/
+      /* Predeclare namespace "std" and create a symbol for it.  Note that
+         the symbol is not actually added to the symbol table until namespace
+         "std" is explicitly declared (unless the --ignore_std option is
+         used or we are in g++ mode). */
+      make_symbol_for_namespace_std();
+      if (ignore_std_namespace || gpp_mode || sun_mode) {
+        /* In --ignore_std mode, enter "std" so it can be used as a
+           synonym for the global namespace.  In g++ and Sun modes, "std" is
+           predeclared. */
+        clear_locator(&locator_for_curr_id, &null_source_position);
+        enter_symbol_for_namespace_std(&locator_for_curr_id);
+      }  /* if */
+    }  /* if */
+#if IA64_ABI
+    /* Predeclare the namespace defined by the IA-64 ABI, which contains
+       the derived classes of type_info, among other things. */
+    make_symbol_for_namespace_abi();
+#endif /* IA64_ABI */
+    /* This is done even when RTTI is not enabled because the type_info
+       struct may still be defined when RTTI is disabled. */
+    for (i = 0; i < (int)tik_last; ++i) {
+      if (type_info_names[i] != NULL) {
+        types_of_type_info[i] = init_predeclared_class((a_type_kind)tk_class,
+                                                       type_info_names[i]);
+      }  /* if */
+    }  /* for */
+    type_of_type_info = types_of_type_info[(int)tik_user];
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode) {
+      /* Microsoft compilers make visible the (incomplete) type_info type
+         visible in the global namespace.  We emulate this only if the
+         type_info type resides in the global namespace. */
+      if (!type_info_in_namespace_std || ignore_std_namespace) {
+        enter_predeclared_class(type_of_type_info, DEPTH_OF_FILE_SCOPE,
+                                &null_source_position);
+      }  /* if */
+      type_of_guid = init_predeclared_class((a_type_kind)tk_struct, "_GUID");
+      enter_predeclared_class(type_of_guid, DEPTH_OF_FILE_SCOPE,
+                              &null_source_position);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    if (gpp_mode && symbol_for_namespace_std != NULL) {
+      /* g++ pre-declares std::type_info as an incomplete type. */
+      if (type_info_in_namespace_std) {
+        a_namespace_ptr  std_namespace =
+                         symbol_for_namespace_std->variant.namespace_info.ptr;
+        (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
+                                   std_namespace);
+        enter_predeclared_class(type_of_type_info, depth_scope_stack,
+                                &null_source_position);
+        pop_namespace_scope();
+      }  /* if */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    /* Add symbols for ::operator new and ::operator delete to the symbol
+       table.  This is delayed till now (rather than done with other symbol
+       table initialization) because routine entries are also created. */
+    make_global_operator_new_or_delete_symbol((an_opname_kind)onk_new);
+    make_global_operator_new_or_delete_symbol((an_opname_kind)onk_delete);
+    if (!microsoft_mode && array_new_and_delete_enabled) {
+      /* Add symbols for the array versions, too.  (Although this is not done
+         explicitly in Microsoft mode, the symbols are sometimes created
+         implicitly when the corresponding non-array versions are created.) */
+      make_global_operator_new_or_delete_symbol((an_opname_kind)onk_array_new);
+      make_global_operator_new_or_delete_symbol(
+                                             (an_opname_kind)onk_array_delete);
+    }  /* if */
+  }  /* if */
+  /* Enter other predeclared symbols, as required by the implementation. */
+  enter_system_specific_predeclared_symbols();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    if (C_mode()) {
+      /* Add a symbol for predeclared _alloca (C mode only). */
+      make_predeclared_alloca_symbol();
+    } else {
+      /* Add a symbol for predeclared size_t (C++ mode only). */
+      make_predeclared_size_t_symbol();
+    }  /* if */
+    if (bool_is_keyword && microsoft_version < 1310) {
+      /* MSVC++ 6.0 and 7.0 treat "bool" as a predeclared typedef name, not
+         a keyword.  This means it can be redeclared to something else in
+         other scopes. */
+      make_predeclared_bool_symbol();
+    }  /* if */
+  }  /* if */
+  if (cppcli_enabled) {
+    /* Add symbol for ::cli namespace. */
+    make_symbol_for_namespace_cli();
+    /* Add symbol for ::System namespace. */
+    make_symbol_for_namespace_system();
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* predeclare_entities */
+
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void enter_underscore_keywords(a_token_kind token,
@@ -1401,95 +1516,7 @@ when it is a secondary file.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   il_header.cli_metadata_files = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (!C_mode()) {
-    a_boolean need_std = namespaces_enabled || type_info_in_namespace_std;
-    int       i;
-#if RUNTIME_USES_NAMESPACES
-    need_std = TRUE;
-#endif /* RUNTIME_USES_NAMESPACES */
-    /* coverity[dead_error_line] */
-    if (need_std || ignore_std_namespace ||
-        va_list_in_std_namespace) {  /*lint !e774*/
-      /* Predeclare namespace "std" and create a symbol for it.  Note that
-         the symbol is not actually added to the symbol table until namespace
-         "std" is explicitly declared (unless the --ignore_std option is
-         used or we are in g++ mode). */
-      make_symbol_for_namespace_std();
-      if (ignore_std_namespace || gpp_mode || sun_mode) {
-        /* In --ignore_std mode, enter "std" so it can be used as a
-           synonym for the global namespace.  In g++ and Sun modes, "std" is
-           predeclared. */
-        clear_locator(&locator_for_curr_id, &null_source_position);
-        enter_symbol_for_namespace_std(&locator_for_curr_id);
-      }  /* if */
-    }  /* if */
-#if IA64_ABI
-    /* Predeclare the namespace defined by the IA-64 ABI, which contains
-       the derived classes of type_info, among other things. */
-    make_symbol_for_namespace_abi();
-#endif /* IA64_ABI */
-    /* This is done even when RTTI is not enabled because the type_info
-       struct may still be defined when RTTI is disabled. */
-    for (i = 0; i < (int)tik_last; ++i) {
-      if (type_info_names[i] != NULL) {
-        types_of_type_info[i] = init_predeclared_class((a_type_kind)tk_class,
-                                                       type_info_names[i]);
-      }  /* if */
-    }  /* for */
-    type_of_type_info = types_of_type_info[(int)tik_user];
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
-      /* Microsoft compilers make visible the (incomplete) type_info type
-         visible in the global namespace.  We emulate this only if the
-         type_info type resides in the global namespace. */
-      if (!type_info_in_namespace_std || ignore_std_namespace) {
-        enter_predeclared_class(type_of_type_info, DEPTH_OF_FILE_SCOPE,
-                                &null_source_position);
-      }  /* if */
-      type_of_guid = init_predeclared_class((a_type_kind)tk_struct, "_GUID");
-      enter_predeclared_class(type_of_guid, DEPTH_OF_FILE_SCOPE,
-                              &null_source_position);
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Add symbols for ::operator new and ::operator delete to the symbol
-       table.  This is delayed till now (rather than done with other symbol
-       table initialization) because routine entries are also created. */
-    make_global_operator_new_or_delete_symbol((an_opname_kind)onk_new);
-    make_global_operator_new_or_delete_symbol((an_opname_kind)onk_delete);
-    if (!microsoft_mode && array_new_and_delete_enabled) {
-      /* Add symbols for the array versions, too.  (Although this is not done
-         explicitly in Microsoft mode, the symbols are sometimes created
-         implicitly when the corresponding non-array versions are created.) */
-      make_global_operator_new_or_delete_symbol((an_opname_kind)onk_array_new);
-      make_global_operator_new_or_delete_symbol(
-                                             (an_opname_kind)onk_array_delete);
-    }  /* if */
-  }  /* if */
-  /* Enter other predeclared symbols, as required by the implementation. */
-  enter_system_specific_predeclared_symbols();
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
-    if (C_mode()) {
-      /* Add a symbol for predeclared _alloca (C mode only). */
-      make_predeclared_alloca_symbol();
-    } else {
-      /* Add a symbol for predeclared size_t (C++ mode only). */
-      make_predeclared_size_t_symbol();
-    }  /* if */
-    if (bool_is_keyword && microsoft_version < 1310) {
-      /* MSVC++ 6.0 and 7.0 treat "bool" as a predeclared typedef name, not
-         a keyword.  This means it can be redeclared to something else in
-         other scopes. */
-      make_predeclared_bool_symbol();
-    }  /* if */
-  }  /* if */
-  if (cppcli_enabled) {
-    /* Add symbol for ::cli namespace. */
-    make_symbol_for_namespace_cli();
-    /* Add symbol for ::System namespace. */
-    make_symbol_for_namespace_system();
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  predeclare_entities();
   if (is_primary_translation_unit) {
     /* We have to wait until now to create name linkage constants to
        ensure that the builtin types that are created for them do not

@@ -1,5 +1,16 @@
 Version 4.4
 
+9/15/11  [EDGcpfe/10811,EDGcpfe/11221,EDGcpfe/12054]
+GNU C++ compatibility: Predeclaring std::type_info
+
+In GNU C++ mode, the front end now predeclares std::type_info.  This makes
+the following example valid:
+
+  std::type_info  *pi;
+
+(The predeclared type is incomplete.)
+
+
 9/15/11  [EDGcpfe/EDGcpfe/11716]
 GNU compatibility: Attribute "const" on parameters
 
