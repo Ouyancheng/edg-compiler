@@ -6421,6 +6421,9 @@ type entry if appropriate, otherwise using the indicated declared_type.
     /* Exception specification mismatch (usually involves predeclared
        functions like new and delete). */
     use_routine_type = FALSE;
+  } else {
+    /* The types can be shared. */
+    use_routine_type = TRUE;
   }  /* if */
   /* Set the declared_type pointer in the routine entry. */
   if (use_routine_type) {
