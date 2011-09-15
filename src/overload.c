@@ -8494,19 +8494,70 @@ available, e.g., during overload resolution.
       this_exists = (local_this_var != NULL);
     }  /* if */
   } else if (this_in_trailing_return_types_enabled &&
-             scope_stack_top().outside_parameter_list) {
+             scope_stack_top().kind == (a_scope_kind)sck_func_prototype) {
     /* In C++11, "this" can be referenced in a late-specified return type.
        There's no "this" variable yet in that case, because there's no
        function memory region yet. */
-    a_type_ptr class_type;
-    a_type_ptr rout_type = scope_stack_top().assoc_type;
-    check_assertion(rout_type != NULL &&
-                    rout_type->kind == (a_type_kind)tk_routine);
-    class_type = rout_type->variant.routine.extra_info->this_class;
-    if (class_type != NULL) {
-      this_exists = TRUE;
-      if (this_type != NULL) {
-        local_this_type = f_implicit_this_param_type_of(rout_type);
+    a_scope_stack_entry_ptr ssep;
+    /* Loop through all the function prototype scopes, because there may be
+       nested function declarators, and the "this" from the enclosing
+       member function declarator should be visible in the nested
+       declarators. */
+    for (ssep = &scope_stack_top();
+         ssep->kind == (a_scope_kind)sck_func_prototype;
+         ssep = previous_scope_of(ssep)) {
+      check_assertion(ssep != NULL);
+      /* "this" is visible after the closing parenthesis of certain
+         function declarators. */
+      if (ssep->outside_parameter_list) {
+        a_decl_parse_state_ptr dps = ssep->decl_parse_state;
+        a_type_ptr             rout_type = ssep->assoc_type;
+        check_assertion(dps != NULL &&
+                        rout_type != NULL &&
+                        rout_type->kind == (a_type_kind)tk_routine);
+        if (dps->is_inclass_member_function_decl) {
+          /* For an in-class member function declaration, we know whether or
+             not the function is static and therefore whether or not "this"
+             can be referenced. */
+          if (rout_type->variant.routine.extra_info->this_class != NULL) {
+            this_exists = TRUE;
+            if (this_type != NULL) {
+              local_this_type = f_implicit_this_param_type_of(rout_type);
+            }  /* if */
+            break;
+          }  /* if */
+        } else if (dps->is_out_of_class_member_function_decl) {
+          /* For an out-of-class member function declaration, we don't yet
+             know the function this definition will match up with, so we
+             have to allow the reference to "this" and issue an error later if
+             it turns out the function matched is static. */
+          this_exists = TRUE;
+          if (rout_type->variant.routine.extra_info->this_class != NULL) {
+            /* When the declaration has explicit cv-qualifiers, we know
+               the function will be nonstatic even though we don't know which
+               function it will be, so "this" is permitted and no error
+               check is needed later. */
+            if (this_type != NULL) {
+              local_this_type = f_implicit_this_param_type_of(rout_type);
+            }  /* if */
+          } else {
+            /* We don't know if "this" will be valid.  An error check will
+               be needed later. */
+            if (this_type != NULL) {
+              /* Use the class from the enclosing class reactivation scope
+                 temporarily as the this_class in order to generate the
+                 presumed "this" type. */
+              a_scope_stack_entry_ptr ssepr = ssep-1;
+              check_assertion(ssepr->kind ==
+                                         (a_scope_kind)sck_class_reactivation);
+              rout_type->variant.routine.extra_info->this_class =
+                                                             ssepr->assoc_type;
+              local_this_type = f_implicit_this_param_type_of(rout_type);
+              rout_type->variant.routine.extra_info->this_class = NULL;
+            }  /* if */
+          }  /* if */
+          break;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
