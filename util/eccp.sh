@@ -560,8 +560,9 @@ check_abbreviation()
 --c99
 --c++
 --c++0x
---c++0x_sfinae
---c++0x_sfinae_ignore_access
+--c++11
+--c++11_sfinae
+--c++11_sfinae_ignore_access
 --c++cli
 --c_to_obj_lib
 --c_to_obj_options
@@ -674,8 +675,9 @@ check_abbreviation()
 --no_brief_diagnostics
 --no_c99
 --no_c++0x
---no_c++0x_sfinae
---no_c++0x_sfinae_ignore_access
+--no_c++11
+--no_c++11_sfinae
+--no_c++11_sfinae_ignore_access
 --no_c++cli
 --no_check_concatenations
 --no_class_name_injection
@@ -1202,10 +1204,12 @@ process_option()
     -# | --timing | \
          --c++ | \
          --c++0x | \
+         --c++11 | \
          --c89 | \
          --c99 | \
          --no_c99 | \
          --no_c++0x | \
+         --no_c++11 | \
          --display_error_number | \
          --no_display_error_number | \
          --dollar | \
@@ -1389,10 +1393,10 @@ process_option()
          --no_auto_storage | \
          --nullptr | \
          --no_nullptr | \
-         --c++0x_sfinae | \
-         --no_c++0x_sfinae | \
-         --c++0x_sfinae_ignore_access | \
-         --no_c++0x_sfinae_ignore_access | \
+         --c++11_sfinae | \
+         --no_c++11_sfinae | \
+         --c++11_sfinae_ignore_access | \
+         --no_c++11_sfinae_ignore_access | \
          --variadic_templates | \
          --no_variadic_templates | \
          --using_framework_directory | \
@@ -1409,8 +1413,8 @@ process_option()
             cc_command=$cc_command" "$EDG_C_TO_OBJ_C99_OPTIONS
           fi
           ;;
-        -b | --c++ | --c++0x | --no_c++0x | --cfront_2.1 | --cfront_3.0 | \
-	--g++ | --no_g++)
+        -b | --c++ | --c++11 | --no_c++11 | --cfront_2.1 | --cfront_3.0 | \
+	--c++0x | --no_c++0x | --g++ | --no_g++)
           c_mode=0
           ;;
 	--no_preproc_only)
