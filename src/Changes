@@ -1,5 +1,30 @@
 Version 4.4
 
+9/15/11  [EDGcpfe/12156]
+C++0x changed to C++11
+
+All uses of C++0x, c++0x, cpp0x, and CPP0X in the source code and
+documentation have been changed to C++11, etc.  The --c++0x and --no_c++0x
+command-line options have been preserved (in addition to --c++11 and
+--no_c++11) for compatibility purposes.  In addition, a cpp0x_mode macro
+that expands to cpp11_mode has been supplied to reduce the impact on
+customer code.  The following may require changes in customer code or
+code that uses the front end:
+
+- Alternate versions of the --c++11_sfinae... options have not been provided,
+  so any of the --c++0x_sfinae... options will need to be changed.
+
+- The following macros, which formerly had CPP0X in their names, have been
+  changed to use CPP11.  If you use or set these macros, you will need
+  make changes to use the new names:
+
+    CPP11_IL_EXTENSIONS_SUPPORTED
+    DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING
+    DEFAULT_CPP11_SFINAE_ENABLED
+    DEFAULT_CPP11_SFINAE_IGNORE_ACCESS
+    DEFAULT_CPP11_MODE
+
+
 9/14/11  [EDGcpfe/9815]
 Abort on GNU C-mode void return expression in presence of VLAs
 
