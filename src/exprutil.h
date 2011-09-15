@@ -706,7 +706,7 @@ typedef struct an_expr_stack_entry {
 			   context that permits such constructs. */
   a_byte_boolean
 		is_type_operator_arg_expression;
-			/* TRUE if the expression is the argument for a C++0x
+			/* TRUE if the expression is the argument for a C++11
 			   decltype construct, a GNU typeof construct, or an
 			   __underlying_type construct. */
   a_byte_boolean
@@ -777,7 +777,7 @@ typedef struct an_expr_stack_entry {
 			/* TRUE if any error was detected and suppressed
 			   because suppress_diagnostics is TRUE.  Access
 			   errors may or may not set this flag depending on
-			   cpp0x_sfinae_ignore_access. */
+			   cpp11_sfinae_ignore_access. */
   a_byte_boolean
 		possible_rescan_context;
 			/* TRUE if the expression being scanned is in a context
@@ -785,7 +785,7 @@ typedef struct an_expr_stack_entry {
 			   for template deduction.  Extra information is saved
 			   that will be needed to redo the semantic analysis
 			   on the expression.  Only set when
-			   cpp0x_sfinae_enabled is TRUE. */
+			   cpp11_sfinae_enabled is TRUE. */
   a_byte_boolean
 		in_static_initializer;
 			/* TRUE if we're inside the initializer of an entity

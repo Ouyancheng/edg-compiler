@@ -329,7 +329,7 @@ nor qualifier.
   ((tp)->source_corresp.name != NULL)
 
 /*
-Return TRUE if a tk_typeref type represents a C++0x decltype,
+Return TRUE if a tk_typeref type represents a C++11 decltype,
 __underlying_type, or GNU typeof construct.
 */
 #if GNU_EXTENSIONS_ALLOWED

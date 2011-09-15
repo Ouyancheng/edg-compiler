@@ -480,7 +480,7 @@ current expression (used to decide how a comma should be treated).
       break;
     case tok_shift_right:
       /* ">>" can be the end of a template argument list in some modes.
-         E.g., A<B<2>> in C++0x mode.  It's not if there is a set of
+         E.g., A<B<2>> in C++11 mode.  It's not if there is a set of
          parentheses or the like inside the template argument expression,
          since the ">>" is then not top-level. */
       if (right_shift_can_be_angle_brackets &&
@@ -5640,7 +5640,7 @@ be called from outside of the expression processing routines.
     tap->arg_operand = alloc_arg_operand();
     operand = &tap->arg_operand->operand;
     make_constant_operand(tap->variant.constant, operand);
-    if (cpp0x_sfinae_enabled) {
+    if (cpp11_sfinae_enabled) {
       an_expr_rescan_info_entry_ptr eriep =
                                        orig_tap->variant.constant->rescan_info;
       check_assertion_str(eriep != NULL,
@@ -7640,14 +7640,14 @@ case.
         } else if (property_ref_case) {
           /* No further checking here. */
         } else if (cppcli_enabled && is_scoped_enum_type(operand->type)) {
-          /* C++/CLI, unlike standard C++0x, defines built-in ++ and -- for
+          /* C++/CLI, unlike standard C++11, defines built-in ++ and -- for
              scoped enumeration types. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (C_dialect == C_dialect_cplusplus &&
                    is_enum_type(operand->type)) {
           /* Enum types are not allowed (except for scoped enums in C++/CLI
              mode).  An unscoped enum promotes to integer for the operation,
-             and then can't get back to enum.  C++0x scoped enumerations don't
+             and then can't get back to enum.  C++11 scoped enumerations don't
              promote, but the standard doesn't define built-in increment or
              decrement operations for them. */
           if (allow_anachronisms) {
@@ -7909,14 +7909,14 @@ and return the result in *result (or an error indication in *rcblock).
         } else if (property_ref_case) {
           /* No further checking here. */
         } else if (cppcli_enabled && is_scoped_enum_type(operand.type)) {
-          /* C++/CLI, unlike standard C++0x, defines built-in ++ and -- for
+          /* C++/CLI, unlike standard C++11, defines built-in ++ and -- for
              scoped enumeration types. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (C_dialect == C_dialect_cplusplus &&
                    is_enum_type(operand.type)) {
           /* Enum types are not allowed (except for scoped enums in C++/CLI
              mode).  An unscoped enum promotes to integer for the operation,
-             and then can't get back to enum.  C++0x scoped enumerations don't
+             and then can't get back to enum.  C++11 scoped enumerations don't
              promote, but the standard doesn't define built-in increment or
              decrement operations for them. */
           if (allow_anachronisms) {
@@ -10856,7 +10856,7 @@ general_case:
 
 static a_scope_depth scope_depth_to_allocate_decltype_expr(void)
 /*
-We are about to scan the argument expression for a C++0x decltype or GNU typeof
+We are about to scan the argument expression for a C++11 decltype or GNU typeof
 construct.  Compute a scope depth from which a memory region for the
 expression can be determined.  Ordinarily, depth_scope_stack will do, but if
 we are inside a local class, we want the expression tree to be stored in the
@@ -10910,7 +10910,7 @@ source sequence entry list.  Return a pointer to the created entry.
 a_type_ptr scan_decltype_operator(a_rescan_control_block *rcblock,
                                   a_decl_pos_block       *decl_pos_block)
 /*
-Scan the decltype operator.  This is a C++0x construct that is similar to
+Scan the decltype operator.  This is a C++11 construct that is similar to
 sizeof (in that its argument is not evaluated), but returns a type rather
 than a size.  It is used in type contexts, not expression contexts.
 
@@ -11207,7 +11207,7 @@ expression-processing routines.
 
 a_type_ptr scan_underlying_type_operator(void)
 /*
-Scan the __underlying_type operator.  This is a C++0x construct that is
+Scan the __underlying_type operator.  This is a C++11 construct that is
 similar to decltype.  It is used in type contexts, not expression contexts.
 
 Syntax:
@@ -18967,7 +18967,7 @@ static void scan_compound_literal(a_type_ptr               *p_literal_type,
                                   an_operand               *result,
                                   a_local_expr_options_set local_options)
 /*
-Scan a compound literal (or if list_init is TRUE, a C++0x "list initializer").
+Scan a compound literal (or if list_init is TRUE, a C++11 "list initializer").
 For the syntax and constraints of compound literals, see 6.5.2.5 in the C99
 standard (they are also allowed in some C++ modes, e.g., GNU C++).  A compound
 literal looks like a cast in which the source expression is a brace-enclosed
@@ -18981,7 +18981,7 @@ expressions -- list_init is TRUE in that case.  E.g.,
   struct S { int x, y; };
   S f() { return { 1, 2 }; }
 
-("list initializers" are a more general C++0x language feature not yet
+("list initializers" are a more general C++11 language feature not yet
 implemented in the front end.  However, some GNU C++ system headers use that
 feature in return statements with a simple aggregate return type.  To enable
 processing of these headers, we treat that case much like compound literals
@@ -20074,7 +20074,7 @@ that case.
       /* Okay. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled && is_scoped_enum_type(operand_1->type)) {
-      /* Scoped enum types are okay in C++/CLI mode but not in C++0x mode. */
+      /* Scoped enum types are okay in C++/CLI mode but not in C++11 mode. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_VECTOR_TYPES_ALLOWED
     } else if (gnu_mode && is_vector_type(operand_1->type)) {
@@ -25014,9 +25014,9 @@ normal_function:
                 expr_stack->objectless_nonstatic_data_ref_pos =
                                                        locator.source_position;
                 is_objectless_nonstatic_data_mem_ref = TRUE;
-                if (sun_mode || cpp0x_mode) {
+                if (sun_mode || cpp11_mode) {
                   /* Objectless references to non-static data members are
-                     permitted in C++0x and accepted by the Sun compiler. */
+                     permitted in C++11 and accepted by the Sun compiler. */
                 } else if (strict_ansi_mode) {
                   expr_pos_diagnostic(strict_ansi_discretionary_severity,
                                       ec_member_ref_requires_object,
@@ -25717,7 +25717,7 @@ rather than a static variable.
        but as of 3.3 they are still strings.  In 3.4 they are variables. */
     is_string = (token != tok_func_name);
   } else {
-    /* Other cases (C99, C++0x, g++): use a static variable. */
+    /* Other cases (C99, C++11, g++): use a static variable. */
     is_string = FALSE;
   }  /* if */
   return is_string;
@@ -25777,9 +25777,9 @@ If do_concat is TRUE, do concatenation of any subsequent string literals.
       case tok_func_name:
       case tok_function_name:
         if ((microsoft_mode && !C_mode()) ||
-            (cpp0x_mode && curr_token == tok_func_name)) {
+            (cpp11_mode && curr_token == tok_func_name)) {
           /* Microsoft's __FUNCTION__ expands to the fully qualified name of
-             the function.  In C++0x mode, we use the same expansion for
+             the function.  In C++11 mode, we use the same expansion for
              __func__. */
           an_il_to_str_output_control_block octl;
           clear_il_to_str_output_control_block(&octl);
@@ -29194,10 +29194,10 @@ required_type will be void if the expression should have void type
     }  /* if */
   }  /* if */
   if (curr_token == tok_lbrace && gpp_mode && !lambda_implicit_return_case) {
-    /* GNU C++ allows C++0x list initializers even in non-C++0x modes.  We
+    /* GNU C++ allows C++11 list initializers even in non-C++11 modes.  We
        currently accept only a small subset of such cases, and treat them like
        compound literals. */
-    if (!cpp0x_mode) {
+    if (!cpp11_mode) {
       pos_warning(ec_list_initializer_nonstandard_in_current_mode,
                   &pos_curr_token);
     }  /* if */

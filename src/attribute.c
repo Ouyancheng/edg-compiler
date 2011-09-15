@@ -153,7 +153,7 @@ typedef struct an_attr_descr {
 			   attribute is accepted.  The encoding consists of an
 			   optional prefix (see below) followed by a condition
 			   string cstr.  cstr[0] indicates the attribute
-			   family: 'c' for [[...]] (standard C++0x), 'g' for
+			   family: 'c' for [[...]] (standard C++11), 'g' for
 			   __attribute((...)) in GNU modes, 's' for
 			   __attribute((...)) in Sun mode, and 'm' for
 			   __declspec(...) in Microsoft mode.  cstr[1] is

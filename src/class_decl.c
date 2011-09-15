@@ -4432,7 +4432,7 @@ static a_boolean class_member_name_marked_as_hiding(a_symbol_ptr         csym,
                                                     a_symbol_header_ptr  hdr)
 /*
 Return TRUE if a member of the class represented by csym with the name
-represented by hdr was declared with the C++0x attribute "hiding".
+represented by hdr was declared with the C++11 attribute "hiding".
 */
 {
   a_boolean  result = FALSE;
@@ -4467,7 +4467,7 @@ Check for cases where a set of overloaded virtual functions in the base class
 was only partially overridden and issue a diagnostic if appropriate.
 Similarly, check for virtual functions that are hidden rather than overridden.
 (Whether a diagnostic is issued at all and the severity of any diagnostics is
-dependent on the use of the C++0x attributes "base_check" and "hiding".)
+dependent on the use of the C++11 attributes "base_check" and "hiding".)
 */
 {
   a_symbol_ptr  tag_sym = symbol_for(class_state->class_type);
@@ -4495,7 +4495,7 @@ dependent on the use of the C++0x attributes "base_check" and "hiding".)
              declarations projected through a using-declaration. */
           goto next;
         } else {
-          /* Issue a diagnostic, unless the C++0x attribute "hiding" was
+          /* Issue a diagnostic, unless the C++11 attribute "hiding" was
              specified on the function's name in the derived class. */
           if (!class_member_name_marked_as_hiding(
                                      tag_sym, orep->overridden_sym->header)) {
@@ -12353,7 +12353,7 @@ func_info describe the current member function declaration.
   } else if (pure_specifier_allowed &&
              (rout->final || class_type->variant.class_struct_union.final)) {
     /* Making a pure virtual member sealed/final is useless, but while
-       Microsoft makes the "sealed" case an error, the C++0x standard does not
+       Microsoft makes the "sealed" case an error, the C++11 standard does not
        prohibit the "[[final]]" case. */
     an_attribute_ptr  final_ap =
                     find_attribute(ak_final, rout->source_corresp.attributes);
@@ -17278,7 +17278,7 @@ distinguish an alias declaration from a using-declaration.)
         ((next_tok = next_token()) == tok_assign ||
          (std_attributes_enabled && next_tok == tok_lbracket))) {
       /* An identifier followed by a "=" or a bracket (presumably the start of
-         C++0x-style attributes): This looks like an alias declaration. */
+         C++11-style attributes): This looks like an alias declaration. */
       a_decl_parse_state  dps;
       init_decl_parse_state(&dps);
       dps.in_class_scope = TRUE;
@@ -17967,7 +17967,7 @@ Check that this is a valid type and if so make member_type a friend.
        mode).  The working paper for the next standard allows many other
        forms (e.g., "friend int;", but not "friend int const;").  We
        implement those rules when extended_friends_enabled is TRUE (e.g.,
-       in C++0x mode). */
+       in C++11 mode). */
     a_boolean  normal_friend_type =
                                (!extended_friends_enabled ||  /* For speed. */
                                 is_class_struct_union_type(member_type) ||
@@ -21045,7 +21045,7 @@ passed via template_decl.
       }  /* if */
       if (curr_token == tok_assign) {
         /* Look for a pure specifier ("= 0"), which may appear on virtual
-           functions, but don't attempt to scan past a C++0x "= default" or
+           functions, but don't attempt to scan past a C++11 "= default" or
            "= delete" construct. */
         a_token_kind  next_tok = next_token();
         if (next_tok != tok_delete && next_tok != tok_default) {
@@ -21693,7 +21693,7 @@ static void check_base_member_hiding(a_class_def_state  *class_state)
 /*
 class_state describes a class definition that was just completed.  Diagnose
 unintentional hiding of base class members as appropriate.  This may include
-issuing errors if the class was defined with the C++0x attribute "base_check". 
+issuing errors if the class was defined with the C++11 attribute "base_check". 
 Also diagnose cases where a member declared with the "hiding" attribute does
 not actually hide a base class member.
 */
@@ -22654,7 +22654,7 @@ classes.
       need_restore_pack_alignment_statate = TRUE;
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-    if ((cpp0x_mode || microsoft_mode) &&
+    if ((cpp11_mode || microsoft_mode) &&
         !scope_stack_top().defer_access_checks) {
        /* Access checking of the base specifiers must be done in the context
           of the complete class.  Defer checks in the current scope if this
@@ -23156,7 +23156,7 @@ next_declaration:
             struct E: B, X<B::N> {};
         As an approximation of that behavior we use the C++11 rules in
         Microsoft C++ mode. */
-    if (cpp0x_mode || microsoft_mode) {
+    if (cpp11_mode || microsoft_mode) {
       perform_deferred_access_checks_at_depth(depth_scope_stack-1);
     }  /* if */
     /* Pop the scope created for the class definition. */
@@ -23743,7 +23743,7 @@ The heavy lifting for this routine is performed by scan_function_body.
 
 a_lambda_ptr scan_lambda(void)
 /*
-Scan a C++0x lambda construct and return a pointer to an a_lambda entry
+Scan a C++11 lambda construct and return a pointer to an a_lambda entry
 describing it.  If errors do not permit the construction of a consistent
 entry, return NULL.
 

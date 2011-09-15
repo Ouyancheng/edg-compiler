@@ -4782,13 +4782,13 @@ void check_constituent_types_have_linkage(a_symbol_ptr      sym,
 					  a_boolean         is_declaration)
 /*
 Check whether an entity with linkage was declared using types without linkage.
-Before C++0x such declarations were not allowed by the language (but were
-accepted in some cases).  In C++0x the rules were relaxed to allow such
+Before C++11 such declarations were not allowed by the language (but were
+accepted in some cases).  In C++11 the rules were relaxed to allow such
 declarations provided the entity is either unused or is defined in the
 translation unit.
 
 The global variable decls_using_types_without_linkage_allowed is used to
-specify which behavior is to be checked.  When it is TRUE (C++0x behavior),
+specify which behavior is to be checked.  When it is TRUE (C++11 behavior),
 the caller is responsible for calling this routine only for referenced entities
 that have not been defined.
 
@@ -4868,7 +4868,7 @@ flag when is_declaration is TRUE.
          declarations with linkage is already diagnosed elsewhere. */
       expect_error();
     } else if (decls_using_types_without_linkage_allowed) {
-      /* C++0x behavior: An error is issued because programs that get this
+      /* C++11 behavior: An error is issued because programs that get this
          diagnostic would fail at link time.  (Since Microsoft compilers
          accept such cases, only a warning is issued in Microsoft mode.) */
       if (microsoft_mode) {
@@ -4879,7 +4879,7 @@ flag when is_declaration is TRUE.
                           error_pos, sym);
       }  /* if */
     } else {
-      /* Pre-C++0x behavior: Issue an error (except in cfront, Microsoft, and
+      /* Pre-C++11 behavior: Issue an error (except in cfront, Microsoft, and
          GNU C++ compatibility modes). */
       if (any_cfront_mode() ||
           (microsoft_mode && (is_function || microsoft_version < 1200)) ||
@@ -4896,7 +4896,7 @@ flag when is_declaration is TRUE.
     /* Use of a type that does not have linkage.
        E.g., typedef enum { e1 } *pE; void f(pE); */
     if (decls_using_types_without_linkage_allowed) {
-      /* C++0x behavior: An error is issued because programs that get this
+      /* C++11 behavior: An error is issued because programs that get this
          diagnostic would fail at link time.  (Since Microsoft compilers
          accept such cases, only a warning is issued in Microsoft mode.) */
       if (microsoft_mode) {
@@ -4908,7 +4908,7 @@ flag when is_declaration is TRUE.
                           error_pos, sym);
       }  /* if */
     } else {
-      /* Pre-C++0x behavior: In strict mode, we issue a discretionary error.
+      /* Pre-C++11 behavior: In strict mode, we issue a discretionary error.
          In other modes, we issue a warning for functions and a remark for
          variables (the variable case is not all that uncommon and few other
          compilers diagnose it at all). */
@@ -10408,7 +10408,7 @@ common cases.
   copy_source_position(pos_curr_token, dps->start_pos);
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED | DSI_NO_REAL_DECLARATOR;
   if (dps->is_trailing_return_type) {
-    /* When scanning a C++0x trailing return type, top-level class definitions
+    /* When scanning a C++11 trailing return type, top-level class definitions
        should not be considered.  E.g., in "[]()->struct S {}" the "{}" is
        considered to be the lambda body; not the definition of S. */
     dsi_flags |= DSI_NO_TAG_DEFINITION;
@@ -14250,7 +14250,7 @@ proceed after the call.
         goto done;
       }  /* if */
       /* Usually, a right brace is expected, but some cases end with a
-         semicolon: C++0x deleted and defaulted functions, as well as the
+         semicolon: C++11 deleted and defaulted functions, as well as the
          Microsoft/GNU extension that allows a nondefining out-of-class member
          declaration. */
       if (func_info->is_deleted || func_info->is_defaulted ||
@@ -15125,7 +15125,7 @@ indicates how processing should proceed after the call.
          return. */
       end_of_decl_action = eoda_skip_final_token;
     } else if (curr_token == tok_using) {
-      /* An alias-declaration ("using <identifier> = ... ", C++0x only), a
+      /* An alias-declaration ("using <identifier> = ... ", C++11 only), a
          using-directive (which has the form "using namespace N;"), or a
          using-declaration ("using N::x;" or "using ::x;"). */
       a_source_position  end_of_using_pos;
@@ -15145,7 +15145,7 @@ indicates how processing should proceed after the call.
             ((next_tok = next_token()) == tok_assign ||
              (std_attributes_enabled && next_tok == tok_lbracket))) {
           /* An identifier followed by a "=" or a bracket (presumably the
-             start of C++0x-style attributes): This looks like an alias
+             start of C++11-style attributes): This looks like an alias
              declaration. */
           alias_declaration(state, &end_of_using_pos);
         } else {
@@ -15154,8 +15154,8 @@ indicates how processing should proceed after the call.
       }  /* if */
       cannot_bind_to_curr_construct();
       end_of_decl_action = eoda_check_semicolon;
-    } else if (cpp0x_mode && curr_token == tok_semicolon) {
-      /* C++0x allows empty declarations. */
+    } else if (cpp11_mode && curr_token == tok_semicolon) {
+      /* C++11 allows empty declarations. */
       cannot_bind_to_curr_construct();
       attach_decl_attributes(state, /*primary_decl=*/FALSE);
       end_of_decl_action = eoda_check_semicolon;

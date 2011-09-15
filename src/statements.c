@@ -6738,7 +6738,7 @@ e.g., ({ ... }).
   }  /* while */
 
   /* Scan the sequence of statements.  (Note that we may end up here during
-     preprocessing error recovery if a C++0x lambda or GNU statement
+     preprocessing error recovery if a C++11 lambda or GNU statement
      expression appears in a #if directive; hence, the test for
      tok_newline.) */
   while (curr_token != tok_rbrace && curr_token != tok_end_of_source &&

@@ -2572,7 +2572,7 @@ set).
   if (!flag) {
     rp->definition_for_inlining_only = FALSE;
     rp->suppress_inline_body = FALSE;
-  } else if (cpp0x_mode && strict_ansi_mode &&
+  } else if (cpp11_mode && strict_ansi_mode &&
              !rp->is_inline && !rp->compiler_generated && rp->defined) {
     a_symbol_ptr  sym = symbol_for(rp);
     pos2_sy_diagnostic(es_error, ec_first_inline_after_definition,
@@ -13992,7 +13992,7 @@ static a_boolean operator_is_foldable(an_expr_node_ptr  expr)
 /*
 Return TRUE if the indicated enk_operation expression node should be folded
 when doing template argument substitution.  Note that this applies to
-old-style SFINAE, and not the new-style SFINAE of C++0X.  See
+old-style SFINAE, and not the new-style SFINAE of C++11.  See
 expr_is_rescannable for the equivalent routine for new-style SFINAE.
 */
 {
@@ -14392,7 +14392,7 @@ TRUE.
   /* Note that this routine is imperfect for explicit casts; we don't know
      the exact kind of cast.  However, this routine's processing for
      explicit casts is mostly for historical compatibility.  When
-     modern SFINAE rules are enabled (cpp0x_sfinae_enabled is TRUE),
+     modern SFINAE rules are enabled (cpp11_sfinae_enabled is TRUE),
      explicit casts are rescanned in normal expression processing, and
      all the right checking is done.  So the imperfections here are
      not important, and may in fact be correct for compatibility with older
@@ -14466,7 +14466,7 @@ options is a set of name lookup options.
 #endif /* CHECKING */
 
   *alloc_con = NULL;
-  if (cpp0x_sfinae_enabled && expr_is_rescannable(expr)) {
+  if (cpp11_sfinae_enabled && expr_is_rescannable(expr)) {
     /* Redo the semantic analysis on the expression, after substitution.
        This makes a copy of the expression, even of parts that are
        not changed by substitution, so the original expression remains
@@ -14520,7 +14520,7 @@ options is a set of name lookup options.
       } else if (!operator_is_foldable(expr)) {
         /* For operators we can't ever fold (e.g., calls), give up on
            deduction.  Note that this implements old rules for deduction.
-           When cpp0x_sfinae_enabled is TRUE, a broader range of operators
+           When cpp11_sfinae_enabled is TRUE, a broader range of operators
            are rescanned at the expression level instead of here. */
         *copy_error = TRUE;
       } else {
@@ -14884,8 +14884,8 @@ Also used for typeof cases; "type" can be consulted to tell the difference.
 {
   a_type_ptr new_type = NULL;
 
-  if (cpp0x_sfinae_enabled) {
-    /* C++0X SFINAE rules: do the substitution by rescanning. */
+  if (cpp11_sfinae_enabled) {
+    /* C++11 SFINAE rules: do the substitution by rescanning. */
     new_type = decltype_of_expr_with_substitution(type,
                                                   expr,
                                                   template_arg_list,
@@ -14894,7 +14894,7 @@ Also used for typeof cases; "type" can be consulted to tell the difference.
                                                   copy_error,
                                                   ctws_state);
   } else {
-    /* Pre-C++0x SFINAE rules apply, so deduction fails. */
+    /* Pre-C++11 SFINAE rules apply, so deduction fails. */
     *copy_error = TRUE;
   }  /* if */
   return new_type;
@@ -15457,7 +15457,7 @@ name lookup options.
       default:
         unexpected_condition_str("copy_template_param_con: unexpected kind");
     }  /* switch */
-  } else if (cpp0x_sfinae_enabled &&
+  } else if (cpp11_sfinae_enabled &&
              is_instantiation_dependent_type(con->type)) {
     /* A constant that is not a ck_template_param but that does have an
        instantiation-dependent type.  Do substitution on it to see if
@@ -18397,7 +18397,7 @@ a_boolean expr_might_throw(an_expr_node_ptr expr)
 /*
 Return TRUE if evaluating the given expression might cause an exception
 to be thrown.  See the definition of the "noexcept" operator in the
-C++0x standard [expr.unary.noexcept].
+C++11 standard [expr.unary.noexcept].
 */
 {
   an_expr_or_stmt_traversal_block tblock;

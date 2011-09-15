@@ -379,14 +379,14 @@ do_dependent_name_processing.  This controls whether the 2-phase lookup
 of template names is performed as required by the standard.  It also
 controls whether prototype instantiations of function bodies and default
 arguments are done.  The variable can also be controlled from the command
-line by --[no_]dep_name.  There's a separate default for C++0X mode.
+line by --[no_]dep_name.  There's a separate default for C++11 mode.
 */
 #ifndef DEFAULT_DEPENDENT_NAME_PROCESSING
 #define DEFAULT_DEPENDENT_NAME_PROCESSING FALSE
 #endif /* DEFAULT_DEPENDENT_NAME_PROCESSING */
-#ifndef DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING
-#define DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING TRUE
-#endif /* DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING */
+#ifndef DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING
+#define DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING TRUE
+#endif /* DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING */
 
 /*
 Flag that is used as the default setting for the global variable
@@ -394,7 +394,7 @@ export_template_allowed.  This controls whether the processing required
 to define and use exported templates should be done.  The variable can
 also be controlled from the command line by --[no_]export.  Note that
 exported templates were taken out of the C++ language and are turned off
-by default in C++0X mode.
+by default in C++11 mode.
 */
 #ifndef DEFAULT_EXPORT_TEMPLATE_ALLOWED
 #define DEFAULT_EXPORT_TEMPLATE_ALLOWED FALSE
@@ -1257,25 +1257,25 @@ variable auto_storage_class_specifier_enabled.
 #endif /* !DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED && ... */
 
 /*
-Flag that is TRUE if in C++ mode the C++0x SFINAE rules of N2634
+Flag that is TRUE if in C++ mode the C++11 SFINAE rules of N2634
 should be enabled by default.  The feature is implicitly enabled in
-C++0x mode, and implicitly disabled in Microsoft and GNU modes, so
+C++11 mode, and implicitly disabled in Microsoft and GNU modes, so
 this macro really sets the default for "default" mode.  This macro is
-used to initialize the global variable cpp0x_sfinae_enabled.
+used to initialize the global variable cpp11_sfinae_enabled.
 */
-#ifndef DEFAULT_CPP0X_SFINAE_ENABLED
-#define DEFAULT_CPP0X_SFINAE_ENABLED FALSE
-#endif /* DEFAULT_CPP0X_SFINAE_ENABLED */
+#ifndef DEFAULT_CPP11_SFINAE_ENABLED
+#define DEFAULT_CPP11_SFINAE_ENABLED FALSE
+#endif /* DEFAULT_CPP11_SFINAE_ENABLED */
 
 /*
-Flag that is TRUE if, when C++0x SFINAE is enabled (see above), access
+Flag that is TRUE if, when C++11 SFINAE is enabled (see above), access
 errors are not counted as errors that make deduction fail.  In N2634
 access errors are ignored, but the committee changed its mind about that
 later.
 */
-#ifndef DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS
-#define DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS FALSE
-#endif /* DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS */
+#ifndef DEFAULT_CPP11_SFINAE_IGNORE_ACCESS
+#define DEFAULT_CPP11_SFINAE_IGNORE_ACCESS FALSE
+#endif /* DEFAULT_CPP11_SFINAE_IGNORE_ACCESS */
 
 /*
 Flag that is TRUE if, in C++ mode, wchar_t is a keyword by default.  This is
@@ -1551,7 +1551,7 @@ EXTERN a_boolean
 			   C99 standard. */
 
 /*
-Flag that is TRUE if the C99 and C++ (beginning with C++0x) predefined
+Flag that is TRUE if the C99 and C++ (beginning with C++11) predefined
 macro __STDC_HOSTED__ should be set to 1 to indicate a hosted
 implementation.  If it is FALSE, the macro is predefined to 0 to indicate a
 non-hosted implementation.
@@ -2077,14 +2077,14 @@ initial value of the global variable check_concatenations.
 #endif /* ifndef DEFAULT_CHECK_CONCATENATIONS */
 
 /*
-Flag that is TRUE if U-literals (as specified by ISO/IEC TR 19769 and C++0x)
+Flag that is TRUE if U-literals (as specified by ISO/IEC TR 19769 and C++11)
 should be accepted by default (i.e., it's the initial value of the global
 variable uliterals_enabled).  The flag is also the default value for
 char16_t_and_char32_t_are_keywords which specifies whether, in C++ mode,
 char16_t and char32_t are keywords.  In C++ mode, it's likely that these global
 variables will have the same value (though they need not).  In C mode,
 char16_t_and_char32_t_are_keywords is always FALSE.  These options are both
-enabled in C++0x mode.  The default can be overridden using the
+enabled in C++11 mode.  The default can be overridden using the
 --[no_]uliterals command line options.
 */
 #ifndef DEFAULT_ULITERALS_ENABLED
@@ -2092,15 +2092,19 @@ enabled in C++0x mode.  The default can be overridden using the
 #endif /* DEFAULT_ULITERALS_ENABLED */
 
 EXTERN a_boolean
-		cpp0x_mode;
+		cpp11_mode;
 			/* When TRUE accept language features defined by the
 			   current working paper for the next C++ standard. */
+
+#define cpp0x_mode cpp11_mode
+			/* Macro provided so that customer code that uses the
+			   old variable name will continue to work. */
 
 EXTERN a_boolean
 		right_shift_can_be_angle_brackets;
 			/* When TRUE, treat right shift (">>") tokens as
 			   double closing angle brackets (as mandated by the
-			   C++0x working paper). */
+			   C++11 standard). */
 
 /*
 Flag that determines the value of right_shift_can_be_angle_brackets in default
@@ -2114,8 +2118,8 @@ EXTERN a_boolean
 		extended_friends_enabled;
 			/* When TRUE, allow the form "friend <type-name>;"
 			   where <type-name> is not necessarily an elaborated
-			   type specifier (an extension specified in the C++0x
-			   working paper). */
+			   type specifier (an extension specified in the C++11
+			   standard). */
 
 EXTERN a_boolean
 		mixed_string_concat_enabled;
@@ -2127,53 +2131,53 @@ EXTERN a_boolean
 
 EXTERN a_boolean
 		static_assert_enabled;
-			/* When TRUE, the C++0x construct static_assert is
+			/* When TRUE, the C++11 construct static_assert is
 			   supported. */
 
 EXTERN a_boolean
 		auto_type_specifier_enabled;
 			/* When TRUE, the "auto" token can appear as a type
 			   specifier (the type is implied by the mandatory
-			   initializer; this is a C++0x feature). */
+			   initializer; this is a C++11 feature). */
 
 EXTERN a_boolean
 		auto_storage_class_specifier_enabled;
 			/* When TRUE, the "auto" token can appear as a storage
 			   class specifier (this is the traditional meaning of
 			   "auto"; the variable is TRUE by default in all
-			   non-C++0x modes). */
+			   non-C++11 modes). */
 
 EXTERN a_boolean
 		decltype_enabled;
-			/* When TRUE, the C++0x construct decltype is
+			/* When TRUE, the C++11 construct decltype is
 			   supported. */
 
 EXTERN a_boolean
 		enable_underscore_decltype_only;
 			/* When TRUE in GNU C++ mode with decltype_enabled set
-			   to TRUE, the C++0x keyword decltype is disabled,
+			   to TRUE, the C++11 keyword decltype is disabled,
 			   but the alternative __decltype is enabled with the
 			   same meaning as the standard token. */
 
 EXTERN a_boolean
 		nullptr_enabled;
-			/* When TRUE, the C++0x keyword "nullptr" is
+			/* When TRUE, the C++11 keyword "nullptr" is
 			   enabled. */
 
 EXTERN a_boolean
-		cpp0x_sfinae_enabled;
-			/* When TRUE, the C++0x SFINAE rules of N2634 are
+		cpp11_sfinae_enabled;
+			/* When TRUE, the C++11 SFINAE rules of N2634 are
 			   enabled. */
 
 EXTERN a_boolean
-		cpp0x_sfinae_ignore_access;
-			/* When cpp0x_sfinae_enabled is TRUE and this is TRUE,
+		cpp11_sfinae_ignore_access;
+			/* When cpp11_sfinae_enabled is TRUE and this is TRUE,
 			   access checking errors are ignored and do not cause
 			   deduction failure. */
 
 /*
 Flag that determines the value of variadic_templates_enabled in C++ modes
-other than C++0x (where it is by default TRUE).  Does not affect the value
+other than C++11 (where it is by default TRUE).  Does not affect the value
 of the flag in Microsoft, GNU, and Sun modes.
 */
 #ifndef DEFAULT_VARIADIC_TEMPLATES_ENABLED

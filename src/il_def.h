@@ -960,7 +960,7 @@ typedef enum /*a_token_kind*/ {
   tok_nan,
   /* Token for __INFINITY__, for an Infinity constant (C99 and other modes). */
   tok_infinity,
-  /* C++0x types: char16_t and char32_t. */
+  /* C++11 types: char16_t and char32_t. */
   tok_char16_t,
   tok_char32_t,
   /* Tokens for fixed-point type support ("_Fract", "_Accum", and "_Sat"). */
@@ -1977,7 +1977,7 @@ typedef struct a_name_reference {
 typedef struct an_attribute_group *an_attribute_group_ptr;
 typedef struct an_attribute_group {
   /* Structure to represent an attribute group.  E.g., [[noreturn]] or
-     [[noreturn, final]] in C++0x, or __attribute((noreturn)) in GNU modes.
+     [[noreturn, final]] in C++11, or __attribute((noreturn)) in GNU modes.
      Note that attribute groups do not appear on lists, nor are they pointed
      to directly by entities to which they apply.  Instead, the entities
      point to the attributes contained by the group, and those attributes
@@ -2068,7 +2068,7 @@ typedef enum an_attribute_family_tag {
   af_internal,		/* To annotate IL properties that do not come from an
 			   attribute-like construct.  E.g., on a template this
 			   might reflect the effect of a #pragma directive. */
-  af_std,		/* An attribute specified using the standard C++0x
+  af_std,		/* An attribute specified using the standard C++11
 			   syntax [[ ... ]]. */
   af_gnu,		/* An attribute specified using the GNU __attribute
 			   syntax.  (The GNU syntax is emulated by other
@@ -2144,7 +2144,7 @@ typedef enum an_attribute_kind_tag {
   ak_unrecognized,	/* For unrecognized attributes. */
   ak_empty_attr,	/* A pseudo-attribute marking the presence of an empty
 			   attribute.  Usually this appears in entirely empty
-			   groups (like [[]] in C++0x), but in GNU modes, a
+			   groups (like [[]] in C++11), but in GNU modes, a
 			   group can contain multiple empty attributes (e.g.,
 			   __attribute((,,,)) ). */
 
@@ -4596,7 +4596,7 @@ typedef struct a_param_type {
 			   parameter involves a template parameter in any
 			   context. */
   a_bit_field	is_parameter_pack:1;
-			/* TRUE if this entry represent a C++0x function
+			/* TRUE if this entry represent a C++11 function
 			   parameter pack of a variadic template.  This is
 			   set for the prototype instantiation of
 			   variadic templates. */
@@ -4664,7 +4664,7 @@ typedef struct a_param_type {
 		entities_defined_in_default_arg;
 			/* A list of entities defined in the default argument
 			   associated with this parameter.  Currently, this
-			   list only has C++0x closure types. */
+			   list only has C++11 closure types. */
   an_attribute_ptr
 		attributes;
 			/* The set of attributes applicable to this
@@ -5428,7 +5428,7 @@ typedef struct a_routine_type_supplement {
 			   and old_style_params_scanned also FALSE. */
   a_bit_field	trailing_return_type:1;
 			/* TRUE for function declarators specifying a trailing
-			   return type (a C++0x feature).  E.g. "f()->int".
+			   return type (a C++11 feature).  E.g. "f()->int".
 			   The composite type based on two routine types has
 			   this flag TRUE if either of the two original types
 			   has this flag set to TRUE. */
@@ -7488,10 +7488,10 @@ typedef struct a_type {
 		is_reference:1;
 			/* If TRUE, this type is a C++ reference type.  (This
 			   includes both ordinary ("lvalue") references, and
-			   C++0x rvalue references.) */
+			   C++11 rvalue references.) */
       a_bit_field
 		is_rvalue_reference:1;
-			/* If TRUE, this type is a C++0x rvalue reference
+			/* If TRUE, this type is a C++11 rvalue reference
 			   type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       a_bit_field
@@ -7708,7 +7708,7 @@ typedef struct a_type {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
 		final:1;
-			/* TRUE if this class was defined with the C++0x
+			/* TRUE if this class was defined with the C++11
 			   attribute "final" or the Microsoft-mode context-
 			   sensitive keyword "sealed".  Such a class type
 			   cannot be used as a base class. */
@@ -8747,7 +8747,7 @@ typedef struct a_variable {
 		entities_defined_in_initializer;
 			/* A list of entities defined in the initializer
 			   associated with this variable, if this is a static
-			   data member.  Currently, this list only has C++0x
+			   data member.  Currently, this list only has C++11
 			   closure types. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_property_or_event_descr_ptr
@@ -15640,7 +15640,7 @@ typedef struct an_ms_attribute {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
-Entry used to represent a C++0x lambda.  Such an entry is pointed to by an
+Entry used to represent a C++11 lambda.  Such an entry is pointed to by an
 enk_lambda node (and allocated in the same memory region as that node).
 */
 typedef struct a_lambda {
@@ -15862,7 +15862,7 @@ enum a_scope_kind_tag {
 			   that is an initialized declaration for an if,
 			   switch, for, "for each", or while statement. */
   sck_enum,
-			/* The scope associated with a C++0x scoped enum
+			/* The scope associated with a C++11 scoped enum
 			   type. */
   sck_function,		/* Function scope. */
   sck_none		/* No scope kind or scope kind not known. */

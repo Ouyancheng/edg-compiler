@@ -253,7 +253,7 @@ typedef enum /*an_option_kind*/ {
   optk_default_calling_convention,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_type_traits_helpers,
-  optk_cpp0x_mode,
+  optk_cpp11_mode,
   optk_list_macros,
 #if DUMP_CONFIG_ENABLED
   optk_dump_configuration,
@@ -277,8 +277,8 @@ typedef enum /*an_option_kind*/ {
   optk_default_nocommon,
 #endif /* GNU_EXTENSIONS_ALLOWED */
   optk_token_separators_in_pp_output,
-  optk_cpp0x_sfinae,
-  optk_cpp0x_sfinae_ignore_access,
+  optk_cpp11_sfinae,
+  optk_cpp11_sfinae_ignore_access,
   optk_variadic_templates,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   optk_cppcli,
@@ -983,7 +983,7 @@ EXTERN a_boolean
 EXTERN a_boolean
 		explicit_conversion_functions_enabled;
 			/* TRUE if support for explicit conversion function
-			   members (a C++0x and C++/CLI feature) should be
+			   members (a C++11 and C++/CLI feature) should be
 			   enabled. */
 
 EXTERN a_boolean
@@ -991,23 +991,23 @@ EXTERN a_boolean
 			/* TRUE if the syntax "enum X: base-type { ... }"
 			   should be accepted.  (This was originally a
 			   Microsoft extension based on ECMA-372 C++/CLI, and
-			   was later adopted in C++0x.) */
+			   was later adopted in C++11.) */
 
 EXTERN a_boolean
 		enum_qualifiers_enabled;
 			/* TRUE if an enumerator constant can be qualified
 			   with an enumerator name.  E.g.:
 			      enum E { e };  E x = E::e;
-			   This is a C++0x feature originally introduced in
+			   This is a C++11 feature originally introduced in
 			   some Microsoft compilers. */
 
 EXTERN a_boolean
 		lambdas_enabled;
-			/* TRUE if C++0x lambdas should be accepted in C++. */
+			/* TRUE if C++11 lambdas should be accepted in C++. */
 
 EXTERN a_boolean
 		rvalue_references_enabled;
-			/* TRUE if C++0x rvalue references should be accepted
+			/* TRUE if C++11 rvalue references should be accepted
 			   in C++. */
 
 EXTERN a_boolean
@@ -1020,11 +1020,11 @@ EXTERN a_boolean
 EXTERN a_boolean
 		defaulted_special_members_enabled;
 			/* TRUE if special member functions can be defined
-			   with the C++0x "= default" syntax. */
+			   with the C++11 "= default" syntax. */
 
 EXTERN a_boolean
 		deleted_functions_enabled;
-			/* TRUE if functions can be declared with the C++0x
+			/* TRUE if functions can be declared with the C++11
 			   "= delete" syntax. */
 
 EXTERN a_boolean
@@ -1037,7 +1037,7 @@ EXTERN a_boolean
 			/* TRUE if an entity with linkage can be declared
 			   using a type without linkage provided the
 			   entity is defined in the translation unit if
-			   used.  This is the rule used in C++0x and it must
+			   used.  This is the rule used in C++11 and it must
 			   be used when local and unnamed types can be
 			   used as template arguments. */
 
@@ -1045,7 +1045,7 @@ EXTERN a_boolean
 		trailing_return_types_enabled;
 			/* TRUE if a function return type may trail the
 			   corresponding function declarator (in syntax like
-			   "(int, int)->int").  This is a C++0x extension. */
+			   "(int, int)->int").  This is a C++11 extension. */
 
 EXTERN a_boolean
 		this_in_trailing_return_types_enabled;
@@ -1054,17 +1054,17 @@ EXTERN a_boolean
 
 EXTERN a_boolean
 		alias_declarations_enabled;
-			/* TRUE if C++0x alias-declarations and alias templates
+			/* TRUE if C++11 alias-declarations and alias templates
 			   are allowed. */
 
 EXTERN a_boolean
 		variadic_templates_enabled;
-			/* TRUE if C++0x variadic templates (i.e., parameter
+			/* TRUE if C++11 variadic templates (i.e., parameter
 			   packs) are accepted. */
 
 EXTERN a_boolean
 		std_attributes_enabled;
-			/* TRUE if C++0x attribute syntax (e.g., [[final]]) is
+			/* TRUE if C++11 attribute syntax (e.g., [[final]]) is
 			   accepted. */
 
 EXTERN a_boolean

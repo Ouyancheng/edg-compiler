@@ -135,7 +135,7 @@ extensions.
   || ((tok) == tok_c99_bool or_is_complex_type_keyword(tok))
 
 /*
-Macro to be used in conjunction with is_type_keyword to check for c++0x
+Macro to be used in conjunction with is_type_keyword to check for C++11
 extensions.
 */
 #define or_is_cxx0x_type_keyword(tok)                                     \
@@ -593,7 +593,7 @@ typedef struct a_decl_parse_state {
 			   "literal" was seen in a member declaration. */
   a_bit_field	override_okay:1;
 			/* TRUE if this is a member function on which the
-			   "override" attribute (C++0x) attribute or modifier
+			   "override" attribute (C++11) attribute or modifier
 			   (Microsoft) can be specified. */
   a_bit_field	initializer_is_expr_list:1;
 			/* TRUE if the part of the entity's initializer being

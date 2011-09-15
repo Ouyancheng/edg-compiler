@@ -1206,12 +1206,18 @@ Initialize the option information table.
                          "no_type_traits_helpers",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#if CPP0X_IL_EXTENSIONS_SUPPORTED
-  /* These c++0x command-line options are only enabled when the back end
+#if CPP11_IL_EXTENSIONS_SUPPORTED
+  /* These C++11 command-line options are only enabled when the back end
      (and possibly runtime library) can provide support for the features. */
-  add_option_description(optk_cpp0x_mode, "c++0x", '\0', /*value=*/TRUE,
+  add_option_description(optk_cpp11_mode, "c++11", '\0', /*value=*/TRUE,
                          /*arg_required=*/FALSE, pchek_command_line);
-  add_option_description(optk_cpp0x_mode, "no_c++0x", '\0', /*value=*/FALSE,
+  add_option_description(optk_cpp11_mode, "no_c++11", '\0', /*value=*/FALSE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  /* Before the C++11 name was adopted, C++0x was used.  Keep the old
+     option names for compatibility. */
+  add_option_description(optk_cpp11_mode, "c++0x", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_cpp11_mode, "no_c++0x", '\0', /*value=*/FALSE,
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_lambdas, "lambdas", '\0', /*value=*/TRUE,
                          /*arg_required=*/FALSE, pchek_command_line);
@@ -1235,20 +1241,20 @@ Initialize the option information table.
                          "rvalue_ctor_is_not_copy_ctor",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_cpp0x_sfinae,
-                         "c++0x_sfinae", '\0',
+  add_option_description(optk_cpp11_sfinae,
+                         "c++11_sfinae", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_cpp0x_sfinae,
-                         "no_c++0x_sfinae", '\0',
+  add_option_description(optk_cpp11_sfinae,
+                         "no_c++11_sfinae", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_cpp0x_sfinae_ignore_access,
-                         "c++0x_sfinae_ignore_access", '\0',
+  add_option_description(optk_cpp11_sfinae_ignore_access,
+                         "c++11_sfinae_ignore_access", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_cpp0x_sfinae_ignore_access,
-                         "no_c++0x_sfinae_ignore_access", '\0',
+  add_option_description(optk_cpp11_sfinae_ignore_access,
+                         "no_c++11_sfinae_ignore_access", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
   add_option_description(optk_variadic_templates,
@@ -1259,7 +1265,7 @@ Initialize the option information table.
                          "no_variadic_templates", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
+#endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
   add_option_description(optk_list_macros, "list_macros", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE, pchek_none);
 #if DUMP_CONFIG_ENABLED
@@ -1976,7 +1982,7 @@ by a command line option.
     /* A friend class declaration finds names made visible by
        using-directives. */
     friend_class_decl_can_find_using_dir = TRUE;
-    /* Extended friend class declaration syntax (standard in C++0x) is
+    /* Extended friend class declaration syntax (standard in C++11) is
        accepted for all values of microsoft_version. */
     extended_friends_enabled = TRUE;
     extern_template_allowed = TRUE;
@@ -1991,7 +1997,7 @@ by a command line option.
       if (!option_kind_used[(int)optk_type_traits_helpers]) {
         type_traits_helpers_enabled = TRUE;
       }  /* if */
-      /* MSVC++ 8 follows the C++0x rules for treating the single ">>" token as
+      /* MSVC++ 8 follows the C++11 rules for treating the single ">>" token as
          two ">" tokens in angle bracket contexts. */
       right_shift_can_be_angle_brackets = TRUE;
       local_types_as_template_args_enabled = TRUE;
@@ -2011,7 +2017,7 @@ by a command line option.
         rvalue_ctor_is_copy_ctor = FALSE;
       }  /* if */
       trailing_return_types_enabled = TRUE;
-#if CPP0X_IL_EXTENSIONS_SUPPORTED
+#if CPP11_IL_EXTENSIONS_SUPPORTED
       /* These options require back end support that may not be available. */
       static_assert_enabled = TRUE;
       if (!option_kind_used[(int)optk_lambdas]) {
@@ -2020,19 +2026,19 @@ by a command line option.
       if (!option_kind_used[(int)optk_rvalue_references]) {
         rvalue_references_enabled = TRUE;
       }  /* if */
-#endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
+#endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
     }  /* if */
-#if CPP0X_IL_EXTENSIONS_SUPPORTED
+#if CPP11_IL_EXTENSIONS_SUPPORTED
     if (!option_kind_used[(int)optk_nullptr]) {
       nullptr_enabled = (microsoft_version >= 1600 || cppcli_enabled);
     }  /* if */
-#endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
-    if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
-        !option_kind_used[(int)optk_cpp0x_mode]) {
-      cpp0x_sfinae_enabled = (microsoft_version >= 1600);
+#endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
+    if (!option_kind_used[(int)optk_cpp11_sfinae] &&
+        !option_kind_used[(int)optk_cpp11_mode]) {
+      cpp11_sfinae_enabled = (microsoft_version >= 1600);
     } /* if */
-    if (!option_kind_used[(int)optk_cpp0x_sfinae_ignore_access]) {
-      if (cpp0x_sfinae_enabled) cpp0x_sfinae_ignore_access = FALSE;
+    if (!option_kind_used[(int)optk_cpp11_sfinae_ignore_access]) {
+      if (cpp11_sfinae_enabled) cpp11_sfinae_ignore_access = FALSE;
     }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
@@ -2349,8 +2355,8 @@ process.
   trailing_return_types_enabled = FALSE;
   this_in_trailing_return_types_enabled = FALSE;
   nullptr_enabled = FALSE;
-  cpp0x_sfinae_enabled = FALSE;
-  cpp0x_sfinae_ignore_access = FALSE;
+  cpp11_sfinae_enabled = FALSE;
+  cpp11_sfinae_ignore_access = FALSE;
   variadic_templates_enabled = FALSE;
 #if DO_IL_LOWERING
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
@@ -2523,11 +2529,11 @@ setting is used, and to set various unmentioned settings as needed.
 }  /* check_and_set_c_mode_options */
 
 
-static void check_and_set_cpp0x_mode_options(void)
+static void check_and_set_cpp11_mode_options(void)
 /*
-Enable any features specific to C++0x (i.e., features not in the published C++
+Enable any features specific to C++11 (i.e., features not in the published C++
 standards of 1998 or 2003, but currently present in the working paper for the
-next standard).  In addition, enable some pre-C++0x standard features that are 
+next standard).  In addition, enable some pre-C++11 standard features that are 
 not always enabled in default mode (e.g., exception handling).
 */
 {
@@ -2552,10 +2558,10 @@ not always enabled in default mode (e.g., exception handling).
     auto_storage_class_specifier_enabled = FALSE;
   }  /* if */
   if (!option_kind_used[(int)optk_dependent_name_processing]) {
-    do_dependent_name_processing = DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING;
+    do_dependent_name_processing = DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING;
   }  /* if */
   if (!option_kind_used[(int)optk_parse_nonclass_templates]) {
-    nonclass_prototype_instantiations=DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING;
+    nonclass_prototype_instantiations=DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING;
   }  /* if */
   extern_template_allowed = TRUE;
   standard_form_of_extern_template = TRUE;
@@ -2585,38 +2591,38 @@ not always enabled in default mode (e.g., exception handling).
   if (!option_kind_used[(int)optk_nullptr]) {
     nullptr_enabled = TRUE;
   }  /* if */
-  if (!option_kind_used[(int)optk_cpp0x_sfinae]) {
-    cpp0x_sfinae_enabled = TRUE;
+  if (!option_kind_used[(int)optk_cpp11_sfinae]) {
+    cpp11_sfinae_enabled = TRUE;
   }  /* if */
-  if (!option_kind_used[(int)optk_cpp0x_sfinae_ignore_access]) {
-    if (cpp0x_sfinae_enabled) {
-      cpp0x_sfinae_ignore_access = DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS;
+  if (!option_kind_used[(int)optk_cpp11_sfinae_ignore_access]) {
+    if (cpp11_sfinae_enabled) {
+      cpp11_sfinae_ignore_access = DEFAULT_CPP11_SFINAE_IGNORE_ACCESS;
     }  /* if */
   }  /* if */
   if (!(option_kind_used[(int)optk_export_template])) {
     /* If export template processing was not explicitly set by a command line
-       option, disable it in C++0x mode. */
+       option, disable it in C++11 mode. */
     export_template_allowed = FALSE;
   }  /* if */
   explicit_conversion_functions_enabled = TRUE;
   if (!option_kind_used[(int)optk_uliterals]) {
-    /* Enable U-literals by default in C++0x mode (unless they were explicitly
+    /* Enable U-literals by default in C++11 mode (unless they were explicitly
        mentioned on the command line).  This also has the effect of enabling
        char16_t/char32_t keywords. */
     uliterals_enabled = TRUE;
   }  /* if */
-}  /* check_and_set_cpp0x_mode_options */
+}  /* check_and_set_cpp11_mode_options */
 
 
-static void check_and_set_default_cpp0x_extensions(void)
+static void check_and_set_default_cpp11_extensions(void)
 /*
-Some C++0x features are enabled in default (i.e., non-C++-0x) C++ mode, but
-not in other non-C++0x modes (like non-C++0x Microsoft mode).  This routine
+Some C++11 features are enabled in default (i.e., non-C++-0x) C++ mode, but
+not in other non-C++11 modes (like non-C++11 Microsoft mode).  This routine
 enables the appropriate extensions in default C++ mode.  Individual features
-may get enabled in the other non-C++0x modes.
+may get enabled in the other non-C++11 modes.
 */
 {
-  check_assertion(!C_mode() && !cpp0x_mode);
+  check_assertion(!C_mode() && !cpp11_mode);
   if (!strict_ansi_mode &&
       !microsoft_mode && !gpp_mode && !sun_mode && !any_cfront_mode()) {
     right_shift_can_be_angle_brackets =
@@ -2628,7 +2634,7 @@ may get enabled in the other non-C++0x modes.
     extern_template_allowed = TRUE;
     standard_form_of_extern_template = TRUE;
   }  /* if */
-}  /* check_and_set_default_cpp0x_extensions */
+}  /* check_and_set_default_cpp11_extensions */
 
 
 static void check_and_set_cplusplus_mode_options(void)
@@ -2705,10 +2711,10 @@ setting is used, and to set various unmentioned settings as needed.
       !microsoft_mode && !sun_mode) {
     variadic_templates_enabled = DEFAULT_VARIADIC_TEMPLATES_ENABLED;
   }  /* if */
-  if (cpp0x_mode) {
-    check_and_set_cpp0x_mode_options();
+  if (cpp11_mode) {
+    check_and_set_cpp11_mode_options();
   } else {
-    check_and_set_default_cpp0x_extensions();
+    check_and_set_default_cpp11_extensions();
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (option_kind_used[(int)optk_gnu_c89_inlining]) {
@@ -2890,24 +2896,24 @@ an otherwise implicitly enabled GNU C++ mode.
 }  /* exclude_gpp_mode */
 
 
-static void exclude_cpp0x_mode(an_error_code  error_code)
+static void exclude_cpp11_mode(an_error_code  error_code)
 /*
-C++0x mode is incompatible with other settings.  Either issue the given
+C++11 mode is incompatible with other settings.  Either issue the given
 diagnostic (error_code) if the conflict is explicit, or silently turn off
-an otherwise implicitly enabled C++0x mode.
+an otherwise implicitly enabled C++11 mode.
 */
 {
-  if (cpp0x_mode) {
-    if (option_kind_used[(int)optk_cpp0x_mode]) {
-      /* C++0x mode was enabled by a command line option. */
+  if (cpp11_mode) {
+    if (option_kind_used[(int)optk_cpp11_mode]) {
+      /* C++11 mode was enabled by a command line option. */
       command_line_error(error_code);
     } else {
-      /* C++0x mode was enabled by default.  Silently disable it since an
+      /* C++11 mode was enabled by default.  Silently disable it since an
          explicit mode setting on the command line overrides it. */
-      cpp0x_mode = FALSE;
+      cpp11_mode = FALSE;
     }  /* if */
   }  /* if */
-}  /* exclude_cpp0x_mode */
+}  /* exclude_cpp11_mode */
 
 
 static void check_and_set_ansi_mode_options(void)
@@ -2970,9 +2976,9 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
        strict mode. */
     allow_dollar_in_id_chars = FALSE;
   }  /* if */
-  if (!option_kind_used[(int)optk_uliterals] && !cpp0x_mode) {
+  if (!option_kind_used[(int)optk_uliterals] && !cpp11_mode) {
     /* Support for U-literals (U... and u...) is off by default in strict
-       mode (but not in strict C++0x mode). */
+       mode (but not in strict C++11 mode). */
     uliterals_enabled = FALSE;
   }  /* if */
   if (!option_kind_used[(int)optk_check_concatenations]) {
@@ -3162,7 +3168,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
       /* If export template processing was not explicitly set by a command line
          option, set it now. */
       export_template_allowed = EXPORT_ENABLING_POSSIBLE &&
-                                !cpp0x_mode; /*lint !e506*/
+                                !cpp11_mode; /*lint !e506*/
     }  /* if */
     if (!(option_kind_used[(int)optk_nonstandard_using_decl])) {
       /* If nonstandard using-decl was not explicitly set by a command line
@@ -3195,10 +3201,10 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
     if (!option_kind_used[(int)optk_exception_handling]) {
       exceptions_enabled = TRUE;
     }  /* if */
-    if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
-        !cpp0x_mode) {
-      cpp0x_sfinae_enabled = FALSE;
-      cpp0x_sfinae_ignore_access = FALSE;
+    if (!option_kind_used[(int)optk_cpp11_sfinae] &&
+        !cpp11_mode) {
+      cpp11_sfinae_enabled = FALSE;
+      cpp11_sfinae_ignore_access = FALSE;
     }  /* if */
     if (ignore_std_namespace) {
       /*  An option to treat namespace std as an alias for the global
@@ -3579,22 +3585,22 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
 #if DO_IL_LOWERING
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
-  if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
-      !option_kind_used[(int)optk_cpp0x_mode]) {
-    cpp0x_sfinae_enabled = (gnu_version >= 30400);
+  if (!option_kind_used[(int)optk_cpp11_sfinae] &&
+      !option_kind_used[(int)optk_cpp11_mode]) {
+    cpp11_sfinae_enabled = (gnu_version >= 30400);
   } /* if */
-  if (!option_kind_used[(int)optk_cpp0x_sfinae_ignore_access]) {
+  if (!option_kind_used[(int)optk_cpp11_sfinae_ignore_access]) {
     /* g++ 4.4 at least seems to ignore access checking. */
-    if (cpp0x_sfinae_enabled) cpp0x_sfinae_ignore_access = TRUE;
+    if (cpp11_sfinae_enabled) cpp11_sfinae_ignore_access = TRUE;
   }  /* if */
-  if (!cpp0x_mode && gnu_version >= 40300) {
+  if (!cpp11_mode && gnu_version >= 40300) {
     /* g++ 4.3 enabled the decltype feature unconditionally via the __decltype
-       keyword (the decltype keyword is only enabled in C++0x mode). */
+       keyword (the decltype keyword is only enabled in C++11 mode). */
     decltype_enabled = TRUE;
     enable_underscore_decltype_only = TRUE;
   }  /* if */
   if (gnu_version >= 40500) {
-    /* GCC 4.5 and later accept explicit conversion functions even in non-C++0x
+    /* GCC 4.5 and later accept explicit conversion functions even in non-C++11
        mode (with a warning, which we don't issue). */
     explicit_conversion_functions_enabled = TRUE;
   }  /* if */
@@ -3783,7 +3789,7 @@ order of development of this front end, and is inconsistent and strange.
     exclude_cfront_mode(ec_cl_incompatible_language_modes);
     exclude_sun_mode(ec_cl_sun_mode_only_in_cplusplus);
     exclude_gpp_mode(ec_cl_incompatible_language_modes);
-    exclude_cpp0x_mode(ec_cl_incompatible_language_modes);
+    exclude_cpp11_mode(ec_cl_incompatible_language_modes);
   }  /* if */
   if (C_dialect == C_dialect_pcc) {
     /* Issue an error for specifying a language mode that is valid only
@@ -4262,11 +4268,11 @@ file.
 #else /* !defined(CPPCLI_PORTABLE_ASSEMBLY_PATH) */
   comment_undefined_macro_name(CPPCLI_PORTABLE_ASSEMBLY_PATH);
 #endif /* defined(CPPCLI_PORTABLE_ASSEMBLY_PATH) */
-#if defined(CPP0X_IL_EXTENSIONS_SUPPORTED)
-  define_numeric_valued_macro(CPP0X_IL_EXTENSIONS_SUPPORTED);
-#else /* !defined(CPP0X_IL_EXTENSIONS_SUPPORTED) */
-  comment_undefined_macro_name(CPP0X_IL_EXTENSIONS_SUPPORTED);
-#endif /* defined(CPP0X_IL_EXTENSIONS_SUPPORTED) */
+#if defined(CPP11_IL_EXTENSIONS_SUPPORTED)
+  define_numeric_valued_macro(CPP11_IL_EXTENSIONS_SUPPORTED);
+#else /* !defined(CPP11_IL_EXTENSIONS_SUPPORTED) */
+  comment_undefined_macro_name(CPP11_IL_EXTENSIONS_SUPPORTED);
+#endif /* defined(CPP11_IL_EXTENSIONS_SUPPORTED) */
 #if defined(CTORS_RETURN_THIS)
   define_numeric_valued_macro(CTORS_RETURN_THIS);
 #else /* !defined(CTORS_RETURN_THIS) */
@@ -4451,26 +4457,26 @@ file.
 #else /* !defined(DEFAULT_CPPCLI_ENABLED) */
   comment_undefined_macro_name(DEFAULT_CPPCLI_ENABLED);
 #endif /* defined(DEFAULT_CPPCLI_ENABLED) */
-#if defined(DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING)
-  define_numeric_valued_macro(DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING);
-#else /* !defined(DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING) */
-  comment_undefined_macro_name(DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING);
-#endif /* defined(DEFAULT_CPP0X_DEPENDENT_NAME_PROCESSING) */
-#if defined(DEFAULT_CPP0X_MODE)
-  define_numeric_valued_macro(DEFAULT_CPP0X_MODE);
-#else /* !defined(DEFAULT_CPP0X_MODE) */
-  comment_undefined_macro_name(DEFAULT_CPP0X_MODE);
-#endif /* defined(DEFAULT_CPP0X_MODE) */
-#if defined(DEFAULT_CPP0X_SFINAE_ENABLED)
-  define_numeric_valued_macro(DEFAULT_CPP0X_SFINAE_ENABLED);
-#else /* !defined(DEFAULT_CPP0X_SFINAE_ENABLED) */
-  comment_undefined_macro_name(DEFAULT_CPP0X_SFINAE_ENABLED);
-#endif /* defined(DEFAULT_CPP0X_SFINAE_ENABLED) */
-#if defined(DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS)
-  define_numeric_valued_macro(DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS);
-#else /* !defined(DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS) */
-  comment_undefined_macro_name(DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS);
-#endif /* defined(DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS) */
+#if defined(DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING)
+  define_numeric_valued_macro(DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING);
+#else /* !defined(DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING) */
+  comment_undefined_macro_name(DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING);
+#endif /* defined(DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING) */
+#if defined(DEFAULT_CPP11_MODE)
+  define_numeric_valued_macro(DEFAULT_CPP11_MODE);
+#else /* !defined(DEFAULT_CPP11_MODE) */
+  comment_undefined_macro_name(DEFAULT_CPP11_MODE);
+#endif /* defined(DEFAULT_CPP11_MODE) */
+#if defined(DEFAULT_CPP11_SFINAE_ENABLED)
+  define_numeric_valued_macro(DEFAULT_CPP11_SFINAE_ENABLED);
+#else /* !defined(DEFAULT_CPP11_SFINAE_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_CPP11_SFINAE_ENABLED);
+#endif /* defined(DEFAULT_CPP11_SFINAE_ENABLED) */
+#if defined(DEFAULT_CPP11_SFINAE_IGNORE_ACCESS)
+  define_numeric_valued_macro(DEFAULT_CPP11_SFINAE_IGNORE_ACCESS);
+#else /* !defined(DEFAULT_CPP11_SFINAE_IGNORE_ACCESS) */
+  comment_undefined_macro_name(DEFAULT_CPP11_SFINAE_IGNORE_ACCESS);
+#endif /* defined(DEFAULT_CPP11_SFINAE_IGNORE_ACCESS) */
 #if defined(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT)
   define_numeric_valued_macro(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT);
 #else /* !defined(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT) */
@@ -8394,10 +8400,9 @@ enable_microsoft_mode:
         /* Enable or disable __is_union, __has_virtual_destructor, etc. */
         type_traits_helpers_enabled = opt_value;
         break;
-      case optk_cpp0x_mode:
-        /* Enable or disable C++ features added to the working paper for the
-           next C++ standard. */
-        cpp0x_mode = opt_value;
+      case optk_cpp11_mode:
+        /* Enable or disable C++ features added as part of C++11. */
+        cpp11_mode = opt_value;
         C_dialect = C_dialect_cplusplus;
         break;
       case optk_list_macros:
@@ -8482,11 +8487,11 @@ enable_microsoft_mode:
         check_assertion(opt_value == TRUE);
         no_token_separators_in_pp_output = TRUE;
         break;
-      case optk_cpp0x_sfinae:
-        cpp0x_sfinae_enabled = opt_value;
+      case optk_cpp11_sfinae:
+        cpp11_sfinae_enabled = opt_value;
         break;
-      case optk_cpp0x_sfinae_ignore_access:
-        cpp0x_sfinae_ignore_access = opt_value;
+      case optk_cpp11_sfinae_ignore_access:
+        cpp11_sfinae_ignore_access = opt_value;
         break;
       case optk_variadic_templates:
         variadic_templates_enabled = opt_value;
@@ -8660,17 +8665,17 @@ enable_microsoft_mode:
   }  /* if */
   if (trailing_return_types_enabled || decltype_enabled ||
       variadic_templates_enabled) {
-    /* Turn on c++0x SFINAE if trailing return types, decltype, or variadic
+    /* Turn on C++11 SFINAE if trailing return types, decltype, or variadic
        templates are enabled, since we're likely to need it. */
-    if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
-        !option_kind_used[(int)optk_cpp0x_sfinae_ignore_access]) {
-      cpp0x_sfinae_enabled = TRUE;
-      cpp0x_sfinae_ignore_access = DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS;
+    if (!option_kind_used[(int)optk_cpp11_sfinae] &&
+        !option_kind_used[(int)optk_cpp11_sfinae_ignore_access]) {
+      cpp11_sfinae_enabled = TRUE;
+      cpp11_sfinae_ignore_access = DEFAULT_CPP11_SFINAE_IGNORE_ACCESS;
     }  /* if */
   }  /* if */
   if (long_lifetime_temps) {
     /* Don't allow long lifetime temps with some newer language features. */
-    if (lambdas_enabled || cpp0x_sfinae_enabled) {
+    if (lambdas_enabled || cpp11_sfinae_enabled) {
       command_line_error(
                        ec_cl_long_lifetime_temps_incompat_with_newer_features);
     }  /* if */
@@ -8679,7 +8684,7 @@ enable_microsoft_mode:
       !option_kind_used[(int)optk_auto_storage]) {
     /* If "auto" is explicitly enabled as a type specifier and not explicitly
        enabled as a storage class specifier, disable it as a storage class
-       specifier: That corresponds to the standard C++0x meaning. */
+       specifier: That corresponds to the standard C++11 meaning. */
     auto_storage_class_specifier_enabled = FALSE;
   } else if (!auto_type_specifier_enabled &&
              !auto_storage_class_specifier_enabled) {
@@ -8808,15 +8813,15 @@ enable_microsoft_mode:
 #endif /* ABI_COMPATIBILITY_VERSION < 306 */
 #endif /* VLA_ALLOWED */
 #if ABI_COMPATIBILITY_VERSION < 402
-  if (cpp0x_sfinae_enabled) {
+  if (cpp11_sfinae_enabled) {
     /* The ABI previous to 4.2 could not support SFINAE mangling; silently
        disable this option unless it was explicitly specified, in which case
        we give an error. */
-    if (option_kind_used[(int)optk_cpp0x_sfinae] ||
-        option_kind_used[(int)optk_cpp0x_mode]) {
+    if (option_kind_used[(int)optk_cpp11_sfinae] ||
+        option_kind_used[(int)optk_cpp11_mode]) {
       command_line_error(ec_sfinae_requires_newer_abi_version);
     }  /* if */
-    cpp0x_sfinae_enabled = FALSE;
+    cpp11_sfinae_enabled = FALSE;
   }  /* if */
 #if NEED_NAME_MANGLING && MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled) {
@@ -8851,17 +8856,17 @@ enable_microsoft_mode:
        sequence of tokens as its input). */
     no_token_separators_in_pp_output = pcc_preprocessing_mode;
   }  /* if */
-#if CPP0X_IL_EXTENSIONS_SUPPORTED
-  if (building_runtime && !cpp0x_mode) {
-    /* If the front end is configured to allow c++0x mode constructs, the
+#if CPP11_IL_EXTENSIONS_SUPPORTED
+  if (building_runtime && !cpp11_mode) {
+    /* If the front end is configured to allow C++11 mode constructs, the
        runtime library must be built to handle it. */
-    command_line_error(ec_cl_must_specify_cpp0x_mode);
+    command_line_error(ec_cl_must_specify_cpp11_mode);
   }  /* if */
-#else /* !CPP0X_IL_EXTENSIONS_SUPPORTED */
-  /* Verify that no feature requiring C++0x back end support is enabled. */
-  check_assertion(!(cpp0x_mode || static_assert_enabled || lambdas_enabled ||
+#else /* !CPP11_IL_EXTENSIONS_SUPPORTED */
+  /* Verify that no feature requiring C++11 back end support is enabled. */
+  check_assertion(!(cpp11_mode || static_assert_enabled || lambdas_enabled ||
                     rvalue_references_enabled || nullptr_enabled));
-#endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
+#endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
   /* Add the default directories to the end of the include search path.
      The list is then any -I directories, in the order they were specified,
      and the default directories at the end. */
@@ -9498,7 +9503,7 @@ variables declared in cmd_line.h.
   hex_floating_point_constants_allowed = FALSE;
 #if EXPORT_ENABLING_POSSIBLE
   export_template_allowed = DEFAULT_EXPORT_TEMPLATE_ALLOWED &&
-                            !DEFAULT_CPP0X_MODE; /*lint !e506*/
+                            !DEFAULT_CPP11_MODE; /*lint !e506*/
 #else /* !EXPORT_ENABLING_POSSIBLE */
   /* Export is not supported by this configuration -- force it to be
      disabled. */
@@ -9590,7 +9595,7 @@ variables declared in cmd_line.h.
   uliterals_enabled = DEFAULT_ULITERALS_ENABLED;
   char16_t_and_char32_t_are_keywords = DEFAULT_ULITERALS_ENABLED;
   type_traits_helpers_enabled = DEFAULT_TYPE_TRAITS_HELPERS_ENABLED;
-  cpp0x_mode = DEFAULT_CPP0X_MODE;
+  cpp11_mode = DEFAULT_CPP11_MODE;
   right_shift_can_be_angle_brackets = FALSE;
   extended_friends_enabled = FALSE;
   mixed_string_concat_enabled = FALSE;
@@ -9608,9 +9613,9 @@ variables declared in cmd_line.h.
   va_arg_returns_lvalue = FALSE;
   warn_on_try_statement = FALSE;
   nullptr_enabled = DEFAULT_NULLPTR_ENABLED;
-  cpp0x_sfinae_enabled = DEFAULT_CPP0X_SFINAE_ENABLED;
-  cpp0x_sfinae_ignore_access = cpp0x_sfinae_enabled &&
-                            DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS; /*lint !e506*/
+  cpp11_sfinae_enabled = DEFAULT_CPP11_SFINAE_ENABLED;
+  cpp11_sfinae_ignore_access = cpp11_sfinae_enabled &&
+                            DEFAULT_CPP11_SFINAE_IGNORE_ACCESS; /*lint !e506*/
   std_c99_inlining = FALSE;
   gnu_c89_inlining = FALSE;
   packing_applies_to_base_classes =

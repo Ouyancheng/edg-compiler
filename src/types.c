@@ -69,7 +69,7 @@ predicates.
    macro is interchangeable with is_integral (but is more efficient). */
 #define is_integral_or_enum(tp) (type_kind_is_integer(tp))
 
-/* C++0x adds a distinction between scoped and unscoped enum types.  The
+/* C++11 adds a distinction between scoped and unscoped enum types.  The
    former do not implicitly convert (promote) to integer types. */
 #define is_integer_or_unscoped_enum(tp) \
   (type_kind_is_integer(tp) && !(tp)->variant.integer.is_scoped_enum)
@@ -755,7 +755,7 @@ element type is template-dependent.
 a_boolean is_arithmetic_or_enum_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an arithmetic type or an enum type.  This
-includes scoped enum types in C++0x and C++/CLI modes.  (An enum type *is* an
+includes scoped enum types in C++11 and C++/CLI modes.  (An enum type *is* an
 arithmetic type in C but not in C++.)
 */
 {
@@ -868,7 +868,7 @@ including a C++/CLI tracking reference.
 
 a_boolean is_rvalue_reference_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is a C++0x rvalue reference type.
+Return TRUE if the given type is a C++11 rvalue reference type.
 */
 {
   tp = skip_typerefs(tp);
@@ -1624,7 +1624,7 @@ Return TRUE if the given type is an array of char16_t.
         is_char16_t_array = elem_type->variant.integer.int_kind ==
                                                         targ_char16_t_int_kind;
       } else {
-        /* In C++0x mode when char16_t is a distinct type.  Make sure this is
+        /* In C++11 mode when char16_t is a distinct type.  Make sure this is
            a char16_t type. */
         is_char16_t_array = elem_type->variant.integer.char16_t_type;
       }  /* if */
@@ -1653,7 +1653,7 @@ Return TRUE if the given type is an array of char32_t.
         is_char32_t_array = elem_type->variant.integer.int_kind ==
                                                         targ_char32_t_int_kind;
       } else {
-        /* In C++0x mode when char32_t is a distinct type.  Make sure this is
+        /* In C++11 mode when char32_t is a distinct type.  Make sure this is
            a char32_t type. */
         is_char32_t_array = elem_type->variant.integer.char32_t_type;
       }  /* if */
@@ -4821,13 +4821,13 @@ a_type_ptr param_type_restoring_orig_templ_array(a_param_type_ptr ptp)
 /*
 If the original declared parameter type for the indicated parameter is an
 array type with a top-level template-dependent bound, return it.  Otherwise
-return the normal parameter type.  In C mode, or when C++0X SFINAE is
+return the normal parameter type.  In C mode, or when C++11 SFINAE is
 not enabled, always return the normal parameter type.
 */
 {
   a_type_ptr type = ptp->type;
 
-  if (!C_mode() && cpp0x_sfinae_enabled) {
+  if (!C_mode() && cpp11_sfinae_enabled) {
     a_type_ptr decl_type = ptp->declared_type;
     if (decl_type != NULL && is_array_type(decl_type)) {
       a_type_ptr tp = skip_typerefs(decl_type);
@@ -6440,7 +6440,7 @@ a_boolean is_non_throwing_routine(a_routine_ptr rp)
 /*
 Return TRUE if the given routine cannot throw an exception.  See the
 definition of "non-throwing exception specification" in [except.spec]
-of the C++0x standard.
+of the C++11 standard.
 */
 {
   a_boolean result = (rp->is_trivial_default_constructor ||
@@ -7104,7 +7104,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
          That's fine, but it doesn't really require a pointer normalization,
          so don't set the flag. */
     } else if (is_nullptr(source_type)) {
-      /* Do not set the flag for the C++0x nullptr keyword, so that nullptr
+      /* Do not set the flag for the C++11 nullptr keyword, so that nullptr
          can be used as a template nontype argument. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (dest_type->variant.pointer.is_interior_ptr ||
@@ -8113,7 +8113,7 @@ pointers to members).
     okay = TRUE;
     if (!is_nullptr(source_type)) {
       /* The flag is only set for integral null pointer constants, so that
-         the C++0x nullptr keyword can be used with a pointer-to-member
+         the C++11 nullptr keyword can be used with a pointer-to-member
          non-type template parameter. */
       std_conv->pointer_normalization_needed = TRUE;
     }  /* if */
@@ -11347,9 +11347,9 @@ a_boolean is_invalid_template_arg_type(a_type_ptr  type_ptr,
 /*
 Return TRUE if the type pointed to by type_ptr contains a class, struct,
 union or enum type that cannot be part of a template argument type.  In
-C++98/C++03 (but not C++0x) this excludes class/enum types with no name
+C++98/C++03 (but not C++11) this excludes class/enum types with no name
 linkage.  The variable local_types_as_template_args_enabled is TRUE
-in C++0x and some Microsoft modes to allow local and unnamed types
+in C++11 and some Microsoft modes to allow local and unnamed types
 to be used as template arguments.  If the result is TRUE then
 *is_unnamed or *is_local are set when the type traversal encountered a
 component that is, respectively, unnamed or local (since the traversal
@@ -12942,7 +12942,7 @@ corresponding value class type.
 a_boolean is_cli_enum_type(a_type_ptr tp)
 /*
 Returns TRUE if tp is a C++/CLI enum type.  Currently, there isn't a source nor
-IL distinction between C++0x scoped enums and C++/CLI enumerations; however,
+IL distinction between C++11 scoped enums and C++/CLI enumerations; however,
 this function provides a layer of indirection in case this changes in the
 future.
 */

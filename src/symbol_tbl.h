@@ -257,7 +257,7 @@ typedef struct a_symbol_locator {
 			   which may not actually be a class type (e.g.,
 			   for int::~int this will point to the type "int").
 			   This may point to an enumeration type if the
-			   qualifier is a C++0x-mode or Microsoft-mode enum
+			   qualifier is a C++11-mode or Microsoft-mode enum
 			   qualifier.  For tok_ptr_to_member tokens (e.g.,
 			   "A::*"), this points to the class type before the
 			   "::" and is NULL if the type before the "::" is not
@@ -1199,19 +1199,19 @@ typedef struct a_class_symbol_supplement {
 			   class template, in an inline function body, or in
 			   a function template body. */
   a_bit_field	base_check:1;
-			/* TRUE if this class was defined with the C++0x
+			/* TRUE if this class was defined with the C++11
 			   "base_check" attribute, which in turn requires
 			   diagnosing "accidental" hiding and overriding. */
   a_bit_field	check_hiding_attr:1;
 			/* TRUE if this class includes a member declared with
-			   the C++0x "hiding" attribute. */
+			   the C++11 "hiding" attribute. */
   a_bit_field	has_field_with_attr_to_merge:1;
 			/* TRUE if this class has a field with an attribute
 			   whose must_be_preserved_in_trans_unit_copy flag is
 			   TRUE. */
   a_bit_field	standard_layout:1;
 			/* TRUE if this is a "standard layout" class as
-			   defined by C++0x. */
+			   defined by C++11. */
   a_bit_field	has_nothrow_copy:1;
 			/* TRUE if this class' copy constructors are known not
 			   to throw exceptions. */

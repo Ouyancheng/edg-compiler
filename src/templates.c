@@ -1858,7 +1858,7 @@ during wrapup processing by compare_function_templates.
 #if GNU_EXTENSIONS_ALLOWED
       } else {
         /* A type parameter. */
-        if (gpp_mode && gnu_version >= 30400 && !cpp0x_mode) {
+        if (gpp_mode && gnu_version >= 30400 && !cpp11_mode) {
           /* In GNU C++ mode, attempts to bind a template parameter to a class
              type or enumeration type with no name for linkage purposes is
              treated as a deduction failure rather than an outright error.
@@ -26322,7 +26322,7 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
           is_inline && !treat_as_static_inline(sym->variant.routine.ptr)) {
         /* Clear the suppress_inline_body flag in case it was previously
            set by an "extern template".  This is used to implement the
-           C++0x form of "extern template" where the sole out-of-line copy
+           C++11 form of "extern template" where the sole out-of-line copy
            should be emitted where the inline function is explicitly
            instantiated.  This also matches the behavior of the GNU
            and Microsoft compilers. */
@@ -26369,7 +26369,7 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
       if (sym->kind != (a_symbol_kind)sk_static_data_member && !is_pragma &&
           is_inline && !treat_as_static_inline(sym->variant.routine.ptr)) {
         /* Set the suppress_inline_body flag for an "extern template".
-           This is used to implement the C++0x form of "extern template"
+           This is used to implement the C++11 form of "extern template"
            where the sole out-of-line copy should be emitted where the
            inline function is explicitly instantiated. */
         sym->variant.routine.ptr->suppress_inline_body = TRUE;
@@ -27272,8 +27272,8 @@ directive_start_pos points to the beginning of the directive or declaration
   if (curr_token == tok_export) {
     if (!export_template_allowed) {
       /* Export processing is disabled.  Issue a diagnostic. */
-      if (cpp0x_mode) {
-        /* In C++0x, export is no longer part of the language. */
+      if (cpp11_mode) {
+        /* In C++11, export is no longer part of the language. */
         pos_diagnostic(es_discretionary_error, ec_export_removed,
                       &pos_curr_token);
       } else {

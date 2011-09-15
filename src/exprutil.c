@@ -995,7 +995,7 @@ is pushed regardless of any of the other factors.
   new_entry->suppress_diagnostics = FALSE;
   new_entry->any_suppressed_error = FALSE;
   new_entry->possible_rescan_context =
-                              cpp0x_sfinae_enabled &&
+                              cpp11_sfinae_enabled &&
                               (expression_kind != (an_expression_kind)ek_pp) &&
                               is_template_deduction_context();
   new_entry->in_static_initializer = FALSE;
@@ -4144,7 +4144,7 @@ diagnostics, if that changes the control flow.
     if (expr_stack->template_deduction_context) {
       /* Depending on configuration and command-line options, access errors
          may or may not cause deduction failure. */
-      if (cpp0x_sfinae_ignore_access) check_access = FALSE;
+      if (cpp11_sfinae_ignore_access) check_access = FALSE;
     }  /* if */
   }  /* if */
   return check_access;
@@ -8929,7 +8929,7 @@ doesn't mention that distinction.
 
   if (enum_type_is_integral) {
     result = ec_expr_not_integral;
-  } else if (cpp0x_mode || cppcli_enabled) {
+  } else if (cpp11_mode || cppcli_enabled) {
     /* Modes that make a distinction between scoped and unscoped enum types. */
     result = ec_expr_not_integral_or_unscoped_enum;
   } else {
@@ -8985,7 +8985,7 @@ accepted).  If there is an error change "operand" to an error operand.
     if (fixed_point_enabled) {
       if (enum_type_is_integral) {
         error_code = ec_expr_not_integral_or_fixed_point;
-      } else if (cpp0x_mode || cppcli_enabled) {
+      } else if (cpp11_mode || cppcli_enabled) {
         error_code = ec_expr_not_integral_or_unscoped_enum_or_fixed_point;
       } else {
         error_code = ec_expr_not_integral_or_enum_or_fixed_point;
@@ -9016,7 +9016,7 @@ distinction.
 
   if (enum_type_is_integral) {
     result = ec_expr_not_arithmetic;
-  } else if (cpp0x_mode || cppcli_enabled) {
+  } else if (cpp11_mode || cppcli_enabled) {
     /* Modes that make a distinction between scoped and unscoped enum types. */
     result = ec_expr_not_arithmetic_or_unscoped_enum;
   } else {
@@ -9043,7 +9043,7 @@ distinction.
 
   if (enum_type_is_integral) {
     result = ec_expr_not_scalar;
-  } else if (cpp0x_mode || cppcli_enabled) {
+  } else if (cpp11_mode || cppcli_enabled) {
     /* Modes that make a distinction between scoped and unscoped enum types. */
     result = ec_expr_not_arithmetic_or_unscoped_enum_or_pointer;
   } else {
@@ -11043,7 +11043,7 @@ question_position and colon_position give the position of the "?" and ":".
       class_rvalue_case = FALSE;
     } else if (microsoft_mode && rvalue_references_enabled) {
       /* MSVC10 treats an rvalue reference object as similar to an lvalue
-         and doesn't copy it, which prefigures the changes in the C++0X
+         and doesn't copy it, which prefigures the changes in the C++11
          standard to add "xvalues". */
       if (is_rvalue_reference_object_operand(operand_2) &&
           is_rvalue_reference_object_operand(operand_3)) {

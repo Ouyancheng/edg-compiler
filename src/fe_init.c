@@ -292,7 +292,7 @@ static void enter_type_traits_helpers(void)
 Enter the names of "type trait pseudo-functions" as keywords.  They are
 patterned after the similar extensions introduced by Microsoft's Visual
 C++ 8.0.  They provide direct support for the C++ committee's "Library TR1"
-(ISO/IEC TR 19768) and for related features added to C++0x later on.
+(ISO/IEC TR 19768) and for related features added to C++11 later on.
 While only supported when type_traits_helpers_enabled is TRUE (normally, in
 most C++ modes), they are recognized and diagnosed as errors in Microsoft C
 mode when microsoft_version >= 1400.  A few of the pseudo-functions do not
@@ -481,7 +481,7 @@ Install the keywords in the symbol table.
       enter_gnu_keyword((a_token_kind)tok_gnu_restrict, "__restrict");
     }  /* if */
   }  /* if */
-  if (c99_mode || gnu_mode || cpp0x_mode) {
+  if (c99_mode || gnu_mode || cpp11_mode) {
     enter_keyword((a_token_kind)tok_func_name, "__func__");
   }  /* if */
   /* These gcc/g++ features are accepted in all modes.  __FUNCTION__

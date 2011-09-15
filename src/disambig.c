@@ -359,7 +359,7 @@ called, the current token must be the initial keyword.
 
 static void prescan_std_attribute(a_disambig_flag_set   flags)
 /*
-Prescan a C++0x attribute list of the form:
+Prescan a C++11 attribute list of the form:
 
   [[ attribute-list [opt] ]]
 
@@ -475,7 +475,7 @@ static void prescan_any_prefix_bracketed_attributes(
 /*
 This routine is called at the start of a declaration (possibly a parameter
 declaration).  If the current token is a left bracket introducing Microsoft or
-C++0x attributes (i.e., not a lambda), scan over them.
+C++11 attributes (i.e., not a lambda), scan over them.
 */
 {
   while (curr_token == tok_lbracket && !C_mode()) {
@@ -487,7 +487,7 @@ C++0x attributes (i.e., not a lambda), scan over them.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* If this is not the start of an attribute, exit the loop. */
     if (!attr_next) break;
-    /* This appears to be a left bracket introducing Microsoft or C++0x
+    /* This appears to be a left bracket introducing Microsoft or C++11
        attribute. */
     /* Advance past the left bracket. */
     (void)get_token();

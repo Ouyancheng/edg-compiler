@@ -4422,11 +4422,11 @@ do_argument_again:
              generate the diagnostic if the argument was ended because of
              the end of source or of a preprocessing directive.  This
              is a warning instead of a strict ANSI diagnostic because this
-             is "undefined" and not illegal.  In C99 and C++0x, empty macro
+             is "undefined" and not illegal.  In C99 and C++11, empty macro
              arguments are valid. */
           if (map->raw_len == 0 &&
               (curr_token != tok_end_of_source && curr_token != tok_newline)) {
-            if (strict_ansi_mode && !c99_mode && !cpp0x_mode) {
+            if (strict_ansi_mode && !c99_mode && !cpp11_mode) {
               warning(ec_empty_macro_argument);
             }  /* if */
             /* Strangely, the Microsoft compiler ignores empty macro arguments.
@@ -6195,10 +6195,10 @@ Scan and process a #define directive.
                           &any_white_space_skipped);
     if (curr_command_line_macro_def == NULL && curr_token != tok_newline &&
         object_like && !any_white_space_skipped) {
-      /* In C99 and C++0x, an object-like macro definition must have white
+      /* In C99 and C++11, an object-like macro definition must have white
          space between the macro name and the replacement list: issue an
          error in strict mode and a warning in all other modes. */
-      pos_st_diagnostic((strict_ansi_mode && (c99_mode || cpp0x_mode)) ?
+      pos_st_diagnostic((strict_ansi_mode && (c99_mode || cpp11_mode)) ?
                         strict_ansi_discretionary_severity : es_warning,
                         ec_white_space_required_after_macro_name,
                         &pos_curr_token,
@@ -7516,12 +7516,12 @@ from the front end to the runtime.
 			   "__EDG_ANSIC",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-#if CPP0X_IL_EXTENSIONS_SUPPORTED
-  /* Front end can support C++0x mode (so runtime must also). */
-  (void)enter_predef_macro("1", "__EDG_CPP0X_IL_EXTENSIONS_SUPPORTED",
+#if CPP11_IL_EXTENSIONS_SUPPORTED
+  /* Front end can support C++11 mode (so runtime must also). */
+  (void)enter_predef_macro("1", "__EDG_CPP11_IL_EXTENSIONS_SUPPORTED",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-#endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
+#endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
 }  /* init_runtime_macros */
 
 
@@ -8141,7 +8141,7 @@ command line -D options.
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
-    if (cpp0x_mode) {
+    if (cpp11_mode) {
       /* Predefine the __STDC_HOSTED__ macro based on the STDC_HOSTED
          configuration flag. */
       (void)enter_predef_macro(conv_unsigned_long_to_str(

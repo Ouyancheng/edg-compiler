@@ -4144,7 +4144,7 @@ a_type_ptr pointer_declarator(
 Scan the pointer component of a declarator.  This is "*", "&", "&&", or "C::*"
 (where C is a class type) optionally followed by "const" and/or "volatile".
 "&" (lvalue reference) and "C::*" (pointer-to-member) are C++ features; "&&"
-is a C++0x extension to declare "rvalue references".  In C++/CLI mode the
+is a C++11 extension to declare "rvalue references".  In C++/CLI mode the
 declarator operators "^" (handle) and "%" (tracking reference) are also
 possible.
 

@@ -2773,7 +2773,7 @@ declaration modifiers.
       routine_does_not_return(rp1) != routine_does_not_return(rp2)) {
     /* The noreturn attribute need not be specified on every declaration, but
        if it appears on one, it must also appear on the definition.  (The
-       standard C++0x [[noreturn]] attribute has stricter requirements: They
+       standard C++11 [[noreturn]] attribute has stricter requirements: They
        are verified in verify_attributes_correspondence.) */
     if ((routine_does_not_return(rp1) && rp2->defined) ||
         (routine_does_not_return(rp2) && rp1->defined)) {

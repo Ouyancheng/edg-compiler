@@ -4582,7 +4582,7 @@ pointer to it.
 
 a_lambda_ptr alloc_lambda(void)
 /*
-Allocate an entry describing a C++0x lambda and return a pointer to it.  The
+Allocate an entry describing a C++11 lambda and return a pointer to it.  The
 entry is allocated in the current memory region.
 */
 {
@@ -4608,7 +4608,7 @@ entry is allocated in the current memory region.
 a_lambda_capture_ptr alloc_lambda_capture(void)
 /*
 Allocate an entry describing an entity (variable, reference, or this parameter)
-captured by a C++0x lambda and return a pointer to it.  The entry is allocated
+captured by a C++11 lambda and return a pointer to it.  The entry is allocated
 in the current memory region.
 */
 {

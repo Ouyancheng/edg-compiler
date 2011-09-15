@@ -2232,7 +2232,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                an anachronism match level. */
             allow_microsoft_const_volatile_case_as_anachronism = TRUE;
           }  /* if */
-        } else if (strict_ansi_mode && !cpp0x_mode) {
+        } else if (strict_ansi_mode && !cpp11_mode) {
           /* The 2003 standard did not do this. */
         } else {
           source_can_be_rvalue = FALSE;
@@ -3703,11 +3703,11 @@ point of call, FALSE otherwise.
     /* The symbol is a function template. */
     routine = function_symbol->variant.template_info->variant.function.routine;
   }  /* if */
-  if (!cpp0x_mode && dependent_call &&
+  if (!cpp11_mode && dependent_call &&
       routine->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal) {
     /* Functions with internal linkage are invisible in the template-
-       dependent name lookup.  Core issue 561 undid this in the C++0X
+       dependent name lookup.  Core issue 561 undid this in the C++11
        standard. */
     if (gpp_mode && gnu_version >= 30400) {
       /* g++ 3.4 does not ignore static functions. */
@@ -16749,10 +16749,10 @@ be a reference type.  Only used in C++.  This is copy-initialization.
       user_convert_operand(source_operand, /*dest_type=*/(a_type_ptr)NULL,
                            conversion, (a_conv_descr *)NULL,
                            /*force_copy_to_temp=*/FALSE);
-      /* Core issue 1138 is C++0X.  Before that, we did something that
+      /* Core issue 1138 is C++11.  Before that, we did something that
          wasn't right, but we leave it the way it was to avoid affecting
          existing code. */
-      if ((cpp0x_mode || cpp0x_sfinae_enabled) &&
+      if ((cpp11_mode || cpp11_sfinae_enabled) &&
           !type_qualifiers_match(source_operand->type, dest_type) &&
           !is_error_operand(source_operand) &&
           !is_error_type(dest_type)) {
@@ -17606,10 +17606,10 @@ the conversion.
          constructor be callable whether or not it is actually called.
          We never call it, but we must check it anyway.  We only check
          in strict mode.  However, core issue 391 eliminated this
-         check for C++0x, by requiring the direct binding and therefore
+         check for C++11, by requiring the direct binding and therefore
          eliminating the idea that any copy constructor call is
          being elided. */
-      if (strict_ansi_mode && !cpp0x_mode) {
+      if (strict_ansi_mode && !cpp11_mode) {
         check_access_to_elided_copy_constructor(orig_source_type,
                                                 /*elided_cctor=*/
                                                              (a_routine *)NULL,

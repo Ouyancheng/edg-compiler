@@ -1550,7 +1550,7 @@ The current token must be a ">>": Replace it with two ">" tokens.
 void cache_std_attribute(a_token_cache	*cache,
                          a_boolean	add_tokens_to_cache)
 /*
-Cache past a C++0x standard attribute and, if add_tokens_to_cache is TRUE,
+Cache past a C++11 standard attribute and, if add_tokens_to_cache is TRUE,
 and the tokens to cache.
 
 A standard attribute has the form:
@@ -8346,13 +8346,13 @@ static void check_for_invalid_cplusplus_ucn(
 					a_boolean	is_identifier_start)
 /*
 Determine whether "ucn" is a valid universal character name in C++.
-Issue a diagnostic if it is not.  The rules for C++98/C++03 and for C++0x
+Issue a diagnostic if it is not.  The rules for C++98/C++03 and for C++11
 are different.
 */
 {
   an_error_code	err_code = ec_no_error;
 
-  if (cpp0x_mode || uliterals_enabled) {
+  if (cpp11_mode || uliterals_enabled) {
     if (ucn >= 0xd800 && ucn <= 0xdfff) {
       /* Values reserved for ISO 10646 surrogate code points are never
          allowed. */
@@ -10018,7 +10018,7 @@ curr_token is already set in that case.
     if (character_kind != const_for_curr_token.character_kind &&
         !is_error_constant(&const_for_curr_token)) {
       /* The new string and the old one have different character kinds.
-         In some modes (C99, C++0x, and GNU), this may be okay if one of
+         In some modes (C99, C++11, and GNU), this may be okay if one of
          the two kinds is "char" (the concatenation results in the other
          kind).  In other modes, it is a discretionary error.  If two
          different non-char character types are mixed (e.g., U"A" L"B") a
@@ -13548,7 +13548,7 @@ all arguments were explicit.
         argument_type = scan_template_type_argument();
         /* In standard C++98/C++03, template type arguments must have linkage,
            and therefore cannot be based on local or unnamed classes/enums.  In
-           Microsoft and C++0x modes, local class types are acceptable even
+           Microsoft and C++11 modes, local class types are acceptable even
            though they have no linkage. */ 
         if (is_invalid_template_arg_type(
                 argument_type, &is_unnamed, &is_local, &is_vla, &is_generic)) {
@@ -13948,7 +13948,7 @@ static void f_check_closing_angle_bracket(a_boolean  *any_errors)
 This routine is called when the end of a template argument list is reached
 but the current token is not ">".  The main purpose of this routine is to
 treat a ">>" as two consecutive ">" tokens.  This may be a matter of normal
-behavior in some modes (e.g., C++0x), or for improved error recovery in other
+behavior in some modes (e.g., C++11), or for improved error recovery in other
 modes.
 */
 {
@@ -13957,7 +13957,7 @@ modes.
        (scope_stack[depth_scope_stack].pending_templ_arg_lists > 1 &&
         !*any_errors))) {
     /* A ">>" that appears to have been intended to close two template
-       argument lists.  In C++0x that is a valid construct.  In other
+       argument lists.  In C++11 that is a valid construct.  In other
        C++ modes, issue a special diagnostic for this case.  Either way,
        this is handled by inserting a ">" into the token stream that will
        close the outer template argument list.  (The outer angle bracket
@@ -16256,7 +16256,7 @@ selection operator, in which case it points to the type of the left operand.
           qualifier_is_type = FALSE;
         } else if (is_enum_symbol(qualifier_sym) && enum_qualifiers_enabled &&
                    !(microsoft_mode && microsoft_version < 1400 &&
-                     !cpp0x_mode &&
+                     !cpp11_mode &&
                      !skip_typerefs(type_symbol_type(qualifier_sym))->
                                              source_corresp.is_class_member)) {
           /* Enum qualifiers are accepted in some modes.  Earlier Microsoft
@@ -16376,7 +16376,7 @@ selection operator, in which case it points to the type of the left operand.
               is_template = FALSE;
             }  /* if */
           }  /* if */
-          if (!cpp0x_mode && strict_ansi_mode &&
+          if (!cpp11_mode && strict_ansi_mode &&
               !is_template_context() && !in_if_exists) {
             /* In strict C++98 mode the template keyword, when used for
                syntactic disambiguation, may only appear within a template.
@@ -16523,7 +16523,7 @@ selection operator, in which case it points to the type of the left operand.
             locator_for_curr_id.is_qualified_name = TRUE;
             if (qualifier_is_type) {
               if (qualifier_is_enum) {
-              /* In some modes (e.g., C++0x), an enumeration can be used as the
+              /* In some modes (e.g., C++11), an enumeration can be used as the
                    qualifier in a qualified name.  Look up the name in the
                    enumeration. */
                 qualifier_sym = enum_qualified_id_lookup(&locator_for_curr_id,

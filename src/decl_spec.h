@@ -244,7 +244,7 @@ extern void decl_spec_one_time_init(void);
 #define DSI_NO_TAG_DEFINITION ((a_decl_flag_set)0x1000000)
 			/* If this bit is set, a tag definition is not allowed
 			   and not considered.  For example, when parsing the
-			   return type in the C++0x lambda "[]()->enum E {}"
+			   return type in the C++11 lambda "[]()->enum E {}"
 			   decl_specifiers is called with the upcoming token
 			   sequence "enum E {" and the "{" should not taken to
 			   introduce an enum definition (instead, it is the

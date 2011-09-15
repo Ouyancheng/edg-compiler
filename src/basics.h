@@ -273,7 +273,7 @@ stdint.h types on systems such as Solaris.
 #endif /* ifndef USE_INT_TYPES_HEADER */
 
 /*
-Flag that is TRUE if we should include the C99/C++0x stdint.h header to define
+Flag that is TRUE if we should include the C99/C++11 stdint.h header to define
 typedefs for the various integer types.
 */
 #ifndef USE_STDINT_HEADER

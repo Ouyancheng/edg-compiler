@@ -912,7 +912,7 @@ the body of the lambda, not the definition of X).
     result = TRUE;
   } else if (!C_mode() && next_tok == tok_colon && !is_ref_within_new_expr) {
     /* Possibly the beginning of a C++ base class type specifier or an
-       explicit underlying type for C++0x/Microsoft enum type. */
+       explicit underlying type for C++11/Microsoft enum type. */
     result = (tag_kind != (a_symbol_kind)sk_enum_tag ||
               explicit_enum_base_enabled);
   } else {
@@ -996,7 +996,7 @@ however, the flag will be reset to FALSE and a normal lookup will be done.
 *check_for_vacuous_decl is TRUE when the context permits a declaration like
 "struct x;".  is_ref_within_new_expr is TRUE when the declaration appears
 inside a new expression.  no_definition_allowed is TRUE if no definition
-is considered in this context (e.g., if the declaration appears in a C++0x
+is considered in this context (e.g., if the declaration appears in a C++11
 trailing return type).  *effective_decl_level will have been initialized to
 decl_scope_level by the caller; it may be changed in C++ for a forward
 reference to a tag within a function prototype or a class definition -- the
@@ -4245,7 +4245,7 @@ static an_integer_kind scan_explicit_enum_base_type(
                                                  a_type_ptr         enum_type,
                                                  a_source_position  *pos_type)
 /*
-In some modes (e.g., C++0x), we accept the explicit specification of an
+In some modes (e.g., C++11), we accept the explicit specification of an
 enumeration type's underlying integer type.  For example:
 	enum E: short int { a, b };
 If such a base type was specified, the current token is the colon, and this
@@ -4279,7 +4279,7 @@ configurations, the type is recorded in enum_type.
       } else if (!cppcli_enabled && !is_integral_type(base_type)) {
         pos_error(ec_enum_base_type_must_be_integral, pos_type);
         base_type = NULL;
-      } else if (microsoft_mode && !cpp0x_mode && is_bool_type(base_type)) {
+      } else if (microsoft_mode && !cpp11_mode && is_bool_type(base_type)) {
         /* Microsoft compilers do not accept bool as the integral type
            underlying an enum type (in non-C++/CLI mode). */
         pos_error(ec_bool_type_not_allowed, pos_type);
@@ -4493,7 +4493,7 @@ static void enum_specifier(a_decl_parse_state   *dps,
                            a_decl_pos_block     *decl_pos_block)
 /*
 Scan an enumeration specifier (i.e., the definition of an enumeration type) or
-an elaborated name for an enumeration type (e.g., "enum E").  C++0x scoped
+an elaborated name for an enumeration type (e.g., "enum E").  C++11 scoped
 enumerations and similar Microsoft extensions are also scanned here.
 
 The type is returned in *type_ptr.  *declares_something is set to indicate
@@ -4581,7 +4581,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Skip over "enum". */
   (void)get_token();
-  if (cpp0x_mode && (curr_token == tok_class || curr_token == tok_struct)) {
+  if (cpp11_mode && (curr_token == tok_class || curr_token == tok_struct)) {
     is_scoped_enum = TRUE;
     (void)get_token();
   }  /* if */
@@ -5266,15 +5266,15 @@ dsi_flags is the set of input flags passed to decl_specifiers.
         copy_source_position(pos_curr_token, pos_comma);
         done = !loop_token(tok_comma);
         if (!done && curr_token == tok_rbrace) {
-           /* In K&R C, C99, and C++0x modes an extra comma is allowed at the
+           /* In K&R C, C99, and C++11 modes an extra comma is allowed at the
               end of the list.  In other C and C++ modes, we allow it as an
               extension, with a remark or strict ANSI diagnostic, but the
-              diagnostic is omitted altogether for C++0x-like scoped enum
+              diagnostic is omitted altogether for C++11-like scoped enum
               types and enum types with explicit underlying types.  The gcc
               compiler source includes cases like this, and that source is
               part of the SPEC benchmark suite. */
           done = TRUE;
-          if (C_dialect != C_dialect_pcc && !c99_mode && !cpp0x_mode &&
+          if (C_dialect != C_dialect_pcc && !c99_mode && !cpp11_mode &&
               !(is_scoped_enum ||
                 explicit_base_kind != (an_integer_kind)ik_none)) {
             an_error_severity  severity;
@@ -5499,7 +5499,7 @@ a declaration.
   check_assertion(curr_token == tok_typename);
   /* The typename keyword may only be used within a template, including the
      template parameter list. */
-  if (!is_template_context() && !cpp0x_mode) {
+  if (!is_template_context() && !cpp11_mode) {
     diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
                                 : es_remark,
                ec_typename_not_in_template);
@@ -7625,7 +7625,7 @@ the DLL flags.  That is done elsewhere using dps->decl_modifiers.flags.)
 static void attach_specifier_attributes(a_decl_parse_state  *dps)
 /*
 Attach "specifier attributes" to the type indicated by the specifiers (which
-produces a new type).  For standard C++0x attributes, "specifier attributes"
+produces a new type).  For standard C++11 attributes, "specifier attributes"
 are in principle those attributes that were scanned after seeing the
 decl-specifiers.  E.g., in
   [[noreturn]] int [[XYZ::abc]] f();
@@ -7943,9 +7943,9 @@ storage_class_specifier:
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_lbracket:
-        /* A Microsoft or C++0x attribute (presumably). */
+        /* A Microsoft or C++11 attribute (presumably). */
         if (next_token() == tok_lbracket) {
-          /* A C++0x standard attribute. */
+          /* A C++11 standard attribute. */
           if (!std_attributes_enabled) goto something_unexpected;
         } else if (any_decl_specifiers_seen || !microsoft_mode ||
                    (C_mode() && microsoft_version < 1400) ||

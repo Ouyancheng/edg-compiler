@@ -4837,7 +4837,7 @@ such cases.
   if (is_decltype) {
     if (gcc_is_generated_code_target) {
       /* Current versions of g++ only accept the decltype keyword with
-         -std=c++0x; however, they accept __decltype in either mode, so use
+         -std=c++11; however, they accept __decltype in either mode, so use
          the safer spelling. */
       kwd = (char *)"__decltype(";
     } else {
@@ -5875,7 +5875,7 @@ is the one associated with the definition of the enum.
   }  /* if */
   base_type = integer_type_supp(type)->base_type;
   if (base_type != NULL) {
-    /* C++0x and Microsoft C++ allow the explicit specification of an
+    /* C++11 and Microsoft C++ allow the explicit specification of an
        underlying type. */
     write_tok_str(": ");
     gen_type(base_type);
@@ -10168,7 +10168,7 @@ static void check_for_unprotected_gt_operation(
 This routine is called via traverse_expr from has_unprotected_gt_operation
 in a top-down traversal of the expression associated with a constant.  It
 stops the traversal when it either finds an eok_gt or eok_shiftr (which can
-be treated as two ">"s in C++0x) operation node (setting tblock->result to
+be treated as two ">"s in C++11) operation node (setting tblock->result to
 TRUE) or when it finds an operation node that would itself cause an eok_gt
 or eok_shiftr operation in one of its operands to be parenthesized at that
 level.
