@@ -1048,6 +1048,11 @@ EXTERN a_boolean
 			   "(int, int)->int").  This is a C++0x extension. */
 
 EXTERN a_boolean
+		this_in_trailing_return_types_enabled;
+			/* When TRUE, "this" can be used within late-specified
+			   return types of member functions. */
+
+EXTERN a_boolean
 		alias_declarations_enabled;
 			/* TRUE if C++0x alias-declarations and alias templates
 			   are allowed. */

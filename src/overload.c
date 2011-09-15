@@ -8493,7 +8493,7 @@ available, e.g., during overload resolution.
                  innermost_function_scope->variant.routine.this_param_variable;
       this_exists = (local_this_var != NULL);
     }  /* if */
-  } else if (cpp0x_mode &&
+  } else if (this_in_trailing_return_types_enabled &&
              scope_stack_top().outside_parameter_list) {
     /* In C++11, "this" can be referenced in a late-specified return type.
        There's no "this" variable yet in that case, because there's no

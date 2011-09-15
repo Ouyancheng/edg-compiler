@@ -2347,6 +2347,7 @@ process.
   auto_type_specifier_enabled = FALSE;
   auto_storage_class_specifier_enabled = TRUE;
   trailing_return_types_enabled = FALSE;
+  this_in_trailing_return_types_enabled = FALSE;
   nullptr_enabled = FALSE;
   cpp0x_sfinae_enabled = FALSE;
   cpp0x_sfinae_ignore_access = FALSE;
@@ -2575,6 +2576,7 @@ not always enabled in default mode (e.g., exception handling).
   defaulted_special_members_enabled = TRUE;
   deleted_functions_enabled = TRUE;
   trailing_return_types_enabled = TRUE;
+  this_in_trailing_return_types_enabled = TRUE;
   std_attributes_enabled = TRUE;
   alias_declarations_enabled = TRUE;
   if (!option_kind_used[(int)optk_variadic_templates]) {
@@ -9372,6 +9374,7 @@ variables declared in cmd_line.h.
   local_types_as_template_args_enabled = FALSE;
   decls_using_types_without_linkage_allowed = FALSE;
   trailing_return_types_enabled = FALSE;
+  this_in_trailing_return_types_enabled = FALSE;
   std_attributes_enabled = FALSE;
   alias_declarations_enabled = FALSE;
   variadic_templates_enabled = FALSE;

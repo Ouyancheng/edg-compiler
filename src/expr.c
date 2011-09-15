@@ -5405,7 +5405,8 @@ mode cases).  Set *err to TRUE if there is an error.
                            class_struct_union_type != NULL &&
                            is_immediate_class_type(class_struct_union_type) &&
                            !is_incomplete_type(class_struct_union_type);
-      if (!operand_1_is_complete_class && cpp0x_mode &&
+      if (!operand_1_is_complete_class &&
+          this_in_trailing_return_types_enabled &&
           is_this_parameter_operand(operand_1, (a_variable_ptr *)NULL)) {
         /* In C++11, "this" can be used in a late-specified return type, when
            the class of "this" is not complete. */
@@ -6311,7 +6312,7 @@ case).
     /* The first operand is not (a pointer to) a complete class, struct,
        or union.  This check was delayed to this point so that we could
        allow things like vacuous destructor references. */
-    if (cpp0x_mode &&
+    if (this_in_trailing_return_types_enabled &&
         is_this_parameter_operand(operand_1, (a_variable_ptr *)NULL)) {
       /* In C++11, "this" can be used in a late-specified return type, when
          the class of "this" is not complete. */
