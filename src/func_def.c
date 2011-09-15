@@ -2090,6 +2090,8 @@ member declaration (allowed in Microsoft mode only).
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   wrapup_sse_for_simple_decl(dps);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Run end-of-declaration-parsing actions prior to scanning the function
+     body. */
   run_end_of_parse_actions(dps);
   /* Now scan the function body, except if we're dealing with the special
      Microsoft and GNU extension case that allows a nondefining out-of-class

@@ -20291,6 +20291,9 @@ any non-empty template parameter lists that were scanned.
   } else if (sym != NULL) {
     if (is_function_or_template_symbol(sym) &&
         prototype_instantiation_should_be_done_for_function(sym)) {
+      /* Run end-of-declaration-parsing actions prior to scanning the function
+         body. */
+      run_end_of_parse_actions(dps);
       /* Do the prototype instantiation of the function. */
       if (!decl_state->decl_scope_err && decl_state->defines_something &&
           !defer_function_prototype_instantiations) {
@@ -20305,6 +20308,7 @@ any non-empty template parameter lists that were scanned.
       static_data_member_prototype_instantiation(decl_state, sym);
     }  /* if */
   }  /* if */
+  run_end_of_parse_actions(dps);
   /* Save the declaration sequence number at the end of this template
      declaration. */
   if (decl_state->decl_info != NULL) {
