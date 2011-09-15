@@ -13053,6 +13053,10 @@ specific information about the member declaration, respectively.
         tip->template_sym = sym;
         tip->template_info = alloc_template_symbol_supplement(
                                        (a_symbol_kind)sk_static_data_member);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        tip->template_info->is_generic =
+                  class_type->variant.class_struct_union.is_generic_instance;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         tip->template_info->token_sequence_number = curr_token_sequence_number;
         /* Although this is not a template, it is an instantiatable variable
            and hence we create a placeholder a_template entry for it. */
