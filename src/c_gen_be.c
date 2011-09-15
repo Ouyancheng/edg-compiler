@@ -6952,7 +6952,7 @@ block with state information for the processing.
        class nor a subaggregate initializer with a designated initializer
        and elided braces, output a "{". */
     if (!*gen_assignments && !suppress_brace_for_base_class_subobject &&
-        !constant->elide_aggregate_braces) {
+        !(constant != NULL && constant->elide_aggregate_braces)) {
       initializer_open_brace(icbp);
       need_close_brace = TRUE;
     }  /* if */
