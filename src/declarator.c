@@ -1559,6 +1559,7 @@ static a_boolean function_prototype_scope_is_in_class(a_type_ptr type)
 Determine whether the current scope (which is a function prototype scope)
 appears in the class scope of the given class type.  For templates, use the
 class template scope.
+(This routine is very similar to set_early_member_function_decl_flags.)
 */
 {
   a_boolean                result, instance;
@@ -2024,6 +2025,36 @@ this is a helper function.
 }  /* cplusplus_function_declarator_trailer */
 
 
+static void set_early_member_function_decl_flags(a_decl_parse_state  *dps)
+/*
+This routine is called when parsing a top-level function declarator (before
+the associated function prototype scope is pushed).  Determine whether this
+declarator is for the declaration (in-class or out-of-class) of a member
+function and update the corresponding flags in *dps.
+(This routine is very similar to function_prototype_scope_is_in_class.)
+*/
+{
+  a_scope_stack_entry  *ssep = &scope_stack_top();
+  a_boolean            instance = scope_is(ssep, sck_template_instantiation);
+
+  if (ssep->kind == (a_scope_kind)sck_template_declaration || instance) {
+    --ssep;
+  }  /* if */
+  if (scope_is(ssep, sck_class_struct_union) ||
+      /* If an instantiation scope (for a function declaration) sits on top of
+         a class reactivation scope, we are presumably rescanning a function
+         member declared inside a class. */
+      (instance && scope_is(ssep, sck_class_reactivation))) {
+    dps->is_inclass_member_function_decl = (dps->dso_flags & DSO_FRIEND) == 0;
+  } else if (scope_is(ssep, sck_class_reactivation)) {
+    /* In some error cases the flag here is set to TRUE even though there
+       is no member function corresponding to the signature that is being
+       parsed). */
+    dps->is_out_of_class_member_function_decl = TRUE;
+  }  /* if */
+}  /* set_early_member_function_decl_flags */
+
+
 static void function_declarator(a_decl_parse_state  *state,
                                 a_type_ptr          *new_type_ptr,
                                 a_func_info_block   *func_info,
@@ -2105,14 +2136,7 @@ TRUE if this is the function declarator in a friend function declaration.
     if (!C_mode()) {
       /* Set some flags in the declaration parsing state block indicating
          whether this is the declaration of a member function. */
-      if (scope_is(&scope_stack_top(), sck_class_struct_union)) {
-        state->is_inclass_member_function_decl = !is_friend_decl;
-      } else if (scope_is(&scope_stack_top(), sck_class_reactivation)) {
-        /* In some error cases the flag here is set to TRUE even though there
-           is no member function corresponding to the signature that is being
-           parsed). */
-        state->is_out_of_class_member_function_decl = TRUE;
-      }  /* if */
+      set_early_member_function_decl_flags(state);
     }  /* if */
   }  /* if */
   last_param_id = NULL;
