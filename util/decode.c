@@ -4529,10 +4529,10 @@ to the character position following what was demangled.  The syntax is:
          ::= <class-enum-type>
          ::= <template-param>
          ::= <template-template-param> <template-args>
-         ::= Dp <type>          # pack expansion of (C++0x)
+         ::= Dp <type>          # pack expansion of (C++11)
          ::= Dt <expression> E  # decltype of an id-expression or class member
-                                # access (C++0x)
-         ::= DT <expression> E  # decltype of an expression (C++0x)
+                                # access (C++11)
+         ::= DT <expression> E  # decltype of an expression (C++11)
          ::= Dy <type> E        # typeof(type) (EDG extension)
          ::= DY <expression> E  # typeof(expression) (EDG extension)
          ::= Du <type> E        # __underlying_type(type) (EDG extension)
@@ -4603,7 +4603,7 @@ demangled as part of the template function instead).
     } else if (*p == 'D' && p[1] == 'u') {
       /* __underlying_type:
          This is an EDG extension to the IA-64 ABI spec to handle
-         __underlying_type (a helper function used to implement the C++0x
+         __underlying_type (a helper function used to implement the C++11
          underlying_type type trait):
 
             <type> ::= Du <type> E       # __underlying_type(type)
@@ -4789,7 +4789,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
         <type> ::= <CV-qualifiers> <type>
                ::= P <type> # pointer-to
                ::= R <type> # reference-to
-               ::= O <type> # rvalue reference-to (C++0x)
+               ::= O <type> # rvalue reference-to (C++11)
                ::= C <type> # complex pair (C 2000)
                ::= U <source-name> <type> # vendor extended type qualifier
        */
@@ -4968,7 +4968,7 @@ to be on top of the type.
         <type> ::= <CV-qualifiers> <type>
                ::= P <type> # pointer-to
                ::= R <type> # reference-to
-               ::= O <type> # rvalue reference-to (C++0x)
+               ::= O <type> # rvalue reference-to (C++11)
                ::= C <type> # complex pair (C 2000)
                ::= U <source-name> <type> # vendor extended type qualifier
        */
