@@ -6776,6 +6776,8 @@ designated initializer.
   }  /* if */
   if (con->next->kind == (a_constant_repr_kind)ck_aggregate &&
       con->next->uses_designated_initializers &&
+      con->next->variant.aggregate.first_constant->kind ==
+                                         (a_constant_repr_kind)ck_designator &&
       !con->next->explicit_braces_on_aggregate) {
     /* We need to suppress the "=" and braces around a sub-aggregate
        initializer that did not have them in the source; we do not want to
