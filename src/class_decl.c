@@ -8465,19 +8465,16 @@ that the routine indicated by rout_ptr is a friend.
 }  /* update_friend_function_info */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* pos_info is not used in some configurations. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static a_symbol_ptr decl_dependent_friend_function(
-                                         a_symbol_locator       *locator,
-                                         a_type_ptr             function_type,
-                                         a_func_info_block_ptr  func_info,
-                                         a_decl_pos_block_ptr   pos_info)
+                                        a_symbol_locator        *locator,
+                                        a_type_ptr              function_type,
+                                        a_func_info_block_ptr   func_info,
+                                        a_member_decl_info_ptr  decl_info)
 /*
 Create a routine and associated symbol for a template dependent friend
 declaration of type function_type.  The locator for the friend declarator and
 some extra declaration info are passed through locator, func_info, and
-pos_info.
+decl_info.
 The routine symbol is returned (but not linked into the symbol table).
 The routine entry itself is linked into the IL only if prototype
 instantiations are recorded in the IL.
@@ -8491,6 +8488,10 @@ instantiations are recorded in the IL.
   a_src_seq_secondary_decl_ptr  sssdp;
   a_source_sequence_entry_ptr   ssep = func_info->declarator_ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_decl_parse_state_ptr        dps = &decl_info->decl_state;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_decl_pos_block_ptr          pos_info = &decl_info->decl_pos_block;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   switch_to_file_scope_region(&region_to_switch_back_to);
   /* First create a symbol for this function (though it will not be linked
@@ -8499,6 +8500,7 @@ instantiations are recorded in the IL.
                (locator->is_class_member ? sk_member_function : sk_routine);
   sym = alloc_symbol(sym_kind, locator->symbol_header,
                      &locator->source_position);
+  dps->sym = sym;
   /* Make a routine entry for this member: */
   rp = make_routine(function_type, (a_storage_class)sc_extern,
                     prototype_instantiations_in_il ?
@@ -8577,6 +8579,7 @@ instantiations are recorded in the IL.
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+  attach_decl_attributes(dps, /*is_primary_decl=*/func_info->is_definition);
   switch_back_to_original_region(region_to_switch_back_to);
   return sym;
 }  /* decl_dependent_friend_function */
@@ -8655,7 +8658,7 @@ possibility.
            create a dummy routine and associated symbol.  Return that instead
            of calling decl_routine. */
         sym = decl_dependent_friend_function(locator, function_type, func_info,
-                                             &decl_info->decl_pos_block);
+                                             decl_info);
         state->sym = sym;
         state->first_decl = TRUE;
         goto decl_processed;

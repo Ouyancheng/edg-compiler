@@ -1,5 +1,18 @@
 Version 4.4
 
+9/15/11  [EDGcpfe/12160]
+Attributes on dependent friend function declarations
+
+The front end previously failed to record attributes on the representation
+of a dependent friend function in a class template.  For example, assuming
+GNU C++ mode:
+
+  template<typename T> struct S {
+    __attribute((noreturn)) friend void f(S) {}
+  };  // Previously, the attribute was ignored.  Now it is applied and
+      // recorded.
+
+
 9/15/11  [EDGcpfe/10811,EDGcpfe/11221,EDGcpfe/12054]
 GNU C++ compatibility: Predeclaring std::type_info
 
