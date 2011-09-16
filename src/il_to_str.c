@@ -1581,7 +1581,7 @@ by octl.
           char             *kwd;
           if (use_gnu_form() && octl->gen_compilable_code) {
             /* Current versions of g++ only accept the decltype keyword
-               with -std=c++11, but they accept __decltype in both modes,
+               with -std=c++0x, but they accept __decltype in both modes,
                so use the safer spelling. */
             kwd = (char *)"__decltype(";
           } else {
