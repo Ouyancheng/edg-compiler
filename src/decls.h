@@ -138,7 +138,7 @@ extensions.
 Macro to be used in conjunction with is_type_keyword to check for C++11
 extensions.
 */
-#define or_is_cxx0x_type_keyword(tok)                                     \
+#define or_is_cpp11_type_keyword(tok)                                     \
   || ((tok) == tok_char16_t || (tok) == tok_char32_t)
 
 /*
@@ -172,7 +172,7 @@ If you change this, see also type_keyword.
    (tok) == tok_unsigned || (tok) == tok_wchar_t  ||                  \
    (tok) == tok_bool                                                  \
    or_is_c99_type_keyword(tok)                                        \
-   or_is_cxx0x_type_keyword(tok)                                      \
+   or_is_cpp11_type_keyword(tok)                                      \
    or_is_microsoft_type_keyword(tok)                                  \
    or_is_int128_keyword(tok)                                          \
    or_is_fixed_point_type_keyword(tok)                                \
