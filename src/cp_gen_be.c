@@ -11195,6 +11195,7 @@ done_with_operation_after_parens:
       break;
     case enk_temp_init:
       /* Temporary creation/initialization. */
+      if (need_parens) write_tok_ch('(');
       if (expr->is_lvalue) {
         /* Using the temp as an lvalue. */
         a_type_ptr         temp_type = expr->type;
@@ -11219,6 +11220,7 @@ done_with_operation_after_parens:
         /* Normal case (using the value of the temp). */
         gen_temp_init(expr, obj_expr_of_mfunc_operator);
       }  /* if */
+      if (need_parens) write_tok_ch(')');
       break;
     case enk_new_delete:
       /* new or delete operation. */
@@ -13632,8 +13634,24 @@ source and the expression is generated in that form.
           /* Parenthesized initialization by constructor.  Put out
                (arg1, arg2, ...)
           */
+          a_boolean closing_paren_needed = FALSE;
+          if (args != NULL && args->next == NULL &&
+              args->kind == (an_expr_node_kind)enk_temp_init) {
+            /* This initialization risks falling into the syntactic
+               ambiguity between declarations and expressions: a
+               declaration like "T x(Y());" (we are about to generate the
+               "Y()") declares x as a function whose parameter is a pointer
+               to a function, not a variable initialized with the temporary
+               "Y()".  To avoid that, we add an extra level of parentheses:
+               "T x((Y()));". */
+            write_tok_ch('(');
+            closing_paren_needed = TRUE;
+          }  /* if */
           gen_argument_list(args, (ctor == NULL) ? NULL : ctor->type,
                             /*skip_num=*/0);
+          if (closing_paren_needed) {
+            write_tok_ch(')');
+          }  /* if */
         }  /* if */
       }
       break;

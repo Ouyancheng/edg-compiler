@@ -1,5 +1,21 @@
 Version 4.4
 
+9/15/11  [EDGcpfe/12010]
+C++-generating back end: declaration/expression ambiguity with dynamic
+initialization
+
+The C++-generating back end generated a parenthesized initializer containing
+a dynamic initialization in a form that could trigger the
+declaration/expression syntactic ambiguity.  This has now been fixed by
+adding an extra level of parentheses around such dynamic initializations.
+For example:
+
+  struct S { };
+  S s((S()));  // Previously generated as "S s(S())", which declares s as
+               // a function with a parameter that is a pointer to a
+               // function rather than a variable initialized with S().
+
+
 9/15/11  [EDGcpfe/12160]
 Attributes on dependent friend function declarations
 
