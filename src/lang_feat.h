@@ -2094,7 +2094,7 @@ enabled in C++11 mode.  The default can be overridden using the
 EXTERN a_boolean
 		cpp11_mode;
 			/* When TRUE accept language features defined by the
-			   current working paper for the next C++ standard. */
+			   C++11 standard. */
 
 #define cpp0x_mode cpp11_mode
 			/* Macro provided so that customer code that uses the

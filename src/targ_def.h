@@ -607,9 +607,9 @@ nullptr_enabled.
 #endif /* DEFAULT_NULLPTR_ENABLED && !CPP11_IL_EXTENSIONS_SUPPORTED */
 
 /*
-Flag that is TRUE if extensions added to the working paper for the next C++
-standard should be enabled by default.  This is the default value of the
-global variable cpp11_mode.
+Flag that is TRUE if extensions added to the C++11 standard should be
+enabled by default.  This is the default value of the global variable
+cpp11_mode.
 */
 #ifndef DEFAULT_CPP11_MODE
 #define DEFAULT_CPP11_MODE FALSE

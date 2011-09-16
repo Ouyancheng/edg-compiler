@@ -1763,7 +1763,7 @@ member declaration (allowed in some Microsoft modes only).
       if (rp->called) {
         /* In the ARM, member functions could not be redeclared inline after
            being called.  This restriction has been eliminated in the
-           working paper. */
+           standard. */
         pos_sy_remark(ec_called_function_redeclared_inline,
                       &locator->source_position, sym);
       }  /* if */

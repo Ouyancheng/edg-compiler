@@ -4837,7 +4837,7 @@ such cases.
   if (is_decltype) {
     if (gcc_is_generated_code_target) {
       /* Current versions of g++ only accept the decltype keyword with
-         -std=c++11; however, they accept __decltype in either mode, so use
+         -std=c++0x; however, they accept __decltype in either mode, so use
          the safer spelling. */
       kwd = (char *)"__decltype(";
     } else {

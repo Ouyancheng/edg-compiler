@@ -9742,7 +9742,7 @@ symbol entry, and return a pointer to it in state->sym.
         /* Note that we do not look for conflicts between the class's new
            name and the names of its members.  This is an area where the
            wording of the ARM (7.1.3) has been clarified and/or amended by
-           the X3J16 working paper, and so the restrictions specified in
+           the C++98 standard, and so the restrictions specified in
            ARM 9.2 do not apply. */
       } else {
         /* The typedef name is the name of the class or enum "for linkage
