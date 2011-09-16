@@ -6776,6 +6776,7 @@ designated initializer.
   }  /* if */
   if (con->next->kind == (a_constant_repr_kind)ck_aggregate &&
       con->next->uses_designated_initializers &&
+      con->next->variant.aggregate.first_constant != NULL &&
       con->next->variant.aggregate.first_constant->kind ==
                                          (a_constant_repr_kind)ck_designator &&
       !con->next->explicit_braces_on_aggregate) {
