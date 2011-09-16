@@ -17971,7 +17971,7 @@ Check that this is a valid type and if so make member_type a friend.
        without a class-key.  For example:
             friend A;
        We also accept the latter form as an extension (except in strict
-       mode).  The C11 standard allows many other forms (e.g., "friend int;",
+       mode).  The C++11 standard allows many other forms (e.g., "friend int;",
        but not "friend int const;").  We implement those rules when
        extended_friends_enabled is TRUE (e.g., in C++11 mode). */
     a_boolean  normal_friend_type =
