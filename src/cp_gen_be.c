@@ -11194,8 +11194,11 @@ done_with_operation_after_parens:
                        expr->is_static_cast);
       break;
     case enk_temp_init:
-      /* Temporary creation/initialization. */
-      if (need_parens) write_tok_ch('(');
+      /* Temporary creation/initialization.  (Note: need_parens is
+         intentionally ignored here.  Adding parentheses in some contexts,
+         such as following a sizeof operator, might result in the
+         declaration/expression syntactic ambiguity, which will be resolved
+         in favor of the declaration -- not as the expression this is.) */
       if (expr->is_lvalue) {
         /* Using the temp as an lvalue. */
         a_type_ptr         temp_type = expr->type;
@@ -11220,7 +11223,6 @@ done_with_operation_after_parens:
         /* Normal case (using the value of the temp). */
         gen_temp_init(expr, obj_expr_of_mfunc_operator);
       }  /* if */
-      if (need_parens) write_tok_ch(')');
       break;
     case enk_new_delete:
       /* new or delete operation. */
@@ -13360,6 +13362,7 @@ source and the expression is generated in that form.
   a_boolean        using_old_style_cast = FALSE, is_value_init;
   a_boolean        suppress_outermost_parentheses = FALSE;
   a_boolean        unnamed_type_case = FALSE;
+  a_boolean        need_closing_operand_paren = FALSE;
 
   if (dip->is_explicit_cast && !parenthesized_init) {
     a_boolean has_one_argument = FALSE;
@@ -13542,6 +13545,15 @@ source and the expression is generated in that form.
                           !parenthesized_init,
                           "gen_dynamic_init: aggregate in parens");
       if (parenthesized_init) write_tok_ch('(');
+      if (con->expr != NULL &&
+          con->expr->kind == (an_expr_node_kind)enk_temp_init) {
+        /* We need an extra level of parentheses to avoid the
+           declaration/expression ambiguity: we want "T x((T()));" and not
+           "T x(T());", which declares x as a function with a parameter
+           that is a pointer to function type. */
+        write_tok_ch('(');
+        need_closing_operand_paren = TRUE;
+      }  /* if */
       gen_initializer_constant(con, init_entity_type,
                                /*suppress_braces=*/FALSE);
       if (parenthesized_init) write_tok_ch(')');
@@ -13585,6 +13597,14 @@ source and the expression is generated in that form.
       if (parenthesized_init) write_tok_ch('(');
       expr = dip->variant.expression;
       (void)strip_lvalue_cast_sequence(&expr);
+      if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+        /* We need an extra level of parentheses to avoid the
+           declaration/expression ambiguity: we want "T x((T()));" and not
+           "T x(T());", which declares x as a function with a parameter
+           that is a pointer to function type. */
+        write_tok_ch('(');
+        need_closing_operand_paren = TRUE;
+      }  /* if */
       gen_initializer_expr(expr, init_entity_type, /*need_parens=*/TRUE,
                            /*mbr_fcn_default_arg_expr=*/FALSE);
       if (parenthesized_init) write_tok_ch(')');
@@ -13634,7 +13654,6 @@ source and the expression is generated in that form.
           /* Parenthesized initialization by constructor.  Put out
                (arg1, arg2, ...)
           */
-          a_boolean closing_paren_needed = FALSE;
           if (args != NULL && args->next == NULL &&
               args->kind == (an_expr_node_kind)enk_temp_init) {
             /* This initialization risks falling into the syntactic
@@ -13645,19 +13664,19 @@ source and the expression is generated in that form.
                "Y()".  To avoid that, we add an extra level of parentheses:
                "T x((Y()));". */
             write_tok_ch('(');
-            closing_paren_needed = TRUE;
+            need_closing_operand_paren = TRUE;
           }  /* if */
           gen_argument_list(args, (ctor == NULL) ? NULL : ctor->type,
                             /*skip_num=*/0);
-          if (closing_paren_needed) {
-            write_tok_ch(')');
-          }  /* if */
         }  /* if */
       }
       break;
     default:
       unexpected_condition_str("gen_dynamic_init: bad kind");
   }  /* switch */
+  if (need_closing_operand_paren) {
+    write_tok_ch(')');
+  }  /* if */
   /* Generate a closing parenthesis if needed for an old-style cast. */
   if (using_old_style_cast && ! suppress_outermost_parentheses) {
     write_tok_ch(')');
