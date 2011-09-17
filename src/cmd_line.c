@@ -4272,11 +4272,6 @@ file.
 #else /* !defined(CPP11_IL_EXTENSIONS_SUPPORTED) */
   comment_undefined_macro_name(CPP11_IL_EXTENSIONS_SUPPORTED);
 #endif /* defined(CPP11_IL_EXTENSIONS_SUPPORTED) */
-#if defined(CTORS_RETURN_THIS)
-  define_numeric_valued_macro(CTORS_RETURN_THIS);
-#else /* !defined(CTORS_RETURN_THIS) */
-  comment_undefined_macro_name(CTORS_RETURN_THIS);
-#endif /* defined(CTORS_RETURN_THIS) */
 #if defined(CUSTOM_NAME_LINKAGE_KINDS)
   /* We cannot conveniently display the value of CUSTOM_NAME_LINKAGE_KINDS
      because it contains embedded commas (it's inserted into the middle of
@@ -5125,11 +5120,6 @@ file.
 #else /* !defined(DRIVER_COMPATIBILITY_VERSION) */
   comment_undefined_macro_name(DRIVER_COMPATIBILITY_VERSION);
 #endif /* defined(DRIVER_COMPATIBILITY_VERSION) */
-#if defined(DTORS_RETURN_THIS)
-  define_numeric_valued_macro(DTORS_RETURN_THIS);
-#else /* !defined(DTORS_RETURN_THIS) */
-  comment_undefined_macro_name(DTORS_RETURN_THIS);
-#endif /* defined(DTORS_RETURN_THIS) */
 #if defined(DUMP_CONFIG_ENABLED)
   define_numeric_valued_macro(DUMP_CONFIG_ENABLED);
 #else /* !defined(DUMP_CONFIG_ENABLED) */

@@ -1,5 +1,14 @@
 Version 4.4
 
+9/17/11  [EDGcpfe/12170]
+CTORS_RETURN_THIS/DTORS_RETURN_THIS in --dump_configuration output
+
+The CTORS_RETURN_THIS and DTORS_RETURN_THIS values were included in the
+output of the --dump_configuration command line option, even though they are
+not intended to be set in defines.h and cause build errors if they are set.
+They have now been removed from the output.
+
+
 9/15/11  [EDGcpfe/12010]
 C++-generating back end: declaration/expression ambiguity with dynamic
 initialization
