@@ -336,7 +336,15 @@ Output the indicated template argument in the way described by octl.
             form_lvalue_address_constant(con, need_parens, octl);
           } else {
             /* Normal (non-reference) case. */
+            a_boolean saved_implicit_cast = con->implicit_cast;
+            if (con->kind == (a_constant_repr_kind)ck_ptr_to_member) {
+              /* Ensure that an implicit cast is not made explicit, as
+                 non-integral casts are not permitted in template
+                 arguments. */
+              con->implicit_cast = FALSE;
+            }  /* if */
             form_constant(con, need_parens, octl);
+            con->implicit_cast = saved_implicit_cast;
           }  /* if */
 #if BACK_END_IS_CP_GEN_BE
           if (octl->gen_compilable_code) {

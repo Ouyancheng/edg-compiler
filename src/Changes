@@ -1,5 +1,21 @@
 Version 4.4
 
+9/17/11  [EDGcpfe/12099]
+C++-generating back end: implicit casts in pointer-to-member template arguments
+
+The type of a pointer-to-member constant used as a template argument may
+differ in qualification from the type of the corresponding non-type template
+parameter.  In such cases, the C++-generating back end added an explicit
+cast in the generated code to represent the implicit conversion of the
+template argument.  The resulting code, however, was incorrect, because only
+integral casts are permitted in template arguments.  This has now been fixed
+and the cast is omitted in the generated code.  For example:
+
+  struct A { int i; };
+  template<const int A::*> struct B;
+  typedef B<&A::i> b;  // Previously generated as B<(const int A::*)(&A::i)>
+
+
 9/17/11  [EDGcpfe/12170]
 CTORS_RETURN_THIS/DTORS_RETURN_THIS in --dump_configuration output
 
