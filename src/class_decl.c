@@ -5501,7 +5501,7 @@ done:
       if (virtual_specified) {
         if (class_state->access == (an_access_specifier)as_private &&
             is_immediate_managed_class_type(class_type) &&
-            !func_info->sealed) {
+            !func_info->sealed && !rout->compiler_generated) {
           /* A private virtual member function of a managed type should
              be marked as sealed. */
           pos_warning(ec_private_virtual_member_function_not_sealed, 
@@ -19431,7 +19431,9 @@ class_state->property_or_event_descr.
   generate_trivial_accessor(class_state, add_type, "add");
   remove_type = add_type;
   generate_trivial_accessor(class_state, remove_type, "remove");
-  /* Declare the event's "raise" accessor: It is always private. */
+  /* Declare the event's "raise" accessor: It is always private.  Do not
+     declare it in interface types since interfaces cannot have private
+     members. */
   if (is_template_dependent_type(event_type)) {
     /* During prototype instantiations, we cannot always know the invocation
        type if the event type is template-dependent.  Do not create the "raise"
@@ -19442,6 +19444,8 @@ class_state->property_or_event_descr.
     a_type_ptr  delegate_type = type_pointed_to(event_type);
     if (!is_delegate_type(delegate_type)) {
       expect_error();
+    } else if (is_immediate_cli_interface_type(class_state->class_type)) {
+      /* No "raise" accessor is generated for trivial events in interfaces. */
     } else {
       an_access_specifier  saved_access = class_state->access;
       class_state->access = (an_access_specifier)as_private;
@@ -19712,8 +19716,8 @@ being parsed), *decl_info describes the current member declaration, and
     pdp->variant.variable = dps->sym->variant.static_data_member.variable;
   } else {
     a_scope_depth effective_decl_level;
-    effective_decl_level = class_type->variant.class_struct_union.extra_info->
-                                           assoc_scope->depth_in_scope_stack;
+    effective_decl_level = class_type_supp(class_type)->assoc_scope
+                                                      ->depth_in_scope_stack;
     check_assertion(effective_decl_level != NO_SCOPE_DEPTH);
     pdp->variant.field = decl_nonstatic_data_member(&loc, class_state,
                                                     decl_info,
