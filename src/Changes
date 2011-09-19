@@ -65,7 +65,7 @@ the following example valid:
 (The predeclared type is incomplete.)
 
 
-9/15/11  [EDGcpfe/EDGcpfe/11716]
+9/15/11  [EDGcpfe/11716]
 GNU compatibility: Attribute "const" on parameters
 
 In GNU mode, the front end now accepts the "const" attribute on parameter
