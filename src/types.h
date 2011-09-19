@@ -152,6 +152,9 @@ extern a_boolean cli_type_has_public_default_constructor(a_type_ptr	tp);
                            (tp)->variant.pointer.is_handle)
 #define cli_class_type_kind_is(tp, cctk)                                     \
   (class_type_supp(tp)->cli_class_type_kind == (a_cli_class_type_kind)(cctk))
+#define is_immediate_standard_class_type(tp)                                 \
+  (is_immediate_class_type(tp) &&                                            \
+   cli_class_type_kind_is((tp), cctk_standard))
 #define is_immediate_managed_class_type(tp)                                  \
   (is_immediate_class_type(tp) &&                                            \
    !cli_class_type_kind_is((tp), cctk_standard))

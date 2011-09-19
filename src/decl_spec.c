@@ -2498,17 +2498,16 @@ may be emitted at the given position.
               /* Interface types cannot contain nested class types. */
               pos_error(ec_interface_cannot_have_nested_class, diag_pos);
             } else if (cppcli_enabled &&
-                       is_immediate_managed_class_type(class_type) !=
-                                    is_immediate_managed_class_type(parent)) {
-              /* Managed class types cannot be nested in standard classes and
-                 vice versa. */
+                       is_immediate_managed_class_type(parent) &&
+                       is_immediate_standard_class_type(class_type)) {
+              /* Standard class types cannot be nested in managed class types
+                 (but the opposite is usually okay). */
               if (is_immediate_delegate_type(class_type)) {
                 /* A more specific error is issued elsewhere for delegate
                    definitions appearing in standard class types. */
                 expect_error();
               } else {
-                pos_error(ec_nested_class_mixes_standard_and_managed_classes,
-                          diag_pos);
+                pos_error(ec_standard_class_nested_in_managed_class, diag_pos);
               }  /* if */
             }  /* if */
             /* coverity[dead_error_condition] */
