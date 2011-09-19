@@ -10069,8 +10069,10 @@ next parameter.
     arg_block->argument_tail = expr;
   }
   if (ptp != NULL &&
-      !arg_block->pack_encountered &&
-      !arg_block->passing_cli_param_array_element) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      !arg_block->passing_cli_param_array_element &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      !arg_block->pack_encountered) {
     /* Advance to the next parameter type entry in preparation for the
        next call of this routine. */
     arg_block->curr_param_type = ptp->next;
@@ -10306,6 +10308,7 @@ list checking (e.g., for the presence of too few arguments).
   }  /* if */
 }  /* process_end_of_call_arguments */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 an_expr_node_ptr convert_arg_operand_list_to_expr_list(
                                           an_arg_operand_ptr  arg_operand_list,
@@ -10337,6 +10340,7 @@ expression list.
   return result;
 }  /* convert_arg_operand_list_to_expr_list */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void process_call_argument_list(an_arg_operand_ptr  arg_operand_list,
                                 an_arg_check_block  *arg_block)

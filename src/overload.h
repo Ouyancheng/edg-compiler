@@ -982,9 +982,11 @@ extern a_boolean deduce_auto_type(a_type_ptr        orig_type,
 
 extern void overload_init(void);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 extern an_expr_node_ptr convert_arg_operand_list_to_expr_list(
                                            an_arg_operand_ptr arg_operand_list,
                                            an_expr_node_ptr   *expr_tail);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef OVERLOAD_H */
 
