@@ -516,6 +516,17 @@ typedef struct an_arg_check_block {
 			   or a pack expansion argument.  In either case, we
 			   can no longer maintain the correspondence between
 			   parameters and arguments. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean	passing_cli_param_array_element;
+			/* TRUE if the function has a C++/CLI parameter array
+			   at the end and we are in the part of the argument
+			   list where arguments correspond to elements in the
+			   parameter array. */
+  a_type_ptr	cli_param_array_element_type;
+			/* When passing_cli_param_array_element is TRUE, the
+			   type of the elements of the parameter array, i.e.,
+			   the effective parameter type. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_pragma_kind	arg_list_kind;
 			/* The kind of any pragma that applies to the
 			   parameter list. */

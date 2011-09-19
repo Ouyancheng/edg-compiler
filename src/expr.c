@@ -6444,12 +6444,6 @@ case).
       rep = NULL;
       force_indefinite_function = TRUE;
       cppcli_overloaded_case = TRUE;
-    } else if (cppcli_enabled &&
-               is_cli_param_array_routine_symbol(member_sym)) {
-      /* In C++/CLI mode, a symbol representing a routine with a parameter
-         array must be processed through overload resolution. */
-      rep = NULL;
-      force_indefinite_function = TRUE;
     } else if (symbol_is(member_sym, sk_property_set)) {
       rep = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -15389,9 +15383,7 @@ handle_empty_parens_new_initializer:
                         &arg_ptr->operand, param_type, (a_boolean *)NULL,
                         (a_conv_descr_ptr)NULL,
                         /*is_copy_initialization=*/FALSE,
-                        is_template_param_constant_operand(&arg_ptr->operand) ?
-                          CCO_NONTYPE_TEMPLATE_ARG :
-                          CCO_DEFAULT,
+                        CCO_DEFAULT,
                         ec_incompatible_param);
           if (arg_ptr->operand.kind == (an_operand_kind)ok_constant &&
               arg_ptr->operand.variant.constant.kind ==
@@ -24745,12 +24737,6 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       force_indefinite_function = TRUE;
       rep = NULL;
       cppcli_overloaded_case = TRUE;
-    } else if (cppcli_enabled &&
-               is_cli_param_array_routine_symbol(sym_ptr)) {
-      /* In C++/CLI mode, a symbol representing a routine with a parameter
-         array must be processed through overload resolution. */
-      force_indefinite_function = TRUE;
-      rep = NULL;
     } else if (symbol_is(sym_ptr, sk_property_set)) {
       /* Properties are potentially overloaded. */
       rep = NULL;

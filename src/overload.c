@@ -3726,6 +3726,42 @@ end_of_function:
   return visible;
 }  /* candidate_function_is_visible */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean arg_can_be_passed_as_param_array(
+                                    an_arg_operand       *arg_operand,
+                                    a_param_type_ptr     param,
+                                    a_boolean            param_type_is_deduced,
+                                    a_boolean            allow_udc,
+                                    an_arg_match_summary *arg_match)
+/*
+arg_operand is an argument of a call that lines up with a C++/CLI
+parameter array parameter, and there are no more arguments after this one.
+Check to see whether the argument can be passed directly as the parameter
+array, and return TRUE if so.  Return FALSE if the argument should instead
+be considered as an element of the parameter array.  param gives the
+parameter array parameter.  param_type_is_deduced is TRUE if that
+parameter's type was previously deduced.  allow_udc is TRUE if
+user-defined conversions should be allowed.  *arg_match is set to
+the argument match information for the match, if there is one.
+*/
+{
+  a_boolean can_be_passed_as_param_array = FALSE;
+
+  check_assertion(param != NULL && param->is_cli_param_array);
+  determine_arg_match_level(&arg_operand->operand,
+                            (a_type_ptr)NULL,
+                            param->type,
+                            param,
+                            param_type_is_deduced,
+                            allow_udc,
+                            arg_match);
+  can_be_passed_as_param_array = (arg_match->match_level != aml_none &&
+                                  arg_match->match_level != aml_error);
+  return can_be_passed_as_param_array;
+}  /* arg_can_be_passed_as_param_array */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void determine_function_viability(
                  a_symbol_ptr             proj_function_symbol,
@@ -4123,17 +4159,15 @@ the point of call.  conv_context describes the context of the conversion.
             if (!param_array_expanded_case) {
               /* At this point, we don't know whether the expanded case should
                  be used or not because the number of arguments equals the
-                 number of parameters.  Decide definitively now. */
-              determine_arg_match_level(&arg_operand->operand,
-                                        (a_type_ptr)NULL,
-                                        param->type,
-                                        param,
-                                        param_type_is_deduced,
-                                        /*try_user_conversions=*/
-                                                        allow_udc_on_arguments,
-                                        arg_match);
-              if (arg_match->match_level == aml_none ||
-                  arg_match->match_level == aml_error) {
+                 number of parameters.  Decide definitively now.  Note that
+                 we only get here if there are no arguments following the
+                 parameter position that is the param array, because of code
+                 above that sets param_array_expanded_case. */
+              if (!arg_can_be_passed_as_param_array(arg_operand,
+                                                    param,
+                                                    param_type_is_deduced,
+                                                    allow_udc_on_arguments,
+                                                    arg_match)) {
                 /* The last argument does not match the parameter array so try
                    the expanded case. */
                 param_array_expanded_case = TRUE;
@@ -9605,6 +9639,10 @@ or NULL otherwise (e.g., for a call through a pointer to function).
   arg_block->prototyped = FALSE;
   arg_block->has_ellipsis = FALSE;
   arg_block->pack_encountered = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  arg_block->passing_cli_param_array_element = FALSE;
+  arg_block->cli_param_array_element_type = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   arg_block->arg_list_kind = (a_pragma_kind)pk_none;
   arg_block->varargs_count = NOT_LINT_VARARGS;
   arg_block->arg_ctr = 0;
@@ -9769,6 +9807,54 @@ implemented directly by the front end or the back end.)
 }  /* ellipsis_arguments_do_not_promote */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_type_ptr param_array_element_type_of(a_type_ptr param_type)
+/*
+param_type is the type of a parameter marked as a C++/CLI parameter array.
+Return the element type of the array.
+*/
+{
+  a_type_ptr element_type;
+
+  if (is_handle_to_cli_array_type(param_type)) {
+    element_type = cli_array_element_type(type_pointed_to(param_type));
+  } else {
+    check_assertion(is_error_type(param_type));
+    element_type = error_type();
+  }  /* if */
+  return element_type;
+}  /* param_array_element_type_of */
+
+
+static an_expr_node_ptr expr_for_param_array_element_arg(
+                                                     an_operand   *operand,
+                                                     a_type_ptr   element_type,
+                                                     a_conv_descr *conversion)
+/*
+operand is an argument being passed as an element of a C++/CLI parameter array.
+Return an expression node for it, to be added to the argument list (the
+back ends assembles the actual parameter array).  element_type is the
+element type of the parameter array; operand is converted to that type.
+conversion describes the conversion to be done if it has been worked out
+previously.
+*/
+{
+  an_expr_node_ptr expr;
+
+  prep_initializer_operand(operand,
+                           element_type,
+                           (a_boolean *)NULL,
+                           conversion,
+                           /*is_copy_initialization=*/TRUE,
+                           CCO_DEFAULT,
+                           ec_incompatible_param);
+  expr = make_node_from_operand_for_expr_list(operand);
+  expr->element_of_cli_param_array_arg = TRUE;
+  return expr;
+}  /* expr_for_param_array_element_arg */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void process_call_argument(an_arg_operand_ptr arg_operand,
                                   an_arg_check_block *arg_block)
@@ -9780,10 +9866,13 @@ current parameter, and is updated at the end of the call to describe the
 next parameter.
 */
 {
-  a_boolean         do_default_promotion;
-  a_boolean         arg_is_fmt_string = FALSE;
-  an_operand        *operand = &arg_operand->operand;
-  a_param_type_ptr  ptp = arg_block->curr_param_type;
+  a_boolean            do_default_promotion;
+  a_boolean            arg_is_fmt_string = FALSE;
+  an_operand           *operand = &arg_operand->operand;
+  a_param_type_ptr     ptp = arg_block->curr_param_type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_arg_match_summary arg_match;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   /* Count the arguments. */
   arg_block->arg_ctr++;
@@ -9814,10 +9903,10 @@ next parameter.
   } else if (arg_block->prototyped) {
     /* Prototyped parameter list. */
     if (ptp != NULL) {
-      /* No more parameters; we've probably run off into an ellipsis. */
+      /* Normal prototyped parameter. */
       do_default_promotion = FALSE;
     } else {
-      /* No more formal arguments in the list. */
+      /* No more parameters on the list. */
       if (!arg_block->has_ellipsis) {
         /* No ellipsis, so error: extra actual argument. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -9838,7 +9927,7 @@ next parameter.
     /* Old-style parameter list, for a function with a body (i.e., we know
        the argument types). */
     if (ptp == NULL) {
-      /* No more formal arguments in the list. */
+      /* No more parameters on the list. */
       if (arg_block->varargs_count == NOT_LINT_VARARGS) {
         /* A lint-style varargs comment does not apply, so warning:
            extra actual argument. */
@@ -9918,8 +10007,30 @@ next parameter.
     } else {
       change_operand_refs_to_error(operand);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (arg_block->passing_cli_param_array_element) {
+    /* This argument should be passed as an element of a C++/CLI parameter
+       array (and this is not the first element of the array, which is handled
+       by the code following). */
+  } else if (ptp->is_cli_param_array &&
+             (arg_operand->next != NULL ||
+              !arg_can_be_passed_as_param_array(arg_operand,
+                                                ptp,
+                                               /*param_type_is_deduced=*/FALSE,
+                                                /*allow_udc=*/TRUE,
+                                                &arg_match))) {
+    /* On this argument, we are beginning to pass values via a C++/CLI
+       parameter array.  The arg_can_be_passed... test checks for the case
+       where the argument can be passed directly as the param array rather
+       than as an element of that array.  That test is done only if there are
+       no additional arguments, since if there are additional arguments we
+       are forced to use the param array interpretation. */
+   arg_block->passing_cli_param_array_element = TRUE;
+   arg_block->cli_param_array_element_type =
+                                        param_array_element_type_of(ptp->type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
-    /* Parameter is prototyped. */
+    /* Normal prototyped parameter. */
     /* Check the argument for compatibility against the parameter,
        casting it if necessary.  Also convert from lvalue to rvalue
        when appropriate. */
@@ -9934,7 +10045,32 @@ next parameter.
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
-  if (ptp != NULL && !arg_block->pack_encountered) {
+  /* Add the expression version of the argument to the argument list being
+     built up. */
+  { an_expr_node_ptr expr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (arg_block->passing_cli_param_array_element) {
+      /* This argument fills an element of a parameter array. */
+      expr = expr_for_param_array_element_arg(
+                                       operand,
+                                       arg_block->cli_param_array_element_type,
+                                       (a_conv_descr *)NULL);
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      expr = make_node_from_operand_for_expr_list(operand);
+    }  /* if */
+    if (arg_block->argument_tail == NULL) {
+      arg_block->argument_head = expr;
+    } else {
+      arg_block->argument_tail->next = expr;
+    }  /* if */
+    arg_block->argument_tail = expr;
+  }
+  if (ptp != NULL &&
+      !arg_block->pack_encountered &&
+      !arg_block->passing_cli_param_array_element) {
     /* Advance to the next parameter type entry in preparation for the
        next call of this routine. */
     arg_block->curr_param_type = ptp->next;
@@ -10130,20 +10266,25 @@ list checking (e.g., for the presence of too few arguments).
        can't check if they ended together. */
   } else if (arg_block->prototyped) {
     /* Prototyped parameter list. */
-    if (arg_block->curr_param_type != NULL) {
+    a_param_type_ptr ptp = arg_block->curr_param_type;
+    if (ptp != NULL) {
       /* Not enough arguments? */
       /* If there is a default argument value, or several, use them. */
-      if (arg_block->curr_param_type->default_arg_expr != NULL ||
-          arg_block->curr_param_type->has_unevaluated_template_default) {
+      if (ptp->default_arg_expr != NULL ||
+          ptp->has_unevaluated_template_default) {
         an_expr_node_ptr curr_node =
-                   expr_copy_default_arg_expr_list(arg_block->routine,
-                                                   arg_block->curr_param_type);
+                   expr_copy_default_arg_expr_list(arg_block->routine, ptp);
         if (arg_block->argument_head == NULL) {
           arg_block->argument_head = curr_node;
         } else {
           arg_block->argument_tail->next = curr_node;
         }  /* if */
         arg_block->argument_tail = curr_node;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (ptp->is_cli_param_array) {
+        /* A C++/CLI parameter array.  This can be satisfied by a zero-length
+           parameter array in this case. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* No default arguments. */
         /* Error: too few actual arguments. */
@@ -10223,10 +10364,8 @@ operand list is deallocated).  Some state information is recorded in *arg_block
     warn_if_missing_sentinel(arg_operand_list, arg_block);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Convert (and free) the operand list to an expression list. */
-  arg_block->argument_head = convert_arg_operand_list_to_expr_list(
-                                                    arg_operand_list,
-                                                    &arg_block->argument_tail);
+  /* Free the argument list. */
+  free_arg_operand_list(arg_operand_list);
   /* Do processing for the end of the argument list. */
   process_end_of_call_arguments(arg_block);
 }  /* process_call_argument_list */
@@ -10315,26 +10454,10 @@ specific function being called.
       /* This argument is part of a param array.  Therefore, it is not a
          "real" argument, but instead the initializer for an element
          of a C++/CLI array. */
-      a_type_ptr element_type;
-
-      if (is_handle_to_cli_array_type(param->type)) {
-        element_type = cli_array_element_type(type_pointed_to(param->type));
-      } else {
-        check_assertion(is_error_type(param->type));
-        element_type = error_type();
-      }  /* if */
-      prep_initializer_operand(
-                     &arg_operand->operand,
-                     element_type,
-                     (a_boolean *)NULL,
-                     &arg_match->conversion,
-                     /*is_copy_initialization=*/FALSE,
-                     is_template_param_constant_operand(&arg_operand->operand)?
-                       CCO_NONTYPE_TEMPLATE_ARG :
-                       CCO_DEFAULT,
-                     ec_incompatible_param);
-      arg = make_node_from_operand_for_expr_list(&arg_operand->operand);
-      arg->element_of_cli_param_array_arg = TRUE;
+      a_type_ptr element_type = param_array_element_type_of(param->type);
+      arg = expr_for_param_array_element_arg(&arg_operand->operand,
+                                             element_type,
+                                             &arg_match->conversion);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* Cast the argument to the right type. */
