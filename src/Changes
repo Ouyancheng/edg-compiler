@@ -1,5 +1,12 @@
 Version 4.4
 
+9/19/11  [EDGcpfe/12061]
+Microsoft C++ compatibility: Namespace std is predeclared
+
+In Microsoft C++ mode, the front end now predeclares namespace std.  (This was
+already the case in Sun C++ mode and in GNU C++ mode.)
+
+
 9/17/11  [EDGcpfe/12099]
 C++-generating back end: implicit casts in pointer-to-member template arguments
 
