@@ -2017,7 +2017,7 @@ function and update the corresponding flags in *dps.
   } else if (scope_is(ssep, sck_class_reactivation)) {
     /* In some error cases the flag here is set to TRUE even though there
        is no member function corresponding to the signature that is being
-       parsed). */
+       parsed. */
     dps->is_out_of_class_member_function_decl = TRUE;
   }  /* if */
 }  /* set_early_member_function_decl_flags */
