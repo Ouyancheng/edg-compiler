@@ -337,10 +337,16 @@ Output the indicated template argument in the way described by octl.
           } else {
             /* Normal (non-reference) case. */
             a_boolean saved_implicit_cast = con->implicit_cast;
-            if (con->kind == (a_constant_repr_kind)ck_ptr_to_member) {
-              /* Ensure that an implicit cast is not made explicit, as
-                 non-integral casts are not permitted in template
-                 arguments. */
+            if (con->kind == (a_constant_repr_kind)ck_ptr_to_member &&
+                !((con->variant.ptr_to_member.is_function_ptr &&
+                   con->variant.ptr_to_member.variant.routine == NULL) ||
+                  (!con->variant.ptr_to_member.is_function_ptr &&
+                   con->variant.ptr_to_member.variant.field == NULL))) {
+              /* Except in a null pointer constant, indicated by the
+                 field/routine being NULL, a cast is not permitted in a
+                 pointer-to-member template argument; ensure that
+                 form_pm_constant does not add one to represent an implicit
+                 conversion. */
               con->implicit_cast = FALSE;
             }  /* if */
             form_constant(con, need_parens, octl);
