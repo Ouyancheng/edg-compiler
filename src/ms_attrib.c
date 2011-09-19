@@ -1800,7 +1800,8 @@ declaration.
      values than the an_ms_attribute_target values in the front end.
      At this time, the values are ignored. */
   next_tok = next_token();
-  if (curr_token == tok_identifier && next_tok == tok_colon) {
+  if ((curr_token == tok_identifier || is_keyword_token(curr_token)) &&
+      next_tok == tok_colon) {
     /* Skip past the target value and the colon. */
     (void)get_token();
     (void)get_token();
