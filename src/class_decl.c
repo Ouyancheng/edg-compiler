@@ -19221,6 +19221,11 @@ Scan the definition and record it in the IL (as a special-purpose class type).
                             &loc.source_position, dps->source_sequence_entry);
   set_cli_visibility(class_type, visibility, &visibility_pos,
                      /*is_definition=*/TRUE);
+  if (dps->ms_attributes != NULL && prev_decl == NULL) {
+    /* Apply the specified attributes. */
+    apply_microsoft_attributes(&dps->ms_attributes, (char*)class_type,
+                               (an_il_entry_kind)iek_type, MSAT_STRUCT);
+  }  /* if */
   /* Create the definition of the delegate class type. */
   create_cli_delegate_class_definition(class_type, decl_level, &loc, dps,
                                        &func_info);

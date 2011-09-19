@@ -20040,7 +20040,7 @@ any non-empty template parameter lists that were scanned.
   if (microsoft_mode &&
       curr_token == tok_lbracket && next_token() != tok_lbracket) {
     dps->ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
-  };
+  }
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* See if it is a class template declaration.  If it is, scan the tokens
      of the definition (if any) and cache them away of later reference. */
