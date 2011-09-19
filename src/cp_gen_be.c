@@ -13655,7 +13655,8 @@ source and the expression is generated in that form.
                (arg1, arg2, ...)
           */
           if (args != NULL && args->next == NULL &&
-              args->kind == (an_expr_node_kind)enk_temp_init) {
+              args->kind == (an_expr_node_kind)enk_temp_init &&
+              !args->generated_default_arg) {
             /* This initialization risks falling into the syntactic
                ambiguity between declarations and expressions: a
                declaration like "T x(Y());" (we are about to generate the
