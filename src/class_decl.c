@@ -10663,7 +10663,8 @@ with and issue diagnostics as needed.
       } else if (ptp->next != NULL) {
         pos_error(ec_extra_property_accessor_parameters, &dps->declarator_pos);
         err = TRUE;
-      } else if (!types_are_compatible(ptp->type, prop_type)) {
+      } else if (!types_are_compatible_ignoring_qualifiers(ptp->type,
+                                                           prop_type)) {
         pos_error(ec_property_set_value_parameter_mismatch,
                   &dps->declarator_pos);
         err = TRUE;
