@@ -2692,6 +2692,7 @@ prototype instantiations).
     a_decl_parse_state  dps;
     a_decl_pos_block    decl_pos_block;
     a_variable_ptr      var;
+    push_lexical_state_stack();
     clear_decl_pos_block(&decl_pos_block);
     /* Re-create a declaration parsing state before parsing the initializer. */
     init_decl_parse_state(&dps);
@@ -2707,13 +2708,21 @@ prototype instantiations).
     initializer(&dps, &dps.sym->decl_position, idl_external,
                 /*parenthesized_initializer=*/FALSE,
                 &incomplete_type_error_reported, &decl_pos_block);
+    /* We should now be at the end-of-source terminator inserted when we
+       cached the initializer.  If we don't, it means something other than a
+       semicolon followed the initializer expression. */
+    if (curr_token != tok_end_of_source) {
+      pos_error(ec_exp_semicolon, &pos_curr_token);
+    }  /* if */
+    flush_past_token_cache_terminator();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     var->initializer_range = decl_pos_block.var_init_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     pop_class_reactivation_scope();
     next_ifp = ifp->next;
     free_initializer_fixup(ifp);
-  }  /* if */
+    pop_lexical_state_stack();
+  }  /* for */
 }  /* inclass_initializer_fixup_for_class */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12681,6 +12690,7 @@ context of the completed class later on.
   incr_token_set_array_element(stop_tokens, tok_semicolon);
   /* Cache the initializer tokens. */
   cache_token_stream(&ifp->initializer_token_cache, stop_tokens);
+  terminate_token_cache(&ifp->initializer_token_cache);
   /* Record the fixup in the scope stack. */
   check_assertion(scope_is(ssep, sck_class_struct_union));
   /* There's only one fixup-list for a class and its nested classes, and it's
