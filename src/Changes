@@ -197,6 +197,10 @@ core issue 1207 (see N3282).
     auto f() const -> decltype(this->i) { return 0; }  // Okay now.
   };
 
+This feature required a small IL CHANGE: the enk_param_ref expression
+kind can now be used to refer to "this" in such contexts, by
+specifying a parameter number of zero.
+
 
 9/14/11  [EDGcpfe/11910]
 C++11 and Microsoft compatibility: access checking of base-specifiers
