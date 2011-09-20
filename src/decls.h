@@ -572,7 +572,9 @@ typedef struct a_decl_parse_state {
 			/* TRUE if this is a field declaration with the
 			   Microsoft __declspec(property(...)) specifier or
 			   a non-static C++/CLI property or event
-			   declaration. */
+			   declaration.  Also TRUE for static properties and
+			   events in C++/CLI (which aren't represented by
+			   fields but by static data members). */
   a_bit_field	is_declspec_property_field:1;
 			/* TRUE if this is a field declaration with the
 			   Microsoft __declspec(property(...)) specifier. */

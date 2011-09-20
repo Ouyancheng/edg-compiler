@@ -12787,7 +12787,8 @@ specific information about the member declaration, respectively.
                               member_type, &locator->source_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled) {
-    if (is_interior_ptr_type(member_type) || is_pin_ptr_type(member_type)) {
+    if ((is_interior_ptr_type(member_type) || is_pin_ptr_type(member_type)) &&
+        !decl_state->is_property_or_event_field) {
       /* In C++/CLI, an interior_ptr or pin_ptr cannot be a class member. */
       type_error(ec_type_cannot_be_class_member, member_type);
       member_type = error_type();
@@ -14604,8 +14605,9 @@ declarations.
       pos_error(ec_ref_or_interface_class_member_in_standard_class,
                 &decl_state->declarator_pos);
       err = TRUE;
-    } else if (is_interior_ptr_type(field_type) ||
-               is_pin_ptr_type(field_type)) {
+    } else if ((is_interior_ptr_type(field_type) ||
+                is_pin_ptr_type(field_type)) &&
+               !decl_state->is_property_or_event_field) {
       /* In C++/CLI, an interior_ptr or pin_ptr cannot be a class member. */
       pos_ty_error(ec_type_cannot_be_class_member, 
                    &locator->source_position, field_type);
