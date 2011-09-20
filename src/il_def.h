@@ -976,6 +976,7 @@ typedef enum /*a_token_kind*/ {
   tok_fastcall,
   tok_stdcall,
   tok_thiscall,
+  tok_clrcall,
   tok_microsoft_inline,
   tok_forceinline,
   tok_unaligned,
@@ -1211,7 +1212,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "_Fract", "_Accum", "_Sat", "__declspec",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "abstract", "override", "sealed",
-   "__cdecl", "__fastcall", "__stdcall", "__thiscall",
+   "__cdecl", "__fastcall", "__stdcall", "__thiscall", "__clrcall",
    "__inline", "__forceinline",
    "__unaligned", "__try", "__finally", "__leave", "__except",
    "__int8", "__int16", "__int32", "__int64", "__based",
@@ -5233,6 +5234,7 @@ enum a_calling_convention_tag {
   cc_fastcall,		/* __fastcall calling convention. */
   cc_stdcall,		/* __stdcall calling convention. */
   cc_thiscall,		/* __thiscall calling convention. */
+  cc_clrcall,		/* __clrcall calling convention. */
   cc_last		/* Must be last. */
 };
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
@@ -5246,7 +5248,8 @@ typedef a_byte a_calling_convention;
 /* Display names for calling conventions. */
 EXTERN char *calling_convention_names[(int)cc_last]
 #if VAR_INITIALIZERS
-= {"<default>", "__cdecl", "__fastcall", "__stdcall", "__thiscall"}
+= { "<default>", "__cdecl", "__fastcall", "__stdcall", "__thiscall",
+    "__clrcall" }
 #endif /* VAR_INITIALIZERS */
 ;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */

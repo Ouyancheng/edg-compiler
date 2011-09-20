@@ -1,5 +1,15 @@
 Version 4.4
 
+9/20/11  [EDGcpfe/6226]
+Microsoft C++ compatibility: __clrcall
+
+In Microsoft modes, __clrcall is now a calling convention keyword.  It can be
+validly used only in C++/CLI mode.  For example:
+
+  void __clrcall f();  // Accepted in C++/CLI mode.  Recognized but diagnosed
+                       // as an error in other Microsoft modes.
+
+
 9/19/11  [EDGcpfe/12061]
 Microsoft C++ compatibility: Namespace std is predeclared
 

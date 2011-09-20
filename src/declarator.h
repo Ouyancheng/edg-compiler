@@ -32,7 +32,8 @@ calling convention.
    ((tok) == tok_cdecl ||                                             \
     (tok) == tok_fastcall ||                                          \
     (tok) == tok_stdcall ||                                           \
-    (tok) == tok_thiscall))
+    (tok) == tok_thiscall ||                                          \
+    (tok) == tok_clrcall))
 #else /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* When Microsoft keywords are not allowed simply return FALSE. */
 #define is_microsoft_calling_convention(tok) /*lint --e(506)*/FALSE

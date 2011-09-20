@@ -3657,7 +3657,7 @@ that isn't accessed unless the associated flag has been set).
 static void scan_microsoft_calling_convention(a_calling_convention *call_conv)
 /*
 Scan a list of Microsoft calling conventions (__cdecl, __fastcall, __stdcall,
-__thiscall).  Actually, only one calling convention may be specified, but the
+__thiscall, __clrcall).  Only one calling convention may be specified, but the
 same specifier may appear more than once.  It can be assumed that
 is_microsoft_calling_convention is TRUE on entry.  *call_conv on entry
 has any calling convention previously scanned, or is cc_default if there
@@ -3681,6 +3681,14 @@ convention scanned on this call.
       case tok_thiscall:
         new_call_conv = (a_calling_convention)cc_thiscall;
         break;
+      case tok_clrcall:
+        if (cppcli_enabled) {
+          new_call_conv = (a_calling_convention)cc_clrcall;
+        } else {
+          error(ec_clrcall_requires_cppcli);
+          goto skip_token;
+        }  /* if */
+        break;
       default: unexpected_condition();
     }  /* switch */
     if (*call_conv != (a_calling_convention)cc_default) {
@@ -3694,6 +3702,7 @@ convention scanned on this call.
       }  /* if */
     }  /* if */
     *call_conv = new_call_conv;
+skip_token:
     (void)get_token();
   } while (is_microsoft_calling_convention(curr_token));
 }  /* scan_microsoft_calling_convention */
@@ -3763,22 +3772,26 @@ information should be ignored or if an error should be issued.
              specified, add it to the type. */
           rtsp->calling_convention = (a_calling_convention)cc_cdecl;
           if (calling_convention != (a_calling_convention)cc_cdecl) {
-            /* For __thiscall, an error should be issued.  The other cases
-               only elicit a remark (issued below). */
+            /* For __thiscall or __clrcall, an error should be issued.  The
+               other cases only elicit a remark (issued below). */
             if (calling_convention == (a_calling_convention)cc_thiscall) {
               error(ec_vararg_thiscall);
+            } else if (calling_convention ==
+                                           (a_calling_convention)cc_clrcall) {
+              error(ec_vararg_clrcall);
             } else {
               discard = TRUE;
             }  /* if */
           }  /* if */
         } else if ((rtsp->assoc_routine_is_ctor ||
                     rtsp->assoc_routine_is_dtor) &&
-                   calling_convention != (a_calling_convention)cc_thiscall) {
+                   calling_convention != (a_calling_convention)cc_thiscall &&
+                   calling_convention != (a_calling_convention)cc_clrcall) {
           /* Microsoft compilers ignore __cdecl and __fastcall specifiers on
              constructors with a warning.  They silently also ignore __stdcall.
              All these cases are treated as __thiscall instead.  We discard all
              calling conventions on constructors and destructors with a
-             warning, except __thiscall. */
+             warning, except __thiscall and __clrcall. */
           discard = TRUE;
           discard_sev = (an_error_severity)es_warning;
         } else if (rtsp->calling_convention != calling_convention) {
@@ -4161,8 +4174,8 @@ was scanned, and to FALSE otherwise.
 reference_allowed is FALSE if reference declarators ("&" and "&&") should be
 disallowed (e.g., in a new-expression).
 
-In Microsoft mode, the Microsoft __cdecl, __stdcall, __fastcall, and
-__thiscall are recognized as calling conventions.  The handling of calling
+In Microsoft mode, the Microsoft __cdecl, __stdcall, __fastcall, __thiscall,
+and __clrcall are recognized as calling conventions.  The handling of calling
 conventions is intended to match the behavior of the Microsoft 32-bit C/C++
 compiler.  Calling conventions are allowed on function types and pointer to
 function types.  They are permitted on object declarations, but have no

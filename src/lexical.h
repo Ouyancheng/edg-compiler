@@ -405,6 +405,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_fastcall */
    (an_opname_kind)onk_none,          /* tok_stdcall */
    (an_opname_kind)onk_none,          /* tok_thiscall */
+   (an_opname_kind)onk_none,          /* tok_clrcall */
    (an_opname_kind)onk_none,          /* tok_microsoft_inline */
    (an_opname_kind)onk_none,          /* tok_forceinline */
    (an_opname_kind)onk_none,          /* tok_unaligned */
