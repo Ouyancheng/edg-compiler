@@ -1,5 +1,16 @@
 Version 4.4
 
+9/20/11  [EDGcpfe/12200]
+Microsoft C++ compatibility: Nested classes in __interface classes
+
+Previously, the front end did not accept nested classes in __interface
+classes.  Now such nested classes are accepted.  For example:
+
+  __interface IC {
+    struct N {};  // Previously an error; now okay.
+  };
+
+
 9/20/11  [EDGcpfe/6226]
 Microsoft C++ compatibility: __clrcall
 

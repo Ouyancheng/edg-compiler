@@ -2494,12 +2494,9 @@ may be emitted at the given position.
                                     scope_stack_top().current_assembly_access;
           if (microsoft_mode &&
               !class_type_supp(class_type)->is_lambda_closure_class) {
-            if (parent->variant.class_struct_union.is_interface) {
-              /* Interface types cannot contain nested class types. */
-              pos_error(ec_interface_cannot_have_nested_class, diag_pos);
-            } else if (cppcli_enabled &&
-                       is_immediate_managed_class_type(parent) &&
-                       is_immediate_standard_class_type(class_type)) {
+            if (cppcli_enabled &&
+                is_immediate_managed_class_type(parent) &&
+                is_immediate_standard_class_type(class_type)) {
               /* Standard class types cannot be nested in managed class types
                  (but the opposite is usually okay). */
               if (is_immediate_delegate_type(class_type)) {
