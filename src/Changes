@@ -201,6 +201,10 @@ This feature required a small IL CHANGE: the enk_param_ref expression
 kind can now be used to refer to "this" in such contexts, by
 specifying a parameter number of zero.
 
+Changes were also made in mangling.  In the IA-64 ABI, the proposed
+standard mangling ("fpT") is used.  In the Cfront ABI, the mangling
+is like for a parameter reference with a parameter number of zero.
+
 
 9/14/11  [EDGcpfe/11910]
 C++11 and Microsoft compatibility: access checking of base-specifiers
