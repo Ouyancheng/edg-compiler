@@ -1253,7 +1253,10 @@ typedef struct a_scope_stack_entry {
 		*decl_parse_state;
 			/* For function prototype scopes, points to the
 			   a_decl_parse_state entry passed to the call to
-			   function_declarator that pushed the scope.
+			   function_declarator that pushed the scope.  In
+			   file/namespace scope, this may point to the entry
+			   created for a linkage specification while parsing
+			   the embedded declaration (which has its own state).
 			   Otherwise, NULL. */
   unsigned long
 		pending_templ_arg_lists;

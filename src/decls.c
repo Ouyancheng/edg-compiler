@@ -11283,10 +11283,13 @@ specifier is restored.  dps describes the linkage-specification declaration.
          object defined withing an `extern "C" {...}' construct is still
          defined and not just declared," and of the example following it,
          where without the braces the variable is not defined. */
+      a_decl_parse_state  *saved_dps = scope_stack_top().decl_parse_state;
+      scope_stack_top().decl_parse_state = dps;
       declaration(dps->function_definition_allowed,
                   dps->is_old_style_param_decl, dps->is_top_level_declaration,
                   /*marked_as_gnu_extension=*/FALSE, param_id_list,
                   &linkage_spec_range);
+      scope_stack_top().decl_parse_state = saved_dps;
       /* pop_name_linkage will already have been called in declaration
          (before advancing past the end of the declaration, because there
          is a dependency in precompiled header processing on the state
@@ -15732,6 +15735,13 @@ Broadly speaking, three kinds of declarations are handled here:
     /* The caller has already scanned the linkage specifier. */
     state.is_linkage_spec_decl = TRUE;
     state.restore_name_linkage = TRUE;
+    /* The caller already has a declaration parse state.  It may have Microsoft
+       attributes; if so, move them to the current state. */
+    check_assertion(scope_stack_top().decl_parse_state != NULL);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    state.ms_attributes = scope_stack_top().decl_parse_state->ms_attributes;
+    scope_stack_top().decl_parse_state->ms_attributes = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Called in the midst of an ``extern "C"'' declaration, so
        select_curr_construct_pragmas has already been called. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
