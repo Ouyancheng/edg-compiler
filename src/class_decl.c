@@ -2710,7 +2710,7 @@ prototype instantiations).
                 &incomplete_type_error_reported, &decl_pos_block);
     /* We should now be at the end-of-source terminator inserted when we
        cached the initializer.  If we don't, it means something other than a
-       semicolon followed the initializer expression. */
+       semicolon (or a comma) followed the initializer expression. */
     if (curr_token != tok_end_of_source) {
       pos_error(ec_exp_semicolon, &pos_curr_token);
     }  /* if */
@@ -12688,6 +12688,7 @@ context of the completed class later on.
   /* Initialize a local stop token set to cache everything up to a semicolon
      (outside braces, etc.). */
   clear_token_set_array(stop_tokens);
+  incr_token_set_array_element(stop_tokens, tok_comma);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
   /* Cache the initializer tokens. */
   cache_token_stream(&ifp->initializer_token_cache, stop_tokens);
