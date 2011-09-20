@@ -3709,6 +3709,7 @@ a_boolean find_projected_symbol(
                         a_symbol_locator         *locator,
                         an_id_lookup_options_set options,
 			a_boolean		 look_in_dependent_bases,
+			a_boolean		 look_in_interfaces,
                         a_boolean                tentative_type_lookup,
                         a_boolean                tentative_template_lookup,
 			a_boolean		 do_not_create_proj_sym,
@@ -4249,11 +4250,15 @@ extern void make_predeclared_size_t_symbol(void);
 
 extern void make_predeclared_bool_symbol(void);
 
+extern a_boolean treat_as_cli_class_for_lookup(a_type_ptr	type);
+
 extern
 a_boolean use_hide_by_sig_lookup(
 			a_symbol_ptr			sym,
 			a_hide_by_sig_list_entry_ptr	*p_hide_by_sig_list);
 
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define treat_as_cli_class_for_lookup(tp) /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_symbol_ptr find_default_constructor(a_type_ptr  class_type,
@@ -4593,6 +4598,7 @@ extern a_symbol_ptr find_progenitor_symbol(
                       a_symbol_locator         *locator,
                       an_id_lookup_options_set options,
 		      a_boolean		       look_in_dependent_bases,
+		      a_boolean		       look_in_interfaces,
                       a_derivation_step_ptr    *path,
                       an_access_specifier      *access,
                       a_boolean                *ambiguous,

@@ -2236,6 +2236,26 @@ done:;
 }  /* add_base_classes_to_hide_by_sig_list */
 
 
+a_boolean treat_as_cli_class_for_lookup(a_type_ptr	type)
+/*
+Return TRUE if type should be considered a class for C++/CLI lookup purposes.
+When lookup begins in somethings considered to be a ref class, base interfaces
+are not considered, otherwise they not.
+*/
+{
+  a_class_type_supplement_ptr	ctsp;
+  a_boolean			result = FALSE;
+
+  /* Certain generic constraint types are ref classes but are not treated
+     as such for lookup purposes. */
+  ctsp = class_type_supp(type);
+  result = ctsp->cli_class_type_kind == (a_cli_class_type_kind)cctk_ref &&
+                  !type->variant.class_struct_union.is_hybrid_constraint &&
+                  !type->variant.class_struct_union.any_interface_constraints;
+  return result;
+}  /* treat_as_cli_class_for_lookup */
+
+
 a_boolean use_hide_by_sig_lookup(
 			a_symbol_ptr			sym,
 			a_hide_by_sig_list_entry_ptr	*p_hide_by_sig_list)
@@ -2275,10 +2295,7 @@ static method.  The list is returned in *p_hide_by_sig_list.
     parent_ctsp = class_type_supp(parent_type);
     /* Certain generic constraint types are ref classes but are not treated
        as such for lookup purposes. */
-    is_class = parent_ctsp->cli_class_type_kind ==
-                                            (a_cli_class_type_kind)cctk_ref &&
-            !parent_type->variant.class_struct_union.is_hybrid_constraint &&
-            !parent_type->variant.class_struct_union.any_interface_constraints;
+    is_class = treat_as_cli_class_for_lookup(parent_type);
   }  /* if */
   if (sym->hide_by_sig_lookup_done) {
     /* We have already done the hide-by-sig processing.   Return the results
@@ -11112,13 +11129,15 @@ static a_progenitor_ptr find_progenitor(
 			a_type_ptr                class_ptr,
                         a_symbol_locator          *locator,
                         an_id_lookup_options_set  options,
-		        a_boolean		  look_in_dependent_bases);
+		        a_boolean		  look_in_dependent_bases,
+		        a_boolean		  look_in_interfaces);
 
 static a_progenitor_ptr find_progenitor_in_base_class(
                         a_base_class_ptr          base_class,
                         a_symbol_locator          *locator,
                         an_id_lookup_options_set  options,
-		        a_boolean		  look_in_dependent_bases)
+		        a_boolean		  look_in_dependent_bases,
+		        a_boolean		  look_in_interfaces)
 /*
 Given a pointer to a base class and a locator, determine whether the name
 specified in the locator is declared either in the base class itself or in
@@ -11127,6 +11146,9 @@ referred to as the "progenitor" of a projection symbol, which may or may
 not be created later.  If such a progenitor is found, return a pointer to
 a progenitor entry (which, in the case of ambiguity, may be the head of a
 linked list of progenitor entries); otherwise, return NULL.
+look_in_dependent_bases is TRUE if the lookup should consider dependent
+bases classes of generated template classes.  look_in_interfaces is TRUE if
+the lookup should consider C++/CLI interface classes.
 */
 {
   a_symbol_ptr      sym, tag_sym, using_decl_sym = NULL;
@@ -11234,7 +11256,7 @@ linked list of progenitor entries); otherwise, return NULL.
        if any.  Note that a linked list of progenitor entries may be returned
        -- this usually represents an ambiguity. */
     progenitor = find_progenitor(base_class->type, locator, options,
-				 look_in_dependent_bases);
+				 look_in_dependent_bases, look_in_interfaces);
   }  /* if */
   /* Update the path and access fields of each entry in the set of
      progenitors.  (There will usually be only one.) */
@@ -11550,13 +11572,17 @@ static a_progenitor_ptr find_progenitor(
 			a_type_ptr               class_ptr,
                         a_symbol_locator         *locator,
                         an_id_lookup_options_set options,
-			a_boolean		 look_in_dependent_bases)
+		        a_boolean		 look_in_dependent_bases,
+		        a_boolean		 look_in_interfaces)
 /*
 Given a pointer to a class (or struct or union) type and a locator, find
 in the classes from which the current class is derived symbols that would
 serve as "progenitors" if the name specified in the locator is inherited in
 a derived class.  Return a pointer to one or more progenitor entries (or NULL
-if no such base-class symbol is found).
+if no such base-class symbol is found).  look_in_dependent_bases is TRUE if
+the lookup should consider dependent bases classes of generated template
+classes.  look_in_interfaces is TRUE if the lookup should consider C++/CLI
+interface classes.
 */
 {
   a_base_class_ptr       bcp;
@@ -11574,6 +11600,11 @@ if no such base-class symbol is found).
          gpp_dependent_name_lookup) &&
         !look_in_dependent_bases &&
         bcp->ignore_during_dependent_lookup) continue;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* In C++/CLI mode, look_in_interfaces will be FALSE for lookups that
+       begin in an interface class. */
+    if (!look_in_interfaces && is_cli_interface_type(bcp->type)) continue;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* For the most part, we are only interested in the direct base classes
        (either virtual or nonvirtual).  However, it may happen that a virtual
        base class is marked as "direct" yet the path of greatest access is
@@ -11581,7 +11612,8 @@ if no such base-class symbol is found).
        base classes. */
     if (preferred_derivation_is_direct(bcp)) {
       new_set = find_progenitor_in_base_class(bcp, locator, options,
-  				             /*look_in_dependent_bases=*/TRUE);
+  				             /*look_in_dependent_bases=*/TRUE,
+                                             look_in_interfaces);
       if (new_set != NULL) {
         if (progenitor_set == NULL) {
           progenitor_set = new_set;
@@ -11709,6 +11741,7 @@ a_symbol_ptr find_progenitor_symbol(
                       a_symbol_locator         *locator,
                       an_id_lookup_options_set options,
 		      a_boolean		       look_in_dependent_bases,
+		      a_boolean		       look_in_interfaces,
                       a_derivation_step_ptr    *path,
                       an_access_specifier      *access,
                       a_boolean                *ambiguous,
@@ -11727,7 +11760,8 @@ represents a using declaration or is or the projection of symbol that does.
 TRUE, when *ambiguous is also set, and when all members of the progenitor
 set are instances of the same template.  look_in_dependent_bases is TRUE if
 the lookup should consider dependent bases classes of generated template
-classes.
+classes.  look_in_interfaces is TRUE if the lookup should consider C++/CLI
+interface classes.
 
 */
 {
@@ -11737,7 +11771,8 @@ classes.
   db_enter(4, "find_progenitor_symbol");
   /* Get what may be a linked list of progenitor entries. */
   progenitor_set = find_progenitor(class_ptr, locator, options,
-                                   look_in_dependent_bases);
+                                   look_in_dependent_bases,
+                                   look_in_interfaces);
   if (progenitor_set == NULL) {
     /* Empty list.  Return NULL. */
     progenitor_sym = NULL;
@@ -11975,6 +12010,7 @@ a_boolean find_projected_symbol(
                         a_symbol_locator         *locator,
                         an_id_lookup_options_set options,
 			a_boolean		 look_in_dependent_bases,
+			a_boolean		 look_in_interfaces,
                         a_boolean                tentative_type_lookup,
                         a_boolean                tentative_template_lookup,
 			a_boolean		 do_not_create_proj_sym,
@@ -11995,19 +12031,20 @@ if it is TRUE, it is inserted in the locator's active list (which is
 order dependent) immediately following insert_sym (or, if insert_sym
 is NULL, at the beginning of the list), and in addition it is added to
 the end of the scope entry symbol list for the class.  The symbol
-found must meet the criteria indicated by "options".
+found must meet the criteria indicated by "options".  
 
 look_in_dependent_bases is TRUE if the lookup should consider dependent
-base classes of generated template classes.  If tentative_type_lookup is
-TRUE, a projection symbol is only created if the symbol returned by
-find_progenitor_symbol is a type.  Likewise, if tentative_template_lookup
-is TRUE, a projection symbol is only created if the symbol returned by
-find_progenitor_symbol is a template.  If do_not_create_proj_sym is TRUE
-the creation of a projection symbol is unconditionally suppressed.  Note
-that "options" and tentative_type_lookup are handled differently: a symbol
-that fails the lookup options test does not hide symbols from deeper base
-classes, while a symbol that is not a type does hide symbols from deeper
-base classes that may be types.
+base classes of generated template classes.  look_in_interfaces is TRUE if
+the lookup should consider C++/CLI interface classes.  If
+tentative_type_lookup is TRUE, a projection symbol is only created if the
+symbol returned by find_progenitor_symbol is a type.  Likewise, if
+tentative_template_lookup is TRUE, a projection symbol is only created if
+the symbol returned by find_progenitor_symbol is a template.  If
+do_not_create_proj_sym is TRUE the creation of a projection symbol is
+unconditionally suppressed.  Note that "options" and tentative_type_lookup
+are handled differently: a symbol that fails the lookup options test does
+not hide symbols from deeper base classes, while a symbol that is not a
+type does hide symbols from deeper base classes that may be types.
 
 can_create_nonreal is TRUE if, when looking for a projected symbol in a
 class with a nonreal base, a member of the nonreal base should be
@@ -12052,6 +12089,7 @@ created if a projected symbol cannot be found in any of the real bases.
   } else {
     progenitor_sym = find_progenitor_symbol(class_ptr, locator, options,
                                             look_in_dependent_bases,
+                                            look_in_interfaces,
                                             &path, &access, &ambiguous,
                                             &any_using_decl,
                                             &unambiguous_injected_template);

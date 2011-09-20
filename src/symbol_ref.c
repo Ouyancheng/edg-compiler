@@ -854,6 +854,8 @@ hidden name checking on its own members, too.
         (void)find_progenitor_symbol(sp->variant.assoc_type, &locator,
                                      IDL_NO_OPTIONS,
                                      /*look_in_dependent_bases=*/TRUE,
+                                     !treat_as_cli_class_for_lookup(
+                                                                   class_type),
                                      &path, &access, &ambiguous,
                                      &any_using_decl,
                                      &unambiguous_injected_template);

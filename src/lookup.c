@@ -416,8 +416,9 @@ member function is defined.
 
     new_sym = find_progenitor_symbol(class_type, locator,
                                      IDL_NO_OPTIONS,
-                                     /*qualified_lookup=*/FALSE, &path,
-                                     &access,
+                                     /*look_in_dependent_bases=*/FALSE,
+                                     /*look_in_dependent_interfaces=*/FALSE,
+                                     &path, &access,
                                      &ambiguous, &any_using_decl,
                                      &unambiguous_injected_template);
   }  /* if */
@@ -1852,6 +1853,9 @@ typedef struct a_lookup_state {
   a_boolean	look_in_dependent_bases;
 			/* TRUE if the lookup can consider dependent base
 			   classes generated from class templates. */
+  a_boolean	look_in_interfaces;
+			/* TRUE if the lookup should consider C++/CLI
+			   interface classes. */
   a_boolean	force_lookup_in_dependent_bases;
 			/* TRUE if we are doing a special second lookup pass
 			   in g++ mode and should look in dependent base
@@ -1942,6 +1946,7 @@ value.
   cleared_lookup_state.any_ignored_dependent_bases   = FALSE;
   cleared_lookup_state.look_for_projected_symbol     = FALSE;
   cleared_lookup_state.look_in_dependent_bases       = FALSE;
+  cleared_lookup_state.look_in_interfaces            = FALSE;
   cleared_lookup_state.force_lookup_in_dependent_bases = FALSE;
   cleared_lookup_state.add_to_active_list            = FALSE;
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
@@ -2319,6 +2324,12 @@ lookup processing.
     lookup_state->look_in_dependent_bases =
 			    lookup_state->force_lookup_in_dependent_bases ||
                             !is_unspecialized_template_class(ssep->assoc_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* If lookup begins in a C++/CLI class, base interface classes are not
+       considered. */
+    lookup_state->look_in_interfaces =
+                              !treat_as_cli_class_for_lookup(ssep->assoc_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     lookup_state->add_to_active_list = TRUE;
     lookup_state->insert_sym = prev_active_sym;
   }  /* if */
@@ -2474,6 +2485,12 @@ that do normal id lookup processing.
         lookup_state->look_in_dependent_bases =
                             lookup_state->force_lookup_in_dependent_bases ||
                             !is_unspecialized_template_class(ssep->assoc_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* If lookup begins in a C++/CLI class, base interface classes are not
+           considered. */
+        lookup_state->look_in_interfaces =
+                              !treat_as_cli_class_for_lookup(ssep->assoc_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         lookup_state->add_to_active_list = FALSE;
         lookup_state->insert_sym = NULL;
       }  /* if */
@@ -2530,6 +2547,7 @@ that do normal id lookup processing.
   if (find_projected_symbol(ssep->assoc_type, locator,
                             lookup_state->options,
                             lookup_state->look_in_dependent_bases,
+                            lookup_state->look_in_interfaces,
                             lookup_state->tentative_type_lookup,
                             lookup_state->tentative_template_lookup,
                             lookup_state->hidden_name_lookup ||
@@ -4274,6 +4292,7 @@ bypass_normal_search:
         (void)find_projected_symbol(
                                  class_type, locator, options,
                                  /*look_in_dependent_bases=*/TRUE,
+                                 !treat_as_cli_class_for_lookup(class_type),
                                  /*tentative_type_lookup=*/FALSE,
                                  /*tentative_template_lookup=*/FALSE,
                                  (options & IDL_HIDDEN_NAME_LOOKUP) != 0 ||
