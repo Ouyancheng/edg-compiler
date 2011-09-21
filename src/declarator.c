@@ -561,8 +561,11 @@ and return FALSE.  Otherwise, return TRUE.
           err_code = ec_handle_to_address_type;
         }  /* if */
       } else if (is_immediate_class_type(tp) &&
-                 cli_class_type_kind_is(tp, cctk_standard)) {
-        /* A handle to a non-managed class type is invalid. */
+                 cli_class_type_kind_is(tp, cctk_standard) &&
+                 !tp->variant.class_struct_union.is_nonreal_class) {
+        /* A handle to a non-managed class type is invalid.  (However, the
+           Microsoft compiler does not impose this constraint on nonreal class
+           types.) */
         err_code = ec_handle_to_standard_class_type;
       } else if (is_immediate_enum_type(tp) &&
                  !integer_type_is_scoped_enum(tp)) {
