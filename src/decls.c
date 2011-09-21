@@ -8812,6 +8812,12 @@ definition of a member function of a class template.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   attach_decl_attributes(dps, func_info->is_definition);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (dps->ms_attributes != NULL) {
+    apply_microsoft_attributes(&dps->ms_attributes, (char*)rout_ptr,
+                               (an_il_entry_kind)iek_routine, MSAT_ROUTINE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   check_defaulted_or_deleted_function(dps, func_info,
                                       &locator->source_position);
   if (locator->template_arg_list != NULL && !locator->is_template_id) {
