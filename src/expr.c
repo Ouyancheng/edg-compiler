@@ -23352,10 +23352,14 @@ Return TRUE if the indicated token is one that could start an expression.
       is_expr_start = lambdas_enabled;
       break;
     default:
-      if (!C_mode() && is_type_keyword(tok)) {
+      if (!C_mode() &&
+          (is_type_keyword(tok) ||
+           ((microsoft_mode || (gpp_mode && gnu_version < 30400)) &&
+            (is_class_type_keyword(tok) || is_enum_type_keyword(tok))))) {
         /* A type keyword, like "int".  This could be the start of a
            functional notation type conversion.  Tested using the macro to
-           pick up extensions. */
+           pick up extensions.  Also, in Microsoft and GNU modes, a functional
+           notation type conversion can start with an elaborated type name. */
         is_expr_start = TRUE;
       } else {
         is_expr_start = FALSE;
@@ -27134,6 +27138,16 @@ handle_trapped_left_paren:
     case tok_struct:
     case tok_class:
     case tok_union:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_enum_struct:
+    case tok_enum_class:
+    case tok_ref_struct:
+    case tok_ref_class:
+    case tok_value_struct:
+    case tok_value_class:
+    case tok_interface_struct:
+    case tok_interface_class:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* The Microsoft compiler allows casts like "class A(x)" and
          "const int(0)".  Early versions of the GNU compiler also allow
          the form involving elaborated type names (i.e., "class A(x)" but
