@@ -4217,8 +4217,6 @@ typerefs are dropped from *p_base_type.
   }  /* if */
   if (!is_integral_type(base_type)) {
     pos_error(ec_enum_base_type_must_be_integral, pos_type);
-  } else if (base_type->variant.integer.wchar_t_type) {
-    pos_error(ec_wchar_t_type_not_allowed, pos_type);
   } else if (!scanning_generated_code_from_metadata &&
              system_type_from_fundamental_type(base_type) == NULL) {
     /* A C++/CLI enum base type must have a corresponding System::xxx value
