@@ -852,6 +852,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_standard_class_nested_in_managed_class)*/
 /*lint -esym(769,ec_clrcall_requires_cppcli)*/
 /*lint -esym(769,ec_vararg_clrcall)*/
+/*lint -esym(769,ec_use_of_function_modifier)*/
+/*lint -esym(769,ec_override_with_trivial_property_or_event)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */

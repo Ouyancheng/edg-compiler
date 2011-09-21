@@ -5305,8 +5305,25 @@ next_named_override:
                   named_override == NULL) {
                 /* If a match is found in a base ref class, the overriding 
                    function should have been declared with "new" or "override" 
-                   unless it is a named override. */
-                pos_sy_error(ec_new_or_override_required, source_pos, sym); 
+                   unless it is a named override.  For generated property or
+                   event accessors, that is not possible, so a different
+                   diagnostic is issued. */
+                if (rout->compiler_generated && rout_is_cli_accessor(rout)) {
+                  /* To avoid duplicate errors, only issue the error on the
+                     generated "get" or "add" accessor. */
+                  if (special_kind_is(rout, sfk_property_get) ||
+                      special_kind_is(rout, sfk_event_add)) {
+                    a_property_or_event_descr_ptr
+                                  pedp =rout->variant.property_or_event_descr;
+                    a_symbol_ptr  diag_sym = pedp->is_static ?
+                                            symbol_for(pedp->variant.variable)
+                                          : symbol_for(pedp->variant.field);
+                    pos_sy_error(ec_override_with_trivial_property_or_event,
+                                 source_pos, diag_sym);
+                  }  /* if */
+                } else {
+                  pos_sy_error(ec_new_or_override_required, source_pos, sym); 
+                }  /* if */
               } else if (!virtual_specified && !func_info->new_member 
                          && (cli_class_type_kind_is(class_type, cctk_ref) ||
                              cli_class_type_kind_is(class_type, cctk_value))) {
@@ -19434,8 +19451,9 @@ class_state->property_or_event_descr.
   generate_trivial_accessor(class_state, add_type, "add");
   remove_type = add_type;
   generate_trivial_accessor(class_state, remove_type, "remove");
-  /* Declare the event's "raise" accessor: It is always private.  Do not
-     declare it in interface types since interfaces cannot have private
+  /* Declare the event's "raise" accessor: It is always protected (ECMA says
+     it is private, but Microsoft compilers make it protected).  Do not
+     declare it in interface types since interfaces cannot have non-public
      members. */
   if (is_template_dependent_type(event_type)) {
     /* During prototype instantiations, we cannot always know the invocation
@@ -19451,7 +19469,7 @@ class_state->property_or_event_descr.
       /* No "raise" accessor is generated for trivial events in interfaces. */
     } else {
       an_access_specifier  saved_access = class_state->access;
-      class_state->access = (an_access_specifier)as_private;
+      class_state->access = (an_access_specifier)as_protected;
       raise_type = copy_routine_type_with_param_types(
                                       delegate_invocation_type(delegate_type),
                                       /*copy_default_args=*/FALSE);
@@ -19700,6 +19718,17 @@ being parsed), *decl_info describes the current member declaration, and
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   pdp->definition_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Check for invalid uses of "override", "new", or "sealed" here.
+     (Intuitively, these modifiers make sense here, but they're not
+     allowed.) */
+  if (curr_token == tok_identifier &&
+      (curr_token_is_identifier_string("override") ||
+       curr_token_is_identifier_string("new") ||
+       curr_token_is_identifier_string("sealed"))) {
+    pos_st_error(ec_use_of_function_modifier, &pos_curr_token,
+                 locator_for_curr_id.symbol_header->identifier);
+    (void)get_token();
+  }  /* if */
   if (curr_token == tok_semicolon) {
     /* A trivial scalar property or event.  Set the "is_trivial" flag before
        calling decl_nonstatic_data_member since it determines whether an
