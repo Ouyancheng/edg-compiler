@@ -4618,7 +4618,8 @@ mode to permit an enumerator to be used in a qualified name.  The enumerator
 that is found, or NULL is no matching symbol is found.
 */
 {
-  a_symbol_ptr	sym;
+  a_symbol_ptr		sym;
+  a_constant_ptr	cp;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym)                                     \
@@ -4642,18 +4643,17 @@ that is found, or NULL is no matching symbol is found.
     check_assertion(is_acceptable_symbol(sym) ||
                     locator->do_not_clear_specific_symbol);
   } else {
-    /* Try to find an acceptable symbol on the active list. */
-    sym = symbol_list_from_locator(*locator);
-    for (; sym != NULL; sym = sym->next) {
-      if (is_acceptable_symbol(sym)) break;
-    }  /* for */
-    if (sym == NULL) {
-      /* No symbol was found on the active list.  Look on the inactive list. */
-      sym = inactive_symbol_list_from_locator(*locator);
-      for (; sym != NULL; sym = sym->next) {
-        if (is_acceptable_symbol(sym)) break;
-      }  /* for */
+    /* Look for the constant on the list of constants for the enum type. */
+    if (enum_type->variant.integer.is_scoped_enum) {
+      cp = enum_type->variant.integer.enum_info.assoc_scope->constants;
+    } else {
+      cp = enum_type->variant.integer.enum_info.constant_list;
     }  /* if */
+    for (; cp != NULL; cp = cp->next) {
+      sym = symbol_for(cp);
+      check_assertion(sym != NULL);
+      if (sym->header == locator->symbol_header) break;
+    }  /* for */
     locator->specific_symbol = sym;
   }  /* if */
 #if DEBUG
