@@ -5244,6 +5244,12 @@ dsi_flags is the set of input flags passed to decl_specifiers.
            type. */
         if (end_of_enum_con_list == NULL) {
           constant_list = enum_con;
+          if (is_scoped_enum) {
+            enum_type->variant.integer.enum_info.assoc_scope->constants =
+                                                                constant_list;
+          } else {
+            enum_type->variant.integer.enum_info.constant_list = constant_list;
+          }  /* if */
         } else {
           end_of_enum_con_list->next = enum_con;
         }  /* if */
@@ -5289,13 +5295,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Check for and pass over the closing "}". */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
-    if (is_scoped_enum) {
-      pop_scope();
-      enum_type->variant.integer.enum_info.assoc_scope->constants =
-                                                                constant_list;
-    } else {
-      enum_type->variant.integer.enum_info.constant_list = constant_list;
-    }  /* if */
+    if (is_scoped_enum) pop_scope();
     attach_tag_attributes(dps->tag_attributes, enum_type, dps, is_definition,
                           /*is_forward_decl=*/FALSE,
                           /*ignore_gnu_attributes=*/FALSE);
