@@ -10921,6 +10921,7 @@ declaration that must be checked.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (cppcli_enabled && is_function_type(state->type) &&
                  ((state->dso_flags & DSO_STATIC_CONSTRUCTOR) != 0 ||
+                   (state->do_flags & DO_IS_STATIC_CONSTRUCTOR) != 0 ||
                    (state->dso_flags & DSO_FINALIZER) != 0 ||
                    (state->do_flags & DO_IS_FINALIZER) != 0)) {
         /* No type specifier is required on a C++/CLI static constructor or
