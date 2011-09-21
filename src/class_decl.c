@@ -14595,10 +14595,14 @@ declarations.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled && !err) {
     a_boolean  in_managed_class = is_immediate_managed_class_type(class_type);
+    a_boolean  nontrivial_property_or_event =
+                            class_state->property_or_event_descr != NULL &&
+                            !class_state->property_or_event_descr->is_trivial;
     /* Check for C++/CLI-specific constraints. */
-    if (is_tracking_reference_type(field_type) &&
-        !(class_state->property_or_event_descr != NULL &&
-          property_or_event_kind_is(class_state, pek_cli_property))) {
+    if (nontrivial_property_or_event) {
+      /* Many of these constraints don't apply to nontrivial properties and
+         events. */
+    } else if (is_tracking_reference_type(field_type)) {
       pos_error(ec_field_cannot_be_tracking_reference,
                 &decl_state->declarator_pos);
       err = TRUE;
@@ -14623,9 +14627,8 @@ declarations.
       pos_error(ec_ref_or_interface_class_member_in_standard_class,
                 &decl_state->declarator_pos);
       err = TRUE;
-    } else if ((is_interior_ptr_type(field_type) ||
-                is_pin_ptr_type(field_type)) &&
-               !decl_state->is_property_or_event_field) {
+    } else if (is_interior_ptr_type(field_type) ||
+               is_pin_ptr_type(field_type)) {
       /* In C++/CLI, an interior_ptr or pin_ptr cannot be a class member. */
       pos_ty_error(ec_type_cannot_be_class_member, 
                    &locator->source_position, field_type);
@@ -14635,10 +14638,16 @@ declarations.
       pos_error(ec_data_member_with_interface_type,
                 &decl_state->declarator_pos);
       err = TRUE;
-    } else if (is_value_class_type(class_type) &&
-               is_class_struct_union_type(field_type) &&
-               !is_value_class_type(field_type)) {
-      /* Non-value class types cannot be used for value class members. */
+    }  /* if */
+    if (!err &&
+        is_value_class_type(class_type) &&
+        is_class_struct_union_type(field_type) &&
+        !(is_value_class_type(field_type) ||
+          (nontrivial_property_or_event &&
+           is_standard_class_type(field_type)))) {
+      /* Non-value class types cannot be used for value class members.  (For
+         nontrivial properties and events, standard class types are okay
+         too.) */
       pos_ty_error(ec_nonvalue_class_type_cannot_be_value_class_member, 
                    &locator->source_position, field_type);
       err = TRUE;
