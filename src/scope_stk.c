@@ -3397,6 +3397,7 @@ processing is done.
                         PS_NO_OPTIONS);
 }  /* push_block_scope_with_lifetime */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 void push_block_scope(a_scope_pointers_block_ptr	pointers_block)
 /*
@@ -3422,7 +3423,6 @@ If a pointers block is provided, it is cleared by this routine.
                         PS_NO_OPTIONS);
 }  /* push_block_scope */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 void push_block_reactivation_scope(
 				a_scope_ptr			scope,
