@@ -2330,17 +2330,19 @@ scopes.  In neither C or C++ is a pragma scope is treated as a real scope.
 
 
 static a_scope_ptr push_scope_full(
-                               a_scope_kind             kind,
-			       a_scope_number           scope_number_to_reuse,
-			       a_type_ptr               assoc_type,
-			       a_routine_ptr            assoc_routine,
-                               a_namespace_ptr          assoc_namespace,
-			       a_symbol_ptr             instance_sym,
-			       a_symbol_ptr             template_sym,
-			       a_template_arg_ptr       template_arg_list,
-                               a_template_decl_info_ptr template_decl_info,
-			       an_object_lifetime_ptr   lifetime,
-			       a_push_scope_options_set	options)
+			a_scope_kind			kind,
+			a_scope_number			scope_number_to_reuse,
+			a_type_ptr			assoc_type,
+			a_routine_ptr			assoc_routine,
+			a_namespace_ptr			assoc_namespace,
+			a_symbol_ptr			instance_sym,
+			a_symbol_ptr			template_sym,
+			a_template_arg_ptr		template_arg_list,
+			a_template_decl_info_ptr	template_decl_info,
+			an_object_lifetime_ptr		lifetime,
+			a_scope_ptr			scope_to_reactivate,
+			a_scope_pointers_block_ptr	pointers_block,
+			a_push_scope_options_set	options)
 /*
 Begin a new name scope by pushing an entry on the scope stack.  kind indicates
 the kind of scope (file, function, block, function prototype, etc.).  Returns
@@ -2368,6 +2370,11 @@ template_decl_info is also used for template declaration scopes and points
 to the declaration information for the template declaration scope being pushed.
 lifetime, if non-NULL, is a previously allocated object lifetime to be
 used for the scope.
+
+scope_to_reactivate is non-NULL for block scopes that are being reactivated.
+For other kinds of reactivations, the scope pointer is obtained elsewhere.
+If pointers_block is non-NULL, the pointers block pointed to is used for
+the scope being pushed.
 
 options is a bit set of option flags that specify additional information about
 the scope being pushed.
@@ -2403,9 +2410,13 @@ the scope being pushed.
         kind == (a_scope_kind)sck_namespace_extension ||
         kind == (a_scope_kind)sck_namespace_reactivation ||
         kind == (a_scope_kind)sck_class_reactivation ||
+        kind == (a_scope_kind)sck_block ||
         kind == (a_scope_kind)sck_template_instantiation) {
     /* For function scopes, reuse the scope used for the parameters
-       in the function declarator. */
+       in the function declarator.  For block reactivations, use the scope
+       number from the original push.  The number is only reused if an IL
+       scope was allocated (otherwise scope_number_to_reuse will be
+       NO_SCOPE_NUMBER). */
     /* For class reactivations, re-establish the class scope and for template
        instantiations re-establish the template declaration scope.
        For the file scope, use the specified scope number. */
@@ -2525,6 +2536,11 @@ the scope being pushed.
       }  /* if */
       /* Use the enclosing memory region. */
       ssep->il_memory_region = (ssep-1)->il_memory_region;
+      break;
+    case sck_block:
+      /* Use the enclosing memory region. */
+      ssep->il_memory_region = (ssep-1)->il_memory_region;
+      sp = scope_to_reactivate;
       break;
     default:
       /* For scopes for which a new memory region is not begun, the associated
@@ -3163,7 +3179,14 @@ the scope being pushed.
        translation unit entry. */
     ssep->assoc_pointers_block = &curr_translation_unit->
                                                     file_scope_pointers_block;
+  } else if (pointers_block != NULL) {
+    /* Some other kind of scope for which a pointers block was provided. */
+    ssep->assoc_pointers_block = pointers_block;
   }  /* if */
+  /* Make sure a non-NULL pointers block was not provided for one of the
+     cases in which it would not be used. */
+  check_assertion(pointers_block == NULL ||
+                  ssep->assoc_pointers_block == pointers_block);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* The creation of source sequence entries is suppressed in certain
      contexts. */
@@ -3324,6 +3347,7 @@ instantiation scopes.
                           (a_template_arg_ptr)NULL,
                           (a_template_decl_info_ptr)NULL,
                           (an_object_lifetime_ptr)NULL,
+                          (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
                           PS_NO_OPTIONS);
   return scope;
 }  /* push_scope */
@@ -3345,6 +3369,7 @@ scope.
                         (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL,
                         (a_template_decl_info_ptr)NULL,
                         (an_object_lifetime_ptr)NULL,
+                        (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
                         ps_options);
   /* Add active using directives for the namespaces that should be
      visible because of the transitivity of using directives. */
@@ -3367,9 +3392,80 @@ processing is done.
                         (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                         (a_template_arg_ptr)NULL,
                         (a_template_decl_info_ptr)NULL,
-                        olp, PS_NO_OPTIONS);
+                        olp,
+                        (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
+                        PS_NO_OPTIONS);
 }  /* push_block_scope_with_lifetime */
 
+
+void push_block_scope(a_scope_pointers_block_ptr	pointers_block)
+/*
+Push a block scope and use pointers_block as the pointers block of the
+scope stack entry so that the scope can be reactivated later.
+This routine only needs to be used when a pointers_block is being
+supplied, but it can also be used with a NULL pointers_block.
+If a pointers block is provided, it is cleared by this routine.
+*/
+{
+  if (pointers_block != NULL) {
+    /* Clear the pointers block provided by the caller. */
+    clear_scope_pointers_block(pointers_block);
+  }  /* if */
+  (void)push_scope_full((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
+                        (a_type_ptr)NULL, (a_routine_ptr)NULL,
+                        (a_namespace_ptr)NULL,
+                        (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                        (a_template_arg_ptr)NULL,
+                        (a_template_decl_info_ptr)NULL,
+                        (an_object_lifetime_ptr)NULL,
+                        (a_scope_ptr)NULL, pointers_block,
+                        PS_NO_OPTIONS);
+}  /* push_block_scope */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void push_block_reactivation_scope(
+				a_scope_ptr			scope,
+				a_scope_pointers_block_ptr	pointers_block)
+/*
+Reactivate a block scope.  scope is the IL scope for the block, which
+can be NULL.  pointers_block is the pointers_block to be used for the
+scope stack entry.
+*/
+{
+  a_scope_number	number;
+
+  /* If there is an IL scope, pass that in as the scope number to reuse. */
+  number = scope == NULL ? NO_SCOPE_NUMBER : scope->number;
+  (void)push_scope_full((a_scope_kind)sck_block, number,
+                        (a_type_ptr)NULL, (a_routine_ptr)NULL,
+                        (a_namespace_ptr)NULL,
+                        (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                        (a_template_arg_ptr)NULL,
+                        (a_template_decl_info_ptr)NULL,
+                        (an_object_lifetime_ptr)NULL,
+                        scope, pointers_block,
+                        PS_NO_OPTIONS);
+}  /* push_block_reactivation_scope */
+
+
+a_scope_ptr pop_block_scope(void)
+/*
+Pop a block scope from the scope stack.  Return a pointers to the il_scope
+associated with this block.  The il_scope can be NULL.  This routine only
+needs to be used when the scope pointer is needed, otherwise pop_scope
+can be used to pop block scopes.
+*/
+{
+  a_scope_stack_entry_ptr	ssep = &scope_stack_top();
+  a_scope_ptr			scope = ssep->il_scope;
+
+  check_assertion(ssep->kind == (a_scope_kind)sck_block);
+  pop_scope();
+  return scope;
+}  /* pop_block_scope */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_scope_ptr push_for_init_scope(void)
 /*
@@ -3501,6 +3597,7 @@ template defined in a namespace.
                           (a_template_arg_ptr)NULL,
                           (a_template_decl_info_ptr)NULL,
                           (an_object_lifetime_ptr)NULL,
+                          (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
                           PS_NO_OPTIONS);
   /* Add active using directives for the namespaces that should be
      visible because of the transitivity of using directives. */
@@ -3873,6 +3970,7 @@ are non-NULL when they should be used for the outermost instantiation scope.
                           instance_sym, template_sym, template_arg_list,
                           decl_info,
                           (an_object_lifetime_ptr)NULL,
+                          (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
                           ps_options);
   }  /* if */
   /* Reactivate the enclosing class scope. */
@@ -4190,6 +4288,7 @@ scopes.
                         assoc_routine, (a_namespace_ptr)NULL, instance_sym,
                         template_sym, template_arg_list, decl_info,
                         (an_object_lifetime_ptr)NULL,
+                        (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
                         options);
   ssep = scope_stack_entry_for(depth_scope_stack);
   /* Template instantiation scopes need to record the scope depth before
@@ -4430,6 +4529,7 @@ class to be defined.
                           assoc_routine, (a_namespace_ptr)NULL, instance_sym,
                           template_sym, template_arg_list, decl_info,
                           (an_object_lifetime_ptr)NULL,
+                          (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
                           options);
   }  /* if */
   if (!nested_in_prototype_instantiation) {
@@ -4676,7 +4776,9 @@ scope is for the rescan of a dependent template template parameter.
                         (a_namespace_ptr)NULL, (a_symbol_ptr)NULL,
                         (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL,
                         decl_info,
-                        (an_object_lifetime_ptr)NULL, ps_options);
+                        (an_object_lifetime_ptr)NULL,
+                        (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
+                        ps_options);
 }  /* push_template_declaration_scope */
 
 
