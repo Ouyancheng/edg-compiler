@@ -18951,8 +18951,26 @@ starts a template-id), but is not the special case for "generic <...".
        locator_for_curr_id before performing the lookup to avoid biasing
        future lookups. */
     a_symbol_locator  loc;
+    a_symbol_ptr      sym;
     loc = locator_for_curr_id;
-    result = normal_id_lookup(&loc, IDL_MUST_BE_CLASS_OR_NAMESPACE) != NULL;
+    sym = normal_id_lookup(&loc, IDL_MUST_BE_CLASS_OR_NAMESPACE);
+    if (sym == NULL) {
+      /* No valid qualifier was found. */
+    } else {
+      /* Not all potential name qualifiers are allowed here.  In particular,
+         even though C++/CLI generally accepts typedef names for fundamental
+         types as qualifiers, it doesn't recognize those in this context.
+         So for example:
+            typedef int delegate, I;
+            delegate ::I D();
+         does in fact define a delegate type. */
+      sym = fundamental_symbol_of(sym);
+      if (symbol_is(sym, sk_namespace)) {
+        result = TRUE;
+      } else if (is_class_symbol(sym)) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
   } else if (is_start_of_generic_decl()) {
     /* We have "generic < class" or "generic < typename".  This is the
        start of a generic declaration. */
