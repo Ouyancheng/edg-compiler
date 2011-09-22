@@ -5953,6 +5953,8 @@ diag_pos is non-NULL, issue an error at the given position.
        standard class type, an integral or enumeration type, a handle type, or
        a standard pointer type (not a pin pointer or interior pointer type). */
     a_type_ptr tp = skip_typerefs(tap->variant.type);
+    a_type_ptr system_tp = system_type_from_fundamental_type(tp);
+    if (system_tp != NULL) tp = system_tp;
     if (is_immediate_class_type(tp) &&
         (cli_class_type_kind_is(tp, cctk_standard) ||
          cli_class_type_kind_is(tp, cctk_value))) {
