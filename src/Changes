@@ -1,5 +1,30 @@
 Version 4.4
 
+9/22/11  [EDGcpfe/12148]
+Abort with complex macro expansions
+
+In cases where a macro expansion is large and complex (using the Boost
+preprocessor library, for example), the front end could abort with
+"assoc_source_line_modif: bad address" in cases where a nested macro
+invocation begins in one macro expansion but its closing parenthesis
+appears in a containing macro expansion.  This is now fixed.  For example:
+
+  #include <boost/preprocessor/control/if.hpp>
+  #include <boost/preprocessor/comparison/equal.hpp>
+  #include <boost/preprocessor/arithmetic/sub.hpp>
+  #define ASDF(x) x
+
+  // The closing parenthesis for ASDF is not in this definition:
+  #define FUNC(DIM) \
+    ASDF(BOOST_PP_CAT(FUNC,BOOST_PP_SUB(DIM,1))(BOOST_PP_SUB(DIM,1))
+
+  // The closing parenthesis of ASDF is here:
+  #define FUNC1(DIM) FUNC(DIM))
+  #define FUNC0(DIM) z
+
+  FUNC1(1);    // results in "z;"
+
+
 9/20/11  [EDGcpfe/12165]
 Microsoft compatibility: Attributes preceding linkage specifications
 

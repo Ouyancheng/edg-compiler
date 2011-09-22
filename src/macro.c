@@ -1479,21 +1479,37 @@ ensure_macro_buffer_space.
              crp->line_loc - old_start_for_remapping + new_start_for_remapping;
         }  /* for */
         if (ch == ATTENTION_MARKER) {
-          /* This is the location of a macro replacement or deleted text.  Copy
-             only the ATTENTION_MARKER to the new buffer and adjust the source
-             pointer appropriately. */
+          /* This is the location of a macro replacement or deleted text.
+             If it is a macro replacement, copy only the ATTENTION_MARKERs
+             to the new buffer and adjust the source pointer appropriately.
+             Deleted text (which occurs when the closing parenthesis of a
+             macro invocation is not in the source line modification
+             containing the macro name, a relatively rare situation) can
+             include character positions that must be relocated, so it must
+             be copied in full. */
           sizeof_t orig_deletion_len;
           nested_slmp = nested_source_line_modif(src - 1);
-          orig_deletion_len = nested_slmp->num_chars_to_delete;
-          src += orig_deletion_len - 1;
-          dst = copy_attention_markers(nested_slmp, dst);
+          if (nested_slmp->inserted_text == nested_slmp->inserted_chars) {
+            /* This is a deletion source line modification.  Just update
+               the location of the deletion. */
+            rem_source_line_modif_from_hash_table(nested_slmp);
+            nested_slmp->line_loc = dst - 1;
+            add_source_line_modif_to_hash_table(nested_slmp);
+          } else {
+            /* This deletion is for a macro replacement: skip over the
+               replaced characters, copying only any attention markers
+               contained therein. */
+            orig_deletion_len = nested_slmp->num_chars_to_delete;
+            src += orig_deletion_len - 1;
+            dst = copy_attention_markers(nested_slmp, dst);
 #if FULLY_RESOLVED_MACRO_POSITIONS
-          adjust_macro_text_map_after_compaction(
-                 slmp, orig_deletion_len,
-                 nested_slmp->num_chars_to_delete,
-                 (sizeof_t)(dst - nested_slmp->num_chars_to_delete -
-                            slmp->inserted_text));
+            adjust_macro_text_map_after_compaction(
+                            slmp, orig_deletion_len,
+                            nested_slmp->num_chars_to_delete,
+                            (sizeof_t)(dst - nested_slmp->num_chars_to_delete -
+                                       slmp->inserted_text));
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+          }  /* if */
         } else if (src > old_start_for_remapping + 1 &&
                    src[-LE_ESCAPE_LEN] == LE_ESCAPE) {
           /* This is an end-of-insertion marker (and not just a stray
