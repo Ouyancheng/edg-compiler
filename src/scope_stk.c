@@ -3448,23 +3448,6 @@ scope stack entry.
                         PS_NO_OPTIONS);
 }  /* push_block_reactivation_scope */
 
-
-a_scope_ptr pop_block_scope(void)
-/*
-Pop a block scope from the scope stack.  Return a pointers to the il_scope
-associated with this block.  The il_scope can be NULL.  This routine only
-needs to be used when the scope pointer is needed, otherwise pop_scope
-can be used to pop block scopes.
-*/
-{
-  a_scope_stack_entry_ptr	ssep = &scope_stack_top();
-  a_scope_ptr			scope = ssep->il_scope;
-
-  check_assertion(ssep->kind == (a_scope_kind)sck_block);
-  pop_scope();
-  return scope;
-}  /* pop_block_scope */
-
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_scope_ptr push_for_init_scope(void)
