@@ -4654,6 +4654,7 @@ that is found, or NULL is no matching symbol is found.
       check_assertion(sym != NULL);
       if (sym->header == locator->symbol_header) break;
     }  /* for */
+    if (cp == NULL) sym = NULL;
     locator->specific_symbol = sym;
   }  /* if */
 #if DEBUG
