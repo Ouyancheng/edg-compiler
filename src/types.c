@@ -1186,6 +1186,7 @@ value type.
             is_simple_value_class_type(curr_type))) {
         /* A simple value type can only have members that are either
            fundamental types, enums, pointers, or another simple value type. */
+        check_assertion(!is_void(curr_type));
         result = FALSE;
         break;
       }  /* if */
@@ -1252,9 +1253,9 @@ Return TRUE if the indicated type is a C++/CLI ref class or interface class.
 
 a_boolean is_cli_value_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is a C++/CLI value type, which includes
-value class types and also fundamental types, enums, and pointers.  See ECMA
-standard 12.1.
+Return TRUE if the given type is a C++/CLI value type, which includes value
+class types and also fundamental types (other than "void"), enums, and
+pointers.  See ECMA standard 12.1.
 */
 {
   a_boolean result = FALSE;
@@ -1264,7 +1265,7 @@ standard 12.1.
     if (is_value_class_type(tp) ||
         is_enum(tp) ||
         is_pointer(tp) ||
-        system_type_from_fundamental_type(tp) != NULL) {
+        (system_type_from_fundamental_type(tp) != NULL && !is_void(tp))) {
       result = TRUE;
     }  /* if */
   }  /* if */
@@ -12929,7 +12930,7 @@ corresponding value class type.
   tp = skip_typerefs(tp);
   if (is_value_class_type(tp)) {
     result = TRUE;
-  } else {
+  } else if (!is_void(tp)) {
     tp = system_type_from_fundamental_type(tp);
     if (tp != NULL) {
       result = TRUE;
