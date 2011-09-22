@@ -16230,6 +16230,7 @@ selection operator, in which case it points to the type of the left operand.
         a_boolean	is_template = FALSE;
         a_symbol_ptr	prev_qualifier_sym = qualifier_sym;
         a_boolean	invalid_qualifier_sym = FALSE;
+        a_type_ptr      qualifier_sym_type;
         if (err || (qualifier_sym == NULL && !qualifier_is_super)) {
           invalid_qualifier_sym = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -16245,7 +16246,6 @@ selection operator, in which case it points to the type of the left operand.
           invalid_qualifier_sym = TRUE;
         } else if (is_class_symbol(qualifier_sym)) {
           /* Get the type associated with the class symbol. */
-          a_type_ptr	qualifier_sym_type;
           qualifier_sym_type = type_symbol_type(qualifier_sym);
           qualifier_type = skip_typerefs(qualifier_sym_type);
           qualifier_is_type = TRUE;
@@ -16299,6 +16299,18 @@ selection operator, in which case it points to the type of the left operand.
             invalid_qualifier_sym = TRUE;
             err = TRUE;
           }  /* if */
+        } else if (cppcli_enabled &&
+                   symbol_is(qualifier_sym, sk_type) &&
+                   (qualifier_sym_type =
+                       system_type_from_fundamental_type(
+                           skip_typerefs(qualifier_sym->variant.type.ptr)))
+                                                                    != NULL) {
+          /* A fundamental type (e.g., wchar_t) that maps on a C++/CLI System
+             value type.  Proceed with the value type. */
+          qualifier_type = skip_typerefs(qualifier_sym_type);
+          qualifier_is_type = TRUE;
+          qualifier_type_is_class = TRUE;
+          check_assertion(is_immediate_managed_class_type(qualifier_type));
         } else if (symbol_is(qualifier_sym, sk_field) ||
                    symbol_is(qualifier_sym, sk_static_data_member) ||
                    symbol_is(qualifier_sym, sk_property_set)) {

@@ -4806,6 +4806,21 @@ an overloaded set of properties.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+Return TRUE if we're in C++/CLI mode and sym (which must be an sk_type symbol)
+refers to a fundamental type with a corresponding C++/CLI System value type
+(e.g., System::Char for wchar_t).
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_cppcli_funamental_system_type(sym)                           \
+  (cppcli_enabled &&                                                    \
+   (system_type_from_fundamental_type(                                  \
+                    skip_typerefs((sym)->variant.type.ptr)) != NULL))
+#else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_cppcli_funamental_system_type(sym) /*lint --e(506)*/FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
+/*
 Return TRUE if a symbol is one that should be found in a lookup of a name used
 as part of the qualifier in a qualified name.  The C++ standard requires that
 any type name be found by the lookup even though some kinds of types will
@@ -4820,6 +4835,7 @@ only be used in C++ mode.
    is_cppcli_property_or_event(sym) ||				      \
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
     (is_template_param_type((sym)->variant.type.ptr) ||               \
+     is_cppcli_funamental_system_type(sym) ||			      \
      (!microsoft_mode && (!gpp_mode || gnu_version < 30400)))) ||     \
    ((!gpp_mode || gnu_version < 30400 || enum_qualifiers_enabled) &&  \
     is_enum_symbol(sym)))
@@ -4830,12 +4846,13 @@ in a qualified name.  symbol_may_precede_qualifier is TRUE if the name
 should be found by lookup; this macro is then used to determine if the
 symbol found by the lookup is semantically valid.
 */
-#define is_valid_qualifier_symbol(sym)					\
+#define is_valid_qualifier_symbol(sym)				      \
   ((sym)->kind == (a_symbol_kind)sk_class_template ||		      \
    is_class_symbol(sym) ||                                            \
    (sym)->kind == (a_symbol_kind)sk_namespace ||		      \
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
-    (is_template_param_type((sym)->variant.type.ptr))) ||		\
+    (is_template_param_type((sym)->variant.type.ptr) ||		      \
+     is_cppcli_funamental_system_type(sym))) ||			      \
    (enum_qualifiers_enabled && is_enum_symbol(sym)))
   
 
