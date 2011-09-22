@@ -2405,12 +2405,12 @@ the scope being pushed.
   /* Determine the scope number. */
   if ((scope_number_to_reuse != NO_SCOPE_NUMBER &&
        (kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_block ||
         kind == (a_scope_kind)sck_func_prototype)) ||
         kind == (a_scope_kind)sck_file ||
         kind == (a_scope_kind)sck_namespace_extension ||
         kind == (a_scope_kind)sck_namespace_reactivation ||
         kind == (a_scope_kind)sck_class_reactivation ||
-        kind == (a_scope_kind)sck_block ||
         kind == (a_scope_kind)sck_template_instantiation) {
     /* For function scopes, reuse the scope used for the parameters
        in the function declarator.  For block reactivations, use the scope
