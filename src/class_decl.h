@@ -51,7 +51,6 @@ extern void scan_cli_delegate_definition(a_decl_parse_state  *dps,
 extern void create_cli_delegate_class_definition(
                                               a_type_ptr          class_type,
                                               a_scope_depth       decl_level,
-                                              a_symbol_locator    *loc,
                                               a_decl_parse_state  *dps,
                                               a_func_info_block   *func_info);
 

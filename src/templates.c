@@ -3167,8 +3167,6 @@ Instantiate the C++/CLI generic delegate specified by class_type.
       set_cli_visibility(class_type, visibility, &visibility_pos,
                          /*is_definition=*/TRUE);
       scan_cli_delegate_definition(&dps, &locator, &func_info);
-      /* Set the locator to refer to the instance being generated. */
-      locator.specific_symbol = instance_sym;
       /* In the normal case the current token should be end_of_source,
          which was inserted to mark the end of the cached token stream.
          If necessary, keep flushing until end-of-source is found. */
@@ -3179,7 +3177,7 @@ Instantiate the C++/CLI generic delegate specified by class_type.
       --(tssp->pending_instantiations);
       create_cli_delegate_class_definition(class_type,
                                            depth_innermost_namespace_scope,
-                                           &locator, &dps, &func_info);
+                                           &dps, &func_info);
       /* Process any pragmas that are to be bound to this instance. */
       process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -15197,7 +15195,7 @@ delegate.
   /* Create the definition of the delegate class type. */
   create_cli_delegate_class_definition(prototype_type,
                                        decl_state->effective_decl_level,
-                                       &locator, dps, &func_info);
+                                       dps, &func_info);
 done:
   return sym;
 }  /* cli_generic_delegate_declaration */

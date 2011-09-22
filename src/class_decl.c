@@ -19074,17 +19074,16 @@ of a managed class (possibly a generic class).
 
 void create_cli_delegate_class_definition(a_type_ptr          class_type,
                                           a_scope_depth       decl_level,
-                                          a_symbol_locator    *loc,
                                           a_decl_parse_state  *dps,
                                           a_func_info_block   *func_info)
 /*
 class_type is an incomplete delegate class (i.e., a ref class) that is
-declared at the given scope stack depth.  loc, dps, and func_info describe
-the declared properties of the corresponding delegate definition (i.e.,
-the entities produced by the call to scan_cli_delegate_definition).  Create
-the definition of the class by deriving it from System::MulticastDelegate
-and adding the appropriate member functions (including the Invoke member
-with a signature that matches that of the delegate definition).
+declared at the given scope stack depth.  dps, and func_info describe the
+declared properties of the corresponding delegate definition (i.e., the
+entities produced by the call to scan_cli_delegate_definition).  Create the
+definition of the class by deriving it from System::MulticastDelegate and
+adding the appropriate member functions (including the Invoke member with a
+signature that matches that of the delegate definition).
 */
 {
   a_class_def_state            class_state;
@@ -19140,7 +19139,7 @@ with a signature that matches that of the delegate definition).
                          /*compiler_generated=*/TRUE);
   }  /* if */
   /* Add the one-argument constructor (declaration only). */
-  member_loc = *loc;
+  make_locator_for_symbol(symbol_for(class_type), &member_loc);
   change_class_locator_into_constructor_locator(&member_loc,
                                                 &dps->declarator_pos,
                                                 /*is_static_ctor=*/FALSE);
@@ -19257,7 +19256,7 @@ Scan the definition and record it in the IL (as a special-purpose class type).
                                (an_il_entry_kind)iek_type, MSAT_STRUCT);
   }  /* if */
   /* Create the definition of the delegate class type. */
-  create_cli_delegate_class_definition(class_type, decl_level, &loc, dps,
+  create_cli_delegate_class_definition(class_type, decl_level, dps,
                                        &func_info);
 }  /* scan_and_record_cli_delegate_definition */
 
