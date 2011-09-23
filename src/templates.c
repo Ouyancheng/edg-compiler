@@ -15223,7 +15223,7 @@ for C it will return 3.  This routine should only be called for generic
 declarations, not for template declarations.
 */
 {
-  a_generic_param_seq_number	curr_seq_number = 0;
+  a_generic_param_seq_number	seq_number = 0;
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
 
   for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
@@ -15233,12 +15233,12 @@ declarations, not for template declarations.
         check_assertion(ssep->template_decl_info != NULL);
         for (tpp = ssep->template_decl_info->parameters; tpp != NULL;
              tpp = tpp->next) {
-          curr_seq_number++;
+          seq_number++;
         }  /* for */
       }  /* if */
     }  /* if */
   }  /* for */
-  return curr_seq_number;
+  return seq_number;
 }  /* enclosing_generic_parameters */
 
 
@@ -15252,18 +15252,18 @@ the sequence number the one after decl_state->enclosing_generic_params,
 which is updated to the new final sequence number.
 */
 {
-  a_generic_param_seq_number	curr_seq_number;
+  a_generic_param_seq_number	seq_number;
   a_template_param_ptr		tpp;
 
-  curr_seq_number = decl_state->enclosing_generic_params;
+  seq_number = decl_state->enclosing_generic_params;
   for (tpp = generic_param_list; tpp != NULL; tpp = tpp->next) {
     a_type_ptr	type = tpp->variant.type;
     type = generic_param_if_generic_definition_argument(type);
     check_assertion(type->kind == (a_type_kind)tk_template_param);
     type->variant.template_param.extra_info->generic_param_seq_number =
-                                                             ++curr_seq_number;
+                                                                  ++seq_number;
   }  /* for */
-  decl_state->enclosing_generic_params = curr_seq_number;
+  decl_state->enclosing_generic_params = seq_number;
 }  /* assign_generic_param_seq_numbers */
 
 
