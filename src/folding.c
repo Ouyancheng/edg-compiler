@@ -1226,7 +1226,7 @@ type.
 }  /* conv_pointer_to_whatever */
 
 
-static a_boolean pm_constant_is_null(a_constant_ptr constant)
+a_boolean pm_constant_is_null(a_constant_ptr constant)
 /*
 constant is a pointer-to-member constant.  Return TRUE if it is a NULL
 constant.
