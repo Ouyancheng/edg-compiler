@@ -134,9 +134,8 @@ function is called a second time.
     hr = WRAPPED_FUNCTION; \
     check_assertion(hr != CLDB_S_TRUNCATION); \
   }  /* if */ \
-  if (characters_required != 0) { \
-    name.assign(name_buffer, characters_required - 1); \
-  }  /* if */ \
+  check_assertion(characters_required != 0); \
+  name.assign(name_buffer, characters_required - 1); \
   return hr; \
 }
 
@@ -362,7 +361,7 @@ private:
   DWORD          flags_;
                         /* Any flags associated with this generic
                            parameter. */
-}; /* a_generic_parameter_info */
+}; /* a_generic_parameter_data */
 
 /* A list of generic parameter data. */
 typedef vector<const a_generic_parameter_info> a_generic_parameter_info_list;
@@ -437,40 +436,6 @@ last generic parameter or argument consumed by the expansion.
 
 
 /*
-The representation of a single method parameter.
-*/
-class a_method_parameter {
-public:
-  a_method_parameter(mdParamDef token, wstring name, DWORD attributes)
-    : token_(token),
-      name_(name),
-      attributes_(attributes)
-  {
-  }  /* constructor */
-
-  a_method_parameter(a_method_parameter&& other)
-    : token_(move(other.token_)),
-      name_(move(other.name_)),
-      attributes_(move(other.attributes_))
-  {
-  }  /* constructor */
-
-  mdParamDef token() const { return token_; }
-  wstring    name() const { return name_; }
-  DWORD      attributes() const { return attributes_; }
-  a_boolean  is_parameter_array(const an_import_scope &import_scope) const;
-private:
-  mdParamDef token_;       /* The token for this parameter. */
-  wstring    name_;        /* The name of this parameter. */
-  DWORD      attributes_;  /* Attributes associated with this parameter. */
-}; /* a_method_parameter */
-
-
-/* A list of method parameters. */
-typedef vector<const a_method_parameter> a_method_parameter_list;
-
-
-/*
 A class to decode a CLR signature.  It returns the result as a std::wstring.
 */
 class a_signature_decoder {
@@ -495,8 +460,6 @@ public:
   }  /* constructor */
 
   wstring decode_type(bool add_handle_to_class = true);
-
-  a_method_parameter_list get_method_parameters();
 
   wstring decode_method_signature(const wstring &name,
                                   DWORD         method_attributes,
@@ -3352,24 +3315,6 @@ omitted.
 }  /* an_import_scope::import_one_type */
 
 
-a_boolean a_method_parameter::is_parameter_array(
-                                  const an_import_scope &import_scope) const
-/*
-Return TRUE if the method parameter is a parameter array.
-*/
-{
-  HRESULT hr;
-
-  hr = import_scope.import_interface()->GetCustomAttributeByName(
-                                                token_,
-                                                L"System.ParamArrayAttribute",
-                                                /*ppData=*/nullptr,
-                                                /*pcbData=*/nullptr);
-  CHECK_API_RESULT(hr, GetCustomAttributeByName);
-  return hr == S_OK;
-}  /* a_method_parameter::is_parameter_array */
-
-
 a_generic_argument_list a_signature_decoder::decode_generic_arguments()
 /*
 Decode the generic arguments associated with a type.  Note, it is the caller's
@@ -3569,57 +3514,6 @@ Decode a type signature and return it as a std::wstring.
 }  /* a_signature_decoder::decode_type */
 
 
-a_method_parameter_list a_signature_decoder::get_method_parameters()
-/*
-Return a list of the method's parameters.
-*/
-{
-  a_method_parameter_list method_parameters;
-  an_import_interface     *import_interface = import_scope_.import_interface();
-  HRESULT                 hr;
-  HCORENUM                enum_parameters = nullptr;
-  mdParamDef              parameter_tokens[8];
-  ULONG                   count_of_parameters;
-
-  do {
-    hr = import_scope_.import_interface()->EnumParams(
-                                                   &enum_parameters,
-                                                   token_, parameter_tokens,
-                                                   _countof(parameter_tokens),
-                                                   &count_of_parameters);
-    CHECK_API_RESULT(hr, EnumParams);
-    method_parameters.reserve(method_parameters.size() +
-                              count_of_parameters);
-    for (ULONG parameter_index = 0;
-         parameter_index < count_of_parameters;
-         ++parameter_index) {
-      mdGenericParam param_token = parameter_tokens[parameter_index];
-      mdMethodDef    method_token;
-      ULONG          param_index;
-      wstring        param_name;
-      DWORD          param_attributes;
-      DWORD          constant_type;
-      UVCP_CONSTANT  constant_value;
-      ULONG          characters_in_constant;
-      hr = import_interface->GetParamProps(param_token, &method_token,
-                                           &param_index, param_name,
-                                           &param_attributes,
-                                           &constant_type,
-                                           &constant_value,
-                                           &characters_in_constant);
-      CHECK_API_RESULT(hr, GetParamProps);
-      check_assertion(method_token == token_);
-      check_assertion(method_parameters.size() == param_index - 1);
-      method_parameters.push_back(a_method_parameter(param_token,
-                                                     param_name,
-                                                     param_attributes));
-    }  /* for */
-  } while (count_of_parameters > 0);
-  import_interface->CloseEnum(enum_parameters);
-  return method_parameters;
-}  /* a_signature_decoder::get_method_parameters */
-
-
 wstring a_signature_decoder::decode_method_signature(
                            const wstring                  &name,
                            DWORD                          method_attributes,
@@ -3632,19 +3526,15 @@ std::wstring.  Note: this function also handles decoding a property signature
 which is almost the same as a method signature.
 */
 {
-  BYTE                    first_byte;
-  BYTE                    calling_convention;
-  wostringstream          declaration;
-  ULONG                   number_of_parameters;
-  wstring                 return_type;
-  BYTE                    generic_arity;
-  a_method_parameter_list method_parameters;
+  BYTE           first_byte;
+  BYTE           calling_convention;
+  wostringstream declaration;
+  ULONG          number_of_parameters;
+  wstring        return_type;
+  BYTE           generic_arity;
 
   /* The return type should never be omitted for property methods. */
   check_assertion(!omit_return_type || !is_for_property);
-  if (!is_for_property) {
-    method_parameters = get_method_parameters();
-  }  /* if */
   first_byte = read_one_byte();
   calling_convention = first_byte & IMAGE_CEE_CS_CALLCONV_MASK;
   check_assertion(!is_for_property ||
@@ -3668,8 +3558,6 @@ which is almost the same as a method signature.
                                               generic_method_constraints);
   }  /* if */
   number_of_parameters = read_four_bytes();
-  check_assertion(is_for_property ||
-                  number_of_parameters == method_parameters.size());
   if ((import_scope_.containing_assembly().import_flags()
                                        & cpp_cli_declspec_member_info) != 0) {
     declaration << L"__declspec(member_info(";
@@ -3712,16 +3600,7 @@ which is almost the same as a method signature.
     if (i > 0) {
       declaration << L", ";
     }  /* if */
-    if (!is_for_property && i == number_of_parameters - 1 &&
-        (peek_element_type() == ELEMENT_TYPE_SZARRAY ||
-         peek_element_type() == ELEMENT_TYPE_ARRAY) &&
-        method_parameters[i].is_parameter_array(import_scope_)) {
-       declaration << L"... ";
-    }  /* if */
     declaration << decode_type();
-    if (!is_for_property) {
-      declaration << L' ' << method_parameters[i].name();
-    }  /* if */
   }  /* for */
   switch (calling_convention) {
     case IMAGE_CEE_CS_CALLCONV_DEFAULT:
