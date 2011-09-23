@@ -23604,6 +23604,18 @@ Return the field alignment for the given type.
 
 #endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
 
+a_boolean pm_constant_is_null(a_constant_ptr constant)
+/*
+constant is a pointer-to-member constant.  Return TRUE if it is a NULL
+constant.
+*/
+{
+  a_boolean is_null = constant->variant.ptr_to_member.is_function_ptr ?
+                    (constant->variant.ptr_to_member.variant.routine == NULL) :
+                    (constant->variant.ptr_to_member.variant.field == NULL);
+  return is_null;
+}  /* pm_constant_is_null */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 void il_one_time_init(void)

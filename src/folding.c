@@ -1226,19 +1226,6 @@ type.
 }  /* conv_pointer_to_whatever */
 
 
-a_boolean pm_constant_is_null(a_constant_ptr constant)
-/*
-constant is a pointer-to-member constant.  Return TRUE if it is a NULL
-constant.
-*/
-{
-  a_boolean is_null = constant->variant.ptr_to_member.is_function_ptr ?
-                    (constant->variant.ptr_to_member.variant.routine == NULL) :
-                    (constant->variant.ptr_to_member.variant.field == NULL);
-  return is_null;
-}  /* pm_constant_is_null */
-
-
 static a_type_ptr pm_constant_member_class(a_constant_ptr constant)
 /*
 constant is a non-NULL pointer-to-member constant.  Return the class

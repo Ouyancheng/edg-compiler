@@ -25,8 +25,6 @@ extern a_boolean variable_has_non_null_address(a_variable_ptr vp);
 
 extern a_boolean routine_has_non_null_address(a_routine_ptr rp);
 
-extern a_boolean pm_constant_is_null(a_constant_ptr constant);
-
 extern a_boolean constant_bool_value_known_at_compile_time(a_constant_ptr con);
 
 extern void make_template_param_expr_constant(an_expr_node_ptr node,

@@ -2345,6 +2345,8 @@ extern void destination_type_for_reference_cast(an_expr_node_ptr  expr,
                                                 a_type            *ref_type,
                                                 a_type            *quals_type);
 
+extern a_boolean pm_constant_is_null(a_constant_ptr constant);
+
 #endif /* ifndef IL_H */
 
 /******************************************************************************
