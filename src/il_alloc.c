@@ -1150,6 +1150,7 @@ and return a pointer to it.
   tptsp->orig_nested_type = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tptsp->generic_constraints = NULL;
+  tptsp->generic_param_seq_number = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return tptsp;
 }  /* alloc_template_param_type_supplement */
@@ -1803,6 +1804,7 @@ to default values.
         pte->variant.template_param.is_generic_param = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         pte->variant.template_param.being_checked = FALSE;
+        pte->variant.template_param.is_generic_function_param = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         tptsp = alloc_template_param_type_supplement();
         pte->variant.template_param.extra_info = tptsp;

@@ -3330,12 +3330,12 @@ enum a_template_param_constant_kind_tag {
 };
 typedef a_byte a_template_param_constant_kind;
 
-typedef unsigned long a_template_param_list_pos;
+typedef uint32_t a_template_param_list_pos;
 			/* A ordinal position number within a template
 			   parameter or argument list (i.e., a given
 			   parameter is the Nth parameter in the list). */
 
-typedef long a_template_nesting_depth;
+typedef int32_t a_template_nesting_depth;
 			/* When templates are nested within other templates,
 			   the nesting depth is used to associate a template
 			   parameter with a given template declaration level.
@@ -3349,6 +3349,18 @@ typedef long a_template_nesting_depth;
 #define AUTO_TYPE_NESTING_DEPTH	-1
 			/* Depth used to indicate that the template parameter
 			   really represents an "auto" type specifier. */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+typedef int32_t a_generic_param_seq_number;
+			/* Each generic parameter of a generic class is
+			   assigned a sequence number.  The parameters of
+			   a namespace scope generic class begin with 1
+			   and end with N where N is the number of generic
+			   parameters.  A generic parameters of a nested
+			   generic class begin with N+1, where N is the
+			   sequence number of the nearest enclosing generic
+			   class. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 typedef struct a_template_param_coordinate *a_template_param_coordinate_ptr;
 typedef struct a_template_param_coordinate {
@@ -6943,6 +6955,16 @@ typedef struct a_template_param_type_supplement {
 		generic_constraints;
 			/* For C++/CLI generics, this points to the list of
 			   constraints specified, and can be NULL. */
+  a_generic_param_seq_number
+		generic_param_seq_number;
+			/* Each generic parameter of a generic class is
+			   assigned a sequence number.  The parameters of
+			   a namespace scope generic class begin with 1
+			   and end with N where N is the number of generic
+			   parameters.  A generic parameters of a nested
+			   generic class begin with N+1, where N is the
+			   sequence number of the nearest enclosing generic
+			   class. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_template_param_coordinate
 		coordinates;
@@ -8118,6 +8140,10 @@ typedef struct a_type {
 			/* For a naked type parameter constraint, this is used
 			   by the front end to detect recursive naked type
 			   constraints. */
+      a_bit_field
+		is_generic_function_param:1;
+			/* TRUE if this is a generic type parameter for a
+			   C++/CLI generic function. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_template_param_type_supplement_ptr
 		extra_info;

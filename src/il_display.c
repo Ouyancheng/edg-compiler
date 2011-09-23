@@ -866,8 +866,8 @@ static void disp_template_param_coordinate(a_template_param_coordinate *ptr)
 Display the indicated template parameter coordinate.
 */
 {
-  disp_unsigned_long("coordinates.position", (unsigned long)ptr->position);
-  disp_unsigned_long("coordinates.depth", (unsigned long)ptr->depth);
+  disp_uint32("coordinates.position", ptr->position);
+  disp_int32("coordinates.depth", ptr->depth);
 }  /* disp_template_param_coordinate */
 
 
@@ -1541,6 +1541,9 @@ Display the indicated template parameter type supplement.
     disp_ptr("generic_constraints", (char *)ptr->generic_constraints,
              iek_generic_constraint);
   }  /* if */
+  if (ptr->generic_param_seq_number > 0) {
+    disp_uint32("generic_param_seq_number", ptr->generic_param_seq_number);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   disp_template_param_coordinate(&ptr->coordinates);
 }  /* disp_template_param_type_supplement */
@@ -2165,6 +2168,11 @@ Display the indicated type entry.
       if (ptr->variant.template_param.is_generic_param) {
         disp_boolean("is_generic_param", TRUE);
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (ptr->variant.template_param.is_generic_function_param) {
+        disp_boolean("is_generic_function_param", TRUE);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       disp_template_param_type_supplement(
                                        ptr->variant.template_param.extra_info);
       break;

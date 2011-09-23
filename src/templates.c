@@ -518,6 +518,7 @@ Initialize a template declaration state block.
   tdsp->template_decl = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tdsp->num_parameters = 0;
+  tdsp->enclosing_generic_params = 0;
   tdsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_standard;
   tdsp->cli_visibility = (an_assembly_visibility)av_none;
   tdsp->cli_visibility_pos = null_source_position;
@@ -15202,6 +15203,88 @@ done:
   return sym;
 }  /* cli_generic_delegate_declaration */
 
+
+static a_generic_param_seq_number enclosing_generic_parameters(void)
+/*
+Computes the number of enclosing template parameters.  This is used to
+assign a sequence number to each template parameter regardless of
+nesting depth.   For example:
+
+  generic <typename T1, typename T2> ref class A {
+    generic <typename T3> ref class B {
+      generic <typename T4, typename T5> ref class C {};
+    };
+  };
+
+The number in each "Tx" illustrates the sequence number that will be
+assigned to the given template parameter.  When this routine is called
+for the declaration of A, it will return 0; for B it will return 2, and
+for C it will return 3.  This routine should only be called for generic
+declarations, not for template declarations.
+*/
+{
+  a_generic_param_seq_number	curr_seq_number = 0;
+  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+
+  for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
+    if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
+      if (ssep->assoc_type != NULL) {
+        a_template_param_ptr	tpp;
+        check_assertion(ssep->template_decl_info != NULL);
+        for (tpp = ssep->template_decl_info->parameters; tpp != NULL;
+             tpp = tpp->next) {
+          curr_seq_number++;
+        }  /* for */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return curr_seq_number;
+}  /* enclosing_generic_parameters */
+
+
+static void assign_generic_param_seq_numbers(
+			a_tmpl_decl_state_ptr		decl_state,
+			a_template_param_ptr		generic_param_list)
+/*
+Go through the list of generic parameters specified by generic_param_list
+and assign a sequence number to each.  The first parameter is given
+the sequence number the one after decl_state->enclosing_generic_params,
+which is updated to the new final sequence number.
+*/
+{
+  a_generic_param_seq_number	curr_seq_number;
+  a_template_param_ptr		tpp;
+
+  curr_seq_number = decl_state->enclosing_generic_params;
+  for (tpp = generic_param_list; tpp != NULL; tpp = tpp->next) {
+    a_type_ptr	type = tpp->variant.type;
+    type = generic_param_if_generic_definition_argument(type);
+    check_assertion(type->kind == (a_type_kind)tk_template_param);
+    type->variant.template_param.extra_info->generic_param_seq_number =
+                                                             ++curr_seq_number;
+  }  /* for */
+  decl_state->enclosing_generic_params = curr_seq_number;
+}  /* assign_generic_param_seq_numbers */
+
+
+static void set_is_generic_function_param(
+			a_tmpl_decl_state_ptr		decl_state)
+/*
+Go through the list of generic parameters for the current declaration
+and set the flag that indicates that they are parameters of a generic
+function.
+*/
+{
+  a_template_param_ptr		tpp;
+
+  for (tpp = decl_state->decl_info->parameters; tpp != NULL; tpp = tpp->next) {
+    a_type_ptr	type = tpp->variant.type;
+    type = generic_param_if_generic_definition_argument(type);
+    check_assertion(type->kind == (a_type_kind)tk_template_param);
+    type->variant.template_param.is_generic_function_param = TRUE;
+  }  /* for */
+}  /* set_is_generic_function_param */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void class_template_declaration(
@@ -16162,6 +16245,14 @@ friend_template_checks_done:
     /* This is not a class template definition, so we have no need to
        cache the tokens. */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (decl_state->is_generic) {
+    /* Assign generic sequence numbers to the parameters of this generic
+       class.  */
+    assign_generic_param_seq_numbers(decl_state,
+                                     decl_state->decl_info->parameters);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (prototype_instantiations_in_il) {
     /* Restore the previous state wrt. the generation of source sequence
@@ -19045,6 +19136,13 @@ caller.
     /* Update the exported flag, if necessary. */
     update_export_flag_for_function(decl_state, rout_ptr, sym, tssp);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (decl_state->is_generic) {
+    /* Set the flag that indicates that the generic parameters are associated
+       with a generic function. */
+    set_is_generic_function_param(decl_state);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Make sure that the template parameter list is compatible with
      any previous declaration (i.e., the declaration of the class
      if this is a member function. */
@@ -19581,6 +19679,14 @@ information).  See the definition of a_tmpl_decl_state for details.
        have nesting depths. */
     if (!is_template_param) decl_state->nesting_depth++;
     decl_state->number_of_template_param_clauses++;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (decl_state->is_generic && prev_template_decl_info != NULL) {
+      /* When there are multiple template parameter clauses, assign generic
+         sequence numbers to all but the final one. */
+      assign_generic_param_seq_numbers(decl_state,
+                                       prev_template_decl_info->parameters);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Bypass "template".  The next token should be "<".  This is done
        before the scope is pushed so that any pragma associated with the
        tok_template token will be processed in the current scope. */
@@ -22071,6 +22177,13 @@ differs between function and nonfunction declarations.
   } else {
     decl_state->nesting_depth = template_nesting_depth();
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (decl_state->is_generic) {
+    /* For generic declarations, determine the number of enclosing generic
+       parameters. */
+    decl_state->enclosing_generic_params = enclosing_generic_parameters();
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* decl_level_of_template */
 
 
