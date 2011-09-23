@@ -134,8 +134,9 @@ function is called a second time.
     hr = WRAPPED_FUNCTION; \
     check_assertion(hr != CLDB_S_TRUNCATION); \
   }  /* if */ \
-  check_assertion(characters_required != 0); \
-  name.assign(name_buffer, characters_required - 1); \
+  if (characters_required != 0) { \
+    name.assign(name_buffer, characters_required - 1); \
+  }  /* if */ \
   return hr; \
 }
 
