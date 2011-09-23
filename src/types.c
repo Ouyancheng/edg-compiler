@@ -4346,6 +4346,9 @@ equivalent templates, such as T in "T<int>" and "T<int>".
 }  /* equiv_template_template_params */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- contextual_generic_parameters is unused in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_boolean equiv_class_types(a_type_ptr type_1,
                             a_type_ptr type_2,
                             a_boolean  error_matches_anything,
