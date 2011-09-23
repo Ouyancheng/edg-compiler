@@ -8524,6 +8524,26 @@ are recorded in the file scope.
   db_exit();
 }  /* make_predeclared_bool_symbol */
 
+
+void make_predeclared_nullptr_t_symbol(void)
+/*
+Create a symbol and type entry for std::nullptr_t (only in Microsoft mode).
+*/
+{
+  a_namespace_ptr std_namespace;
+  a_symbol_ptr    nullptr_t_sym;
+
+  db_enter(5, "make_predeclared_nullptr_t_symbol");
+  check_assertion(microsoft_mode && symbol_for_namespace_std != NULL);
+  std_namespace = symbol_for_namespace_std->variant.namespace_info.ptr;
+  (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
+                             std_namespace);
+  nullptr_t_sym = make_predeclared_typedef(standard_nullptr_type(),
+                                           "nullptr_t");
+  nullptr_t_sym->defined = FALSE;
+  pop_namespace_scope();
+}  /* make_predeclared_nullptr_t_symbol */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr find_default_constructor(a_type_ptr  class_type,

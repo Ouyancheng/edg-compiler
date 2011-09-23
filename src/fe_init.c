@@ -240,6 +240,11 @@ enter_system_specific_predeclared_symbols; see sys_predef.c.)
       type_of_guid = init_predeclared_class((a_type_kind)tk_struct, "_GUID");
       enter_predeclared_class(type_of_guid, DEPTH_OF_FILE_SCOPE,
                               &null_source_position);
+      if (microsoft_version >= 1600) {
+        /* Microsoft compilers beginning with version 1600 predeclare
+           std::nullptr_t. */
+        make_predeclared_nullptr_t_symbol();
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED

@@ -4250,6 +4250,8 @@ extern void make_predeclared_size_t_symbol(void);
 
 extern void make_predeclared_bool_symbol(void);
 
+extern void make_predeclared_nullptr_t_symbol(void);
+
 extern a_boolean treat_as_cli_class_for_lookup(a_type_ptr	type);
 
 extern
