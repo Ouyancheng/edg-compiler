@@ -4349,7 +4349,8 @@ equivalent templates, such as T in "T<int>" and "T<int>".
 a_boolean equiv_class_types(a_type_ptr type_1,
                             a_type_ptr type_2,
                             a_boolean  error_matches_anything,
-                            a_boolean  exact_templ_arg_match_required)
+                            a_boolean  exact_templ_arg_match_required,
+                            a_boolean  contextual_generic_parameters)
 /*
 type_1 and type_2 are class/struct/union types.  Return TRUE if they are
 equivalent types.  In general, classes, structs, and unions that aren't
@@ -4362,6 +4363,10 @@ a template argument to match anything (that's appropriate for compatibility
 checking instead of equivalence checking).  exact_templ_arg_match_required
 is TRUE if the values of the templates arguments must match exactly (e.g.,
 point to the same type or constant).  FALSE if only equivalence is required.
+If contextual_generic_parameters parameters is TRUE, generic parameters are
+compared not purely based on their "coordinates", but on the generic context
+in which they are declared (see flags ITF_CONTEXTUAL_GENERIC_PARAMETERS and
+TCF_CONTEXTUAL_GENERIC_PARAMETERS).
 */
 {
   a_boolean                     equiv = FALSE;
@@ -4386,9 +4391,15 @@ point to the same type or constant).  FALSE if only equivalence is required.
     templ_param_type_2 = template_param_if_proxy_class(type_2);
     if (templ_param_type_1 == templ_param_type_2) {
       equiv = TRUE;
-    } else if (!exact_templ_arg_match_required &&
-               identical_types(templ_param_type_1, templ_param_type_2)) {
-      equiv = TRUE;
+    } else if (!exact_templ_arg_match_required) {
+      an_itf_flag_set  it_flags = ITF_NO_FLAGS;
+      if (contextual_generic_parameters) {
+        it_flags |= ITF_CONTEXTUAL_GENERIC_PARAMETERS;
+      }  /* if */
+      if (f_identical_types(templ_param_type_1, templ_param_type_2,
+                            it_flags)) {
+        equiv = TRUE;
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if ((type_1->variant.class_struct_union.is_nonreal_class &&
@@ -5059,10 +5070,9 @@ check_typerefs:
             identical = seek_type_corresp(type_1, type_2);
           }  /* if */
         } else if (equiv_class_types(
-                             type_1, type_2,
-                             /*error_matches_anything=*/FALSE,
-                             (flags &
-                               ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) != 0)) {
+                        type_1, type_2, /*error_matches_anything=*/FALSE,
+                        (flags & ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) != 0,
+                        (flags & TCF_CONTEXTUAL_GENERIC_PARAMETERS) != 0)) {
           identical = TRUE;
         }  /* if */
         break;
@@ -5170,8 +5180,14 @@ check_typerefs:
         }  /* if */
         break;
       case tk_template_param:
+        /* Compare template parameters or generic parameters, as well as
+           generalizations of such constructs (e.g., "T::X" for some template
+           parameter T).  Generic parameters and ordinary template parameters
+           are never identical. */
         if (type_1->variant.template_param.kind ==
                                   type_2->variant.template_param.kind &&
+            type_1->variant.template_param.is_generic_param ==
+                            type_2->variant.template_param.is_generic_param &&
             (flags & ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) == 0) {
           a_template_param_type_supplement_ptr	tptsp_1, tptsp_2;
           tptsp_1 = type_1->variant.template_param.extra_info;
@@ -5181,16 +5197,45 @@ check_typerefs:
                /* Template parameter types are considered to be identical
                   if their positions in the template parameter list are
                   the same, and they are associated with template
-                  declarations of the same nesting level. */
-              identical =
-                  (tptsp_1->coordinates.position ==
+                  declarations of the same nesting level.  For generic
+                  parameters, alternative rules are used if the flag
+                  ITF_CONTEXTUAL_GENERIC_PARAMETERS is passed. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              if ((flags & ITF_CONTEXTUAL_GENERIC_PARAMETERS) != 0 &&
+                  type_1->variant.template_param.is_generic_param) {
+                if (type_1->variant.template_param.is_generic_function_param) {
+                  /* For generic functions, only consider the parameter
+                     in its own parameter list (and ignore the generic
+                     nesting depth). */
+                  identical = (tptsp_1->coordinates.position ==
+                                               tptsp_2->coordinates.position);
+                } else {
+                  /* For generic classes, compare the sequence number assigned
+                     across all nested generics.  E.g., in
+                       generic<class T> ref struct S {
+                         generic<class U> interface struct I {};  // #1
+                       };
+                       generic<class T, class U> ref struct R {}; // #2
+                     the U in #1 and #2 are the same types. */ 
+                  check_assertion(tptsp_1->generic_param_seq_number != 0);
+                  check_assertion(tptsp_2->generic_param_seq_number != 0);
+                  identical = (tptsp_1->generic_param_seq_number ==
+                                           tptsp_2->generic_param_seq_number);
+                }  /* if */
+              } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+              /* Do not insert code here. */
+              {
+                identical =
+                    (tptsp_1->coordinates.position ==
                                             tptsp_2->coordinates.position) &&
-                    ((flags & ITF_EXACT_NESTING_DEPTHS_REQUIRED) != 0
-                      ? tptsp_1->coordinates.depth ==
-                                                 tptsp_2->coordinates.depth
-                      : ((equiv_nesting_depths(tptsp_1->coordinates.depth,
-                                               tptsp_2->coordinates.depth) ||
-                          (flags & ITF_IGNORE_NESTING_DEPTH) != 0)));
+                      ((flags & ITF_EXACT_NESTING_DEPTHS_REQUIRED) != 0
+                        ? tptsp_1->coordinates.depth ==
+                                                   tptsp_2->coordinates.depth
+                        : ((equiv_nesting_depths(tptsp_1->coordinates.depth,
+                                                tptsp_2->coordinates.depth) ||
+                            (flags & ITF_IGNORE_NESTING_DEPTH) != 0)));
+              }  /* if */
               break;
             case tptk_member:
               /* Members types are the same if their names are the same
@@ -5731,8 +5776,10 @@ check_typerefs:
              type aren't compatible.  There are some exceptions with template
              classes.  Check for those. */
           if (!C_mode() &&
-              equiv_class_types(type_1, type_2, error_matches_anything,
-                                /*exact_templ_arg_match_required=*/FALSE)) {
+              equiv_class_types(
+                          type_1, type_2, error_matches_anything,
+                          /*exact_templ_arg_match_required=*/FALSE,
+                          (flags & TCF_CONTEXTUAL_GENERIC_PARAMETERS) != 0)) {
             compat = TRUE;
           }  /* if */
           break;
@@ -5802,7 +5849,14 @@ check_typerefs:
         case tk_template_param:
           /* Template parameter types are considered to be compatible if
              their positions in the template parameter list are the same. */
-          compat = f_identical_types(type_1, type_2, ITF_NO_FLAGS);
+          { an_itf_flag_set  it_flags = ITF_NO_FLAGS;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (flags & TCF_CONTEXTUAL_GENERIC_PARAMETERS) {
+              it_flags |= ITF_CONTEXTUAL_GENERIC_PARAMETERS;
+            }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            compat = f_identical_types(type_1, type_2, it_flags);
+          }
           break;
 #if GNU_VECTOR_TYPES_ALLOWED
         case tk_vector:

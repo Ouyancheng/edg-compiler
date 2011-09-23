@@ -4020,7 +4020,7 @@ the overridden symbol.
   tp1 = type_of_overriding_routine->variant.routine.return_type;
   tp2 = type_of_overridden_routine->variant.routine.return_type;
   *return_adjustment_bcp = NULL;
-  if (identical_types(tp1, tp2)) {
+  if (f_identical_types(tp1, tp2, ITF_CONTEXTUAL_GENERIC_PARAMETERS)) {
     /* The types are identical. */
     compatible = TRUE;
   } else if (is_template_dependent_type(tp1) ||
@@ -4074,7 +4074,8 @@ the overridden symbol.
              is the same as or a base class of the class associated with the
              overriding function.  (In GNU mode, they might also be nonclass
              types.) */
-          if (identical_types(tp1, tp2) || is_void_type(tp2)) {
+          if (f_identical_types(tp1, tp2, ITF_CONTEXTUAL_GENERIC_PARAMETERS) ||
+              is_void_type(tp2)) {
             /* The underlying types are the same or the overridden function
                returns void* (ignoring cv-qualifiers). */
             compatible = TRUE;
@@ -5205,8 +5206,8 @@ next_named_override:
             /* We are only interested in virtual functions with the same
                type signature.  Check first whether the parameter types are
                compatible. */
-            if (!param_types_are_compatible(rout->type, rp->type,
-                                            TCF_NO_FLAGS)) {
+            if (!param_types_are_compatible(
+                    rout->type, rp->type, TCF_CONTEXTUAL_GENERIC_PARAMETERS)) {
               /* Parameter type mismatch. Keep looking for another match in
                  the current overload set. */
               continue;

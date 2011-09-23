@@ -636,6 +636,15 @@ typedef unsigned int an_itf_flag_set;
 			/* TRUE if, when dependent decltypes appear in the
 			   type trees, they must appear in both types and the
 			   expressions must match. */
+#define ITF_CONTEXTUAL_GENERIC_PARAMETERS 0x200
+			/* TRUE if the comparison of generic parameters should
+			   take into account the relevant context of the
+			   parameters.  Specifically: (a) for generic functions
+			   the parameter depth is ignored, and (b) for
+			   generic classes the sequence number (field
+			   generic_param_seq_number of a template parameter
+			   type supplement) is compared instead of the
+			   template parameter coordinates. */
 
 #define identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), ITF_NO_FLAGS))
@@ -747,6 +756,15 @@ Bit flags for calls of f_types_are_compatible et al.
 			/* TRUE if, when dependent decltypes appear in the
 			   type trees, they must appear in both types and the
 			   expressions must match. */
+#define TCF_CONTEXTUAL_GENERIC_PARAMETERS 0x2000
+			/* TRUE if the comparison of generic parameters should
+			   take into account the relevant context of the
+			   parameters.  Specifically: (a) for generic functions
+			   the parameter depth is ignored, and (b) for
+			   generic classes the sequence number (field
+			   generic_param_seq_number of a template parameter
+			   type supplement) is compared instead of the
+			   template parameter coordinates. */
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
 
@@ -809,7 +827,8 @@ circuit some of the processing in common cases.
 extern a_boolean equiv_class_types(a_type_ptr type_1,
                                    a_type_ptr type_2,
                                    a_boolean  error_matches_anything,
-                                   a_boolean  exact_templ_arg_match_required);
+                                   a_boolean  exact_templ_arg_match_required,
+                                   a_boolean  contextual_generic_parameters);
 
 extern a_boolean is_address_of_string_constant(a_constant *constant);
 

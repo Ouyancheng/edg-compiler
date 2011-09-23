@@ -19136,13 +19136,6 @@ caller.
     /* Update the exported flag, if necessary. */
     update_export_flag_for_function(decl_state, rout_ptr, sym, tssp);
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (decl_state->is_generic) {
-    /* Set the flag that indicates that the generic parameters are associated
-       with a generic function. */
-    set_is_generic_function_param(decl_state);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Make sure that the template parameter list is compatible with
      any previous declaration (i.e., the declaration of the class
      if this is a member function. */
@@ -20190,6 +20183,14 @@ any non-empty template parameter lists that were scanned.
       pos_error(ec_exp_declaration, &pos_curr_token);
     } else if (decl_state->is_member_decl && !decl_state->is_template_friend) {
       /* A member template declaration. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (decl_state->is_generic) {
+        /* Set the flag that indicates that the generic parameters are
+           associated with a generic function.  (This must be done early, so
+           that type comparison routines can make use of it.) */
+        set_is_generic_function_param(decl_state);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       sym = class_member_template_declaration(decl_state->class_declared_in,
                                               decl_state->
                                                      decl_info->parameters,
@@ -20245,6 +20246,14 @@ any non-empty template parameter lists that were scanned.
           p_template_body_cache = &tssp->cache.tokens;
         }  /* if */
       } else if (is_function_template) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (decl_state->is_generic) {
+          /* Set the flag that indicates that the generic parameters are
+             associated with a generic function.  (This must be done early, so
+             that type comparison routines can make use of it.) */
+          set_is_generic_function_param(decl_state);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         sym = function_template_declaration(decl_state, &locator, &func_info);
         complete_function_template_decl(decl_state, sym, &func_info,
                                         &tssp, &locator.source_position);

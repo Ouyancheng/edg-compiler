@@ -6655,7 +6655,8 @@ determine the correspondences.
     if (is_immediate_class_type(type1) && is_immediate_class_type(type2)) {
       result = equiv_class_types(type1, type2,
                                  /*error_matches_anything=*/FALSE,
-                                 /*exact_templ_arg_match_required=*/FALSE);
+                                 /*exact_templ_arg_match_required=*/FALSE,
+                                 /*contextual_generic_parameters=*/FALSE);
     }  /* if */
   }  /* if */
   return result;
