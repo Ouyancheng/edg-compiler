@@ -864,6 +864,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_vararg_clrcall)*/
 /*lint -esym(769,ec_use_of_function_modifier)*/
 /*lint -esym(769,ec_override_with_trivial_property_or_event)*/
+/*lint -esym(552,scanning_macro_name)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
