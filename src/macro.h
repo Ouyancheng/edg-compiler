@@ -80,6 +80,11 @@ EXTERN a_symbol_ptr
 			/* Pointer to the symbol entry for the special
 			   GNU macro __BASE_FILE__. */
 
+EXTERN a_boolean
+		scanning_macro_name;
+			/* TRUE if the token about to be scanned is the
+			   macro name in a #define directive. */
+
 #if MACRO_INVOCATION_TREE_IN_IL
 extern void copy_macro_invocation_tree_to_il(void);
 extern a_macro_invocation_record_ptr macro_invocation_record_at_index(

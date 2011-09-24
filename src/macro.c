@@ -6000,7 +6000,9 @@ Scan and process a #define directive.
   register_pointer_variable(buffer_start, buffer_start_reg);
 
   db_enter(3, "proc_define");
+  scanning_macro_name = TRUE;
   (void)get_token();
+  scanning_macro_name = FALSE;
   copy_source_position(pos_curr_token, start_pos);
   if (curr_token != tok_identifier) {
     /* Expected an identifier. */
@@ -8656,6 +8658,7 @@ after this function.
   date_macro_symbol = NULL;
   time_macro_symbol = NULL;
   base_file_macro_symbol = NULL;
+  scanning_macro_name = FALSE;
   macro_arg_list = NULL;
   end_of_macro_arg_list = NULL;
   stdc_macro_symbol = NULL;

@@ -10728,6 +10728,9 @@ to speed in some cases.
   a_token_kind          token_kind;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean             gotten_from_cache = FALSE;
+  a_symbol_header_ptr   sym_hdr;
+  sizeof_t              id_length;
+  char                  *id_ptr;
 
   if (any_initial_get_token_tests_needed &&
       !fetching_tokens_from_insert_string()) {
@@ -11350,6 +11353,23 @@ id_scan:
       /* Clear the symbol locator for the current identifier.  This is done 
          even if the identifier is not looked up in the symbol table. */
       clear_locator(&locator_for_curr_id, &pos_curr_token);
+      id_length = end_of_curr_token - start_of_curr_token + 1;
+      id_ptr = start_of_curr_token;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled && scanning_macro_name) {
+        /* The Microsoft compiler in /clr mode allows defining a whitespace
+           token as a macro.  Check to see if this is a whitespace token. */
+        sym_hdr = find_symbol_header(id_ptr, id_length, &locator_for_curr_id);
+        assoc_symbol = symbol_list_for_file_scope_symbols(sym_hdr);
+        if (assoc_symbol != NULL &&
+            check_for_whitespace_keyword(assoc_symbol, &token_kind)) {
+          /* This is a whitespace keyword.  Return the canonicalized
+             spelling as an identifier. */
+          ctoken = tok_identifier;
+        }  /* if */
+      } else 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
       if ((fetch_pp_tokens || in_preprocessing_directive) &&
           !expand_macros && !caching_pragma_tokens) {
         /* Raw preprocessing tokens wanted, so do not look up the
@@ -11357,11 +11377,6 @@ id_scan:
       } else {
         /* If variadic macros are allowed, '__VA_ARGS__' should appear only in
            the replacement list of such macros. */
-        a_symbol_header_ptr	sym_hdr;
-        sizeof_t		id_length;
-        char			*id_ptr;
-        id_length = end_of_curr_token - start_of_curr_token + 1;
-        id_ptr = start_of_curr_token;
         check_use_of_VA_ARGS(
                     (sizeof_t)(end_of_curr_token - start_of_curr_token + 1),
                     start_of_curr_token);
@@ -11380,8 +11395,17 @@ id_scan:
            is performed on the current symbol. */
         if (assoc_symbol != NULL &&
             check_for_whitespace_keyword(assoc_symbol, &token_kind)) {
-          ctoken = token_kind;
-          goto end_id_scan;
+          /* Check the full keyword to see if it's been defined as a
+             macro.  If not, we're done. */
+          id_length = end_of_curr_token - start_of_curr_token + 1;
+          sym_hdr = find_symbol_header(start_of_curr_token, id_length,
+                                       &locator_for_curr_id);
+          assoc_symbol = symbol_list_for_file_scope_symbols(sym_hdr);
+          if (assoc_symbol == NULL ||
+              assoc_symbol->kind == (a_symbol_kind)sk_keyword) {
+            ctoken = token_kind;
+            goto end_id_scan;
+          }  /* if */
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* See if the identifier is a macro or keyword.  "Macro" should
