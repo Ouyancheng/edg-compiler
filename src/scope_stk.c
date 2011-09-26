@@ -7785,17 +7785,20 @@ being popped.
     /* Do management related to the object lifetime stack.  Don't pop the
        file scope object lifetime yet, though, because we need it in IL
        lowering; see below */
-    if (is_local_scope_kind(kind) &&
-        (kind != (a_scope_kind)sck_block ||
-         (options & PS_NOT_FINAL_POP) == 0)) {
+    if (is_local_scope_kind(kind)) {
       /* For a function, block, or condition scope, pop the current object
          lifetime, which ought to be the one created when this scope was
-         pushed.  Don't pop a block scope that is going to be reactivated. */
+         pushed. */
       check_assertion_str2(curr_object_lifetime ==
                                           ssep->curr_scope_object_lifetime,
                            "pop_scope: unexpected curr_object_lifetime",
                            "for function or block scope");
-      (void)pop_object_lifetime();
+      if (kind != (a_scope_kind)sck_block ||
+          (options & PS_NOT_FINAL_POP) == 0) {
+        /* Don't pop the lifetime for a block scope that is going to be
+           reactivated. */
+        (void)pop_object_lifetime();
+      }  /* if */
       if (kind == (a_scope_kind)sck_function) {
         check_assertion(il_scope != NULL); /* For Coverity. */
         if (!il_scope->variant.routine.ptr->compiler_generated &&
