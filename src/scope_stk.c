@@ -7793,13 +7793,14 @@ being popped.
                                           ssep->curr_scope_object_lifetime,
                            "pop_scope: unexpected curr_object_lifetime",
                            "for function or block scope");
-      if (kind != (a_scope_kind)sck_block ||
-          (options & PS_NOT_FINAL_POP) == 0) {
-        /* Don't pop the lifetime for a block scope that is going to be
-           reactivated. */
-        (void)pop_object_lifetime();
-      } else {
+      /* Don't pop the lifetime for a block scope that is going to be
+         reactivated, but to reset the current lifetime to the parent
+         of the block. */
+      if (kind == (a_scope_kind)sck_block &&
+          (options & PS_NOT_FINAL_POP) != 0) {
         curr_object_lifetime = curr_object_lifetime->parent_lifetime;
+      } else {
+        (void)pop_object_lifetime();
       }  /* if */
       if (kind == (a_scope_kind)sck_function) {
         check_assertion(il_scope != NULL); /* For Coverity. */
