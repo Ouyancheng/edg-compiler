@@ -7798,6 +7798,8 @@ being popped.
         /* Don't pop the lifetime for a block scope that is going to be
            reactivated. */
         (void)pop_object_lifetime();
+      } else {
+        curr_object_lifetime = curr_object_lifetime->parent_lifetime;
       }  /* if */
       if (kind == (a_scope_kind)sck_function) {
         check_assertion(il_scope != NULL); /* For Coverity. */
