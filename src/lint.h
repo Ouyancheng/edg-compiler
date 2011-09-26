@@ -32,19 +32,6 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(755,set_macro_inv_record_ptr_to_index)*/
 /*lint -esym(755,cpp0x_mode)*/
 /* Entities not used in certain configurations: */
-#if 0
-#else /* 0 */
-/* FIXME: Remove these after calls are added */
-/*lint -esym(714,push_block_scope)*/
-/*lint -esym(759,push_block_scope)*/
-/*lint -esym(765,push_block_scope)*/
-/*lint -esym(714,push_block_reactivation_scope)*/
-/*lint -esym(759,push_block_reactivation_scope)*/
-/*lint -esym(765,push_block_reactivation_scope)*/
-/*lint -esym(714,pop_block_scope)*/
-/*lint -esym(759,pop_block_scope)*/
-/*lint -esym(765,pop_block_scope)*/
-#endif /* 0 */
 /*lint -esym(755,EXTERN_C)*/
 /*lint -esym(750,chdir_with_check)*/
 /*lint -esym(769,ec_cannot_chdir)*/

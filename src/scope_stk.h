@@ -84,7 +84,7 @@ typedef int a_push_scope_options_set;
 #define PS_NOT_FINAL_POP		0x8000
 			/* This is used when popping a block scope to
 			   indicate that certain operations, such as the
-			   end-of-scope symbol check should be suppressed
+			   end-of-scope symbol check, should be suppressed
 			   because the scope will be reactivated. */
 #define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
 			/* Size of the shareable constants hash table for
