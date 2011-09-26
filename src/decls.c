@@ -11849,6 +11849,9 @@ to NULL.
 }  /* asm_declaration */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- pointers_block is not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_variable_ptr condition_or_for_each_declaration(
                                  a_statement_ptr            for_each_statement,
                                  a_scope_pointers_block_ptr pointers_block)
