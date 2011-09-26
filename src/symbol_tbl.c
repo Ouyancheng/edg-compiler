@@ -2240,7 +2240,7 @@ a_boolean treat_as_cli_class_for_lookup(a_type_ptr	type)
 /*
 Return TRUE if type should be considered a class for C++/CLI lookup purposes.
 When lookup begins in something considered to be a ref class, base interfaces
-are not considered; otherwise they are not.
+are not considered; otherwise they are.
 */
 {
   a_class_type_supplement_ptr	ctsp;
