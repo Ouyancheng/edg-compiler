@@ -13958,6 +13958,20 @@ sure it matches the primary template.
       pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
                      &locator->source_position,
                      type_kind_name, primary_sym);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else {
+      if (cppcli_enabled) {
+        /* For C++/CLI classes, make sure the CLI class kind matches. */
+        a_type_ptr  class_type = 
+                 primary_tssp->variant.class_template.prototype_instantiation
+                              ->variant.class_struct_union.type;
+        if (class_type_supp(class_type)->cli_class_type_kind !=
+                                             decl_state->cli_class_type_kind) {
+          pos_sy_error(ec_conflicting_cli_class_template_kinds,
+                     &locator->source_position, partial_spec_nonreal_sym);
+        }  /* if */
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
   return sym;
