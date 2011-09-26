@@ -3436,18 +3436,16 @@ can be NULL.  pointers_block is the pointers_block to be used for the
 scope stack entry.
 */
 {
-  a_scope_number	number;
-  a_symbol_ptr		sym;
+  a_symbol_ptr	sym;
 
-  /* If there is an IL scope, pass that in as the scope number to reuse. */
-  number = scope == NULL ? NO_SCOPE_NUMBER : scope->number;
-  (void)push_scope_full((a_scope_kind)sck_block, number,
+  (void)push_scope_full((a_scope_kind)sck_block,
+                        scope == NULL ? NO_SCOPE_NUMBER : scope->number,
                         (a_type_ptr)NULL, (a_routine_ptr)NULL,
                         (a_namespace_ptr)NULL,
                         (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                         (a_template_arg_ptr)NULL,
                         (a_template_decl_info_ptr)NULL,
-                        (an_object_lifetime_ptr)NULL,
+                        scope == NULL ? NULL : scope->lifetime,
                         scope, pointers_block,
                         PS_NO_OPTIONS);
   /* Reenter any symbols into the symbol table. */
