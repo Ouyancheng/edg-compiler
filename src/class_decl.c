@@ -2709,7 +2709,7 @@ prototype instantiations).
                 /*parenthesized_initializer=*/FALSE,
                 &incomplete_type_error_reported, &decl_pos_block);
     /* We should now be at the end-of-source terminator inserted when we
-       cached the initializer.  If we don't, it means something other than a
+       cached the initializer.  If we aren't, it means something other than a
        semicolon (or a comma) followed the initializer expression. */
     if (curr_token != tok_end_of_source) {
       pos_error(ec_exp_semicolon, &pos_curr_token);
