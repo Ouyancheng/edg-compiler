@@ -3952,10 +3952,12 @@ declared with an explicit return type.
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled) {
-    if (curr_token == tok_identifier &&
-        curr_token_is_identifier_string("finally") &&
-        next_token() == tok_lbrace) {
-      /* Scan the "finally" clause allowed in C++/CLI. */
+    if (curr_token == tok_finally ||
+        (curr_token == tok_identifier &&
+         curr_token_is_identifier_string("finally") &&
+         next_token() == tok_lbrace)) {
+      /* Scan the "finally" clause allowed in C++/CLI (__finally is also
+         permitted by MS). */
       (void)get_token();
       term_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
       start_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
@@ -4039,6 +4041,12 @@ statement.  Its form is
     /* Check for and skip the closing parenthesis. */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
+  } else if (cppcli_enabled &&
+             (curr_token == tok_identifier &&
+              curr_token_is_identifier_string("finally") &&
+              next_token() == tok_lbrace)) {
+    /* In C++/CLI mode, __try/finally is also accepted. */
+    (void)get_token();
   } else {
     /* __finally form. */
     (void)required_token(tok_finally, ec_exp_except_or_finally);
