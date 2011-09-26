@@ -5043,7 +5043,9 @@ information about the function declarator.
   a_symbol_ptr                    matching_interface_member = NULL;
   a_boolean                       new_okay = FALSE, rout_is_member_generic;
   a_symbol_ptr                    rout_templ = NULL, rp_templ = NULL;
-  a_boolean                       constraints_inheritable = TRUE;
+  a_boolean                       constraints_inheritable;
+  a_symbol_list_entry_ptr         b_constr_check_list = NULL,
+                                  d_constr_check_list = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_source_position               *source_pos = &dps->declarator_pos;
 
@@ -5059,6 +5061,10 @@ information about the function declarator.
     /* For override processing, proceed with the generic definition symbol. */
     reduce_to_underlying_generic_definition_symbol_if_needed(rout_sym);
     dps->sym = rout_sym;
+    /* If no constraints were specified, they might be inherited later on. */
+    constraints_inheritable =
+                !param_list_has_constraints(
+                            scope_stack_top().template_decl_info->parameters);
   } else {
     rout_is_member_generic = FALSE;
   }  /* if */
@@ -5374,20 +5380,39 @@ next_named_override:
               }  /* if */
               if (rout_is_member_generic) {
                 /* Diagnose any mismatch in generic constraints. */
-                a_boolean  may_inherit = FALSE;
-                if (constraints_inheritable &&
-                    !(named_override == NULL &&
-                      cli_class_type_kind_is(bcp->type, cctk_interface))) {
-                  /* Constraints can not be inherited when implicitly
-                     implementing an interface member.  Once constraints
-                     (possibly an empty set) have been inherited from one base
-                     they cannot be inherited from another base. */
-                  may_inherit = TRUE;
+                a_boolean  delay_check = FALSE;
+                if (constraints_inheritable) {
+                  if (named_override == NULL &&
+                      cli_class_type_kind_is(bcp->type, cctk_interface)) {
+                    /* Constraints can not be inherited when implicitly
+                       implementing an interface member.  However, if
+                       constraints may still be inherited, we shouldn't yet
+                       attempt to check the constraints since they may not be
+                       established yet: Record the routines on a list for
+                       later checking. */
+                    /* First record the overridden member that will be checked
+                       later. */
+                    a_symbol_list_entry_ptr  slep = alloc_symbol_list_entry();
+                    slep->symbol = rp_templ;
+                    slep->next = b_constr_check_list;
+                    b_constr_check_list = slep;
+                    /* Next record the overriding member that will be checked
+                       later. */
+                    slep = alloc_symbol_list_entry();
+                    slep->symbol = rout_templ;
+                    slep->next = d_constr_check_list;
+                    d_constr_check_list = slep;
+                    delay_check = TRUE;
+                  }  /* if */
+                }  /* if */
+                if (!delay_check) {
+                  check_constraints_for_generic_override(
+                               rout_templ, rp_templ, constraints_inheritable);
+                  /* Once constraints (possibly an empty set) have been
+                     inherited from one base they cannot be inherited from
+                     another base. */
                   constraints_inheritable = FALSE;
                 }  /* if */
-                check_constraints_for_generic_override(
-                                           rout_templ, rp_templ, may_inherit);
-                constraints_inheritable = FALSE;
               }  /* if */
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5571,6 +5596,22 @@ done:
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (rout_templ != NULL) {
+    /* Perform any delayed constraint checks. */
+    if (d_constr_check_list != NULL) {
+      a_symbol_list_entry_ptr  d_entry = d_constr_check_list,
+                               b_entry = b_constr_check_list;
+      for (; d_entry != NULL;
+             d_entry = d_entry->next, b_entry = b_entry->next) {
+        check_assertion(b_entry != NULL);
+        check_constraints_for_generic_override(
+                                           d_constr_check_list->symbol,
+                                           b_constr_check_list->symbol,
+                                           /*constraints_inheritable=*/FALSE);
+      }  /* for */
+      check_assertion(b_entry == NULL);
+      free_list_of_symbol_list_entries(d_constr_check_list);
+      free_list_of_symbol_list_entries(b_constr_check_list);
+    }  /* if */
     /* Restore the template symbol in the parse state. */
     dps->sym = rout_templ;
   }  /* if */
