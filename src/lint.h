@@ -41,6 +41,9 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,push_block_reactivation_scope)*/
 /*lint -esym(759,push_block_reactivation_scope)*/
 /*lint -esym(765,push_block_reactivation_scope)*/
+/*lint -esym(714,pop_block_scope)*/
+/*lint -esym(759,pop_block_scope)*/
+/*lint -esym(765,pop_block_scope)*/
 #endif /* 0 */
 /*lint -esym(755,EXTERN_C)*/
 /*lint -esym(750,chdir_with_check)*/
