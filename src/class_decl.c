@@ -12704,7 +12704,7 @@ context of the completed class later on.
 
   ifp->symbol = dps->sym;
   /* Initialize a local stop token set to cache everything up to a semicolon
-     (outside braces, etc.). */
+     or a comma (outside braces, etc.). */
   clear_token_set_array(stop_tokens);
   incr_token_set_array_element(stop_tokens, tok_comma);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
