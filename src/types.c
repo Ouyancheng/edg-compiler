@@ -5075,7 +5075,7 @@ check_typerefs:
         } else if (equiv_class_types(
                         type_1, type_2, /*error_matches_anything=*/FALSE,
                         (flags & ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) != 0,
-                        (flags & TCF_CONTEXTUAL_GENERIC_PARAMETERS) != 0)) {
+                        (flags & ITF_CONTEXTUAL_GENERIC_PARAMETERS) != 0)) {
           identical = TRUE;
         }  /* if */
         break;
@@ -5206,7 +5206,13 @@ check_typerefs:
 #if MICROSOFT_EXTENSIONS_ALLOWED
               if ((flags & ITF_CONTEXTUAL_GENERIC_PARAMETERS) != 0 &&
                   type_1->variant.template_param.is_generic_param) {
-                if (type_1->variant.template_param.is_generic_function_param) {
+                if (type_1->variant.template_param.is_generic_function_param !=
+                    type_2->variant.template_param.is_generic_function_param) {
+                  /* Generic function parameters are always distinct from
+                     generic class parameters. */
+                  identical = FALSE;
+                } else if (type_1->variant.template_param
+                                                  .is_generic_function_param) {
                   /* For generic functions, only consider the parameter
                      in its own parameter list (and ignore the generic
                      nesting depth). */
