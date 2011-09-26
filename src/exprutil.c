@@ -16194,7 +16194,12 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
           /* Record the information about the property in the enk_routine
              node to indicate that the call resulted from a transformed
              property reference rather than an explicit use of the property
-             accessor. */
+             accessor.  Note that we only need this information for
+             declspec-style properties, because for C++/CLI properties
+             we the have property information directly.  So it's okay that
+             we don't do this annotation for static properties (i.e., we
+             only look for the is_routine_node case above), because there are
+             no static declspec properties. */
           a_property_or_event_descr_ptr pedp;
           if (symbol_is(property_sym, sk_field)) {
             /* A __declspec property: Get the property description from the
