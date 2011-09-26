@@ -20048,6 +20048,11 @@ alias
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   mark_defined(sym, &locator.source_position);
+  /* Check the default arguments and/or template packs of the parameter
+     list. */
+  check_template_param_default_args_and_packs(
+                                          decl_state->decl_info->parameters,
+                                          /*is_partial_specialization=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (prototype_instantiations_in_il) {
     /* Restore the previous state wrt. the generation of source sequence

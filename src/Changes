@@ -1,5 +1,15 @@
 Version 4.4
 
+9/26/11  [EDGcpfe/11681]
+Missing template parameter checks on alias templates
+
+Like class templates, alias templates only allow packs and default arguments
+at the end of the template parameter list.  We now diagnose incorrect usage.
+
+  template<typename ...T, int> using X = int;
+  template<typename T = int, typename U> using Y = int;
+
+
 9/22/11  [EDGcpfe/12159]
 Microsoft compatibility: Predeclare std::nullptr_t
 
