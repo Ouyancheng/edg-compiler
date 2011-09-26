@@ -14204,13 +14204,20 @@ typedef a_byte a_for_each_pattern_kind;
 Information about a "for each" statement, pointed to from a stmk_for_each
 statement.  The type of the collection used in the for-each statement conforms
 to one of three patterns: the C++/CLI collection pattern, the STL pattern, or
-the array pattern.  Depending on the kind of pattern there are several
-possible rewritings of the for-each statement:
+the array pattern.  Depending on the kind of pattern, there are several
+possible rewritings of the for-each statement
 
   for each (T t in c) <statement>
 
+In the following, the kind of reference for cref will be either a tracking
+reference, an lvalue reference, or an rvalue reference, depending on the
+type and value category of c.  If c has a handle type, cref will also
+be a handle, and the references to it will use "->" instead of ".".
+C, E, and I are determined from their initializing expressions.
+
   // Case A, C++/CLI collection pattern, GetEnumerator returns a handle
-  { E^ e = c.GetEnumerator();
+  { C %cref = c;
+    E^ e = cref.GetEnumerator();
     while (e->MoveNext()) {
       T t = safe_cast<T>(e->Current);
       <statement>
@@ -14218,7 +14225,8 @@ possible rewritings of the for-each statement:
   }
 
   // Case B, C++/CLI collection pattern, GetEnumerator does not return a handle
-  { E e = c.GetEnumerator();
+  { C %cref = c;
+    E e = cref.GetEnumerator();
     while (e.MoveNext()) {
       T t = safe_cast<T>(e.Current);
       <statement>
@@ -14226,16 +14234,27 @@ possible rewritings of the for-each statement:
   }
 
   // Case C, STL pattern
-  for (I i = c.begin(); i != c.end(); ++i) {
-    T t = *i;
-    <statement>
+  { C &cref = c;
+    I cend = cref.end();
+    I i = cref.begin();
+    for (; i != cend; ++i) {
+      T t = *i;
+      <statement>
+    }
   }
 
   // Case D, array pattern
-  for (I *i = c; i != c+c_num_elements; ++i) {
-    T t = *i;
-    <statement>
+  { C &cref = c;
+    I *cend = &cref[0]+c_num_elements;
+    I *i = cref;
+    for (; i != cend; ++i) {
+      T t = *i;
+      <statement>
+    }
   }
+
+Note that the (dynamically) initialized variables don't have associated
+stmk_init statements because there is no block yet for those statements.
 */
 typedef struct a_for_each_loop *a_for_each_loop_ptr;
 typedef struct a_for_each_loop {
@@ -14249,9 +14268,27 @@ typedef struct a_for_each_loop {
 			   sfepk_cli_pattern and "e" is not a handle type and
 			   "*i" with the conversion to type T when kind is
 			   sfepk_stl_pattern or sfepk_array_pattern. */
+  a_variable_ptr
+		collection_expr_ref;
+			/* The cref variable shown above.  Its initial value
+			   is the collection expression c, essentially
+			   unaltered.  Having the collection expression
+			   attached to a reference in this way allows it to
+			   be reused in other expressions and also makes it
+			   available more directly for source analysis
+			   applications. */
   a_scope_ptr	for_each_scope;
-			/* Pointer to the sck_condition scope created for names
-			   declared in the for-each statement. */
+			/* An sck_block scope added to surround the for-each
+			   statement.  It corresponds to the outermost set
+			   of braces shown above, and the cref, e, i, and cend
+			   variables shown above are declared in that scope.
+			   The collection expression is also evaluated in this
+			   scope. */
+  a_scope_ptr	iterator_scope;
+			/* An sck_block scope added immediately inside the
+			   loop, in which the iterator variable is declared.
+			   The dependent statement of the loop is enclosed by
+			   this scope. */
   a_variable_ptr
 		temporary_variable;
 			/* Pointer to the variable representing the temporary
@@ -14268,26 +14305,27 @@ typedef struct a_for_each_loop {
   union {
     /* When kind is sfepk_stl_pattern or sfepk_array_pattern: */
     struct {
+      a_variable_ptr
+		end_variable;
+			/* The "cend" variable, used to hold the final value
+			   to be tested against. */
       an_expr_node_ptr
 		ne_call_expr;
-			/* Expression for the call to the "!=" operator on the
-			   iterator type. */
+			/* Expression for the "i != cend" test. */
       an_expr_node_ptr
 		incr_call_expr;
-			/* Expression for the call to the "++" operator on the
-			   iterator type. */
+			/* Expression for the "++i" increment. */
     } stl_array_pattern;
     /* When kind is sfepk_cli_pattern: */
     struct {
       an_expr_node_ptr
 		movenext_call_expression;
-			/* Expression for the call to the "MoveNext" member
-			   function of the enumerator type. */
+			/* Expression for the "MoveNext" call to be tested. */
     } cli_pattern;
   } variant;
 } a_for_each_loop;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 typedef struct a_switch_case_entry *a_switch_case_entry_ptr;
 typedef struct a_switch_case_entry {
@@ -14497,9 +14535,8 @@ typedef struct a_statement {
                              The expression to test for stmk_end_test_while.
                              The expression to test (or NULL) for stmk_for.
                            Note that the "expression to test" in each of the
-                           four cases is always standardized to an integer/
-                           boolean expression.
-                             The collection expression for stmk_for_each.
+                           above four cases is always standardized to an
+                           integer/boolean expression.
                              The switch expression for stmk_switch.
                              The selector expression for stmk_assigned_goto,
 			     if GNU extensions are allowed. */

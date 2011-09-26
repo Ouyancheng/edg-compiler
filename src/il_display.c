@@ -4239,12 +4239,15 @@ Display a for-each statement.
   a_for_each_loop_ptr extra_info = ptr->variant.for_each_loop.extra_info;
 
   (void)printf("stmk_for_each\n");
-  disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
   disp_ptr("statement",
            (char *)ptr->variant.for_each_loop.statement,
            iek_statement);
   disp_ptr("iterator", (char *)extra_info->iterator, iek_variable);
+  disp_ptr("collection_expr_ref", (char *)extra_info->collection_expr_ref,
+           iek_variable);
   disp_ptr("for_each_scope", (char *)extra_info->for_each_scope,
+           iek_scope);
+  disp_ptr("iterator_scope", (char *)extra_info->iterator_scope,
            iek_scope);
   disp_ptr("temporary_variable", (char *)extra_info->temporary_variable,
            iek_variable);
@@ -4255,6 +4258,9 @@ Display a for-each statement.
       break;
     case sfepk_stl_pattern:
       (void)printf("sfepk_stl_pattern\n");
+      disp_ptr("end_variable",
+               (char *)extra_info->variant.stl_array_pattern.end_variable,
+               iek_variable);
       disp_ptr("ne_call_expr",
                (char *)extra_info->variant.stl_array_pattern.ne_call_expr,
                iek_expr_node);

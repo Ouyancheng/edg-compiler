@@ -1397,11 +1397,11 @@ a_symbol_ptr get_property_accessor_symbol(a_symbol_ptr       property_sym,
                                           a_boolean          put,
                                           a_boolean          must_be_present,
                                           a_source_position  *pos);
-extern
-void rewrite_property_reference(
-                              an_operand                          *operand,
-                              an_operand                          *put_operand,
-                              a_rewritten_property_reference_kind kind);
+extern void rewrite_property_reference(
+                             an_operand                          *operand,
+                             an_operand                          *put_operand,
+                             a_rewritten_property_reference_kind kind,
+                             a_routine_ptr                       *get_routine);
 
 extern void rewrite_event_operator(an_operand         *lhs,
                                    an_operand         *rhs,

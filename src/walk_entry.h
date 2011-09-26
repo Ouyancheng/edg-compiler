@@ -1687,7 +1687,9 @@ do_set_proper_definition_needed_flag:
         a_for_each_loop_ptr ptr = (a_for_each_loop_ptr)entry_ptr;
 
         remap_ptr(ptr->iterator, a_variable_ptr, iek_variable);
-        remap_ptr(ptr->for_each_scope, a_scope_ptr, iek_scope);
+        remap_ptr(ptr->collection_expr_ref, a_variable_ptr, iek_variable);
+        walk_ptr(ptr->for_each_scope, a_scope_ptr, iek_scope);
+        walk_ptr(ptr->iterator_scope, a_scope_ptr, iek_scope);
         remap_ptr(ptr->temporary_variable, a_variable_ptr,
                   iek_variable);
         switch (ptr->kind) {
@@ -1695,6 +1697,8 @@ do_set_proper_definition_needed_flag:
             break;
           case sfepk_array_pattern:
           case sfepk_stl_pattern:
+            remap_ptr(ptr->variant.stl_array_pattern.end_variable,
+                      a_variable_ptr, iek_variable);
             walk_ptr(ptr->variant.stl_array_pattern.ne_call_expr,
                      an_expr_node_ptr, iek_expr_node);
             walk_ptr(ptr->variant.stl_array_pattern.incr_call_expr,

@@ -16072,7 +16072,8 @@ error.  The source position of the reference is given by pos.
 void rewrite_property_reference(
                               an_operand                          *operand,
                               an_operand                          *put_operand,
-                              a_rewritten_property_reference_kind kind)
+                              a_rewritten_property_reference_kind kind,
+                              a_routine_ptr                       *get_routine)
 /*
 *operand is an operand for a reference to a class member declared as
 a Microsoft property (either using __declspec(property) or the C++/CLI
@@ -16081,6 +16082,8 @@ access is a "put" if put_operand is non-NULL (and *put_operand gives
 the value to be put); the access is a "get" if put_operand is NULL.
 When put_operand is non-NULL, kind indicates the kind of operator
 being rewritten; it's used to set a kind in the expression created.
+If get_routine is non-NULL, *get_routine is set to a pointer to the
+"get" function selected, if everything goes okay, or to NULL otherwise.
 */
 {
   a_symbol_ptr      property_sym = operand->symbol, getput_sym;
@@ -16090,6 +16093,7 @@ being rewritten; it's used to set a kind in the expression created.
   a_source_position operand_id_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
+  if (get_routine != NULL) *get_routine = NULL;
   operand_position = operand->position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   operand_end_position = operand->end_position;
@@ -16216,6 +16220,9 @@ being rewritten; it's used to set a kind in the expression created.
           opnd->expr_range.start = operand_id_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           static_case = !routine_type_is_nonstatic_member_function(rp->type);
+        }  /* if */
+        if (get_routine != NULL) {
+          *get_routine = routine_from_function_expr(opnd);
         }  /* if */
         if (put_operand != NULL) {
           func_call_node->variant.operation.
@@ -16661,7 +16668,8 @@ transformations.
         /* This operand is a reference to a member declared as a Microsoft
            property.  Change it to a call of the appropriate "get" function. */
         rewrite_property_reference(operand, (an_operand *)NULL,
-                               (a_rewritten_property_reference_kind)rprk_none);
+                                (a_rewritten_property_reference_kind)rprk_none,
+                                   (a_routine_ptr *)NULL);
       }  /* if */
     } else if (is_event_ref_operand(operand)) {
       /* Events cannot be accessed as rvalues. */

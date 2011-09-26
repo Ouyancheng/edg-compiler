@@ -5340,6 +5340,15 @@ curr_routine points to the routine entry; otherwise, it is NULL.
         get_variable_initializer(var_ptr,
                                  scope_stack[depth_scope_stack].il_scope,
                                  &init_kind, &ip);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (var_ptr->is_for_each_iterator) {
+          /* Iterator variables of C++/CLI "for each" statements shouldn't
+             get warnings if unreferenced.  The loop itself might be the
+             side effect. */
+          severity = es_remark;
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
         if (init_kind == (an_init_kind)initk_dynamic) {
           a_dynamic_init_ptr dip = ip->dynamic;
           if (is_dynamic_init_for_vla(dip)) {

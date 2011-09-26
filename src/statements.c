@@ -3366,35 +3366,28 @@ Do processing required upon completion of a condition "block".
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void start_for_each_block_and_scan_declaration(a_statement_ptr sp)
+static void start_for_each_block(a_statement_ptr sp)
 /*
-Start a "for each" block and scan the declaration for the iteration variable.
-This involves pushing an sck_condition scope (notice that "for each" processing
-reuses this scope kind), allocating a control flow descriptor, and scanning the
-variable declaration.
+Start a "for each" block.
 */
 {
   a_scope_stack_entry_ptr   ssep;
   a_scope_ptr               scope;
   a_control_flow_descr_ptr  cfdp;
 
-  db_enter(3, "start_for_each_block_and_scan_declaration");
+  db_enter(3, "start_for_each_block");
   /* Push the new scope, and bind the "for each" statement to it. */
-  scope = push_scope((a_scope_kind)sck_condition, NO_SCOPE_NUMBER,
-                     (a_type_ptr)NULL, (a_routine_ptr)NULL);
+  push_block_scope((a_scope_pointers_block_ptr)NULL);
   ssep = &scope_stack[depth_scope_stack];
   scope = ensure_il_scope_exists(ssep);
-  scope->variant.assoc_statement = sp;
   sp->variant.for_each_loop.extra_info->for_each_scope = scope;
   /* Add a control flow entry to represent the "for each" block. */
   cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
   cfdp->source_pos = pos_curr_token;
   cfdp->variant.block.object_lifetime = curr_object_lifetime;
   add_to_control_flow_descr_list(cfdp);
-  /* Scan the iterator declaration. */
-  for_each_iterator_declaration(sp);
   db_exit();
-}  /* start_for_each_block_and_scan_declaration */
+}  /* start_for_each_block */
 
 
 static void finish_for_each_block(void)
@@ -3407,7 +3400,7 @@ Do processing required upon completion of a "for each" block.
      block was started. */
   add_to_control_flow_descr_list(
        alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
-  /* Pop the sck_condition scope. */
+  /* Pop the for-each scope. */
   pop_scope();
   db_exit();
 }  /* finish_for_each_block */
@@ -4564,9 +4557,12 @@ Syntax (ECMA-372 section 16.2.1):
 Where "in" is a context-sensitive keyword.
 */
 {
-  a_statement_ptr    sp;
-  a_boolean          assume_loop_reachable;
-  a_source_position  stmt_pos;
+  a_statement_ptr         sp;
+  a_for_each_loop_ptr     felp;
+  a_boolean               assume_loop_reachable;
+  a_source_position       stmt_pos;
+  a_token_sequence_number collection_expr_tok_seq_number;
+  a_scope_pointers_block  pointers_block;
 
   db_enter(3, "for_each_statement");
 
@@ -4575,6 +4571,7 @@ Where "in" is a context-sensitive keyword.
                           curr_reachability.suppress_unreachable_warning;
   /* Allocate the "for each" statement. */
   sp = add_statement((a_statement_kind)stmk_for_each);
+  felp = sp->variant.for_each_loop.extra_info;
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
      statement. */
@@ -4588,23 +4585,38 @@ Where "in" is a context-sensitive keyword.
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
-  /* Scan the iteration variable of the "for each" statement. */
-  start_for_each_block_and_scan_declaration(sp);
+  /* Push the outer scope. */
+  start_for_each_block(sp);
+  /* Scan the iterator declaration.  This creates the iterator scope but
+     does not leave it on the stack. */
+  for_each_iterator_declaration(sp, &pointers_block);
+  /* We should be back in the for-each scope at this point. */
+  check_assertion(felp->for_each_scope == scope_stack_top().il_scope);
+  (void)check_context_sensitive_keyword(tok_in, "in");
+  (void)required_token(tok_in, ec_exp_in);
+  /* Scan the collection expression. */
+  collection_expr_tok_seq_number = curr_token_sequence_number;
+  scan_for_each_expression(sp);
+  /* Determine the pattern of the for-each statement and generate the IL
+     for all the loop-control pieces. */
+  check_for_each_statement(sp, collection_expr_tok_seq_number,
+                           &pointers_block);
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
-  /* Disassociate the condition scope from the loop scope so that symbols
-     with the same name as the iterator variable can be defined in the
-     loop statement.  For example:
-       for each (char c in "abc") { char c = 0; }  // MS accepts
-  */
-  check_assertion(scope_stack_top().kind == (a_scope_kind)sck_condition);
-  scope_stack_top().is_dissociated_from_loop_scope = TRUE;
+  /* Push the iterator scope (created previously). */
+  check_assertion(felp->for_each_scope == scope_stack_top().il_scope);
+  check_assertion(felp->iterator_scope != NULL);
+  push_block_reactivation_scope(felp->iterator_scope, &pointers_block);
   /* Scan the dependent statement. */
   dependent_statement();
   if (!assume_loop_reachable) warn_if_loop_has_no_labels(&stmt_pos);
   /* Define the "continue" label, if it is needed. */
   define_continue_label();
+  /* Pop the iterator scope.  We want the continue label to transfer to
+     any destruction required for the iterator variable. */
+  pop_block_scope(/*is_final_pop=*/TRUE);
+  /* Pop the for-each scope, among other clean-up things. */
   finish_for_each_block();
   /* Pop the structured statement stack. */
   pop_stmt_stack();

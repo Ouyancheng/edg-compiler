@@ -11471,15 +11471,25 @@ static void gen_for_each_statement(a_statement_ptr statement)
 Generate code for the indicated "for each" statement.
 */
 {
+  a_for_each_loop_ptr felp = statement->variant.for_each_loop.extra_info;
+  a_variable_ptr      ref_var;
+
   write_tok_str("for each (");
-  check_assertion(statement->expr != NULL);
   /* Generate the iteration variable. */
   gen_variable_decl(/*is_condition=*/FALSE, /*is_iterator=*/TRUE,
                     /*for_init=*/FALSE, /*suppress_specifiers=*/FALSE,
                     (a_boolean *)NULL);
   write_tok_str(" in ");
-  /* Generate the expression for the collection. */
-  gen_expression(statement->expr);
+  /* Generate the expression for the collection.  It's the initializer for
+     the collection_expr_ref variable. */
+  ref_var = felp->collection_expr_ref;
+  check_assertion(ref_var->init_kind == (an_init_kind)initk_dynamic);
+  gen_dynamic_init(ref_var->initializer.dynamic,
+                   ref_var->type,
+                   /*parenthesized_init=*/FALSE,
+                   /*force_parens=*/FALSE,
+                   /*obj_expr_of_mfunc_operator=*/FALSE,
+                   /*is_static_cast=*/FALSE);
   write_tok_str(") ");
   /* Generate the dependent statement. */
   gen_statement(statement->variant.for_each_loop.statement);

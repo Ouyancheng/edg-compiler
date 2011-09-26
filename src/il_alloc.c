@@ -3313,7 +3313,9 @@ fields to default values.
       sp->variant.for_each_loop.extra_info = felp =
                       (a_for_each_loop_ptr)alloc_cil(sizeof(a_for_each_loop));
       felp->iterator = NULL;
+      felp->collection_expr_ref = NULL;
       felp->for_each_scope = NULL;
+      felp->iterator_scope = NULL;
       felp->temporary_variable = NULL;
       felp->kind = (a_for_each_pattern_kind)sfepk_none;
       break;

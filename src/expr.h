@@ -185,8 +185,11 @@ extern an_expr_node_ptr scan_typed_expression(a_type_ptr    required_type,
 					      an_error_code err_code);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern an_expr_node_ptr scan_for_each_expression(
-                                             a_for_each_loop_ptr extra_info);
+extern
+void check_for_each_statement(a_statement_ptr            statement,
+                              a_token_sequence_number    tok_seq_number,
+                              a_scope_pointers_block_ptr pointers_block);
+extern void scan_for_each_expression(a_statement_ptr statement);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void scan_default_arg_expr(a_param_type_ptr ptp);

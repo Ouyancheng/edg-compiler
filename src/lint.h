@@ -868,6 +868,10 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_use_of_function_modifier)*/
 /*lint -esym(769,ec_override_with_trivial_property_or_event)*/
 /*lint -esym(552,scanning_macro_name)*/
+/*lint -esym(769,ec_exp_id_in_for_each_decl)*/
+/*lint -esym(769,ec_missing_notequal_on_for_each_type)*/
+/*lint -esym(769,ec_missing_incr_on_for_each_type)*/
+/*lint -esym(769,ec_missing_indirect_on_for_each_type)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
