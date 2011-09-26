@@ -3850,6 +3850,8 @@ extern a_symbol_ptr enter_property_set_member(
 extern a_symbol_ptr enter_cli_accessor(a_symbol_locator               *locator,
                                        a_scope_depth                  depth,
                                        a_property_or_event_descr_ptr  pedp);
+
+void reenter_block_scope_symbol(a_symbol_ptr  sym);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_base_class_ptr find_base_with_type(a_type_ptr        base_type,

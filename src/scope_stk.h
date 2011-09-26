@@ -81,6 +81,11 @@ typedef int a_push_scope_options_set;
 			   a class definition from get_definition_of_class.
 			   This indicates that there may not actually be
 			   an instantiation scope pushed. */
+#define PS_NOT_FINAL_POP		0x8000
+			/* This is used when popping a block scope to
+			   indicate that certain operations, such as the
+			   end-of-scope symbol check should be suppressed
+			   because the scope will be reactivated. */
 #define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
 			/* Size of the shareable constants hash table for
 			   a function. */
@@ -1775,6 +1780,8 @@ extern void push_block_scope(a_scope_pointers_block_ptr	pointers_block);
 extern void push_block_reactivation_scope(
 			a_scope_ptr			scope,
 			a_scope_pointers_block_ptr	pointers_block);
+
+extern void pop_block_scope(a_boolean	is_final_pop);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void push_template_declaration_scope(
@@ -1915,7 +1922,8 @@ extern
 void wrapup_scope(a_scope_ptr			scope_ptr,
                   a_scope_kind			kind,
                   a_scope_pointers_block_ptr	pointers_block,
-                  a_boolean 	                is_namespace_wrapup);
+                  a_boolean 	                is_namespace_wrapup,
+		  a_push_scope_options_set	options);
 
 extern a_type_ptr get_curr_variadic_param_type(an_expr_node_ptr	expr);
 

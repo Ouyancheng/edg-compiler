@@ -1475,6 +1475,8 @@ with ssep, looking for namespace scopes.
 
 
 /* Forward declarations. */
+static void pop_scope_full(a_push_scope_options_set	options);
+
 static void free_list_of_pack_references(a_pack_reference_ptr prp);
 
 static void issue_pack_not_expanded_diagnostics(a_pack_reference_ptr	prp);
@@ -3331,6 +3333,7 @@ the scope being pushed.
   return sp;
 }  /* push_scope_full */
 
+
 a_scope_ptr push_scope(a_scope_kind         kind,
 		       a_scope_number       scope_number_to_reuse,
 		       a_type_ptr           assoc_type,
@@ -3434,6 +3437,7 @@ scope stack entry.
 */
 {
   a_scope_number	number;
+  a_symbol_ptr		sym;
 
   /* If there is an IL scope, pass that in as the scope number to reuse. */
   number = scope == NULL ? NO_SCOPE_NUMBER : scope->number;
@@ -3446,7 +3450,23 @@ scope stack entry.
                         (an_object_lifetime_ptr)NULL,
                         scope, pointers_block,
                         PS_NO_OPTIONS);
+  /* Reenter any symbols into the symbol table. */
+  for (sym = pointers_block->symbols; sym != NULL; sym = sym->next_in_scope) {
+    reenter_block_scope_symbol(sym);
+  }  /* for */
 }  /* push_block_reactivation_scope */
+
+
+void pop_block_scope(a_boolean	is_final_pop)
+/*
+Pop a block scope from the scope stack.  If is_final_pop is TRUE the
+end of scope symbol check is suppressed.  This routine only needs to be
+used when is_final_pop is FALSE, otherwise pop_scope can be used to pop
+block scopes.
+*/
+{
+  pop_scope_full(is_final_pop ? PS_NO_OPTIONS : PS_NOT_FINAL_POP);
+}  /* pop_block_scope */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -6130,7 +6150,9 @@ in cfront compatibility mode.
 void wrapup_scope(a_scope_ptr			scope_ptr,
                   a_scope_kind			kind,
                   a_scope_pointers_block_ptr	pointers_block,
-                  a_boolean 	                is_namespace_wrapup)
+                  a_boolean 	                is_namespace_wrapup,
+		  a_push_scope_options_set	options)
+
 /*
 Do the processing required when a scope is closed.  This includes
 doing any necessary end-of-scope processing on the symbols from
@@ -6141,7 +6163,8 @@ of the translation unit.
 scope_ptr points to the IL scope entry associated with this scope,
 and may be NULL.  is_namespace_wrapup is TRUE if this call is
 used to do the final namespace processing at the end of the translation
-unit.
+unit.  options is a set of option flags that specify additional information
+about the scope being popped.
 */
 {
   a_symbol_ptr	sym;
@@ -6299,6 +6322,10 @@ unit.
       } else if (kind == (a_scope_kind)sck_file && !is_namespace_wrapup) {
         /* File scope symbols are not checked until the file scope is popped
            again after processing all translation units. */
+      } else if (kind == (a_scope_kind)sck_block &&
+                 (options & PS_NOT_FINAL_POP) != 0) {
+        /* If a block scope is going to be reactivated, its symbol are not
+           checked until the final pop of the block scope. */
       } else {
         end_of_scope_symbol_check(sym, kind, curr_routine);
 #if RECORD_HIDDEN_NAMES_IN_IL
@@ -6427,7 +6454,8 @@ pointed to by scope_ptr.
       a_scope_ptr                 assoc_scope = nsp->variant.assoc_scope;
       pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
       wrapup_scope(assoc_scope, assoc_scope->kind,
-                   pointers_block, /*is_namespace_wrapup=*/TRUE);
+                   pointers_block, /*is_namespace_wrapup=*/TRUE,
+                   PS_NO_OPTIONS);
       /* Process any namespaces defined within this one. */
       wrapup_namespace_scopes(assoc_scope);
     }  /* if */
@@ -7606,9 +7634,11 @@ memory regions.
 }  /* clear_pack_expansion_variables */
 
 
-void pop_scope(void)
+static void pop_scope_full(a_push_scope_options_set	options)
 /*
-End a name scope by popping an entry off the scope stack.
+End a name scope by popping an entry off the scope stack.  options is a
+set of option flags that specify additional information about the scope
+being popped.
 */
 {
   a_scope_stack_entry_ptr  ssep, parent_ssep;
@@ -7683,7 +7713,7 @@ End a name scope by popping an entry off the scope stack.
        inactive list if necessary.  For the file scope, this is only done
        the first time that it is popped. */
     wrapup_scope(ssep->il_scope, kind, pointers_block,
-                 /*is_namespace_wrapup=*/FALSE);
+                 /*is_namespace_wrapup=*/FALSE, options);
     /* wrapup_scope may have temporarily reactivated some scopes, which in
        turn may have triggered a reallocation of the scope stack. */
     ssep = &scope_stack[depth_scope_stack];
@@ -8158,6 +8188,16 @@ End a name scope by popping an entry off the scope stack.
   }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING */
   db_exit();
+}  /* pop_scope_full */
+
+
+void pop_scope(void)
+/*
+Interface to pop_scope_full that supplies a default value for the options
+parameter.
+*/
+{
+  pop_scope_full(PS_NO_OPTIONS);
 }  /* pop_scope */
 
 

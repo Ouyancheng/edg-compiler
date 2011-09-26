@@ -331,7 +331,7 @@ it needs to be executed after all templates have been instantiated.
   /* Do the wrapup_scope processing on file and namespace scopes. */
   wrapup_scope(il_scope, (a_scope_kind)sck_file,
                &curr_translation_unit->file_scope_pointers_block,
-               /*is_namespace_wrapup=*/TRUE);
+               /*is_namespace_wrapup=*/TRUE, PS_NO_OPTIONS);
   wrapup_namespace_scopes(il_scope);
 
   if (!C_mode()) {
