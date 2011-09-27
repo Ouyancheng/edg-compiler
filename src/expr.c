@@ -28271,6 +28271,15 @@ created, needed to reactivate that scope.
      now. */
   if (is_handle_type(collection_type)) {
     collection_type = type_pointed_to(collection_type);
+    if (is_cli_array_type(collection_type) &&
+        is_qualified_type(collection_type)) {
+      /* Drop cv-qualifiers on a handle-to-CLI-array.  VC10 seems to do
+         that. */
+      collection_type = make_unqualified_type(collection_type);
+      cast_operand(make_handle_type(collection_type),
+                   &bound_function_selector,
+                   /*is_implicit_cast=*/TRUE);
+    }  /* if */
   }  /* if */
   /* Look up the "GetEnumerator" member function and generate IL for
      the function call. */
