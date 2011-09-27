@@ -1142,6 +1142,14 @@ typedef struct a_member_decl_info {
 			/* TRUE if the ec_multiple_overrides error has been
 			   issued (used to avoid multiple diagnostics that
 			   look identical). */
+  a_bit_field	is_named_override:1;
+			/* TRUE if a virtual override currently being
+			   considered uses the C++/CLI "named override"
+			   mechanism.  Note that even when named override
+			   specifiers appeared (see named_overrides below),
+			   this may be FALSE because name override
+			   specifiers do not by themselves inhibit ordinary
+			   overriding in ref classes. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	is_trivial_default_constructor:1;
 			/* TRUE for an implicit declaration of a trivial
@@ -1234,6 +1242,7 @@ a class member declaration as it appears.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   mdip->is_static_constructor = FALSE;
   mdip->multiple_overrides_diagnostic_issued = FALSE;
+  mdip->is_named_override = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   mdip->is_trivial_default_constructor = FALSE;
   mdip->is_destructor = FALSE;
@@ -3889,13 +3898,13 @@ appears on a linked list pointed to from base_class.
             cli_class_type_kind_is(base_class->type, cctk_interface)) {
           /* When overriding C++/CLI interface members, named overriding
              trumps ordinary (unnamed) overriding. */
-          if (decl_info->named_overrides != NULL &&
+          if (decl_info->is_named_override &&
               ovfp->overriding_function->overridden_functions == NULL) {
             /* The entry currently records an ordinary override and the new
                declaration is a named override; replace the record by the
                named override. */
             replace_override = TRUE;
-          } else if (decl_info->named_overrides == NULL &&
+          } else if (!decl_info->is_named_override &&
                      ovfp->overriding_function->overridden_functions != NULL) {
             /* The entry already records a named override, and the current
                declaration is an ordinary override: Ignore the overriding
@@ -5090,8 +5099,11 @@ information about the function declarator.
   }  /* if */
 next_named_override:
   if (cppcli_enabled && named_override != NULL) {
+    decl_info->is_named_override = TRUE;
     named_override_sym = named_override->symbol;
     sym_header_to_search = named_override_sym->header;
+  } else {
+    decl_info->is_named_override = FALSE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Outer loop:  go through the base classes of the current class. */
