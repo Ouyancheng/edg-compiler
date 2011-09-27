@@ -1,5 +1,24 @@
 Version 4.4
 
+9/27/11  [EDGcpfe/12217]
+Abort on ambiguous name with __super qualification
+
+The front end previously aborted in corresponding_base_class ("base class not
+found") on the use of an ambiguous base-class name qualified with the
+Microsoft-mode keyword __super.  For example:
+
+  struct B { virtual void f(); };
+  struct C1: B {};
+  struct C2: C1 {};
+  struct D: C2, B {
+    virtual void f() {
+      __super::f();  // Previously aborted in corresponding_base_class.
+    }
+  };
+
+This is now fixed (the case above now triggers an ordinary ambiguity error).
+
+
 9/26/11  [EDGcpfe/11681]
 Missing template parameter checks on alias templates
 

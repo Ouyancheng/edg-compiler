@@ -4560,14 +4560,17 @@ Microsoft __super keyword.
           /* See if the base class symbol is itself a projection symbol. */
           proj_base_sym = locator->specific_symbol;
           if (proj_base_sym->kind == (a_symbol_kind)sk_projection) {
+            a_base_class_ptr  disambiguator;
             /* It is a projection symbol.  Get the base class information from
                the projection symbol information. */
             fundamental_bcp = proj_base_sym->variant.projection.extra_info->
                                                        fundamental_base_class;
             /* Find the base class that represents fundamental_bcp as a
                base class of the class specified by class_type. */
+            disambiguator = find_disambiguator(bcp, fundamental_bcp);
             fundamental_bcp = corresponding_base_class(fundamental_bcp,
-                                                       class_type, bcp);
+                                                       class_type,
+                                                       disambiguator);
           } else {
             fundamental_bcp = bcp;
           }  /* if */
