@@ -5507,7 +5507,8 @@ sym is a symbol from a block scope that is being reactivated.  Add the
 symbol back to the active list.
 */
 {
-  link_symbol_into_symbol_table(sym, NO_SCOPE_DEPTH, /*suppress_error=*/FALSE);
+  link_symbol_into_symbol_table(sym, depth_scope_stack,
+                                /*suppress_error=*/FALSE);
 }  /* reenter_block_scope_symbol */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
