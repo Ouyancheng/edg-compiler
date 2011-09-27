@@ -3366,44 +3366,76 @@ Do processing required upon completion of a condition "block".
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void start_for_each_block(a_statement_ptr sp)
+static void start_for_each_scope(a_statement_ptr sp)
 /*
-Start a "for each" block.
+Start the scope added to surround a "for each" statement.
 */
 {
-  a_scope_stack_entry_ptr   ssep;
   a_scope_ptr               scope;
   a_control_flow_descr_ptr  cfdp;
 
-  db_enter(3, "start_for_each_block");
-  /* Push the new scope, and bind the "for each" statement to it. */
+  /* Push the new scope, and record it in the statement. */
   push_block_scope((a_scope_pointers_block_ptr)NULL);
-  ssep = &scope_stack[depth_scope_stack];
-  scope = ensure_il_scope_exists(ssep);
+  scope = ensure_il_scope_exists(&scope_stack_top());
   sp->variant.for_each_loop.extra_info->for_each_scope = scope;
-  /* Add a control flow entry to represent the "for each" block. */
+  /* Add a control flow entry to represent the "for each" scope. */
   cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
   cfdp->source_pos = pos_curr_token;
   cfdp->variant.block.object_lifetime = curr_object_lifetime;
   add_to_control_flow_descr_list(cfdp);
-  db_exit();
-}  /* start_for_each_block */
+}  /* start_for_each_scope */
 
 
-static void finish_for_each_block(void)
+static void finish_for_each_scope(void)
 /*
-Do processing required upon completion of a "for each" block.
+Do processing required upon completion of a "for each" scope.
 */
 {
-  db_enter(3, "finish_for_each_block");
   /* Terminate the control flow block that was started when the "for each"
-     block was started. */
+     scope was started. */
   add_to_control_flow_descr_list(
        alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
   /* Pop the for-each scope. */
-  pop_scope();
-  db_exit();
-}  /* finish_for_each_block */
+  pop_block_scope(/*is_final_pop=*/TRUE);
+}  /* finish_for_each_scope */
+
+
+static void start_for_each_iterator_scope(
+                                     a_statement_ptr            sp,
+                                     a_scope_pointers_block_ptr pointers_block)
+/*
+Start the iterator scope for a "for each" statement.  pointers_block
+is the pointers block to be used on the creation of the scope, needed
+so that scope can be reactivated later.
+*/
+{
+  a_scope_ptr               scope;
+  a_control_flow_descr_ptr  cfdp;
+
+  /* Push the new scope, and record it in the statement. */
+  push_block_scope(pointers_block);
+  scope = ensure_il_scope_exists(&scope_stack_top());
+  sp->variant.for_each_loop.extra_info->iterator_scope = scope;
+  /* Add a control flow entry to represent the iterator scope. */
+  cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
+  cfdp->source_pos = pos_curr_token;
+  cfdp->variant.block.object_lifetime = curr_object_lifetime;
+  add_to_control_flow_descr_list(cfdp);
+}  /* start_for_each_iterator_scope */
+
+
+static void finish_for_each_iterator_scope(void)
+/*
+Do processing required upon completion of a "for each" iterator scope.
+*/
+{
+  /* Terminate the control flow block that was started when the "for each"
+     iterator scope was started. */
+  add_to_control_flow_descr_list(
+       alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
+  /* Pop the iterator scope. */
+  pop_block_scope(/*is_final_pop=*/TRUE);
+}  /* finish_for_each_iterator_scope */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -4586,12 +4618,14 @@ Where "in" is a context-sensitive keyword.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   /* Push the outer scope. */
-  start_for_each_block(sp);
-  /* Scan the iterator declaration.  This creates the iterator scope but
-     does not leave it on the stack. */
-  for_each_iterator_declaration(sp, &pointers_block);
-  /* We should be back in the for-each scope at this point. */
-  check_assertion(felp->for_each_scope == scope_stack_top().il_scope);
+  start_for_each_scope(sp);
+  /* Push the iterator scope. */
+  start_for_each_iterator_scope(sp, &pointers_block);
+  /* Scan the iterator declaration. */
+  for_each_iterator_declaration(sp);
+  /* Pop the iterator scope so the collection expression can be scanned outside
+     of it.  The scope will be re-pushed below. */
+  pop_block_scope(/*is_final_pop=*/FALSE);
   (void)check_context_sensitive_keyword(tok_in, "in");
   (void)required_token(tok_in, ec_exp_in);
   /* Scan the collection expression. */
@@ -4615,9 +4649,9 @@ Where "in" is a context-sensitive keyword.
   define_continue_label();
   /* Pop the iterator scope.  We want the continue label to transfer to
      any destruction required for the iterator variable. */
-  pop_block_scope(/*is_final_pop=*/TRUE);
-  /* Pop the for-each scope, among other clean-up things. */
-  finish_for_each_block();
+  finish_for_each_iterator_scope();
+  /* Pop the for-each scope. */
+  finish_for_each_scope();
   /* Pop the structured statement stack. */
   pop_stmt_stack();
   /* If a label appeared in the context of the statement that was just

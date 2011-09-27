@@ -1068,9 +1068,7 @@ extern an_asm_entry_ptr asm_declaration(a_boolean         asm_decl_allowed,
 extern a_variable_ptr condition_declaration(void);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern
-void for_each_iterator_declaration(a_statement_ptr            sp,
-                                   a_scope_pointers_block_ptr pointers_block);
+extern void for_each_iterator_declaration(a_statement_ptr sp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void static_assert_declaration(a_boolean  leave_semicolon);

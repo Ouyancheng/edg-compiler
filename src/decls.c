@@ -11849,12 +11849,8 @@ to NULL.
 }  /* asm_declaration */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- pointers_block is not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_variable_ptr condition_or_for_each_declaration(
-                                 a_statement_ptr            for_each_statement,
-                                 a_scope_pointers_block_ptr pointers_block)
+                                            a_statement_ptr for_each_statement)
 /*
 Scan a condition declaration (when for_each_statement is NULL) or an iterator
 declaration in a "for each" statement (when for_each_statement is non-NULL).
@@ -11869,9 +11865,7 @@ Syntax for an iterator declaration in a "for each" statement:
 
 (But the "in assignment-expression" part is not scanned here.)
 
-Return a pointer to the variable that is declared.  pointers_block is the
-pointers block to be used on the creation of the iterator scope, needed
-so that scope can be reactivated later.
+Return a pointer to the variable that is declared.
 */
 {
   a_decl_flag_set              dsi_flags;
@@ -11883,21 +11877,8 @@ so that scope can be reactivated later.
   a_symbol_reference_kind      srk_flags;
   a_decl_pos_block             decl_pos_block;
   a_decl_parse_state           state;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_for_each_loop_ptr          felp;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "condition_or_for_each_declaration");
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (for_each_statement != NULL) {
-    felp = for_each_statement->variant.for_each_loop.extra_info;
-    /* The iterator variable of a C++/CLI for-each statement goes in a
-       scope inside the loop.  The scope previously pushed is the one
-       that encloses the loop, not the iterator scope we create now. */
-    push_block_scope(pointers_block);
-    felp->iterator_scope = ensure_il_scope_exists(&scope_stack_top());
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Scan the declaration specifiers.  "typedef" is not allowed and may
      not introduce a new class or enumeration. */
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
@@ -11995,7 +11976,7 @@ so that scope can be reactivated later.
       /* C++/CLI "for each" statement.  The "in" and collection expression
          are not scanned here. */
       vp->is_for_each_iterator = TRUE;
-      felp->iterator = vp;
+      for_each_statement->variant.for_each_loop.extra_info->iterator = vp;
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
@@ -12031,13 +12012,6 @@ so that scope can be reactivated later.
   /* Both in the error and normal case consider the variable set.  Don't
      do this earlier so we can catch "if (int x = x);". */
   mark_variable_value_set(sym);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (for_each_statement != NULL) {
-    /* Pop the iterator scope so we are back in the for_each_scope
-       for the scanning of the collection expression. */
-    pop_block_scope(/*is_final_pop=*/FALSE);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
   /* Return a pointer to the variable. */
   return vp;
@@ -12056,16 +12030,14 @@ Return a pointer to the variable that is declared.
   a_variable_ptr vp;
 
   db_enter(3, "condition_declaration");
-  vp = condition_or_for_each_declaration((a_statement_ptr)NULL,
-                                         (a_scope_pointers_block_ptr)NULL);
+  vp = condition_or_for_each_declaration((a_statement_ptr)NULL);
   db_exit();
   return vp;
 }  /* condition_declaration */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-void for_each_iterator_declaration(a_statement_ptr            sp,
-                                   a_scope_pointers_block_ptr pointers_block)
+void for_each_iterator_declaration(a_statement_ptr sp)
 /*
 Scan a "for each" iteration variable declaration.  "for each" statements are
 allowed only in Microsoft mode and some types of "for each" are allowed only
@@ -12075,13 +12047,10 @@ in C++/CLI mode.  Syntax:
             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Only the part marked is scanned in this routine.
-
-pointers_block is the pointers block to be used on the creation of the
-iterator scope, needed so that scope can be reactivated later.
 */
 {
   db_enter(3, "for_each_iterator_declaration");
-  (void)condition_or_for_each_declaration(sp, pointers_block);
+  (void)condition_or_for_each_declaration(sp);
   db_exit();
 }  /* for_each_iterator_declaration */
 
