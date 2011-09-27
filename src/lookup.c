@@ -4614,8 +4614,9 @@ a_symbol_ptr enum_qualified_id_lookup(a_symbol_locator		*locator,
 /*
 Look up the identifier indicated by *locator as an enumerator associated
 with the enumeration specified by enum_type.  This is used in Microsoft
-mode to permit an enumerator to be used in a qualified name.  The enumerator
-that is found, or NULL is no matching symbol is found.
+mode to permit an enumerator to be used in a qualified name and in
+modes in which C++11-style scoped enums are allowed.  The enumerator that
+is found is returned, or NULL is no matching symbol is found.
 */
 {
   a_symbol_ptr		sym;
