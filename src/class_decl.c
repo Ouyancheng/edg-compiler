@@ -19138,7 +19138,7 @@ void create_cli_delegate_class_definition(a_type_ptr          class_type,
                                           a_func_info_block   *func_info)
 /*
 class_type is an incomplete delegate class (i.e., a ref class) that is
-declared at the given scope stack depth.  dps, and func_info describe the
+declared at the given scope stack depth.  dps and func_info describe the
 declared properties of the corresponding delegate definition (i.e., the
 entities produced by the call to scan_cli_delegate_definition).  Create the
 definition of the class by deriving it from System::MulticastDelegate and
