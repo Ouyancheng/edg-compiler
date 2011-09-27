@@ -2948,6 +2948,7 @@ the scope being pushed.
       ssep->next_nondependent_call = template_decl_info->nondependent_calls;
       ssep->last_pack_expansion_used = template_decl_info->pack_expansions;
     } else if (kind != (a_scope_kind)sck_file &&
+               kind != (a_scope_kind)sck_instantiation_context &&
                kind != (a_scope_kind)sck_namespace &&
                kind != (a_scope_kind)sck_namespace_extension) {
       if (kind == (a_scope_kind)sck_function &&
