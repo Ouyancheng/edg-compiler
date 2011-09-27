@@ -17312,6 +17312,12 @@ direct binding is "possible" and not whether it is "valid".
         direct_binding_possible = FALSE;
       }  /* if */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled &&
+             is_tracking_reference_type(dest_type)) {
+    /* In C++/CLI, a tracking reference can bind to an rvalue (or lvalue). */
+    *binding_to_rvalue_allowed = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (!(any_cfront_mode() || microsoft_bugs) && *ref_to_const &&
              is_volatile_qualified_type(base_dest_type)) {
     /* A reference to const volatile may not be bound to an rvalue.
