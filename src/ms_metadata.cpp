@@ -3750,9 +3750,6 @@ which is almost the same as a method signature.
        declaration << L"... ";
     }  /* if */
     declaration << decode_type();
-    if (!is_for_property) {
-      declaration << L' ' << method_parameters[i].name();
-    }  /* if */
   }  /* for */
   switch (calling_convention) {
     case IMAGE_CEE_CS_CALLCONV_DEFAULT:
