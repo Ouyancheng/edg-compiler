@@ -19793,7 +19793,7 @@ being parsed), *decl_info describes the current member declaration, and
       (curr_token_is_identifier_string("override") ||
        curr_token_is_identifier_string("new") ||
        curr_token_is_identifier_string("sealed"))) {
-    pos_st_error(ec_use_of_function_modifier, &pos_curr_token,
+    pos_st_error(ec_bad_use_of_function_modifier, &pos_curr_token,
                  locator_for_curr_id.symbol_header->identifier);
     (void)get_token();
   }  /* if */

@@ -2302,7 +2302,7 @@ ec_nonstandard_long_float;;"\"long float\" is a nonstandard extension -- use \"d
 ec_standard_class_nested_in_managed_class;;"a standard class cannot be nested in a managed class"
 ec_clrcall_requires_cppcli;;"__clrcall is valid only in C++/CLI mode"
 ec_vararg_clrcall;;"__clrcall not allowed on function with ellipsis parameter"
-ec_use_of_function_modifier;;"%sq is not allowed here"
+ec_bad_use_of_function_modifier;;"%sq is not allowed here"
 ec_override_with_trivial_property_or_event;;"a trivial property or event cannot be used to override %nd"
 ec_exp_id_in_for_each_decl;;"expected an iterator variable name"
 ec_missing_notequal_on_for_each_type;;"there is no appropriate \"!=\" operator defined for the type %t in this \"for each\" statement"
