@@ -16253,9 +16253,7 @@ friend_template_checks_done:
       }  /* if */
     }  /* if */
   } else {
-    if (!decl_state->in_prototype_instantiation) {
-      mark_declared(sym, &locator.source_position);
-    }  /* if */
+    mark_declared(sym, &locator.source_position);
     /* This is not a class template definition, so we have no need to
        cache the tokens. */
   }  /* if */

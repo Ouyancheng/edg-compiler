@@ -1,5 +1,21 @@
 Version 4.4
 
+9/27/11  [EDGcpfe/12168]
+Cross-reference information for nested class template declarations
+
+The front end previously failed to produce a cross-reference entry for a class
+template declared (but not defined) in another class template.  This included
+the case of friend class template declarations.  For example:
+
+  template<typename> struct F {};
+  template<typename> struct S {
+    template<typename> friend struct F;  // Previously, the front end did not
+  };                                     // produce a cross-reference entry
+                                         // this declaration.
+
+This is now fixed.
+
+
 9/27/11  [EDGcpfe/12217]
 Abort on ambiguous name with __super qualification
 
