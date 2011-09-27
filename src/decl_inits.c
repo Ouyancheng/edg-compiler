@@ -5983,10 +5983,12 @@ initialized.  These are addressed in the course of the processing.
           } else if (is_const_qualified && 
                      ((cssp != NULL &&
                        cssp->has_user_provided_default_constructor) ||
-                      is_template_dependent_type(tp))) {
+                      is_template_dependent_type(tp)
+                      if_microsoft_extensions(|| is_value_class_type(tp)))) {
             /* A const qualified field may be initialized without an explicit
                initializer if it is of class type and there is a default
-               constructor for the class. */
+               constructor for the class.  Microsoft also treats value class
+               types as initialized in this context. */
           } else {
              /* There may be more than one uninitialized const or ref field,
                 so we wait to collect them all before issuing the error. */
