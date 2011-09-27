@@ -213,7 +213,7 @@ typedef struct a_tmpl_decl_state {
   a_generic_param_seq_number
 		enclosing_generic_params;
 			/* The number of generic parameters declared in
-			   generic classes that enclosing the current
+			   generic classes that enclose the current
 			   declaration.  See enclosing_generic_parameters
 			   and a_generic_param_seq_number for more details. */
   a_cli_class_type_kind

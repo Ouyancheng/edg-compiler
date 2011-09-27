@@ -3353,13 +3353,13 @@ typedef int32_t a_template_nesting_depth;
 #if MICROSOFT_EXTENSIONS_ALLOWED
 typedef int32_t a_generic_param_seq_number;
 			/* Each generic parameter of a generic class is
-			   assigned a sequence number.  The parameters of
-			   a namespace scope generic class begin with 1
-			   and end with N where N is the number of generic
-			   parameters.  A generic parameters of a nested
-			   generic class begin with N+1, where N is the
-			   sequence number of the nearest enclosing generic
-			   class. */
+			   assigned a sequence number as follows.  Parameters
+			   of a namespace scope generic class are numbered 1
+			   (for the first parameter) through N (for the last
+			   parameter).  Parameters of a nested generic class
+			   are similarly numbered, but starting with L+1,
+			   where L is the sequence number assigned to the last
+			   parameter of the nearest enclosing generic class. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 typedef struct a_template_param_coordinate *a_template_param_coordinate_ptr;
@@ -6957,14 +6957,10 @@ typedef struct a_template_param_type_supplement {
 			   constraints specified, and can be NULL. */
   a_generic_param_seq_number
 		generic_param_seq_number;
-			/* Each generic parameter of a generic class is
-			   assigned a sequence number.  The parameters of
-			   a namespace scope generic class begin with 1
-			   and end with N where N is the number of generic
-			   parameters.  A generic parameters of a nested
-			   generic class begin with N+1, where N is the
-			   sequence number of the nearest enclosing generic
-			   class. */
+			/* If this entry represents a parameter of a generic
+			   class, this is the "sequence number" (see the
+			   definition of a_generic_param_seq_number) of that
+			   parameter.  Otherwise, zero. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_template_param_coordinate
 		coordinates;
