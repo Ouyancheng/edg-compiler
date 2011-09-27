@@ -4815,12 +4815,12 @@ refers to a fundamental type with a corresponding C++/CLI System value type
 (e.g., System::Char for wchar_t).
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define is_cppcli_funamental_system_type(sym)                           \
+#define is_cppcli_fundamental_system_type(sym)                          \
   (cppcli_enabled &&                                                    \
    (system_type_from_fundamental_type(                                  \
                     skip_typerefs((sym)->variant.type.ptr)) != NULL))
 #else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_cppcli_funamental_system_type(sym) /*lint --e(506)*/FALSE
+#define is_cppcli_fundamental_system_type(sym) /*lint --e(506)*/FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
@@ -4839,7 +4839,7 @@ only be used in C++ mode.
    is_cppcli_property_or_event(sym) ||				      \
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
     (is_template_param_type((sym)->variant.type.ptr) ||               \
-     is_cppcli_funamental_system_type(sym) ||			      \
+     is_cppcli_fundamental_system_type(sym) ||			      \
      (!microsoft_mode && (!gpp_mode || gnu_version < 30400)))) ||     \
    ((!gpp_mode || gnu_version < 30400 || enum_qualifiers_enabled) &&  \
     is_enum_symbol(sym)))
@@ -4856,7 +4856,7 @@ symbol found by the lookup is semantically valid.
    (sym)->kind == (a_symbol_kind)sk_namespace ||		      \
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
     (is_template_param_type((sym)->variant.type.ptr) ||		      \
-     is_cppcli_funamental_system_type(sym))) ||			      \
+     is_cppcli_fundamental_system_type(sym))) ||		      \
    (enum_qualifiers_enabled && is_enum_symbol(sym)))
   
 
