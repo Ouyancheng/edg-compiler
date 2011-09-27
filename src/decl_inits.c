@@ -5988,7 +5988,10 @@ initialized.  These are addressed in the course of the processing.
             /* A const qualified field may be initialized without an explicit
                initializer if it is of class type and there is a default
                constructor for the class.  Microsoft also treats value class
-               types as initialized in this context. */
+               types as initialized in this context.  (We are slightly more
+               relaxed here than the Microsoft compiler because it does
+               diagnose value class types -- like System::Int32 -- that map to
+               fundamental types.) */
           } else {
              /* There may be more than one uninitialized const or ref field,
                 so we wait to collect them all before issuing the error. */
