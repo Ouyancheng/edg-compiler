@@ -28303,38 +28303,40 @@ created, needed to reactivate that scope.
   }  /* if */
   /* Done with the "cref.GetEnumerator()" expression. */
   pop_expr_stack();
-  /* Make the "e.MoveNext()" or "e->MoveNext()" expression. */
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  make_lvalue_variable_operand(temp_var,
-                               &null_source_position,
-                               &null_source_position,
-                               &operand, (a_ref_entry *)NULL);
-  if (!check_for_each_user_defined_function(&operand,
-                                            "MoveNext",
-                                            &pos,
-                                            tok_seq_number,
-                                            &movenext_call_operand)) {
-    passed = FALSE;
-  } else {
-    /* The return type of "MoveNext" is required to be bool. */
-    if (!is_bool_type(movenext_call_operand.type) &&
-        !is_template_param_type(movenext_call_operand.type)) {
-      /* The return type is invalid. */
-      if (!is_error_type(movenext_call_operand.type)) {
-        pos_error(ec_for_each_invalid_return_type_for_move_next, &pos);
-      }  /* if */
+  if (passed) {
+    /* Make the "e.MoveNext()" or "e->MoveNext()" expression. */
+    push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
+    make_lvalue_variable_operand(temp_var,
+                                 &null_source_position,
+                                 &null_source_position,
+                                 &operand, (a_ref_entry *)NULL);
+    if (!check_for_each_user_defined_function(&operand,
+                                              "MoveNext",
+                                              &pos,
+                                              tok_seq_number,
+                                              &movenext_call_operand)) {
       passed = FALSE;
     } else {
-      /* The MoveNext return type is valid. */
-      movenext_call_expr = make_node_from_operand(&movenext_call_operand);
-      movenext_call_expr = wrap_up_full_expression(movenext_call_expr);
+      /* The return type of "MoveNext" is required to be bool. */
+      if (!is_bool_type(movenext_call_operand.type) &&
+          !is_template_param_type(movenext_call_operand.type)) {
+        /* The return type is invalid. */
+        if (!is_error_type(movenext_call_operand.type)) {
+          pos_error(ec_for_each_invalid_return_type_for_move_next, &pos);
+        }  /* if */
+        passed = FALSE;
+      } else {
+        /* The MoveNext return type is valid. */
+        movenext_call_expr = make_node_from_operand(&movenext_call_operand);
+        movenext_call_expr = wrap_up_full_expression(movenext_call_expr);
+      }  /* if */
     }  /* if */
+    /* Done with the "e.MoveNext()" or "e->MoveNext()" expression. */
+    pop_expr_stack();
   }  /* if */
-  /* Done with the "e.MoveNext()" or "e->MoveNext()" expression. */
-  pop_expr_stack();
-  {
+  if (passed) {
     /* Make the initializer for the iterator variable. */
     a_variable_ptr iterator = felp->iterator;
     if (iterator == NULL) {
