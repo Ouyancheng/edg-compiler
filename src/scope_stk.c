@@ -3458,8 +3458,9 @@ scope stack entry.
 
 void pop_block_scope(a_boolean	is_final_pop)
 /*
-Pop a block scope from the scope stack.  If is_final_pop is TRUE the
-end of scope symbol check is suppressed.  This routine only needs to be
+Pop a block scope from the scope stack.  If is_final_pop is FALSE the
+certain processing that is normally done when the scope is popped (e.g.,
+the end-of-scope symbol check) is suppressed.  This routine only needs to be
 used when is_final_pop is FALSE, otherwise pop_scope can be used to pop
 block scopes.
 */
@@ -6332,7 +6333,7 @@ about the scope being popped.
            again after processing all translation units. */
       } else if (kind == (a_scope_kind)sck_block &&
                  (options & PS_NOT_FINAL_POP) != 0) {
-        /* If a block scope is going to be reactivated, its symbol are not
+        /* If a block scope is going to be reactivated, its symbols are not
            checked until the final pop of the block scope. */
       } else {
         end_of_scope_symbol_check(sym, kind, curr_routine);
@@ -7804,7 +7805,7 @@ being popped.
                            "pop_scope: unexpected curr_object_lifetime",
                            "for function or block scope");
       /* Don't pop the lifetime for a block scope that is going to be
-         reactivated, but to reset the current lifetime to the parent
+         reactivated, but reset the current lifetime to the parent
          of the block. */
       if (kind == (a_scope_kind)sck_block &&
           (options & PS_NOT_FINAL_POP) != 0) {
