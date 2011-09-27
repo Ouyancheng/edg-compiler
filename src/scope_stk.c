@@ -3458,9 +3458,9 @@ scope stack entry.
 
 void pop_block_scope(a_boolean	is_final_pop)
 /*
-Pop a block scope from the scope stack.  If is_final_pop is FALSE the
-certain processing that is normally done when the scope is popped (e.g.,
-the end-of-scope symbol check) is suppressed.  This routine only needs to be
+Pop a block scope from the scope stack.  If is_final_pop is FALSE certain
+processing that is normally done when the scope is popped (e.g., the
+end-of-scope symbol check) is suppressed.  This routine only needs to be
 used when is_final_pop is FALSE, otherwise pop_scope can be used to pop
 block scopes.
 */
