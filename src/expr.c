@@ -28159,6 +28159,10 @@ Set the initializer for the variable vp from the operand "operand".
     vp->init_kind = (an_init_kind)initk_dynamic;
     vp->initializer.dynamic = dip;
     dip->variable = vp;
+    record_end_of_lifetime_destruction(
+            dip,
+            /*static_lifetime=*/has_static_storage_duration(vp->storage_class),
+            /*block_lifetime=*/TRUE);
   }  /* if */
 }  /* set_variable_initializer */
 
