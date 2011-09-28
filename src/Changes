@@ -1,5 +1,18 @@
 Version 4.4
 
+9/28/11  [EDGcpfe/12241]
+GNU C++ compatibility: Function-style casts and elaborated class names
+
+In GNU C++ mode with gnu_version < 30400, the front end now more consistently
+accepts function-style casts to a type expressed using an elaborated name
+(i.e., a name like "enum E" or "struct S").  For example:
+
+  enum E { e, f };
+  struct S {
+    static const E x = enum E(e);  // Now accepted in some GNU C++ modes.
+  };
+
+
 9/28/11  [EDGcpfe/7211,EDGcpfe/8117,EDGcpfe/10322]
 Microsoft compatibility: support for-each statements
 
