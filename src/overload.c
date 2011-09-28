@@ -18263,11 +18263,15 @@ to be acceptable (as far as overload resolution checks that), and
                is_gnu_packed_field_operand(source_operand)) {
       /* g++ from version 3.4 on uses a temporary to pass a packed field to
          a reference to const parameter, which avoids passing an unaligned
-         pointer. */
+         pointer.  Don't do this for non-POD classes (for one thing, we'd
+         get into a recursion loop trying to call the copy constructor
+         to copy this operand). */
       a_type_ptr underlying_type = type_pointed_to(param_type);
       if (is_const_qualified_type(underlying_type) &&
           identical_types_ignoring_qualifiers(underlying_type,
-                                              source_operand->type)) {
+                                              source_operand->type) &&
+          (!is_class_struct_union_type(underlying_type) ||
+           symbol_supplement_for_class(underlying_type)->is_POD)) {
         a_boolean err;
         convert_operand_into_temp(source_operand,
                                   underlying_type,

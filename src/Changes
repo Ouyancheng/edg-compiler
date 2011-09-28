@@ -1,5 +1,29 @@
 Version 4.4
 
+9/28/11  [EDGcpfe/12187]
+Infinite recursion loop on passing non-POD class member of packed struct
+by reference in GNU C++ mode
+
+The front end got into an infinite recursion loop (and therefore eventually
+ran out of stack) while processing a call in g++ mode with gnu_version
+> 30400 when the parameter has a reference type and the argument being
+passed is a non-POD class-typed member of a class marked as "packed".
+This bug was introduced in version 4.2; see the Changes entry for
+EDGcpfe/8366 (8/25/09).  Now fixed.
+
+  struct A {
+    A();
+    A(const A&);
+  };
+  struct __attribute__((packed)) B {
+    A a;
+  };
+  int main() {
+    B* p = 0;
+    A a = p->a;  // Hangs on copy constructor call here
+  }
+
+
 9/28/11  [EDGcpfe/12290]
 Abort on GNU C __builtin_choose_expr in constant expression
 
