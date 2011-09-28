@@ -862,6 +862,7 @@ extern int fileno(FILE *);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !MICROSOFT_EXTENSIONS_ALLOWED || !DO_IL_LOWERING
 /*lint -esym(759,alloc_for_loop)*/
+/*lint -esym(765,alloc_for_loop)*/
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED || !DO_IL_LOWERING */
 
 #endif /* ifndef LINT_H */
