@@ -20012,15 +20012,27 @@ and record the overridden base class members in decl_info->named_overrides.
                   &pos_curr_token);
         sym = NULL;
       } else {
-        sym = member_function_redecl_sym_with_template_flag(
+        if (decl_info->decl_state.is_generic_declaration) {
+          /* Search for a matching generic. */
+          check_assertion(scope_is(&scope_stack_top(),
+                                   sck_template_declaration));
+          sym = member_function_redecl_sym_with_template_flag(
+                             sym, decl_info->decl_state.type,
+                             scope_stack_top().template_decl_info->parameters,
+                             /*templates_only=*/TRUE, (a_symbol_ptr*)NULL);
+        } else {
+          /* Search for an ordinary matching member function. */
+          sym = member_function_redecl_sym_with_template_flag(
                                               sym, decl_info->decl_state.type,
                                               (a_template_param_ptr)NULL,
                                               /*templates_only=*/FALSE,
                                               (a_symbol_ptr*)NULL);
+        }  /* if */
         if (sym == NULL) {
           pos_error(ec_named_override_type_mismatch, &pos_curr_token);
         } else {
           a_routine_ptr  rp;
+          reduce_to_underlying_generic_definition_symbol_if_needed(sym);
           check_assertion(symbol_is(sym, sk_member_function));
           rp = sym->variant.routine.ptr;
           if (!rp->is_virtual) {
