@@ -5110,6 +5110,7 @@ entity.
 }  /* apply_nonnull_attr */
 
 
+/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
 static char* apply_packed_attr(an_attribute_ptr  ap,
                                char              *entity,
                                an_il_entry_kind  entity_kind)
