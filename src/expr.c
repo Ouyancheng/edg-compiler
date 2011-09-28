@@ -3552,23 +3552,28 @@ TRUE if errors are detected; if *err is already set to TRUE, some diagnostics
 are inhibited.
 */
 {
-  an_operand           *arg_ptr, unevaluated_operand;
-  an_expr_stack_entry  expr_stack_entry;
+  an_operand *arg_ptr, unevaluated_operand;
 
   if (curr_token == tok_comma) {
+    a_boolean saved_evaluated = expr_stack->evaluated;
+    expr_stack->evaluated = is_evaluated;
     (void)get_token();
     if (is_evaluated) {
       arg_ptr = operand;
     } else {
-      push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                      /*force_object_lifetime=*/FALSE,
-                      /*suppress_object_lifetime=*/FALSE);
       arg_ptr = &unevaluated_operand;
     }  /* if */
     scan_expr(arg_ptr, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-    if (!is_evaluated) {
-      pop_expr_stack();
+    if (is_evaluated && curr_expr_kind_is_const()) {
+      do_operand_transformations(arg_ptr, TOPT_NO_OPTIONS);
+      force_operand_to_constant_if_possible(arg_ptr);
+      if (!is_constant_operand(arg_ptr)) {
+        if (!is_error_operand(arg_ptr)) {
+          error_in_operand(ec_expr_not_constant, arg_ptr);
+        }  /* if */
+      }  /* if */
     }  /* if */
+    expr_stack->evaluated = saved_evaluated;
   } else {
     if (!*err) {
       expr_pos_error(ec_exp_comma, &pos_curr_token);

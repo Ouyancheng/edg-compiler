@@ -1,5 +1,20 @@
 Version 4.4
 
+9/28/11  [EDGcpfe/12290]
+Abort on GNU C __builtin_choose_expr in constant expression
+
+In GNU C mode, the front end sometimes aborted in expr.c (near the end
+of scan_gnu_builtin_pseudo_call) when processing a __builtin_choose_expr
+operation with an evaluated argument that is not constant, or is a
+function name, within an expression that must be constant.  Now fixed:
+
+  int f() { return 1; }
+  int g() { return 2; }
+  int (*z)() = __builtin_choose_expr(1, f, g);  // Was abort, now accepted
+  int ii;
+  int j = __builtin_choose_expr(1, ii, ii);  // Was abort, now error
+
+
 9/28/11  [EDGcpfe/12241]
 GNU C++ compatibility: Function-style casts and elaborated class names
 
