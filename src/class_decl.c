@@ -3800,6 +3800,27 @@ base_class_routine.
 }  /* is_overriding_function */
 
 
+static a_boolean is_named_overriding_pair(a_routine_ptr  drp,
+                                          a_routine_ptr  brp)
+/*
+Return TRUE if brp is on the overridden_functions list of drp (indicating that
+the declaration for drp used a named override specifier to override brp).
+*/
+{
+  an_il_entity_list_entry_ptr  ofep = drp->overridden_functions;
+  a_boolean                    result = FALSE;
+
+  for (; ofep != NULL; ofep = ofep->next) {
+    if ((an_il_entry_kind)ofep->entity.kind == iek_routine &&
+        same_entities((a_routine_ptr)ofep->entity.ptr, brp)) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* is_named_overriding_pair */
+
+
 a_routine_ptr find_finalize_routine(a_type_ptr class_type,
                                     a_boolean  *p_is_object_finalize)
 /*
@@ -3899,13 +3920,15 @@ appears on a linked list pointed to from base_class.
           /* When overriding C++/CLI interface members, named overriding
              trumps ordinary (unnamed) overriding. */
           if (decl_info->is_named_override &&
-              ovfp->overriding_function->overridden_functions == NULL) {
+              !is_named_overriding_pair(ovfp->overriding_function,
+                                        primary_func)) {
             /* The entry currently records an ordinary override and the new
                declaration is a named override; replace the record by the
                named override. */
             replace_override = TRUE;
           } else if (!decl_info->is_named_override &&
-                     ovfp->overriding_function->overridden_functions != NULL) {
+                     is_named_overriding_pair(ovfp->overriding_function,
+                                              primary_func)) {
             /* The entry already records a named override, and the current
                declaration is an ordinary override: Ignore the overriding
                implied by the current declaration for the given base class. */
