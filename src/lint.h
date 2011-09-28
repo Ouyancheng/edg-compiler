@@ -702,7 +702,6 @@ extern int fileno(FILE *);
 /*lint -esym(714,cli_managed_class_tag_keyword)*/
 #endif /* !BACK_END_IS_CP_GEN_BE */
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-/*lint -esym(759,alloc_for_loop)*/
 /*lint -esym(759,is_class_struct_type)*/
 /*lint -esym(765,is_class_struct_type)*/
 /*lint -esym(714,is_class_struct_type)*/
@@ -861,6 +860,9 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_missing_incr_on_for_each_type)*/
 /*lint -esym(769,ec_missing_indirect_on_for_each_type)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if !MICROSOFT_EXTENSIONS_ALLOWED || !DO_IL_LOWERING
+/*lint -esym(759,alloc_for_loop)*/
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED || !DO_IL_LOWERING */
 
 #endif /* ifndef LINT_H */
 
