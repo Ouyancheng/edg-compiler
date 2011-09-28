@@ -1,5 +1,25 @@
 Version 4.4
 
+9/28/11  [EDGcpfe/7211,EDGcpfe/8117,EDGcpfe/10322]
+Microsoft compatibility: support for-each statements
+
+In Microsoft mode, when microsoft_version >= 1400, the front end now accepts
+non-C++/CLI versions of the Microsoft for-each statement.  The two basic types
+of supported for-each statements are the STL-type and the array type.  In
+configurations that use lowering, these for-each statements are appropriately
+lowered.  See http://msdn.microsoft.com/en-us/library/ms177203.aspx
+for more information on this non-standard Microsoft extension.  Here's an
+example that contains both types of accepted for-each statements:
+
+  #include <list>
+  #include <iostream>
+  int main() {
+    std::list<char> l;
+    for each (char c in "abc") l.push_front(c);
+    for each (char c in l) std::cout << c;
+  }
+
+
 9/27/11  [EDGcpfe/12168]
 Cross-reference information for nested class template declarations
 

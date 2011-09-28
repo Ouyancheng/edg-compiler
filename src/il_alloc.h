@@ -193,6 +193,8 @@ extern an_accessible_base_class_ptr alloc_accessible_base_class(
 
 extern a_handler_ptr alloc_handler(void);
 
+extern a_for_loop_ptr alloc_for_loop(void);
+
 extern void set_statement_kind(a_statement_ptr  sp,
                                a_statement_kind kind);
 

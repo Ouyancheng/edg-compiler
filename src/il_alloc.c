@@ -3248,6 +3248,28 @@ Allocate a handler, clear it to default values, and return a pointer to it.
 }  /* alloc_handler */
 
 
+a_for_loop_ptr alloc_for_loop(void)
+/*
+Allocate storage to describe the details of a for statement, clear it to
+default values, and return a pointer to it.
+*/
+{
+  a_for_loop_ptr       flip;
+
+  flip = (a_for_loop_ptr)alloc_cil(sizeof(a_for_loop));
+#if DEBUG
+  num_for_loops_allocated++;
+#endif /* DEBUG */
+  flip->initialization = NULL;
+  flip->increment = NULL;
+  flip->for_init_scope = NULL;
+#if UPC_EXTENSIONS_ALLOWED
+  flip->affinity = NULL;
+#endif /* UPC_EXTENSIONS_ALLOWED */
+  return flip;
+}  /* alloc_for_loop */
+
+
 void set_statement_kind(a_statement_ptr  sp,
                         a_statement_kind stmt_kind)
 /*
@@ -3256,7 +3278,6 @@ fields to default values.
 */
 {
   a_block_ptr          bp;
-  a_for_loop_ptr       flip;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_for_each_loop_ptr  felp;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3295,17 +3316,7 @@ fields to default values.
 #endif /* UPC_EXTENSIONS_ALLOWED */
     case stmk_for:
       sp->variant.for_loop.statement = NULL;
-      sp->variant.for_loop.extra_info = flip =
-                      (a_for_loop_ptr)alloc_cil(sizeof(a_for_loop));
-#if DEBUG
-      num_for_loops_allocated++;
-#endif /* DEBUG */
-      flip->initialization = NULL;
-      flip->increment = NULL;
-      flip->for_init_scope = NULL;
-#if UPC_EXTENSIONS_ALLOWED
-      flip->affinity = NULL;
-#endif /* UPC_EXTENSIONS_ALLOWED */
+      sp->variant.for_loop.extra_info = alloc_for_loop();
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case stmk_for_each:

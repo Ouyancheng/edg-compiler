@@ -16618,7 +16618,8 @@ if, while, for, or switch).  Lower the condition expression (whether it
 is an enk_condition or a normal expression), and lower the dependent
 statement(s) of the statement.  For a "for" loop, also lower the increment
 expression, if any (the initialization expression has already been
-handled).
+handled).  Lowering of for-each statements is performed elsewhere (as these
+statements don't contain an enk_condition).
 */
 {
   an_expr_node_ptr expr = statement->expr;
@@ -16973,6 +16974,167 @@ Do IL lowering of the indicated "for" statement and everything under it.
   }  /* if */
 }  /* lower_for_statement */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void lower_variable_with_initializer(
+                                           a_variable_ptr     var,
+                                           an_insert_location *insert_location)
+/*
+Lower the initializer associated with variable var.  Insert any needed
+code at *insert_location.  This is used to lower variables in cases where
+there is no associated stmk_init.
+*/
+{
+  a_dynamic_init_ptr  dip = var->initializer.dynamic;
+  an_init_pos_descr   ipd;
+
+  check_assertion(var->init_kind == (an_init_kind)initk_dynamic &&
+                  dip != NULL);
+  set_var_init_pos_descr(var, &ipd);
+  lower_dynamic_init(dip, &ipd,
+                     (an_implied_copy_source *)NULL,
+                     (a_variable_ptr)NULL,
+                     LDIO_FULL_EXPR,
+                     /*others_follow_in_aggr=*/FALSE,
+                     insert_location, (a_boolean *)NULL,
+                     (a_constant **)NULL);
+  lower_variable(var);
+}  /* lower_variable_with_initializer */
+
+
+static void lower_for_each_statement(a_statement_ptr statement)
+/*
+Do IL lowering of the indicated for-each statement and everything under it.
+There are several variants of the for-each statement (see ECMA-372 16.2.1);
+only variants that don't rely on C++/CLI constructs (i.e., ones that iterate
+over C++ arrays or appropriate STL-like collections) are currently lowered.
+*/
+{
+  a_for_each_loop_ptr felp = statement->variant.for_each_loop.extra_info;
+  a_statement_ptr    for_each_stmt = statement;
+  a_statement_ptr    outer_block, inner_block;
+  a_statement_ptr    sub_statement= statement->variant.for_each_loop.statement;
+  a_scope_ptr        for_each_scope = felp->for_each_scope;
+  a_scope_ptr        iterator_scope = felp->iterator_scope;
+  a_context          for_each_context, iterator_context;
+  an_insert_location outer_insert_location, inner_insert_location;
+  an_expr_node_ptr   ne_call_expr, incr_call_expr;
+  a_for_loop_ptr     flip;
+
+  check_assertion(felp->kind == (a_for_each_pattern_kind)sfepk_stl_pattern ||
+                  felp->kind == (a_for_each_pattern_kind)sfepk_array_pattern);
+  /* For this input:
+
+       for each (T t in c) <statement>
+
+     the front end produces pieces of IL that are meant to be constructed
+     as one of these two patterns (the C++/CLI-specific for-each patterns
+     are not lowered yet):
+
+     // STL pattern
+     { C &cref = c;
+       I cend = cref.end();
+       I i = cref.begin();
+       for (; i != cend; ++i) {
+         T t = *i;
+         <statement>
+       }
+     }
+
+     // Array pattern
+     { C &cref = c;
+       I *cend = &cref[0]+c_num_elements;
+       I *i = cref;
+       for (; i != cend; ++i) {
+         T t = *i;
+         <statement>
+       }
+     }
+
+    From a lowering point of view, these two patterns are identical.
+
+    Notes:
+      - The blocks listed above don't exist in the un-lowered IL -- they are
+        created here to match the for_each_scope and iterator_scope in the IL.
+      - statement->expr is not used (or lowered) in this configuration.
+  */
+  /* Push the for-each scope (which contains the collection_expr_ref and
+     temporary variable). */
+  push_context(&for_each_context, for_each_scope,
+               (an_object_lifetime_ptr)NULL);
+  /* Put a block statement around the for-each and attach the for-each scope
+     to that block. */
+  outer_block = for_each_stmt;
+  /* Note that any pragma attached to the for-each statement will now be
+     associated with the block. */
+  turn_statement_into_block(for_each_stmt, &outer_insert_location,
+                            &for_each_stmt);
+  outer_block->variant.block.extra_info->assoc_scope = for_each_scope;
+  for_each_scope->assoc_block = outer_block;
+  if (for_each_scope->lifetime != NULL) {
+    begin_object_lifetime(for_each_scope->lifetime, &outer_insert_location);
+  }  /* if */
+  /* The variables in the for-each IL don't have stmk-init statements
+     associated with them, so they must be explicitly lowered here. */
+  lower_variable_with_initializer(felp->collection_expr_ref,
+                                  &outer_insert_location);
+  lower_variable_with_initializer(felp->variant.stl_array_pattern.end_variable,
+                                  &outer_insert_location);
+  lower_variable_with_initializer(felp->temporary_variable,
+                                  &outer_insert_location);
+  /* Lower the expressions used in this pattern. */
+  ne_call_expr = felp->variant.stl_array_pattern.ne_call_expr;
+  incr_call_expr = felp->variant.stl_array_pattern.incr_call_expr;
+  check_assertion(ne_call_expr != NULL && incr_call_expr != NULL);
+  lower_full_expr(ne_call_expr, (a_statement_ptr)NULL);
+  lower_full_expr(incr_call_expr, (a_statement_ptr)NULL);
+  /* Now push the iterator scope (which contains the iterator and the
+     dependent statement). */
+  push_context(&iterator_context, iterator_scope,
+               (an_object_lifetime_ptr)NULL);
+  inner_block = sub_statement;
+  /* Turn the dependent statement into a block, this time transferring
+     any pragmas associated with the dependent statement. */
+  turn_statement_into_block_transferring_pragma(sub_statement,
+                                                &inner_insert_location,
+                                                &sub_statement,
+                                                curr_context->scope);
+  inner_block->variant.block.extra_info->assoc_scope = iterator_scope;
+  iterator_scope->assoc_block = inner_block;
+  if (iterator_scope->lifetime != NULL) {
+    begin_object_lifetime(iterator_scope->lifetime, &inner_insert_location);
+  }  /* if */
+  lower_variable_with_initializer(felp->iterator, &inner_insert_location);
+  /* Lower the dependent statement as well as expressions which will be
+     used in the lowered "for" statement. */
+  lower_statement(sub_statement);
+  if (iterator_scope->lifetime != NULL) {
+    /* Insert any needed destructions. */
+    set_insert_location(sub_statement, &inner_insert_location);
+    gen_cleanup_actions(iterator_scope->lifetime, &inner_insert_location);
+  }  /* if */
+  /* Pop the iterator scope context. */
+  pop_context();
+  /* Turn the original for-each statement into a for statement (make sure
+     there's no further reference to the for_each_loop variant beyond
+     this point). */
+  set_statement_kind(for_each_stmt, (a_statement_kind)stmk_for);
+  flip = alloc_for_loop();
+  flip->increment = incr_call_expr;
+  for_each_stmt->expr = ne_call_expr;
+  for_each_stmt->variant.for_loop.statement = inner_block;
+  for_each_stmt->variant.for_loop.extra_info = flip;
+  set_expr_result_not_used(incr_call_expr);
+  if (for_each_scope->lifetime != NULL) {
+    /* Insert any needed destructions. */
+    set_insert_location(for_each_stmt, &outer_insert_location);
+    gen_cleanup_actions(for_each_scope->lifetime, &outer_insert_location);
+  }  /* if */
+  /* Pop the context pushed for the for-each variable scope. */
+  pop_context();
+}  /* lower_for_each_statement */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- statement is not used in that case. */
@@ -17099,6 +17261,9 @@ Do IL lowering of the indicated statement and everything under it.
                           (a_statement_ptr)NULL);
         }  /* if */
         lower_statement(statement->variant.microsoft_try->cleanup_statement);
+        break;
+      case stmk_for_each:
+        lower_for_each_statement(statement);
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case stmk_decl:

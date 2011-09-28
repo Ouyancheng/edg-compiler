@@ -10474,13 +10474,9 @@ modification will be added to restore the first token to the current line.
     if (next_word_len == len_of_each &&
         memcmp(curr_char_loc, "each", size_t_arg(len_of_each)) == 0) {
       check_assertion(microsoft_mode || cppcli_enabled);
-#if DO_IL_LOWERING
-      /* Disable "for each" when doing IL lowering and not in C++/CLI mode
-         (until there is support in IL lowering for "for each" statements). */
-      if (cppcli_enabled)
-#endif /* DO_IL_LOWERING */
-      /* Do not insert code here. */
-      {
+      if (cppcli_enabled || microsoft_version >= 1400) {
+        /* "for each" statements (the STL and array versions) are available
+           when emulating versions 1400 and later of the Microsoft compiler. */
         return_token = tok_for_each;
       }  /* if */
     }  /* if */
