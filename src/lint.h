@@ -702,6 +702,7 @@ extern int fileno(FILE *);
 /*lint -esym(714,cli_managed_class_tag_keyword)*/
 #endif /* !BACK_END_IS_CP_GEN_BE */
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+/*lint -esym(759,alloc_for_loop)*/
 /*lint -esym(759,is_class_struct_type)*/
 /*lint -esym(765,is_class_struct_type)*/
 /*lint -esym(714,is_class_struct_type)*/
