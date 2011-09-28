@@ -761,7 +761,7 @@ only).
                                                           < field_alignment) {
     /* Check whether the given field has a non-packed, non-POD type.  In that
        case, class-level packing should be ignored. */
-    a_type_ptr  ftp = underlying_array_element_type(field_type);
+    a_type_ptr  ftp = underlying_array_element_type(field->type);
     ftp = skip_typerefs(ftp);
     if (is_immediate_class_type(ftp) &&
         !ftp->variant.class_struct_union.is_packed &&
