@@ -3546,6 +3546,21 @@ state.
 }  /* set_symbol_kind */
 
 
+static a_symbol_header_ptr get_error_symbol_header(void)
+/*
+Return a pointer to the error symbol header.  Create it if it has not
+already been created.
+*/
+{
+  if (error_symbol_header == NULL) {
+    error_symbol_header = alloc_symbol_header();
+    error_symbol_header->identifier = "<error>";
+    error_symbol_header->identifier_length = 7;
+  }  /* if */
+  return error_symbol_header;
+}  /* get_error_symbol_header */
+
+
 a_symbol_ptr alloc_symbol(a_symbol_kind       kind,
                           a_symbol_header_ptr hdr_ptr,
                           a_source_position   *position)
@@ -3568,13 +3583,8 @@ hdr_ptr == NULL indicates that an error symbol should be constructed.
   clear_symbol(sym_ptr, kind);
   /* Set the header. */
   if (hdr_ptr == NULL) {
-    /* Use the error symbol header.  Allocate it if necessary. */
-    if (error_symbol_header == NULL) {
-      error_symbol_header = alloc_symbol_header();
-      error_symbol_header->identifier = "<error>";
-      error_symbol_header->identifier_length = 7;
-    }  /* if */
-    hdr_ptr = error_symbol_header;
+    /* Use the error symbol header. */
+    hdr_ptr = get_error_symbol_header();
   }  /* if */
   sym_ptr->header = hdr_ptr;
   /* Set the declaration source position. */
@@ -7929,6 +7939,7 @@ type "type" is recorded in the locator.
 {
   if (is_error_type(type)) {
     set_to_error_locator(*locator);
+    locator->symbol_header = get_error_symbol_header();
   } else {
     clear_locator(locator, pos);
     locator->symbol_header = symbol_header_for_conversion_function(type);
