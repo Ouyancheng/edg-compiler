@@ -1,5 +1,27 @@
 Version 4.4
 
+9/28/11  [EDGcpfe/12297]
+GNU C++ compatibility: Packing of non-POD fields
+
+In GNU C++ mode with gnu_version >= 30400, fields of a non-packed, non-POD
+class type (or an array thereof) are not themselves subject to packing.
+For example (assuming 2-byte aligned short and 4-byte aligned int):
+
+  struct NonPod {
+    NonPod() {}
+    short s;
+  };
+  struct __attribute((packed)) PackCheck {
+    NonPod np;  // This field is not packed.
+    char c;
+    int i;      // This field is still packed.
+    char d, e;
+  };  // sizeof(PackCheck) == 10
+
+The changes for EDGcpfe/9970 (see entry of 7/27/09) were a mistaken attempt
+at emulating GCC's behavior in this area: They have been deleted.
+
+
 9/28/11  [EDGcpfe/12187]
 Infinite recursion loop on passing non-POD class member of packed struct
 by reference in GNU C++ mode

@@ -731,6 +731,9 @@ only).
 {
   a_type_ptr        class_type = parent_class_of(field);
   a_targ_alignment  field_alignment;
+#if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
+  a_boolean         ignore_packing = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
 
   check_assertion(!for_alignof || gnu_mode);
   if (for_alignof && gnu_version < 30400) {
@@ -752,6 +755,24 @@ only).
   class_type = skip_typerefs(class_type);
 #if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED
+  if (gpp_mode && gnu_version >= 30400 && !field->is_packed &&
+      class_type->variant.class_struct_union.max_member_alignment > 0 &&
+      class_type->variant.class_struct_union.max_member_alignment
+                                                          < field_alignment) {
+    /* Check whether the given field has a non-packed, non-POD type.  In that
+       case, class-level packing should be ignored. */
+    a_type_ptr  ftp = underlying_array_element_type(field_type);
+    ftp = skip_typerefs(ftp);
+    if (is_immediate_class_type(ftp) &&
+        !ftp->variant.class_struct_union.is_packed &&
+        symbol_for(ftp) != NULL && !symbol_supplement_for_class(ftp)->is_POD) {
+      ignore_packing = TRUE;
+      if (!for_alignof) {
+        pos_ty_warning(ec_no_packing_of_non_POD_field,
+                       &field->source_corresp.decl_position, field->type);
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (field->is_packed && for_alignof && gnu_version < 30400) {
     /* In early versions of GCC, __alignof applied to a field selection
        operation for a field declared with the "packed" attribute produced
@@ -781,6 +802,10 @@ only).
     /* Microsoft does not apply packing/alignment directives to fields of
        types with explicit alignment requirements. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (ignore_packing) {
+    /* In some cases, packing directives do not apply. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else {
     /* Adjust the field's alignment for packing, if required. */
     adjust_alignment_for_packing(&field_alignment, class_type);

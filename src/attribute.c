@@ -5109,38 +5109,6 @@ entity.
   return entity;
 }  /* apply_nonnull_attr */
 
-#if USER_CONTROL_OF_STRUCT_PACKING
-
-static a_boolean check_class_type_can_be_packed(a_type_ptr         tp,
-                                                a_source_position  *diag_pos)
-/*
-tp is a class_type on which a "packed" attribute has been specified.  Return
-TRUE if the type can indeed be packed; otherwise, return FALSE and issue
-diagnostics as appropriate (at the given position).
-*/
-{
-  a_boolean  result = TRUE;
-
-  check_assertion(is_immediate_class_type(tp));
-  if (gpp_mode && gnu_version >= 30400) {
-    /* Check that all the data members are PODs. */
-    a_field_ptr  fp = tp->variant.class_struct_union.field_list;
-    for (; fp != NULL; fp = fp->next) {
-      if (!fp->compiler_generated && !fp->is_anonymous_parent_object &&
-          is_class_struct_union_type(fp->type)) {
-        a_type_ptr  ftp = skip_typerefs(fp->type);
-        if (!symbol_supplement_for_class(ftp)->is_POD) {
-          pos_sy_warning(ec_packed_attribute_on_class_with_non_POD_field,
-                         diag_pos, symbol_for(fp));
-          result = FALSE;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  return result;
-}  /* check_class_type_can_be_packed */
-
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 static char* apply_packed_attr(an_attribute_ptr  ap,
                                char              *entity,
@@ -5162,10 +5130,8 @@ entity.
       /* A packed class is one where all of the members are aligned on a
          1-byte boundary.  In addition, bit fields may straddle container
          boundaries. */
-      if (check_class_type_can_be_packed(tp, &ap->position)) {
-        tp->variant.class_struct_union.is_packed = TRUE;
-        tp->variant.class_struct_union.max_member_alignment = 1;
-      }  /* if */
+      tp->variant.class_struct_union.is_packed = TRUE;
+      tp->variant.class_struct_union.max_member_alignment = 1;
     } else {
       unexpected_condition();
     }  /* if */

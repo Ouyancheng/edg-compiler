@@ -568,6 +568,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_builtin_operation_kind_tag::bok_types_compatible)*/
 /*lint -esym(769,ec_gnu_attr_on_template_redecl)*/
 /*lint -esym(769,ec_gnu_attr_on_template_redecl_but_original_kept)*/
+/*lint -esym(769,ec_no_packing_of_non_POD_field)*/
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 /*lint -esym(759,is_wide_string_constant)*/
 /*lint -esym(765,is_wide_string_constant)*/
