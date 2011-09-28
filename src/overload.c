@@ -8670,6 +8670,28 @@ expression-processing routines.
 }  /* variable_this_exists */
 
 
+a_boolean this_exists_for_member_access(a_symbol_ptr member_sym)
+/*
+Return TRUE if "this" exists in the current context and it can be used
+to access the member member_sym.  (In the simple sense that the
+member's class is the same as the class of "this" or is a base class
+thereof, not with regard to anything fancier like access checking
+or ambiguity.)
+*/
+{
+  a_boolean  this_exists = FALSE;
+  a_type_ptr this_type;
+
+  check_assertion(member_sym->is_class_member);
+  if (variable_this_exists((a_variable_ptr *)NULL, &this_type) &&
+      is_same_class_or_base_class_thereof(type_pointed_to(this_type),
+                                          sym_parent_class(member_sym))) {
+    this_exists = TRUE;
+  }  /* if */
+  return this_exists;
+}  /* this_exists_for_member_access */
+
+
 static a_variable_ptr this_variable_for_lambda_closure(void)
 /*
 We're currently inside a lambda body.  Return a pointer to the "this" variable

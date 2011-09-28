@@ -24985,13 +24985,9 @@ normal_function:
             } else {
               /* Normal case: "x" is interpreted as "this->x". */
               an_expr_node_ptr node;
-              a_type_ptr       this_type;
               if (curr_expr_is_potentially_unevaluated() &&
                   !field_is_property_or_event(sym_ptr->variant.field.ptr) &&
-                  (!variable_this_exists((a_variable_ptr *)NULL, &this_type) ||
-                   !is_same_class_or_base_class_thereof(
-                                                 type_pointed_to(this_type),
-                                                 sym_parent_class(sym_ptr)))) {
+                  !this_exists_for_member_access(sym_ptr)) {
                 /* Some modes allow a use of a nonstatic data member
                    without an available "this" inside a sizeof and other
                    unevaluated contexts.  Use a zero pointer instead of
@@ -25281,8 +25277,7 @@ overloaded_function:
           check_assertion(cppcli_enabled);
           { /* Create a "this" operand if meaningful. */
             an_operand      *selector = NULL;
-            if (variable_this_exists((a_variable_ptr *)NULL,
-                                     (a_type_ptr *)NULL) &&
+            if (this_exists_for_member_access(sym_ptr) &&
                 make_this_pointer_operand(sym_ptr, projection_sym_ptr,
                                           &locator.source_position,
                                           (a_boolean)locator.

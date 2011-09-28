@@ -688,6 +688,8 @@ extern void cast_pointer_for_field_selection(
 extern a_boolean variable_this_exists(a_variable_ptr *this_var,
                                       a_type_ptr     *this_type);
 
+extern a_boolean this_exists_for_member_access(a_symbol_ptr member_sym);
+
 extern an_expr_node_ptr make_selection_for_captured_variable(
                                               a_lambda_capture *lambda_capture,
                                               a_boolean        is_lvalue);
