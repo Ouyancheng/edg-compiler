@@ -4850,16 +4850,18 @@ expression.
 #endif /* CHECKING */
   }  /* switch */
   if (expr->variant.operation.compiler_generated &&
-      expr->is_objectless_nonstatic_data_mem_ref
+      ((operand->kind == (an_expression_kind)enk_param_ref &&
+        operand->variant.param_ref.param_num == 0) ||
+       (expr->is_objectless_nonstatic_data_mem_ref
 #if !IA64_ABI
-      && (selection->name_reference != NULL &&
-          selection->name_reference->qualifier != NULL)
+        && (selection->name_reference != NULL &&
+            selection->name_reference->qualifier != NULL)
 #endif /* !IA64_ABI */
-                                                       ) {
-    /* An implied "this" expression has been added (e.g., "(((A *)0)->m)").
-       Remove it, leaving only the member, in the IA-64 ABI and when
-       the selection already has a qualifier (e.g., "A::m") in the
-       Cfront ABI. */
+                                                         ))) {
+    /* A compiler-generated implicit use of "this" in a trailing return type
+       or an implied "this" (e.g., "(((A *)0)->m)").  Remove it, leaving only
+       the member, in the IA-64 ABI and when the selection already has a
+       qualifier (e.g., "A::m") in the Cfront ABI. */
     selector = NULL;
   }  /* if */
   if (selector != NULL) {
