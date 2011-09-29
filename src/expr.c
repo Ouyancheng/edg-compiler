@@ -4149,6 +4149,7 @@ are expected to be NULL in that case.
   a_boolean         ignore_call = FALSE;
   a_boolean         saved_evaluated, saved_potentially_evaluated;
   an_expr_node_ptr  unneeded_selector = NULL;
+  an_expr_node_ptr  cast_operand;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean         call_folded_to_constant = FALSE;
@@ -4501,9 +4502,16 @@ are expected to be NULL in that case.
         unknown_dependent_function = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (!C_mode() && microsoft_mode &&
-                 is_constant_operand(operand) &&
-                 is_zero_constant(&operand->variant.constant)) {
+                 (op_is_zero_constant(operand) ||
+                  (is_void_type(operand->type) &&
+                   is_expression_operand(operand) &&
+                   node_operator_is(operand->variant.expression, eok_cast) &&
+                   (cast_operand = operand->variant.expression
+                                                  ->variant.operation.operands,
+                    (is_constant_node(cast_operand) &&
+                     is_zero_constant(cast_operand->variant.constant)))))) {
         /* Microsoft Visual C++ allows a call like 0(x) -- it is ignored. */
+        /* (void)0 is also allowed. */
         expr_pos_warning(ec_call_of_zero, &operand->position);
         routine_type = NULL;
         routine = NULL;

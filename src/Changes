@@ -1,5 +1,20 @@
 Version 4.4
 
+9/29/11  [EDGcpfe/12167]
+Zero cast to void accepted for Microsoft ignored function call
+
+Microsoft has a deprecated extension that treats a call of the constant
+zero as an ignored call.  That is,
+
+  0(x, y, z);
+
+does nothing.  (This is used, via macros to generate the zero, as a
+way to disable debug prints/calls.)  Now, the front end also accepts
+zero cast to void as the zero constant:
+
+  ((void)0)(x, y, z)
+
+
 9/28/11  [EDGcpfe/12297]
 GNU C++ compatibility: Packing of non-POD fields
 
