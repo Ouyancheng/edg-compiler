@@ -2309,6 +2309,7 @@ ec_missing_notequal_on_for_each_type;;"there is no appropriate \"!=\" operator d
 ec_missing_incr_on_for_each_type;;"there is no appropriate \"++\" operator defined for the type %t in this \"for each\" statement"
 ec_missing_indirect_on_for_each_type;;"there is no appropriate indirection operator defined for the type %t in this \"for each\" statement"
 ec_no_packing_of_non_POD_field;;"packing is ignored for this field of non-POD type %t"
+ec_nonpublic_implicit_interface_match;;"%nd not implemented because this declaration is not public and has no named override specifier"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -748,6 +748,10 @@ typedef struct a_quasi_override_descr {
 			/* TRUE if this entry is due to an attempt to override 
 			   a member with a member that has reduced
 			   accessibility. */
+  a_bit_field	nonpublic_interface_match:1;
+			/* TRUE if this entry is due to a nonpublic member
+			   function implicitly matching an interface member
+			   (it is not treated as an override). */
 } a_quasi_override_descr;
 
 /* Available list of "quasi-override" descriptions. */
@@ -808,6 +812,7 @@ to by *p_list (which is NULL if the list is empty).  Initialize the new entry
   qodp->return_type_mismatch = FALSE;
   qodp->missing_virtual_specifier = FALSE;
   qodp->reduced_access = FALSE;
+  qodp->nonpublic_interface_match = FALSE;
   /* Append it to the end of the list. */
   while (*p_end != NULL) p_end = &(*p_end)->next;
   *p_end = qodp;
@@ -5315,18 +5320,38 @@ next_named_override:
               continue;
             }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (func_info->new_member &&
-                cli_class_type_kind_is(bcp->type, cctk_ref)) {
-              /* The C++/CLI "new" modifier indicates that a member does not 
-                 override a virtual base ref class member with the same
-                 signature (ignoring the return type).  It does not, however,
-                 have an impact on matching interface members. */
-              new_okay = TRUE;
-              /* Don't establish overriding of a base ref class member if the
-                 member function was declared "new".  The exception happens
-                 when a named override specifier is also present (e.g.,
-                 "virtual void f() new = X::g;"). */
-              if (named_override == NULL) goto next_base_class;
+            if (cppcli_enabled) {
+              if (cli_class_type_kind_is(bcp->type, cctk_interface)) {
+                /* Interface implementations that don't use a named override
+                   specifier must be public (the class itself may be
+                   assembly-private, but the member may not). */
+                if (named_override == NULL &&
+                    (class_state->access != (an_access_specifier)as_public ||
+                     class_state->assembly_access !=
+                                            (an_access_specifier)as_public)) {
+                  /* This is not an override: Record a "quasi-override" entry
+                     to warn about this if the matching interface member is
+                     not validly implemented elsewhere. */
+                  a_quasi_override_descr_ptr  qodp;
+                  qodp = append_quasi_override_descr(
+                                                &class_state->quasi_overrides,
+                                                bcp, sym, source_pos);
+                  qodp->nonpublic_interface_match = TRUE;
+                  goto next_base_class;
+                }  /* if */
+              } else if (func_info->new_member &&
+                         cli_class_type_kind_is(bcp->type, cctk_ref)) {
+                /* The C++/CLI "new" modifier indicates that a member does not 
+                   override a virtual base ref class member with the same
+                   signature (ignoring the return type).  It does not, however,
+                   have an impact on matching interface members. */
+                new_okay = TRUE;
+                /* Don't establish overriding of a base ref class member if the
+                   member function was declared "new".  The exception happens
+                   when a named override specifier is also present (e.g.,
+                   "virtual void f() new = X::g;"). */
+                if (named_override == NULL) goto next_base_class;
+              }  /* if */
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* The parameter types correspond; now compare the return types. */
@@ -5538,8 +5563,9 @@ done:
                   &dps->declarator_pos);
       }  /* if */
     }  /* if */
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (func_info->override && !dps->override_okay) {
+  if (func_info->override && !dps->override_okay) {
     if (cppcli_enabled && in_code_generated_from_metadata()) {
       /* The class was loaded from an assembly file.  Because of limitations
          of the metadata, the code generated from such a file can contain
@@ -5566,8 +5592,8 @@ done:
          member function was found in a base class. */
       pos_warning(ec_new_requires_matching_base_member, source_pos);
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (rout->is_virtual) {
     /* Reflect the presence of a virtual function in the enclosing class. */
     class_type->variant.class_struct_union.any_virtual_functions = TRUE;
@@ -22176,6 +22202,9 @@ that are not irrelevant due to actual overrides.
       } else if (qodp->reduced_access) {
         pos_sy_warning(ec_overriding_reduces_accessibility_in_managed_type,
                        &qodp->diag_pos, qodp->base_member); 
+      } else if (qodp->nonpublic_interface_match) {
+        pos_sy_warning(ec_nonpublic_implicit_interface_match, &qodp->diag_pos,
+                       qodp->base_member); 
       } else {
         unexpected_condition();
       }  /* if */
