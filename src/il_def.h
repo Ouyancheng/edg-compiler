@@ -13204,8 +13204,8 @@ typedef enum a_builtin_operation_kind_tag {
   bok_is_interface_class,
 			/* __is_interface_class.  One operand: A type. */
   bok_is_ref_array,	/* __is_ref_array.  One operand: A type. */
-  bok_is_sealed,	/* __is_sealed.  One operand: A type. */
   bok_is_ref_class,	/* __is_ref_class.  One operand: A type. */
+  bok_is_sealed,	/* __is_sealed.  One operand: A type. */
   bok_is_simple_value_class,
 			/* __is_simple_value_class.  One operand: A type. */
   bok_is_value_class,	/* __is_value_class.  One operand: A type. */
