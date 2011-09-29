@@ -16980,9 +16980,9 @@ static void lower_variable_with_initializer(
                                            a_variable_ptr     var,
                                            an_insert_location *insert_location)
 /*
-Lower the initializer associated with variable var.  Insert any needed
-code at *insert_location.  This is used to lower variables in cases where
-there is no associated stmk_init.
+Lower the dynamic initialization initializer associated with variable var.
+Insert any needed code at *insert_location.  This is used to lower variables in
+cases where there is no associated stmk_init.
 */
 {
   a_dynamic_init_ptr  dip = var->initializer.dynamic;
@@ -17063,10 +17063,9 @@ over C++ arrays or appropriate STL-like collections) are currently lowered.
   push_context(&for_each_context, for_each_scope,
                (an_object_lifetime_ptr)NULL);
   /* Put a block statement around the for-each and attach the for-each scope
-     to that block. */
+     to that block.  Note that any pragmas attached to the for-each statement
+     will now be associated with the block. */
   outer_block = for_each_stmt;
-  /* Note that any pragma attached to the for-each statement will now be
-     associated with the block. */
   turn_statement_into_block(for_each_stmt, &outer_insert_location,
                             &for_each_stmt);
   outer_block->variant.block.extra_info->assoc_scope = for_each_scope;
@@ -17086,15 +17085,15 @@ over C++ arrays or appropriate STL-like collections) are currently lowered.
   ne_call_expr = felp->variant.stl_array_pattern.ne_call_expr;
   incr_call_expr = felp->variant.stl_array_pattern.incr_call_expr;
   check_assertion(ne_call_expr != NULL && incr_call_expr != NULL);
-  lower_full_expr(ne_call_expr, (a_statement_ptr)NULL);
+  lower_boolean_controlling_expr(ne_call_expr, /*is_full_expr=*/TRUE);
   lower_full_expr(incr_call_expr, (a_statement_ptr)NULL);
   /* Now push the iterator scope (which contains the iterator and the
      dependent statement). */
   push_context(&iterator_context, iterator_scope,
                (an_object_lifetime_ptr)NULL);
+  /* Turn the dependent statement into a block; any pragmas associated with
+     the dependent statement stay with the dependent statement. */
   inner_block = sub_statement;
-  /* Turn the dependent statement into a block, this time transferring
-     any pragmas associated with the dependent statement. */
   turn_statement_into_block_transferring_pragma(sub_statement,
                                                 &inner_insert_location,
                                                 &sub_statement,
@@ -17119,11 +17118,10 @@ over C++ arrays or appropriate STL-like collections) are currently lowered.
      there's no further reference to the for_each_loop variant beyond
      this point). */
   set_statement_kind(for_each_stmt, (a_statement_kind)stmk_for);
-  flip = alloc_for_loop();
+  flip = for_each_stmt->variant.for_loop.extra_info;
   flip->increment = incr_call_expr;
   for_each_stmt->expr = ne_call_expr;
   for_each_stmt->variant.for_loop.statement = inner_block;
-  for_each_stmt->variant.for_loop.extra_info = flip;
   set_expr_result_not_used(incr_call_expr);
   if (for_each_scope->lifetime != NULL) {
     /* Insert any needed destructions. */
