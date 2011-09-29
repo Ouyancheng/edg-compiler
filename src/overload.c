@@ -17336,8 +17336,10 @@ direct binding is "possible" and not whether it is "valid".
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled &&
-             is_tracking_reference_type(dest_type)) {
-    /* In C++/CLI, a tracking reference can bind to an rvalue (or lvalue). */
+             is_tracking_reference_type(dest_type) &&
+             direct_binding_possible) {
+    /* In C++/CLI, a tracking reference can bind to an rvalue (or lvalue),
+       but only if no conversion is required. */
     *binding_to_rvalue_allowed = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (!(any_cfront_mode() || microsoft_bugs) && *ref_to_const &&
