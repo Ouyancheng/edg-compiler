@@ -1,5 +1,16 @@
 Version 4.4
 
+9/29/11  [EDGcpfe/12294]
+GNU C++ compatibility: Move constructors and copy constructors
+
+In GNU C++ mode with gnu_version < 40600, the front end now generates a
+traditional copy constructor and copy assignment operator if one has not been
+declared by the programmer even when there is a corresponding move constructor
+or move assignment operator.  This behavior can be overridden with the
+command-line option --rvalue_ctor_is_copy_ctor.  (See also entry of 7/2/09
+for EDGcpfe/9949.)
+
+
 9/29/11  [EDGcpfe/12167]
 Zero cast to void accepted for Microsoft ignored function call
 

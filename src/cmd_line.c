@@ -3603,6 +3603,13 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
        mode (with a warning, which we don't issue). */
     explicit_conversion_functions_enabled = TRUE;
   }  /* if */
+  if (!option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor] &&
+      gnu_version < 40600) {
+    /* GCC versions prior to 4.6 generate an implicit traditional copy
+       constructor even when a move constructor was explicitly declared
+       (if they support move constructors at all, that is). */
+    rvalue_ctor_is_copy_ctor = FALSE;
+  }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
 
