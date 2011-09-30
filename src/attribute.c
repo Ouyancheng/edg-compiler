@@ -1065,18 +1065,18 @@ there is an applicable one; otherwise, return NULL.
                               buf[MAX_ATTRIBUTE_NAME_LENGTH+1];
 
   if (ap->family == (a_byte_attribute_family)af_gnu) {
-    /* GNU attributes have optional leading and/or trailing double
+    /* GNU attribute names are optionally prefixed and suffixed by double
        underscores.  Ensure "name" points to a string without such
        underscores. */
     if (name[0] == '_' && name[1] == '_') {
       sizeof_t  len;
-      name += 2;
       len = strlen(name);
-      /* Strip two trailing underscores if present, but only if that leaves at
-         least one character in the name. */
-      if (len > 2 && name[len-1] == '_' && name[len-2] == '_') {
-        len -= 2;
+      /* Strip the prefix and suffix underscores if present, but only if that
+         leaves at least one character in the name. */
+      if (len > 4 && name[len-1] == '_' && name[len-2] == '_') {
+        len -= 4;
         if (len > MAX_ATTRIBUTE_NAME_LENGTH) goto search_done;
+        name += 2;
         (void)strncpy(buf, name, size_t_arg(len));
         buf[len] = '\0';
         name = buf;

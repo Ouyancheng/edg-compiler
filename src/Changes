@@ -1,5 +1,20 @@
 Version 4.4
 
+9/30/11  [EDGcpfe/11323]
+GNU compatibility: Attribute names prefixed with double underscore
+
+Previously, the front end treated GNU-style attributes whose name was prefixed
+or prefixed-and-suffixed with double underscores ("__") like the same name
+without those double underscores.  Now, GNU attribute names that are prefixed
+but not suffixed by a double underscore are no longer implicitly equivalent to
+the non-prefixed name.  For example:
+
+  __attribute((noreturn)) void f();      // Okay in GNU modes.
+  __attribute((__noreturn__)) void f();  // Also okay in GNU modes.
+  __attribute((__noreturn)) void f();    // Now an unknown attribute.
+                                         // (Previously same as "noreturn".)
+
+
 9/30/11  [EDGcpfe/11843]
 Abort in lowering of designator in GNU vector initializer
 
