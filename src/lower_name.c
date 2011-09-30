@@ -4869,7 +4869,7 @@ expression.
         /* A compiler-generated implicit use of "this". */
 #if IA64_ABI
         /* Always remove an implicit "this" in the IA-64 ABI (where we try
-           to produce a mangling that mimics the source as written. */
+           to produce a mangling that mimics the source as written). */
         selector = NULL;
 #else /* !IA64_ABI */
         if (selection->name_reference != NULL &&
