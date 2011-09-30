@@ -1,5 +1,20 @@
 Version 4.4
 
+9/30/11  [EDGcpfe/12303]
+Variadic templates: matching template template argument in function call
+
+The front end failed to allow a non-variadic class template to match
+a variadic template template parameter in the context of a call of
+a function template.  Now fixed.
+
+  template <class T> struct A { typedef T type; };
+  template <template <class...> class T, class... U>
+  void f(typename T<U...>::type);
+  int main() {
+    f<A,int>(42);
+  }
+
+
 9/29/11  [EDGcpfe/12296]
 Mangling for implicit "this" in late-specified return type
 

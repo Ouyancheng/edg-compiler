@@ -7012,8 +7012,8 @@ another template parameter.
           arg_template = template_supplement_for_template(
                                              specified_tap->variant.templ.ptr);
           if (tentatively_matching_template_param_lists(
-                           arg_template->cache.decl_info->parameters,
                            tpp->variant.templ->cache.decl_info->parameters,
+                           arg_template->cache.decl_info->parameters,
                            (a_boolean)tpp->variant.templ->
                              variant.class_template.involves_template_param)) {
             tap->variant.templ = specified_tap->variant.templ;
