@@ -2019,12 +2019,13 @@ Return the number of elements in a vector type.
 */
 {
   a_targ_size_t num_elements;
+  a_type_ptr    element_type;
 
   vector_type = skip_typerefs(vector_type);
+  element_type = skip_typerefs(vector_type->variant.vector.element_type);
   check_assertion(vector_type->kind == (a_type_kind)tk_vector &&
-                  vector_type->variant.vector.element_type->size != 0);
-  num_elements = vector_type->size /
-                                vector_type->variant.vector.element_type->size;
+                  element_type->size != 0);
+  num_elements = vector_type->size / element_type->size;
   return num_elements;
 }  /* num_vector_elements */
 

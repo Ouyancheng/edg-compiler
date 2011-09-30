@@ -1,5 +1,19 @@
 Version 4.4
 
+9/30/11  [EDGcpfe/11843]
+Abort in lowering of designator in GNU vector initializer
+
+Previously, a designator for the initializer for a GNU vector of elements
+whose type is represented by a typeref entry (e.g., a const-qualified type or
+a typedef) could result in an abort in num_vector_elements (types.c) when that
+initializer was lowered.  For example:
+
+  __attribute((vector_size(8))) int const cv[2] = { [1] = {10} };
+    // Previously result in an abort in num_vector_elements.
+
+This is now fixed.
+
+
 9/30/11  [EDGcpfe/12305]
 C++-generating back end, GNU compatibility: __builtin_types_compatible_p
 
