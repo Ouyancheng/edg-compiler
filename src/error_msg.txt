@@ -2125,7 +2125,7 @@ ec_virtual_has_no_effect;;"\"virtual\" has no effect on a destructor of a manage
 ec_new_or_override_required;;"\"new\" or \"override\" is required because this declaration matches %nd"
 ec_new_or_virtual_required;;"\"new\" or \"virtual\" is required because this declaration matches %nd"
 ec_override_for_interface_member;;"\"new\" or \"override\" are not valid here because the matching %nd is a member of an interface"
-ec_new_requires_matching_base_member;;"\"new\" modifier without a matching base class member"
+ec_new_requires_matching_base_member;;"\"new\" modifier without a matching base ref class member"
 ec_overriding_reduces_accessibility_in_managed_type;;"%nd overridden with reduced access"
 ec_bad_tracking_ref_init;;"a reference of type %t1 cannot be initialized with a value of type %t2"
 ec_copy_constructor_in_value_class_type;;"a copy constructor cannot be declared in a value class"
