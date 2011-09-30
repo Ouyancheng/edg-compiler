@@ -2029,10 +2029,7 @@ conv_context describes the context of the binding.
 {
   a_boolean binding_allowed = FALSE;
 
-  if (gpp_mode &&
-      (gnu_version < 40500 ||
-       (gnu_version < 40600 &&
-        (conv_context & CCO_MOVE_CTOR_OR_ASSIGN_PARAMETER)))) {
+  if (gpp_mode && gnu_version < 40500) {
     binding_allowed = TRUE;
     if (warning_pos != NULL) {
       expr_pos_warning((conv_context & CCO_MOVE_CTOR_OR_ASSIGN_PARAMETER) ?
@@ -2259,13 +2256,6 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       if (any_cfront_mode() && !is_class_struct_union_type(param_type)) {
         /* Okay to drop qualifiers. */
         uses_type_qualifiers_dropped_anachronism = TRUE;
-      } else if (gpp_mode && gnu_version < 40600 &&
-                 param_is_rvalue_reference &&
-                 arg_originally_an_lvalue &&
-                 ptp != NULL &&
-                 ptp->move_ctor_or_assign_parameter) {
-        /* g++ allows dropping qualifiers when binding the parameter of
-           a move constructor or move assignment operator. */
       } else {
         ref_type_qualifiers_dropped = TRUE;
         /* If the types are not reference-related, any dropping of
@@ -2720,7 +2710,12 @@ have_level:;
     if (param_is_rvalue_reference) {
       /* An rvalue reference can only be bound to an rvalue. */
       if (arg_originally_an_lvalue) {
-        if (binding_rvalue_ref_to_lvalue_allowed(conv_context,
+        if (ref_type_qualifiers_dropped) {
+          /* If type qualifiers are being dropped, don't allow binding to
+             an lvalue in any mode. */
+          arg_summary->match_level = aml_none;
+        } else if (binding_rvalue_ref_to_lvalue_allowed(
+                                                 conv_context,
                                                  (a_source_position *)NULL)) {
           /* This mode allows binding an rvalue reference to an lvalue.
              For g++, this is less desirable than other matches. */
@@ -17320,7 +17315,12 @@ direct binding is "possible" and not whether it is "valid".
     /* An rvalue reference can bind (only) to an rvalue. */
     *binding_to_rvalue_allowed = TRUE;
     if (source_operand != NULL && !is_an_rvalue(source_operand)) {
-      if (is_cast) {
+      /* The operand is not an rvalue, so in most cases the rvalue reference
+         cannot bind to it. */
+      if (!direct_binding_possible) {
+        /* Don't look for exceptions if we can't bind directly to the
+           operand. */
+      } else if (is_cast) {
         /* In a cast, the source can be an lvalue. */
       } else if (binding_rvalue_ref_to_lvalue_allowed(
                                                   conv_context,
@@ -17536,13 +17536,10 @@ the conversion.
   a_boolean    ref_to_const_volatile = FALSE;
   a_boolean    operand_was_rvalue;
   a_boolean    warn = FALSE, template_case = FALSE;
-  a_boolean    binding_rvalue_ref_to_lvalue = FALSE;
   a_boolean    initializing_variable =
                        (conv_context & CCO_INITIALIZING_VARIABLE) != 0;
   a_boolean    bitwise_assignment_param = 
                        (conv_context & CCO_BITWISE_ASSIGNMENT_PARAM) != 0;
-  a_boolean    move_ctor_or_assign_parameter =
-                       (conv_context & CCO_MOVE_CTOR_OR_ASSIGN_PARAMETER) != 0;
   a_conv_descr conv_for_direct_binding;
   a_candidate_function_ptr
                ambiguity_list = NULL;
@@ -17693,7 +17690,7 @@ the conversion.
                                 /*rvalue_expected=*/is_rvalue_ref);
     }  /* if */
   } else if (is_rvalue_ref && !is_an_rvalue(source_operand) &&
-             (binding_rvalue_ref_to_lvalue = TRUE,
+             (!direct_binding_possible ||
               !binding_rvalue_ref_to_lvalue_allowed(
                                               conv_context,
                                               &source_operand->position))) {
@@ -17832,31 +17829,20 @@ the conversion.
     full_adjust_class_object_type(source_operand, adj_base_dest_type);
     if (dropping_qualifiers) {
       /* Type qualifiers were dropped on this binding. */
-      if (gpp_mode && binding_rvalue_ref_to_lvalue &&
-          move_ctor_or_assign_parameter) {
-        /* g++ allows dropping qualifiers when binding the parameter of
-           a move constructor or move assignment operator. */
-        if (expr_error_should_be_issued()) {
-          pos_ty2_warning(ec_qualifier_dropped_in_ref_init,
-                          &source_operand->position,
-                          dest_type, orig_source_type);
+      if (expr_error_should_be_issued()) {
+        if (bitwise_assignment_param) {
+          /* Use a different message for the bitwise operator= case.  The
+             normal message is confusing to programmers. */
+          pos_ty_error(ec_no_suitable_assignment_operator,
+                       &source_operand->position,
+                       f_skip_typerefs(base_dest_type));
+        } else {
+          pos_ty2_error(ec_qualifier_dropped_in_ref_init,
+                        &source_operand->position,
+                        dest_type, orig_source_type);
         }  /* if */
-      } else {
-        if (expr_error_should_be_issued()) {
-          if (bitwise_assignment_param) {
-            /* Use a different message for the bitwise operator= case.  The
-               normal message is confusing to programmers. */
-            pos_ty_error(ec_no_suitable_assignment_operator,
-                         &source_operand->position,
-                         f_skip_typerefs(base_dest_type));
-          } else {
-            pos_ty2_error(ec_qualifier_dropped_in_ref_init,
-                          &source_operand->position,
-                          dest_type, orig_source_type);
-          }  /* if */
-        }  /* if */
-        conv_to_error_operand(source_operand);
       }  /* if */
+      conv_to_error_operand(source_operand);
     } else if (!binding_to_rvalue_allowed && operand_was_rvalue) {
       /* Can't bind this reference to an rvalue. */
       an_error_severity err_severity = es_error;

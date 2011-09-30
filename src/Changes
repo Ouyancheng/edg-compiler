@@ -37,7 +37,8 @@ traditional copy constructor and copy assignment operator if one has not been
 declared by the programmer even when there is a corresponding move constructor
 or move assignment operator.  This behavior can be overridden with the
 command-line option --rvalue_ctor_is_copy_ctor.  (See also entry of 7/2/09
-for EDGcpfe/9949.)
+for EDGcpfe/9949.  Some of the changes for EDGcpfe/11769 and EDGcpfe/11793
+were misguided and have been undone.)
 
 
 9/29/11  [EDGcpfe/12167]
@@ -2133,7 +2134,8 @@ the parameter of a move constructor or move assignment operator
 to an lvalue.  We now emulate that.  Also, warnings are now issued
 for cases like this, for those covered by EDGcpfe/11769, and in
 general when an rvalue reference is bound to an lvalue, since
-that may destroy a variable that is still in scope.
+that may destroy a variable that is still in scope.  [9/30/11:
+This logic turned out to be flawed.  See EDGcpfe/12994.]
 
   struct A {
     A();
@@ -2202,6 +2204,8 @@ gnu_version=40500:
     pair dest(*src);
     dest = *src;
   }
+
+[9/30/11: Some of this logic turned out to be flawed.  See EDGcpfe/12994.]
 
 
 6/1/11   [EDGcpfe/11773]
