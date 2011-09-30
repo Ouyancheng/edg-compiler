@@ -814,11 +814,6 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_char16_t, "char16_t");
       enter_keyword((a_token_kind)tok_char32_t, "char32_t");
     }  /* if */
-    if (microsoft_mode && microsoft_version >= 1300) {
-      /* The __wchar_t keyword is entered even when wchar_t_is_keyword is
-         FALSE. */
-      enter_keyword((a_token_kind)tok_wchar_t, "__wchar_t");
-    }  /* if */
     if (bool_is_keyword) {
       /* Enter C++ keywords used for the bool type.  This is only
          done when bool_is_keyword is TRUE.  When bool_is_keyword is FALSE,
@@ -902,6 +897,13 @@ Install the keywords in the symbol table.
     if (nullptr_enabled) {
       enter_keyword((a_token_kind)tok_nullptr, "nullptr");
     }  /* if */
+  }  /* if */
+  if (microsoft_mode && microsoft_version >= 1300) {
+    /* The __wchar_t keyword is entered even when wchar_t_is_keyword is FALSE.
+       It exists even in C mode, and produces a type distinct from the normal
+       C integral types (it isn't a synonym for "short" or "unsigned short",
+       but a distinct type just like wchar_t in C++). */
+    enter_keyword((a_token_kind)tok_wchar_t, "__wchar_t");
   }  /* if */
 #if SUN_EXTENSIONS_ALLOWED
   if (sun_linker_scope_allowed) {

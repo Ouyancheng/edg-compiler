@@ -7437,7 +7437,9 @@ typedef struct a_type {
       a_bit_field
 		wchar_t_type:1;
 			/* TRUE if this type is wchar_t in C++ when wchar_t
-                           is a distinct type. */
+                           is a distinct type.  (This can also be TRUE in
+			   Microsoft C mode for the type produced by the
+			   __wchar_t keyword.) */
       a_bit_field
 		char16_t_type:1;
 			/* TRUE if this type is char16_t in C++ when char16_t

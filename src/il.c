@@ -8536,9 +8536,9 @@ a_type_ptr wchar_t_type(void)
 /*
 Make or find a type entry for a wchar_t type and return a pointer to it.
 This is only used when wchar_t is a distinct type.  Note that in Microsoft
-mode, there can be a distinct wchar_t type even when wchar_t_is_keyword
-is FALSE because the __wchar_t keyword can always be used.  But when
-wchar_t_is_keyword is FALSE, wide string literals do not have a type
+mode (even Microsoft C mode) there can be a distinct wchar_t type even when
+wchar_t_is_keyword is FALSE because the __wchar_t keyword can always be used.
+But when wchar_t_is_keyword is FALSE, wide string literals do not have a type
 based on wchar_t_type.
 */
 {

@@ -1,5 +1,14 @@
 Version 4.4
 
+
+9/30/11  [EDGcpfe/11856]
+Microsoft C compatibility: __wchar_t
+
+The keyword __wchar_t is now accepted in Microsoft C mode: It denotes the
+standard C++ wchar_t type (i.e., it is not just a synonym for a traditional
+integer type like short or int).  See also the Changes entry of 1/31/05.
+
+
 9/29/11  [EDGcpfe/12296]
 Mangling for implicit "this" in late-specified return type
 
