@@ -1,5 +1,20 @@
 Version 4.4
 
+9/30/11  [EDGcpfe/11512]
+GNU C++ compatibility: Empty list initializer on variable declaration
+
+Recent versions of GCC support C++11-style list initializers and make some use
+of the feature in GCC system headers.  To handle some of those uses, the front
+end now accepts aggregate initializers (i.e., brace-enclosed initializers for
+arrays and certain class types) without a preceding "=" token in GNU C++ mode
+with gnu_version >= 40400 (with a warning if C++11 mode is not also enabled).
+For example:
+
+  const int okay[3]{};  // Now accepted in some GNU C++ mode.
+
+(See also the Changes entry of 6/15/10.)
+
+
 9/30/11  [EDGcpfe/12285]
 Change in deduction rules for arguments that are overloaded function templates
 with explicit template arguments

@@ -14616,6 +14616,21 @@ if one is present.
   } else if (curr_token == tok_assign) {
     has_initializer = TRUE;
     decl_pos_block->var_init_range.start = pos_curr_token;
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (gpp_mode && gnu_version >= 40400 && curr_token == tok_lbrace &&
+             is_aggregate_or_union_type(state->type)) {
+    /* Recent versions of GCC support general C++1 list initialization.  We do
+       not yet implement that feature, but at least one standard header of GCC
+       has a simple "{}" initializer on an aggregate variable.  As a temporary
+       measure to enable parsing of that construct, we treat "T x{}" as
+       "T x = {}" when T is a class or array type. */
+    if (!cpp11_mode) {
+      pos_warning(ec_list_initializer_nonstandard_in_current_mode,
+                  &pos_curr_token);
+    }  /* if */
+    has_initializer = TRUE;
+    decl_pos_block->var_init_range.start = pos_curr_token;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if C_ANACHRONISMS_ALLOWED
   } else if (C_dialect == C_dialect_pcc && is_initializer_start()) {
     /* In pcc mode, the "=" may be omitted (K&R first edition, Appendix A,
