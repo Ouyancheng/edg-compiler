@@ -16591,7 +16591,7 @@ EXTERN char     *builtin_operation_names[(int)bok_last+1]
   "__is_pod",
   "__is_polymorphic",
   "__is_union",
-  "__builtin_types_compatible",
+  "__builtin_types_compatible_p",
   "__INTADDR__",
   "__is_trivial",
   "__is_standard_layout",

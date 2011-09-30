@@ -1,5 +1,14 @@
 Version 4.4
 
+9/30/11  [EDGcpfe/12305]
+C++-generating back end, GNU compatibility: __builtin_types_compatible_p
+
+The name of the gcc builtin pseudo-function __builtin_types_compatible_p
+was misspelled in the output of the C++-generating back end as
+__builtin_types_compatible.  This is now fixed.  For example:
+
+  int i = __builtin_types_compatible_p(int, int);
+
 
 9/30/11  [EDGcpfe/11856]
 Microsoft C compatibility: __wchar_t
