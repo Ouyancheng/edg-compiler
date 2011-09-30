@@ -1,5 +1,31 @@
 Version 4.4
 
+9/30/11  [EDGcpfe/12285]
+Change in deduction rules for arguments that are overloaded function templates
+with explicit template arguments
+
+In a case where overload resolution is matching an argument that is
+the name of an overloaded function template with explicit template
+arguments (e.g., f<1> where f is overloaded) with a parameter that
+requires deduction, the front end allows a given template to
+participate if the template arguments specify a single specialization
+of that template.  In the past, it did not matter whether the single
+specialization could match the parameter through deduction.  Now, that
+is considered as well, which eliminates some needless ambiguities when
+more than one template has a unique specialization, but only one of
+those can be made to match the parameter.  It's not clear what the
+standard requires in such a case, but the new behavior seems to match
+what g++ and MSVC do, and it's one of the reasonable interpretations
+of the standard's wording.
+
+  template<class B1> void bind(void (*f)(B1));
+  template<int T> void f(int);
+  template<int T> void f(int, int);
+  void foo() {
+    bind(&f<1>);  // Now selects f(int) template instead of giving error
+  }
+
+
 9/30/11  [EDGcpfe/11323]
 GNU compatibility: Attribute names prefixed with double underscore
 

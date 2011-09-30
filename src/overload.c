@@ -821,7 +821,7 @@ from previous arguments; in the standard case, it is always NULL.
          proj_sym != NULL;
          proj_sym = next_symbol_in_overload_set(&ostblock,
                                                 /*curr_sym_viable=*/FALSE)) {
-      a_type_ptr routine_type, ptr_routine_type;
+      a_type_ptr routine_type = NULL, ptr_routine_type;
       a_boolean  matches = FALSE;
       /* Remove projections for namespaces, if any. */
       sym = fundamental_symbol_of(proj_sym);
@@ -834,12 +834,6 @@ from previous arguments; in the standard case, it is always NULL.
                                                     sym,
                                                     operand->template_arg_list,
                                                     &new_arg_list);
-          if (routine_type != NULL) {
-            matches = TRUE;
-            ptr_routine_type = arg_type_for_unique_specialization(
-                                                           routine_type,
-                                                           (an_operand *)NULL);
-          }  /* if */
         } else {
           /* If an overload set contains any function templates (and the
              operand is not a template-id), the parameter is considered a
@@ -855,45 +849,48 @@ from previous arguments; in the standard case, it is always NULL.
         /* Not a function template. */
         /* This can't match if there are explicit template arguments. */
         if (!operand->is_template_id) {
-          /* See if this function can be made to match the parameter type. */
-          a_type_ptr         local_arg_type, local_param_type;
-          a_template_arg_ptr eff_template_arg_list = NULL;
-          if (gpp_mode || microsoft_mode) {
-            /* Microsoft and GNU allow information to leak in from deduction
-               on previous arguments. */
-            eff_template_arg_list = template_arg_list;
-          }  /* if */
           routine_type = routine_symbol_type(sym);
-          local_arg_type = routine_type;
-          local_param_type = param_type;
-          if (adjust_deduction_pair(&local_param_type, &local_arg_type,
-                                    (an_operand *)NULL, templ_params,
-                                    (a_template_arg *)NULL,
-                                    (a_type_ptr*)NULL, (a_type_ptr*)NULL,
-                                    (a_boolean *)NULL) &&
-              tentatively_matches_template_type(local_arg_type,
-                                                local_param_type,
-                                                templ_params,
-                                                eff_template_arg_list)) {
-            matches = TRUE;
-            ptr_routine_type = arg_type_for_unique_specialization(
-                                                           routine_type,
-                                                           (an_operand *)NULL);
-          }  /* if */
         }  /* if */
       }  /* if */
-      if (matches) {
-        /* This function matches.  Only one is allowed to match, so if
-           a previous one matched, the overall match fails. */ 
-        if (can_be_arg) {
-          can_be_arg = FALSE;
-          break;
-        } else {
-          can_be_arg = TRUE;
-          /* For the argument type, use a pointer or the function type itself
-             according to what the original operand is. */
-          matching_arg_type = is_a_function_designator(operand) ?
+      if (routine_type != NULL) {
+        /* Try matching the routine type against the parameter by doing
+           deduction. */
+        a_type_ptr         local_arg_type, local_param_type;
+        a_template_arg_ptr eff_template_arg_list = NULL;
+        if (gpp_mode || microsoft_mode) {
+          /* Microsoft and GNU allow information to leak in from deduction
+             on previous arguments. */
+          eff_template_arg_list = template_arg_list;
+        }  /* if */
+        local_arg_type = routine_type;
+        local_param_type = param_type;
+        if (adjust_deduction_pair(&local_param_type, &local_arg_type,
+                                  (an_operand *)NULL, templ_params,
+                                  (a_template_arg *)NULL,
+                                  (a_type_ptr*)NULL, (a_type_ptr*)NULL,
+                                  (a_boolean *)NULL) &&
+            tentatively_matches_template_type(local_arg_type,
+                                              local_param_type,
+                                              templ_params,
+                                              eff_template_arg_list)) {
+          matches = TRUE;
+          ptr_routine_type = arg_type_for_unique_specialization(
+                                                           routine_type,
+                                                           (an_operand *)NULL);
+        }  /* if */
+        if (matches) {
+          /* This function matches.  Only one is allowed to match, so if
+             a previous one matched, the overall match fails. */ 
+          if (can_be_arg) {
+            can_be_arg = FALSE;
+            break;
+          } else {
+            can_be_arg = TRUE;
+            /* For the argument type, use a pointer or the function type itself
+               according to what the original operand is. */
+            matching_arg_type = is_a_function_designator(operand) ?
                                            routine_type : ptr_routine_type;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */
