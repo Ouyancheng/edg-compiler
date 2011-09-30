@@ -1,5 +1,34 @@
 Version 4.4
 
+9/29/11  [EDGcpfe/12296]
+Mangling for implicit "this" in late-specified return type
+
+The changes introduced for "this" in a late-specified return type
+(EDGcpfe/11746,EDGcpfe/11557) changed the internal representation for
+expressions that contained an implicit "this", resulting in a change in the
+mangled names for such expressions.  A change has been made to restore the
+original IA-64 ABI mangling, and to change the Cfront mangling to use same
+mangling as for the explicit "this" case (except in cases where
+ABI_COMPATIBILITY_VERSION < 440 in which case the 4.3 Cfront mangling is used).
+For example:
+
+  int a;
+  struct A {
+    template <class T> auto f1(T x) -> decltype(x == a);
+    int a;
+    template <class T> auto f2(T x) -> decltype(x == a);
+  };
+  void g() {
+    A().f1(37);
+      // IA-64: _ZN1A2f1IiEEDTeqfp_L_Z1aEET_
+      // Cfront: f1__tm__2_i__1AFZ1Z_YOeq_2_I1I1aO
+    A().f2(37);
+      // IA-64: _ZN1A2f2IiEEDTeqfp_1aET_
+      // old Cfront: f2__tm__2_i__1AFZ1Z_YOeq_2_I1IOrf_2_CP1AL_1_01aOO
+      // new Cfront: f2__tm__2_i__1AFZ1Z_YOeq_2_I1IOrf_2_I0I1aOO
+  }
+
+
 9/29/11  [EDGcpfe/12294]
 GNU C++ compatibility: Move constructors and copy constructors
 

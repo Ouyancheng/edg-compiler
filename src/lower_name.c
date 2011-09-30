@@ -4819,6 +4819,10 @@ expression.
 {
   an_expr_node_ptr selector, selection, operand;
   a_boolean        use_unresolved_name_mangling = TRUE;
+#if !IA64_ABI && ABI_COMPATIBILITY_VERSION < 440
+  a_constant       dummy_constant;
+  an_expr_node     dummy_expr;
+#endif /* !IA64_ABI && ABI_COMPATIBILITY_VERSION < 440 */
 
   check_assertion(is_operation_node(expr));
   operand = expr->variant.operation.operands;
@@ -4849,20 +4853,51 @@ expression.
       break;
 #endif /* CHECKING */
   }  /* switch */
-  if (expr->variant.operation.compiler_generated &&
-      ((operand->kind == (an_expression_kind)enk_param_ref &&
-        operand->variant.param_ref.param_num == 0) ||
-       (expr->is_objectless_nonstatic_data_mem_ref
+  if (expr->variant.operation.compiler_generated) {
+    if (expr->is_objectless_nonstatic_data_mem_ref
 #if !IA64_ABI
         && (selection->name_reference != NULL &&
             selection->name_reference->qualifier != NULL)
 #endif /* !IA64_ABI */
-                                                         ))) {
-    /* A compiler-generated implicit use of "this" in a trailing return type
-       or an implied "this" (e.g., "(((A *)0)->m)").  Remove it, leaving only
-       the member, in the IA-64 ABI and when the selection already has a
-       qualifier (e.g., "A::m") in the Cfront ABI. */
-    selector = NULL;
+                                                         ) {
+      /* A case like decltype(p.x+A::x); remove the "((A *)0)->" portion of
+         the expression used in the internal representation. */
+      selector = NULL;
+    } else {
+      if (operand->kind == (an_expression_kind)enk_param_ref &&
+          operand->variant.param_ref.param_num == 0) {
+        /* A compiler-generated implicit use of "this". */
+#if IA64_ABI
+        /* Always remove an implicit "this" in the IA-64 ABI (where we try
+           to produce a mangling that mimics the source as written. */
+        selector = NULL;
+#else /* !IA64_ABI */
+        if (selection->name_reference != NULL &&
+            selection->name_reference->qualifier != NULL) {
+          /* The selection has a qualifier (e.g., A::m), so use the qualifier
+             in the mangling (rather than the implicit "this"). */
+          selector = NULL;
+        } else {
+          /* No qualifier in the selection. */
+#if ABI_COMPATIBILITY_VERSION >= 440
+          /* Produce a mangling that contains "this" by leaving the expression
+             as is.  This can lead to ambiguous mangled names (i.e., explicit
+             and implicit uses of "this" are mangled the same), but the front
+             end won't allow those to be overloaded, so it should be okay. */
+#else /* ABI_COMPATIBILITY_VERSION < 440 */
+          /* Originally, an enk_param_ref wasn't used in the internal
+             representation for implicit "this", so recreate the mangling for
+             the old internal representation (i.e., "((A *)0)->"). */
+          make_zero_of_proper_type(operand->type, &dummy_constant);
+          clear_expr_node(&dummy_expr, (an_expr_node_kind)enk_constant);
+          dummy_expr.variant.constant = &dummy_constant;
+          dummy_expr.type = dummy_constant.type;
+          selector = &dummy_expr;
+#endif /* ABI_COMPATIBILITY_VERSION >= 440 */
+        }  /* if */
+#endif /* IA64_ABI */
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (selector != NULL) {
 #if !IA64_ABI
