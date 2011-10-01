@@ -4149,7 +4149,7 @@ are expected to be NULL in that case.
   a_boolean         ignore_call = FALSE;
   a_boolean         saved_evaluated, saved_potentially_evaluated;
   an_expr_node_ptr  unneeded_selector = NULL;
-  an_expr_node_ptr  cast_op1;
+  an_expr_node_ptr  castexp;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean         call_folded_to_constant = FALSE;
@@ -4505,11 +4505,12 @@ are expected to be NULL in that case.
                  (op_is_zero_constant(operand) ||
                   (is_void_type(operand->type) &&
                    is_expression_operand(operand) &&
-                   node_operator_is(operand->variant.expression, eok_cast) &&
-                   (cast_op1 = operand->variant.expression
-                                                  ->variant.operation.operands,
-                    (is_constant_node(cast_op1) &&
-                     is_zero_constant(cast_op1->variant.constant)))))) {
+                   (castexp = skip_parens(operand->variant.expression),
+                    is_operation_node(castexp)) &&
+                   node_operator_is(castexp, eok_cast) &&
+                   (castexp=skip_parens(castexp->variant.operation.operands),
+                    is_constant_node(castexp)) &&
+                   is_zero_constant(castexp->variant.constant)))) {
         /* Microsoft Visual C++ allows a call like 0(x) -- it is ignored. */
         /* (void)0 is also allowed. */
         expr_pos_warning(ec_call_of_zero, &operand->position);
