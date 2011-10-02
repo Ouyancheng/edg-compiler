@@ -17799,6 +17799,15 @@ indication in *rcblock).
          for a cast to a reference type it is the underlying type. */
       operation_type = cast_type;
       if (reference_case) operation_type = underlying_cast_type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled &&
+          operand.is_simple_string_literal &&
+          cli_string_literal_conversion_possible(operand.type, cast_type,
+                                                 (a_std_conv_descr *)NULL)) {
+        /* Convert a string literal to a System::String^ if necessary. */
+        convert_operand_to_handle_to_cli_string(&operand);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Check the operand type. */
       operand_type = operand.type;
       if (is_template_dependent_context() &&
