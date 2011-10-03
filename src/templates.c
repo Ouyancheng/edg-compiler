@@ -11792,30 +11792,31 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     /* Add a secondary source sequence entry to represent the partial
        instantiation -- it will take the form of an explicit specialization. */
     a_type_ptr  declared_type = tip->declared_type;
-
     check_assertion(declared_type != NULL);
-    if (declared_type == rp->type &&
-        declared_type->kind != (a_type_kind)tk_typeref) {
-      /* Make a copy of the routine type; default_args, if any, will be
-         ignored. */
-      declared_type = copy_routine_type_with_param_types(
-                                                rp->type,
-                                                /*copy_default_args=*/FALSE);
-    } else {
-      /* Use the declared_type in the routine entry only if it has no
-         default args; otherwise, make a copy. */
-      check_assertion(!is_qualified_type(declared_type));
-      declared_type = routine_type_without_default_args(declared_type);
-    }  /* if */
+    if (!is_error_type(declared_type)) {
+      if (declared_type == rp->type &&
+          declared_type->kind != (a_type_kind)tk_typeref) {
+        /* Make a copy of the routine type; default_args, if any, will be
+           ignored. */
+        declared_type = copy_routine_type_with_param_types(
+                                                  rp->type,
+                                                  /*copy_default_args=*/FALSE);
+      } else {
+        /* Use the declared_type in the routine entry only if it has no
+           default args; otherwise, make a copy. */
+        check_assertion(!is_qualified_type(declared_type));
+        declared_type = routine_type_without_default_args(declared_type);
+      }  /* if */
 #if DEBUG
-    if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
-      fputs("creating new template function:\n", f_debug);
-    }  /* if */
+      if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+        fputs("creating new template function:\n", f_debug);
+      }  /* if */
 #endif /* DEBUG */
-    add_source_sequence_entry_for_partial_instantiation(
+      add_source_sequence_entry_for_partial_instantiation(
                                                (char *)rp,
                                                (an_il_entry_kind)iek_routine,
                                                declared_type);
+    }  /* if */
     /* Reset the insert point so that instantiations triggered will follow
        the entry representing the partial instantiation, not precede it. */
     reset_ss_list_instantiation_insert_point();

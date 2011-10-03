@@ -1,5 +1,12 @@
 Version 4.4
 
+10/3/11  [EDGcpfe/12073,EDGcpfe/12270]
+Microsoft compatibility: Attributes on member templates
+
+The front end now accepts Microsoft-style attributes (enclosed in single
+brackets) on member templates when microsoft_version >= 1400.
+
+
 9/30/11  [EDGcpfe/11512]
 GNU C++ compatibility: Empty list initializer on variable declaration
 

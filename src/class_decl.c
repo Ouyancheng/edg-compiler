@@ -20962,6 +20962,13 @@ passed via template_decl.
       /* A syntax error occurred: Proceed with the next declaration. */
       expect_error();
       *skip_semicolon_check = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (is_member_template_rescan) {
+        /* Record an error type (leaving a NULL type would cause problems in
+           error recovery). */
+        instance->declared_type = error_type();
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       goto next_declaration;
     }
     if (!C_mode() && is_function) {
@@ -21602,6 +21609,13 @@ instance record associated with this instantiation.
   initialize_class_def_state(class_type, &class_state);
   saved_routine_fixup = curr_routine_fixup;
   curr_routine_fixup = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode &&
+      curr_token == tok_lbracket && !std_attribute_tokens_next()) {
+    /* Skip any Microsoft attributes. */
+    skip_microsoft_attribute_tokens();
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   (void)class_member_declaration(class_type, &class_state,
                                  (an_ms_attribute_ptr)NULL,
                                  /*is_member_template=*/FALSE,
