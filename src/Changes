@@ -65,7 +65,7 @@ a typedef) could result in an abort in num_vector_elements (types.c) when that
 initializer was lowered.  For example:
 
   __attribute((vector_size(8))) int const cv[2] = { [1] = {10} };
-    // Previously result in an abort in num_vector_elements.
+    // Previously resulted in an abort in num_vector_elements.
 
 This is now fixed.
 
