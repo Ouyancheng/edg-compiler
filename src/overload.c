@@ -13982,6 +13982,7 @@ select_best_function:
                                   node_operator_is(assignment_op, eok_assign));
                 }  /* if */
                 *processed = TRUE;
+                insert_temporary_initialization(temp_init_expr, result);
               } else {
                 /* Look for a suitable operator= function. */
                 /* Again, we specify has_predef_meaning TRUE so we can issue
