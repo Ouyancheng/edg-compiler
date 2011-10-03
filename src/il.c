@@ -19038,7 +19038,6 @@ operand.
 
   switch (op) {
     case eok_address_of:
-    case eok_handle_to:
     case eok_lvalue_cast:
     case eok_ref_cast:
     case eok_lvalue_adjust:
@@ -22461,7 +22460,7 @@ Definition of the bits in lvalue_rvalue_test.
 static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_address_of: */			LVRV_OPND1_IS_LVALUE,
   /* eok_reference_to: */		LVRV_NO_REQUIREMENTS,
-  /* eok_handle_to: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_handle_to: */			LVRV_NO_REQUIREMENTS,
   /* eok_indirect: */			LVRV_OPND1_IS_RVALUE,
   /* eok_ref_indirect: */		LVRV_OPND1_IS_RVALUE,
   /* eok_cast: */			LVRV_OPND1_IS_RVALUE,
