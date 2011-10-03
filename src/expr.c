@@ -8373,23 +8373,18 @@ result in *result (or an error indication in *rcblock).
       /* The operand of "%" must have a ref or interface class type. */
       error_in_operand(ec_handle_of_non_managed, &operand);
       make_error_operand(result);
-    } else if (is_an_lvalue(&operand) || template_case) {
+    } else {
       /* Make an eok_handle_to node for the operation.  Note that a handle
-         is never considered constant. */
+         is never considered constant.  Also note that the operand can be
+         an rvalue. */
       if (template_case) {
-        prep_generic_operand_full(&operand,
-                                  /*lvalue_expected=*/TRUE,
-                                  /*rvalue_expected=*/FALSE);
+        prep_generic_operand(&operand);
       }  /* if */
       expr = make_node_from_operand(&operand);
       change_ref_kinds(operand.ref_entries_list, SRK_ADDRESS_TAKEN);
       expr = make_operator_node((an_expr_operator_kind)eok_handle_to,
                                 make_handle_type(expr->type), expr);
       make_expression_operand(expr, result);
-    } else {
-      /* "%" applied to something that is not an lvalue. */
-      error_in_operand(ec_expr_not_an_lvalue, &operand);
-      make_error_operand(result);
     }  /* if */
   }  /* if */
 

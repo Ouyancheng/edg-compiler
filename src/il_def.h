@@ -12729,7 +12729,9 @@ enum an_expr_operator_kind_tag {
 			   applied to a class rvalue, where it produces a
 			   reference to the class object in memory. */
   eok_handle_to,	/* C++/CLI unary "%" operator, which returns a handle
-			   to its operand.  See also eok_handle_to_box. */
+			   to its operand.  The operand must have a ref class
+			   or interface class type, and can be an lvalue or
+			   an rvalue.  See also eok_handle_to_box. */
   eok_indirect,		/* Pointer de-reference operator ("*"). */
   eok_ref_indirect,	/* Implicit indirection through a reference to get an
 			   lvalue, i.e., the reference equivalent of
