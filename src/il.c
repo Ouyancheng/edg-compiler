@@ -11968,39 +11968,6 @@ end_of_routine:
   return result_scope;
 }  /* find_scope_of_type */
       
-
-static a_scope_ptr scope_of_local_variable(a_variable_ptr variable)
-/*
-Determine the scope of the indicated local variable and return it.
-innermost_function_scope must be set to indicate the function containing
-the variable or the variable's scope must be on the scope stack.
-*/
-{
-  a_scope_ptr scope = NULL;
-
-  if (innermost_function_scope != NULL) {
-    scope = find_scope_of_variable(variable, innermost_function_scope);
-  }  /* if */
-  if (scope == NULL && depth_scope_stack != NO_SCOPE_DEPTH) {
-    /* While we are still in the front end proper, the subscopes pointer in
-       innermost_function_scope is not set yet.  Use the scope stack to
-       find the subscopes. */
-    a_scope_stack_entry_ptr ssep;
-    for (ssep = &scope_stack[depth_scope_stack];
-         ssep != NULL;
-         ssep = previous_scope_of(ssep)) {
-      if (ssep->il_scope != NULL) {
-        scope = find_scope_of_variable(variable, ssep->il_scope);
-        if (scope != NULL) break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  check_assertion_str(scope != NULL,
-                      "scope_of_local_variable: scope not found");
-  return scope;
-}  /* scope_of_local_variable */
-
-
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_local_static_variable_init_ptr find_local_static_variable_init(
@@ -12060,7 +12027,7 @@ or the variable's scope must be on the scope stack.
 #if !STANDALONE_UTILITY_PROGRAM
     if (var_scope == NULL) {
       /* Determine the scope of the variable. */
-      var_scope = scope_of_local_variable(variable);
+      var_scope = get_parent_scope_of(variable);
     }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
     lsvip = find_local_static_variable_init(variable, var_scope);
