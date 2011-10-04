@@ -4482,8 +4482,9 @@ no error is issued and implicit_value is TRUE, *constant is incremented.
                            &max_integer_value_of_kind[
                                     unsigned_int_kind_of[underlying_kind]]);
         if (int_kind_is_signed[underlying_kind]) {
-          sign_extend_integer_value(&constant->variant.integer_value,
-                                    underlying_type->size*targ_char_bit);
+          sign_extend_integer_value(
+                                  &constant->variant.integer_value,
+                                  (int)(underlying_type->size*targ_char_bit));
         }  /* if */
       } else {
         pos_ty_error(ec_enum_value_out_of_underlying_range, &error_position,
