@@ -282,7 +282,6 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(769,ec_generated_c_plus_plus)*/
 /*lint -esym(759,get_param_for_param_ref)*/
 /*lint -esym(765,get_param_for_param_ref)*/
-/*lint -esym(769,al_id_equivalent_as_postfix)*/
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -esym(759,form_calling_convention)*/
 /*lint -esym(765,form_calling_convention)*/
