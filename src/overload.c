@@ -11363,8 +11363,11 @@ are considered).  conv_context describes the context of the conversion.
                                 ptp->type_involves_deduced_template_param,
                                 /*try_user_conversions=*/FALSE,
                                 &this_match);
-    } else if (source_operand != NULL &&
-               !(cppcli_enabled && is_handle_type(source_type))) {
+    } else if (source_operand != NULL
+#if MICROSOFT_EXTENSIONS_ALLOWED
+               && !(cppcli_enabled && is_handle_type(source_type))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+              ) {
       selector_match_with_this_param(source_operand,
                                      conversion_routine,
                                      eff_this_param_type,
