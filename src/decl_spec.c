@@ -4454,15 +4454,42 @@ no error is issued and implicit_value is TRUE, *constant is incremented.
   underlying_type = integer_type(underlying_kind);
   if (implicit_value) {
     if (is_max_value_for_integer_kind(constant, underlying_kind)) {
-      type_error(ec_enum_value_out_of_underlying_range, underlying_type);
-      *err = TRUE;
+      /* The implicit increment produces a value that cannot be represented
+         by the underlying type.  Ordinarily, this is an error, but Microsoft
+         compilers just wrap the value around. */
+      if (microsoft_mode) {
+        pos_ty_warning(ec_enum_value_out_of_underlying_range, &error_position,
+                       underlying_type);
+        constant->variant.integer_value =
+                                   min_integer_value_of_kind[underlying_kind];
+      } else {
+        pos_ty_error(ec_enum_value_out_of_underlying_range, &error_position,
+                     underlying_type);
+        *err = TRUE;
+      }  /* if */
     } else {
       incr_integer_value(&constant->variant.integer_value);
     }  /* if */
   } else {
     if (!in_range_for_integer_kind(constant, constant, underlying_kind)) {
-      type_error(ec_enum_value_out_of_underlying_range, underlying_type);
-      *err = TRUE;
+      if (microsoft_mode) {
+        pos_ty_warning(ec_enum_value_out_of_underlying_range, &error_position,
+                       underlying_type);
+        /* Truncate the specified value to the length of the underlying type
+           (taking care to extend the sign bit as needed).  E.g., 1000
+           truncated to "signed char" becomes -24. */
+        and_integer_values(&constant->variant.integer_value,
+                           &max_integer_value_of_kind[
+                                    unsigned_int_kind_of[underlying_kind]]);
+        if (int_kind_is_signed[underlying_kind]) {
+          sign_extend_integer_value(&constant->variant.integer_value,
+                                    underlying_type->size*targ_char_bit);
+        }  /* if */
+      } else {
+        pos_ty_error(ec_enum_value_out_of_underlying_range, &error_position,
+                     underlying_type);
+        *err = TRUE;
+      }  /* if */
     } else {
       a_boolean  did_not_fold = FALSE;
       type_change_constant(constant, underlying_type,
