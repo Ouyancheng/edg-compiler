@@ -1,5 +1,14 @@
 Version 4.4
 
+10/4/11  [EDGcpfe/12287]
+Rare spurious correspondence error on some template definitions
+
+When simultaneously compiling multiple translation units in configurations
+that set USE_LONG_DOUBLE_FOR_HOST_FP_VALUE to TRUE, the front end occasionally
+reported a spurious correspondence error on some template definitions that
+contain floating point literals.  This rare problem is now fixed.
+
+
 10/4/11  [EDGcpfe/12251]
 Microsoft compatibility: enumerator constant overflow
 

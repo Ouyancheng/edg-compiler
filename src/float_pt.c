@@ -1863,6 +1863,9 @@ before setting it if there are unused bits.
   a_host_fp_value	temp;
 
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+  /* Clear temp: Don't use assignment because on some platforms the
+     non-significant bytes wouldn't be cleared. */
+  memzero((char *)&temp, sizeof(a_host_fp_value));
   /* Convert the number. */
   temp = str_to_long_double(str);
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
