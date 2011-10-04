@@ -10883,8 +10883,10 @@ it can be indicated by passing it as source_type, and source_operand
 will be ignored.
 
 Usually, this routine is called for standard conversion functions and
-source_operand has a class type.  When cppcli_atypical_case is TRUE,
-however, we are looking for C++/CLI static conversion functions declared
+source_operand has a class type.  However, in C++/CLI, conv_funcs_class
+can be non-NULL to specify the class in which we should look for
+conversion functions.  In particular, when cppcli_atypical_case is TRUE
+we are looking for C++/CLI static conversion functions declared
 in the class identified by conv_funcs_class, and the source or
 destination type will be a managed class or a handle to a managed
 class (or reference to a managed class, for the destination type).
@@ -10958,14 +10960,14 @@ are considered).  conv_context describes the context of the conversion.
     check_assertion(source_operand != NULL);
     source_type = source_operand->type;
   }  /* if */
-  if (!cppcli_atypical_case) {
+  if (conv_funcs_class == NULL) {
     check_assertion_str(is_class_struct_union_type(source_type),
                        "try_conversion_function_match_full: source not class");
-    check_assertion(conv_funcs_class == NULL);
     conv_funcs_class = skip_typerefs(source_type);
   } else {
-    /* C++/CLI atypical case. */
-    check_assertion(conv_funcs_class != NULL &&
+    /* C++/CLI case where we specify the class containing the conversion
+       functions. */
+    check_assertion(cppcli_enabled &&
                     is_immediate_class_type(conv_funcs_class));
   }  /* if */
   /* If the class in which we want to look for conversion functions is a
@@ -11361,7 +11363,8 @@ are considered).  conv_context describes the context of the conversion.
                                 ptp->type_involves_deduced_template_param,
                                 /*try_user_conversions=*/FALSE,
                                 &this_match);
-    } else if (source_operand != NULL) {
+    } else if (source_operand != NULL &&
+               !(cppcli_enabled && is_handle_type(source_type))) {
       selector_match_with_this_param(source_operand,
                                      conversion_routine,
                                      eff_this_param_type,
@@ -14582,6 +14585,30 @@ conversion.
                                         conv_context,
                                         &candidate_functions);
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (cppcli_enabled && is_handle_type(source_type)) {
+        a_type_ptr conv_funcs_class =
+                                 f_skip_typerefs(type_pointed_to(source_type));
+        if (is_managed_class_type(conv_funcs_class)) {
+          /* Try a conversion from a handle to class to another type by
+             looking for normal conversion functions in the class that
+             convert to the destination type. */
+          try_conversion_function_match_full(source_operand,
+                                             (a_type_ptr)NULL,
+                                             dest_type,
+                                             dest_type,
+                                             (a_builtin_type_kind_set)BTK_NONE,
+                                             /*cppcli_atypical_case=*/FALSE,
+                                             /*only_std_funcs=*/FALSE,
+                                             conv_funcs_class,
+                                             /*need_lvalue_result=*/FALSE,
+                                             adjusted_is_copy_initialization,
+                                             orig_is_copy_initialization,
+                                             is_reference_binding,
+                                             conv_context,
+                                             &candidate_functions);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (cppcli_enabled && is_managed_class_type(dest_type)) {
