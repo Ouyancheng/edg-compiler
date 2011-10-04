@@ -3786,11 +3786,10 @@ Generate the given attribute (not including the attribute group delimiters).
 
 
 static void gen_attribute_group_start(an_attribute_ptr  ap,
-                                      a_boolean         primary_decl)
+                                      a_boolean         postfix_position)
 /*
 Generate the beginning of the attribute group associated with the given
-attribute.  If primary_decl is TRUE, this appears on a primary declaration
-(usually, a definition): This affects the rendering of whitespace for
+attribute.  If postfix_position is TRUE, a space should be put out before
 al_id_equivalent attributes.
 */
 {
@@ -3801,7 +3800,7 @@ al_id_equivalent attributes.
   if (ap->syntactic_location != (a_byte_attribute_location)al_prefix &&
       ap->syntactic_location != (a_byte_attribute_location)al_base_specifier &&
       (ap->syntactic_location != (a_byte_attribute_location)al_id_equivalent ||
-       !primary_decl)) {
+       postfix_position)) {
     write_space();
   }  /* if */
   switch (ap->family) {
@@ -3821,12 +3820,11 @@ al_id_equivalent attributes.
 
 
 static void gen_attribute_group_end(an_attribute_ptr  ap,
-                                    a_boolean         primary_decl)
+                                    a_boolean         postfix_position)
 /*
 Generate the end of the attribute group associated with the given attribute.
-If primary_decl is TRUE, this appears on a primary declaration (usually, a
-definition): This affects the rendering of whitespace for al_id_equivalent
-attributes.
+If postfix_position is FALSE, a space should be put out following
+al_id_equivalent attributes.
 */
 {
   switch (ap->family) {
@@ -3847,7 +3845,7 @@ attributes.
   if (ap->syntactic_location == (a_byte_attribute_location)al_prefix ||
       ap->syntactic_location == (a_byte_attribute_location)al_base_specifier ||
       (ap->syntactic_location == (a_byte_attribute_location)al_id_equivalent &&
-       primary_decl)) {
+       !postfix_position)) {
     write_space();
   }  /* if */
 }  /* gen_attribute_group_end */
@@ -3864,7 +3862,15 @@ marked as being associated with the primary declaration.
 {
   an_attribute_ptr        ap;
   an_attribute_group_ptr  agp = NULL;
+  a_boolean               postfix_position = FALSE;
 
+  if (syntactic_location ==
+                      (a_byte_attribute_location)al_id_equivalent_as_postfix) {
+    /* This call puts out al_id_equivalent attributes in a postfix position
+       instead of the normal prefix position. */
+    syntactic_location = (a_byte_attribute_location)al_id_equivalent;
+    postfix_position = TRUE;
+  }  /* if */
   for (ap = attributes; ap != NULL; ap = ap->next) {
     /* Internal attributes didn't appear in the source: Don't render them. */
     if (ap->family == (a_byte_attribute_family)af_internal) continue;
@@ -3883,14 +3889,14 @@ marked as being associated with the primary declaration.
     }  /* if */
     if (primary_only && !ap->on_primary_declaration) continue;
     if (ap->group != agp) {
-      gen_attribute_group_start(ap, primary_only);
+      gen_attribute_group_start(ap, postfix_position);
       agp = ap->group;
     } else {
       write_tok_str(", ");
     }  /* if */
     gen_attribute(ap);
     if (ap->next == NULL || ap->group != ap->next->group) {
-      gen_attribute_group_end(ap, primary_only);
+      gen_attribute_group_end(ap, postfix_position);
     }  /* if */
   }  /* if */
 }  /* gen_attributes */
@@ -5519,7 +5525,7 @@ default arguments should be suppressed (needed for template specializations).
           in_parameter_pack_declaration = saved_in_parameter_pack_declaration;
         }  /* if */
         gen_attributes(param->attributes, al_postfix, /*primary_only=*/FALSE);
-        gen_attributes(param->attributes, al_id_equivalent,
+        gen_attributes(param->attributes, al_id_equivalent_as_postfix,
                        /*primary_only=*/FALSE);
         if (!suppress_def_args) {
           /* Put out a default argument expression if there is one. */
@@ -6394,7 +6400,8 @@ declaration following this one is such a continuation.
     }  /* if */
   }  /* if */
   gen_attributes(attributes, al_postfix, /*primary_only=*/FALSE);
-  gen_attributes(attributes, al_id_equivalent, /*primary_only=*/FALSE);
+  gen_attributes(attributes, al_id_equivalent_as_postfix,
+                 /*primary_only=*/FALSE);
   /* See if there are comma-separated declarations attached to this one. */
   *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
                                                (a_name_linkage_kind)nlk_none);
@@ -6852,7 +6859,7 @@ declaration following this one is such a continuation.
                         type->variant.typeref.surrounding_name_linkage_state);
   }  /* if */
   gen_attributes(attributes, al_postfix, sec_decl != NULL);
-  gen_attributes(attributes, al_id_equivalent, sec_decl != NULL);
+  gen_attributes(attributes, al_id_equivalent_as_postfix, sec_decl != NULL);
   type->typedef_definition_has_been_put_out = TRUE;
   if (innermost_function_scope == NULL) {
     /* This typedef is in namespace or class scope, so it can potentially
@@ -14128,7 +14135,7 @@ this one is such a continuation.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   gen_attributes(attributes, al_postfix, is_definition);
-  gen_attributes(attributes, al_id_equivalent, is_definition);
+  gen_attributes(attributes, al_id_equivalent_as_postfix, is_definition);
   /* Output the initializer, if any. */
   if (consider_initialization) {
     gen_initializer(var, is_condition);
@@ -15235,7 +15242,7 @@ handle_as_definition:
     /* "Id-equivalent attributes" are best rendered at the end of a
        declarator, except for function definitions (where postfix attributes
        are not allowed). */
-    gen_attributes(attributes, al_id_equivalent, is_definition);
+    gen_attributes(attributes, al_id_equivalent_as_postfix, is_definition);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (rout->overridden_functions != NULL &&
         is_immediate_managed_class_type(parent_class)) {

@@ -2135,6 +2135,11 @@ typedef enum an_attribute_location_tag {
 			   but it is passed into some routines to indicate
 			   that an operation should apply to all non-implicit
 			   attributes. */
+  al_id_equivalent_as_postfix,
+			/* This value is never recorded in attribute entries,
+			   but it is used by the C++-generating back end to
+			   match al_id_equivalent attributes when they are
+			   being generated in the postfix position. */
   al_last
 } an_attribute_location;
 

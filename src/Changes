@@ -1,5 +1,21 @@
 Version 4.4
 
+10/4/11  [EDGcpfe/12311]
+C++-generating back end, GNU compatibility: missing space before postfix
+attributes
+
+The C++-generating back end normalizes the position of GNU attributes that
+apply to the declarator by putting them out in the postfix position when
+that is permissible.  When putting out such an attribute that appeared in
+the prefix position in the original source, however, the C++-generating
+back end failed to separate the attribute from the declarator with a space,
+resulting in incorrect code.  This is now fixed.  For example:
+
+  static char * __attribute__ ((__section(".init.data"))) x;
+  // Previously generated as
+  // static char *x__attribute((__section(".init.data" )));
+
+
 10/3/11  [EDGcpfe/11870]
 Abort on nontype template argument that refers to a local static constant
 
