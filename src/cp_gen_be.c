@@ -3868,7 +3868,7 @@ marked as being associated with the primary declaration.
                       (a_byte_attribute_location)al_id_equivalent_as_postfix) {
     /* This call puts out al_id_equivalent attributes in a postfix position
        instead of the normal prefix position. */
-    syntactic_location = (a_byte_attribute_location)al_id_equivalent;
+    syntactic_location = (an_attribute_location)al_id_equivalent;
     postfix_position = TRUE;
   }  /* if */
   for (ap = attributes; ap != NULL; ap = ap->next) {
