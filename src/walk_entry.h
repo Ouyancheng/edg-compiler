@@ -1708,6 +1708,12 @@ do_set_proper_definition_needed_flag:
             walk_ptr(ptr->variant.cli_pattern.movenext_call_expression,
                      an_expr_node_ptr, iek_expr_node);
             break;
+          case sfepk_cli_array_pattern:
+            remap_ptr(ptr->variant.cli_array_pattern.upper_bound_vars,
+                      a_variable_ptr, iek_variable);
+            remap_ptr(ptr->variant.cli_array_pattern.loop_vars,
+                      a_variable_ptr, iek_variable);
+            break;
           default:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad for each kind");

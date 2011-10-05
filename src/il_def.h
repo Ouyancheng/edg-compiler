@@ -14199,6 +14199,9 @@ enum a_for_each_pattern_kind_tag {
   sfepk_stl_pattern,    /* The collection type conforms to the STL pattern. */
   sfepk_cli_pattern,    /* The collection type conforms to the C++/CLI 
                            pattern. */
+  sfepk_cli_array_pattern,
+                        /* The collection type is a CLI array type (a special
+                           case of the CLI collection pattern). */
   sfepk_array_pattern   /* The collection type is an array. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -14208,9 +14211,10 @@ typedef a_byte a_for_each_pattern_kind;
 /*
 Information about a "for each" statement, pointed to from a stmk_for_each
 statement.  The type of the collection used in the for-each statement conforms
-to one of three patterns: the C++/CLI collection pattern, the STL pattern, or
-the array pattern.  Depending on the kind of pattern, there are several
-possible rewritings of the for-each statement
+to one of four patterns: the C++/CLI collection pattern, the STL pattern,
+the CLI array pattern, or the (native) array pattern.  Depending on
+the kind of pattern, there are several possible rewritings of the
+for-each statement
 
   for each (T t in c) <statement>
 
@@ -14243,7 +14247,7 @@ C, E, and I are determined from their initializing expressions.
     I cend = cref.end();
     I i = cref.begin();
     for (; i != cend; ++i) {
-      T t = *i;
+      T t = static_cast<T>(*i);
       <statement>
     }
   }
@@ -14253,8 +14257,25 @@ C, E, and I are determined from their initializing expressions.
     I *cend = &cref[0]+c_num_elements;
     I *i = cref;
     for (; i != cend; ++i) {
-      T t = *i;
+      T t = static_cast<T>(*i);
       <statement>
+    }
+  }
+
+  // Case E, CLI array pattern
+  { C ^cref = c;
+    int upper0 = cref->GetUpperBound(0);
+    int upper1 = cref->GetUpperBound(1);
+    // etc. for remaining bounds
+    int i0 = cref->GetLowerBound(0);
+    int i1 = cref->GetLowerBound(1);
+    // etc. for remaining bounds
+    for (; i0 <= upper0; i0++) {
+      for (; i1 <= upper1; i1++) {
+        // etc. for remaining bounds
+        T t = safe_cast<T>(cref[i0, i1, ...]);
+        <statement>
+      }
     }
   }
 
@@ -14266,13 +14287,16 @@ typedef struct a_for_each_loop {
   a_variable_ptr
 		iterator;
 			/* Pointer to the iteration variable ("t" above).
-			   Dynamically initialized to the appropriate value,
-			   i.e.: "safe_cast<T>(e->Current)" when kind is
-			   sfepk_cli_pattern and "e" is a handle type,
-			   "safe_cast<T>(e.Current)" when kind is
-			   sfepk_cli_pattern and "e" is not a handle type and
-			   "*i" with the conversion to type T when kind is
-			   sfepk_stl_pattern or sfepk_array_pattern. */
+			   Dynamically initialized to the appropriate value:
+			   -- For sfepk_cli_pattern and "e" a handle type,
+			       safe_cast<T>(e->Current)
+			   -- For sfepk_cli_pattern and "e" not a handle type,
+			        safe_cast<T>(e.Current)
+			   -- For sfepk_cli_array_pattern,
+			        safe_cast<T>(cref[i0, i1, ...])
+			   -- For sfepk_stl_pattern or sfepk_array_pattern,
+			        static_cast<T>(*i)
+			*/
   a_variable_ptr
 		collection_expr_ref;
 			/* The cref variable shown above.  Its initial value
@@ -14287,7 +14311,8 @@ typedef struct a_for_each_loop {
 			   statement.  It corresponds to the outermost set
 			   of braces shown above, and the cref, e, i, and cend
 			   variables shown above are declared in that scope.
-			   The collection expression is also evaluated in this
+			   (Also the extra variables in the CLI array case.)
+			   The collection expression is evaluated in this
 			   scope. */
   a_scope_ptr	iterator_scope;
 			/* An sck_block scope added immediately inside the
@@ -14300,10 +14325,16 @@ typedef struct a_for_each_loop {
 			   variable "e" when kind is sfepk_cli_pattern or "i"
 			   when kind is sfepk_stl_pattern or
 			   sfepk_array_pattern.  Dynamically initialized to
-			   "c.GetEnumerator()" when kind is sfepk_cli_pattern,
-			   "c.begin()" when kind is sfepk_stl_pattern, and
-			   "&c[0]" when kind is sfepk_array_pattern.  NULL
-			   if there was an error. */
+			   the appropriate value:
+			   -- For sfepk_cli_pattern,
+			        c.GetEnumerator()
+			   -- For sfepk_stl_pattern,
+			        c.begin()
+			   -- For sfepk_array_pattern,
+			        &c[0] (or equivalent for multi-dim array)
+			   NULL for sfepk_cli_array_pattern (the variable is
+			   not needed; loop_vars takes its place).  NULL if
+			   there was an error. */
   a_for_each_pattern_kind
 		kind;   /* Kind of pattern to which the collection type
 			   conforms. */
@@ -14327,6 +14358,22 @@ typedef struct a_for_each_loop {
 		movenext_call_expression;
 			/* Expression for the "MoveNext" call to be tested. */
     } cli_pattern;
+    /* When kind is sfepk_cli_array_pattern: */
+    struct {
+      a_variable_ptr
+		upper_bound_vars;
+			/* Upper bound variables (upper0, upper1, etc. above),
+			   linked by the "next" field.  Note that this list
+			   continues into the loop variables, so you have to
+			   use loop_vars to check for the end of the list, or
+			   count variables.  In the for-each scope.  Each
+			   variable is initialized to cref.GetUpperBound(n). */
+      a_variable_ptr
+		loop_vars;
+			/* Loop variables (i0, i1, etc. above), linked by the
+			   "next" field.  In the for-each scope.  Each variable
+			   is initialized to cref.GetLowerBound(n). */
+    } cli_array_pattern;
   } variant;
 } a_for_each_loop;
 

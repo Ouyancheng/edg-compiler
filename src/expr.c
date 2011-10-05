@@ -27908,6 +27908,7 @@ static a_boolean make_for_each_user_defined_function_call(
                               a_symbol_ptr            symbol,
                               a_source_position       *pos,
                               a_token_sequence_number tok_seq_number,
+                              an_operand              *argument,
                               an_operand              *result)
 /*
 This routine performs overload resolution and generates the expression for
@@ -27917,18 +27918,26 @@ source position where the call to this function is considered to occur
 (usually the position of the collection expression).  tok_seq_number is the
 sequence number of the first token of the collection expression.  The function
 is called with an empty argument list (a function with only default arguments
-is valid here although Visual C++ rejects it).  Return TRUE if the member
-function is found and all semantic checks pass, FALSE otherwise.  *result is
-set to an operand for the function call expression.
+is valid here although Visual C++ rejects it), unless argument is non-NULL,
+in which case that is used as a single argument for the call.
+Return TRUE if the member function is found and all semantic checks
+pass, FALSE otherwise.  *result is set to an operand for the function
+call expression.
 */
 {
-  a_boolean         passed = FALSE;
-  a_boolean         member_function_found = FALSE;
-  an_expr_node_ptr  argument_list;
-  an_operand        function_operand;
-  an_expr_node_ptr  func_call_node;
-  a_boolean         dependent_function = FALSE;
+  a_boolean          passed = FALSE;
+  a_boolean          member_function_found = FALSE;
+  an_expr_node_ptr   argument_list;
+  an_operand         function_operand;
+  an_expr_node_ptr   func_call_node;
+  a_boolean          dependent_function = FALSE;
+  an_arg_operand_ptr arg_operand_list = NULL;
 
+  if (argument != NULL) {
+    arg_operand_list = alloc_arg_operand();
+    copy_operand(argument, &arg_operand_list->operand);
+    /* select_and_prepare_to_call_overloaded_function will free the list. */
+  }  /* if */
   /* Determine which function will be called. */
   if (select_and_prepare_to_call_overloaded_function(
                                         symbol,
@@ -27936,7 +27945,7 @@ set to an operand for the function call expression.
                                         (a_template_arg_ptr)NULL,
                                         /*have_selector=*/TRUE,
                                         bound_function_selector,
-                                        (an_arg_operand_ptr)NULL,
+                                        arg_operand_list,
                                         /*do_arg_dep_lookup=*/FALSE,
                                         /*try_surrogate_functions=*/FALSE,
                                         /*is_property=*/FALSE,
@@ -27997,6 +28006,7 @@ static a_boolean check_for_each_user_defined_function(
                               char                    *function_name,
                               a_source_position       *pos,
                               a_token_sequence_number tok_seq_number,
+                              an_operand              *argument,
                               an_operand              *result)
 /*
 This routine attempts to look up a function named function_name in the
@@ -28009,10 +28019,12 @@ function is considered to occur (usually the position of the
 collection expression).  tok_seq_number is the sequence number of the
 first token of the collection expression.  The function is called with
 an empty argument list (a function with only default arguments is
-valid here although Visual C++ rejects it).  Return TRUE if the member
-function is found and all semantic checks pass, FALSE otherwise.
-Also return FALSE for a case where a non-real function is found.
-*result is set to an operand for the function call expression.
+valid here although Visual C++ rejects it), unless argument is non-NULL,
+in which case that is used as a single argument for the call.
+Return TRUE if the member function is found and all semantic checks
+pass, FALSE otherwise.  Also return FALSE for a case where a non-real
+function is found.  *result is set to an operand for the function call
+expression.
 */
 {
   a_symbol_ptr     symbol;
@@ -28036,6 +28048,7 @@ Also return FALSE for a case where a non-real function is found.
     passed = make_for_each_user_defined_function_call(bound_function_selector,
                                                       locator.specific_symbol, 
                                                       pos, tok_seq_number,
+                                                      argument,
                                                       result);
   }  /* if */
   return passed;
@@ -28300,6 +28313,7 @@ created, needed to reactivate that scope.
                                             "GetEnumerator",
                                             &pos,
                                             tok_seq_number,
+                                            (an_operand *)NULL,
                                             &getenumerator_operand)) {
     /* Diagnostic was already issued, or a dependent case. */
     passed = FALSE;
@@ -28342,6 +28356,7 @@ created, needed to reactivate that scope.
                                               "MoveNext",
                                               &pos,
                                               tok_seq_number,
+                                              (an_operand *)NULL,
                                               &movenext_call_operand)) {
       passed = FALSE;
     } else {
@@ -28406,13 +28421,201 @@ created, needed to reactivate that scope.
       /* Pop the iterator scope off the scope stack. */
       pop_block_scope(/*is_final_pop=*/FALSE);
     }  /* if */
-  }
+  }  /* if */
   if (passed) {
     /* Fill the a_for_each_loop IL supplement. */
     felp->kind = (a_for_each_pattern_kind)sfepk_cli_pattern;
     felp->variant.cli_pattern.movenext_call_expression = movenext_call_expr;
   }  /* if */
 }  /* check_for_each_cli_collection_pattern */
+
+
+static void check_for_each_cli_array_pattern(
+                              a_for_each_loop_ptr        felp,
+                              a_token_sequence_number    tok_seq_number,
+                              a_scope_pointers_block_ptr pointers_block)
+/*
+This routine checks a statement of kind stmk_for_each for semantic
+correctness against the CLI array pattern.
+
+  for each (T t in c) <statement>
+
+T is the type of the iteration variable t.  c is the collection
+expression, which is a CLI array or handle to such an array.
+
+felp holds information about the for-each loop.  tok_seq_number is the
+sequence number of the first token of the collection expression.
+pointers_block is the pointers block for the iterator scope previously
+created, needed to reactivate that scope.
+*/
+{
+  a_boolean           passed = TRUE;
+  a_type_ptr          collection_type, element_type;
+  an_expr_stack_entry expr_stack_entry;
+  int                 num_bounds, bound;
+  a_boolean           unknown;
+  an_operand          operand, bound_num_operand;
+  an_operand          bound_function_selector;
+  a_source_position   pos;
+
+  /* We should be in the for-each scope at this point. */
+  check_assertion(felp->for_each_scope == scope_stack_top().il_scope);
+  /* The CLI array version of the for-each statement is executed as follows:
+
+       { C %cref = c;
+         int upper0 = cref.GetUpperBound(0);
+         int upper1 = cref.GetUpperBound(1);
+         // etc. for remaining bounds
+         int i0 = cref.GetLowerBound(0);
+         int i1 = cref.GetLowerBound(1);
+         // etc. for remaining bounds
+         for (; i0 <= upper0; i0++) {
+           for (; i1 <= upper1; i1++) {
+             // etc. for remaining bounds
+             T t = safe_cast<T>(cref[i0, i1, ...]);
+             <statement>
+           }
+         }
+       }
+  */
+  /* Get the CLI array type. */
+  collection_type = felp->collection_expr_ref->type;
+  if (is_any_reference_type(collection_type) ||
+      is_handle_type(collection_type)) {
+    collection_type = type_pointed_to(collection_type);
+  }  /* if */
+  element_type = cli_array_element_type(collection_type);
+  /* Get the number of bounds of the CLI array. */
+  num_bounds = (int)cli_array_rank(collection_type, &unknown);
+  if (unknown) {
+    /* For an error or dependent number of bounds, we can't do anything
+       more. */
+    passed = FALSE;
+  } else {
+    check_assertion(num_bounds > 0);
+  }  /* if */
+  if (passed) {
+    /* Loop for the upper bound variables then the loop variables (i.e.,
+       twice around the outer loop). */
+    int outer;
+    for (outer = 0; outer < 2 && passed; outer++) {
+#if CHECKING
+      a_variable_ptr prev_var = NULL;
+#endif /* CHECKING */
+      /* Loop for each bound of the CLI array. */
+      for (bound = 0; bound < num_bounds && passed; bound++) {
+        /* Generate the "cref.GetLowerBound(n)" or "cref.GetUpperBound(n)"
+           expression. */
+        push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                        /*force_object_lifetime=*/FALSE,
+                        /*suppress_object_lifetime=*/FALSE);
+        make_collection_expression_operand(felp, &bound_function_selector);
+        make_integer_constant_operand(&bound_num_operand,
+                                      (a_host_large_integer)bound);
+        /* Look up the "GetLowerBound" or "GetUpperBound" member function
+           and generate IL for the function call. */
+        if (!check_for_each_user_defined_function(&bound_function_selector,
+                                                  (outer == 0) ?
+                                                              "GetUpperBound" :
+                                                              "GetLowerBound",
+                                                  &operand.position,
+                                                  tok_seq_number,
+                                                  &bound_num_operand,
+                                                  &operand)) {
+          /* Diagnostic was already issued, or a dependent case. */
+          passed = FALSE;
+        } else {
+          /* Make the upper bound or loop variable and initialize it from
+             the expression just made. */
+          a_variable_ptr var = alloc_temporary_variable(operand.type,
+                                                       /*force_static=*/FALSE);
+          set_variable_initializer(var, &operand);
+          /* Save a pointer to the first of each class of variables. */
+          if (bound == 0) {
+            if (outer == 0) {
+              felp->variant.cli_array_pattern.upper_bound_vars = var;
+            } else {
+              felp->variant.cli_array_pattern.loop_vars = var;
+            }  /* if */
+          }  /* if */
+#if CHECKING
+          /* Make sure there are no extra temporaries interrupting the list
+             we are building. */
+          if (prev_var != NULL) {
+            check_assertion(prev_var->next == var);
+          }  /* if */
+          prev_var = var;
+#endif /* CHECKING */
+        }  /* if */
+        /* Done with the "cref.GetLowerBound(n)" or "cref.GetUpperBound(n)"
+           expression. */
+        pop_expr_stack();
+        /* Loop for the next bound. */
+      }  /* for */
+      /* Loop for the next class of variable. */
+    }  /* for */
+  }  /* if */
+  if (passed) {
+    /* Make the initializer for the iterator variable. */
+    a_variable_ptr iterator = felp->iterator;
+    if (iterator == NULL) {
+      /* Previous error. */
+      passed = FALSE;
+    } else {
+      an_expr_node_ptr          expr, arg_list, end_arg_list;
+      a_variable_ptr            var;
+      a_ruled_out_expr_kind_set ruled_out_expr_kinds = ROEK_NONE;
+      /* Re-push the iterator scope because the initialization of the iterator
+         variable has to be handled in that scope. */
+      push_block_reactivation_scope(felp->iterator_scope, pointers_block);
+      /* Make the "safe_cast<T>(cref[i0, i1, ...])" expression. */
+      push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                      /*force_object_lifetime=*/FALSE,
+                      /*suppress_object_lifetime=*/FALSE);
+      make_collection_expression_operand(felp, &operand);
+      pos = operand.position;
+      expr = make_node_from_operand(&operand);
+      if (!is_handle_type(expr->type)) {
+        /* For the tracking reference case, add a "%" operator to get a
+           handle to the array. */
+        expr = make_operator_node((an_expr_operator_kind)eok_handle_to,
+                                  make_handle_type(expr->type), expr);
+      }  /* if */
+      arg_list = end_arg_list = expr;
+      /* Add the loop variables as subscripts. */
+      for (bound = 0, var = felp->variant.cli_array_pattern.loop_vars;
+           bound < num_bounds;
+           bound++, var = var->next) {
+        check_assertion(var != NULL);
+        expr = var_rvalue_expr(var);
+        end_arg_list->next = expr;
+        end_arg_list = expr;
+      }  /* for */
+      /* Make the CLI subscript operation. */
+      expr = make_lvalue_operator_node(
+                                      (an_expr_operator_kind)eok_cli_subscript,
+                                      element_type, arg_list);
+      make_lvalue_expression_operand(expr, &operand);
+      deduce_auto_type_in_for_each_if_needed(iterator, &operand);
+      /* Check the conversion and generate IL for the safe_cast if
+         necessary. */
+      if (!cast_identical_types(iterator->type, operand.type)) {
+        process_safe_cast(iterator->type, &operand, &pos, &pos,
+                          &ruled_out_expr_kinds);
+      }  /* if */
+      /* Make an initializer for the iterator variable from the expression
+         resulting from the safe_cast. */
+      set_variable_initializer(iterator, &operand);
+      pop_expr_stack();
+      /* Pop the iterator scope off the scope stack. */
+      pop_block_scope(/*is_final_pop=*/FALSE);
+    }  /* if */
+  }  /* if */
+  if (passed) {
+    /* Fill the a_for_each_loop IL supplement. */
+    felp->kind = (a_for_each_pattern_kind)sfepk_cli_array_pattern;
+  }  /* if */
+}  /* check_for_each_cli_array_pattern */
 
 
 static void fill_in_for_each_il(a_for_each_loop_ptr        felp,
@@ -28675,7 +28878,7 @@ created, needed to reactivate that scope.
          I cend = cref.end();
          I i = cref.begin();
          for (; i != cend; ++i) {
-           T t = *i;
+           T t = static_cast<T>(*i);
            <statement>
          }
        }
@@ -28691,6 +28894,7 @@ created, needed to reactivate that scope.
                                             "end",
                                             &pos,
                                             tok_seq_number,
+                                            (an_operand *)NULL,
                                             &end_call_operand)) {
     passed = FALSE;
   }  /* if */
@@ -28710,6 +28914,7 @@ created, needed to reactivate that scope.
                                             "begin",
                                             &pos,
                                             tok_seq_number,
+                                            (an_operand *)NULL,
                                             &begin_call_operand)) {
     passed = FALSE;
   }  /* if */
@@ -28755,8 +28960,8 @@ correctness against the array pattern.  In this example:
 
 T is the type of the iteration variable t.  C is the type of the array c.
 C must be an array of type of I.  I must be type compatible with T.
-Note that C++/CLI arrays match the C++/CLI collection pattern and not the array
-pattern.
+Note that C++/CLI arrays match the C++/CLI array pattern and not the
+(native) array pattern handled here.
 
 felp holds information about the for-each loop.  tok_seq_number is the
 sequence number of the first token of the collection expression.
@@ -28802,7 +29007,7 @@ created, needed to reactivate that scope.
            I *cend = &cref[0]+c_num_elements;
            I *i = &cref[0];
            for (; i != cend; ++i) {
-             T t = *i;
+             T t = static_cast<T>(*i);
              <statement>
            }
          }
@@ -28915,7 +29120,7 @@ up previously in scan_for_each_expression.
     I cend = cref.end();
     I i = cref.begin();
     for (; i != cend; ++i) {
-      T t = *i;
+      T t = static_cast<T>(*i);
       <statement>
     }
   }
@@ -28925,16 +29130,33 @@ up previously in scan_for_each_expression.
     I *cend = &cref[0]+c_num_elements;
     I *i = cref;
     for (; i != cend; ++i) {
-      T t = *i;
+      T t = static_cast<T>(*i);
       <statement>
+    }
+  }
+
+  // Case E, CLI array pattern
+  { C %cref = c;
+    int upper0 = cref.GetUpperBound(0);
+    int upper1 = cref.GetUpperBound(1);
+    // etc. for remaining bounds
+    int i0 = cref.GetLowerBound(0);
+    int i1 = cref.GetLowerBound(1);
+    // etc. for remaining bounds
+    for (; i0 <= upper0; i0++) {
+      for (; i1 <= upper1; i1++) {
+        // etc. for remaining bounds
+        T t = safe_cast<T>(cref[i0, i1, ...]);
+        <statement>
+      }
     }
   }
 
 Cases A and B are used with the C++/CLI collection pattern established
 in 16.2.1.  Case C is intended to follow the collection pattern
 established by the C++ standard template library.  Case D corresponds
-to the array pattern (note that C++/CLI arrays follow the C++/CLI
-collection pattern and not the array pattern).
+to the native array pattern.  Case E is the C++/CLI array pattern, which
+is a special case of the CLI collection pattern.
 
 tok_seq_number is the sequence number of the first token of the collection
 expression.  pointers_block is the pointers block for the iterator scope
@@ -28960,14 +29182,18 @@ previously created, needed to reactivate that scope.
     collection_type = type_pointed_to(collection_type);
   }  /* if */
   complete_type_is_needed(collection_type);
-  /* We test successively for the array, STL, and C++/CLI collection patterns
-     and perform the full semantic checks and IL generation for the first 
-     conforming pattern. */
+  /* We test successively for the array, CLI array, STL, and C++/CLI
+     collection patterns and perform the full semantic checks and
+     IL generation for the first conforming pattern. */
   if (is_error_type(collection_type)) {
     /* Do nothing here to prevent cascading diagnostics. */
   } else if (is_array_type(collection_type)) {
     /* Perform full semantic checks and generate IL for the array pattern. */
     check_for_each_array_pattern(felp, tok_seq_number, pointers_block);
+  } else if (is_cli_array_type(collection_type)) {
+    /* Perform full semantic checks and generate IL for the CLI array
+       pattern. */
+    check_for_each_cli_array_pattern(felp, tok_seq_number, pointers_block);
   } else if (is_class_struct_type(collection_type)) {
     if (is_stl_collection_pattern_candidate(collection_type)) {
       /* Perform full semantic checks and generate IL for the STL pattern. */

@@ -4258,6 +4258,10 @@ Display a for-each statement.
       break;
     case sfepk_stl_pattern:
       (void)printf("sfepk_stl_pattern\n");
+      goto stl_array_pattern;
+    case sfepk_array_pattern:
+      (void)printf("sfepk_array_pattern\n");
+stl_array_pattern:
       disp_ptr("end_variable",
                (char *)extra_info->variant.stl_array_pattern.end_variable,
                iek_variable);
@@ -4275,14 +4279,14 @@ Display a for-each statement.
                                variant.cli_pattern.movenext_call_expression,
                iek_expr_node);
       break;
-    case sfepk_array_pattern:
-      (void)printf("sfepk_array_pattern\n");
-      disp_ptr("ne_call_expr",
-               (char *)extra_info->variant.stl_array_pattern.ne_call_expr,
-               iek_expr_node);
-      disp_ptr("incr_call_expr",
-               (char *)extra_info->variant.stl_array_pattern.incr_call_expr,
-               iek_expr_node);
+    case sfepk_cli_array_pattern:
+      (void)printf("sfepk_cli_array_pattern\n");
+      disp_ptr("upper_bound_vars",
+               (char *)extra_info->variant.cli_array_pattern.upper_bound_vars,
+               iek_variable);
+      disp_ptr("loop_vars",
+               (char *)extra_info->variant.cli_array_pattern.loop_vars,
+               iek_variable);
       break;
     default:
       (void)printf("**BAD FOR EACH KIND**\n");
