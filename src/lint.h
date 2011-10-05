@@ -127,6 +127,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(759,put_str_into_text_buffer)*/
 /*lint -esym(765,put_str_into_text_buffer)*/
 /*lint -esym(755,complete_template_instance_is_needed)*/
+/*lint -esym(759,is_template_dependent_type_or_cli_generic_param)*/
+/*lint -esym(765,is_template_dependent_type_or_cli_generic_param)*/
 #if !MACRO_INVOCATION_TREE_IN_IL
 /*lint -esym(755,copy_simple_position_to_full_position)*/
 #endif /* !MACRO_INVOCATION_TREE_IN_IL */

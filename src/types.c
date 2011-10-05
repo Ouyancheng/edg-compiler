@@ -11535,7 +11535,6 @@ it is or contains a tk_template_param type entry or a nonreal class.
 }  /* is_template_dependent_type */
 
 
-static
 a_boolean is_template_dependent_type_or_cli_generic_param(a_type_ptr  type_ptr)
 /*
 Return TRUE if the type pointed to by type_ptr is template-dependent, i.e.,
