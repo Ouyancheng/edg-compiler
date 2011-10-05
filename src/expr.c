@@ -28297,15 +28297,6 @@ created, needed to reactivate that scope.
      now. */
   if (is_handle_type(collection_type)) {
     collection_type = type_pointed_to(collection_type);
-    if (is_cli_array_type(collection_type) &&
-        is_qualified_type(collection_type)) {
-      /* Drop cv-qualifiers on a handle-to-CLI-array.  VC10 seems to do
-         that. */
-      collection_type = make_unqualified_type(collection_type);
-      cast_operand(make_handle_type(collection_type),
-                   &bound_function_selector,
-                   /*is_implicit_cast=*/TRUE);
-    }  /* if */
   }  /* if */
   /* Look up the "GetEnumerator" member function and generate IL for
      the function call. */
@@ -28516,8 +28507,8 @@ created, needed to reactivate that scope.
            and generate IL for the function call. */
         if (!check_for_each_user_defined_function(&bound_function_selector,
                                                   (outer == 0) ?
-                                                              "GetUpperBound" :
-                                                              "GetLowerBound",
+                                                      (char *)"GetUpperBound" :
+                                                      (char *)"GetLowerBound",
                                                   &operand.position,
                                                   tok_seq_number,
                                                   &bound_num_operand,
@@ -29261,6 +29252,14 @@ about it in the for-each statement IL entry pointed to by statement.
   collection_type = result.type;
   if (is_handle_type(collection_type)) {
     /* Use a handle. */
+    a_type_ptr under_type = type_pointed_to(collection_type);
+    if (is_cli_array_type(under_type) &&
+        is_qualified_type(under_type)) {
+      /* Drop cv-qualifiers on a handle-to-CLI-array.  VC10 seems to do
+         that. */
+      collection_type = make_handle_type(make_unqualified_type(under_type));
+      cast_operand(collection_type, &result, /*is_implicit_cast=*/TRUE);
+    }  /* if */
     ref_type = collection_type;
   } else if (is_managed_class_type(collection_type)) {
     /* Use a tracking reference. */
