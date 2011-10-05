@@ -28219,6 +28219,28 @@ original collection, and not a copy or re-evaluation thereof.
 }  /* make_collection_expression_operand */
 
 
+static void make_collection_expression_operand_for_cli_array(
+                                               a_for_each_loop_ptr felp,
+                                               an_operand          *operand)
+/*
+Like make_collection_expression_operand, but makes an operand specifically
+for a for-each loop operating on a CLI array.
+*/
+{
+  make_collection_expression_operand(felp, operand);
+  if (is_handle_type(operand->type)) {
+    a_type_ptr under_type = type_pointed_to(operand->type);
+    if (is_qualified_type(under_type)) {
+      /* Drop cv-qualifiers on a handle-to-CLI-array.  VC10 seems to do
+         that. */
+      a_type_ptr adjusted_type =
+                           make_handle_type(make_unqualified_type(under_type));
+      cast_operand(adjusted_type, operand, /*is_implicit_cast=*/TRUE);
+    }  /* if */
+  }  /* if */
+}  /* make_collection_expression_operand_for_cli_array */
+
+
 static void check_for_each_cli_collection_pattern(
                                      a_for_each_loop_ptr        felp,
                                      a_token_sequence_number    tok_seq_number,
@@ -28500,7 +28522,9 @@ created, needed to reactivate that scope.
         push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                         /*force_object_lifetime=*/FALSE,
                         /*suppress_object_lifetime=*/FALSE);
-        make_collection_expression_operand(felp, &bound_function_selector);
+        make_collection_expression_operand_for_cli_array(
+                                                     felp,
+                                                     &bound_function_selector);
         make_integer_constant_operand(&bound_num_operand,
                                       (a_host_large_integer)bound);
         /* Look up the "GetLowerBound" or "GetUpperBound" member function
@@ -28563,7 +28587,7 @@ created, needed to reactivate that scope.
       push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                       /*force_object_lifetime=*/FALSE,
                       /*suppress_object_lifetime=*/FALSE);
-      make_collection_expression_operand(felp, &operand);
+      make_collection_expression_operand_for_cli_array(felp, &operand);
       pos = operand.position;
       expr = make_node_from_operand(&operand);
       if (!is_handle_type(expr->type)) {
@@ -29252,14 +29276,6 @@ about it in the for-each statement IL entry pointed to by statement.
   collection_type = result.type;
   if (is_handle_type(collection_type)) {
     /* Use a handle. */
-    a_type_ptr under_type = type_pointed_to(collection_type);
-    if (is_cli_array_type(under_type) &&
-        is_qualified_type(under_type)) {
-      /* Drop cv-qualifiers on a handle-to-CLI-array.  VC10 seems to do
-         that. */
-      collection_type = make_handle_type(make_unqualified_type(under_type));
-      cast_operand(collection_type, &result, /*is_implicit_cast=*/TRUE);
-    }  /* if */
     ref_type = collection_type;
   } else if (is_managed_class_type(collection_type)) {
     /* Use a tracking reference. */
