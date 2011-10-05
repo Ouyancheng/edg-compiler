@@ -6805,18 +6805,32 @@ TRUE if that is the case.  The current declaration is described by *dps and
 *idlbp; it is a redeclaration if redeclaration is TRUE.
 */
 {
-  a_boolean     result = FALSE;
-  a_symbol_ptr  linked_symbol = idlbp->linked_symbol;
+  a_boolean         result = FALSE;
+  a_symbol_ptr      linked_symbol = idlbp->linked_symbol;
+  an_attribute_ptr  ap;
 
   if (redeclaration && linked_symbol->kind == (a_symbol_kind)sk_routine &&
       linked_symbol->variant.routine.ptr->gnu_c89_inline) {
     /* The routine was previously declared with the gnu_inline attribute. */
     result = TRUE;
+    /* Recent versions of GCC require all subsequent declarations to also
+       specify the gnu_inline attribute. */
+    if (gnu_version >= 40300 &&
+        (dps->prefix_attributes == NULL ||
+         find_attribute(ak_gnu_inline, dps->prefix_attributes) == NULL) &&
+        (dps->id_attributes == NULL ||
+         find_attribute(ak_gnu_inline, dps->id_attributes) == NULL)) {
+      ap = find_attribute(ak_gnu_inline,
+                          linked_symbol->variant.routine.ptr
+                                       ->source_corresp.attributes);
+      check_assertion(ap != NULL);
+      pos2_diagnostic(es_error, ec_missing_gnu_inline_attr_on_redeclaration,
+                      &dps->declarator_pos, &ap->position);
+    }  /* if */
   } else if ((dps->prefix_attributes != NULL || dps->id_attributes != NULL) &&
              idlbp->func_info->is_inline) {
     /* An inline function with attributes.  Check if "gnu_inline" is among
        those attributes. */
-    an_attribute_ptr  ap;
     ap = find_attribute(ak_gnu_inline, dps->prefix_attributes);
     if (ap == NULL) ap = find_attribute(ak_gnu_inline, dps->id_attributes);
     if (ap != NULL) {

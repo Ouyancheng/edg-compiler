@@ -1,5 +1,17 @@
 Version 4.4
 
+10/5/11  [EDGcpfe/11323]
+GNU compatibility: Redeclarations of "gnu_inline" functions
+
+In GNU mode with gnu_version >= 40300, the front end now issues an error if
+a function first declared with the gnu_inline attribute does not specify that
+attribute on subsequent redeclarations.  For example:
+
+  __attribute((gnu_inline)) __inline__ void g();
+  __inline__ void g() {}  // Now an error in some GNU modes because the
+                          // gnu_inline attribute is missing.
+
+
 10/4/11  [EDGcpfe/12287]
 Rare spurious correspondence error on some template definitions
 
