@@ -2311,6 +2311,7 @@ ec_missing_indirect_on_for_each_type;;"there is no appropriate indirection opera
 ec_no_packing_of_non_POD_field;;"packing is ignored for this field of non-POD type %t"
 ec_nonpublic_implicit_interface_match;;"%nd not implemented because this declaration is not public and has no named override specifier"
 ec_missing_gnu_inline_attr_on_redeclaration;;"this declaration is missing the gnu_inline attribute declared %p"
+ec_managed_member_function_cannot_have_ellipsis_parameter;;"a member function of a managed class cannot have an ellipsis parameter"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
