@@ -15751,7 +15751,8 @@ by an "&" operator and *ampersand_position gives its position.
     a_routine_ptr rout = routine_from_function_expr(expr);
     if (rout != NULL &&
         rout->source_corresp.is_class_member &&
-        is_managed_class_type(parent_class_of(rout))) {
+        is_managed_class_type(parent_class_of(rout)) &&
+        routine_type_is_nonstatic_member_function(rout->type)) {
       /* In C++/CLI, it's illegal to take the address of a member of a
          managed class (except in certain exceptional contexts). */
       expr_pos_error(ec_address_of_managed_member_function,
