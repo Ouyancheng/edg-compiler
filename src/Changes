@@ -5,7 +5,8 @@ GNU compatibility: Redeclarations of "gnu_inline" functions
 
 In GNU mode with gnu_version >= 40300, the front end now issues an error if
 a function first declared with the gnu_inline attribute does not specify that
-attribute on subsequent redeclarations.  For example:
+attribute on subsequent redeclarations that are explicitly "inline".
+For example:
 
   __attribute((gnu_inline)) __inline__ void g();
   __inline__ void g() {}  // Now an error in some GNU modes because the

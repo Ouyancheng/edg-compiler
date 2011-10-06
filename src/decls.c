@@ -6813,9 +6813,11 @@ TRUE if that is the case.  The current declaration is described by *dps and
       linked_symbol->variant.routine.ptr->gnu_c89_inline) {
     /* The routine was previously declared with the gnu_inline attribute. */
     result = TRUE;
-    /* Recent versions of GCC require all subsequent declarations to also
-       specify the gnu_inline attribute. */
-    if (gnu_version >= 40300 &&
+    /* Recent versions of GCC require all subsequent declarations that are
+       explicitly declared "inline" to also specify the gnu_inline
+       attribute. */
+    check_assertion(idlbp->func_info != NULL);
+    if (gnu_version >= 40300 && idlbp->func_info->is_inline &&
         (dps->prefix_attributes == NULL ||
          find_attribute(ak_gnu_inline, dps->prefix_attributes) == NULL) &&
         (dps->id_attributes == NULL ||
