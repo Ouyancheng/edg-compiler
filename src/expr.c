@@ -13844,8 +13844,6 @@ See http://msdn.microsoft.com/en-us/library/ms177195.aspx.
       func_type = copy_routine_type_with_param_types(dftype,
                                                   /*copy_default_args=*/FALSE);
       function_type_params(dftype) = ptp;
-      func_type->variant.routine.extra_info->calling_convention =
-                                              (a_calling_convention)cc_clrcall;
       pm_type = ptr_to_member_type(func_type, type_pointed_to(param1_type));
     }  /* if */
   }  /* if */
@@ -13886,7 +13884,6 @@ delegate initializer, given by rcblock->argument_list.
   a_type_ptr     type, needed_type = NULL;
   a_boolean      err = FALSE;
   a_boolean      template_case = FALSE;
-  a_boolean      need_clrcall = FALSE;
   a_source_position
                  start_position;
 
@@ -13945,11 +13942,6 @@ delegate initializer, given by rcblock->argument_list.
     type = function_operand->type;
     if (is_pointer_type(type)) {
       func_type = type_pointed_to(type);
-      if (f_skip_typerefs(func_type)->kind == (a_type_kind)tk_routine &&
-          f_skip_typerefs(func_type)->variant.routine.extra_info
-                    ->calling_convention == (a_calling_convention)cc_clrcall) {
-        need_clrcall = TRUE;
-      }  /* if */
     } else if (is_ptr_to_member_type(type)) {
       func_type = pm_member_type(type);
       class_type = pm_class_type(type);
@@ -13971,14 +13963,6 @@ delegate initializer, given by rcblock->argument_list.
   if (!err) {
     /* Determine the type the function has to match. */
     a_type_ptr dftype = delegate_invocation_type(new_type);
-    if (class_type != NULL || need_clrcall) {
-      /* Make a modified version of dftype that has the __clrcall calling
-         convention that managed class member functions have. */
-      dftype = copy_routine_type_with_param_types(dftype,
-                                                  /*copy_default_args=*/FALSE);
-      dftype->variant.routine.extra_info->calling_convention =
-                                              (a_calling_convention)cc_clrcall;
-    }  /* if */
     if (class_type == NULL) {
       /* The desired type is a pointer to function type. */
       needed_type = make_pointer_type(dftype);
