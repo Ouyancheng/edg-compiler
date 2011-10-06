@@ -29205,7 +29205,7 @@ previously created, needed to reactivate that scope.
   } else if (is_array_type(collection_type)) {
     /* Perform full semantic checks and generate IL for the array pattern. */
     check_for_each_array_pattern(felp, tok_seq_number, pointers_block);
-  } else if (is_cli_array_type(collection_type)) {
+  } else if (cppcli_enabled && is_cli_array_type(collection_type)) {
     /* Perform full semantic checks and generate IL for the CLI array
        pattern. */
     check_for_each_cli_array_pattern(felp, tok_seq_number, pointers_block);
