@@ -2508,7 +2508,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
            user-defined conversion. */
         arg_summary->match_level = aml_user_conversion;
       } else if (std_conversion.boxing_conversion) {
-        /* A boxing conversion that is not a promotion has its own level. */
+        /* A boxing conversion has its own level. */
         arg_summary->match_level = aml_boxing_conversion;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (std_conversion.conv_of_string_literal_to_cli_string &&
@@ -4967,21 +4967,6 @@ in [over.ics.rank].
          array<D ^> ^ ==> System::Array ^
        ).  See ECMA-372 14.2.1. */
     if (conv1->cli_array_covariance_conversion) {
-      cmp = 1;
-    } else {
-      cmp = -1;
-    }  /* if */
-    goto have_cmp;
-  }  /* if */
-  if (conv1->boxing_conversion != conv2->boxing_conversion &&
-      conv1->promotion) {
-    /* Both are promotions, and one has a C++/CLI boxing conversion
-       and the other does not (it's another kind of promotion).  The one with
-       the boxing conversion is better than the other one.  A boxing operation
-       to an enum type is considered a promotion, and it's better than
-       a promotion to integer so that WriteLine outputs the enum name instead
-       of the integer value. */
-    if (conv1->boxing_conversion) {
       cmp = 1;
     } else {
       cmp = -1;
