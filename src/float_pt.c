@@ -598,9 +598,11 @@ before setting it if there are unused bits.
       /* Store a host floating value into a float_value of the same kind
          (either double or long double). */
       /* Use memcpy to copy the value since float_value might not be correctly
-         aligned. */
+         aligned.  Also, we only copy the actual data bytes because the other
+         bytes are unpredictable: Copying them would result in unreliable
+         hash values for floating point a_constant entries. */
       (void)memcpy((char *)float_value, (char *)&temp,
-                   sizeof(a_host_fp_value));
+                   data_size_of_host_fp_value);
     }  /* if */
   }  /* if */
 }  /* store_host_fp_value */
