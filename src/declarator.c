@@ -3096,10 +3096,6 @@ TRUE if this is the function declarator in a friend function declaration.
         extra_info->calling_convention = (a_calling_convention)cc_cdecl;
       }  /* if */
     }  /* if */
-    if (managed_member) {
-      /* Managed members have the __clrcall convention by default. */
-      extra_info->calling_convention = (a_calling_convention)cc_clrcall;
-    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
