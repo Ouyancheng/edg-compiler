@@ -226,6 +226,7 @@ typedef enum /*an_arg_match_level*/ {
   aml_exact,		/* Exact match or trivial conversions. */
   aml_promotion,	/* Match with promotions. */
   aml_std_conversion,	/* Match with standard conversions. */
+  aml_boxing_conversion,/* Match with C++/CLI boxing. */
   aml_user_conversion,	/* Match with user-defined conversions. */
   aml_ellipsis,		/* Match with ellipsis. */
   aml_error,		/* Match with error type (not in ARM). */

@@ -976,6 +976,7 @@ Print an argument match summary for debug purposes.
     case aml_exact:             str = "exact";               break;
     case aml_promotion:         str = "promotion";           break;
     case aml_std_conversion:    str = "std conversion";      break;
+    case aml_boxing_conversion: str = "boxing conversion";   break;
     case aml_user_conversion:   str = "user conversion";     break;
     case aml_ellipsis:          str = "ellipsis";            break;
     case aml_error:             str = "error";               break;
@@ -2506,6 +2507,9 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
            aml_user_conversion but arg_summary->conversion does not indicate a
            user-defined conversion. */
         arg_summary->match_level = aml_user_conversion;
+      } else if (std_conversion.boxing_conversion) {
+        /* A boxing conversion that is not a promotion has its own level. */
+        arg_summary->match_level = aml_boxing_conversion;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (std_conversion.conv_of_string_literal_to_cli_string &&
                  f_identical_types(param_type,
@@ -4969,15 +4973,18 @@ in [over.ics.rank].
     }  /* if */
     goto have_cmp;
   }  /* if */
-  if (conv1->boxing_conversion !=
-      conv2->boxing_conversion) {
-    /* One has a C++/CLI boxing conversion and the other does not (it's
-       another kind of promotion).  The one with the boxing conversion is
-       worse than the other one. */
+  if (conv1->boxing_conversion != conv2->boxing_conversion &&
+      conv1->promotion) {
+    /* Both are promotions, and one has a C++/CLI boxing conversion
+       and the other does not (it's another kind of promotion).  The one with
+       the boxing conversion is better than the other one.  A boxing operation
+       to an enum type is considered a promotion, and it's better than
+       a promotion to integer so that WriteLine outputs the enum name instead
+       of the integer value. */
     if (conv1->boxing_conversion) {
-      cmp = -1;
-    } else {
       cmp = 1;
+    } else {
+      cmp = -1;
     }  /* if */
     goto have_cmp;
   }  /* if */

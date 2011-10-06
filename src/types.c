@@ -7808,9 +7808,11 @@ conversion.  std_conv can be NULL if that information is not needed.
        The destination type has to be a handle type. */
     if (is_handle_type(dest_type) &&
         is_boxable_type(source_type)) {
+      a_boolean is_enum_boxing;
       /* cv-qualifiers on the source type are dropped, since the value gets
          copied into the box. */
       source_type = skip_typerefs(source_type);
+      is_enum_boxing = is_enum(source_type);
       /* Convert a built-in type to the corresponding CLI type, e.g.,
          int to System::Int32.  Also box an enum. */
       source_type = boxed_type_for(source_type);
@@ -7835,7 +7837,11 @@ conversion.  std_conv can be NULL if that information is not needed.
       if (okay && std_conv != NULL) {
         std_conv->nontrivial_conversion = TRUE;
         std_conv->boxing_conversion = TRUE;
-        std_conv->promotion = TRUE;
+        /* Boxing to an enum is considered a promotion.  Others are
+           like standard conversions, but worse in overload resolution. */
+        if (is_enum_boxing && std_conv->cast_base_class == NULL) {
+          std_conv->promotion = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -7884,7 +7890,7 @@ can be NULL if that information is not needed.
          int to System::Int32.  Also box an enum. */
       dest_type = boxed_type_for(dest_type);
       if (types_are_compatible(source_type, dest_type)) {
-        /* A boxing conversion is possible:  cv1 V^ --> cv2 V. */
+        /* An unboxing conversion is possible:  cv1 V^ --> cv2 V. */
         okay = TRUE;
       } else if (is_value_class_type(dest_type) &&
                  is_class_struct_union_type(source_type) &&
@@ -7897,8 +7903,6 @@ can be NULL if that information is not needed.
       }  /* if */
       if (okay && std_conv != NULL) {
         std_conv->nontrivial_conversion = TRUE;
-        std_conv->boxing_conversion = TRUE;
-        std_conv->promotion = TRUE;
         std_conv->cast_base_class = bcp;
       }  /* if */
     }  /* if */
