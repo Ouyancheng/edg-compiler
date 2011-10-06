@@ -27888,18 +27888,72 @@ successful within the class scope; returns FALSE otherwise.
 }  /* is_stl_collection_pattern_candidate */
 
 
-static a_boolean is_cli_collection_pattern_candidate(
-                                                    a_type_ptr collection_type)
+static a_boolean implements_IEnumerable(a_type_ptr       type,
+                                        a_base_class_ptr *p_bcp)
 /*
-Evaluates if collection_type is a possible fit for CLI collection pattern.
-Returns TRUE if a lookup for the "GetEnumerator" member function is
-successful within the class scope; returns FALSE otherwise.
+Return TRUE if the given type implements either
+System::Collections::IEnumerable or
+System::Collections::Generic::IEnumerable<T>.
+If so, also return in *p_bcp the base class for the interface implemented.
 */
 {
+  a_base_class_ptr bcp, non_generic_bcp = NULL;
+
+  for (bcp = base_classes_of(type);
+       bcp != NULL;
+       bcp = bcp->next) {
+    if (bcp->direct || bcp->is_virtual) {
+      a_type_ptr base_type = bcp->type;
+      if (is_immediate_cli_interface_type(base_type)) {
+        char *name = unmangled_name_of(&base_type->source_corresp);
+        if (name != NULL && strcmp(name, "IEnumerable") == 0) {
+          a_type_ptr non_generic_ienum = make_IEnumerable_type();
+          if (same_entities(base_type, non_generic_ienum)) {
+            /* This is the non-generic IEnumerable.  Save it and use it if
+               no generic version turns up. */
+            non_generic_bcp = bcp;
+          } else if (is_generic_cli_IEnumerable_type(base_type)) {
+            /* This is a generic IEnumerable.  Take it (even if it does
+               not match the iterator type and will get errors later). */
+            goto done;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* Take a non-generic IEnumerable if there was no generic one. */
+  bcp = non_generic_bcp;
+done:
+  *p_bcp = bcp;
+  return (bcp != NULL);
+}  /* implements_IEnumerable */
+
+
+static a_boolean is_cli_collection_pattern_candidate(
+                                             a_type_ptr       collection_type,
+                                             a_base_class_ptr *ienumerable_bcp)
+    
+/*
+Evaluates if collection_type is a possible fit for CLI collection pattern,
+and returns TRUE if so.  If the type implements one of the recognized
+IEnumerable types, return *ienumerable_bcp set to the base class; otherwise
+set it to NULL.
+*/
+{
+  a_boolean        result = FALSE;
   a_symbol_locator locator;
-  
-  return look_up_for_each_member_function(collection_type, "GetEnumerator", 
-                                          &locator) != NULL;
+
+  if (implements_IEnumerable(collection_type, ienumerable_bcp)) {
+    /* The collection type implements one of the IEnumerable interfaces,
+       so the CLI collection pattern can be used. */
+    result = TRUE;
+  } else if (look_up_for_each_member_function(collection_type, "GetEnumerator",
+                                              &locator) != NULL) {
+    /* There is a GetEnumerator member function, so the type is eligible
+       that way. */
+    result = TRUE;
+  }  /* if */
+  return result;
 }  /* is_cli_collection_pattern_candidate */
 
 
@@ -28242,9 +28296,10 @@ for a for-each loop operating on a CLI array.
 
 
 static void check_for_each_cli_collection_pattern(
-                                     a_for_each_loop_ptr        felp,
-                                     a_token_sequence_number    tok_seq_number,
-                                     a_scope_pointers_block_ptr pointers_block)
+                                    a_for_each_loop_ptr        felp,
+                                    a_token_sequence_number    tok_seq_number,
+                                    a_base_class_ptr           ienumerable_bcp,
+                                    a_scope_pointers_block_ptr pointers_block)
 /*
 This routine checks a statement of kind stmk_for_each for semantic
 correctness against the collection pattern specified in ECMA-372
@@ -28267,6 +28322,8 @@ System::Collections::Generic::IEnumerable interfaces.
 
 felp holds information about the for-each loop.  tok_seq_number is the
 sequence number of the first token of the collection expression.
+If ienumerable_bcp is non-NULL, the collection type implements one of the
+recognized IEnumerable interfaces; bcp identifies which one.
 pointers_block is the pointers block for the iterator scope previously
 created, needed to reactivate that scope.
 */
@@ -28319,6 +28376,16 @@ created, needed to reactivate that scope.
      now. */
   if (is_handle_type(collection_type)) {
     collection_type = type_pointed_to(collection_type);
+  }  /* if */
+  /* If the collection type implements an IEnumerable interface, cast to
+     the right base class so we can do the GetEnumerator lookup in there. */
+  if (ienumerable_bcp != NULL) {
+    base_class_cast_operand(&bound_function_selector,
+                            ienumerable_bcp, (a_type_ptr)NULL,
+                            /*check_cast_access=*/TRUE,
+                            /*is_implicit_cast=*/TRUE,
+                            /*implicit_in_naming=*/FALSE,
+                            /*is_object_pointer=*/TRUE);
   }  /* if */
   /* Look up the "GetEnumerator" member function and generate IL for
      the function call. */
@@ -29181,6 +29248,7 @@ previously created, needed to reactivate that scope.
   a_for_each_loop_ptr felp = statement->variant.for_each_loop.extra_info;
   a_variable_ptr      collection_var = felp->collection_expr_ref;
   a_type_ptr          orig_collection_type, collection_type;
+  a_base_class_ptr    ienumerable_bcp;
   an_expr_stack_entry *saved_expr_stack;
   
   db_enter(3, "check_for_each_statement");
@@ -29215,11 +29283,12 @@ previously created, needed to reactivate that scope.
       check_for_each_stl_collection_pattern(felp, tok_seq_number,
                                             pointers_block);
     } else if (cppcli_enabled && 
-               is_cli_collection_pattern_candidate(collection_type)) {
+               is_cli_collection_pattern_candidate(collection_type,
+                                                   &ienumerable_bcp)) {
       /* Perform full semantic checks and generate IL for the C++/CLI
          collection pattern. */
       check_for_each_cli_collection_pattern(felp, tok_seq_number,
-                                            pointers_block);
+                                            ienumerable_bcp, pointers_block);
     } else {
       /* Nothing seems appropriate, so just issue a generic diagnostic. */
       pos_ty_error(ec_for_each_incompatible_type,

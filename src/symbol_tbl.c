@@ -7170,6 +7170,138 @@ Return the type of the specified C++/CLI symbol kind.
   return sym->variant.class_struct_union.type;
 }  /* f_cli_class_type_for */
 
+
+/*
+Symbol for the C++/CLI System::Collections namespace.  NULL until allocated
+when first needed.
+*/
+static a_symbol_ptr symbol_for_cli_system_collections_namespace;
+
+static a_namespace_ptr make_cli_system_collections_namespace(void)
+/*
+Make the CLI System::Collections namespace and return a pointer to it.
+*/
+{
+  a_namespace_ptr ns_ptr;
+
+  if (symbol_for_cli_system_collections_namespace == NULL) {
+    /* On the first call, look up the namespace. */
+    a_symbol_ptr ns_sym = cli_symbols[(int)csk_system_namespace];
+    check_assertion(ns_sym != NULL && is_namespace_symbol(ns_sym));
+    ns_ptr = ns_sym->variant.namespace_info.ptr;
+    ns_sym = look_up_name_string_in_namespace("Collections", ns_ptr);
+    if (ns_sym == NULL || !is_namespace_symbol(ns_sym)) {
+      str_catastrophe(ec_cli_entity_not_loaded, "System::Collections");
+    }  /* if */
+    symbol_for_cli_system_collections_namespace = ns_sym;
+  }  /* if */
+  ns_ptr = symbol_for_cli_system_collections_namespace
+                                                  ->variant.namespace_info.ptr;
+  return ns_ptr;
+}  /* make_cli_system_collections_namespace */
+
+
+/*
+Symbol for the C++/CLI System::Collections::Generic namespace.  NULL until
+allocated when first needed.
+*/
+static a_symbol_ptr symbol_for_cli_system_collections_generic_namespace;
+
+static a_namespace_ptr make_cli_system_collections_generic_namespace(void)
+/*
+Make the CLI System::Collections::Generic namespace and return a pointer
+to it.
+*/
+{
+  a_namespace_ptr ns_ptr;
+
+  if (symbol_for_cli_system_collections_generic_namespace == NULL) {
+    /* On the first call, look up the namespace. */
+    a_symbol_ptr ns_sym;
+    ns_ptr = make_cli_system_collections_namespace();
+    ns_sym = look_up_name_string_in_namespace("Generic", ns_ptr);
+    if (ns_sym == NULL || !is_namespace_symbol(ns_sym)) {
+      str_catastrophe(ec_cli_entity_not_loaded,
+                      "System::Collections::Generic");
+    }  /* if */
+    symbol_for_cli_system_collections_generic_namespace = ns_sym;
+  }  /* if */
+  ns_ptr = symbol_for_cli_system_collections_generic_namespace
+                                                  ->variant.namespace_info.ptr;
+  return ns_ptr;
+}  /* make_cli_system_collections_generic_namespace */
+
+
+/*
+Symbol for the C++/CLI System::Collections::IEnumerable type.  NULL until
+allocated when first needed.
+*/
+static a_symbol_ptr symbol_for_cli_system_collections_ienumerable;
+
+a_type_ptr make_IEnumerable_type(void)
+/*
+Make and return the C++/CLI System::Collections::IEnumerable type.
+*/
+{
+  a_type_ptr type;
+
+  if (symbol_for_cli_system_collections_ienumerable == NULL) {
+    /* One the first call, look up the type. */
+    a_namespace_ptr ns_ptr = make_cli_system_collections_namespace();
+    a_symbol_ptr    sym = look_up_name_string_in_namespace("IEnumerable",
+                                                           ns_ptr);
+    if (sym == NULL || !is_type_symbol(sym)) {
+      str_catastrophe(ec_cli_entity_not_loaded,
+                      "System::Collections::IEnumerable");
+    }  /* if */
+    symbol_for_cli_system_collections_ienumerable = sym;
+  }  /* if */
+  type = type_symbol_type(symbol_for_cli_system_collections_ienumerable);
+  return type;
+}  /* make_IEnumerable_type */
+
+/*
+Symbol for the C++/CLI System::Collections::Generic::IEnumerable generic
+class.  NULL until allocated when first needed.
+*/
+static a_symbol_ptr symbol_for_cli_system_collections_generic_ienumerable;
+
+a_boolean is_generic_cli_IEnumerable_type(a_type_ptr type)
+/*
+Return TRUE if "type" is an instance of the C++/CLI
+System::Collections::Generic::IEnumerable<T> generic class.
+*/
+{
+  a_boolean is_instance = FALSE;
+
+  type = skip_typerefs(type);
+  if (is_class_struct_union_type(type) &&
+      type->variant.class_struct_union.is_generic_instance &&
+      is_namespace_member(type)) {
+    a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
+    /* The type is a generic instance that is a member of a namespace.
+       Find the symbol for the IEnumerable generic and see if this type is
+       an instance of that. */
+    if (symbol_for_cli_system_collections_generic_ienumerable == NULL) {
+      /* One the first call, look up the type. */
+      a_namespace_ptr ns_ptr = make_cli_system_collections_generic_namespace();
+      a_symbol_ptr    sym = look_up_name_string_in_namespace("IEnumerable",
+                                                             ns_ptr);
+      if (sym == NULL || sym->kind != (a_symbol_kind)sk_class_template) {
+        str_catastrophe(ec_cli_entity_not_loaded,
+                        "System::Collections::Generic::IEnumerable");
+      }  /* if */
+      symbol_for_cli_system_collections_generic_ienumerable = sym;
+    }  /* if */
+    if (cssp->class_template ==
+                       symbol_for_cli_system_collections_generic_ienumerable) {
+      /* Yes, this is an instance of the generic IEnumerable. */
+      is_instance = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_instance;
+}  /* is_generic_cli_IEnumerable_type */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void enter_symbol_for_namespace(a_symbol_ptr      sym,
@@ -14486,7 +14618,11 @@ given translation unit.
   symbol_for_namespace_std = NULL;
   symbol_for_namespace_std_entered = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  memzero((char *)cli_symbols, sizeof(cli_symbols));
+  symbol_for_cli_system_collections_namespace = NULL;
+  symbol_for_cli_system_collections_generic_namespace = NULL;
+  symbol_for_cli_system_collections_ienumerable = NULL;
+  symbol_for_cli_system_collections_generic_ienumerable = NULL;
+   memzero((char *)cli_symbols, sizeof(cli_symbols));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   va_list_global_alias_has_been_created = FALSE;
 #if IA64_ABI
