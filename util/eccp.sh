@@ -450,26 +450,6 @@ trap_function()
 }
 
 #
-# Function that takes a single argument, and returns that argument suitably
-# escaped if necessary.  The escaped characters are then re-interpreted
-# by the shell (in invoke_front_end) in order to pass arguments like
-# '-DCLASS="ref class"' to the front end as a single argument.
-#
-shell_special='$&[](){}<>?^*!|;\\"`'
-single_quote="'"
-need_escape="${IFS}${shell_special}${single_quote}"
-function escape_if_needed
-{
-  if [ "`echo $1 | tr -d "${need_escape}"`" == "$1" ] ; then
-    echo $1
-  else
-    # Escape every character in the string (easier and faster than looking
-    # for only the characters that need escaping).
-    echo $1 | sed "s/./\\\\&/g"
-  fi
-}
-
-#
 # Function that compiles a generated C file
 #
 compile_int_c()
@@ -1516,7 +1496,7 @@ process_option()
          --preusing | \
          --using_directory | \
          --default_calling_convention)
-      feoptions=$feoptions" $curr_arg `escape_if_needed "$curr_param"`"
+      feoptions=$feoptions" $curr_arg $curr_param"
       used_two_params=1
 #     See if an instantiation mode was specified
       case $arg in
@@ -1550,7 +1530,7 @@ process_option()
          --pch_dir | \
          --create_pch | \
          --use_pch)
-      feoptions=$curr_arg" `escape_if_needed "$curr_param"` $feoptions"
+      feoptions=$curr_arg" $curr_param $feoptions"
       used_two_params=1
      ;;
 ###############################################################################
@@ -1594,7 +1574,7 @@ process_option()
           --preusing=* | \
           --using_directory=* | \
           --default_calling_convention=*)
-      feoptions=$feoptions" `escape_if_needed "$curr_arg"`"
+      feoptions=$feoptions" $curr_arg"
 #     See if an instantiation mode was specified
       case $arg in
         --definition_list_file=*)
@@ -1646,7 +1626,7 @@ process_option()
          --pch_dir=* | \
          --create_pch=* | \
          --use_pch=*)
-      feoptions=`escape_if_needed "$curr_arg"`" $feoptions"
+      feoptions=$curr_arg" $feoptions"
       ;;
 ###############################################################################
 # Preprocessing options
@@ -1692,18 +1672,18 @@ process_option()
 
 #
 # Function to invoke the front end and possibly redirect the error output
-# to a particular place.  Use an echo/eval pair to execute the command to
-# re-interpret any quoted arguments that may exist in the command.
+# to a particular place.  This is used instead of "eval" because the "eval"
+# command can cause problem with certain quoted/escaped arguments.
 #
 invoke_front_end()
 {
   discard_output=$1
   if [ $discard_output -ne 0 ] ; then
-    eval `echo $command` >/dev/null 2>&1
+    $command >/dev/null 2>&1
   elif [ "$EDG_CPFE_OUTPUT_FILTER" != "" ] ; then
-    eval `echo $command` 2>$output_tmp_file
+    $command 2>$output_tmp_file
   else
-    eval `echo $command`
+    $command
   fi
 }  # invoke_front_end
 
@@ -1716,10 +1696,10 @@ do
   arg=$1
   orig_arg=$arg
   curr_arg=$arg
-  process_option "$arg" "$2"
+  process_option $arg $2
   if [ $invalid_keyword_option -ne 0 ] ; then
     check_abbreviation $arg
-    process_option "$arg" "$2"
+    process_option $arg $2
     if [ $invalid_keyword_option -ne 0 ] ; then
       echo "$driver_name: unknown option: $arg";
       error=1;
