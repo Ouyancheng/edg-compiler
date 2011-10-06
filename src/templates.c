@@ -10151,8 +10151,14 @@ done_with_routine:
         /* Vector types are in principle similar to array types.  However,
            current GNU versions (4.4.x and earlier) do not appear to support
            substitution of vector types. */
-        *copy_error = TRUE;
-        new_type = error_type();
+        if (vector_type_is_template_dependent(type)) {
+          *copy_error = TRUE;
+          new_type = error_type();
+        } else {
+          /* There is nothing to substitute, so the current type can be
+             used. */
+          new_type = type;
+        }  /* if */
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
       default:;

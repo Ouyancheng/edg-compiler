@@ -1,5 +1,20 @@
 Version 4.4
 
+10/6/11  [EDGcpfe/12183]
+Spurious error on call of function template with nondependent vector parameter
+
+In GNU C++ modes, the front end previously issued a spurious error on calls to
+function templates with a nondependent vector parameter.  For example:
+
+  template<class T> void f(int __attribute((vector_size(16))) p) {}
+  int main() {
+    int __attribute((vector_size(16))) v;
+    f<void>(v);
+  }
+
+This is now fixed.
+
+
 10/5/11  [EDGcpfe/11323]
 GNU compatibility: Redeclarations of "gnu_inline" functions
 
