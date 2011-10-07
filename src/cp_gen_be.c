@@ -5224,8 +5224,20 @@ parameter.
          MSVC++ 5.0. */
       write_tok_ch('0');
     } else {
-      gen_initializer_expr(expr, param->type, /*need_parens=*/TRUE,
+      /* We emit parentheses explicitly here, rather than passing TRUE to
+         need_parens, to work around certain target compiler bugs where
+         parentheses are required in cases where they would be suppressed
+         by the normal need_parens processing.  For example, g++ versions
+         before 4.4 issue spurious errors on a declaration like
+
+             void f(S<int,int> = S<int,int>());
+
+         The comma in the template argument list is incorrectly taken as a
+         delimiter in the parameter list. */
+      write_tok_ch('(');
+      gen_initializer_expr(expr, param->type, /*need_parens=*/FALSE,
                            curr_name_context_is_a_class());
+      write_tok_ch(')');
     }  /* if */
   }  /* if */
 }  /* gen_default_arg_expr */

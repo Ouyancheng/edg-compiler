@@ -1,5 +1,26 @@
 Version 4.4
 
+10/6/11  [EDGcpfe/12319]
+C++-generating back end, GNU compatibility: template argument lists in
+default arguments
+
+Versions of g++ before 4.4 had a bug that resulted in spurious errors when
+a default function argument expression contains a template argument list
+with more than one template argument.  Because the C++-generating back end
+puts out a full template argument list in the name of an instance of a
+class template, even when the source code uses default template arguments,
+in some cases the generated C++-code triggered this g++ bug when the source
+code does not.  This has now been addressed by unconditionally enclosing
+default argument expressions in parentheses.  For example:
+
+  template<typename T, typename U = int> struct S { };
+  class C {
+    void f(S<int> x = S<int>());  // Default argument previously generated
+                                  // as "S<int,int>()", triggering the g++
+                                  // bug; now generated as "(S<int,int>())".
+  };
+
+
 10/6/11  [EDGcpfe/12183]
 Spurious error on call of function template with nondependent vector parameter
 
