@@ -181,7 +181,6 @@ be restored).
   dps->declarator_pos = null_source_position;
   dps->is_definition = FALSE;
   dps->in_nested_declarator = FALSE;
-  dps->has_trailing_return_type = FALSE;
   dps->pack_ellipsis_allowed = FALSE;
   dps->has_pack_ellipsis = FALSE;
   dps->is_pack_element = FALSE;
