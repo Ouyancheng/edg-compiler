@@ -16290,7 +16290,8 @@ to TRUE and *result becomes an error operand.
     if (symbol_is(event_sym, sk_field)) {
       pedp = event_sym->variant.field.ptr->property_or_event_descr;
     } else if (symbol_is(event_sym, sk_static_data_member)) {
-      pedp = event_sym->variant.variable.ptr->property_or_event_descr;
+      pedp = event_sym->variant.static_data_member.variable
+                                         ->property_or_event_descr;
     } else {
       unexpected_condition();
     }  /* if */
@@ -16404,7 +16405,8 @@ if it has any side effects) or NULL if no selector was specified.
   if (symbol_is(event_sym, sk_field)) {
     pedp = event_sym->variant.field.ptr->property_or_event_descr;
   } else if (symbol_is(event_sym, sk_static_data_member)) {
-    pedp = event_sym->variant.variable.ptr->property_or_event_descr;
+    pedp = event_sym->variant.static_data_member.variable
+                                        ->property_or_event_descr;
   } else {
     unexpected_condition();
   }  /* if */
