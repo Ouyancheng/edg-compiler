@@ -27900,6 +27900,8 @@ If so, also return in *p_bcp the base class for the interface implemented.
 {
   a_base_class_ptr bcp, non_generic_bcp = NULL;
 
+  type = skip_typerefs(type);
+  check_assertion(is_immediate_class_type(type));
   for (bcp = base_classes_of(type);
        bcp != NULL;
        bcp = bcp->next) {
