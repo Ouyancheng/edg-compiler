@@ -5,8 +5,8 @@ Handle arguments with spaces in eccp
 
 Previously, specifying an argument like -DCLASS="ref class" to eccp had
 resulted in the argument being split into two separate arguments before being
-passed to the front end, resulting in an error.  The script has been
-updated to escape arguments that contain spaces (as well as a set of other
+passed to the front end, resulting in an error.  The script has been updated to
+quote or escape arguments that contain spaces (as well as a set of other
 characters which are interpreted by the shell).
 
 
