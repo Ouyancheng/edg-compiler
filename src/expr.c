@@ -2084,6 +2084,7 @@ indication in *rcblock).
   a_boolean         have_result = TRUE;
 
   check_assertion(dps != NULL);
+  if (expr_not_present != NULL) *expr_not_present = FALSE;
   if (rcblock == NULL) add_matching_stop_token(tok_rparen);
   /* Note that if there is a cached expression we take it in preference to
      rescanning from rcblock. */

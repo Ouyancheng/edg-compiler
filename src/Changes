@@ -1,5 +1,23 @@
 Version 4.4
 
+10/7/11  [EDGcpfe/12325]
+Uninitialized variable used in scan_new_operator
+
+During the scan of a "new" operator within a SFINAE context (e.g.,
+in a decltype specifying the return type for a template), specifically
+a "new" of a non-dependent non-class type with an initializer, an
+uninitialized variable was used in scan_new_operator.  The
+consequence was that the initializer could be treated as if
+it were an empty initializer.  Now fixed.
+
+  template <class T> auto f(T p) -> decltype (new int(1) + p) {
+    return 0;
+  }
+  int main() {
+    f(1);
+  }
+
+
 10/6/11  [EDGcpfe/12319]
 C++-generating back end, GNU compatibility: template argument lists in
 default arguments
