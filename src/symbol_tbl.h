@@ -3840,6 +3840,8 @@ extern a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
                                             a_symbol_ptr     old_sym_ptr,
                                             a_symbol_ptr     *overload_sym);
 
+extern a_type_ptr function_or_template_symbol_type(a_symbol_ptr sym);
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_symbol_ptr enter_property_set_member(
                                      a_symbol_locator               *loc,

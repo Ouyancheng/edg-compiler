@@ -5854,6 +5854,27 @@ a locator for the new symbol.  Return a pointer to the new symbol.
   return sym_ptr;
 }  /* enter_overloaded_symbol */
 
+
+a_type_ptr function_or_template_symbol_type(a_symbol_ptr sym)
+/*
+Return the type of a function, whether a simple function or a function
+template.
+*/
+{
+  a_type_ptr rout_type;
+
+  reduce_projection_symbol_to_fundamental_symbol(sym);
+  if (is_simple_function_symbol(sym)) {
+    rout_type = routine_symbol_type(sym);
+  } else if (sym->kind == (a_symbol_kind)sk_function_template) {
+    rout_type = sym->variant.template_info->variant.function.routine->type;
+  } else {
+    unexpected_condition();
+  }  /* if */
+  rout_type = skip_typerefs(rout_type);
+  return rout_type;
+}  /* function_or_template_symbol_type */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 a_symbol_ptr enter_property_set_member(a_symbol_locator               *loc,
@@ -5990,17 +6011,11 @@ corresponding to the enclosing class definition.
 a_boolean is_cli_param_array_routine_symbol(a_symbol_ptr  sym)
 /*
 Return TRUE if sym is a symbol for a routine with a C++/CLI parameter array.
+The symbol must be a function or function template symbol.
 */
 {
-  a_type_ptr  rout_type;
+  a_type_ptr rout_type = function_or_template_symbol_type(sym);
 
-  if (is_simple_function_symbol(sym)) {
-    rout_type = sym->variant.routine.ptr->type;
-  } else if (symbol_is(sym, sk_function_template)) {
-    rout_type = sym->variant.template_info->variant.function.routine->type;
-  } else {
-    rout_type = NULL;
-  }  /* if */
   return rout_type != NULL && is_cli_param_array_routine_type(rout_type);
 }  /* is_cli_param_array_routine_symbol */
 

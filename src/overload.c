@@ -5425,23 +5425,6 @@ for a Microsoft bug).
   int cmp = 0;
 
   /* Compare the gross match levels. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (arg_match1->conversion.std.param_array_conversion !=
-      arg_match2->conversion.std.param_array_conversion) {
-    /* A parameter array match is more expensive than any other conversion
-       except for an ellipsis conversion.  This test must be performed
-       before comparing the argument match levels (and probably any other test)
-       because the argument match level for a parameter array match indicates
-       how well the argument matches the param array element type, not the
-       parameter type itself. */
-    if (arg_match1->conversion.std.param_array_conversion) {
-      cmp = (arg_match2->match_level == aml_ellipsis) ? 1 : -1;
-    } else {
-      cmp = (arg_match1->match_level == aml_ellipsis) ? -1 : 1;
-    }  /* if */
-  } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not add code here. */
   if (arg_match1->match_level == aml_none ||
       arg_match2->match_level == aml_none) {
     /* The match for the "this parameter" of a static member function
@@ -5782,6 +5765,58 @@ the standard, return cmp set accordingly:
   return cmp;
 }  /* compare_template_candidate_functions */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean creates_param_array(a_candidate_function_ptr cfp)
+/*
+Return TRUE if calling the given candidate function requires creation of
+a C++/CLI parameter array.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (cfp->function_symbol != NULL) {
+    a_param_type_ptr         ptp;
+    an_arg_match_summary_ptr amsp;  
+    a_type_ptr               rout_type;
+
+    rout_type = function_or_template_symbol_type(cfp->function_symbol);
+    check_assertion(rout_type->kind == (a_type_kind)tk_routine);
+    /* Match up the argument matches against the parameters.  Aside from
+       looking for an argument passed to a parameter array, we also need
+       to figure out if a missing final argument causes creation of a
+       zero-length parameter array, and we have to get the right answer
+       for the one case where a call of a function with a parameter array
+       doesn't create the array: the case where a handle-to-array is passed
+       directly for that parameter. */
+    amsp = cfp->arg_matches;
+    if (amsp != NULL && amsp->is_match_for_this_param) amsp = amsp->next;
+    for (ptp = function_type_params(rout_type);
+         amsp != NULL && ptp != NULL;
+         amsp = amsp->next, ptp = ptp->next) {
+      if (amsp->conversion.std.param_array_conversion) {
+        /* This argument is passed to an element of a parameter array, so
+           the array must be created. */
+        result = TRUE;
+        goto done;
+      }  /* if */
+    }  /* for */
+    if (amsp != NULL) {
+      /* We ran out of parameters, but we still have an argument match,
+         so this must be an ellipsis match.  Doesn't affect the parameter
+         array check. */
+    } else if (ptp != NULL) {
+      /* We ran out of arguments, but we still have a parameter.  This must
+         be a default argument case, a parameter pack, or a param array case
+         where we create a zero-length array. */
+      if (ptp->is_cli_param_array) result = TRUE;
+    }  /* if */
+  }  /* if */
+done:;
+  return result;
+}  /* creates_param_array */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static int compare_candidate_functions(a_candidate_function_ptr cfp1,
                                        a_candidate_function_ptr cfp2)
@@ -5800,6 +5835,9 @@ other.  Return
   int                  cmp = 0;
   a_type_qualifier_set cfp1_type_qualifiers_added = FALSE,
                        cfp2_type_qualifiers_added = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean            param_array1;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   if (cfp1->is_user_conversion) {
     cfp1_type_qualifiers_added = cfp1->conversion.std.type_qualifiers_added;
@@ -5871,17 +5909,11 @@ other.  Return
                                      maxn);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled &&
-             cfp1->function_symbol != NULL &&
-             cfp2->function_symbol != NULL &&
-             is_cli_param_array_routine_symbol(cfp1->function_symbol) !=
-             is_cli_param_array_routine_symbol(cfp2->function_symbol)) {
-    /* The presence of a C++/CLI parameter array can serve as a tie-breaker.
-       The C++/CLI standard states that an ellipsis match should be worse
-       than a param array match, but we deviate from that behavior for a
-       zero-argument function call, for which an ellipsis conversion is
-       be chosen over a param array conversion.  That matches the
-       VC++ behavior. */
-    if (is_cli_param_array_routine_symbol(cfp1->function_symbol)) {
+             (param_array1 = creates_param_array(cfp1)) !=
+                             creates_param_array(cfp2)) {
+    /* A function match that requires creation of a C++/CLI parameter array
+       is a worse match than one that does not. */
+    if (param_array1) {
       cmp = -1;
     } else {
       cmp = 1;
@@ -8466,14 +8498,7 @@ type was an error because the function turned out to be static.
                   dps->position_of_this_reference_in_trailing_return_set);
   /* Look at the symbol declared in this declaration. */
   if (sym != NULL) {
-    a_type_ptr rout_type;
-    if (is_simple_function_symbol(sym)) {
-      rout_type = routine_symbol_type(sym);
-    } else if (sym->kind == (a_symbol_kind)sk_function_template) {
-      rout_type = sym->variant.template_info->variant.function.routine->type;
-    } else {
-      unexpected_condition();
-    }  /* if */
+    a_type_ptr rout_type = function_or_template_symbol_type(sym);
     check_assertion(rout_type->kind == (a_type_kind)tk_routine);
     if (rout_type->variant.routine.extra_info->this_class == NULL) {
       /* The declared routine is static.  Issue an error. */
