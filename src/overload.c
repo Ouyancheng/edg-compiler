@@ -5767,13 +5767,14 @@ the standard, return cmp set accordingly:
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_boolean creates_param_array(a_candidate_function_ptr cfp)
+static int creates_param_array(a_candidate_function_ptr cfp)
 /*
-Return TRUE if calling the given candidate function requires creation of
-a C++/CLI parameter array.
+Return a value > 0 if calling the given candidate function requires creation of
+a C++/CLI parameter array.  The value returned is the argument number on
+which the first argument passed to the parameter array occurs.
 */
 {
-  a_boolean result = FALSE;
+  int result_arg_num = 0, arg_num;
 
   if (cfp->function_symbol != NULL) {
     a_param_type_ptr         ptp;
@@ -5791,13 +5792,13 @@ a C++/CLI parameter array.
        directly for that parameter. */
     amsp = cfp->arg_matches;
     if (amsp != NULL && amsp->is_match_for_this_param) amsp = amsp->next;
-    for (ptp = function_type_params(rout_type);
+    for (ptp = function_type_params(rout_type), arg_num = 1;
          amsp != NULL && ptp != NULL;
-         amsp = amsp->next, ptp = ptp->next) {
+         amsp = amsp->next, ptp = ptp->next, arg_num++) {
       if (amsp->conversion.std.param_array_conversion) {
         /* This argument is passed to an element of a parameter array, so
            the array must be created. */
-        result = TRUE;
+        result_arg_num = arg_num;
         goto done;
       }  /* if */
     }  /* for */
@@ -5809,11 +5810,11 @@ a C++/CLI parameter array.
       /* We ran out of arguments, but we still have a parameter.  This must
          be a default argument case, a parameter pack, or a param array case
          where we create a zero-length array. */
-      if (ptp->is_cli_param_array) result = TRUE;
+      if (ptp->is_cli_param_array) result_arg_num = arg_num;
     }  /* if */
   }  /* if */
 done:;
-  return result;
+  return result_arg_num;
 }  /* creates_param_array */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5836,7 +5837,7 @@ other.  Return
   a_type_qualifier_set cfp1_type_qualifiers_added = FALSE,
                        cfp2_type_qualifiers_added = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_boolean            param_array1;
+  int                  arg_num1, arg_num2;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   if (cfp1->is_user_conversion) {
@@ -5909,14 +5910,21 @@ other.  Return
                                      maxn);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled &&
-             (param_array1 = creates_param_array(cfp1)) !=
-                             creates_param_array(cfp2)) {
+             ((arg_num1 = creates_param_array(cfp1)) !=
+              (arg_num2 = creates_param_array(cfp2)))) {
     /* A function match that requires creation of a C++/CLI parameter array
-       is a worse match than one that does not. */
-    if (param_array1) {
-      cmp = -1;
-    } else {
+       is a worse match than one that does not.  If both require a param
+       array, the one that starts on a later argument is better. */
+    /* The numbers here are 0 if the call does not require a param array, or
+       the argument number (> 0) on which the parameter array starts. */
+    if (arg_num1 == 0) {
       cmp = 1;
+    } else if (arg_num2 == 0) {
+      cmp = -1;
+    } else if (arg_num1 > arg_num2) {
+      cmp = 1;
+    } else {
+      cmp = -1;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
