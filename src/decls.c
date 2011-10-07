@@ -80,6 +80,7 @@ specifier.
    curr_token == tok_explicit)
 
 
+static
 void clear_decl_parse_state_fields(a_decl_parse_state  *dps,
                                    a_boolean           secondary_declarator)
 /*
