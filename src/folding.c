@@ -6813,6 +6813,7 @@ constant will be set as well.
     a_symbol_ptr              sym = NULL;
     a_class_symbol_supplement_ptr
                               cssp = NULL;
+    a_boolean                 is_const = is_const_qualified_type(type);
     if (kind == (a_builtin_operation_kind)bok_is_trivial ||
         kind == (a_builtin_operation_kind)bok_is_standard_layout ||
         kind == (a_builtin_operation_kind)bok_is_literal_type) {
@@ -6836,23 +6837,51 @@ constant will be set as well.
       /* Note that g++ (checked in 4.5) treats scoped enums the same as
          unscoped enums. */
       switch (kind) {
-        case bok_has_assign:
         case bok_has_copy:
-        case bok_has_nothrow_assign:
-        case bok_has_nothrow_constructor:
         case bok_has_nothrow_copy:
-        case bok_has_trivial_assign:
-        case bok_has_trivial_constructor:
         case bok_has_trivial_copy:
         case bok_has_trivial_destructor:
-        case bok_is_pod:
-        case bok_is_trivially_copyable:
         case bok_has_trivial_move_constructor:
-        case bok_has_trivial_move_assign:
-        case bok_has_nothrow_move_assign:
           if (microsoft_mode) {
             /* MSVC returns FALSE for all of these (which is, at least in
                some cases, weird, but there you have it). */
+            result = FALSE;
+          } else if (is_function_type(type)) {
+            /* Function types aren't variable types or object types.  So these
+               predicates always produce FALSE for function types. */
+            result = FALSE;
+          } else {
+            result = TRUE;
+          }  /* if */
+          break;
+        case bok_is_pod:
+        case bok_has_nothrow_constructor:
+        case bok_has_trivial_constructor:
+        case bok_is_trivially_copyable:
+          if (microsoft_mode) {
+            /* MSVC always returns FALSE for nonclass types. */
+            result = FALSE;
+          } else if (is_reference_type(type) || is_function_type(type)) {
+            /* References and functions cannot be default-initialized and
+               aren't considered PODs.  They aren't really "copyable"
+               either. */
+            result = FALSE;
+          } else {
+            result = TRUE;
+          }  /* if */
+          break;
+        case bok_has_assign:
+        case bok_has_trivial_assign:
+        case bok_has_nothrow_assign:
+        case bok_has_trivial_move_assign:
+        case bok_has_nothrow_move_assign:
+          if (microsoft_mode) {
+            /* MSVC always returns FALSE for nonclass types. */
+            result = FALSE;
+          } else if (is_reference_type(type) || is_function_type(type) ||
+                     is_const) {
+            /* References, const objects, and functions cannot be assigned
+               to. */
             result = FALSE;
           } else {
             result = TRUE;
@@ -6921,7 +6950,7 @@ constant will be set as well.
         if (!microsoft_mode) {
           check_assertion(kind ==
                             (a_builtin_operation_kind)bok_has_nothrow_assign);
-          result = cssp->has_nothrow_assign;
+          result = !is_const && cssp->has_nothrow_assign;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else {
           result = microsoft_has_assign_predicate(type, kind);
@@ -6978,7 +7007,7 @@ constant will be set as well.
         break;
       case bok_has_trivial_assign:
         check_assertion(cssp != NULL);  /* For Coverity. */
-        result = cssp->assignment_by_bitwise_copy_allowed;
+        result = !is_const && cssp->assignment_by_bitwise_copy_allowed;
         break;
       case bok_has_trivial_constructor:
         check_assertion(cssp != NULL);  /* For Coverity. */
@@ -7059,10 +7088,10 @@ constant will be set as well.
         result = has_trivial_move_constructor(type);
         break;
       case bok_has_trivial_move_assign:
-        result = has_trivial_move_assign(type);
+        result = !is_const && has_trivial_move_assign(type);
         break;
       case bok_has_nothrow_move_assign:
-        result = has_nothrow_move_assign(type);
+        result = !is_const && has_nothrow_move_assign(type);
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case bok_has_finalizer:

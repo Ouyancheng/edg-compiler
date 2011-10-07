@@ -1,5 +1,17 @@
 Version 4.4
 
+10/7/11  [EDGcpfe/12169]
+C++11 type traits helpers and non-class types
+
+A number of type traits helpers now return FALSE instead of TRUE when applied
+to reference types, function types, and/or const types.  The affected helpers
+are: __has_nothrow_constructor, __has_trivial_constructor, __has_copy,
+__has_nothrow_copy, __has_trivial_copy, __has_trivial_destructor,
+__has_trivial_move_constructor, __has_assign, __has_nothrow_assign,
+__has_trivial_assign, __has_nothrow_move_assign, __has_trivial_move_assign,
+__is_trivially_copyable, and __is_pod.
+
+
 10/7/11  [EDGcpfe/12325]
 Uninitialized variable used in scan_new_operator
 
