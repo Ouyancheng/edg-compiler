@@ -3073,14 +3073,14 @@ TRUE if this is the function declarator in a friend function declaration.
   scope_stack_top().outside_parameter_list = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
-    a_boolean  managed_member = cppcli_enabled && parent_type != NULL &&
-                                is_managed_class_type(parent_type);
     if (extra_info->has_ellipsis) {
       /* If this function type was declared with an ellipsis, its calling
          convention is required to be __cdecl, unless it is a member of a
          managed class.  If this isn't already the default for the
          compilation, set it in the type.  (Ordinarily, the setting in the
          type reflects an explicit specification of the calling convention.) */
+      a_boolean  managed_member = cppcli_enabled && parent_type != NULL &&
+                                  is_managed_class_type(parent_type);
       if (managed_member) {
         if (!scanning_generated_code_from_metadata) {
           /* Microsoft compilers don't accept managed member definitions with
