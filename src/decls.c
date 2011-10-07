@@ -80,109 +80,130 @@ specifier.
    curr_token == tok_explicit)
 
 
-static void init_null_decl_parse_state(void)
+void clear_decl_parse_state_fields(a_decl_parse_state  *dps,
+                                   a_boolean           secondary_declarator)
 /*
-Create a "null" sample of a variable of type a_decl_parse_state for convenient
-and efficient initialization.  Changes in this routine must often also be
-reflected in start_secondary_declarator.
+Clear the fields of *dps.  If secondary_declarator is TRUE, only those fields
+associated with the declarator part of a declaration should be initialized
+(and some fields clobbered by the processing of a previous declarator should
+be restored).
 */
 {
-  a_decl_parse_state  *ps = &null_decl_parse_state;
-
-  ps->sym = NULL;
-  ps->dso_flags = 0;
-  ps->do_flags = 0;
-  ps->start_pos = null_source_position;
-  ps->specifiers_pos = null_source_position;
-  ps->declarator_start_pos = null_source_position;
-  ps->declarator_pos = null_source_position;
-  ps->return_type_pos = null_source_position;
-  ps->qualifiers = TQ_NONE;
-  ps->qualifiers_pos = null_source_position;
-  ps->restrict_pos = null_source_position;
-  ps->inline_pos = null_source_position;
-  ps->virtual_pos = null_source_position;
-  ps->auto_pos = null_source_position;
-  ps->in_class_scope = FALSE;
-  ps->secondary_declarator = FALSE;
-  ps->is_definition = FALSE;
-  ps->in_nested_declarator = FALSE;
-  ps->is_trailing_return_type = FALSE;
-  ps->is_type_name = FALSE;
-  ps->is_template_type_argument = FALSE;
-  ps->trailing_return_type_allowed = FALSE;
-  ps->has_trailing_return_type = FALSE;
-  ps->pack_ellipsis_allowed = FALSE;
-  ps->has_pack_ellipsis = FALSE;
-  ps->is_pack_element = FALSE;
-  ps->is_new_expr_type = FALSE;
-  ps->is_evaluated_sizeof_type_arg = FALSE;
-  ps->disallow_variably_modified_type = FALSE;
-  ps->nested_ptr_or_ref_seen = FALSE;
-  ps->unused_qualifiers = FALSE;
-  ps->auto_type_allowed = FALSE;
-  ps->auto_type_specifier_seen = FALSE;
-  ps->is_asm_function = FALSE;
-  ps->function_definition_allowed = FALSE;
-  ps->is_old_style_param_decl = FALSE;
-  ps->is_top_level_declaration = FALSE;
-  ps->is_linkage_spec_decl = FALSE;
-  ps->marked_as_gnu_extension = FALSE;
-  ps->decl_specifiers_omitted = FALSE;
-  ps->decl_specifiers_error = FALSE;
-  ps->need_semicolon_remove_stop_token = FALSE;
-  ps->need_comma_remove_stop_token = FALSE;
-  ps->need_assign_remove_stop_token = FALSE;
-  ps->need_lbrace_remove_stop_token = FALSE;
-  ps->restore_name_linkage = FALSE;
-  ps->has_initializer = FALSE;
-  ps->first_decl = FALSE;
-  ps->first_decl_of_predeclared_entity = FALSE;
-  ps->is_property_or_event_field = FALSE;
-  ps->is_declspec_property_field = FALSE;
-  ps->has_cli_context_sensitive_keyword = FALSE;
-  ps->has_cli_property_keyword = FALSE;
-  ps->has_cli_event_keyword = FALSE;
-  ps->has_cli_initonly_keyword = FALSE;
-  ps->has_cli_literal_keyword = FALSE;
-  ps->override_okay = FALSE;
-  ps->initializer_is_expr_list = FALSE;
-  ps->initializer_is_single_expr = FALSE;
-  ps->no_special_cli_class_type_check = FALSE;
-  ps->is_generic_declaration = FALSE;
-  ps->template_void_specifier = FALSE;
-  ps->is_inclass_member_function_decl = FALSE;
-  ps->is_out_of_class_member_function_decl = FALSE;
-  ps->position_of_this_reference_in_trailing_return_set = FALSE;
-  ps->prefix_attributes = NULL;
-  ps->id_attributes = NULL;
-  ps->specifier_attributes = NULL;
-  ps->tag_attributes = NULL;
-  clear_decl_modifiers_block(&ps->decl_modifiers);
-  ps->ms_attributes = NULL;
-  ps->asm_name = NULL;
-  ps->asm_name_pos = null_source_position;
-  ps->register_id = 0;
-  ps->storage_class_pos = null_source_position;
-  ps->declared_storage_class = (a_storage_class)sc_unspecified;
-  ps->storage_class = (a_storage_class)sc_unspecified;
-  ps->specifiers_type = NULL;
-  ps->declared_type = NULL;
-  ps->type = NULL;
-  ps->prev_type = NULL;
-  ps->auto_type = NULL;
-  ps->deduced_auto_type = NULL;
-  clear_expression_cache(&ps->prescanned_initializer_cache);
-  ps->prescanned_initializer_levels_down = 0;
-  ps->source_sequence_entry = NULL;
-  ps->param_id = NULL;
-  ps->alignment = 0;
-  ps->upc_block_size = UPC_BLOCK_SIZE_NONE;
-  ps->p_postfix_entities = NULL;
-  ps->assoc_func_decl_state = NULL;
-  ps->end_of_parse_actions = NULL;
-  ps->position_of_this_reference_in_trailing_return = null_source_position;
-}  /* init_null_decl_parse_state */
+  if (!secondary_declarator) {
+    /* Initialize fields not particularly associated with a declarator. */
+    dps->sym = NULL;
+    dps->dso_flags = 0;
+    dps->start_pos = null_source_position;
+    dps->specifiers_pos = null_source_position;
+    dps->return_type_pos = null_source_position;
+    dps->qualifiers = TQ_NONE;
+    dps->qualifiers_pos = null_source_position;
+    dps->restrict_pos = null_source_position;
+    dps->inline_pos = null_source_position;
+    dps->virtual_pos = null_source_position;
+    dps->auto_pos = null_source_position;
+    dps->in_class_scope = FALSE;
+    dps->secondary_declarator = FALSE;
+    dps->is_trailing_return_type = FALSE;
+    dps->is_type_name = FALSE;
+    dps->is_template_type_argument = FALSE;
+    dps->trailing_return_type_allowed = FALSE;
+    dps->has_trailing_return_type = FALSE;
+    dps->is_new_expr_type = FALSE;
+    dps->is_evaluated_sizeof_type_arg = FALSE;
+    dps->disallow_variably_modified_type = FALSE;
+    dps->unused_qualifiers = FALSE;
+    dps->auto_type_allowed = FALSE;
+    dps->auto_type_specifier_seen = FALSE;
+    dps->is_asm_function = FALSE;
+    dps->function_definition_allowed = FALSE;
+    dps->is_old_style_param_decl = FALSE;
+    dps->is_top_level_declaration = FALSE;
+    dps->is_linkage_spec_decl = FALSE;
+    dps->marked_as_gnu_extension = FALSE;
+    dps->decl_specifiers_omitted = FALSE;
+    dps->decl_specifiers_error = FALSE;
+    dps->need_semicolon_remove_stop_token = FALSE;
+    dps->need_comma_remove_stop_token = FALSE;
+    dps->need_assign_remove_stop_token = FALSE;
+    dps->need_lbrace_remove_stop_token = FALSE;
+    dps->restore_name_linkage = FALSE;
+    dps->is_property_or_event_field = FALSE;
+    dps->is_declspec_property_field = FALSE;
+    dps->has_cli_context_sensitive_keyword = FALSE;
+    dps->has_cli_property_keyword = FALSE;
+    dps->has_cli_event_keyword = FALSE;
+    dps->has_cli_initonly_keyword = FALSE;
+    dps->has_cli_literal_keyword = FALSE;
+    dps->initializer_is_single_expr = FALSE;
+    dps->prefix_attributes = NULL;
+    dps->specifier_attributes = NULL;
+    dps->tag_attributes = NULL;
+    clear_decl_modifiers_block(&dps->decl_modifiers);
+    dps->ms_attributes = NULL;
+    dps->register_id = 0;
+    dps->storage_class_pos = null_source_position;
+    dps->declared_storage_class = (a_storage_class)sc_unspecified;
+    dps->storage_class = (a_storage_class)sc_unspecified;
+    dps->specifiers_type = NULL;
+    dps->declared_type = NULL;
+    dps->type = NULL;
+    dps->prev_type = NULL;
+    dps->auto_type = NULL;
+    dps->deduced_auto_type = NULL;
+    dps->param_id = NULL;
+    dps->upc_block_size = UPC_BLOCK_SIZE_NONE;
+    dps->p_postfix_entities = NULL;
+    dps->assoc_func_decl_state = NULL;
+    dps->end_of_parse_actions = NULL;
+    dps->position_of_this_reference_in_trailing_return = null_source_position;
+  } else {
+    /* Set field values specifically for a secondary declarator. */
+    dps->secondary_declarator = TRUE;
+    dps->storage_class = dps->declared_storage_class;
+    dps->declared_type = dps->specifiers_type;
+    dps->type = dps->specifiers_type;
+    if (dps->has_trailing_return_type) {
+      /* The previous declarator had a trailing return type, which caused us
+         to override the "auto" type with the actual return type.  Restore the
+         "auto" type. */
+      dps->has_trailing_return_type = FALSE;
+      dps->specifiers_type = dps->auto_type;
+      dps->declared_type = dps->auto_type;
+      dps->type = dps->auto_type;
+      dps->return_type_pos = null_source_position;
+    }  /* if */
+  }  /* if */
+  /* Initialize fields associated with a declarator. */
+  dps->do_flags = DO_NO_OUTPUT_FLAGS;
+  dps->declarator_start_pos = null_source_position;
+  dps->declarator_pos = null_source_position;
+  dps->is_definition = FALSE;
+  dps->in_nested_declarator = FALSE;
+  dps->has_trailing_return_type = FALSE;
+  dps->pack_ellipsis_allowed = FALSE;
+  dps->has_pack_ellipsis = FALSE;
+  dps->is_pack_element = FALSE;
+  dps->nested_ptr_or_ref_seen = FALSE;
+  dps->has_initializer = FALSE;
+  dps->first_decl = FALSE;
+  dps->first_decl_of_predeclared_entity = FALSE;
+  dps->override_okay = FALSE;
+  dps->initializer_is_expr_list = FALSE;
+  dps->no_special_cli_class_type_check = FALSE;
+  dps->is_generic_declaration = FALSE;
+  dps->template_void_specifier = FALSE;
+  dps->is_inclass_member_function_decl = FALSE;
+  dps->is_out_of_class_member_function_decl = FALSE;
+  dps->position_of_this_reference_in_trailing_return_set = FALSE;
+  dps->id_attributes = NULL;
+  dps->asm_name = NULL;
+  dps->asm_name_pos = null_source_position;
+  clear_expression_cache(&dps->prescanned_initializer_cache);
+  dps->prescanned_initializer_levels_down = 0;
+  dps->source_sequence_entry = NULL;
+  dps->alignment = 0;
+}  /* clear_decl_parse_state_fields */
 
 
 static a_decl_parse_callback_ptr
@@ -15471,46 +15492,7 @@ multiple declarators (like "int i, *p;").  Initialize various declarator-
 related-fields of *ps prior to scanning the next declarator.
 */
 {
-  ps->do_flags = DO_NO_OUTPUT_FLAGS;
-  ps->declarator_start_pos = null_source_position;
-  ps->declarator_pos = null_source_position;
-  ps->secondary_declarator = TRUE;
-  ps->is_definition = FALSE;
-  if (ps->has_trailing_return_type) {
-    /* The previous declarator had a trailing return type, which caused us to
-       override the "auto" type with the actual return type.  Restore the
-       "auto" type. */
-    ps->has_trailing_return_type = FALSE;
-    ps->specifiers_type = ps->auto_type;
-    ps->declared_type = ps->auto_type;
-    ps->type = ps->auto_type;
-    ps->return_type_pos = null_source_position;
-  }  /* if */
-  ps->pack_ellipsis_allowed = FALSE;
-  ps->has_pack_ellipsis = FALSE;
-  ps->is_pack_element = FALSE;
-  ps->nested_ptr_or_ref_seen = FALSE;
-  ps->has_initializer = FALSE;
-  ps->first_decl = FALSE;
-  ps->first_decl_of_predeclared_entity = FALSE;
-  ps->override_okay = FALSE;
-  ps->initializer_is_expr_list = FALSE;
-  ps->no_special_cli_class_type_check = FALSE;
-  ps->is_generic_declaration = FALSE;
-  ps->template_void_specifier = FALSE;
-  ps->is_inclass_member_function_decl = FALSE;
-  ps->is_out_of_class_member_function_decl = FALSE;
-  ps->position_of_this_reference_in_trailing_return_set = FALSE;
-  ps->id_attributes = NULL;
-  ps->asm_name = NULL;
-  ps->asm_name_pos = null_source_position;
-  ps->storage_class = ps->declared_storage_class;
-  ps->declared_type = ps->specifiers_type;
-  ps->type = ps->specifiers_type;
-  clear_expression_cache(&ps->prescanned_initializer_cache);
-  ps->prescanned_initializer_levels_down = 0;
-  ps->source_sequence_entry = NULL;
-  ps->alignment = 0;
+  clear_decl_parse_state_fields(ps, /*secondary_declarator=*/TRUE);
 }  /* start_secondary_declarator */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -16234,7 +16216,8 @@ void decls_one_time_init(void)
 Do one-time initialization of static variables defined in this file.
 */
 {
-  init_null_decl_parse_state();
+  clear_decl_parse_state_fields(&null_decl_parse_state,
+                                /*secondary_declarator=*/FALSE);
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_decl_parse_callbacks),
