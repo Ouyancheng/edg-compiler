@@ -3205,7 +3205,7 @@ Instantiate the C++/CLI generic delegate specified by class_type.
   class_type->variant.class_struct_union.final = TRUE;
   /* Add the type to the types list of the appropriate scope.  Pass
      NO_SCOPE_DEPTH to force it to compute the scope list to be used. */
-  if (!class_type->variant.typeref.is_nonreal ||
+  if (!class_type->variant.class_struct_union.is_nonreal_class ||
        prototype_instantiations_in_il) {
     add_to_types_list(class_type, NO_SCOPE_DEPTH);
   }  /* if */
