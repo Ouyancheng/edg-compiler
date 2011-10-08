@@ -17279,6 +17279,9 @@ direct binding is "possible" and not whether it is "valid".
   a_boolean  direct_binding_possible, type_is_correct_or_derived;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean  type_is_derived = FALSE;
+  a_boolean  baseward_cast;
+  a_base_class_ptr
+             bcp;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean  template_case = FALSE, is_rvalue_ref;
   a_type_ptr base_dest_type, unqual_dest_type, unqual_source_type;
@@ -17338,6 +17341,18 @@ direct binding is "possible" and not whether it is "valid".
        destination type has some extra qualifiers that are not present on
        the source type (at any level).  This is an extension. */
     type_is_correct_or_derived = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled &&
+             is_tracking_reference_type(dest_type) &&
+             is_handle_type(unqual_source_type) &&
+             is_handle_type(unqual_dest_type) &&
+             f_related_class_pointers(unqual_source_type, unqual_dest_type,
+                                      &baseward_cast, &bcp) &&
+             baseward_cast) {
+    /* VC10 allows a "tracking reference to handle to base" to bind to
+       a "handle to derived". */
+    type_is_correct_or_derived = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (function_symbol != NULL &&
              source_operand != NULL &&
              is_indefinite_function_operand(source_operand) &&
