@@ -3197,11 +3197,16 @@ it is always NULL.
      check for deduction via a qualification conversion. */
   if (qc_param_type != NULL) *qc_param_type = param_type;
   if (qc_arg_type != NULL) *qc_arg_type = arg_type;
-  if (is_pointer_type(arg_type) && is_pointer_type(param_type)
+  if ((is_pointer_type(arg_type) && is_pointer_type(param_type)
 #ifdef pointer_types_have_same_repr
-      && pointer_types_have_same_repr(arg_type, param_type)
+       && pointer_types_have_same_repr(arg_type, param_type)
 #endif /* ifdef pointer_types_have_same_repr */
-                                                           ) {
+      )
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      || (cppcli_enabled &&
+          is_handle_type(arg_type) && is_handle_type(param_type))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                 ) {
     /* Check for cases where type qualifiers are being added down one
        level (or deeper) in a pointer case, e.g., int * --> const int *.
        This is another trivial conversion.
