@@ -13892,6 +13892,9 @@ apply, but we can't tell).
           }  /* for */
           free_list_of_symbol_list_entries(symbol_list);
         }  /* if */
+        /* See if the built-in meaning of the operator can apply if we
+           convert the class operand(s) to a built-in type through use of
+           a conversion function. */
         if (sun_mode &&
             some_candidate_matches_without_user_defined_convs(
                                                         candidate_functions)) {
@@ -13900,10 +13903,16 @@ apply, but we can't tell).
              a user-defined conversion to match.  5.9 seems to have eliminated
              that, but we don't yet have a sun_version option... */
           try_conversions = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcli_enabled &&
+                   !unary_operator && kind == (an_opname_kind)onk_plus &&
+                   (is_literal_convertible_to_cli_string(operand_1) ||
+                    is_literal_convertible_to_cli_string(operand_2))) {
+          /* When the "+" operator is applied to a string literal,
+             don't try the built-in "+".  See ECMA-372 15.6.3. */
+          try_conversions = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
-        /* See if the built-in meaning of the operator can apply if we
-           convert the class operand(s) to a built-in type through use of
-           a conversion function. */
         if (try_conversions) {
           /* See if we can find user-defined conversions to built-in types
              that will make the built-in operator feasible.  The argument
