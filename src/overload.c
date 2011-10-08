@@ -3204,9 +3204,11 @@ it is always NULL.
       )
 #if MICROSOFT_EXTENSIONS_ALLOWED
       || (cppcli_enabled &&
-          is_handle_type(arg_type) && is_handle_type(param_type))
+          is_handle_type(arg_type) && is_handle_type(param_type) &&
+          !is_cli_generic_definition_argument_type(arg_type) &&
+          !is_cli_generic_definition_argument_type(param_type))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                 ) {
+                                                               ) {
     /* Check for cases where type qualifiers are being added down one
        level (or deeper) in a pointer case, e.g., int * --> const int *.
        This is another trivial conversion.
