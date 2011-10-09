@@ -17282,6 +17282,7 @@ direct binding is "possible" and not whether it is "valid".
   a_boolean  baseward_cast;
   a_base_class_ptr
              bcp;
+  a_boolean  microsoft_handle_extension = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean  template_case = FALSE, is_rvalue_ref;
   a_type_ptr base_dest_type, unqual_dest_type, unqual_source_type;
@@ -17352,6 +17353,7 @@ direct binding is "possible" and not whether it is "valid".
     /* VC10 allows a "tracking reference to handle to base" to bind to
        a "handle to derived". */
     type_is_correct_or_derived = TRUE;
+    microsoft_handle_extension = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (function_symbol != NULL &&
              source_operand != NULL &&
@@ -17455,14 +17457,28 @@ direct binding is "possible" and not whether it is "valid".
   if (type_is_correct_or_derived && !template_case) {
     a_type_qualifier_set source_quals = get_type_qualifiers(source_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* It's allowed to drop __unaligned or __restrict in Microsoft mode.
-       MSVC++ issues no diagnostic. */
     if (microsoft_mode) {
+      if (microsoft_handle_extension) {
+        /* In the odd handle case (see above), compare the qualifiers on
+           the underlying handle types. */
+        source_quals = f_get_type_qualifiers(type_pointed_to(source_type),
+                                             /*top_level=*/FALSE);
+      }  /* if */
+      /* It's allowed to drop __unaligned or __restrict in Microsoft mode.
+         MSVC++ issues no diagnostic. */
       source_quals &= ~(TQ_UNALIGNED | TQ_RESTRICT);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (source_quals != TQ_NONE) {
       a_type_qualifier_set dest_quals = get_type_qualifiers(base_dest_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_handle_extension) {
+        /* In the odd handle case (see above), compare the qualifiers on
+           the underlying handle types. */
+        dest_quals = f_get_type_qualifiers(type_pointed_to(base_dest_type),
+                                           /*top_level=*/FALSE);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (any_qualifier_in_set_missing(dest_quals, source_quals)) {
         *dropping_qualifiers = TRUE;
       }  /* if */
