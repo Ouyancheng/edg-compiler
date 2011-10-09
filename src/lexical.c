@@ -12389,20 +12389,23 @@ repeated constructs, as in
 }  /* loop_token */
 
 
-a_token_kind next_token_with_seq_number(a_token_sequence_number *seq)
+a_token_kind next_token_full(a_token_sequence_number *seq,
+                             a_symbol_header_ptr     *sym_hdr)
 /*
 Return the next token after the current one while leaving the current
 token unchanged.  This is used in recursive-descent parsing routines
 to peek ahead at the next token and decide on a path through the syntax.
 If seq is not NULL, return the token sequence number of the next token
-in the location pointed to by seq.
+in the location pointed to by seq.  If sym_hdr is not NULL, then
+set *sym_hdr to point to the symbol header if the next token is an
+identifier, else to NULL.
 */
 {
   a_token_cache 	cache;
   a_token_kind 		ntoken;
   a_cached_token_ptr	ctp = NULL;
 
-  db_enter(5, "next_token_with_seq_number");
+  db_enter(5, "next_token_full");
   if (in_preprocessing_directive && curr_token == tok_newline) {
     /* If we have reached the end of a preprocessing directive, don't attempt
        to scan tokens past the end.  Return a tok_newline without actually
@@ -12454,6 +12457,13 @@ in the location pointed to by seq.
     ntoken = get_token();
     /* If seq is not NULL, return the sequence number of the next token. */
     if (seq != NULL) *seq = curr_token_sequence_number;
+    /* If sym_hdr is not NULL, return the symbol header pointer if the
+       next token is an identifier. */
+    if (sym_hdr != NULL) {
+      *sym_hdr = (ntoken == tok_identifier) ?
+                              locator_for_curr_id.symbol_header :
+                              (a_symbol_header *)NULL;
+    }  /* if */
     /* Put the two tokens in the cache (original, next) on the rescan list,
        and refetch the original token.  Note that the "next" token remains on
        the rescan list. */
@@ -12463,7 +12473,7 @@ in the location pointed to by seq.
 done:
   db_exit();
   return ntoken;
-}  /* next_token_with_seq_number */
+}  /* next_token_full */
 
 
 a_token_kind next_two_tokens(a_token_kind	first_token_must_be,

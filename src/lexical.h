@@ -24,6 +24,8 @@ typedef struct a_source_line_modif *a_source_line_modif_ptr;
 typedef struct a_token_cache *a_token_cache_ptr;
 typedef struct a_cached_token *a_cached_token_ptr;
 
+typedef struct a_symbol_header a_symbol_header_dummy_typedef;
+
 #ifndef HOST_ENVIR_H
 #include "host_envir.h"
 #endif /* ifndef HOST_ENVIR_H */
@@ -2106,10 +2108,14 @@ extern a_boolean required_token_no_advance(a_token_kind  token,
    syntactic construct. */
 extern a_boolean loop_token(a_token_kind token);
 /* Look ahead at the token following the current one. */
-extern a_token_kind next_token_with_seq_number(a_token_sequence_number *seq);
-/* Macro that calls next_token_with_seq_number and provides a NULL argument. */
+extern a_token_kind next_token_full(a_token_sequence_number *seq,
+                                    struct a_symbol_header  **sym_hdr);
+/* Macro that calls next_token_full with default arguments. */
 #define next_token()							\
-  (next_token_with_seq_number((a_token_sequence_number*)NULL))
+  (next_token_full((a_token_sequence_number*)NULL,			\
+                   (struct a_symbol_header **)NULL))
+#define next_token_with_seq_number(seq) 				\
+  (next_token_full((seq), (struct a_symbol_header **)NULL))
 
 /* Look ahead at the next two tokens. */
 extern
