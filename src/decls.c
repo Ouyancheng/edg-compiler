@@ -15258,13 +15258,13 @@ indicates how processing should proceed after the call.
       a_token_cache  cache;
       clear_token_cache(&cache, /*reusable=*/FALSE);
       cache_curr_token(&cache);
-      get_token();
+      (void)get_token();
       if (curr_token == tok_lparen) {
         is_asm_decl = TRUE;
       } else if (gnu_mode && curr_token == tok_volatile) {
         /* GNU compilers permit "asm volatile (...)". */
         cache_curr_token(&cache);
-        get_token();
+        (void)get_token();
         if (curr_token == tok_lparen) is_asm_decl = TRUE;
       }  /* if */
       rescan_cached_tokens(&cache);
