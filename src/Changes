@@ -1,5 +1,16 @@
 Version 4.4
 
+10/10/11 [EDGcpfe/12145]
+GNU compatibility: volatile asm declarations in namespace scope
+
+In GNU mode, the front end should accept volatile asm declaration like:
+
+  asm volatile ("xxx");
+
+However, it failed to recognize such forms when they appear in namespace
+scope.  This is now fixed.
+
+
 10/7/11  [EDGcpfe/12169]
 C++11 type traits helpers and non-class types
 

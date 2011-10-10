@@ -15250,12 +15250,26 @@ indicates how processing should proceed after the call.
   if (end_of_decl_action != eoda_not_at_end) {
     /* Nothing more to do in this routine. */
   } else if (curr_token == tok_asm || curr_token == tok_microsoft_asm) {
-    if (curr_token != tok_microsoft_asm &&
-        state->function_definition_allowed && next_token() != tok_lparen) {
-      /* Not "asm (...)", so assume we have an asm function declaration --
-         something like "asm void f(void) { ... }". */
-      state->is_asm_function = TRUE;
-    } else {
+    /* Check whether this is an asm declaration or an asm function.  The
+       latter is only possible in contexts that permit function definitions. */
+    a_boolean  is_asm_decl = curr_token == tok_microsoft_asm ||
+                             !state->function_definition_allowed;
+    if (!is_asm_decl) {
+      a_token_cache  cache;
+      clear_token_cache(&cache, /*reusable=*/FALSE);
+      cache_curr_token(&cache);
+      get_token();
+      if (curr_token == tok_lparen) {
+        is_asm_decl = TRUE;
+      } else if (gnu_mode && curr_token == tok_volatile) {
+        /* GNU compilers permit "asm volatile (...)". */
+        cache_curr_token(&cache);
+        get_token();
+        if (curr_token == tok_lparen) is_asm_decl = TRUE;
+      }  /* if */
+      rescan_cached_tokens(&cache);
+    }  /* if */
+    if (is_asm_decl) {
       /* Scan the asm declaration. */
       add_stop_token(tok_semicolon);
       (void)asm_declaration(!state->is_old_style_param_decl,
@@ -15263,6 +15277,10 @@ indicates how processing should proceed after the call.
                             &state->prefix_attributes);
       remove_stop_token(tok_semicolon);
       end_of_decl_action = eoda_done;
+    } else if (state->function_definition_allowed) {
+      /* Not "asm (...)" or "asm volatile (...)", so assume we have an asm
+         function declaration -- something like "asm void f(void) { ... }". */
+      state->is_asm_function = TRUE;
     }  /* if */
   } else if (!is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
     /* Consider potential error cases. */
