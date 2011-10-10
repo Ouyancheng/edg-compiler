@@ -22571,56 +22571,129 @@ accepted as a null pointer constant.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-void process_simple_assignment(an_operand        *operand_1,
-                               an_operand        *operand_2,
-                               a_source_position *operator_position,
-                               an_operand        *result)
+void process_simple_assignment(an_operand              *operand_1,
+                               an_operand              *operand_2,
+                               a_source_position       *operator_position,
+                               a_token_sequence_number operator_tok_seq_number,
+                               a_boolean               check_for_overloading,
+                               an_operand              *result)
 /*
-Process a simple assignment (i.e., a C-style assignment, or one in C++
-that does not involve calling an operator= function).  operand_1 is the
-left operand, operand_2 the right operand, and the result is placed in
-*result.  operator_position gives the assignment operator position.
+Process a simple assignment ("simple" in this case meaning "not compound").
+If check_for_overloading is true, check for operator= overloading in C++.
+operand_1 is the left operand, operand_2 the right operand, and the
+result is placed in *result.  operator_position gives the assignment
+operator position, and operator_tok_seq_number gives its token sequence
+number.
 */
 {
-  an_expr_operator_kind op;
-  a_type_ptr            orig_result_type, result_type;
+  a_boolean processed = FALSE;
 
-  do_operand_transformations(operand_1,
-                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-#if ASSIGNMENT_TO_THIS_ALLOWED
-  if (!C_mode() &&
-      is_an_rvalue(operand_1) &&  /* For speed. */
-      check_assignment_to_this_pointer(operand_1)) {
-    /* Anachronism -- assigning to the "this" pointer. */
-    /* The subroutine changes operand_1 to the proper lvalue. */
-  } else {
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-    if (check_modifiable_lvalue_operand(operand_1)) {
-      modifying_lvalue(operand_1, /*value_used=*/FALSE);
-    }  /* if */
-#if ASSIGNMENT_TO_THIS_ALLOWED
-  }  /* if */
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-  /* The type of the assignment is the destination type with qualifiers
-     dropped as appropriate. */
-  orig_result_type = operand_1->type;
-  result_type = rvalue_type(orig_result_type);
-  op = which_binary_operator(tok_assign, result_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* Check for a bug related to null pointer constants in Microsoft C mode. */
-  process_microsoft_null_pointer_constant_bug(operand_2, result_type);
+  if (is_property_ref_operand(operand_1)) {
+    /* The operand is a reference to a member declared as a Microsoft
+       property.  Rewrite it as a call of the "put" function for the
+       property. */
+    rewrite_property_reference(operand_1, operand_2,
+                               (a_rewritten_property_reference_kind)rprk_none,
+                               (a_routine_ptr *)NULL);
+    *result = *operand_1;
+    processed = TRUE;
+  } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* do_operand_transformations is not done in the second operand,
-     because the processing for that is done in the conversion stuff. */
-  prep_assignment_operand(operand_2, result_type,
-                          ec_incompatible_assignment_operands,
-                          operator_position);
-  build_binary_result_operand(operand_1, operand_2, op,
-                              result_type, result);
-  /* In C++, assignment operators return lvalues. */
-  if (!C_mode()) {
-    change_assignment_result_to_lvalue(result, operand_1, orig_result_type);
+  /* Do not insert code here. */
+  if (!C_mode() && check_for_overloading &&
+      /* Note -- not is_overloadable_type_first_operand on purpose.  C++/CLI
+         does not allow a handle as first operand to be treated as if it
+         were a class operand, since what we really want is to do
+         assignment to the handle. */
+      (is_overloadable_type_operand(operand_1) ||
+       is_overloadable_type_operand(operand_2))) {
+    /* Look for C++ operator overloading cases. */
+    a_boolean has_predef_meaning = TRUE;
+    if (is_class_struct_union_type(operand_1->type)) {
+      /* Instantiate the type if it is a template class.  This ensures that
+         the operator= function is declared. */
+      complete_type_is_needed(operand_1->type);
+      /* Defined C++ classes will always have a generated operator=.
+         For incomplete classes, assume a predefined meaning to get clearer
+         error messages. */
+      has_predef_meaning = is_incomplete_type(operand_1->type);
+      if (any_cfront_mode()) {
+        /* In cfront mode, an operator= is not generated in every case. */
+        if (symbol_supplement_for_class(operand_1->type)->
+                                          assignment_by_bitwise_copy_allowed) {
+          has_predef_meaning = TRUE;
+        }  /* if */
+      }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled &&
+          is_cli_ref_or_interface_class_type(operand_1->type)) {
+        /* There's no default assignment for C++/CLI managed class types. */
+        has_predef_meaning = FALSE;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
+    check_for_operator_overloading((an_opname_kind)onk_assign,
+                                   /*unary_operator=*/FALSE,
+                                   /*must_be_member_function=*/TRUE,
+                                   /*try_conversions=*/FALSE,
+                                   has_predef_meaning,
+                                   operand_1, operand_2,
+                                   operator_position,
+                                   operator_tok_seq_number,
+                                   (a_nondependent_call_depth)0,
+                                   (a_source_position *)NULL,
+                                   result, &processed);
   }  /* if */
+  if (!processed) {
+    /* Non-operator-function cases, including all C cases. */
+    an_expr_operator_kind op;
+    a_type_ptr            orig_result_type, result_type;
+
+    do_operand_transformations(operand_1,
+                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+#if ASSIGNMENT_TO_THIS_ALLOWED
+    if (!C_mode() &&
+        is_an_rvalue(operand_1) &&  /* For speed. */
+        check_assignment_to_this_pointer(operand_1)) {
+      /* Anachronism -- assigning to the "this" pointer. */
+      /* The subroutine changes operand_1 to the proper lvalue. */
+    } else {
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+      if (check_modifiable_lvalue_operand(operand_1)) {
+        modifying_lvalue(operand_1, /*value_used=*/FALSE);
+      }  /* if */
+#if ASSIGNMENT_TO_THIS_ALLOWED
+    }  /* if */
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+    /* The type of the assignment is the destination type with qualifiers
+       dropped as appropriate. */
+    orig_result_type = operand_1->type;
+    result_type = rvalue_type(orig_result_type);
+    op = which_binary_operator(tok_assign, result_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Check for a bug related to null pointer constants in
+       Microsoft C mode. */
+    process_microsoft_null_pointer_constant_bug(operand_2, result_type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* do_operand_transformations is not done in the second operand,
+       because the processing for that is done in the conversion stuff. */
+    prep_assignment_operand(operand_2, result_type,
+                            ec_incompatible_assignment_operands,
+                            operator_position);
+    build_binary_result_operand(operand_1, operand_2, op,
+                                result_type, result);
+    /* In C++, assignment operators return lvalues. */
+    if (!C_mode()) {
+      change_assignment_result_to_lvalue(result, operand_1, orig_result_type);
+    }  /* if */
+  }  /* if */
+  set_operand_position(result, &operand_1->position, &operand_2->end_position,
+                       operator_position);
+  record_operator_position_in_rescan_info(result,
+                                          operator_position,
+                                          operator_tok_seq_number,
+                                          (a_source_position *)NULL);
 }  /* process_simple_assignment */
 
 
@@ -22641,8 +22714,7 @@ that case.
   a_source_position operator_position;
   a_token_sequence_number
                     operator_tok_seq_number;
-  a_boolean         err = FALSE, processed = FALSE;
-  a_boolean         has_predef_meaning;
+  a_boolean         err = FALSE;
 
   db_enter(4, "scan_simple_assignment_operator");
 
@@ -22677,74 +22749,16 @@ that case.
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand_1);
     operand_will_not_be_used_because_of_error(&operand_2);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (is_property_ref_operand(operand_1)) {
-    /* The operand is a reference to a member declared as a Microsoft
-       property.  Rewrite it as a call of the "put" function for the
-       property. */
-    rewrite_property_reference(operand_1, &operand_2,
-                               (a_rewritten_property_reference_kind)rprk_none,
-                               (a_routine_ptr *)NULL);
-    *result = *operand_1;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    set_operand_position(result, &operand_1->position, &operand_2.end_position,
+                         &operator_position);
   } else {
-    if (C_dialect == C_dialect_cplusplus &&
-        /* Note -- not is_overloadable_type_first_operand on purpose.  C++/CLI
-           does not allow a handle as first operand to be treated as if it
-           were a class operand, since what we really want is to do
-           assignment to the handle. */
-        (is_overloadable_type_operand(operand_1) ||
-         is_overloadable_type_operand(&operand_2))) {
-      /* Look for C++ operator overloading cases. */
-      has_predef_meaning = TRUE;
-      if (is_class_struct_union_type(operand_1->type)) {
-        /* Instantiate the type if it is a template class.  This ensures that
-           the operator= function is declared. */
-        complete_type_is_needed(operand_1->type);
-        /* Defined C++ classes will always have a generated operator=.
-           For incomplete classes, assume a predefined meaning to get clearer
-           error messages. */
-        has_predef_meaning = is_incomplete_type(operand_1->type);
-        if (any_cfront_mode()) {
-          /* In cfront mode, an operator= is not generated in every case. */
-          if (symbol_supplement_for_class(operand_1->type)->
-                                          assignment_by_bitwise_copy_allowed) {
-            has_predef_meaning = TRUE;
-          }  /* if */
-        }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (cppcli_enabled &&
-            is_cli_ref_or_interface_class_type(operand_1->type)) {
-          /* There's no default assignment for C++/CLI managed class types. */
-          has_predef_meaning = FALSE;
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      }  /* if */
-      check_for_operator_overloading((an_opname_kind)onk_assign,
-                                     /*unary_operator=*/FALSE,
-                                     /*must_be_member_function=*/TRUE,
-                                     /*try_conversions=*/FALSE,
-                                     has_predef_meaning,
-                                     operand_1, &operand_2,
-                                     &operator_position,
-                                     operator_tok_seq_number,
-                                     (a_nondependent_call_depth)0,
-                                     (a_source_position *)NULL,
-                                     result, &processed);
-    }  /* if */
-    if (!processed) {
-      /* Non-operator-function cases, including all C cases. */
-      process_simple_assignment(operand_1, &operand_2, &operator_position,
-                                result);
-    }  /* if */
+    /* Check and process the assignment. */
+    process_simple_assignment(operand_1, &operand_2,
+                              &operator_position,
+                              operator_tok_seq_number,
+                              /*check_for_overloading=*/TRUE,
+                              result);
   }  /* if */
-
-  set_operand_position(result, &operand_1->position, &operand_2.end_position,
-                       &operator_position);
-  record_operator_position_in_rescan_info(result,
-                                          &operator_position,
-                                          operator_tok_seq_number,
-                                          (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_simple_assignment_operator */
@@ -22769,7 +22783,7 @@ is expected to be NULL in that case.
   a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
-  a_boolean             err               = FALSE, processed = FALSE;
+  a_boolean             err = FALSE, processed = FALSE;
   a_type_ptr            orig_result_type, result_type;
   a_type_ptr            operation_type;
   a_boolean             pointer_add_sub   = FALSE;

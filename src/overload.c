@@ -14024,6 +14024,8 @@ select_best_function:
                 process_simple_assignment(&operand_1_clone,
                                           &interm_result,
                                           operator_position,
+                                          operator_tok_seq_number,
+                                          /*check_for_overloading=*/FALSE,
                                           result);
                 if (!is_error_operand(result)) {
                   assignment_op = expr_node_from_operand(result);

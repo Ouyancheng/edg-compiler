@@ -231,10 +231,13 @@ extern void insert_temporary_initialization(an_expr_node_ptr temp_init_expr,
                                             an_operand_ptr   result);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-extern void process_simple_assignment(an_operand_ptr    operand_1,
-                                      an_operand_ptr    operand_2,
-                                      a_source_position *operator_position,
-                                      an_operand_ptr    result);
+extern
+void process_simple_assignment(an_operand_ptr          operand_1,
+                               an_operand_ptr          operand_2,
+                               a_source_position       *operator_position,
+                               a_token_sequence_number operator_tok_seq_number,
+                               a_boolean               check_for_overloading,
+                               an_operand_ptr          result);
 
 #if GNU_EXTENSIONS_ALLOWED
 an_expr_node_ptr scan_asm_operand_expression(a_boolean output,
