@@ -3150,6 +3150,7 @@ Return a pointer to the entry.
 }  /* alloc_lowered_eh_construct_node */
 
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 void set_for_each_loop_kind(a_for_each_loop_ptr     felp,
                             a_for_each_pattern_kind kind)
@@ -3202,6 +3203,7 @@ associated variant fields to default values.
   set_for_each_loop_kind(felp, kind);
 }  /* clear_for_each_loop */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_switch_case_entry_ptr alloc_switch_case_entry(void)
 /*
