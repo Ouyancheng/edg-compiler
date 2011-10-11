@@ -14284,9 +14284,17 @@ stmk_init statements because there is no block yet for those statements.
 */
 typedef struct a_for_each_loop *a_for_each_loop_ptr;
 typedef struct a_for_each_loop {
-  a_variable_ptr
-		iterator;
-			/* Pointer to the iteration variable ("t" above).
+  a_byte_boolean
+		uses_prev_decl_iterator;
+			/* If TRUE, the loop uses a previously-declared
+			   variable (or variable-like entity) as its iterator
+			   variable, instead of declaring a new one. */
+  union {
+    /* When uses_prev_decl_iterator is FALSE: */
+    a_variable_ptr
+		variable;
+			/* Pointer to the iteration variable ("t" above),
+			   a variable newly-declared in the iterator scope.
 			   Dynamically initialized to the appropriate value:
 			   -- For sfepk_cli_pattern and "e" a handle type,
 			       safe_cast<T>(e->Current)
@@ -14296,7 +14304,28 @@ typedef struct a_for_each_loop {
 			        safe_cast<T>(cref[i0, i1, ...])
 			   -- For sfepk_stl_pattern or sfepk_array_pattern,
 			        static_cast<T>(*i)
+			   This field is NULL in some error cases.
 			*/
+    /* When uses_prev_decl_iterator is TRUE: */
+    struct {
+      a_variable_ptr
+		variable;
+      a_field_ptr
+		field;
+			/* Exactly one of "variable" and "field" is non-NULL,
+			   indicating the previously-declared variable or
+			   member of the current class (static data member
+			   or field) to be used as the iterator variable.
+			   The variable or field specified can be a
+			   property. */
+      an_expr_node_ptr
+		assign_expr;
+			/* An expression that assigns the iterator a value
+			   at the top of each iteration of the loop.  The
+			   effect is the same as the initializer for the
+			   iterator variable shown above. */
+    } prev_decl;
+  } iterator;
   a_variable_ptr
 		collection_expr_ref;
 			/* The cref variable shown above.  Its initial value
@@ -14318,7 +14347,11 @@ typedef struct a_for_each_loop {
 			/* An sck_block scope added immediately inside the
 			   loop, in which the iterator variable is declared.
 			   The dependent statement of the loop is enclosed by
-			   this scope. */
+			   this scope.  When a variable from the surrounding
+			   context is used as the iterator variable (see
+			   uses_prev_decl_iterator), the scope is still
+			   present but the iterator variable is not declared
+			   there. */
   a_variable_ptr
 		temporary_variable;
 			/* Pointer to the variable representing the temporary

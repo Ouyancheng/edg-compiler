@@ -4242,7 +4242,22 @@ Display a for-each statement.
   disp_ptr("statement",
            (char *)ptr->variant.for_each_loop.statement,
            iek_statement);
-  disp_ptr("iterator", (char *)extra_info->iterator, iek_variable);
+  disp_boolean("uses_prev_decl_iterator",
+               (a_boolean)extra_info->uses_prev_decl_iterator);
+  if (!extra_info->uses_prev_decl_iterator) {
+    disp_ptr("iterator.variable", (char *)extra_info->iterator.variable,
+             iek_variable);
+  } else {
+    disp_ptr("iterator.prev_decl.variable",
+             (char *)extra_info->iterator.prev_decl.variable,
+             iek_variable);
+    disp_ptr("iterator.prev_decl.field",
+             (char *)extra_info->iterator.prev_decl.field,
+             iek_field);
+    disp_ptr("iterator.prev_decl.assign_expr",
+             (char *)extra_info->iterator.prev_decl.assign_expr,
+             iek_expr_node);
+  }  /* if */
   disp_ptr("collection_expr_ref", (char *)extra_info->collection_expr_ref,
            iek_variable);
   disp_ptr("for_each_scope", (char *)extra_info->for_each_scope,

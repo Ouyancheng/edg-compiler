@@ -28190,45 +28190,53 @@ property is found.  *result is set to an expression operand for the
 
 
 static
-void deduce_auto_type_in_for_each_if_needed(a_variable_ptr iterator,
-                                            an_operand     *element_operand)
+void deduce_auto_type_in_for_each_if_needed(
+                                          a_for_each_loop_ptr felp,
+                                          an_operand          *element_operand)
 /*
-When the iterator variable "iterator" of a for-each statement is declared with
-"auto", this routine performs the type deduction from the type of 
-element_operand and sets the variable type to the deduced type.
+When the iterator variable of a for-each statement (identified by felp)
+is declared with "auto", this routine performs the type deduction from the
+type of element_operand and sets the variable type to the deduced type.
 */
 {
-  a_type_ptr deduced_type;
-  a_type_ptr deduced_auto_type;
-  a_boolean  still_dependent;
+  /* Do not do deduction if the loop uses a previously-declared iterator
+     variable. */
+  if (!felp->uses_prev_decl_iterator) {
+    a_variable_ptr iterator = felp->iterator.variable;
+    a_type_ptr deduced_type;
+    a_type_ptr deduced_auto_type;
+    a_boolean  still_dependent;
 
-  if (iterator->declared_with_auto_type_specifier) {
-    /* The iterator variable is declared with "auto".  Perform the type
-       deduction. */
-    if (deduce_auto_type(iterator->type,
-                         /*auto_type=*/(a_type_ptr)NULL,
-                         element_operand,
-                         &iterator->source_corresp.decl_position,
-                         &deduced_type,
-                         &deduced_auto_type,
-                         &still_dependent)) {
-      /* Deduction succeeded. */
-      iterator->type = deduced_type;
-    } else if (still_dependent) {
-      /* The type is still dependent, so leave the iterator variable
-         type as it is. */
-    } else {
-      /* Deduction failed. */
-      pos_error(ec_cannot_deduce_auto_type, 
-                &iterator->source_corresp.decl_position);
-      iterator->type = error_type();
+    if (iterator == NULL) {
+      /* There was a previous error. */
+    } else if (iterator->declared_with_auto_type_specifier) {
+      /* The iterator variable is declared with "auto".  Perform the type
+         deduction. */
+      if (deduce_auto_type(iterator->type,
+                           /*auto_type=*/(a_type_ptr)NULL,
+                           element_operand,
+                           &iterator->source_corresp.decl_position,
+                           &deduced_type,
+                           &deduced_auto_type,
+                           &still_dependent)) {
+        /* Deduction succeeded. */
+        iterator->type = deduced_type;
+      } else if (still_dependent) {
+        /* The type is still dependent, so leave the iterator variable
+           type as it is. */
+      } else {
+        /* Deduction failed. */
+        pos_error(ec_cannot_deduce_auto_type, 
+                  &iterator->source_corresp.decl_position);
+        iterator->type = error_type();
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* deduce_auto_type_in_for_each_if_needed */
 
 
 static void set_variable_initializer(a_variable_ptr vp,
-                                    an_operand_ptr  operand)
+                                     an_operand_ptr  operand)
 /*
 Set the initializer for the variable vp from the operand "operand".
 */
@@ -28262,6 +28270,74 @@ Set the initializer for the variable vp from the operand "operand".
             /*block_lifetime=*/TRUE);
   }  /* if */
 }  /* set_variable_initializer */
+
+
+static void set_iterator_variable_initializer(
+                                     a_for_each_loop_ptr     felp,
+                                     an_operand              *iterator_operand,
+                                     a_token_sequence_number tok_seq_number,
+                                     an_operand              *operand)
+/*
+Set the initializer for the iterator variable of the for-each loop
+identified by felp to "operand".  If the for-each loop uses a previously-
+declared variable, create and record an assignment expression instead of
+an initializer; iterator_operand gives an operand for the variable in
+that case.  tok_seq_number gives the token sequence number for the
+collection expression.
+*/
+{
+  if (felp->uses_prev_decl_iterator) {
+    /* Make an assignment expression for a previously-declared iterator. */
+    an_operand assign_operand;
+    process_simple_assignment(iterator_operand, operand,
+                              &iterator_operand->position,
+                              tok_seq_number,
+                              /*check_for_overloading=*/TRUE,
+                              &assign_operand);
+    felp->iterator.prev_decl.assign_expr =
+              wrap_up_full_expression(make_node_from_operand(&assign_operand));
+  } else {
+    /* Set the initializer for the normal case of a declared iterator
+       variable. */
+    set_variable_initializer(felp->iterator.variable, operand);
+  }  /* if */
+}  /* set_iterator_variable_initializer */
+
+
+static a_type_ptr iterator_type(a_for_each_loop_ptr felp,
+                                an_operand          *prev_decl_iterator)
+/*
+Return the type of the iterator variable of the for-each loop indicated
+by felp.  In the case where the loop uses a previously-declared variable
+as the iterator variable, prev_decl_iterator gives an operand for that
+variable.
+*/
+{
+  a_type_ptr type;
+
+  if (felp->uses_prev_decl_iterator) {
+    if (!is_property_ref_operand(prev_decl_iterator)) {
+      type = prev_decl_iterator->type;
+    } else {
+      /* For a property reference, get the type from the property. */
+      a_symbol_ptr property_sym = prev_decl_iterator->symbol;
+      a_symbol_ptr sym = property_sym->variant.property_info->properties;
+      /* Use the first property type even if the properties are overloaded.
+         Overloaded properties are used for indexed properties and they're
+         going to get an error anyway. */
+      if (symbol_is(sym, sk_field)) {
+        type = sym->variant.field.ptr->type;
+      } else if (symbol_is(sym, sk_static_data_member)) {
+        type = sym->variant.static_data_member.variable->type;
+      } else {
+        unexpected_condition();
+      }  /* if */
+    }  /* if */
+  } else {
+    type = felp->iterator.variable->type;
+  }  /* if */
+  return type;
+}  /* iterator_type */
 
 
 static void make_collection_expression_operand(a_for_each_loop_ptr felp,
@@ -28313,10 +28389,11 @@ for a for-each loop operating on a CLI array.
 
 
 static void check_for_each_cli_collection_pattern(
-                                    a_for_each_loop_ptr        felp,
-                                    a_token_sequence_number    tok_seq_number,
-                                    a_base_class_ptr           ienumerable_bcp,
-                                    a_scope_pointers_block_ptr pointers_block)
+                                a_for_each_loop_ptr        felp,
+                                an_operand                 *prev_decl_iterator,
+                                a_token_sequence_number    tok_seq_number,
+                                a_base_class_ptr           ienumerable_bcp,
+                                a_scope_pointers_block_ptr pointers_block)
 /*
 This routine checks a statement of kind stmk_for_each for semantic
 correctness against the collection pattern specified in ECMA-372
@@ -28337,9 +28414,11 @@ types that either directly implement the C++/CLI pattern or implement
 one of the System::Collections::IEnumerable or
 System::Collections::Generic::IEnumerable interfaces.
 
-felp holds information about the for-each loop.  tok_seq_number is the
-sequence number of the first token of the collection expression.
-If ienumerable_bcp is non-NULL, the collection type implements one of the
+felp holds information about the for-each loop.  prev_decl_iterator is
+an operand for the previously-declared variable for the iterator when
+one is indicated in the for-each loop entry.  tok_seq_number is the
+sequence number of the first token of the collection expression.  If
+ienumerable_bcp is non-NULL, the collection type implements one of the
 recognized IEnumerable interfaces; bcp identifies which one.
 pointers_block is the pointers block for the iterator scope previously
 created, needed to reactivate that scope.
@@ -28476,12 +28555,10 @@ created, needed to reactivate that scope.
   }  /* if */
   if (passed) {
     /* Make the initializer for the iterator variable. */
-    a_variable_ptr iterator = felp->iterator;
-    if (iterator == NULL) {
+    if (!felp->uses_prev_decl_iterator && felp->iterator.variable == NULL) {
       /* Previous error. */
       passed = FALSE;
     } else {
-      a_ruled_out_expr_kind_set ruled_out_expr_kinds = ROEK_NONE;
       /* Re-push the iterator scope because the initialization of the iterator
          variable has to be handled in that scope. */
       push_block_reactivation_scope(felp->iterator_scope, pointers_block);
@@ -28501,18 +28578,23 @@ created, needed to reactivate that scope.
                                                 &current_get_call_operand)) {
         passed = FALSE;
       } else {
-        deduce_auto_type_in_for_each_if_needed(iterator, 
+        a_type_ptr itype;
+        deduce_auto_type_in_for_each_if_needed(felp, 
                                                &current_get_call_operand);
         /* Check the conversion and generate IL for "safe_cast<T>(e->Current)"
            or "safe_cast<T>(e.Current)". */
-        if (!cast_identical_types(iterator->type,
-                                  current_get_call_operand.type)) {
-          process_safe_cast(iterator->type, &current_get_call_operand,
+        itype = iterator_type(felp, prev_decl_iterator);
+        if (!cast_identical_types(itype, current_get_call_operand.type)) {
+          a_ruled_out_expr_kind_set ruled_out_expr_kinds = ROEK_NONE;
+          process_safe_cast(itype, &current_get_call_operand,
                             &pos, &pos, &ruled_out_expr_kinds);
         }  /* if */
         /* Make an initializer for the iterator variable from the expression
            resulting from the safe_cast. */
-        set_variable_initializer(iterator, &current_get_call_operand);
+        set_iterator_variable_initializer(felp,
+                                          prev_decl_iterator,
+                                          tok_seq_number,
+                                          &current_get_call_operand);
       }  /* if */
       pop_expr_stack();
       /* Pop the iterator scope off the scope stack. */
@@ -28521,7 +28603,7 @@ created, needed to reactivate that scope.
   }  /* if */
   if (passed) {
     /* Fill the a_for_each_loop IL supplement. */
-    felp->kind = (a_for_each_pattern_kind)sfepk_cli_pattern;
+    set_for_each_loop_kind(felp, (a_for_each_pattern_kind)sfepk_cli_pattern);
     felp->variant.cli_pattern.movenext_call_expression = movenext_call_expr;
   }  /* if */
 }  /* check_for_each_cli_collection_pattern */
@@ -28529,6 +28611,7 @@ created, needed to reactivate that scope.
 
 static void check_for_each_cli_array_pattern(
                               a_for_each_loop_ptr        felp,
+                              an_operand                 *prev_decl_iterator,
                               a_token_sequence_number    tok_seq_number,
                               a_scope_pointers_block_ptr pointers_block)
 /*
@@ -28540,7 +28623,9 @@ correctness against the CLI array pattern.
 T is the type of the iteration variable t.  c is the collection
 expression, which is a CLI array or handle to such an array.
 
-felp holds information about the for-each loop.  tok_seq_number is the
+felp holds information about the for-each loop.  prev_decl_iterator is
+an operand for the previously-declared variable for the iterator when
+one is indicated in the for-each loop entry.  tok_seq_number is the
 sequence number of the first token of the collection expression.
 pointers_block is the pointers block for the iterator scope previously
 created, needed to reactivate that scope.
@@ -28554,6 +28639,7 @@ created, needed to reactivate that scope.
   an_operand          operand, bound_num_operand;
   an_operand          bound_function_selector;
   a_source_position   pos;
+  a_variable_ptr      upper_bound_vars = NULL, loop_vars = NULL;
 
   /* We should be in the for-each scope at this point. */
   check_assertion(felp->for_each_scope == scope_stack_top().il_scope);
@@ -28632,9 +28718,9 @@ created, needed to reactivate that scope.
           /* Save a pointer to the first of each class of variables. */
           if (bound == 0) {
             if (outer == 0) {
-              felp->variant.cli_array_pattern.upper_bound_vars = var;
+              upper_bound_vars = var;
             } else {
-              felp->variant.cli_array_pattern.loop_vars = var;
+              loop_vars = var;
             }  /* if */
           }  /* if */
 #if CHECKING
@@ -28656,14 +28742,13 @@ created, needed to reactivate that scope.
   }  /* if */
   if (passed) {
     /* Make the initializer for the iterator variable. */
-    a_variable_ptr iterator = felp->iterator;
-    if (iterator == NULL) {
+    if (!felp->uses_prev_decl_iterator && felp->iterator.variable == NULL) {
       /* Previous error. */
       passed = FALSE;
     } else {
-      an_expr_node_ptr          expr, arg_list, end_arg_list;
-      a_variable_ptr            var;
-      a_ruled_out_expr_kind_set ruled_out_expr_kinds = ROEK_NONE;
+      an_expr_node_ptr expr, arg_list, end_arg_list;
+      a_variable_ptr   var;
+      a_type_ptr       itype;
       /* Re-push the iterator scope because the initialization of the iterator
          variable has to be handled in that scope. */
       push_block_reactivation_scope(felp->iterator_scope, pointers_block);
@@ -28682,7 +28767,7 @@ created, needed to reactivate that scope.
       }  /* if */
       arg_list = end_arg_list = expr;
       /* Add the loop variables as subscripts. */
-      for (bound = 0, var = felp->variant.cli_array_pattern.loop_vars;
+      for (bound = 0, var = loop_vars;
            bound < num_bounds;
            bound++, var = var->next) {
         check_assertion(var != NULL);
@@ -28695,16 +28780,20 @@ created, needed to reactivate that scope.
                                       (an_expr_operator_kind)eok_cli_subscript,
                                       element_type, arg_list);
       make_lvalue_expression_operand(expr, &operand);
-      deduce_auto_type_in_for_each_if_needed(iterator, &operand);
+      deduce_auto_type_in_for_each_if_needed(felp, &operand);
       /* Check the conversion and generate IL for the safe_cast if
          necessary. */
-      if (!cast_identical_types(iterator->type, operand.type)) {
-        process_safe_cast(iterator->type, &operand, &pos, &pos,
-                          &ruled_out_expr_kinds);
+      itype = iterator_type(felp, prev_decl_iterator);
+      if (!cast_identical_types(itype, operand.type)) {
+        a_ruled_out_expr_kind_set ruled_out_expr_kinds = ROEK_NONE;
+        process_safe_cast(itype, &operand, &pos, &pos, &ruled_out_expr_kinds);
       }  /* if */
       /* Make an initializer for the iterator variable from the expression
          resulting from the safe_cast. */
-      set_variable_initializer(iterator, &operand);
+      set_iterator_variable_initializer(felp,
+                                        prev_decl_iterator,
+                                        tok_seq_number,
+                                        &operand);
       pop_expr_stack();
       /* Pop the iterator scope off the scope stack. */
       pop_block_scope(/*is_final_pop=*/FALSE);
@@ -28712,12 +28801,16 @@ created, needed to reactivate that scope.
   }  /* if */
   if (passed) {
     /* Fill the a_for_each_loop IL supplement. */
-    felp->kind = (a_for_each_pattern_kind)sfepk_cli_array_pattern;
+    set_for_each_loop_kind(felp,
+                           (a_for_each_pattern_kind)sfepk_cli_array_pattern);
+    felp->variant.cli_array_pattern.upper_bound_vars = upper_bound_vars;
+    felp->variant.cli_array_pattern.loop_vars = loop_vars;
   }  /* if */
 }  /* check_for_each_cli_array_pattern */
 
 
 static void fill_in_for_each_il(a_for_each_loop_ptr        felp,
+                                an_operand                 *prev_decl_iterator,
                                 a_for_each_pattern_kind    kind,
                                 a_token_sequence_number    tok_seq_number,
                                 a_scope_pointers_block_ptr pointers_block)
@@ -28747,6 +28840,8 @@ creates a dynamic initialization for the iterator variable ("t = *i").
 A diagnostic is emitted (and *felp is not filled in) if an error is
 found.
 
+prev_decl_iterator is an operand for the previously-declared variable
+for the iterator when one is indicated in the for-each loop entry.
 tok_seq_number is the sequence number of the first token of the
 collection expression.  pointers_block is the pointers block for the
 iterator scope previously created, needed to reactivate that scope.
@@ -28907,20 +29002,24 @@ iterator scope previously created, needed to reactivate that scope.
       passed = FALSE;
     } else {
       /* Add the initializer to the iterator variable. */
-      a_ruled_out_expr_kind_set ruled_out_expr_kinds = ROEK_NONE;
-      a_variable_ptr            iterator = felp->iterator;
-      if (iterator == NULL) {
+      if (!felp->uses_prev_decl_iterator && felp->iterator.variable == NULL) {
         /* Previous error. */
         passed = FALSE;
       } else {
-        deduce_auto_type_in_for_each_if_needed(iterator, &operand);
+        a_type_ptr itype;
+        deduce_auto_type_in_for_each_if_needed(felp, &operand);
         /* Check conversion and generate IL for the conversion from
            "*i" to "T". */
-        if (!cast_identical_types(iterator->type, operand.type)) {
-          process_static_cast(iterator->type, &operand, &pos, &pos,
+        itype = iterator_type(felp, prev_decl_iterator);
+        if (!cast_identical_types(itype, operand.type)) {
+          a_ruled_out_expr_kind_set ruled_out_expr_kinds = ROEK_NONE;
+          process_static_cast(itype, &operand, &pos, &pos,
                               /*is_safe_cast=*/FALSE, &ruled_out_expr_kinds);
         }  /* if */
-        set_variable_initializer(iterator, &operand);
+        set_iterator_variable_initializer(felp,
+                                          prev_decl_iterator,
+                                          tok_seq_number,
+                                          &operand);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -28929,7 +29028,8 @@ iterator scope previously created, needed to reactivate that scope.
   pop_block_scope(/*is_final_pop=*/FALSE);
   if (passed) {
     /* Fill the a_for_each_loop IL supplement. */
-    felp->kind = kind;
+    set_for_each_loop_kind(felp, kind);
+    felp->variant.stl_array_pattern.end_variable = cend_var;
     felp->variant.stl_array_pattern.ne_call_expr = ne_call_expr;
     felp->variant.stl_array_pattern.incr_call_expr = incr_call_expr;
   }  /* if */
@@ -28937,9 +29037,10 @@ iterator scope previously created, needed to reactivate that scope.
 
 
 static void check_for_each_stl_collection_pattern(
-                                     a_for_each_loop_ptr        felp,
-                                     a_token_sequence_number    tok_seq_number,
-                                     a_scope_pointers_block_ptr pointers_block)
+                                a_for_each_loop_ptr        felp,
+                                an_operand                 *prev_decl_iterator,
+                                a_token_sequence_number    tok_seq_number,
+                                a_scope_pointers_block_ptr pointers_block)
 /*
 This routine checks a statement of kind stmk_for_each for semantic correctness
 against the collection pattern specified by the C++ standard template library.
@@ -28954,6 +29055,8 @@ inequality (!=), dereference (*), and increment (pre or post).  The inequality
 operator must return a type that is usable in a condition.  The dereference
 operator must return a type compatible with T.
 
+prev_decl_iterator is an operand for the previously-declared variable
+for the iterator when one is indicated in the for-each loop entry.
 felp holds information about the for-each loop.  tok_seq_number is the
 sequence number of the first token of the collection expression.
 pointers_block is the pointers block for the iterator scope previously
@@ -29038,7 +29141,7 @@ created, needed to reactivate that scope.
     } else {
       /* Fill in the appropriate IL for the STL version of the "for each"
          statement. */
-      fill_in_for_each_il(felp,
+      fill_in_for_each_il(felp, prev_decl_iterator,
                           (a_for_each_pattern_kind)sfepk_stl_pattern,
                           tok_seq_number,
                           pointers_block);
@@ -29049,6 +29152,7 @@ created, needed to reactivate that scope.
 
 static void check_for_each_array_pattern(
                               a_for_each_loop_ptr        felp,
+                              an_operand                 *prev_decl_iterator,
                               a_token_sequence_number    tok_seq_number,
                               a_scope_pointers_block_ptr pointers_block)
 /*
@@ -29062,7 +29166,9 @@ C must be an array of type of I.  I must be type compatible with T.
 Note that C++/CLI arrays match the C++/CLI array pattern and not the
 (native) array pattern handled here.
 
-felp holds information about the for-each loop.  tok_seq_number is the
+felp holds information about the for-each loop.  prev_decl_iterator is
+an operand for the previously-declared variable for the iterator when
+one is indicated in the for-each loop entry.  tok_seq_number is the
 sequence number of the first token of the collection expression.
 pointers_block is the pointers block for the iterator scope previously
 created, needed to reactivate that scope.
@@ -29164,7 +29270,7 @@ created, needed to reactivate that scope.
     pop_expr_stack();
     /* Fill in the appropriate IL for the array version of the "for each"
        statement. */
-    fill_in_for_each_il(felp,
+    fill_in_for_each_il(felp, prev_decl_iterator,
                         (a_for_each_pattern_kind)sfepk_array_pattern,
                         tok_seq_number,
                         pointers_block);
@@ -29175,6 +29281,7 @@ created, needed to reactivate that scope.
 
 
 void check_for_each_statement(a_statement_ptr            statement,
+                              an_operand                 *prev_decl_iterator,
                               a_token_sequence_number    tok_seq_number,
                               a_scope_pointers_block_ptr pointers_block)
 /*
@@ -29257,6 +29364,8 @@ established by the C++ standard template library.  Case D corresponds
 to the native array pattern.  Case E is the C++/CLI array pattern, which
 is a special case of the CLI collection pattern.
 
+prev_decl_iterator is an operand for the previously-declared variable for
+the iterator when one is indicated in the for-each loop entry.
 tok_seq_number is the sequence number of the first token of the collection
 expression.  pointers_block is the pointers block for the iterator scope
 previously created, needed to reactivate that scope.
@@ -29289,22 +29398,25 @@ previously created, needed to reactivate that scope.
     /* Do nothing here to prevent cascading diagnostics. */
   } else if (is_array_type(collection_type)) {
     /* Perform full semantic checks and generate IL for the array pattern. */
-    check_for_each_array_pattern(felp, tok_seq_number, pointers_block);
+    check_for_each_array_pattern(felp, prev_decl_iterator,
+                                 tok_seq_number, pointers_block);
   } else if (cppcli_enabled && is_cli_array_type(collection_type)) {
     /* Perform full semantic checks and generate IL for the CLI array
        pattern. */
-    check_for_each_cli_array_pattern(felp, tok_seq_number, pointers_block);
+    check_for_each_cli_array_pattern(felp, prev_decl_iterator,
+                                     tok_seq_number, pointers_block);
   } else if (is_class_struct_type(collection_type)) {
     if (is_stl_collection_pattern_candidate(collection_type)) {
       /* Perform full semantic checks and generate IL for the STL pattern. */
-      check_for_each_stl_collection_pattern(felp, tok_seq_number,
-                                            pointers_block);
+      check_for_each_stl_collection_pattern(felp, prev_decl_iterator,
+                                            tok_seq_number, pointers_block);
     } else if (cppcli_enabled && 
                is_cli_collection_pattern_candidate(collection_type,
                                                    &ienumerable_bcp)) {
       /* Perform full semantic checks and generate IL for the C++/CLI
          collection pattern. */
-      check_for_each_cli_collection_pattern(felp, tok_seq_number,
+      check_for_each_cli_collection_pattern(felp, prev_decl_iterator,
+                                            tok_seq_number,
                                             ienumerable_bcp, pointers_block);
     } else {
       /* Nothing seems appropriate, so just issue a generic diagnostic. */
@@ -29398,6 +29510,95 @@ about it in the for-each statement IL entry pointed to by statement.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
 }  /* scan_for_each_expression */
+
+void scan_previously_decl_iterator_name(
+                                       a_for_each_loop_ptr felp,
+                                       an_operand          *prev_decl_iterator)
+/*
+felp indicates a for-each loop that has the syntax that uses a previously-
+declared variable for the iterator variable instead of declaring a new
+one:
+
+  for (i in e) ...
+
+The current token is the name "i" in the above.  Scan the identifier,
+check it, enter information about it in felp, and return in
+*prev_decl_iterator an operand that can be used later to refer to it.
+On return, the current token is the "in".
+*/
+{
+  an_expr_stack_entry *saved_expr_stack;
+  an_expr_stack_entry expr_stack_entry;
+  a_symbol_ptr        sym;
+
+  felp->uses_prev_decl_iterator = TRUE;
+  /* We should be in the iterator scope at this point. */
+  check_assertion(felp->iterator_scope == scope_stack_top().il_scope);
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  scan_identifier(prev_decl_iterator,
+                  EOPT_PRESERVE_PROPERTY_REF,
+                  PREC_LOWEST,
+                  (a_rescan_control_block *)NULL,
+                  (a_symbol_ptr)NULL,
+                  (an_operand *)NULL,
+                  /*rescan_is_template_id=*/FALSE,
+                  (a_template_arg_ptr)NULL,
+                  &sym,
+                  (a_boolean *)NULL);
+  if (sym != NULL && !is_error_operand(prev_decl_iterator)) {
+    a_boolean      okay = FALSE;
+    a_variable_ptr var = NULL;
+    a_field_ptr    field = NULL;
+    reduce_projection_symbol_to_fundamental_symbol(sym);
+    /* Check that the iterator variable has an appropriate kind.  Some
+       error checking was already done in scan_identifier. */
+    switch (sym->kind) {
+      case sk_variable:
+        okay = TRUE;
+        var = sym->variant.variable.ptr;
+        break;
+      case sk_static_data_member:
+        if (sym->variant.static_data_member.variable
+                                           ->property_or_event_descr != NULL &&
+            !is_property_ref_operand(prev_decl_iterator)) {
+          /* An event is not allowed. */
+        } else {
+          okay = TRUE;
+          var = sym->variant.static_data_member.variable;
+        }  /* if */
+        break;
+      case sk_field:
+        /* A field of the current class is okay.  Presumably we can't get
+           here with a valid operand unless it was possible to add "this->"
+           to the field name. */
+        okay = TRUE;
+        field = sym->variant.field.ptr;
+        break;
+      case sk_property_set:
+        okay = TRUE;
+        break;
+      default:
+        okay = FALSE;
+        break;
+    }  /* switch */
+    if (!okay) {
+      pos_sy_error(ec_invalid_prev_decl_iterator,
+                   &prev_decl_iterator->position, sym);
+      conv_to_error_operand(prev_decl_iterator);
+    } else {
+      felp->iterator.prev_decl.variable = var;
+      felp->iterator.prev_decl.field = field;
+    }  /* if */
+  }  /* if */
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = prev_decl_iterator->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* scan_previously_decl_iterator_name */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

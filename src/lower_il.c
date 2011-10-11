@@ -17103,7 +17103,9 @@ over C++ arrays or appropriate STL-like collections) are currently lowered.
   if (iterator_scope->lifetime != NULL) {
     begin_object_lifetime(iterator_scope->lifetime, &inner_insert_location);
   }  /* if */
-  lower_variable_with_initializer(felp->iterator, &inner_insert_location);
+  check_assertion(!felp->uses_prev_decl_iterator);  /* FIXME */
+  lower_variable_with_initializer(felp->iterator.variable,
+                                  &inner_insert_location);
   /* Lower the dependent statement as well as expressions which will be
      used in the lowered "for" statement. */
   lower_statement(sub_statement);

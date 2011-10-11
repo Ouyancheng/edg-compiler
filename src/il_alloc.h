@@ -184,6 +184,9 @@ extern an_expr_node_ptr alloc_lowered_eh_construct_node(
                                              a_lowered_eh_construct_kind kind);
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 
+extern void set_for_each_loop_kind(a_for_each_loop_ptr     felp,
+                                   a_for_each_pattern_kind kind);
+
 extern a_switch_case_entry_ptr alloc_switch_case_entry(void);
 
 #if !ABI_CHANGES_FOR_RTTI

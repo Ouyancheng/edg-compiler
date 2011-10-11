@@ -12414,6 +12414,7 @@ identifier, else to NULL.
     /* If seq is not NULL, return the sequence number the current token
        (since we can't get the number of the next token. */
     if (seq != NULL) *seq = curr_token_sequence_number;
+    if (sym_hdr != NULL) *sym_hdr = NULL;
     goto done;
   }  /* if */
   /* If we are currently rescanning tokens from a cache then we should
@@ -12443,6 +12444,13 @@ identifier, else to NULL.
     ntoken = (a_token_kind)ctp->token;
     /* If seq is not NULL, return the sequence number of the next token. */
     if (seq != NULL) *seq = ctp->token_sequence_number;
+    /* If sym_hdr is not NULL, return the symbol header pointer if the
+       next token is an identifier. */
+    if (sym_hdr != NULL) {
+      *sym_hdr = (ntoken == tok_identifier) ?
+                             ctp->variant.locator.symbol_header :
+                             (a_symbol_header *)NULL;
+    }  /* if */
   } else {
     /* The call to get_token below can change the error_position.  Since this
        routine is meant to just "peek ahead" (without disturbing the current

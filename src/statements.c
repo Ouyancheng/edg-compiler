@@ -4595,6 +4595,8 @@ Where "in" is a context-sensitive keyword.
   a_source_position       stmt_pos;
   a_token_sequence_number collection_expr_tok_seq_number;
   a_scope_pointers_block  pointers_block;
+  a_symbol_header_ptr     sym_hdr;
+  an_operand              prev_decl_iterator;
 
   db_enter(3, "for_each_statement");
 
@@ -4621,8 +4623,18 @@ Where "in" is a context-sensitive keyword.
   start_for_each_scope(sp);
   /* Push the iterator scope. */
   start_for_each_iterator_scope(sp, &pointers_block);
-  /* Scan the iterator declaration. */
-  for_each_iterator_declaration(sp);
+  if (curr_token == tok_identifier &&
+      next_token_full((a_token_sequence_number *)NULL, &sym_hdr) ==
+                                                              tok_identifier &&
+      symbol_header_is_for_identifier_string(sym_hdr, "in")) {
+    /* This for-each uses a previously-declared variable as the iterator
+       instead of declaring a new one.  VC10 seems to allow this (at least
+       without weird spurious errors) only for a simple identifier. */
+    scan_previously_decl_iterator_name(felp, &prev_decl_iterator);
+  } else {
+    /* Normal case.  Scan the iterator declaration. */
+    for_each_iterator_declaration(sp);
+  }  /* if */
   /* Pop the iterator scope so the collection expression can be scanned outside
      of it.  The scope will be re-pushed below. */
   pop_block_scope(/*is_final_pop=*/FALSE);
@@ -4633,7 +4645,9 @@ Where "in" is a context-sensitive keyword.
   scan_for_each_expression(sp);
   /* Determine the pattern of the for-each statement and generate the IL
      for all the loop-control pieces. */
-  check_for_each_statement(sp, collection_expr_tok_seq_number,
+  check_for_each_statement(sp,
+                           &prev_decl_iterator,
+                           collection_expr_tok_seq_number,
                            &pointers_block);
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);

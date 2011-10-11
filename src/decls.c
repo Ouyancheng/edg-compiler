@@ -12012,8 +12012,11 @@ Return a pointer to the variable that is declared.
     if (for_each_statement != NULL) {
       /* C++/CLI "for each" statement.  The "in" and collection expression
          are not scanned here. */
+      a_for_each_loop_ptr felp = 
+                          for_each_statement->variant.for_each_loop.extra_info;
       vp->is_for_each_iterator = TRUE;
-      for_each_statement->variant.for_each_loop.extra_info->iterator = vp;
+      felp->uses_prev_decl_iterator = FALSE;
+      felp->iterator.variable = vp;
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */

@@ -1686,7 +1686,16 @@ do_set_proper_definition_needed_flag:
       {
         a_for_each_loop_ptr ptr = (a_for_each_loop_ptr)entry_ptr;
 
-        remap_ptr(ptr->iterator, a_variable_ptr, iek_variable);
+        if (!ptr->uses_prev_decl_iterator) {
+          remap_ptr(ptr->iterator.variable, a_variable_ptr, iek_variable);
+        } else {
+          remap_ptr(ptr->iterator.prev_decl.variable, a_variable_ptr,
+                    iek_variable);
+          remap_ptr(ptr->iterator.prev_decl.field, a_field_ptr,
+                    iek_field);
+          walk_ptr(ptr->iterator.prev_decl.assign_expr,
+                   an_expr_node_ptr, iek_expr_node);
+        }  /* if */
         remap_ptr(ptr->collection_expr_ref, a_variable_ptr, iek_variable);
         walk_ptr(ptr->for_each_scope, a_scope_ptr, iek_scope);
         walk_ptr(ptr->iterator_scope, a_scope_ptr, iek_scope);

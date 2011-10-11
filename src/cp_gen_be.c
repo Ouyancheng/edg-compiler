@@ -11494,10 +11494,19 @@ Generate code for the indicated "for each" statement.
   a_variable_ptr      ref_var;
 
   write_tok_str("for each (");
-  /* Generate the iteration variable. */
-  gen_variable_decl(/*is_condition=*/FALSE, /*is_iterator=*/TRUE,
-                    /*for_init=*/FALSE, /*suppress_specifiers=*/FALSE,
-                    (a_boolean *)NULL);
+  if (!felp->uses_prev_decl_iterator) {
+    /* Generate the iteration variable. */
+    gen_variable_decl(/*is_condition=*/FALSE, /*is_iterator=*/TRUE,
+                      /*for_init=*/FALSE, /*suppress_specifiers=*/FALSE,
+                      (a_boolean *)NULL);
+  } else {
+    /* Name a previously-declared iterator variable. */
+    if (felp->iterator.prev_decl.variable != NULL) {
+      gen_variable_name(felp->iterator.prev_decl.variable);
+    } else {
+      gen_field_name(felp->iterator.prev_decl.field);
+    }  /* if */
+  }  /* if */
   write_tok_str(" in ");
   /* Generate the expression for the collection.  It's the initializer for
      the collection_expr_ref variable. */

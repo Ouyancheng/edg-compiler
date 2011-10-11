@@ -3151,6 +3151,58 @@ Return a pointer to the entry.
 
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 
+void set_for_each_loop_kind(a_for_each_loop_ptr     felp,
+                            a_for_each_pattern_kind kind)
+/*
+Set the kind of the for-each loop to "kind", and set the associated variant
+fields to default values.
+*/
+{
+  felp->kind = kind;
+  switch (kind) {
+    case sfepk_none:
+      break;
+    case sfepk_stl_pattern:
+    case sfepk_array_pattern:
+      felp->variant.stl_array_pattern.end_variable = NULL;
+      felp->variant.stl_array_pattern.ne_call_expr = NULL;
+      felp->variant.stl_array_pattern.incr_call_expr = NULL;
+      break;
+    case sfepk_cli_pattern:
+      felp->variant.cli_pattern.movenext_call_expression = NULL;
+      break;
+    case sfepk_cli_array_pattern:
+      felp->variant.cli_array_pattern.upper_bound_vars = NULL;
+      felp->variant.cli_array_pattern.loop_vars = NULL;
+      break;
+    default:
+      unexpected_condition_str("set_for_each_loop_kind: bad kind");
+  }  /* switch */
+}  /* set_for_each_loop_kind */
+
+
+static void clear_for_each_loop(a_for_each_loop_ptr     felp,
+                                a_for_each_pattern_kind kind)
+/*
+Clear the indicated for-each loop entry, set the kind as given, and set the
+associated variant fields to default values.
+*/
+{
+  felp->uses_prev_decl_iterator = FALSE;
+  /* Clear fields of inactive variant too for union-as-struct testing. */
+  { felp->iterator.prev_decl.variable = NULL;
+    felp->iterator.prev_decl.field = NULL;
+    felp->iterator.prev_decl.assign_expr = NULL;
+  }
+  felp->iterator.variable = NULL;
+  felp->collection_expr_ref = NULL;
+  felp->for_each_scope = NULL;
+  felp->iterator_scope = NULL;
+  felp->temporary_variable = NULL;
+  set_for_each_loop_kind(felp, kind);
+}  /* clear_for_each_loop */
+
+
 a_switch_case_entry_ptr alloc_switch_case_entry(void)
 /*
 Allocate storage to describe an individual switch case, clear it to default
@@ -3312,12 +3364,7 @@ fields to default values.
       sp->variant.for_each_loop.statement = NULL;
       sp->variant.for_each_loop.extra_info = felp =
                       (a_for_each_loop_ptr)alloc_cil(sizeof(a_for_each_loop));
-      felp->iterator = NULL;
-      felp->collection_expr_ref = NULL;
-      felp->for_each_scope = NULL;
-      felp->iterator_scope = NULL;
-      felp->temporary_variable = NULL;
-      felp->kind = (a_for_each_pattern_kind)sfepk_none;
+      clear_for_each_loop(felp, (a_for_each_pattern_kind)sfepk_none);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case stmk_switch_case:
