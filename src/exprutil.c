@@ -13453,7 +13453,9 @@ If skip_valid_lvalue_uses is FALSE, return TRUE if the operand is a C++/CLI
 initonly field reference.  If skip_valid_lvalue_uses is TRUE, return TRUE
 only if the operand is a C++/CLI initonly field reference that should be
 treated as unmodifiable due to its use occurring outside of the constructor
-context in which it is allowed to be modified.
+context in which it is allowed to be modified.  If p_is_static_initonly_field
+is non-NULL, set *p_is_static_initonly_field to TRUE if the field found
+is a static initonly member.
 */
 {
   a_boolean is_initonly_field = FALSE;
@@ -13518,7 +13520,7 @@ to an error operand.  Return TRUE if an error was issued.
   a_boolean err = FALSE;
 
   check_assertion(cppcli_enabled);
-  if (is_any_initonly_field_operand(operand)) {
+  if (is_unmodifiable_initonly_field_operand(operand, (a_boolean *)NULL)) {
     expr_pos_error(reference_case ? ec_ref_bound_to_initonly_field
                                   : ec_address_of_initonly_field, err_pos);
     conv_to_error_operand(operand);
