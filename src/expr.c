@@ -26526,13 +26526,18 @@ We're in C++/CLI mode, and the current token is an identifier spelled
 to the safe_cast keyword and return TRUE.
 */
 {
-  a_boolean        is_keyword = FALSE;
-  a_symbol_locator temp_locator;
+  a_boolean is_keyword = FALSE;
 
-  temp_locator = locator_for_curr_id;
-  if (normal_id_lookup(&temp_locator, IDL_NO_OPTIONS) == NULL) {
-    is_keyword = TRUE;
-    curr_token = tok_safe_cast;
+  if (locator_for_curr_id.is_qualified_name) {
+    /* The name is X::safe_cast, so don't transform it here.  If it's
+       cli::safe_cast, the caller will transform that to the token. */
+  } else {
+    a_symbol_locator temp_locator;
+    temp_locator = locator_for_curr_id;
+    if (normal_id_lookup(&temp_locator, IDL_NO_OPTIONS) == NULL) {
+      is_keyword = TRUE;
+      curr_token = tok_safe_cast;
+    }  /* if */
   }  /* if */
   return is_keyword;
 }  /* turn_safe_cast_into_keyword_if_appropriate */
@@ -26683,6 +26688,19 @@ handle_identifier:
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           goto bad_start_of_primary;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcli_enabled &&
+                   locator_for_curr_id.symbol_header ==
+                                                     safe_cast_symbol_header &&
+                   locator_for_curr_id.is_qualified_name &&
+                   !locator_for_curr_id.is_class_member &&
+                   locator_for_curr_id.parent.namespace_ptr ==
+                                  cli_symbols[(int)csk_cli_namespace]
+                                                ->variant.namespace_info.ptr) {
+          /* Change cli::safecast into the safe_cast token. */
+          curr_token = tok_safe_cast;
+          goto handle_safe_cast;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
         scan_identifier(&local_result, local_options, prec_level,
                         (a_rescan_control_block *)NULL, (a_symbol *)NULL,
