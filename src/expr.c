@@ -28320,17 +28320,11 @@ variable.
       type = prev_decl_iterator->type;
     } else {
       /* For a property reference, get the type from the property. */
-      a_symbol_ptr property_sym = prev_decl_iterator->symbol;
-      a_symbol_ptr sym = property_sym->variant.property_info->properties;
-      /* Use the first property type even if the properties are overloaded.
-         Overloaded properties are used for indexed properties and they're
-         going to get an error anyway. */
-      if (symbol_is(sym, sk_field)) {
-        type = sym->variant.field.ptr->type;
-      } else if (symbol_is(sym, sk_static_data_member)) {
-        type = sym->variant.static_data_member.variable->type;
+      if (felp->iterator.prev_decl.variable != NULL) {
+        type = felp->iterator.prev_decl.variable->type;
       } else {
-        unexpected_condition();
+        check_assertion(felp->iterator.prev_decl.field != NULL);
+        type = felp->iterator.prev_decl.field->type;
       }  /* if */
     }  /* if */
   } else {
@@ -29579,6 +29573,18 @@ On return, the current token is the "in".
         break;
       case sk_property_set:
         okay = TRUE;
+        { a_symbol_ptr psym = sym->variant.property_info->properties;
+          /* Use the first property even if the properties are overloaded.
+             Overloaded properties are used for indexed properties and they're
+             going to get an error anyway. */
+          if (symbol_is(psym, sk_field)) {
+            field = psym->variant.field.ptr;
+          } else if (symbol_is(psym, sk_static_data_member)) {
+            var = psym->variant.static_data_member.variable;
+          } else {
+            unexpected_condition();
+          }  /* if */
+        }
         break;
       default:
         okay = FALSE;
