@@ -866,6 +866,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_missing_indirect_on_for_each_type)*/
 /*lint -esym(769,ec_nonpublic_implicit_interface_match)*/
 /*lint -esym(769,ec_managed_member_function_cannot_have_ellipsis_parameter)*/
+/*lint -esym(769,ec_invalid_prev_decl_iterator)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
