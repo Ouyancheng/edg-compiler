@@ -3204,11 +3204,10 @@ it is always NULL.
       )
 #if MICROSOFT_EXTENSIONS_ALLOWED
       || (cppcli_enabled &&
-          is_handle_type(arg_type) && is_handle_type(param_type) &&
-          !is_cli_generic_definition_argument_type(arg_type) &&
-          !is_cli_generic_definition_argument_type(param_type))
+          is_handle_type_not_generic_constraint(arg_type) &&
+          is_handle_type_not_generic_constraint(param_type))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                               ) {
+                                                            ) {
     /* Check for cases where type qualifiers are being added down one
        level (or deeper) in a pointer case, e.g., int * --> const int *.
        This is another trivial conversion.
@@ -17347,8 +17346,8 @@ direct binding is "possible" and not whether it is "valid".
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled &&
              is_tracking_reference_type(dest_type) &&
-             is_handle_type(unqual_source_type) &&
-             is_handle_type(unqual_dest_type) &&
+             is_handle_type_not_generic_constraint(unqual_source_type) &&
+             is_handle_type_not_generic_constraint(unqual_dest_type) &&
              f_related_class_pointers(unqual_source_type, unqual_dest_type,
                                       &baseward_cast, &bcp) &&
              baseward_cast) {

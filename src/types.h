@@ -122,6 +122,7 @@ extern a_boolean is_cli_generic_param_type(a_type_ptr tp);
 extern a_boolean is_template_not_cli_generic_param_type(a_type_ptr tp);
 extern a_boolean is_handle_type(a_type_ptr tp);
 extern a_boolean is_handle_type_not_value_generic(a_type_ptr tp);
+extern a_boolean is_handle_type_not_generic_constraint(a_type_ptr tp);
 extern a_boolean is_tracking_reference_type(a_type_ptr tp);
 extern a_boolean is_handle_or_tracking_ref_type(a_type_ptr tp);
 extern a_boolean is_interior_ptr_type(a_type_ptr tp);

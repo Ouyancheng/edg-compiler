@@ -1000,6 +1000,27 @@ generic type that might in some cases be a value type.
 }  /* is_handle_type_not_value_generic */
 
 
+a_boolean is_handle_type_not_generic_constraint(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++/CLI handle type, but not a
+handle that was implicitly added to a generic constraint type and is
+therefore not "real".
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_handle_type(tp)) {
+    result = TRUE;
+    tp = type_pointed_to(tp);
+    tp = skip_typerefs(tp);
+    if (is_cli_generic_constraint(tp)) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_handle_type_not_generic_constraint */
+
+
 a_boolean is_tracking_reference_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a C++/CLI tracking reference type.
