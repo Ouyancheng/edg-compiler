@@ -17103,9 +17103,21 @@ over C++ arrays or appropriate STL-like collections) are currently lowered.
   if (iterator_scope->lifetime != NULL) {
     begin_object_lifetime(iterator_scope->lifetime, &inner_insert_location);
   }  /* if */
-  check_assertion(!felp->uses_prev_decl_iterator);  /* FIXME */
-  lower_variable_with_initializer(felp->iterator.variable,
-                                  &inner_insert_location);
+  if (felp->uses_prev_decl_iterator) {
+    /* The iterator for this for-each has been declared in some outside
+       scope.  In this case there's no initializer associated with the
+       iterator variable/field (at least not one that's associated with the
+       iterator's use in the for-each statement).  Insert a statement that
+       does the assignment to the variable/field. */
+    lower_full_expr(felp->iterator.prev_decl.assign_expr,
+                    (a_statement_ptr)NULL);
+    (void)insert_expr_statement(felp->iterator.prev_decl.assign_expr,
+                                &inner_insert_location);
+  } else {
+    /* The iterator variable has an initializer. */
+    lower_variable_with_initializer(felp->iterator.variable,
+                                    &inner_insert_location);
+  }  /* if */
   /* Lower the dependent statement as well as expressions which will be
      used in the lowered "for" statement. */
   lower_statement(sub_statement);
