@@ -28288,14 +28288,17 @@ collection expression.
 {
   if (felp->uses_prev_decl_iterator) {
     /* Make an assignment expression for a previously-declared iterator. */
-    an_operand assign_operand;
+    an_operand       assign_operand;
+    an_expr_node_ptr assign_expr;
     process_simple_assignment(iterator_operand, operand,
                               &iterator_operand->position,
                               tok_seq_number,
                               /*check_for_overloading=*/TRUE,
                               &assign_operand);
-    felp->iterator.prev_decl.assign_expr =
-              wrap_up_full_expression(make_node_from_operand(&assign_operand));
+    assign_expr = make_node_from_operand(&assign_operand);
+    assign_expr = wrap_up_full_expression(assign_expr);
+    set_expr_result_not_used(assign_expr);
+    felp->iterator.prev_decl.assign_expr = assign_expr;
   } else {
     /* Set the initializer for the normal case of a declared iterator
        variable. */
