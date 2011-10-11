@@ -8572,12 +8572,13 @@ lower case and any multibyte characters are converted to canonical form.
       output_ucn_value(ucn_value, 'u', 'U');
 #endif /* UNICODE_SOURCE_SUPPORTED && ... */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-    } else if (multibyte_chars_in_source_enabled
+    } else if ((multibyte_chars_in_source_enabled
 #ifdef char_may_begin_multibyte_sequence
-               && char_may_begin_multibyte_sequence(*src)
+                && char_may_begin_multibyte_sequence(*src)
 #endif /* ifdef char_may_begin_multibyte_sequence */
-                                                         ) {
-      /* This character may be a multibyte character. */
+                ) || ((unsigned char)*src) > 0x7f) {
+      /* This character may be a multibyte character or is a single
+         extended character. */
       unsigned long wc;
       a_boolean     err;
       /* When native multibyte characters are allowed, lex_mbc_to_wide_char
@@ -8612,14 +8613,14 @@ lower case and any multibyte characters are converted to canonical form.
 #endif /* UNICODE_SOURCE_SUPPORTED */
 #else /* !IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS */
       /* Normally, characters less than UCHAR_MAX are just added to the
-         buffer.  When native multibyte characters are supported, characters
-         above 0x7f may have been translated from the source form to a
-         a different value, so output those as escapes. */
-#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+         buffer.  When Unicode is supported, characters above 0x7f may have
+         been translated from the source form to a a different value, so
+         output those as escapes. */
+#if UNICODE_SOURCE_SUPPORTED
       if (wc <= 0x7f)
-#else /* !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+#else /* !UNICODE_SOURCE_SUPPORTED */
       if (wc <= UCHAR_MAX)
-#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+#endif /* UNICODE_SOURCE_SUPPORTED */
       /* Do not insert code here. */
       {
         add_char_to_text_buffer(ucn_buffer, (char)wc);

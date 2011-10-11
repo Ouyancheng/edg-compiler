@@ -1,5 +1,22 @@
 Version 4.4
 
+10/11/11 [EDGcpfe/12310]
+Canonical spelling of extended identifier characters
+
+When UNICODE_SOURCE_SUPPORTED is TRUE, the front end produces canonical
+spellings of identifiers using Unicode code points to represent extended
+characters, regardless of whether the source encoding is Unicode or some
+other multibyte character set.  However, single-byte extended characters in
+non-Unicode source files were left in the original encoding.  Also, in
+configurations in which NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is
+FALSE, characters from a Unicode source file that have a single-byte
+representation in Latin-1 were translated to that form in the canonical
+spelling.  These problems have now been addressed and such characters will
+now consistently be canonicalized to a Unicode form using UTF-8 or
+universal character names, depending on the value of the
+IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS configuration macro.
+
+
 10/10/11 [EDGcpfe/12145]
 GNU compatibility: volatile asm declarations in namespace scope
 
