@@ -8576,9 +8576,14 @@ lower case and any multibyte characters are converted to canonical form.
 #ifdef char_may_begin_multibyte_sequence
                 && char_may_begin_multibyte_sequence(*src)
 #endif /* ifdef char_may_begin_multibyte_sequence */
-                ) || ((unsigned char)*src) > 0x7f) {
+                )
+#if UNICODE_SOURCE_SUPPORTED
+               || ((unsigned char)*src) > 0x7f
+#endif /* UNICODE_SOURCE_SUPPORTED */
+                                              ) {
       /* This character may be a multibyte character or is a single
-         extended character. */
+         extended character that must be translated to Unicode in the
+         canonical representation. */
       unsigned long wc;
       a_boolean     err;
       /* When native multibyte characters are allowed, lex_mbc_to_wide_char
