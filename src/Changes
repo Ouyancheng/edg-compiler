@@ -1,5 +1,28 @@
 Version 4.4
 
+10/11/11  [EDGcpfe/12040]
+GNU C++ Compatibility: lookup of unqualified names in dependent base classes
+
+In g++ mode, names from dependent base classes are sometimes visible.
+In newer versions of g++, this is done in fewer cases.  In the example
+below, the call of g(p) calls B::g in g++ versions before 4.1, but
+calls ::g starting with g++ version 4.1.  We now emulate the newer
+behavior when gnu_version >= 40100.
+
+  #include <stdio.h>
+  struct B {
+    int g(const B&) { return 0; }
+  };
+  int g(const B&) { return 2; }
+  template<class B> struct A : B {
+    int f(const B& p) { return g(p); }
+  };
+  int main() {
+    A<B> ab;
+    printf("%s\n", ab.f(ab) == 2 ? "pass" : "fail");
+  }
+
+
 10/11/11 [EDGcpfe/12310]
 Canonical spelling of extended identifier characters
 

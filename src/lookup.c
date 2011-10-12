@@ -3564,7 +3564,9 @@ C and C++.
          symbol from the second lookup.  In addition, if both lookups find
          fields, use the result of the second lookup.  This occurs when
          the first lookup finds a field from an enclosing class and the second
-         finds one from a base class (gnu_version < 30400). */
+         finds one from a base class (gnu_version < 30400).  When gnu_version
+         >= 40100 the symbol from the first lookup is always used if a
+         symbol was found. */
       a_symbol_ptr	new_sym;
       a_symbol_ptr	fund_sym;
       lookup_state.force_lookup_in_dependent_bases = TRUE;
@@ -3573,8 +3575,11 @@ C and C++.
                                    NO_SCOPE_DEPTH);
       lookup_state.force_lookup_in_dependent_bases = FALSE;
       fund_sym = sym == NULL ? NULL : fundamental_symbol_of(sym);
-      if (sym == NULL || is_function_or_template_symbol(fund_sym)) {
+      if (sym == NULL ||
+          (gnu_version < 40100 && is_function_or_template_symbol(fund_sym))) {
         sym = new_sym;
+      } else if (sym != NULL && gnu_version >= 40100) {
+        /* Use the existing sym. */
       } else if (new_sym != NULL) {
         a_symbol_ptr	fund_new_sym = fundamental_symbol_of(new_sym);
         if (is_function_or_template_symbol(fund_new_sym)) {
