@@ -8619,7 +8619,7 @@ lower case and any multibyte characters are converted to canonical form.
 #else /* !IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS */
       /* Normally, characters less than UCHAR_MAX are just added to the
          buffer.  When Unicode is supported, characters above 0x7f may have
-         been translated from the source form to a a different value, so
+         been translated from the source form to a different value, so
          output those as escapes. */
 #if UNICODE_SOURCE_SUPPORTED
       if (wc <= 0x7f)
