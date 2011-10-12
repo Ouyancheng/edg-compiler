@@ -11853,15 +11853,9 @@ recorded with this particular header.
 {
   a_template_parameter_ptr  param = tdp->param_list;
 
-#if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   if (tdp->parent != NULL) {
     gen_template_header(tdp->parent, is_cppcli_generic);
   }  /* if */
-#else /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-  /* If template classes are put out as specializations, the parent of a member
-     template isn't a template (but a template specialization) and no header
-     should be put out for it. */
-#endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   set_output_position(&tdp->template_pos);
   /* Put a space after the "<" to avoid forming the digraph "<:" if the
      first parameter is a nontype parameter whose type name begins with

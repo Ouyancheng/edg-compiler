@@ -1,5 +1,22 @@
 Version 4.4
 
+10/11/12 [EDGcpfe/12342]
+C++-generating back end: Missing template header for member template
+
+In configurations with both PROTOTYPE_INSTANTIATIONS_IN_IL and
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE, the
+C++-generating back end omitted a template header for an out-of-class
+definition of a member template of a class template.  This has now been
+fixed.  For example:
+
+  template<bool T> struct A {
+    template<typename U> void f();
+  };
+  // The following was previously missing the "template<bool T>" template
+  // header in the generated code:
+  template<bool T> template<typename U> void A<T>::f() {}
+
+
 10/11/11  [EDGcpfe/12040]
 GNU C++ Compatibility: lookup of unqualified names in dependent base classes
 
