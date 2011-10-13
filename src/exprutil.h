@@ -1348,6 +1348,8 @@ extern void adjust_constant_operand_info_for_microsoft_null_pointer_test(
 extern void convert_operand_to_handle_to_cli_string(an_operand_ptr op);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern a_boolean operand_is_function(an_operand *operand);
+
 extern a_boolean check_compatibility_of_pointer_operands(
                    an_operand        *operand_1,
                    an_operand        *operand_2,

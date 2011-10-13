@@ -14072,8 +14072,25 @@ delegate initializer, given by rcblock->argument_list.
       }  /* if */
     } else {
       /* For known functions, check that the type of the function matches
-         the delegate invocation type. */
-      if (!types_are_compatible(needed_type, function_operand->type)) {
+         the delegate invocation type.  The implicit conversion here can
+         cover adding __clrcall to a function's type. */
+      a_std_conv_descr std_conv;
+      if (types_are_compatible(needed_type, function_operand->type) ||
+          (is_pointer_type(needed_type) &&
+           is_pointer_type(function_operand->type) &&
+           impl_pointer_conversion(function_operand->type,
+                                   /*source_is_constant=*/FALSE,
+                                   /*source_is_string_literal=*/FALSE,
+                                   /*source_is_function=*/
+                                         operand_is_function(function_operand),
+                                   (a_constant *)NULL,
+                                   needed_type,
+                                   /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                   /*suppress_extensions=*/FALSE,
+                                   ec_no_error,
+                                   &std_conv))) {
+         /* The function matches the needed type. */
+      } else {
         expr_pos_error(ec_mismatched_function_for_delegate,
                        &function_operand->position);
         err = TRUE;
@@ -16848,6 +16865,7 @@ called only in C++ mode.
                                                           arg_constant != NULL,
                                          /*source_is_string_literal=*/
                                              operand->is_simple_string_literal,
+                                         operand_is_function(operand),
                                          arg_constant,
                                          eff_type_cast_to,
                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
@@ -17525,6 +17543,7 @@ indicates which.
           if (expl_conversion_possible(adj_source_type, operand_is_constant,
                                        (a_boolean)operand->
                                                       is_simple_string_literal,
+                                       operand_is_function(operand),
                                        operand_con, adj_type_cast_to,
                                        &reinterpret_semantics,
                                        ec_bad_cast, &warning_suggested)) {
@@ -18069,6 +18088,7 @@ if it's not valid).
                                       operand_is_constant,
                                       (a_boolean)operand->
                                                       is_simple_string_literal,
+                                      operand_is_function(operand),
                                       operand_con,
                                       adj_type_cast_to,
                                       /*allow_qualifier_or_eh_mismatch=*/FALSE,

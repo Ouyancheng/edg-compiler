@@ -7655,6 +7655,24 @@ the null pointer constant returned in *operand_constant.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+a_boolean operand_is_function(an_operand *operand)
+/*
+Return TRUE if the operand is an lvalue for or address of a specific
+function, but not an arbitrary pointer to function.  This matters
+only in C++/CLI, so return FALSE in other modes.
+*/
+{
+  a_boolean is_function = FALSE;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled) {
+    if (routine_from_function_operand(operand) != NULL) is_function = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return is_function;
+}  /* operand_is_function */
+
+
 a_boolean check_compatibility_of_pointer_operands(
                    an_operand        *operand_1,
                    an_operand        *operand_2,
@@ -7724,6 +7742,7 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
                                          operand_2_is_constant,
                                          (a_boolean)operand_2->
                                                       is_simple_string_literal,
+                                         operand_is_function(operand_2),
                                          operand_2_constant,
                                          operand_1_type,
                                        /*allow_qualifier_or_eh_mismatch=*/TRUE,
@@ -7752,6 +7771,7 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
                                   operand_1_is_constant,
                                   (a_boolean)operand_1->
                                                       is_simple_string_literal,
+                                  operand_is_function(operand_1),
                                   operand_1_constant,
                                   operand_2_type,
                                   /*allow_qualifier_or_eh_mismatch=*/TRUE,
@@ -12222,10 +12242,11 @@ TRUE.  *position is the position of the reference.  Used only in C++.
 a_routine_ptr routine_from_function_operand(an_operand *operand)
 /*
 operand is the operand identifying the function to call in a normal call
-(including a virtual call).  If it is possible to determine the specific
-function being called, return a pointer to its routine entry.  Otherwise,
-return NULL.  The operand can be an lvalue (function designator) or rvalue
-for the function, even though calls actually always use the rvalue form.
+(including a virtual call), or some other operand identifying a function.
+If it is possible to determine the specific function named, return a
+pointer to its routine entry.  Otherwise, return NULL.  The operand
+can be an lvalue (function designator) or rvalue pointer to the function,
+even though calls actually always use the rvalue form.
 */
 {
   a_routine_ptr  routine = NULL;
@@ -17035,6 +17056,7 @@ types to get a boolean expression (see process_boolean_controlling_expression).
                                    is_constant_operand(operand),
                                    (a_boolean)operand->
                                                       is_simple_string_literal,
+                                   operand_is_function(operand),
                                    &operand->variant.constant,
                                    bool_type(),
                                    /*allow_qualifier_or_eh_mismatch=*/FALSE,

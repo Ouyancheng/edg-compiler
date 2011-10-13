@@ -7544,10 +7544,11 @@ the given parameter types (which may be NULL).
 a_routine_ptr routine_from_function_expr(an_expr_node_ptr expr)
 /*
 expr is the expression identifying the function to call in a normal call
-(including a virtual call).  If it is possible to determine the specific
-function being called, return a pointer to its routine entry.  Otherwise,
-return NULL.  The expression can be an lvalue or rvalue for the function,
-even though calls actually always use the rvalue form.
+(including a virtual call), or some other operand that might identify
+a function.  If it is possible to determine the specific function named,
+return a pointer to its routine entry.  Otherwise, return NULL.  The
+expression can be an lvalue or rvalue for the function, even though
+calls actually always use the rvalue form.
 */
 {
   a_routine_ptr routine = NULL;
@@ -14372,6 +14373,7 @@ TRUE.
                                                 /*source_is_constant=*/TRUE,
                                                 /*source_is_string_literal=*/
                                                                          FALSE,
+                                                /*source_is_function=*/FALSE,
                                                 src_con,
                                                 new_type,
                                                 reinterpret_cast_needed,
@@ -14381,6 +14383,7 @@ TRUE.
                                                 /*source_is_constant=*/TRUE,
                                                 /*source_is_string_literal=*/
                                                                          FALSE,
+                                                /*source_is_function=*/FALSE,
                                                 src_con,
                                                 new_type,
                                       /*allow_qualifier_or_eh_mismatch=*/FALSE,
@@ -15092,6 +15095,7 @@ name lookup options.
       if (!impl_conversion_possible(source_type,
                                     /*source_is_constant=*/TRUE,
                                     /*source_is_string_literal=*/FALSE,
+                                    /*source_is_function=*/FALSE,
                                     source_con,
                                     guide_type,
                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,

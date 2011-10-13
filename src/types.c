@@ -3326,6 +3326,7 @@ because any exception it can handle would be caught by type_1's handler.
          inference; see 15.4 para 1 and para 2.) */
       if (impl_pointer_conversion(type_2, /*source_is_constant=*/FALSE,
                                   /*source_is_string_literal=*/FALSE,
+                                  /*source_is_function=*/FALSE,
                                   (a_constant_ptr)NULL, type_1,
                                   /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                   /*suppress_extensions=*/TRUE,
@@ -7095,10 +7096,14 @@ conversion in C++/CLI because it drops gc-ness of an interior_ptr.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- source_is_function is not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_boolean impl_pointer_conversion(
                          a_type_ptr           source_type,
                          a_boolean            source_is_constant,
                          a_boolean            source_is_string_literal,
+                         a_boolean            source_is_function,
                          a_constant           *source_constant,
                          a_type_ptr           dest_type,
                          a_boolean            allow_qualifier_or_eh_mismatch,
@@ -7114,7 +7119,9 @@ null pointer constant to a pointer type.)  If source_is_string_literal
 is TRUE, the source is a simple string literal (that's needed for the
 deprecated conversion from string literal to "char *"); the flag can
 be TRUE even when source_is_constant is FALSE, for string literals
-represented in expression form.  If allow_qualifier_or_eh_mismatch is
+represented in expression form.  If source_is_function is TRUE, the
+source is the address of a specific function, which matters for a
+particular C++/CLI conversion.  If allow_qualifier_or_eh_mismatch is
 TRUE, ignore cv-qualifier and exception specification mismatches (the
 two types are probably the types of the operands of an operation);
 mismatches in named address space qualifiers are not ignored, however.
@@ -7375,6 +7382,21 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
           if (!any_cfront_mode()) {
             std_conv->warning_suggested = default_warning_code;
           }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcli_enabled && source_is_function &&
+                   is_function(unqual_dest_type_pointed_to) &&
+                   is_function(unqual_source_type_pointed_to) &&
+                   unqual_dest_type_pointed_to->variant.routine.extra_info
+                    ->calling_convention == (a_calling_convention)cc_clrcall &&
+                   f_types_are_compatible(unqual_dest_type_pointed_to,
+                                          unqual_source_type_pointed_to,
+                                          TCF_IGNORE_CALLING_CONVENTIONS)) {
+          /* In C++/CLI, the address of a specific function (not an arbitrary
+             function pointer) can be converted to a pointer to a __clrcall
+             function because every function (even __cdecl or extern "C")
+             has a secondary __clrcall entry point. */
+          okay = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (C_mode() && !suppress_extensions &&
                    interchangeable_types(unqual_dest_type_pointed_to,
                                          unqual_source_type_pointed_to)) {
@@ -8270,6 +8292,7 @@ a_boolean impl_conversion_possible(
                           a_type_ptr           source_type,
                           a_boolean            source_is_constant,
                           a_boolean            source_is_string_literal,
+                          a_boolean            source_is_function,
                           a_constant           *source_constant,
                           a_type_ptr           dest_type,
                           a_boolean            allow_qualifier_or_eh_mismatch,
@@ -8284,7 +8307,9 @@ needed to check for conversions of a null pointer constant to a pointer
 type.)  If source_is_string_literal is TRUE, the source is a simple
 string literal (that's needed for the deprecated conversion from
 string literal to "char *"); the flag can be TRUE even when
-source_is_constant is FALSE, for an extension.  suppress_extensions is
+source_is_constant is FALSE, for an extension.  If source_is_function
+is TRUE, the source is the address of a specific function, which
+matters for a particular C++/CLI conversion.  suppress_extensions is
 TRUE if conversions that are extensions should not be allowed (what
 constitutes an extension depends on C_dialect, of course).  If the
 conversion is possible, *std_conv is filled out to describe the
@@ -8488,6 +8513,7 @@ See conversion_possible.
     /* Destination type is pointer. */
     okay = impl_pointer_conversion(source_type, source_is_constant,
                                    source_is_string_literal,
+                                   source_is_function,
                                    source_constant, dest_type,
                                    allow_qualifier_or_eh_mismatch,
                                    suppress_extensions,
@@ -8671,6 +8697,7 @@ exception specifications are not checked.
               impl_conversion_possible(dest_type,
                                        /*source_is_constant=*/FALSE,
                                        /*source_is_string_literal=*/FALSE,
+                                       /*source_is_function=*/FALSE,
                                        (a_constant *)NULL,
                                        source_type,
                                        allow_qualifier_or_eh_mismatch,
@@ -8749,6 +8776,7 @@ static a_boolean static_cast_conversion_possible_full(
                                  a_type_ptr    source_type,
                                  a_boolean     source_is_constant,
                                  a_boolean     source_is_string_literal,
+                                 a_boolean     source_is_function,
                                  a_constant    *source_constant,
                                  a_type_ptr    dest_type,
                                  a_boolean     allow_qualifier_or_eh_mismatch,
@@ -8763,7 +8791,9 @@ value.  (That's needed to check for conversions of a null pointer constant
 to a pointer type.)  If source_is_string_literal is TRUE, source is a
 simple string literal (that's needed for the deprecated conversion
 from string literal to "char *"); the flag can be TRUE even when
-source_is_constant is FALSE, for an extension.  If the conversion is
+source_is_constant is FALSE, for an extension.  If source_is_function
+is TRUE, the source is the address of a specific function, which
+matters for a particular C++/CLI conversion.  If the conversion is
 suspect and should be flagged with a warning, *warning_suggested is
 set to an appropriate error code; normally, it is set to ec_no_error.
 default_warning_code will be copied into *warning_suggested when no
@@ -8813,6 +8843,7 @@ C++ mode.  See [expr.static.cast].
   } else {
     impl_okay = impl_conversion_possible(source_type, source_is_constant,
                                          source_is_string_literal,
+                                         source_is_function,
                                          source_constant, dest_type,
                                          allow_qualifier_or_eh_mismatch,
                                          suppress_extensions,
@@ -8902,6 +8933,7 @@ a_boolean static_cast_conversion_possible(
                                  a_type_ptr    source_type,
                                  a_boolean     source_is_constant,
                                  a_boolean     source_is_string_literal,
+                                 a_boolean     source_is_function,
                                  a_constant    *source_constant,
                                  a_type_ptr    dest_type,
                                  a_boolean     allow_qualifier_or_eh_mismatch,
@@ -8917,6 +8949,7 @@ where the is_mild_warning parameter is not needed.
                                                 source_type,
                                                 source_is_constant,
                                                 source_is_string_literal,
+                                                source_is_function,
                                                 source_constant,
                                                 dest_type,
                                                 allow_qualifier_or_eh_mismatch,
@@ -9213,6 +9246,7 @@ case where the is_mild_warning parameter is not needed.
 a_boolean expl_conversion_possible(a_type_ptr    source_type,
                                    a_boolean     source_is_constant,
                                    a_boolean     source_is_string_literal,
+                                   a_boolean     source_is_function,
                                    a_constant    *source_constant,
                                    a_type_ptr    dest_type,
                                    a_boolean     *reinterpret_cast_needed,
@@ -9227,7 +9261,9 @@ a constant, and source_constant points to the constant value.
 a pointer type.)  If source_is_string_literal is TRUE, the source is a
 simple string literal (that's needed for the deprecated conversion
 from string literal to "char *"); the flag can be TRUE even when
-source_is_constant is FALSE, for an extension.  Any type qualifiers on
+source_is_constant is FALSE, for an extension.  If source_is_function
+is TRUE, the source is the address of a specific function, which
+matters for a particular C++/CLI conversion.  Any type qualifiers on
 the types themselves are ignored.  If the conversion is suspect and
 should be flagged with a warning, *warning_suggested is set to an
 appropriate error code; normally, it is set to ec_no_error.
@@ -9274,6 +9310,7 @@ set to TRUE (otherwise it is set to FALSE).
     static_cast_okay = static_cast_conversion_possible_full(
                                       source_type, source_is_constant,
                                       source_is_string_literal,
+                                      source_is_function,
                                       source_constant, dest_type,
                                       /*allow_qualifier_or_eh_mismatch=*/TRUE,
                                       default_warning_code,

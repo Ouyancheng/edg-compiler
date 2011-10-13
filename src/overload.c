@@ -594,6 +594,7 @@ destination type (this comes up in a Microsoft-mode extension).
               if (impl_conversion_possible(ptr_routine_type,
                                            /*source_is_constant=*/FALSE,
                                            /*source_is_string_literal=*/FALSE,
+                                           /*source_is_function=*/TRUE,
                                            (a_constant_ptr)NULL,
                                            eff_dest_type,
                                       /*allow_qualifier_or_eh_mismatch=*/FALSE,
@@ -606,6 +607,7 @@ destination type (this comes up in a Microsoft-mode extension).
                                      ptr_routine_type,
                                      /*source_is_constant=*/FALSE,
                                      /*source_is_string_literal=*/FALSE,
+                                     /*source_is_function=*/TRUE,
                                      (a_constant_ptr)NULL,
                                      eff_dest_type,
                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
@@ -2086,6 +2088,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   a_boolean         arg_originally_an_lvalue = FALSE;
   a_boolean         arg_originally_a_bindable_bit_field = FALSE;
   a_boolean         arg_operand_is_simple_string_literal;
+  a_boolean         arg_operand_is_function;
   a_constant_ptr    arg_operand_constant;
   an_operand        implicit_arg_operand;
   a_type_ptr        orig_param_type = param_type;
@@ -2134,12 +2137,14 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   }  /* if */
   orig_arg_operand = arg_operand;
   arg_operand_is_simple_string_literal = FALSE;
+  arg_operand_is_function = FALSE;
   if (arg_operand != NULL) {
     /* Remember whether the argument is a simple string literal.  This is
        done early so that it is set before the lvalue-->rvalue conversion
        is done on the string literal. */
     arg_operand_is_simple_string_literal =
                                          arg_operand->is_simple_string_literal;
+    arg_operand_is_function = operand_is_function(arg_operand);
     arg_originally_an_lvalue = (is_an_lvalue(arg_operand) ||
                                 is_a_function_designator(arg_operand));
     arg_originally_a_bindable_bit_field =
@@ -2454,6 +2459,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     if (impl_conversion_possible(arg_type,
                                  arg_operand_is_constant,
                                  arg_operand_is_simple_string_literal,
+                                 arg_operand_is_function,
                                  arg_operand_constant,
                                  param_type,
                                  /*allow_qualifier_or_eh_mismatch=*/FALSE,
@@ -11283,6 +11289,7 @@ are considered).  conv_context describes the context of the conversion.
                    impl_conversion_possible(return_type,
                                             /*source_is_constant=*/FALSE,
                                             /*source_is_string_literal=*/FALSE,
+                                            /*source_is_function=*/FALSE,
                                             (a_constant_ptr)NULL, dest_type,
                                       /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                             /*suppress_extensions=*/TRUE,
@@ -12420,6 +12427,7 @@ the target type to be used).
                                       operand_type,
                                       /*source_is_constant=*/FALSE,
                                       /*source_is_string_literal=*/FALSE,
+                                      /*source_is_function=*/FALSE,
                                       /*source_constant=*/(a_constant *)NULL,
                                       eff_specific_type,
                                       /*allow_qualifier_or_eh_mismatch=*/FALSE,
@@ -12508,6 +12516,8 @@ the target type to be used).
                                             source_is_constant,
                                             (a_boolean)arg_operand->operand.
                                                       is_simple_string_literal,
+                                            operand_is_function(
+                                                        &arg_operand->operand),
                                             source_constant,
                                             eff_specific_type,
                                       /*allow_qualifier_or_eh_mismatch=*/FALSE,
@@ -15039,6 +15049,7 @@ conv_context describes the context of the conversion.
                                    source_type,
                                    source_is_constant,
                                    source_operand->is_simple_string_literal,
+                                   operand_is_function(source_operand),
                                    source_constant,
                                    dest_type,
                                    /*allow_qualifier_or_eh_mismatch=*/TRUE,
@@ -15555,6 +15566,7 @@ context of the conversion.
                                         source_is_constant,
                                         (a_boolean)source_operand->
                                                       is_simple_string_literal,
+                                        operand_is_function(source_operand),
                                         source_constant,
                                         dest_type,
                                       /*allow_qualifier_or_eh_mismatch=*/FALSE,
