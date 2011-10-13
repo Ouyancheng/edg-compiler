@@ -7655,6 +7655,9 @@ the null pointer constant returned in *operand_constant.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- operand is not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_boolean operand_is_function(an_operand *operand)
 /*
 Return TRUE if the operand is an lvalue for or address of a specific
