@@ -1402,6 +1402,11 @@ Display a_routine_type_supplement.
   if (ptr->is_variadic_instance) {
     disp_boolean("is_variadic_instance", TRUE);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
+  if (ptr->explicit_calling_convention) {
+    disp_boolean("explicit_calling_convention", TRUE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
   if (ptr->lint_varargs_count != NOT_LINT_VARARGS) {
     disp_long("lint_varargs_count", (long)ptr->lint_varargs_count);
   }  /* if */

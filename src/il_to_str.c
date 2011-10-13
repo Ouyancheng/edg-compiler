@@ -2105,13 +2105,13 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     if (render_attributes) output_type_attributes(orig_type, type, octl);
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
-    a_boolean  is_lambda = is_lambda_body_routine_type(type);
+    a_boolean                  is_lambda = is_lambda_body_routine_type(type);
+    a_routine_type_supplement  *rtsp = type->variant.routine.extra_info;
     /* A qualifier on a function type shouldn't be possible without a
        typedef. */
     check_assertion_str(qualifiers == TQ_NONE,
                         "form_type_first_part: qualifier on function type");
-    if ((type->variant.routine.extra_info->trailing_return_type ||
-         is_lambda) &&
+    if ((rtsp->trailing_return_type || is_lambda) &&
         !octl->c_generating_back_end) {
       /* For a routine type specified with a trailing return return type, the 
          type specifiers are simply "auto", except for lambda expressions
@@ -2133,9 +2133,9 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* A calling convention specifier is put out as a left-hand-side
        declarator. */
-    form_calling_convention(type->variant.routine.extra_info->
-                                                            calling_convention,
-                            octl);
+    if (rtsp->explicit_calling_convention) {
+      form_calling_convention(rtsp->calling_convention, octl);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */

@@ -5554,6 +5554,11 @@ typedef struct a_routine_type_supplement {
   a_bit_field	is_variadic_instance:1;
 			/* TRUE for types of template instances generated from
 			   variadic function templates. */
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
+  a_bit_field	explicit_calling_convention:1;
+			/* TRUE is a calling convention was specified
+			   explicitly. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   a_lint_varargs_count
 	         lint_varargs_count;
@@ -5589,7 +5594,7 @@ typedef struct a_routine_type_supplement {
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
   a_calling_convention
 		calling_convention;
-			/* Calling convention for this routine (e.g.,
+			/* Calling convention for this routine type (e.g.,
 			   __cdecl, __fastcall). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
   a_type_ptr	this_class;

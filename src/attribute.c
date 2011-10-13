@@ -4246,6 +4246,7 @@ Apply the GNU "cdecl" attribute to the given entity and return that entity.
       pos_diagnostic(sev, ec_conflicting_calling_conventions, &ap->position);
     }  /* if */
     rtsp->calling_convention = (a_calling_convention)cc_cdecl;
+    rtsp->explicit_calling_convention = TRUE;
   }  /* if */
   return entity;
 }  /* apply_cdecl_attr */
@@ -5210,6 +5211,7 @@ Apply the GNU "stdcall" attribute to the given entity and return that entity.
                                         func_type->variant.routine.extra_info;
     if (rtsp->calling_convention == (a_calling_convention)cc_default) {
       rtsp->calling_convention = (a_calling_convention)cc_stdcall;
+      rtsp->explicit_calling_convention = TRUE;
     } else if (rtsp->calling_convention != (a_calling_convention)cc_stdcall) {
       /* gcc issues an error, but g++ silently keeps the cdecl convention. */
       an_error_severity  sev = gpp_mode ? es_warning : es_error;
@@ -6914,6 +6916,8 @@ Copy any GNU type properties (set by attributes) in type dst to type src.
               dst_rtsp->calling_convention !=
                                            (a_calling_convention)cc_stdcall) {
             dst_rtsp->calling_convention = src_rtsp->calling_convention;
+            dst_rtsp->explicit_calling_convention =
+                                        src_rtsp->explicit_calling_convention;
           }  /* if */
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
           if (src_rtsp->does_not_return) {

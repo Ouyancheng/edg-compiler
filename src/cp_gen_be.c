@@ -14416,8 +14416,9 @@ declarator (or NULL if it wasn't recorded).
        (a) function definitions use information from the function parameter
        variables, and (b) we need to suppress return types on constructors,
        destructors, etc. */
-    a_boolean  return_type_needed = TRUE;
-    a_type_ptr saved_routine_type = rout->type;
+    a_boolean                   return_type_needed = TRUE;
+    a_type_ptr                 saved_routine_type = rout->type;
+    a_routine_type_supplement  *rtsp = rout_type->variant.routine.extra_info;
     if (special_kind_is(rout, sfk_constructor) ||
         special_kind_is(rout, sfk_destructor) ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -14452,12 +14453,10 @@ declarator (or NULL if it wasn't recorded).
                                                  FTO_NO_OPTIONS,
                            &octl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else {
+    } else if (rtsp->explicit_calling_convention) {
       /* Even if there is no explicit return type, we may still need to
          emit the calling convention. */
-      form_calling_convention(rout_type->variant.routine.extra_info->
-                                                            calling_convention,
-                              &octl);
+      form_calling_convention(rtsp->calling_convention, &octl);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     if (!instantiation_directive) {
@@ -14522,8 +14521,7 @@ declarator (or NULL if it wasn't recorded).
                                            !rout->is_prototype_instantiation &&
                                            !rout->is_specialized &&
                                            !decl_within_class));
-    if (return_type_needed &&
-        !rout_type->variant.routine.extra_info->trailing_return_type) {
+    if (return_type_needed && !rtsp->trailing_return_type) {
       /* Put out the remainder of the return type.  If the routine type is
          expressed with a trailing return type, the return type was already
          emitted as part of the declarator. */

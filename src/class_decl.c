@@ -10941,6 +10941,7 @@ with and issue diagnostics as needed.
       invocation_type = delegate_invocation_type(type_pointed_to(prop_type));
       if (!f_types_are_compatible(rtp, invocation_type,
                                   TCF_IGNORE_THIS_CLASS_TYPE |
+                                  TCF_IGNORE_CALLING_CONVENTIONS |
                                   TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
         pos_error(ec_event_raise_type_mismatch, &dps->start_pos);
         err = TRUE;
@@ -11470,6 +11471,15 @@ implicitly declared member functions.
       check_for_reserved_dispose_pattern_members(locator, decl_state,
                                                  class_type);
     }  /* if */
+    if (is_immediate_managed_class_type(class_type) &&
+        member_type->kind == (a_type_kind)tk_routine &&
+        !rtsp->explicit_calling_convention) {
+      /* For user-declared member functions of managed class types, the
+         __clrcall calling convention was already set when the function type
+         was parsed.  For compiler-generated members or members of
+         compiler-generated classes, however, is wasn't. */
+      rtsp->calling_convention = (a_calling_convention)cc_clrcall;
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (decl_state->storage_class == (a_storage_class)sc_static) {
@@ -11489,9 +11499,7 @@ implicitly declared member functions.
         pos_error(ec_interface_cannot_have_static_members,
                   &decl_state->start_pos);
       }  /* if */
-      if (skip_typerefs(member_type)->variant.routine.extra_info
-                                    ->calling_convention ==
-                                           (a_calling_convention)cc_thiscall) {
+      if (rtsp->calling_convention == (a_calling_convention)cc_thiscall) {
         /* Static member functions cannot have the __thiscall calling
            convention. */
         pos_error(ec_thiscall_requires_nonstatic_member,
@@ -19275,7 +19283,6 @@ signature that matches that of the delegate definition).
     (void)find_symbol("Invoke", sizeof("Invoke")-1, &member_loc);
     initialize_member_decl_info(&member_info, &dps->specifiers_pos);
     mdps->declared_type = dps->declared_type;
-    ctsp->invocation_type = dps->type;
     /* The type of Invoke is the declared type of the delegate with the
        addition of a type for "this" (i.e., a nonstatic member function
        type). */
@@ -19285,9 +19292,14 @@ signature that matches that of the delegate definition).
                                                  /*copy_default_args=*/FALSE);
       check_assertion(mdps->type->kind == (a_type_kind)tk_routine);
       mdps->type->variant.routine.extra_info->this_class = class_type;
+      ensure_underlying_function_type_is_modifiable(&dps->type,
+                                                    &ctsp->invocation_type);
+      ctsp->invocation_type->variant.routine.extra_info->calling_convention =
+                                             (a_calling_convention)cc_clrcall;
     } else {
       /* Presumably a template parameter type or an error type. */
       mdps->type = dps->type;
+      ctsp->invocation_type = dps->type;
     }  /* if */
     decl_member_function(&member_loc, func_info, &class_state, &member_info,
                          /*compiler_generated=*/TRUE);

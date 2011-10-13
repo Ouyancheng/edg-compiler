@@ -1731,6 +1731,9 @@ to default values.
       rtsp->is_const                 = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       rtsp->is_variadic_instance     = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
+      rtsp->explicit_calling_convention = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 #if CENTERLINE_CHECKING
       rtsp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

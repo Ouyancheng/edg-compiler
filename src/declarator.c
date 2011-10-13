@@ -3073,14 +3073,14 @@ TRUE if this is the function declarator in a friend function declaration.
   scope_stack_top().outside_parameter_list = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
+    a_boolean  managed_member = cppcli_enabled && parent_type != NULL &&
+                                is_managed_class_type(parent_type);
     if (extra_info->has_ellipsis) {
       /* If this function type was declared with an ellipsis, its calling
          convention is required to be __cdecl, unless it is a member of a
          managed class.  If this isn't already the default for the
          compilation, set it in the type.  (Ordinarily, the setting in the
          type reflects an explicit specification of the calling convention.) */
-      a_boolean  managed_member = cppcli_enabled && parent_type != NULL &&
-                                  is_managed_class_type(parent_type);
       if (managed_member) {
         if (!scanning_generated_code_from_metadata) {
           /* Microsoft compilers don't accept managed member definitions with
@@ -3095,6 +3095,9 @@ TRUE if this is the function declarator in a friend function declaration.
                                              (a_calling_convention)cc_cdecl) {
         extra_info->calling_convention = (a_calling_convention)cc_cdecl;
       }  /* if */
+    }  /* if */
+    if (managed_member) {
+      extra_info->calling_convention = (a_calling_convention)cc_clrcall;
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3788,6 +3791,7 @@ information should be ignored or if an error should be issued.
              is always __cdecl.  Whether or not __cdecl was explicitly
              specified, add it to the type. */
           rtsp->calling_convention = (a_calling_convention)cc_cdecl;
+          rtsp->explicit_calling_convention = TRUE;
           if (calling_convention != (a_calling_convention)cc_cdecl) {
             /* For __thiscall or __clrcall, an error should be issued.  The
                other cases only elicit a remark (issued below). */
@@ -3823,6 +3827,7 @@ information should be ignored or if an error should be issued.
             rtsp = tp->variant.routine.extra_info;
           }  /* if */
           rtsp->calling_convention = calling_convention;
+          rtsp->explicit_calling_convention = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
