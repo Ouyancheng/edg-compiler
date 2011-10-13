@@ -11554,7 +11554,7 @@ implicitly declared member functions.
                                /*suppress_redecl_error=*/TRUE);
     }  /* if */
   }  /* if */
-  decl_info->decl_state.sym = sym;
+  decl_state->sym = sym;
   /* Create the routine entry for the member function. */
   /* The routine is allocated in the current memory region, as indicated
      by curr_il_region_number -- i.e., in the memory region of the scope in

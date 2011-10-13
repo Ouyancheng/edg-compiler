@@ -2690,6 +2690,9 @@ associated with the indicated sck_function scope.
          rp no longer represents a definition). */
       sssdp->declared_type = rp->declared_type;
       rp->declared_type = NULL;
+      /* Do the same with the declared storage class. */
+      sssdp->declared_storage_class = rp->declared_storage_class;
+      rp->declared_storage_class = (a_storage_class)sc_unspecified;
       sssdp->friend_decl = rp->defined_in_friend_decl;
       rp->defined_in_friend_decl = FALSE;
     }  /* if */
