@@ -18862,33 +18862,36 @@ end_of_routine:
 }  /* conditional_operator_conversion_possible */
 
 
-a_symbol_ptr select_overloaded_template_default_constructor(
-                                                  a_type_ptr        class_type,
-                                                  a_source_position *pos,
-                                                  a_boolean         *ambiguous)
+a_symbol_ptr select_overloaded_default_constructor(
+                                           a_type_ptr        class_type,
+                                           a_boolean         include_templates,
+                                           a_source_position *pos,
+                                           a_boolean         *ambiguous)
 /*
-See if there is a template constructor of the indicated class type
-that can be called with no arguments.  If so, return a pointer to a
-symbol for the instance of the template that can be thus called.  If
-no acceptable template is found, return NULL.  If more than one
-template matches, set *ambiguous to TRUE and return one of the
-symbols.  The source position of the reference is given by pos.  This
-routine does not do access checking on the template constructor.
-Non-template default constructors are ignored (see
-find_default_constructor for those).
+See if there is a default constructor of the indicated class type
+(i.e., one that can be called with no arguments).  If so, return a pointer
+to the symbol for the constructor.  Consider template constructors as
+possible default constructors if include_templates is TRUE (they can
+be called with zero arguments if they have default template arguments
+or a parameter pack).  If more than one constructor matches, set
+*ambiguous to TRUE and return one of the symbols.  The source position
+of the reference is given by pos (it's needed only if include_templates
+is TRUE).  No reference to the constructor is implied yet; we're just
+finding out if it exists.  This routine does not find implied trivial
+default constructors; see find_default_constructor.
 */
 {
   a_symbol_ptr                   sym, ctor_sym = NULL;
-  a_boolean                      is_overloaded_function;
+  a_boolean                      is_overloaded_function, any_templates = FALSE;
   a_class_symbol_supplement_ptr  cssp;
 
-  db_enter(4, "select_overloaded_template_default_constructor");
+  db_enter(4, "select_overloaded_default_constructor");
 #if DEBUG
   overload_level++;
   if (debug_level >= 4 || db_flag_is_set("overload")) {
     db_display_overload_level();
     fprintf(f_debug,
-     "Entering select_overloaded_template_default_constructor, class_type = ");
+            "Entering select_overloaded_default_constructor, class_type = ");
     db_abbreviated_type(class_type);
     fprintf(f_debug, "\n");
   }  /* if */
@@ -18899,6 +18902,7 @@ find_default_constructor for those).
   cssp = symbol_supplement_for_class(class_type);
   sym = cssp->constructor;
   check_assertion(sym != NULL);
+  /* Look for a non-template default constructor. */
   /* If sym is an overloaded function symbol we need to go through the whole
      list. */
   if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
@@ -18907,60 +18911,95 @@ find_default_constructor for those).
   } else {
     is_overloaded_function = FALSE;
   }  /* if */
-  /* Examine each constructor for this class to find a template default
-     constructor.  There may be more than one. */
+  /* Examine each constructor for this class to find a default constructor.
+     There may be more than one.  For instance, there may be a constructor
+     with no arguments and one with one argument with a default value. */
   for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
     if (sym->kind == (a_symbol_kind)sk_function_template) {
-      a_routine_ptr    routine =
-                          sym->variant.template_info->variant.function.routine;
-      a_type_ptr       routine_type = skip_typerefs(routine->type);
-      a_routine_type_supplement_ptr
-                       rtsp = routine_type->variant.routine.extra_info;
-      a_param_type_ptr ptp = rtsp->param_type_list;
-#if DEBUG
-      if (debug_level >= 4 || db_flag_is_set("overload")) {
-        db_symbol(sym,
-            "select_overloaded_template_default_constructor: considering ", 4);
-      }  /* if */
-#endif /* DEBUG */
-      if (ptp == NULL /* Error recovery */ ||
-          (!ptp->has_unevaluated_template_default &&
-           ptp->default_arg_expr == NULL &&
-           !ptp->is_parameter_pack)) {
-        /* We can tell the constructor can't be called with zero arguments. */
+      /* Function templates are not considered on this pass. */
+      any_templates = TRUE;
+    } else if (is_default_constructor(sym->variant.routine.ptr,
+                                      /*is_declarative_context=*/FALSE)) {
+      /* sym is a default constructor. */
+      if (ctor_sym != NULL) {
+        /* A default constructor had already been found, so there's
+           more than one.  We have an ambiguous reference. */
+        *ambiguous = TRUE;
+        break;
       } else {
-        a_template_arg_ptr template_arg_list = NULL;
-        routine_type = function_template_call_argument_deduction(
+        /* We've found one.  Record it, but keep looking.  If there's an
+           ambiguity we need to report it. */
+        ctor_sym = sym;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (ctor_sym == NULL && include_templates && any_templates) {
+    /* Look for a template default constructor. */
+    /* If sym is an overloaded function symbol we need to go through the whole
+       list. */
+    sym = cssp->constructor;
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      is_overloaded_function = TRUE;
+      sym = sym->variant.overloaded_function.symbols;
+    } else {
+      is_overloaded_function = FALSE;
+    }  /* if */
+    /* Examine each constructor for this class to find a template default
+       constructor.  There may be more than one. */
+    for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
+      if (sym->kind == (a_symbol_kind)sk_function_template) {
+        a_routine_ptr    routine =
+                          sym->variant.template_info->variant.function.routine;
+        a_type_ptr       routine_type = skip_typerefs(routine->type);
+        a_routine_type_supplement_ptr
+                         rtsp = routine_type->variant.routine.extra_info;
+        a_param_type_ptr ptp = rtsp->param_type_list;
+#if DEBUG
+        if (debug_level >= 4 || db_flag_is_set("overload")) {
+          db_symbol(sym,
+                    "select_overloaded_default_constructor: considering ", 4);
+        }  /* if */
+#endif /* DEBUG */
+        if (ptp == NULL /* Error recovery */ ||
+            (!ptp->has_unevaluated_template_default &&
+             ptp->default_arg_expr == NULL &&
+             !ptp->is_parameter_pack)) {
+          /* We can tell the constructor can't be called with zero
+             arguments. */
+        } else {
+          a_template_arg_ptr template_arg_list = NULL;
+          routine_type = function_template_call_argument_deduction(
                                                       sym,
                                                       routine_type,
                                                       (an_arg_operand_ptr)NULL,
                                                       &template_arg_list);
-        if (routine_type != NULL) {
-          /* The template can be called with zero arguments. */
-          if (ctor_sym != NULL) {
-            /* More than one template matches. */
-            *ambiguous = TRUE;
-            free_template_arg_list(template_arg_list);
-            break;
-          }  /* if */
-          ctor_sym = find_template_function(sym, &template_arg_list,
+          if (routine_type != NULL) {
+            /* The template can be called with zero arguments. */
+            if (ctor_sym != NULL) {
+              /* More than one template matches. */
+              *ambiguous = TRUE;
+              free_template_arg_list(template_arg_list);
+              break;
+            }  /* if */
+            ctor_sym = find_template_function(sym, &template_arg_list,
                                            /*explicit_arg_list_present=*/FALSE,
-                                            pos);
+                                              pos);
+          }  /* if */
         }  /* if */
       }  /* if */
-    }  /* if */
-  }  /* for */
+    }  /* for */
+  }  /* if */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("overload")) {
     db_display_overload_level();
     db_symbol(ctor_sym,
-    "Leaving select_overloaded_template_default_constructor, ctor_sym = ", 4);
+              "Leaving select_overloaded_default_constructor, ctor_sym = ", 4);
   }  /* if */
   overload_level--;
 #endif /* DEBUG */
   db_exit();
   return ctor_sym;
-}  /* select_overloaded_template_default_constructor */
+}  /* select_overloaded_default_constructor */
 
 
 a_symbol_ptr select_overloaded_copy_constructor(

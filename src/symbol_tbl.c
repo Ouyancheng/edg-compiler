@@ -8717,75 +8717,6 @@ Create a symbol and type entry for std::nullptr_t (only in Microsoft mode).
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-a_symbol_ptr find_default_constructor(a_type_ptr  class_type,
-                                      a_boolean   *ambiguous,
-                                      a_boolean   *trivial)
-/*
-Find and return a pointer to a symbol representing a default constructor for
-the class indicated by class_type.  (A default constructor is a constructor
-that requires no arguments.)  If more than one acceptable constructor is
-found, set *ambiguous to TRUE and return one of the symbols.  Return NULL
-if no default constructor is found.  For a trivial default constructor that's
-not user-declared, there's no symbol, so return NULL; for a user-declared
-default constructor that's defaulted and trivial, return the symbol.
-In either of those cases, if trivial is non-NULL return *trivial set to TRUE.
-This routine does not consider template constructors that can be called
-with zero arguments.
-*/
-{
-  a_symbol_ptr  sym, ctor_sym = NULL;
-  a_boolean     is_overloaded_function;
-  a_class_symbol_supplement_ptr
-                cssp = symbol_supplement_for_class(class_type);
-
-  *ambiguous = FALSE;
-  if (trivial != NULL) *trivial = FALSE;
-  sym = cssp->constructor;
-  if (sym == NULL) {
-    /* No user-declared constructors.  The class might have an implicit
-       trivial default constructor. */
-    if (trivial != NULL) {
-      *trivial = has_trivial_default_constructor(cssp);
-    }  /* if */
-  } else {
-    /* Some user-declared or non-trivial constructors. */
-    /* If sym is an overloaded function symbol we need to go through the whole
-       list. */
-    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      is_overloaded_function = TRUE;
-      sym = sym->variant.overloaded_function.symbols;
-    } else {
-      is_overloaded_function = FALSE;
-    }  /* if */
-    /* Examine each constructor for this class to find a default constructor.
-       There may be more than one.  For instance, there may be a constructor
-       with no arguments and one with one argument with a default value. */
-    for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-      if (sym->kind == (a_symbol_kind)sk_function_template) {
-        /* Function templates are not considered. */
-      } else if (is_default_constructor(sym->variant.routine.ptr,
-                                       /*is_declarative_context=*/FALSE)) {
-        /* sym is a default constructor. */
-        if (ctor_sym != NULL) {
-          /* A default constructor had already been found, so there's
-             more than one.  We have an ambiguous reference. */
-          *ambiguous = TRUE;
-          break;
-        } else {
-          /* We've found one.  Record it, but keep looking.  If there's an
-             ambiguity we need to report it. */
-          ctor_sym = sym;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    if (trivial != NULL && ctor_sym != NULL) {
-      *trivial = ctor_sym->variant.routine.ptr->is_trivial_default_constructor;
-    }  /* if */
-  }  /* if */
-  return ctor_sym;
-}  /* find_default_constructor */
-
-
 a_routine_ptr select_default_constructor_full(
                                          a_type_ptr        class_type,
                                          a_source_position *err_pos,
@@ -8822,13 +8753,8 @@ that can be called with zero arguments.
   /* This routine is similar to select_overloaded_function. */
   if (error_detected != NULL) *error_detected = FALSE;
   class_type = skip_typerefs(class_type);
-  ctor_sym = find_default_constructor(class_type, &ambiguous, &trivial);
-  if (ctor_sym == NULL && !trivial) {
-    /* Look for a template constructor that can be called with zero
-       arguments. */
-    ctor_sym = find_template_default_constructor(class_type, err_pos,
-                                                 &ambiguous);
-  }  /* if */
+  ctor_sym = find_default_constructor(class_type, /*include_templates=*/TRUE,
+                                      err_pos, &ambiguous, &trivial);
   if (ctor_sym == NULL) {
     if (trivial) {
       /* The class has an implicit (not user-declared) trivial default

@@ -9604,7 +9604,9 @@ function, set *ambiguous to TRUE.
       case sfk_constructor:
         if (first_param == NULL) {
           /* Default constructor. */
-          sym = find_default_constructor(class_type, ambiguous,
+          sym = find_default_constructor(class_type,
+                                         /*include_templates=*/TRUE,
+                                         source_pos, ambiguous,
                                          (a_boolean *)NULL);
         } else {
           /* Copy constructor. */
@@ -15970,7 +15972,9 @@ definition described by class_state.
   if (cli_class_type_kind_is(class_type, cctk_value)) {
     /* Value types always have a default constructor. */
     a_boolean     ambiguous, trivial;
-    if (find_default_constructor(class_type, &ambiguous, &trivial) == NULL) {
+    if (find_default_constructor(class_type, /*include_templates=*/FALSE,
+                                 &null_source_position,
+                                 &ambiguous, &trivial) == NULL) {
       generate_default_constructor(class_state, /*is_deleted=*/FALSE);
     } else {
       /* A default constructor was already declared, but that must have been

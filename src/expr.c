@@ -33329,39 +33329,62 @@ Return TRUE if the given arg_operand makes use of an error type or constant.
 }  /* arg_operand_involves_error_entity */
 
 
-a_symbol_ptr find_template_default_constructor(a_type_ptr        class_type,
-                                               a_source_position *pos,
-                                               a_boolean         *ambiguous)
+a_symbol_ptr find_default_constructor(a_type_ptr        class_type,
+                                      a_boolean         include_templates,
+                                      a_source_position *pos,
+                                      a_boolean         *ambiguous,
+                                      a_boolean         *trivial)
 /*
-See if there is a template constructor of the indicated class type
-that can be called with no arguments.  If so, return a pointer to a
-symbol for the instance of the template that can be thus called.  If
-no acceptable template is found, return NULL.  If more than one
-template matches, set *ambiguous to TRUE and return one of the
-symbols.  The source position of the reference is given by pos.  This
-routine does not do access checking on the template constructor.
-Non-template default constructors are ignored (see
-find_default_constructor for those).
+Find and return a pointer to a symbol representing a default constructor for
+the class indicated by class_type.  (A default constructor is a constructor
+that requires no arguments.)  If more than one acceptable constructor is
+found, set *ambiguous to TRUE and return one of the symbols.  Return NULL
+if no default constructor is found.  For a trivial default constructor that's
+not user-declared, there's no symbol, so return NULL; for a user-declared
+default constructor that's defaulted and trivial, return the symbol.
+In either of those cases, if trivial is non-NULL return *trivial set to TRUE.
+If include_templates is TRUE, consider also template constructors that can
+be called with zero arguments.  pos gives the source position for the
+reference (it's needed only if include_templates is TRUE).
 */
 {
-  a_symbol_ptr            ctor_sym;
-  an_expr_stack_entry     expr_stack_entry;
-  an_expr_stack_entry_ptr saved_expr_stack;
+  a_symbol_ptr  sym, ctor_sym = NULL;
+  a_class_symbol_supplement_ptr
+                cssp = symbol_supplement_for_class(class_type);
 
-  /* Save the current expr_stack for later restoration, and start over, because
-     this processing is not part of any expression we happen to be inside
-     of. */
-  save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/TRUE);
-  ctor_sym = select_overloaded_template_default_constructor(class_type,
-                                                            pos,
-                                                            ambiguous);
-  pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
+  *ambiguous = FALSE;
+  if (trivial != NULL) *trivial = FALSE;
+  sym = cssp->constructor;
+  if (sym == NULL) {
+    /* No user-declared constructors.  The class might have an implicit
+       trivial default constructor. */
+    if (trivial != NULL) {
+      *trivial = has_trivial_default_constructor(cssp);
+    }  /* if */
+  } else {
+    /* Some user-declared or non-trivial constructors. */
+    an_expr_stack_entry     expr_stack_entry;
+    an_expr_stack_entry_ptr saved_expr_stack;
+    /* Save the current expr_stack for later restoration, and start over,
+       because this processing is not part of any expression we happen to be
+       inside of. */
+    save_expr_stack(&saved_expr_stack);
+    push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/TRUE);
+    ctor_sym = select_overloaded_default_constructor(class_type,
+                                                     include_templates,
+                                                     pos,
+                                                     ambiguous);
+    pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
+    if (trivial != NULL && ctor_sym != NULL) {
+      check_assertion(is_simple_function_symbol(ctor_sym));
+      *trivial = ctor_sym->variant.routine.ptr->is_trivial_default_constructor;
+    }  /* if */
+  }  /* if */
   return ctor_sym;
-}  /* find_template_default_constructor */
+}  /* find_default_constructor */
 
 
 a_symbol_ptr find_copy_constructor(a_type_ptr            class_type,
