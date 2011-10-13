@@ -1027,13 +1027,11 @@ extern void check_exception_specification(a_type_ptr         new_rout_type,
                                           a_boolean          is_redecl);
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-
 extern a_type_ptr update_routine_declared_type(a_type_ptr  rout_type,
                                                a_type_ptr  declared_type);
 
 extern void set_routine_declared_type(a_routine_ptr  routine_ptr,
                                       a_type_ptr     declared_type);
-
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 extern void decl_routine(a_symbol_locator         *locator,

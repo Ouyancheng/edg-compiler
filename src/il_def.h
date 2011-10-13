@@ -8408,11 +8408,12 @@ typedef struct a_variable {
 			   if the definition has no explicit storage class
 			   (including a variable representing a static data
 			   member) or if there is no definition in the current
-			   translation unit (a C "tentative definition" is not
-			   a definition in this context).  For a declaration
-			   that is not a definition, the declared storage class
-			   is recorded in the a_src_seq_secondary_decl entry
-			   associated with that declaration. */
+			   translation unit (if there are only C "tentative
+			   definitions", the first is treated as a definition
+			   in this context).  For a declaration that is not a
+			   definition, the declared storage class is recorded
+			   in the a_src_seq_secondary_decl entry associated
+			   with that declaration. */
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
 		decl_modifiers;
@@ -11724,6 +11725,15 @@ typedef struct a_routine {
 			   syntactically, but has a different effect, which
 			   is represented elsewhere (e.g., in the
 			   this_class field for a routine type). */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_storage_class
+		declared_storage_class;
+			/* The storage class as it appeared on the definition;
+			   sc_unspecified if there is no definition.  (For
+			   non-defining declarations, the storage class is
+			   recorded in the
+			   corresponding a_src_seq_secondary_decl entry.) */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_special_function_kind
 		special_kind;
 			/* An enumerator indicating the special member function

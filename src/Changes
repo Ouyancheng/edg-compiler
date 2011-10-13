@@ -1,5 +1,24 @@
 Version 4.4
 
+10/13/11 [EDGcpfe/11949,EDGcpfe/12152]
+Storage class specifiers (IL CHANGE)
+
+When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, the front end now records the
+storage class specifier (e.g., "extern") that appeared on a declaration for
+a variable or function in the secondary source sequence entry associated with
+that declaration (for declarations that aren't definitions or primary
+tentative definition).  For definitions of functions, the declared storage
+class that appeared in the source is now recorded in the associated routine
+entry in such configurations.  For definitions of variables, there was already
+a "declared_storage_class" field in the associated IL entries (it remains
+defined in all configurations for backward compatibility purposes): It is now
+also set for primary tentative definitions.  Previously, secondary source
+sequence entries entries included a flag "explicit_storage_class" to indicate
+that a storage class was specified explicitly on the associated declaration:
+That flag has been removed since it is made obsolete by the new
+"declared_storage_class" field.
+
+
 10/12/11 [EDGcpfe/12346]
 PROTOTYPE_INSTANTIATIONS_IN_IL and function prototype deferral
 
@@ -1391,18 +1410,6 @@ This has now been fixed.  For example:
 
   #define fé 2  // second character is Latin-1 e with acute accent
   int i = fé;   // Previously "undefined identifier" error
-
-
-7/29/11  [EDGcpfe/11949]
-Storage class specifiers
-
-When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, the front end now records the
-storage class specifier (e.g., "extern") that appeared on a declaration in the
-secondary source sequence entry associated with that declaration.  (For
-definitions of variables, the specifier was already recorded in the field
-"declared_storage_class" of the corresponding a_variable entry.  Now such a
-field is also available for the nondefining declarations in the associated
-a_src_seq_secondary_decl entries.)
 
 
 7/29/11  [EDGcpfe/11953]

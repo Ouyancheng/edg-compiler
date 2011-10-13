@@ -2441,6 +2441,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->type                        = NULL;
   rp->assoc_scope                 = NULL_region_number;
   rp->storage_class               = (a_storage_class)sc_unspecified;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  rp->declared_storage_class      = (a_storage_class)sc_unspecified;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   set_routine_special_kind(rp, (a_special_function_kind)sfk_none);
   rp->address_taken               = FALSE;
   rp->is_virtual                  = FALSE;

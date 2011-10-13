@@ -13886,11 +13886,19 @@ this one is such a continuation.
     } else {
       var = ss_entry_ptr(sec_decl, a_variable_ptr);
     }  /* if */
+    storage_class = sec_decl->declared_storage_class;
     attributes = sec_decl->attributes;
     /* Use the type from the secondary declaration entry instead of the one
        from the IL entry, since it might differ in small ways (e.g., using
        different typedefs, default arguments). */
     var_type = sec_decl->declared_type;
+   
+    if (!var->source_corresp.is_class_member &&
+        is_incomplete_array_type(var_type)) {
+      /* Microsoft compilers treat "T x[];" as "extern T x[];".  We make the
+         "extern" explicit for portability's sake. */
+      storage_class = (a_storage_class)sc_extern;
+    }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     marked_as_gnu_extension = sec_decl->marked_as_gnu_extension;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -13905,6 +13913,7 @@ this one is such a continuation.
     } else {
       var = ss_entry_ptr(curr_source_sequence_entry, a_variable_ptr);
     }  /* if */
+    storage_class = var->declared_storage_class;
     attributes = var->source_corresp.attributes;
     is_definition = TRUE;
     var->definition_has_been_put_out = TRUE;
@@ -13970,85 +13979,6 @@ this one is such a continuation.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (var->is_initonly) write_tok_str("initonly ");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Determine the proper storage class to display. */
-  storage_class = var->storage_class;
-  if (is_specialization) {
-    /* A storage class is never allowed on a specialization. */
-    storage_class = (a_storage_class)sc_unspecified;
-  } else if (for_init) {
-    /* Use the storage class actually indicated in the source for a
-       for-initialization, to avoid problems like
-         for (int i, foo(); ; ) {}
-       where the second entity declared is a function, for which "auto"
-       would not be valid. */
-    storage_class = var->declared_storage_class;
-  } else if (curr_name_context_is_a_class()) {
-    /* We're currently inside a class definition.  The storage class doesn't
-       have the usual meaning: for example, "static" means a static member.
-       The only cases that come here, however, are declarations of static
-       data members and C++/CLI properties.  (It's not possible to declare or
-       define a nonmember variable or a static data member of another class
-       inside a class.) */
-    storage_class = (a_storage_class)sc_static;
-  } else {
-    /* A declaration or definition outside of a class (at file scope or
-       namespace scope or inside a function). */
-    if (is_definition) {
-      /* This is the definition of the variable, so by and large the
-         storage class from the IL entry applies. */
-      if (var->source_corresp.is_class_member) {
-        /* A static data member definition.  Use no storage class. */
-        storage_class = (a_storage_class)sc_unspecified;
-      } else if (storage_class == (a_storage_class)sc_unspecified &&
-                 il_header.source_language == sl_Cplusplus &&
-                 innermost_function_scope == NULL &&
-                 is_const_qualified_type(var->type) &&
-                 is_explicit_initializer(var->init_kind, &var->initializer)) {
-        /* A const-qualified variable is "static" by default in C++.  Use an
-           explicit "extern" if the variable has an initializer.  If it
-           doesn't have an initializer, we cannot use an explicit "extern"
-           because that wouldn't be a definition anymore (presumably the
-           "extern" was supplied on a previous (nondefining) declaration. */
-        storage_class = (a_storage_class)sc_extern;
-      } else if (storage_class == (a_storage_class)sc_auto) {
-        /* Avoid rendering an extraneous "auto", since that may not be correct
-           if other declarators follow.  For example:
-              int x, f();
-           cannot be rendered as
-              auto int x, f();
-        */
-        storage_class = var->declared_storage_class;
-      }  /* if */
-    } else {
-      /* A declaration of a variable. */
-      /* The variable is not defined (here), so use "extern" instead of no
-         storage class.  Also use "extern" for nonlocal static variables
-         declared extern.  C requires special treatment because of its
-         "tentative definition" rules -- the first declaration of a
-         variable need not be a definition, and declaring it "extern" first
-         and later defining it as "static" is an error.  Microsoft C (at
-         least through version 8.0) has a bug that does not allow
-         declarations that follow a static variable definition to be
-         declared "static," so we only use "static" until the definition
-         has been seen. */
-      if (storage_class == (a_storage_class)sc_unspecified ||
-          (storage_class == (a_storage_class)sc_static &&
-           !var->source_corresp.is_local_to_function &&
-           !(C_mode() && curr_name_context->assoc_scope->kind ==
-                                                      (a_scope_kind)sck_file &&
-             !var->definition_has_been_put_out))) {
-        storage_class = (a_storage_class)sc_extern;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-  /* A variable assigned to a specific register must always be put out with
-     the "register" keyword.  (When not targeting GNU, don't put out the
-     keyword since that would result in invalid code in nonlocal scopes.) */
-  if (gcc_is_generated_code_target && var_is_gnu_named_register(var)) {
-    storage_class = (a_storage_class)sc_register;
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Check for `extern "C"'.  This applies even on a definition. */
   if (il_header.source_language == sl_Cplusplus &&
       var->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external &&
@@ -14069,14 +13999,24 @@ this one is such a continuation.
        instead. */
     if (is_definition || gcc_is_generated_code_target) {
       render_braced_extern_c = TRUE;
+      if (storage_class == (a_storage_class)sc_unspecified) {
+        if (!is_definition) {
+          /* Ensure a non-defining declaration does not become a definition as
+             a consequence of the rewrite. */
+          storage_class = (a_storage_class)sc_extern;
+        } else if (var->storage_class == (a_storage_class)sc_unspecified &&
+                   is_const_qualified_type(var_type)) {
+          /* Something like
+               extern "C" int const N = 32;
+             requires an explicit "extern" after the rewrite:
+               extern "C" { extern int const N = 32; }
+             since it would otherwise implicitly have internal linkage. */
+          storage_class = (a_storage_class)sc_extern;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */ 
   if (!suppress_specifiers) {
-#if NAMED_REGISTERS_ALLOWED
-    if (var->has_named_register_storage_class) {
-      storage_class = (a_storage_class)sc_register;
-    }  /* if */
-#endif /* NAMED_REGISTERS_ALLOWED */
     if (render_extern_c) {
       write_tok_str("extern \"C\" ");
       if (render_braced_extern_c) {
@@ -14686,7 +14626,6 @@ TRUE if the declaration following this one is such a continuation.
   a_boolean                     abstract_generated = FALSE;
   a_boolean                     context_pop_needed;
   a_storage_class               storage_class;
-  a_storage_class               implicit_storage_class = FALSE;
   a_scope_ptr                   scope = NULL;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   a_memory_region_number        scope_region_number;
@@ -14735,7 +14674,7 @@ TRUE if the declaration following this one is such a continuation.
        from the IL entry, since it might differ in small ways (e.g., using
        different typedefs, default arguments). */
     rout_type = sec_decl->declared_type;
-    implicit_storage_class = !sec_decl->explicit_storage_class;
+    storage_class = sec_decl->declared_storage_class;
     friend_decl = sec_decl->friend_decl;
     is_specialization = sec_decl->specialized_with_new_syntax;
     if (is_specialization && !rout->is_specialized && rout->is_inline) {
@@ -14813,6 +14752,7 @@ handle_as_definition:
     }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     rout_type = rout->declared_type;
+    storage_class = rout->declared_storage_class;
     is_definition = TRUE;
     friend_decl = rout->defined_in_friend_decl;
 #if GNU_EXTENSIONS_ALLOWED
@@ -14950,59 +14890,23 @@ handle_as_definition:
       rout->expl_template_arg_list_used = TRUE;
     }  /* if */
   }  /* if */
-  /* Determine the proper storage class to display. */
-  storage_class = rout->storage_class;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (rout->special_kind == (a_special_function_kind)sfk_static_constructor) {
-    /* A C++/CLI static constructor is always declared with the "static"
-       specifier.  Note that this is a case where a storage class specifier
-       may validly follow the "friend" keyword. */
-    if (friend_decl) write_tok_str("friend ");
-    storage_class = (a_storage_class)sc_static;
-  } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  if (is_specialization) {
-    /* A storage class is never allowed on a specialization. */
-    storage_class = (a_storage_class)sc_unspecified;
-  } else if (curr_name_context_is_a_class()) {
-    /* We're currently inside a class definition.  The storage class doesn't
-       have the usual meaning: "extern" is never used, and "static" means
-       a static member.  Suppress the storage class (it gets set to static
-       later for static member functions).  Even friend declarations and
-       definitions get no storage class. */
-    storage_class = (a_storage_class)sc_unspecified;
-    /* Check the kind of declaration within a class. */
+  if (curr_name_context_is_a_class()) {
+    /* A function or function template declaration in a class definition. */
     if (friend_decl) {
-      /* This is a friend declaration. */
       if (!suppress_specifiers) {
-        /* Determine the storage class, if not default, and put out the
-           "friend" keyword. */
-        if (microsoft_dialect_is_generated_code_target &&
-            !curr_name_context_class()->source_corresp.is_local_to_function) {
-          /* In Microsoft mode a storage class can be specified on a friend
-             declaration (but only in a non-local class). */
-          if ((rout->storage_class == (a_storage_class)sc_extern &&
-               !rout->is_inline) ||
-              (rout->storage_class == (a_storage_class)sc_static &&
-               rout->is_inline)) {
-            /* The storage class can be omitted -- the default is right. */
-          } else {
-            /* Specify the storage class explicitly. */
-            storage_class = rout->storage_class;
-          }  /* if */
 #ifdef SUN_TARGET_VERSION_NUMBER
-        } else if (sun_is_generated_code_target &&
-                   sun_target_version_number <= 0x530 &&
-                   rout->storage_class == (a_storage_class)sc_static) {
+        if (sun_is_generated_code_target &&
+            sun_target_version_number <= 0x530 &&
+            storage_class == (a_storage_class)sc_static) {
           /* In older Sun dialects, "static" can be specified on a friend
              declaration, but the order of specifiers is important: "static
              friend" is accepted, but "friend static" is not, so we
              explicitly output "static" here and leave the storage class
              unspecified. */
           write_tok_str("static ");
-#endif /* SUN_TARGET_VERSION_NUMBER */
+          storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
+#endif /* SUN_TARGET_VERSION_NUMBER */
         write_tok_str("friend ");
       }  /* if */
     } else {
@@ -15010,60 +14914,19 @@ handle_as_definition:
          its own class. */
       decl_within_class = TRUE;
       decl_within_function = FALSE;
-      if (rtsp->this_class == NULL && !rout_is_cli_accessor(rout)) {
-        /* Static member function. */
-        storage_class = (a_storage_class)sc_static;
-      }  /* if */
     }  /* if */
   } else {
     /* A declaration or definition outside of a class (at file scope or
        inside a function). */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (msvc_is_generated_code_target && rout->is_inline &&
-        !rout->explicit_extern_inline &&
-        (storage_class == (a_storage_class)sc_unspecified ||
-         storage_class == (a_storage_class)sc_extern)) {
-      /* "extern inline" forces a Microsoft compiler to spill the definition
-         of an inline function even if it was not called.  Avoid the "extern"
-         specifier therefore (unless it appeared in the source). */
-      storage_class = (a_storage_class)sc_unspecified;
-    } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    if (is_definition) {
-      /* This is the definition of the function, so by and large the
-         storage class from the IL entry applies. */
-      if (rout->source_corresp.is_class_member) {
-        /* A member function definition.  Use no storage class. */
-        storage_class = (a_storage_class)sc_unspecified;
-      }  /* if */
-    } else {
+    if (!is_definition) {
       /* A declaration of a function. */
       /* Normally, this should not be a member function, but in Microsoft and
          Some GNU C++ modes it is possible to redeclare a member without
          defining it. */
       out_of_class_redecl = rout->source_corresp.is_class_member;
-      /* The function is not defined (here), so use "extern" instead of
-         no storage class.  Also use "extern" for file-scope static routines
-         declared extern inside functions.  Microsoft and GNU C++ member
-         redeclarations are an exception (storage class should be omitted).
-         Also out of line declarations of templates, when prototype
-         instantiations are preserved in the IL. */
-      if (out_of_class_redecl) {
-        check_assertion(gpp_mode || microsoft_mode ||
-                        rout->is_prototype_instantiation);
-        storage_class = (a_storage_class)sc_unspecified;
-      } else if (implicit_storage_class) {
-        /* A storage class wasn't specified in the source; don't make the
-           implied storage class explicit since that could change the meaning
-           of subsequent declarators.  E.g., "int f(), n;" is not equivalent
-           to "extern int f(), n;". */
-        storage_class = (a_storage_class)sc_unspecified;
-      } else if (storage_class == (a_storage_class)sc_unspecified ||
-                 (storage_class == (a_storage_class)sc_static &&
-                  decl_within_function)) {
-        storage_class = (a_storage_class)sc_extern;
-      }  /* if */
+      check_assertion(!out_of_class_redecl ||
+                      rout->is_prototype_instantiation || is_specialization ||
+                      microsoft_mode || gpp_mode);
     }  /* if */
   }  /* if */
   if (msvc_is_generated_code_target && decl_within_class &&

@@ -1735,18 +1735,20 @@ specified scope.
 }  /* make_routine */
 
 
-static void make_anonymous_union_variable(a_type_ptr      anon_union_type,
-                                          a_storage_class storage_class)
+static void make_anonymous_union_variable(
+                                       a_type_ptr      anon_union_type,
+                                       a_storage_class declared_storage_class)
 /*
-Create a variable to represent an anonymous union.  Issue an error if its
-storage class is invalid.  Also promote the fields of the union to the
-current scope.
+Create a variable to represent an anonymous union declared with the given
+union type and storage class.  Issue an error if its storage class is invalid.
+Also promote the fields of the union type to the current scope.
 */
 {
-  a_variable_ptr vp;
-  a_boolean      at_file_or_namespace_scope;
-  a_symbol_ptr   assoc_object_sym;
-  a_scope_depth  scope_depth;
+  a_variable_ptr   vp;
+  a_boolean        at_file_or_namespace_scope;
+  a_symbol_ptr     assoc_object_sym;
+  a_scope_depth    scope_depth;
+  a_storage_class  storage_class = declared_storage_class;
 
   at_file_or_namespace_scope =
                      (depth_scope_stack == depth_innermost_namespace_scope);
@@ -1794,6 +1796,7 @@ current scope.
                      depth_innermost_namespace_scope : decl_scope_level; 
   vp = make_variable(anon_union_type, storage_class, scope_depth);
   vp->is_anonymous_parent_object = TRUE;
+  vp->declared_storage_class = declared_storage_class;
   /* Promote the fields of the anonymous union to the current scope, and do
      some error checking on the anonymous union's members. */
   assoc_object_sym = make_anonymous_parent_object_symbol(
@@ -8294,6 +8297,8 @@ skip_overloading:;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     (void)update_src_seq_secondary_decl((char *)routine_ptr, declared_type,
                                         name_ref, flags, decl_pos_block);
+  } else {
+    routine_ptr->declared_storage_class = dps->declared_storage_class;
   }  /* if */
   source_sequence_entries_disallowed = saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -8794,6 +8799,11 @@ definition of a member function of a class template.
     switch_back_to_original_region(region_to_switch_back_to);
     rout_ptr->type = type_ptr;
     rout_ptr->storage_class = storage_class;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (func_info->is_definition) {
+      rout_ptr->declared_storage_class = dps->declared_storage_class;
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (func_info->is_inline) {
       set_inline_flag(rout_ptr, TRUE);
     }  /* if */

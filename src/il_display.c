@@ -2951,6 +2951,10 @@ Display the indicated routine.
   disp_unsigned_long("assoc_scope", (unsigned long)ptr->assoc_scope);
   disp_name("storage_class");
   disp_storage_class_name(ptr->storage_class);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  disp_name("declared_storage_class");
+  disp_storage_class_name(ptr->declared_storage_class);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (ptr->special_kind != (a_special_function_kind)sfk_none) {
     disp_name("special_kind");
     disp_special_function_kind_name(ptr->special_kind);

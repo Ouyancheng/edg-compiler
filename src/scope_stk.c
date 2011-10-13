@@ -5428,7 +5428,6 @@ curr_routine points to the routine entry; otherwise, it is NULL.
           sym->defined && is_primary_translation_unit) {
         a_source_sequence_entry_ptr   ssep;
         a_src_seq_secondary_decl_ptr  sssdp;
-
         ssep = var_ptr->source_corresp.source_sequence_entry;
         if (ssep != NULL &&
             ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
@@ -5445,6 +5444,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
           ssep->entity.ptr = (char *)var_ptr;
           check_assertion(var_ptr->declared_type == NULL);
           var_ptr->declared_type = sssdp->declared_type;
+          var_ptr->declared_storage_class = sssdp->declared_storage_class;
           var_ptr->embedded_source_sequence_entries =
                                        sssdp->embedded_source_sequence_entries;
           var_ptr->source_corresp.is_decl_after_first_in_comma_list =

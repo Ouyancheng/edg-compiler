@@ -2089,8 +2089,10 @@ member declaration (allowed in Microsoft mode only).
     decl_routine(locator, dps, func_info, (SRK_DECLARATION | SRK_DEFINITION),
                  &linkage, &old_type, &ext_sym, decl_pos_block);
   }  /* if */
+  routine_ptr = dps->sym->variant.routine.ptr;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   wrapup_sse_for_simple_decl(dps);
+  routine_ptr->declared_storage_class = dps->declared_storage_class;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Run end-of-declaration-parsing actions prior to scanning the function
      body. */
@@ -2098,7 +2100,6 @@ member declaration (allowed in Microsoft mode only).
   /* Now scan the function body, except if we're dealing with the special
      Microsoft and GNU extension case that allows a nondefining out-of-class
      member declaration. */
-  routine_ptr = dps->sym->variant.routine.ptr;
   if (curr_token == tok_semicolon &&
       (microsoft_mode || (gpp_mode && gnu_version < 30400)) &&
       (locator->is_class_member || locator->is_error)) {

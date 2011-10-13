@@ -2599,9 +2599,18 @@ nested class.
                it wasn't); otherwise, invalid code may be put out by the
                C++-generating back end. */
             class_type->autonomous_primary_tag_decl = TRUE;
-            /* If the routine was previously defined as part of a friend
-               declaration, that is no longer true. */
-            rp->defined_in_friend_decl = FALSE;
+            if (rp->defined_in_friend_decl) {
+              /* If the routine was previously defined as part of a friend
+                 declaration, that is no longer true. */
+              rp->defined_in_friend_decl = FALSE;
+            } else {
+              /* An out-of-class member definition should not specify an
+                 explicit storage class.   (One exception: C++/CLI static
+                 constructors.) */
+              if (!is_static_constructor_symbol(sym)) {
+                rp->declared_storage_class = (a_storage_class)sc_unspecified;
+              }  /* if */
+            }  /* if */
           }  /* if */
 #endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -8673,6 +8682,7 @@ instantiations are recorded in the IL.
     rp->defined_in_friend_decl = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     rp->declared_type = func_info->declared_type;
+    rp->declared_storage_class = dps->declared_storage_class;
     if (ssep != NULL && prototype_instantiations_in_il) {
       ssep->entity.kind = (a_byte_il_entry_kind)iek_routine;
       ssep->entity.ptr  = (char *)rp;
@@ -11743,6 +11753,7 @@ implicitly declared member functions.
          the routine entry itself. Avoid adding a redundant type to the IL
          if possible. */
       set_routine_declared_type(rtn, func_info->declared_type);
+      rtn->declared_storage_class = decl_state->declared_storage_class;
       /* For default arg processing later on, save the type that's used as
          the declared type. */
       func_info->declared_type = rtn->declared_type;
@@ -12155,23 +12166,27 @@ The heavy lifting for this routine is performed by decl_member_function.
 }  /* decl_call_operator_for_lambda */
 
 
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
+/*ARGSUSED*/ /* il_template_entry is not used in all configurations. */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 static void decl_member_function_template(
 				a_symbol_locator        *locator,
 				a_template_param_ptr	templ_param_list,
+                                a_template_ptr          il_template_entry,
                                 a_func_info_block       *func_info,
                                 a_class_def_state_ptr   class_state,
                                 a_member_decl_info_ptr  decl_info)
 /*
-Process the declaration of a member function template.  *locator is the
-symbol locator of the template.  templ_param_list is the template parameter
-list of the function template.  *func_info contains information gathered in
-processing the declarator.  *class_state and *decl_info track general
-information about the class definition and specific information about the
-member declaration, respectively.  (This function is similar to
-decl_function_template, which handles non-member function templates and
-out-of-class template declarations of functions that are members of template
-classes, and to decl_member_function, which handles in-class member function
-declarations.)
+Process the declaration of a member function template.  *locator is the symbol
+locator of the template.  templ_param_list is the template parameter list of
+the function template and il_template_entry the IL entry representing the
+template.  *func_info contains information gathered in processing the
+declarator.  *class_state and *decl_info track general information about the
+class definition and specific information about the member declaration,
+respectively.  (This function is similar to decl_function_template, which
+handles non-member function templates and out-of-class template declarations
+of functions that are members of template classes, and to
+decl_member_function, which handles in-class member function declarations.)
 */
 {
   a_decl_parse_state                *dps = &decl_info->decl_state;
@@ -12432,8 +12447,25 @@ declarations.)
                                  func_info);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    remove_declarator_sse(dps, depth_scope_stack);
+    if (!func_info->is_definition) {
+      if (!source_sequence_entries_disallowed) {
+        /* Turn the source sequence entry for the a_template entry into a
+           secondary source sequence entry. */
+        a_src_seq_secondary_decl_ptr sssdp =
+                            secondary_src_seq_for_template(il_template_entry);
+        sssdp->declared_type = func_info->declared_type;
+      }  /* if */
+    } else {
+      tssp->variant.function.routine->declared_type = func_info->declared_type;
+      rtn->declared_storage_class = dps->declared_storage_class;
+    }  /* if */
+    dps->source_sequence_entry =
+                      il_template_entry->source_corresp.source_sequence_entry;
+    wrapup_sse_for_simple_decl(dps);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
-  dps->sym = sym;
   db_exit();
 }  /* decl_member_function_template */
 
@@ -13163,6 +13195,7 @@ specific information about the member declaration, respectively.
                                         flags, &decl_info->decl_pos_block);
   } else {
     var->declared_type = member_type;
+    var->declared_storage_class = decl_state->declared_storage_class;
   }
   wrapup_sse_for_simple_decl(decl_state);
   if (decl_state->has_initializer) {
@@ -19757,6 +19790,11 @@ being parsed), *decl_info describes the current member declaration, and
     pos_error(dps->declared_storage_class == (a_storage_class)sc_typedef ?
                 ec_typedef_not_allowed : ec_storage_class_not_allowed,
               &dps->storage_class_pos);
+  } else if (pdp->is_static) {
+    /* Ordinarily, this is set by the call to decl_specifiers, but if the
+       keyword "static" was consumed directly above, the storage class must
+       also be set here. */
+    dps->declared_storage_class = (a_storage_class)sc_static;
   }  /* if */
   if (dps->dso_flags & DSO_INLINE) {
     /* Enabling storage-class specifiers in the call to decl_specifiers also
@@ -19832,6 +19870,9 @@ being parsed), *decl_info describes the current member declaration, and
       pdp->is_default_indexed = TRUE;
     }  /* if */
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  dps->source_sequence_entry = add_empty_source_sequence_entry();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   class_state->property_or_event_descr = pdp;
   dps->is_property_or_event_field = TRUE;
   loc = locator_for_curr_id;
@@ -21093,22 +21134,9 @@ passed via template_decl.
           (void)get_token();
         }  /* if */
         /* Process the member function template. */
-        decl_member_function_template(&locator, templ_param_list, &func_info,
-                                      class_state, &decl_info);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        remove_declarator_sse(decl_state, depth_scope_stack);
-        if (!func_info.is_definition && !source_sequence_entries_disallowed) {
-          /* Turn the source sequence entry for the a_template entry into a
-             secondary source sequence entry. */
-          a_src_seq_secondary_decl_ptr sssdp =
-                            secondary_src_seq_for_template(il_template_entry);
-          sssdp->declared_type = func_info.declared_type;
-        } else if (func_info.is_definition) {
-          template_supplement_for_symbol(decl_info.decl_state.sym)->
-                              variant.function.routine->declared_type =
-                                                      func_info.declared_type;
-        }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        decl_member_function_template(
+                                &locator, templ_param_list, il_template_entry,
+                                &func_info, class_state, &decl_info);
         rout_sym = decl_info.decl_state.sym;
         if (dso_flags & DSO_EXPLICIT) {
           if (decl_info.is_constructor) {
