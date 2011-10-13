@@ -1080,6 +1080,9 @@ extern a_boolean is_or_contains_unnamed_namespace_type(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_type_with_no_name_linkage(
                                                        a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_trans_unit_specific_type(a_type_ptr  type_ptr);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean is_or_contains_cli_generic_param(a_type_ptr  type_ptr);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern a_boolean is_invalid_template_arg_type(a_type_ptr  type_ptr,
                                               a_boolean   *is_unnamed,
                                               a_boolean   *is_local,

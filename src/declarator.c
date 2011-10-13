@@ -637,6 +637,34 @@ is non-NULL, issue an error at that position.  Otherwise, return TRUE.
   return err_code == ec_no_error;
 }  /* check_invalid_use_of_special_cli_class_type */
 
+
+static void f_set_clrcall_convention_if_generic_param_involved(a_type_ptr  rtp)
+/*
+If the given routine type depends on a generic parameter, ensure its calling
+convention is __clrcall.
+*/
+{
+  check_assertion(cppcli_enabled && rtp->kind == (a_type_kind)tk_routine);
+  if (rtp->variant.routine.extra_info->calling_convention !=
+                                           (a_calling_convention)cc_clrcall &&
+      is_or_contains_cli_generic_param(rtp)) {
+    /* Set the calling convention to __clrcall.  If a (different) calling
+       convention was specified explicitly, issue a warning. */
+    if (rtp->variant.routine.extra_info->explicit_calling_convention) {
+      pos_warning(ec_generic_parameter_requires_clrcall, &error_position);
+    }  /* if */
+    rtp->variant.routine.extra_info->calling_convention =
+                                             (a_calling_convention)cc_clrcall;
+  }  /* if */
+}  /* f_set_clrcall_convention_if_generic_param_involved */
+
+#define set_clrcall_convention_if_generic_param_involved(rtp)               \
+  if (cppcli_enabled) f_set_clrcall_convention_if_generic_param_involved(rtp)
+
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+
+#define set_clrcall_convention_if_generic_param_involved(rtp)  /* Nothing */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !NAMED_ADDRESS_SPACES_ALLOWED && !UPC_EXTENSIONS_ALLOWED
@@ -1126,6 +1154,7 @@ the specifiers and declarator that formed the new type.
         /* Check whether the routine needs special support for returning a
            class object by value. */
         set_routine_calling_method_flag(*bottom_derived_type, &error_position);
+        set_clrcall_convention_if_generic_param_involved(*bottom_derived_type);
       }  /* if */
       temp_type = *bottom_derived_type;
       *bottom_derived_type = new_type_ptr;

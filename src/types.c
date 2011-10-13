@@ -11439,7 +11439,7 @@ type for a C++/CLI generic type parameter.
 }  /* ttt_is_or_contains_cli_generic_param */
 
 
-static a_boolean is_or_contains_cli_generic_param(a_type_ptr  type_ptr)
+a_boolean is_or_contains_cli_generic_param(a_type_ptr  type_ptr)
 /*
 Return TRUE if the type pointed to by type_ptr is itself a tk_template_param
 for a C++/CLI generic type parameter or is a type tree containing such a
