@@ -1,5 +1,17 @@
 Version 4.4
 
+10/12/11 [EDGcpfe/12346]
+PROTOTYPE_INSTANTIATIONS_IN_IL and function prototype deferral
+
+Deferring prototype instantiation of function templates (see the 12/13/05
+entry) was not permitted with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE,
+based on the assumption that customers who wanted the information about
+template definitions provided by the prototype instantiations would want
+to have this information for all templates, not just those that were
+actually instantiated.  This restriction has now been removed, to allow
+customers to make their own decisions about the tradeoffs involved.
+
+
 10/11/12 [EDGcpfe/12342]
 C++-generating back end: Missing template header for member template
 

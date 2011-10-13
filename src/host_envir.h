@@ -572,12 +572,6 @@ set of programs that can be compiled without errors.
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #endif /* ifndef FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED */
 
-#if PROTOTYPE_INSTANTIATIONS_IN_IL && \
-    FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED
- #error -- cannot defer prototype instantiations with \
-           PROTOTYPE_INSTANTIATIONS_IN_IL
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL && \
-          FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED */
 /*
 Flag that is TRUE if object code compatibility with USL's cfront is
 required.  Some features of cfront changed from release 2.1 to release 3.0,

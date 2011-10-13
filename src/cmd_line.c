@@ -9100,14 +9100,6 @@ enable_microsoft_mode:
      generating back end is tied to the source language selection. */
   select_cp_gen_be_target_dialect();
 #endif /* BACK_END_IS_CP_GEN_BE */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-  /* Function prototype instantiations cannot be deferred when prototype
-     instantiations are included in the IL. */
-  check_assertion_str2(
-   !defer_function_prototype_instantiations,
-   "proc_command_line:",
-   "can't defer prototype instantiations with PROTOTYPE_INSTANTIATIONS_IN_IL");
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   /* Sanity-check the values of some global variables that cannot be set
      individually from the command line. */
   check_assertion(!(ref_to_unknown_bound_array_allowed_in_param_type &&

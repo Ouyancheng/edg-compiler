@@ -12023,20 +12023,25 @@ instantiation is available.
 /*ARGSUSED*/  /* tp is not used in some configurations. */
 #endif /* !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 static a_boolean template_should_be_generated_from_prototype_instantiation(
-                                                           a_template_ptr  tp)
+                                                 a_template_ptr  tp,
+                                                 a_boolean       is_definition)
 /*
 Determine whether the given template should be generated from the IL of its
 prototype instantiation (if not, it is generated from its recorded textual
-representation).  If all prototype instantiations are available, the result
-is always TRUE.  In versions that generate explicit specializations for
-implicit instantiations, it may also be necessary to generate a template
-from its prototype instantiation.  For example, the input
+representation); is_definition reflects whether the declaration to be
+generated is a definition or not.  If all prototype instantiations are
+available, the result is TRUE, except for the definition of a function
+template whose prototype instantiation was not performed because of
+function prototype instantiation deferral.  In versions that generate
+explicit specializations for implicit instantiations, it may also be
+necessary to generate a template from its prototype instantiation.  For
+example, the input
     template<typename T> struct S {
       template<typename U> T f();
     };
     S<int> x;
-would produce the following specialization if the member template is generated
-from text:
+would produce the following specialization if the member template is
+generated from text:
     template<> struct S<int> {
       template<typename U> T f();
     };
@@ -12064,6 +12069,17 @@ instantiation is available; see gen_template_from_prototype_instantiation).
     } while (parent_class != NULL);
   }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  if (result && is_definition &&
+      (tp->kind == (a_template_kind)templk_function ||
+       tp->kind == (a_template_kind)templk_member_function) &&
+      tp->prototype_instantiation.routine->assoc_scope == NULL_region_number) {
+    /* This is the definition of a function template or member function of
+       a class template, but its prototype instantiation has no scope.  This
+       indicates that the prototype instantiation was deferred and never
+       performed, so the definition must be generated from the string form
+       of the template. */
+    result = FALSE;
+  }
   return result;
 }  /* template_should_be_generated_from_prototype_instantiation */
 
@@ -12115,7 +12131,9 @@ is the one associated with the template.
       /* If all prototype instantiations are recorded in the IL, the templates
      will be generated from those. */
     from_proto =
-              template_should_be_generated_from_prototype_instantiation(tp) &&
+              template_should_be_generated_from_prototype_instantiation(
+                                                              tp,
+                                                              is_definition) &&
               gen_template_from_prototype_instantiation(tp);
     if (!from_proto) { /*lint !e774*/
       /* No prototype instantiation is available in the IL; generate the
