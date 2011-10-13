@@ -12,7 +12,7 @@ actually instantiated.  This restriction has now been removed, to allow
 customers to make their own decisions about the tradeoffs involved.
 
 
-10/11/12 [EDGcpfe/12342]
+10/12/11 [EDGcpfe/12342]
 C++-generating back end: Missing template header for member template
 
 In configurations with both PROTOTYPE_INSTANTIATIONS_IN_IL and
