@@ -11853,7 +11853,12 @@ recorded with this particular header.
 {
   a_template_parameter_ptr  param = tdp->param_list;
 
-  if (tdp->parent != NULL) {
+  if (tdp->parent != NULL && tdp->parent->param_list != NULL) {
+    /* The test for param_list != NULL excludes member templates of
+       explicit specializations; in configurations with
+       CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS, such member
+       templates will have a non-NULL parent with an empty parameter list,
+       but no template<> header should be generated for them. */
     gen_template_header(tdp->parent, is_cppcli_generic);
   }  /* if */
   set_output_position(&tdp->template_pos);
