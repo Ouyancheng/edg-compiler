@@ -7180,7 +7180,8 @@ feed are flagged as errors.  See standard sections 2.1.1.2
 the kinds of white space that were skipped, if any (this is useful for 
 scanning of #defines, where white space is significant).
 This routine also handles the special marker characters that appear in
-source text (end of token, start of expansion, end of expansion).
+source text (end of token, start of expansion, end of expansion).  If
+tokens are currently being fetched from a cache, return immediately.
 */
 {
   register char      ch;
@@ -7220,9 +7221,14 @@ source text (end of token, start of expansion, end of expansion).
   }  /* if */								\
 }
 
+  kind_skipped = 0;  /* No white space skipped so far. */
+  if (cached_token_rescan_list != NULL ||
+      reusable_cache_stack != NULL) {
+    /* There is no white space to skip when retrieving cached tokens. */
+    goto end_skip;
+  }  /* if */
   /* Forget that we know where the current token's characters are. */
   start_of_curr_token = NULL;
-  kind_skipped = 0;  /* No white space skipped so far. */
 white_space_loop:
   /* Examine the current character to see if it is white space.  Throw away
      spaces and horizontal tabs quickly, since they are always white space

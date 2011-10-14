@@ -1,5 +1,19 @@
 Version 4.4
 
+10/14/11 [EDGcpfe/12083]
+Abort with malformed "defined" operator in macro expansion
+
+In Microsoft and old-style preprocessing modes, the front end aborted when
+processing a "defined" operator that is missing the identifier or the right
+parenthesis when it appeared in a macro expansion.  This has now been fixed
+so that the front end does not abort, although an error is still correctly
+reported.  For example:
+
+  #define DEFINED defined (X
+  #if DEFINED
+  #endif
+
+
 10/13/11 [EDGcpfe/11949,EDGcpfe/12152]
 Storage class specifiers (IL CHANGE)
 
