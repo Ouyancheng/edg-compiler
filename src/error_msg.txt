@@ -2314,6 +2314,7 @@ ec_missing_gnu_inline_attr_on_redeclaration;;"this declaration is missing the gn
 ec_managed_member_function_cannot_have_ellipsis_parameter;;"a member function of a managed class cannot have an ellipsis parameter"
 ec_invalid_prev_decl_iterator;;"previously-declared %n invalid as iterator of for-each statement"
 ec_generic_parameter_requires_clrcall;;"calling convention ignored because the function type involves a generic parameter; __clrcall used instead"
+ec_generic_parameter_does_not_permit_varargs;;"a function type involving a generic parameter cannot have an ellipsis parameter"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

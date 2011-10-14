@@ -641,16 +641,22 @@ is non-NULL, issue an error at that position.  Otherwise, return TRUE.
 static void f_set_clrcall_convention_if_generic_param_involved(a_type_ptr  rtp)
 /*
 If the given routine type depends on a generic parameter, ensure its calling
-convention is __clrcall.
+convention is __clrcall.  Issue an error if the function type is a vararg
+function type (because __clrcall doesn't permit varargs).
 */
 {
   check_assertion(cppcli_enabled && rtp->kind == (a_type_kind)tk_routine);
   if (rtp->variant.routine.extra_info->calling_convention !=
                                            (a_calling_convention)cc_clrcall &&
       is_or_contains_cli_generic_param(rtp)) {
-    /* Set the calling convention to __clrcall.  If a (different) calling
-       convention was specified explicitly, issue a warning. */
-    if (rtp->variant.routine.extra_info->explicit_calling_convention) {
+    /* Set the calling convention to __clrcall. */
+    if (rtp->variant.routine.extra_info->has_ellipsis) {
+      /* __clrcall doesn't permit varargs. */
+      pos_warning(ec_generic_parameter_does_not_permit_varargs,
+                  &error_position);
+    } else if (rtp->variant.routine.extra_info->explicit_calling_convention) {
+      /* If a (different) calling convention was specified explicitly, issue a
+         warning. */
       pos_warning(ec_generic_parameter_requires_clrcall, &error_position);
     }  /* if */
     rtp->variant.routine.extra_info->calling_convention =

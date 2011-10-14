@@ -868,6 +868,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_managed_member_function_cannot_have_ellipsis_parameter)*/
 /*lint -esym(769,ec_invalid_prev_decl_iterator)*/
 /*lint -esym(769,ec_generic_parameter_requires_clrcall)*/
+/*lint -esym(769,ec_generic_parameter_does_not_permit_varargs)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
