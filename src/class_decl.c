@@ -20402,6 +20402,10 @@ the enclosing type of the constrained generic.  For example:
          to process the generic definition is a handle type. */
       definition_arg_type = make_handle_type(proxy_class);
     }  /* if */
+    /* Give the definition argument type the same name as the original
+       template parameter. */
+    definition_arg_type->source_corresp.name =
+                                         templ_param_type->source_corresp.name;
     proxy_class->variant.class_struct_union.unconstrained = gc_list == NULL;
     /* Update the template parameter entry to use the proxy class as the
        template parameter value. */
