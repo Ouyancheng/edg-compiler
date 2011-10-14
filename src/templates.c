@@ -11665,6 +11665,21 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       return_type = underlying_rout_type->variant.routine.return_type;
       rtsp = underlying_rout_type->variant.routine.extra_info;
       rtsp->is_variadic_instance = tssp->is_variadic;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled && rout_type->kind == (a_type_kind)tk_routine) {
+        /* Instances of routines whose declarations involved a generic
+           parameter have __clrcall calling convention (already recorded in
+           the prototype instantiation). */
+        a_routine_type_supplement_ptr  templ_rtsp;
+        check_assertion(templ_rout->type->kind == (a_type_kind)tk_routine);
+        templ_rtsp = templ_rout->type->variant.routine.extra_info;
+        if (rtsp->calling_convention == (a_calling_convention)cc_default &&
+            templ_rtsp->calling_convention ==
+                                           (a_calling_convention)cc_clrcall) {
+          rtsp->calling_convention = (a_calling_convention)cc_clrcall;
+        }  /* if */
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       return_type = error_type();
     }  /* if */
