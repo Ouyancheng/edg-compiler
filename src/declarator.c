@@ -652,8 +652,7 @@ function type (because __clrcall doesn't permit varargs).
     /* Set the calling convention to __clrcall. */
     if (rtp->variant.routine.extra_info->has_ellipsis) {
       /* __clrcall doesn't permit varargs. */
-      pos_warning(ec_generic_parameter_does_not_permit_varargs,
-                  &error_position);
+      pos_error(ec_generic_parameter_does_not_permit_varargs, &error_position);
     } else if (rtp->variant.routine.extra_info->explicit_calling_convention) {
       /* If a (different) calling convention was specified explicitly, issue a
          warning. */
