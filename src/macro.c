@@ -2342,11 +2342,7 @@ beyond the operator has not yet been fetched.
         if (get_token() != tok_identifier) {
           /* Error -- Expected an identifier. */
           error(ec_exp_identifier);
-          /* The token will be consumed by the expression routines in
-             non-pp-token mode, so push it back in that mode as well. */
-          fetch_pp_tokens = FALSE;
           unget_token();
-          fetch_pp_tokens = TRUE;
         } else {
           /* The identifier __VA_ARGS__ is not allowed if variadic macros are
              accepted. */
@@ -2365,11 +2361,7 @@ beyond the operator has not yet been fetched.
             } else {
               error(ec_exp_rparen);
             }  /* if */
-            /* The token will be consumed by the expression routines in
-               non-pp-token mode, so push it back in that mode as well. */
-            fetch_pp_tokens = FALSE;
             unget_token();
-            fetch_pp_tokens = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -3060,14 +3052,14 @@ end_loop:
      follows the end of the accumulated text. */
   if (curr_token == tok_end_of_source) {
     leave_insertion(main_slmp, curr_char_loc);
-  } else if (curr_token == tok_newline && curr_char_loc[-2] == LE_ESCAPE &&
-             curr_char_loc[1] == LE_NEWLINE) {
+  } else if (curr_token == tok_newline) {
     /* Back up to keep the newline escape. */
     curr_char_loc -= LE_ESCAPE_LEN;
+    check_assertion(curr_char_loc[0] == LE_ESCAPE &&
+                    curr_char_loc[1] == LE_NEWLINE);
   }  /* if */
   loc_following_insertion = curr_char_loc;
-  if (!main_slmp->being_rescanned_for_token_pasting &&
-      within_curr_source_line(loc_following_insertion)) {
+  if (!main_slmp->being_rescanned_for_token_pasting) {
     /* We went off the end of the modification because of an open
        macro argument list.  Adjust the line modification so that the
        additional text in the primary source line is also deleted. */
