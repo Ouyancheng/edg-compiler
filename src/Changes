@@ -1,5 +1,16 @@
 Version 4.4
 
+10/17/11 [EDGcpfe/12349]
+Extra source positions for template parameter declarations
+
+When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, decl_pos_info in the source
+correspondence for type, nontype, and template template parameters is
+now provided.  In the example below, T1, T2, T3, and T4 now have the
+additional position information provided.
+
+  template <typename T1, int T2, template <typename T3> class T4> class A {};
+
+
 10/17/11 [EDGcpfe/12352]
 Abort while writing IL file with attribute in template
 

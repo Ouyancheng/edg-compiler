@@ -16597,27 +16597,27 @@ static void scan_a_template_parameter_declaration(
 				a_type_ptr		*param_type_ptr,
 				a_boolean		*is_unnamed,
 				a_boolean		*template_dependent,
-				a_boolean		*is_pack)
+				a_boolean		*is_pack,
+				a_decl_pos_block_ptr	decl_pos_block)
 /*
 Scan the declaration of a single template nontype parameter.  If the
 parameter is unnamed, and is_unnamed is not NULL, return a flag indicating
 whether the nontype parameter is unnamed.  If the parameter type
 depends on a template parameter type, return TRUE in *template_dependent
 (if it is not NULL).  If the type of the parameter is followed by an
-ellipsis, return TRUE in *is_pack.
+ellipsis, return TRUE in *is_pack.  decl_pos_block is used to return
+additional position information about the components of the declaration.
 */
 {
   a_decl_parse_state           state;
   a_type_ptr                   tp;
-  a_decl_pos_block             decl_pos_block;
 
   /* Scan the declaration specifiers. */
-  clear_decl_pos_block(&decl_pos_block);
   init_decl_parse_state(&state);
   state.trailing_return_type_allowed = trailing_return_types_enabled;
   state.pack_ellipsis_allowed = variadic_templates_enabled;
   decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_TEMPLATE_PARAMETER),
-                  &state, &decl_pos_block);
+                  &state, decl_pos_block);
   if (state.dso_flags & DSO_DEFINES_SOMETHING) {
     pos_error(ec_type_definition_not_allowed, &state.start_pos);
     invalidate_type(&state);
@@ -16634,7 +16634,7 @@ ellipsis, return TRUE in *is_pack.
               DI_ABSTRACT_DECLARATOR_ALLOWED |
               DI_IS_TEMPLATE_PARAM_DECL),
              &state, /*member_parent_type=*/(a_type_ptr)NULL, param_locator,
-             (a_func_info_block_ptr)NULL, &decl_pos_block);
+             (a_func_info_block_ptr)NULL, decl_pos_block);
   if (is_pack != NULL) *is_pack = state.has_pack_ellipsis;
   if (is_unnamed != NULL) {
     /* Return a flag indicating whether the parameter is unnamed. */
@@ -16881,7 +16881,13 @@ parameter entry for the parameter.
   a_type_ptr		template_param_type;
   a_template_param_ptr	template_param;
   a_boolean		is_pack = FALSE;
+  a_decl_pos_block	decl_pos_block;
 
+  clear_decl_pos_block(&decl_pos_block);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_pos_block.specifiers_range.start = pos_curr_token;
+  decl_pos_block.specifiers_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Bypass "class" or "typename". */
   (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -16905,6 +16911,12 @@ parameter entry for the parameter.
     (void)get_token();
   }  /* if */
   is_named = curr_token == tok_identifier;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (is_named) {
+    decl_pos_block.identifier_range.start = pos_curr_token;
+    decl_pos_block.identifier_range.end = end_pos_curr_token;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Create an sk_type symbol for the parameter. */
   sym = create_template_param_symbol((a_symbol_kind)sk_type,
                                      &locator_for_curr_id, !is_named,
@@ -16941,6 +16953,10 @@ parameter entry for the parameter.
      an actual type during instantiation of the class or function. */
   sym->variant.type.ptr = template_param_type;
   record_template_param_symbol(sym);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* Record the position information from decl_pos_block. */
+  update_decl_pos_info(&template_param_type->source_corresp, &decl_pos_block);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Allocate a template parameter and set its fields based on sym. */
   template_param = alloc_template_param(sym);
   if (is_pack) template_param_is_variadic(sym, template_param, decl_state);
@@ -17033,12 +17049,14 @@ depends on a template parameter.
   a_constant_ptr	default_arg_constant = NULL;
   a_boolean		def_arg_involves_template_param = FALSE;
   a_boolean		is_pack = FALSE;
+  a_decl_pos_block	decl_pos_block;
 
+  clear_decl_pos_block(&decl_pos_block);
   /* Scan the declaration of the type of the nontype parameter. */
   scan_a_template_parameter_declaration(&param_locator, &param_type_ptr,
                                         &is_unnamed,
                                         &const_type_involves_template_param,
-                                        &is_pack);
+                                        &is_pack, &decl_pos_block);
   /* Create a symbol and bind a template param constant to it. At each
       point of instantiation an actual constant will be substituted. */
   sym = create_template_param_symbol((a_symbol_kind)sk_constant,
@@ -17068,6 +17086,10 @@ depends on a template parameter.
     clear_source_corresp_name(&param_con->source_corresp);
   }  /* if */
   record_template_param_symbol(sym);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* Record the position information from decl_pos_block. */
+  update_decl_pos_info(&param_con->source_corresp, &decl_pos_block);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Allocate a template parameter and set its fields based on sym. */
   template_param = alloc_template_param(sym);
   if (is_pack) template_param_is_variadic(sym, template_param, decl_state);
@@ -17208,7 +17230,12 @@ depends on a another template parameter.
   a_boolean				is_named;
   a_tmpl_decl_state			local_decl_state;
   a_boolean				is_pack = FALSE;
+  a_decl_pos_block			decl_pos_block;
 
+  clear_decl_pos_block(&decl_pos_block);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_pos_block.specifiers_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Create a new set of declaration state information to be used while
      scanning the template template parameter. */
   set_decl_state_for_template_param(parent_decl_state, &local_decl_state);
@@ -17227,6 +17254,9 @@ depends on a another template parameter.
     local_decl_state.decl_info = template_decl_info;
     template_decl_info->enclosing_scope = local_decl_state.enclosing_scope;
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_pos_block.specifiers_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* The current keyword must be "class" followed by an optional identifier.
      If it is "struct", give an error, but treat it like "class". */
   if (curr_token != tok_class && curr_token != tok_struct) {
@@ -17249,6 +17279,7 @@ depends on a another template parameter.
                                      &locator_for_curr_id,
                                      !is_named,
                                      /*enter_sym=*/!is_rescan);
+  templ_ptr = alloc_template();
   /* See if the parameter being declared has the same name as one of its
      template parameters. */
   if (is_named) {
@@ -17256,10 +17287,15 @@ depends on a another template parameter.
                                        &locator_for_curr_id,
                                        /*is_template_template_param=*/TRUE));
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (is_named) {
+    decl_pos_block.identifier_range.start = pos_curr_token;
+    decl_pos_block.identifier_range.end = end_pos_curr_token;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Bypass the identifier. */
   if (is_named) (void)get_token();
   tssp = sym->variant.template_info;
-  templ_ptr = alloc_template();
   set_source_corresp(&templ_ptr->source_corresp, sym);
   if (parent_scope_should_be_set_for_template_param()) {
     set_parent_scope(&templ_ptr->source_corresp, iek_template,
@@ -17294,6 +17330,10 @@ depends on a another template parameter.
                           (a_token_cache_ptr)NULL,
                           local_decl_state.decl_info);
   record_template_param_symbol(sym);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* Record the position information from decl_pos_block. */
+  update_decl_pos_info(&templ_ptr->source_corresp, &decl_pos_block);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Allocate a template parameter and set its fields based on sym. */
   template_param = alloc_template_param(sym);
   /* Check the default arguments and/or template packs of the parameter list
@@ -17538,6 +17578,8 @@ the resulting constant is stored in the pointer pointed to by "constant".
       error(ec_recursive_inst_of_templ_default_arg);
       constant_type = error_type();
     } else {
+      a_decl_pos_block	decl_pos_block;
+      clear_decl_pos_block(&decl_pos_block);
       /* Increment the count of pending default argument instantiations.
          This is used to detect infinite recursion. */
       ++pending_nontype_param_instantiations;
@@ -17558,7 +17600,8 @@ the resulting constant is stored in the pointer pointed to by "constant".
       scan_a_template_parameter_declaration(&param_locator, &constant_type,
                                             (a_boolean*)NULL,
                                             (a_boolean*)NULL,
-                                            (a_boolean*)NULL);
+                                            (a_boolean*)NULL,
+                                            &decl_pos_block);
       /* Skip past any tokens remaining in the cache.  Extra tokens will
          be present under certain error conditions and when a default argument
          has been supplied. */
