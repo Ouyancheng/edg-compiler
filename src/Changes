@@ -1,5 +1,15 @@
 Version 4.4
 
+10/17/11 [EDGcpfe/12358]
+Incorrect source position information for alias templates
+
+When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the identifier_range and
+declarator_range fields for an alias template were not set correctly.
+Now fixed.
+
+  template <typename T> using ABC = T*;
+
+
 10/17/11 [EDGcpfe/12349]
 Extra source positions for template parameter declarations
 

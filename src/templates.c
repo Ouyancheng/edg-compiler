@@ -20002,14 +20002,14 @@ alias
          invalid scope. */
       set_to_named_error_locator(locator);
     }  /* if */
-    /* Skip past the identifier. */
-    (void)get_token();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_state->decl_pos_block.identifier_range.start = pos_curr_token;
     decl_state->decl_pos_block.identifier_range.end = end_pos_curr_token;
     decl_state->decl_pos_block.declarator_range.start = pos_curr_token;
-    decl_state->decl_pos_block.declarator_range.start = end_pos_curr_token;
+    decl_state->decl_pos_block.declarator_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* Skip past the identifier. */
+    (void)get_token();
   }  /* if */
   /* Although the alias name is not defined as a declarator-id it
      is treated as one with respect to attributes. */
