@@ -3084,7 +3084,7 @@ end_loop:
   if (curr_token == tok_end_of_source) {
     leave_insertion(main_slmp, curr_char_loc);
   } else if (curr_token == tok_newline && curr_char_loc[-2] == LE_ESCAPE &&
-             curr_char_loc[1] == LE_NEWLINE) {
+             curr_char_loc[-1] == LE_NEWLINE) {
     /* Back up to keep the newline escape. */
     curr_char_loc -= LE_ESCAPE_LEN;
   }  /* if */
