@@ -3101,13 +3101,13 @@ end_loop:
          point and the location following the insertion are in the same
          source line modification.  (This will not be true only in some
          obscure error cases involving malformed "defined(" operators.) */
-      a_source_line_modif_ptr slmp1 =
+      a_source_line_modif_ptr line_loc_slmp =
                         assoc_source_line_modif_full(main_slmp->line_loc,
                                                      /*failure_allowed=*/TRUE);
-      a_source_line_modif_ptr slmp2 =
+      a_source_line_modif_ptr after_ins_slmp =
                         assoc_source_line_modif_full(loc_following_insertion,
                                                      /*failure_allowed=*/TRUE);
-      deletion_can_be_extended = (slmp1 == slmp2);
+      deletion_can_be_extended = (line_loc_slmp == after_ins_slmp);
     }  /* if */
     if (deletion_can_be_extended) {
       /* We went off the end of the modification because of an open
