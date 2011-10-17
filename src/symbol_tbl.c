@@ -4517,30 +4517,32 @@ symbol must be added to the inactive list.
         old_sym_ptr = hdr_ptr->inactive_symbols;
         scope_number = scope_stack[scope_depth].number;
       } else {
+        a_scope_stack_entry_ptr	ssep = NULL;
         old_sym_ptr = hdr_ptr->symbol;
-        /* Check for a local variable hiding another local variable in the
-           enclosing scope (a remark will be issued later, unless a more
-           serious declaration error is encountered). */
-        if (old_sym_ptr != NULL &&
-            depth_innermost_function_scope != NO_SCOPE_DEPTH &&
-            old_sym_ptr->kind == (a_symbol_kind)sk_variable &&
-            old_sym_ptr->variant.variable.ptr
-                       ->source_corresp.is_local_to_function &&
-            sym_ptr->kind == (a_symbol_kind)sk_variable &&
-            /* The following condition is needed to avoid having function
-               parameters from an instantiation being reported as hiding
-               variables (or parameters) from a function that triggered the
-               instantiation. */
-            old_sym_ptr->decl_scope >=
-                         scope_stack[depth_innermost_function_scope].number) {
-          a_scope_stack_entry_ptr	ssep;
+        if (old_sym_ptr != NULL) {
           /* Make sure the symbol would actually be visible. */
           for (ssep = scope_stack_entry_for(depth_scope_stack); ssep != NULL;
                ssep = previous_scope_of(ssep)) {
             if (old_sym_ptr->decl_scope == ssep->number) break;
           }  /* for */
-          /* If we found a matching scope in above, the symbol was hidden. */
-          if (ssep != NULL) hidden_sym = old_sym_ptr;
+          /* Check for a local variable hiding another local variable in the
+             enclosing scope (a remark will be issued later, unless a more
+             serious declaration error is encountered). */
+          if (ssep != NULL &&
+              depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+              old_sym_ptr->kind == (a_symbol_kind)sk_variable &&
+              old_sym_ptr->variant.variable.ptr
+                         ->source_corresp.is_local_to_function &&
+              sym_ptr->kind == (a_symbol_kind)sk_variable &&
+              /* The following condition is needed to avoid having function
+                 parameters from an instantiation being reported as hiding
+                 variables (or parameters) from a function that triggered the
+                 instantiation. */
+              old_sym_ptr->decl_scope >=
+                         scope_stack[depth_innermost_function_scope].number) {
+            /* If we found a matching scope in above, the symbol was hidden. */
+            hidden_sym = old_sym_ptr;
+          }  /* if */
         }  /* if */
         /* If the symbol is not being entered in the innermost scope, skip
            past any symbols on the active list from the scopes inside the
