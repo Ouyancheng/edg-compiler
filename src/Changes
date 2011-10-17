@@ -1,5 +1,14 @@
 Version 4.4
 
+10/17/11 [EDGcpfe/12175]
+new of unknown-bound array type okay in Microsoft mode
+
+A "new" of an array type with an unknown bound is now accepted in Microsoft
+mode, and treated as equivalent to a new of an array with a bound of [0].
+
+  int *p = new int[];  // Accepted in Microsoft mode, same as "new int[0]"
+
+
 10/14/11 [EDGcpfe/12083]
 Abort with malformed "defined" operator in macro expansion
 

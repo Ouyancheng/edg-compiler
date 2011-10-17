@@ -14632,6 +14632,11 @@ expression, and return the result in *result (or an error indication in
       unqual_new_type->variant.array.variant.number_of_elements = 0;
       unqual_new_type->size = 0;
       set_type_size(unqual_new_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode &&
+               is_incomplete_array_type(unqual_new_type)) {
+      /* MSVC treats "new T[]" as "new T[0]". */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_incomplete_type(new_type)) {
       /* A case like "new int[]" -- an incomplete array type. */
       expr_pos_error(incomplete_type_err_code(new_type), &type_position);
