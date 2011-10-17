@@ -3089,13 +3089,33 @@ end_loop:
     curr_char_loc -= LE_ESCAPE_LEN;
   }  /* if */
   loc_following_insertion = curr_char_loc;
-  if (!main_slmp->being_rescanned_for_token_pasting &&
-      within_curr_source_line(loc_following_insertion)) {
-    /* We went off the end of the modification because of an open
-       macro argument list.  Adjust the line modification so that the
-       additional text in the primary source line is also deleted. */
-    main_slmp->num_chars_to_delete = loc_following_insertion -
-                                     main_slmp->line_loc;
+  if (!main_slmp->being_rescanned_for_token_pasting) {
+    a_boolean deletion_can_be_extended = FALSE;
+    if (within_curr_source_line(main_slmp->line_loc) &&
+        within_curr_source_line(loc_following_insertion)) {
+      /* Both the insertion point and the location following the insertion
+         are in the primary source line, so the deletion can be extended. */
+      deletion_can_be_extended = TRUE;
+    } else {
+      /* Otherwise, the deletion can only be extended if both the insertion
+         point and the location following the insertion are in the same
+         source line modification.  (This will not be true only in some
+         obscure error cases involving malformed "defined(" operators.) */
+      a_source_line_modif_ptr slmp1 =
+                        assoc_source_line_modif_full(main_slmp->line_loc,
+                                                     /*failure_allowed=*/TRUE);
+      a_source_line_modif_ptr slmp2 =
+                        assoc_source_line_modif_full(loc_following_insertion,
+                                                     /*failure_allowed=*/TRUE);
+      deletion_can_be_extended = (slmp1 == slmp2);
+    }  /* if */
+    if (deletion_can_be_extended) {
+      /* We went off the end of the modification because of an open
+         macro argument list.  Adjust the line modification so that the
+         additional text is also deleted. */
+      main_slmp->num_chars_to_delete = loc_following_insertion -
+                                       main_slmp->line_loc;
+    }  /* if */
   }  /* if */
   if (pcc_preprocessing_mode) {
     /* Special trick to deal with cases like
