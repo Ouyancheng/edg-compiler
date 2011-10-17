@@ -1,5 +1,27 @@
 Version 4.4
 
+10/17/11 [EDGcpfe/12352]
+Abort while writing IL file with attribute in template
+
+Previously, the front end could abort while writing out the representation of
+a GNU __attribute or Microsoft __declspec construct that includes an argument
+when that construct appeared in a template that is instantiated in a function
+definition.  For example:
+
+  template<typename> struct X {
+    template <typename T> __declspec(deprecated("old"))
+      void d() {}
+    template <typename T>
+      void f() { d<T>(); }
+  };
+  void g() {
+    X<void> x;
+    x.f<int>();  // Triggered an abort while writing out the IL file for
+  }              // this translation unit.
+
+This is now fixed.
+
+
 10/17/11 [EDGcpfe/12175]
 new of unknown-bound array type okay in Microsoft mode
 

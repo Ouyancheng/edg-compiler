@@ -3231,13 +3231,18 @@ an error.
                                                 parent_class, &err);
 
             } else {
-              an_expr_node_ptr  saved_expr = aap->variant.constant->expr;
+              an_expr_node_ptr        saved_expr = aap->variant.constant->expr;
+              a_memory_region_number  region_to_switch_back_to;
               /* Do not copy the backing expression since it may have a
                  dependent component (which we cannot easily substitute). */
               aap->variant.constant->expr = NULL;
+              switch_to_file_scope_region(&region_to_switch_back_to);
               (*p_aap)->variant.constant =
                                alloc_unshared_constant(aap->variant.constant);
-              aap->variant.constant->expr = saved_expr;
+              switch_back_to_original_region(region_to_switch_back_to);
+              if (saved_expr != NULL && in_file_scope(saved_expr)) {
+                aap->variant.constant->expr = saved_expr;
+              }  /* if */
             }  /* if */
             break;
           case aak_type:
