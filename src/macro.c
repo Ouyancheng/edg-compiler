@@ -218,6 +218,14 @@ static a_boolean
 			   except when stdc_zero_in_system_headers is TRUE
 			   and we are in a system header. */
 
+static a_boolean
+		newline_ungotten;
+			/* TRUE if a "defined(" operator ends abruptly so
+			   that the terminating newline is queued onto a
+			   token cache.  Only used by
+			   expand_top_level_pcc_macro to avoid skipping
+			   white space onto a new source line. */
+
 /*
 Maximum nesting depth of calls of a single macro in pcc mode.  Used to
 catch recursion, but crudely, because a general recursion check is
@@ -2342,7 +2350,14 @@ beyond the operator has not yet been fetched.
         if (get_token() != tok_identifier) {
           /* Error -- Expected an identifier. */
           error(ec_exp_identifier);
+          /* The token will be consumed by the expression routines in
+             non-pp-token mode, so push it back in that mode as well. */
+          if (curr_token == tok_newline) {
+            newline_ungotten = TRUE;
+          }  /* if */
+          fetch_pp_tokens = FALSE;
           unget_token();
+          fetch_pp_tokens = TRUE;
         } else {
           /* The identifier __VA_ARGS__ is not allowed if variadic macros are
              accepted. */
@@ -2361,7 +2376,14 @@ beyond the operator has not yet been fetched.
             } else {
               error(ec_exp_rparen);
             }  /* if */
+            /* The token will be consumed by the expression routines in
+               non-pp-token mode, so push it back in that mode as well. */
+            if (curr_token == tok_newline) {
+              newline_ungotten = TRUE;
+            }  /* if */
+            fetch_pp_tokens = FALSE;
             unget_token();
+            fetch_pp_tokens = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -2968,12 +2990,21 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
   check_assertion(aux_buffer_for_pcc_macros != NULL);
   pos_in_aux_buffer = aux_buffer_for_pcc_macros;
   last_token_of_expansion = tok_end_of_source;
+  /* Set up check for whether a newline token is pushed onto a queue for
+     rescanning. */
+  newline_ungotten = FALSE;
   /* Fetch pp-tokens while doing macro expansion, and store the token
      text in the aux_buffer_for_pcc_macros.  Stop at the end of the
      top-level modification (usually). */
   for (;;) {
     a_boolean need_inert_macro_indication;
-    macro_skip_white_space(any_white_space_skipped);
+    if (!newline_ungotten) {
+      /* If a newline was read during the processing and pushed onto a
+         queue for rescanning, don't skip white space -- it would read a
+         new source line and free all the source line modifications before
+         we finish with them. */
+      macro_skip_white_space(any_white_space_skipped);
+    }  /* if */
     if (!main_slmp->being_rescanned_for_token_pasting) {
       /* We've run off the end of the top-level macro, because a macro call
          begins in the top-level modification and continues into the text
@@ -3052,14 +3083,14 @@ end_loop:
      follows the end of the accumulated text. */
   if (curr_token == tok_end_of_source) {
     leave_insertion(main_slmp, curr_char_loc);
-  } else if (curr_token == tok_newline) {
+  } else if (curr_token == tok_newline && curr_char_loc[-2] == LE_ESCAPE &&
+             curr_char_loc[1] == LE_NEWLINE) {
     /* Back up to keep the newline escape. */
     curr_char_loc -= LE_ESCAPE_LEN;
-    check_assertion(curr_char_loc[0] == LE_ESCAPE &&
-                    curr_char_loc[1] == LE_NEWLINE);
   }  /* if */
   loc_following_insertion = curr_char_loc;
-  if (!main_slmp->being_rescanned_for_token_pasting) {
+  if (!main_slmp->being_rescanned_for_token_pasting &&
+      within_curr_source_line(loc_following_insertion)) {
     /* We went off the end of the modification because of an open
        macro argument list.  Adjust the line modification so that the
        additional text in the primary source line is also deleted. */
