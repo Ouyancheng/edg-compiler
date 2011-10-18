@@ -869,6 +869,10 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_invalid_prev_decl_iterator)*/
 /*lint -esym(769,ec_generic_parameter_requires_clrcall)*/
 /*lint -esym(769,ec_generic_parameter_does_not_permit_varargs)*/
+/*lint -esym(759,set_up_overload_set_traversal*/
+/*lint -esym(765,set_up_overload_set_traversal*/
+/*lint -esym(759,next_symbol_in_overload_set*/
+/*lint -esym(765,next_symbol_in_overload_set*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
