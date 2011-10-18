@@ -12853,7 +12853,8 @@ context of the completed class later on.
   incr_token_set_array_element(stop_tokens, tok_comma);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
   /* Cache the initializer tokens. */
-  cache_token_stream(&ifp->initializer_token_cache, stop_tokens);
+  cache_token_stream_with_coalesce_flag(&ifp->initializer_token_cache,
+                                        stop_tokens, /*coalesce_ids=*/TRUE);
   terminate_token_cache(&ifp->initializer_token_cache);
   /* Record the fixup in the scope stack. */
   check_assertion(scope_is(ssep, sck_class_struct_union));
