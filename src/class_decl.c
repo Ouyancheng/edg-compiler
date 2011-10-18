@@ -11479,7 +11479,7 @@ implicitly declared member functions.
       /* For user-declared member functions of managed class types, the
          __clrcall calling convention was already set when the function type
          was parsed.  For compiler-generated members or members of
-         compiler-generated classes, however, is wasn't. */
+         compiler-generated classes, however, it wasn't. */
       rtsp->calling_convention = (a_calling_convention)cc_clrcall;
     }  /* if */
   }  /* if */

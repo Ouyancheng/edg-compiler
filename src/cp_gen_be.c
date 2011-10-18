@@ -14416,7 +14416,7 @@ declarator (or NULL if it wasn't recorded).
        (a) function definitions use information from the function parameter
        variables, and (b) we need to suppress return types on constructors,
        destructors, etc. */
-    a_boolean                   return_type_needed = TRUE;
+    a_boolean                  return_type_needed = TRUE;
     a_type_ptr                 saved_routine_type = rout->type;
     a_routine_type_supplement  *rtsp = rout_type->variant.routine.extra_info;
     if (special_kind_is(rout, sfk_constructor) ||
