@@ -1300,11 +1300,8 @@ variable, return a pointer it.  Otherwise, return NULL.
 }  /* find_lambda_capture */
 
 
-static a_field_ptr make_field_for_lambda_capture(
-                                        a_lambda_ptr           lambda,
-                                        a_variable_ptr         vp,
-                                        a_boolean              by_reference,
-                                        a_source_position_ptr  pos)
+static a_field_ptr make_field_for_lambda_capture(a_lambda_ptr          lambda,
+                                                 a_lambda_capture_ptr  lcp)
 /*
 Create the field of the closure class to store the capture of vp.  by_reference
 is TRUE if the variable is being captured by reference.  Return the field
@@ -1312,6 +1309,9 @@ entry.  pos is the source position to be used as the decl_position of
 the field.
 */
 {
+  a_variable_ptr           vp = lcp->variable;
+  a_boolean                by_reference = lcp->capture_by_reference;
+  a_source_position_ptr    pos = &lcp->position;
   a_field_ptr              fp;
   a_type_ptr               field_type;
   a_type_ptr               orig_field_type;
@@ -1375,6 +1375,21 @@ the field.
   } else if (by_reference) {
     /* The variable is being captured by reference.  Create a reference
        type based on the variable's type. */
+    if (lcp->source_closure_field != NULL && !is_ref) {
+      /* The variable is being indirectly captured through a value capture
+         from an enclosing lambda.  If the enclosing lambda is not mutable,
+         the reference should be to a const type. */
+      a_type_ptr     enclosing_closure =
+                                   parent_class_of(lcp->source_closure_field);
+      a_routine_ptr  enclosing_body = lambda_body_for_closure(
+                                                           enclosing_closure);
+      check_assertion(enclosing_body != NULL);
+      if (enclosing_body->type->kind == (a_type_kind)tk_routine &&
+          enclosing_body->type->variant.routine.extra_info->qualifiers ==
+                                                                   TQ_CONST) {
+        field_type = make_qualified_type(field_type, TQ_CONST);
+      }  /* if */
+    }  /* if */
     field_type = make_reference_type(field_type);
   } else if (is_ref && is_function_type(field_type)) {
     /* A variable with reference-to-function type is captured with its
@@ -1470,15 +1485,14 @@ being done.
      cleared soon after it's been used to generate the capture copy code. */
   lcp->variable = vp;
   lcp->source_closure_field = source_field;
-  if (is_implicit) {
-    /* For implicit captures, create the capture field now.  For explicit
-       captures this must wait until the closure class has been pushed. */
-    lcp->closure_field = make_field_for_lambda_capture(lambda, vp,
-                                                       by_reference, pos);
-  }  /* if */
   lcp->capture_by_reference = by_reference;
   lcp->is_implicit = is_implicit;
   lcp->position = *pos;
+  if (is_implicit) {
+    /* For implicit captures, create the capture field now.  For explicit
+       captures this was done when the capture was specified. */
+    lcp->closure_field = make_field_for_lambda_capture(lambda, lcp);
+  }  /* if */
   if (lambda->capture_list == NULL) {
     /* This is the first entry. */
     lambda->capture_list = lcp;
@@ -23708,9 +23722,7 @@ associated closure type.
   a_lambda_capture_ptr  lcp;
 
   for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
-    lcp->closure_field = make_field_for_lambda_capture(
-                                    lambda, lcp->variable,
-                                    lcp->capture_by_reference, &lcp->position);
+    lcp->closure_field = make_field_for_lambda_capture(lambda, lcp);
   }  /* for */
 }  /* decl_lambda_capture_fields */
 
