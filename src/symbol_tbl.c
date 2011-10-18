@@ -2309,9 +2309,12 @@ static method.  The list is returned in *p_hide_by_sig_list.
   } else if ((fund_sym = fundamental_symbol_of(sym)),
              !is_function_or_template_symbol(fund_sym)) {
     /* This lookup only applies to functions -- return FALSE. */
-  } else if (is_destructor_symbol(fund_sym) ||
-             is_finalizer_symbol(fund_sym)) {
-    /* This lookup does not apply to destructors and finalizers. */
+  } else if (is_constructor_symbol(fund_sym) ||
+             is_destructor_symbol(fund_sym) ||
+             is_finalizer_symbol(fund_sym) ||
+             is_conversion_function_symbol(fund_sym)) {
+    /* This lookup does not apply to constructors, destructors, finalizers,
+       and conversion functions. */
   } else if (sym->is_invisible ||
              (sym->kind == (a_symbol_kind)sk_overloaded_function &&
               sym->variant.overloaded_function.symbols->is_invisible)) {
@@ -10337,6 +10340,27 @@ in the source program.
   return have_access;
 }  /* have_access_to_symbol */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean have_hide_by_sig_access_to_symbol(a_symbol_ptr symbol)
+/*
+Return TRUE if the indicated symbol is accessible from the current location
+in the source program, in the sense required to keep it in a C++/CLI
+hide-by-sig overload set.
+*/
+{
+  a_symbol_ptr fund_sym = fundamental_symbol_of(symbol);
+  a_boolean    have_access;
+
+  /* We don't suppress access checking in prototype instantiations because
+     access checking for managed classes is simpler (no friendship) and
+     we need to get the right access-based answer for nondependent calls. */
+  check_assertion(fund_sym->kind != (a_symbol_kind)sk_overloaded_function);
+  have_access = have_access_across_derivations(fund_sym, symbol);
+  return have_access;
+}  /* have_hide_by_sig_access_to_symbol */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void issue_access_error(a_symbol_ptr       sym,
                                a_type_ptr         protected_access_class,

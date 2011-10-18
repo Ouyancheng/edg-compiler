@@ -113,6 +113,10 @@ typedef struct an_overload_set_traversal_block {
 			/* TRUE if the list being traversed is the list
 			   under an sk_overloaded_function symbol. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  a_byte_boolean
+		skip_inaccessible_functions;
+			/* TRUE if inaccessible functions on the list should
+			   be skipped.  Used in some C++/CLI contexts. */
   a_hide_by_sig_list_entry_ptr
 		hide_by_sig_list;
 			/* For a C++/CLI hide-by-sig name, the list of
@@ -120,6 +124,10 @@ typedef struct an_overload_set_traversal_block {
 			   otherwise. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } an_overload_set_traversal_block;
+
+static a_symbol_ptr next_symbol_in_overload_set(
+                              an_overload_set_traversal_block *ostblock,
+                              a_boolean                       curr_sym_viable);
 
 
 static a_symbol_ptr set_overload_set_traversal_symbol(
@@ -160,13 +168,25 @@ symbol to be considered, or NULL if there isn't one.  The symbol
 returned may be a projection symbol.
 */
 {
+  ostblock->is_overloaded_function_list = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  ostblock->skip_inaccessible_functions = FALSE;
   ostblock->hide_by_sig_list = NULL;
   if (cppcli_enabled) {
+    a_hide_by_sig_list_entry_ptr list;
+    if (sym->is_class_member) {
+      if (sym_parent_class(sym)->variant.class_struct_union.extra_info
+                                                            ->is_hide_by_sig) {
+        /* The symbol is a member of a class that uses hide-by-sig lookup,
+           so inaccessible functions should be ignored.  This can be true
+           even if hide-by-sig lookup does not apply to the specific symbol
+           (e.g., for constructors). */
+        ostblock->skip_inaccessible_functions = TRUE;
+      }  /* if */
+    }  /* if */
     /* In C++/CLI mode, look to see if hide-by-sig lookup applies for this
        symbol.  If so, we'll have a list to traverse to get to all the
        not-hidden symbols, including those in base classes. */
-    a_hide_by_sig_list_entry_ptr list;
     if (use_hide_by_sig_lookup(sym, &list)) {
       if (list != NULL) {
         /* There is a hide-by-sig list.  Start with the first symbol on the
@@ -186,6 +206,14 @@ returned may be a projection symbol.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sym = set_overload_set_traversal_symbol(sym, ostblock);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (sym != NULL &&
+      ostblock->skip_inaccessible_functions &&
+      !have_hide_by_sig_access_to_symbol(sym)) {
+    /* The symbol is inaccessible and should be skipped. */
+    sym = next_symbol_in_overload_set(ostblock, /*curr_sym_viable=*/FALSE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return sym;
 }  /* set_up_overload_set_traversal */
 
@@ -206,8 +234,12 @@ That's used for C++/CLI hide-by-sig lookup overload resolution.  If you don't
 need that functionality, pass in FALSE to get all members of the overload set.
 */
 {
-  a_symbol_ptr sym = ostblock->current_symbol;
+  a_symbol_ptr sym;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+top:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  sym = ostblock->current_symbol;
   check_assertion(sym != NULL);
   if (ostblock->is_overloaded_function_list) {
     /* Advance in a list of functions under an sk_overloaded_function
@@ -246,6 +278,12 @@ need that functionality, pass in FALSE to get all members of the overload set.
         sym = set_overload_set_traversal_symbol(sym, ostblock);
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (sym != NULL &&
+      ostblock->skip_inaccessible_functions &&
+      !have_hide_by_sig_access_to_symbol(sym)) {
+    /* The symbol is inaccessible and should be skipped. */
+    goto top;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return sym;
@@ -18893,9 +18931,10 @@ finding out if it exists.  This routine does not find implied trivial
 default constructors; see find_default_constructor.
 */
 {
-  a_symbol_ptr                   sym, ctor_sym = NULL;
-  a_boolean                      is_overloaded_function, any_templates = FALSE;
-  a_class_symbol_supplement_ptr  cssp;
+  a_symbol_ptr                    sym, ctor_sym = NULL;
+  a_boolean                       any_templates = FALSE;
+  a_class_symbol_supplement_ptr   cssp;
+  an_overload_set_traversal_block ostblock;
 
   db_enter(4, "select_overloaded_default_constructor");
 #if DEBUG
@@ -18912,21 +18951,14 @@ default constructors; see find_default_constructor.
   class_type = skip_typerefs(class_type);
   instantiate_template_class(class_type);
   cssp = symbol_supplement_for_class(class_type);
-  sym = cssp->constructor;
-  check_assertion(sym != NULL);
-  /* Look for a non-template default constructor. */
-  /* If sym is an overloaded function symbol we need to go through the whole
-     list. */
-  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    is_overloaded_function = TRUE;
-    sym = sym->variant.overloaded_function.symbols;
-  } else {
-    is_overloaded_function = FALSE;
-  }  /* if */
   /* Examine each constructor for this class to find a default constructor.
      There may be more than one.  For instance, there may be a constructor
-     with no arguments and one with one argument with a default value. */
-  for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
+     with no arguments and one with one argument with a default value.
+     Look only at non-template constructors on this pass. */
+  for (sym = set_up_overload_set_traversal(cssp->constructor, &ostblock);
+       sym != NULL;
+       sym = next_symbol_in_overload_set(&ostblock,
+                                         /*curr_sym_viable=*/FALSE)) {
     if (sym->kind == (a_symbol_kind)sk_function_template) {
       /* Function templates are not considered on this pass. */
       any_templates = TRUE;
@@ -18946,19 +18978,12 @@ default constructors; see find_default_constructor.
     }  /* if */
   }  /* for */
   if (ctor_sym == NULL && include_templates && any_templates) {
-    /* Look for a template default constructor. */
-    /* If sym is an overloaded function symbol we need to go through the whole
-       list. */
-    sym = cssp->constructor;
-    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      is_overloaded_function = TRUE;
-      sym = sym->variant.overloaded_function.symbols;
-    } else {
-      is_overloaded_function = FALSE;
-    }  /* if */
     /* Examine each constructor for this class to find a template default
        constructor.  There may be more than one. */
-    for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
+    for (sym = set_up_overload_set_traversal(cssp->constructor, &ostblock);
+         sym != NULL;
+         sym = next_symbol_in_overload_set(&ostblock,
+                                           /*curr_sym_viable=*/FALSE)) {
       if (sym->kind == (a_symbol_kind)sk_function_template) {
         a_routine_ptr    routine =
                           sym->variant.template_info->variant.function.routine;

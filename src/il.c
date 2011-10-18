@@ -11377,6 +11377,13 @@ TRUE if this is a constructor declaration rather than a constructor reference.
     /* A parameter pack can be expanded with zero types to produce a
        default constructor. */
     is_def_ctor = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (ptp->is_cli_param_array) {
+    /* A C++/CLI parameter array can take a zero-length array, so a
+       constructor with such a parameter first can be called as a default
+       constructor. */
+    is_def_ctor = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   return is_def_ctor;
 }  /* is_default_constructor */
@@ -16346,7 +16353,7 @@ Make an expression list containing copies of the default argument
 expressions for the parameter indicated by ptp, which is a parameter
 of rout, and all parameters following that.  If ptp is non-NULL, it
 must point to a parameter with a default argument expression (or
-a parameter pack, in which case no copies are made).
+a parameter pack or parameter array, in which case no copies are made).
 inside_conditional_expression is TRUE if the default argument
 expression copies will be inside a conditional part of an expression.
 potentially_evaluated is TRUE if the expression is potentially evaluated.
@@ -16362,6 +16369,11 @@ potentially_evaluated is TRUE if the expression is potentially evaluated.
     /* This is possible in error cases. */
     check_assertion(is_error_type(ptp->type));
     expect_error();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (ptp->is_cli_param_array) {
+    /* Assume this parameter will correspond to a zero-length C++/CLI
+       parameter array. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
 #if CHECKING
     if (ptp->default_arg_expr == NULL &&
