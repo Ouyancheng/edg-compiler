@@ -16527,11 +16527,12 @@ in *single_func_sym, or set that to NULL if there is no single function.
         }  /* if */
       } else if (base_sym->kind == (a_symbol_kind)sk_overloaded_function) {
         /* An overload set possibly containing function templates. */
-        a_symbol_ptr proj_sym;
-        for (proj_sym = base_sym->variant.overloaded_function.symbols;
+        a_symbol_ptr                    proj_sym;
+        an_overload_set_traversal_block ostblock;
+        for (proj_sym = set_up_overload_set_traversal(base_sym, &ostblock);
              proj_sym != NULL;
-             proj_sym = proj_sym->next) {
-          /* Remove projections for namespaces, if any. */
+             proj_sym = next_symbol_in_overload_set(&ostblock,
+                                                  /*curr_sym_viable=*/FALSE)) {
           base_sym = fundamental_symbol_of(proj_sym);
           if (base_sym->kind == (a_symbol_kind)sk_function_template) {
             if (explicit_arg_list_identifies_specialization(

@@ -227,6 +227,12 @@ tried in overload resolution.
 typedef struct an_overload_set_traversal_block {
   a_symbol_ptr	current_symbol;
 			/* The symbol currently being considered. */
+  a_symbol_list_entry_ptr
+		current_symbol_list_entry;
+			/* When a symbol list is being traversed, this points
+			   to the current entry on the symbol list and
+			   current_symbol and is_overloaded_function_list
+			   are not used. */
   a_byte_boolean
 		is_overloaded_function_list;
 			/* TRUE if the list being traversed is the list

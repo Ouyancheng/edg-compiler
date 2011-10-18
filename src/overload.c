@@ -259,6 +259,87 @@ top:
   return sym;
 }  /* next_symbol_in_overload_set */
 
+
+static a_symbol_ptr next_symbol_in_overload_symbol_list(
+                                    an_overload_set_traversal_block *ostblock);
+
+
+static a_symbol_ptr set_up_overload_symbol_list_traversal(
+                                     a_symbol_list_entry_ptr         slep,
+                                     an_overload_set_traversal_block *ostblock)
+/*
+Set up for traversing the symbols of a symbol list for overload resolution via
+next_symbol_in_overload_symbol_list.  slep is the first entry on the list,
+or NULL if the list is empty.  Returns the first symbol to be considered,
+or NULL if there isn't one.  The symbol returned may be a projection symbol.
+*/
+{
+  a_symbol_ptr sym = NULL;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ostblock->skip_inaccessible_functions = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (slep != NULL) {
+    sym = slep->symbol;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled) {
+      if (sym->is_class_member) {
+        if (sym_parent_class(sym)->variant.class_struct_union.extra_info
+                                                            ->is_hide_by_sig) {
+          /* The symbol is a member of a class that uses hide-by-sig lookup,
+             so inaccessible functions should be ignored.  This can be true
+             even if hide-by-sig lookup does not apply to the specific symbol
+             (e.g., for conversion functions). */
+          ostblock->skip_inaccessible_functions = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+  ostblock->current_symbol_list_entry = slep;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (sym != NULL &&
+      ostblock->skip_inaccessible_functions &&
+      !have_hide_by_sig_access_to_symbol(sym)) {
+    /* The symbol is inaccessible and should be skipped. */
+    sym = next_symbol_in_overload_symbol_list(ostblock);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return sym;
+}  /* set_up_overload_symbol_list_traversal */
+
+
+static a_symbol_ptr next_symbol_in_overload_symbol_list(
+                                     an_overload_set_traversal_block *ostblock)
+/*
+Advance to the next symbol in the overload symbol list whose traversal is
+underway and described by ostblock, and return that next symbol, or NULL
+if there is no next symbol.  The symbol returned may be a projection symbol.
+*/
+{
+  a_symbol_list_entry_ptr slep;
+  a_symbol_ptr            sym;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+top:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  slep = ostblock->current_symbol_list_entry;
+  if (slep != NULL) {
+    slep = slep->next;
+    ostblock->current_symbol_list_entry = slep;
+  }  /* if */
+  sym = (slep != NULL) ? slep->symbol : NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (sym != NULL &&
+      ostblock->skip_inaccessible_functions &&
+      !have_hide_by_sig_access_to_symbol(sym)) {
+    /* The symbol is inaccessible and should be skipped. */
+    goto top;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return sym;
+}  /* next_symbol_in_overload_symbol_list */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 a_boolean hide_by_sig_lookup_applies(a_symbol_ptr sym)
@@ -6827,9 +6908,12 @@ lookup.
     reduce_projection_symbol_to_fundamental_symbol(ovl_sym);
     /* Ignore templates. */
     if (ovl_sym->kind != (a_symbol_kind)sk_function_template) {
+      an_overload_set_traversal_block ostblock;
       check_assertion(ovl_sym->kind == (a_symbol_kind)sk_overloaded_function);
-      sym = ovl_sym->variant.overloaded_function.symbols;
-      for (; sym != NULL; sym = sym->next) {
+      for (sym = set_up_overload_set_traversal(ovl_sym, &ostblock);
+           sym != NULL;
+           sym = next_symbol_in_overload_set(&ostblock,
+                                             /*curr_sym_viable=*/FALSE)) {
         a_type_ptr   func_type;
         a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
         /* Ignore templates. */
@@ -10965,7 +11049,6 @@ are considered).  conv_context describes the context of the conversion.
 {
   a_symbol_ptr              conversion_symbol, base_conversion_symbol;
   a_routine_ptr             conversion_routine;
-  a_symbol_list_entry_ptr   slep;
   a_type_ptr                conv_routine_type, return_type;
   a_type_ptr                raw_return_type, eff_this_param_type;
   an_arg_match_summary      this_match;
@@ -10979,6 +11062,8 @@ are considered).  conv_context describes the context of the conversion.
   a_boolean                 class_object_adjustment_required = FALSE;
   a_boolean                 template_conversions_started;
   a_boolean                 function_template_case;
+  an_overload_set_traversal_block
+                            ostblock;
   a_boolean                 boolean_converted_case = FALSE;
   a_template_arg_ptr        template_arg_list;
   a_template_symbol_supplement_ptr
@@ -11023,21 +11108,24 @@ are considered).  conv_context describes the context of the conversion.
      end of the normal list, if we have a specific dest_type go through the
      list of template conversion functions. */
   template_conversions_started = FALSE;
-  /*lint --e{850} slep modified in loop */
-  for (slep = symbol_supplement_for_class(conv_funcs_class)->conversion_list;
+  /*lint --e{850} conversion_symbol modified in loop */
+  for (conversion_symbol = set_up_overload_symbol_list_traversal(
+               symbol_supplement_for_class(conv_funcs_class)->conversion_list,
+               &ostblock);
        ;
-       slep = slep->next) {
-    if (slep == NULL) {
+       conversion_symbol = next_symbol_in_overload_symbol_list(&ostblock)) {
+    if (conversion_symbol == NULL) {
       /* Either exit the loop or, if the list of template conversion functions
          is yet to be processed, process that. */
       if (!template_conversions_started && dest_type != NULL) {
         template_conversions_started = TRUE;
-        slep = symbol_supplement_for_class(conv_funcs_class)->
-                                                    conversion_template_list;
+        conversion_symbol = set_up_overload_symbol_list_traversal(
+                                symbol_supplement_for_class(conv_funcs_class)->
+                                                      conversion_template_list,
+                                &ostblock);
       }  /* if */
-      if (slep == NULL) break;
+      if (conversion_symbol == NULL) break;
     }  /* if */
-    conversion_symbol = slep->symbol;
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("overload")) {
       db_display_overload_level();
