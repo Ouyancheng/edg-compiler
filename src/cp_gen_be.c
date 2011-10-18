@@ -11916,9 +11916,10 @@ source sequence entries recorded with this particular header.  */
       /* Remap the source correspondence entry for output. */
       remap_template_param(&param->variant.templ.class_template->coordinates,
                            &param->source_corresp);
-      gen_template_header(param->variant.templ.class_template->template_decl,
-                          /*lint --e(413)*/(a_type_ptr)NULL,
-			  /*is_cppcli_generic=*/FALSE);
+      gen_template_header(
+                     param->variant.templ.class_template->template_decl,
+                     parent_class_or_null(param->variant.templ.class_template),
+                     /*is_cppcli_generic=*/FALSE);
       write_tok_str(" class ");
       if (param->is_pack) write_tok_str("...");
       /* Set the source position for the name. */
