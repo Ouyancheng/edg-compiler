@@ -11858,8 +11858,7 @@ source sequence entries recorded with this particular header.  */
 
   if (tdp->parent != NULL &&
       (tdp->parent->param_list != NULL ||
-       (parent_class != NULL &&
-	parent_class->variant.class_struct_union.is_nonreal_class))) {
+       parent_class->variant.class_struct_union.is_nonreal_class)) {
     gen_template_header(tdp->parent, parent_class_or_null(parent_class),
                         is_cppcli_generic);
   }  /* if */
@@ -11918,7 +11917,8 @@ source sequence entries recorded with this particular header.  */
       remap_template_param(&param->variant.templ.class_template->coordinates,
                            &param->source_corresp);
       gen_template_header(param->variant.templ.class_template->template_decl,
-                          (a_type_ptr)NULL, /*is_cppcli_generic=*/FALSE);
+                          /*lint --e(413)*/(a_type_ptr)NULL,
+			  /*is_cppcli_generic=*/FALSE);
       write_tok_str(" class ");
       if (param->is_pack) write_tok_str("...");
       /* Set the source position for the name. */
