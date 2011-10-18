@@ -11858,7 +11858,8 @@ source sequence entries recorded with this particular header.  */
 
   if (tdp->parent != NULL &&
       (tdp->parent->param_list != NULL ||
-       parent_class->variant.class_struct_union.is_nonreal_class)) {
+       (parent_class != NULL &&
+	parent_class->variant.class_struct_union.is_nonreal_class))) {
     gen_template_header(tdp->parent, parent_class_or_null(parent_class),
                         is_cppcli_generic);
   }  /* if */
