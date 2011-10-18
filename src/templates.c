@@ -10967,17 +10967,21 @@ Return TRUE if the type are incompatible (after the adjustment).
 */
 {
   a_boolean                result = FALSE;
-  a_type_difference_descr  diffs, *p_diffs;
+  a_type_difference_descr  diffs, *p_diffs = NULL;
+  a_type_compat_flags_set  tc_flags = TCF_CHECKING_DEDUCTION_RESULT;
 
   diffs.incompatible_calling_conventions = NULL;
-  p_diffs = cppcli_enabled ? &diffs : (a_type_difference_descr_ptr)NULL;
-  if (f_types_are_compatible_full(
-                                  substituted_type, rescanned_type,
-                                  TCF_CHECKING_DEDUCTION_RESULT |
-                                  TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled) {
+    p_diffs = &diffs;
+    tc_flags |= TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (f_types_are_compatible_full(substituted_type, rescanned_type, tc_flags,
                                   p_diffs)) {
-    /* Except for Microsoft-style calling conventions, the two types are
-       compatible. */
+    /* Except perhaps for Microsoft-style calling conventions, the two types
+       are compatible. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (p_diffs != NULL && p_diffs->incompatible_calling_conventions != NULL) {
       a_type_list_entry_ptr  tep1 = p_diffs->incompatible_calling_conventions,
                              tep2;
@@ -11007,6 +11011,7 @@ Return TRUE if the type are incompatible (after the adjustment).
       free_list_of_type_list_entries(
                                    p_diffs->incompatible_calling_conventions);
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* The two types are incompatible. */
     result = TRUE;
