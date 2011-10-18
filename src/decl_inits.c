@@ -6450,15 +6450,18 @@ though neither constructors nor initialization is involved here.)
 }  /* dtor_initializer */
 
 
-void check_for_missing_initializer(a_symbol_ptr       sym,
-                                   a_type_ptr         type)
+void check_for_missing_initializer_full(a_symbol_ptr  sym,
+                                        a_type_ptr    type,
+                                        a_boolean     explicitly_internal)
 /*
 This routine is called when no explicit, value, or default initialization has
 occurred.  It determines whether an initializer should have been provided
 and issues a diagnostic if appropriate.  It is used both for variable
 declarations (when sym represents the variable) and for unnamed objects that
 are created by a new expression (in which case sym is NULL).  In both cases
-"type" points to the type of the object.
+"type" points to the type of the object.  explicitly_internal is TRUE in the
+case of a variable declaration that has internal linkage because of the
+explicit presence of a "static" storage class specifier. 
 */
 {
   a_variable_ptr       vp;
@@ -6468,7 +6471,7 @@ are created by a new expression (in which case sym is NULL).  In both cases
   an_error_severity    severity;
   a_boolean            is_incomplete_array = FALSE;
 
-  db_enter(4, "check_for_missing_initializer");
+  db_enter(4, "check_for_missing_initializer_full");
   if (sym != NULL) {
     /* This must be a variable or static data member declaration. */
     check_assertion(sym->kind == (a_symbol_kind)sk_variable ||
@@ -6542,8 +6545,7 @@ are created by a new expression (in which case sym is NULL).  In both cases
                 /* MSVC++ does not require an initializer for a const class or
                    enum variable with no default constructor. */
                 severity = es_warning;
-              } else if (vp->declared_storage_class ==
-                                                 (a_storage_class)sc_static) {
+              } else if (explicitly_internal) {
                 /* It is probably a bug that MSVC++ has different behavior on
                    the following:
                      const int i;         // Error (no initializer)
@@ -6668,7 +6670,7 @@ are created by a new expression (in which case sym is NULL).  In both cases
     }  /* if */
   }  /* if */
   db_exit();
-}  /* check_for_missing_initializer */
+}  /* check_for_missing_initializer_full */
 
 
 /******************************************************************************

@@ -2423,8 +2423,10 @@ Display the indicated variable.
   }  /* if */
   disp_name("storage_class");
   disp_storage_class_name(ptr->storage_class);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_name("declared_storage_class");
   disp_storage_class_name(ptr->declared_storage_class);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DECL_MODIFIERS_IN_USE
   disp_decl_modifiers(ptr->decl_modifiers);
 #endif /* DECL_MODIFIERS_IN_USE */

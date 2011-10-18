@@ -54,8 +54,14 @@ extern a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout,
 
 extern a_constructor_init_ptr dtor_initializer(a_routine_ptr  dtor_rout);
 
-extern void check_for_missing_initializer(a_symbol_ptr       sym,
-                                          a_type_ptr         type);
+extern void check_for_missing_initializer_full(
+                                           a_symbol_ptr  sym,
+                                           a_type_ptr    type,
+                                           a_boolean     explicitly_internal);
+
+#define check_for_missing_initializer(sym, type)                             \
+  (check_for_missing_initializer_full(sym, type,                             \
+                                      /*explicitly_internal=*/FALSE))
 
 extern void scan_compound_literal_initializer(a_type_ptr         *type,
                                               a_boolean          is_static,

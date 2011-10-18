@@ -1796,7 +1796,9 @@ Also promote the fields of the union type to the current scope.
                      depth_innermost_namespace_scope : decl_scope_level; 
   vp = make_variable(anon_union_type, storage_class, scope_depth);
   vp->is_anonymous_parent_object = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   vp->declared_storage_class = declared_storage_class;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Promote the fields of the anonymous union to the current scope, and do
      some error checking on the anonymous union's members. */
   assoc_object_sym = make_anonymous_parent_object_symbol(
@@ -14815,11 +14817,13 @@ if one is present.
        changed when reconciled with the original declaration. */
     state->type = var_ptr->type;
     state->storage_class = var_ptr->storage_class;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     if (is_variable_def) {
       /* The "declared_storage_class" field is updated only for variable
          definitions. */
       var_ptr->declared_storage_class = state->declared_storage_class;
     }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (state->is_old_style_param_decl) {
       /* Error case (described above).  Mark the symbol referenced, to
          suppress subsequent "declared and not referenced" warnings. */
@@ -14965,10 +14969,14 @@ if one is present.
           }  /* if */
         }  /* if */
       }  /* if */
-    } else if (state->sym->kind == (a_symbol_kind)sk_variable ||
-               state->sym->kind == (a_symbol_kind)sk_static_data_member) {
+    } else if (symbol_is(state->sym, sk_variable) ||
+               symbol_is(state->sym, sk_static_data_member)) {
       /* No default initialization, so do some additional checking. */
-      check_for_missing_initializer(state->sym, state->type);
+      a_boolean  explicitly_internal = symbol_is(state->sym, sk_variable) &&
+                                       state->declared_storage_class ==
+                                                   (a_storage_class)sc_static;
+      check_for_missing_initializer_full(state->sym, state->type,
+                                         explicitly_internal);
       if (symbol_is(state->sym, sk_variable)) {
         if (!var_ptr->source_corresp.is_local_to_function ||
             var_ptr->storage_class == (a_storage_class)sc_static ||

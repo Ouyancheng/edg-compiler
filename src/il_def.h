@@ -8406,6 +8406,7 @@ typedef struct a_variable {
 			   is represented elsewhere (e.g., in the use of
 			   a field for a nonstatic data member and a variable
 			   for a static data member). */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   a_storage_class
 		declared_storage_class;
 			/* The storage class that explicitly appears in the
@@ -8419,6 +8420,7 @@ typedef struct a_variable {
 			   definition, the declared storage class is recorded
 			   in the a_src_seq_secondary_decl entry associated
 			   with that declaration. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
 		decl_modifiers;

@@ -77,12 +77,14 @@ tentative definition).  For definitions of functions, the declared storage
 class that appeared in the source is now recorded in the associated routine
 entry in such configurations (field "declared_storage_class").  For
 definitions of variables, there was already a "declared_storage_class" field
-in the associated IL entries (it remains defined in all configurations for
-backward compatibility purposes): It is now also set for primary tentative
-definitions.  Previously, secondary source sequence entries entries included a
-flag "explicit_storage_class" to indicate that a storage class was specified
-explicitly on the associated declaration: That flag has been removed since it
-is made obsolete by the new "declared_storage_class" field.
+in the associated IL entries: It is now also set for primary tentative
+definitions, but for consistency's sake it is now only present in
+configurations with GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE (previously,
+that field was defined unconditionally).  Previously, secondary source
+sequence entries entries included a flag "explicit_storage_class" to indicate
+that a storage class was specified explicitly on the associated declaration:
+That flag has been removed since it is made obsolete by the new
+"declared_storage_class" field.
 
 
 10/12/11 [EDGcpfe/12346]

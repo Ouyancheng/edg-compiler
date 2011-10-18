@@ -2112,7 +2112,9 @@ Clear the fields of the given variable to default values.
   vp->type                        = NULL;
   vp->assoc_param_type            = NULL;
   vp->storage_class               = (a_storage_class)sc_unspecified;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   vp->declared_storage_class      = (a_storage_class)sc_unspecified;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DECL_MODIFIERS_IN_USE
   vp->decl_modifiers              = DM_NONE;
 #endif /* DECL_MODIFIERS_IN_USE */
