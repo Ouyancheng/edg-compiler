@@ -10965,7 +10965,7 @@ obtained both by rescanning the tokens (rescanned_type) and by substituting
 the parameterized type of the template (substituted type).  Compare the two
 types and, in C++/CLI mode, adjust the rescanned type to reflect implicit
 calling conventions that can be determined only in the substitution process.
-Return TRUE if the type are incompatible (after the adjustment).
+Return TRUE if the types are incompatible (after the adjustment).
 */
 {
   a_boolean                result = FALSE;
