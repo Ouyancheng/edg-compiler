@@ -437,6 +437,7 @@ static void gen_pragma_end(a_pragma_ptr pp);
 static void gen_pending_pragma_pack(void);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 static void gen_template_header(a_template_decl_ptr tdp,
+                                a_type_ptr          parent_class,
                                 a_boolean           is_cppcli_generic);
 static void gen_template(void);
 static a_boolean strip_lvalue_cast_sequence(an_expr_node_ptr *expr);
@@ -7216,11 +7217,12 @@ this one is such a continuation.
       if (assoc_template->canonical_template->is_exported) gen_export();
 #if MICROSOFT_EXTENSIONS_ALLOWED
       gen_template_header(
-                       template_decl,
+                       template_decl, parent_class_or_null(type),
                        is_immediate_class_type(type) &&
                        type->variant.class_struct_union.is_generic_definition);
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-      gen_template_header(template_decl, /*is_cppcli_generic=*/FALSE);
+      gen_template_header(template_decl, parent_class_or_null(type),
+                          /*is_cppcli_generic=*/FALSE);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_specialization) {
       /* A specialization. */
@@ -11843,23 +11845,22 @@ If str is NULL, do nothing.  Otherwise call write_tok_str(str).
 
 
 static void gen_template_header(a_template_decl_ptr tdp,
+                                a_type_ptr          parent_class,
                                 a_boolean           is_cppcli_generic)
 /*
 Generate a "template<...>" or "generic<...>" header (depending on the value
-of is_cppcli_generic) from the given IL entry.  This also installs a
-mapping of template parameter coordinates to the source sequence entries
-recorded with this particular header.
-*/
+of is_cppcli_generic) from the given IL entry.  If the template is a member
+of a class, parent_class designates that class; otherwise, it is NULL.
+This also installs a mapping of template parameter coordinates to the
+source sequence entries recorded with this particular header.  */
 {
   a_template_parameter_ptr  param = tdp->param_list;
 
-  if (tdp->parent != NULL && tdp->parent->param_list != NULL) {
-    /* The test for param_list != NULL excludes member templates of
-       explicit specializations; in configurations with
-       CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS, such member
-       templates will have a non-NULL parent with an empty parameter list,
-       but no template<> header should be generated for them. */
-    gen_template_header(tdp->parent, is_cppcli_generic);
+  if (tdp->parent != NULL &&
+      (tdp->parent->param_list != NULL ||
+       parent_class->variant.class_struct_union.is_nonreal_class)) {
+    gen_template_header(tdp->parent, parent_class_or_null(parent_class),
+                        is_cppcli_generic);
   }  /* if */
   set_output_position(&tdp->template_pos);
   /* Put a space after the "<" to avoid forming the digraph "<:" if the
@@ -11916,7 +11917,7 @@ recorded with this particular header.
       remap_template_param(&param->variant.templ.class_template->coordinates,
                            &param->source_corresp);
       gen_template_header(param->variant.templ.class_template->template_decl,
-                          /*is_cppcli_generic=*/FALSE);
+                          (a_type_ptr)NULL, /*is_cppcli_generic=*/FALSE);
       write_tok_str(" class ");
       if (param->is_pack) write_tok_str("...");
       /* Set the source position for the name. */
@@ -13966,7 +13967,9 @@ this one is such a continuation.
                   var->assoc_template != NULL);
   if (template_decl != NULL) {
     if (assoc_template->canonical_template->is_exported) gen_export();
-    gen_template_header(template_decl, /*is_cppcli_generic=*/FALSE);
+    gen_template_header(template_decl,
+                        parent_class_or_null(parent_class_of(assoc_template)),
+                        /*is_cppcli_generic=*/FALSE);
   } else if (is_specialization) {
     adjust_namespace_state_for_specialization(&var->source_corresp,
                                               &common_scope, &orig_scope,
@@ -14824,9 +14827,11 @@ handle_as_definition:
   if (template_decl != NULL) {
     if (assoc_template->canonical_template->is_exported) gen_export();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    gen_template_header(template_decl, rout->is_generic_definition);
+    gen_template_header(template_decl, parent_class_or_null(rout),
+                        rout->is_generic_definition);
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-    gen_template_header(template_decl, /*is_cppcli_generic=*/FALSE);
+    gen_template_header(template_decl, parent_class_or_null(rout),
+                        /*is_cppcli_generic=*/FALSE);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (is_definition && !rout->is_defaulted && !rout->is_deleted) {
