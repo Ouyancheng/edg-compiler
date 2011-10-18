@@ -4522,12 +4522,21 @@ Microsoft __super keyword.
   a_class_type_supplement_ptr   ctsp;
   a_class_symbol_supplement_ptr cssp;
   a_base_class_ptr              bcp;
+  a_boolean			exclude_interface_members = FALSE;
 
   /* Get the type of the current class on the scope stack, if any. */
   class_type = get_super_class_type();
   if (class_type != NULL) {
     /* If this is a template, make sure it is instantiated. */
     complete_class_type_is_needed(class_type);
+    /* If lookup begins in a C++/CLI class, base interface classes are not
+       considered.  Direct interfaces are ignored below.  This flag
+       causes indirect base interfaces of base ref classes to be
+       ignored. */
+    if (cppcli_enabled && treat_as_cli_class_for_lookup(class_type)) {
+      options |= IDL_EXCLUDE_BASE_INTERFACE_MEMBERS;
+      exclude_interface_members = TRUE;
+    }  /* if */
     /* Go through its base classes and look for members that match
        the lookup. */
     ctsp = class_type->variant.class_struct_union.extra_info;
@@ -4552,8 +4561,13 @@ Microsoft __super keyword.
       /* A class with only real base classes. */
       for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
         a_symbol_ptr	base_sym;
-        /* Only consider direct base classes. */
-        if (!bcp->direct) continue;
+        /* Only consider direct base classes.  In C++/CLI mode, ignore
+           interfaces if the lookup started in a ref class. */
+        if (!bcp->direct ||
+            (exclude_interface_members &&
+             is_cli_interface_type(bcp->type))) {
+          continue;
+        }  /* if */
         /* Clear the specific symbol so that it does not influence the lookup
            below. */
         clear_specific_symbol(*locator);
