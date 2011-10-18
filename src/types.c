@@ -5370,13 +5370,18 @@ type changes.
 }  /* cast_identical_types */
 
 
-a_boolean param_types_are_compatible(a_type_ptr              rout_type_1,
-                                     a_type_ptr              rout_type_2,
-                                     a_type_compat_flags_set flags)
+a_boolean param_types_are_compatible_full(
+                                     a_type_ptr                   rout_type_1,
+                                     a_type_ptr                   rout_type_2,
+                                     a_type_compat_flags_set      flags,
+                                     a_type_difference_descr_ptr  diffs)
 /*
 rout_type_1 and rout_type_2 point to routine type entries.  Return TRUE if the
 parameter lists are compatible.  The "this" parameter types (if any) are
-not compared.  flags is a set of bit flags that modify the comparison.
+not compared.  flags is a set of bit flags that modify the comparison.  diffs
+records certain differences that do no otherwise affect the outcome of the
+comparison (currently, only calling convention differences when flags includes
+TCF_IGNORE_MS_STYLE_CALLING_CONVENTIONS).
 */
 {
   a_param_type_ptr              list1, list2;
@@ -5476,7 +5481,8 @@ not compared.  flags is a set of bit flags that modify the comparison.
           param_2_type = default_argument_promotion(param_2_type);
         }  /* if */
       }  /* if */
-      if (f_types_are_compatible(param_1_type, param_2_type, flags)) {
+      if (f_types_are_compatible_full(param_1_type, param_2_type, flags,
+                                      diffs)) {
         /* The parameter types are compatible. */
 #if PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED
       } else if (!strict_ansi_mode &&
@@ -5505,7 +5511,7 @@ not compared.  flags is a set of bit flags that modify the comparison.
 done:;
   }  /* if */
   return compatible;  
-}  /* param_types_are_compatible */
+}  /* param_types_are_compatible_full */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
 
@@ -5550,19 +5556,22 @@ of Microsoft-mode member functions).
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 
-a_boolean f_types_are_compatible(a_type_ptr              type_1,
-                                 a_type_ptr              type_2,
-                                 a_type_compat_flags_set flags)
+a_boolean f_types_are_compatible_full(a_type_ptr                   type_1,
+                                      a_type_ptr                   type_2,
+                                      a_type_compat_flags_set      flags,
+                                      a_type_difference_descr_ptr  diffs)
 /*
-Compare two types for compatibility.  In C, that means the types are the
-same or almost the same; see section 3.1.2.6 in the ANSI C standard.
-flags is a set of bits indicating options, e.g., is an error type
-considered compatible with any other type.  This routine always checks
-for compatibility of type-qualifiers.  This routine should generally not
-be called directly; it's meant to be called by the macros
-types_are_compatible, types_are_strictly_compatible, and
-types_are_compatible_ignoring_qualifiers, which do an initial test
-for exact pointer equality.
+Compare two given types for compatibility (which means that the types are the
+same or almost the same; C and C++ differ in some details in this respect).
+flags is a set of bits indicating options (e.g., is an error type considered
+compatible with any other type).  If diffs is non-NULL, certain differences
+encountered during the comparison are recorded in *diffs: Currently, this is
+limited to calling convention differences encountered while comparing types
+with the TCF_IGNORE_MS_STYLE_CALLING_CONVENTIONS flag.
+This routine should generally not be called directly; it's meant to be called
+by the macros types_are_compatible, types_are_strictly_compatible, and
+types_are_compatible_ignoring_qualifiers, which do an initial test for exact
+pointer equality.
 */
 {
   a_boolean                     compat = FALSE;
@@ -5573,7 +5582,7 @@ for exact pointer equality.
   a_boolean                     is_impl_conv;
   a_boolean                     top_level_for_redeclaration = FALSE;
 
-  db_enter(5, "f_types_are_compatible");
+  db_enter(5, "f_types_are_compatible_full");
 
   error_matches_anything = 
                  (flags & TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) != 0;
@@ -5592,10 +5601,18 @@ for exact pointer equality.
   } else {
     /* Test for a qualifier mismatch. */
     a_boolean qualifier_mismatch;
-check_typerefs:
-    qualifier_mismatch = FALSE;
     if (type_1->kind == (a_type_kind)tk_typeref ||
         type_2->kind == (a_type_kind)tk_typeref) {
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
+      if (typeref_is_typedef(type_1) || typeref_is_type_operator(type_1) ||
+          typeref_is_typedef(type_2) || typeref_is_type_operator(type_2)) {
+        /* Do not record calling convention differences under typedefs or
+           type operators (like decltype). */
+        flags &= ~TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
+check_typerefs:
+      qualifier_mismatch = FALSE;
       if (!ignore_type_qualifiers &&
           !type_qualifiers_match(type_1, type_2)) {
         qualifier_mismatch = TRUE;
@@ -5619,6 +5636,8 @@ check_typerefs:
       }  /* if */
       type_1 = skip_typerefs(type_1);
       type_2 = skip_typerefs(type_2);
+    } else {
+      qualifier_mismatch = FALSE;
     }  /* if */
     if (error_matches_anything && (is_error(type_1) || is_error(type_2))) {
       /* An error type is compatible with anything under the right setting
@@ -5637,7 +5656,7 @@ check_typerefs:
                                          (flags & TCF_SEEK_CORRESP) != 0)) {
       /* The types might have come from different translation units: restart
          the comparison with the canonical entries instead. */
-      compat = f_types_are_compatible(type_1, type_2, flags);
+      compat = f_types_are_compatible_full(type_1, type_2, flags, diffs);
     } else {
       /* The top level kinds are the same, check further. */
       is_impl_conv = (flags & TCF_IMPLICIT_CONVERSION) != 0;
@@ -5751,9 +5770,9 @@ check_typerefs:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               type_1->variant.pointer.is_rvalue_reference ==
                                  type_2->variant.pointer.is_rvalue_reference) {
-            compat = f_types_are_compatible(type_1->variant.pointer.type,
-                                            type_2->variant.pointer.type,
-                                            flags)
+            compat = f_types_are_compatible_full(type_1->variant.pointer.type,
+                                                 type_2->variant.pointer.type,
+                                                 flags, diffs)
 #ifdef pointer_types_have_same_repr
                      && pointer_types_have_same_repr(type_1, type_2)
 #endif /* ifdef pointer_types_have_same_repr */
@@ -5771,9 +5790,9 @@ check_typerefs:
               sub_flags |= TCF_IGNORE_TYPE_QUALIFIERS;
             }  /* if */
             /* Check that the element types are compatible. */
-            if (f_types_are_compatible(type_1->variant.array.element_type,
-                                       type_2->variant.array.element_type,
-                                       sub_flags)) {
+            if (f_types_are_compatible_full(type_1->variant.array.element_type,
+                                            type_2->variant.array.element_type,
+                                            sub_flags, diffs)) {
               /* Check that the bounds match. */
               if (identical_array_type_level(type_1, type_2)) {
                 compat = TRUE;
@@ -5829,28 +5848,54 @@ check_typerefs:
             } else {
               rt_flags = flags;
             }  /* if */
-            if (f_types_are_compatible(type_1->variant.routine.return_type,
-                                       type_2->variant.routine.return_type,
-                                       rt_flags) &&
-                param_types_are_compatible(type_1, type_2, flags) &&
+            if (f_types_are_compatible_full(
+                                          type_1->variant.routine.return_type,
+                                          type_2->variant.routine.return_type,
+                                          rt_flags, diffs) &&
+                param_types_are_compatible_full(type_1, type_2, flags,
+                                                diffs) &&
                 ((flags & TCF_IGNORE_THIS_CLASS_TYPE) ||
                  (rtsp1->qualifiers == rtsp2->qualifiers &&
                   ((rtsp1->this_class == NULL) ?
                       (rtsp2->this_class == NULL) :
                       (rtsp2->this_class != NULL &&
-                       f_types_are_compatible(rtsp1->this_class,
-                                              rtsp2->this_class, flags))))) &&
+                       f_types_are_compatible_full(rtsp1->this_class,
+                                                   rtsp2->this_class, flags,
+                                                   diffs))))) &&
                 (ignore_calling_conventions ||
-                 (routine_linkages_are_compatible(
+                 routine_linkages_are_compatible(
                              (a_name_linkage_kind)rtsp1->routine_name_linkage,
                              (a_name_linkage_kind)rtsp2->routine_name_linkage,
-                             is_impl_conv)
+                             is_impl_conv))) {
+              a_boolean  result = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-                && (!(microsoft_mode || gnu_mode) ||
-                    calling_conventions_are_compatible(type_1, type_2))
+              if ((microsoft_mode || gnu_mode) &&
+                  (!ignore_calling_conventions ||
+                   ((flags & TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS) &&
+                    diffs != NULL))) {
+                /* Check calling conventions, either because it affects
+                   compatibility, or because the caller is interested in a
+                   record of differences. */
+                if (!calling_conventions_are_compatible(type_1, type_2)) {
+                  if ((flags & TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS) &&
+                      diffs != NULL) {
+                    /* Calling convention differences don't affect
+                       compatibility, but the caller requested a record of
+                       such differences. */
+                    a_type_list_entry_ptr  tep1 = alloc_type_list_entry(),
+                                           tep2 = alloc_type_list_entry();
+                    tep1->type = type_1;
+                    tep1->next = tep2;
+                    tep2->type = type_2;
+                    tep2->next = diffs->incompatible_calling_conventions;
+                    diffs->incompatible_calling_conventions = tep1;
+                  } else {
+                    result = FALSE;
+                  }  /* if */
+                }  /* if */
+              }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
-                                                                       ))) {
-              compat = TRUE;
+              compat = result;
             }  /* if */
           }
           break;
@@ -5869,11 +5914,13 @@ check_typerefs:
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
-          if (f_types_are_compatible(pm_member_type(type_1),
-                                     pm_member_type(type_2), flags)) {
+          if (f_types_are_compatible_full(pm_member_type(type_1),
+                                          pm_member_type(type_2), flags,
+                                          diffs)) {
             if ((flags & TCF_IGNORE_PTR_TO_MEMBER_CLASS_TYPE) ||
-                f_types_are_compatible(pm_class_type(type_1),
-                                       pm_class_type(type_2), flags)) {
+                f_types_are_compatible_full(pm_class_type(type_1),
+                                            pm_class_type(type_2), flags,
+                                            diffs)) {
               compat = TRUE;
             }  /* if */
           }  /* if */
@@ -5904,7 +5951,7 @@ check_typerefs:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if CHECKING
         default:
-          internal_error("f_types_are_compatible: bad type");
+          internal_error("f_types_are_compatible_full: bad type");
 #endif /* CHECKING */
       }  /* switch */
 #if GNU_EXTENSIONS_ALLOWED
@@ -5927,11 +5974,25 @@ check_typerefs:
 done:
 #if DEBUG
   if (debug_level >= 5) {
-    fprintf(f_debug, "f_types_are_compatible: %s\n", compat ? "TRUE":"FALSE");
+    fprintf(f_debug, "f_types_are_compatible_full: %s\n",
+            compat ? "TRUE":"FALSE");
   }  /* if */
 #endif /* DEBUG */
   db_exit();
   return compat;
+}  /* f_types_are_compatible_full */
+
+
+a_boolean f_types_are_compatible(a_type_ptr              type_1,
+				 a_type_ptr              type_2,
+				 a_type_compat_flags_set flags)
+/*
+Convenience function for f_types_are_compatible_full when specific type
+differences need not be recorded.
+*/
+{
+  return f_types_are_compatible_full(type_1, type_2, flags,
+                                     (a_type_difference_descr_ptr)NULL);
 }  /* f_types_are_compatible */
 
 

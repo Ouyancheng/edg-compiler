@@ -10954,6 +10954,67 @@ declaration that must be checked.
 }  /* check_for_declaration_errors */
 
 
+static a_boolean incompatible_substituted_and_rescanned_types_after_fixup(
+                                                 a_type_ptr  substituted_type,
+                                                 a_type_ptr  rescanned_type)
+/*
+A function template is being instantiated.  The type of the instantiation was
+obtained both by rescanning the tokens (rescanned_type) and by substituting
+the parameterized type of the template (substituted type).  Compare the two
+types and, in C++/CLI mode, adjust the rescanned type to reflect implicit
+calling conventions that can be determined only in the substitution process.
+Return TRUE if the type are incompatible (after the adjustment).
+*/
+{
+  a_boolean                result = FALSE;
+  a_type_difference_descr  diffs, *p_diffs;
+
+  diffs.incompatible_calling_conventions = NULL;
+  p_diffs = cppcli_enabled ? &diffs : (a_type_difference_descr_ptr)NULL;
+  if (f_types_are_compatible_full(
+                                  substituted_type, rescanned_type,
+                                  TCF_CHECKING_DEDUCTION_RESULT |
+                                  TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS,
+                                  p_diffs)) {
+    /* Except for Microsoft-style calling conventions, the two types are
+       compatible. */
+    if (p_diffs != NULL && p_diffs->incompatible_calling_conventions != NULL) {
+      a_type_list_entry_ptr  tep1 = p_diffs->incompatible_calling_conventions,
+                             tep2;
+      for (; tep1 != NULL; tep1 = tep2->next) {
+        tep2 = tep1->next;
+        check_assertion(tep1->type->kind == (a_type_kind)tk_routine &&
+                        tep2->type->kind == (a_type_kind)tk_routine);
+        if (tep1->type->variant.routine.extra_info->calling_convention ==
+                                          (a_calling_convention)cc_clrcall &&
+            !tep1->type->variant.routine.extra_info
+                       ->explicit_calling_convention) {
+          /* The substituted type is implicitly __clrcall (presumably because
+             it involved a generic parameter).  Update the rescanned type to
+             have the same convention.  (This is safe because only "direct"
+             calling convention conflicts were recorded; i.e., no conflicts
+             due to calling conventions in typedef types or decltype (and
+             similar) constructs. */
+          tep2->type->variant.routine.extra_info->calling_convention =
+                                             (a_calling_convention)cc_clrcall;
+          tep2->type->variant.routine.extra_info
+                    ->explicit_calling_convention = FALSE;
+        } else {
+          result = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+      free_list_of_type_list_entries(
+                                   p_diffs->incompatible_calling_conventions);
+    }  /* if */
+  } else {
+    /* The two types are incompatible. */
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* incompatible_substituted_and_rescanned_types_after_fixup */
+
+
 static void verify_routine_type_matches_template(
 					a_symbol_ptr		templ_sym,
 					a_routine_ptr		rout,
@@ -10978,8 +11039,8 @@ declared and before the partial instantiation of the function was done.
                                   (a_template_param_ptr)NULL,
                                   /*is_partial_order_check=*/FALSE);
   if (substituted_type == NULL ||
-      !f_types_are_compatible(substituted_type, type,
-                              TCF_CHECKING_DEDUCTION_RESULT)) {
+      incompatible_substituted_and_rescanned_types_after_fixup(
+                                                    substituted_type, type)) {
     if (!is_or_contains_error_type(type) &&
         !is_or_contains_error_type(templ_rout->type) &&
         !f_types_are_compatible(substituted_type, type,

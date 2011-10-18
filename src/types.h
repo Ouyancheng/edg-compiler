@@ -691,6 +691,20 @@ a_boolean member_types_correspond(a_type_ptr dest_type,
                                   a_boolean  *qualifiers_added);
 
 /*
+Description of differences found while comparing types.
+*/
+typedef struct a_type_difference_descr *a_type_difference_descr_ptr;
+typedef struct a_type_difference_descr {
+  a_type_list_entry_ptr
+		incompatible_calling_conventions;
+			/* A list containing an even number of types, which,
+			   taken two-by-two, describe routine types with
+			   incompatible calling conventions during a type
+			   comparison that permits incompatible conventions. */
+} a_type_difference_descr;
+
+
+/*
 Bit flags for calls of f_types_are_compatible et al.
 */
 #define TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING 0x1
@@ -707,10 +721,10 @@ Bit flags for calls of f_types_are_compatible et al.
 #define TCF_IGNORE_CALLING_CONVENTIONS 0x8
 			/* Ignore the calling conventions implied by name
 			   linkage specified on top-level function types. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
 			/* Also ignore Microsoft style calling convention
 			   specifications. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 #define TCF_IMPLICIT_CONVERSION 0x10
 			/* The conversion appears in the context of an
 			   implicit conversion, which (in C++) may affect how
@@ -766,12 +780,34 @@ Bit flags for calls of f_types_are_compatible et al.
 			   generic_param_seq_number of a template parameter
 			   type supplement) is compared instead of the
 			   template parameter coordinates. */
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
+#define TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS 0x4000
+			/* Record incompatible Microsoft-style calling
+			   conventions (like __cdecl, or __clrcall) in the
+			   "diffs" parameter (if non-NULL) and do not let them
+			   affect the overall type compatibility outcome.
+			   Only "direct" conventions (i.e., not under a
+			   typedef) are tracked. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
 
-extern a_boolean param_types_are_compatible(a_type_ptr              rout_type1,
-                                            a_type_ptr              rout_type2,
-                                            a_type_compat_flags_set flags);
+extern a_boolean f_types_are_compatible_full(
+                                          a_type_ptr                   type_1,
+                                          a_type_ptr                   type_2,
+                                          a_type_compat_flags_set      flags,
+                                          a_type_difference_descr_ptr  diffs);
+
+extern a_boolean param_types_are_compatible_full(
+                                      a_type_ptr                   rout_type1,
+                                      a_type_ptr                   rout_type2,
+                                      a_type_compat_flags_set      flags,
+                                      a_type_difference_descr_ptr  diffs);
+
+#define param_types_are_compatible(rtp1, rtp2, flags)                        \
+  (param_types_are_compatible_full((rtp1), (rtp2), (flags),                  \
+                                   (a_type_difference_descr_ptr)NULL))
+
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
 extern a_boolean calling_conventions_are_compatible(a_type_ptr type1,
                                                     a_type_ptr type2);
