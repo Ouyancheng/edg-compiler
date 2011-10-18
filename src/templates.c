@@ -5880,9 +5880,9 @@ static a_boolean is_valid_cli_array_instantiation(
                                          a_source_position  *diag_pos)
 /*
 Check the element type and rank of the template_arg_list of a C++/CLI array.
-The element type must be a handle or a value type.  The rank must be one or
-greater.  If this is an invalid array, return FALSE, and, if diag_pos is
-non-NULL, issue an error at the given position.
+The element type must be a handle or a value type.  The rank must be larger
+than zero but no larger than 32.  If this is an invalid array, return FALSE,
+and, if diag_pos is non-NULL, issue an error at the given position.
 */
 {
   a_template_arg_ptr tap;
@@ -5919,9 +5919,11 @@ non-NULL, issue an error at the given position.
         con->kind == (a_constant_repr_kind)ck_error) {
       /* Can't check. */
     } else {
-      a_boolean ovflo;
+      a_boolean            ovflo;
+      a_host_large_integer val;
       check_assertion(con->kind == (a_constant_repr_kind)ck_integer);
-      if (value_of_integer_constant(con, &ovflo) <= 0 || ovflo ) {
+      val = value_of_integer_constant(con, &ovflo);
+      if (val <= 0 || val >= 33 || ovflo) {
         if (diag_pos != NULL) {
           pos_error(ec_cli_array_invalid_number_of_dimensions, diag_pos);
         }  /* if */
