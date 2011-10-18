@@ -771,16 +771,13 @@ to win out.
                                          /*must_be_present=*/FALSE,
                                          &operand->position);
   if (get_sym != NULL) {
-    a_boolean pointer_case = FALSE, class_case = FALSE;
-    a_boolean some_function_has_params = FALSE;
-    a_boolean overloaded_case = FALSE;
-    reduce_projection_symbol_to_fundamental_symbol(get_sym);
-    if (get_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      overloaded_case = TRUE;
-      get_sym = get_sym->variant.overloaded_function.symbols;
-    }  /* if */
-    for (; get_sym != NULL;
-         get_sym = overloaded_case ? get_sym->next : NULL) {
+    a_boolean                       pointer_case = FALSE, class_case = FALSE;
+    a_boolean                       some_function_has_params = FALSE;
+    an_overload_set_traversal_block ostblock;
+    for (get_sym = set_up_overload_set_traversal(get_sym, &ostblock);
+         get_sym != NULL;
+         get_sym = next_symbol_in_overload_set(&ostblock,
+                                               /*curr_sym_viable=*/FALSE)) {
       a_type_ptr   rout_type;
       a_symbol_ptr fund_sym = fundamental_symbol_of(get_sym);
       check_assertion(fund_sym->kind == (a_symbol_kind)sk_member_function);

@@ -220,6 +220,31 @@ typedef int a_conv_context_set;
 			   has static lifetime. */
 
 /*
+Data structure used by set_up_overload_set_traversal et al. to control the
+traversal of an overload set to produce a sequence of symbols to be
+tried in overload resolution.
+*/
+typedef struct an_overload_set_traversal_block {
+  a_symbol_ptr	current_symbol;
+			/* The symbol currently being considered. */
+  a_byte_boolean
+		is_overloaded_function_list;
+			/* TRUE if the list being traversed is the list
+			   under an sk_overloaded_function symbol. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_byte_boolean
+		skip_inaccessible_functions;
+			/* TRUE if inaccessible functions on the list should
+			   be skipped.  Used in some C++/CLI contexts. */
+  a_hide_by_sig_list_entry_ptr
+		hide_by_sig_list;
+			/* For a C++/CLI hide-by-sig name, the list of
+			   symbols to be considered, in order.  NULL
+			   otherwise. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+} an_overload_set_traversal_block;
+
+/*
 Argument match levels for overloaded function call resolution; See ARM 13.2.
 */
 typedef enum /*an_arg_match_level*/ {
@@ -574,6 +599,14 @@ typedef struct an_arg_check_block {
 } an_arg_check_block;
 
 extern void clear_conv_descr(a_conv_descr_ptr conv);
+
+extern a_symbol_ptr set_up_overload_set_traversal(
+                                    a_symbol_ptr                    sym,
+                                    an_overload_set_traversal_block *ostblock);
+
+extern a_symbol_ptr next_symbol_in_overload_set(
+                              an_overload_set_traversal_block *ostblock,
+                              a_boolean                       curr_sym_viable);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean hide_by_sig_lookup_applies(a_symbol_ptr sym);

@@ -100,36 +100,6 @@ Clear a conversion description.
 }  /* clear_conv_descr */
 
 
-/*
-Data structure used by set_up_overload_set_traversal et al. to control the
-traversal of an overload set to produce a sequence of symbols to be
-tried in overload resolution.
-*/
-typedef struct an_overload_set_traversal_block {
-  a_symbol_ptr	current_symbol;
-			/* The symbol currently being considered. */
-  a_byte_boolean
-		is_overloaded_function_list;
-			/* TRUE if the list being traversed is the list
-			   under an sk_overloaded_function symbol. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_byte_boolean
-		skip_inaccessible_functions;
-			/* TRUE if inaccessible functions on the list should
-			   be skipped.  Used in some C++/CLI contexts. */
-  a_hide_by_sig_list_entry_ptr
-		hide_by_sig_list;
-			/* For a C++/CLI hide-by-sig name, the list of
-			   symbols to be considered, in order.  NULL
-			   otherwise. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-} an_overload_set_traversal_block;
-
-static a_symbol_ptr next_symbol_in_overload_set(
-                              an_overload_set_traversal_block *ostblock,
-                              a_boolean                       curr_sym_viable);
-
-
 static a_symbol_ptr set_overload_set_traversal_symbol(
                                      a_symbol_ptr                    sym,
                                      an_overload_set_traversal_block *ostblock)
@@ -156,7 +126,7 @@ empty traversal and return NULL.
 }  /* set_overload_set_traversal_symbol */
 
 
-static a_symbol_ptr set_up_overload_set_traversal(
+a_symbol_ptr set_up_overload_set_traversal(
                                      a_symbol_ptr                    sym,
                                      an_overload_set_traversal_block *ostblock)
 /*
@@ -219,9 +189,9 @@ returned may be a projection symbol.
 
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- any_viable_functions is not used in that case. */
+/*ARGSUSED*/  /* <-- curr_sym_viable is not used in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static a_symbol_ptr next_symbol_in_overload_set(
+a_symbol_ptr next_symbol_in_overload_set(
                                an_overload_set_traversal_block *ostblock,
                                a_boolean                       curr_sym_viable)
 /*
@@ -19067,21 +19037,21 @@ used only in C++ mode.  It does not do access checking on the copy
 constructor.
 */
 {
-  a_symbol_ptr                   sym, cctor_sym = NULL, uncallable_sym = NULL;
-  a_symbol_ptr                   overloaded_sym;
-  a_boolean                      is_overloaded_function;
-  a_type_qualifier_set           qualifiers;
-  a_boolean                      multiple_uncallable = FALSE;
-  a_class_symbol_supplement_ptr  cssp;
-  a_routine_ptr                  routine;
-  a_type_ptr                     routine_type, arg_type, param_type;
-  a_type_ptr                     und_param_type;
-  a_routine_type_supplement_ptr  rtsp;
-  a_template_arg_ptr             template_arg_list;
-  a_param_type_ptr               ptp;
-  an_arg_match_summary_ptr       arg_match;
-  a_candidate_function_ptr       candidate_functions;
-  a_boolean                      undecidable_because_of_error;
+  a_symbol_ptr                    sym, cctor_sym = NULL, uncallable_sym = NULL;
+  a_symbol_ptr                    overloaded_sym;
+  a_type_qualifier_set            qualifiers;
+  a_boolean                       multiple_uncallable = FALSE;
+  a_class_symbol_supplement_ptr   cssp;
+  a_routine_ptr                   routine;
+  a_type_ptr                      routine_type, arg_type, param_type;
+  a_type_ptr                      und_param_type;
+  a_routine_type_supplement_ptr   rtsp;
+  a_template_arg_ptr              template_arg_list;
+  a_param_type_ptr                ptp;
+  an_arg_match_summary_ptr        arg_match;
+  a_candidate_function_ptr        candidate_functions;
+  a_boolean                       undecidable_because_of_error;
+  an_overload_set_traversal_block ostblock;
 
   /* This routine is similar to select_overloaded_function. */
   db_enter(4, "select_overloaded_copy_constructor");
@@ -19117,25 +19087,17 @@ constructor.
     }  /* if */
   } else {
     arg_type = make_qualified_type(class_type, required_qualifiers);
-    sym = overloaded_sym = cssp->constructor;
-#if CHECKING
-    if (sym == NULL) {
-      internal_error("select_overloaded_copy_constructor: NULL constructor");
-    }  /* if */
-#endif /* CHECKING */
-    /* If sym is an overloaded function symbol we need to go through the whole
-       list. */
-    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      is_overloaded_function = TRUE;
-      sym = sym->variant.overloaded_function.symbols;
-    } else {
-      is_overloaded_function = FALSE;
-    }  /* if */
+    overloaded_sym = cssp->constructor;
+    check_assertion_str(overloaded_sym != NULL,
+                       "select_overloaded_copy_constructor: NULL constructor");
     /* Examine each constructor for this class to find a copy constructor.
        There may be more than one.  For instance, there may be a copy
        constructor that can copy a const object and another that cannot. */
     candidate_functions = NULL;
-    for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
+    for (sym = set_up_overload_set_traversal(overloaded_sym, &ostblock);
+         sym != NULL;
+         sym = next_symbol_in_overload_set(&ostblock,
+                                           /*curr_sym_viable=*/FALSE)) {
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("overload")) {
         db_display_overload_level();
