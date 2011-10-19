@@ -9781,6 +9781,9 @@ is set to tok_error.
   a_symbol_locator	locator;
   a_boolean		err = FALSE;
 
+  /* Push a new lexical state so that the tokens scanned by this routine
+     will not be cached by the background caching mechanism. */
+  push_lexical_state_stack();
   /* Bypass the operator token. */
   (void)get_token();
   /* Scan the "(". */
@@ -9842,6 +9845,8 @@ is set to tok_error.
     check_assertion(locator_for_curr_id.symbol_header != NULL);
     locator_for_curr_id.symbol_header->microsoft_identifier_used = TRUE;
   }  /* if */
+  /* Pop the lexical state pushed by this routine. */
+  pop_lexical_state_stack();
 }  /* scan_microsoft_identifier_operator */
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
