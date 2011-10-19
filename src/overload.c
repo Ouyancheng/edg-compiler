@@ -126,6 +126,7 @@ empty traversal and return NULL.
 }  /* set_overload_set_traversal_symbol */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 /*
 Return TRUE if the indicated symbol from an overload set should be skipped
 because it's inaccessible.
@@ -133,6 +134,7 @@ because it's inaccessible.
 #define should_skip_symbol_because_inaccessible(sym, ostblock) \
   ((ostblock)->skip_inaccessible_functions && \
    !have_hide_by_sig_access_to_symbol(sym))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 a_symbol_ptr set_up_overload_set_traversal(
