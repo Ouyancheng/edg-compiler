@@ -15981,18 +15981,21 @@ for C++/CLI.
 */
 {
   a_symbol_ptr  ctor = symbol_supplement_for_class(class_type)->constructor;
-  a_boolean     result = FALSE,
-                is_list = symbol_is(ctor, sk_overloaded_function);
-  
-  if (is_list) ctor = ctor->variant.overloaded_function.symbols;
-  for (; ctor != NULL; ctor = is_list ? ctor->next : NULL) {
-    if (function_type_params(routine_symbol_type(ctor)) == NULL) {
-      /* A function with no parameters, except perhaps for an ellipsis
-         parameter. */
-      result = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
+  a_boolean     result = FALSE;
+
+
+  if (ctor != NULL) {
+    a_boolean  is_list = symbol_is(ctor, sk_overloaded_function);
+    if (is_list) ctor = ctor->variant.overloaded_function.symbols;
+    for (; ctor != NULL; ctor = is_list ? ctor->next : NULL) {
+      if (function_type_params(routine_symbol_type(ctor)) == NULL) {
+        /* A function with no parameters, except perhaps for an ellipsis
+           parameter. */
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   return result;
 }  /* has_simple_default_constructor */
 
