@@ -4842,7 +4842,6 @@ arguments of the call (given by arg_operand_list).  In C++/CLI mode,
 the class_object can be a handle to an object.
 */
 {
-  a_symbol_list_entry_ptr slep;
   a_symbol_ptr            surrogate_function_conv_sym;
   a_symbol_ptr            base_surrogate_function_conv_sym;
   a_type_ptr              class_type, conversion_type, routine_type;
@@ -4850,6 +4849,8 @@ the class_object can be a handle to an object.
   a_boolean               matched_except_for_missing_selector = FALSE;
   a_boolean               matched_except_for_selector = FALSE;
   a_boolean               handle_case = FALSE;
+  an_overload_set_traversal_block
+                          ostblock;
 
   class_type = class_object->type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -4865,11 +4866,12 @@ the class_object can be a handle to an object.
   check_assertion(is_immediate_class_type(class_type));
   /* Look at all conversion functions.  (The standard calls for conversion
      functions in accessible base classes, but that seems wrong.) */
-  for (slep = symbol_supplement_for_class(class_type)->conversion_list;
-       slep != NULL;
-       slep = slep->next) {
-    surrogate_function_conv_sym = slep->symbol;
-
+  for (surrogate_function_conv_sym = set_up_overload_symbol_list_traversal(
+                      symbol_supplement_for_class(class_type)->conversion_list,
+                      &ostblock);
+       surrogate_function_conv_sym != NULL;
+       surrogate_function_conv_sym =
+                              next_symbol_in_overload_symbol_list(&ostblock)) {
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("overload")) {
       db_display_overload_level();
@@ -12834,13 +12836,16 @@ for the previous operand.
                                             previous_specific_type_considered);
         } else {
           /* The first operand has a class type. */
-          a_symbol_list_entry_ptr slep;
+          an_overload_set_traversal_block ostblock;
+          a_symbol_ptr                    conversion_symbol;
           /* Examine each conversion function from the source class. */
-          for (slep = symbol_supplement_for_class(
-                              previous_class_type_considered)->conversion_list;
-               slep != NULL;
-               slep = slep->next) {
-            a_symbol_ptr conversion_symbol = slep->symbol;
+          for (conversion_symbol = set_up_overload_symbol_list_traversal(
+                      symbol_supplement_for_class(
+                              previous_class_type_considered)->conversion_list,
+                      &ostblock);
+               conversion_symbol != NULL;
+               conversion_symbol =
+                              next_symbol_in_overload_symbol_list(&ostblock)) {
             a_symbol_ptr base_conversion_symbol =
                                       fundamental_symbol_of(conversion_symbol);
             a_type_ptr   conv_routine_type =
