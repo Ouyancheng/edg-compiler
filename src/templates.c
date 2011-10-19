@@ -5875,14 +5875,16 @@ generic_arg_list identifies an open constructed type (ECMA-372 31.2.1).
 }  /* is_open_constructed_generic_arg_list */
 
 
-static a_boolean is_valid_cli_array_instantiation(
+static a_boolean check_cli_array_instantiation(
                                          a_template_arg_ptr template_arg_list,
                                          a_source_position  *diag_pos)
 /*
 Check the element type and rank of the template_arg_list of a C++/CLI array.
 The element type must be a handle or a value type.  The rank must be larger
 than zero but no larger than 32.  If this is an invalid array, return FALSE,
-and, if diag_pos is non-NULL, issue an error at the given position.
+and, if diag_pos is non-NULL, issue an error at the given position.  If the
+element type is invalid, it is replaced by an error type to avoid error
+recovery problems elsewhere.
 */
 {
   a_template_arg_ptr tap;
@@ -5905,6 +5907,7 @@ and, if diag_pos is non-NULL, issue an error at the given position.
         pos_error(ec_cli_array_invalid_element_type, diag_pos);
       }  /* if */
       is_valid = FALSE; 
+      tap->variant.type = error_type();
     }  /* if */
   }  /* if */
   advance_to_next_template_arg_simple(&tap);
@@ -5932,7 +5935,7 @@ and, if diag_pos is non-NULL, issue an error at the given position.
     }  /* if */
   }  /* if */
   return is_valid;
-}  /* is_valid_cli_array_instantiation */
+}  /* check_cli_array_instantiation */
 
 
 static a_boolean is_valid_cli_special_ptr_instantiation(
@@ -5997,7 +6000,7 @@ issue an error at the given position.
   a_boolean  result;
 
   if (template_sym == cli_symbol_from_kind(csk_cli_array)) {
-    result = is_valid_cli_array_instantiation(template_arg_list, diag_pos);
+    result = check_cli_array_instantiation(template_arg_list, diag_pos);
   } else if (template_sym == cli_symbol_from_kind(csk_interior_ptr) ||
              template_sym == cli_symbol_from_kind(csk_pin_ptr)) {
     result = is_valid_cli_special_ptr_instantiation(
