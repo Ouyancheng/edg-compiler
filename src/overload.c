@@ -126,6 +126,15 @@ empty traversal and return NULL.
 }  /* set_overload_set_traversal_symbol */
 
 
+/*
+Return TRUE if the indicated symbol from an overload set should be skipped
+because it's inaccessible.
+*/
+#define should_skip_symbol_because_inaccessible(sym, ostblock) \
+  ((ostblock)->skip_inaccessible_functions && \
+   !have_hide_by_sig_access_to_symbol(sym))
+
+
 a_symbol_ptr set_up_overload_set_traversal(
                                      a_symbol_ptr                    sym,
                                      an_overload_set_traversal_block *ostblock)
@@ -167,6 +176,17 @@ returned may be a projection symbol.
         }  /* if */
         ostblock->hide_by_sig_list = list;
         sym = list->symbol;
+        /* If the symbol on the list is a non-function, skip it.  Such
+           entries are there because non-function members can hide functions
+           in base classes, but they only hide them if the non-function
+           member is accessible. */
+        /* There's code very similar to this in next_symbol_in_overload_set. */
+        { a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
+          if (!is_function_or_template_symbol(fund_sym)) {
+            a_boolean sym_accessible = have_hide_by_sig_access_to_symbol(sym);
+            sym = next_symbol_in_overload_set(ostblock, sym_accessible);
+          }  /* if */
+        }
       } else {
         /* Hide-by-sig applies, but the list is empty.  Return a null
            symbol. */
@@ -178,8 +198,7 @@ returned may be a projection symbol.
   sym = set_overload_set_traversal_symbol(sym, ostblock);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (sym != NULL &&
-      ostblock->skip_inaccessible_functions &&
-      !have_hide_by_sig_access_to_symbol(sym)) {
+      should_skip_symbol_because_inaccessible(sym, ostblock)) {
     /* The symbol is inaccessible and should be skipped. */
     sym = next_symbol_in_overload_set(ostblock, /*curr_sym_viable=*/FALSE);
   }  /* if */
@@ -227,7 +246,9 @@ top:
       /* We've finished one symbol on the hide-by-sig list (which, if the
          symbol was an overloaded function, involved going through the list
          of functions).  Go on to the next entry on the hide-by-sig list. */
-      uint32_t level = list->level;
+      uint32_t level;
+advance_in_hide_by_sig_list:
+      level = list->level;
       list = list->next;
       /* If the symbol we just finished processing was viable, do not descend
          into base classes under it; skip instead to the next entry at the same
@@ -245,13 +266,26 @@ top:
       if (list != NULL) {
         sym = list->symbol;
         check_assertion(sym != NULL);
+        /* If the symbol on the list is a non-function, skip it.  Such
+           entries are there because non-function members can hide functions
+           in base classes, but they only hide them if the non-function
+           member is accessible. */
+        /* There's code very similar to this in
+           set_up_overload_set_traversal. */
+        { a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
+          if (!is_function_or_template_symbol(fund_sym)) {
+            curr_sym_viable = have_hide_by_sig_access_to_symbol(sym);
+            goto advance_in_hide_by_sig_list;
+          }  /* if */
+        }
         sym = set_overload_set_traversal_symbol(sym, ostblock);
+      } else {
+        sym = NULL;
       }  /* if */
     }  /* if */
   }  /* if */
   if (sym != NULL &&
-      ostblock->skip_inaccessible_functions &&
-      !have_hide_by_sig_access_to_symbol(sym)) {
+      should_skip_symbol_because_inaccessible(sym, ostblock)) {
     /* The symbol is inaccessible and should be skipped. */
     goto top;
   }  /* if */
@@ -299,8 +333,7 @@ or NULL if there isn't one.  The symbol returned may be a projection symbol.
   ostblock->current_symbol_list_entry = slep;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (sym != NULL &&
-      ostblock->skip_inaccessible_functions &&
-      !have_hide_by_sig_access_to_symbol(sym)) {
+      should_skip_symbol_because_inaccessible(sym, ostblock)) {
     /* The symbol is inaccessible and should be skipped. */
     sym = next_symbol_in_overload_symbol_list(ostblock);
   }  /* if */
@@ -331,8 +364,7 @@ top:
   sym = (slep != NULL) ? slep->symbol : NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (sym != NULL &&
-      ostblock->skip_inaccessible_functions &&
-      !have_hide_by_sig_access_to_symbol(sym)) {
+      should_skip_symbol_because_inaccessible(sym, ostblock)) {
     /* The symbol is inaccessible and should be skipped. */
     goto top;
   }  /* if */
