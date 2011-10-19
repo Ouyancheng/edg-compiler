@@ -11752,8 +11752,9 @@ type appears on the list of conversion functions.
 */
 {
   a_symbol_ptr             conversion_symbol;
-  a_symbol_list_entry_ptr  slep;
   a_type_ptr               conv_routine_type, return_type;
+  an_overload_set_traversal_block
+                           ostblock;
 
 #if CHECKING
   if (!is_class_struct_union_type(class_type)) {
@@ -11762,10 +11763,13 @@ type appears on the list of conversion functions.
 #endif /* CHECKING */
   dest_type = skip_typerefs(dest_type);
   /* Examine each conversion function from the source class. */
-  for (slep = symbol_supplement_for_class(class_type)->conversion_list;
-       slep != NULL && slep != stop_on;
-       slep = slep->next) {
-    conversion_symbol = slep->symbol;
+  /*lint --e{850} conversion_symbol modified in loop */
+  for (conversion_symbol = set_up_overload_symbol_list_traversal(
+                      symbol_supplement_for_class(class_type)->conversion_list,
+                      &ostblock);
+       conversion_symbol != NULL &&
+                      ostblock.current_symbol_list_entry != stop_on;
+       conversion_symbol = next_symbol_in_overload_symbol_list(&ostblock)) {
     reduce_projection_symbol_to_fundamental_symbol(conversion_symbol);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (!conversion_function_converts_from_class(
@@ -12895,6 +12899,8 @@ in some way, e.g., two pointers that must have the same type.
   char                     *type_pattern_position;
   a_symbol_ptr             conversion_symbol, base_conversion_symbol;
   a_symbol_list_entry_ptr  slep;
+  an_overload_set_traversal_block
+                           ostblock;
   a_type_ptr               conv_routine_type, return_type;
   a_type_ptr               previous_class_type_considered;
   a_type_ptr               previous_specific_type_considered;
@@ -12932,10 +12938,12 @@ in some way, e.g., two pointers that must have the same type.
       class_type = skip_typerefs(class_type);
       any_approp_conversion_function_this_operand = FALSE;
       /* Look at all the conversion functions for the source class. */
-      for (slep = symbol_supplement_for_class(class_type)->conversion_list;
-           slep != NULL;
-           slep = slep->next) {
-        conversion_symbol = slep->symbol;
+      for (conversion_symbol = set_up_overload_symbol_list_traversal(
+                      symbol_supplement_for_class(class_type)->conversion_list,
+                      &ostblock);
+           conversion_symbol != NULL;
+           conversion_symbol = next_symbol_in_overload_symbol_list(&ostblock)){
+        slep = ostblock.current_symbol_list_entry;
         base_conversion_symbol = fundamental_symbol_of(conversion_symbol);
         conv_routine_type = routine_symbol_type(base_conversion_symbol);
 #if MICROSOFT_EXTENSIONS_ALLOWED

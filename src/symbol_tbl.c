@@ -36,6 +36,7 @@ symbol_tbl.c - Symbol table management routines.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#include "overload.h"
 
 /* The multiplier used in the hash algorithm that generates an index
    in the hash table from an identifier name string.  Do not change
@@ -8114,22 +8115,16 @@ and therefore might be a projection symbol.  If there is an ambiguity return
 *ambiguous set to TRUE.
 */
 {
-  a_boolean        is_overloaded;
-  a_param_type_ptr ptp;
-  a_symbol_ptr     default_sym = NULL;
-  a_symbol_ptr     next_sym;
+  an_overload_set_traversal_block ostblock;
+  a_param_type_ptr                ptp;
+  a_symbol_ptr                    default_sym = NULL;
 
   *ambiguous = FALSE;
-  reduce_projection_symbol_to_fundamental_symbol(sym);
-  is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
-  if (is_overloaded) sym = sym->variant.overloaded_function.symbols;
   /*lint --e{850} sym modified in loop */
-  for (; sym != NULL;
-       /*lint --e(506)*/
-       sym = ABI_COMPATIBILITY_VERSION < 311
-           ? (is_overloaded ? sym->next : NULL)
-           : next_sym) {
-    next_sym = is_overloaded ? sym->next : NULL;
+  for (sym = set_up_overload_set_traversal(sym, &ostblock);
+       sym != NULL;
+       sym = next_symbol_in_overload_set(&ostblock,
+                                         /*curr_sym_viable=*/FALSE)) {
     if (sym->kind == (a_symbol_kind)sk_projection) {
       /* An overload set can contain a projection symbol as the result of a
          using declaration. */
@@ -8220,16 +8215,18 @@ symbol), or NULL if it is not found or there is an ambiguity.  If there is an
 ambiguity return *ambiguous set to TRUE.
 */
 {
-  a_boolean      is_overloaded, ambiguous_alternate = FALSE, is_class_member;
+  an_overload_set_traversal_block
+                 ostblock;
+  a_boolean      ambiguous_alternate = FALSE, is_class_member;
   a_symbol_ptr   fund_sym, default_sym = NULL, alternate_default_sym = NULL;
   a_routine_ptr  rp;
 
   *ambiguous = FALSE;
   is_class_member = sym->is_class_member;
-  reduce_projection_symbol_to_fundamental_symbol(sym);
-  is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
-  if (is_overloaded) sym = sym->variant.overloaded_function.symbols;
-  for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
+  for (sym = set_up_overload_set_traversal(sym, &ostblock);
+       sym != NULL;
+       sym = next_symbol_in_overload_set(&ostblock,
+                                         /*curr_sym_viable=*/FALSE)) {
     fund_sym = sym;
     if (sym->kind == (a_symbol_kind)sk_projection) {
       /* An overload set can contain a projection symbol as the result of a
@@ -8311,14 +8308,15 @@ symbol that is returned as the corresponding operator delete symbol, but it
 may an overload symbol instead.
 */
 {
-  a_symbol_ptr                   sym = NULL;
-  a_symbol_ptr                   corresp_op_delete_sym = NULL, fund_sym;
-  a_routine_ptr                  rp;
-  an_opname_kind                 delete_opname_kind;
-  a_param_type_ptr               op_new_param_type_list, op_new_ptp, ptp;
-  a_boolean                      is_overloaded, any_template_seen;
-  a_routine_type_supplement_ptr  rtsp;
-  a_boolean                      op_new_has_ellipsis = FALSE;
+  a_symbol_ptr                    sym = NULL;
+  a_symbol_ptr                    corresp_op_delete_sym = NULL, fund_sym;
+  a_routine_ptr                   rp;
+  an_opname_kind                  delete_opname_kind;
+  a_param_type_ptr                op_new_param_type_list, op_new_ptp, ptp;
+  a_boolean                       any_template_seen;
+  a_routine_type_supplement_ptr   rtsp;
+  a_boolean                       op_new_has_ellipsis = FALSE;
+  an_overload_set_traversal_block ostblock;
 
   db_enter(4, "find_corresponding_operator_delete_sym");
   check_assertion(op_new_sym->kind == (a_symbol_kind)sk_routine ||
@@ -8354,16 +8352,12 @@ may an overload symbol instead.
     } else {
       /* Placement new.  We need to examine all the delete operators and look
          for a type match. */
-      fund_sym = fundamental_symbol_of(sym);
-      if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-        is_overloaded = TRUE;
-        sym = fund_sym->variant.overloaded_function.symbols;
-      } else {
-        is_overloaded = FALSE;
-      }  /* if */
       any_template_seen = FALSE;
       /*lint --e{446} sym modified in loop (LINTBUG) */
-      for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
+      for (sym = set_up_overload_set_traversal(sym, &ostblock);
+           sym != NULL;
+           sym = next_symbol_in_overload_set(&ostblock,
+                                             /*curr_sym_viable=*/FALSE)) {
         if (sym->kind == (a_symbol_kind)sk_projection) {
           /* An overload set can contain a projection symbol as the result of
              a using-declaration. */
@@ -8435,12 +8429,10 @@ next_delete_symbol:;
           /* Change the first parameter type from size_t to void *. */
           saved_first_param_type = op_new_param_type_list->type;
           op_new_param_type_list->type = make_pointer_type(void_type());
-          sym = *overload_sym;
-          if (is_overloaded) {
-            reduce_projection_symbol_to_fundamental_symbol(sym);
-            sym = sym->variant.overloaded_function.symbols;
-          }  /* if */
-          for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
+          for (sym = set_up_overload_set_traversal(*overload_sym, &ostblock);
+               sym != NULL;
+               sym = next_symbol_in_overload_set(&ostblock,
+                                                 /*curr_sym_viable=*/FALSE)) {
             fund_sym = fundamental_symbol_of(sym);
             if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
               if (has_matching_template_function(
@@ -9077,14 +9069,14 @@ TRUE if there is more than one matching assignment operator.  *pass_by_value
 is returned TRUE if the parameter is not a reference parameter.
 */
 {
-  a_symbol_ptr                   sym, opass_sym = NULL;
-  a_class_symbol_supplement_ptr  cssp;
-  a_boolean                      is_overloaded_function;
-  a_boolean                      opass_sym_matches_exactly = FALSE;
-  a_boolean                      base_class_match_allowed = FALSE;
-  a_boolean                      any_base_class_match = FALSE;
-  a_routine_type_supplement_ptr  rtsp;
-  a_type_qualifier_set           opass_qualifiers = TQ_NONE;
+  a_symbol_ptr                    sym, opass_sym = NULL;
+  a_class_symbol_supplement_ptr   cssp;
+  a_boolean                       opass_sym_matches_exactly = FALSE;
+  a_boolean                       base_class_match_allowed = FALSE;
+  a_boolean                       any_base_class_match = FALSE;
+  a_routine_type_supplement_ptr   rtsp;
+  a_type_qualifier_set            opass_qualifiers = TQ_NONE;
+  an_overload_set_traversal_block ostblock;
 
   *ambiguous = FALSE;
   cssp = symbol_supplement_for_class(class_type);
@@ -9095,15 +9087,6 @@ is returned TRUE if the parameter is not a reference parameter.
                     total_errors != 0 || microsoft_mode ||
                     class_type_supp(class_type)->is_lambda_closure_class);
   } else {
-    sym = cssp->assignment_operator;
-    /* If sym is an overloaded function symbol we need to go through the whole
-       list. */
-    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      is_overloaded_function = TRUE;
-      sym = sym->variant.overloaded_function.symbols;
-    } else {
-      is_overloaded_function = FALSE;
-    }  /* if */
     /* This is potentially a two-pass loop.  The first time through
        base_class_match_allowed is FALSE, the second time it's TRUE.  A "base
        class match" is a cfront compatibility feature, where D::operator=(B&)
@@ -9114,7 +9097,11 @@ is returned TRUE if the parameter is not a reference parameter.
     for (;;) {
       /* Find an assignment operator whose argument is ref-class (pass by
          reference) or class (pass_by_value). */
-      for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
+      for (sym = set_up_overload_set_traversal(cssp->assignment_operator,
+                                               &ostblock);
+           sym != NULL;
+           sym = next_symbol_in_overload_set(&ostblock,
+                                             /*curr_sym_viable=*/FALSE)) {
         a_boolean             sym_matches_exactly;
         a_boolean             is_ref_arg;
         a_type_qualifier_set  qualifiers = TQ_NONE;
@@ -9196,12 +9183,7 @@ is returned TRUE if the parameter is not a reference parameter.
       /* If no base class match was found on the first pass don't bother doing
          a second. */
       if (!any_base_class_match) break;
-      /* Reset variables for a second pass. */
       base_class_match_allowed = TRUE;
-      sym = symbol_supplement_for_class(class_type)->assignment_operator;
-      if (is_overloaded_function) {
-        sym = sym->variant.overloaded_function.symbols;
-      }  /* if */
     }  /* for */
   }  /* if */
   return opass_sym;
