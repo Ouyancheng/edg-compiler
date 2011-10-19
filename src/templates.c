@@ -5882,9 +5882,11 @@ static a_boolean check_cli_array_instantiation(
 Check the element type and rank of the template_arg_list of a C++/CLI array.
 The element type must be a handle or a value type.  The rank must be larger
 than zero but no larger than 32.  If this is an invalid array, return FALSE,
-and, if diag_pos is non-NULL, issue an error at the given position.  If the
-element type is invalid, it is replaced by an error type to avoid error
-recovery problems elsewhere.
+and, if diag_pos is non-NULL, issue an error at the given position.  If an
+error is issued for an invalid element type, it is replaced by an error type
+to avoid error recovery problems elsewhere (if no error is issued, the call
+is presumably in the context of template argument deduction, and the caller
+is responsible for not forming a C++/CLI array of an invalid type).
 */
 {
   a_template_arg_ptr tap;
@@ -5905,9 +5907,9 @@ recovery problems elsewhere.
          can be implicitly converted to a value type). */
       if (diag_pos != NULL) {
         pos_error(ec_cli_array_invalid_element_type, diag_pos);
+        tap->variant.type = error_type();
       }  /* if */
       is_valid = FALSE; 
-      tap->variant.type = error_type();
     }  /* if */
   }  /* if */
   advance_to_next_template_arg_simple(&tap);
