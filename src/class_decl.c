@@ -11344,8 +11344,15 @@ an error at the given position.
                               /*include_move_ctors=*/TRUE,
                               /*is_declarative_context=*/TRUE)) {
         err_code = ec_copy_constructor_in_value_class_type;
-      } else if (is_default_constructor(rtn,
-                                        /*is_declarative_context=*/TRUE)) {
+      } else if (function_type_params(skip_typerefs(rtn->type)) == NULL) {
+        /* Value class types do not allow default constructors.  However,
+           the Microsoft compiler appears to limit that prohibition to
+           constructors that don't have parameters other than a traditional
+           ellipsis parameter (see has_simple_default_constructor).  E.g.:
+             value struct V { V(... array<int> ^x) {} };
+             int main() { V v; }
+           is accepted, but v is initialized using the generated constructor
+           rather than the user-declared constructor. */
         err_code = ec_default_constructor_in_value_class_type;
       }  /* if */
       break;
@@ -15961,6 +15968,36 @@ by class_state.  If is_deleted is TRUE, make that constructor "deleted".
 }  /* generate_default_constructor */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean has_simple_default_constructor(a_type_ptr  class_type)
+/*
+Return TRUE if the given class type declares a constructor with no parameters
+other than perhaps a traditional ellipsis parameter.  This is a subset of the
+standard notion of "default constructor": It doesn't take consider default
+constructors with default arguments, parameter packs, or parameter arrays.
+However, it appears to be the criterion sometimes used by Microsoft compilers
+for C++/CLI.
+*/
+{
+  a_symbol_ptr  ctor = symbol_supplement_for_class(class_type)->constructor;
+  a_boolean     result = FALSE,
+                is_list = symbol_is(ctor, sk_overloaded_function);
+  
+  if (is_list) ctor = ctor->variant.overloaded_function.symbols;
+  for (; ctor != NULL; ctor = is_list ? ctor->next : NULL) {
+    if (function_type_params(routine_symbol_type(ctor)) == NULL) {
+      /* A function with no parameters, except perhaps for an ellipsis
+         parameter. */
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* has_simple_default_constructor */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 static void add_default_ctor_if_needed(a_class_def_state_ptr  class_state)
 /*
 If appropriate, add an implicitly declared default constructor to the class
@@ -15986,10 +16023,7 @@ definition described by class_state.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cli_class_type_kind_is(class_type, cctk_value)) {
     /* Value types always have a default constructor. */
-    a_boolean     ambiguous, trivial;
-    if (find_default_constructor(class_type, /*include_templates=*/FALSE,
-                                 &null_source_position,
-                                 &ambiguous, &trivial) == NULL) {
+    if (!has_simple_default_constructor(class_type)) {
       generate_default_constructor(class_state, /*is_deleted=*/FALSE);
     } else {
       /* A default constructor was already declared, but that must have been
@@ -15997,7 +16031,6 @@ definition described by class_state.
          class types).  Also, note that default arguments are not allowed in
          managed-class members, and therefore find_default_constructor would
          not find a constructor with explicit parameters. */
-      check_assertion(!ambiguous);
       expect_error();
     }  /* if */
   } else if (cli_class_type_kind_is(class_type, cctk_interface)) {
