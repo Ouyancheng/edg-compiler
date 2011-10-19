@@ -2129,10 +2129,11 @@ It will be NULL for the most derived class.
     /* This type contains a member with the given name that is not
        a function.  This symbol is added to the list and if it is
        accessible during overload resolution will cause the lookup
-       to not go any further on this branch. */
+       to not go any further on this branch.  Note that *p_any_entries_at_level
+       is not set for this entry because we want to skip any base
+       class entries if this entry is not accessible. */
     add_symbol_to_hide_by_sig_list(&list, &list_tail, other_sym, level,
                                    base_class);
-    *p_any_entries_at_level = TRUE;
   } else if (result_sym != NULL) {
     a_type_ptr				parent_type;
     a_class_type_supplement_ptr		parent_ctsp;
