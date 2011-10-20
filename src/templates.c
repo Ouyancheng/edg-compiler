@@ -10965,12 +10965,13 @@ static a_boolean incompatible_substituted_and_rescanned_types_after_fixup(
                                                  a_type_ptr  substituted_type,
                                                  a_type_ptr  rescanned_type)
 /*
-A function template is being instantiated.  The type of the instantiation was
-obtained both by rescanning the tokens (rescanned_type) and by substituting
-the parameterized type of the template (substituted type).  Compare the two
-types and, in C++/CLI mode, adjust the rescanned type to reflect implicit
-calling conventions that can be determined only in the substitution process.
-Return TRUE if the types are incompatible (after the adjustment).
+A function template or generic function is being instantiated.  The type of
+the instantiation was obtained both by rescanning the tokens (rescanned_type)
+and by substituting the parameterized type of the template (substituted type).
+Compare the two types and, in C++/CLI mode, adjust the rescanned type to
+reflect implicit calling conventions that can be determined only in the
+substitution process.  Return TRUE if the types are incompatible (after the
+adjustment).
 */
 {
   a_boolean                result = FALSE;
@@ -10990,26 +10991,36 @@ Return TRUE if the types are incompatible (after the adjustment).
        are compatible. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (p_diffs != NULL && p_diffs->incompatible_calling_conventions != NULL) {
-      a_type_list_entry_ptr  tep1 = p_diffs->incompatible_calling_conventions,
-                             tep2;
-      for (; tep1 != NULL; tep1 = tep2->next) {
-        tep2 = tep1->next;
-        check_assertion(tep1->type->kind == (a_type_kind)tk_routine &&
-                        tep2->type->kind == (a_type_kind)tk_routine);
-        if (tep1->type->variant.routine.extra_info->calling_convention ==
-                                          (a_calling_convention)cc_clrcall &&
-            !tep1->type->variant.routine.extra_info
-                       ->explicit_calling_convention) {
+      a_type_list_entry_ptr  step = p_diffs->incompatible_calling_conventions,
+                             rtep;
+                
+      for (; step != NULL; step = rtep->next) {
+        a_routine_type_supplement_ptr srtsp, rrtsp;
+        rtep = step->next;
+        check_assertion(step->type->kind == (a_type_kind)tk_routine &&
+                        rtep->type->kind == (a_type_kind)tk_routine);
+        srtsp = step->type->variant.routine.extra_info;
+        rrtsp = rtep->type->variant.routine.extra_info;
+        if (srtsp->calling_convention == (a_calling_convention)cc_clrcall &&
+            !srtsp->explicit_calling_convention) {
           /* The substituted type is implicitly __clrcall (presumably because
              it involved a generic parameter).  Update the rescanned type to
              have the same convention.  (This is safe because only "direct"
              calling convention conflicts were recorded; i.e., no conflicts
              due to calling conventions in typedef types or decltype (and
              similar) constructs. */
-          tep2->type->variant.routine.extra_info->calling_convention =
-                                             (a_calling_convention)cc_clrcall;
-          tep2->type->variant.routine.extra_info
-                    ->explicit_calling_convention = FALSE;
+          rrtsp->calling_convention = (a_calling_convention)cc_clrcall;
+          rrtsp->explicit_calling_convention = FALSE;
+        } else if (rrtsp->calling_convention ==
+                                          (a_calling_convention)cc_clrcall &&
+                   !rrtsp->explicit_calling_convention) {
+          /* The rescanned type is implicitly __clrcall, but the substituted
+             type is not.  This can happen with when the template arguments
+             are C++/CLI-specific types that cause a function to implicitly
+             have the __clrcall calling convention.  Don't treat this as an
+             incompatibility. */
+          srtsp->calling_convention = (a_calling_convention)cc_clrcall;
+          srtsp->explicit_calling_convention = FALSE;
         } else {
           result = TRUE;
           break;
