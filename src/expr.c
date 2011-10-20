@@ -13659,7 +13659,8 @@ static a_routine_ptr determine_deletion_for_new(
                                            a_type_ptr        base_new_type,
                                            a_symbol_ptr      new_sym,
                                            a_boolean         use_global_delete,
-                                           a_source_position *position)
+                                           a_source_position *position,
+                                           a_boolean         *ambiguous)
 /*
 Exceptions are enabled, and a "new" is being scanned.  Determine the
 delete routine to be called if an exception is thrown between the time
@@ -13671,14 +13672,15 @@ base_new_type is the type of entity being allocated (the element type
 if an array is being allocated); new_sym is the "new" routine being
 called to do the allocation, stripped to its fundamental symbol;
 use_global_delete is TRUE if "::new" was used; and *position gives
-the position to be used for errors.
+the position to be used for errors.  *ambiguous is set to TRUE if
+the delete routine is ambiguous (an error will have been issued).
 */
 {
   a_routine_ptr delete_routine = NULL;
   a_type_ptr    class_type;
   a_symbol_ptr  delete_sym, overload_delete_sym;
-  a_boolean     ambiguous;
 
+  *ambiguous = FALSE;
   /* Select the delete routine that corresponds to the new routine selected. */
   class_type = NULL;
   if (!use_global_delete && is_class_struct_union_type(base_new_type)) {
@@ -13687,9 +13689,9 @@ the position to be used for errors.
   delete_sym = find_corresponding_operator_delete_sym(new_sym,
                                                       class_type,
                                                       /*template_okay=*/FALSE,
-                                                      &ambiguous,
+                                                      ambiguous,
                                                       &overload_delete_sym);
-  if (ambiguous) {
+  if (*ambiguous) {
     /* The symbol is ambiguous. */
     if (expr_error_should_be_issued()) {
       pos_sy_error(ec_ambiguous_name, position, overload_delete_sym);
@@ -13791,7 +13793,7 @@ this macro does nothing as function_symbol will always be NULL.
 */
 #define warn_about_missing_delete_if(cond)                                  \
 { if (/*lint --e(506)*/delete_routine == NULL && exceptions_enabled &&      \
-      function_symbol != NULL && (cond)) {                                  \
+      !delete_ambiguous && function_symbol != NULL && (cond)) {             \
     if (expr_diagnostic_should_be_issued(es_warning,                        \
                                          ec_no_corresponding_delete)) {     \
       pos_stsy_warning(ec_no_corresponding_delete, &new_position,           \
@@ -14250,6 +14252,7 @@ expression, and return the result in *result (or an error indication in
   a_symbol_ptr      operator_new_symbol, function_symbol, ctor_sym;
   a_symbol_ptr      proj_function_symbol;
   a_routine_ptr     delete_routine = NULL;
+  a_boolean         delete_ambiguous = FALSE;
   a_boolean         needs_initialization;
   a_boolean         zero_initialization, has_new_initializer = FALSE;
   an_expr_node_ptr  arg_expr_list, init_val_node;
@@ -14979,7 +14982,8 @@ expression, and return the result in *result (or an error indication in
       delete_routine = determine_deletion_for_new(base_new_type,
                                                   function_symbol,
                                                   use_global_new,
-                                                  &new_position);
+                                                  &new_position,
+                                                  &delete_ambiguous);
     }  /* if */
 #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
     if (array_new) {

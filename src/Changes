@@ -1,5 +1,29 @@
 Version 4.4
 
+10/20/11 [EDGcpfe/12376]
+Extra warning on "new" with ambiguous corresponding delete
+
+The front end gave a superfluous warning message after an error on
+a "new" operator whose corresponding operator delete (to be used if
+an exception is thrown) is ambiguous.  Now fixed; the warning is
+no longer issued.
+
+  struct A1 {
+    void operator delete(void *);
+  };
+  struct A2 {
+    void operator delete(void *);
+  };
+  struct A : public A1, public A2 {
+    A();
+    ~A();
+    void *operator new(unsigned int, float);
+  };
+  int main () {
+    A *q = new(2.5f) A;  // Error, ambiguous operator delete
+  }
+
+
 10/18/11 [EDGcpfe/12317]
 By-reference capture across a non-mutable lambda
 
