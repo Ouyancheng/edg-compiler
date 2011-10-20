@@ -9755,6 +9755,33 @@ Return the symbol for "System::Object::Finalize".
   return object_finalize_routine;
 }  /* get_object_finalize_routine */
 
+
+void f_set_clrcall_convention_if_needed(a_type_ptr  rtp)
+/*
+If the given routine type has a component in its signature requiring the
+__clrcall calling convention, record that as the implicit calling convention.
+Issue an error if the function type is a vararg function type (because
+__clrcall doesn't permit varargs).
+*/
+{
+  check_assertion(cppcli_enabled && rtp->kind == (a_type_kind)tk_routine);
+  if (rtp->variant.routine.extra_info->calling_convention !=
+                                           (a_calling_convention)cc_clrcall &&
+      function_type_has_clrcall_component(rtp)) {
+    /* Set the calling convention to __clrcall. */
+    if (rtp->variant.routine.extra_info->has_ellipsis) {
+      /* __clrcall doesn't permit varargs. */
+      pos_error(ec_generic_parameter_does_not_permit_varargs, &error_position);
+    } else if (rtp->variant.routine.extra_info->explicit_calling_convention) {
+      /* If a (different) calling convention was specified explicitly, issue a
+         warning. */
+      pos_warning(ec_generic_parameter_requires_clrcall, &error_position);
+    }  /* if */
+    rtp->variant.routine.extra_info->calling_convention =
+                                             (a_calling_convention)cc_clrcall;
+  }  /* if */
+}  /* f_set_clrcall_convention_if_needed */
+
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
 a_boolean f_is_member_of_namespace_cli(a_source_correspondence  *scp)

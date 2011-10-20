@@ -637,40 +637,6 @@ is non-NULL, issue an error at that position.  Otherwise, return TRUE.
   return err_code == ec_no_error;
 }  /* check_invalid_use_of_special_cli_class_type */
 
-
-static void f_set_clrcall_convention_if_needed(a_type_ptr  rtp)
-/*
-If the given routine type has a component in its signature requiring the
-__clrcall calling convention, record that as the implicit calling convention.
-Issue an error if the function type is a vararg function type (because
-__clrcall doesn't permit varargs).
-*/
-{
-  check_assertion(cppcli_enabled && rtp->kind == (a_type_kind)tk_routine);
-  if (rtp->variant.routine.extra_info->calling_convention !=
-                                           (a_calling_convention)cc_clrcall &&
-      function_type_has_clrcall_component(rtp)) {
-    /* Set the calling convention to __clrcall. */
-    if (rtp->variant.routine.extra_info->has_ellipsis) {
-      /* __clrcall doesn't permit varargs. */
-      pos_error(ec_generic_parameter_does_not_permit_varargs, &error_position);
-    } else if (rtp->variant.routine.extra_info->explicit_calling_convention) {
-      /* If a (different) calling convention was specified explicitly, issue a
-         warning. */
-      pos_warning(ec_generic_parameter_requires_clrcall, &error_position);
-    }  /* if */
-    rtp->variant.routine.extra_info->calling_convention =
-                                             (a_calling_convention)cc_clrcall;
-  }  /* if */
-}  /* f_set_clrcall_convention_if_needed */
-
-#define set_clrcall_convention_if_needed(rtp)               \
-  if (cppcli_enabled) f_set_clrcall_convention_if_needed(rtp)
-
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-
-#define set_clrcall_convention_if_needed(rtp)  /* Nothing */
-
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !NAMED_ADDRESS_SPACES_ALLOWED && !UPC_EXTENSIONS_ALLOWED

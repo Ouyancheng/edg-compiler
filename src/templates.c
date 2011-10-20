@@ -10096,6 +10096,7 @@ make_new_type:
         }  /* if */
         new_type->variant.routine.return_type = new_return_type;
         set_routine_calling_method_flag(new_type, &null_source_position);
+        set_clrcall_convention_if_needed(new_type);
         /* Decrement the number of routine types whose substitution is in
            progress. */
         ctws_state->routine_type_levels--;

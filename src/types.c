@@ -12700,6 +12700,7 @@ make_new_type:
          avoid inappropriate diagnostics on a type that doesn't correspond
          directly to a source construct. */
       set_routine_calling_method_flag(new_type, &null_source_position);
+      set_clrcall_convention_if_needed(new_type);
       break;
     case tk_array:
       /* Make an array type based on "type", making modifications as
