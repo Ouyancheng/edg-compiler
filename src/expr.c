@@ -765,13 +765,13 @@ to win out.
   a_boolean    has_subscriptable_accessor = FALSE;
   a_symbol_ptr get_sym;
 
-  check_assertion(is_old_form_property_ref_operand(operand));
   /* Get the "get" function symbol. */
   get_sym = get_property_accessor_symbol(operand->symbol, /*put=*/FALSE,
                                          /*must_be_present=*/FALSE,
                                          &operand->position);
   if (get_sym != NULL) {
-    a_boolean                       pointer_case = FALSE, class_case = FALSE;
+    a_boolean                       pointer_or_handle_case = FALSE;
+    a_boolean                       class_case = FALSE;
     a_boolean                       some_function_has_params = FALSE;
     an_overload_set_traversal_block ostblock;
     for (get_sym = set_up_overload_set_traversal(get_sym, &ostblock);
@@ -788,7 +788,14 @@ to win out.
             is_object_type(type_pointed_to(return_type))) {
           /* This function has zero arguments and returns a pointer to object
              type, so it can be used to get an "array" to be subscripted. */
-          pointer_case = TRUE;
+          pointer_or_handle_case = TRUE;
+          break;
+        } else if (is_handle_type(return_type) &&
+                   is_cli_array_type(type_pointed_to(return_type))) {
+          /* This function has zero arguments and returns a handle to a
+             CLI array type, so it can be used to get an "array" to be
+             subscripted. */
+          pointer_or_handle_case = TRUE;
           break;
         } else if (!some_function_has_params &&
                    is_class_struct_union_type(return_type)) {
@@ -810,7 +817,9 @@ to win out.
     /* The class case is accepted only if the property has no accessors that
        might be used for subscripting. */
     if (class_case && some_function_has_params) class_case = FALSE;
-    if (class_case || pointer_case) has_subscriptable_accessor = TRUE;
+    if (class_case || pointer_or_handle_case) {
+      has_subscriptable_accessor = TRUE;
+    }  /* if */
   }  /* if */
   return has_subscriptable_accessor;
 }  /* property_ref_has_accessor_that_yields_subscriptable_object */
@@ -1024,7 +1033,7 @@ constructs, in which case offsetof_case is TRUE.
         subscript_is_expr_list = TRUE;
       }  /* if */
     }  /* if */
-    if (is_old_form_property_ref_operand(operand_1) &&
+    if (is_property_ref_operand(operand_1) &&
         property_ref_has_accessor_that_yields_subscriptable_object(operand_1)){
       /* For a property field reference where there's a "get" accessor that
          returns something that can be subscripted, use that and then subscript

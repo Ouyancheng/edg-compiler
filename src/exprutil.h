@@ -1087,15 +1087,6 @@ property syntax.
 #define is_property_ref_operand(operand)				\
 	((operand)->kind == (an_operand_kind)ok_property_ref)
 /*
-Ditto, but only for a property declared with __declspec(property(...)).
-*/
-#define is_old_form_property_ref_operand(operand)                       \
-        (is_property_ref_operand(operand) &&                            \
-         symbol_is((operand)->symbol, sk_field) &&                      \
-         (operand)->symbol->variant.field.ptr                           \
-                          ->property_or_event_descr->kind ==            \
-                       (a_property_or_event_kind)pek_declspec_property)
-/*
 Macro that is TRUE if the operand is one that references a member declared
 with the Microsoft C++/CLI event syntax.
 */
