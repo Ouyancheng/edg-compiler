@@ -11457,6 +11457,12 @@ are considered).  conv_context describes the context of the conversion.
            "float".  g++ doesn't seem to enforce that restriction (tested
            with versions 4.5 and 4.6). */
         compatible = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (cppcli_enabled && std_conversion.boxing_conversion) {
+        /* VC10 doesn't allow a boxing conversion after a conversion function,
+           for some inscrutable reason. */
+        compatible = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     } else {
       /* We're looking for a built-in type described in general terms. */
