@@ -638,17 +638,18 @@ is non-NULL, issue an error at that position.  Otherwise, return TRUE.
 }  /* check_invalid_use_of_special_cli_class_type */
 
 
-static void f_set_clrcall_convention_if_generic_param_involved(a_type_ptr  rtp)
+static void f_set_clrcall_convention_if_needed(a_type_ptr  rtp)
 /*
-If the given routine type depends on a generic parameter, ensure its calling
-convention is __clrcall.  Issue an error if the function type is a vararg
-function type (because __clrcall doesn't permit varargs).
+If the given routine type has a component in its signature requiring the
+__clrcall calling convention, record that as the implicit calling convention.
+Issue an error if the function type is a vararg function type (because
+__clrcall doesn't permit varargs).
 */
 {
   check_assertion(cppcli_enabled && rtp->kind == (a_type_kind)tk_routine);
   if (rtp->variant.routine.extra_info->calling_convention !=
                                            (a_calling_convention)cc_clrcall &&
-      is_or_contains_cli_generic_param(rtp)) {
+      function_type_has_clrcall_component(rtp)) {
     /* Set the calling convention to __clrcall. */
     if (rtp->variant.routine.extra_info->has_ellipsis) {
       /* __clrcall doesn't permit varargs. */
@@ -661,14 +662,14 @@ function type (because __clrcall doesn't permit varargs).
     rtp->variant.routine.extra_info->calling_convention =
                                              (a_calling_convention)cc_clrcall;
   }  /* if */
-}  /* f_set_clrcall_convention_if_generic_param_involved */
+}  /* f_set_clrcall_convention_if_needed */
 
-#define set_clrcall_convention_if_generic_param_involved(rtp)               \
-  if (cppcli_enabled) f_set_clrcall_convention_if_generic_param_involved(rtp)
+#define set_clrcall_convention_if_needed(rtp)               \
+  if (cppcli_enabled) f_set_clrcall_convention_if_needed(rtp)
 
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 
-#define set_clrcall_convention_if_generic_param_involved(rtp)  /* Nothing */
+#define set_clrcall_convention_if_needed(rtp)  /* Nothing */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -1159,7 +1160,7 @@ the specifiers and declarator that formed the new type.
         /* Check whether the routine needs special support for returning a
            class object by value. */
         set_routine_calling_method_flag(*bottom_derived_type, &error_position);
-        set_clrcall_convention_if_generic_param_involved(*bottom_derived_type);
+        set_clrcall_convention_if_needed(*bottom_derived_type);
       }  /* if */
       temp_type = *bottom_derived_type;
       *bottom_derived_type = new_type_ptr;

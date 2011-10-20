@@ -11502,7 +11502,7 @@ type for a C++/CLI generic type parameter.
 }  /* ttt_is_or_contains_cli_generic_param */
 
 
-a_boolean is_or_contains_cli_generic_param(a_type_ptr  type_ptr)
+static a_boolean is_or_contains_cli_generic_param(a_type_ptr  type_ptr)
 /*
 Return TRUE if the type pointed to by type_ptr is itself a tk_template_param
 for a C++/CLI generic type parameter or is a type tree containing such a
@@ -11515,10 +11515,53 @@ type.
                                                TTT_TEMPLATE_ARGS |
                                                TTT_CLI_GENERIC_PARAMETERS |
                                                TTT_PARENT_CLASSES);
+
   result = traverse_type_tree(type_ptr, ttt_is_or_contains_cli_generic_param,
                               ttt_flags);
   return result;
 }  /* is_or_contains_cli_generic_param */
+
+
+static a_boolean ttt_has_clr_component(a_type_ptr  type_ptr,
+                                       a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  Return TRUE if a function type containing the
+type described by type_ptr in its signature requires the __clrcall calling
+convention.
+*/
+{
+  a_boolean  found = FALSE;
+
+  /* Handles (but not tracking references), managed class types, and generic
+     parameters appearing in function signatures cause the associated function
+     type to have the __clrcall calling convention. */
+  if (is_handle_ptr(type_ptr) ||
+      is_immediate_managed_class_type(type_ptr) ||
+      is_cli_generic_param(type_ptr)) {
+    *force_end_of_traversal = found = TRUE;
+  }  /* if */
+  return found;
+}  /* ttt_has_clr_component */
+
+
+a_boolean function_type_has_clrcall_component(a_type_ptr  type_ptr)
+/*
+Return TRUE if the routine type pointed to by type_ptr has a component that
+implies the __clrcall calling convention (e.g., a parameter that is a handle
+type).
+*/
+{
+  a_boolean result;
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                               TTT_PARAM_TYPES |
+                                               TTT_TEMPLATE_ARGS |
+                                               TTT_CLI_GENERIC_PARAMETERS);
+
+  check_assertion(type_ptr->kind == (a_type_kind)tk_routine);
+  result = traverse_type_tree(type_ptr, ttt_has_clr_component, ttt_flags);
+  return result;
+}  /* function_type_has_clrcall_component */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
