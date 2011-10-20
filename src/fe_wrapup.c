@@ -791,7 +791,7 @@ and before the back end (if any) is executed.
   free_all_memory_regions();
 #else /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Free front-end-only storage. */
-  free_memory_region(NULL_region_number);
+  free_memory_region(FRONT_END_REGION_NUMBER);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
   /* Clear the file index list maintained by the error routines (it was
