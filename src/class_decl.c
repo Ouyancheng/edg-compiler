@@ -22310,7 +22310,11 @@ that are not irrelevant due to actual overrides.
                          skip_typerefs(base_rp->type)
                                                 ->variant.routine.return_type);
       } else if (qodp->missing_virtual_specifier) {
-        pos_sy_error(ec_virtual_required, &qodp->diag_pos, qodp->base_member); 
+        an_error_code  err_code = ec_virtual_required_for_base_override;
+        if (is_cli_interface_type(qodp->base_class->type)) {
+          err_code = ec_virtual_required_for_interface_implementation;
+        }  /* if */
+        pos_sy_error(err_code, &qodp->diag_pos, qodp->base_member); 
       } else if (qodp->reduced_access) {
         pos_sy_warning(ec_overriding_reduces_accessibility_in_managed_type,
                        &qodp->diag_pos, qodp->base_member); 

@@ -2216,7 +2216,7 @@ ec_interface_not_implemented;;"class fails to implement interface member %nd"
 ec_gcnew_of_native_array;;"gcnew cannot be used to allocate a native array"
 ec_cli_interface_cannot_have_assignment;;"a C++/CLI interface class cannot declare an assignment operator"
 ec_sealed_cli_interface;;"a C++/CLI interface class cannot be sealed"
-ec_virtual_required;;"\"virtual\" is required because this declaration matches %nd"
+REMOVED;ec_virtual_required;;"\"virtual\" is required because this declaration matches %nd"
 ec_destructor_or_finalizer_with_named_override;;"a destructor or finalizer declaration cannot include a named override specifier"
 ec_override_name_is_destructor_or_finalizer;;"an override specifier cannot designate a destructor or finalizer"
 ec_named_override_requires_managed_type;;"a named override specifier is allowed only in a managed class"
@@ -2315,6 +2315,8 @@ ec_managed_member_function_cannot_have_ellipsis_parameter;;"a member function of
 ec_invalid_prev_decl_iterator;;"previously-declared %n invalid as iterator of for-each statement"
 ec_generic_parameter_requires_clrcall;;"calling convention ignored because the function type involves a generic parameter; __clrcall used instead"
 ec_generic_parameter_does_not_permit_varargs;;"a function type involving a generic parameter cannot have an ellipsis parameter"
+ec_virtual_required_for_base_override;;"\"virtual\" is required to override the matching %nd"
+ec_virtual_required_for_interface_implementation;;"\"virtual\" is required to implement the matching %nd"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
