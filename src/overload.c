@@ -100,6 +100,22 @@ Clear a conversion description.
 }  /* clear_conv_descr */
 
 
+static void clear_overload_set_traversal_block(
+                                     an_overload_set_traversal_block *ostblock)
+/*
+Clear an overload set traversal block.
+*/
+{
+  ostblock->current_symbol = NULL;
+  ostblock->current_symbol_list_entry = NULL;
+  ostblock->is_overloaded_function_list = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ostblock->skip_inaccessible_functions = FALSE;
+  ostblock->hide_by_sig_list = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* clear_overload_set_traversal_block */
+
+
 static a_symbol_ptr set_overload_set_traversal_symbol(
                                      a_symbol_ptr                    sym,
                                      an_overload_set_traversal_block *ostblock)
@@ -149,10 +165,8 @@ symbol to be considered, or NULL if there isn't one.  The symbol
 returned may be a projection symbol.
 */
 {
-  ostblock->is_overloaded_function_list = FALSE;
+  clear_overload_set_traversal_block(ostblock);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  ostblock->skip_inaccessible_functions = FALSE;
-  ostblock->hide_by_sig_list = NULL;
   if (cppcli_enabled) {
     a_hide_by_sig_list_entry_ptr list;
     if (sym->is_class_member) {
@@ -312,9 +326,7 @@ or NULL if there isn't one.  The symbol returned may be a projection symbol.
 {
   a_symbol_ptr sym = NULL;
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  ostblock->skip_inaccessible_functions = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  clear_overload_set_traversal_block(ostblock);
   if (slep != NULL) {
     sym = slep->symbol;
 #if MICROSOFT_EXTENSIONS_ALLOWED
