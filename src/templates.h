@@ -879,7 +879,8 @@ extern void scan_cli_generic_class_definition_from_assembly_import(void);
 extern a_boolean check_cli_internal_template_instantiation(
                                         a_symbol_ptr       template_sym,
                                         a_template_arg_ptr template_arg_list,
-                                        a_source_position  *diag_pos);
+                                        a_source_position  *arg1_pos,
+                                        a_source_position  *arg2_pos);
 
 extern a_symbol_ptr make_cli_array_type(a_type_ptr             element_type,
                                         a_host_large_unsigned  rank);

@@ -5877,16 +5877,20 @@ generic_arg_list identifies an open constructed type (ECMA-372 31.2.1).
 
 static a_boolean check_cli_array_instantiation(
                                          a_template_arg_ptr template_arg_list,
-                                         a_source_position  *diag_pos)
+                                         a_source_position  *arg1_pos,
+                                         a_source_position  *arg2_pos)
 /*
 Check the element type and rank of the template_arg_list of a C++/CLI array.
 The element type must be a handle or a value type.  The rank must be larger
 than zero but no larger than 32.  If this is an invalid array, return FALSE,
-and, if diag_pos is non-NULL, issue an error at the given position.  If an
-error is issued for an invalid element type, it is replaced by an error type
-to avoid error recovery problems elsewhere (if no error is issued, the call
-is presumably in the context of template argument deduction, and the caller
-is responsible for not forming a C++/CLI array of an invalid type).
+and, if arg1_pos is non-NULL, issue an error at one of the two given positions
+as appropriate.  arg1_pos is the position of the first template argument
+(denoting the element type) and arg2_pos is the position of the second one
+(denoting the number of dimensions of the array).  If an error is issued for
+an invalid element type, it is replaced by an error type to avoid error
+recovery problems elsewhere (if no error is issued, the call is presumably in
+the context of template argument deduction, and the caller is responsible for
+not forming a C++/CLI array of an invalid type).
 */
 {
   a_template_arg_ptr tap;
@@ -5905,8 +5909,8 @@ is responsible for not forming a C++/CLI array of an invalid type).
     if (!is_handle_type(tp) && !is_cli_value_type(tp)) {
       /* Elements of an array must have a handle or value type (or a type that
          can be implicitly converted to a value type). */
-      if (diag_pos != NULL) {
-        pos_error(ec_cli_array_invalid_element_type, diag_pos);
+      if (arg1_pos != NULL) {
+        pos_error(ec_cli_array_invalid_element_type, arg1_pos);
         tap->variant.type = error_type();
       }  /* if */
       is_valid = FALSE; 
@@ -5929,8 +5933,9 @@ is responsible for not forming a C++/CLI array of an invalid type).
       check_assertion(con->kind == (a_constant_repr_kind)ck_integer);
       val = value_of_integer_constant(con, &ovflo);
       if (val <= 0 || val >= 33 || ovflo) {
-        if (diag_pos != NULL) {
-          pos_error(ec_cli_array_invalid_number_of_dimensions, diag_pos);
+        if (arg1_pos != NULL) {
+          check_assertion(arg2_pos != NULL);
+          pos_error(ec_cli_array_invalid_number_of_dimensions, arg2_pos);
         }  /* if */
         is_valid = FALSE;
       }  /* if */
@@ -5991,22 +5996,26 @@ diag_pos is non-NULL, issue an error at the given position.
 a_boolean check_cli_internal_template_instantiation(
                                          a_symbol_ptr       template_sym,
                                          a_template_arg_ptr template_arg_list,
-                                         a_source_position  *diag_pos)
+                                         a_source_position  *arg1_pos,
+                                         a_source_position  *arg2_pos)
 /*
 If template_sym corresponds to an internal C++/CLI template (cli::array,
 cli::interior_ptr, and cli::pin_ptr), return FALSE if the given template
-argument list is invalid for that template, and, if diag_pos is non-NULL,
-issue an error at the given position.
+argument list is invalid for that template, and, if arg1_pos is non-NULL,
+issue an error at one of the two given positions as appropriate (arg1_pos is
+the position of the first argument, and, if applicable, arg2_pos is the
+position of the second argument).
 */
 {
   a_boolean  result;
 
   if (template_sym == cli_symbol_from_kind(csk_cli_array)) {
-    result = check_cli_array_instantiation(template_arg_list, diag_pos);
+    result = check_cli_array_instantiation(
+                                       template_arg_list, arg1_pos, arg2_pos);
   } else if (template_sym == cli_symbol_from_kind(csk_interior_ptr) ||
              template_sym == cli_symbol_from_kind(csk_pin_ptr)) {
     result = is_valid_cli_special_ptr_instantiation(
-                                                 template_arg_list, diag_pos);
+                                                 template_arg_list, arg1_pos);
   } else {
     result = TRUE;
   }  /* if */
@@ -9152,8 +9161,8 @@ are looked up, if needed.  The symbol of the new instance is returned.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled && new_sym != NULL &&
         !check_cli_internal_template_instantiation(
-                          template_sym, template_arg_list_for_symbol(new_sym),
-                          (a_source_position*)NULL)) {
+                        template_sym, template_arg_list_for_symbol(new_sym),
+                        (a_source_position*)NULL, (a_source_position*)NULL)) {
       new_sym = NULL;
       *copy_error = TRUE;
     }  /* if */
