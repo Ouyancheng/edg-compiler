@@ -14287,9 +14287,10 @@ expression, and return the result in *result (or an error indication in
   an_arg_operand_ptr
                     init_raw_args = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean         is_gcnew = FALSE;
   a_gcnew_supplement_ptr
                     rescan_gsp = NULL;
-  a_boolean         gcnew_cli_array = FALSE;
+  a_boolean         cli_array_new = FALSE;
   an_expr_node_ptr
                     cli_array_new_init_args = NULL;
   a_boolean         has_array_init = FALSE;
@@ -14313,6 +14314,7 @@ expression, and return the result in *result (or an error indication in
     operator_token = rcblock->operator_token;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (operator_token == tok_gcnew) {
+      is_gcnew = TRUE;
       make_gcnew_rescan_operands(rcblock, &rescan_gsp, &start_position,
                                  &new_type, &type_position);
       has_new_initializer = rescan_gsp->has_new_initializer;
@@ -14353,7 +14355,7 @@ expression, and return the result in *result (or an error indication in
       /* Set up the argument list for the new initializer. */
       a_dynamic_init_ptr init_dip;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (operator_token == tok_gcnew) {
+      if (is_gcnew) {
         if (rescan_gsp->is_cli_array) {
           check_assertion(rescan_gsp->cli_array_dimension_lengths != NULL);
           arg_expr_list = rescan_gsp->cli_array_dimension_lengths;
@@ -14394,6 +14396,7 @@ expression, and return the result in *result (or an error indication in
        but for gcnew the current token will always be tok_gcnew */
     if (curr_token == tok_gcnew) {
       operator_token = tok_gcnew;
+      is_gcnew = TRUE;
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
@@ -14404,7 +14407,7 @@ expression, and return the result in *result (or an error indication in
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* We shouldn't be scanning a gcnew expression unless C++/CLI is
      enabled */
-  check_assertion(!(operator_token == tok_gcnew && !cppcli_enabled));
+  check_assertion(!(is_gcnew && !cppcli_enabled));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   if (curr_expr_kind_is_const()) {
@@ -14422,7 +14425,7 @@ expression, and return the result in *result (or an error indication in
 #if CHECKING
     if (operator_token != tok_new
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        && operator_token != tok_gcnew
+        && !is_gcnew
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         ) {
       internal_error("scan_new_operator: expected new or gcnew");
@@ -14449,7 +14452,7 @@ expression, and return the result in *result (or an error indication in
         placement_new = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         /* Ensure that gcnew is not used with placement syntax. */
-        if (cppcli_enabled && operator_token == tok_gcnew) {
+        if (is_gcnew) {
           expr_pos_error(ec_gcnew_used_with_placement_syntax,
                          &pos_curr_token);
           err = TRUE;
@@ -14494,7 +14497,7 @@ expression, and return the result in *result (or an error indication in
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* gcnew auto was prohibited on the initial scan, so it should not
          get here for a rescan. */
-      check_assertion(operator_token != tok_gcnew);
+      check_assertion(!is_gcnew);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       make_rescan_operand(rcblock->argument_list, rcblock, &auto_operand);
       /* Deduce the type. */
@@ -14536,7 +14539,7 @@ expression, and return the result in *result (or an error indication in
     new_type_involves_auto = (dps.auto_type_specifier_seen &&
                               !dps.has_trailing_return_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (operator_token == tok_gcnew) {
+    if (is_gcnew) {
       if (new_type_involves_auto) {
         /* Do not allow auto syntax with gcnew. */
         expr_pos_error(ec_gcnew_used_with_auto_syntax, &type_position);
@@ -14592,7 +14595,7 @@ expression, and return the result in *result (or an error indication in
     set_up_initializer_rescan(&dps);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (operator_token == tok_gcnew &&
+  if (is_gcnew &&
       is_cli_generic_definition_argument_type(new_type)) {
     /* This is a gcnew of a generic type.  Drop the added handle if it's
        present. */
@@ -14606,11 +14609,13 @@ expression, and return the result in *result (or an error indication in
   base_new_type = new_type;
   new_array_dimension = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (operator_token == tok_gcnew && is_cli_array_type(new_type)) {
+  if (is_cli_array_type(new_type)) {
     /* This is a gcnew with the C++/CLI array type.  Even if we don't
        detect a C++/CLI array type at this point, we still may create a C++/CLI
        array initialization node if we see an array-init later. */
-    gcnew_cli_array = TRUE;
+    /* Note that we set this even if is_gcnew is false, for better error
+       recovery. */
+    cli_array_new = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_array_type(new_type)) {
@@ -14642,7 +14647,7 @@ expression, and return the result in *result (or an error indication in
   }  /* if */
   unqual_base_new_type = skip_typerefs(base_new_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (operator_token == tok_gcnew) {
+  if (is_gcnew || cli_array_new /* for error recovery. */) {
     /* For gcnew, base_new_type and new_type and their variants should be
        equivalent. */
     check_assertion(identical_types(new_type, base_new_type) &&
@@ -14693,7 +14698,7 @@ expression, and return the result in *result (or an error indication in
        "new" with managed types.
        Note: This is not part of the above semantic check control flow because
        this branch will not necessarily emit an error. */
-    if (operator_token == tok_gcnew) {
+    if (is_gcnew) {
       /* Validate that gcnew is used on an appropriate type.
          Any class or struct must be of ref or value type. */
       if (!(is_ref_class_type(unqual_base_new_type) ||
@@ -14768,7 +14773,7 @@ expression, and return the result in *result (or an error indication in
   if (!err
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* The "new" routine is not applicable for "gcnew". */
-      && operator_token != tok_gcnew
+      && !is_gcnew
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
      ) {
     /* Compute the allocation size in bytes. */
@@ -14952,7 +14957,7 @@ expression, and return the result in *result (or an error indication in
   ctor_sym = NULL;
   if (is_class_struct_union_type(base_new_type)
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      && !gcnew_cli_array
+      && !cli_array_new
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
      ) {
     cssp = symbol_supplement_for_class(base_new_type);
@@ -15138,10 +15143,10 @@ expression, and return the result in *result (or an error indication in
                                                             is_nonreal_class) {
         /* A proxy class in a prototype instantiation. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (gcnew_cli_array) {
+      } else if (cli_array_new) {
         /* The new-init is not required for a C++/CLI array type so long as an
            array-init follows.  We'll check for the array-init later. */
-      } else if (operator_token == tok_gcnew &&
+      } else if (is_gcnew &&
                  is_cli_generic_definition_argument_type(new_type)) {
         /* This is a gcnew of a generic type, and it doesn't have a gcnew
            constraint, because no default constructor was found above. */
@@ -15173,7 +15178,7 @@ expression, and return the result in *result (or an error indication in
          error cases like const entities not being initialized. */
       if (!err) check_for_missing_initializer((a_symbol_ptr)NULL, new_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (operator_token == tok_gcnew) {
+      if (is_gcnew) {
         /* Check to see if this is a fundamental, value, or cli enum type
            without a new initializer and ensure that they are
            zero-initialized. */
@@ -15196,7 +15201,7 @@ expression, and return the result in *result (or an error indication in
       err = TRUE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (gcnew_cli_array) {
+    if (cli_array_new) {
       /* Scan the new-init for a C++/CLI array, but handle semantic checks
          later.  The expressions in the new-init for a C++/CLI array specify
          the lengths for each dimension of the array. */
@@ -15218,7 +15223,7 @@ expression, and return the result in *result (or an error indication in
     } else if (cppcli_enabled &&
                is_delegate_type(unqual_base_new_type)) {
       /* The initializer for a C++/CLI delegate is scanned specially. */
-      check_assertion(operator_token == tok_gcnew);
+      check_assertion(is_gcnew);
       scan_delegate_initializer(new_type, &type_position, rcblock,
                                 &end_new_init_position, &dip);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -15227,7 +15232,7 @@ expression, and return the result in *result (or an error indication in
     } else if (empty_parens &&
                ((cppcli_enabled &&
                  is_value_class_type(base_new_type)) ||
-                (operator_token == tok_gcnew &&
+                (is_gcnew &&
                  (system_type_from_fundamental_type(unqual_base_new_type)
                                                                      != NULL ||
                   is_cli_enum_type(unqual_base_new_type))))) {
@@ -15375,19 +15380,19 @@ handle_empty_parens_new_initializer:
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (operator_token == tok_gcnew) {
+  if (is_gcnew || cli_array_new /* for error recovery. */) {
     /* Now that the gcnew new-init has been scanned, check for an array-init
        and make a definitive decision over whether this is a C++/CLI array
        initialization node. */
     if (rcblock == NULL ? curr_token == tok_lbrace :
                           (rescan_gsp->is_cli_array &&
                            rescan_gsp->dynamic_init != NULL)) {
-      gcnew_cli_array = TRUE;
+      cli_array_new = TRUE;
       has_array_init = TRUE;
     }  /* if */
-    /* Beyond this point, gcnew_cli_array tells us definitively whether this
-       is a gcnew C++/CLI array initialization or not. */
-    if (gcnew_cli_array) {
+    /* Beyond this point, cli_array_new tells us definitively whether this
+       is a C++/CLI array initialization or not. */
+    if (cli_array_new) {
       if (has_new_initializer) {
         /* If a C++/CLI array has a new initializer, perform semantic checks
            on the previously scanned new-init and convert the arguments into
@@ -15441,6 +15446,7 @@ handle_empty_parens_new_initializer:
                                                      init_raw_args,
                                                      (an_expr_node_ptr *)NULL);
         init_raw_args = NULL;
+        templ_init_scanned = FALSE;
       }  /* if */
       if (has_array_init) {
         /* Scan the CLI array-init. */
@@ -15496,11 +15502,7 @@ handle_empty_parens_new_initializer:
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (templ_init_scanned
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      && !gcnew_cli_array
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      ) {
+  if (templ_init_scanned) {
     /* Finish processing the previously scanned new-init as if the
        arguments are passed to a template-dependent constructor. */
     an_expr_node_ptr   expr_list;
@@ -15535,7 +15537,7 @@ handle_empty_parens_new_initializer:
     /* Some error. */
     make_error_operand(result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (operator_token == tok_gcnew) {
+  } else if (is_gcnew) {
     /* This code is not shared with the "new" case below because it is
        generating a different expr_node_kind. */
     an_expr_node_ptr        gcnew_node;
@@ -15547,10 +15549,10 @@ handle_empty_parens_new_initializer:
     gsp = gcnew_node->variant.gcnew_info;
     gsp->type = new_type; 
     gsp->has_new_initializer = has_new_initializer;
-    gsp->is_cli_array = gcnew_cli_array;
+    gsp->is_cli_array = cli_array_new;
     gsp->cli_array_dimension_lengths = cli_array_new_init_args;
     if (needs_initialization) {
-      if (dip != NULL || gcnew_cli_array) {
+      if (dip != NULL || cli_array_new) {
         /* Nothing to do because a_dynamic_init was allocated above. */
       } else if (zero_initialization) {
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
