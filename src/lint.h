@@ -779,7 +779,6 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_gcnew_of_native_array)*/
 /*lint -esym(769,ec_cli_interface_cannot_have_assignment)*/
 /*lint -esym(769,ec_sealed_cli_interface)*/
-/*lint -esym(769,ec_virtual_required)*/
 /*lint -esym(769,ec_destructor_or_finalizer_with_named_override)*/
 /*lint -esym(769,ec_override_name_is_destructor_or_finalizer)*/
 /*lint -esym(769,ec_named_override_requires_managed_type)*/
@@ -873,6 +872,8 @@ extern int fileno(FILE *);
 /*lint -esym(765,set_up_overload_set_traversal*/
 /*lint -esym(759,next_symbol_in_overload_set*/
 /*lint -esym(765,next_symbol_in_overload_set*/
+/*lint -esym(769,ec_virtual_required_for_base_override)*/
+/*lint -esym(769,ec_virtual_required_for_interface_implementation)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */
