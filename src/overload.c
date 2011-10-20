@@ -2611,6 +2611,10 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       if (std_conversion.promotion) {
         /* This standard conversion is a promotion. */
         arg_summary->match_level = aml_promotion;
+      } else if (!std_conversion.nontrivial_conversion &&
+                 std_conversion.type_qualifiers_added) {
+        /* This is an exact match with added qualifiers. */
+        arg_summary->match_level = aml_exact;
       } else if (std_conversion.conv_of_string_literal_to_ptr_to_nonconst) {
         /* The deprecated conversion from a string literal to a pointer to
            nonconst counts as an exact match (it's worse than other exact

@@ -7457,6 +7457,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
              function because every function (even __cdecl or extern "C")
              has a secondary __clrcall entry point. */
           okay = TRUE;
+          std_conv->nontrivial_conversion = FALSE;
+          std_conv->type_qualifiers_added = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (C_mode() && !suppress_extensions &&
                    interchangeable_types(unqual_dest_type_pointed_to,
