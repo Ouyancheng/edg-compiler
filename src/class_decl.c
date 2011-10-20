@@ -11324,7 +11324,19 @@ function.
   return is_implicitly_callable_conversion_function_full(
                                           rout_type, /*is_reverse_fn=*/FALSE);
 }  /* is_implicitly_callable_conversion_function */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean is_simple_default_constructor(a_routine_ptr  rp)
+/*
+Return TRUE if the given routine entry represents a constructor with no
+parameters, except perhaps for an ellipsis parameter.
+*/
+{
+  return special_kind_is(rp, sfk_constructor) &&
+         function_type_params(skip_typerefs(rp->type)) == NULL;
+}  /* is_simple_default_constructor */
+
 
 static void exclude_special_members_from_value_class_type(
                                                 a_routine_ptr      rtn,
@@ -11345,7 +11357,7 @@ an error at the given position.
                               /*include_move_ctors=*/TRUE,
                               /*is_declarative_context=*/TRUE)) {
         err_code = ec_copy_constructor_in_value_class_type;
-      } else if (function_type_params(skip_typerefs(rtn->type)) == NULL) {
+      } else if (is_simple_default_constructor(rtn)) {
         /* Value class types do not allow default constructors.  However,
            the Microsoft compiler appears to limit that prohibition to
            constructors that don't have parameters other than a traditional
@@ -15975,7 +15987,7 @@ static a_boolean has_simple_default_constructor(a_type_ptr  class_type)
 /*
 Return TRUE if the given class type declares a constructor with no parameters
 other than perhaps a traditional ellipsis parameter.  This is a subset of the
-standard notion of "default constructor": It doesn't take consider default
+standard notion of "default constructor": It doesn't allow for default
 constructors with default arguments, parameter packs, or parameter arrays.
 However, it appears to be the criterion sometimes used by Microsoft compilers
 for C++/CLI.
@@ -15989,7 +16001,7 @@ for C++/CLI.
     a_boolean  is_list = symbol_is(ctor, sk_overloaded_function);
     if (is_list) ctor = ctor->variant.overloaded_function.symbols;
     for (; ctor != NULL; ctor = is_list ? ctor->next : NULL) {
-      if (function_type_params(routine_symbol_type(ctor)) == NULL) {
+      if (is_simple_default_constructor(ctor->variant.routine.ptr)) {
         /* A function with no parameters, except perhaps for an ellipsis
            parameter. */
         result = TRUE;
