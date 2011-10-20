@@ -9796,6 +9796,7 @@ is set to tok_error.
     error(ec_exp_lparen);
   }  /* if */
   add_stop_token(tok_rparen);
+  add_stop_token(tok_semicolon);
   if (curr_token == tok_identifier) {
     /* Save the symbol locator so that it can be restored after the closing
        parenthesis is scanned. */
@@ -9834,6 +9835,7 @@ is set to tok_error.
   }  /* if */
   /* Scan the ")". */
   (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
+  remove_stop_token(tok_semicolon);
   remove_stop_token(tok_rparen);
   /* If a valid identifier was found, return that as the current token;
      otherwise return tok_error. */
