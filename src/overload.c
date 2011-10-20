@@ -5454,13 +5454,29 @@ apply that would make one better than the other, and return
               }  /* if */
             }  /* if */
           }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (cppcli_enabled && cmp == 0 &&
+              is_handle_type(base_param_type1) &&
+              is_handle_type(base_param_type2)) {
+            /* In C++/CLI, a tracking reference can be bound to a handle
+               and that is better than a handle parameter that requires
+               adding a cv-qualifier under the handle. */
+            if (is_tracking_reference_type(param_type1)) {
+              param_type1 = base_param_type1;
+            }  /* if */
+            if (is_tracking_reference_type(param_type2)) {
+              param_type2 = base_param_type2;
+            }  /* if */
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           if (cmp != 0) {
             /* There was a reference cv-qualifier tiebreaker, so no further
                testing is necessary. */
-          } else if (is_pointer_type(param_type1) &&
-                     is_pointer_type(param_type2)) {
-            /* Check for adding cv-qualifiers under a pointer.  For multi-level
-               pointers, the cv-qualifiers can be added at several levels. */
+          } else if (types_are_both_pointers_or_both_handles(param_type1,
+                                                             param_type2)) {
+            /* Check for adding cv-qualifiers under a pointer or handle.
+               For multi-level pointers, the cv-qualifiers can be added at
+               several levels. */
             a_boolean qualifiers_added;
             if (arg_match1->conversion.std.type_qualifiers_added &&
                 same_type_with_added_qualifiers(param_type2,
