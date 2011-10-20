@@ -1375,7 +1375,8 @@ the field.
   } else if (by_reference) {
     /* The variable is being captured by reference.  Create a reference
        type based on the variable's type. */
-    if (lcp->source_closure_field != NULL && !is_ref) {
+    if (lcp->source_closure_field != NULL &&
+        !is_reference_type(lcp->source_closure_field->type)) {
       /* The variable is being indirectly captured through a value capture
          from an enclosing lambda.  If the enclosing lambda is not mutable,
          the reference should be to a const type. */
