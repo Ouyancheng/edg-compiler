@@ -2944,17 +2944,6 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED || NEAR_... */
   /* Determine whether this is a template class instantiation or a local
      class (one being declared within a function scope). */
-  if (depth_innermost_function_scope != NO_SCOPE_NUMBER ||
-      inside_local_class) {
-    /* This declaration appears within a function or block scope, or else it
-       is a nested class declaration within a local class.  In either case,
-       it is a local class. */
-    is_local_class = TRUE;
-    if (depth_innermost_function_scope != NO_SCOPE_NUMBER) {
-      innermost_function_scope->variant.routine.ptr
-                              ->contains_local_class_type = TRUE;
-    }  /* if */
-  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled) {
     cli_visibility = scan_cli_visibility_specifier_if_any(&cli_visibility_pos);
@@ -3256,12 +3245,6 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
-    if (cli_type_kind != (a_cli_class_type_kind)cctk_standard &&
-        is_local_class) {
-      /* A C++/CLI managed class type must have a name. */
-      pos_error(ec_local_cli_managed_class_type, &pos_curr_token);
-      err = TRUE;
-    }  /* if */
     /* Record any class modifiers (a C++/CLI feature accepted in "normal" C++
        by recent Microsoft C++ compilers). */
     if (microsoft_version >= 1400 || cppcli_enabled) {
@@ -3606,6 +3589,17 @@ defined.  Detailed position information is recorded in *decl_pos_block.
        allocated in the file scope memory region, though local types will be
        added to the function scope's types list. */
     class_type = alloc_type(type_kind);
+    if (depth_innermost_function_scope != NO_SCOPE_NUMBER ||
+        inside_local_class) {
+      /* This declaration appears within a function or block scope, or else it
+         is a nested class declaration within a local class.  In either case,
+         it is a local class. */
+      is_local_class = TRUE;
+      if (depth_innermost_function_scope != NO_SCOPE_NUMBER) {
+        innermost_function_scope->variant.routine.ptr
+                                ->contains_local_class_type = TRUE;
+      }  /* if */
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Indicate special Microsoft variations as appropriate (including C++/CLI
        managed class types). */
@@ -3617,6 +3611,11 @@ defined.  Detailed position information is recorded in *decl_pos_block.
         class_type->variant.class_struct_union.abstract = TRUE;
       }  /* if */
     } else if (cli_type_kind != (a_cli_class_type_kind)cctk_standard) {
+      if (is_local_class) {
+        /* A C++/CLI managed class type cannot be local. */
+        pos_error(ec_local_cli_managed_class_type, &tag_position);
+        err = TRUE;
+      }  /* if */
       class_type_supp(class_type)->is_hide_by_sig = TRUE;
       class_type_supp(class_type)->cli_class_type_kind = cli_type_kind;
     }  /* if */
@@ -3749,6 +3748,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     /* Using an existing type.  Fetch the type pointer from it. */
     class_type = tag_sym->variant.class_struct_union.type;
     ctsp = class_type_supp(class_type);
+    is_local_class = class_type->source_corresp.is_local_to_function;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
       if (is_interface !=
