@@ -4525,7 +4525,7 @@ The lowered type is given the name indicated by "name".
 #if MAINTAIN_NEEDED_FLAGS
     if (needed_flag_is_set(&cmplx_type->source_corresp)) {
       mark_as_needed((char *)lowered_repr, iek_type);
-      set_class_definition_needed_flag(lowered_repr);
+      set_class_definition_needed(lowered_repr);
       set_class_keep_definition_in_il(lowered_repr);
     }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */

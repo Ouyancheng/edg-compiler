@@ -1,5 +1,13 @@
 Version 4.4
 
+10/21/11 [EDGcpfe/12378]
+Setting the needed flag on lowered complex types
+
+An inconsistency with setting the needed flag on lowered complex types
+was discovered and fixed.  This had resulted in incorrect settings for
+needed flags of lowered complex types in multi-trans-unit configurations.
+
+
 10/20/11 [EDGcpfe/12376]
 Extra warning on "new" with ambiguous corresponding delete
 
