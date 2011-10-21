@@ -27984,7 +27984,8 @@ If so, also return in *p_bcp the base class for the interface implemented.
             /* This is the non-generic IEnumerable.  Save it and use it if
                no generic version turns up. */
             non_generic_bcp = bcp;
-          } else if (is_generic_cli_IEnumerable_type(base_type)) {
+          } else if (is_generic_cli_IEnumerable_type(base_type,
+                                                     (a_type *)NULL)) {
             /* This is a generic IEnumerable.  Take it (even if it does
                not match the iterator type and will get errors later). */
             goto done;

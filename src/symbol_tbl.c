@@ -7290,10 +7290,14 @@ class.  NULL until allocated when first needed.
 */
 static a_symbol_ptr symbol_for_cli_system_collections_generic_ienumerable;
 
-a_boolean is_generic_cli_IEnumerable_type(a_type_ptr type)
+a_boolean is_generic_cli_IEnumerable_type(a_type_ptr type,
+                                          a_type_ptr elem_type)
 /*
 Return TRUE if "type" is an instance of the C++/CLI
 System::Collections::Generic::IEnumerable<T> generic class.
+If elem_type is non-NULL, it is a specific type T (although some
+conversions are allowed).  If it's NULL, the test is for any instance
+of the generic class.
 */
 {
   a_boolean is_instance = FALSE;
@@ -7320,7 +7324,23 @@ System::Collections::Generic::IEnumerable<T> generic class.
     if (cssp->class_template ==
                        symbol_for_cli_system_collections_generic_ienumerable) {
       /* Yes, this is an instance of the generic IEnumerable. */
-      is_instance = TRUE;
+      if (elem_type == NULL) {
+        is_instance = TRUE;
+      } else {
+        /* Check for a specific instance of the generic. */
+        a_template_arg_ptr tap = class_type_supp(type)->template_arg_list;
+        if (tap != NULL && tap->next == NULL && is_type_templ_arg(tap)) {
+          /* The generic has a single type argument. */
+          a_type_ptr arg_type = tap->variant.type;
+          if (identical_types(elem_type, arg_type) ||
+              (is_handle_type(arg_type) &&
+               impl_handle_conversion(elem_type, arg_type,
+                                      /*allow_qualifier_of_eh_mismatch=*/FALSE,
+                                      (a_std_conv_descr *)NULL))) {
+            is_instance = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   return is_instance;

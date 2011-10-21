@@ -4135,7 +4135,8 @@ extern void init_symbols_for_cli_system_types(void);
 extern void init_cli_symbols_corresponding_to_fundamental_types(void);
 extern void make_symbols_for_system_string_operators(void);
 extern a_type_ptr make_IEnumerable_type(void);
-extern a_boolean is_generic_cli_IEnumerable_type(a_type_ptr type);
+extern a_boolean is_generic_cli_IEnumerable_type(a_type_ptr type,
+                                                 a_type_ptr elem_type);
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

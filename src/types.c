@@ -1127,7 +1127,7 @@ a_host_large_unsigned cli_array_rank(a_type_ptr tp,
 /*
 tp is a C++/CLI array type.  Return its rank, i.e., the number of dimensions.
 If the rank is unknown, e.g., because it's template-dependent, *unknown is
-returned TRUE.
+set to TRUE and 0 is returned.
 */
 {
   a_host_large_unsigned rank = 0;
@@ -7748,6 +7748,28 @@ information is not needed.
 }  /* cli_array_covariance_conversion_possible */
 
 
+static a_boolean cli_array_to_IEnumerable_conversion_possible(
+                                              a_type_ptr           source_type,
+                                              a_type_ptr           dest_type)
+/*
+Return TRUE if source_type is a one-dimensional C++/CLI array type with
+element type T and dest type is System::Collections::Generic::IEnumerable<T>.
+That type is considered an effective base class of the array type.
+*/
+{
+  a_boolean okay = FALSE, rank_unknown;
+
+  if (is_cli_array_type(source_type) &&
+      cli_array_rank(source_type, &rank_unknown) == 1) {
+    a_type_ptr elem_type = cli_array_element_type(source_type);
+    if (is_generic_cli_IEnumerable_type(dest_type, elem_type)) {
+      okay = TRUE;
+    }  /* if */
+  }  /* if */
+  return okay;
+}  /* cli_array_to_IEnumerable_conversion_possible */
+
+
 a_boolean impl_handle_conversion(
                          a_type_ptr           source_type,
                          a_type_ptr           dest_type,
@@ -7849,6 +7871,13 @@ that information is not needed.  Doesn't cover boxing conversions
                                                  unqual_dest_type_pointed_to,
                                                  std_conv)) {
       /* An array covariance conversion is possible. */
+      okay = TRUE;
+    } else if (cli_array_to_IEnumerable_conversion_possible(
+                                                unqual_source_type_pointed_to,
+                                                unqual_dest_type_pointed_to)) {
+      /* A conversion between a handle to a CLI array<T, 1> and a handle to
+         IEnumerable<T> is allowed, simulating having that IEnumerable as
+         a base class of the array type. */
       okay = TRUE;
     }  /* if */
   } else if (is_error(source_type)) {
