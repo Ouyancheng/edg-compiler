@@ -1303,10 +1303,8 @@ variable, return a pointer it.  Otherwise, return NULL.
 static a_field_ptr make_field_for_lambda_capture(a_lambda_ptr          lambda,
                                                  a_lambda_capture_ptr  lcp)
 /*
-Create the field of the closure class to store the capture of vp.  by_reference
-is TRUE if the variable is being captured by reference.  Return the field
-entry.  pos is the source position to be used as the decl_position of
-the field.
+Create the field of the closure class (associated with lambda) to store the
+capture described by lcp.  Return the field entry.
 */
 {
   a_variable_ptr           vp = lcp->variable;

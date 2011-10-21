@@ -48,6 +48,8 @@ For example:
     };                      // a const i to a non-reference.
   }
 
+(This agrees with a pending clarification for core issue 1249.) 
+
 
 10/17/11 [EDGcpfe/12358]
 Incorrect source position information for alias templates
