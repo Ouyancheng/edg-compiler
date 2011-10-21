@@ -11856,9 +11856,12 @@ source sequence entries recorded with this particular header.  */
 {
   a_template_parameter_ptr  param = tdp->param_list;
 
-  if (tdp->parent != NULL &&
-      (tdp->parent->param_list != NULL ||
-       parent_class->variant.class_struct_union.is_nonreal_class)) {
+  if (tdp->parent != NULL
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      && (tdp->parent->param_list != NULL
+          || parent_class->variant.class_struct_union.is_nonreal_class)
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+                                                                       ) {
     gen_template_header(tdp->parent, parent_class_or_null(parent_class),
                         is_cppcli_generic);
   }  /* if */
