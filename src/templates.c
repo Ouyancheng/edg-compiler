@@ -11015,7 +11015,7 @@ adjustment).
             !srtsp->explicit_calling_convention) {
           /* The substituted type is implicitly __clrcall (presumably because
              it involved a generic parameter).  Update the rescanned type to
-             have the same convention.  (This is safe because only "direct"
+             have the same convention.  This is safe because only "direct"
              calling convention conflicts were recorded; i.e., no conflicts
              due to calling conventions in typedef types or decltype (and
              similar) constructs. */
