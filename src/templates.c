@@ -14372,8 +14372,8 @@ initially used when processing the declaration of a partial specialization.
     if (prototype_instantiations_in_il && !decl_state->decl_scope_err) {
       /* Make sure we keep the prototype instantiations in the IL even
          though no one will be referring to them. */
-      mark_as_needed((char *)prototype_type, (an_il_entry_kind)iek_type);
-      set_class_definition_needed(prototype_type);
+      mark_to_keep_in_il((char *)prototype_type, (an_il_entry_kind)iek_type);
+      set_class_keep_definition_in_il(prototype_type);
     }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */

@@ -776,6 +776,7 @@ definition of the class is needed, and not just the declaration.
       fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
+    set_class_keep_definition_in_il(type);
     /* If the class is already marked as needed, redo the sweep for that,
        because before the definition_needed flag is set the subtree of
        the class is not swept when the class needed flag is set. */
