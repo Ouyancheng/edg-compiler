@@ -6204,11 +6204,13 @@ case).
              which might be a pointer type.  Also allow a nonreal class type,
              which might have an operator-> function. */
           orig_class_struct_union_type = type_of_unknown_templ_param_nontype;
+        } else if (
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled && is_handle_type(operand_1->type)) {
-          orig_class_struct_union_type = type_pointed_to(operand_1->type);
+                   cppcli_enabled ?
+                     check_pointer_or_handle_operand(operand_1,
+                                              ec_expr_not_pointer_nor_handle) :
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        } else if (check_pointer_operand(operand_1, ec_expr_not_pointer)) {
+                     check_pointer_operand(operand_1, ec_expr_not_pointer)) {
           orig_class_struct_union_type = type_pointed_to(operand_1->type);
         } else {
           /* Not a pointer. */
