@@ -4254,7 +4254,22 @@ configurations, the type is recorded in enum_type.
     (void)get_token();
     *pos_type = pos_curr_token;
     add_stop_token(tok_lbrace);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && disable_access_checking_in_microsoft_enum_bases) {
+      /* Microsoft compiler accept the following example:
+           struct S { private: typedef int I; };
+           enum E: S::I { e };
+      */
+      begin_deferral_of_access_checks();
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     type_name(&base_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && disable_access_checking_in_microsoft_enum_bases) {
+      discard_deferred_access_checks();
+      end_deferral_of_access_checks();
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     remove_stop_token(tok_lbrace);
     if (base_type != NULL) {
       a_type_ptr  orig_base_type = base_type;

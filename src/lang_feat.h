@@ -817,6 +817,16 @@ as a source feature.
           !CPPCLI_ENABLING_POSSIBLE */
 
 /*
+Flag that is TRUE if by default access checking should be disabled for enum
+base specifiers in Microsoft mode.  For example:
+  struct S { private: typedef int I; };
+  enum E: S::I { e };  // Accepted in Microsoft mode when this flag is TRUE.
+*/
+#ifndef DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES
+#define DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES FALSE
+#endif /* DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES */
+
+/*
 Flag that is TRUE if by default in Microsoft modes the front end should accept
 64-bit pointer extensions (__ptr32/__ptr64 and __sptr/__uptr).  This is used
 to initialize the global variable microsoft_64bit_pointer_extensions_enabled.

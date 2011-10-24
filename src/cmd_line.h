@@ -1121,6 +1121,12 @@ EXTERN a_boolean
 			   This feature is always allowed for generics
 			   imported from metadata.  This controls the
 			   availability of the feature as a source feature. */
+
+EXTERN a_boolean
+		disable_access_checking_in_microsoft_enum_bases;
+			/* TRUE if in Microsoft mode, the front end should
+			   emulate the Microsoft behavior of not performing
+			   access checking on enum base specifiers. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS

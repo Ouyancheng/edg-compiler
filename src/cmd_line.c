@@ -1789,6 +1789,10 @@ static a_flag_name
 #if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
   { "generate_portable_assemblies", &generate_portable_assemblies },
 #endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  { "disable_access_checking_in_microsoft_enum_bases",
+    &disable_access_checking_in_microsoft_enum_bases },
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   { NULL, NULL }  /* must be last */
 };
 
@@ -4493,6 +4497,13 @@ file.
 #else /* !defined(DEFAULT_DESIGNATORS_ALLOWED) */
   comment_undefined_macro_name(DEFAULT_DESIGNATORS_ALLOWED);
 #endif /* defined(DEFAULT_DESIGNATORS_ALLOWED) */
+#if defined(DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES)
+  define_numeric_valued_macro(
+                     DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES);
+#else /* !defined(DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES) */
+  comment_undefined_macro_name(
+                     DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES);
+#endif /* defined(DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES) */
 #if defined(DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE)
   define_numeric_valued_macro(DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE);
 #else /* !defined(DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE) */
@@ -9567,6 +9578,8 @@ variables declared in cmd_line.h.
      cppcli_enabled is TRUE. */
   using_framework_directory = TRUE;
   generic_arity_overload_allowed = DEFAULT_GENERIC_ARITY_OVERLOAD_ALLOWED;
+  disable_access_checking_in_microsoft_enum_bases =
+                      DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES;
 #if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
   generate_portable_assemblies = FALSE;
 #endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
