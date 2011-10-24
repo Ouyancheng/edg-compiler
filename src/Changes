@@ -1,5 +1,20 @@
 Version 4.4
 
+10/24/11 [EDGcpfe/12381]
+Microsoft compatibility: Access checking on enum base specifiers
+
+Microsoft compilers do not perform access checking on enum base specifiers,
+causing them to accept examples like the following:
+
+  struct S { private: typedef int I; };
+  enum E: S::I { e };  // S::I should be inaccessible.
+
+A new global variable "disable_access_checking_in_microsoft_enum_bases" now
+controls whether to emulate this behavior in Microsoft modes.  A configuration
+macro DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES determines the
+default initial value of that variable.
+
+
 10/21/11 [EDGcpfe/12378]
 Setting the needed flag on lowered complex types
 
