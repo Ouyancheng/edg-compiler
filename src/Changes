@@ -1,5 +1,19 @@
 Version 4.4
 
+10/24/11 [EDGcpfe/11869]
+Local variables with thread-local storage
+
+The front end previously accepted local thread-local variables with dynamic
+initializers in some modes.  To match both GNU and Microsoft compilers, such
+initializers are no longer permitted.  For example:
+
+  int g();
+  int f() {
+    static __thread int x = g();  // Previously accepted in GNU mode; now
+    return x;                     // an error.
+  }
+
+
 10/24/11 [EDGcpfe/12381]
 Microsoft compatibility: Access checking on enum base specifiers
 

@@ -13849,8 +13849,13 @@ declaration modifiers recorded in *dps.
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   if (var_ptr->decl_modifiers & DM_THREAD) {
-    if (var_ptr->init_kind == (an_init_kind)initk_dynamic &&
-        !var_ptr->source_corresp.is_local_to_function) {
+    an_init_kind  init_kind = var_ptr->init_kind;
+    if (init_kind == (an_init_kind)initk_function_local) {
+      a_local_static_variable_init_ptr  lsvip =
+           find_local_static_variable_init(var_ptr, innermost_function_scope);
+      init_kind = lsvip->init_kind;
+    }  /* if */
+    if (init_kind == (an_init_kind)initk_dynamic) {
       pos_error(ec_bad_init_for_thread_local, &dps->declarator_pos);
     }  /* if */
   }  /* if */
