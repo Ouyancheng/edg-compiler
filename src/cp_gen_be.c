@@ -2670,11 +2670,13 @@ that the remaining arguments will be defaulted.
           /* We have reached the first argument to be omitted. */
           break;
         } else if (min_arguments >= 0 && i >= min_arguments) {
-          /* There are default arguments beyond this point; check the
-             accessibility of the argument to see if we should truncate the
-             argument list at this point to avoid possible access
-             problems. */
-          if (!template_arg_is_accessible(argp, /*ignore_context=*/FALSE)) {
+          /* There are default arguments beyond this point.  If this is an
+             instance of a class template, truncate the list here;
+             otherwise, check the accessibility of the argument to see if
+             we should truncate the argument list at this point to avoid
+             possible access problems. */
+          if (entry_kind == iek_type ||
+              !template_arg_is_accessible(argp, /*ignore_context=*/FALSE)) {
             break;
           }  /* if */
         }  /* if */

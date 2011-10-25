@@ -1,5 +1,28 @@
 Version 4.4
 
+10/25/11 [EDGcpfe/12394]
+C++-generating back end, Sun compatibility: explicit vs default template
+arguments
+
+The Sun C++ compiler on Sparc and 32-bit Solaris platforms has a bug that
+causes it to mangle types differently depending on whether template
+arguments are specified explicitly or are taken from default template
+arguments.  The C++-generating back end always put out the names of template
+instances using explicit arguments unless a given template argument is
+inaccessible at the point of the reference, which sometimes resulted in the
+generated code triggering the Sun mangling bug.  This has now been addressed
+by keeping track of the minimum number of template arguments used in the
+original source to refer to that template instance and only putting out that
+number of arguments, regardless of access issues.  For example:
+
+  template<typename T> struct P { };
+  template<typename T, typename W = P<T> > struct M { };
+
+  M<void*(*)()> _M;  // Previously generated as M<void*(*)(), P<void*(*)()> >
+  M<void*(*)()> >& xxx() { return _M; }   // ...which caused Sun CC to mangle
+                                          // ...the name of xxx incorrectly
+
+
 10/25/11 [EDGcpfe/11912]
 Abort after recovering from an too-large enumerator constant
 
