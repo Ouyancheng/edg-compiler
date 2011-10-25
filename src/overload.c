@@ -4512,6 +4512,12 @@ next_argument:
          member function, this is fine.  For a nonstatic member function,
          it doesn't count against the function (see core issue 364),
          but the function is not callable if selected. */
+      /* But for operator-form references, the match fails for a nonstatic
+         member function. */
+      if (is_overloaded_operator &&
+          function_is_nonstatic_member_function) {
+        goto reject_function;
+      }  /* if */
     }  /* if */
   }  /* if */
 accept_function:
@@ -4668,8 +4674,10 @@ b).  conv_context describes the context of the conversion.
     /* If we have no selector, see if any one of the functions requires one.
        If so, we will look to see if an implicit "this->" can be generated.
        Don't do this for the constructor case (the "this" parameter of the
-       constructor is not used in the match). */
-    if (!ctor_conversion_case && !have_selector) {
+       constructor is not used in the match).  Also don't do this for
+       cases written in operator form -- they can't be rewritten by
+       preceding them with "this->", so a selector should not be invented. */
+    if (!ctor_conversion_case && !is_overloaded_operator && !have_selector) {
       a_routine_ptr routine;
       a_type_ptr    routine_type;
       a_boolean     some_function_needs_selector = FALSE;
