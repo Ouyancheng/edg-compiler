@@ -1,5 +1,21 @@
 Version 4.4
 
+10/25/11 [EDGcpfe/11912]
+Abort after recovering from an too-large enumerator constant
+
+In some configurations that set enum_types_can_be_smaller_than_int, the front
+end could end up attempting to perform integer operations on an error constant
+resulting from specifying a value for an enumerator constant that is too
+large.  For example:
+
+  enum E { e = 5000000000 };  // If 5000000000 is too large, an error constant
+                              // was produced for error recovery purposes, and
+                              // that was later incorrectly assumed to be an
+                              // integer constant.
+
+This is now fixed.
+
+
 10/24/11 [EDGcpfe/11869]
 Local variables with thread-local storage
 

@@ -5081,8 +5081,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
                used if needed. */
           } else {
             check_assertion(constant.kind == (a_constant_repr_kind)ck_integer);
-            /* Check the value to see if it is out of range.  (3.5.2.2,
-               constraints) */
+            /* Check the value to see if it is out of range. */
             if (!in_range_for_integer_kind(&constant, &constant,
                                            largest_enum_int_kind)) {
               a_boolean		conversion_allowed = TRUE;
@@ -5104,7 +5103,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
                 }  /* if */
               } else {
                 error(ec_enum_value_out_of_int_range);
-                set_error_constant(&constant);
+                err = TRUE;
               }  /* if */
             }  /* if */
           }  /* if */
