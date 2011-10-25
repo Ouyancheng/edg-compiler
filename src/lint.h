@@ -583,6 +583,14 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_cl_unrecognized_calling_convention)*/
 /*lint -esym(769,ec_cl_calling_convention_list)*/
 /*lint -esym(769,ec_microsoft_interface)*/
+/*lint -esym(769,a_builtin_operation_kind_tag::bok_has_finalizer)*/
+/*lint -esym(769,a_builtin_operation_kind_tag::bok_is_delegate)*/
+/*lint -esym(769,a_builtin_operation_kind_tag::bok_is_interface_class)*/
+/*lint -esym(769,a_builtin_operation_kind_tag::bok_is_ref_array)*/
+/*lint -esym(769,a_builtin_operation_kind_tag::bok_is_ref_class)*/
+/*lint -esym(769,a_builtin_operation_kind_tag::bok_is_sealed)*/
+/*lint -esym(769,a_builtin_operation_kind_tag::bok_is_simple_value_class)*/
+/*lint -esym(769,a_builtin_operation_kind_tag::bok_is_value_class)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !(GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX)
 /*lint -esym(759, lower_c99_constant_expr)*/

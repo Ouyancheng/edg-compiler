@@ -13224,7 +13224,6 @@ typedef enum a_builtin_operation_kind_tag {
   bok_is_nothrow_constructible,
 			/* __is_nothrow_constructible.  One or more operands,
 			   all types. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   bok_has_finalizer,	/* __has_finalizer.  One operand: A type. */
   bok_is_delegate,	/* __is_delegate.  One operand: A type. */
   bok_is_interface_class,
@@ -13235,7 +13234,6 @@ typedef enum a_builtin_operation_kind_tag {
   bok_is_simple_value_class,
 			/* __is_simple_value_class.  One operand: A type. */
   bok_is_value_class,	/* __is_value_class.  One operand: A type. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
@@ -16706,7 +16704,6 @@ EXTERN char     *builtin_operation_names[(int)bok_last+1]
   "__has_nothrow_move_assign",
   "__is_constructible",
   "__is_nothrow_constructible",
-#if MICROSOFT_EXTENSIONS_ALLOWED
    "__has_finalizer",
    "__is_delegate",
    "__is_interface_class",
@@ -16715,7 +16712,6 @@ EXTERN char     *builtin_operation_names[(int)bok_last+1]
    "__is_sealed",
    "__is_simple_value_class",
    "__is_value_class",
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   "last"
 }
 #endif /* VAR_INITIALIZERS */
