@@ -5467,6 +5467,7 @@ one is required.
 */
 {
   a_source_sequence_scan_state  saved_state;
+  a_boolean                     attribute_seen = FALSE;
 
   /* Record the position in the source sequence entries list so we can come
      back to it to render skipped entries. */
@@ -5476,10 +5477,12 @@ one is required.
     advance_past_preprocessing_directives();
     if (curr_source_sequence_entry == NULL ||
         ss_entry_kind(curr_source_sequence_entry) != iek_ms_attribute) break;
+    attribute_seen = TRUE;
     adv_curr_source_sequence_entry();
   }  /* for */
   /* If a member declaration follows, render its access specifier if needed. */
-  if (curr_source_sequence_entry != NULL && curr_src_seq_entry_is_decl()) {
+  if (attribute_seen &&
+      curr_source_sequence_entry != NULL && curr_src_seq_entry_is_decl()) {
     a_source_correspondence_ptr   scp;
     a_src_seq_secondary_decl_ptr  sec_decl;
     if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
