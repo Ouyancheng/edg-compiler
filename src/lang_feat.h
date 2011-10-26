@@ -821,6 +821,8 @@ Flag that is TRUE if by default access checking should be disabled for enum
 base specifiers in Microsoft mode.  For example:
   struct S { private: typedef int I; };
   enum E: S::I { e };  // Accepted in Microsoft mode when this flag is TRUE.
+By default, emulation of this Microsoft bug is disabled; set the flag to TRUE
+for maximum compatibility with Microsoft compilers.
 */
 #ifndef DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES
 #define DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES FALSE

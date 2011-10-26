@@ -4256,7 +4256,7 @@ configurations, the type is recorded in enum_type.
     add_stop_token(tok_lbrace);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode && disable_access_checking_in_microsoft_enum_bases) {
-      /* Microsoft compiler accept the following example:
+      /* Microsoft compilers accept the following example:
            struct S { private: typedef int I; };
            enum E: S::I { e };
       */
