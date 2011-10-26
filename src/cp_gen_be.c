@@ -2635,7 +2635,8 @@ that the remaining arguments will be defaulted.
     a_template_arg_ptr prev_argp = NULL;
     long               min_arguments = num_arguments;
 
-    if (entry_kind == iek_type) {
+    if (entry_kind == iek_type &&
+        is_immediate_class_type((a_type_ptr)scp)) {
       a_type_ptr                  type = (a_type_ptr)scp;
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
@@ -2671,11 +2672,17 @@ that the remaining arguments will be defaulted.
           break;
         } else if (min_arguments >= 0 && i >= min_arguments) {
           /* There are default arguments beyond this point.  If this is an
-             instance of a class template, truncate the list here;
-             otherwise, check the accessibility of the argument to see if
-             we should truncate the argument list at this point to avoid
-             possible access problems. */
-          if (entry_kind == iek_type ||
+             instance of a class template and we are not generating
+             explicit specializations for instances of class templates,
+             truncate the list here.  (Ordering issues make it unsafe to
+             rely on default arguments in generated explicit
+             specializations.)  Otherwise, check the accessibility of the
+             argument to see if we should truncate the argument list at
+             this point to avoid possible access problems. */
+          if (
+#if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+              entry_kind == iek_type ||
+#endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
               !template_arg_is_accessible(argp, /*ignore_context=*/FALSE)) {
             break;
           }  /* if */
@@ -2696,7 +2703,7 @@ that the remaining arguments will be defaulted.
     /* Put out the template argument list, e.g., "<int, float>". */
     if (num_arguments == 0) {
       /* Just output the angle brackets. */
-      write_tok_str("<>");
+      write_tok_str("<> ");
     } else {
       a_boolean saved_in_template_argument_list = in_template_argument_list;
       in_template_argument_list = TRUE;
