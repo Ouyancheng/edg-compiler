@@ -5270,6 +5270,109 @@ that a function might throw.
   write_tok_ch(')');
 }  /* gen_exception_specification */
 
+
+static void gen_access_specifier(an_access_specifier access)
+/*
+Write the string that corresponds to the indicated access specifier value.
+*/
+{
+  char *s;
+
+  switch (access) {
+    case as_public:     s = "public";    break;
+    case as_protected:  s = "protected"; break;
+    case as_private:    s = "private";   break;
+    default:            unexpected_condition();
+  }  /* switch */
+  write_tok_str(s);
+}  /* gen_access_specifier */
+
+
+static void gen_member_access_specifier(an_access_specifier access, 
+                                        an_access_specifier assembly_access)
+/*
+Generate an access specifier in a class definition to change the current
+access mode to the indicated access.  assembly_access corresponds to the
+C++/CLI assembly-level access, which is ignored in non-C++/CLI modes.  Do
+nothing if the current access is already set to that value.
+*/
+{
+  a_type_ptr                  class_type = curr_name_context_class();
+  a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
+
+  if ((access != curr_name_context->access
+#if MICROSOFT_EXTENSIONS_ALLOWED
+       || (cppcli_enabled && 
+           assembly_access != curr_name_context->assembly_access)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */    
+                                                                 ) &&
+      !(ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+        || class_type->
+                      variant.class_struct_union.is_nonstd_anonymous_union_type
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+        )) {
+    /* The desired access is not the current access, so put out an access
+       specifier, e.g., "public:".  (We avoid putting access labels into
+       anonymous unions: only public members are allowed in anonymous unions,
+       so if the access of the member is not the same as the current context
+       (which will be public in an anonymous union), it is because the
+       more-restrictive access was inherited from the larger context and not
+       because an access label appeared in the source.) */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled) {
+      if ((access == (an_access_specifier)as_protected &&
+           assembly_access == (an_access_specifier)as_private) ||
+          (access == (an_access_specifier)as_public &&
+           assembly_access == (an_access_specifier)as_protected)) {
+        gen_access_specifier(assembly_access);  
+        write_space();
+        gen_access_specifier(access);
+      } else if (access == (an_access_specifier)as_public &&
+                 assembly_access == (an_access_specifier)as_private) {
+        write_tok_str("internal");
+      } else {
+        gen_access_specifier(access);  
+      }  /* if */
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      gen_access_specifier(access);
+    }  /* if */
+    write_tok_ch(':');
+    write_space();
+    curr_name_context->access = access;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    curr_name_context->assembly_access = assembly_access;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+}  /* gen_member_access_specifier */
+
+
+static void gen_member_access_specifier_for_decl_of(
+                                                  a_source_correspondence *scp)
+/*
+A declaration or definition of the entity whose source correspondence
+information is given by scp is about to be put out.  If we are currently
+generating a class definition, and the entity is a member of the class,
+output an access specifier (e.g., "public:") if necessary to set the
+current access mode in the class.  Otherwise, do nothing.
+*/
+{
+  if (curr_name_context_is_a_class() && scp->is_class_member &&
+      scp_parent_class(scp) == curr_name_context_class()) {
+    /* We're inside a class, and the entity being output is a member of that
+       class. */
+    an_access_specifier  assembly_access = (an_access_specifier)as_public;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    assembly_access = (an_access_specifier)scp->assembly_access;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    gen_member_access_specifier((an_access_specifier)scp->access,
+                                assembly_access);
+  }  /* if */
+}  /* gen_member_access_specifier_for_decl_of */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void gen_ms_attribute(an_ms_attribute_ptr msap,
@@ -5342,6 +5445,34 @@ Return TRUE if any were processed.
   }  /* for */
   return any_found;
 }  /* gen_ms_attribute_block_from_ss_list */
+
+
+static void gen_access_specifier_before_ms_attributes_if_needed(void)
+/*
+*/
+{
+  a_source_sequence_scan_state  saved_state;
+
+  save_source_sequence_scan_state(&saved_state);
+  for (;;) {
+    advance_past_preprocessing_directives();
+    if (curr_source_sequence_entry == NULL ||
+        ss_entry_kind(curr_source_sequence_entry) != iek_ms_attribute) break;
+    adv_curr_source_sequence_entry();
+  }  /* for */
+  if (curr_source_sequence_entry != NULL && curr_src_seq_entry_is_decl()) {
+    a_source_correspondence_ptr   scp;
+    a_src_seq_secondary_decl_ptr  sec_decl;
+    if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
+      scp = ss_entry_ptr(sec_decl, a_source_correspondence_ptr);
+    } else {
+      scp = ss_entry_ptr(curr_source_sequence_entry,
+                         a_source_correspondence_ptr);
+    }  /* if */
+    gen_member_access_specifier_for_decl_of(scp);
+  }  /* if */
+  restore_source_sequence_scan_state(&saved_state);
+}  /* gen_access_specifier_before_ms_attributes_if_needed */
 
 
 static void gen_ms_parameter_attribute_block(an_ms_attribute_ptr msap)
@@ -6117,109 +6248,6 @@ preceding declaration by a semicolon in such cases.
 }  /* another_declaration_in_comma_list_follows */
 
 
-static void gen_access_specifier(an_access_specifier access)
-/*
-Write the string that corresponds to the indicated access specifier value.
-*/
-{
-  char *s;
-
-  switch (access) {
-    case as_public:     s = "public";    break;
-    case as_protected:  s = "protected"; break;
-    case as_private:    s = "private";   break;
-    default:            unexpected_condition();
-  }  /* switch */
-  write_tok_str(s);
-}  /* gen_access_specifier */
-
-
-static void gen_member_access_specifier(an_access_specifier access, 
-                                        an_access_specifier assembly_access)
-/*
-Generate an access specifier in a class definition to change the current
-access mode to the indicated access.  assembly_access corresponds to the
-C++/CLI assembly-level access, which is ignored in non-C++/CLI modes.  Do
-nothing if the current access is already set to that value.
-*/
-{
-  a_type_ptr                  class_type = curr_name_context_class();
-  a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
-
-  if ((access != curr_name_context->access
-#if MICROSOFT_EXTENSIONS_ALLOWED
-       || (cppcli_enabled && 
-           assembly_access != curr_name_context->assembly_access)
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */    
-                                                                 ) &&
-      !(ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-        || class_type->
-                      variant.class_struct_union.is_nonstd_anonymous_union_type
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-        )) {
-    /* The desired access is not the current access, so put out an access
-       specifier, e.g., "public:".  (We avoid putting access labels into
-       anonymous unions: only public members are allowed in anonymous unions,
-       so if the access of the member is not the same as the current context
-       (which will be public in an anonymous union), it is because the
-       more-restrictive access was inherited from the larger context and not
-       because an access label appeared in the source.) */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled) {
-      if ((access == (an_access_specifier)as_protected &&
-           assembly_access == (an_access_specifier)as_private) ||
-          (access == (an_access_specifier)as_public &&
-           assembly_access == (an_access_specifier)as_protected)) {
-        gen_access_specifier(assembly_access);  
-        write_space();
-        gen_access_specifier(access);
-      } else if (access == (an_access_specifier)as_public &&
-                 assembly_access == (an_access_specifier)as_private) {
-        write_tok_str("internal");
-      } else {
-        gen_access_specifier(access);  
-      }  /* if */
-    } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    {
-      gen_access_specifier(access);
-    }  /* if */
-    write_tok_ch(':');
-    write_space();
-    curr_name_context->access = access;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    curr_name_context->assembly_access = assembly_access;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  }  /* if */
-}  /* gen_member_access_specifier */
-
-
-static void gen_member_access_specifier_for_decl_of(
-                                                  a_source_correspondence *scp)
-/*
-A declaration or definition of the entity whose source correspondence
-information is given by scp is about to be put out.  If we are currently
-generating a class definition, and the entity is a member of the class,
-output an access specifier (e.g., "public:") if necessary to set the
-current access mode in the class.  Otherwise, do nothing.
-*/
-{
-  if (curr_name_context_is_a_class() && scp->is_class_member &&
-      scp_parent_class(scp) == curr_name_context_class()) {
-    /* We're inside a class, and the entity being output is a member of that
-       class. */
-    an_access_specifier  assembly_access = (an_access_specifier)as_public;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    assembly_access = (an_access_specifier)scp->assembly_access;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    gen_member_access_specifier((an_access_specifier)scp->access,
-                                assembly_access);
-  }  /* if */
-}  /* gen_member_access_specifier_for_decl_of */
-
-
 static void write_end_of_declaration_punctuation(a_boolean another_decl)
 /*
 Write the punctuation for the end of a declaration: a comma if another_decl
@@ -6739,6 +6767,11 @@ is the one associated with the definition of the class.
      class. */
   while (ss_entry_kind(curr_source_sequence_entry) !=
                                                 iek_src_seq_end_of_construct) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (ss_entry_kind(curr_source_sequence_entry) == iek_ms_attribute) {
+      gen_access_specifier_before_ms_attributes_if_needed();
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     gen_declaration(/*for_init=*/FALSE);
   }  /* while */
   /* This should be the end-of-construct marker for the class. */
