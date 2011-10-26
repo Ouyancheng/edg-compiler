@@ -423,10 +423,10 @@ resulting in incorrect code.  This is now fixed.  For example:
 10/3/11  [EDGcpfe/11870]
 Abort on nontype template argument that refers to a local static constant
 
-In configurations that enable the C++-generating back end, the front aborted
-with an internal error in scope_of_local_variable (il.c, "scope not found")
-when a nontype template argument referred to a local static const variable.
-For example:
+In some configurations (particularly those that enable the C++-generating back
+end), the front aborted with an internal error in scope_of_local_variable
+(il.c, "scope not found") when a nontype template argument referred to a
+local static const variable.  For example:
 
   template<int> void f();
   void g() {
