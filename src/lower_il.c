@@ -2744,7 +2744,8 @@ This routine can be used on lowered expressions if the expression is known
 not to contain any top level base class casts.
 */
 {
-  a_boolean converted;
+  a_boolean  converted;
+  a_type_ptr cast_type = NULL;
 
   check_assertion(!expr->is_lvalue && is_class_struct_union_type(expr->type));
   conv_rvalue_expr_to_object_pointer(&expr, &converted);
@@ -2758,6 +2759,15 @@ not to contain any top level base class casts.
        be reattached to the new expression below. */
     /* This test (for base class casts) only works on unlowered IL. */
     expr = strip_rvalue_base_class_casts(expr, &top_cast, &bottom_cast);
+    if (is_operation_node(expr) &&
+        node_operator_is(expr, eok_class_rvalue_adjust)) {
+      /* If we're also adjusting the cv-qualifiers, do that here (by removing
+         this operation and adding a cast to the appropriate type at the end)
+         so we don't use two temporaries (on a subsequent invocation of
+         this routine). */
+      cast_type = make_pointer_type(expr->type);
+      expr = expr->variant.operation.operands;
+    }  /* if */
     temp = assign_expr_to_temp(expr);
     expr = make_comma_node(expr, var_addr_expr(temp));
     if (top_cast != NULL) {
@@ -2785,6 +2795,9 @@ not to contain any top level base class casts.
         check_assertion(node != NULL);
       }  /* for */
       expr = top_cast;
+    }  /* if */
+    if (cast_type != NULL) {
+      expr = add_cast(expr, cast_type);
     }  /* if */
   }  /* if */
   return expr;

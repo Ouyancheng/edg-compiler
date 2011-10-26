@@ -1,5 +1,21 @@
 Version 4.4
 
+10/26/11 [EDGcpfe/12377]
+Remove extra temporary created during lowering
+
+As a result of the expression changes introduced in 4.0, an additional
+temporary had been introduced during lowering when the source code included
+a reference to a class rvalue that needed cv-qualification adjustment.
+The extra temporary has now been removed.  For example:
+
+  struct A { };
+  A f();
+  void g(const A&);
+  void h() {
+    g(f());   // Had used two temporaries, now uses one.
+  }
+
+
 10/25/11 [EDGcpfe/12366]
 C++-generating back end: Member access specifiers and Microsoft attributes
 
