@@ -41,7 +41,7 @@ For example:
 
 
 10/25/11 [EDGcpfe/11912]
-Abort after recovering from an too-large enumerator constant
+Possible abort after recovering from a too-large enumerator constant
 
 In some configurations that set enum_types_can_be_smaller_than_int, the front
 end could end up attempting to perform integer operations on an error constant
