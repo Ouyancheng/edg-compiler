@@ -3631,9 +3631,18 @@ created; the caller must set it.
     } else {
       /* Both are variables, or both are routines.  Compare the old and
          new types; they must be compatible. */
+      a_type_ptr  type_to_reconcile;
+      if (is_function &&
+          is_local_scope_kind(scope_stack[decl_scope_level].kind)) {
+        /* If the current declaration is local, do not attempt to preserve its
+           default arguments in the external symbol entry. */
+        type_to_reconcile = routine_type_without_default_args(type_ptr);
+      } else {
+        type_to_reconcile = type_ptr;
+      }  /* if */
       err = !reconcile_external_symbol_types(ext_sym,
                                              &locator->source_position,
-                                             type_ptr,
+                                             type_to_reconcile,
                                              incomp_severity);
       if (ext_sym_kind == (a_symbol_kind)sk_extern_routine) {
         /* If this declaration is not the result of an implicit
@@ -3728,12 +3737,16 @@ created; the caller must set it.
   if (ext_sym == NULL) {
     /* There is no (compatible) external symbol entry for the identifier.
        Create one. */
+    a_type_ptr  type_to_record = type_ptr;
     ext_sym = enter_extern_symbol(ext_sym_kind, &ext_locator);
     esdp = ext_sym->variant.extern_symbol_descr;
-    esdp->type = type_ptr;
     if (ext_sym_kind == (a_symbol_kind)sk_extern_routine) {
       esdp->variant.routine.is_implicit_declaration = is_implicit_declaration;
+      if (is_local_scope_kind(scope_stack[decl_scope_level].kind)) {
+        type_to_record = = routine_type_without_default_args(type_ptr);
+      }  /* if */
     }  /* if */
+    esdp->type = type_to_record;
     /* The pointer to the variable or routine IL entry is filled in later,
        by the caller of this routine. */
   }  /* if */
