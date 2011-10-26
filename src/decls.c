@@ -13850,9 +13850,8 @@ declaration modifiers recorded in *dps.
 #if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   if (var_ptr->decl_modifiers & DM_THREAD) {
     an_init_kind        init_kind;
-    an_initializer_ptr  initializer;
-    get_variable_initializer(
-                        var_ptr, (a_scope_ptr)NULL, &init_kind, &initializer);
+    an_initializer_ptr  init;
+    get_variable_initializer(var_ptr, (a_scope_ptr)NULL, &init_kind, &init);
     if (init_kind == (an_init_kind)initk_dynamic) {
       pos_error(ec_bad_init_for_thread_local, &dps->declarator_pos);
     }  /* if */
