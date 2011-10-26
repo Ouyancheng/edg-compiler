@@ -5456,17 +5456,29 @@ Return TRUE if any were processed.
 
 static void gen_access_specifier_before_ms_attributes_if_needed(void)
 /*
+Microsoft attributes (enclosed in square brackets) have their own source
+sequence entries, but they are usually strongly tied to a declaration whose
+source sequence entry follows.  In the case of a member declaration, however,
+the accessibility (which are recorded in the IL for the declaration and not in
+that for the preceding attributes) should be adjusted before the attributes
+rendered (if an adjustment is needed at all).  This function therefore looks
+ahead in the list of source sequence entries to render an access specifier if
+one is required.
 */
 {
   a_source_sequence_scan_state  saved_state;
 
+  /* Record the position in the source sequence entries list so we can come
+     back to it to render skipped entries. */
   save_source_sequence_scan_state(&saved_state);
+  /* Skip any Microsoft attributes and preprocessing directives. */
   for (;;) {
     advance_past_preprocessing_directives();
     if (curr_source_sequence_entry == NULL ||
         ss_entry_kind(curr_source_sequence_entry) != iek_ms_attribute) break;
     adv_curr_source_sequence_entry();
   }  /* for */
+  /* If a member declaration follows, render its access specifier if needed. */
   if (curr_source_sequence_entry != NULL && curr_src_seq_entry_is_decl()) {
     a_source_correspondence_ptr   scp;
     a_src_seq_secondary_decl_ptr  sec_decl;
@@ -5478,6 +5490,10 @@ static void gen_access_specifier_before_ms_attributes_if_needed(void)
     }  /* if */
     gen_member_access_specifier_for_decl_of(scp);
   }  /* if */
+  /* Restore the position in the source sequence entries list.  If an access
+     specifier was rendered above, it will still be active when the
+     associated declaration is fully processed, and hence no additional access
+     specifier will be rendered for that declaration. */
   restore_source_sequence_scan_state(&saved_state);
 }  /* gen_access_specifier_before_ms_attributes_if_needed */
 
@@ -6775,9 +6791,7 @@ is the one associated with the definition of the class.
   while (ss_entry_kind(curr_source_sequence_entry) !=
                                                 iek_src_seq_end_of_construct) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (ss_entry_kind(curr_source_sequence_entry) == iek_ms_attribute) {
-      gen_access_specifier_before_ms_attributes_if_needed();
-    }  /* if */
+    gen_access_specifier_before_ms_attributes_if_needed();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     gen_declaration(/*for_init=*/FALSE);
   }  /* while */
