@@ -3743,7 +3743,7 @@ created; the caller must set it.
     if (ext_sym_kind == (a_symbol_kind)sk_extern_routine) {
       esdp->variant.routine.is_implicit_declaration = is_implicit_declaration;
       if (is_local_scope_kind(scope_stack[decl_scope_level].kind)) {
-        type_to_record = = routine_type_without_default_args(type_ptr);
+        type_to_record = routine_type_without_default_args(type_ptr);
       }  /* if */
     }  /* if */
     esdp->type = type_to_record;
