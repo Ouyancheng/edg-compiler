@@ -1,5 +1,30 @@
 Version 4.4
 
+10/27/11 [EDGcpfe/12384]
+C++-generating back end: Undeclared temporary qualifier in dependent name
+
+In configurations in which PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE and
+DEFAULT_RECORD_FORM_OF_NAME_REFERENCE is FALSE, the C++-generating back
+end sometimes used an undeclared temporary name (i.e., a name of the form
+__T12345678) as a qualifier in a dependent name, causing errors when the
+generated code was compiled.  This is now fixed.  For example:
+
+  template<typename T>
+  struct B {
+    struct M : public T {
+      int i;
+    };
+    M m;
+  };
+  template<typename T>
+  struct D : B<T> {
+    void f();
+  };
+  template<typename T> void D<T>::f() {
+    this->m.i = 0;  // Previously generated as (this->m).__T12345678::i
+  }
+
+
 10/26/11 [EDGcpfe/12377]
 Remove extra temporary created during lowering
 

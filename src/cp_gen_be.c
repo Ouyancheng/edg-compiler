@@ -2798,6 +2798,9 @@ for the meaning of need_closing_paren.
   if (class_type->variant.class_struct_union.extra_info->anonymous_union_kind
                                     == (an_anonymous_union_kind)auk_variable) {
     /* Put out no name for the topmost level in a non-field anonymous union. */
+  } else if (!has_name_before_mangling(class_type) &&
+             class_type->variant.class_struct_union.proxy_class) {
+    /* Ignore an unnamed proxy class -- it wasn't there in the source. */
   } else if (class_type->replace_by_generated_typedef) {
     /* Replace the reference to this class type by a reference to a
        generated typedef. */
