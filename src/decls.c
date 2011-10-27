@@ -12926,7 +12926,6 @@ none).
   a_symbol_ptr       overload_sym = *overload_sym_ptr;
   a_symbol_ptr       fund_sym = fundamental_symbol_of(sym);
   a_source_position  decl_pos;
-  a_using_decl_ptr   udp = NULL;
 
   locator = locator_for_curr_id;
   clear_specific_symbol(locator);
@@ -12937,7 +12936,8 @@ none).
   } else {
     /* Create a using-decl entry to represent this declaration in
        the IL. */
-    udp = make_using_decl(fund_sym, &decl_pos, depth_scope_stack);
+    a_using_decl_ptr  udp = make_using_decl(fund_sym, &decl_pos,
+                                            depth_scope_stack);
     /* Record the namespace (or class) that was actually specified in the
        qualified name in the source.  Nonmember using-declarations generally
        refer to nonmember entities, but in Microsoft bugs mode a nonmember
@@ -12950,6 +12950,8 @@ none).
     }  /* if */
     /* Update cross-reference and source-sequence info, if required. */
     record_using_decl(fund_sym, &decl_pos, udp, *prev_udp);
+    /* Set *prev_udp for a possible subsequent call to this function. */
+    *prev_udp = udp;
   }  /* if */
   if (overload_sym == NULL) {
     /* If we bring in a type that was declared previously, suppress a
@@ -13002,7 +13004,6 @@ none).
   }  /* if */
   set_namespace_membership(new_sym, (a_source_correspondence *)NULL,
                            (a_namespace_ptr)NULL);
-  if (udp != NULL) *prev_udp = udp;
 done:;
 }  /* create_nonmember_using_declaration */
 
