@@ -1282,11 +1282,13 @@ function scope is assumed.
 
 
 static a_type_ptr qualifier_for_unknown_base_member(
-                                                  a_source_correspondence *scp)
+                                     a_source_correspondence *scp,
+                                     a_boolean               *in_context_stack)
 /*
 Given the source correspondence for a member of an unknown base, return the
-topmost class type from the name context stack that has the parent class of
-the entity as a base class.  That is, in a prototype instantiation, given
+topmost class type from the name context stack (including a class type "for
+access not naming") that has the parent class of the entity as a base
+class.  That is, in a prototype instantiation, given
 
   template<typename T> struct B { ... };
   template<typename T> struct D: B<T> {
@@ -1294,20 +1296,28 @@ the entity as a base class.  That is, in a prototype instantiation, given
   };
 
 the source correspondence for "x" will appear to be a member of B<T>, and
-this routine returns the class type for D<T>.
-*/
+this routine returns the class type for D<T>.  *in_context_stack will be
+set to TRUE if the parent class was found in the name context stack (i.e.,
+if the name appears following the declarator name, as opposed to occurring
+in the type specifier).  */
 {
   a_type_ptr         result = NULL;
   a_name_context_ptr ncp;
   a_type_ptr         entity_parent_class;
 
   check_assertion(scp->member_of_unknown_base && scp->is_class_member);
+  *in_context_stack = FALSE;
   entity_parent_class = scp_parent_class(scp);
-  for (ncp = curr_name_context; ncp != NULL; ncp = ncp->next) {
+  for (ncp = curr_name_context; result == NULL && ncp != NULL;
+       ncp = ncp->next) {
     if (ncp->class_type != NULL &&
         find_base_class_of(ncp->class_type, entity_parent_class) != NULL) {
       result = ncp->class_type;
-      break;
+      *in_context_stack = TRUE;
+    } else if (ncp->class_type_for_access_not_naming != NULL &&
+               find_base_class_of(ncp->class_type_for_access_not_naming,
+                                  entity_parent_class) != NULL) {
+      result = ncp->class_type_for_access_not_naming;
     }  /* if */
   }  /* for */
   check_assertion(result != NULL);
@@ -3364,9 +3374,15 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                generated template definition cannot follow that assumption
                because when the template is actually instantiated the name
                might be from a different dependent base.) */
+            a_boolean in_context_stack;
             qualifier =
-                qualifier_for_unknown_base_member(scp_for_unknown_base_member);
-            qualifier_options |= GN_NO_TEMPLATE_ARGS;
+                qualifier_for_unknown_base_member(scp_for_unknown_base_member,
+                                                  &in_context_stack);
+            if (in_context_stack) {
+              /* The template arguments are not needed if the name follows
+                 the declarator name. */
+              qualifier_options |= GN_NO_TEMPLATE_ARGS;
+            }  /* if */
           } else if (scp->access == (an_access_specifier)as_protected &&
                      (options & GN_FORCE_QUALIFIED_NAME) != 0 &&
                      (options &

@@ -1,5 +1,23 @@
 Version 4.4
 
+10/27/11 [EDGcpfe/12336]
+C++-generating back end: Abort with members of dependent bases in type
+specifiers
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the use
+of a name from a dependent base class in the type specifier of a member
+function or static data member defined outside the class template resulted
+in an assertion failure abort.  This has now been fixed.  For example:
+
+  template<typename T> struct B { typedef int type; };
+  template<typename T> struct D: B<T> {
+    typename D<T>::type f();
+  };
+  template<typename T> typename D<T>::type D<T>::f() {  // Caused an abort
+    return typename D<T>::type();
+  }
+
+
 10/27/11 [EDGcpfe/12384]
 C++-generating back end: Undeclared temporary qualifier in dependent name
 
