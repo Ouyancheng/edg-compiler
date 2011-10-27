@@ -5478,7 +5478,7 @@ static void gen_access_specifier_before_ms_attributes_if_needed(void)
 Microsoft attributes (enclosed in square brackets) have their own source
 sequence entries, but they are usually strongly tied to a declaration whose
 source sequence entry follows.  In the case of a member declaration, however,
-the accessibility (which are recorded in the IL for the declaration and not in
+the accessibility (which is recorded in the IL for the declaration and not in
 that for the preceding attributes) should be adjusted before the attributes
 rendered (if an adjustment is needed at all).  This function therefore looks
 ahead in the list of source sequence entries to render an access specifier if
