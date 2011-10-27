@@ -14,7 +14,7 @@ back end ("wrong entry").  For example:
   namespace N {
     void f();
     void f(int);
-  };
+  }
   void g() {
     using N::f;
     using N::f; // Previously incorrectly represented in some configurations.
