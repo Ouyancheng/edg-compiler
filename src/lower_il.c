@@ -2754,11 +2754,6 @@ not to contain any top level base class casts.
        temporary and return an expression for a pointer to the temporary. */
     an_expr_node_ptr node, top_cast = NULL, bottom_cast = NULL;
     a_variable_ptr   temp;
-    /* Remove any class rvalue base class casts so that we make the
-       temporary for the derived class and don't slice.  The casts will
-       be reattached to the new expression below. */
-    /* This test (for base class casts) only works on unlowered IL. */
-    expr = strip_rvalue_base_class_casts(expr, &top_cast, &bottom_cast);
     if (is_operation_node(expr) &&
         node_operator_is(expr, eok_class_rvalue_adjust)) {
       /* If we're also adjusting the cv-qualifiers, do that here (by removing
@@ -2768,6 +2763,11 @@ not to contain any top level base class casts.
       cast_type = make_pointer_type(expr->type);
       expr = expr->variant.operation.operands;
     }  /* if */
+    /* Remove any class rvalue base class casts so that we make the
+       temporary for the derived class and don't slice.  The casts will
+       be reattached to the new expression below. */
+    /* This test (for base class casts) only works on unlowered IL. */
+    expr = strip_rvalue_base_class_casts(expr, &top_cast, &bottom_cast);
     temp = assign_expr_to_temp(expr);
     expr = make_comma_node(expr, var_addr_expr(temp));
     if (top_cast != NULL) {
@@ -2776,15 +2776,6 @@ not to contain any top level base class casts.
       check_assertion(bottom_cast != NULL && is_operation_node(bottom_cast));
       bottom_cast->variant.operation.operands = expr;
       node = top_cast;
-      check_assertion(is_operation_node(node));
-      if (node_operator_is(node, eok_class_rvalue_adjust)) {
-        /* Change an eok_class_rvalue_adjust to a simple cast (now that its
-           operand is a pointer to class rather than a class). */
-        set_node_operator(node, (an_expr_operator_kind)eok_cast,
-                          make_pointer_type(node->type), /*is_lvalue=*/FALSE,
-                          node->variant.operation.operands);
-        node = node->variant.operation.operands;
-      }  /* if */
       /* Change class types to pointer to class types on casts. */
       for (;;) {
         check_assertion(is_operation_node(node) &&
