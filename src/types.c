@@ -8116,34 +8116,57 @@ If neither is TRUE, the types are checked for an exact match.
 
 
 static a_boolean function_types_correspond(
-                                   a_type_ptr rout_type_1,
-                                   a_type_ptr rout_type_2,
+                                   a_type_ptr dest_type,
+                                   a_type_ptr source_type,
+                                   a_boolean  source_is_function,
                                    a_boolean  allow_qualifier_or_eh_mismatch)
 /*
 Return TRUE if the two function types given are compatible if one ignores any
 difference in the underlying class of their "this" parameter types.
-If allow_qualifier_or_eh_mismatch is TRUE, ignore cv-qualifier and exception
-specification mismatches (the two types are probably the types of the
-operands of an operation).
+If source_is_function is TRUE, the source is a pointer-to-member for a
+specific function, which matters for a particular C++/CLI conversion.
+If allow_qualifier_or_eh_mismatch is TRUE, ignore cv-qualifier and
+exception specification mismatches (the two types are probably the
+types of the operands of an operation).
 */
 {
-  a_boolean                correspond;
+  a_boolean                correspond = FALSE;
   a_type_compat_flags_set  rt_flags;
 
-  rout_type_1 = skip_typerefs(rout_type_1);
-  rout_type_2 = skip_typerefs(rout_type_2);
+  dest_type = skip_typerefs(dest_type);
+  source_type = skip_typerefs(source_type);
+  check_assertion(dest_type->kind == (a_type_kind)tk_routine &&
+                  source_type->kind == (a_type_kind)tk_routine);
   rt_flags = TCF_IGNORE_THIS_CLASS_TYPE |
              TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING;
-  correspond = f_types_are_compatible(rout_type_1, rout_type_2, rt_flags) &&
-               this_param_types_correspond(rout_type_1, rout_type_2,
-                                           !allow_qualifier_or_eh_mismatch,
-                                           allow_qualifier_or_eh_mismatch);
+  if (this_param_types_correspond(dest_type, source_type,
+                                  !allow_qualifier_or_eh_mismatch,
+                                  allow_qualifier_or_eh_mismatch)) {
+    if (f_types_are_compatible(dest_type, source_type, rt_flags)) {
+      correspond = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled && source_is_function &&
+               !allow_qualifier_or_eh_mismatch &&
+               dest_type->variant.routine.extra_info
+                    ->calling_convention == (a_calling_convention)cc_clrcall &&
+               f_types_are_compatible(dest_type, source_type,
+                                      (rt_flags |
+                                       TCF_IGNORE_CALLING_CONVENTIONS))) {
+      /* In C++/CLI, a pointer-to-member for a specific function can
+         be converted to a pointer-to-member to a __clrcall function
+         because every function (even __cdecl or extern "C") has a
+         secondary __clrcall entry point. */
+      correspond = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
+  }  /* if */
   return correspond;
 }  /* function_types_correspond */
 
 
 a_boolean member_types_correspond(a_type_ptr dest_type,
                                   a_type_ptr source_type,
+                                  a_boolean  source_is_function,
                                   a_boolean  allow_qualifier_or_eh_mismatch,
                                   a_boolean  *qualifiers_added)
 /*
@@ -8151,9 +8174,11 @@ Return TRUE if the member types from two pointer-to-member types match
 allowing for a possible difference due to the associated class type.
 Specifically, this means that when comparing function types, the
 difference in the underlying class of the "this" parameter type must
-be ignored.  If allow_qualifier_or_eh_mismatch is TRUE, ignore
-cv-qualifier and exception specification mismatches (the two types are
-probably the types of the operands of an operation).
+be ignored.  If source_is_function is TRUE, the source is a
+pointer-to-member for a specific function, which matters for a
+particular C++/CLI conversion.  If allow_qualifier_or_eh_mismatch is
+TRUE, ignore cv-qualifier and exception specification mismatches (the
+two types are probably the types of the operands of an operation).
 */
 {
   a_boolean correspond;
@@ -8172,6 +8197,7 @@ probably the types of the operands of an operation).
        when the class types are the same, because the routines may
        be from base classes. */
     correspond = function_types_correspond(dest_type, source_type,
+                                           source_is_function,
                                            allow_qualifier_or_eh_mismatch);
   }  /* if */
   return correspond;
@@ -8181,6 +8207,7 @@ probably the types of the operands of an operation).
 a_boolean impl_ptr_to_member_conversion(
                          a_type_ptr           source_type,
                          a_boolean            source_is_constant,
+                         a_boolean            source_is_function,
                          a_constant           *source_constant,
                          a_type_ptr           dest_type,
                          a_boolean            allow_qualifier_or_eh_mismatch,
@@ -8191,7 +8218,9 @@ Return TRUE if it's okay to implicitly convert something of type source_type
 If source_is_constant is TRUE, the source is a constant, and source_constant
 points to the constant value.  (That's needed to check for conversions of a
 null pointer constant to a pointer to member type.)  If
-allow_qualifier_or_eh_mismatch is TRUE, ignore cv-qualifier and
+source_is_function is TRUE, the source is a pointer-to-member for a
+specific function, which matters for a particular C++/CLI conversion.
+If allow_qualifier_or_eh_mismatch is TRUE, ignore cv-qualifier and
 exception specification mismatches (the two types are probably the
 types of the operands of an operation).  If the conversion is
 possible, *std_conv is filled out to describe the conversion.
@@ -8258,6 +8287,7 @@ pointers to members).
       /* Check the member types. */
       if (member_types_correspond(dest_type_pointed_to,
                                   source_type_pointed_to,
+                                  source_is_function,
                                   allow_qualifier_or_eh_mismatch,
                                   &qualifiers_added)) {
         std_conv->type_qualifiers_added = qualifiers_added;
@@ -8632,7 +8662,9 @@ See conversion_possible.
   } else if (is_ptr_to_member(dest_type)) {
     /* Conversion to a C++ pointer-to-member type. */
     okay = impl_ptr_to_member_conversion(source_type,
-                                         source_is_constant, source_constant,
+                                         source_is_constant,
+                                         source_is_function,
+                                         source_constant,
                                          dest_type,
                                          allow_qualifier_or_eh_mismatch,
                                          std_conv);
@@ -8765,6 +8797,7 @@ exception specifications are not checked.
     dest_type_pointed_to = pm_member_type(dest_type);
     if (member_types_correspond(dest_type_pointed_to,
                                 source_type_pointed_to,
+                                /*source_is_function=*/FALSE,
                                 /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                 &qualifiers_added)) {
       related_class_case = TRUE;

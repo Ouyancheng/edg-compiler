@@ -759,6 +759,7 @@ destination type (this comes up in a Microsoft-mode extension).
                   is_ptr_to_member_type(eff_dest_type) &&
                   member_types_correspond(pm_member_type(eff_dest_type),
                                           pm_member_type(ptr_routine_type),
+                                          /*source_is_function=*/TRUE,
                                       /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                           &qualifiers_added) &&
                   !qualifiers_added) {

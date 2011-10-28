@@ -7661,15 +7661,25 @@ the null pointer constant returned in *operand_constant.
 a_boolean operand_is_function(an_operand *operand)
 /*
 Return TRUE if the operand is an lvalue for or address of a specific
-function, but not an arbitrary pointer to function.  This matters
-only in C++/CLI, so return FALSE in other modes.
+function, but not an arbitrary pointer to function.  Likewise for
+a pointer-to-member for a specific function.  This matters only in
+C++/CLI, so return FALSE in other modes.
 */
 {
   a_boolean is_function = FALSE;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled) {
-    if (routine_from_function_operand(operand) != NULL) is_function = TRUE;
+    if (routine_from_function_operand(operand) != NULL) {
+      is_function = TRUE;
+    } else if (is_constant_operand(operand)) {
+      a_constant_ptr con = &operand->variant.constant;
+      if (con->kind == (a_constant_repr_kind)ck_ptr_to_member &&
+          con->variant.ptr_to_member.is_function_ptr &&
+          con->variant.ptr_to_member.variant.routine != NULL) {
+        is_function = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return is_function;
@@ -8152,6 +8162,7 @@ operator position (for errors).  Return FALSE if there is an error.
        first operand. */
     if (impl_ptr_to_member_conversion(operand_2_type,
                                       operand_2_is_constant,
+                                      operand_is_function(operand_2),
                                       operand_2_constant,
                                       operand_1_type,
                                       /*allow_qualifier_or_eh_mismatch=*/TRUE,
@@ -8177,6 +8188,7 @@ operator position (for errors).  Return FALSE if there is an error.
        second operand. */
     if (impl_ptr_to_member_conversion(operand_1_type,
                                       operand_1_is_constant,
+                                      operand_is_function(operand_1),
                                       operand_1_constant,
                                       operand_2_type,
                                       /*allow_qualifier_or_eh_mismatch=*/TRUE,

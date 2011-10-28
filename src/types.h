@@ -687,6 +687,7 @@ extern a_boolean this_param_types_correspond(a_type_ptr rout_type_1,
 extern
 a_boolean member_types_correspond(a_type_ptr dest_type,
                                   a_type_ptr source_type,
+                                  a_boolean  source_is_function,
                                   a_boolean  allow_qualifier_or_eh_mismatch,
                                   a_boolean  *qualifiers_added);
 
@@ -1052,6 +1053,7 @@ a_boolean unboxing_conversion_possible(a_type_ptr           source_type,
 extern a_boolean impl_ptr_to_member_conversion(
                          a_type_ptr           source_type,
                          a_boolean            source_is_constant,
+                         a_boolean            source_is_function,
                          a_constant           *source_constant,
                          a_type_ptr           dest_type,
                          a_boolean            allow_qualifier_or_eh_mismatch,
