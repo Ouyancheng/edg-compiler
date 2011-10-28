@@ -2917,7 +2917,7 @@ output_enum_qualifier function in the il_to_str output control block.
 */
 {
   gen_enum_qualifier(enum_type, GN_NO_OPTIONS, (a_boolean *)NULL);
-}  /* gen_class_qualifier_wrapper */
+}  /* gen_enum_qualifier_wrapper */
 
 
 static char *tag_kind(a_type_kind kind)
