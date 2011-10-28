@@ -8115,6 +8115,9 @@ If neither is TRUE, the types are checked for an exact match.
 }  /* this_param_types_correspond */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- source_is_function is not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean function_types_correspond(
                                    a_type_ptr dest_type,
                                    a_type_ptr source_type,
