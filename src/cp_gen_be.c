@@ -2860,7 +2860,7 @@ static void gen_class_qualifier_wrapper(a_type_ptr class_type)
 /*
 Generate a class qualifier (e.g., "A::B::") that identifies the indicated
 class type.  This is a wrapper for gen_class_qualifier, used as the
-gen_class_qualifier function in the il_to_str output control block.
+output_class_qualifier function in the il_to_str output control block.
 */
 {
   gen_class_qualifier(class_type, GN_NO_OPTIONS, (a_boolean *)NULL);
@@ -2907,6 +2907,17 @@ the meaning of need_closing_paren.
     write_tok_str("::");
   }  /* if */
 }  /* gen_enum_qualifier */
+
+
+static void gen_enum_qualifier_wrapper(a_type_ptr enum_type)
+/*
+Generate an enum qualifier (e.g., "A::B::") that identifies the indicated
+enum type.  This is a wrapper for gen_enum_qualifier, used as the
+output_enum_qualifier function in the il_to_str output control block.
+*/
+{
+  gen_enum_qualifier(enum_type, GN_NO_OPTIONS, (a_boolean *)NULL);
+}  /* gen_class_qualifier_wrapper */
 
 
 static char *tag_kind(a_type_kind kind)
@@ -15655,6 +15666,7 @@ Initialize for the C++/C-generating back end.
   octl.output_name = gen_name_reference;
   octl.output_template_name = gen_template_name;
   octl.output_class_qualifier = gen_class_qualifier_wrapper;
+  octl.output_enum_qualifier = gen_enum_qualifier_wrapper;
   octl.output_func_declarator = gen_function_declarator;
   octl.output_expression = f_gen_expression;
   octl.output_name_reference = gen_name_from_name_reference;

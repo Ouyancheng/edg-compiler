@@ -1,5 +1,17 @@
 Version 4.4
 
+10/27/11 [EDGcpfe/12132,EDGcpfe/12402]
+Missing scoped enum qualification in diagnostic output
+
+Messages referring to a scoped enumerator inadvertently omitted the enum
+qualification.  This is now fixed.  For example:
+
+struct S {
+  enum class E { e };
+  E::e x;  // Diagnostic previously referred to "e", now to "S::E::e".
+};
+
+
 10/27/11 [EDGcpfe/12344]
 Incorrect source sequence entries list for repeated using-declaration
 

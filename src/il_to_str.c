@@ -79,6 +79,7 @@ Clear an output control block to default values.
   octl->output_name               = NULL;
   octl->output_template_name      = NULL;
   octl->output_class_qualifier    = NULL;
+  octl->output_enum_qualifier     = NULL;
   octl->output_temp_name          = NULL;
   octl->output_func_declarator    = NULL;
   octl->output_expression         = NULL;
@@ -633,6 +634,31 @@ class type.  Do the output in the way described by octl.  Called only for C++.
 }  /* form_class_qualifier */
 
 
+static void form_enum_qualifier(
+                               a_type_ptr                            enum_type,
+                               an_il_to_str_output_control_block_ptr octl)
+/*
+Output an enum qualifier (e.g., "A::B::") that identifies the indicated
+enum type.  Do the output in the way described by octl.  Called only for
+C++.
+*/
+{
+  /* Use the special routine if there is one. */
+  if (octl->output_enum_qualifier != NULL) {
+    octl->output_enum_qualifier(enum_type);
+  } else {
+    /* Default processing. */
+    a_source_correspondence *scp = &enum_type->source_corresp;
+
+    /* Use recursion to handle multiple levels of nesting. */
+    form_qualifier(scp->parent_scope, octl);
+    /* Do the last level. */
+    form_unqualified_name(scp, iek_type, octl);
+    octl->output_str("::", octl);
+  }  /* if */
+}  /* form_enum_qualifier */
+
+
 static void form_qualifier(a_scope_ptr                            scope,
                            an_il_to_str_output_control_block_ptr  octl)
 /*
@@ -649,6 +675,9 @@ not be used to output all of the name.  Called only for C++.
         break;
       case sck_class_struct_union:
         form_class_qualifier(scope->variant.assoc_type, octl);
+        break;
+      case sck_enum:
+        form_enum_qualifier(scope->variant.assoc_type, octl);
         break;
       default:
         /* Nothing to be done. */

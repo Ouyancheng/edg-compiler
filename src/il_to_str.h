@@ -35,6 +35,9 @@ typedef an_output_name_function *an_output_name_function_ptr;
 typedef void an_output_class_qualifier_function(a_type_ptr type);
 typedef an_output_class_qualifier_function
                                        *an_output_class_qualifier_function_ptr;
+typedef void an_output_enum_qualifier_function(a_type_ptr type);
+typedef an_output_enum_qualifier_function
+                                        *an_output_enum_qualifier_function_ptr;
 typedef void an_output_func_declarator_function(a_type_ptr type);
 typedef an_output_func_declarator_function
                                        *an_output_func_declarator_function_ptr;
@@ -130,6 +133,10 @@ typedef struct an_il_to_str_output_control_block {
 			/* Function to output a class qualifier, e.g.,
 			   "A::B::".  NULL if a default routine should be
 			   used. */
+  an_output_enum_qualifier_function_ptr
+	output_enum_qualifier;
+			/* Function to output an enum qualifier, e.g., "E::".
+			   NULL if a default routine should be used. */
   an_output_temp_name_function_ptr
 	output_temp_name;
 			/* Function to output a compiler-generated name based
