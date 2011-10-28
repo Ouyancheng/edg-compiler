@@ -9198,7 +9198,7 @@ process_enum_specifier:
           if (!any_decl_specifiers_seen) {
             *output_flags |= DSO_NO_DECL_SPECIFIERS;
           }  /* if */
-          /* Set the type appropriately if this the name of a constructor
+          /* Set the type appropriately if this is the name of a constructor
              member function. */
           if (locator_for_curr_id.is_class_member) {
             a_type_ptr    qual_tp = qualifier_class_type(locator_for_curr_id);

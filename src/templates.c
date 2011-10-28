@@ -10941,8 +10941,16 @@ declaration that must be checked.
       if (is_function_type(state->type) &&
           ((state->dso_flags & (DSO_CONSTRUCTOR | DSO_DESTRUCTOR)) != 0 ||
            (state->do_flags & (DO_IS_CONSTRUCTOR | DO_IS_DESTRUCTOR)) != 0 ||
-           locator->is_conversion_name)) {
-        /* No type specifier is required. */
+           locator->is_conversion_name ||
+           ((state->dso_flags & DSO_FRIEND) != 0 && locator->is_class_member &&
+            scope_stack_top().in_prototype_instantiation &&
+            locator->parent.class_type
+                   ->variant.class_struct_union.is_nonreal_class))) {
+        /* No type specifier is required for constructors, destructors, and
+           conversion function operators.  For friend function declarations
+           whose declarator-id is qualified with a nonreal class, we cannot
+           always reliably determine whether it is a constructor.  So we
+           assume it might be. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (cppcli_enabled && is_function_type(state->type) &&
                  ((state->dso_flags & DSO_STATIC_CONSTRUCTOR) != 0 ||

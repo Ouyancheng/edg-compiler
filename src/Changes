@@ -1,5 +1,20 @@
 Version 4.4
 
+10/28/11 [EDGcpfe/12330]
+Spurious error about a missing return type on a dependent friend declaration
+
+Previously, attempting to name a constructor of a class template in a friend
+template declaration for another class template triggered a spurious error
+about a missing return type.  For example:
+
+  template <typename T> struct A { A() {} };
+  template <typename S> struct B {
+    template<typename T> friend A<T>::A();  // Previously a spurious error.
+  };
+
+This is now fixed.
+
+
 10/27/11 [EDGcpfe/12132,EDGcpfe/12402]
 Missing scoped enum qualification in diagnostic output
 
