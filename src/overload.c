@@ -5995,6 +5995,31 @@ done:;
   return result_arg_num;
 }  /* creates_param_array */
 
+
+static a_boolean managed_conv_func_versus_constructor(
+                                                 a_candidate_function_ptr cfp1,
+                                                 a_candidate_function_ptr cfp2)
+/*
+Return TRUE if cfp1 is a conversion function of a managed class and cfp2
+is a constructor.
+*/
+{
+  a_boolean    result = FALSE;
+  a_symbol_ptr sym1 = cfp1->function_symbol;
+  a_symbol_ptr sym2 = cfp2->function_symbol;
+
+  if (sym1 != NULL && sym2 != NULL &&
+      sym1->is_class_member &&
+      is_managed_class_type(sym_parent_class(sym1)) &&
+      special_function_kind_for_symbol(sym1) ==
+                                    (a_special_function_kind)sfk_conversion &&
+      special_function_kind_for_symbol(sym2) ==
+                                    (a_special_function_kind)sfk_constructor) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* managed_conv_func_versus_constructor */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static int compare_candidate_functions(a_candidate_function_ptr cfp1,
@@ -6104,6 +6129,14 @@ other.  Return
     } else {
       cmp = -1;
     }  /* if */
+  } else if (cppcli_enabled &&
+             managed_conv_func_versus_constructor(cfp1, cfp2)) {
+    /* A conversion function of a managed class wins over a constructor. */
+    cmp = 1;
+  } else if (cppcli_enabled &&
+             managed_conv_func_versus_constructor(cfp2, cfp1)) {
+    /* A conversion function of a managed class wins over a constructor. */
+    cmp = -1;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   return cmp;
