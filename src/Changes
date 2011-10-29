@@ -58,7 +58,8 @@ specifiers
 In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the use
 of a name from a dependent base class in the type specifier of a member
 function or static data member defined outside the class template resulted
-in an assertion failure abort.  This has now been fixed.  For example:
+in an assertion failure abort in qualifier_for_unknown_base_member
+(cp_gen_be.c).  This has now been fixed.  For example:
 
   template<typename T> struct B { typedef int type; };
   template<typename T> struct D: B<T> {
