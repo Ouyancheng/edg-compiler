@@ -22387,7 +22387,7 @@ static void template_or_specialization_declaration(
 				a_source_position	*export_pos,
 				a_boolean		is_generic)
 /*
-Scan a template declaration of a template specialization declaration.
+Scan a template declaration or a template specialization declaration.
 
 This routine determines whether the entity being scanned is a "full
 specialization".  A full specialization is a declaration that declares
@@ -22533,7 +22533,19 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
     full_specialization(&decl_state);
   } else {
     /* The entity being declared is a template. */
+    a_template_param_ptr tpp;
     template_declaration(&decl_state);
+#if BACK_END_IS_CP_GEN_BE
+    /* Record the number of template parameters without default arguments,
+       i.e., the number that must be supplied when naming an instance of
+       this template following this declaration. */
+    decl_state.il_template_entry->min_template_arguments = 0;
+    for (tpp = decl_state.decl_info->parameters;
+         tpp != NULL && !tpp->has_default_arg;
+         tpp = tpp->next) {
+      ++decl_state.il_template_entry->min_template_arguments;
+    }  /* for */
+#endif /* BACK_END_IS_CP_GEN_BE */
   }  /* if */
   wrapup_templ_decl_state(&decl_state);
   curr_default_args = saved_curr_default_args;

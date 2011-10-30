@@ -15372,7 +15372,8 @@ typedef struct a_template {
   unsigned long	cache_checksum;
 			/* A checksum of the definition cache used to compare
 			   definitions from different translation units. */
-#if BACK_END_IS_CP_GEN_BE && USER_CONTROL_OF_STRUCT_PACKING
+#if BACK_END_IS_CP_GEN_BE
+#if USER_CONTROL_OF_STRUCT_PACKING
   a_targ_alignment
 		final_alignment;
 			/* The packing alignment at the end of the template
@@ -15383,7 +15384,14 @@ typedef struct a_template {
 			   effect directly.  This field, set during prototype
 			   instantiation, allows it to re-sync after
 			   inserting the definition into the output. */
-#endif /* BACK_END_IS_CP_GEN_BE && USER_CONTROL_OF_STRUCT_PACKING */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  int32_t	min_template_arguments;
+			/* The number of parameters in this declaration
+			   that do not have default arguments.  This will
+			   be updated in the canonical template to reflect
+			   the most recent declaration put out for the
+			   template. */
+#endif /* BACK_END_IS_CP_GEN_BE */
 } a_template;
 
 #if RECORD_MACROS_IN_IL

@@ -2655,6 +2655,15 @@ that the remaining arguments will be defaulted.
            source using default arguments; record the point in the argument
            list beyond which default arguments can be used. */
         min_arguments = ctsp->min_template_arguments;
+        if (ctsp->assoc_template->min_template_arguments >= 0 &&
+            ctsp->assoc_template->min_template_arguments > min_arguments) {
+          /* The most recent declaration of the template does not yet have
+             enough default arguments to allow using the minimum number of
+             template arguments with which this instance was named later in
+             the translation unit.  Change the minimum number to reflect
+             the declaration in effect at this point. */
+          min_arguments = ctsp->assoc_template->min_template_arguments;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (msvc_is_generated_code_target && msvc_target_version_number <= 1300) {
@@ -12263,6 +12272,10 @@ is the one associated with the template.
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */      
     }  /* if */
   }  /* if */
+  /* Update the canonical template to reflect the number of parameters
+     without default arguments in this declaration (to prevent suppression
+     of not-yet defaulted template arguments in gen_template_arguments). */
+  tp->canonical_template->min_template_arguments = tp->min_template_arguments;
 }  /* gen_template */
 
 

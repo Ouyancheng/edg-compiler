@@ -4251,9 +4251,12 @@ fields, and return a pointer to it.
   tp->definition_template = NULL;
   tp->prototype_template = NULL;
   tp->cache_checksum = 0;
-#if BACK_END_IS_CP_GEN_BE && USER_CONTROL_OF_STRUCT_PACKING
+#if BACK_END_IS_CP_GEN_BE
+#if USER_CONTROL_OF_STRUCT_PACKING
   tp->final_alignment = 0;
-#endif /* BACK_END_IS_CP_GEN_BE && USER_CONTROL_OF_STRUCT_PACKING */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  tp->min_template_arguments = -1;
+#endif /* BACK_END_IS_CP_GEN_BE */
   return tp;
 }  /* alloc_template */
 
