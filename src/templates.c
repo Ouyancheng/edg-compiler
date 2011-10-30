@@ -22533,9 +22533,8 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
     full_specialization(&decl_state);
   } else {
     /* The entity being declared is a template. */
-    a_template_param_ptr tpp;
-    template_declaration(&decl_state);
 #if BACK_END_IS_CP_GEN_BE
+    a_template_param_ptr tpp;
     /* Record the number of template parameters without default arguments,
        i.e., the number that must be supplied when naming an instance of
        this template following this declaration. */
@@ -22546,6 +22545,7 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
       ++decl_state.il_template_entry->min_template_arguments;
     }  /* for */
 #endif /* BACK_END_IS_CP_GEN_BE */
+    template_declaration(&decl_state);
   }  /* if */
   wrapup_templ_decl_state(&decl_state);
   curr_default_args = saved_curr_default_args;
