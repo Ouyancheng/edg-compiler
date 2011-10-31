@@ -3805,6 +3805,13 @@ information should be ignored or if an error should be issued.
               discard = TRUE;
             }  /* if */
           }  /* if */
+        } else if (rtsp->calling_convention ==
+                                           (a_calling_convention)cc_clrcall &&
+                   calling_convention != (a_calling_convention)cc_clrcall) {
+          /* A calling convention of __clrcall cannot be "overridden" by a
+             different convention. */
+          discard = TRUE;
+          discard_sev = (an_error_severity)es_warning;
         } else if ((rtsp->assoc_routine_is_ctor ||
                     rtsp->assoc_routine_is_dtor) &&
                    calling_convention != (a_calling_convention)cc_thiscall &&
