@@ -16433,6 +16433,19 @@ friend_template_checks_done:
          not otherwise visible. */
       if (!decl_state->is_template_friend) sym->is_invisible = FALSE;
     }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+    /* Copy the information about the number of required arguments from the
+       primary template to a partial or normal specialization. */
+    if (decl_state->is_partial_specialization) {
+      decl_state->il_template_entry->min_template_arguments =
+              tssp->variant.class_template.primary_template_sym->
+              variant.template_info->il_template_entry->min_template_arguments;
+    } else if (tssp->prototype_template != NULL) {
+      decl_state->il_template_entry->min_template_arguments =
+                              tssp->prototype_template->variant.template_info->
+                                     il_template_entry->min_template_arguments;
+    }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
   }  /* if */
   *p_sym_ptr = sym;
   db_exit();
