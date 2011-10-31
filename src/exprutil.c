@@ -5161,29 +5161,127 @@ needed.
 }  /* unbox_after_indirection_if_required */
 
 
-static an_expr_node_ptr make_cli_string_constant_expression(
+static a_boolean expr_is_literal_convertible_to_cli_string(
                                                          an_expr_node_ptr expr)
 /*
-Create an enk_constant node of type System::String^ for an address constant
-that refers to the literal designated by the indicated expression (an
-rvalue with a pointer-to-char or pointer-to-wchar_t type), and return the
-resulting expression.  Note that such a "constant" actually involves a
-run-time operation (the allocation and construction of a System::String
-object in the gc-heap), but this is treated as a compile-time constant by
-the Microsoft compiler, hence the unusual representation.  If the expression
-is not a string constant, return NULL.
+Return TRUE if the given expression is a string literal, or an expression
+made up of "?" and "," operations whose leaf value nodes are all string
+literals, that is convertible to a C++/CLI System::String ^.
 */
 {
-  a_constant       constant;
-  an_expr_node_ptr cli_string_node;
+  a_boolean is_string_lit = FALSE;
 
-  /* Attempt to create a ck_address constant referring to the operand of the
-     input expression. */
-  if (constant_rvalue_pointer(expr, &constant,
+  expr = skip_parens(expr);
+  if (!literal_type_convertible_to_cli_string(expr->type)) {
+    /* Wrong type, so look no further. */
+  } else if (expr_is_pointer_to_string_literal(expr, (a_constant **)NULL)) {
+    /* The expression is a string literal that has decayed to a pointer. */
+    is_string_lit = TRUE;
+  } else if (is_constant_node(expr)) {
+    a_constant_ptr con = expr->variant.constant;
+    if (con->kind == (a_constant_repr_kind)ck_string) {
+      /* The node is an undecayed string literal. */
+      is_string_lit = TRUE;
+    }  /* if */
+  } else if (is_operation_node(expr) &&
+             node_operator_is(expr, eok_question)) {
+    /* A "?" operator is okay if the second and third operands are string
+       literals. */
+    an_expr_node_ptr op1 = expr->variant.operation.operands;
+    an_expr_node_ptr op2 = op1->next;
+    an_expr_node_ptr op3 = op2->next;
+    if (expr_is_literal_convertible_to_cli_string(op2) &&
+        expr_is_literal_convertible_to_cli_string(op3)) {
+      is_string_lit = TRUE;
+    }  /* if */
+  } else if (is_operation_node(expr) &&
+             node_operator_is(expr, eok_comma)) {
+    /* Similarly for a "," operator: check the second operand. */
+    an_expr_node_ptr op1 = expr->variant.operation.operands;
+    an_expr_node_ptr op2 = op1->next;
+    if (expr_is_literal_convertible_to_cli_string(op2)) {
+      is_string_lit = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_string_lit;
+}  /* expr_is_literal_convertible_to_cli_string */
+
+
+static a_boolean operand_is_pointer_to_string_literal(an_operand *operand)
+/*
+Return TRUE if the operand is a pointer to a string literal (i.e., a
+string literal that has decayed to or been cast to a pointer).
+*/
+{
+  a_boolean is_string_lit = FALSE;
+
+  if (is_constant_operand(operand)) {
+    if (constant_is_pointer_to_string_literal(&operand->variant.constant,
+                                              (a_constant **)NULL)) {
+      is_string_lit = TRUE;
+    }  /* if */
+  } else if (is_expression_operand(operand)) {
+    if (expr_is_pointer_to_string_literal(operand->variant.expression,
+                                          (a_constant **)NULL)) {
+      is_string_lit = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_string_lit;
+}  /* operand_is_pointer_to_string_literal */
+
+
+a_boolean is_literal_convertible_to_cli_string(an_operand *operand,
+                                               a_boolean  allow_complex)
+/*
+Return TRUE in C++/CLI mode if the indicated operand is a string literal that
+can be converted to System::String^.  If allow_complex is TRUE, also
+return TRUE for "?" and "," expressions where the leaf value nodes are
+all string literals, e.g., x ? "abc" : "de".
+*/
+{
+  a_boolean convertible = FALSE;
+
+  if (cppcli_enabled &&
+      operand->is_simple_string_literal &&
+      literal_type_convertible_to_cli_string(operand->type) &&
+      /* The is_simple_string_literal flag is set for "?" expressions like
+           x ? "abc" : "de"
+         to allow the deprecated conversion from const string literal to
+         char *.  Make sure we really have a string literal case here. */
+      (operand_is_string_literal(operand) ||
+       operand_is_pointer_to_string_literal(operand))) {
+    convertible = TRUE;
+  } else if (allow_complex &&
+             is_expression_operand(operand) &&
+             expr_is_literal_convertible_to_cli_string(
+                                                operand->variant.expression)) {
+    convertible = TRUE;
+  }  /* if */
+  return convertible;
+}  /* is_literal_convertible_to_cli_string */
+
+
+static an_expr_node_ptr convert_expr_to_handle_to_cli_string(
+                                                         an_expr_node_ptr expr)
+/*
+Helper function for convert_operand_to_handle_to_cli_string.  Convert
+the string literals in the given expression to System::Strings.  Return
+the rewritten expression.
+*/
+{
+  a_constant       string_constant;
+#if PARENS_IN_IL
+  an_expr_node_ptr orig_expr = expr;
+  an_expr_node_ptr under_parens = (expr = skip_parens(expr));
+#endif /* PARENS_IN_IL */
+
+  if (constant_rvalue_pointer(expr, &string_constant,
                               /*address_escapes=*/TRUE, (a_boolean *)NULL)) {
-    /* Set the type to be System::String^. */
-    constant.type = make_handle_to_system_string();
-    cli_string_node = alloc_node_for_constant(&constant);
+    /* A constant string literal: set the type to System::String^ and create
+       the constant node. */
+    an_expr_node_ptr cli_string_node;
+    string_constant.type = make_handle_to_system_string();
+    cli_string_node = alloc_node_for_constant(&string_constant);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Copy the position information from the original constant node,
        skipping over any compiler-generated nodes like array-decay, which
@@ -5195,12 +5293,52 @@ is not a string constant, return NULL.
     cli_string_node->expr_range = expr->expr_range;
     cli_string_node->operator_position = expr->operator_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    expr = cli_string_node;
+  } else if (is_operation_node(expr) &&
+             node_operator_is(expr, eok_question)) {
+    /* For a "?" operator, transform the second and third operands.
+       Because of the way is_literal_convertible_to_cli_string works, when
+       we get to the leaf nodes that need to be transformed they will always
+       be string literals. */
+    an_expr_node_ptr op1 = expr->variant.operation.operands;
+    an_expr_node_ptr op2 = op1->next;
+    an_expr_node_ptr op3 = op2->next;
+    op2 = convert_expr_to_handle_to_cli_string(op2);
+    op3 = convert_expr_to_handle_to_cli_string(op3);
+    op1->next = op2;
+    op2->next = op3;
+    expr->type = make_handle_to_system_string();
+  } else if (is_operation_node(expr) &&
+             node_operator_is(expr, eok_comma)) {
+    /* Similarly for a "," operator: transform the second operand. */
+    an_expr_node_ptr op1 = expr->variant.operation.operands;
+    an_expr_node_ptr op2 = op1->next;
+    op2 = convert_expr_to_handle_to_cli_string(op2);
+    op1->next = op2;
+    expr->type = make_handle_to_system_string();
+  } else if (is_error_node(expr)) {
+    /* Return an error node unchanged. */
   } else {
-    /* The expression is not a string literal. */
-    cli_string_node = NULL;
+    unexpected_condition();
   }  /* if */
-  return cli_string_node;
-}  /* make_cli_string_constant_expression */
+#if PARENS_IN_IL
+  if (orig_expr != under_parens) {
+    /* Put the original parenthesis node(s) back on top of the expression. */
+    an_expr_node_ptr node = orig_expr, next_node;
+    for (;;) {
+      check_assertion(is_operation_node(node) &&
+                      node_operator_is(node, eok_parens));
+      node->type = expr->type;
+      next_node = node->variant.operation.operands;
+      if (next_node == under_parens) break;
+      node = next_node;
+    }  /* for */
+    node->variant.operation.operands = expr;
+    expr = orig_expr;
+  }  /* if */
+#endif /* PARENS_IN_IL */
+  return expr;
+}  /* convert_expr_to_handle_to_cli_string */
 
 
 void convert_operand_to_handle_to_cli_string(an_operand_ptr operand)
@@ -5210,14 +5348,21 @@ a constant operand designating an address constant that refers to the input
 string literal.  Note that such a "constant" actually involves a run-time
 operation (the allocation and construction of a System::String object in
 the gc-heap), but this is treated as a compile-time constant by the
-Microsoft compiler, hence the unusual representation.
+Microsoft compiler, hence the unusual representation.  Also handles
+cases where there are string literals under a "?" or "," operator, e.g.,
+in x ? "abc" : "de" the two string literal nodes are converted to
+System::String^.  The expression should be one for which
+is_literal_convertible_to_cli_string is TRUE.
 */
 {
   a_constant       string_constant;
   an_operand       orig_operand;
   an_expr_node_ptr expr = make_node_from_operand(operand);
 
-  check_assertion(is_literal_convertible_to_cli_string(operand));
+#if EXPENSIVE_CHECKING
+  check_assertion(is_literal_convertible_to_cli_string(operand,
+                                                      /*allow_complex=*/TRUE));
+#endif /* EXPENSIVE_CHECKING */
   orig_operand = *operand;
   /* Attempt to create a ck_address constant referring to the operand of
      the input expression in string_constant. */
@@ -5227,10 +5372,12 @@ Microsoft compiler, hence the unusual representation.
        operand. */
     string_constant.type = make_handle_to_system_string();
     make_constant_operand(&string_constant, operand);
-    restore_operand_details(operand, &orig_operand);
   } else {
-    unexpected_condition();
+    /* Handle cases like x ? "abc" : "de". */
+    expr = convert_expr_to_handle_to_cli_string(expr);
+    make_expression_operand(expr, operand);
   }  /* if */
+  restore_operand_details(operand, &orig_operand);
 }  /* convert_operand_to_handle_to_cli_string */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5341,10 +5488,11 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
   } else if (cppcli_enabled &&
              cli_string_literal_conversion_possible(old_type, new_type,
                                                     (a_std_conv_descr *)NULL)&&
-             (expr = make_cli_string_constant_expression(*p_node)) != NULL) {
+             expr_is_literal_convertible_to_cli_string(*p_node)) {
     /* Do a string literal conversion (string-literal --> System::String^ -->
        dest_type). */
     check_assertion(!is_reinterpret_cast);
+    expr = convert_expr_to_handle_to_cli_string(*p_node);
     check_need_for_final_cast = TRUE;
     *p_node = expr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -8030,23 +8178,6 @@ FALSE if there is an error.
   *operation_type = local_operation_type;
   return okay;
 }  /* check_compatibility_of_handle_operands */
-
-
-a_boolean is_literal_convertible_to_cli_string(an_operand *operand)
-/*
-Return TRUE in C++/CLI mode if the indicated operand is a string literal that
-can be converted to System::String^.
-*/
-{
-  a_boolean convertible = FALSE;
-
-  if (cppcli_enabled &&
-      operand->is_simple_string_literal &&
-      literal_type_convertible_to_cli_string(operand->type)) {
-    convertible = TRUE;
-  }  /* if */
-  return convertible;
-}  /* is_literal_convertible_to_cli_string */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

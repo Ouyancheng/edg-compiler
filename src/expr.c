@@ -6187,7 +6187,8 @@ case).
            handle). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (cppcli_enabled &&
-            is_literal_convertible_to_cli_string(operand_1)) {
+            is_literal_convertible_to_cli_string(operand_1,
+                                                 /*allow_complex=*/TRUE)) {
           /* When the field selection operator is applied to a string literal
              in C++/CLI, the literal is immediately converted to
              System::String^ */
@@ -17837,7 +17838,9 @@ indication in *rcblock).
       if (cppcli_enabled &&
           operand.is_simple_string_literal &&
           cli_string_literal_conversion_possible(operand.type, cast_type,
-                                                 (a_std_conv_descr *)NULL)) {
+                                                 (a_std_conv_descr *)NULL) &&
+          is_literal_convertible_to_cli_string(&operand,
+                                               /*allow_complex=*/TRUE)) {
         /* Convert a string literal to a System::String^ if necessary. */
         convert_operand_to_handle_to_cli_string(&operand);
       }  /* if */
@@ -22513,6 +22516,7 @@ that case.
        operands are string literals to be eligible for the deprecated
        conversion to "char *".  This allows things like
          char *p = x ? "abc" : "def";
+       This is also needed for C++/CLI conversions to System::String ^.
     */
     result->is_simple_string_literal = (operand_2.is_simple_string_literal ||
                                         operand_3.is_simple_string_literal);
@@ -23825,6 +23829,15 @@ expression, and return the result in *result (or an error indication in
     }  /* if */
   }  /* if */
 
+  if (microsoft_mode) {
+    /* As an extension, allow a "," operator where the second operand is a
+       string literal to be eligible for the deprecated conversion to
+       "char *".  This allows things like
+         char *p = (x, "abc");
+       This is also needed for C++/CLI conversions to System::String ^.
+    */
+    result->is_simple_string_literal = operand_2.is_simple_string_literal;
+  }  /* if */
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
                        &operator_position);
   record_operator_position_in_rescan_info(result,

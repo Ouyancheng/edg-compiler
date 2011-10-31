@@ -13835,9 +13835,11 @@ apply, but we can't tell).
              handles. */
           ||
           (cppcli_enabled &&
-           (is_literal_convertible_to_cli_string(operand_1) ||
+           (is_literal_convertible_to_cli_string(operand_1,
+                                                 /*allow_complex=*/FALSE) ||
             (!unary_operator &&
-             is_literal_convertible_to_cli_string(operand_2)) ||
+             is_literal_convertible_to_cli_string(operand_2,
+                                                 /*allow_complex=*/FALSE)) ||
             (try_conversions &&
              (is_handle_type(operand_1->type) ||
               (!unary_operator &&
@@ -14140,8 +14142,10 @@ apply, but we can't tell).
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (cppcli_enabled &&
                    !unary_operator && kind == (an_opname_kind)onk_plus &&
-                   (is_literal_convertible_to_cli_string(operand_1) ||
-                    is_literal_convertible_to_cli_string(operand_2))) {
+                   (is_literal_convertible_to_cli_string(operand_1,
+                                                  /*allow_complex=*/FALSE) ||
+                    is_literal_convertible_to_cli_string(operand_2,
+                                                  /*allow_complex=*/FALSE))) {
           /* When the "+" operator is applied to a string literal,
              don't try the built-in "+".  See ECMA-372 15.6.3. */
           try_conversions = FALSE;
