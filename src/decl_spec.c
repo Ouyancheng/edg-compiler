@@ -7078,7 +7078,7 @@ the current identifier is a class member and a template-id.
     if (sym->header ==
               symbol_for(qualifier_class_type(locator_for_curr_id))->header) {
       result = TRUE;
-    }
+    }  /* if */
   }  /* if */
   return result;
 }  /* gpp_type_name_matches_class_name */
@@ -7097,10 +7097,10 @@ static a_boolean process_nontype_identifier(
 /*
 The current token is an identifier or (in C++) a global qualification token
 ("::") followed by an identifier.  If the name introduced by this token is
-a type name, it is normally part of the decl-specifier and handled: Those
-cases are handled by the caller.  If the name is not a type name, the work
-is mostly done in this routine.  This includes named memory regions (part of
-the specifiers; an Embedded C/TR 18037 extension) and constructors (part of
+a type name, it is normally part of the decl-specifier and handled by the
+caller.  If the name is not a type name, the work is mostly done in this
+routine or in declarator processing.  This includes named memory regions (part
+of the specifiers; an Embedded C/TR 18037 extension) and constructors (part of
 the declarator).
 dps describes the declaration being parsed.  decl_specifiers_seen records some
 of the specifiers (virtual, inline, ...) that may have been seen already.
@@ -7139,45 +7139,66 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
        next token is a left parenthesis; (5) the token following the
        left paren is a right paren or the start of a formal parameter
        declaration. */
-    if (is_member_decl && !result &&
-        !(decl_specifiers_seen & ~(DS_VIRTUAL | DS_STORAGE_CLASS |
-                                   DS_EXPLICIT | DS_INLINE |
-                                   DS_MICROSOFT_INLINE | DS_FORCEINLINE)) &&
-        (dps->declared_storage_class == (a_storage_class)sc_unspecified ||
-         dps->declared_storage_class == (a_storage_class)sc_static)) {
-      a_type_ptr  class_type = enclosing_class_type(input_flags);
-      a_boolean   is_static_ctor = FALSE;
-      if (class_type != NULL) {
+    if (is_member_decl && !result) {
+      if (!(decl_specifiers_seen & ~(DS_VIRTUAL | DS_STORAGE_CLASS |
+                                     DS_EXPLICIT | DS_INLINE |
+                                     DS_MICROSOFT_INLINE | DS_FORCEINLINE)) &&
+          (dps->declared_storage_class == (a_storage_class)sc_unspecified ||
+           dps->declared_storage_class == (a_storage_class)sc_static)) {
+        a_type_ptr  class_type = enclosing_class_type(input_flags);
+        a_boolean   is_static_ctor = FALSE;
+        if (class_type != NULL) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (cppcli_enabled && is_immediate_managed_class_type(class_type) &&
-            dps->declared_storage_class == (a_storage_class)sc_static) {
-          is_static_ctor = TRUE;
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* The following test will not succeed if the constructor
-           declaration is parenthesized; in that case, the test is
-           repeated in scan_real_declarator_id. */
-        if (is_constructor_decl(class_type, dps)) {
-          *basic_type = bt_no_type;
-          if (is_static_ctor) {
-            dps->dso_flags |= DSO_STATIC_CONSTRUCTOR;
-          } else {
-            dps->dso_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
+          if (cppcli_enabled && is_immediate_managed_class_type(class_type) &&
+              dps->declared_storage_class == (a_storage_class)sc_static) {
+            is_static_ctor = TRUE;
           }  /* if */
-          /* Note that with a branch to exit_loop the get_token call
-             is bypassed.  This means curr_token will still represent
-             the constructor name (= class name) upon return to the
-             caller. */
-          result = TRUE;
-        } else if ((microsoft_bugs || any_cfront_mode()) &&
-                   !is_error_locator(locator_for_curr_id) &&
-                   implicit_int_member_with_name_of_type()) {
-          /* Microsoft and Cfront will accept:
-               struct X; struct Y { X(); }; */
-          dps->dso_flags |= DSO_NO_DECL_SPECIFIERS;
-          result = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* The following test will not succeed if the constructor
+             declaration is parenthesized; in that case, the test is
+             repeated in scan_real_declarator_id. */
+          if (is_constructor_decl(class_type, dps)) {
+            *basic_type = bt_no_type;
+            if (is_static_ctor) {
+              dps->dso_flags |= DSO_STATIC_CONSTRUCTOR;
+            } else {
+              dps->dso_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
+            }  /* if */
+            /* Note that with a branch to exit_loop the get_token call
+               is bypassed.  This means curr_token will still represent
+               the constructor name (= class name) upon return to the
+               caller. */
+            result = TRUE;
+          } else if ((microsoft_bugs || any_cfront_mode()) &&
+                     !is_error_locator(locator_for_curr_id) &&
+                     implicit_int_member_with_name_of_type()) {
+            /* Microsoft and Cfront will accept:
+                 struct X; struct Y { X(); }; */
+            dps->dso_flags |= DSO_NO_DECL_SPECIFIERS;
+            result = TRUE;
+          }  /* if */              
         }  /* if */              
-      }  /* if */              
+      } else if ((decl_specifiers_seen & DS_FRIEND) != 0 &&
+                 !do_dependent_name_processing &&
+                 locator_for_curr_id.is_class_member &&
+                 scope_stack_top().in_prototype_instantiation &&
+                 locator_for_curr_id.parent.class_type
+                              ->variant.class_struct_union.is_nonreal_class &&
+                 next_token() == tok_lparen) {
+        /* Consider a friend declaration of the form
+               friend A<T>::A(...);
+           When doing dependent name processing, A<T>::A will not be considered
+           a type name because it isn't preceded by the keyword "typename".
+           However, in default mode, it will be treated as a type name, and if
+           it weren't for the processing here, it would unconditionally be
+           handled as a specifiers type. */
+        if (locator_for_curr_id.symbol_header ==
+              symbol_for(qualifier_class_type(locator_for_curr_id))->header) {
+          /* The qualified identifier matches that of the qualifying class:
+             Assume a constructor is intended. */
+          result = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
 #if NAMED_ADDRESS_SPACES_ALLOWED
