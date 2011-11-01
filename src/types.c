@@ -1244,6 +1244,27 @@ Return TRUE if the given type is a C++/CLI managed class type.
 }  /* is_managed_class_type */
 
 
+a_boolean is_nonreal_template_template_param_instance(a_type_ptr tp)
+/*
+Return TRUE if the given type is a nonreal instance of a template template
+parameter.
+*/
+{
+  a_boolean  result = FALSE;
+
+  tp = skip_typerefs(tp);
+  if (is_immediate_class_type(tp)) {
+    a_template_ptr  templ = tp->variant.class_struct_union.extra_info
+                              ->assoc_template;
+    if (templ != NULL &&
+        templ->kind == (a_template_kind)templk_template_template_param) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_nonreal_template_template_param_instance */
+
+
 a_boolean is_cli_interface_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a C++/CLI interface class type.

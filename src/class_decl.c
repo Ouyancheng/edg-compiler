@@ -14794,8 +14794,11 @@ declarations.
                   ec_handle_member_in_standard_class,
                 &decl_state->declarator_pos);
       err = TRUE;
-    } else if (in_managed_class && is_standard_class_type(field_type)) {
-      /* Managed classes cannot have fields with standard class types... */
+    } else if (in_managed_class && is_standard_class_type(field_type) &&
+               !is_nonreal_template_template_param_instance(field_type)) {
+      /* Managed classes cannot have fields with standard class types (beware
+         of certain nonreal class types for which we cannot determine whether
+         it is a standard class type) ... */
       pos_error(ec_standard_class_member_in_managed_class,
                 &decl_state->declarator_pos);
       err = TRUE;

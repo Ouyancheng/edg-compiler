@@ -131,7 +131,7 @@ extern a_boolean is_handle_to_cli_array_type(a_type_ptr tp);
 extern a_boolean is_cli_array_type(a_type_ptr tp);
 extern a_boolean is_cli_value_type(a_type_ptr tp);
 extern a_boolean is_boxable_type(a_type_ptr tp);
-extern a_type_ptr boxed_type_for(a_type_ptr  unboxed_type);
+extern a_type_ptr boxed_type_for(a_type_ptr unboxed_type);
 extern a_boolean is_cli_nullable_type(a_type_ptr tp);
 extern a_type_ptr cli_array_element_type(a_type_ptr tp);
 extern a_constant_ptr cli_array_rank_constant(a_type_ptr tp);
@@ -142,10 +142,11 @@ extern a_boolean is_value_class_type(a_type_ptr tp);
 extern a_boolean is_simple_value_class_type(a_type_ptr tp);
 extern a_boolean is_standard_class_type(a_type_ptr tp);
 extern a_boolean is_managed_class_type(a_type_ptr tp);
+extern a_boolean is_nonreal_template_template_param_instance(a_type_ptr tp);
 extern a_boolean is_cli_interface_type(a_type_ptr tp);
 extern a_boolean is_cli_ref_or_interface_class_type(a_type_ptr tp);
-extern a_boolean is_cli_generic_definition_argument_type(a_type_ptr  type);
-extern a_boolean cli_type_has_public_default_constructor(a_type_ptr	tp);
+extern a_boolean is_cli_generic_definition_argument_type(a_type_ptr type);
+extern a_boolean cli_type_has_public_default_constructor(a_type_ptr tp);
 /* This is called is_handle_ptr because there is a field called
    is_handle in il_def.h and old preprocessors have problems with
    that. */
