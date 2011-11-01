@@ -9420,6 +9420,9 @@ to manage that variable.
   a_printf_scan_state pss = *pss_ptr;
   a_boolean           l_size, L_size, h_size, add_pointer;
   a_boolean           hh_size, j_size, z_size, t_size;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean           I_size, I32_size, I64_size;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if LONG_LONG_ALLOWED
   a_boolean           ll_size;
 #endif /* LONG_LONG_ALLOWED */
@@ -9514,6 +9517,9 @@ after_precision:;
        z for size_t, and t for ptrdiff_t. */
     l_size = L_size = h_size = FALSE;
     hh_size = j_size = z_size = t_size = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    I_size = I32_size = I64_size = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if LONG_LONG_ALLOWED
     ll_size = FALSE;
 #endif /* LONG_LONG_ALLOWED */
@@ -9549,6 +9555,22 @@ after_precision:;
     } else if (*fmt_string == 't') {
       t_size = TRUE;
       fmt_string++;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode && *fmt_string == 'I') {
+      fmt_string++;
+      if (fmt_string[0] == '3' && fmt_string[1] == '2') {
+        /* I32 is used for __int32 or unsigned __int32. */
+        I32_size = TRUE;
+        fmt_string += 2;
+      } else if (fmt_string[0] == '6' && fmt_string[1] == '4') {
+        /* I64 is used for __int64 or unsigned __int64. */
+        I64_size = TRUE;
+        fmt_string += 2;
+      } else {
+        /* I is used for ptrdiff_t or size_t. */
+        I_size = TRUE;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     /* The next character indicates the conversion type, e.g., "d" for
        decimal.  Determine the required type.  For most (but not all)
@@ -9564,7 +9586,8 @@ after_precision:;
            if "h" was specified, short conversion.
            C99 adds "hh" for signed char, "ll" for long long,
            "j" for intmax_t, "z" for the signed type corresponding to
-           size_t, and "t" for ptrdiff_t. */
+           size_t, and "t" for ptrdiff_t.  Microsoft uses "I32" for __int32,
+           "I64" for __int64, and "I" for ptrdiff_t. */
         if (l_size) {
           required_type = integer_type((an_integer_kind)ik_long);
         } else if (h_size) {
@@ -9582,6 +9605,14 @@ after_precision:;
           required_type = other_signedness_integer_type(targ_size_t_int_kind);
         } else if (t_size) {
           required_type = integer_type(targ_ptrdiff_t_int_kind);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (I_size) {
+          required_type = integer_type(targ_ptrdiff_t_int_kind);
+        } else if (I32_size) {
+          required_type = integer_type(targ_int32_int_kind);
+        } else if (I64_size) {
+          required_type = integer_type(targ_int64_int_kind);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           required_type = integer_type((an_integer_kind)ik_int);
         }  /* if */
@@ -9596,7 +9627,8 @@ after_precision:;
            conversion; if "h" was specified, unsigned short conversion.
            C99 adds "hh" for unsigned char, "ll" for unsigned long long,
            "j" for uintmax_t, "z" for size_t, and "t" for the unsigned
-           type corresponding to ptrdiff_t. */
+           type corresponding to ptrdiff_t.  Microsoft uses "I32" for
+           unsigned __int32, "I64" for unsigned __int64, and "I" for size_t. */
         if (l_size) {
           required_type = integer_type((an_integer_kind)ik_unsigned_long);
         } else if (h_size) {
@@ -9616,6 +9648,14 @@ after_precision:;
              ptrdiff_t. */
           required_type = other_signedness_integer_type(
                                                       targ_ptrdiff_t_int_kind);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (I_size) {
+          required_type = integer_type(targ_size_t_int_kind);
+        } else if (I32_size) {
+          required_type = integer_type(targ_unsigned_int32_int_kind);
+        } else if (I64_size) {
+          required_type = integer_type(targ_unsigned_int64_int_kind);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           required_type = integer_type((an_integer_kind)ik_unsigned_int);
         }  /* if */
@@ -9703,7 +9743,9 @@ after_precision:;
            if "h" was specified, "long *" if "l" was specified.
            C99 adds "hh" for signed char, "ll" for long long,
            "j" for intmax_t, "z" for the signed type corresponding
-           to size_t, and "t" for ptrdiff_t. */
+           to size_t, and "t" for ptrdiff_t.  Microsoft allows "I32" for
+           __int32 and "I64" for __int64 (but doesn't seem to allow "I" as a
+           prefix for "n"). */
         if (l_size) {
           required_type = integer_type((an_integer_kind)ik_long);
         } else if (h_size) {
@@ -9721,6 +9763,12 @@ after_precision:;
           required_type = other_signedness_integer_type(targ_size_t_int_kind);
         } else if (t_size) {
           required_type = integer_type(targ_ptrdiff_t_int_kind);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (I32_size) {
+          required_type = integer_type(targ_int32_int_kind);
+        } else if (I64_size) {
+          required_type = integer_type(targ_int64_int_kind);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           required_type = integer_type((an_integer_kind)ik_int);
         }  /* if */

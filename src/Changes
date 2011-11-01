@@ -1,5 +1,30 @@
 Version 4.4
 
+11/1/11  [EDGcpfe/12080]
+Microsoft compatibility: additional printf/scanf type-specifier prefixes
+
+Microsoft supports non-standard "I32", "I64", and "I" type-specifier prefixes
+for parameters in format strings for printf- and scanf-like routines.  In
+Microsoft emulation mode, "I32" can now be used for (signed and unsigned)
+__int32 types and "I64" for (signed and unsigned) __int64 types.  "I" can be
+used for ptrdiff_t and size_t types.  See
+http://msdn.microsoft.com/en-us/library/tcxf1dw6(v=VS.100).aspx for more
+information.  For example:
+
+  #pragma __scanf_args
+  extern "C" int sscanf(const char *, const char *,...);
+  #pragma __printf_args
+  extern "C" int printf(const char *,...);
+  int main() {
+    char *buf = "12345";
+    __int32 i32;
+    __int64 i64;
+    sscanf(buf, "%I32d", &i32);
+    i64 = i32;
+    printf("%I64d\n", i64);
+  }
+
+
 10/28/11 [EDGcpfe/12330]
 Spurious error on a dependent friend constructor declaration
 
