@@ -20822,6 +20822,46 @@ error.  Called in C++/CLI mode only.
   return okay;
 }  /* check_cppcli_explicit_conversion */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void check_initonly_member_type(a_decl_parse_state  *dps,
+                                       a_type_ptr          class_type)
+/*
+dps describes a member declaration for a C++/CLI initonly member in the given
+class type.  Check that dps->type is a valid type for such a declaration.
+(Only constraints specific to initonly members are checked here.)
+*/
+{
+  if (cli_class_type_kind_is(class_type, cctk_standard)) {
+    pos_error(ec_initonly_requires_managed_class, &dps->declarator_pos);
+  } else if (is_ref_class_type(dps->type)) {
+    /* The type of an initonly field shall not be a ref class. */
+    pos_error(ec_ref_class_initonly_field, &dps->declarator_pos);
+  } else {
+    a_type_qualifier_set  qual = get_type_qualifiers(dps->type);
+    a_source_position     *diag_pos = &dps->qualifiers_pos;
+    if (qual & (TQ_VOLATILE | TQ_CONST)) {
+      if (qual & TQ_VOLATILE) {
+        /* Initonly members cannot be volatile. */
+        if (!(dps->qualifiers & TQ_VOLATILE)) diag_pos = &dps->start_pos;
+        pos_error(ec_initonly_volatile_not_allowed, diag_pos);
+      } else {
+        /* "const" is ignored on a C++/CLI initonly declaration. */
+        if (!(dps->qualifiers & TQ_CONST)) diag_pos = &dps->start_pos;
+        pos_warning(ec_initonly_const_has_no_effect, diag_pos);
+      }  /* if */
+      dps->type = skip_typerefs(dps->type);
+      if (qual & ~(TQ_CONST | TQ_VOLATILE)) {
+        /* Restore any (nonstandard) qualifiers that might have been stripped
+           from the original type. */
+        dps->type = make_qualified_type(
+                                 dps->type, qual & ~(TQ_CONST | TQ_VOLATILE));
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_initonly_member_type */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* instance and template_decl is not used unless source
@@ -21527,20 +21567,7 @@ passed via template_decl.
                                       !no_decl_specifiers);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (decl_state->has_cli_initonly_keyword) {
-        if (cli_class_type_kind_is(class_type, cctk_standard)) {
-          pos_error(ec_initonly_requires_managed_class,
-                    &decl_state->declarator_pos);
-        } else if (is_ref_class_type(decl_state->type)) {
-          /* The type of an initonly field shall not be a ref class. */
-          pos_error(ec_ref_class_initonly_field, &decl_state->declarator_pos);
-        } else if (is_const_qualified_type(decl_state->type)) {
-          /* "const" is useless on a C++/CLI initonly declaration. */
-          a_source_position  *diag_pos = &decl_state->qualifiers_pos;
-          if (!(decl_state->qualifiers & TQ_CONST)) {
-            diag_pos = &decl_state->start_pos;
-          }  /* if */
-          pos_warning(ec_initonly_const_has_no_effect, diag_pos);
-        }  /* if */
+        check_initonly_member_type(decl_state, class_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       if (!(missing_declarator || decl_info.is_unnamed_field) &&

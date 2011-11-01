@@ -882,6 +882,7 @@ extern int fileno(FILE *);
 /*lint -esym(765,next_symbol_in_overload_set*/
 /*lint -esym(769,ec_virtual_required_for_base_override)*/
 /*lint -esym(769,ec_virtual_required_for_interface_implementation)*/
+/*lint -esym(769,ec_initonly_volatile_not_allowed)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LINT_H */

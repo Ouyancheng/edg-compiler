@@ -2317,6 +2317,7 @@ ec_generic_parameter_requires_clrcall;;"calling convention ignored because the f
 ec_generic_parameter_does_not_permit_varargs;;"a function type involving a generic parameter cannot have an ellipsis parameter"
 ec_virtual_required_for_base_override;;"\"virtual\" is required to override the matching %nd"
 ec_virtual_required_for_interface_implementation;;"\"virtual\" is required to implement the matching %nd"
+ec_initonly_volatile_not_allowed;;"an initonly data member cannot be volatile"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
