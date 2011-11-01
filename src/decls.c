@@ -137,6 +137,7 @@ be restored).
     dps->has_cli_initonly_keyword = FALSE;
     dps->has_cli_literal_keyword = FALSE;
     dps->initializer_is_single_expr = FALSE;
+    dps->is_explicit_instantiation = FALSE;
     dps->prefix_attributes = NULL;
     dps->specifier_attributes = NULL;
     dps->tag_attributes = NULL;

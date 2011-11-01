@@ -27045,6 +27045,7 @@ instantiation.
 
   db_enter(3, "instantiation_directive");
   init_decl_parse_state(&state);
+  state.is_explicit_instantiation = TRUE;
   state.trailing_return_type_allowed = trailing_return_types_enabled;
   state.start_pos = *start_pos;
   if (!is_pragma) {

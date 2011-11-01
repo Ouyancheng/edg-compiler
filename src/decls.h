@@ -634,6 +634,9 @@ typedef struct a_decl_parse_state {
 			/* TRUE if
 			   position_of_this_reference_in_trailing_return is
 			   set to a source position. */
+  a_bit_field	is_explicit_instantiation:1;
+			/* TRUE if this declaration is an explicit
+			   instantiation directive. */
   an_attribute_ptr
 		prefix_attributes;
 			/* A list of non-type-transforming attributes scanned

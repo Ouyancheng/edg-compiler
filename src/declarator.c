@@ -3730,14 +3730,14 @@ skip_token:
 
 
 static
-void update_calling_convention(a_type_ptr	     *type,
-			       a_call_conv_descr_ptr p_calling_convention,
-                               a_source_position    *decl_pos)
+void update_calling_convention(a_type_ptr	      *type,
+			       a_call_conv_descr_ptr  p_calling_convention,
+                               a_decl_parse_state     *dps,
+                               a_source_position      *decl_pos)
 /*
-Determine whether the "type" specifies a type for which a calling
-convention may be specified.  If so, update the calling convention
-information.  Otherwise, determine whether the calling convention
-information should be ignored or if an error should be issued.
+Determine the validity of the given calling convention specified for the
+given type in a declaration described by *dps.  If appropriate, issue a
+diagnostic at the given position.
 */
 {
   a_calling_convention           calling_convention;
@@ -3807,9 +3807,13 @@ information should be ignored or if an error should be issued.
           }  /* if */
         } else if (rtsp->calling_convention ==
                                            (a_calling_convention)cc_clrcall &&
-                   calling_convention != (a_calling_convention)cc_clrcall) {
+                   calling_convention != (a_calling_convention)cc_clrcall &&
+                   !dps->is_explicit_instantiation) {
           /* A calling convention of __clrcall cannot be "overridden" by a
-             different convention. */
+             different convention.  (For explicit instantiations, do not
+             discard the explicit calling convention: It affects deduction
+             and will likely trigger an error later on because the template
+             presumably doesn't have the same convention.) */
           discard = TRUE;
           discard_sev = (an_error_severity)es_warning;
         } else if ((rtsp->assoc_routine_is_ctor ||
@@ -4369,8 +4373,9 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
            type or (at the beginning of a nested declaration) return it to
            the caller. */
         if (complete_type != NULL) {
-          update_calling_convention(&complete_type, &pending_ptr_mods.cc_descr,
-                                    &pending_ptr_mods.cc_descr.position);
+          update_calling_convention(
+                                  &complete_type, &pending_ptr_mods.cc_descr,
+                                  state, &pending_ptr_mods.cc_descr.position);
         } else {
           /* Return left-most calling convention to the caller. */
           check_assertion(left_calling_convention != NULL);
@@ -6306,7 +6311,7 @@ function_lparen:
          The __cdecl calling convention was returned from the nested
          declarator scan and goes on top of the function type. */
       if (inner_left_call_conv.call_conv != (a_calling_convention)cc_default) {
-        update_calling_convention(&new_type_ptr, &inner_left_call_conv,
+        update_calling_convention(&new_type_ptr, &inner_left_call_conv, state,
                                   locator != NULL ? &locator->source_position
                                                   : &declarator_pos);
       }  /* if */
@@ -6380,7 +6385,7 @@ function_lparen:
     if (inner_left_call_conv.call_conv != (a_calling_convention)cc_default) {
       if (complete_type != NULL) {
         update_calling_convention(&complete_type, &inner_left_call_conv,
-                                  &declarator_pos);
+                                  state, &declarator_pos);
       } else {
         check_assertion(left_call_conv.call_conv ==
                         (a_calling_convention)cc_default);
@@ -6535,7 +6540,7 @@ function_lparen:
          the complete type (if one exists).  If none exists, return the unbound
          type to the caller. */
       if (complete_type != NULL) {
-        update_calling_convention(&complete_type, &unbound_call_conv,
+        update_calling_convention(&complete_type, &unbound_call_conv, state,
                                   &declarator_pos);
       } else {
         *p_unbound_call_conv = unbound_call_conv;
