@@ -3361,6 +3361,12 @@ Display the indicated routine.
     disp_unsigned_long("init_priority", (unsigned long)ptr->init_priority);
   }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && DO_IL_LOWERING */
+#if BACK_END_IS_C_GEN_BE
+  if (ptr->superseding_external != NULL) {
+    disp_ptr("superseding_external", (char *)ptr->superseding_external,
+             iek_routine);
+  }  /* if */
+#endif /* BACK_END_IS_C_GEN_BE */
 }  /* disp_routine */
 
 

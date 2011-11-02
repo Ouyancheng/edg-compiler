@@ -1,5 +1,28 @@
 Version 4.4
 
+11/2/11  [EDGcpfe/12415]
+C-generating back end, GNU compatibility: implicit declaration of function
+later defined with different type
+
+The gcc compiler accepts (with a warning) and correctly executes a file in
+which a function is implicitly declared by a call and later defined with a
+different type, for example
+
+  int f() {
+    g();        /* implicitly declared to return int */
+  }
+  void g() { }  /* defined to return void */
+
+The code put out by the C-generating back end for such a call involved a
+cast applied to the function name, to adjust its actual type to the type
+expected in the context of the call.  Beginning with its version 3.4,
+however, gcc explicitly tests for calling a function through a cast to a
+different type and causes a runtime abort.  The C-generating back end now
+uses a function pointer of the implicitly-declared type, initialized to
+point to the actual function, for such calls, and gcc accepts this pattern
+without error.
+
+
 11/1/11  [EDGcpfe/12080]
 Microsoft compatibility: additional printf/scanf type-specifier prefixes
 

@@ -7882,12 +7882,19 @@ skip_overloading:;
            int main() { f(); }  // Implicit declaration of f.
            void f() {}          // Explicit but incompatible declaration.
       */
+      a_routine_ptr old_rout =
+                  (*ext_sym)->variant.extern_symbol_descr->variant.routine.ptr;
       if (is_local_scope_kind(scope_stack[effective_decl_level].kind) ||
           func_info->is_implicit_declaration) {
         routine_ptr->superseded_external = TRUE;
+#if BACK_END_IS_C_GEN_BE
+        routine_ptr->superseding_external = old_rout;
+#endif /* BACK_END_IS_C_GEN_BE */
       } else {
-        (*ext_sym)->variant.extern_symbol_descr->variant.routine.ptr
-                                               ->superseded_external = TRUE;
+        old_rout->superseded_external = TRUE;
+#if BACK_END_IS_C_GEN_BE
+        old_rout->superseding_external = routine_ptr;
+#endif /* BACK_END_IS_C_GEN_BE */
         dps->first_decl = TRUE;
       }  /* if */
     } else {

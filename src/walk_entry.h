@@ -1333,6 +1333,11 @@ the file scope, do not process it (but record an orphan in the latter case).
         }  /* if */
         walk_string_ptr(ptr->asm_name, iek_other_text, 0);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if BACK_END_IS_C_GEN_BE
+        if (ptr->superseding_external != NULL) {
+          remap_ptr(ptr->superseding_external, a_routine_ptr, iek_routine);
+        }  /* if */
+#endif /* BACK_END_IS_C_GEN_BE */
       }
       break;
     case iek_label:

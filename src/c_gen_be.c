@@ -1596,7 +1596,9 @@ name generated from the field pointer will be used.
 
 
 /* Interface routines to dump_name. */
-#define dump_routine_name(routine) dump_name(&(routine)->source_corresp)
+#define dump_routine_name(routine)                                        \
+  ((routine)->superseded_external) ? dump_temp_name((char *)(routine))    \
+                                   : dump_name(&(routine)->source_corresp)
 #define dump_constant_name(constant) dump_name(&(constant)->source_corresp)
 
 
@@ -2222,6 +2224,17 @@ name is non-NULL.
       dump_variable_name(var);
     } else if (field != NULL) {
       dump_field_name(field);
+    } else if (rout != NULL && rout->superseded_external) {
+      /* Convert the declaration of the routine into a declaration of a
+         function pointer with a temporary name.  This function pointer
+         will be initialized to the address of the superseding routine,
+         cast to the type of the superseded routine.  This works around an
+         issue with versions of gcc beginning with 3.4, which fault when
+         attempting to call a function directly through a cast to a
+         different type. */
+      write_tok_str("(*");
+      dump_temp_name((char *)rout);
+      write_tok_ch(')');
     } else {
       dump_name(scp);
     }  /* if */
@@ -4692,8 +4705,7 @@ routine.
                                                    type_pointed_to(expr->type);
   a_boolean     need_parens = FALSE;
 
-  if (rout->superseded_external ||
-      !standalone_identical_types(expr_rout_type, rout_type)) {
+  if (!standalone_identical_types(expr_rout_type, rout_type)) {
     /* The type of the routine and the type in the call are different.
        This is probably because the call was generated and then
        the routine type was updated by a redeclaration.  Use a cast to
@@ -9235,10 +9247,6 @@ if this routine has a body (dump nothing if it has no body).
   } else if (!dump_defn && storage_class == (a_storage_class)sc_asm) {
     /* Suppress forward declaration of an asm function. */
 #endif /* ASM_FUNCTION_ALLOWED */
-  } else if (rout->superseded_external) {
-    /* Superseded routine (there are multiple incompatible block-scope
-       extern declarations in SVR4 C mode, but they're all promoted to
-       the file scope; put out only the primary one). */
   } else if (!start_unreferenced_bracket(&rout->source_corresp,
                                          (a_boolean *)NULL)) {
     /* Unreferenced routine. */
@@ -9325,8 +9333,13 @@ if this routine has a body (dump nothing if it has no body).
     set_output_position(&rout->source_corresp.decl_position);
     /* Determine the proper storage class to display. */
     if (!is_definition) {
-      /* The function is not defined (here), so use "extern". */
-      if (storage_class == (a_storage_class)sc_unspecified) {
+      /* The function is not defined (here), so use "extern", unless this
+         is a superseded external declaration.  In that case, because the
+         declaration will be changed to a function pointer, use
+         "static". */
+      if (rout->superseded_external) {
+        storage_class = (a_storage_class)sc_static;
+      } else if (storage_class == (a_storage_class)sc_unspecified) {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
     }  /* if */
@@ -9441,6 +9454,18 @@ if this routine has a body (dump nothing if it has no body).
            output to gcc
 #endif /* !GCC_IS_GENERATED_CODE_TARGET && GNU_INIT_PRIORITY_ATTRIBUTE_... */
 #endif /* !USE_INIT_SECTION_IN_GENERATED_C */
+      if (rout->superseded_external) {
+        /* dump_general_declaration_using_type converted this routine
+           declaration to a declaration of a function pointer with a
+           temporary name.  We need to initialize it to the address of the
+           "official" routine, cast to the appropriate type.  This works
+           around a problem with versions of gcc beginning with 3.4, which
+           do not allow calling a function directly through a cast to a
+           different function pointer type. */
+        write_tok_str(" = ");
+        dump_cast_to_pointer_to(rout->type);
+        dump_routine_name(rout->superseding_external);
+      }  /* if */
       write_tok_ch(';');
       if (routine_is_init_routine(rout)) {
 #if SUNPRO_C_IS_C_GEN_BE_TARGET
@@ -9488,11 +9513,29 @@ that have bodies.
 */
 {
   a_routine_ptr routine;
+  a_boolean     superseded_external_seen = FALSE;
 
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
     check_membership_info(routine, scope);
-    dump_routine_decl(routine, dump_defn);
+    if (routine->superseded_external) {
+      /* Do not put out declarations of superseded externals on this pass.
+         We need to wait until all the other routines have been declared
+         so that the superseded external function pointer can be initialized
+         to point to the "official" routine. */
+      superseded_external_seen = TRUE;
+    } else {
+      dump_routine_decl(routine, dump_defn);
+    }  /* if */
   }  /* for */
+  if (superseded_external_seen && !dump_defn) {
+    /* Make another pass over the list of routines to declare the function
+       pointers for superseded externals. */
+    for (routine = scope->routines; routine != NULL; routine = routine->next) {
+      if (routine->superseded_external) {
+        dump_routine_decl(routine, dump_defn);
+      }  /* if */
+    }  /* for */
+  }  /* if */
 }  /* dump_scope_routines */
 
 
