@@ -1,5 +1,19 @@
 Version 4.4
 
+11/2/11  [EDGcpfe/11859]
+Position of qualified base-class specifier in cross-reference output
+
+When a base class specifier is a qualified name, the front end previously
+reported the position of the base class name as that of the qualifier in the
+cross-reference output.  Now it correctly reports the position of the
+qualified identifier.  For example:
+
+  namespace N { struct B {}; };
+  struct D: N::B {};  // Previously, the cross-reference for B indicated the
+                      // position for N in N::B.  Now it indicates the
+                      // position of the identifier B.
+
+
 11/2/11  [EDGcpfe/11663]
 __w64 annotation ignored on typedef for size_t in Microsoft C++ mode
 

@@ -7819,7 +7819,7 @@ or struct definition.  The syntax is
           goto skip_base_class;
         }  /* if */
         /* Record the symbol as referenced. */
-        mark_referenced(sym, &pos_curr_token);
+        mark_referenced(sym, &locator_for_curr_id.source_position);
         /* Do ambiguity and access control checking for the symbol. */
         check_ambiguity_and_verify_access(&locator_for_curr_id);
         if (base_class_type == NULL) {
