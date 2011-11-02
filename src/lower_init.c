@@ -7596,19 +7596,29 @@ do_assignment:;
                to the constant, preceding any generated initialization code.
                This is done because we want the variable to be a tentative
                definition, which means it must be uninitialized. */
-            a_variable_ptr   temp_var;
-            an_expr_node_ptr init_val_node;
+            a_variable_ptr         temp_var;
+            an_expr_node_ptr       init_val_node;
+            a_memory_region_number region_to_switch_back_to;
             set_block_start_insert_location(block_stmt, &insert_location2);
             entity_node = make_init_entity_node(ipdp,
                                                 /*result_is_lvalue=*/TRUE,
                                                 /*using_as_dest=*/TRUE);
             check_assertion(simple_constant->kind ==
-                            (a_constant_repr_kind)ck_aggregate);
-            temp_var = make_lowered_temporary(variable->type);
+                            (a_constant_repr_kind)ck_aggregate &&
+                            !in_file_scope(simple_constant) &&
+                     !constant_must_remain_in_function_scope(simple_constant));
+            /* Create a local static temporary and statically initialize it to
+               the constant (but the constant must be copied to the file
+               scope first). */
+            temp_var = make_unnamed_local_static_variable(variable->type,
+                                                   /*in_function_scope=*/TRUE);
             temp_var->init_kind = (an_init_kind)initk_static;
-            temp_var->initializer.constant = simple_constant;
-            check_assertion(in_file_scope(simple_constant) ==
-                            in_file_scope(temp_var));
+            switch_to_file_scope_region(&region_to_switch_back_to);
+            temp_var->initializer.constant =
+                           copy_constant_full(simple_constant,
+                                              (a_constant_ptr)NULL,
+                                              CE_REPLACE_STRINGS_BY_VARIABLES);
+            switch_back_to_original_region(region_to_switch_back_to);
             init_val_node = var_lvalue_expr(temp_var);
             (void)insert_assignment_statement(entity_node,
                                             (an_expr_operator_kind)eok_bassign,
@@ -7870,11 +7880,19 @@ constant can be either in the file or function scope.
     a_variable_ptr temp_var;
     if (in_file_scope(constant)) {
       temp_var = make_file_scope_temporary(variable->type);
+      temp_var->init_kind = (an_init_kind)initk_static;
+      temp_var->initializer.constant = constant;
     } else {
-      temp_var = make_local_temporary(variable->type);
+      /* The aggregate constant has some portion that requires it to stay
+         in the function scope (i.e., a GNU address label).  Create a
+         local static temporary rather than a file scope temporary. */
+      temp_var = make_unnamed_local_static_variable(variable->type,
+                                                   /*in_function_scope=*/TRUE);
+      (void)make_local_static_variable_init(temp_var, curr_context->scope,
+                                            (an_init_kind)initk_static,
+                                            constant,
+                                            (a_dynamic_init_ptr)NULL);
     }  /* if */
-    temp_var->init_kind = (an_init_kind)initk_static;
-    temp_var->initializer.constant = constant;
     op = (an_expr_operator_kind)eok_bassign;
     source_node = var_lvalue_expr(temp_var);
   }  /* if */

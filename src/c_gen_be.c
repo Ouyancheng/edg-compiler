@@ -7306,6 +7306,8 @@ for the variable.
   get_variable_initializer(variable, curr_scope, init_kind, &initializer);
   if (*init_kind == (an_init_kind)initk_static) {
     /* The variable has a constant static initializer. */
+    check_assertion_str(variable->storage_class != (a_storage_class)sc_auto,
+                      "constant_initializer: auto variable uses initk_static");
     init_con = initializer->constant;
   } else if (*init_kind == (an_init_kind)initk_dynamic) {
     a_dynamic_init_ptr dip;

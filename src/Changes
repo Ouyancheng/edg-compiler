@@ -1,5 +1,36 @@
 Version 4.4
 
+11/2/11  [EDGcpfe/12364]
+Inadvertent initk_static used for auto variables during lowering
+
+Lowering had inadvertently used initk_static initialization for some
+temporaries with automatic storage (a violation of the IL) when lowering some
+constructs.  The C-generating back end had accepted this initialization (it now
+fails an assertion check), but other back ends may have flagged the IL as
+illegal.  Such constructs had been used when promoting local static variables
+whose aggregate initializer contained GNU address labels, for example:
+
+  void f() {
+    struct A { A() {} };     // causes promotion of local statics
+    static void *x[1] = { &&label };
+  label:
+    return;
+  }
+
+Also, in Cfront ABI configurations that use LOWER_EXTERN_INLINE, a local
+static that is dynamically initialized to an aggregate could also generate
+invalid IL:
+
+  int f() { return 1; }
+  inline int g() {
+    static int a[] = {f(), -1};
+    return a[0] + a[1];
+  }
+  int main() {
+    return g();
+  }
+
+
 11/2/11  [EDGcpfe/11859]
 Position of qualified base-class specifier in cross-reference output
 

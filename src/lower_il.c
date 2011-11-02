@@ -18584,24 +18584,36 @@ scope that is part of the indicated routine) to the file scope.
 
   /* See if there are local static variables to promote. */
   if (scope->variables != NULL) {
-    while (scope->variables != NULL) {
-      variable = scope->variables;
+    /* The list of static variables can change while we're promoting statics
+       (due typically to adding local static temporaries), so lower the
+       exiting list (which may include some lowering-generated temporaries),
+       but don't promote any temporaries that are generated during the
+       promotion process (added at the head, i.e., scope->variables). */
+    a_variable_ptr list = scope->variables;
+    scope->variables = NULL;
+    while (list != NULL) {
+      variable = list;
       if (variable->source_corresp.decl_position.seq != 0) {
         /* Count the number of variables declared in the source (that excludes
            compiler-generated variables).  The count is used later to optimize
            the removal of these variables from stmk_decl statements. */
         n_promoted_source_vars += 1;
       }  /* if */
-      /* Remove the variable from the scope list. */
-      scope->variables = variable->next;
+      list = list->next;
       /* Promote the local static variable to file scope. */
       promote_static_variable_out_of_function(variable, scope, routine);
     }  /* while */
-    /* Clear the scope stack pointer to the last static variable now that
-       the whole list has been cleared. */
+    /* Reset the scope stack pointer to the last static variable now that
+       the list has been altered. */
     { a_scope_depth depth = scope->depth_in_scope_stack;
       if (depth != NO_SCOPE_DEPTH) {
-        assoc_pointers_block_of(&scope_stack[depth])->last_variable = NULL;
+        a_variable_ptr  last;
+        for (last = scope->variables;
+            last != NULL && last->next != NULL;
+            last = last->next) {
+          check_assertion(last->lowering_generated);
+        }  /* for */
+        assoc_pointers_block_of(&scope_stack[depth])->last_variable = last;
       }  /* if */
     }
     /* Remove the variables from any stmk_decl statements they are referred
