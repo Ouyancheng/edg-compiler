@@ -1596,9 +1596,9 @@ name generated from the field pointer will be used.
 
 
 /* Interface routines to dump_name. */
-#define dump_routine_name(routine)                                        \
-  ((routine)->superseded_external) ? dump_temp_name((char *)(routine))    \
-                                   : dump_name(&(routine)->source_corresp)
+#define dump_routine_name(routine)                                           \
+  (((routine)->superseded_external) ? dump_temp_name((char *)(routine))      \
+                                    : dump_name(&(routine)->source_corresp))
 #define dump_constant_name(constant) dump_name(&(constant)->source_corresp)
 
 
