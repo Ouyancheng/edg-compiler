@@ -9660,6 +9660,9 @@ symbol entry, and return a pointer to it in state->sym.
                We know it's the first explicit declaration because the defined
                flag is not set. */
             ref_kind |= SRK_DEFINITION;
+            /* Retain the current type because it may include the __w64
+               annotation. */
+            sym->variant.type.ptr->variant.typeref.type = type_ptr;
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           if (C_mode()) {

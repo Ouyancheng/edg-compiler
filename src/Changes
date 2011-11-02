@@ -1,5 +1,18 @@
 Version 4.4
 
+11/2/11  [EDGcpfe/11663]
+__w64 annotation ignored on typedef for size_t in Microsoft C++ mode
+
+The front end previously ignored the __w64 annotation (see Changes entry of
+6/18/03) when it appeared on a typedef for size_t (because the predeclared
+typedef for size_t was retained; see the Changes entry of 4/20/98).
+For example:
+
+  typedef __w64 unsigned size_t;  // __w64 was previously ignored.
+
+This is now fixed.
+
+
 11/2/11  [EDGcpfe/12415]
 C-generating back end, GNU compatibility: implicit declaration of function
 later defined with different type
