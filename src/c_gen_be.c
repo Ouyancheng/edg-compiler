@@ -1596,10 +1596,31 @@ name generated from the field pointer will be used.
 
 
 /* Interface routines to dump_name. */
-#define dump_routine_name(routine)                                           \
-  (((routine)->superseded_external) ? dump_temp_name((char *)(routine))      \
-                                    : dump_name(&(routine)->source_corresp))
 #define dump_constant_name(constant) dump_name(&(constant)->source_corresp)
+
+
+static void dump_routine_name(a_routine_ptr rout)
+/*
+Print the name of the indicated routine, unless it is a superseded external,
+in which case a temporary name is printed.
+*/
+{
+  if (rout->superseded_external) {
+    /* A superseded external represents a declaration (block extern or
+       implicit) of a function with a different type from that of the
+       "official" declaration.  Because versions of gcc beginning with 3.4
+       do not allow directly calling a function through a cast to a
+       different function type, this situation is handled by transforming
+       the declaration of the superseded function into a declaration of a
+       function pointer with a temporary name, initialized to point to the
+       "official" function.  Uses of the superseded function are changed
+       to refer to the function pointer instead of the function name, thus
+       using the superseded type instead of the "official" one. */
+    dump_temp_name((char *)rout);
+  } else {
+    dump_name(&rout->source_corresp);
+  }  /* if */
+}  /* dump_routine_name */
 
 
 static void dump_label_name(a_label_ptr label)
