@@ -8555,6 +8555,18 @@ typedef struct a_variable {
 			/* TRUE if is_specialized is TRUE but the static
 			   data member was not explicitly declared with the
 			   template<> syntax. */
+  a_bit_field	explicit_instantiation:1;
+			/* TRUE if an instantiation has been explicitly
+			   requested using an explicit instantiation directive
+			   or an instantiation pragma. */
+  a_bit_field	class_explicitly_instantiated:1;
+			/* TRUE if the instantiation request specified the
+			   class (meaning that all its members should be
+			   instantiated). */
+  a_bit_field	explicit_do_not_instantiate:1;
+			/* TRUE if instantiation has been explicitly 
+			   suppressed by an "extern template" directive or
+			   a do_not_instantiate pragma. */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;
 			/* TRUE if this is a template static data member
@@ -11932,6 +11944,18 @@ typedef struct a_routine {
 			   and the specialization was declared within the
 			   enclosing class using the Microsoft/Sun in-class
 			   specialization syntax. */
+  a_bit_field	explicit_instantiation:1;
+			/* TRUE if an instantiation has been explicitly
+			   requested using an explicit instantiation directive
+			   or an instantiation pragma. */
+  a_bit_field	class_explicitly_instantiated:1;
+			/* TRUE if the instantiation request specified the
+			   class (meaning that all its members should be
+			   instantiated). */
+  a_bit_field	explicit_do_not_instantiate:1;
+			/* TRUE if instantiation has been explicitly 
+			   suppressed by an "extern template" directive or
+			   a do_not_instantiate pragma. */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	never_inline:1;
 			/* TRUE for routines declared with the "noinline"

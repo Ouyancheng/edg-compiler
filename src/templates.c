@@ -26728,6 +26728,20 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
       update_instantiation_required_flag(tip, instantiation_required_flag,
                                          SIR_NONE);
     }  /* if */
+    /* Copy the instantiation flags to the value in the IL entries. */
+    if (ignore_directive) {
+      /* The flags have not changed and so they don't need to be copied. */
+    } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+      a_variable_ptr vp = sym->variant.static_data_member.variable;
+      vp->explicit_instantiation = tip->explicit_instantiation;
+      vp->class_explicitly_instantiated = tip->class_explicitly_instantiated;
+      vp->explicit_do_not_instantiate = tip->explicit_do_not_instantiate;
+    } else {
+      a_routine_ptr rp = sym->variant.routine.ptr;
+      rp->explicit_instantiation = tip->explicit_instantiation;
+      rp->class_explicitly_instantiated = tip->class_explicitly_instantiated;
+      rp->explicit_do_not_instantiate = tip->explicit_do_not_instantiate;
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {

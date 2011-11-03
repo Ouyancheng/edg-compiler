@@ -2187,6 +2187,9 @@ Clear the fields of the given variable to default values.
                                   = FALSE;
   vp->is_specialized              = FALSE;
   vp->specialized_with_old_syntax = FALSE;
+  vp->explicit_instantiation      = FALSE;
+  vp->class_explicitly_instantiated = FALSE;
+  vp->explicit_do_not_instantiate = FALSE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   vp->can_be_instantiated         = FALSE;
   vp->do_not_instantiate          = FALSE;
@@ -2475,6 +2478,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_specialized              = FALSE;
   rp->specialized_with_old_syntax = FALSE;
   rp->is_prototype_instantiation  = FALSE;
+  rp->explicit_instantiation      = FALSE;
+  rp->class_explicitly_instantiated = FALSE;
+  rp->explicit_do_not_instantiate = FALSE;
   rp->never_throws                = FALSE;
   rp->is_in_class_specialization  = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED

@@ -1,5 +1,15 @@
 Version 4.4
 
+11/3/11  [EDGcpfe/12395]
+Instantiation directive flags added to the IL
+
+Information about explicit instantiation directives has been added
+to the IL entries for template functions (in a_routine) and template
+static data members (in a_variable).  The fields that have been added
+are explicit_instantiation, class_explicitly_instantiated, and
+explicit_do_not_instantiate.
+
+
 11/2/11  [EDGcpfe/12364]
 Inadvertent initk_static used for auto variables during lowering
 

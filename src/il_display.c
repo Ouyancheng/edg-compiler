@@ -2602,6 +2602,15 @@ Display the indicated variable.
   if (ptr->specialized_with_old_syntax) {
     disp_boolean("specialized_with_old_syntax", TRUE);
   }  /* if */
+  if (ptr->explicit_instantiation) {
+    disp_boolean("explicit_instantiation", TRUE);
+  }  /* if */
+  if (ptr->class_explicitly_instantiated) {
+    disp_boolean("class_explicitly_instantiated", TRUE);
+  }  /* if */
+  if (ptr->explicit_do_not_instantiate) {
+    disp_boolean("explicit_do_not_instantiate", TRUE);
+  }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (ptr->can_be_instantiated) {
     disp_boolean("can_be_instantiated", TRUE);
@@ -3053,6 +3062,15 @@ Display the indicated routine.
   }  /* if */
   if (ptr->specialized_with_old_syntax) {
     disp_boolean("specialized_with_old_syntax", TRUE);
+  }  /* if */
+  if (ptr->explicit_instantiation) {
+    disp_boolean("explicit_instantiation", TRUE);
+  }  /* if */
+  if (ptr->class_explicitly_instantiated) {
+    disp_boolean("class_explicitly_instantiated", TRUE);
+  }  /* if */
+  if (ptr->explicit_do_not_instantiate) {
+    disp_boolean("explicit_do_not_instantiate", TRUE);
   }  /* if */
   if (ptr->never_throws) {
     disp_boolean("never_throws", TRUE);
