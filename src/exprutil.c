@@ -5275,7 +5275,9 @@ the rewritten expression.
   an_expr_node_ptr under_parens = (expr = skip_parens(expr));
 #endif /* PARENS_IN_IL */
 
-  if (constant_rvalue_pointer(expr, &string_constant,
+  if (!expr->is_lvalue &&
+      is_pointer_type(expr->type) &&
+      constant_rvalue_pointer(expr, &string_constant,
                               /*address_escapes=*/TRUE, (a_boolean *)NULL)) {
     /* A constant string literal: set the type to System::String^ and create
        the constant node. */
@@ -5357,19 +5359,22 @@ is_literal_convertible_to_cli_string is TRUE.
 {
   a_constant       string_constant;
   an_operand       orig_operand;
-  an_expr_node_ptr expr = make_node_from_operand(operand);
+  an_expr_node_ptr expr;
 
 #if EXPENSIVE_CHECKING
   check_assertion(is_literal_convertible_to_cli_string(operand,
                                                       /*allow_complex=*/TRUE));
 #endif /* EXPENSIVE_CHECKING */
   orig_operand = *operand;
-  /* Attempt to create a ck_address constant referring to the operand of
-     the input expression in string_constant. */
-  if (constant_rvalue_pointer(expr, &string_constant,
+  /* Convert lvalue string literals to rvalue pointers. */
+  do_operand_transformations(operand, TOPT_NO_OPTIONS);
+  expr = make_node_from_operand(operand);
+  if (!expr->is_lvalue &&
+      is_pointer_type(expr->type) &&
+      constant_rvalue_pointer(expr, &string_constant,
                               /*address_escapes=*/TRUE, (a_boolean *)NULL)) {
-    /* Succeeded: set the type to System::String^ and create the constant
-       operand. */
+    /* The operand is a simple string literal, so make a constant operand
+       for the corresponding handle. */
     string_constant.type = make_handle_to_system_string();
     make_constant_operand(&string_constant, operand);
   } else {

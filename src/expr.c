@@ -2132,7 +2132,7 @@ indication in *rcblock).
 
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- unboxing_conv_operand is unused in that case. */
+/*ARGSUSED*/  /* <-- simple_result is unused in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void scan_ctor_arguments(a_symbol_ptr           constructor_sym,
                                 a_source_position      *source_pos,
@@ -2145,7 +2145,8 @@ static void scan_ctor_arguments(a_symbol_ptr           constructor_sym,
                                 an_arg_operand_ptr     arg_list,
                                 a_boolean              *trivial_ctor,
                                 a_boolean              *unboxing_conv,
-                                an_operand             *unboxing_conv_operand,
+                                a_boolean              *string_ctor_skip,
+                                an_operand             *simple_result,
                                 a_dynamic_init_ptr     *p_dip,
                                 an_expr_node_ptr       *p_temp_init_node,
                                 a_source_position      *closing_paren_position)
@@ -2178,8 +2179,12 @@ to TRUE, don't construct a dynamic initialization entry, and return
 trivial_ctor is non-NULL.  If unboxing_conv is non-NULL, and there
 is a single argument and its conversion to the class type is a
 C++/CLI unboxing conversion, return *unboxing_conv set to TRUE,
-return the argument in *unboxing_conv_operand, don't construct a
-dynamic initialization entry, and return *p_dip set to NULL.  If
+return the argument in *simple_result, don't construct a
+dynamic initialization entry, and return *p_dip set to NULL.
+If string_ctor_skip is non-NULL, and there is a single argument of
+C++/CLI type System::String, return *string_ctor_skip set to TRUE,
+return the argument in *simple_result, don't construct a dynamic
+initialization entry, and return *p_dip set to NULL.  If
 closing_paren_position is non-NULL, *closing_paren_position is set to
 the source position of the closing parenthesis (but it's not set on a
 rescan).
@@ -2219,11 +2224,13 @@ arg_list, and no source is scanned.  arg_list is freed after it's used.
   an_expr_node_ptr    temp_init_node = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean           unboxing_conv_should_be_tried = FALSE;
+  a_boolean           literal_case = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_ctor_arguments");
   if (trivial_ctor != NULL) *trivial_ctor = FALSE;
   if (unboxing_conv != NULL) *unboxing_conv = FALSE;
+  if (string_ctor_skip != NULL) *string_ctor_skip = FALSE;
   class_type = sym_parent_class(constructor_sym);
   cssp = symbol_supplement_for_class(class_type);
   /* If the object_class_type is not specified, use the default. */
@@ -2293,7 +2300,30 @@ arg_list, and no source is scanned.  arg_list is freed after it's used.
     /* There's one argument, and its conversion to the class type is a
        C++/CLI unboxing conversion.  Return the operand to the caller. */
     *unboxing_conv = TRUE;
-    *unboxing_conv_operand = arg_operand_list->operand;
+    *simple_result = arg_operand_list->operand;
+    free_arg_operand_list(arg_operand_list);
+    goto end_of_routine;
+  } else if (string_ctor_skip != NULL &&
+             arg_operand_list != NULL && arg_operand_list->next == NULL &&
+             (f_identical_types(arg_operand_list->operand.type,
+                                make_handle_to_system_string(),
+                                ITF_NO_FLAGS) ||
+              /*lint --e(820)*/
+              (literal_case = is_literal_convertible_to_cli_string(
+                                                   &arg_operand_list->operand,
+                                                   /*allow_complex=*/TRUE)))) {
+    /* There's one argument, of type System::String^, and we've
+       been asked to handle that specially.  Return the operand
+       to the caller.  This is used to handle a gcnew of a C++/CLI
+       String type.  If the argument is a String^, no gcnew is done;
+       the argument is simply returned to the caller.  Note that this
+       also applies to string literals that can be converted to
+       System::String (that was really the reason for this "optimization",
+       but MSVC didn't do enough of a check and let other non-literal
+       String cases by as well). */
+    *string_ctor_skip = TRUE;
+    *simple_result = arg_operand_list->operand;
+    if (literal_case) convert_operand_to_handle_to_cli_string(simple_result);
     free_arg_operand_list(arg_operand_list);
     goto end_of_routine;
   } else
@@ -14309,6 +14339,8 @@ expression, and return the result in *result (or an error indication in
   an_expr_node_ptr
                     cli_array_new_init_args = NULL;
   a_boolean         has_array_init = FALSE;
+  a_boolean         is_gcnew_string_special_case = FALSE;
+  an_operand        gcnew_special_case_operand;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_new_operator");
@@ -15270,8 +15302,21 @@ expression, and return the result in *result (or an error indication in
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
     if (ctor_sym != NULL) {
-      a_boolean trivial_ctor;
       /* Class with a (nontrivial) constructor. */
+      a_boolean  trivial_ctor;
+      a_boolean  *string_ctor_skip = NULL;
+      an_operand *simple_result = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (is_gcnew &&
+          f_identical_types(ptr_new_type, make_handle_to_system_string(),
+                            ITF_NO_FLAGS)) {
+        /* A gcnew of System::String with a single argument of type String
+           just passes through the argument without doing a gcnew. */
+        string_ctor_skip = &is_gcnew_string_special_case;
+        simple_result = &gcnew_special_case_operand;
+        check_assertion(!cli_array_new && !placement_new);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Develop the dynamic init entry, if any, used to free storage
          if an exception is thrown before the initialization is finished.
          This must be done after it has been determined that initialization
@@ -15291,7 +15336,8 @@ expression, and return the result in *result (or an error indication in
                           (an_arg_operand *)NULL,
                           &trivial_ctor,
                           /*unboxing_conv=*/(a_boolean *)NULL,
-                          /*unboxing_conv_operand=*/(an_operand *)NULL,
+                          string_ctor_skip,
+                          simple_result,
                           &dip, (an_expr_node_ptr *)NULL,
                           (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -15302,6 +15348,11 @@ expression, and return the result in *result (or an error indication in
            does nothing (not even value initialization). */
         needs_initialization = FALSE;
         check_assertion(new_routine != NULL || function_symbol == NULL);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (is_gcnew_string_special_case) {
+        /* A case where the single String argument of a gcnew is just passed
+           through. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         warn_about_missing_delete_if(TRUE);
         needs_initialization = TRUE;
@@ -15553,6 +15604,10 @@ handle_empty_parens_new_initializer:
     /* Some error. */
     make_error_operand(result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (is_gcnew_string_special_case) {
+    /* A case where the single String argument of a gcnew is just passed
+       through. */
+    copy_operand(&gcnew_special_case_operand, result);
   } else if (is_gcnew) {
     /* This code is not shared with the "new" case below because it is
        generating a different expr_node_kind. */
@@ -19594,7 +19649,8 @@ after it's used.
                         arg_list_supplied, arg_list,
                         /*trivial_ctor=*/(a_boolean *)NULL,
                         &unboxing_conv,
-                        /*unboxing_conv_operand=*/result,
+                        /*string_ctor_skip=*/(a_boolean *)NULL,
+                        /*simple_result=*/result,
                         &dip, &temp_init_node,
                         end_position_arg);
     arg_list = NULL;  /* Called routine frees the list if present. */
@@ -32904,7 +32960,8 @@ overall errors.
                       (an_arg_operand *)NULL,
                       /*trivial_ctor=*/(a_boolean *)NULL,
                       /*unboxing_conv=*/(a_boolean *)NULL,
-                      /*unboxing_conv_operand=*/(an_operand *)NULL,
+                      /*string_ctor_skip=*/(a_boolean *)NULL,
+                      /*simple_result=*/(an_operand *)NULL,
                       p_dip,
                       (an_expr_node_ptr *)NULL,
                       (a_source_position *)NULL);
