@@ -10158,10 +10158,12 @@ to (with its overridden_functions field).
   /* First look through the routines list of parent_class to see if we
      already created the required entry. */
   for (rp = parent_scope->routines; rp != NULL; rp = rp->next) {
-    if (rp->virtual_function_number == base_rp->virtual_function_number) {
+    if (rp->interface_slot &&
+        rp->overridden_functions->entity.ptr == (char*)base_rp) {
       check_assertion(symbol_for(rp)->header == loc->symbol_header &&
                       rp->pure_virtual);
-      check_assertion(rp->interface_slot);
+      check_assertion(rp->virtual_function_number ==
+                                            base_rp->virtual_function_number);
       result = symbol_for(rp);
       break;
     }  /* if */
