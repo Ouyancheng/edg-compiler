@@ -13844,12 +13844,15 @@ type argument.  Return TRUE if it is valid, FALSE otherwise.
 {
   a_boolean	result = FALSE;
 
-  if (is_value_class_or_fundamental_type(argument_type)) {
+  if (is_value_class_or_fundamental_type(argument_type) ||
+      is_scoped_enum_type(argument_type)) {
     /* A value class, including the fundamental types that have a
        corresponding value class, can be used as a generic argument.
        System::RuntimeArgumentHandle cannot be used as a generic argument
        because it points into the CIL evaluation stack.  Void cannot
-       be used as a generic argument. */
+       be used as a generic argument.  Enum types are allowed despite
+       being omitted from the list of allowed types in ECMA-372 31.2.2
+       ("Type Arguments"). */
     a_type_ptr	rah_type;
     rah_type = cli_class_type_for(csk_system_runtime_argument_handle);
     result = !same_entities(argument_type, rah_type) &&
