@@ -8828,6 +8828,19 @@ definition of a member function of a class template.
       set_routine_special_kind(rout_ptr,
                                (a_special_function_kind)sfk_operator);
       rout_ptr->variant.opname_kind = locator->variant.opname;
+    } else if (locator->is_destructor_name) {
+      /* This can happen in a friend declaration that refers to a destructor
+         with a dependent name qualifier. */
+      check_assertion(proxy_member_friend);
+      set_routine_special_kind(rout_ptr,
+                               (a_special_function_kind)sfk_destructor);
+    } else if ((dps->dso_flags & DSO_CONSTRUCTOR) != 0 ||
+               (dps->do_flags & DO_IS_CONSTRUCTOR) != 0) {
+      /* This can happen in a friend declaration that refers to a constructor
+         with a dependent name qualifier. */
+      check_assertion(proxy_member_friend);
+      set_routine_special_kind(rout_ptr,
+                               (a_special_function_kind)sfk_constructor);
     }  /* if */
     check_assertion(is_error_locator(*locator) ||
                     !locator->is_conversion_name);

@@ -7179,11 +7179,13 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
           }  /* if */              
         }  /* if */              
       } else if ((decl_specifiers_seen & DS_FRIEND) != 0 &&
-                 !do_dependent_name_processing &&
                  locator_for_curr_id.is_class_member &&
                  scope_stack_top().in_prototype_instantiation &&
                  locator_for_curr_id.parent.class_type
                               ->variant.class_struct_union.is_nonreal_class &&
+                 locator_for_curr_id.symbol_header ==
+                       symbol_for(qualifier_class_type(locator_for_curr_id))
+                                                                   ->header &&
                  next_token() == tok_lparen) {
         /* Consider a friend declaration of the form
                friend A<T>::A(...);
@@ -7192,10 +7194,13 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
            However, in default mode, it will be treated as a type name, and if
            it weren't for the processing here, it would unconditionally be
            handled as a specifiers type. */
-        if (locator_for_curr_id.symbol_header ==
-              symbol_for(qualifier_class_type(locator_for_curr_id))->header) {
+        if (!do_dependent_name_processing ||
+            curr_type_symbol((input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
+                             /*in_prescan=*/FALSE, /*in_type_check=*/FALSE)
+                                                                    == NULL) {
           /* The qualified identifier matches that of the qualifying class:
              Assume a constructor is intended. */
+          dps->dso_flags |= DSO_CONSTRUCTOR;
           result = TRUE;
         }  /* if */
       }  /* if */

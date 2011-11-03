@@ -5146,6 +5146,21 @@ declared entity is known to not be a function.
                  on in the declaration. */
               make_class_definition_context_visible();
 	    }  /* if */
+          } else if (dps->dso_flags & DSO_FRIEND &&
+                     dps->in_nested_declarator &&
+                     locator_for_curr_id.is_class_member &&
+                     !locator_for_curr_id.is_template_id &&
+                     scope_stack_top().in_prototype_instantiation &&
+                     locator_for_curr_id.parent.class_type
+                              ->variant.class_struct_union.is_nonreal_class &&
+                     locator_for_curr_id.symbol_header ==
+                                  symbol_for(*p_member_parent_type)->header &&
+                     next_token() == tok_rparen) {
+            /* A declaration like "friend (A<T>::A)();" in a prototype
+               instantiation.  is_constructor_symbol(sym) does not return TRUE
+               in such cases because lookup in the nonreal A<T> does not yield
+               declared members. */
+            *is_constructor = TRUE;
           }  /* if */
           if (reactivate_scope) {
             /* Reactivate the scope of the parent class.  It will be
