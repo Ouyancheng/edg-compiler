@@ -4,11 +4,11 @@ Version 4.4
 Inadvertent initk_static used for auto variables during lowering
 
 Lowering had inadvertently used initk_static initialization for some
-temporaries with automatic storage (a violation of the IL) when lowering some
-constructs.  The C-generating back end had accepted this initialization (it now
-fails an assertion check), but other back ends may have flagged the IL as
-illegal.  Such constructs had been used when promoting local static variables
-whose aggregate initializer contained GNU address labels, for example:
+temporaries with automatic storage (a violation of the IL rules) when lowering
+some constructs.  The C-generating back end had accepted this initialization
+(it now fails an assertion check), but other back ends may have flagged the IL
+as illegal.  Such constructs had been used when promoting local static
+variables whose aggregate initializers contain GNU address labels, for example:
 
   void f() {
     struct A { A() {} };     // causes promotion of local statics
