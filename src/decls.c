@@ -9646,7 +9646,6 @@ symbol entry, and return a pointer to it in state->sym.
           clear_specific_symbol(*locator);
         } else if (sym->kind == (a_symbol_kind)sk_type) {
           a_symbol_reference_kind  ref_kind = SRK_DECLARATION;
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_mode && sym == predeclared_size_t_symbol &&
               !sym->defined) {
@@ -9654,8 +9653,9 @@ symbol entry, and return a pointer to it in state->sym.
                We know it's the first explicit declaration because the defined
                flag is not set. */
             ref_kind |= SRK_DEFINITION;
-            /* Retain the current type because it may include the __w64
-               annotation. */
+            /* Retain the underlying type specified in this declaration
+               because it may include the __w64 annotation. */
+            check_assertion(type_is_typedef(sym->variant.type.ptr));
             sym->variant.type.ptr->variant.typeref.type = type_ptr;
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
