@@ -7887,14 +7887,8 @@ skip_overloading:;
       if (is_local_scope_kind(scope_stack[effective_decl_level].kind) ||
           func_info->is_implicit_declaration) {
         routine_ptr->superseded_external = TRUE;
-#if BACK_END_IS_C_GEN_BE
-        routine_ptr->superseding_external = old_rout;
-#endif /* BACK_END_IS_C_GEN_BE */
       } else {
         old_rout->superseded_external = TRUE;
-#if BACK_END_IS_C_GEN_BE
-        old_rout->superseding_external = routine_ptr;
-#endif /* BACK_END_IS_C_GEN_BE */
         dps->first_decl = TRUE;
       }  /* if */
     } else {

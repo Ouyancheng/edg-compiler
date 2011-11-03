@@ -2635,9 +2635,6 @@ to it.  The entry is allocated in the file scope memory region.
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && DO_IL_LOWERING
   rp->init_priority               = 0;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && DO_IL_LOWERING */
-#if BACK_END_IS_C_GEN_BE
-  rp->superseding_external        = NULL;
-#endif /* BACK_END_IS_C_GEN_BE */
   db_exit();
   return rp;
 }  /* alloc_routine */

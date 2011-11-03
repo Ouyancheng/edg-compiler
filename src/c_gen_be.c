@@ -9460,13 +9460,14 @@ if this routine has a body (dump nothing if it has no body).
         /* dump_general_declaration_using_type converted this routine
            declaration to a declaration of a function pointer with a
            temporary name.  We need to initialize it to the address of the
-           "official" routine, cast to the appropriate type.  This works
-           around a problem with versions of gcc beginning with 3.4, which
-           do not allow calling a function directly through a cast to a
-           different function pointer type. */
+           "official" routine (which has the same name as the superseded
+           routine), cast to the appropriate type.  This works around a
+           problem with versions of gcc beginning with 3.4, which do not
+           allow calling a function directly through a cast to a different
+           function pointer type. */
         write_tok_str(" = ");
         dump_cast_to_pointer_to(rout->type);
-        dump_routine_name(rout->superseding_external);
+        dump_name(&rout->source_corresp);
       }  /* if */
       write_tok_ch(';');
       if (routine_is_init_routine(rout)) {

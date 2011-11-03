@@ -12464,11 +12464,6 @@ typedef struct a_routine {
 			   specific init_priority value.  This indicates
 			   the priority.  Zero otherwise. */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && DO_IL_LOWERING */
-#if BACK_END_IS_C_GEN_BE
-  a_routine_ptr	superseding_external;
-			/* If superseded_external is TRUE, this points to
-			   the "official" routine.  NULL otherwise. */
-#endif /* BACK_END_IS_C_GEN_BE */
 } a_routine;
 
 
