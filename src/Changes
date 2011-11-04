@@ -1,5 +1,22 @@
 Version 4.4
 
+11/4/11  [EDGcpfe/12369]
+Improved determination of default constructor
+
+In some very obscure cases (involving templates, default arguments,
+and parameter packs) the determination of the default constructor in
+a class was incorrect, and a spurious error was issued.  Now fixed;
+the full normal overload resolution is done, instead of a simplified
+algorithm that gave some incorrect answers.
+
+  struct A {
+    template <class T = int> A(T = 1){}
+    template <class ...T> A(T...);
+  };
+  A a;  // Formerly gave a spurious error:
+        //  class "A" has more than one default constructor
+
+
 11/3/11  [EDGcpfe/12407]
 GNU compatibility: __attribute(deprecated("..."))
 

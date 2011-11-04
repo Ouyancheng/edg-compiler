@@ -4610,6 +4610,7 @@ static void try_overloaded_function_match(
                  a_boolean                from_arg_dep_lookup,
                  a_boolean                dependent_call,
                  a_boolean                forced_dependent,
+                 a_boolean                ignore_templates,
                  a_boolean                known_to_be_visible,
                  a_boolean                is_overloaded_operator,
                  a_conv_context_set       conv_context,
@@ -4646,7 +4647,8 @@ TRUE if argument-dependent lookup is enabled for this call.
 from_arg_dep_lookup is TRUE if the function was found by
 argument-dependent lookup.  dependent_call is TRUE if the call is a
 template-dependent call.  forced_dependent is TRUE if dependent_call
-was forced to TRUE for reasons of g++ emulation.  known_to_be_visible
+was forced to TRUE for reasons of g++ emulation.  ignore_templates is
+TRUE if template functions should be ignored.  known_to_be_visible
 is TRUE if the function is known to be visible and the visibility
 check should be suppressed.  is_overloaded_operator is TRUE if the
 call is written in operator form, e.g., a+b rather than operator+(a,
@@ -4746,6 +4748,13 @@ retry:
     }  /* if */
 #endif /* DEBUG */
     saved_candidate_functions = *candidate_functions;
+    if (ignore_templates) {
+      a_symbol_ptr fund_sym = fundamental_symbol_of(proj_function_symbol);
+      if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
+        /* This is a template and we're skipping templates. */
+        goto bottom_of_loop;
+      }  /* if */
+    }  /* if */
     /* Determine whether the function is viable by looking at the arguments.
        Add the function to the candidates list if it is viable. */
     determine_function_viability(proj_function_symbol,
@@ -4777,6 +4786,7 @@ retry:
     } else {
       any_not_discarded_because_post_decl = TRUE;
     }  /* if */
+bottom_of_loop:
     curr_sym_viable = (saved_candidate_functions != *candidate_functions);
   }  /* for */
   if (gpp_mode && gnu_version >= 40100 &&
@@ -4828,6 +4838,7 @@ are viable functions, FALSE if not.  Issues no errors.
                                 /*from_arg_dep_lookup=*/FALSE,
                                 /*dependent_call=*/FALSE,
                                 /*forced_dependent=*/FALSE,
+                                /*ignore_templates=*/FALSE,
                                 /*known_to_be_visible=*/FALSE,
                                 /*is_overloaded_operator=*/FALSE,
                                 CCO_DEFAULT,
@@ -7545,6 +7556,7 @@ in_instantiation:
                                     /*from_arg_dep_lookup=*/FALSE,
                                     dependent_call,
                                     force_dependent,
+                                    /*ignore_templates=*/FALSE,
                                     known_to_be_visible,
                                     /*is_overloaded_operator=*/FALSE,
                                     CCO_DEFAULT,
@@ -7638,6 +7650,7 @@ in_instantiation:
                                                 normal_lookup_function_symbol),
                                       dependent_call,
                                       force_dependent,
+                                      /*ignore_templates=*/FALSE,
                                       /*known_to_be_visible=*/FALSE,
                                       /*is_overloaded_operator=*/FALSE,
                                       CCO_DEFAULT,
@@ -13967,6 +13980,7 @@ apply, but we can't tell).
                                          /*from_arg_dep_lookup=*/FALSE,
                                          /*dependent_call=*/FALSE,
                                          /*forced_dependent=*/FALSE,
+                                         /*ignore_templates=*/FALSE,
                                          /*known_to_be_visible=*/TRUE,
                                          /*is_overloaded_operator=*/TRUE,
                                          CCO_DEFAULT,
@@ -14011,6 +14025,7 @@ apply, but we can't tell).
                                          /*from_arg_dep_lookup=*/FALSE,
                                          dependent_call,
                                          /*forced_dependent=*/FALSE,
+                                         /*ignore_templates=*/FALSE,
                                          /*known_to_be_visible=*/TRUE,
                                          /*is_overloaded_operator=*/TRUE,
                                          CCO_DEFAULT,
@@ -14037,6 +14052,7 @@ apply, but we can't tell).
                                          /*from_arg_dep_lookup=*/FALSE,
                                          dependent_call,
                                          /*forced_dependent=*/FALSE,
+                                         /*ignore_templates=*/FALSE,
                                          /*known_to_be_visible=*/TRUE,
                                          /*is_overloaded_operator=*/TRUE,
                                          CCO_DEFAULT,
@@ -14079,6 +14095,7 @@ apply, but we can't tell).
                                          /*from_arg_dep_lookup=*/FALSE,
                                          dependent_call,
                                          /*forced_dependent=*/FALSE,
+                                         /*ignore_templates=*/FALSE,
                                          /*known_to_be_visible=*/TRUE,
                                          /*is_overloaded_operator=*/TRUE,
                                          CCO_DEFAULT,
@@ -14166,6 +14183,7 @@ apply, but we can't tell).
                                                   normal_sym),
                                          dependent_call,
                                          /*forced_dependent=*/FALSE,
+                                         /*ignore_templates=*/FALSE,
                                          /*known_to_be_visible=*/FALSE,
                                          /*is_overloaded_operator=*/TRUE,
                                          CCO_DEFAULT,
@@ -14806,6 +14824,7 @@ conversion.
                                     /*from_arg_dep_lookup=*/FALSE,
                                     /*dependent_call=*/FALSE,
                                     /*forced_dependent=*/FALSE,
+                                    /*ignore_templates=*/FALSE,
                                     /*known_to_be_visible=*/FALSE,
                                     /*is_overloaded_operator=*/FALSE,
                                     conv_context,
@@ -19169,7 +19188,7 @@ default constructors; see find_default_constructor.
 */
 {
   a_symbol_ptr                    sym, ctor_sym = NULL;
-  a_boolean                       any_templates = FALSE;
+  a_boolean                       need_second_pass = FALSE;
   a_class_symbol_supplement_ptr   cssp;
   an_overload_set_traversal_block ostblock;
 
@@ -19197,71 +19216,69 @@ default constructors; see find_default_constructor.
        sym = next_symbol_in_overload_set(&ostblock,
                                          /*curr_sym_viable=*/FALSE)) {
     if (sym->kind == (a_symbol_kind)sk_function_template) {
-      /* Function templates are not considered on this pass. */
-      any_templates = TRUE;
+      /* Function templates are not considered on this pass.  Non-templates
+         are always better than templates, so if we find a single
+         non-template constructor we don't need to do the second pass
+         to look for templates.  That's why we don't break out of the
+         loop here. */
+      if (include_templates) need_second_pass = TRUE;
     } else if (is_default_constructor(sym->variant.routine.ptr,
                                       /*is_declarative_context=*/FALSE)) {
       /* sym is a default constructor. */
       if (ctor_sym != NULL) {
         /* A default constructor had already been found, so there's
-           more than one.  We have an ambiguous reference. */
-        *ambiguous = TRUE;
+           more than one.  Do the full overload resolution to see if one
+           is better than another. */
+        ctor_sym = NULL;
+        need_second_pass = TRUE;
         break;
       } else {
         /* We've found one.  Record it, but keep looking.  If there's an
-           ambiguity we need to report it. */
+           more than once we'll need to do the full overload resolution. */
         ctor_sym = sym;
       }  /* if */
     }  /* if */
   }  /* for */
-  if (ctor_sym == NULL && include_templates && any_templates) {
-    /* Examine each constructor for this class to find a template default
-       constructor.  There may be more than one. */
-    for (sym = set_up_overload_set_traversal(cssp->constructor, &ostblock);
-         sym != NULL;
-         sym = next_symbol_in_overload_set(&ostblock,
-                                           /*curr_sym_viable=*/FALSE)) {
-      if (sym->kind == (a_symbol_kind)sk_function_template) {
-        a_routine_ptr    routine =
-                          sym->variant.template_info->variant.function.routine;
-        a_type_ptr       routine_type = skip_typerefs(routine->type);
-        a_routine_type_supplement_ptr
-                         rtsp = routine_type->variant.routine.extra_info;
-        a_param_type_ptr ptp = rtsp->param_type_list;
-#if DEBUG
-        if (debug_level >= 4 || db_flag_is_set("overload")) {
-          db_symbol(sym,
-                    "select_overloaded_default_constructor: considering ", 4);
-        }  /* if */
-#endif /* DEBUG */
-        if (ptp == NULL /* Error recovery */ ||
-            (!ptp->has_unevaluated_template_default &&
-             ptp->default_arg_expr == NULL &&
-             !ptp->is_parameter_pack)) {
-          /* We can tell the constructor can't be called with zero
-             arguments. */
-        } else {
-          a_template_arg_ptr template_arg_list = NULL;
-          routine_type = function_template_call_argument_deduction(
-                                                      sym,
-                                                      routine_type,
-                                                      (an_arg_operand_ptr)NULL,
-                                                      &template_arg_list);
-          if (routine_type != NULL) {
-            /* The template can be called with zero arguments. */
-            if (ctor_sym != NULL) {
-              /* More than one template matches. */
-              *ambiguous = TRUE;
-              free_template_arg_list(template_arg_list);
-              break;
-            }  /* if */
-            ctor_sym = find_template_function(sym, &template_arg_list,
-                                           /*explicit_arg_list_present=*/FALSE,
-                                              pos);
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* for */
+  if (ctor_sym == NULL && need_second_pass) {
+    /* Do real overload resolution, possibly including templates this time. */
+    a_boolean                matched_except_for_missing_selector = FALSE;
+    a_boolean                matched_except_for_selector = FALSE;
+    a_boolean                undecidable_because_of_error;
+    a_candidate_function_ptr candidate_functions = NULL;
+    try_overloaded_function_match(cssp->constructor,
+                                  /*is_template_id=*/FALSE,
+                                  (a_template_arg_ptr)NULL,
+                                  (an_arg_operand *)NULL,
+                                  /*have_selector=*/FALSE,
+                                  (an_operand *)NULL,
+                                  /*ctor_conversion_case=*/FALSE,
+                                  /*effects_copy_initialization=*/FALSE,
+                                  /*allow_udc_on_arguments=*/FALSE,
+                                  /*arg_dep_lookup_done=*/FALSE,
+                                  /*from_arg_dep_lookup=*/FALSE,
+                                  /*dependent_call=*/FALSE,
+                                  /*forced_dependent=*/FALSE,
+                                  /*ignore_templates=*/!include_templates,
+                                  /*known_to_be_visible=*/FALSE,
+                                  /*is_overloaded_operator=*/FALSE,
+                                  CCO_DEFAULT,
+                                  &candidate_functions,
+                                  &matched_except_for_missing_selector,
+                                  &matched_except_for_selector);
+    select_best_candidate_functions(&candidate_functions, pos,
+                                    &undecidable_because_of_error, ambiguous);
+    if (undecidable_because_of_error) {
+      /* Previous error. */
+    } else if (candidate_functions == NULL) {
+      /* There are no viable constructors. */
+    } else if (*ambiguous) {
+      /* There are several equally constructors. */
+    } else {
+      /* There is exactly one best constructor. */
+      ctor_sym = candidate_functions->function_symbol;
+    }  /* if */
+    /* Free the candidate functions list. */
+    free_candidate_function_list(candidate_functions);
   }  /* if */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("overload")) {
@@ -19594,6 +19611,7 @@ to be copied.
                                     /*from_arg_dep_lookup=*/FALSE,
                                     /*dependent_call=*/FALSE,
                                     /*forced_dependent=*/FALSE,
+                                    /*ignore_templates=*/FALSE,
                                     /*known_to_be_visible=*/TRUE,
                                     /*is_overloaded_operator=*/TRUE,
                                     CCO_DEFAULT,
