@@ -1,5 +1,14 @@
 Version 4.4
 
+11/3/11  [EDGcpfe/12407]
+GNU compatibility: __attribute(deprecated("..."))
+
+In GNU modes with gnu_version >= 40500, the front end now accepts an optional
+string argument for the attribute "deprecated".  The argument string is
+reported as part of the warning issued when an entity declared with such an
+attribute is used.  (See also the Changes entry of 11/9/05.)
+
+
 11/3/11  [EDGcpfe/12400]
 Abort on selective overriding of __interface members
 

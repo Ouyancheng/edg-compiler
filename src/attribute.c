@@ -224,7 +224,7 @@ static an_attr_descr known_attr_table[] = {
 #else /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { "constructor", "", "gx", ak_constructor },
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-  { "deprecated", "", "gx(30100-)", ak_deprecated },
+  { "deprecated", "?(sx)", "gx(30100-)", ak_deprecated },
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   { "destructor", "?(ci)", "gx", ak_destructor },
 #else /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -3920,7 +3920,6 @@ The given entity must be a variable, routine, type, or field.  Apply the
     }  /* if */
   }  /* if */
   if (!is_unrecognized_attr(ap)) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
     if (ap->arguments != NULL) {
       an_attribute_arg_ptr  aap = ap->arguments;
       a_constant_ptr        cp;
@@ -3930,9 +3929,10 @@ The given entity must be a variable, routine, type, or field.  Apply the
       check_assertion(cp->kind == (a_constant_repr_kind)ck_string);
       check_assertion(
                cp->variant.string.value[cp->variant.string.length-1] == '\0');
-      if (!microsoft_mode || microsoft_version < 1400) {
-        /* Only Microsoft compilers of recent vintage allow an optional string
-           argument. */
+      if ((microsoft_mode && microsoft_version < 1400) ||
+          (gnu_mode && gnu_version < 40500)) {
+        /* Only Microsoft and GNU compilers of recent vintage allow an
+           optional string argument. */
         report_bad_attribute_arg(aap, ap);
       } else {
         an_attribute_ptr  prev_ap = deprecation_arg_attr_for(
@@ -3949,7 +3949,6 @@ The given entity must be a variable, routine, type, or field.  Apply the
         }  /* if */
       }  /* if */
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     ((a_source_correspondence*)entity)->is_deprecated = TRUE;
   }  /* if */
   return entity;
