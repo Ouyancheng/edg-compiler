@@ -6960,6 +6960,13 @@ typedef struct a_template_param_type_supplement {
 			   represent the corresponding nonreal type for
 			   a nested type of a class template, this points
 			   to the original nested type;  NULL otherwise. */
+  struct a_symbol
+		*template_symbol;
+			/* For templates (including C++/CLI generics) points
+			   to the sk_class_template or sk_function_template
+			   symbol of which this is a type parameter.  NULL
+			   otherwise.  Used in the front end only; cannot
+			   be used in back ends. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_generic_constraint_ptr
 		generic_constraints;

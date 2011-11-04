@@ -2913,6 +2913,7 @@ after_entry_from_class:
            not linked into the IL. */
         walk_ptr(ptr->class_type, a_type_ptr, iek_type);
         remap_ptr(ptr->orig_nested_type, a_type_ptr, iek_type);
+        conditionally_clear_fe_pointer(ptr->template_symbol);
       }
       break;
     case iek_typeref_type_supplement:

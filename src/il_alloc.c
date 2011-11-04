@@ -1148,6 +1148,7 @@ and return a pointer to it.
 #endif /* DEBUG */
   tptsp->class_type = NULL;
   tptsp->orig_nested_type = NULL;
+  tptsp->template_symbol = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tptsp->generic_constraints = NULL;
   tptsp->generic_param_seq_number = 0;

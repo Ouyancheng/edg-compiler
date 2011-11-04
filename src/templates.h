@@ -678,6 +678,7 @@ extern void default_arg_prototype_instantiation(
         a_boolean                               update_declared_type);
 
 extern a_template_arg_ptr create_prototype_arg_list(
+			a_symbol_ptr		template_sym,
 			a_template_param_ptr	templ_param_list);
 
 extern a_boolean prototype_instantiation_should_be_done_for_function(
@@ -950,6 +951,13 @@ Throw away any deferred constraint entries.
     f_discard_deferred_constraint_checks();				\
   }  /* if */								\
 }
+
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Stub version for use when Microsoft extensions are not enabled.
+*/
+#define generic_param_if_generic_definition_argument(tp) (tp)
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

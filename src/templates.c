@@ -14104,12 +14104,14 @@ sure it matches the primary template.
 
 
 a_template_arg_ptr create_prototype_arg_list(
+			a_symbol_ptr		template_sym,
 			a_template_param_ptr	templ_param_list)
 /*
 Build the template argument list for the prototype instantiation
 of this template.  Loop through the template parameters and
 create a corresponding template argument for each.  Return a pointer
-to the newly created list.
+to the newly created list.  This routine also saves the symbol of
+the template (template_sym) in the IL entry for any type parameters.
 */
 {
   a_template_arg_ptr                tap;
@@ -14132,6 +14134,9 @@ to the newly created list.
       a_type_ptr	tp = param_sym->variant.type.ptr;
       tap = alloc_template_arg((a_templ_arg_kind)tak_type);
       tap->variant.type = tp;
+      tp = generic_param_if_generic_definition_argument(tp);
+      check_assertion(tp->kind == (a_type_kind)tk_template_param);
+      tp->variant.template_param.extra_info->template_symbol = template_sym;
     } else if (param_sym->kind == (a_symbol_kind)sk_constant) {
       tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
       tap->variant.constant = param_sym->variant.constant;
@@ -14276,7 +14281,7 @@ initially used when processing the declaration of a partial specialization.
     templ_param_list = decl_state->decl_info->parameters;
     /* Create a template argument list that corresponds to the template
        parameter list. */
-    templ_arg_list = create_prototype_arg_list(templ_param_list);
+    templ_arg_list = create_prototype_arg_list(sym, templ_param_list);
     if (is_alias_template) {
       prototype_type->variant.typeref.extra_info->template_arg_list
                                                               = templ_arg_list;

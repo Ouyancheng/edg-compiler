@@ -6324,7 +6324,8 @@ instantiation.
   sym->is_class_member = template_sym->is_class_member;
   sym->parent = template_sym->parent;
   /* Create the template argument list for the prototype routine. */
-  rout_ptr->template_arg_list = create_prototype_arg_list(templ_param_list);
+  rout_ptr->template_arg_list = create_prototype_arg_list(template_sym,
+                                                          templ_param_list);
   rout_ptr->is_prototype_instantiation = !is_generic;
   rout_ptr->is_template_function = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
