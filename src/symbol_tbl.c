@@ -8777,26 +8777,24 @@ that can be called with zero arguments.
   class_type = skip_typerefs(class_type);
   ctor_sym = find_default_constructor(class_type, /*include_templates=*/TRUE,
                                       err_pos, &ambiguous, &trivial);
-  if (ctor_sym == NULL) {
-    if (trivial) {
-      /* The class has an implicit (not user-declared) trivial default
-         constructor. */
-      ctor_routine = NULL;
-    } else {
-      /* No default constructor at all. */
-      if (error_detected != NULL) {
-        *error_detected = TRUE;
-      } else {
-        pos_ty_error(ec_no_default_constructor, err_pos, class_type);
-      }  /* if */
-      local_err = TRUE;
-    }  /* if */
-  } else if (ambiguous) {
+  if (ambiguous) {
     /* More than one default constructor. */
     if (error_detected != NULL) {
       *error_detected = TRUE;
     } else {
       pos_ty_error(ec_ambiguous_default_constructor, err_pos, class_type);
+    }  /* if */
+    local_err = TRUE;
+  } else if (trivial) {
+    /* The class has an implicit (not user-declared) trivial default
+       constructor. */
+    ctor_routine = NULL;
+  } else if (ctor_sym == NULL) {
+    /* No default constructor at all. */
+    if (error_detected != NULL) {
+      *error_detected = TRUE;
+    } else {
+      pos_ty_error(ec_no_default_constructor, err_pos, class_type);
     }  /* if */
     local_err = TRUE;
   } else {
