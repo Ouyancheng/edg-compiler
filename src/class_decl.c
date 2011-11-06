@@ -7486,6 +7486,11 @@ to FALSE before returning).
   if (bcp_type->variant.class_struct_union.has_operator_ampersand) {
     class_type->variant.class_struct_union.has_operator_ampersand = TRUE;
   }
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (bcp_cssp->has_or_inherits_default_indexed_property) {
+    cssp->has_or_inherits_default_indexed_property = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (bcp_cssp->any_nonreal_base_classes ||
       (bcp_type->variant.class_struct_union.is_nonreal_class &&
        /* FIXME: The following is not needed if generic instances are real. */
@@ -15101,6 +15106,7 @@ be entered.
                                                &property_set);
         if (field->property_or_event_descr->is_default_indexed) {
           cssp->default_indexed_properties = property_set;
+          cssp->has_or_inherits_default_indexed_property = TRUE;
         }  /* if */
       } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

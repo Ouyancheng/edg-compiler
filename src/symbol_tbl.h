@@ -1250,6 +1250,9 @@ typedef struct a_class_symbol_supplement {
 			   Derived classes that need to implement
 			   IDisposable::Dispose() will therefore need to mark
 			   their declaration with the "new" modifier. */
+  a_bit_field	has_or_inherits_default_indexed_property:1;
+			/* TRUE if this class or one of its base classes
+			   declares a default indexed property. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block
