@@ -28827,7 +28827,8 @@ created, needed to reactivate that scope.
                                                   (outer == 0) ?
                                                       (char *)"GetUpperBound" :
                                                       (char *)"GetLowerBound",
-                                                  &operand.position,
+                                                  &bound_function_selector
+                                                                     .position,
                                                   tok_seq_number,
                                                   &bound_num_operand,
                                                   &operand)) {
