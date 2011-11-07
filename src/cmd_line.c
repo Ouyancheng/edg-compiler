@@ -2619,7 +2619,7 @@ mode (e.g., exception handling).
 
 static void check_and_set_default_cpp11_extensions(void)
 /*
-Some C++11 features are enabled in default (i.e., non-C++-0x) C++ mode, but
+Some C++11 features are enabled in default (i.e., non-C++11) C++ mode, but
 not in other non-C++11 modes (like non-C++11 Microsoft mode).  This routine
 enables the appropriate extensions in default C++ mode.  Individual features
 may get enabled in the other non-C++11 modes.

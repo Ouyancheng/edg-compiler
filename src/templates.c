@@ -27041,10 +27041,10 @@ If a template class name is used (i.e., A<int>) all of the member functions
 and static data members will be instantiated.
 
 kind is the pragma kind being processed.  For an explicit instantiation,
-the pragma kind of pk_instantiate is passed by the caller.  In Microsoft
-and GNU modes pk_do_not_instantiate may be passed by the caller if the
-explicit instantiation directive began with the "extern" keyword.
-is_pragma is TRUE if this is a pragma and FALSE if it is an explicit
+the pragma kind of pk_instantiate is passed by the caller.  In modes where
+"extern template" is supported pk_do_not_instantiate may be passed by
+the caller if the explicit instantiation directive began with the "extern"
+keyword.  is_pragma is TRUE if this is a pragma and FALSE if it is an explicit
 instantiation.
 */
 {
@@ -27571,8 +27571,8 @@ directive_start_pos points to the beginning of the directive (e.g., for
     a_pragma_kind	pragma_kind;
     instantiation_mode = tim_none;
     if (extern_template) {
-      /* In Microsoft and GNU modes the "extern" keyword may be used in an
-         explicit instantiation directive to indicate that an entity should not
+      /* In some modes the "extern" keyword may be used in an explicit
+         instantiation directive to indicate that an entity should not
          be instantiated. */
       pragma_kind = (a_pragma_kind)pk_do_not_instantiate;
     } else if (inline_template) {
@@ -27666,7 +27666,7 @@ directive_start_pos points to the beginning of the directive or declaration
 
     if ((options & TDO_EXTERN) != 0) {
       /* An "extern" storage class is only permitted on an explicit
-         instantiation directive in Microsoft and GNU modes. */
+         instantiation directive. */
       error(ec_bad_storage_class_on_template_decl);
     } else if ((options & TDO_INLINE) != 0) {
       /* "inline" is only allowed on an explicit instantiation in GNU mode. */
