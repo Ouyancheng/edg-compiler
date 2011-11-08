@@ -1,5 +1,19 @@
 Version 4.4
 
+11/8/11  [EDGcpfe/11590]
+Infinite loop on invalid template static data member
+
+Version 4.3 introduced a problem that could result in an infinite loop
+if a template static data member had an invalid initializer containing
+braces.  Now fixed.
+
+  template <class T> struct A {
+    static int x;
+  };
+  template <class T> int A<T>::x ({0});
+  int y = A<int>::x;
+
+
 11/7/11  [EDGcpfe/11987]
 vtable now emitted on explicit instantiation of class template specialization
 

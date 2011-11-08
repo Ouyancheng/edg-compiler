@@ -18759,18 +18759,23 @@ template symbol supplement for this template should be returned to the caller.
                       /*update_cache_being_scanned=*/FALSE);
     /* Skip over the tokens that are already part of the token cache. */
     clear_token_set_array(stop_tokens);
-    incr_token_set_array_element(stop_tokens, tok_lbrace);
     incr_token_set_array_element(stop_tokens, tok_semicolon);
+    if (!has_parenthesized_initializer) {
+      incr_token_set_array_element(stop_tokens, tok_lbrace);
+    }  /* if */
     /* The normal flush_tokens_with_stop_tokens sometimes issues a warning
        based on the number of tokens skipped.  This should not be done
-       in this case because the flush is not being done for error recovery. */
-    flush_tokens_with_stop_tokens_and_warning_flag(stop_tokens,
-						   /*suppress_warning=*/TRUE);
+       in this case because the flush is not being done for error
+       recovery. */
+    flush_tokens_with_stop_tokens_and_warning_flag(
+                                       stop_tokens, /*suppress_warning=*/TRUE);
+    if (!has_parenthesized_initializer) {
+      decr_token_set_array_element(stop_tokens, tok_lbrace);
+    }  /* if */
     if (curr_token != tok_semicolon) {
       /* The initializer was not fully cached when the template declaration
          was scanned.  This is usually because of a brace enclosed
          initializer.  Cache the rest of the initializer now. */
-      decr_token_set_array_element(stop_tokens, tok_lbrace);
       remove_cache_terminator(p_token_cache);
       /* Only semicolon should be left on the list. */
       cache_token_stream(p_token_cache, stop_tokens);
