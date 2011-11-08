@@ -26854,6 +26854,10 @@ dllimport or dllexport attribute to a template instance.
       } else if (pragma_kind == (a_pragma_kind)pk_instantiate) {
         class_type->variant.class_struct_union.do_not_instantiate = FALSE;
         class_type->variant.class_struct_union.explicitly_instantiated = TRUE;
+        /* For explicitly instantiated classes a vtable will be emitted;
+           ensure that all virtual functions referenced by the vtable are
+           defined. */
+        require_definitions_of_virtual_functions_in_class(class_type);
       }  /* if */
       mem_sym = ignore_directive ?
                     NULL : sym->variant.class_struct_union.extra_info->symbols;

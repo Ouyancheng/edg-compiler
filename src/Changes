@@ -1,5 +1,32 @@
 Version 4.4
 
+11/7/11  [EDGcpfe/11987]
+vtable now emitted on explicit instantiation of class template specialization
+
+A change has been made to emit a vtable for a class template specialization
+that has an explicit instantiation (see core issue 969).  The vtable is
+emitted regardless of the presence or absence of a key/decider function.  The
+following example had previously failed to link (vtable for D<int> was not
+defined in either translation unit), but now links without error:
+
+  // t.h:
+  struct B {
+    virtual ~B() {}
+  };
+  template <class T> class D : public B {};
+
+  // t1.c:
+  #include "t.h"
+  template class D<int>;    // now a vtable for D<int> is emitted in t1.o
+
+  // t2.c:
+  #include "t.h"
+  extern template class D<int>;
+  int main() {
+    D<int> d;
+  }
+
+
 11/4/11  [EDGcpfe/12369]
 Improved determination of default constructor
 

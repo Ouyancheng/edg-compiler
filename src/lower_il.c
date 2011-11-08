@@ -5968,6 +5968,12 @@ mode; *optional will be set as usual.
          should be emitted here. */
       defined_here = TRUE;
       *force_static = FALSE;
+    } else if (class_type->
+                          variant.class_struct_union.explicitly_instantiated) {
+      /* The class is explicitly instantiated in this translation unit;
+         emit the vtable. */
+      defined_here = TRUE;
+      *force_static = FALSE;
     } else {
       /* The class is defined. */
       /* If the decider function of the class is defined in this compilation,
