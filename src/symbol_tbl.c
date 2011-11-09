@@ -7814,7 +7814,7 @@ is reserved.
   }  /* for */
 }  /* init_cli_operator_headers */
 
-#if CPPCLI_ENABLED && EDG_WIN32
+#if CPPCLI_ENABLING_POSSIBLE && EDG_WIN32
 
 static a_symbol_header_ptr find_cli_operator_header(char *identifier)
 /*
@@ -7843,10 +7843,11 @@ has the same name as a CLI operator, or cok_none if it doesn't.
   a_symbol_header_ptr header;
 
   header = find_cli_operator_header(identifier);
-  return header != NULL ? header->variant.cli_operator : NO_CLI_OPERATOR;
+  return header != NULL ? header->variant.cli_operator
+                        : (a_cli_operator_kind)cok_none;
 }  /* find_cli_operator_kind */
 
-#endif /* CPPCLI_ENABLED && EDG_WIN32 */
+#endif /* CPPCLI_ENABLING_POSSIBLE && EDG_WIN32 */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr find_label_symbol(a_symbol_header_ptr	sym_hdr)
