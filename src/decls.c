@@ -1202,6 +1202,7 @@ new fields are set properly.
     for (; ptp != NULL; ptp = ptp->next) {
       param_count++;
       tp = ptp->type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
       if (cppcli_enabled && class_type != NULL &&
           !is_nonstatic_member_function &&
           cli_class_type_kind_is(class_type, cctk_value)) {
@@ -1215,6 +1216,7 @@ new fields are set properly.
            this_equivalent_seen = TRUE;
         }  /* if */
       }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (is_any_reference_type(tp)) {
         tp = type_pointed_to(tp);
       }  /* if */
