@@ -11,6 +11,8 @@
 #ifndef MS_METADATA
 #define MS_METADATA 1
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
 typedef unsigned int a_cpp_cli_import_flag_set;
 
 EXTERN a_cpp_cli_import_flag_set
@@ -99,6 +101,7 @@ typedef struct a_portable_assembly_table_entry {
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES || WRITE_CPPCLI_PORTABLE_ASSEMBLIES*/
 #endif /* CPPCLI_ENABLING_POSSIBLE */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* MS_METADATA */
 
 /******************************************************************************
