@@ -1202,6 +1202,19 @@ new fields are set properly.
     for (; ptp != NULL; ptp = ptp->next) {
       param_count++;
       tp = ptp->type;
+      if (cppcli_enabled && class_type != NULL &&
+          !is_nonstatic_member_function &&
+          cli_class_type_kind_is(class_type, cctk_value)) {
+        /* For special value class types (like System::Double) that
+           correspond to fundamental types, static member operators will have
+           those fundamental types parameter types.  This satisfies the
+           requirement of a parameter matching class_type. */
+        a_type_ptr  fund = fundamental_type_from_system_type(class_type);
+        if (fund != NULL &&
+            types_are_compatible_ignoring_qualifiers(tp, fund)) {
+           this_equivalent_seen = TRUE;
+        }  /* if */
+      }  /* if */
       if (is_any_reference_type(tp)) {
         tp = type_pointed_to(tp);
       }  /* if */
@@ -1395,9 +1408,11 @@ new fields are set properly.
       /* If operator function is not a nonstatic member and does not have
          operands of class or enum type (or reference to class or enum type),
          issue an error.  This restriction does not apply to new and delete,
-         however. */
+         however.  Also, in C++/CLI mode, static member operators of special
+         value class types (like System::Double) that correspond to fundamental
+         types can have those fundamental types as the only parameter types. */
       if (!is_nonstatic_member_function && !any_class_or_enum_type_params &&
-          !any_template_param_type_params) {
+          !any_template_param_type_params && !this_equivalent_seen) {
         pos_error(operator_overloading_on_enums_enabled ?
                         ec_no_params_with_class_or_enum_type :
                         ec_no_params_with_class_type,
