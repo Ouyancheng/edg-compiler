@@ -6857,6 +6857,52 @@ Don't put its symbol into the symbol table yet.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+/* Forward declaration. */
+static void init_cli_symbol(a_cli_symbol_kind  csk);
+
+static a_namespace_ptr f_cli_namespace_ptr_for(a_cli_symbol_kind kind)
+/*
+Return the namespace for the specified C++/CLI symbol kind if it is a
+namespace symbol.
+*/
+{
+  a_symbol_ptr sym;
+
+  check_assertion((int)kind >= (int)csk_first_namespace &&
+                  (int)kind <= (int)csk_last_namespace);
+  sym = cli_symbol_from_kind(kind);
+  if (sym == NULL) {
+    init_cli_symbol(kind);
+    sym = cli_symbol_from_kind(kind);
+  }  /* if */
+  check_assertion(sym != NULL && is_namespace_symbol(sym));
+  return sym->variant.namespace_info.ptr;
+}  /* f_cli_namespace_ptr_for */
+
+#define cli_namespace_ptr_for(csk)                                           \
+  (f_cli_namespace_ptr_for((a_cli_symbol_kind)(csk)))
+
+
+a_type_ptr f_cli_class_type_for(a_cli_symbol_kind kind)
+/*
+Return the type of the specified C++/CLI symbol kind.
+*/
+{
+  a_symbol_ptr sym;
+
+  check_assertion((int)kind >= (int)csk_first_type &&
+                  (int)kind <= (int)csk_last_type);
+  sym = cli_symbol_from_kind(kind);
+  if (sym == NULL) {
+    init_cli_symbol((a_cli_symbol_kind)kind);
+    sym = cli_symbol_from_kind(kind);
+  }  /* if */
+  check_assertion(sym != NULL &&
+                  sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
+  return sym->variant.class_struct_union.type;
+}  /* f_cli_class_type_for */
+
+
 static void make_symbol_for_namespace_cli(void)
 /*
 Predeclare namespace "cli".  This namespace is used in C++/CLI mode.
@@ -7114,8 +7160,8 @@ cli_symbols array.  This function assumes that mscorlib.dll has been imported.
   a_cli_symbol_kind ns_kind;
 
   check_assertion((int)csk >= (int)csk_first && (int)csk < (int)csk_last);
-  name = (a_cli_symbol_kind)cli_symbol_names[csk].name;
-  ns_kind = cli_symbol_names[csk].namespace_kind;
+  name = cli_symbol_names[csk].name;
+  ns_kind = (a_cli_symbol_kind)cli_symbol_names[csk].namespace_kind;
   if (name != NULL) {
     a_namespace_ptr          ns_ptr = NULL;
     an_id_lookup_options_set options = IDL_DIRECT_NAMESPACE_MEMBERS_ONLY;
@@ -7183,46 +7229,6 @@ Many of these symbols will be accessible through the cli_symbols array.
   make_symbol_for_cli_interior_ptr();
   make_symbol_for_cli_pin_ptr();
 }  /* init_cli_symbols */
-
-
-a_namespace_ptr f_cli_namespace_ptr_for(a_cli_symbol_kind kind)
-/*
-Return the namespace for the specified C++/CLI symbol kind if it is a
-namespace symbol.
-*/
-{
-  a_symbol_ptr sym;
-
-  check_assertion((int)kind >= (int)csk_first_namespace &&
-                  (int)kind <= (int)csk_last_namespace);
-  sym = cli_symbol_from_kind(kind);
-  if (sym == NULL) {
-    init_cli_symbol(kind);
-    sym = cli_symbol_from_kind(kind);
-  }  /* if */
-  check_assertion(sym != NULL && is_namespace_symbol(sym));
-  return sym->variant.namespace_info.ptr;
-}  /* f_cli_namespace_ptr_for */
-
-
-a_type_ptr f_cli_class_type_for(a_cli_symbol_kind kind)
-/*
-Return the type of the specified C++/CLI symbol kind.
-*/
-{
-  a_symbol_ptr sym;
-
-  check_assertion((int)kind >= (int)csk_first_type &&
-                  (int)kind <= (int)csk_last_type);
-  sym = cli_symbol_from_kind(kind);
-  if (sym == NULL) {
-    init_cli_symbol((a_cli_symbol_kind)kind);
-    sym = cli_symbol_from_kind(kind);
-  }  /* if */
-  check_assertion(sym != NULL &&
-                  sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
-  return sym->variant.class_struct_union.type;
-}  /* f_cli_class_type_for */
 
 
 a_boolean is_generic_cli_ienumerable_type(a_type_ptr type,
@@ -7808,6 +7814,7 @@ is reserved.
   }  /* for */
 }  /* init_cli_operator_headers */
 
+#if CPPCLI_ENABLED && EDG_WIN32
 
 static a_symbol_header_ptr find_cli_operator_header(char *identifier)
 /*
@@ -7839,6 +7846,7 @@ has the same name as a CLI operator, or cok_none if it doesn't.
   return header != NULL ? header->variant.cli_operator : NO_CLI_OPERATOR;
 }  /* find_cli_operator_kind */
 
+#endif /* CPPCLI_ENABLED && EDG_WIN32 */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr find_label_symbol(a_symbol_header_ptr	sym_hdr)

@@ -4292,11 +4292,8 @@ a_cli_symbol_kind_tag/an_integer_kind/a_float_kind respectively.
 #define cli_symbol_from_float_kind(fk)                                \
   (cli_symbol_from_kind(float_kind_to_cli_symbol_kind((fk))))
 
-extern a_namespace_ptr f_cli_namespace_ptr_for(a_cli_symbol_kind kind);
 extern a_type_ptr f_cli_class_type_for(a_cli_symbol_kind kind);
 
-#define cli_namespace_ptr_for(csk)                                           \
-  (f_cli_namespace_ptr_for((a_cli_symbol_kind)(csk)))
 #define cli_class_type_for(csk)                                              \
   (f_cli_class_type_for((a_cli_symbol_kind)(csk)))
 

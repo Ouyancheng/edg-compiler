@@ -713,7 +713,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_cli_operator_kind_tag::cok_addition_assignment)*/
 /*lint -esym(769,a_cli_operator_kind_tag::cok_address_of)*/
 /*lint -esym(769,a_cli_operator_kind_tag::cok_assign)*/
-/*lint -esym(769,a_cli_operator_kind_tag::cok_bitwise_andc)*/
+/*lint -esym(769,a_cli_operator_kind_tag::cok_bitwise_and)*/
 /*lint -esym(769,a_cli_operator_kind_tag::cok_bitwise_and_assignment)*/
 /*lint -esym(769,a_cli_operator_kind_tag::cok_bitwise_or)*/
 /*lint -esym(769,a_cli_operator_kind_tag::cok_bitwise_or_assignment)*/
