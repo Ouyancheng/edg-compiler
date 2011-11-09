@@ -8785,18 +8785,23 @@ that can be called with zero arguments.
       pos_ty_error(ec_ambiguous_default_constructor, err_pos, class_type);
     }  /* if */
     local_err = TRUE;
-  } else if (trivial) {
-    /* The class has an implicit (not user-declared) trivial default
-       constructor. */
-    ctor_routine = NULL;
   } else if (ctor_sym == NULL) {
-    /* No default constructor at all. */
-    if (error_detected != NULL) {
-      *error_detected = TRUE;
+    if (trivial) {
+      /* The class has an implicit (not user-declared) trivial default
+         constructor.  Note that we get here for the combination of
+         ctor_sym == NULL and trivial TRUE.  ctor_sym != NULL and
+         trivial TRUE indicates a user-declared trivial default constructor
+         and is handled below. */
+      ctor_routine = NULL;
     } else {
-      pos_ty_error(ec_no_default_constructor, err_pos, class_type);
+      /* No default constructor at all. */
+      if (error_detected != NULL) {
+        *error_detected = TRUE;
+      } else {
+        pos_ty_error(ec_no_default_constructor, err_pos, class_type);
+      }  /* if */
+      local_err = TRUE;
     }  /* if */
-    local_err = TRUE;
   } else {
     /* Exactly one default constructor. */
     ctor_routine = ctor_sym->variant.routine.ptr;

@@ -19180,9 +19180,9 @@ to the symbol for the constructor.  Consider template constructors as
 possible default constructors if include_templates is TRUE (they can
 be called with zero arguments if they have default template arguments
 or a parameter pack).  If more than one constructor matches, set
-*ambiguous to TRUE and return one of the symbols.  The source position
-of the reference is given by pos (it's needed only if include_templates
-is TRUE).  No reference to the constructor is implied yet; we're just
+*ambiguous to TRUE and return NULL.  The source position of the
+reference is given by pos (it's needed only if include_templates is
+TRUE).  No reference to the constructor is implied yet; we're just
 finding out if it exists.  This routine does not find implied trivial
 default constructors; see find_default_constructor.
 */
@@ -19272,7 +19272,7 @@ default constructors; see find_default_constructor.
     } else if (candidate_functions == NULL) {
       /* There are no viable constructors. */
     } else if (*ambiguous) {
-      /* There are several equally constructors. */
+      /* There are several equally good constructors. */
     } else {
       /* There is exactly one best constructor. */
       ctor_sym = candidate_functions->function_symbol;
