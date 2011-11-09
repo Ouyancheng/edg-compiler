@@ -3469,7 +3469,6 @@ enum a_cli_operator_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_cli_operator_kind;
 
-#define NO_CLI_OPERATOR ((a_cli_operator_kind)cok_none)
 
 typedef struct a_cli_operator_info *a_cli_operator_info_ptr;
 typedef struct a_cli_operator_info {
@@ -3550,7 +3549,9 @@ EXTERN a_cli_operator_info cli_operator_info[(int)cok_last + 1]
 
 extern void init_cli_operator_headers(void);
 
+#if CPPCLI_ENABLING_POSSIBLE && EDG_WIN32
 extern a_cli_operator_kind find_cli_operator_kind(char *identifier);
+#endif /* CPPCLI_ENABLING_POSSIBLE && EDG_WIN32 */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 typedef struct a_symbol_header {
