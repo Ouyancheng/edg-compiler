@@ -19724,6 +19724,11 @@ after it's used.
     scan_error_parenthesized_initializer(rcblock, arg_list_supplied, arg_list);
     arg_list = NULL;  /* Called routine frees the list if present. */
     make_error_operand(result);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (scanning_source) {
+      end_position = curr_construct_end_position;
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* Not a constructor case; obeys the same rules as a C-style cast. */
     if (scanning_source) add_matching_stop_token(tok_rparen);
