@@ -7031,7 +7031,6 @@ translation unit.
 }  /* attribute_trans_unit_init */
 
 
-
 void attribute_init(void)
 /*
 Initialize static variables related to attribute processing that must

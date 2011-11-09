@@ -12,8 +12,8 @@
 
 ms_metadata.cpp -- reading of C++/CLI metadata from assemblies.
 
-This is a C++ file that relies on Microsoft Windows
-APIs.  As a result, it can only be compiled on a Windows platform.
+This is a C++ file that relies on Microsoft Windows APIs.
+As a result, it can only be compiled on a Windows platform.
 In addition, the C++ code makes use of C++0x features, so it must be
 compiled by at least the Microsoft VC10 compiler or version 4.2 of the
 EDG front end.
@@ -48,16 +48,10 @@ http://code.msdn.microsoft.com/alink
 #include <algorithm>
 #include <fstream>
 #include <memory>
+#include <locale>
 
 EXTERN_C_BLOCK_IN_CPP_FILE
-#include "error.h"
-#include "ms_metadata.h"
-#include "host_envir.h"
-#include "mem_manage.h"
-#if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
-#include "symbol_tbl.h"
-#include "cmd_line.h"
-#endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
+#include "fe_common.h"
 END_EXTERN_C_BLOCK_IN_CPP_FILE
 
 
@@ -449,7 +443,7 @@ public:
   {
   }  /* Default constructor. */
 
-  a_method_parameter(mdParamDef token, wstring name, DWORD attributes)
+  a_method_parameter(mdParamDef token, const wstring &name, DWORD attributes)
     : token_(token),
       name_(name),
       attributes_(attributes)
@@ -517,10 +511,13 @@ public:
 
   a_method_parameter_list get_method_parameters(ULONG number_of_parameters);
 
-  wstring decode_method_signature(const wstring &name,
-                                  DWORD         method_attributes,
-                                  bool          omit_return_type,
-                                  bool          is_for_property);
+  wstring decode_return_type();
+
+  wstring decode_method_signature(const wstring       &name,
+                                  DWORD               method_attributes,
+                                  bool                omit_return_type,
+                                  bool                is_for_property,
+                                  a_cli_operator_kind cok);
 
   wstring decode_field_signature()
   {
@@ -1494,7 +1491,8 @@ the Invoke method - which every delegate must have.
                                               method_attributes &
                                                          ~(mdStatic|mdVirtual),
                                               /*omit_return_type=*/false,
-                                              /*is_for_property=*/false);
+                                              /*is_for_property=*/false,
+                                              cok_none);
     buffer << ';' << END_OF_LINE;
   } else {
     unexpected_condition();
@@ -1790,7 +1788,43 @@ any "." in the name with the C++ scope operator, "::".
           CHECK_API_RESULT(hr, GetTypeRefProps);
           expand_generic_type_name(type_name, generic_type_params_or_args,
                                    generic_type_params_or_args_end);
-          /* FIXME: TypeRefs to nested classes are not yet supported. */
+          if (IsNilToken(resolution_scope)) {
+            /* FIXME: Exported types are not yet supported.  In this case,
+               there shall be a row in the ExportedType table for this Type.
+               Its Implementation field shall contain a File token or an
+               AssemblyRef token that says where the type is defined.  */
+          } else {
+            switch (TypeFromToken(resolution_scope)) {
+              case mdtTypeRef:
+                { /* The type is a nested type and resolution_scope indicates
+                     the enclosing type. */
+                  wstring enclosing_type_name =
+                           resolve_type_token(resolution_scope,
+                                              generic_type_params_or_args,
+                                              generic_type_params_or_args_end,
+                                              generic_method_params_or_args,
+                                              replace_dots);
+                  type_name = enclosing_type_name + L"::" + type_name;
+                  break;
+                }  /* case mdtTypeRef */
+              case mdtModuleRef:
+                /* The type is defined in another module within the same
+                   assembly; no special handling required. */
+                break;
+              case mdtModule:
+                /* The type is defined in the current module; no special
+                   handling required. */
+                break;
+              case mdtAssemblyRef:
+                /* FIXME: The type is defined in a different assembly;
+                   additional work needs to be done to issue an error if the
+                   assembly isn't referenced. */
+                break;
+              default:
+                unexpected_condition();
+                break;
+            }  /* switch */
+          }  /* if */
           break;
         }  /* case mdtTypeRef */
       case mdtInterfaceImpl:
@@ -2152,7 +2186,10 @@ private:
   a_method_def import_event_method(mdMethodDef method_token);
 
 private:
+  mdToken get_associated_event_or_property(mdToken method_token);
   wstring get_overridden_name(mdToken member_token);
+  a_cli_operator_kind rename_cli_operator(wstring &method_name,
+                                          DWORD   method_attributes);
 
 private:
   mdTypeDef     typedef_token_;
@@ -2202,21 +2239,23 @@ void a_type_definition::process_extends(ostringstream& buffer)
 Decode the extends token and emit the appropriate text.
 */
 {
-  wstring extends_name = import_scope_.resolve_type_token(
+  if (!IsNilToken(extends_token_)) {
+    wstring extends_name = import_scope_.resolve_type_token(
                                                  extends_token_,
                                                  generic_parameters_,
                                                  no_generic_method_parameters,
                                                  /*replaces_dots=*/true);
-  if (kind_ == tlk_value_type) {
-    /* By definition all value types extend System.ValueType so there is no
-       need to explicitly add it as a base-class. */
-    check_assertion(extends_name == L"System::ValueType");
-  } else if (!extends_name.empty()) {
-    /* Similarly with ref classes: by definition they all extend (directly or
-       indirectly) System.Object. */
-    if ((kind_ != tlk_ref_class) || (extends_name != L"System::Object")) {
-      buffer << " : " << extends_name;
-      is_first_base_class_processed = true;
+    if (kind_ == tlk_value_type) {
+      /* By definition all value types extend System.ValueType so there is no
+         need to explicitly add it as a base-class. */
+      check_assertion(extends_name == L"System::ValueType");
+    } else if (!extends_name.empty()) {
+      /* Similarly with ref classes: by definition they all extend (directly
+         or indirectly) System.Object. */
+      if ((kind_ != tlk_ref_class) || (extends_name != L"System::Object")) {
+        buffer << " : " << extends_name;
+        is_first_base_class_processed = true;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* a_type_definition::process_extends */
@@ -2286,73 +2325,100 @@ wstring name_from_method_semantics(DWORD method_semantics)
 }  /* name_from_method_semantics */
 
 
+mdToken a_type_definition::get_associated_event_or_property(
+                                                     mdMethodDef method_token)
+/*
+Return the mdProperty or mdEvent to which this method is associated, or
+mdTokenNil if the method is not associated with an event or property.
+*/
+{
+  HRESULT            hr;
+  HCORENUM           enum_method_semantics = NULL;
+  static const ULONG max_tokens = 2;
+  mdToken            tokens[max_tokens];
+  ULONG              count_tokens = _countof(tokens);
+  mdToken            token = mdTokenNil;
+
+  check_assertion(TypeFromToken(method_token) == mdtMethodDef);
+  hr = import_interface_->EnumMethodSemantics(&enum_method_semantics,
+                                              method_token,
+                                              tokens,
+                                              max_tokens,
+                                              &count_tokens);
+  CHECK_API_RESULT(hr, EnumMethodSemantics);
+  if (count_tokens == 1) {
+    token = tokens[0];
+  } else if (count_tokens > 0) {
+    /* A specific member should only map to a single event or property. */
+    unexpected_condition();
+  }  /* if */
+  return token;
+}  /* get_associated_event_or_property */
+
+
 wstring a_type_definition::get_overridden_name(mdToken method_token)
 /*
 Get the name for the specified member for use in the overridden name list of
 an override specifier.
 */
 {
-  HRESULT hr;
-  mdToken parent_token;
-  wstring method_name;
-  DWORD   method_attributes;
+  HRESULT         hr;
+  mdToken         parent_token;
+  wstring         method_name;
+  DWORD           method_attributes;
+  PCCOR_SIGNATURE signature;
+  ULONG           bytes_in_signature;
+
   switch (TypeFromToken(method_token)) {
     case mdtMethodDef:
       { hr = import_interface_->GetMethodProps(method_token,
                                                &parent_token,
                                                method_name,
                                                &method_attributes,
-                                               /*ppvSigBlob=*/nullptr,
-                                               /*pcbSigBlob=*/nullptr,
+                                               &signature,
+                                               &bytes_in_signature,
                                                /*pulCodeRVA=*/nullptr,
                                                /*pdwImplFlags=*/nullptr);
         CHECK_API_RESULT(hr, GetMethodProps);
         if (IsMdSpecialName(method_attributes)) {
           /* Determine if this member is an event or property method. */
-          HCORENUM           enum_method_semantics = NULL;
-          static const ULONG max_tokens = 2;
-          mdToken            tokens[max_tokens];
-          ULONG              count_tokens = 2;
-          hr = import_interface_->EnumMethodSemantics(&enum_method_semantics,
-                                                      method_token,
-                                                      tokens,
-                                                      max_tokens,
-                                                      &count_tokens);
-          CHECK_API_RESULT(hr, EnumMethodSemantics);
-          if (count_tokens == 1) {
+          mdToken event_or_property_token =
+                               get_associated_event_or_property(method_token);
+          if (!IsNilToken(event_or_property_token)) {
             /* Get the name of the event or property. */
             wstring event_or_property_name;
-            DWORD token_type = TypeFromToken(tokens[0]);
-            switch (token_type) {
+            switch (TypeFromToken(event_or_property_token)) {
               case mdtEvent:
-                hr = import_interface_->GetEventProps(tokens[0],
-                                        /*pClass=*/nullptr,
-                                        event_or_property_name,
-                                        /*dwEventFlags=*/nullptr,
-                                        /*tkEventType=*/nullptr,
-                                        /*mdAddOn=*/nullptr,
-                                        /*mdRemoveOn=*/nullptr,
-                                        /*mdFire=*/nullptr,
-                                        /*rmdOtherMethod=*/nullptr,
-                                        /*cMax=*/0,
-                                        /*pcOtherMethod=*/nullptr);
+                hr = import_interface_->GetEventProps(
+                                                   event_or_property_token,
+                                                   /*pClass=*/nullptr,
+                                                   event_or_property_name,
+                                                   /*dwEventFlags=*/nullptr,
+                                                   /*tkEventType=*/nullptr,
+                                                   /*mdAddOn=*/nullptr,
+                                                   /*mdRemoveOn=*/nullptr,
+                                                   /*mdFire=*/nullptr,
+                                                   /*rmdOtherMethod=*/nullptr,
+                                                   /*cMax=*/0,
+                                                   /*pcOtherMethod=*/nullptr);
                 CHECK_API_RESULT(hr, GetEventProps);
                 break;
               case mdtProperty:
-                 hr = import_interface_->GetPropertyProps(tokens[0],
-                                           /*pClass=*/nullptr,
-                                           event_or_property_name,
-                                           /*pdwPropFlags=*/nullptr,
-                                           /*ppvSig=*/nullptr,
-                                           /*pbSig=*/nullptr,
-                                           /*pdwCPlusTypeFlag=*/nullptr,
-                                           /*ppDefaultValue=*/nullptr,
-                                           /*pcchDefaultValue=*/nullptr,
-                                           /*pmdSetter=*/nullptr,
-                                           /*pmdGetter*/nullptr,
-                                           /*rmdOtherMethod=*/nullptr,
-                                           /*cMax=*/0,
-                                           /*pcOtherMethod =*/nullptr);
+                 hr = import_interface_->GetPropertyProps(
+                                                 event_or_property_token,
+                                                 /*pClass=*/nullptr,
+                                                 event_or_property_name,
+                                                 /*pdwPropFlags=*/nullptr,
+                                                 /*ppvSig=*/nullptr,
+                                                 /*pbSig=*/nullptr,
+                                                 /*pdwCPlusTypeFlag=*/nullptr,
+                                                 /*ppDefaultValue=*/nullptr,
+                                                 /*pcchDefaultValue=*/nullptr,
+                                                 /*pmdSetter=*/nullptr,
+                                                 /*pmdGetter*/nullptr,
+                                                 /*rmdOtherMethod=*/nullptr,
+                                                 /*cMax=*/0,
+                                                 /*pcOtherMethod =*/nullptr);
                 CHECK_API_RESULT(hr, GetPropertyProps);
                 break;
               default:
@@ -2362,60 +2428,89 @@ an override specifier.
             check_assertion(!event_or_property_name.empty());
             /* Determine which kind of event or property method it is. */
             DWORD method_semantics;
-            hr = import_interface_->GetMethodSemantics(method_token,
-                                                       tokens[0],
-                                                       &method_semantics);
+            hr = import_interface_->GetMethodSemantics(
+                                                      method_token,
+                                                      event_or_property_token,
+                                                      &method_semantics);
             CHECK_API_RESULT(hr, GetMethodSemantics);
             method_name = event_or_property_name + L"::" +
                                  name_from_method_semantics(method_semantics);
-          } else if (count_tokens == 0) {
-            /* This member has a special name, but it is neither an event nor
-               a property. */
-            unexpected_condition();
           } else {
-            /* A specific member should only map to a single property or
-               event. */
-            unexpected_condition();
+            /* The overridden name of a CLI operator is the corresponding
+               C++/CLI operator name. */
+            a_cli_operator_kind cok = rename_cli_operator(method_name,
+                                                          method_attributes);
+            if (cok == cok_implicit || cok == cok_explicit) {
+              /* Obtain the method's return type to handle user-defined
+                 conversion operators. */
+              a_signature_decoder decoder(import_scope_, method_token,
+                                          signature, bytes_in_signature,
+                                          generic_parameters_,
+                                          no_generic_method_parameters,
+                                          is_system_string_type_);
+              method_name = L"operator " + decoder.decode_return_type();
+            }  /* if */
           }  /* if */
+        } else {
+          /* Methods associated with properties or events should be marked with
+             the mdSpecialName attribute. */
+          check_assertion(IsNilToken(get_associated_event_or_property(
+                                                              method_token)));
         }  /* if */
       }  /* case mdtMethodDef */
       break;
     case mdtMemberRef:
       { hr = import_interface_->GetMemberRefProps(method_token, &parent_token,
                                                   method_name,
-                                                  /*ppvSigBlob=*/nullptr,
-                                                  /*pbSig=*/nullptr);
+                                                  &signature,
+                                                  &bytes_in_signature);
         CHECK_API_RESULT(hr, GetMemberRefProps);
         /* FIXME: There needs to be an extra level of indirection here to match
            a member function of an instantiated generic type back to the
            corresponding method in the generic type so that we can determine
-           if it is the get/set/add/remove/raise method of a property/event.
-           The following is a workaround for the lack of this functionality. */
-        wstring::size_type method_name_index = 0;
-        wstring::size_type last_dot_index = method_name.rfind(L'.');
-        if (last_dot_index != wstring::npos) {
-          method_name_index = last_dot_index + 1;
-        }  /* if */
-        if (method_name.compare(method_name_index,
-                                _countof(L"get_")-1, L"get_") == 0) {
-          method_name = method_name.substr(method_name_index +
+           if it is the get/set/add/remove/raise method of a property/event
+           or a CLI operator name.  The following is a workaround for the lack
+           of this functionality. */
+        /* The overridden name of a CLI operator is the corresponding
+           C++/CLI operator name. */
+        a_cli_operator_kind cok = rename_cli_operator(method_name,
+                                                      mdSpecialName);
+        if (cok == cok_implicit || cok == cok_explicit) {
+          /* Obtain the method's return type to handle user-defined
+             conversion operators. */
+          a_signature_decoder decoder(import_scope_, method_token,
+                                      signature, bytes_in_signature,
+                                      generic_parameters_,
+                                      no_generic_method_parameters,
+                                      is_system_string_type_);
+          method_name = L"operator " + decoder.decode_return_type();
+        } else if (cok == cok_none) {
+          wstring::size_type method_name_index = 0;
+          wstring::size_type last_dot_index = method_name.rfind(L'.');
+          if (last_dot_index != wstring::npos) {
+            method_name_index = last_dot_index + 1;
+          }  /* if */
+          if (method_name.compare(method_name_index,
+                                  _countof(L"get_")-1, L"get_") == 0) {
+            method_name = method_name.substr(method_name_index +
                                               _countof(L"get_")-1) + L"::get";
-        } else if (method_name.compare(method_name_index,
-                                        _countof(L"set_")-1, L"set_") == 0) {
-          method_name = method_name.substr(method_name_index +
+          } else if (method_name.compare(method_name_index,
+                                         _countof(L"set_")-1, L"set_") == 0) {
+            method_name = method_name.substr(method_name_index +
                                               _countof(L"set_")-1) + L"::set";
-        } else if (method_name.compare(method_name_index,
-                                        _countof(L"add_")-1, L"add_") == 0) {
-          method_name = method_name.substr(method_name_index +
+          } else if (method_name.compare(method_name_index,
+                                         _countof(L"add_")-1, L"add_") == 0) {
+            method_name = method_name.substr(method_name_index +
                                               _countof(L"add_")-1) + L"::add";
-        } else if (method_name.compare(method_name_index,
+          } else if (method_name.compare(method_name_index,
                                    _countof(L"remove_")-1, L"remove_") == 0) {
-          method_name = method_name.substr(method_name_index +
+            method_name = method_name.substr(method_name_index +
                                         _countof(L"remove_")-1) + L"::remove";
-        } else if (method_name.compare(method_name_index,
+          } else if (method_name.compare(method_name_index,
                                      _countof(L"raise_")-1, L"raise_") == 0) {
-          method_name = method_name.substr(method_name_index +
+            method_name = method_name.substr(method_name_index +
                                           _countof(L"raise_")-1) + L"::raise";
+          }  /* if */
         }  /* if */
         break;
       }  /* mdtMemberRef */
@@ -2431,6 +2526,71 @@ an override specifier.
 }  /* get_method_def_or_member_ref_name */
 
 
+a_cli_operator_kind a_type_definition::rename_cli_operator(
+                                                    wstring &method_name,
+                                                    DWORD   method_attributes)
+/*
+Rename any CLI operators to their corresponding C++/CLI operator name and
+return the CLI operator kind of the operator, or cok_none if it is not a CLI
+operator.  User-defined conversion operators (cok_implicit and cok_explicit)
+require additional processing, as their names contain the method's return type.
+*/
+{
+  a_cli_operator_kind cok = cok_none;
+
+  if (IsMdSpecialName(method_attributes) &&
+      wcsncmp(method_name.c_str(), L"op_", sizeof("op_")-1) == 0) {
+    /* This might be a CLI operator that needs to be converted to a C++
+       operator. */
+    string utf8_method_name = conv_wide_to_utf8(
+                                   const_cast<wchar_t*>(method_name.c_str()));
+    if (method_name.length() != utf8_method_name.length()) {
+      /* The method name contains non-ASCII characters.  Because all of the
+         CLI operator names are comprised only of ASCII characters, don't
+         bother calling find_cli_operator_kind. */
+      cok = cok_none;
+    } else {
+      cok = find_cli_operator_kind(
+                                 const_cast<char*>(utf8_method_name.c_str()));
+    }  /* if */
+    switch (cok) {
+      case cok_none:
+        /* Not a CLI operator. */
+        break;
+      case cok_implicit:
+      case cok_explicit:
+        /* Implicit or explicit user-defined conversion operator. */
+        method_name.clear();
+        break;
+      default:
+        { a_cli_operator_info_ptr info = cli_operator_info_from_kind(cok);
+          if (IsMdStatic(method_attributes) &&
+              info->is_assignment_operator) {
+            /* This is a static CLI assignment operator.  Import it using
+               the CLI operator name.  We can't consume assignment operators
+               with CLR semantics, like static R^ op_Assign(R^, R^). */
+          } else if (info->cpp_name == NULL) {
+            /* This is a CLI operator for which there is no C++ mapping.
+               Import it using the CLI operator name. */
+          } else {
+            /* This is a CLI operator for which there is a C++ mapping.
+               Import it using the C++ operator name. */
+            locale   loc;
+            wchar_t  cpp_name[100];
+            size_t   len = strlen(info->cpp_name);
+            check_assertion(len < sizeof(cpp_name)/sizeof(cpp_name[0]));
+            use_facet< ctype<wchar_t> >(loc).widen(
+                              info->cpp_name, info->cpp_name+len+1, cpp_name);
+            method_name = cpp_name;
+          }  /* if */
+          break;
+        }
+    }  /* switch */
+  }  /* if */
+  return cok;
+}  /* rename_cli_operator */
+
+
 void a_type_definition::import_one_method(ostringstream &buffer,
                                           mdTypeDef     method_token,
                                           DWORD         method_semantics)
@@ -2440,6 +2600,7 @@ Import a single member of a type.
 {
   bool                  omit_return_type = false;
   bool                  skip_member = false;
+  a_cli_operator_kind   cok = cok_none;
   HRESULT               hr;
   ULONG                 bytes_in_signature;
   DWORD                 method_attributes;
@@ -2473,7 +2634,19 @@ Import a single member of a type.
     check_assertion(IsMdSpecialName(method_attributes));
     method_name = name_from_method_semantics(method_semantics);
   } else if (!skip_member && IsMdSpecialName(method_attributes)) {
-    skip_member = true;
+    /* Determine if this member is an event or property method. */
+    mdToken event_or_property_token =
+                               get_associated_event_or_property(method_token);
+    if (!IsNilToken(event_or_property_token)) {
+      /* This method is associated with an event or property.  These methods
+         are skipped here because import_one_event and import_one_property
+         generate the appropriate add/remove/raise or get/set methods. */
+      skip_member = true;
+    } else {
+      /* Rename any CLI operators to their corresponding C++/CLI operator
+         name. */
+      cok = rename_cli_operator(method_name, method_attributes);
+    }  /* if */
   }  /* if  */
   if (!skip_member) {
     declaration << accessibility.get_string(import_as_friend_) << L": ";
@@ -2486,7 +2659,8 @@ Import a single member of a type.
     declaration << decoder.decode_method_signature(method_name,
                                                    method_attributes,
                                                    omit_return_type,
-                                                   /*is_for_property=*/false);
+                                                   /*is_for_property=*/false,
+                                                   cok);
     if (IsMdFinal(method_attributes)) {
       declaration << L" sealed";
     }  /* if */
@@ -2773,7 +2947,8 @@ itself and its associated accessor methods.
                                                  property_name,
                                                  method_attributes,
                                                  /*omit_return_type=*/false,
-                                                 /*is_for_property=*/true);
+                                                 /*is_for_property=*/true,
+                                                 cok_none);
     declaration << " {" << END_OF_LINE;
     /* Import the get and/or set method. */
     if (get_method.exists()) {
@@ -3653,11 +3828,45 @@ Return a list of the method's parameters.
 }  /* a_signature_decoder::get_method_parameters */
 
 
+wstring a_signature_decoder::decode_return_type()
+/*
+Decode a function signature to obtain the return type.
+*/
+{
+  BYTE                    first_byte;
+  BYTE                    calling_convention;
+  ULONG                   number_of_parameters;
+  wstring                 return_type;
+  BYTE                    generic_arity;
+  a_method_parameter_list method_parameters;
+
+  first_byte = read_one_byte();
+  calling_convention = first_byte & IMAGE_CEE_CS_CALLCONV_MASK;
+  /* If this is a generic method, read the count of generic parameters. */
+  if ((first_byte & IMAGE_CEE_CS_CALLCONV_GENERIC) != 0) {
+    generic_arity = read_one_byte();
+    a_constraint_clause_list generic_method_constraints;
+    check_assertion(generic_method_parameters_.empty());
+    import_scope_.get_generic_parameters_and_constraints(
+                                                  token_,
+                                                  generic_type_parameters_,
+                                                  generic_arity,
+                                                  generic_method_parameters_,
+                                                  generic_method_constraints);
+    check_assertion(generic_arity == generic_method_parameters_.size());
+  }  /* if */
+  number_of_parameters = read_four_bytes();
+  return_type = decode_type();
+  return return_type;
+}  /* decode_return_type */
+
+
 wstring a_signature_decoder::decode_method_signature(
                            const wstring                  &name,
                            DWORD                          method_attributes,
                            bool                           omit_return_type,
-                           bool                           is_for_property)
+                           bool                           is_for_property,
+                           a_cli_operator_kind            cok)
 /*
 Decode a function signature and then combine the various elements along with
 the name of the function to create a declaration which we return as a
@@ -3714,20 +3923,26 @@ which is almost the same as a method signature.
   } else if (IsMdVirtual(method_attributes)) {
     declaration << L"virtual ";
   }  /* if */
-  if (is_for_property) declaration << "property ";
   return_type = decode_type();
-  /* Constructors, destructors, and finalizers don't have a (visible) return
-     type. */
-  if (omit_return_type) {
-    check_assertion(return_type == L"void");
+  if (cok == cok_implicit || cok == cok_explicit) {
+    /* Emit an implicit or explicit user-defined conversion operator. */
+    if (cok == cok_explicit) declaration << L"explicit ";
+    declaration << L"operator " << return_type;
   } else {
-    declaration << return_type << L' ';
-  }  /* if */
-  if (name.find(L'.') != wstring::npos) {
-    /* The type name contains a dot; use __identifier to emit it. */
-    declaration << L"__identifier(\"" << name << L"\")";
-  } else {
-    declaration << name;
+    if (is_for_property) declaration << L"property ";
+    /* Constructors, destructors, and finalizers don't have a (visible) return
+       type. */
+    if (omit_return_type) {
+      check_assertion(return_type == L"void");
+    } else {
+      declaration << return_type << L' ';
+    }  /* if */
+    if (name.find(L'.') != wstring::npos) {
+      /* The type name contains a dot; use __identifier to emit it. */
+      declaration << L"__identifier(\"" << name << L"\")";
+    } else {
+      declaration << name;
+    }  /* if */
   }  /* if */
   /* We only emit parameters for methods and parameterized properties (and we
      use "[]" instead of "()" for parameterized properties).  Simple
@@ -3747,7 +3962,7 @@ which is almost the same as a method signature.
         (peek_element_type() == ELEMENT_TYPE_SZARRAY ||
          peek_element_type() == ELEMENT_TYPE_ARRAY) &&
         method_parameters[i].is_parameter_array(import_scope_)) {
-       declaration << L"... ";
+      declaration << L"... ";
     }  /* if */
     declaration << decode_type();
     if (!is_for_property) {

@@ -11,17 +11,6 @@
 #ifndef MS_METADATA
 #define MS_METADATA 1
 
-/*
-These types are always defined, even when CPPCLI enabling is not
-possible.
-*/
-typedef unsigned int
-                a_cpp_cli_token;
-                        /* A metadata token */
-typedef unsigned int
-                an_assembly_index;
-                        /* An assembly index */
-
 typedef unsigned int a_cpp_cli_import_flag_set;
 
 EXTERN a_cpp_cli_import_flag_set

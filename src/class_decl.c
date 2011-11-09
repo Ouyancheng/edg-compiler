@@ -22277,6 +22277,59 @@ next_derived_class_symbol:;
 }  /* check_names_reserved_by_cli_properties_and_events */
 
 
+static void check_names_reserved_by_cli_operators(a_type_ptr  class_type)
+/*
+Check every direct member of class_type to see if it uses the name of a CLI
+operator in a manner in which it is reserved and issue an error if
+appropriate.
+*/
+{
+  a_symbol_ptr  sym = symbol_supplement_for_class(class_type)->symbols;
+
+  for (; sym != NULL; sym = sym->next_in_scope) {
+    if (sym->header->is_cli_operator) {
+      a_boolean           is_reserved_name = FALSE;
+      a_cli_operator_kind cok = sym->header->variant.cli_operator;
+      if (symbol_is(sym, sk_type) &&
+          sym->variant.type.is_injected_class_name) {
+        /* The injected class name is not considered. */
+        continue;
+      }  /* if */
+      switch (cok) {
+        case cok_none:
+          unexpected_condition();
+          break;
+        case cok_implicit:
+        case cok_explicit:
+          /* Members named "op_Implicit" or "op_Explicit" are always
+             reserved. */
+          is_reserved_name = TRUE;
+          break;
+        default:
+          if (symbol_is(sym, sk_member_function) &&
+              routine_symbol_type(sym)->variant.routine.extra_info
+                                      ->this_class == NULL) {
+            /* Static member functions are allowed to use the name of CLR
+               assignment operators and CLI operators for which there is no
+               C++ mapping, such as "op_True" and "op_UnsignedRightShift". */
+            a_cli_operator_info_ptr info = cli_operator_info_from_kind(cok);
+            is_reserved_name = !info->is_assignment_operator &&
+                               info->cpp_name != NULL;
+          } else {
+            /* Any other use of CLI operator names are reserved. */
+            is_reserved_name = TRUE;
+          }  /* if */
+          break;
+      }  /* switch */
+      if (is_reserved_name) {
+        pos_st_error(ec_member_name_reserved_by_cli_operator,
+                     &sym->decl_position, sym->header->identifier);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* check_names_reserved_by_cli_operators */
+
+
 static void check_for_subscript_mechanism_conflict(a_type_ptr  class_type)
 /*
 The given class type is a C++/CLI managed class type whose complete definition
@@ -22746,6 +22799,7 @@ bits of information that were acquired while parsing.
            the responsibility of the producer of the metadata. */
         check_initonly_members(class_state);
       }  /* if */
+      check_names_reserved_by_cli_operators(class_type);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Check for missing or erroneous uses of the "hiding" attribute and

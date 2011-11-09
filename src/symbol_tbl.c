@@ -1803,7 +1803,7 @@ Allocate a new symbol header, and return a pointer to it.
   ptr->symbol            = NULL;
   ptr->inactive_symbols  = NULL;
   ptr->other_symbols     = NULL;
-  ptr->opname            = (an_opname_kind)onk_none;
+  ptr->variant.opname    = (an_opname_kind)onk_none;
   ptr->identifier        = NULL;
   ptr->identifier_length = 0;
   ptr->hash_value        = 0;
@@ -1818,6 +1818,7 @@ Allocate a new symbol header, and return a pointer to it.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ptr->saved_macro_stack = NULL;
   ptr->microsoft_identifier_used = FALSE;
+  ptr->is_cli_operator = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
 
@@ -6856,7 +6857,7 @@ Don't put its symbol into the symbol table yet.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-void make_symbol_for_namespace_cli(void)
+static void make_symbol_for_namespace_cli(void)
 /*
 Predeclare namespace "cli".  This namespace is used in C++/CLI mode.
 */
@@ -6871,27 +6872,13 @@ Predeclare namespace "cli".  This namespace is used in C++/CLI mode.
 }  /* make_symbol_for_namespace_cli */
 
 
-void make_symbol_for_namespace_system(void)
-/*
-Predeclare namespace "System".  This namespace is used in C++/CLI mode.
-*/
-{
-  a_symbol_locator locator;
-  a_symbol_ptr     symbol = NULL;
-
-  clear_locator(&locator, &null_source_position);
-  make_symbol_for_predeclared_namespace("System", &symbol);
-  enter_symbol_for_namespace(symbol, &locator);
-  cli_symbols[(int)csk_system_namespace] = symbol;
-}  /* make_symbol_for_namespace_system */
-
-
 static a_symbol_ptr look_up_name_string_in_namespace(
-                                            char            *symbol_name, 
-                                            a_namespace_ptr ns_ptr)
+                                        char                     *symbol_name,
+                                        a_namespace_ptr          ns_ptr,
+                                        an_id_lookup_options_set options)
 /*
-Look up symbol_name in the specified namespace.  Return the symbol found,
-if any.
+Look up symbol_name in the specified namespace (or file scope if ns_ptr is
+NULL).  Return the symbol found, if any.
 */
 {
   a_symbol_locator loc;
@@ -6899,7 +6886,11 @@ if any.
 
   clear_locator(&loc, &null_source_position);
   (void)find_symbol(symbol_name, (sizeof_t)strlen(symbol_name), &loc);
-  sym = namespace_qualified_id_lookup(&loc, ns_ptr, IDL_NO_OPTIONS);
+  if (ns_ptr == NULL) {
+    sym = file_scope_id_lookup(il_header.primary_scope, &loc, options);
+  } else {
+    sym = namespace_qualified_id_lookup(&loc, ns_ptr, options);
+  }  /* if */
   return sym;
 }  /* look_up_name_string_in_namespace */
 
@@ -6919,8 +6910,10 @@ cli::array or cli::interior_ptr.
 
   scan_top_level_metadata_declarations(definition_string,
                                        (an_assembly_index)0);
-  ns_ptr = cli_symbols[(int)csk_cli_namespace]->variant.namespace_info.ptr;
-  result_sym = look_up_name_string_in_namespace(symbol_name, ns_ptr);
+  ns_ptr = cli_namespace_ptr_for(csk_cli_namespace);
+  result_sym = look_up_name_string_in_namespace(
+                                           symbol_name, ns_ptr,
+                                           IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
   check_assertion(result_sym != NULL &&
                   result_sym->kind == (a_symbol_kind)sk_class_template);
   tssp = result_sym->variant.template_info;
@@ -6929,7 +6922,7 @@ cli::array or cli::interior_ptr.
 }  /* make_cli_internal_template */
 
 
-void make_symbol_for_cli_array(void)
+static void make_symbol_for_cli_array(void)
 /*
 Declare and define the C++/CLI type "cli::array".  (The definition is lifted
 from ECMA-372, subsection 8.2.3.)
@@ -6959,7 +6952,7 @@ from ECMA-372, subsection 8.2.3.)
 }  /* make_symbol_for_cli_array */
 
 
-void make_symbol_for_cli_interior_ptr(void)
+static void make_symbol_for_cli_interior_ptr(void)
 /*
 Declare and define the C++/CLI type "cli::interior_ptr".
 */
@@ -6975,7 +6968,7 @@ Declare and define the C++/CLI type "cli::interior_ptr".
 }  /* make_symbol_for_cli_interior_ptr */
 
 
-void make_symbol_for_cli_pin_ptr(void)
+static void make_symbol_for_cli_pin_ptr(void)
 /*
 Declare and define the C++/CLI type "cli::pin_ptr".
 */
@@ -6990,7 +6983,7 @@ Declare and define the C++/CLI type "cli::pin_ptr".
 }  /* make_symbol_for_cli_pin_ptr */
 
 
-void init_cli_symbols_corresponding_to_fundamental_types(void)
+static void init_cli_symbols_corresponding_to_fundamental_types(void)
 /*
 For each fundamental CLI type, initialize its corresponding_basic_type member.
 This will be used later by the fundamental_type_from_system_type function.
@@ -7024,7 +7017,6 @@ cli_float_kinds arrays therefore list only the preferred basic types.
        i < (int)(sizeof(cli_integer_kinds)/sizeof(cli_integer_kinds[0]));
        i++) {
     an_integer_kind kind = cli_integer_kinds[i];
-
     cli_symbol = cli_symbol_from_integer_kind(kind);
     check_assertion(cli_symbol != NULL);
     check_assertion(class_type_supp(type_symbol_type(cli_symbol))->
@@ -7037,7 +7029,6 @@ cli_float_kinds arrays therefore list only the preferred basic types.
        i < (int)(sizeof(cli_float_kinds)/sizeof(cli_float_kinds[0]));
        i++) {
     a_float_kind kind = cli_float_kinds[i];
-
     cli_symbol = cli_symbol_from_float_kind(kind);
     check_assertion(cli_symbol != NULL);
     check_assertion(class_type_supp(type_symbol_type(cli_symbol))->
@@ -7069,7 +7060,7 @@ cli_float_kinds arrays therefore list only the preferred basic types.
 }  /* init_cli_symbols_corresponding_to_fundamental_types */
 
 
-void make_symbols_for_system_string_operators(void)
+static void make_symbols_for_system_string_operators(void)
 /*
 Create symbols for the builtin System::String operators.
 */
@@ -7113,40 +7104,50 @@ Create symbols for the builtin System::String operators.
 }  /* make_symbols_for_system_string_operators */
 
 
-static void get_symbol_for_cli_system_type(a_cli_symbol_kind	csk)
+static void init_cli_symbol(a_cli_symbol_kind  csk)
 /*
-Look up the C++/CLI system type specified by csk and cache it in a
-global array.  This function assumes that mscorlib.dll has been imported.
+Look up the C++/CLI namespace or type specified by csk and cache it in the
+cli_symbols array.  This function assumes that mscorlib.dll has been imported.
 */
 {
-  char            *name;
-  a_symbol_ptr    ns_sym;
-  a_namespace_ptr ns_ptr;
+  char                       *name;
+  enum a_cli_symbol_kind_tag ns_kind;
 
+  check_assertion((int)csk >= (int)csk_first && (int)csk < (int)csk_last);
   name = cli_symbol_names[csk].name;
+  ns_kind = cli_symbol_names[csk].namespace_kind;
   if (name != NULL) {
+    a_namespace_ptr          ns_ptr = NULL;
+    an_id_lookup_options_set options = IDL_DIRECT_NAMESPACE_MEMBERS_ONLY;
     check_assertion(*name != '\0');
-    check_assertion(is_namespace_symbol(
-                           cli_symbols[cli_symbol_names[csk].namespace_kind]));
-  /* Get the symbol for the parent namespace. */
-    ns_sym = cli_symbols[cli_symbol_names[csk].namespace_kind];
-    ns_ptr = ns_sym->variant.namespace_info.ptr;
-    cli_symbols[csk] = look_up_name_string_in_namespace(name, ns_ptr);
+    if ((int)csk >= (int)csk_first_namespace &&
+        (int)csk <= (int)csk_last_namespace) {
+      options |= IDL_MUST_BE_NAMESPACE;
+    }  /* if */
+    if (ns_kind != (a_cli_symbol_kind)csk_none) {
+      ns_ptr = cli_namespace_ptr_for(ns_kind);
+    }  /* if */
+    cli_symbols[csk] = look_up_name_string_in_namespace(name, ns_ptr,
+                                                        options);
     if (cli_symbols[csk] == NULL) {
       /* The symbol wasn't found in the parent namespace. */
       str_catastrophe(ec_cli_entity_not_loaded, name);
     }  /* if */
   }  /* if */
-}  /* get_symbol_for_cli_system_type */
+}  /* init_cli_symbol */
 
 
-void init_symbols_for_cli_system_types(void)
+void init_cli_symbols(void)
 /*
-Look up various C++/CLI system types and cache them in their corresponding 
-global pointers.  This function assumes that mscorlib.dll has been imported.
+Initialize symbols for various C++/CLI core library entities that the front
+end knows about (this function assumes that mscorlib.dll has been imported).
+Many of these symbols will be accessible through the cli_symbols array.
 */
 {
-  int             csk;
+  int  csk;
+
+  /* First make the symbol for namespace ::cli. */
+  make_symbol_for_namespace_cli();
 
 #if CHECKING
   /* Check that the a_cli_symbol_kind_tag enumeration is correctly defined. */
@@ -7155,19 +7156,19 @@ global pointers.  This function assumes that mscorlib.dll has been imported.
       (int)csk_last_float - (int)csk_first_float !=
                                                (int)fk_last-1) /*lint !e506*/ {
     internal_error(
-         "init_symbols_for_cli_system_types: incorrect a_cli_symbol_kind_tag");
+         "init_cli_symbols: incorrect a_cli_symbol_kind_tag");
   }  /* if */
   /* Check that the cli_symbol_names array is correctly initialized. */
   if (cli_symbol_names[(int)csk_last].name == NULL ||
       strcmp(cli_symbol_names[(int)csk_last].name, "last") != 0) {
     internal_error(
-              "init_symbols_for_cli_system_types: incorrect cli_symbol_names");
+              "init_cli_symbols: incorrect cli_symbol_names");
   }  /* if */
 #endif /* CHECKING */
   /* Initialize the symbols in the cli_symbols array. */
-  for (csk = (int)csk_first; csk < (int)csk_last; csk++) {
+  for (csk = (int)csk_first_type; csk < (int)csk_last_type; csk++) {
     if (cli_symbols[csk] == NULL) {
-      get_symbol_for_cli_system_type((a_cli_symbol_kind)csk);
+      init_cli_symbol((a_cli_symbol_kind)csk);
     }  /* if */
   }  /* for */
   /* Initialize csk_system_byte_sign_unspecified based on the signedness
@@ -7175,7 +7176,34 @@ global pointers.  This function assumes that mscorlib.dll has been imported.
   cli_symbols[(int)csk_system_byte_sign_unspecified] =
           il_header.plain_chars_are_signed ? cli_symbols[(int)csk_system_sbyte]
                                            : cli_symbols[(int)csk_system_byte];
-}  /* init_symbols_for_cli_system_types */
+
+  init_cli_symbols_corresponding_to_fundamental_types();
+  make_symbols_for_system_string_operators();
+  /* Make the symbol associated with some C++/CLI internal templates. */
+  make_symbol_for_cli_array();
+  make_symbol_for_cli_interior_ptr();
+  make_symbol_for_cli_pin_ptr();
+}  /* init_cli_symbols */
+
+
+a_namespace_ptr f_cli_namespace_ptr_for(a_cli_symbol_kind kind)
+/*
+Return the namespace for the specified C++/CLI symbol kind if it is a
+namespace symbol.
+*/
+{
+  a_symbol_ptr sym;
+
+  check_assertion((int)kind >= (int)csk_first_namespace &&
+                  (int)kind <= (int)csk_last_namespace);
+  sym = cli_symbol_from_kind(kind);
+  if (sym == NULL) {
+    init_cli_symbol(kind);
+    sym = cli_symbol_from_kind(kind);
+  }  /* if */
+  check_assertion(sym != NULL && is_namespace_symbol(sym));
+  return sym->variant.namespace_info.ptr;
+}  /* f_cli_namespace_ptr_for */
 
 
 a_type_ptr f_cli_class_type_for(a_cli_symbol_kind kind)
@@ -7185,114 +7213,20 @@ Return the type of the specified C++/CLI symbol kind.
 {
   a_symbol_ptr sym;
 
-  check_assertion((int)kind < (int)csk_last);
+  check_assertion((int)kind >= (int)csk_first_type &&
+                  (int)kind <= (int)csk_last_type);
   sym = cli_symbol_from_kind(kind);
   if (sym == NULL) {
-    get_symbol_for_cli_system_type((a_cli_symbol_kind)kind);
+    init_cli_symbol((a_cli_symbol_kind)kind);
+    sym = cli_symbol_from_kind(kind);
   }  /* if */
-  sym = cli_symbol_from_kind(kind);
   check_assertion(sym != NULL &&
                   sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
   return sym->variant.class_struct_union.type;
 }  /* f_cli_class_type_for */
 
 
-/*
-Symbol for the C++/CLI System::Collections namespace.  NULL until allocated
-when first needed.
-*/
-static a_symbol_ptr symbol_for_cli_system_collections_namespace;
-
-static a_namespace_ptr make_cli_system_collections_namespace(void)
-/*
-Make the CLI System::Collections namespace and return a pointer to it.
-*/
-{
-  a_namespace_ptr ns_ptr;
-
-  if (symbol_for_cli_system_collections_namespace == NULL) {
-    /* On the first call, look up the namespace. */
-    a_symbol_ptr ns_sym = cli_symbols[(int)csk_system_namespace];
-    check_assertion(ns_sym != NULL && is_namespace_symbol(ns_sym));
-    ns_ptr = ns_sym->variant.namespace_info.ptr;
-    ns_sym = look_up_name_string_in_namespace("Collections", ns_ptr);
-    if (ns_sym == NULL || !is_namespace_symbol(ns_sym)) {
-      str_catastrophe(ec_cli_entity_not_loaded, "System::Collections");
-    }  /* if */
-    symbol_for_cli_system_collections_namespace = ns_sym;
-  }  /* if */
-  ns_ptr = symbol_for_cli_system_collections_namespace
-                                                  ->variant.namespace_info.ptr;
-  return ns_ptr;
-}  /* make_cli_system_collections_namespace */
-
-
-/*
-Symbol for the C++/CLI System::Collections::Generic namespace.  NULL until
-allocated when first needed.
-*/
-static a_symbol_ptr symbol_for_cli_system_collections_generic_namespace;
-
-static a_namespace_ptr make_cli_system_collections_generic_namespace(void)
-/*
-Make the CLI System::Collections::Generic namespace and return a pointer
-to it.
-*/
-{
-  a_namespace_ptr ns_ptr;
-
-  if (symbol_for_cli_system_collections_generic_namespace == NULL) {
-    /* On the first call, look up the namespace. */
-    a_symbol_ptr ns_sym;
-    ns_ptr = make_cli_system_collections_namespace();
-    ns_sym = look_up_name_string_in_namespace("Generic", ns_ptr);
-    if (ns_sym == NULL || !is_namespace_symbol(ns_sym)) {
-      str_catastrophe(ec_cli_entity_not_loaded,
-                      "System::Collections::Generic");
-    }  /* if */
-    symbol_for_cli_system_collections_generic_namespace = ns_sym;
-  }  /* if */
-  ns_ptr = symbol_for_cli_system_collections_generic_namespace
-                                                  ->variant.namespace_info.ptr;
-  return ns_ptr;
-}  /* make_cli_system_collections_generic_namespace */
-
-
-/*
-Symbol for the C++/CLI System::Collections::IEnumerable type.  NULL until
-allocated when first needed.
-*/
-static a_symbol_ptr symbol_for_cli_system_collections_ienumerable;
-
-a_type_ptr make_IEnumerable_type(void)
-/*
-Make and return the C++/CLI System::Collections::IEnumerable type.
-*/
-{
-  a_type_ptr type;
-
-  if (symbol_for_cli_system_collections_ienumerable == NULL) {
-    /* One the first call, look up the type. */
-    a_namespace_ptr ns_ptr = make_cli_system_collections_namespace();
-    a_symbol_ptr    sym = look_up_name_string_in_namespace("IEnumerable",
-                                                           ns_ptr);
-    if (sym == NULL || !is_type_symbol(sym)) {
-      str_catastrophe(ec_cli_entity_not_loaded,
-                      "System::Collections::IEnumerable");
-    }  /* if */
-    symbol_for_cli_system_collections_ienumerable = sym;
-  }  /* if */
-  type = type_symbol_type(symbol_for_cli_system_collections_ienumerable);
-  return type;
-}  /* make_IEnumerable_type */
-
-/*
-Symbol for the C++/CLI System::Collections::Generic::IEnumerable generic
-class.  NULL until allocated when first needed.
-*/
-static a_symbol_ptr symbol_for_cli_system_collections_generic_ienumerable;
-
-a_boolean is_generic_cli_IEnumerable_type(a_type_ptr type,
+a_boolean is_generic_cli_ienumerable_type(a_type_ptr type,
                                           a_type_ptr elem_type)
 /*
 Return TRUE if "type" is an instance of the C++/CLI
@@ -7309,22 +7243,14 @@ of the generic class.
       type->variant.class_struct_union.is_generic_instance &&
       is_namespace_member(type)) {
     a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
+    a_symbol_ptr                  ienumerable_sym;
     /* The type is a generic instance that is a member of a namespace.
-       Find the symbol for the IEnumerable generic and see if this type is
-       an instance of that. */
-    if (symbol_for_cli_system_collections_generic_ienumerable == NULL) {
-      /* One the first call, look up the type. */
-      a_namespace_ptr ns_ptr = make_cli_system_collections_generic_namespace();
-      a_symbol_ptr    sym = look_up_name_string_in_namespace("IEnumerable",
-                                                             ns_ptr);
-      if (sym == NULL || sym->kind != (a_symbol_kind)sk_class_template) {
-        str_catastrophe(ec_cli_entity_not_loaded,
-                        "System::Collections::Generic::IEnumerable");
-      }  /* if */
-      symbol_for_cli_system_collections_generic_ienumerable = sym;
-    }  /* if */
-    if (cssp->class_template ==
-                       symbol_for_cli_system_collections_generic_ienumerable) {
+       See if this type is an instance of the generic IEnumerable. */
+    ienumerable_sym = cli_symbol_from_kind(
+                                  csk_system_collections_generic_ienumerable);
+    check_assertion(ienumerable_sym != NULL &&
+                   ienumerable_sym->kind == (a_symbol_kind)sk_class_template);
+    if (cssp->class_template == ienumerable_sym) {
       /* Yes, this is an instance of the generic IEnumerable. */
       if (elem_type == NULL) {
         is_instance = TRUE;
@@ -7346,7 +7272,7 @@ of the generic class.
     }  /* if */
   }  /* if */
   return is_instance;
-}  /* is_generic_cli_IEnumerable_type */
+}  /* is_generic_cli_ienumerable_type */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -7851,6 +7777,70 @@ Return the symbol header for the specified identifier.
   return sym_hdr;
 }  /* find_symbol_header */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void init_cli_operator_headers(void)
+/*
+Create symbol headers for the CLI operator names.  This is used to map the
+operator name to an a_cli_operator_kind_tag entry and the associated
+a_cli_operator_info structure.  Furthermore, it provides a mechanism to
+readily detect when the operator name is used in a context in which the name
+is reserved.
+*/
+{
+  int  cok;
+
+#if CHECKING
+  /* Check that the cli_operator_info array is correctly initialized. */
+  if (cli_operator_info[(int)cok_last].cli_name == NULL ||
+      strcmp(cli_operator_info[(int)cok_last].cli_name, "last") != 0) {
+    internal_error("init_cli_operator_headers: incorrect cli_operator_info");
+  }  /* if */
+#endif /* CHECKING */
+  for (cok = (int)cok_first; cok < (int)cok_last; ++cok) {
+    a_symbol_header_ptr header;
+    a_symbol_locator    locator;
+    char                *name = cli_operator_info[cok].cli_name;
+    check_assertion(name != NULL && *name != '\0');
+    clear_locator(&locator, &null_source_position);
+    header = find_symbol_header(name, (sizeof_t)strlen(name), &locator);
+    header->is_cli_operator = TRUE;
+    header->variant.cli_operator = (a_cli_operator_kind)cok;
+  }  /* for */
+}  /* init_cli_operator_headers */
+
+
+static a_symbol_header_ptr find_cli_operator_header(char *identifier)
+/*
+Return the symbol header for the specified identifier if it has the same name
+as a CLI operator.
+*/
+{
+  a_symbol_header_ptr header;
+  a_symbol_locator    locator;
+
+  check_assertion(identifier != NULL && *identifier != '\0');
+  clear_locator(&locator, &null_source_position);
+  header = find_symbol_header(identifier, (sizeof_t)strlen(identifier),
+                              &locator);
+  if (!header->is_cli_operator) header = NULL;
+  return header;
+}  /* find_cli_operator_header */
+
+
+a_cli_operator_kind find_cli_operator_kind(char *identifier)
+/*
+Return the CLI operator kind corresponding to the specified identifier if it
+has the same name as a CLI operator, or cok_none if it doesn't.
+*/
+{
+  a_symbol_header_ptr header;
+
+  header = find_cli_operator_header(identifier);
+  return header != NULL ? header->variant.cli_operator : NO_CLI_OPERATOR;
+}  /* find_cli_operator_kind */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr find_label_symbol(a_symbol_header_ptr	sym_hdr)
 /*
@@ -8095,7 +8085,7 @@ used for C++ constructs like "operator+".  Use pos as the source position.
     (void)memcpy(str, "operator", OPERATOR_LEN);
     if (blank_needed) str[OPERATOR_LEN] = ' ';
     (void)strcpy(str+OPERATOR_LEN+blank_needed, opstr);
-    hdr_ptr->opname = opname;
+    hdr_ptr->variant.opname = opname;
 #if DEBUG
     symbol_name_string_space += opname_length+1;
 #endif /* DEBUG */
@@ -14595,11 +14585,7 @@ given translation unit.
   symbol_for_namespace_std = NULL;
   symbol_for_namespace_std_entered = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  symbol_for_cli_system_collections_namespace = NULL;
-  symbol_for_cli_system_collections_generic_namespace = NULL;
-  symbol_for_cli_system_collections_ienumerable = NULL;
-  symbol_for_cli_system_collections_generic_ienumerable = NULL;
-   memzero((char *)cli_symbols, sizeof(cli_symbols));
+  memzero((char *)cli_symbols, sizeof(cli_symbols));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   va_list_global_alias_has_been_created = FALSE;
 #if IA64_ABI

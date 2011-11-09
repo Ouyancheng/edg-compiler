@@ -40,9 +40,6 @@ and protected by the ifndef there.
 #ifndef MEM_TABLES_H
 #include "mem_tables.h"
 #endif /* ifndef MEM_TABLES_H */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#include "ms_metadata.h"
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Specify the version stamp of the IL being generated.
@@ -281,6 +278,15 @@ typedef a_seq_number a_stmt_source_position;
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+/*
+Type of integer "tokens" for entities stored in metadata files.
+*/
+typedef unsigned int a_cpp_cli_token;
+
+/*
+Type of an integer index into a table of assemblies being imported from. */
+typedef unsigned int an_assembly_index;
+
 /*
 Entry used to represent a CLI metadata file.  This is used for metadata
 files made available by actual #using directives that appear in the source

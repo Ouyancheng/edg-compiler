@@ -28029,7 +28029,7 @@ successful within the class scope; returns FALSE otherwise.
 }  /* is_stl_collection_pattern_candidate */
 
 
-static a_boolean implements_IEnumerable(a_type_ptr       type,
+static a_boolean implements_ienumerable(a_type_ptr       type,
                                         a_base_class_ptr *p_bcp)
 /*
 Return TRUE if the given type implements either
@@ -28050,12 +28050,13 @@ If so, also return in *p_bcp the base class for the interface implemented.
       if (is_immediate_cli_interface_type(base_type)) {
         char *name = unmangled_name_of(&base_type->source_corresp);
         if (name != NULL && strcmp(name, "IEnumerable") == 0) {
-          a_type_ptr non_generic_ienum = make_IEnumerable_type();
-          if (same_entities(base_type, non_generic_ienum)) {
+          if (same_entities(
+                    base_type,
+                    cli_class_type_for(csk_system_collections_ienumerable))) {
             /* This is the non-generic IEnumerable.  Save it and use it if
                no generic version turns up. */
             non_generic_bcp = bcp;
-          } else if (is_generic_cli_IEnumerable_type(base_type,
+          } else if (is_generic_cli_ienumerable_type(base_type,
                                                      (a_type *)NULL)) {
             /* This is a generic IEnumerable.  Take it (even if it does
                not match the iterator type and will get errors later). */
@@ -28070,7 +28071,7 @@ If so, also return in *p_bcp the base class for the interface implemented.
 done:
   *p_bcp = bcp;
   return (bcp != NULL);
-}  /* implements_IEnumerable */
+}  /* implements_ienumerable */
 
 
 static a_boolean is_cli_collection_pattern_candidate(
@@ -28087,7 +28088,7 @@ set it to NULL.
   a_boolean        result = FALSE;
   a_symbol_locator locator;
 
-  if (implements_IEnumerable(collection_type, ienumerable_bcp)) {
+  if (implements_ienumerable(collection_type, ienumerable_bcp)) {
     /* The collection type implements one of the IEnumerable interfaces,
        so the CLI collection pattern can be used. */
     result = TRUE;

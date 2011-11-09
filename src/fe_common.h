@@ -111,6 +111,8 @@ incorporated:
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+#include "ms_metadata.h"
+
 /* Type system support. */
 #include "types.h"
 

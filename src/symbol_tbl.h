@@ -3401,6 +3401,158 @@ Macros to retrieve the parent class or namespace associated with a symbol.
 #endif /* defined(_lint) */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/*
+Data structures related to CLI operators.
+*/
+
+/*
+An enumeration of CLI operators that may appear in metadata.  This enumeration
+corresponds to the list of operators in ECMA-372.  Note that not all of these
+operators have C++/CLI counterparts.
+*/
+enum a_cli_operator_kind_tag {
+  cok_none,                            /* No operator. */
+  cok_first,
+  cok_addition = cok_first,            /* "op_Addition" */
+  cok_addition_assignment,             /* "op_AdditionAssignment" */
+  cok_address_of,                      /* "op_AddressOf" */
+  cok_assign,                          /* "op_Assign" */
+  cok_bitwise_and,                     /* "op_BitwiseAnd" */
+  cok_bitwise_and_assignment,          /* "op_BitwiseAndAssignment" */
+  cok_bitwise_or,                      /* "op_BitwiseOr" */
+  cok_bitwise_or_assignment,           /* "op_BitwiseOrAssignment" */
+  cok_comma,                           /* "op_Comma" */
+  cok_decrement,                       /* "op_Decrement" */
+  cok_division,                        /* "op_Division" */
+  cok_division_assignment,             /* "op_DivisionAssignment" */
+  cok_equality,                        /* "op_Equality" */
+  cok_exclusive_or,                    /* "op_ExclusiveOr" */
+  cok_exclusive_or_assignment,         /* "op_ExclusiveOrAssignment" */
+  cok_explicit,                        /* "op_Explicit" */
+  cok_false,                           /* "op_False" */
+  cok_function_call,                   /* "op_FunctionCall" */
+  cok_greater_than,                    /* "op_GreaterThan" */
+  cok_greater_than_or_equal,           /* "op_GreaterThanOrEqual" */
+  cok_implicit,                        /* "op_Implicit" */
+  cok_increment,                       /* "op_Increment" */
+  cok_inequality,                      /* "op_Inequality" */
+  cok_left_shift,                      /* "op_LeftShift" */
+  cok_left_shift_assignment,           /* "op_LeftShiftAssignment" */
+  cok_less_than,                       /* "op_LessThan" */
+  cok_less_than_or_equal,              /* "op_LessThanOrEqual" */
+  cok_logical_and,                     /* "op_LogicalAnd" */
+  cok_logical_not,                     /* "op_LogicalNot" */
+  cok_logical_or,                      /* "op_LogicalOr" */
+  cok_member_selection,                /* "op_MemberSelection" */
+  cok_modulus,                         /* "op_Modulus" */
+  cok_modulus_assignment,              /* "op_ModulusAssignment" */
+  cok_multiply,                        /* "op_Multiply" */
+  cok_multiplication_assignment,       /* "op_MultiplicationAssignment" */
+  cok_ones_complement,                 /* "op_OnesComplement" */
+  cok_pointer_dereference,             /* "op_PointerDereference" */
+  cok_pointer_to_member_selection,     /* "op_PointerToMemberSelection" */
+  cok_right_shift,                     /* "op_RightShift" */
+  cok_right_shift_assignment,          /* "op_RightShiftAssignment" */
+  cok_signed_right_shift,              /* "op_SignedRightShift" */
+  cok_subscript,                       /* "op_Subscript" */
+  cok_subtraction,                     /* "op_Subtraction" */
+  cok_subtraction_assignment,          /* "op_SubtractionAssignment" */
+  cok_true,                            /* "op_True" */
+  cok_unary_negation,                  /* "op_UnaryNegation" */
+  cok_unary_plus,                      /* "op_UnaryPlus" */
+  cok_unsigned_right_shift,            /* "op_UnsignedRightShift" */
+  cok_unsigned_right_shift_assignment, /* "op_UnsignedRightShiftAssignment" */
+  cok_last
+};
+
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_cli_operator_kind;
+
+#define NO_CLI_OPERATOR ((a_cli_operator_kind)cok_none)
+
+typedef struct a_cli_operator_info *a_cli_operator_info_ptr;
+typedef struct a_cli_operator_info {
+  /* Structure representing information associated with a CLI operator. */
+  char		*cli_name;
+			/* Name of the operator. */
+  char		*cpp_name;
+			/* Name of the operator in C++/CLI; NULL if no such
+			   mapping exists. */
+  a_boolean	is_assignment_operator;
+			/* TRUE if the operator is an assignment operator. */
+} a_cli_operator_info;
+
+/*
+Table of a_cli_operator_info structures corresponding to each entry in 
+a_cli_operator_kind_tag.
+*/
+EXTERN a_cli_operator_info cli_operator_info[(int)cok_last + 1]
+#if VAR_INITIALIZERS
+= {
+  { "<none>", NULL, FALSE },
+  { "op_Addition", "operator+", FALSE },
+  { "op_AdditionAssignment", "operator+=", TRUE  },
+  { "op_AddressOf", "operator&", FALSE },
+  { "op_Assign", "operator=", TRUE  },
+  { "op_BitwiseAnd", "operator&", FALSE },
+  { "op_BitwiseAndAssignment", "operator&=", TRUE  },
+  { "op_BitwiseOr", "operator|", FALSE },
+  { "op_BitwiseOrAssignment", "operator|=", TRUE  },
+  { "op_Comma", "operator,", FALSE },
+  { "op_Decrement", "operator--", FALSE },
+  { "op_Division", "operator/", FALSE },
+  { "op_DivisionAssignment", "operator/=", TRUE  },
+  { "op_Equality", "operator==", FALSE },
+  { "op_ExclusiveOr", "operator^", FALSE },
+  { "op_ExclusiveOrAssignment", "operator^=", TRUE  },
+  { "op_Explicit", NULL, FALSE },
+  { "op_False", NULL, FALSE },
+  { "op_FunctionCall", "operator()", FALSE },
+  { "op_GreaterThan", "operator>", FALSE },
+  { "op_GreaterThanOrEqual", "operator>=", FALSE },
+  { "op_Implicit", NULL, FALSE },
+  { "op_Increment", "operator++", FALSE },
+  { "op_Inequality", "operator!=", FALSE },
+  { "op_LeftShift", "operator<<", FALSE },
+  { "op_LeftShiftAssignment", "operator<<=", TRUE  },
+  { "op_LessThan", "operator<", FALSE },
+  { "op_LessThanOrEqual", "operator<=", FALSE },
+  { "op_LogicalAnd", "operator&&", FALSE },
+  { "op_LogicalNot", "operator!", FALSE },
+  { "op_LogicalOr", "operator||", FALSE },
+  { "op_MemberSelection", "operator->", FALSE },
+  { "op_Modulus", "operator%", FALSE },
+  { "op_ModulusAssignment", "operator%=", TRUE  },
+  { "op_Multiply", "operator*", FALSE },
+  { "op_MultiplicationAssignment", "operator*=", TRUE  },
+  { "op_OnesComplement", "operator~", FALSE },
+  { "op_PointerDereference", "operator*", FALSE },
+  { "op_PointerToMemberSelection", NULL, FALSE },
+  { "op_RightShift", "operator>>", FALSE },
+  { "op_RightShiftAssignment", "operator>>=", TRUE  },
+  { "op_SignedRightShift", NULL, FALSE },
+  { "op_Subscript", "operator[]", FALSE },
+  { "op_Subtraction", "operator-", FALSE },
+  { "op_SubtractionAssignment", "operator-=", TRUE  },
+  { "op_True", NULL, FALSE },
+  { "op_UnaryNegation", "operator-", FALSE },
+  { "op_UnaryPlus", "operator+", FALSE },
+  { "op_UnsignedRightShift", NULL, FALSE  },
+  { "op_UnsignedRightShiftAssignment", NULL, TRUE },
+  { "last" }, /* cok_last */
+}
+#endif /* VAR_INITIALIZERS */
+;
+
+#define cli_operator_info_from_kind(cok) (&cli_operator_info[(int)(cok)])
+
+
+extern void init_cli_operator_headers(void);
+
+extern a_cli_operator_kind find_cli_operator_kind(char *identifier);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 typedef struct a_symbol_header {
   /* This is the container for information that the symbol table
      management routines use in manipulating a list of symbols that have
@@ -3432,11 +3584,21 @@ typedef struct a_symbol_header {
 			/* sk_extern_variable, sk_extern_routine and
                            synthesized namespace projection symbols
 			   associated with this name. */
-  an_opname_kind
+  union {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* When is_cli_operator is TRUE: */
+    a_cli_operator_kind
+		cli_operator;
+			/* The CLI operator kind that corresponds to this
+			   header. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* When is_cli_operator is FALSE: */
+    an_opname_kind
 		opname;
 			/* If the symbol header is for an operator name, this
 			   identifies the particular operator kind.  For
 			   other kinds of symbols, this is onk_none. */
+  } variant;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_saved_macro_state_ptr
 		saved_macro_stack;
@@ -3471,6 +3633,11 @@ typedef struct a_symbol_header {
 			   non-class-member declaration that can be referred
 			   to with a qualified name). */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	is_cli_operator:1;
+			/* TRUE if the symbol header is for the metadata
+			   representation of a CLI operator. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_symbol_header;
 
 
@@ -3975,8 +4142,16 @@ symbol requires special initialization, leave the corresponding
 cli_symbol_names entry set to NULL.
 */
 enum a_cli_symbol_kind_tag {
+  csk_none,
   csk_first,
-  csk_first_integer = csk_first,
+  csk_first_namespace = csk_first,
+  csk_cli_namespace = csk_first_namespace,
+  csk_system_namespace,
+  csk_system_collections_namespace,
+  csk_system_collections_generic_namespace,
+  csk_last_namespace = csk_system_collections_generic_namespace,
+  csk_first_type,
+  csk_first_integer = csk_first_type,
   csk_system_byte_sign_unspecified = csk_first_integer, /* ik_char */
   csk_system_sbyte,				/* ik_signed_char */
   csk_system_byte,				/* ik_unsigned_char */
@@ -4008,13 +4183,13 @@ enum a_cli_symbol_kind_tag {
   csk_system_array,
   csk_system_nullable,
   csk_system_runtime_argument_handle,
-  csk_cli_namespace,
-  csk_system_namespace,
+  csk_system_collections_ienumerable,
+  csk_system_collections_generic_ienumerable,
   csk_cli_array,
   csk_interior_ptr,
   csk_pin_ptr,
-  csk_last,
-  csk_none = csk_last
+  csk_last_type = csk_pin_ptr,
+  csk_last
 };
 
 /* Define as "a_byte" to explicitly control storage size. */
@@ -4047,6 +4222,13 @@ EXTERN a_cli_symbol_name
 			   a_cli_symbol_kind_tag for more information. */
 #if VAR_INITIALIZERS
 = {
+  { NULL, csk_none },                   /* csk_none */
+  { NULL, csk_none },                   /* csk_cli_namespace */
+  { "System", csk_none },               /* csk_system_namespace */
+  { "Collections", csk_system_namespace },
+                                        /* csk_system_collections_namespace */
+  { "Generic", csk_system_collections_namespace },
+                                /* csk_system_collections_generic_namespace */
   { NULL, csk_none },                   /* csk_system_byte_sign_unspecified */
   { "SByte", csk_system_namespace },    /* csk_system_sbyte */
   { "Byte", csk_system_namespace },     /* csk_system_byte */
@@ -4066,20 +4248,22 @@ EXTERN a_cli_symbol_name
   { "Void", csk_system_namespace },     /* csk_system_void */
   { "Object", csk_system_namespace },   /* csk_system_object */
   { "ValueType", csk_system_namespace },/* csk_system_value_type */
-  { "Enum", csk_system_namespace },	/* csk_system_enum */
+  { "Enum", csk_system_namespace },     /* csk_system_enum */
   { "Type", csk_system_namespace },     /* csk_system_type */
   { "String", csk_system_namespace },   /* csk_system_string */
-  { "Delegate", csk_system_namespace },	/* csk_system_delegate */
+  { "Delegate", csk_system_namespace }, /* csk_system_delegate */
   { "MulticastDelegate", csk_system_namespace },
                                         /* csk_system_multicast_delegate */
   { "IDisposable", csk_system_namespace },
                                         /* csk_system_idisposable */
-  { "Array", csk_system_namespace },	/* csk_system_array */
-  { "Nullable", csk_system_namespace },	/* csk_system_nullable */
+  { "Array", csk_system_namespace },    /* csk_system_array */
+  { "Nullable", csk_system_namespace }, /* csk_system_nullable */
   { "RuntimeArgumentHandle", csk_system_namespace },
-				/* csk_system_runtime_argument_handle */
-  { NULL, csk_none },                   /* csk_cli_namespace */
-  { NULL, csk_none },                   /* csk_system_namespace */
+                                      /* csk_system_runtime_argument_handle */
+  { "IEnumerable", csk_system_collections_namespace },
+                                      /* csk_system_collections_ienumerable */
+  { "IEnumerable", csk_system_collections_generic_namespace },
+                              /* csk_system_collections_generic_ienumerable */
   { NULL, csk_none },                   /* csk_cli_array */
   { NULL, csk_none },                   /* csk_interior_ptr */
   { NULL, csk_none },                   /* csk_pin_ptr */
@@ -4108,8 +4292,11 @@ a_cli_symbol_kind_tag/an_integer_kind/a_float_kind respectively.
 #define cli_symbol_from_float_kind(fk)                                \
   (cli_symbol_from_kind(float_kind_to_cli_symbol_kind((fk))))
 
+extern a_namespace_ptr f_cli_namespace_ptr_for(a_cli_symbol_kind kind);
 extern a_type_ptr f_cli_class_type_for(a_cli_symbol_kind kind);
 
+#define cli_namespace_ptr_for(csk)                                           \
+  (f_cli_namespace_ptr_for((a_cli_symbol_kind)(csk)))
 #define cli_class_type_for(csk)                                              \
   (f_cli_class_type_for((a_cli_symbol_kind)(csk)))
 
@@ -4129,18 +4316,9 @@ for a C++/CLI generic.
   ((sym)->variant.template_info->variant.class_template.arity)
 
 
-extern void make_symbol_for_namespace_cli(void);
-extern void make_symbol_for_cli_array(void);
-extern void make_symbol_for_cli_interior_ptr(void);
-extern void make_symbol_for_cli_pin_ptr(void);
-extern void make_symbol_for_namespace_system(void);
-extern void init_symbols_for_cli_system_types(void);
-extern void init_cli_symbols_corresponding_to_fundamental_types(void);
-extern void make_symbols_for_system_string_operators(void);
-extern a_type_ptr make_IEnumerable_type(void);
-extern a_boolean is_generic_cli_IEnumerable_type(a_type_ptr type,
+extern void init_cli_symbols(void);
+extern a_boolean is_generic_cli_ienumerable_type(a_type_ptr type,
                                                  a_type_ptr elem_type);
-
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN a_type_ptr
@@ -5254,7 +5432,7 @@ Extract the type from a type symbol (one for which is_type_symbol is TRUE).
 */
 #define type_symbol_type(sym)                                         \
   ((sym)->kind == (a_symbol_kind)sk_type ?                            \
-    (sym)->variant.type.ptr :                                             \
+    (sym)->variant.type.ptr :                                         \
     (((sym)->kind == (a_symbol_kind)sk_enum_tag) ?                    \
       (sym)->variant.enumeration.type :                               \
       (sym)->variant.class_struct_union.type))
