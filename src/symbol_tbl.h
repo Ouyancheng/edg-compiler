@@ -3540,7 +3540,7 @@ EXTERN a_cli_operator_info cli_operator_info[(int)cok_last + 1]
   { "op_UnaryPlus", "operator+", FALSE },
   { "op_UnsignedRightShift", NULL, FALSE  },
   { "op_UnsignedRightShiftAssignment", NULL, TRUE },
-  { "last" }, /* cok_last */
+  { "last", NULL, FALSE } /* cok_last */
 }
 #endif /* VAR_INITIALIZERS */
 ;

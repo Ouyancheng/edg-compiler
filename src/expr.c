@@ -28055,9 +28055,9 @@ If so, also return in *p_bcp the base class for the interface implemented.
       if (is_immediate_cli_interface_type(base_type)) {
         char *name = unmangled_name_of(&base_type->source_corresp);
         if (name != NULL && strcmp(name, "IEnumerable") == 0) {
-          if (same_entities(
-                    base_type,
-                    cli_class_type_for(csk_system_collections_ienumerable))) {
+          a_type_ptr  ienumerable =
+                        cli_class_type_for(csk_system_collections_ienumerable);
+          if (same_entities(base_type, ienumerable)) {
             /* This is the non-generic IEnumerable.  Save it and use it if
                no generic version turns up. */
             non_generic_bcp = bcp;

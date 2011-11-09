@@ -7110,11 +7110,11 @@ Look up the C++/CLI namespace or type specified by csk and cache it in the
 cli_symbols array.  This function assumes that mscorlib.dll has been imported.
 */
 {
-  char                       *name;
-  enum a_cli_symbol_kind_tag ns_kind;
+  char              *name;
+  a_cli_symbol_kind ns_kind;
 
   check_assertion((int)csk >= (int)csk_first && (int)csk < (int)csk_last);
-  name = cli_symbol_names[csk].name;
+  name = (a_cli_symbol_kind)cli_symbol_names[csk].name;
   ns_kind = cli_symbol_names[csk].namespace_kind;
   if (name != NULL) {
     a_namespace_ptr          ns_ptr = NULL;
@@ -7127,8 +7127,7 @@ cli_symbols array.  This function assumes that mscorlib.dll has been imported.
     if (ns_kind != (a_cli_symbol_kind)csk_none) {
       ns_ptr = cli_namespace_ptr_for(ns_kind);
     }  /* if */
-    cli_symbols[csk] = look_up_name_string_in_namespace(name, ns_ptr,
-                                                        options);
+    cli_symbols[csk] = look_up_name_string_in_namespace(name, ns_ptr, options);
     if (cli_symbols[csk] == NULL) {
       /* The symbol wasn't found in the parent namespace. */
       str_catastrophe(ec_cli_entity_not_loaded, name);
