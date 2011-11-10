@@ -19380,6 +19380,41 @@ signature that matches that of the delegate definition).
     }  /* if */
     decl_member_function(&member_loc, func_info, &class_state, &member_info,
                          /*compiler_generated=*/TRUE);
+    if (is_function_type(dps->type)) {
+      /* Add the BeginInvoke member (declaration only). */
+      clear_locator(&member_loc, &dps->declarator_pos);
+      (void)find_symbol("BeginInvoke", sizeof("BeginInvoke")-1, &member_loc);
+      initialize_member_decl_info(&member_info, &dps->specifiers_pos);
+      mdps->type = copy_routine_type_with_param_types(
+                                                 skip_typerefs(dps->type),
+                                                 /*copy_default_args=*/FALSE);
+      mdps->type->variant.routine.return_type =
+               make_handle_type(cli_class_type_for(csk_system_iasync_result));
+      add_param_type(mdps->type,
+                     make_handle_type(
+                              cli_class_type_for(csk_system_async_callback)));
+      add_param_type(mdps->type,
+                     make_handle_type(cli_class_type_for(csk_system_object)));
+      mdps->declared_type = mdps->type;
+      decl_member_function(&member_loc, func_info, &class_state, &member_info,
+                           /*compiler_generated=*/TRUE);
+      /* Add the EndInvoke member (declaration only). */
+      clear_locator(&member_loc, &dps->declarator_pos);
+      (void)find_symbol("EndInvoke", sizeof("EndInvoke")-1, &member_loc);
+      initialize_member_decl_info(&member_info, &dps->specifiers_pos);
+      mdps->type = make_routine_type(
+                        skip_typerefs(dps->type)->variant.routine.return_type,
+                        make_handle_type(
+                                cli_class_type_for(csk_system_iasync_result)),
+                        /*param2_type=*/NULL, /*param3_type=*/NULL,
+                        /*param4_type=*/NULL);
+      mdps->declared_type = mdps->type;
+      decl_member_function(&member_loc, func_info, &class_state, &member_info,
+                           /*compiler_generated=*/TRUE);
+    } else {
+      /* Presumably a template parameter type or an error type.  Don't
+         generate BeginInvoke and EndInvoke in that case. */
+    }  /* if */
   }  /* if */
   /* Add the one-argument constructor (declaration only). */
   make_locator_for_symbol(symbol_for(class_type), &member_loc);

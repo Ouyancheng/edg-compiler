@@ -4184,6 +4184,8 @@ enum a_cli_symbol_kind_tag {
   csk_system_array,
   csk_system_nullable,
   csk_system_runtime_argument_handle,
+  csk_system_async_callback,
+  csk_system_iasync_result,
   csk_system_collections_ienumerable,
   csk_system_collections_generic_ienumerable,
   csk_cli_array,
@@ -4261,6 +4263,10 @@ EXTERN a_cli_symbol_name
   { "Nullable", csk_system_namespace }, /* csk_system_nullable */
   { "RuntimeArgumentHandle", csk_system_namespace },
                                       /* csk_system_runtime_argument_handle */
+  { "AsyncCallback", csk_system_namespace },
+					/* csk_system_async_callback */
+  { "IAsyncResult", csk_system_namespace },
+					/* csk_system_iasync_result */
   { "IEnumerable", csk_system_collections_namespace },
                                       /* csk_system_collections_ienumerable */
   { "IEnumerable", csk_system_collections_generic_namespace },
