@@ -18920,6 +18920,14 @@ done here.
       param_used = template_param_used_in_type(
                           param_sym, rout_type->variant.routine.return_type);
     }  /* if */
+    if (!param_used && routine_type_is_nonstatic_member_function(rout_type)) {
+      /* In friend template declarations appearing in prototype instantiations
+         it is possible for the template parameter to be used in the "this"
+         parameter.  For example, "friend A<T>::A();". */
+      param_used = template_param_used_in_type(
+                           param_sym,
+                           rout_type->variant.routine.extra_info->this_class);
+    }  /* if */
     if (pack_seen && !param_used) {
       /* This is a non-initial pack that is not used in the function
          parameters -- there is no way it can be given a value. */
