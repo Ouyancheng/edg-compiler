@@ -19390,11 +19390,12 @@ signature that matches that of the delegate definition).
                                                  /*copy_default_args=*/FALSE);
       mdps->type->variant.routine.return_type =
                make_handle_type(cli_class_type_for(csk_system_iasync_result));
-      add_param_type(mdps->type,
-                     make_handle_type(
+      (void)add_param_type(mdps->type,
+                           make_handle_type(
                               cli_class_type_for(csk_system_async_callback)));
-      add_param_type(mdps->type,
-                     make_handle_type(cli_class_type_for(csk_system_object)));
+      (void)add_param_type(mdps->type,
+                           make_handle_type(
+                                      cli_class_type_for(csk_system_object)));
       mdps->declared_type = mdps->type;
       decl_member_function(&member_loc, func_info, &class_state, &member_info,
                            /*compiler_generated=*/TRUE);
