@@ -3980,6 +3980,22 @@ namespace projection symbols.
   return result;
 }  /* is_using_decl_to_same_type */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean symbol_is_for_cli_accessor(a_symbol_ptr  sym)
+/*
+Return TRUE if the given symbol represents a C++/CLI accessor, or an overload
+set of such accessors.
+*/
+{
+  if (symbol_is(sym, sk_overloaded_function)) {
+    sym = sym->variant.overloaded_function.symbols;
+  }  /* if */
+  return symbol_is(sym, sk_member_function) &&
+         rout_is_cli_accessor(sym->variant.routine.ptr);
+}  /* symbol_is_for_cli_accessor */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static
 a_boolean symbols_may_coexist_in_curr_scope(a_symbol_ptr  old_sym,
@@ -4251,6 +4267,11 @@ this is not allowed, an error will be issued by the caller.
         /* Record the non-generic symbol in the information about the
            generic. */
         non_generic_class_for_cli_generic(fund_old_sym) = fund_new_sym;
+      } else if (cppcli_enabled && old_sym->is_invisible &&
+                 symbol_is_for_cli_accessor(old_sym)) {
+        /* Property and event accessors don't conflict with members that
+           happen to have the same name. */
+        err = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
@@ -5956,13 +5977,18 @@ corresponding to the enclosing class definition.
     p_accessor_sym = &set_sym->variant.property_info->set_accessors;
   }  /* if */
   if (*p_accessor_sym == NULL) {
+    /* This is the first accessor of this kind in the set. */
     *p_accessor_sym = result =
                 enter_local_symbol((a_symbol_kind)sk_member_function, locator,
                                    depth, /*suppress_redecl_error=*/TRUE);
   } else {
+    /* At least one accessor of this kind is already present in the set.
+       Add another one and ensure the overload set symbol is marked invisible.
+       The accessor symbol itself will be marked invisible by the caller. */
     result = enter_overloaded_symbol((a_symbol_kind)sk_member_function,
                                      locator, /*is_constructor=*/FALSE,
                                      *p_accessor_sym, p_accessor_sym);
+    (*p_accessor_sym)->is_invisible = TRUE;
   }  /* if */
   return result;
 }  /* enter_cli_property_accessor */
