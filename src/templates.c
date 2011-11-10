@@ -6409,9 +6409,9 @@ is returned.
 #endif /* DEBUG */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled &&
-        (is_member_of_namespace_cli(class_type) ||
-         !is_standard_class_type(class_type))) {
-      /* Members of namespace cli and instances of C++/CLI generics cannot
+        (!cli_class_type_kind_is(class_type, cctk_standard) &&
+         is_member_of_namespace_cli(class_type))) {
+      /* Members of namespace cli and C++/CLI managed class instances cannot
          be specialized and should therefore not trigger source sequence
          entries that would be interpreted as specializations. */
     } else

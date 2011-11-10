@@ -4314,6 +4314,7 @@ for a C++/CLI generic.
   ((sym)->variant.template_info->variant.class_template.arity)
 
 
+extern void make_symbol_for_namespace_cli(void);
 extern void init_cli_symbols(void);
 extern a_boolean is_generic_cli_ienumerable_type(a_type_ptr type,
                                                  a_type_ptr elem_type);

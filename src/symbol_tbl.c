@@ -6903,7 +6903,7 @@ Return the type of the specified C++/CLI symbol kind.
 }  /* f_cli_class_type_for */
 
 
-static void make_symbol_for_namespace_cli(void)
+void make_symbol_for_namespace_cli(void)
 /*
 Predeclare namespace "cli".  This namespace is used in C++/CLI mode.
 */
@@ -7190,9 +7190,6 @@ Many of these symbols will be accessible through the cli_symbols array.
 */
 {
   int  csk;
-
-  /* First make the symbol for namespace ::cli. */
-  make_symbol_for_namespace_cli();
 
 #if CHECKING
   /* Check that the a_cli_symbol_kind_tag enumeration is correctly defined. */

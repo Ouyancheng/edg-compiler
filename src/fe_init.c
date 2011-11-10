@@ -285,6 +285,10 @@ enter_system_specific_predeclared_symbols; see sys_predef.c.)
     } else {
       /* Add a symbol for predeclared size_t (C++ mode only). */
       make_predeclared_size_t_symbol();
+      if (cppcli_enabled) {
+        /* Add symbol for ::cli namespace. */
+        make_symbol_for_namespace_cli();
+      }  /* if */
     }  /* if */
     if (bool_is_keyword && microsoft_version < 1310) {
       /* MSVC++ 6.0 and 7.0 treat "bool" as a predeclared typedef name, not
