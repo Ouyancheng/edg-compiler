@@ -1,5 +1,31 @@
 Version 4.4
 
+11/11/11 [EDGcpfe/12414]
+Emulation of g++ quirk on overload resolution, adding cv-qualifiers on "this"
+
+The front end now emulates a g++ quirk that treats an argument match
+with added cv-qualification on a "this" parameter as worse than an
+argument match with the same added cv-qualification under a reference
+on a parameter other than the "this" parameter.  This comes up when a
+const conversion function competes with a constructor with a
+reference-to-const parameter, for example:
+
+  struct A;
+  struct B {
+    operator A() const;
+  };
+  struct A {
+    A(const B&);
+  };
+  int main() {
+    B b;
+    A a = b;  // g++ treats as not ambiguous, A(const B&) wins
+  }
+
+g++ does get this right in -pedantic mode, so apparently it does
+recognize that it's nonstandard.
+
+
 11/8/11  [EDGcpfe/11590]
 Infinite loop on invalid template static data member
 

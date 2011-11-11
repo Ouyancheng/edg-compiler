@@ -5484,6 +5484,19 @@ apply that would make one better than the other, and return
                   cmp = 1;
                 }  /* if */
               }  /* if */
+            } else if (gpp_mode &&
+                       arg_match1->is_match_for_this_param !=
+                       arg_match2->is_match_for_this_param) {
+              /* g++ (still in 4.6) considers a match-with-added-cv-qualifiers
+                 on a "this" parameter to be worse than one on another
+                 parameter.  This comes up when comparing a const conversion
+                 function against a constructor with a reference-to-const
+                 parameter. */
+              if (arg_match1->is_match_for_this_param) {
+                cmp = -1;
+              } else {
+                cmp = 1;
+              }  /* if */
             }  /* if */
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
