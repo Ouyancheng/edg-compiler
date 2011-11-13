@@ -5484,19 +5484,6 @@ apply that would make one better than the other, and return
                   cmp = 1;
                 }  /* if */
               }  /* if */
-            } else if (gpp_mode &&
-                       arg_match1->is_match_for_this_param !=
-                       arg_match2->is_match_for_this_param) {
-              /* g++ (still in 4.6) considers a match-with-added-cv-qualifiers
-                 on a "this" parameter to be worse than one on another
-                 parameter.  This comes up when comparing a const conversion
-                 function against a constructor with a reference-to-const
-                 parameter. */
-              if (arg_match1->is_match_for_this_param) {
-                cmp = -1;
-              } else {
-                cmp = 1;
-              }  /* if */
             }  /* if */
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5967,6 +5954,58 @@ the standard, return cmp set accordingly:
   return cmp;
 }  /* compare_template_candidate_functions */
 
+
+static int compare_gpp_const_this_tiebreaker(a_candidate_function_ptr cfp1,
+                                             a_candidate_function_ptr cfp2)
+/*
+Compare two candidate functions.  If they can be distinguished on the
+basis of the g++ quirk that considers a match-with-added-cv-qualifiers
+on a "this" parameter to be worse than one on a non-this parameter,
+return cmp set accordingly:
+
+  +1 if cfp1 is better than cfp2,
+   0 if cfp1 and cfp2 are equally good, or
+  -1 if cfp1 is worse than cfp2.
+
+This is done as a candidate function tiebreaker because it has lower
+weight than the template/non-template difference.  This quirk is still there
+in g++ 4.6 (it goes away under -pedantic, so g++ must know it's
+nonstandard).
+*/
+{
+  int                      cmp = 0;
+  an_arg_match_summary_ptr arg_match1 = cfp1->arg_matches;
+  an_arg_match_summary_ptr arg_match2 = cfp2->arg_matches;
+
+  if (arg_match1 != NULL &&
+      arg_match2 != NULL &&
+      arg_match1->conversion.std.type_qualifiers_added &&
+      arg_match2->conversion.std.type_qualifiers_added &&
+      arg_match1->is_match_for_this_param !=
+      arg_match2->is_match_for_this_param) {
+    /* Both functions add cv-qualifiers, but only one is a "this" match. */
+    a_type_qualifier_set qualifiers1 = TQ_NONE,
+                         qualifiers2 = TQ_NONE;
+    if (is_ref_or_ref_equivalent(arg_match1->param_type, arg_match1)) {
+      a_type_ptr base_param_type1 = type_pointed_to(arg_match1->param_type);
+      qualifiers1 = simple_qualifiers(get_type_qualifiers(base_param_type1));
+    }  /* if */
+    if (is_ref_or_ref_equivalent(arg_match2->param_type, arg_match2)) {
+      a_type_ptr base_param_type2 = type_pointed_to(arg_match2->param_type);
+      qualifiers2 = simple_qualifiers(get_type_qualifiers(base_param_type2));
+    }  /* if */
+    if (qualifiers1 == qualifiers2) {
+      /* The qualifiers added are the same, so all the conditions are met. */
+      if (arg_match1->is_match_for_this_param) {
+        cmp = -1;
+      } else {
+        cmp = 1;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return cmp;
+}  /* compare_gpp_const_this_tiebreaker */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static int creates_param_array(a_candidate_function_ptr cfp)
@@ -6125,6 +6164,9 @@ other.  Return
              (cmp = compare_template_candidate_functions(cfp1, cfp2)) != 0) {
     /* The fact that one function is a function template and the other
        is not can serve as a tie-breaker. */
+  } else if (gpp_mode &&
+             (cmp = compare_gpp_const_this_tiebreaker(cfp1, cfp2)) != 0) {
+    /* g++ has a tiebreaker related to const "this" parameters. */
   } else if (cfp1->is_function_template && cfp2->is_function_template) {
     /* cfp1 and cfp2 are function templates.  Determine whether either of
        the templates is more specialized than the other. */
