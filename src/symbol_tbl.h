@@ -292,8 +292,8 @@ typedef struct a_symbol_locator {
 			   and we are not recording prototype instantiations
 			   in the IL. */
   union {
-    /* When both is_operator_name and is_conversion_name are FALSE, both
-       variants are undefined. */
+    /* When is_operator_name, is_conversion_name, is_destructor_name, and
+       is_finalizer_name are all FALSE, the variants are undefined. */
     /* When is_operator_name is TRUE: */
     an_opname_kind
 		opname;
@@ -3636,8 +3636,12 @@ typedef struct a_symbol_header {
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	is_cli_operator:1;
-			/* TRUE if the symbol header is for the metadata
-			   representation of a CLI operator. */
+			/* TRUE C++/CLI mode if the symbol header is for a
+			   name that matches to the metadata name of a CLI
+			   operator.  (The symbols under this header may not
+			   actually represent CLI operators, but this flag
+			   permits a more efficient check in contexts where
+			   CLI operator names are reserved.) */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_symbol_header;
 

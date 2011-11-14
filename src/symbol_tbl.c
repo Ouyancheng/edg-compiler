@@ -6888,8 +6888,9 @@ static void init_cli_symbol(a_cli_symbol_kind  csk);
 
 static a_namespace_ptr f_cli_namespace_ptr_for(a_cli_symbol_kind kind)
 /*
-Return the namespace for the specified C++/CLI symbol kind if it is a
-namespace symbol.
+The given C++/CLI symbol kind must designate a one of the C++/CLI namespaces
+known to the front end (like "System" or "cli").  Return IL entry for that
+namespace.
 */
 {
   a_symbol_ptr sym;
@@ -6911,7 +6912,9 @@ namespace symbol.
 
 a_type_ptr f_cli_class_type_for(a_cli_symbol_kind kind)
 /*
-Return the type of the specified C++/CLI symbol kind.
+The given C++/CLI symbol kind must designate one of the C++/CLI class types
+known to the front end (e.g., "System::Float", but not e.g. "cli::array",
+which is a template).  Return the IL entry for that class type.
 */
 {
   a_symbol_ptr sym;

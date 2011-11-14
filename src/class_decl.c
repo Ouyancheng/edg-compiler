@@ -22352,7 +22352,7 @@ appropriate.
             is_reserved_name = !info->is_assignment_operator &&
                                info->cpp_name != NULL;
           } else {
-            /* Any other use of CLI operator names are reserved. */
+            /* Other uses of CLI operator names are reserved. */
             is_reserved_name = TRUE;
           }  /* if */
           break;

@@ -1206,9 +1206,9 @@ new fields are set properly.
       if (cppcli_enabled && class_type != NULL &&
           !is_nonstatic_member_function &&
           cli_class_type_kind_is(class_type, cctk_value)) {
-        /* For special value class types (like System::Double) that
-           correspond to fundamental types, static member operators will have
-           those fundamental types parameter types.  This satisfies the
+        /* For special value class types (like System::Double) that correspond
+           to fundamental types, static member operators will have those
+           fundamental types as parameter types.  This satisfies the
            requirement of a parameter matching class_type. */
         a_type_ptr  fund = fundamental_type_from_system_type(class_type);
         if (fund != NULL &&
