@@ -29199,7 +29199,7 @@ created, needed to reactivate that scope.
   an_operand          end_call_operand;
   a_boolean           passed = TRUE;
   a_source_position   pos;
-  a_type_ptr          collection_type;
+  a_type_ptr          collection_type, begin_type, end_type;
   an_expr_stack_entry expr_stack_entry;
   a_variable_ptr      temp_var, cend_var;
 
@@ -29235,6 +29235,7 @@ created, needed to reactivate that scope.
   cend_var = alloc_temporary_variable(end_call_operand.type,
                                       /*force_static=*/FALSE);
   felp->variant.stl_array_pattern.end_variable = cend_var;
+  end_type = end_call_operand.type;
   set_variable_initializer(cend_var, &end_call_operand);
   /* Done with "cref.end()". */
   pop_expr_stack();
@@ -29256,14 +29257,14 @@ created, needed to reactivate that scope.
   temp_var = alloc_temporary_variable(begin_call_operand.type,
                                       /*force_static=*/FALSE);
   felp->temporary_variable = temp_var;
+  begin_type = begin_call_operand.type;
   set_variable_initializer(temp_var, &begin_call_operand);
   /* Done with "cref.begin()". */
   pop_expr_stack();
   if (passed) {
-    if (!types_are_compatible(begin_call_operand.type,
-                              end_call_operand.type) ||
-        (!is_overloadable_first_operand_type(begin_call_operand.type) &&
-         !is_pointer_or_handle_type(begin_call_operand.type))) {
+    if (!types_are_compatible(begin_type, end_type) ||
+        (!is_overloadable_first_operand_type(begin_type) &&
+         !is_pointer_or_handle_type(begin_type))) {
       /* The return types of "begin" and "end" are not compatible.  Or,
          the return type is not overloadable and it's not a pointer or
          handle. */
