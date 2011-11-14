@@ -6889,7 +6889,7 @@ static void init_cli_symbol(a_cli_symbol_kind  csk);
 static a_namespace_ptr f_cli_namespace_ptr_for(a_cli_symbol_kind kind)
 /*
 The given C++/CLI symbol kind must designate a one of the C++/CLI namespaces
-known to the front end (like "System" or "cli").  Return IL entry for that
+known to the front end (like "System" or "cli").  Return the IL entry for that
 namespace.
 */
 {
