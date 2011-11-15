@@ -1224,6 +1224,13 @@ typedef struct a_member_decl_info {
 		named_overrides;
 			/* A list of symbols representing named override
 			   specifiers in C++/CLI mode. */
+  a_pending_pragma_ptr
+		suspended_pragmas;
+			/* A list of current construct pragmas that were
+			   temporarily "suspended" because this declaration's
+			   processing may have to be delayed until after other
+			   pragmas appear.  (Used in for C++/CLI properties
+			   and events.) */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_member_decl_info;
 
@@ -1272,6 +1279,7 @@ a class member declaration as it appears.
   /* bit_field_size is only set when is_bit_field is TRUE. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   mdip->named_overrides = NULL;
+  mdip->suspended_pragmas = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* initialize_member_decl_info */
 
@@ -19807,13 +19815,52 @@ list.
 }  /* scan_cli_property_indices */
 
 
-static void scan_cli_property_or_event_head(
-                                          a_class_def_state   *class_state,
-                                          a_member_decl_info  *decl_info,
-                                          a_decl_pos_block    *decl_pos_block)
+static void decl_property_or_event_member(
+                                      a_class_def_state          *class_state,
+                                      a_member_decl_info         *decl_info,
+                                      a_symbol_locator           *loc,
+                                      a_property_or_event_descr  *pdp)
 /*
-A C++/CLI property or event declaration is next.  Scan its "head" and update
-the IL and symbol table accordingly.  The "head" of a property declaration has
+class_state, decl_info, loc, and pdp describe a property or event declaration.
+Create the associated field or static data member as appropriate.  For trivial
+properties and events, this is done as soon as the "head" of the property/event
+declaration is parsed.  For nontrivial properties and events, this is delayed
+until the storage specifier of the first accessor has been seen, because that
+storage specifier may affect whether the property/event is static or not.
+*/
+{
+  /* Since the property or event "head" was scanned, we may have encountered
+     new pragmas: Temporarily set them aside and restore any pragmas that were
+     saved for the property/event declaration. */
+  a_pending_pragma_ptr  new_pragmas = scope_stack_top().curr_construct_pragmas;
+
+  scope_stack_top().curr_construct_pragmas = decl_info->suspended_pragmas;
+  decl_info->suspended_pragmas = NULL;
+  if (pdp->is_static) {
+    a_decl_parse_state  *dps = &decl_info->decl_state;
+    decl_static_data_member(loc, class_state, decl_info);
+    check_assertion(dps->sym != NULL &&
+                    dps->sym->kind == (a_symbol_kind)sk_static_data_member);
+    pdp->variant.variable = dps->sym->variant.static_data_member.variable;
+  } else {
+    a_scope_depth effective_decl_level;
+    effective_decl_level = class_type_supp(class_state->class_type)
+                                         ->assoc_scope->depth_in_scope_stack;
+    check_assertion(effective_decl_level != NO_SCOPE_DEPTH);
+    pdp->variant.field = decl_nonstatic_data_member(loc, class_state,
+                                                    decl_info,
+                                                    effective_decl_level);
+  }  /* if */
+  scope_stack_top().curr_construct_pragmas = new_pragmas;
+}  /* decl_property_or_event_member */
+
+
+static void scan_cli_property_or_event_head(a_class_def_state   *class_state,
+                                            a_member_decl_info  *decl_info,
+                                            a_member_decl_info  *pe_info,
+                                            a_symbol_locator    *pe_loc)
+/*
+A C++/CLI property or event declaration is next.  Scan its "head", which has
 the following syntax:
    property-or-event-modifier(opt) property type-specifier-seq declarator
      property-indices(opt) {-or-;
@@ -19824,8 +19871,13 @@ The "head" of an event declaration is similar:
    property-or-event-modifier(opt) event type-specifier-seq ^(opt)
      identifier {-or-;
 *class_state holds information of the enclosing class (whose definition is
-being parsed), *decl_info describes the current member declaration, and
+being parsed) and *decl_info describes the current member declaration.
 *decl_pos_block tracks extended position information.
+This function creates an entry of type a_property_or_event_descr and points
+class_state to it.  For trivial properties and events, the associated field or
+static data member is also created (along with a symbol).  For nontrivial
+properties and events that processing must be delayed until the first accessor
+declaration is seen; store the information to do so in *pe_info and *pe_loc.
 */
 {
   a_decl_parse_state    *dps = &decl_info->decl_state;
@@ -19884,7 +19936,7 @@ being parsed), *decl_info describes the current member declaration, and
   }  /* if */
   (void)get_token();
   type_pos = pos_curr_token;
-  decl_specifiers(dsi_flags, dps, decl_pos_block);
+  decl_specifiers(dsi_flags, dps, &decl_info->decl_pos_block);
   /* Most nontype specifiers will have been diagnosed by decl_specifiers (or
      caused check_for_cli_field_modifier not to treat "property" or "event" as
      a keyword): */
@@ -19948,7 +20000,8 @@ being parsed), *decl_info describes the current member declaration, and
                                  (a_call_conv_descr_ptr)NULL,
                                  (a_type_qualifier_set *)NULL,
                                  (a_type_qualifier_set *)NULL,
-                                 &ptr_to_member_scanned, decl_pos_block);
+                                 &ptr_to_member_scanned,
+                                 &decl_info->decl_pos_block);
   /* The type constraints for properties and events differ. */
   if (is_property) {
     if (is_array_type(dps->type) || is_function_type(dps->type)) {
@@ -20036,22 +20089,14 @@ being parsed), *decl_info describes the current member declaration, and
   if (use_error_type) {
     dps->type = error_type();
   }  /* if */
-  if (pdp->is_static) {
-    decl_static_data_member(&loc, class_state, decl_info);
-    check_assertion(dps->sym != NULL &&
-                    dps->sym->kind == (a_symbol_kind)sk_static_data_member);
-    pdp->variant.variable = dps->sym->variant.static_data_member.variable;
-  } else {
-    a_scope_depth effective_decl_level;
-    effective_decl_level = class_type_supp(class_type)->assoc_scope
-                                                      ->depth_in_scope_stack;
-    check_assertion(effective_decl_level != NO_SCOPE_DEPTH);
-    pdp->variant.field = decl_nonstatic_data_member(&loc, class_state,
-                                                    decl_info,
-                                                    effective_decl_level);
-  }  /* if */
   ctsp->has_direct_property_or_event = TRUE;
+  /* Save the pending pragmas so that they can be restored when the data
+     member associated with the property or event is created (which may be
+     delayed until processing of the first accessor has started). */
+  decl_info->suspended_pragmas = scope_stack_top().curr_construct_pragmas;
+  scope_stack_top().curr_construct_pragmas = NULL;
   if (pdp->is_trivial) {
+    decl_property_or_event_member(class_state, decl_info, &loc, pdp);
     if (is_property) {
       if (pdp->indices != NULL) {
         /* A trivial property cannot be an indexed property. */
@@ -20071,7 +20116,19 @@ being parsed), *decl_info describes the current member declaration, and
     (void)get_token();
     class_state->property_or_event_descr = NULL;
   } else {
-    /* A nontrivial property or event. */
+    /* A nontrivial property or event.  The associated field or static data
+       member will be declared later (normally, after we've scanned the
+       specifiers for the first accessor): Save the declaration state to
+       allow processing to be resumed at that time.  The declaration is not
+       delayed in some error cases. */
+    if (pe_info == NULL) {
+      /* We may end up here with an attempt to declare a property template. */
+      expect_error();
+      decl_property_or_event_member(class_state, decl_info, &loc, pdp);
+    } else {
+      *pe_info = *decl_info;
+      *pe_loc = loc;
+    }  /* if */
     (void)required_token(tok_lbrace, ec_exp_lbrace);
     class_state->property_or_event_descr = pdp;
     treat_declaration_as_okay_in_property_or_event(class_state);
@@ -20083,14 +20140,17 @@ done:
 
 
 static void check_cli_accessor_decl(a_class_def_state   *class_state,
-                                    a_source_position   *diag_pos)
+                                    a_source_position   *diag_pos,
+                                    a_member_decl_info  *pe_info,
+                                    a_symbol_locator    *pe_loc)
 /*
 A member declaration was just completed within the braces of a C++/CLI
 property or event definition.  Check that the declaration is valid and issue
 a diagnostic at the given position if it is not so.  If the closing brace of
 the property or event declaration is next, scan it, diagnose any missing
 accessor functions, and update the IL accordingly.  class_state represents the
-innermost function being defined.
+innermost class being defined.  *pe_info and *pe_loc describe the property or
+event declaration "head" (see scan_cli_property_or_event_head).
 */
 {
   a_property_or_event_descr_ptr  pedp = class_state->property_or_event_descr;
@@ -20113,12 +20173,6 @@ innermost function being defined.
        over the token and update class_state to indicate we're no longer in a
        property or event definition.  Also check that any required accessor
        functions have been declared. */
-    a_source_position_ptr  decl_pos;
-    if (pedp->is_static) {
-      decl_pos = &pedp->variant.variable->source_corresp.decl_position;
-    } else {
-      decl_pos = &pedp->variant.field->source_corresp.decl_position;
-    }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     pedp->definition_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -20126,13 +20180,22 @@ innermost function being defined.
       /* Check that at least one of the "get" and "set" accessors have been
          declared. */
       if (pedp->get_routine.ptr == NULL && pedp->set_routine.ptr == NULL) {
-        pos_error(ec_missing_get_and_set_accessors, decl_pos);
+        pos_error(ec_missing_get_and_set_accessors, &pe_loc->source_position);
       }  /* if */
     } else {
       /* Check that both "add" and "remove" have been declared. */
       if (pedp->add_routine == NULL || pedp->remove_routine == NULL) {
-        pos_error(ec_missing_add_or_remove_accessor, decl_pos);
+        pos_error(ec_missing_add_or_remove_accessor, &pe_loc->source_position);
       }  /* if */
+    }  /* if */
+    if ((pedp->is_static && pedp->variant.variable == NULL) ||
+        (!pedp->is_static && pedp->variant.field == NULL)) {
+      /* A declaration within the braces of the property or event definition
+         ordinarily triggers the creation of the associated field or static
+         data member.  If no such declaration was encountered (an error)
+         create the associated member now. */
+      expect_error();
+      decl_property_or_event_member(class_state, pe_info, pe_loc, pedp);
     }  /* if */
     (void)get_token();
     class_state->property_or_event_descr = NULL;
@@ -20910,10 +20973,10 @@ class type.  Check that dps->type is a valid type for such a declaration.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS
+#if !GENERATE_SOURCE_SEQUENCE_LISTS || !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* instance and template_decl is not used unless source
                 sequence lists are generated. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS || !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_symbol_ptr class_member_declaration(
                       a_type_ptr               class_type,
                       a_class_def_state_ptr    class_state,
@@ -20921,6 +20984,8 @@ static a_symbol_ptr class_member_declaration(
                       a_boolean                is_member_template,
                       a_template_param_ptr     templ_param_list,
                       a_boolean                *skip_semicolon_check,
+                      a_member_decl_info       *pe_info,
+                      a_symbol_locator         *pe_loc,
                       a_type_ptr               *member_template_instance_type,
                       a_template_instance_ptr  instance,
                       a_template_ptr           il_template_entry,
@@ -20932,6 +20997,10 @@ tracking general information about the class.  ms_attributes points to a
 list of Microsoft attributes that have already been parsed for this
 declaration (if any). *skip_semicolon_check is returned TRUE if the caller
 should suppress the check for a semicolon following the member declaration.
+*pe_info and *pe_loc point to storage that persists between consecutive calls
+to this function: This storage is used to hold a property or event description
+until the associated field of static data member can be declared (which can
+often not be done until the first accessor declaration has been seen).
 templ_param_list is non-NULL for function template declarations.
 decl_pos_block_ptr is non-NULL when then extra source position information
 collected during this declaration needs to be returned to the caller.
@@ -21009,8 +21078,8 @@ passed via template_decl.
       if (check_for_cli_field_modifier(decl_state)) {
         if (decl_state->has_cli_property_keyword ||
             decl_state->has_cli_event_keyword) {
-          scan_cli_property_or_event_head(class_state, &decl_info,
-                                          &decl_info.decl_pos_block);
+          scan_cli_property_or_event_head(class_state, &decl_info, pe_info,
+                                          pe_loc);
           *skip_semicolon_check = TRUE;
           goto next_declaration;
         } else {
@@ -21052,6 +21121,23 @@ passed via template_decl.
   remove_stop_token(tok_colon);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
+    a_property_or_event_descr_ptr  pdp = class_state->property_or_event_descr;
+    if (cppcli_enabled && pdp != NULL &&
+        ((pdp->is_static && pdp->variant.variable == NULL) ||
+         (!pdp->is_static && pdp->variant.field == NULL))) {
+      /* A property/event accessor is presumably next.  If that accessor is
+         declared static, the property/event should also be static (except for
+         some error situations such as a property declared with "virtual"
+         having a "static" accessor). */
+      if (!pdp->is_virtual && !pdp->is_default_indexed &&
+          decl_state->declared_storage_class == (a_storage_class)sc_static) {
+        pdp->is_static = TRUE;
+      }  /* if */
+      /* It is now safe to declare the field or static data member associated
+         with the property/event since we now know whether it is static or
+         not. */
+      decl_property_or_event_member(class_state, pe_info, pe_loc, pdp);
+    }  /* if */
     consume_any_stray_microsoft_rparen();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -21749,6 +21835,8 @@ is the template parameter list for the function template.
                                  dps->ms_attributes,
                                  /*is_member_template=*/TRUE,
                                  templ_param_list, &skip_semicolon_check,
+                                 (a_member_decl_info*)NULL,
+                                 (a_symbol_locator*)NULL,
                                  &dummy_type, (a_template_instance_ptr)NULL,
                                  il_template_entry,
                                  decl_pos_block_ptr);
@@ -21805,6 +21893,8 @@ instance record associated with this instantiation.
                                  /*is_member_template=*/FALSE,
                                  (a_template_param_ptr)NULL,
                                  &skip_semicolon_check,
+                                 (a_member_decl_info*)NULL,
+                                 (a_symbol_locator*)NULL,
                                  &member_template_instance_type, instance,
                                  (a_template_ptr)NULL,
                                  (a_decl_pos_block *)NULL);
@@ -23276,6 +23366,8 @@ classes.
         add_error_field(class_type, &class_state.end_of_field_list);
       }  /* if */
     } else {
+      a_member_decl_info  pe_info;
+      a_symbol_locator    pe_loc;
       if (class_type->kind == (a_type_kind)tk_class
 #if MICROSOFT_EXTENSIONS_ALLOWED
           && !cli_class_type_kind_is(class_type, cctk_interface)
@@ -23335,7 +23427,7 @@ classes.
             (C_dialect == C_dialect_cplusplus ||
              !(class_state.is_first_field && next_token() == tok_rbrace))) {
           /* No declaration -- just a semicolon.  Issue a warning (or error in
-             strict ANSI mode).  Note: in C mode we bypass the "extra ':'"
+             strict ANSI mode).  Note: in C mode we bypass the "extra ';'"
              diagnostic when there are no fields in the struct -- i.e.,
              "struct S { ; };" is treated just like "struct S { };". */
           pos_diagnostic(strict_ansi_mode ?
@@ -23468,7 +23560,7 @@ classes.
                                        /*is_template_member=*/FALSE,
                                        (a_template_param_ptr)NULL,
                                        &skip_semicolon_check,
-                                       &dummy_type,
+                                       &pe_info, &pe_loc, &dummy_type,
                                        (a_template_instance_ptr)NULL,
                                        (a_template_ptr)NULL,
                                        (a_decl_pos_block *)NULL);
@@ -23494,7 +23586,8 @@ next_declaration:
         remove_stop_token(tok_semicolon);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (class_state.property_or_event_descr != NULL) {
-          check_cli_accessor_decl(&class_state, &decl_start_pos);
+          check_cli_accessor_decl(&class_state, &decl_start_pos, &pe_info,
+                                  &pe_loc);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Keep processing member declarations until the closing brace or

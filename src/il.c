@@ -6882,8 +6882,7 @@ put it on a list of constants).
     /* If we're not in the front end, the shareable constants table is
        not available, nor is the assoc_info pointer. */
     scp = alloc_unshared_constant(cp);
-  } else if ((assoc_symbol = ((a_symbol_ptr)cp->source_corresp.assoc_info)) !=
-                                                                        NULL) {
+  } else if ((assoc_symbol = symbol_for(cp)) != NULL) {
     /* For constants with a source correspondence indicated, find the
        "master" copy by going up the source correspondence link and back
        down again. */
