@@ -57,6 +57,8 @@ a_type_ptr prescan_and_find_declarator(a_token_cache *decl_token_cache_ptr,
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 extern void prescan_decl_modifiers(void);
+
+extern a_boolean static_member_next(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 
 #endif /* DISAMBIG_H */

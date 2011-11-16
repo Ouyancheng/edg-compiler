@@ -55,6 +55,14 @@ typedef struct a_disambig_state {
   a_boolean	saved_in_disambiguation;
 			/* The value of the scope stack in_disambiguation
 			   flag at the start of disambiguation. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean	find_static_specifier_only;
+			/* TRUE if we are only scanning for the presence of a
+			   "static" specifier. */
+  a_boolean	static_specifier_seen;
+			/* TRUE if the "static" keyword was seen as a
+			   declaration specifier. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_token_sequence_number
 		first_tsn;
 			/* The value of curr_token_sequence_number at the
@@ -97,6 +105,10 @@ cache of the tokens fetched for disambiguation should be created.
   ssep = &scope_stack_top();
   dsp->saved_in_disambiguation = ssep->in_disambiguation;
   ssep->in_disambiguation = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  dsp->find_static_specifier_only = FALSE;
+  dsp->static_specifier_seen = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* init_disambig_state */
 
 
@@ -629,8 +641,13 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         if (auto_type_specifier_enabled) type_specifier_seen = TRUE;
         break;
       /* Storage class specifiers. */
-      case tok_register:
       case tok_static:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        state->static_specifier_seen = TRUE;
+        if (state->find_static_specifier_only) goto done;
+        /*FALLTHROUGH*/
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case tok_register:
       case tok_extern:
       case tok_mutable:
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
@@ -832,6 +849,16 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
     if (!is_decl_specifier_token) break;
     any_decl_specifiers = TRUE;
     if (!next_token_fetched) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (state->find_static_specifier_only && type_specifier_seen &&
+          next_token() == tok_identifier) {
+        /* We're only interested in the presence of the "static" specifier.
+           An identifier is next and it cannot be the type specifier (since
+           we've already seen it).  Stop the scanning now since coalescing
+           the identifier could trigger a spurious error. */
+        goto done;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Cache this token and get the next one. */
       get_token_and_coalesce_if_identifier(flags);
     }  /* if */
@@ -842,6 +869,9 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
        scope declarations. */
     state->may_be_decl = is_template_decl(flags);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+done:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return;
 }  /* prescan_decl_specifiers */
 
@@ -1249,6 +1279,9 @@ evidence to the contrary.
     /* Scan the decl specifiers. */
     prescan_decl_specifiers(state, flags);
     if (terminate_disambiguation(state)) goto done;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (state->find_static_specifier_only) goto done;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     for (;;) {
       /* Parenthesized initializers are only allowed in contexts
          in which only real declarators are allowed, but not in
@@ -1621,6 +1654,27 @@ present.
 }  /* prescan_decl_modifiers */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean static_member_next(void)
+/*
+Return TRUE if the upcoming token sequence looks like a static member
+declaration.
+*/
+{
+  a_disambig_state  state;
+
+  /* Initialize the disambiguation state block. */
+  init_disambig_state(&state, /*suppress_packs=*/FALSE,
+                      /*cache_tokens=*/TRUE);
+  state.find_static_specifier_only = TRUE;
+  prescan_declaration(&state, DFS_REAL_DECLARATOR_ALLOWED,
+                     /*is_top_level=*/TRUE);
+  wrapup_disambig_state(&state);
+  return state.static_specifier_seen;
+}  /* static_member_next */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /******************************************************************************
 *                                                             \  ___  /       *
