@@ -23047,6 +23047,10 @@ classes.
 #endif /* DO_IL_LOWERING && IA64_ABI */
   a_source_position               end_pos;
   a_boolean                       access_checks_deferred = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_member_decl_info              pe_info;
+  a_symbol_locator                pe_loc;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "scan_class_definition");
   initialize_class_def_state(class_type, &class_state);
@@ -23368,8 +23372,6 @@ classes.
       }  /* if */
     } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      a_member_decl_info  pe_info;
-      a_symbol_locator    pe_loc;
       if (cppcli_enabled) {
         /* C++/CLI property and event definitions can consist of multiple
            "member declarations": A "head", followed by one or more accessor
