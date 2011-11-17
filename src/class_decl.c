@@ -9481,10 +9481,10 @@ a diagnostic should be issued by the caller.
       compat = TRUE;
     } else {
       /* Namespace-scope declarations cannot conflict in this way. */
-      if (microsoft_mode && types_are_strictly_compatible(
-                                         tp1->variant.routine.return_type,
-                                         tp2->variant.routine.return_type)) {
-        /* Microsoft compilers do not flag this case as an error
+      if ((microsoft_mode || gpp_mode) &&
+          types_are_strictly_compatible(tp1->variant.routine.return_type,
+                                        tp2->variant.routine.return_type)) {
+        /* Microsoft and GNU compilers do not flag this case as an error
            (though an ambiguity error is issued at a point of use). */
       } else if (gpp_mode && using_sym->defined) {
         /* GCC accepts this case even when the return types are incompatible,

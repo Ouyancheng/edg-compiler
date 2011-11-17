@@ -1,5 +1,22 @@
 Version 4.4
 
+11/17/11 [EDGcpfe/12429]
+Spurious error on template referring to extern "C" declaration in GNU C++ mode
+
+In some GNU C++ modes, the front end incorrectly handled certain declarations
+of extern "C" functions previously also imported from another namespace via a
+using-declaration.  This manifested itself as a spurious error when a template
+refers the extern "C" function.  For example:
+
+  namespace N { extern "C" { void f(); } } 
+  using N::f; 
+  template<typename T> void g() { f(); }
+  extern "C" void f();
+  template void g<int>();  // Spurious error "no instance ... matches ...".
+
+This is now fixed.
+
+
 11/17/11 [EDGcpfe/12450]
 Improvement in handling of GNU C transparent unions
 
