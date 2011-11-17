@@ -1645,6 +1645,10 @@ typedef struct a_lexical_state_stack_entry {
   a_token_cache	cache;
 			/* The cache used to save tokens when cache_tokens is
 			   TRUE. */
+  a_byte_boolean
+		caching_tokens;
+			/* The saved value of caching_tokens when the state
+			   stack was pushed. */
 } a_lexical_state_stack_entry;
 
 EXTERN a_lexical_state_stack_entry_ptr

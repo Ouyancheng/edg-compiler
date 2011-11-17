@@ -12003,6 +12003,8 @@ to it.
   lssep->next = NULL;
   lssep->cache_tokens = 0;
   lssep->last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
+  lssep->caching_tokens = FALSE;
+  lssep->error_position = null_source_position;
   clear_token_cache(&lssep->cache, /*is_reusable=*/FALSE);
   return lssep;
 }  /* alloc_lexical_state_stack_entry */
@@ -12020,6 +12022,8 @@ is saved for use when the stack is popped.
   lssep = alloc_lexical_state_stack_entry();
   lssep->next = curr_lexical_state_stack_entry;
   lssep->error_position = error_position;
+  lssep->caching_tokens = caching_tokens;
+  caching_tokens = FALSE;
   curr_lexical_state_stack_entry = lssep;
   /* Push a new stop token stack entry too. */
   push_stop_token_stack();
@@ -12045,6 +12049,7 @@ to alter the consistency check at the end of the routine.
   /* Add the old entry to the list of available stack entries. */
   lssep->next = avail_lexical_state_stack_entries;
   error_position = lssep->error_position;
+  caching_tokens = lssep->caching_tokens;
   /* Discard any tokens that may have been cached. */
   discard_token_cache(&lssep->cache);
   avail_lexical_state_stack_entries = lssep;
