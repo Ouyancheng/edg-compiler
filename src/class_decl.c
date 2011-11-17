@@ -5055,6 +5055,7 @@ implement that inheritance.
   b_params = b_templ->variant.template_info->cache.decl_info->parameters;
   if (!equivalent_generic_constraints_for_param_lists(
                                 d_params, b_params, /*issue_error=*/FALSE,
+                                /*ignore_empty_gclist2=*/FALSE,
                                 &mismatched_constraint)) {
     a_source_position_ptr  diag_pos = NULL;
     a_boolean              inherit_constraints = FALSE;

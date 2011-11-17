@@ -868,6 +868,7 @@ extern a_boolean equivalent_generic_constraints_for_param_lists(
                               a_template_param_ptr      list1,
                               a_template_param_ptr      list2,
                               a_boolean                 issue_error,
+                              a_boolean                 ignore_empty_gclist2,
                               a_generic_constraint_ptr  *p_mismatch_in_list1);
 
 void verify_generic_arg_list_satisfies_constraints(

@@ -404,6 +404,12 @@ static a_variadic_param_info_ptr
 static a_deferred_constraint_check_ptr
 		avail_deferred_constraint_checks;
 			/* Previously allocated entries available for reuse. */
+
+static a_boolean
+		do_strict_constraint_checking;
+			/* TRUE if constraints should be checked according
+			   to ECMA-372 instead of the more lax checking
+			   done by the Microsoft compiler. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean
@@ -2054,6 +2060,7 @@ a_boolean equivalent_generic_constraints_for_param_lists(
                                a_template_param_ptr      list1,
                                a_template_param_ptr      list2,
                                a_boolean                 issue_error,
+                               a_boolean                 ignore_empty_gclist2,
                                a_generic_constraint_ptr  *p_mismatch_in_list1)
 /*
 Return TRUE if the generic constraints for the given lists of template
@@ -2061,6 +2068,8 @@ parameters are equivalent.  Otherwise, return FALSE and if the first list
 (list1) contains a constraint that has no match in the second list, return the
 first such constraint in *p_mismatch_in_list1 (if it is not NULL).  If
 issue_error is TRUE, a diagnostic is issued if a mismatch is found.
+If ignore_empty_gclist2 is TRUE, the constraint checking will be suppressed
+if the constraint list from parameters from list2 is empty.
 */
 {
   a_boolean             result = TRUE;
@@ -2083,7 +2092,8 @@ issue_error is TRUE, a diagnostic is issued if a mismatch is found.
                                                          ->generic_constraints;
     gclist2 = generic_param2->variant.template_param.extra_info
                                                          ->generic_constraints;
-    if (!equivalent_generic_constraint_lists(gclist1, gclist2,
+    if ((!ignore_empty_gclist2 || gclist2 != NULL) &&
+        !equivalent_generic_constraint_lists(gclist1, gclist2,
                                              p_mismatch_in_list1)) {
       result = FALSE;
       /* If we are not issuing errors, we can stop at the first mismatch. */
@@ -13258,7 +13268,8 @@ done:
 
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- check_parent_constraints is not used in this case. */
+/*ARGSUSED*/  /* <-- allow_missing_member_constraint is not used
+                 in this case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean reconcile_template_param_lists(
 			a_template_param_ptr param_list,
@@ -13266,7 +13277,7 @@ static a_boolean reconcile_template_param_lists(
 			a_source_position    *error_pos,
 			a_boolean	     default_allowed,
 			a_boolean	     checking_parent_params,
-			a_boolean	     check_parent_constraints,
+			a_boolean	     allow_missing_member_constraint,
 			a_boolean	     allow_nesting_depth_mismatch,
 			an_error_severity    error_severity)
 /*
@@ -13290,8 +13301,11 @@ Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
 default_allowed is TRUE if a default argument is permitted in the new argument
 list (the one specified by param_list).  checking_parent_params is TRUE
 for a member of class template being defined outside of its class.  It is
-FALSE for the redeclaration of a class template.  check_parent_constraints
-is TRUE if the constraints of the parent class should be checked.
+FALSE for the redeclaration of a class template.
+
+allow_missing_member_constraint is TRUE if, in the redeclaration or definition
+of a class member, the new constraint list can be empty and still match
+a previous constraint list.
 
 allow_nesting_depth_mismatch is TRUE if template parameter lists of different
 nesting depths should be treated as equivalent.  error_severity is the
@@ -13332,13 +13346,18 @@ severity at which any diagnostics should be issued.
   /* In C++/CLI mode, make sure the constraints match any previous
      declaration. */
   if (cppcli_enabled && !any_errors &&
-      (!checking_parent_params || !check_parent_constraints) &&
-      !class_sym->is_class_member &&
+      (do_strict_constraint_checking || !checking_parent_params ||
+       allow_missing_member_constraint) &&
       is_cli_generic_class_symbol(class_sym)) {
     /* Note that we don't set any_errors for this case because the error
        recovery if better that way. */
     (void)equivalent_generic_constraints_for_param_lists(
                                 old_tpp, new_tpp, /*issue_error=*/TRUE,
+                                /*ignore_empty_gclist2=*/
+                                  !do_strict_constraint_checking &&
+                                  (checking_parent_params ||
+                                   (allow_missing_member_constraint &&
+                                    class_sym->is_class_member)),
                                 (a_generic_constraint_ptr*)NULL);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13449,17 +13468,19 @@ static void check_template_nesting_depth(
 
 
 static a_boolean member_template_param_list_matches_class(
-			a_tmpl_decl_state_ptr	decl_state,
-			a_symbol_ptr		member_sym,
-			a_boolean		check_parent_constraints,
-			a_source_position	*error_pos)
+		a_tmpl_decl_state_ptr	decl_state,
+		a_symbol_ptr		member_sym,
+		a_boolean		allow_missing_member_constraint,
+		a_source_position	*error_pos)
 /*
 This routine is called for template declarations of members of classes.
 It calls reconcile_template_param_lists to compare the template parameters
 of this declaration with the parameter list of the class declaration.
 If this is a member template, the template parameter lists at each level
-are compared.  check_parent_constraints is TRUE if, for members of C++/CLI
-generic classes, the constraints of the parent class should be checked.
+are compared.  allow_missing_member_constraint is TRUE if, in the
+redeclaration or definition of a class member, the new constraint list
+can be empty and still match a previous constraint list.
+
 The Microsoft compiler only checks the parent constraints of members that
 are not themselves classes or generic classes, and then only for the
 immediately enclosing class.  Return TRUE if the parameter lists are
@@ -13492,7 +13513,7 @@ compatible.  Otherwise, return FALSE.
            type->variant.class_struct_union.extra_info->
                                                   template_arg_list == NULL) {
       type = parent_class_of(type);
-      check_parent_constraints = TRUE;
+      allow_missing_member_constraint = TRUE;
     }  /* while */
     if (type == NULL) {
       /* The enclosing class is not a class template.  Okay as long as
@@ -13528,7 +13549,7 @@ compatible.  Otherwise, return FALSE.
                                         template_sym, error_pos,
                                         /*default_allowed=*/FALSE,
                                         /*checking_parent_params=*/TRUE,
-				        check_parent_constraints,
+				        allow_missing_member_constraint,
                                         decl_state->nesting_depth_err,
                                         es_error)) {
       any_mismatches = TRUE;
@@ -13536,7 +13557,7 @@ compatible.  Otherwise, return FALSE.
     /* Skip out to the enclosing class type. */
     type = type->source_corresp.is_class_member ? parent_class_of(type) : NULL;
     if (decl_info != NULL) decl_info = decl_info->enclosing_template_decl;
-    check_parent_constraints = TRUE;
+    allow_missing_member_constraint = TRUE;
   }  /* for */
   if (!decl_state->decl_scope_err && !any_mismatches) {
     /* Make sure the nesting depth of the declaration matches the entity
@@ -14935,8 +14956,9 @@ the necessary processing can be done.
   a_template_symbol_supplement_ptr	parent_tssp;
 
   if (member_template_param_list_matches_class(
-                            decl_state, sym, /*check_parent_constraints=*/TRUE,
-                            &sym->decl_position)) {
+                           decl_state, sym,
+                           /*allow_missing_member_constraint=*/TRUE,
+                           &sym->decl_position)) {
     check_assertion(sym->is_class_member);
     parent_class = sym_parent_class(sym);
     parent_sym = (a_symbol_ptr)parent_class->source_corresp.assoc_info;
@@ -16013,8 +16035,10 @@ friend_template_checks_done:
              function declaration in a class.  Make sure that the template
              parameters match those of the original class definition. */
           if (!member_template_param_list_matches_class(
-                            decl_state, sym, /*check_parent_constraints=*/TRUE,
-                            &error_position)) {
+                       decl_state, sym,
+                       /*allow_missing_member_constraint=*/is_redecl &&
+                                                           !is_definition,
+                       &error_position)) {
             err = TRUE;
           } /* if */
         }  /* if */
@@ -16046,7 +16070,7 @@ friend_template_checks_done:
                                 templ_params, sym, &locator.source_position,
                                 default_allowed,
                                 /*checking_parent_params=*/FALSE,
-                                /*check_parent_constraints=*/TRUE,
+                                /*allow_missing_member_constraint=*/TRUE,
                                 decl_state->nesting_depth_err,
                                 severity);
             if (mismatch && severity == es_error) err = TRUE;
@@ -18713,7 +18737,8 @@ template symbol supplement for this template should be returned to the caller.
     tssp = sym->variant.static_data_member.instance_ptr->template_info;
     /* Make sure the parameter list matches the class declaration. */
     if (!member_template_param_list_matches_class(
-                           decl_state, sym, /*check_parent_constraints=*/FALSE,
+                           decl_state, sym,
+                           /*allow_missing_member_constraint=*/TRUE,
                            &error_position)) {
       err = TRUE;
     } else if ((is_ptr_or_ref_type(type) &&
@@ -19355,7 +19380,8 @@ caller.
       (decl_state->class_declared_in == NULL ||
        decl_state->is_template_friend)) {
     if (!member_template_param_list_matches_class(
-                           decl_state, sym, /*check_parent_constraints=*/FALSE,
+                           decl_state, sym,
+                           /*allow_missing_member_constraint=*/TRUE,
                            decl_pos)) {
       err = TRUE;
     } /* if */
@@ -28364,6 +28390,7 @@ Initializations for template.
   avail_variadic_param_infos = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   avail_deferred_constraint_checks = NULL;
+  do_strict_constraint_checking = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   deferred_instantiations_in_process = FALSE;
   num_total_pending_instantiations = 0;
