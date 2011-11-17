@@ -18874,7 +18874,7 @@ the requirement is returned.  Otherwise, NULL is returned.
        match is required, not a conversion, except for null pointer
        constants, and except that a "void *" can be converted to/from a pointer
        type. */
-    if (interchangeable_types(source_type, dest_type) ||
+    if (types_are_compatible(source_type, dest_type) ||
         (is_pointer_type(dest_type) &&
          ((is_constant_operand(source_operand) &&
            is_null_pointer_constant(&source_operand->variant.constant)) ||

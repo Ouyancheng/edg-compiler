@@ -1,5 +1,29 @@
 Version 4.4
 
+11/17/11 [EDGcpfe/12450]
+Improvement in handling of GNU C transparent unions
+
+The front end's handling of the gcc "transparent unions" extension has
+been improved; the front end now rejects some cases it allowed
+previously, which are rejected by gcc.  The type of the entity being
+cast to the transparent union type must now match the type of some
+member of the union exactly (except for certain cases involving null
+pointer constants or void *), whereas previously any "interchangeable"
+type (roughly, same kind and size, signedness and cv-qualifiers
+ignored) was allowed.
+
+  typedef union TU {
+    double d;
+    int i;
+  } TU;
+  int i;
+  unsigned int ui;
+  int main() {
+    TU u1 = (TU)i;  // Okay
+    TU u2 = (TU)ui; // Was okay, error now
+  }
+
+
 11/11/11 [EDGcpfe/12414]
 Emulation of g++ quirk on overload resolution, adding cv-qualifiers on "this"
 
