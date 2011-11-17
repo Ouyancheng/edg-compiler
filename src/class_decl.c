@@ -19844,6 +19844,7 @@ storage specifier may affect whether the property/event is static or not.
 */
 {
   a_member_decl_info_ptr  decl_info = class_state->pe_info;
+  a_decl_parse_state      *dps = &decl_info->decl_state;
   a_pending_pragma_ptr    new_pragmas;
 
   /* Since the property or event "head" was scanned, we may have encountered
@@ -19853,7 +19854,6 @@ storage specifier may affect whether the property/event is static or not.
   scope_stack_top().curr_construct_pragmas = decl_info->suspended_pragmas;
   decl_info->suspended_pragmas = NULL;
   if (pdp->is_static) {
-    a_decl_parse_state  *dps = &decl_info->decl_state;
     decl_static_data_member(class_state->pe_loc, class_state, decl_info);
     check_assertion(dps->sym != NULL &&
                     dps->sym->kind == (a_symbol_kind)sk_static_data_member);
@@ -19867,6 +19867,11 @@ storage specifier may affect whether the property/event is static or not.
                                                     class_state, decl_info,
                                                     effective_decl_level);
   }  /* if */
+  if (dps->ms_attributes != NULL) {
+    dispose_of_unapplied_attributes(&dps->ms_attributes,
+                                    ec_ms_attr_not_allowed);
+  }  /* if */
+  run_end_of_parse_actions(dps);
   scope_stack_top().curr_construct_pragmas = new_pragmas;
 }  /* decl_property_or_event_member */
 
@@ -20116,6 +20121,10 @@ and *class_state->pe_loc.
      not strictly needed, but it is used for the sake of uniformity. */
   *class_state->pe_info = *decl_info;
   *class_state->pe_loc = loc;
+  /* Clear fields in the original state that would cause undesirable side
+     effects later on. */
+  dps->ms_attributes = NULL;
+  dps->end_of_parse_actions = NULL;
   if (pdp->is_trivial) {
     decl_property_or_event_member(class_state, pdp);
     if (is_property) {
