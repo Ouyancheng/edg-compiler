@@ -17788,9 +17788,12 @@ direct binding is "possible" and not whether it is "valid".
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled &&
              is_tracking_reference_type(dest_type) &&
-             direct_binding_possible) {
+             direct_binding_possible &&
+             !is_constant_operand(source_operand)) {
     /* In C++/CLI, a tracking reference can bind to an rvalue (or lvalue),
-       but only if no conversion is required. */
+       but only if no conversion is required.  Also don't allow binding
+       to a constant (unless the reference is const, but that already caused
+       *binding_to_rvalue_allowed to be set to TRUE above). */
     *binding_to_rvalue_allowed = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (!(any_cfront_mode() || microsoft_bugs) && *ref_to_const &&
@@ -18374,6 +18377,13 @@ the conversion.
                       dest_type, orig_source_type);
       }  /* if */
       conv_to_error_operand(source_operand);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled && is_tracking_reference_type(dest_type) &&
+               !binding_to_rvalue_allowed && operand_was_rvalue &&
+               is_constant_operand(source_operand)) {
+      /* A tracking reference cannot be bound to a constant. */
+      error_in_operand(ec_tracking_ref_to_constant, source_operand);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (!binding_to_rvalue_allowed &&
                !(allow_anachronisms ||
                  any_cfront_mode() ||
