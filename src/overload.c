@@ -17789,7 +17789,8 @@ direct binding is "possible" and not whether it is "valid".
   } else if (cppcli_enabled &&
              is_tracking_reference_type(dest_type) &&
              direct_binding_possible &&
-             !is_constant_operand(source_operand)) {
+             !(source_operand != NULL &&
+               is_constant_operand(source_operand))) {
     /* In C++/CLI, a tracking reference can bind to an rvalue (or lvalue),
        but only if no conversion is required.  Also don't allow binding
        to a constant (unless the reference is const, but that already caused
