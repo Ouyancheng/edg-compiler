@@ -1,5 +1,25 @@
 Version 4.4
 
+11/18/11 [EDGcpfe/12452]
+Microsoft compatibility: Use of "." as in qualified names
+
+Older versions of the Microsoft compiler allowed "." to be used in place of
+"::" in qualified names (i.e., type-name. was treated like type-name::).
+This has been fixed by Microsoft, so we now only support this usage in
+Microsoft bugs mode when microsoft_version <= 1400.  Note that the usage
+involved here is different than field selections where the thing before
+the "." is an expression, not a type.
+
+  struct A {
+    static int i;
+  };
+  int main() {
+    A.B ab;
+    int i = A.i;  // Only accepted in Microsoft bugs mode when
+                  //  microsoft_version <= 1400
+  }
+
+
 11/17/11 [EDGcpfe/12429]
 Spurious error on template referring to extern "C" declaration in GNU C++ mode
 
