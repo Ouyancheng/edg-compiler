@@ -2318,7 +2318,7 @@ ec_generic_parameter_does_not_permit_varargs;;"a function type involving a gener
 ec_virtual_required_for_base_override;;"\"virtual\" is required to override the matching %nd"
 ec_virtual_required_for_interface_implementation;;"\"virtual\" is required to implement the matching %nd"
 ec_initonly_volatile_not_allowed;;"an initonly data member cannot be volatile"
-ec_member_name_reserved_by_cli_operator;;"A member %sq of this type is reserved within a managed class -- CLR operators must be declared using the keyword \"operator\""
+ec_member_name_reserved_by_cli_operator;;"a member %sq of this type is reserved within a managed class -- CLR operators must be declared using the keyword \"operator\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
