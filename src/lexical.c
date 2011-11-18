@@ -12003,9 +12003,9 @@ to it.
   lssep->next = NULL;
   lssep->cache_tokens = 0;
   lssep->last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
-  lssep->caching_tokens = FALSE;
   lssep->error_position = null_source_position;
   clear_token_cache(&lssep->cache, /*is_reusable=*/FALSE);
+  lssep->caching_tokens = FALSE;
   return lssep;
 }  /* alloc_lexical_state_stack_entry */
 
