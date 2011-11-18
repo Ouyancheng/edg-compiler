@@ -3333,9 +3333,11 @@ for the accessor; otherwise return NULL.
     /* Retain the specific symbol if there is one. */
     result_sym = locator->specific_symbol;
   } else if (!locator->is_class_member ||
-             !same_entities(locator->parent.class_type, class_type)) {
+             (!same_entities(locator->parent.class_type, class_type) &&
+              find_base_class_of(class_type,
+                                 locator->parent.class_type) == NULL)) {
     /* The locator is not for a class member, or does not match the class
-       type provided.  Return NULL (set above). */
+       type provided or one of its base classes.  Return NULL (set above). */
   } else if (symbol_is(locator->property_or_event_parent, sk_property_set)) {
     /* Return the symbol for the get or set accessor maintained in the
        property set supplement. */
