@@ -7278,7 +7278,7 @@ function and recursively invokes itself to process destructions in each block.
   if (olp != NULL) {
     /* If there's an object lifetime associated with this function/block,
        examine each destruction. */
-    a_dynamic_init_ptr dip, dip_next;
+    a_dynamic_init_ptr dip_next;
     for (dip = olp->destructions;
          dip != NULL;
          dip = dip_next) {

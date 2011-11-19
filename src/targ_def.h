@@ -4128,26 +4128,6 @@ when they are modified.
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 /*
-This switch controls whether constructions and destructions that are known to
-have no effect are removed from the IL during lowering.  Removing unneeded
-constructions and destructions can greatly reduce the code size of some trivial
-functions, particularly when the portable implementation of exception handling
-is used (where the invocation of any destruction causes an exception handling
-prologue to be generated for the function).  The implementation doesn't detect
-all cases where such destructions could potentially be eliminated (for example,
-a constructor or destructor that is defined to be empty after code that refers
-to it has already been lowered).  Constructors and destructors are determined
-to have no effect if their lowered function bodies have no statements that
-are deemed to have an effect (with the exception of certain "boilerplate"
-statements that exist in all constructors and destructors).
-*/
-
-#ifndef LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
-#define LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS \
-        DO_IL_LOWERING
-#endif /* ifndef LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
-
-/*
 This switch can be set to enable the rewriting of the escape character
 in universal character names (UCNs), i.e., "\", where it appears in
 identifier names, to a single other character.  Note that this is not
@@ -4340,6 +4320,26 @@ stack.
 #endif /* GENERATE_EH_TABLES */
 
 #endif /* DO_IL_LOWERING */
+
+/*
+This switch controls whether constructions and destructions that are known to
+have no effect are removed from the IL during lowering.  Removing unneeded
+constructions and destructions can greatly reduce the code size of some trivial
+functions, particularly when the portable implementation of exception handling
+is used (where the invocation of any destruction causes an exception handling
+prologue to be generated for the function).  The implementation doesn't detect
+all cases where such destructions could potentially be eliminated (for example,
+a constructor or destructor that is defined to be empty after code that refers
+to it has already been lowered).  Constructors and destructors are determined
+to have no effect if their lowered function bodies have no statements that
+are deemed to have an effect (with the exception of certain "boilerplate"
+statements that exist in all constructors and destructors).
+*/
+
+#ifndef LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+#define LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS \
+        DO_IL_LOWERING
+#endif /* ifndef LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
 
 /*
 Integer kind used for the size of a vtable entry in the IA-64 ABI.  Vtable
