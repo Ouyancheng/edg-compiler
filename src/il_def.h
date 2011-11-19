@@ -12313,6 +12313,15 @@ typedef struct a_routine {
 			/* TRUE if the lowering for this routine is to be
 			   delayed because lowering of a nested function was
 			   delayed. */
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+  a_bit_field	has_no_effect:1;
+                        /* TRUE if this routine (a constructor or destructor)
+                           is known to have no effect and therefore calls to it
+                           can be eliminated during lowering.  Set to FALSE
+                           initially (safe value) and only set to TRUE if the
+                           lowered routine has been inspected and found to
+                           have no effect. */
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
 #endif /* DO_IL_LOWERING */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
   a_bit_field	statics_have_been_promoted:1;
@@ -14660,6 +14669,15 @@ typedef struct a_statement {
 			   generating thread-safe code, the "if" and the
 			   first initialization within it should be rendered
 			   as an atomic test-and-set. */
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+  a_bit_field  is_lowering_boilerplate:1;
+                        /* TRUE if this statement has been added during the
+                           lowering of a constructor or destructor and is
+                           considered "boilerplate", i.e., the statement has
+                           no bearing as to whether the constructor or
+                           destructor has an actual effect (it's present
+                           in all constructors or destructors). */
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
   bitfield_to_avoid_codecenter_warnings()
   an_expr_node_ptr
                 expr;

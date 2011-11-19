@@ -2585,6 +2585,9 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* DO_IL_LOWERING && IA64_ABI */
 #if DO_IL_LOWERING
   rp->lowering_delayed_on_nested_function = FALSE;
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+  rp->has_no_effect               = FALSE;
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
 #endif /* DO_IL_LOWERING */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
   rp->statics_have_been_promoted  = FALSE;
@@ -3500,6 +3503,9 @@ to it.  The statement kind is set as indicated.
   sp->attributes              = NULL;
   sp->has_associated_pragma   = FALSE;
   sp->is_initialization_guard = FALSE;
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+  sp->is_lowering_boilerplate = FALSE;
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
 #if CENTERLINE_CHECKING
   sp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

@@ -19237,6 +19237,15 @@ Do IL lowering of the indicated scope and everything under it.
        promoted out later. */
     if (scope_kind == (a_scope_kind)sck_function) {
       promote_local_entities_to_file_scope(scope);
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+      /* Before the scope is lowered, scan it (and recursively blocks
+         contained therein) for any constructions or destructions that aren't
+         needed and remove them (before initializations and exception handling
+         code is generated for them).  This is done early in the lowering
+         process to prevent an exception handling prologue from being added
+         if none is necessary. */
+      remove_unneeded_constructions_and_destructions(scope);
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
     }  /* if */
   }  /* if */
   lower_variable_list(scope->nonstatic_variables);
@@ -19354,6 +19363,16 @@ Do IL lowering of the indicated scope and everything under it.
   } else {
     pop_context();
   }  /* if */
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+  if (scope_kind == (a_scope_kind)sck_function &&
+      (routine->special_kind == (a_special_function_kind)sfk_constructor ||
+       routine->special_kind == (a_special_function_kind)sfk_destructor)) {
+    /* Now that the scope has been lowered, we know everything we're ever
+       going to know about this routine.  If the body of the function has
+       no effect, note that now (before the memory region is written out). */
+    routine->has_no_effect = lowered_ctor_or_dtor_has_no_effect(scope);
+  }  /* if */
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
   innermost_function_scope = saved_innermost_function_scope;
   /* Make sure no compound literal initialization statements remain. */
   check_assertion(temp_init_statements == NULL);

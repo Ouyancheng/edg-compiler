@@ -1,5 +1,61 @@
 Version 4.4
 
+11/19/11 [EDGcpfe/11966,EDGcpfe/12298]
+Removing unneeded constructions and destructions during lowering
+
+A new configuration macro,
+LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS, has been added to
+control whether lowering removes constructions and destructions that are known
+to have no effect.  Removing unneeded constructions and destructions can
+greatly reduce the code size of some trivial functions, particularly when the
+portable implementation of exception handling is used (where the invocation of
+any destruction causes an exception handling prologue to be generated for the
+function, which in turn has implications for inlining).  The implementation
+doesn't detect all cases where such destructions could potentially be
+eliminated (for example, a constructor or destructor that is defined to be
+empty after code that refers to it has already been lowered).
+LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+defaults to the value of DO_IL_LOWERING (i.e., is enabled by default in
+configurations that use lowering).  Some empty constructors are not removed in
+Cfront ABI configurations when NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE (namely
+those involved in "new" expressions as well as any constructions when
+exception handling is enabled).
+
+In the example below, the newly lowered code will have no references to any of
+the constructors or destructors (except in configurations where
+NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE):
+
+  struct A {
+    A();
+    ~A();
+  };
+  inline A::A() {}
+  inline A::~A() {}
+  struct B {
+    B() {}
+    ~B() {}
+  };
+  struct C : B {};
+  struct D {
+    A a;
+    B b;
+  };
+  int main () {
+    A a;
+    B b = B();
+    C *c = new C;
+    D *d = new D[5];
+    delete c;
+    delete[] d;
+  }
+
+This (contrived) example (with --g++ in one IA-64 ABI C-generating back end
+configuration) had yielded an object file with a .text section of 1250 bytes
+and a .data section of 160 bytes, but with the removal of unneeded constructors
+and destructions, the .data section is eliminated and the .text section dropped
+to 142 bytes.
+
+
 11/18/11 [EDGcpfe/12452]
 Microsoft compatibility: Use of "." as in qualified names
 

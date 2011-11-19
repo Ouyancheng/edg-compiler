@@ -4728,7 +4728,9 @@ statement if necessary.
                                       spec_array_node, &insert_location);
   }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
-  if (scope->lifetime != NULL || routine->contains_try_block) {
+  if ((scope->lifetime != NULL &&
+       scope->lifetime->destructions != NULL) ||
+      routine->contains_try_block) {
     /* The function contains destructible objects, or it contains try
        blocks, so it needs a prologue and epilogue. */
     need_function_epilogue = TRUE;

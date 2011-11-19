@@ -2325,7 +2325,7 @@ to be folded into the constructor or destructor if possible.
 */
 /* IL lowering requires that the delete be folded into the destructor.
    Otherwise the size is not available for the two-argument delete case.
-   There is a consistency check in lower_il.c */
+   There is a consistency check in lower_init.c */
 #ifndef NEW_CAN_BE_FOLDED_INTO_CTOR
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
 #define NEW_CAN_BE_FOLDED_INTO_CTOR TRUE  /* cfront compatibility setting. */
@@ -4126,6 +4126,26 @@ when they are modified.
 #define FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS BACK_END_IS_C_GEN_BE
 #endif /* ifndef FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
+
+/*
+This switch controls whether constructions and destructions that are known to
+have no effect are removed from the IL during lowering.  Removing unneeded
+constructions and destructions can greatly reduce the code size of some trivial
+functions, particularly when the portable implementation of exception handling
+is used (where the invocation of any destruction causes an exception handling
+prologue to be generated for the function).  The implementation doesn't detect
+all cases where such destructions could potentially be eliminated (for example,
+a constructor or destructor that is defined to be empty after code that refers
+to it has already been lowered).  Constructors and destructors are determined
+to have no effect if their lowered function bodies have no statements that
+are deemed to have an effect (with the exception of certain "boilerplate"
+statements that exist in all constructors and destructors).
+*/
+
+#ifndef LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+#define LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS \
+        DO_IL_LOWERING
+#endif /* ifndef LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
 
 /*
 This switch can be set to enable the rewriting of the escape character
