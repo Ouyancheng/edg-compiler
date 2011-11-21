@@ -28144,23 +28144,27 @@ are the generic argument list and parameter list of the generic reference.
       case gck_gcnew:
         if (is_cli_value_type(arg_type)) {
           /* All value types meet the gcnew constraint. */
-        } else if (is_handle_type(arg_type)) {
-          a_type_ptr	tp = type_pointed_to(arg_type);
-          if (is_abstract_class_type(tp)) {
-            /* Abstract classes do not satisfy the gcnew constraint. */
-            pos_ty2_error(ec_gcnew_and_abstract, list_start_pos,
-                          arg_type, templ_param_type);
-          } else if (!cli_type_has_public_default_constructor(tp)) {
-            /* The type must have a public default constructor. */
-            pos_ty2_error(ec_gcnew_and_no_ctor, list_start_pos,
-                          arg_type, templ_param_type);
-          }  /* if */
-        } else if (is_cli_generic_param_type(arg_type)) {
-          /* A generic parameter.  See if it has the gcnew constraint. */
-          if (!is_type_parameter_with_constraint(
+        } else {
+          a_type_ptr	tp;
+          tp = generic_param_if_generic_definition_argument(arg_type);
+          if (is_handle_type(tp)) {
+            tp = type_pointed_to(tp);
+            if (is_abstract_class_type(tp)) {
+              /* Abstract classes do not satisfy the gcnew constraint. */
+              pos_ty2_error(ec_gcnew_and_abstract, list_start_pos,
+                            arg_type, templ_param_type);
+            } else if (!cli_type_has_public_default_constructor(tp)) {
+              /* The type must have a public default constructor. */
+              pos_ty2_error(ec_gcnew_and_no_ctor, list_start_pos,
+                            arg_type, templ_param_type);
+            }  /* if */
+          } else if (is_cli_generic_param_type(arg_type)) {
+            /* A generic parameter.  See if it has the gcnew constraint. */
+            if (!is_type_parameter_with_constraint(
                              arg_type, (a_generic_constraint_kind)gck_gcnew)) {
-            pos_ty2_error(ec_gcnew_and_no_gcnew, list_start_pos,
-                          arg_type, templ_param_type);
+              pos_ty2_error(ec_gcnew_and_no_gcnew, list_start_pos,
+                            arg_type, templ_param_type);
+            }  /* if */
           }  /* if */
         }  /* if */
         break;
