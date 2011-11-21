@@ -23558,11 +23558,6 @@ classes.
     push_stop_token_stack();
     /* Record the associated scope in the class type supplement. */
     ctsp->assoc_scope = scope_ptr;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    /* Now that the class scope has been established, perform any constraint
-       checks that may have been deferred. */
-    end_deferral_of_constraint_checks(depth_scope_stack-1);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Advance past the left brace. */
     (void)get_token();
     add_stop_token(tok_rbrace);
@@ -23946,6 +23941,11 @@ next_declaration:
         Microsoft C++ mode. */
     if (cpp11_mode || microsoft_mode) {
       perform_deferred_access_checks_at_depth(depth_scope_stack-1);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* Now that the class scope has been established, perform any constraint
+         checks that may have been deferred. */
+      end_deferral_of_constraint_checks(depth_scope_stack-1);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     /* Pop the scope created for the class definition. */
     pop_scope();
