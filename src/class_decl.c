@@ -7489,7 +7489,9 @@ be NULL.
       (*p_d_accessors)->variant.overloaded_function.symbols = o_list;
       /* Skip to the last element of the overload set and set its "next"
          pointer to NULL. */
-      for (last = o_list; last->next != prev_d_next; last = last->next);
+      for (last = o_list; last->next != prev_d_next; last = last->next) {
+        /* Nothing */
+      }  /* for */
       last->next = NULL;
       /* Place the elements that follow back on the original symbol list
          (just following the new overload set symbol). */
