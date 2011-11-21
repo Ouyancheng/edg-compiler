@@ -9451,7 +9451,11 @@ The subtree of the node has not yet been lowered.
        into a "delete" call. */
     dip = NULL;
     ndsp->dynamic_init = NULL;
-    delete_routine = class_type_supp(base_type)->assoc_operator_delete_routine;
+    if (delete_routine == NULL) {
+      /* If not explicitly specified, use the delete operator for the class. */
+      delete_routine =
+                     class_type_supp(base_type)->assoc_operator_delete_routine;
+    }  /* if */
   }  /* if */
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
 #if IA64_ABI
