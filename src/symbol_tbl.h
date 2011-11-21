@@ -2779,7 +2779,7 @@ typedef struct a_property_set_symbol_supplement {
 			   properties in this set.  If only one "get" accessor
 			   is present among the properties, this points to a
 			   sk_member_function symbol; otherwise to a
-			   sk_overload_function symbol. */
+			   sk_overloaded_function symbol. */
   a_symbol_ptr
 		set_accessors;
 			/* Same as get_accessors, but for the "set"
@@ -4027,6 +4027,9 @@ extern a_symbol_ptr enter_property_set_member(
 extern a_symbol_ptr enter_cli_accessor(a_symbol_locator               *locator,
                                        a_scope_depth                  depth,
                                        a_property_or_event_descr_ptr  pedp);
+
+extern void enter_projected_default_indexed_properties(
+                                         a_class_symbol_supplement_ptr  cssp);
 
 void reenter_block_scope_symbol(a_symbol_ptr  sym);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

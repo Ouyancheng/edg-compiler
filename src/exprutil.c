@@ -16236,8 +16236,11 @@ error.  The source position of the reference is given by pos.
                            ec_cli_get_accessor_missing,
                      pos, property_sym);
       }  /* if */
+#if CHECKING
     } else {
-      check_assertion(is_member_function_symbol(getput_sym));
+      a_symbol_ptr  fund_sym = fundamental_symbol_of(getput_sym);
+      check_assertion(is_member_function_symbol(fund_sym));
+#endif /* CHECKING */
     }  /* if */
   }  /* if */
   return getput_sym;

@@ -7394,6 +7394,151 @@ issue an error and return FALSE.
   return okay;
 }  /* check_base_class_type */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void add_projections_for_symbols(a_symbol_ptr      b_sym_list,
+                                        a_boolean         single,
+                                        a_base_class_ptr  bcp,
+                                        a_symbol_ptr      *p_d_symbol_list,
+                                        a_boolean         invisible)
+/*
+b_sym_list points to a list (possibly empty) list of symbols from the base
+class described by bcp.  Append projection symbols for every of element of
+that list (or just the first one if single is TRUE) to the list pointed to by
+*p_d_symbol_list (associated with the derived class).  Mark the new projection
+symbols as invisible if invisible is TRUE.
+*/
+{
+  a_type_ptr           d_type = bcp->derived_class;
+  a_symbol_ptr         b_sym, *p_d_sym = p_d_symbol_list;
+  an_access_specifier  bcp_access;
+
+  if (is_immediate_managed_class_type(d_type)) {
+    /* Inheritance is always public in C++/CLI managed classes.  By special-
+       casing this, we allow this function to be called for managed class
+       types prior to computing preferred derivations. */
+    bcp_access = (an_access_specifier)as_public;
+  } else {
+    bcp_access = preferred_derivation_of(bcp)->access;
+  }  /* if */
+  /* Find the end of the derived class list (for adding projections). */
+  while (*p_d_sym != NULL) p_d_sym = &(*p_d_sym)->next;
+  /* Project each symbol in turn. */
+  for (b_sym = b_sym_list; b_sym != NULL; b_sym = b_sym->next) {
+    a_base_class_ptr  f_bcp;
+    if (symbol_is(b_sym, sk_projection)) {
+      f_bcp = b_sym->variant.projection.extra_info->fundamental_base_class;
+    } else {
+      f_bcp = bcp;
+    }  /* if */
+    *p_d_sym = make_projection_symbol(b_sym, d_type, f_bcp,
+                                      (a_derivation_step_ptr)NULL,
+                                      b_sym->ambiguous);
+    (*p_d_sym)->is_invisible = invisible;
+    (*p_d_sym)->variant.projection.access =
+                         compute_access(access_for_symbol(b_sym), bcp_access);
+    p_d_sym = &(*p_d_sym)->next;
+    if (single) break;
+  }  /* for */
+}  /* add_projections_for_symbols */
+
+
+static void add_projections_for_accessors(a_symbol_ptr      b_accessors,
+                                          a_base_class_ptr  bcp,
+                                          a_symbol_ptr      *p_d_accessors)
+/*
+Add projections described by b_accessors (from the given base class) to
+*p_d_accessors (in the derived class).  b_accessors and/or *p_d_accessors may
+be NULL.
+*/
+{
+  if (b_accessors != NULL) {
+    a_boolean     single;
+    a_symbol_ptr  b_sym_list, *p_d_sym_list, prev_d_next;
+    if (symbol_is(b_accessors, sk_overloaded_function)) {
+      b_sym_list = b_accessors->variant.overloaded_function.symbols;
+      single = FALSE;
+    } else {
+      b_sym_list = b_accessors;
+      single = TRUE;
+    }  /* if */
+    if (*p_d_accessors != NULL &&
+        symbol_is(*p_d_accessors, sk_overloaded_function)) {
+      p_d_sym_list = &(*p_d_accessors)->variant.overloaded_function.symbols;
+    } else {
+      p_d_sym_list = p_d_accessors;
+    }  /* if */
+    /* Remember the symbol following *p_d_accessor (if any), so we can
+       recognize the need for an overload set after possibly appending
+       overloaded projections. */
+    prev_d_next = (*p_d_accessors != NULL) ? (*p_d_accessors)->next
+                                           : (a_symbol_ptr)NULL;
+    add_projections_for_symbols(b_sym_list, single, bcp, p_d_sym_list,
+                                /*invisible=*/TRUE);
+    if ((*p_d_accessors)->next != prev_d_next) {
+      /* The derived-class accessor set has become an overload set (it wasn't
+         before).  Create the sk_overloaded_function symbol for it. */
+      a_symbol_ptr      o_list = *p_d_accessors, last;
+      a_symbol_locator  loc;
+      make_locator_for_symbol(o_list, &loc);
+      *p_d_accessors =
+                     make_symbol((a_symbol_kind)sk_overloaded_function, &loc);
+      set_class_membership(*p_d_accessors, (a_source_correspondence *)NULL,
+                           bcp->derived_class);
+      (*p_d_accessors)->is_invisible = TRUE;
+      (*p_d_accessors)->variant.overloaded_function.symbols = o_list;
+      /* Skip to the last element of the overload set and set its "next"
+         pointer to NULL. */
+      for (last = o_list; last->next != prev_d_next; last = last->next);
+      last->next = NULL;
+      /* Place the elements that follow back on the original symbol list
+         (just following the new overload set symbol). */
+      (*p_d_accessors)->next = prev_d_next;
+      set_mixed_static_nonstatic_flag(*p_d_accessors);
+    }  /* if */
+  }  /* if */
+}  /* add_projections_for_accessors */
+
+
+static void inherit_default_indexed_properties(a_base_class_ptr  bcp)
+/*
+The given direct base class declares or inherits default indexed properties
+(a C++/CLI feature).  Add projection symbols for those properties (and their
+accessors) in the derived class.
+*/
+{
+  a_type_ptr  d_type = bcp->derived_class, b_type = bcp->type;
+  a_class_symbol_supplement_ptr
+              d_cssp = symbol_supplement_for_class(d_type),
+              b_cssp = symbol_supplement_for_class(b_type);
+  a_property_set_symbol_supplement_ptr
+              d_set, b_set;
+
+  check_assertion(b_cssp->default_indexed_properties != NULL);
+  b_set = b_cssp->default_indexed_properties->variant.property_info;
+  if (d_cssp->default_indexed_properties == NULL) {
+    /* No property set has been created (yet) in the derived class for the
+       default-indexed properties.  Create the symbol now (it will be added to
+       the class scope when that scope is pushed). */
+    a_symbol_locator  loc;
+    a_symbol_ptr      new_sym;
+    make_locator_for_symbol(b_cssp->default_indexed_properties, &loc);
+    new_sym = make_symbol((a_symbol_kind)sk_property_set, &loc);
+    set_class_membership(new_sym, (a_source_correspondence *)NULL, d_type);
+    d_cssp->default_indexed_properties = new_sym;
+  }  /* if */
+  d_set = d_cssp->default_indexed_properties->variant.property_info;
+  /* First add projections for the property member symbols to the set. */
+  add_projections_for_symbols(b_set->properties, /*single=*/FALSE, bcp,
+                              &d_set->properties, /*invisible=*/FALSE);
+  /* Next, add projections for the accessors. */
+  add_projections_for_accessors(b_set->get_accessors, bcp,
+                                &d_set->get_accessors);
+  add_projections_for_accessors(b_set->set_accessors, bcp,
+                                &d_set->set_accessors);
+}  /* inherit_default_indexed_properties */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if IA64_ABI
 /*ARGSUSED*/  /* p_may_be_first_direct_nonvirtual_base is not used in some
@@ -7660,6 +7805,11 @@ to FALSE before returning).
       set_target_of_conversion_function_flag(bcp_type);
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (bcp_cssp->default_indexed_properties != NULL) {
+    inherit_default_indexed_properties(direct_bcp);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* add_new_direct_base */
 
 
@@ -12823,6 +12973,7 @@ associated property/event description entry or NULL if there is none.
 {
   a_property_or_event_descr_ptr  pedp;
 
+  reduce_projection_symbol_to_fundamental_symbol(sym);
   if (sym->kind == (a_symbol_kind)sk_field) {
     pedp = sym->variant.field.ptr->property_or_event_descr;
   } else {
@@ -12861,13 +13012,71 @@ types are distinguishable when overloading C++/CLI properties.
 }  /* distinguishable_property_indices */
 
 
+static void remove_symbol_or_projection_from_list(a_symbol_ptr  sym,
+                                                  a_symbol_ptr  *p_list)
+/*
+Remove the given symbol or a projection of that symbol from the given list.
+(The symbol must be present on the list.)
+*/
+{
+  a_symbol_ptr  *p_sym = p_list;
+
+  for (p_sym = p_list; *p_sym != NULL; p_sym = &(*p_sym)->next) {
+    if (*p_sym == sym || fundamental_symbol_of(*p_sym) == sym) break;
+  }  /* for */
+  check_assertion(*p_sym != NULL);
+  *p_sym = (*p_sym)->next;
+}  /* remove_symbol_or_projection_from_list */
+
+
+static void remove_property_from_set(a_symbol_ptr  property_set,
+                                     a_symbol_ptr  property_sym)
+/*
+Remove the C++/CLI property given by property_sym and its accessors from the
+property set given by property_set.
+*/
+{
+  a_property_or_event_descr_ptr
+                pedp = property_or_event_descr_for_sym(property_sym);
+  a_property_set_symbol_supplement_ptr
+                set = property_set->variant.property_info;
+  a_symbol_ptr  accessor_sym;
+
+  /* First remove the property member itself. */
+  remove_symbol_or_projection_from_list(property_sym, &set->properties);
+  /* Now remove the get accessor (if any). */
+  if (pedp->get_routine.ptr != NULL) {
+    accessor_sym = symbol_for(pedp->get_routine.ptr);
+    if (symbol_is(set->get_accessors, sk_overloaded_function)) {
+      remove_symbol_or_projection_from_list(
+                    accessor_sym,
+                    &set->get_accessors->variant.overloaded_function.symbols);
+    } else if (fundamental_symbol_of(set->get_accessors) == accessor_sym) {
+      set->get_accessors = NULL;
+    }  /* if */
+  }  /* if */
+  /* Do the same for the set accessor. */
+  if (pedp->set_routine.ptr != NULL) {
+    accessor_sym = symbol_for(pedp->set_routine.ptr);
+    if (symbol_is(set->set_accessors, sk_overloaded_function)) {
+      remove_symbol_or_projection_from_list(
+                    accessor_sym,
+                    &set->set_accessors->variant.overloaded_function.symbols);
+    } else if (fundamental_symbol_of(set->set_accessors) == accessor_sym) {
+      set->set_accessors = NULL;
+    }  /* if */
+  }  /* if */
+}  /* remove_property_from_set */
+
+
 static void check_for_overloaded_property_conflict(a_symbol_ptr  property_set,
                                                    a_symbol_ptr  property_sym)
 /*
 property_sym represents a C++/CLI property that has just been declared, and it
 is a member of the given property set (possibly the only such member).  If the
 set contains any previously declared properties, diagnose any conflict created
-by the new property.
+by the new property.  If the set contains conflicting projected properties,
+remove those projections (silently).
 */
 {
   a_symbol_ptr  sym = property_set->variant.property_info->properties;
@@ -12886,8 +13095,14 @@ by the new property.
       /* Neither property is indexed: They conflict. */
       conflict = TRUE; 
     } else {
-      conflict = !distinguishable_property_indices(prev_pedp->indices,
-                                                   new_pedp->indices);
+      if (!distinguishable_property_indices(prev_pedp->indices,
+                                            new_pedp->indices)) {
+        if (symbol_is(sym, sk_projection)) {
+          remove_property_from_set(property_set, sym);
+        } else {
+          conflict = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
     if (conflict) {
       pos_sy_error(ec_conflicting_properties, &property_sym->decl_position,

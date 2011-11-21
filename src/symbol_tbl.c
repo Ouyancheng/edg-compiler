@@ -6045,6 +6045,31 @@ corresponding to the enclosing class definition.
 }  /* enter_cli_accessor */
 
 
+void enter_projected_default_indexed_properties(
+                                          a_class_symbol_supplement_ptr  cssp)
+/*
+cssp is for a class being defined whose scope was just pushed.  If any
+default indexed properties were projected in the class (by a call to
+inherit_default_indexed_properties), enter them in the symbol table now.
+*/
+{
+  if (cssp->default_indexed_properties != NULL) {
+    a_property_set_symbol_supplement_ptr
+       property_set = cssp->default_indexed_properties->variant.property_info;
+    add_symbol_to_symbol_table(cssp->default_indexed_properties,
+                               depth_scope_stack, /*suppress_error=*/TRUE);
+    if (property_set->get_accessors != NULL) {
+      add_symbol_to_symbol_table(property_set->get_accessors,
+                                 depth_scope_stack, /*suppress_error=*/TRUE);
+    }  /* if */
+    if (property_set->set_accessors != NULL) {
+      add_symbol_to_symbol_table(property_set->set_accessors,
+                                 depth_scope_stack, /*suppress_error=*/TRUE);
+    }  /* if */
+  }  /* if */
+}  /* enter_projected_default_indexed_properties */
+
+
 a_boolean is_cli_param_array_routine_symbol(a_symbol_ptr  sym)
 /*
 Return TRUE if sym is a symbol for a routine with a C++/CLI parameter array.
@@ -6103,9 +6128,10 @@ fundamental symbol resides; if it is NULL, it must be computed, using *path
 progenitor_sym is a member) if ambiguous is TRUE.
 */
 {
-  register a_symbol_ptr   sym;
+  a_symbol_ptr            sym;
   a_projection_descr_ptr  pdp, progenitor_pdp = NULL;
   a_base_class_ptr        bcp;
+  a_scope_ptr             scope = class_type_supp(class_ptr)->assoc_scope;
 
   db_enter(4, "make_projection_symbol");
 
@@ -6113,8 +6139,7 @@ progenitor_sym is a member) if ambiguous is TRUE.
   sym = alloc_symbol((a_symbol_kind)sk_projection, progenitor_sym->header,
                      &progenitor_sym->decl_position);
   set_class_membership(sym, (a_source_correspondence *)NULL, class_ptr);
-  sym->decl_scope = class_ptr->variant.class_struct_union.
-                                    extra_info->assoc_scope->number;
+  if (scope != NULL) sym->decl_scope = scope->number;
   sym->ambiguous = ambiguous;
   pdp = sym->variant.projection.extra_info;
   if (progenitor_sym->kind == (a_symbol_kind)sk_projection) {

@@ -3171,6 +3171,13 @@ the scope being pushed.
     a_class_symbol_supplement_ptr cssp;
     cssp = symbol_supplement_for_class(assoc_type);
     ssep->assoc_pointers_block = &cssp->pointers_block;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cssp->default_indexed_properties != NULL) {
+      /* Default indexed properties were projected from base classes: Enter
+         them in the class scope now. */
+      enter_projected_default_indexed_properties(cssp);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (kind == (a_scope_kind)sck_class_reactivation) {
     /* For class reactivation scopes, use the lookup table created when the
        class was scanned. */
