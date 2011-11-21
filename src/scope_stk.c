@@ -3102,7 +3102,8 @@ the scope being pushed.
     if (kind == (a_scope_kind)sck_template_declaration) {
       ssep->depth_template_declaration_scope =
         depth_template_declaration_scope = depth_scope_stack;
-    } else if (kind == (a_scope_kind)sck_template_instantiation) {
+    } else if (kind == (a_scope_kind)sck_template_instantiation ||
+               kind == (a_scope_kind)sck_instantiation_context) {
       /* A template instantiation.  The things outside the instantiation
          become invisible.  Those scopes are visible if this is a Microsoft
          specialization instantiation scope, however. */

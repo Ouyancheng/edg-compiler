@@ -18664,7 +18664,7 @@ C++/CLI delegate class types.)
   a_symbol_ptr			class_sym_for_context;
   a_template_decl_info_ptr	tdip;
   a_boolean			define_class = FALSE;
-  an_assembly_index		assembly_index;
+  an_assembly_index		assembly_index = 0;
   a_cpp_cli_token		metadata_type_def_token;
   sizeof_t			size = 0;
   a_type_ptr			class_type_for_context = class_type;
