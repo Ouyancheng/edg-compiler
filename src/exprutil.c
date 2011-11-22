@@ -11640,6 +11640,19 @@ be returned for a C mode const variable.
   an_init_kind       init_kind;
   an_initializer_ptr initializer;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && var->source_corresp.is_class_member &&
+      var->init_kind == (an_init_kind)initk_none &&
+      is_immediate_managed_class_type(parent_class_of(var)) &&
+      is_const_variable(var)) {
+    /* A static data member of a managed class type.  The scanning of its
+       in-class initializer (if any) is delayed by default until the complete
+       class definition has been seen.  However, if the member is used in the
+       context of a constant-expression, its initializer is scanned as such at
+       that point.  */
+    ensure_inclass_static_member_constant_initializer_is_scanned(var);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* See if the variable has a known constant value. */
   if (gnu_mode && var->is_compound_literal) {
     /* In GNU C and C++, a variable representing an lvalue for a compound

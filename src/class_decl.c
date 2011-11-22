@@ -2785,6 +2785,90 @@ prototype instantiations).
   }  /* for */
 }  /* inclass_initializer_fixup_for_class */
 
+
+void ensure_inclass_static_member_constant_initializer_is_scanned(
+                                                          a_variable_ptr  var)
+/*
+The given variable entry is for a static member of a managed class type.
+The declaration of that member may have an in-class initializer, but if so
+scanning of that initializer was delayed until completion of the definition of
+the enclosing class.  Do this scanning now instead, so that the static data
+member can be used as a constant-expression.
+This is similar to inclass_initializer_fixup_for_class, except only a specific
+fixup entry is processed, and the initializer is scanned with the constraints
+of a constant-expression.
+*/
+{
+  a_symbol_ptr  var_sym = symbol_for(var);
+  a_type_ptr    class_type = sym_parent_class(var_sym);
+
+  check_assertion(symbol_is(var_sym, sk_static_data_member));
+  if (scope_is(&scope_stack_top(), sck_class_struct_union) &&
+      same_entities(scope_stack_top().assoc_type, class_type)) {
+    a_class_symbol_supplement_ptr  cssp;
+    an_initializer_fixup_ptr       *p_ifp, ifp;
+    cssp = symbol_supplement_for_class(class_type);
+    p_ifp = &cssp->initializer_fixup_list;
+    for (;*p_ifp != NULL; p_ifp = &(*p_ifp)->next) {
+      if ((*p_ifp)->symbol == var_sym) break;
+    }  /* for */
+    if (*p_ifp != NULL) {
+      a_decl_parse_state           dps;
+      a_constant                   constant;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      a_source_sequence_entry_ptr  last_ssep =
+                                scope_stack_top().end_of_source_sequence_list;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      ifp = *p_ifp;
+      push_lexical_state_stack();
+      /* Re-create a declaration parsing state before parsing the
+         initializer. */
+      init_decl_parse_state(&dps);
+      dps.sym = var_sym;
+      var = dps.sym->variant.static_data_member.variable;
+      dps.type = dps.declared_type = var->type;
+      /* Reactivate the class scope and parse the initializer. */
+      push_class_and_template_reactivation_scope(class_type,
+                                                 /*is_template_based=*/FALSE,
+                                                 /*extend_namespace=*/TRUE);
+      rescan_cached_tokens(&ifp->initializer_token_cache);
+      scan_member_constant_initializer_expression(&dps, &constant);
+      var->init_kind = (an_init_kind)initk_static;
+      var->initializer.constant = alloc_unshared_constant(&constant);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      var->initializer_range.end = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      var->is_member_constant = TRUE;
+      /* We should now be at the end-of-source terminator inserted when we
+         cached the initializer.  If we aren't, it means something other than a
+         semicolon (or a comma) followed the initializer expression. */
+      if (curr_token != tok_end_of_source) {
+        pos_error(ec_exp_semicolon, &pos_curr_token);
+      }  /* if */
+      flush_past_token_cache_terminator();
+      pop_class_reactivation_scope();
+      pop_lexical_state_stack();
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (last_ssep != scope_stack_top().end_of_source_sequence_list) {
+        /* The initializer created source sequence entries.  Move them to
+           follow the entry for the variable. */
+        a_source_sequence_entry_ptr  var_next;
+        check_assertion(last_ssep != NULL);
+        var_next = var->source_corresp.source_sequence_entry->next;
+        var->source_corresp.source_sequence_entry->next = last_ssep->next;
+        scope_stack_top().end_of_source_sequence_list->next = var_next;
+        scope_stack_top().end_of_source_sequence_list = last_ssep;
+        last_ssep->next = NULL;
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      /* Unlink the fixup entry and free it for reuse. */
+      *p_ifp = ifp->next;
+      ifp->next = NULL;
+      free_initializer_fixup(ifp);
+    }  /* if */
+  }  /* if */
+}  /* ensure_inclass_static_member_constant_initializer_is_scanned */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void check_trans_unit_for_fixup(

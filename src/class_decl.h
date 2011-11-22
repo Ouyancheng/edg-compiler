@@ -69,6 +69,9 @@ extern a_boolean in_cli_property_or_event_definition(void);
 
 extern a_boolean in_static_cli_property_or_event_definition(void);
 
+extern void ensure_inclass_static_member_constant_initializer_is_scanned(
+                                                         a_variable_ptr  var);
+
 extern void merge_dll_flags_from_parent_class(a_type_ptr          class_type,
                                               a_decl_parse_state  *dps);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -77,7 +80,6 @@ extern void check_for_conflicts_with_using_decls(
                                              a_symbol_ptr       overload_sym,
                                              a_source_position  *pos);
 
-extern
 void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp,
 					      a_boolean		is_friend,
 					      unsigned long	param_number);

@@ -14048,6 +14048,12 @@ this one is such a continuation.
   consider_initialization = is_definition;
   if (var->is_member_constant) consider_initialization = !is_definition;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  /* In C++/CLI managed class types, static data members are defined in-class
+     and initializers are therefore always considered. */
+  if (var->source_corresp.is_class_member &&
+      is_immediate_managed_class_type(parent_class_of(var))) {
+    consider_initialization = TRUE;
+  }  /* if */
   /* Do not generate the initializer for an iterator variable of a for-each
      statement as the initializer is compiler generated. */
   if (is_iterator) consider_initialization = FALSE;
