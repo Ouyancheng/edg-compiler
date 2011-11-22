@@ -28158,10 +28158,10 @@ are the generic argument list and parameter list of the generic reference.
               pos_ty2_error(ec_gcnew_and_no_ctor, list_start_pos,
                             arg_type, templ_param_type);
             }  /* if */
-          } else if (is_cli_generic_param_type(arg_type)) {
+          } else if (is_cli_generic_param_type(tp)) {
             /* A generic parameter.  See if it has the gcnew constraint. */
             if (!is_type_parameter_with_constraint(
-                             arg_type, (a_generic_constraint_kind)gck_gcnew)) {
+                                   tp, (a_generic_constraint_kind)gck_gcnew)) {
               pos_ty2_error(ec_gcnew_and_no_gcnew, list_start_pos,
                             arg_type, templ_param_type);
             }  /* if */
