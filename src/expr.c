@@ -752,6 +752,26 @@ expression node to indicate that.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+static a_boolean has_default_indexed_property(a_type_ptr type)
+/*
+If the given type is a class type that has a C++/CLI default indexed property,
+or a handle to such a type, return TRUE.
+*/
+{
+  a_boolean has_def_idx_property = FALSE;
+
+  if (is_handle_type(type)) type = type_pointed_to(type);
+  type = skip_typerefs(type);
+  if (is_immediate_managed_class_type(type)) {
+    a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
+    if (cssp->default_indexed_properties != NULL) {
+      has_def_idx_property = TRUE;
+    }  /* if */
+  }  /* if */
+  return has_def_idx_property;
+}  /* has_default_indexed_property */
+
+
 static a_boolean property_ref_has_accessor_that_yields_subscriptable_object(
                                                            an_operand *operand)
 /*
@@ -770,9 +790,10 @@ to win out.
                                          /*must_be_present=*/FALSE,
                                          &operand->position);
   if (get_sym != NULL) {
-    a_boolean                       pointer_or_handle_case = FALSE;
     a_boolean                       class_case = FALSE;
     a_boolean                       some_function_has_params = FALSE;
+    a_boolean                       declspec_property =
+                                          symbol_is(operand->symbol, sk_field);
     an_overload_set_traversal_block ostblock;
     for (get_sym = set_up_overload_set_traversal(get_sym, &ostblock);
          get_sym != NULL;
@@ -788,14 +809,15 @@ to win out.
             is_object_type(type_pointed_to(return_type))) {
           /* This function has zero arguments and returns a pointer to object
              type, so it can be used to get an "array" to be subscripted. */
-          pointer_or_handle_case = TRUE;
+          has_subscriptable_accessor = TRUE;
           break;
-        } else if (is_handle_type(return_type) &&
-                   is_cli_array_type(type_pointed_to(return_type))) {
-          /* This function has zero arguments and returns a handle to a
-             CLI array type, so it can be used to get an "array" to be
-             subscripted. */
-          pointer_or_handle_case = TRUE;
+        } else if (has_default_indexed_property(return_type) ||
+                   (is_handle_type(return_type) &&
+                    is_cli_array_type(type_pointed_to(return_type)))) {
+          /* This function has zero arguments and returns a subscriptable
+             class type or a handle to a CLI array type, so it can be used
+             to get an "array" to be subscripted. */
+          has_subscriptable_accessor = TRUE;
           break;
         } else if (!some_function_has_params &&
                    is_class_struct_union_type(return_type)) {
@@ -805,19 +827,24 @@ to win out.
                                             skip_typerefs(return_type))
                                                                      != NULL) {
             class_case = TRUE;
-            /* We don't break because we want to look for accessors with
-               parameters. */
+            if (declspec_property) {
+              /* For declspec properties, we don't break because we want to
+                 look for accessors with parameters. */
+            } else {
+              break;
+            }  /* if */
           }  /* if */
         }  /* if */
       } else {
-        /* Some function has parameters, which suppresses the class case. */
+        /* Some function has parameters, which suppresses the class case
+           for declspec properties. */
         some_function_has_params = TRUE;
       }  /* if */
     }  /* for */
-    /* The class case is accepted only if the property has no accessors that
-       might be used for subscripting. */
-    if (class_case && some_function_has_params) class_case = FALSE;
-    if (class_case || pointer_or_handle_case) {
+    /* The class case is accepted for a declspec property only if the property
+       has no accessors that might be used for subscripting. */
+    if (!has_subscriptable_accessor && class_case && declspec_property &&
+        !some_function_has_params) {
       has_subscriptable_accessor = TRUE;
     }  /* if */
   }  /* if */
@@ -885,32 +912,27 @@ static void rewrite_class_with_default_indexed_property_as_property_ref(
 /*
 operand is the left operand of a subscripting operation.  If it is an
 object of a C++/CLI ref class type that has a default indexed property,
-rewrite it as a property reference so the subscripts can be applied to that.
+or a handle to such a type, rewrite it as a property reference so the
+subscripts can be applied to that.
 */
 {
   if (cppcli_enabled) {
     a_type_ptr type = operand->type;
-    a_boolean  handle_case = FALSE;
-    if (is_handle_type(type)) {
-      type = type_pointed_to(type);
-      handle_case = TRUE;
-    }  /* if */
-    type = skip_typerefs(type);
-    if (is_immediate_managed_class_type(type)) {
-      a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(type);
-      if (cssp->default_indexed_properties != NULL) {
-        /* The class has a default indexed property, so rewrite the
-           reference. */
-        an_operand new_operand;
-        do_operand_transformations(operand,
-                                   handle_case ?
-                                    TOPT_NO_OPTIONS :
-                                    TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-        make_property_ref_operand(cssp->default_indexed_properties, operand,
-                                  handle_case, &new_operand);
-        restore_operand_details(&new_operand, operand);
-        copy_operand(&new_operand, operand);
-      }  /* if */
+    if (has_default_indexed_property(type)) {
+      /* The class has a default indexed property, so rewrite the reference. */
+      a_boolean  handle_case = is_handle_type(type);
+      a_type_ptr class_type = handle_case ? type_pointed_to(type) : type;
+      a_class_symbol_supplement_ptr
+                 cssp = symbol_supplement_for_class(class_type);
+      an_operand new_operand;
+      do_operand_transformations(operand,
+                                 handle_case ?
+                                   TOPT_NO_OPTIONS :
+                                   TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+      make_property_ref_operand(cssp->default_indexed_properties, operand,
+                                handle_case, &new_operand);
+      restore_operand_details(&new_operand, operand);
+      copy_operand(&new_operand, operand);
     }  /* if */
   }  /* if */
 }  /* rewrite_class_with_default_indexed_property_as_property_ref */
@@ -1041,6 +1063,7 @@ constructs, in which case offsetof_case is TRUE.
       rewrite_property_reference(operand_1, (an_operand *)NULL,
                                 (a_rewritten_property_reference_kind)rprk_none,
                                  (a_routine_ptr *)NULL);
+      rewrite_class_with_default_indexed_property_as_property_ref(operand_1);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
