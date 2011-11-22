@@ -19797,6 +19797,18 @@ empty_parentheses:
                                                         start_position);
           make_expression_operand(temp_init_node, result);
           rule_out_expr_kinds(ROEK_CONSTANT, result);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcli_enabled &&
+                   is_cli_generic_definition_argument_type(type_cast_to)) {
+          /* A cast to a C++/CLI generic type, i.e., T().  Always
+             non-constant. */
+          temp_init_node = alloc_empty_parens_func_cast(
+                                                 type_cast_to,
+                                                 (a_dynamic_init_kind)dik_zero,
+                                                 start_position);
+          make_expression_operand(temp_init_node, result);
+          rule_out_expr_kinds(ROEK_CONSTANT, result);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (is_template_dependent_type(type_cast_to)) {
           /* A cast to something like "T *".  It's a constant, but it's
              dependent. */
