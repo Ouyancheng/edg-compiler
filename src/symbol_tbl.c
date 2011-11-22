@@ -3367,7 +3367,6 @@ state.
         cssp->has_dispose_pattern_idisposable_dispose = FALSE;
         cssp->has_dispose_pattern_object_finalize = FALSE;
         cssp->needs_new_idisposable_dispose = FALSE;
-        cssp->has_or_inherits_default_indexed_property = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cssp->assignment_operator = NULL;
         cssp->conversion_list = NULL;
