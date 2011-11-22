@@ -209,6 +209,8 @@ Included from basic_hdrs.h in every compilation.
 #endif /* DO_IL_LOWERING && DO_FULL_PORTABLE_EH_LOWERING */
 #if !DO_IL_LOWERING
 /*lint -esym(552,virtual_function_table_definition)*/
+/*lint -esym(759,clear_routine_instantiation_required)*/
+/*lint -esym(765,clear_routine_instantiation_required)*/
 /*lint -esym(759,alloc_unshared_constant_full)*/
 /*lint -esym(765,alloc_unshared_constant_full)*/
 /*lint -esym(759,clear_expr_node)*/
