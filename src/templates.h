@@ -871,6 +871,10 @@ extern a_boolean equivalent_generic_constraints_for_param_lists(
                               a_boolean                 ignore_empty_gclist2,
                               a_generic_constraint_ptr  *p_mismatch_in_list1);
 
+extern a_boolean type_satisfies_constraints_of_generic_def_arg_type(
+                                                     a_type_ptr arg_type,
+                                                     a_type_ptr gda_type);
+
 void verify_generic_arg_list_satisfies_constraints(
 				a_symbol_ptr		generic_sym,
 				a_template_arg_ptr	generic_arg_list,

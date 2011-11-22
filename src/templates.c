@@ -28037,6 +28037,9 @@ Return TRUE if arg_type satisfies the type constraint specified by
 constraint_type.  generic_arg_list and generic_param_list are the
 generic argument list and parameter list of the generic reference.
 generic_sym is the generic that is being referenced.
+When generic_param_list is NULL, generic_sym and generic_arg_list
+are ignored, and the test is done against the original constraint_type
+without any substitution.
 */
 {
   a_boolean	result = FALSE;
@@ -28049,14 +28052,16 @@ generic_sym is the generic that is being referenced.
     arg_type = skip_typerefs(arg_type);
     arg_type = proxy_class_for_template_param(arg_type);
   }  /* if */
-  /* Substitute any generic parameters used in the constraint type. */
-  init_ctws_state(&ctws_state);
-  constraint_type = copy_type_with_substitution(
-                                  constraint_type,
-                                  generic_arg_list,
-                                  generic_param_list,
-                                  &generic_sym->decl_position,
-                                  CTWS_NO_OPTIONS, &copy_error, &ctws_state);
+  if (generic_param_list != NULL) {
+    /* Substitute any generic parameters used in the constraint type. */
+    init_ctws_state(&ctws_state);
+    constraint_type = copy_type_with_substitution(
+                                    constraint_type,
+                                    generic_arg_list,
+                                    generic_param_list,
+                                    &generic_sym->decl_position,
+                                    CTWS_NO_OPTIONS, &copy_error, &ctws_state);
+  }  /* if */
   if (!copy_error) {
     a_type_ptr	handle_constraint_type = constraint_type;
     /* If the constraint type is not already a handle, put a handle on top
@@ -28083,7 +28088,7 @@ generic_sym is the generic that is being referenced.
 }  /* type_satisfies_type_constraint */
 
 
-static void verify_type_satisfies_constraints(
+static a_boolean verify_type_satisfies_constraints(
 			a_symbol_ptr			generic_sym,
 			a_type_ptr			arg_type,
 			a_type_ptr			templ_param_type,
@@ -28093,14 +28098,21 @@ static void verify_type_satisfies_constraints(
 			a_source_position_ptr		list_start_pos)
 /*
 Go through the list of constraints specified by gc_list and determine
-whether the arg_type satisfies the constraints.  If a constraint is
-violated, issue a diagnostic describing the violation.  generic_sym is the
-generic that is being referenced.  list_start_pos is the position used
-for the diagnostic.  templ_param_type is the generic parameter whose
-constraints are being checked.  generic_arg_list and generic_param_list
-are the generic argument list and parameter list of the generic reference.
+whether the arg_type satisfies the constraints.  Return TRUE if so.
+If a constraint is violated, and list_start_pos is non-NULL, issue a
+diagnostic describing the violation; list_start_pos is the position
+used for the diagnostic.  generic_sym is the generic that is being
+referenced.  templ_param_type is the generic parameter whose
+constraints are being checked (it is not used and can be NULL if
+list_start_pos is NULL).  generic_arg_list and generic_param_list are
+the generic argument list and parameter list of the generic reference.
+When generic_param_list is NULL, generic_sym and generic_arg_list are
+ignored, and the test is done against the constraint type without any
+substitution.
 */
 {
+  a_boolean			result = TRUE;
+  a_boolean			issue_error = (list_start_pos != NULL);
   a_generic_constraint_ptr	gcp;
 
   for (gcp = gc_list; gcp != NULL; gcp = gcp->next) {
@@ -28112,8 +28124,11 @@ are the generic argument list and parameter list of the generic reference.
         if (!type_satisfies_type_constraint(generic_sym, arg_type, gcp->type,
                                             generic_arg_list,
                                             generic_param_list)) {
-          pos_ty3_error(ec_type_not_satisfied, list_start_pos,
-                        arg_type, templ_param_type, gcp->type);
+          result = FALSE;
+          if (issue_error) {
+            pos_ty3_error(ec_type_not_satisfied, list_start_pos,
+                          arg_type, templ_param_type, gcp->type);
+          }  /* if */
         }  /* if */
         break;
       case gck_ref_class:
@@ -28122,8 +28137,11 @@ are the generic argument list and parameter list of the generic reference.
         if (!is_handle_type(arg_type) &&
             !is_type_parameter_with_constraint(
                          arg_type, (a_generic_constraint_kind)gck_ref_class)) {
-          pos_ty2_error(ec_ref_class_not_satisfied, list_start_pos,
-                        arg_type, templ_param_type);
+          result = FALSE;
+          if (issue_error) {
+            pos_ty2_error(ec_ref_class_not_satisfied, list_start_pos,
+                          arg_type, templ_param_type);
+          }  /* if */
         }  /* if */
         break;
       case gck_value_class:
@@ -28137,8 +28155,11 @@ are the generic argument list and parameter list of the generic reference.
              !is_type_parameter_with_constraint(
                       arg_type, (a_generic_constraint_kind)gck_value_class)) ||
             is_cli_nullable_type(arg_type)) {
-          pos_ty2_error(ec_value_class_not_satisfied, list_start_pos,
-                        arg_type, templ_param_type);
+          result = FALSE;
+          if (issue_error) {
+            pos_ty2_error(ec_value_class_not_satisfied, list_start_pos,
+                          arg_type, templ_param_type);
+          }  /* if */
         }  /* if */
         break;
       case gck_gcnew:
@@ -28151,19 +28172,28 @@ are the generic argument list and parameter list of the generic reference.
             tp = type_pointed_to(tp);
             if (is_abstract_class_type(tp)) {
               /* Abstract classes do not satisfy the gcnew constraint. */
-              pos_ty2_error(ec_gcnew_and_abstract, list_start_pos,
-                            arg_type, templ_param_type);
+              result = FALSE;
+              if (issue_error) {
+                pos_ty2_error(ec_gcnew_and_abstract, list_start_pos,
+                              arg_type, templ_param_type);
+              }  /* if */
             } else if (!cli_type_has_public_default_constructor(tp)) {
               /* The type must have a public default constructor. */
-              pos_ty2_error(ec_gcnew_and_no_ctor, list_start_pos,
-                            arg_type, templ_param_type);
+              result = FALSE;
+              if (issue_error) {
+                pos_ty2_error(ec_gcnew_and_no_ctor, list_start_pos,
+                              arg_type, templ_param_type);
+              }  /* if */
             }  /* if */
           } else if (is_cli_generic_param_type(tp)) {
             /* A generic parameter.  See if it has the gcnew constraint. */
             if (!is_type_parameter_with_constraint(
                                    tp, (a_generic_constraint_kind)gck_gcnew)) {
-              pos_ty2_error(ec_gcnew_and_no_gcnew, list_start_pos,
-                            arg_type, templ_param_type);
+              result = FALSE;
+              if (issue_error) {
+                pos_ty2_error(ec_gcnew_and_no_gcnew, list_start_pos,
+                              arg_type, templ_param_type);
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
@@ -28171,8 +28201,44 @@ are the generic argument list and parameter list of the generic reference.
       default:
         unexpected_condition();
     }  /* switch */
+    /* We can stop looping if the answer is known and we don't need to keep
+       going in order to issue all errors. */
+    if (!result && !issue_error) break;
   }  /* for */
+  return result;
 }  /* verify_type_satisfies_constraints */
+
+
+a_boolean type_satisfies_constraints_of_generic_def_arg_type(
+                                                     a_type_ptr arg_type,
+                                                     a_type_ptr gda_type)
+/*
+Return TRUE if arg_type satisfies the constraints of the generic
+definition argument type gda_type.  More precisely, return FALSE only
+if arg_type is known not to satisfy the constraints; if we can't
+tell, return TRUE.
+*/
+{
+  a_boolean                result = TRUE;
+  a_type_ptr               gp_type;
+  a_generic_constraint_ptr gc_list;
+
+  check_assertion(is_cli_generic_definition_argument_type(gda_type));
+  gp_type = generic_param_if_generic_definition_argument(gda_type);
+  check_assertion(gp_type->kind == (a_type_kind)tk_template_param);
+  gc_list = gp_type->variant.template_param.extra_info->generic_constraints;
+  if (!verify_type_satisfies_constraints(
+                        /*generic_sym=*/(a_symbol *)NULL,
+                        arg_type,
+                        /*templ_param_type=*/(a_type *)NULL,
+                        /*generic_arg_list=*/(a_template_arg *)NULL,
+                        /*generic_param_list=*/(a_template_param *)NULL,
+                        gc_list,
+                        /*list_start_pos=*/(a_source_position *)NULL)) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* type_satisfies_constraints_of_generic_def_arg_type */
 
 
 void verify_generic_arg_list_satisfies_constraints(
@@ -28230,11 +28296,11 @@ that will persist until the checks are actually done.
     if (is_template_not_cli_generic_param_type(tap->variant.type)) {
       /* Template parameters are considered to satisfy any constraints. */
     } else {
-      verify_type_satisfies_constraints(generic_sym, tap->variant.type,
-                                        templ_param_type,
-                                        generic_arg_list,
-                                        generic_param_list, gc_list,
-                                        list_start_pos);
+      (void)verify_type_satisfies_constraints(generic_sym, tap->variant.type,
+                                              templ_param_type,
+                                              generic_arg_list,
+                                              generic_param_list, gc_list,
+                                              list_start_pos);
     }  /* if */
   }  /* for */
 done:
