@@ -18806,6 +18806,15 @@ routine.
                                           es_warning,
                        ec_useless_type_qualifiers, err_pos);
       }  /* if */
+    } else if (gpp_mode && (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0) {
+      /* GNU compilers accept empty declarations in C++ classes.  If the empty
+         declaration includes attributes, adapt the diagnostic wording
+         accordingly. */
+      if (decl_state->prefix_attributes != NULL) {
+        pos_warning(ec_attributes_with_no_decl, err_pos);
+      } else {
+        pos_warning(ec_useless_decl, err_pos);
+      }  /* if */
     } else {
       /* A case like "int;" or "enum ::E;": Issue an error. */
       an_error_severity  sev = es_error;
@@ -18827,6 +18836,11 @@ routine.
       pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity :
                                         es_warning,
                      ec_exp_identifier, &pos_curr_token);
+    } else if (gcc_mode && (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0 &&
+               decl_state->prefix_attributes != NULL) {
+      /* An empty declaration with attributes: Issue a diagnostic that mentions
+         the attributes. */
+      pos_warning(ec_attributes_with_no_decl, err_pos);
     } else {
       /* Issue a warning (or error in -A mode) on the useless declaration. */
       pos_diagnostic(strict_ansi_mode ?
