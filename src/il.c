@@ -21134,7 +21134,7 @@ clear its instantiation required information.
 }  /* clear_variable_instantiation_required */
 
 
-static void clear_routine_instantiation_required(a_routine_ptr rp)
+void clear_routine_instantiation_required(a_routine_ptr rp)
 /*
 The indicated routine is being removed from the IL.  If it is a template,
 clear its instantiation required information.

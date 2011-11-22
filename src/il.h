@@ -2354,6 +2354,8 @@ extern void destination_type_for_reference_cast(an_expr_node_ptr  expr,
 
 extern a_boolean pm_constant_is_null(a_constant_ptr constant);
 
+extern void clear_routine_instantiation_required(a_routine_ptr rp);
+
 #endif /* ifndef IL_H */
 
 /******************************************************************************

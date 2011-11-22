@@ -6993,6 +6993,44 @@ this function.
 
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
 
+void clear_instantion_required_on_routines_with_no_effect(a_scope_ptr scope)
+/*
+Find any routines in the specified scope (or scopes contained therein)
+where an unneeded template function (constructor or destructor) has been
+instantiated, and reset its instantiation required flag if necessary.  This
+function isn't called when unneeded entities are removed, but in configurations
+where that's not done, if the flag is not reset, the prelinker is invoked to
+instantiate the unneeded routine.
+*/
+{
+  a_routine_ptr   routine;
+  a_scope_ptr     sp;
+
+  for (sp = scope->scopes; sp != NULL; sp = sp->next) {
+    if (sp->kind == (a_scope_kind)sk_namespace ||
+        sp->kind == (a_scope_kind)sk_class_or_struct_tag) {
+      clear_instantion_required_on_routines_with_no_effect(sp);
+    }  /* if */
+  }  /* for */
+  for (routine = scope->routines; routine != NULL; routine = routine->next) {
+    if (routine->has_no_effect &&
+        !routine->ctor_or_dtor_is_used &&
+        routine->is_template_function) {
+      /* Routines with no effect are generally elided, but not in all cases
+         (i.e., when ctor_or_dtor_is_used is TRUE). */
+      a_symbol_ptr          sym = symbol_for(routine);
+      a_master_instance_ptr mip;
+      mip = master_instance_of(sym->variant.routine.instance_ptr);
+      if (!mip->automatically_instantiated) {
+        /* Don't remove routines that are explicitly requested by the
+           prelinker. */
+        clear_routine_instantiation_required(routine);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* clear_instantion_required_on_routines_with_no_effect */
+
+
 static a_boolean ctor_or_dtor_has_no_effect(a_routine_ptr     routine,
                                             an_expr_node_ptr  args,
                                             a_boolean         args_are_lowered)
@@ -7068,11 +7106,21 @@ routine is not used before eliding a call to the routine.
       if (node_has_side_effects(args, (a_boolean*)NULL)) {
         /* One of the arguments to this routine has a side effect so this
            invocation of this routine can't be elided (though it's still
-           possible that other invocations may be elided). */
+           possible that other invocations may be elided).  Note that it
+           may also be possible to elide the call to the constructor and
+           execute the arguments (so their side-effects occur), but we don't
+           do that. */
         result = FALSE;
         break;
       }  /* if */
     }  /* for */
+  }  /* if */
+  if (!result) {
+    /* Returning FALSE here means that the constructor or destructor in
+       question will not be elided; record that information here so that
+       this routine retains its instantiation required status (if it's
+       a template function). */
+    routine->ctor_or_dtor_is_used = TRUE;
   }  /* if */
   return result;
 }  /* ctor_or_dtor_has_no_effect */

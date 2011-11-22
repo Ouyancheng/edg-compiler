@@ -275,6 +275,9 @@ extern void lower_uuidof(a_constant *con);
 extern void lower_lambda(an_expr_node_ptr expr);
 
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+extern void clear_instantion_required_on_routines_with_no_effect(
+                                                           a_scope_ptr scope);
+
 extern void remove_unneeded_constructions_and_destructions(a_scope_ptr scope);
 
 extern a_boolean lowered_ctor_or_dtor_has_no_effect(a_scope_ptr scope);
