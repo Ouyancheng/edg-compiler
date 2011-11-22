@@ -2729,6 +2729,11 @@ Display the indicated field.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->is_initonly) disp_boolean("is_initonly", TRUE);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->vla_treated_as_zero_length_array) {
+    disp_boolean("vla_treated_as_zero_length_array", TRUE);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
   if (ptr->base_class_subobject_with_tail_padding) {
     disp_boolean("base_class_subobject_with_tail_padding", TRUE);

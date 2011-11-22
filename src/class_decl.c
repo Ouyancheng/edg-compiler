@@ -15492,6 +15492,8 @@ be entered.
     if (decl_state->asm_name != NULL) {
       pos_error(ec_field_with_asm_name_not_allowed, &decl_state->asm_name_pos);
     }  /* if */
+    field->vla_treated_as_zero_length_array =
+                           decl_state->vla_field_treated_as_zero_length_array;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Record whether the declaration was preceded by __extension__. */
     field->source_corresp.marked_as_gnu_extension =

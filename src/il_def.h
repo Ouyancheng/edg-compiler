@@ -8985,6 +8985,13 @@ typedef struct a_field {
 			   appeared on the declaration of this nonstatic data
 			   member (C++/CLI only). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	vla_treated_as_zero_length_array:1;
+			/* TRUE if the field was declared as a variable-length
+			   array (which is normally invalid for field types),
+			   but treated as a zero-length array by the front
+			   end. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
   a_bit_field	base_class_subobject_with_tail_padding:1;
 			/* TRUE if this field was added by IL lowering to

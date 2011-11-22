@@ -2310,6 +2310,9 @@ to it.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   fp->is_initonly          = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  fp->vla_treated_as_zero_length_array = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
   fp->base_class_subobject_with_tail_padding = FALSE;
 #endif /* DO_IL_LOWERING */

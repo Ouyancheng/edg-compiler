@@ -637,6 +637,9 @@ typedef struct a_decl_parse_state {
   a_bit_field	is_explicit_instantiation:1;
 			/* TRUE if this declaration is an explicit
 			   instantiation directive. */
+  a_bit_field	vla_field_treated_as_zero_length_array:1;
+			/* TRUE if this declaration is an explicit
+			   instantiation directive. */
   an_attribute_ptr
 		prefix_attributes;
 			/* A list of non-type-transforming attributes scanned

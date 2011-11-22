@@ -3407,6 +3407,7 @@ constant.
                              (an_integer_kind)ik_int);
         dim_expr = NULL;
         is_constant_bound = TRUE;
+        dps->vla_field_treated_as_zero_length_array = TRUE;
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     } else {

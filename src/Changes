@@ -1,5 +1,14 @@
 Version 4.4
 
+11/22/11 [EDGcpfe/12003]
+VLA fields treated as zero-length arrays (GNU C mode)
+
+In GNU C mode, the front end treats variable-length array (VLA) fields of
+local structs as zero-length arrays (see the Changes entry of 3/4/02).  A new
+flag ("vla_treated_as_zero_length_array") has been added to a_field entries to
+indicate that such a transformation occurred.
+
+
 11/22/11 [EDGcpfe/12356]
 GNU compatibility: Empty member declarations with attributes in GNU modes
 
@@ -53198,7 +53207,7 @@ not from curr. namespace" and is now fixed.
 
 The GNU C compiler accepts variable-length array fields in local struct
 declarations, which may result in size and offset computation being
-delayed until run time.  However, it common for this feature to be used
+delayed until run time.  However, it is common for this feature to be used
 simply to indicate that the last field of a structure is a flexible array
 member.  To enable the latter idiom, the front end now accepts such
 declarations in GNU C mode, but it discards the given length with a
