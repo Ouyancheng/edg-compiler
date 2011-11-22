@@ -8691,7 +8691,8 @@ process_class_specifier:
         } else {
           if (basic_type == bt_none) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (microsoft_mode && !C_mode() && is_member_decl && !err) {
+            if (microsoft_mode && !C_mode() && is_member_decl && !err &&
+                !(decl_specifiers_seen & DS_FRIEND)) {
               /* In Microsoft mode, "struct S { struct S(); }; is accepted.
                  Access checks are disabled during this processing. */
               a_boolean   is_elaborated_ctor = FALSE;

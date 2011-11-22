@@ -2885,7 +2885,7 @@ TRUE if this is the function declarator in a friend function declaration.
             any_variadic_params = FALSE;
           }  /* if */
         }  /* if */
-        if (is_constructor) {
+        if (is_constructor && parent_type != NULL) {
           /* In case this is an ill-formed copy constructor, we need to do
              some additional error checking.  We're looking for cases like
                A::A(A);                // case 1
@@ -2896,9 +2896,9 @@ TRUE if this is the function declarator in a friend function declaration.
                A::A(A%);               // case 5
                A::A(A%, T=x, A=y);     // case 6
              It's not actually possible to know whether a constructor is a
-             (legal or illegal) copy constructor without looking past the
+             (valid or invalid) copy constructor without looking past the
              first parameter.  That's part of what makes this check a little
-             complicated.  (See ARM 12.1.) */
+             complicated. */
           if (extra_info->param_type_list->next == NULL) {
             /* This is the first item on the list. */
             tp = skip_typerefs(param_state.type);
