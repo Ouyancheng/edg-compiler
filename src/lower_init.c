@@ -6992,6 +6992,7 @@ this function.
 }  /* add_cast_for_cv_qualified_cctor_param_if_necessary */
 
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 void clear_instantion_required_on_routines_with_no_effect(a_scope_ptr scope)
 /*
@@ -7030,6 +7031,7 @@ instantiate the unneeded routine.
   }  /* for */
 }  /* clear_instantion_required_on_routines_with_no_effect */
 
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 static a_boolean ctor_or_dtor_has_no_effect(a_routine_ptr     routine,
                                             an_expr_node_ptr  args,
