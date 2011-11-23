@@ -3080,6 +3080,13 @@ defined.  Detailed position information is recorded in *decl_pos_block.
                             &local_decl_pos_block);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
     if (tag_name_access_checks_deferred) {
+      if (microsoft_mode && microsoft_version <= 1310 &&
+          is_friend_decl && locator.is_qualified_name) {
+        /* Some Microsoft compilers appear not to perform access checks for
+           qualified friend declarations.  E.g., the following is accepted:
+             class C { class N; };  struct S { friend class C::N; }; */
+        discard_deferred_access_checks();
+      }  /* if */
       end_deferral_of_access_checks();
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
