@@ -455,7 +455,7 @@ Do removal of unneeded IL entities for the current translation unit
        instantiation_required flag on any constructors or destructors
        that were removed as unnecessary so the prelinker doesn't try
        to instantiate them. */
-    clear_instantion_required_on_routines_with_no_effect(il_scope);
+    clear_instantiation_required_on_routines_with_no_effect(il_scope);
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS && ... */
   }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */

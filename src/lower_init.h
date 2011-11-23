@@ -276,7 +276,7 @@ extern void lower_lambda(an_expr_node_ptr expr);
 
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
 #if AUTOMATIC_TEMPLATE_INSTANTIATION && MAINTAIN_NEEDED_FLAGS
-extern void clear_instantion_required_on_routines_with_no_effect(
+extern void clear_instantiation_required_on_routines_with_no_effect(
                                                            a_scope_ptr scope);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION && MAINTAIN_NEEDED_FLAGS */
 

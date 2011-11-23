@@ -6994,7 +6994,7 @@ this function.
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
 #if AUTOMATIC_TEMPLATE_INSTANTIATION && MAINTAIN_NEEDED_FLAGS
 
-void clear_instantion_required_on_routines_with_no_effect(a_scope_ptr scope)
+void clear_instantiation_required_on_routines_with_no_effect(a_scope_ptr scope)
 /*
 Find any routines in the specified scope (or scopes contained therein)
 where an unneeded template function (constructor or destructor) has been
@@ -7010,7 +7010,7 @@ instantiate the unneeded routine.
   for (sp = scope->scopes; sp != NULL; sp = sp->next) {
     if (sp->kind == (a_scope_kind)sk_namespace ||
         sp->kind == (a_scope_kind)sk_class_or_struct_tag) {
-      clear_instantion_required_on_routines_with_no_effect(sp);
+      clear_instantiation_required_on_routines_with_no_effect(sp);
     }  /* if */
   }  /* for */
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
@@ -7029,7 +7029,7 @@ instantiate the unneeded routine.
       }  /* if */
     }  /* if */
   }  /* for */
-}  /* clear_instantion_required_on_routines_with_no_effect */
+}  /* clear_instantiation_required_on_routines_with_no_effect */
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION && MAINTAIN_NEEDED_FLAGS */
 
