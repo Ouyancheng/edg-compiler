@@ -12941,6 +12941,7 @@ for the destructor.
 
   check_assertion_str(exceptions_enabled,
           "initialize_dtor_init_for_cleanup: called with exceptions disabled");
+  check_assertion(dedp != NULL);
   dedp->cleanup_state_to_set_when_starting_destruction = next_dip;
   /* Do a recursive call to process the rest of the list. */
   if (next_dip != NULL) {
