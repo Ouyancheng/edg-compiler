@@ -7734,6 +7734,13 @@ Enter symbols for the C99 predefined macros.
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #endif /* STDC_ISO_10646 */
+#if STDC_MB_MIGHT_NEQ_WC
+  (void)enter_predef_macro(conv_unsigned_long_to_str(
+                                    (unsigned long)STDC_MB_MIGHT_NEQ_WC_VALUE),
+                           "__STDC_MB_MIGHT_NEQ_WC__",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#endif /* STDC_MB_MIGHT_NEQ_WC */
 }  /* init_c99_predefined_macros */
 
 

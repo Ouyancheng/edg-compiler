@@ -1613,6 +1613,26 @@ defined with a value of the form yyyymmL (e.g., 199712L).
 #endif /* STDC_ISO_10646 */
 
 /*
+Flag that is TRUE if the C99 macro __STDC_MB_MIGHT_NEQ_WC__ should be
+predefined with the value STDC_MB_MIGHT_NEQ_WC_VALUE.  When the flag is FALSE,
+the macro is left undefined.  The __STDC_MB_MIGHT_NEQ_WC__ macro was
+introduced in TC3 and should be set to the integer constant 1 to indicate that,
+in the encoding for wchar_t, a member of the basic character set need not have
+a code value equal to its value when used as the lone character in an integer
+character constant.
+*/
+#ifndef STDC_MB_MIGHT_NEQ_WC
+#define STDC_MB_MIGHT_NEQ_WC 0
+#endif /* ifndef STDC_MB_MIGHT_NEQ_WC */
+
+#if STDC_MB_MIGHT_NEQ_WC
+#ifndef STDC_MB_MIGHT_NEQ_WC_VALUE
+ #error -- STDC_MB_MIGHT_NEQ_WC_VALUE must be defined when \
+           STDC_MB_MIGHT_NEQ_WC is set
+#endif /* ifndef STDC_MB_MIGHT_NEQ_WC_VALUE */
+#endif /* STDC_MB_MIGHT_NEQ_WC */
+
+/*
 Flag that is TRUE if, in ANSI C mode, support for UPC (Unified Parallel C)
 extensions is provided.  This is the default value for the global flag
 upc_mode, the value of which may be modified using command line options.
