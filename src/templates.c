@@ -28089,6 +28089,7 @@ without any substitution.
 
 
 static a_boolean verify_type_satisfies_constraints(
+			a_boolean			for_cast,
 			a_symbol_ptr			generic_sym,
 			a_type_ptr			arg_type,
 			a_type_ptr			templ_param_type,
@@ -28099,6 +28100,7 @@ static a_boolean verify_type_satisfies_constraints(
 /*
 Go through the list of constraints specified by gc_list and determine
 whether the arg_type satisfies the constraints.  Return TRUE if so.
+If for_cast is TRUE, the check is being done as part of processing a cast.
 If a constraint is violated, and list_start_pos is non-NULL, issue a
 diagnostic describing the violation; list_start_pos is the position
 used for the diagnostic.  generic_sym is the generic that is being
@@ -28149,11 +28151,18 @@ substitution.
            type other than a pointer type (but not an instance of
            System::Generic<...>) or a type parameter with the value class
            constraint (ECMA 31.4.1).  Note that pointer types are not
-           allowed at all as generic argument so that test is not needed
+           allowed at all as generic arguments so that test is not needed
            here. */
+        /* For casts, a handle to an interface type can be converted to a
+           type parameter with a value class constraint; that's implemented
+           as an unbox which checks at runtime that the actual value class
+           implements the interface. */
         if ((!is_cli_value_type(arg_type) &&
              !is_type_parameter_with_constraint(
-                      arg_type, (a_generic_constraint_kind)gck_value_class)) ||
+                      arg_type, (a_generic_constraint_kind)gck_value_class) &&
+             !(for_cast &&
+               is_handle_type(arg_type) &&
+               is_cli_interface_type(type_pointed_to(arg_type)))) ||
             is_cli_nullable_type(arg_type)) {
           result = FALSE;
           if (issue_error) {
@@ -28216,7 +28225,8 @@ a_boolean type_satisfies_constraints_of_generic_def_arg_type(
 Return TRUE if arg_type satisfies the constraints of the generic
 definition argument type gda_type.  More precisely, return FALSE only
 if arg_type is known not to satisfy the constraints; if we can't
-tell, return TRUE.
+tell, return TRUE.  This check is being done for a cast, specifically for
+the runtime-checked version of safe_cast.
 */
 {
   a_boolean                result = TRUE;
@@ -28227,7 +28237,13 @@ tell, return TRUE.
   gp_type = generic_param_if_generic_definition_argument(gda_type);
   check_assertion(gp_type->kind == (a_type_kind)tk_template_param);
   gc_list = gp_type->variant.template_param.extra_info->generic_constraints;
+  if (is_cli_ref_or_interface_class_type(arg_type)) {
+    /* Always handle ref and interface class types as handles.  Value class
+       types go as classes. */
+    arg_type = make_handle_type(arg_type);
+  }  /* if */
   if (!verify_type_satisfies_constraints(
+                        /*for_cast=*/TRUE,
                         /*generic_sym=*/(a_symbol *)NULL,
                         arg_type,
                         /*templ_param_type=*/(a_type *)NULL,
@@ -28296,7 +28312,8 @@ that will persist until the checks are actually done.
     if (is_template_not_cli_generic_param_type(tap->variant.type)) {
       /* Template parameters are considered to satisfy any constraints. */
     } else {
-      (void)verify_type_satisfies_constraints(generic_sym, tap->variant.type,
+      (void)verify_type_satisfies_constraints(/*for_cast=*/FALSE,
+                                              generic_sym, tap->variant.type,
                                               templ_param_type,
                                               generic_arg_list,
                                               generic_param_list, gc_list,
