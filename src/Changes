@@ -7,9 +7,8 @@ Technical Corrigendum 3 for C99 added a new macro, __STDC_MB_MIGHT_NEQ_WC__,
 which, when set to the integer constant 1, indicates that, in the encoding for
 wchar_t, a member of the basic character set need not have a code value equal
 to its value when used as the lone character in an integer character constant.
-The front end now has configuration macros STDC_MB_MIGHT_NEQ_WC and
-STDC_MB_MIGHT_NEQ_WC_VALUE which are used to control whether the macro
-__STDC_MB_MIGHT_NEQ_WC__ is predefined and its value, respectively.
+The front end now has a configuration macro STDC_MB_MIGHT_NEQ_WC that, when
+set to TRUE, predefines the macro __STDC_MB_MIGHT_NEQ_WC__ (to "1").
 By default __STDC_MB_MIGHT_NEQ_WC__ is undefined.
 
 

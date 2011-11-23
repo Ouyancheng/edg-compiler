@@ -6264,11 +6264,6 @@ file.
 #else /* !defined(STDC_MB_MIGHT_NEQ_WC) */
   comment_undefined_macro_name(STDC_MB_MIGHT_NEQ_WC);
 #endif /* defined(STDC_MB_MIGHT_NEQ_WC) */
-#if defined(STDC_MB_MIGHT_NEQ_WC_VALUE)
-  define_numeric_valued_macro(STDC_MB_MIGHT_NEQ_WC_VALUE);
-#else /* !defined(STDC_MB_MIGHT_NEQ_WC_VALUE) */
-  comment_undefined_macro_name(STDC_MB_MIGHT_NEQ_WC_VALUE);
-#endif /* defined(STDC_MB_MIGHT_NEQ_WC_VALUE) */
 #if defined(STDC_ZERO_IN_NONSTRICT_MODE)
   define_numeric_valued_macro(STDC_ZERO_IN_NONSTRICT_MODE);
 #else /* !defined(STDC_ZERO_IN_NONSTRICT_MODE) */
