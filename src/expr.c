@@ -18471,8 +18471,13 @@ is start_position.  The source form of the cast is given by source_form.
           if (is_cast_to_tracking_ref) {
             /* A cast to a tracking reference is always allowed. */
           } else if (is_cli_interface_type(dest_type) ||
-                     is_cli_interface_type(source_type)) {
-            /* A cast to or from an interface type is allowed. */
+                     (is_cli_interface_type(source_type) &&
+                      !is_value_class_type(type_cast_to))) {
+            /* A cast to or from an interface type is allowed, but not one
+               from an interface type to a value type (except where a
+               base class relationship exists, but that was handled above).
+               But a cast from a handle to an interface to a handle to a
+               value class is allowed by VC10. */
           } else {
             /* Other cases are disallowed. */
             is_runtime_checked_cast = FALSE;
