@@ -18398,6 +18398,8 @@ is start_position.  The source form of the cast is given by source_form.
   a_boolean        might_be_runtime_checked = FALSE;
   a_boolean        requires_boxing = FALSE;
   a_type_ptr       source_type = operand->type, dest_type = type_cast_to;
+  a_type_ptr       orig_source_type = source_type;
+  a_type_ptr       orig_dest_type = dest_type;
   a_base_class_ptr bcp;
 
   if (is_handle_type(dest_type) && is_boxable_type(source_type)) {
@@ -18405,18 +18407,10 @@ is start_position.  The source form of the cast is given by source_form.
     requires_boxing = TRUE;
     source_type = make_handle_type(source_type);
   }  /* if */
-  if ((is_handle_type(source_type) ||
-       is_cli_generic_definition_argument_type(source_type) ||
-       is_value_class_type(source_type)) &&
-      (is_handle_type(dest_type) ||
-       is_cli_generic_definition_argument_type(dest_type) ||
-       is_value_class_type(dest_type))) {
-    if (is_handle_type(source_type)) {
-      source_type = type_pointed_to(source_type);
-    }  /* if */
-    if (is_handle_type(dest_type)) {
-      dest_type = type_pointed_to(dest_type);
-    }  /* if */
+  if (is_handle_type(source_type) &&
+      is_handle_type(dest_type)) {
+    source_type = type_pointed_to(source_type);
+    dest_type = type_pointed_to(dest_type);
     might_be_runtime_checked = TRUE;
   } else if (is_tracking_reference_type(dest_type)) {
     is_cast_to_tracking_ref = TRUE;
@@ -18449,15 +18443,16 @@ is start_position.  The source form of the cast is given by source_form.
           /* If both types are generic, no checking is done at compile time. */
           is_runtime_checked_cast = TRUE;
         } else if (type_satisfies_constraints_of_generic_def_arg_type(
-                                                                  source_type,
-                                                                  dest_type)) {
+                                                             orig_source_type,
+                                                             orig_dest_type)) {
           is_runtime_checked_cast = TRUE;
         }  /* if */
       } else if (is_cli_generic_definition_argument_type(source_type)) {
         /* Casts from generic types are allowed but checked.  However, casts
            that violate the constraints are rejected. */
-        if (type_satisfies_constraints_of_generic_def_arg_type(dest_type,
-                                                               source_type)) {
+        if (type_satisfies_constraints_of_generic_def_arg_type(
+                                                           orig_dest_type,
+                                                           orig_source_type)) {
           is_runtime_checked_cast = TRUE;
         }  /* if */
       } else {
