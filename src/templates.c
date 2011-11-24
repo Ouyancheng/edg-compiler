@@ -28136,9 +28136,14 @@ substitution.
       case gck_ref_class:
         /* The ref class constraint is satisfied if the argument is a handle
            or a type parameter with the ref class constraint (ECMA 31.4.1). */
+        /* For casts, a value class type can be converted to a handle to
+           a ref class.  That is presumably allowed by VC10 because the
+           constraint could be satisfied by a handle to Object. */
         if (!is_handle_type(arg_type) &&
             !is_type_parameter_with_constraint(
-                         arg_type, (a_generic_constraint_kind)gck_ref_class)) {
+                         arg_type, (a_generic_constraint_kind)gck_ref_class) &&
+            !(for_cast &&
+              is_value_class_type(arg_type))) {
           result = FALSE;
           if (issue_error) {
             pos_ty2_error(ec_ref_class_not_satisfied, list_start_pos,
