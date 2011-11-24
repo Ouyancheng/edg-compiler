@@ -18495,8 +18495,13 @@ is start_position.  The source form of the cast is given by source_form.
       if (requires_boxing) {
         box_value_type_operand(operand, /*leave_as_handle=*/TRUE);
       }  /* if */
-      /* Convert the handle to an rvalue if necessary. */
-      do_operand_transformations(operand, TOPT_NO_OPTIONS);
+      if (is_handle_type(operand->type)) {
+        /* Convert the handle to an rvalue if necessary. */
+        do_operand_transformations(operand, TOPT_NO_OPTIONS);
+      } else if (!is_error_operand(operand)) {
+        /* Box a value type so the cast is done on handles. */
+        box_value_type_operand(operand, /*leave_as_handle=*/TRUE);
+      }  /* if */
     }  /* if */
     orig_operand = *operand;
     expr = make_node_from_operand(operand);
@@ -18523,6 +18528,13 @@ is start_position.  The source form of the cast is given by source_form.
       mark_as_reference_cast(expr, type_cast_to);
       if (source_form == csf_safe_cast) expr->is_safe_cast = TRUE;
       expr->variant.operation.requires_runtime_cast_check = TRUE;
+    }  /* if */
+    if (!is_cast_to_tracking_ref) {
+      /* Unbox at the end if necessary. */
+      if (is_value_class_type(type_cast_to) && is_handle_type(expr->type)) {
+        expr = add_unbox_to_expression(expr, type_cast_to,
+                                       /*make_lvalue=*/FALSE);
+      }  /* if */
     }  /* if */
     make_lvalue_or_rvalue_expression_operand(expr, operand);
     restore_operand_details_for_cast(operand, &orig_operand,
