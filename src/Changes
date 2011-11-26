@@ -1,18 +1,14 @@
 Version 4.4
 
 11/23/11 [EDGcpfe/11891]
-Further delaying of lowering of functions when waiting for a "module id"
+Segfault in initialize_dtor_init_for_cleanup
 
-As described in the Changes entry for EDGcpfe/9904, function bodies aren't
-lowered until a suitable "module id" has been found, at which point all
-functions awaiting lowering are lowered.  Previously these queued functions
-might have been lowered in a template dependent context, resulting in
-inconsistent destructions when exception handling is enabled (and leading to a
-segmentation violation in initialize_dtor_init_for_cleanup).  A change has been
-made to further delay lowering of these queued functions until a
-non-template-dependent context exists on the scope stack.  This example had
-failed (with -x in IA-64 ABI configurations where
-HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS is TRUE):
+In some IA-64 ABI configurations, copying of constructor inits during
+IL lowering had resulted in inconsistent destruction information, leading
+to a segmentation violation in initialize_dtor_init_for_cleanup (or possibly
+other undefined behavior).  This example had failed (with -x in IA-64 ABI
+configurations where HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS is TRUE)
+and now compiles as expected:
 
   namespace {
     struct A {
