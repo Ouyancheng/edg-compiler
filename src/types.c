@@ -1459,7 +1459,9 @@ a_boolean is_cli_system_string_type(a_type_ptr tp)
 Return TRUE if the given type is the C++/CLI type System::String.
 */
 {
-  return identical_types(tp, cli_class_type_for(csk_system_string));
+  a_type_ptr  system_string_type = cli_class_type_for(csk_system_string);
+
+  return identical_types(tp, system_string_type);
 }  /* is_cli_system_string_type */
 
 
