@@ -1454,6 +1454,15 @@ Return TRUE if the given type is the C++/CLI root type System::Object.
 }  /* is_cli_system_object_type */
 
 
+a_boolean is_cli_system_string_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is the C++/CLI type System::String.
+*/
+{
+  return identical_types(tp, cli_class_type_for(csk_system_string));
+}  /* is_cli_system_string_type */
+
+
 a_boolean class_is_instance_of_generic_from_metadata(a_type_ptr  class_type)
 /*
 The given class type is an instance of a C++/CLI class type generic or a

@@ -2321,6 +2321,7 @@ ec_initonly_volatile_not_allowed;;"an initonly data member cannot be volatile"
 ec_member_name_reserved_by_cli_operator;;"a member %sq of this type is reserved within a managed class -- CLR operators must be declared using the keyword \"operator\""
 ec_tracking_ref_to_constant;;"a tracking reference to non-const cannot be bound to a constant"
 ec_attributes_with_no_decl;;"attributes ignored here because they do not apply to a declared entity"
+ec_tracking_reference_to_system_string;;"a tracking reference to System::String is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

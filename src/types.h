@@ -172,6 +172,7 @@ extern a_boolean is_delegate_invocation_function(a_routine_ptr rp);
 extern a_type_ptr delegate_invocation_type(a_type_ptr delegate_type);
 #if !STANDALONE_UTILITY_PROGRAM
 extern a_boolean is_cli_system_object_type(a_type_ptr tp);
+extern a_boolean is_cli_system_string_type(a_type_ptr  tp);
 extern a_boolean class_is_instance_of_generic_from_metadata(
                                                       a_type_ptr  class_type);
 /* Macro that produces TRUE if the given class type entry is a class loaded

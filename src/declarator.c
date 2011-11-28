@@ -541,9 +541,14 @@ and return FALSE.  Otherwise, return TRUE.
       /* Interior pointers and pin pointers are handled below. */
     } else if (is_ref) {
       /* Checks applicable to tracking references but not handles. */
-      if (is_delegate_type(tp)) {
-        /* A tracking reference to a delegate is invalid. */
-        err_code = ec_tracking_reference_to_delegate;
+      if (is_immediate_managed_class_type(tp)) {
+        if (is_immediate_delegate_type(tp)) {
+          /* A tracking reference to a delegate is invalid. */
+          err_code = ec_tracking_reference_to_delegate;
+        } else if (is_cli_system_string_type(tp)) {
+          /* A tracking reference to a System::String is invalid. */
+          err_code = ec_tracking_reference_to_system_string;
+        }  /* if */
       }  /* if */
     } else {
       /* Checks applicable to handles but not tracking references. */
