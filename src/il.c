@@ -19194,13 +19194,13 @@ treated as a form of destruction.
       /* Do not save destructions in prototype instantiations unless we
          are saving the prototype instantiations (always save them if
          we're currently doing IL lowering). */
-      ((depth_scope_stack == NO_SCOPE_DEPTH ||
-        !is_template_dependent_context() ||
-        prototype_instantiations_in_il)
+      (
 #if DO_IL_LOWERING
-       || il_lowering_underway
+       il_lowering_underway ||
 #endif /* DO_IL_LOWERING */
-                              )) {
+       (depth_scope_stack == NO_SCOPE_DEPTH ||
+        !is_template_dependent_context() ||
+        prototype_instantiations_in_il))) {
     /* This is a destructible entity. */
     if (static_lifetime) {
       /* Note that we do NOT use depth_innermost_function_scope, as it would
