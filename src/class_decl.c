@@ -8924,6 +8924,18 @@ instantiations are recorded in the IL.
   rp->is_prototype_instantiation = TRUE;
   sym->variant.routine.ptr = rp;
   set_source_corresp(&rp->source_corresp, sym);
+  /* If a special function is named as a friend, adjust the placeholder entry
+     accordingly. */
+  if (decl_info->is_constructor) {
+    set_routine_special_kind(rp, (a_special_function_kind)sfk_constructor);
+  } else if (decl_info->is_destructor) {
+    set_routine_special_kind(rp, (a_special_function_kind)sfk_destructor);
+  } else if (locator->is_operator_name) {
+    set_routine_special_kind(rp, (a_special_function_kind)sfk_operator);
+    rp->variant.opname_kind = locator->variant.opname;
+  } else if (locator->is_conversion_name) {
+    set_routine_special_kind(rp, (a_special_function_kind)sfk_conversion);
+  }  /* if */
   if (locator->is_class_member) {
     a_type_ptr  parent_type = qualifier_class_type(*locator);
     if (is_template_param_type(parent_type)) {
