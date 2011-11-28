@@ -89,6 +89,11 @@ static an_expr_node_ptr make_delete_call(a_routine_ptr      delete_routine,
                                          a_type_ptr         delete_type,
                                          an_expr_node_ptr   arg_node,
                                          an_insert_location *insert_location);
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+static a_boolean ctor_or_dtor_has_no_effect(a_routine_ptr    routine,
+                                            an_expr_node_ptr args,
+                                            a_boolean        args_are_lowered);
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
 
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
@@ -5837,6 +5842,21 @@ and update *insert_location accordingly.
   an_expr_node_ptr       object_node, call_node;
   a_type_ptr             entity_type = type_from_init_pos_descr(ipdp);
 
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+  check_assertion(dip->destructor != NULL);
+  if (ctor_or_dtor_has_no_effect(dip->destructor, (an_expr_node_ptr)NULL,
+                                 /*args_are_lowered=*/FALSE)) {
+#if DEBUG
+    if (db_flag_is_set("remove_ctors_dtors")) {
+      (void)fprintf(f_debug, "Removing static destruction for: ");
+      db_dynamic_initializer(dip, 0);
+    }  /* if */
+#endif /* DEBUG */
+    /* There's no need to call the destructor; skip the destruction processing
+       altogether. */
+    goto remove_from_list;
+  }  /* if */
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
   /* Record the required destruction by generating a call of the runtime
      routine __record_needed_destruction.  A data structure passed to
      that routine describes the destruction to be done:
@@ -5967,8 +5987,12 @@ and update *insert_location accordingly.
   /* Make a statement containing the call and insert it at the right
      location. */
   (void)insert_expr_statement_set_pos(call_node, insert_location);
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+remove_from_list:
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
   /* Remove the dynamic initialization from the destruction list, since
-     its destruction is now handled by the static cleanup mechanism. */
+     its destruction is now handled by the static cleanup mechanism
+     (or the destruction wasn't needed). */
   remove_from_destruction_list(dip);
 }  /* record_needed_destruction */
 
