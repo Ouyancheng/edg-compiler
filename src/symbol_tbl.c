@@ -3183,6 +3183,7 @@ and return a pointer to it.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tssp->is_delegate = FALSE;
   tssp->from_metadata = FALSE;
+  tssp->generic_constraints_pending = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CENTERLINE_CHECKING 
   tssp->avoid_codecenter_warnings = FALSE;

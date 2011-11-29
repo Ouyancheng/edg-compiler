@@ -499,6 +499,7 @@ Initialize a template declaration state block.
   tdsp->is_variadic = FALSE;
   tdsp->is_generic = FALSE;
   tdsp->is_delegate = FALSE;
+  tdsp->generic_constraints_pending = FALSE;
   tdsp->export_position = null_source_position;
   tdsp->starting_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   tdsp->access = (an_access_specifier)as_public;
@@ -6408,6 +6409,17 @@ is returned.
        NO_SCOPE_DEPTH to the subroutine to force it to compute which scope's
        list it belongs to. */
     add_to_types_list(class_type, NO_SCOPE_DEPTH);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (tssp->generic_constraints_pending) {
+      /* The partially instantiated template was declared with "..." as a
+         constraint clause and no redeclaration with actual constraints has
+         been seen yet.  This should normally never happen: "..." constraints
+         are only accepted while parsing code generated from metadata, and
+         the metadata reader must ensure that redeclarations with actual
+         constraints follow the original declaration before any use. */
+      type_error(ec_use_of_generic_class_with_pending_constraint, class_type);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if DEBUG
@@ -13272,20 +13284,20 @@ done:
                  in this case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean reconcile_template_param_lists(
-			a_template_param_ptr param_list,
-			a_symbol_ptr         class_sym,
-			a_source_position    *error_pos,
-			a_boolean	     default_allowed,
-			a_boolean	     checking_parent_params,
-			a_boolean	     allow_missing_member_constraint,
-			a_boolean	     allow_nesting_depth_mismatch,
-			an_error_severity    error_severity)
+			a_template_param_ptr  param_list,
+		        a_tmpl_decl_state_ptr decl_state,
+			a_symbol_ptr          class_sym,
+			a_source_position     *error_pos,
+			a_boolean	      default_allowed,
+			a_boolean	      checking_parent_params,
+			a_boolean	      allow_missing_member_constraint,
+			an_error_severity     error_severity)
 /*
 Compare the template parameter list of the template declaration currently
-being scanned with the template parameter list of a previous declaration
-of the same class.  Make sure that the parameter lists match and
-merge the default argument information from the two lists.  The default
-argument information is updated into both lists because we don't know
+being scanned (described by decl_state) with the template parameter list of a
+previous declaration of the same class.  Make sure that the parameter lists
+match and merge the default argument information from the two lists.  The
+default argument information is updated into both lists because we don't know
 which version will be used as the "primary" argument list.  This routine
 is called for each redeclaration of a template argument list for a class.
 For example, this routine will be called for all of these declarations
@@ -13307,19 +13319,21 @@ allow_missing_member_constraint is TRUE if, in the redeclaration or definition
 of a class member, the new constraint list can be empty and still match
 a previous constraint list.
 
-allow_nesting_depth_mismatch is TRUE if template parameter lists of different
-nesting depths should be treated as equivalent.  error_severity is the
-severity at which any diagnostics should be issued.
+error_severity is the severity at which any diagnostics should be issued.
 */
 {
   a_template_param_ptr	new_tpp;
   a_template_param_ptr	old_tpp;
-  a_boolean		any_errors;
+  a_boolean		any_errors, use_new_supplements = FALSE;
   an_equiv_templ_param_options_set
 			etp_options = ETP_NO_OPTIONS;
+  a_template_symbol_supplement_ptr
+                        tssp = class_sym->variant.template_info;
+  a_boolean             allow_nesting_depth_mismatch =
+                                                decl_state->nesting_depth_err;
 
   new_tpp = param_list;
-  old_tpp = class_sym->variant.template_info->cache.decl_info->parameters;
+  old_tpp = tssp->cache.decl_info->parameters;
   /* In Microsoft bugs mode, a member of a class template can be declared
      using a template parameter with a type that is different than that of
      the associated class template.  This bug is fixed in version 7.1 of the
@@ -13349,9 +13363,16 @@ severity at which any diagnostics should be issued.
       (do_strict_constraint_checking || !checking_parent_params ||
        allow_missing_member_constraint) &&
       is_cli_generic_class_symbol(class_sym)) {
-    /* Note that we don't set any_errors for this case because the error
-       recovery if better that way. */
-    (void)equivalent_generic_constraints_for_param_lists(
+    if (tssp->generic_constraints_pending) {
+      /* The new parameters have constraints that should be retained: Set a
+         flag to ensure that the new template parameter supplements are kept
+         below. */
+      use_new_supplements = TRUE;
+      tssp->generic_constraints_pending = FALSE;
+    } else {
+      /* Note that we don't set any_errors for this case because the error
+         recovery if better that way. */
+      (void)equivalent_generic_constraints_for_param_lists(
                                 old_tpp, new_tpp, /*issue_error=*/TRUE,
                                 /*ignore_empty_gclist2=*/
                                   !do_strict_constraint_checking &&
@@ -13359,18 +13380,18 @@ severity at which any diagnostics should be issued.
                                    (allow_missing_member_constraint &&
                                     class_sym->is_class_member)),
                                 (a_generic_constraint_ptr*)NULL);
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!any_errors) {
     /* Update type parameters so that they point to the same template
        parameter type supplement. */
     new_tpp = param_list;
-    old_tpp = class_sym->variant.template_info->cache.decl_info->parameters;
+    old_tpp = tssp->cache.decl_info->parameters;
     while (new_tpp != NULL && old_tpp != NULL) {
       if (old_tpp->param_symbol->kind == (a_symbol_kind)sk_type) {
-        a_template_param_type_supplement_ptr old_tptsp;
-        a_type_ptr        old_type = old_tpp->variant.type;
-        a_type_ptr        new_type = new_tpp->variant.type;
+        a_type_ptr old_type = old_tpp->variant.type;
+        a_type_ptr new_type = new_tpp->variant.type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         /* If the template parameter is a handle to a constraint type, get
            the original template parameter. */
@@ -13378,9 +13399,13 @@ severity at which any diagnostics should be issued.
         new_type = generic_param_if_generic_definition_argument(new_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Update both type entries to point to the same description entry. */
-        old_tptsp = old_type->variant.template_param.extra_info;
-        old_type->variant.template_param.extra_info = old_tptsp;
-        new_type->variant.template_param.extra_info = old_tptsp;
+        if (use_new_supplements) {
+          old_type->variant.template_param.extra_info =
+                                  new_type->variant.template_param.extra_info;
+        } else {
+          new_type->variant.template_param.extra_info =
+                                  old_type->variant.template_param.extra_info;
+        }  /* if */
       }  /* if */
       old_tpp = old_tpp->next;
       new_tpp = new_tpp->next;
@@ -13389,7 +13414,7 @@ severity at which any diagnostics should be issued.
        This is only done if there were no errors in the previous tests so
        we know that the parameter lists match. */
     new_tpp = param_list;
-    old_tpp = class_sym->variant.template_info->cache.decl_info->parameters;
+    old_tpp = tssp->cache.decl_info->parameters;
     while (new_tpp != NULL && old_tpp != NULL) {
       a_boolean def_arg_involves_template_param;
       a_boolean old_has_default;
@@ -13545,12 +13570,11 @@ compatible.  Otherwise, return FALSE.
       any_mismatches = TRUE;
       break;
     }  /* if */
-    if (!reconcile_template_param_lists(decl_info->parameters,
+    if (!reconcile_template_param_lists(decl_info->parameters, decl_state,
                                         template_sym, error_pos,
                                         /*default_allowed=*/FALSE,
                                         /*checking_parent_params=*/TRUE,
 				        allow_missing_member_constraint,
-                                        decl_state->nesting_depth_err,
                                         es_error)) {
       any_mismatches = TRUE;
     }  /* if */
@@ -16067,11 +16091,10 @@ friend_template_checks_done:
               severity = es_warning;
             }  /* if */
             mismatch = !reconcile_template_param_lists(
-                                templ_params, sym, &locator.source_position,
-                                default_allowed,
+                                templ_params, decl_state, sym,
+                                &locator.source_position, default_allowed,
                                 /*checking_parent_params=*/FALSE,
                                 /*allow_missing_member_constraint=*/TRUE,
-                                decl_state->nesting_depth_err,
                                 severity);
             if (mismatch && severity == es_error) err = TRUE;
           }  /* if */
@@ -20534,9 +20557,22 @@ any non-empty template parameter lists that were scanned.
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (dps->ms_attributes != NULL) {
-    dispose_of_unapplied_attributes(&dps->ms_attributes,
-                                    ec_ms_attr_not_allowed);
+  if (microsoft_mode) {
+    if (dps->ms_attributes != NULL) {
+      dispose_of_unapplied_attributes(&dps->ms_attributes,
+                                      ec_ms_attr_not_allowed);
+    }  /* if */
+    if (decl_state->generic_constraints_pending) {
+      if (is_class_template && !decl_state->defines_something) {
+        if (tssp != NULL) {
+          tssp->generic_constraints_pending = TRUE;
+        } else {
+          expect_error();
+        }  /* if */
+      } else {
+        pos_error(ec_invalid_entity_for_pending_constraint, &dps->start_pos);
+      }  /* if */
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Pop all of the template declaration scopes that were pushed earlier.
@@ -22105,7 +22141,7 @@ Scan a C++/CLI generic constraint-item-list and return the list.  param_type
 is the template parameter type entry associated with the generic param and
 can be NULL in error cases.
 
-See scan_generic_constraints_clauses for more information about the form
+See scan_generic_constraint_clauses for more information about the form
 of the list.
 */
 {
@@ -22235,12 +22271,101 @@ of the list.
 }  /* scan_constraint_item_list */
 
 
+static a_generic_constraint_clause_ptr scan_one_generic_constraint_clause(void)
+/*
+Scan a generic constraint clause and record its constraints in the template
+parameter it designates.  If prototype instantiations are recorded and the
+clause is sufficiently well-formed, return a pointer to an IL entry
+representing the clause as a whole; otherwise, return NULL.
+
+See scan_generic_constraint_clauses for syntax details.
+*/
+{
+  a_type_ptr			param_type = NULL;
+  a_generic_constraint_ptr	constraint_item_list = NULL;
+  a_generic_constraint_clause	gcc, *il_entry = NULL;
+
+  clear_generic_constraint_clause(&gcc);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+   gcc.where_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Skip over the "where" token. */
+  (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+   gcc.colon_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* The current token should be an identifier for the template parameter
+     being constrained. */
+  if (curr_token != tok_identifier) {
+    /* The token is not an identifier. */
+    pos_error(ec_exp_identifier, &pos_curr_token);
+  } else {
+    a_symbol_ptr	sym;
+    sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+    if (sym == NULL) {
+      str_error(ec_undefined_identifier,
+                locator_for_curr_id.symbol_header->identifier);
+    } else if (!sym->is_template_param) {
+      /* The symbol found is not a template parameter. */
+      str_error(ec_not_a_generic_param,
+                locator_for_curr_id.symbol_header->identifier);
+    } else if (sym->decl_scope !=
+                      scope_stack[depth_template_declaration_scope].number) {
+      /* The symbol found is not a template parameter of the innermost
+         generic parameter list. */
+      str_error(ec_not_generic_param_of_curr_decl,
+                locator_for_curr_id.symbol_header->identifier);
+    } else {
+      /* A valid generic parameter name. */
+      check_assertion(symbol_is(sym, sk_type));
+      param_type = sym->variant.type.ptr;
+      check_assertion(param_type->kind == (a_type_kind)tk_template_param);
+      if (param_type->variant.template_param.extra_info->
+                                               generic_constraints != NULL) {
+        /* The parameter already has a constraint. */
+        pos_sy_error(ec_multiple_constraint_clauses, &pos_curr_token, sym);
+        param_type = NULL;
+      } else {
+        gcc.type_position = pos_curr_token;
+        gcc.type = param_type;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Bypass the identifier and look for the expected colon. */
+  if (curr_token == tok_identifier || curr_token != tok_colon) {
+    (void)get_token();
+  }  /* if */
+  if (curr_token != tok_colon) {
+    pos_error(ec_exp_colon, &pos_curr_token);
+  } else {
+    /* Bypass the colon. */
+    (void)get_token();
+  }  /* if */
+  /* Scan the list of constraint items. */
+  constraint_item_list = scan_constraint_item_list(param_type);
+  gcc.constraints = constraint_item_list;
+  if (param_type != NULL) {
+    param_type->variant.template_param.extra_info->
+                                  generic_constraints = constraint_item_list;
+  }  /* if */
+  /* If a valid type was specified and prototype instantiations are recorded
+     in the IL, create an IL entry representing the clause. */
+  if (prototype_instantiations_in_il && param_type != NULL) {
+    il_entry = alloc_generic_constraint_clause();
+    /* Copy the entry constructed above. */
+    *il_entry = gcc;
+  }  /* if */
+  return il_entry;
+}  /* scan_one_generic_constraint_clause */
+
+
 static void scan_generic_constraint_clauses(a_tmpl_decl_state_ptr decl_state)
 /*
 Scan an optional set of C++/CLI generic constraints.  The form is:
 
   constraint-clause-list:
     constraint-clause-list opt constraint-clause
+    ...
 
   constraint-clause:
     where identifier : constraint-item-list
@@ -22256,103 +22381,48 @@ Scan an optional set of C++/CLI generic constraints.  The form is:
     value class
     value struct
     gcnew()
+
+The "..." variant of constraint-clause-list is an extension accepted only when
+scanning code generated from metadata.  It indicates that the constraints will
+be specified in a later redeclaration.  This simplifies ordering issues when
+importing metadata.  A generic appearing earlier in the metadata may have
+constraints that refer to a declaration that appears later (and has therefore
+not been declared yet).  By first declaring the generic with a "..." constraint
+clause, invalid forward references are avoided.
 */
 {
   a_generic_constraint_clause_ptr	gccp_list = NULL;
   a_generic_constraint_clause_ptr	gccp_tail = NULL;
 
-  /* The "where" is not a keyword, it is scanned as an identifier. */
-  while (curr_token == tok_identifier &&
-         symbol_header_is_for_identifier_string(
-                                           locator_for_curr_id.symbol_header,
-                                           "where")) {
-    a_type_ptr			param_type = NULL;
-    a_generic_constraint_ptr	constraint_item_list = NULL;
-    a_generic_constraint_clause	gcc;
-    clear_generic_constraint_clause(&gcc);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-     gcc.where_position = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    /* Skip over the "where" token. */
+  if (curr_token == tok_ellipsis &&
+      (scanning_generated_code_from_metadata ||
+       pending_generic_constraint_specifier_enabled)) {
+    /* An ellipsis token indicates that actual constraints will be specified
+       on a later declaration. */
+    decl_state->generic_constraints_pending = TRUE;
     (void)get_token();
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-     gcc.colon_position = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    /* The current token should be an identifier for the template parameter
-       being constrained. */
-    if (curr_token != tok_identifier) {
-      /* The token is not an identifier. */
-      pos_error(ec_exp_identifier, &pos_curr_token);
-    } else {
-      a_symbol_ptr	sym;
-      sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
-      if (sym == NULL) {
-        str_error(ec_undefined_identifier,
-                  locator_for_curr_id.symbol_header->identifier);
-      } else if (!sym->is_template_param) {
-        /* The symbol found is not a template parameter. */
-        str_error(ec_not_a_generic_param,
-                  locator_for_curr_id.symbol_header->identifier);
-      } else if (sym->decl_scope !=
-                        scope_stack[depth_template_declaration_scope].number) {
-        /* The symbol found is not a template parameter of the innermost
-           generic parameter list. */
-        str_error(ec_not_generic_param_of_curr_decl,
-                  locator_for_curr_id.symbol_header->identifier);
-      } else {
-        /* A valid generic parameter name. */
-        check_assertion(sym->kind == (a_symbol_kind)sk_type);
-        param_type = sym->variant.type.ptr;
-        check_assertion(param_type->kind == (a_type_kind)tk_template_param);
-        if (param_type->variant.template_param.extra_info->
-                                                 generic_constraints != NULL) {
-          /* The parameter already has a constraint. */
-          pos_sy_error(ec_multiple_constraint_clauses, &pos_curr_token, sym);
-          param_type = NULL;
-        } else {
-          gcc.type_position = pos_curr_token;
-          gcc.type = param_type;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-    /* Bypass the identifier and look for the expected colon. */
-    if (curr_token == tok_identifier || curr_token != tok_colon) {
-      (void)get_token();
-    }  /* if */
-    if (curr_token != tok_colon) {
-      pos_error(ec_exp_colon, &pos_curr_token);
-    } else {
-      /* Bypass the colon. */
-      (void)get_token();
-    }  /* if */
-    /* Scan the list of constraint items. */
-    constraint_item_list = scan_constraint_item_list(param_type);
-    gcc.constraints = constraint_item_list;
-    if (param_type != NULL) {
-      param_type->variant.template_param.extra_info->
-                                    generic_constraints = constraint_item_list;
-    }  /* if */
-    /* If a valid type was specified, add this constraint clause to the
-       list. */
-    if (prototype_instantiations_in_il) {
-      if (param_type != NULL) {
-        a_generic_constraint_clause_ptr	gccp;
-        gccp = alloc_generic_constraint_clause();
-        /* Copy the entry constructed above. */
-        *gccp = gcc;
+  } else {
+    /* The "where" is not a keyword, it is scanned as an identifier. */
+    while (curr_token == tok_identifier &&
+           symbol_header_is_for_identifier_string(
+                                            locator_for_curr_id.symbol_header,
+                                            "where")) {
+      a_generic_constraint_clause_ptr
+                                clause = scan_one_generic_constraint_clause();
+      if (clause != NULL) {
         if (gccp_list == NULL) {
-          gccp_list = gccp;
+          gccp_list = clause;
           decl_state->template_decl->generic_constraint_clauses = gccp_list;
         } else {
-          gccp_tail->next = gccp;
+          gccp_tail->next = clause;
         }  /* if */
-        gccp_tail = gccp;
+        gccp_tail = clause;
       }  /* if */
-    }  /* if */
-  }  /* while */
-  /* Naked type parameter constraints can only be checked once all of the
-     constraints have been scanned. */
-  validate_naked_type_constraints(decl_state);
+    }  /* while */
+    /* Naked type parameter constraints can only be checked once all of the
+       constraints have been scanned. */
+    validate_naked_type_constraints(decl_state);
+  }  /* if */
 }  /* scan_generic_constraint_clauses */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

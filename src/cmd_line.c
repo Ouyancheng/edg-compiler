@@ -1792,6 +1792,8 @@ static a_flag_name
 #if MICROSOFT_EXTENSIONS_ALLOWED
   { "disable_access_checking_in_microsoft_enum_bases",
     &disable_access_checking_in_microsoft_enum_bases },
+  { "pending_generic_constraint_specifier_enabled",
+    &pending_generic_constraint_specifier_enabled },
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   { NULL, NULL }  /* must be last */
 };
@@ -9592,6 +9594,7 @@ variables declared in cmd_line.h.
   generic_arity_overload_allowed = DEFAULT_GENERIC_ARITY_OVERLOAD_ALLOWED;
   disable_access_checking_in_microsoft_enum_bases =
                       DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES;
+  pending_generic_constraint_specifier_enabled = FALSE;
 #if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
   generate_portable_assemblies = FALSE;
 #endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */

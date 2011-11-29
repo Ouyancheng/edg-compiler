@@ -2322,6 +2322,8 @@ ec_member_name_reserved_by_cli_operator;;"a member %sq of this type is reserved 
 ec_tracking_ref_to_constant;;"a tracking reference to non-const cannot be bound to a constant"
 ec_attributes_with_no_decl;;"attributes ignored here because they do not apply to a declared entity"
 ec_tracking_reference_to_system_string;;"a tracking reference to System::String is not allowed"
+ec_use_of_generic_class_with_pending_constraint;;"invalid use of a generic class %t with pending constraints (probably caused by an invalid metadata file)"
+ec_invalid_entity_for_pending_constraint;;"a pending constraint clause is only allowed for generic class declarations (but not generic class definitions)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

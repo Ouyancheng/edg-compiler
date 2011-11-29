@@ -2276,6 +2276,13 @@ typedef struct a_template_symbol_supplement {
   a_bit_field	from_metadata:1;
 			/* TRUE if this is a C++/CLI generic that was
 			   imported from metadata. */
+  a_bit_field	generic_constraints_pending:1;
+			/* TRUE if this is a C++/CLI generic class imported
+			   from metadata without constraints but with an
+			   indication that constraints will be specified on a
+			   forthcoming redeclaration.  (Reset to FALSE when
+			   the redeclaration with the constraints is
+			   processed.) */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   union {

@@ -113,6 +113,10 @@ typedef struct a_tmpl_decl_state {
 			/* TRUE if this a C++/CLI generic declaration. */
   a_boolean	is_delegate;
 			/* TRUE if this is a C++/CLI delegate. */
+  a_boolean	generic_constraints_pending;
+			/* TRUE if this is a generic generated from metadata
+			   declared with an indication that constraints will
+			   be specified on a later declaration. */
   a_source_position
 		export_position;
 			/* If export_present is TRUE, the position of the

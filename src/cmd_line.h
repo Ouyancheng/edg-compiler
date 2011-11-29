@@ -1127,6 +1127,15 @@ EXTERN a_boolean
 			/* TRUE if in Microsoft mode, the front end should
 			   emulate the Microsoft behavior of not performing
 			   access checking on enum base specifiers. */
+
+EXTERN a_boolean
+		pending_generic_constraint_specifier_enabled;
+			/* TRUE if in C++/CLI mode, constraint clauses for a
+			   generic class declaration can be replaced by "..."
+			   until a redeclaration specifies the actual
+			   constraints.  This extensions is always accepted
+			   while processing code generated from metadata, but
+			   is enabled more widely for internal testing. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
