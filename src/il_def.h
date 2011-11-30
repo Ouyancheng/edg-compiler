@@ -12328,13 +12328,6 @@ typedef struct a_routine {
                            initially (safe value) and only set to TRUE if the
                            lowered routine has been inspected and found to
                            have no effect. */
-  a_bit_field   ctor_or_dtor_is_used:1;
-                        /* When TRUE, lowering has emitted a call to this
-                           constructor or destructor -- even in cases where
-                           has_no_effect may be TRUE (because, for example,
-                           the call has arguments with side effects).  Used
-                           to clear the instantiation required flag when
-                           the flag is FALSE (and has_no_effect is TRUE). */
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
 #endif /* DO_IL_LOWERING */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE

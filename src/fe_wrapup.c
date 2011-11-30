@@ -33,7 +33,6 @@ fe_wrapup.c - End of front end processing.
 #include "trans_copy.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
-#include "lower_init.h"
 #endif /* DO_IL_LOWERING */
 #if MANGLE_ALL_NAMES
 #include "lower_name.h"
@@ -448,15 +447,11 @@ Do removal of unneeded IL entities for the current translation unit
     /* Now eliminate everything at file and namespace scope that does not
        need to be kept in the IL. */
     eliminate_unneeded_il_entries(il_scope);
-#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS && \
-    AUTOMATIC_TEMPLATE_INSTANTIATION
-  } else if (!C_mode() && total_errors == 0) {
-    /* We're not removing all unneeded IL entities, but reset the
-       instantiation_required flag on any constructors or destructors
-       that were removed as unnecessary so the prelinker doesn't try
-       to instantiate them. */
-    clear_instantiation_required_on_routines_with_no_effect(il_scope);
-#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS && ... */
+  }  /* if */
+  if (!C_mode() && total_errors == 0) {
+    /* Reset the instantiation_required flag on any routines that aren't
+       needed so the prelinker doesn't try to instantiate them. */
+    clear_instantiation_required_on_unneeded_routines(il_scope);
   }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* file_scope_il_wrapup_remove_unneeded_il */

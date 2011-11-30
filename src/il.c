@@ -21139,7 +21139,7 @@ clear its instantiation required information.
 }  /* clear_variable_instantiation_required */
 
 
-void clear_routine_instantiation_required(a_routine_ptr rp)
+static void clear_routine_instantiation_required(a_routine_ptr rp)
 /*
 The indicated routine is being removed from the IL.  If it is a template,
 clear its instantiation required information.
@@ -21514,6 +21514,97 @@ keep_in_il because, for example, they appear on orphan lists.
 
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
+void clear_instantiation_required_on_unneeded_routines(a_scope_ptr scope)
+/*
+Find any routines in the specified scope (the file scope) where an unneeded
+template function has been instantiated, and reset its instantiation required
+flag if necessary.
+*/
+{
+  a_routine_ptr   rp;
+
+  /* All routines should now be on the file scope routines list. */
+  for (rp = scope->routines; rp != NULL; rp = rp->next) {
+    if (!rp->source_corresp.needed) {
+      /* If the instantiation_required flag was set, clear it now.  Or,
+         if the function is extern inline and we are instantiating extern
+         inline functions using a mechanism like the template instantiation
+         mechanism, clear the inline instance required flag. */
+      if ((rp->is_template_function && !rp->is_specialized) ||
+          (instantiate_extern_inline &&
+           (rp->is_inline || treat_as_extern_inline(rp)))) {
+        a_symbol_ptr             sym;
+        a_boolean                okay_to_clear_flag = TRUE;
+
+        sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+        if (sym != NULL) {
+          if (rp->is_virtual) {
+#if DO_IL_LOWERING
+            a_type_ptr                   class_type = sym_parent_class(sym);
+            a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
+            a_variable_ptr               vtbl_var;
+#if ABI_CHANGES_FOR_RTTI
+            a_variable_ptr               typeinfo_var;
+#endif /* ABI_CHANGES_FOR_RTTI */
+            if (((vtbl_var = ctsp->virtual_function_table_var) == NULL ||
+                  !il_entry_prefix_of(vtbl_var).keep_in_il)
+#if ABI_CHANGES_FOR_RTTI
+                                                            &&
+                ((typeinfo_var = class_type->typeinfo_var) == NULL ||
+                  !il_entry_prefix_of(typeinfo_var).keep_in_il ||
+                  (typeinfo_uncoupled_when_vtable_is_optional &&
+                   vtbl_var != NULL && vtbl_var->is_optional_vtable))
+#endif /* ABI_CHANGES_FOR_RTTI */
+                                                                     ) {
+              /* Either there is no virtual function table or it's been
+                 eliminated from the IL: it's okay to clear the flag, since
+                 an otherwise unreferenced virtual function would be needed
+                 only if the virtual function table is defined in this
+                 translation unit.  If the typeinfo variable is kept,
+                 keep the virtual function so the virtual function table
+                 will be kept so that the typeinfo variable will be kept.
+                 However, if the vtable is optional the typeinfo and vtable
+                 don't have to go out together, so the state of the
+                 typeinfo has no effect. */
+            } else
+#endif /* DO_IL_LOWERING */
+            /* Do not insert code here. */
+            {
+              /* Virtual function may be needed for defining the virtual
+                 function table. */
+              okay_to_clear_flag = FALSE;
+            }  /* if */
+          }  /* if */
+#if IA64_ABI && DO_IL_LOWERING
+          if (okay_to_clear_flag) {
+            if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
+                rp->special_kind == (a_special_function_kind)sfk_destructor) {
+              /* If an alternate entry point of a constructor or destructor
+                 has to be kept, don't clear the instantiation required
+                 flag, because it represents all the variants of the
+                 constructor or destructor. */
+              a_routine_list_entry_ptr rlep;
+              for (rlep = rp->variant.ctor_dtor.alternate_entry_points;
+                   rlep != NULL;
+                   rlep = rlep->next) {
+                if (il_entry_prefix_of(rlep->routine).keep_in_il) {
+                  okay_to_clear_flag = FALSE;
+                  break;
+                }  /* if */
+              }  /* for */
+            }  /* if */
+          }  /* if */
+#endif /* IA64_ABI && DO_IL_LOWERING */
+          if (okay_to_clear_flag) {
+            set_instance_required(sym, FALSE, SIR_CLEAR_VALUE);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* clear_instantiation_required_on_unneeded_routines */
+
+
 void eliminate_unneeded_il_entries(a_scope_ptr scope)
 /*
 Remove selected IL entries from the IL tree.  scope is the file scope or
@@ -21604,80 +21695,6 @@ eliminated, if appropriate.
         prev_rp->next = rp->next;
       }  /* if */
       rp->next = NULL;
-      /* If the instantiation_required flag was set, clear it now.  Or,
-         if the function is extern inline and we are instantiating extern
-         inline functions using a mechanism like the template instantiation
-         mechanism, clear the inline instance required flag. */
-      if ((rp->is_template_function && !rp->is_specialized) ||
-          (instantiate_extern_inline &&
-           (rp->is_inline || treat_as_extern_inline(rp)))) {
-        a_symbol_ptr             sym;
-        a_boolean                okay_to_clear_flag = TRUE;
-
-        sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
-        if (sym != NULL) {
-          if (rp->is_virtual) {
-#if DO_IL_LOWERING
-            a_type_ptr                   class_type = sym_parent_class(sym);
-            a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
-            a_variable_ptr               vtbl_var;
-#if ABI_CHANGES_FOR_RTTI
-            a_variable_ptr               typeinfo_var;
-#endif /* ABI_CHANGES_FOR_RTTI */
-            if (((vtbl_var = ctsp->virtual_function_table_var) == NULL ||
-                  !il_entry_prefix_of(vtbl_var).keep_in_il)
-#if ABI_CHANGES_FOR_RTTI
-                                                            &&
-                ((typeinfo_var = class_type->typeinfo_var) == NULL ||
-                  !il_entry_prefix_of(typeinfo_var).keep_in_il ||
-                  (typeinfo_uncoupled_when_vtable_is_optional &&
-                   vtbl_var != NULL && vtbl_var->is_optional_vtable))
-#endif /* ABI_CHANGES_FOR_RTTI */
-                                                                     ) {
-              /* Either there is no virtual function table or it's been
-                 eliminated from the IL: it's okay to clear the flag, since
-                 an otherwise unreferenced virtual function would be needed
-                 only if the virtual function table is defined in this
-                 translation unit.  If the typeinfo variable is kept,
-                 keep the virtual function so the virtual function table
-                 will be kept so that the typeinfo variable will be kept.
-                 However, if the vtable is optional the typeinfo and vtable
-                 don't have to go out together, so the state of the
-                 typeinfo has no effect. */
-            } else
-#endif /* DO_IL_LOWERING */
-            /* Do not insert code here. */
-            {
-              /* Virtual function may be needed for defining the virtual
-                 function table. */
-              okay_to_clear_flag = FALSE;
-            }  /* if */
-          }  /* if */
-#if IA64_ABI && DO_IL_LOWERING
-          if (okay_to_clear_flag) {
-            if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
-                rp->special_kind == (a_special_function_kind)sfk_destructor) {
-              /* If an alternate entry point of a constructor or destructor
-                 has to be kept, don't clear the instantiation required
-                 flag, because it represents all the variants of the
-                 constructor or destructor. */
-              a_routine_list_entry_ptr rlep;
-              for (rlep = rp->variant.ctor_dtor.alternate_entry_points;
-                   rlep != NULL;
-                   rlep = rlep->next) {
-                if (il_entry_prefix_of(rlep->routine).keep_in_il) {
-                  okay_to_clear_flag = FALSE;
-                  break;
-                }  /* if */
-              }  /* for */
-            }  /* if */
-          }  /* if */
-#endif /* IA64_ABI && DO_IL_LOWERING */
-          if (okay_to_clear_flag) {
-            set_instance_required(sym, FALSE, SIR_CLEAR_VALUE);
-          }  /* if */
-        }  /* if */
-      }  /* if */
     } else {
       prev_rp = rp;
     }  /* if */

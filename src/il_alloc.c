@@ -2590,7 +2590,6 @@ to it.  The entry is allocated in the file scope memory region.
   rp->lowering_delayed_on_nested_function = FALSE;
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
   rp->has_no_effect               = FALSE;
-  rp->ctor_or_dtor_is_used        = FALSE;
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
 #endif /* DO_IL_LOWERING */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
