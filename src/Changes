@@ -1,5 +1,25 @@
 Version 4.4
 
+11/30/11 [EDGcpfe/9185]
+Tag names of mismatched kinds
+
+Previously, the use of a tag name with a kind ("struct", "union", etc.)
+different from the same tag name declared earlier in an enclosing scope was
+treated as a new declaration of that tag name.  For example:
+
+  union U { int i; };
+  void f() {
+    struct U *p;  /* Previously treated as a new struct type; now an error
+  }                  in many modes. */
+
+This behavior was the consequence of an unclear specification in the original
+C standard (i.e., "C90").  However, the C++ standard and the resolution of
+defect report 251 for the C99 standard (part of Technical Corrigendum 3) make
+it clear that such cases are errors.  The front end now diagnoses that error
+in modes other than K&R C, C90, and Cfront C++; otherwise, it maintains the
+prior behavior.
+
+
 11/23/11 [EDGcpfe/11891]
 Segfault in initialize_dtor_init_for_cleanup
 

@@ -3882,12 +3882,19 @@ in a friend declaration.
       /* This must be a symbol for a template parameter, and we must be in
          the midst of a prototype instantiation.  Return the symbol that
          was found. */
-    } else if (!is_injected_class_name &&
-               assoc_symbol->kind != tag_kind &&
+    } else if (assoc_symbol->kind != tag_kind &&
+               ((C_mode() && !(c99_mode || gcc_mode || microsoft_mode)) ||
+                any_cfront_mode()) &&
+               !is_injected_class_name &&
                assoc_symbol->decl_scope !=
                         scope_stack[decl_scope_level].number) {
-      /* A tag, but it's from another scope and it's the wrong kind of tag
-         (e.g., struct when union is required). */
+      /* In K&R and the C90 standard it is unclear whether using a different
+         tag kind (e.g., "struct" instead of "union") creates a new type or
+         not; our interpretation has always been that it does.  The C++
+         standard and the C99 standard (through DR251), however, make it clear
+         that using a different tag kind still finds the original type (and
+         results in an error).  For cfront mode, we keep the older
+         interpretation too. */
       assoc_symbol = NULL;
     } else {
       if (locator->is_semivisible_nested_type) {
