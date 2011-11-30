@@ -448,11 +448,13 @@ Do removal of unneeded IL entities for the current translation unit
        need to be kept in the IL. */
     eliminate_unneeded_il_entries(il_scope);
   }  /* if */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (!C_mode() && total_errors == 0) {
     /* Reset the instantiation_required flag on any routines that aren't
        needed so the prelinker doesn't try to instantiate them. */
     clear_instantiation_required_on_unneeded_routines(il_scope);
   }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* file_scope_il_wrapup_remove_unneeded_il */
 

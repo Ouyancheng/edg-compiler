@@ -21513,17 +21513,39 @@ keep_in_il because, for example, they appear on orphan lists.
 }  /* eliminate_unneeded_scope_orphaned_list_entries */
 
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 void clear_instantiation_required_on_unneeded_routines(a_scope_ptr scope)
 /*
-Find any routines in the specified scope (the file scope) where an unneeded
-template function has been instantiated, and reset its instantiation required
-flag if necessary.
+Find any routines in the specified scope where an unneeded template function
+has been instantiated, and reset its instantiation required flag if necessary.
+Needed only in C++ mode when using automatic template instantiation.
 */
 {
   a_routine_ptr   rp;
+#if !DO_IL_LOWERING
+  a_namespace_ptr nsp;
+  a_type_ptr      tp;
+#endif /* !DO_IL_LOWERING */
 
-  /* All routines should now be on the file scope routines list. */
+  check_assertion(!C_mode());
+#if !DO_IL_LOWERING
+  /* If we're not doing lowering, then also look in namespaces and classes
+     for routines. */
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      /* Nested namespace scope. */
+      clear_instantiation_required_on_unneeded_routines(
+                                                     nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
+  for (tp = scope->types; tp != NULL; tp = tp->next) {
+    if (is_immediate_class_type(tp)) {
+      clear_instantiation_required_on_unneeded_routines(
+                                             class_type_supp(tp)->assoc_scope);
+    }  /* if */
+  }  /* for */
+#endif /* !DO_IL_LOWERING */
   for (rp = scope->routines; rp != NULL; rp = rp->next) {
     if (!rp->source_corresp.needed) {
       /* If the instantiation_required flag was set, clear it now.  Or,
@@ -21604,6 +21626,7 @@ flag if necessary.
   }  /* for */
 }  /* clear_instantiation_required_on_unneeded_routines */
 
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 void eliminate_unneeded_il_entries(a_scope_ptr scope)
 /*
