@@ -21530,8 +21530,9 @@ Needed only in C++ mode when using automatic template instantiation.
 
   check_assertion(!C_mode());
 #if !DO_IL_LOWERING
-  /* If we're not doing lowering, then also look in namespaces and classes
-     for routines. */
+  /* If lowering has been done there will be no routines in namespaces
+     or classes (they'll all have been promoted to the file scope), so there's
+     no need to do these traversals. */
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
     if (!nsp->is_namespace_alias) {
       /* Nested namespace scope. */
@@ -21540,7 +21541,8 @@ Needed only in C++ mode when using automatic template instantiation.
     }  /* if */
   }  /* for */
   for (tp = scope->types; tp != NULL; tp = tp->next) {
-    if (is_immediate_class_type(tp)) {
+    if (is_immediate_class_type(tp) &&
+        class_type_supp(tp)->assoc_scope != NULL) {
       clear_instantiation_required_on_unneeded_routines(
                                              class_type_supp(tp)->assoc_scope);
     }  /* if */

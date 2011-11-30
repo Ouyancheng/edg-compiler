@@ -2354,8 +2354,10 @@ extern void destination_type_for_reference_cast(an_expr_node_ptr  expr,
 
 extern a_boolean pm_constant_is_null(a_constant_ptr constant);
 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION && MAINTAIN_NEEDED_FLAGS
 extern void clear_instantiation_required_on_unneeded_routines(
                                                             a_scope_ptr scope);
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION && MAINTAIN_NEEDED_FLAGS */
 
 #endif /* ifndef IL_H */
 
