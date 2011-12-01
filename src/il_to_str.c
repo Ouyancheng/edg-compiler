@@ -2136,9 +2136,9 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     /* Function type. */
     a_boolean                  is_lambda = is_lambda_body_routine_type(type);
     a_routine_type_supplement  *rtsp = type->variant.routine.extra_info;
-    /* A qualifier on a function type shouldn't be possible without a
-       typedef. */
-    check_assertion_str(qualifiers == TQ_NONE,
+    /* A qualifier on a function type shouldn't be possible in compilable
+       code without a typedef, although it can occur in diagnostics. */
+    check_assertion_str(qualifiers == TQ_NONE || !octl->gen_compilable_code,
                         "form_type_first_part: qualifier on function type");
     if ((rtsp->trailing_return_type || is_lambda) &&
         !octl->c_generating_back_end) {
@@ -2159,6 +2159,10 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     /* This is a right-side declarator, so if it's under a left-side
        declarator parentheses are needed. */
     if (under_lhs_declarator) octl->output_str("(", octl);
+    if (qualifiers != TQ_NONE) {
+      form_type_qualifier(qualifiers, upc_block_size, need_trailing_space,
+                          octl);
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* A calling convention specifier is put out as a left-hand-side
        declarator. */

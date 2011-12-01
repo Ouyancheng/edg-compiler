@@ -1,5 +1,18 @@
 Version 4.4
 
+12/1/11  [EDGcpfe/12473]
+Qualified function types in diagnostics
+
+In configurations with CHECKING set to TRUE, the front end aborted when
+attempting to display diagnostics referring to qualified function types; in
+other configurations, such qualifiers were simply omitted.  This is now
+fixed.  For example, compiling the following code in --gcc mode now results
+in a warning referring to the type "void (const *)()":
+
+  void f();
+  void (*p)() = (const typeof(f)*)f;
+
+
 12/1/11  [EDGcpfe/12446]
 C++-generating back end: exception handler in class with dependent base
 
