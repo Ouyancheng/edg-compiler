@@ -21132,8 +21132,10 @@ is a template, clear its instantiation required information.
   if (vp->is_template_static_data_member && !vp->is_specialized) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (vp->source_corresp.is_class_member &&
-        scp_parent_class(&(vp->source_corresp))->
-                              variant.class_struct_union.is_generic_instance) {
+        (scp_parent_class(&(vp->source_corresp))->
+                              variant.class_struct_union.is_generic_instance ||
+         scp_parent_class(&(vp->source_corresp))->
+                           variant.class_struct_union.is_generic_definition)) {
       /* No need to clear the instantiation required flag on a generic
          static data member. */
     } else
@@ -21160,7 +21162,7 @@ a template, clear its instantiation required information.
      put on the instantiation required list. */
   if ((rp->is_template_function && !rp->is_specialized &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-       !rp->is_generic_instance &&
+       !(rp->is_generic_definition || rp->is_generic_instance) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
        !rp->is_prototype_instantiation) ||
       (instantiate_extern_inline && rp->is_inline)) {
@@ -21192,7 +21194,8 @@ necessary processing on those members to clear instantiation information.
     if ((class_type->variant.class_struct_union.is_template_class ||
          scope->templates != NULL) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        !class_type->variant.class_struct_union.is_generic_instance &&
+        !(class_type->variant.class_struct_union.is_generic_instance ||
+          class_type->variant.class_struct_union.is_generic_definition) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         !class_type->variant.class_struct_union.is_prototype_instantiation) {
       a_variable_ptr vp;
@@ -21561,7 +21564,8 @@ only in C++ mode when using automatic template instantiation.
   for (tp = scope->types; tp != NULL; tp = tp->next) {
     if (is_immediate_class_type(tp) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        !tp->variant.class_struct_union.is_generic_instance &&
+        !(tp->variant.class_struct_union.is_generic_instance ||
+          tp->variant.class_struct_union.is_generic_definition) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         !tp->variant.class_struct_union.is_prototype_instantiation &&
         class_type_supp(tp)->assoc_scope != NULL) {
@@ -21578,7 +21582,7 @@ only in C++ mode when using automatic template instantiation.
          mechanism, clear the inline instance required flag. */
       if (!rp->is_prototype_instantiation &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          !rp->is_generic_instance &&
+          !(rp->is_generic_definition || rp->is_generic_instance) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           ((rp->is_template_function && !rp->is_specialized) ||
            (instantiate_extern_inline &&
