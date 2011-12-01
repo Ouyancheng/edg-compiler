@@ -173,6 +173,14 @@ and a .data section of 160 bytes, but with the removal of unneeded constructors
 and destructions, the .data section is eliminated and the .text section dropped
 to 142 bytes.
 
+As part of these changes, a change was made to the way the
+instantiation_required flag is cleared during wrapup processing.  Previously
+this flag was only cleared for entities that were being removed from the IL
+(i.e., keep_in_il was FALSE).  Now, the flag is cleared for entities whose
+"needed" flag is FALSE, and this processing is performed regardless of
+whether unneeded entities are removed from the IL.  This may result in some
+differences in prelinker output.
+
 
 11/18/11 [EDGcpfe/12452]
 Microsoft compatibility: Use of "." as in qualified names
