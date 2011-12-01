@@ -2380,95 +2380,96 @@ nested class.
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    insert_point = orig_insert_point = NULL;
-    scope_depth = scope_depth_for_class_ss_list(class_type);
-    if (scope_depth != NO_SCOPE_DEPTH) {
-      orig_insert_point = scope_stack[scope_depth].
-                                        ss_list_instantiation_insert_point;
-      scope_stack[scope_depth].ss_list_instantiation_insert_point = NULL;
-    }  /* if */
-    if (!class_type->source_corresp.is_local_to_function &&
-        !is_nonreal_template_instantiation &&
-        !is_cli_generic_instance_type(class_type)) {
-      /* Temporarily remove source sequence entries, if any that have been
-         entered after the end-of-construct entry for the class that was just
-         defined.  Here's an example why:  Sometimes the definition of a
-         member or friend functions is represented by a source sequence
-         entry that is added after the end of the class body.  Moreover, in
-         a case like this:
-           class A {
-             int friend f() { ... };
-           } x = f();
-         the definition of f must be moved to a position that precedes the
-         declaration of x even while following the declaration of A. */
-      a_source_sequence_entry_ptr     tail;
-      a_src_seq_end_of_construct_ptr  sseocp;
-
-      /* Check the end of the source sequence list. */
-      if (scope_depth != NO_SCOPE_DEPTH &&
-          class_type->source_corresp.source_sequence_entry != NULL) {
-        /* Unless the last entry on the source sequence list is an
-           end-of-construct entry that corresponds to the end of the
-           definition of class_type, back up until it's found. */
-        for (tail = scope_stack[scope_depth].end_of_source_sequence_list;;
-             tail = tail->prev) {
-          check_assertion(tail != NULL);
-          if (ss_entry_kind(tail) ==
-                  (an_il_entry_kind)iek_src_seq_end_of_construct) {
-            sseocp = (a_src_seq_end_of_construct_ptr)tail->entity.ptr;
-            if (sseocp->entity.ptr == (char *)class_type) {
-#if DEBUG
-              if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
-                fputs("adding fixup entries following body of class \"",
-                      f_debug);
-                db_type_name(class_type);
-                fputs("\"\n", f_debug);
-              }  /* if */
-#endif /* DEBUG */
-              insert_point = tail->next;
-              break;
-            }  /* if */
-          }  /* for */
-        }  /* if */
+    if (!source_sequence_entries_disallowed) {
+      insert_point = orig_insert_point = NULL;
+      scope_depth = scope_depth_for_class_ss_list(class_type);
+      if (scope_depth != NO_SCOPE_DEPTH) {
+        orig_insert_point = scope_stack[scope_depth].
+                                          ss_list_instantiation_insert_point;
+        scope_stack[scope_depth].ss_list_instantiation_insert_point = NULL;
       }  /* if */
-    }  /* if */
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = rfp->next) {
-      if (rfp->is_partial_instantiation) {
-        /* Add a secondary-decl source sequence entry to the source sequence
-           list to represent a partial instantiation. */
-        if (curr_scope_class_type != rfp->class_type) {
-          if (curr_scope_class_type != NULL) {
-            /* Pop the reactivated class scope from the scope stack. */
-            pop_class_reactivation_scope();
-          }  /* if  */
-          /* Reactivate the class. */
-          push_class_and_template_reactivation_scope(
-                rfp->class_type, is_template_based, /*extend_namespace=*/TRUE);
-          curr_scope_class_type = rfp->class_type;
-        }  /* if */
-        if (!source_sequence_entries_disallowed) {
-          a_template_instance_ptr      tip;
-          a_source_sequence_entry_ptr  ssep;
-
-          tip = rfp->symbol->variant.routine.instance_ptr;
-          check_assertion(tip != NULL);
-          ssep = tip->partial_instantiation;
-          if (ssep == NULL) {
-            /* This can happen when the routine has been instantiated because
-               of a friend declaration (see add_source_sequence_entry_for_-
-               partial_instantiation). */
-          } else {
-            check_assertion(scope_depth != NO_SCOPE_DEPTH);
-            tip->partial_instantiation = NULL;
-            insert_src_seq_list(ssep, ssep, scope_depth, insert_point);
-            rfp->symbol->variant.routine.ptr
-                       ->source_corresp.source_sequence_entry = ssep;
+      if (!class_type->source_corresp.is_local_to_function &&
+          !is_nonreal_template_instantiation &&
+          !is_cli_generic_instance_type(class_type)) {
+        /* Temporarily remove source sequence entries, if any that have been
+           entered after the end-of-construct entry for the class that was just
+           defined.  Here's an example why:  Sometimes the definition of a
+           member or friend functions is represented by a source sequence
+           entry that is added after the end of the class body.  Moreover, in
+           a case like this:
+             class A {
+               int friend f() { ... };
+             } x = f();
+           the definition of f must be moved to a position that precedes the
+           declaration of x even while following the declaration of A. */
+        a_source_sequence_entry_ptr     tail;
+        a_src_seq_end_of_construct_ptr  sseocp;
+        /* Check the end of the source sequence list. */
+        if (scope_depth != NO_SCOPE_DEPTH &&
+            class_type->source_corresp.source_sequence_entry != NULL) {
+          /* Unless the last entry on the source sequence list is an
+             end-of-construct entry that corresponds to the end of the
+             definition of class_type, back up until it's found. */
+          for (tail = scope_stack[scope_depth].end_of_source_sequence_list;;
+               tail = tail->prev) {
+            check_assertion(tail != NULL);
+            if (ss_entry_kind(tail) ==
+                    (an_il_entry_kind)iek_src_seq_end_of_construct) {
+              sseocp = (a_src_seq_end_of_construct_ptr)tail->entity.ptr;
+              if (sseocp->entity.ptr == (char *)class_type) {
+#if DEBUG
+                if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+                  fputs("adding fixup entries following body of class \"",
+                        f_debug);
+                  db_type_name(class_type);
+                  fputs("\"\n", f_debug);
+                }  /* if */
+#endif /* DEBUG */
+                insert_point = tail->next;
+                break;
+              }  /* if */
+            }  /* for */
           }  /* if */
         }  /* if */
       }  /* if */
-    }  /* for */
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = rfp->next) {
+        if (rfp->is_partial_instantiation) {
+          /* Add a secondary-decl source sequence entry to the source sequence
+             list to represent a partial instantiation. */
+          if (curr_scope_class_type != rfp->class_type) {
+            if (curr_scope_class_type != NULL) {
+              /* Pop the reactivated class scope from the scope stack. */
+              pop_class_reactivation_scope();
+            }  /* if  */
+            /* Reactivate the class. */
+            push_class_and_template_reactivation_scope(
+                rfp->class_type, is_template_based, /*extend_namespace=*/TRUE);
+            curr_scope_class_type = rfp->class_type;
+          }  /* if */
+          if (!source_sequence_entries_disallowed) {
+            a_template_instance_ptr      tip;
+            a_source_sequence_entry_ptr  ssep;
+
+            tip = rfp->symbol->variant.routine.instance_ptr;
+            check_assertion(tip != NULL);
+            ssep = tip->partial_instantiation;
+            if (ssep == NULL) {
+              /* This can happen when the routine has been instantiated because
+                 of a friend declaration (see add_source_sequence_entry_for_-
+                 partial_instantiation). */
+            } else {
+              check_assertion(scope_depth != NO_SCOPE_DEPTH);
+              tip->partial_instantiation = NULL;
+              insert_src_seq_list(ssep, ssep, scope_depth, insert_point);
+              rfp->symbol->variant.routine.ptr
+                         ->source_corresp.source_sequence_entry = ssep;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* for */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Go through the routine fixup entries to scan inline function bodies. */
