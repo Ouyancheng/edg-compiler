@@ -21533,7 +21533,7 @@ keep_in_il because, for example, they appear on orphan lists.
 }  /* eliminate_unneeded_scope_orphaned_list_entries */
 
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-#if AUTOMATIC_TEMPLATE_INSTANTIATION && MAINTAIN_NEEDED_FLAGS
+#if MAINTAIN_NEEDED_FLAGS
 
 void clear_instantiation_required_on_unneeded_entities(a_scope_ptr scope)
 /*
@@ -21666,7 +21666,7 @@ only in C++ mode when using automatic template instantiation.
   }  /* for */
 }  /* clear_instantiation_required_on_unneeded_entities */
 
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION && MAINTAIN_NEEDED_FLAGS */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 void eliminate_unneeded_il_entries(a_scope_ptr scope)
 /*
