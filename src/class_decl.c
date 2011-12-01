@@ -2348,7 +2348,7 @@ nested class.
   a_boolean                         is_friend;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  a_scope_depth                     scope_depth;
+  a_scope_depth                     scope_depth = NO_SCOPE_DEPTH;
   a_source_sequence_entry_ptr       orig_insert_point, insert_point;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
