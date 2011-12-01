@@ -21515,14 +21515,15 @@ keep_in_il because, for example, they appear on orphan lists.
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION && MAINTAIN_NEEDED_FLAGS
 
-void clear_instantiation_required_on_unneeded_routines(a_scope_ptr scope)
+void clear_instantiation_required_on_unneeded_entities(a_scope_ptr scope)
 /*
-Find any routines in the specified scope where an unneeded template function
-has been instantiated, and reset its instantiation required flag if necessary.
-Needed only in C++ mode when using automatic template instantiation.
+Find any routines or static data members in the specified scope that are
+unneeded and reset their instantiation required flags if necessary.  Needed
+only in C++ mode when using automatic template instantiation.
 */
 {
   a_routine_ptr   rp;
+  a_variable_ptr  vp;
 #if !DO_IL_LOWERING
   a_namespace_ptr nsp;
   a_type_ptr      tp;
@@ -21536,14 +21537,14 @@ Needed only in C++ mode when using automatic template instantiation.
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
     if (!nsp->is_namespace_alias) {
       /* Nested namespace scope. */
-      clear_instantiation_required_on_unneeded_routines(
+      clear_instantiation_required_on_unneeded_entities(
                                                      nsp->variant.assoc_scope);
     }  /* if */
   }  /* for */
   for (tp = scope->types; tp != NULL; tp = tp->next) {
     if (is_immediate_class_type(tp) &&
         class_type_supp(tp)->assoc_scope != NULL) {
-      clear_instantiation_required_on_unneeded_routines(
+      clear_instantiation_required_on_unneeded_entities(
                                              class_type_supp(tp)->assoc_scope);
     }  /* if */
   }  /* for */
@@ -21626,7 +21627,15 @@ Needed only in C++ mode when using automatic template instantiation.
       }  /* if */
     }  /* if */
   }  /* for */
-}  /* clear_instantiation_required_on_unneeded_routines */
+  for (vp = scope->variables; vp != NULL; vp = vp->next) {
+    if (!vp->source_corresp.needed) {
+      /* If the instantiation_required flag was set, clear it now.
+         The code here is needed when processing lowered IL (the static
+         data members have been promoted out of the class). */
+      clear_variable_instantiation_required(vp);
+    }  /* if */
+  }  /* for */
+}  /* clear_instantiation_required_on_unneeded_entities */
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION && MAINTAIN_NEEDED_FLAGS */
 
@@ -21681,10 +21690,6 @@ eliminated, if appropriate.
         prev_vp->next = vp->next;
       }  /* if */
       vp->next = NULL;
-      /* If the instantiation_required flag was set, clear it now.
-         The code here is needed when processing lowered IL (the static
-         data members have been promoted out of the class). */
-      clear_variable_instantiation_required(vp);
     } else {
       prev_vp = vp;
     }  /* if */
