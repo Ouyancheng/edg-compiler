@@ -1,5 +1,25 @@
 Version 4.4
 
+11/30/11 [EDGcpfe/12328]
+Potential abort on Microsoft out-of-class member redeclaration
+
+In Microsoft modes, the front end sometimes accepts out-of-class member
+function declarations that aren't definitions (see Changes entry of 3/1/05).
+When such a declaration was for a member of an overload set, the front end
+accessed the wrong variant of a symbol, which could lead to an abort.
+For example:
+
+  struct S {
+    void f();
+    void f(int);
+  };
+  #pragma start_map_region("filename")
+  __declspec(implementation_key(1)) void S::f();  // Could trigger an abort.
+  #pragma stop_map_region
+
+This is now fixed.
+
+
 11/30/11 [EDGcpfe/9185]
 Tag names of mismatched kinds
 

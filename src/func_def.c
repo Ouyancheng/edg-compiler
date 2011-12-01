@@ -1434,18 +1434,6 @@ member declaration (allowed in some Microsoft modes only).
   class_type = sym_parent_class(locator->specific_symbol);
   rout_type = skip_typerefs(type_ptr);
   sym = locator->specific_symbol;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_out_of_class_redecl && microsoft_version >= 1310 &&
-      !in_microsoft_implementation_key_mapping_region &&
-      (!is_member_function_symbol(sym) ||
-       !sym->variant.routine.ptr->is_template_function)) {
-    /* Recent microsoft compilers only accept the out-of-class redeclaration
-       syntax for template specializations, or inside a region of code
-       delimited by #pragma start_map_region/stop_map_region. */
-    pos_sy_error(ec_member_function_redecl_outside_class,
-                 &locator->source_position, sym);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!is_member_function_symbol(sym)) {
     /* A nonfunction class member.  This is an error, so set sym to NULL to
        force the creation of a fake member function symbol. */
@@ -1598,29 +1586,41 @@ member declaration (allowed in some Microsoft modes only).
     }  /* if */
     dps->prev_type = *old_type = type_ptr;
   } else {
-    rp = sym->variant.routine.ptr;
     /* A member function symbol with a compatible type was found. */
+    rp = sym->variant.routine.ptr;
     orig_pos = sym->decl_position;
     dps->prev_type = *old_type = routine_symbol_type(sym);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode &&
-        rout_type->variant.routine.extra_info->calling_convention != 
-                                            (a_calling_convention)cc_default) {
-      /* A calling convention was specified on the out-of-class definition. */
-      if (rout_type->variant.routine.extra_info->calling_convention ==
-                                           (a_calling_convention)cc_thiscall &&
-                 !routine_type_is_nonstatic_member_function(*old_type)) {
-        /* The "__thiscall" calling convention can only be applied to
-           nonstatic member functions. */
-        pos_error(ec_thiscall_requires_nonstatic_member,
-                  &locator->source_position);
-      } else if (!calling_conventions_are_compatible(*old_type, rout_type)) {
-        /* An out-of-class definition should not change the calling convention
-           declared in the class definition (not specifying a calling
-	   convention never amounts to a change).  (A similar GNU mode test is
-           delayed until attributes are applied.) */
-        pos_error(ec_conflicting_calling_conventions,
-                  &locator->source_position);
+    if (microsoft_mode) {
+      if (rout_type->variant.routine.extra_info->calling_convention != 
+                                           (a_calling_convention)cc_default) {
+        /* A calling convention was specified on the out-of-class
+           definition. */
+        if (rout_type->variant.routine.extra_info->calling_convention ==
+                                          (a_calling_convention)cc_thiscall &&
+            !routine_type_is_nonstatic_member_function(*old_type)) {
+          /* The "__thiscall" calling convention can only be applied to
+             nonstatic member functions. */
+          pos_error(ec_thiscall_requires_nonstatic_member,
+                    &locator->source_position);
+        } else if (!calling_conventions_are_compatible(*old_type, rout_type)) {
+          /* An out-of-class definition should not change the calling
+             convention declared in the class definition (not specifying a
+             calling convention never amounts to a change).  (A similar GNU-
+             mode test is delayed until attributes are applied.) */
+          pos_error(ec_conflicting_calling_conventions,
+                    &locator->source_position);
+        }  /* if */
+      }  /* if */
+      if (microsoft_out_of_class_redecl && microsoft_version >= 1310 &&
+          !in_microsoft_implementation_key_mapping_region &&
+          (!is_member_function_symbol(sym) || !rp->is_template_function)) {
+        /* Recent microsoft compilers only accept the out-of-class
+           redeclaration syntax for template specializations, or inside a
+           region of code delimited by #pragma start_map_region and
+           #pragma stop_map_region. */
+        pos_sy_error(ec_member_function_redecl_outside_class,
+                     &locator->source_position, sym);
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
