@@ -8400,6 +8400,13 @@ command line -D options.
                      /*cannot_be_redefined=*/TRUE,
                      /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
+    if (nullptr_enabled && microsoft_version >= 1600) {
+      /* Define a macro indicating that the non-managed version of nullptr
+         can be used. */
+      (void)enter_predef_macro("1", "_NATIVE_NULLPTR_SUPPORTED",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
     /* Enter a macro for the maximum size of an integral value. */
     { unsigned long int_max_size;
 #if LONG_LONG_ALLOWED

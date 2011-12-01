@@ -1,5 +1,26 @@
 Version 4.4
 
+12/1/11  [EDGcpfe/11726,EDGcpfe/10668]
+Microsoft compatibility: _NATIVE_NULLPTR_SUPPORTED macro
+
+The headers accompanying Microsoft VC10 assume that the compiler implicitly
+defines _NATIVE_NULLPTR_SUPPORTED to indicate that the non-managed version
+of the nullptr keyword is available.  The front end has now been changed to
+define that macro when microsoft_version is at least 1600 and nullptr
+support is enabled.  For example, the following program now displays "Value
+is 1" under those settings:
+
+  extern "C" int printf(const char*, ...);
+  int main() {
+  #ifdef _NATIVE_NULLPTR_SUPPORTED
+    printf("Value is %d\n", _NATIVE_NULLPTR_SUPPORTED);
+  #else
+    printf("Undefined.\n");
+  #endif
+    return 0;
+  }
+
+
 11/30/11 [EDGcpfe/12328]
 Potential abort on Microsoft out-of-class member redeclaration
 
