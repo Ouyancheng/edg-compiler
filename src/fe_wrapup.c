@@ -440,6 +440,13 @@ Do removal of unneeded IL entities for the current translation unit
 
   /* Don't bother pruning the IL of unneeded entries if errors were seen. */
   if (total_errors != 0) okay_to_eliminate_unneeded_il_entries = FALSE;
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  if (!C_mode() && total_errors == 0) {
+    /* Reset the instantiation_required flag on any entities that aren't
+       needed so the prelinker doesn't try to instantiate them. */
+    clear_instantiation_required_on_unneeded_entities(il_scope);
+  }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   if (okay_to_eliminate_unneeded_il_entries) {
     /* Eliminate unneeded function bodies.  Note that the function
        declarations are not removed at this point. */
@@ -448,13 +455,6 @@ Do removal of unneeded IL entities for the current translation unit
        need to be kept in the IL. */
     eliminate_unneeded_il_entries(il_scope);
   }  /* if */
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-  if (!C_mode() && total_errors == 0) {
-    /* Reset the instantiation_required flag on any entities that aren't
-       needed so the prelinker doesn't try to instantiate them. */
-    clear_instantiation_required_on_unneeded_entities(il_scope);
-  }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* file_scope_il_wrapup_remove_unneeded_il */
 
