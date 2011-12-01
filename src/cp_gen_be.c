@@ -3219,8 +3219,11 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                                     (scp->member_of_unknown_base) ? scp : NULL;
   a_boolean               is_partial_spec_prototype_inst = FALSE;
 
-  if (in_class_scope_with_dependent_base &&
+  if (in_class_scope_with_dependent_base && !(options & GN_DECLARATION) &&
       !entity_is_member_of_current_instantiation(scp, entry_kind)) {
+    /* A reference to a dependent name that is not a member of the current
+       instantiation.  Add qualification to ensure that it's dependent in
+       the generated code. */
     force_qualified_name = TRUE;
   }  /* if */
   /* If the name is a member of a class or namespace in C++, output the

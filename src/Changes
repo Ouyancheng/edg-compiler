@@ -1,5 +1,23 @@
 Version 4.4
 
+12/1/11  [EDGcpfe/12446]
+C++-generating back end: exception handler in class with dependent base
+
+In configurations in which PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, the
+C++-generating back end incorrectly applied the global scope-resolution
+operator :: to the name in an exception handler appearing in a member
+function of a class with a dependent base.  This is now fixed.  For
+example:
+
+  template<typename T> struct B {};
+  template<typename T> struct D : B<T> {
+    void f() {
+      try { }
+      catch(int e) { }  // Previously generated as (::e)
+    }
+  };
+
+
 12/1/11  [EDGcpfe/11726,EDGcpfe/10668]
 Microsoft compatibility: _NATIVE_NULLPTR_SUPPORTED macro
 
