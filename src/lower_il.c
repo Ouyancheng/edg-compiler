@@ -19370,7 +19370,7 @@ Do IL lowering of the indicated scope and everything under it.
     /* Now that the scope has been lowered, we know everything we're ever
        going to know about this routine.  If the body of the function has
        no effect, note that now (before the memory region is written out). */
-    routine->has_no_effect = lowered_ctor_or_dtor_has_no_effect(scope);
+    routine->has_no_effect = ctor_or_dtor_body_has_no_effect(scope);
   }  /* if */
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
   innermost_function_scope = saved_innermost_function_scope;

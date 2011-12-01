@@ -210,7 +210,7 @@ This (contrived) example (with --g++ in one IA-64 ABI C-generating back end
 configuration) had yielded an object file with a .text section of 1250 bytes
 and a .data section of 160 bytes, but with the removal of unneeded constructors
 and destructions, the .data section is eliminated and the .text section dropped
-to 142 bytes.
+to 242 bytes.
 
 As part of these changes, a change was made to the way the
 instantiation_required flag is cleared during wrapup processing.  Previously

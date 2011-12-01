@@ -90,9 +90,8 @@ static an_expr_node_ptr make_delete_call(a_routine_ptr      delete_routine,
                                          an_expr_node_ptr   arg_node,
                                          an_insert_location *insert_location);
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
-static a_boolean ctor_or_dtor_has_no_effect(a_routine_ptr    routine,
-                                            an_expr_node_ptr args,
-                                            a_boolean        args_are_lowered);
+static a_boolean call_to_ctor_or_dtor_has_no_effect(a_routine_ptr    routine,
+                                                    an_expr_node_ptr args);
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
 
 
@@ -5844,8 +5843,8 @@ and update *insert_location accordingly.
 
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
   check_assertion(dip->destructor != NULL);
-  if (ctor_or_dtor_has_no_effect(dip->destructor, (an_expr_node_ptr)NULL,
-                                 /*args_are_lowered=*/FALSE)) {
+  if (call_to_ctor_or_dtor_has_no_effect(dip->destructor,
+                                         (an_expr_node_ptr)NULL)) {
 #if DEBUG
     if (db_flag_is_set("remove_ctors_dtors")) {
       (void)fprintf(f_debug, "Removing static destruction for: ");
@@ -7017,25 +7016,15 @@ this function.
 
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
 
-static a_boolean ctor_or_dtor_has_no_effect(a_routine_ptr     routine,
-                                            an_expr_node_ptr  args,
-                                            a_boolean         args_are_lowered)
+static a_boolean call_to_ctor_or_dtor_has_no_effect(a_routine_ptr     routine,
+                                                    an_expr_node_ptr  args)
 /*
-Returns TRUE if the specified constructor or destructor is known to have no
-effect and is therefore a candidate to be removed during lowering.  args is a
-list of arguments to the routine.  If args_are_lowered is TRUE, the arguments
-represent the lowered arguments that will be passed to the constructor or
-destructor (and must include at least a "this" argument).  If args_are_lowered
-is FALSE, the arguments represent the arguments passed to the constructor by
-the user.  In either case, the arguments are checked to see if they have any
-side effects (in which case it isn't possible to remove the call to this
-instance of the constructor or destructor).  It is always safe to return FALSE.
-
-In cases where the caller knows that a destructor routine is being
-called in the context of a "delete" operation, the caller can specify
-args_are_lowered = FALSE to determine whether the destructor operation
-otherwise has no effect (in which case the destructor call can be replaced with
-a delete).  Similarly for constructions and "new" operations.
+Returns TRUE if a call to the specified constructor or destructor is known to
+have no effect and is therefore a candidate to be removed during lowering.
+args is a list of user-specified arguments to a constructor (there are no
+user-specified arguments to a destructor).  The arguments are checked to see if
+they have any side effects (in which case it isn't possible to remove the call
+to this instance of the constructor).  It is always safe to return FALSE.
 
 In some configurations, constructors and/or destructors can return "this".
 It is the caller's responsibility to ensure that the return value of the
@@ -7044,49 +7033,9 @@ routine is not used before eliding a call to the routine.
 {
   a_boolean   result = routine->has_no_effect;
 
-  /* FIXME: currently args_are_lowered is always FALSE. */
-  if (result && args_are_lowered) {
-    /* The caller has passed arguments that are lowered, including the "this"
-       argument and any param flag. */
-    check_assertion(args != NULL);
-#if !IA64_ABI
-    if (routine->special_kind == (a_special_function_kind)sfk_destructor) {
-      /* Calling a destructor with lowered arguments; in the Cfront ABI
-         the second argument to a destructor specifies (among other things)
-         whether or not to delete the object after destruction.  If the
-         argument is not a constant with value zero, assume that the routine
-         has an effect. */
-      a_boolean ovflo;
-      if (args->next != NULL &&
-          !(is_constant_node(args->next) &&
-            args->next->variant.constant->kind ==
-                                            (a_constant_repr_kind)ck_integer &&
-            value_of_integer_constant(args->next->variant.constant, &ovflo) ==
-                                                   (a_host_large_integer)0L) &&
-            !ovflo) {
-        /* There's a second argument and it's not a constant zero. */
-        result = FALSE;
-      }  /* if */
-    }  /* if */
-#endif /* !IA64_ABI */
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
-    if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
-      /* Calling a constructor with a NULL first argument indicates that a
-         "new" operation should be performed.  Note that we're ignoring the
-         case where a variable might have a NULL value (since this argument is
-         compiler generated and not specified by a user). */
-      a_boolean ovflo;
-      if (!(is_constant_node(args) &&
-            args->variant.constant->kind == (a_constant_repr_kind)ck_integer &&
-            value_of_integer_constant(args->variant.constant, &ovflo) ==
-                                                   (a_host_large_integer)0L) &&
-            !ovflo) {
-        /* There's a constant NULL first argument. */
-        result = FALSE;
-      }  /* if */
-    }  /* if */
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
-  }  /* if */
+  check_assertion(args == NULL ||
+                  routine->special_kind ==
+                                     (a_special_function_kind)sfk_constructor);
   if (result) {
     for (; args != NULL; args = args->next) {
       if (node_has_side_effects(args, (a_boolean*)NULL)) {
@@ -7102,10 +7051,10 @@ routine is not used before eliding a call to the routine.
     }  /* for */
   }  /* if */
   return result;
-}  /* ctor_or_dtor_has_no_effect */
+}  /* call_to_ctor_or_dtor_has_no_effect */
 
 
-static void lowered_statement_has_no_effect(
+static void ctor_or_dtor_statement_has_no_effect(
                                  a_statement_ptr                     statement,
                                  an_expr_or_stmt_traversal_block_ptr tblock)
 /*
@@ -7148,10 +7097,10 @@ during the creation of the routine by lowering are deemed to have no effect.
     }  /* switch */
     if (!tblock->result) tblock->terminate = TRUE;
   }  /* if */
-}  /* lowered_statement_has_no_effect */
+}  /* ctor_or_dtor_statement_has_no_effect */
 
 
-a_boolean lowered_ctor_or_dtor_has_no_effect(a_scope_ptr scope)
+a_boolean ctor_or_dtor_body_has_no_effect(a_scope_ptr scope)
 /*
 Traverse the statements in the lowered scope of a constructor or destructor
 scope to determine if the routine has no effect when called with "typical"
@@ -7179,7 +7128,7 @@ This would require a multi-pass version of lowering.
   check_assertion(scope->kind == (a_scope_kind)sck_function &&
                   scope->assoc_block != NULL);
   clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_statement = lowered_statement_has_no_effect;
+  tblock.process_statement = ctor_or_dtor_statement_has_no_effect;
   tblock.result = TRUE;
   traverse_statement(scope->assoc_block, &tblock);
 #if DEBUG
@@ -7189,7 +7138,7 @@ This would require a multi-pass version of lowering.
   }  /* if */
 #endif /* DEBUG */
   return tblock.result;
-}  /* lowered_ctor_or_dtor_has_no_effect */
+}  /* ctor_or_dtor_body_has_no_effect */
 
 
 static void remove_constructor_with_no_effect(a_dynamic_init_ptr dip)
@@ -7210,16 +7159,17 @@ otherwise specify no initialization.
 
 void remove_unneeded_constructions_and_destructions(a_scope_ptr scope)
 /*
-This routine is called to remove any unneeded constructions and destructions
-from the specified scope.  The IL that is generated by the front end contains
-all constructions and destructions indicated by the source code, and this
-routine is used to prune any unneeded constructions and destructions before
-code in the scope is lowered.  Note that not all unneeded constructions and
-destructions in the scope are processed now (only the ones on the constructor
-init and destructor lists are processed now); others (e.g., in aggregates,
-stmk_inits, new/deletes) are processed during the statement/expression lowering
-process (mostly by lower_dynamic_init).  This routine is invoked for each
-function and recursively invokes itself to process destructions in each block.
+This routine is called to remove certain unneeded constructions and
+destructions from the specified scope before the scope is lowered.  In
+particular it's important that any unneeded destructions that appear on the
+destructions list for the scope are removed here (so that an exception handling
+prologue can be avoided if possible).  During the constructor inits traversal,
+unneeded constructor inits are also removed now (so they won't be unnecessarily
+copied or moved later).  Other constructions and destructions (e.g., in
+aggregates, stmk_inits, new/deletes) are processed during the
+statement/expression lowering process (mostly by lower_dynamic_init).  This
+routine is invoked for each function and recursively invokes itself to process
+destructions in each block.
 */
 {
   a_scope_ptr             sp;
@@ -7270,9 +7220,8 @@ function and recursively invokes itself to process destructions in each block.
          ctor_init = ctor_init->next) {
       dip = ctor_init->initializer;
       if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
-          ctor_or_dtor_has_no_effect(dip->variant.constructor.ptr,
-                                     dip->variant.constructor.args,
-                                     /*args_are_lowered=*/FALSE)) {
+          call_to_ctor_or_dtor_has_no_effect(dip->variant.constructor.ptr,
+                                             dip->variant.constructor.args)) {
         /* There's no need to call this constructor; replace it with
            zero-initialization if the object is value-initialized otherwise
            no initialization is necessary. */
@@ -7281,8 +7230,8 @@ function and recursively invokes itself to process destructions in each block.
       if (dip->destructor != NULL &&
           dip->destructor->special_kind ==
                                      (a_special_function_kind)sfk_destructor &&
-          ctor_or_dtor_has_no_effect(dip->destructor, (an_expr_node_ptr)NULL,
-                                     /*args_are_lowered=*/FALSE)) {
+          call_to_ctor_or_dtor_has_no_effect(dip->destructor,
+                                             (an_expr_node_ptr)NULL)){
         /* This destruction has no effect and can be removed. */
         check_assertion(dip->destructible_entity_descr == NULL);
         remove_from_destruction_list(dip);
@@ -7313,8 +7262,8 @@ function and recursively invokes itself to process destructions in each block.
       if (dip->destructor != NULL &&
           dip->destructor->special_kind ==
                                      (a_special_function_kind)sfk_destructor &&
-          ctor_or_dtor_has_no_effect(dip->destructor, (an_expr_node_ptr)NULL,
-                                     /*args_are_lowered=*/FALSE)) {
+          call_to_ctor_or_dtor_has_no_effect(dip->destructor,
+                                             (an_expr_node_ptr)NULL)){
         /* This destruction isn't on a constructor_inits list and isn't
            needed so remove it from the destruction list (it will still
            be referred to by, e.g., a stmk_init for the initialization). */
@@ -7445,6 +7394,22 @@ C99 mode for the same reason.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (constant_to_keep != NULL) *constant_to_keep = NULL;
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+  if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
+      call_to_ctor_or_dtor_has_no_effect(dip->variant.constructor.ptr,
+                                         dip->variant.constructor.args)) {
+    /* There's no need to call this constructor; replace it with
+       zero-initialization if the object is value-initialized otherwise
+       no initialization is necessary. */
+#if DEBUG
+    if (db_flag_is_set("remove_ctors_dtors")) {
+      (void)fprintf(f_debug, "Removing construction for: ");
+      db_dynamic_initializer(dip, 0);
+    }  /* if */
+#endif /* DEBUG */
+    remove_constructor_with_no_effect(dip);
+  }  /* if */
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
   variable = dip->variable;
   if (dip->master_entry != NULL) {
     /* A dependent initialization isn't considered the initialization of
@@ -7689,23 +7654,6 @@ C99 mode for the same reason.
     begin_object_lifetime(init_expr_lifetime, eff_insert_location);
     dip->init_expr_lifetime = saved_init_expr_lifetime;
   }  /* if */
-#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
-  if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
-      ctor_or_dtor_has_no_effect(dip->variant.constructor.ptr,
-                                 dip->variant.constructor.args,
-                                 /*args_are_lowered=*/FALSE)) {
-    /* There's no need to call this constructor; replace it with
-       zero-initialization if the object is value-initialized otherwise
-       no initialization is necessary. */
-#if DEBUG
-    if (db_flag_is_set("remove_ctors_dtors")) {
-      (void)fprintf(f_debug, "Removing construction for: ");
-      db_dynamic_initializer(dip, 0);
-    }  /* if */
-#endif /* DEBUG */
-    remove_constructor_with_no_effect(dip);
-  }  /* if */
-#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
   switch (dip->kind) {
     case dik_none:
       break;
@@ -8717,9 +8665,8 @@ arrays with class elements.
     }  /* if */
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
     /* Remove unneeded construction/destructions if possible. */
-    if (ctor_or_dtor_has_no_effect(elem_dip->variant.constructor.ptr,
-                                   elem_dip->variant.constructor.args,
-                                   /*args_are_lowered=*/FALSE)) {
+    if (call_to_ctor_or_dtor_has_no_effect(elem_dip->variant.constructor.ptr,
+                                         elem_dip->variant.constructor.args)) {
       /* There's no need to call this constructor (zero_storage has already
          been set above if zero-initialization is required). */
 #if DEBUG
@@ -8732,9 +8679,8 @@ arrays with class elements.
       ctor_routine = NULL;
     }  /* if */
     if (elem_dip->destructor != NULL &&
-        ctor_or_dtor_has_no_effect(elem_dip->destructor,
-                                   (an_expr_node_ptr)NULL,
-                                   /*args_are_lowered=*/FALSE)) {
+        call_to_ctor_or_dtor_has_no_effect(elem_dip->destructor,
+                                           (an_expr_node_ptr)NULL)) {
       /* There's no need to call this destructor; any deletions that
          may be necessary (i.e., a throw during construction) are handled by
          the delete routine. */
@@ -9141,9 +9087,8 @@ The subtree of the node has not yet been lowered.
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
     if (dip != NULL &&
         dip->kind == (a_dynamic_init_kind)dik_constructor &&
-        ctor_or_dtor_has_no_effect(dip->variant.constructor.ptr,
-                                   dip->variant.constructor.args,
-                                   /*args_are_lowered=*/FALSE)) {
+        call_to_ctor_or_dtor_has_no_effect(dip->variant.constructor.ptr,
+                                           dip->variant.constructor.args)) {
 #if DEBUG
       if (db_flag_is_set("remove_ctors_dtors")) {
         (void)fprintf(f_debug, "Removing new construction for: ");
@@ -9466,8 +9411,8 @@ The subtree of the node has not yet been lowered.
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
   if (dip != NULL &&
       dip->destructor != NULL &&
-      ctor_or_dtor_has_no_effect(dip->destructor, (an_expr_node_ptr)NULL,
-                                 /*args_are_lowered=*/FALSE)) {
+      call_to_ctor_or_dtor_has_no_effect(dip->destructor,
+                                         (an_expr_node_ptr)NULL)) {
 #if DEBUG
     if (db_flag_is_set("remove_ctors_dtors")) {
       (void)fprintf(f_debug, "Removing delete destruction for: ");
