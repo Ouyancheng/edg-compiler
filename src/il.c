@@ -21125,15 +21125,26 @@ functions have been removed from the IL.
 
 static void clear_variable_instantiation_required(a_variable_ptr vp)
 /*
-The indicated variable is being removed from the IL.  If it is a template,
-clear its instantiation required information.
+The indicated variable is not needed (and may be removed from the IL).  If it
+is a template, clear its instantiation required information.
 */
 {
   if (vp->is_template_static_data_member && !vp->is_specialized) {
-    a_symbol_ptr sym;
-    sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
-    if (sym != NULL) {
-      set_instance_required(sym, FALSE, SIR_CLEAR_VALUE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (vp->source_corresp.is_class_member &&
+        scp_parent_class(&(vp->source_corresp))->
+                              variant.class_struct_union.is_generic_instance) {
+      /* No need to clear the instantiation required flag on a generic
+         static data member. */
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      a_symbol_ptr sym;
+      sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
+      if (sym != NULL) {
+        set_instance_required(sym, FALSE, SIR_CLEAR_VALUE);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* clear_variable_instantiation_required */
@@ -21141,13 +21152,16 @@ clear its instantiation required information.
 
 static void clear_routine_instantiation_required(a_routine_ptr rp)
 /*
-The indicated routine is being removed from the IL.  If it is a template,
-clear its instantiation required information.
+The indicated routine is not needed (and may be removed from the IL).  If it is
+a template, clear its instantiation required information.
 */
 {
   /* Don't attempt to do this for prototype instantiations, which are not
      put on the instantiation required list. */
   if ((rp->is_template_function && !rp->is_specialized &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+       !rp->is_generic_instance &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
        !rp->is_prototype_instantiation) ||
       (instantiate_extern_inline && rp->is_inline)) {
     a_symbol_ptr sym;
@@ -21173,10 +21187,13 @@ necessary processing on those members to clear instantiation information.
   if (ctsp->assoc_scope != NULL) {
     a_scope_ptr scope = ctsp->assoc_scope;
     /* Only check the members if there might be some templates.  Suppress this
-       for prototype instantiations, which will not have members on the
-       instantiation required list. */
+       for prototype instantiations and generics, which will not have members
+       on the instantiation required list. */
     if ((class_type->variant.class_struct_union.is_template_class ||
          scope->templates != NULL) &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        !class_type->variant.class_struct_union.is_generic_instance &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         !class_type->variant.class_struct_union.is_prototype_instantiation) {
       a_variable_ptr vp;
       a_routine_ptr  rp;
@@ -21543,6 +21560,10 @@ only in C++ mode when using automatic template instantiation.
   }  /* for */
   for (tp = scope->types; tp != NULL; tp = tp->next) {
     if (is_immediate_class_type(tp) &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        !tp->variant.class_struct_union.is_generic_instance &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        !tp->variant.class_struct_union.is_prototype_instantiation &&
         class_type_supp(tp)->assoc_scope != NULL) {
       clear_instantiation_required_on_unneeded_entities(
                                              class_type_supp(tp)->assoc_scope);
@@ -21555,9 +21576,13 @@ only in C++ mode when using automatic template instantiation.
          if the function is extern inline and we are instantiating extern
          inline functions using a mechanism like the template instantiation
          mechanism, clear the inline instance required flag. */
-      if ((rp->is_template_function && !rp->is_specialized) ||
-          (instantiate_extern_inline &&
-           (rp->is_inline || treat_as_extern_inline(rp)))) {
+      if (!rp->is_prototype_instantiation &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          !rp->is_generic_instance &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          ((rp->is_template_function && !rp->is_specialized) ||
+           (instantiate_extern_inline &&
+            (rp->is_inline || treat_as_extern_inline(rp))))) {
         a_symbol_ptr             sym;
         a_boolean                okay_to_clear_flag = TRUE;
 
