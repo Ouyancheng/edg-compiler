@@ -2371,8 +2371,6 @@ nested class.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (class_type->variant.class_struct_union.is_generic_definition) {
       /* The definition of a C++/CLI generic class. */
-      /* FIXME: This may not be needed if we keep generic definitions as
-         nonreal. */
       is_generic_definition = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_template_based) {
@@ -7745,8 +7743,6 @@ to FALSE before returning).
   }
   if (bcp_cssp->any_nonreal_base_classes ||
       (bcp_type->variant.class_struct_union.is_nonreal_class &&
-       /* FIXME: The following is not needed if generic instances are real. */
-       !is_cli_generic_instance_type(bcp_type) &&
        !(bcp_type->variant.class_struct_union.is_prototype_instantiation ||
          !bcp_type->variant.class_struct_union.is_template_class))) {
     /* Do not set the any_nonreal_base_classes field for a base that is a
@@ -12216,8 +12212,6 @@ implicitly declared member functions.
   }  /* if */
   if (class_type->variant.class_struct_union.is_nonreal_class ||
       class_state->is_generic_definition) {
-    /* FIXME: is_generic_definition test may not be needed if we keep
-       generic definitions as nonreal classes. */
     /* This symbol represents a member function of a prototype instantiation
        of a class template.  As such it is a quasi function template itself.
        Set it up to look like that.  Microsoft/Sun in-class specializations
@@ -19261,8 +19255,6 @@ function definition and cache its tokens if appropriate.
          class_state->is_generic_definition) &&
         !class_type->variant.class_struct_union.is_specialized &&
         !class_type->source_corresp.is_local_to_function) {
-      /* FIXME: is_generic_definition test may not be needed if we keep
-         generic definitions as nonreal classes. */
       /* The test of is_specialized is done to exclude Microsoft mode
          specializations in a class template scope.  Similarly, a member
          function of a local class of a prototype instantiation is nonreal
