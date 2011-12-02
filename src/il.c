@@ -21538,8 +21538,8 @@ keep_in_il because, for example, they appear on orphan lists.
 void clear_instantiation_required_on_unneeded_entities(a_scope_ptr scope)
 /*
 Find any routines or static data members in the specified scope that are
-unneeded and reset their instantiation required flags if necessary.  Needed
-only in C++ mode when using automatic template instantiation.
+unneeded and reset their instantiation required flags if necessary.  Used
+only in C++ mode.
 */
 {
   a_routine_ptr   rp;
@@ -21573,6 +21573,8 @@ only in C++ mode when using automatic template instantiation.
                                              class_type_supp(tp)->assoc_scope);
     }  /* if */
   }  /* for */
+  /* Block scopes aren't traversed because there are no local templates, and no
+     templates are allowed in local classes. */
 #endif /* !DO_IL_LOWERING */
   for (rp = scope->routines; rp != NULL; rp = rp->next) {
     if (!rp->source_corresp.needed) {
@@ -21656,14 +21658,23 @@ only in C++ mode when using automatic template instantiation.
       }  /* if */
     }  /* if */
   }  /* for */
-  for (vp = scope->variables; vp != NULL; vp = vp->next) {
-    if (!vp->source_corresp.needed) {
-      /* If the instantiation_required flag was set, clear it now.
-         The code here is needed when processing lowered IL (the static
-         data members have been promoted out of the class). */
-      clear_variable_instantiation_required(vp);
-    }  /* if */
-  }  /* for */
+#if !DO_IL_LOWERING
+  if (scope->kind == (a_scope_kind)sck_file) {
+    /* No need to check for static data members in the file scope if we're
+       not doing lowering. */
+  } else
+#endif /* !DO_IL_LOWERING */
+  /* Do not insert code here. */
+  {
+    for (vp = scope->variables; vp != NULL; vp = vp->next) {
+      if (!vp->source_corresp.needed) {
+        /* If the instantiation_required flag was set, clear it now.
+           The code here is needed when processing lowered IL (the static
+           data members have been promoted out of the class). */
+        clear_variable_instantiation_required(vp);
+      }  /* if */
+    }  /* for */
+  }  /* if */
 }  /* clear_instantiation_required_on_unneeded_entities */
 
 #endif /* MAINTAIN_NEEDED_FLAGS */

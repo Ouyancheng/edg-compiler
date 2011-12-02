@@ -758,10 +758,12 @@ static void enclose_routine_in_if(a_scope_ptr      scope,
                                   an_expr_node_ptr if_node,
                                   a_variable_ptr   return_var)
 /*
-Add an "if" statement around the entire body of the routine whose scope is
-pointed to by scope.  if_node is the expression to be tested in the "if".
-return_var is the variable to be returned if a "return" statement must be
-generated, or NULL if no value needs to be returned.
+Add an "if" statement around the entire body of the routine (a constructor
+or destructor) whose scope is pointed to by scope.  if_node is the expression
+to be tested in the "if".  return_var is the variable to be returned if a
+"return" statement must be generated, or NULL if no value needs to be returned.
+This routine should only be used when adding boilerplate code to constructors
+or destructors.
 */
 {
   a_statement_ptr if_stmt, block_stmt;
@@ -5841,8 +5843,8 @@ and update *insert_location accordingly.
   an_expr_node_ptr       object_node, call_node;
   a_type_ptr             entity_type = type_from_init_pos_descr(ipdp);
 
-#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
   check_assertion(dip->destructor != NULL);
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
   if (call_to_ctor_or_dtor_has_no_effect(dip->destructor,
                                          (an_expr_node_ptr)NULL)) {
 #if DEBUG
@@ -7021,10 +7023,11 @@ static a_boolean call_to_ctor_or_dtor_has_no_effect(a_routine_ptr     routine,
 /*
 Returns TRUE if a call to the specified constructor or destructor is known to
 have no effect and is therefore a candidate to be removed during lowering.
-args is a list of user-specified arguments to a constructor (there are no
-user-specified arguments to a destructor).  The arguments are checked to see if
-they have any side effects (in which case it isn't possible to remove the call
-to this instance of the constructor).  It is always safe to return FALSE.
+args is a list of un-lowered, user-specified arguments to a constructor (there
+are no user-specified arguments to a destructor).  The arguments are checked to
+see if they have any side effects (in which case it isn't possible to remove
+the call to this instance of the constructor).  It is always safe to return
+FALSE.
 
 In some configurations, constructors and/or destructors can return "this".
 It is the caller's responsibility to ensure that the return value of the
@@ -7110,7 +7113,7 @@ and lower_destructor_code) which are ignored for the purposes of determining
 whether or not the routine has an effect.
 
 It's not always possible to know all cases where constructors or destructors
-have no effect, for example, this case doesn't result in the destruction for
+have no effect; for example, this case doesn't result in the destruction for
 "a" being elided (because we don't know that ~A() is empty at that time --
 though instances that appear after ~A()'s definition will be elided):
 
@@ -7157,6 +7160,41 @@ otherwise specify no initialization.
 }  /* remove_constructor_with_no_effect */
 
 
+static void remove_unneeded_destructions_from_lifetime(
+                                               an_object_lifetime_ptr lifetime)
+/*
+Remove any unneeded destructions from the specified lifetime (and recursively
+from any child lifetimes).
+*/
+{
+  a_dynamic_init_ptr      dip, dip_next;
+  an_object_lifetime_ptr  olp;
+
+  check_assertion (lifetime != NULL);
+  /* First, visit any child lifetimes. */
+  for (olp = lifetime->child_lifetime; olp != NULL; olp = olp->next) {
+    remove_unneeded_destructions_from_lifetime(olp);
+  }  /* for */
+  for (dip = lifetime->destructions;
+       dip != NULL;
+       dip = dip_next) {
+    dip_next = dip->next_in_destruction_list;
+    if (dip->destructor != NULL &&
+        dip->destructor->special_kind ==
+                                     (a_special_function_kind)sfk_destructor &&
+        call_to_ctor_or_dtor_has_no_effect(dip->destructor,
+                                           (an_expr_node_ptr)NULL)) {
+      /* This destruction isn't on a constructor_inits list and isn't
+         needed so remove it from the destruction list (it will still
+         be referred to by, e.g., a stmk_init for the initialization). */
+      check_assertion(dip->destructible_entity_descr == NULL);
+      remove_from_destruction_list(dip);
+      dip->destructor = NULL;
+    }  /* if */
+  }  /* for */
+}  /* remove_unneeded_destructions_from_lifetime */
+
+
 void remove_unneeded_constructions_and_destructions(a_scope_ptr scope)
 /*
 This routine is called to remove certain unneeded constructions and
@@ -7167,12 +7205,9 @@ prologue can be avoided if possible).  During the constructor inits traversal,
 unneeded constructor inits are also removed now (so they won't be unnecessarily
 copied or moved later).  Other constructions and destructions (e.g., in
 aggregates, stmk_inits, new/deletes) are processed during the
-statement/expression lowering process (mostly by lower_dynamic_init).  This
-routine is invoked for each function and recursively invokes itself to process
-destructions in each block.
+statement/expression lowering process (mostly by lower_dynamic_init).
 */
 {
-  a_scope_ptr             sp;
   an_object_lifetime_ptr  olp = scope->lifetime;
   a_dynamic_init_ptr      dip;
   a_constructor_init_ptr  ctor_init;
@@ -7188,14 +7223,7 @@ destructions in each block.
   a_boolean               has_ctor_inits = ((is_ctor || is_dtor) &&
                              scope->variant.routine.constructor_inits != NULL);
 
-  check_assertion(scope->kind == (a_scope_kind)sck_function ||
-                  scope->kind == (a_scope_kind)sck_block);
-  /* Process any block scopes first. */
-  for (sp = scope->scopes; sp != NULL; sp = sp->next) {
-    if (sp->kind == (a_scope_kind)sck_block) {
-      remove_unneeded_constructions_and_destructions(sp);
-    }  /* if */
-  }  /* for */
+  check_assertion(scope->kind == (a_scope_kind)sck_function);
 #if DEBUG
   if (db_flag_is_set("remove_ctors_dtors")) {
     db_scope(scope);
@@ -7252,26 +7280,9 @@ destructions in each block.
     }  /* for */
   }  /* if */
   if (olp != NULL) {
-    /* If there's an object lifetime associated with this function/block,
-       examine each destruction. */
-    a_dynamic_init_ptr dip_next;
-    for (dip = olp->destructions;
-         dip != NULL;
-         dip = dip_next) {
-      dip_next = dip->next_in_destruction_list;
-      if (dip->destructor != NULL &&
-          dip->destructor->special_kind ==
-                                     (a_special_function_kind)sfk_destructor &&
-          call_to_ctor_or_dtor_has_no_effect(dip->destructor,
-                                             (an_expr_node_ptr)NULL)){
-        /* This destruction isn't on a constructor_inits list and isn't
-           needed so remove it from the destruction list (it will still
-           be referred to by, e.g., a stmk_init for the initialization). */
-        check_assertion(dip->destructible_entity_descr == NULL);
-        remove_from_destruction_list(dip);
-        dip->destructor = NULL;
-      }  /* if */
-    }  /* for */
+    /* If there's an object lifetime associated with this function, examine
+       each destruction in this lifetime and any child lifetimes. */
+    remove_unneeded_destructions_from_lifetime(olp);
   }  /* if */
 #if DEBUG
   if (db_flag_is_set("remove_ctors_dtors")) {
