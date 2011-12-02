@@ -6547,7 +6547,7 @@ by *type_ptr.  This function is called from decl_specifiers only.
     }  /* if */
     if (qualifiers != TQ_NONE) {
       /* Type qualifiers occurring on function types through typedef or
-         template parameter substitutions are ignored. */
+         template parameter substitutions are usually ignored. */
       if (is_function_type(*type_ptr)) {
         if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH ||
             scope_stack[decl_scope_level].in_prototype_instantiation) {
@@ -6556,7 +6556,17 @@ by *type_ptr.  This function is called from decl_specifiers only.
           a_source_position_ptr  diag_pos =
                           (qualifiers == TQ_RESTRICT) ? &state->restrict_pos
                                                       : &state->qualifiers_pos;
-          pos_warning(ec_cv_qualified_function_type, diag_pos);
+          if (C_mode() && strict_ansi_mode) {
+            /* The C standard specifies that type qualifiers on function types
+               result in undefined behavior.  So we issue a discretionary
+               error rather than a warning in strict C mode.  The diagnostic
+               wording is changed accordingly. */
+            pos_diagnostic(strict_ansi_discretionary_severity,
+                           ec_nonstandard_cv_qualified_function_type,
+                           diag_pos);
+          } else {
+            pos_warning(ec_cv_qualified_function_type, diag_pos);
+          }  /* if */
         }  /* if */
         qualifiers = TQ_NONE;
       }  /* if */
