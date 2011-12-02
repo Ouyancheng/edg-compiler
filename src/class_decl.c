@@ -3746,15 +3746,8 @@ implement an interface member.
                     } else {
                       /* The base interface member rp is not implemented (i.e.,
                          not overridden): Issue an error. */
-                      /* FIXME: We currently do not diagnose interfaces
-                         specified by classes loaded from metadata because we
-                         currently do not load private members from metadata
-                         and those private members may provide a valid
-                         override. */
-                      if (!in_code_generated_from_metadata()) {
-                        pos_sy_error(ec_interface_not_implemented,
-                                     &error_position, symbol_for(rp));
-                      }  /* if */
+                      pos_sy_error(ec_interface_not_implemented,
+                                   &error_position, symbol_for(rp));
                     }  /* if */
                   }  /* if */
                   continue;
@@ -21714,7 +21707,6 @@ passed via template_decl.
         /* An "= 0" is not valid for a member template, but in some modes
            such a spurious pure specifier is ignored while parsing the
            template (but not when the template is instantiated). */
-/* FIXME: Accept "= 0" on virtual generics. */
         if ((microsoft_mode || (gpp_mode && gnu_version < 40200)) &&
             curr_token == tok_assign && next_token() == tok_int_constant) {
           (void)get_token();
@@ -22845,51 +22837,47 @@ that are not irrelevant due to actual overrides.
   a_type_ptr                  class_type = cdsp->class_type;
 
   check_assertion(cppcli_enabled);
-  if (!class_is_from_metadata(class_type)) {
-    /* Check each quasi-override in turn.  (Currently, no diagnostic is issued
-       for classes produced from metadata because the private members aren't
-       loaded and might have resulted in a valid override.  FIXME) */
-    for (qodp = cdsp->quasi_overrides; qodp != NULL; qodp = qodp->next) {
-      a_routine_ptr     base_rp = qodp->base_member->variant.routine.ptr;
-      a_routine_ptr     orp = base_rp;
-      a_base_class_ptr  obcp = qodp->base_class;
-      find_final_overrider(&obcp, &orp);
-      if (orp != base_rp) {
-        /* The "quasi-overridden" function is really overridden.  No
-           diagnostic needed. */
-        goto next_quasi_override;
+  /* Check each quasi-override in turn. */
+  for (qodp = cdsp->quasi_overrides; qodp != NULL; qodp = qodp->next) {
+    a_routine_ptr     base_rp = qodp->base_member->variant.routine.ptr;
+    a_routine_ptr     orp = base_rp;
+    a_base_class_ptr  obcp = qodp->base_class;
+    find_final_overrider(&obcp, &orp);
+    if (orp != base_rp) {
+      /* The "quasi-overridden" function is really overridden.  No
+         diagnostic needed. */
+      goto next_quasi_override;
+    }  /* if */
+    /* Issue the diagnostic corresponding to the cause of this entry. */
+    if (qodp->return_type_mismatch) {
+      pos_syty_warning(ec_different_return_type_on_virtual_function_override,
+                       &qodp->diag_pos, qodp->base_member,
+                       skip_typerefs(base_rp->type)
+                                               ->variant.routine.return_type);
+    } else if (qodp->missing_virtual_specifier) {
+      an_error_code  err_code = ec_virtual_required_for_base_override;
+      if (is_cli_interface_type(qodp->base_class->type)) {
+        err_code = ec_virtual_required_for_interface_implementation;
       }  /* if */
-      /* Issue the diagnostic corresponding to the cause of this entry. */
-      if (qodp->return_type_mismatch) {
-        pos_syty_warning(ec_different_return_type_on_virtual_function_override,
-                         &qodp->diag_pos, qodp->base_member,
-                         skip_typerefs(base_rp->type)
-                                                ->variant.routine.return_type);
-      } else if (qodp->missing_virtual_specifier) {
-        an_error_code  err_code = ec_virtual_required_for_base_override;
-        if (is_cli_interface_type(qodp->base_class->type)) {
-          err_code = ec_virtual_required_for_interface_implementation;
-        }  /* if */
-        pos_sy_error(err_code, &qodp->diag_pos, qodp->base_member); 
-      } else if (qodp->reduced_access) {
-        pos_sy_warning(ec_overriding_reduces_accessibility_in_managed_type,
-                       &qodp->diag_pos, qodp->base_member); 
-      } else if (qodp->nonpublic_interface_match) {
-        pos_sy_warning(ec_nonpublic_implicit_interface_match, &qodp->diag_pos,
-                       qodp->base_member); 
-      } else {
-        unexpected_condition();
-      }  /* if */
-      if (!class_type->variant.class_struct_union.is_generic_constraint) {
-        /* Since an interface member was not overridden, an error should be
-           issued indicating that the interface was not implemented.
-           (Generic constraint types aren't required to implement all
-           interface members.) */
-        expect_error();
-      }  /* if */
+      pos_sy_error(err_code, &qodp->diag_pos, qodp->base_member); 
+    } else if (qodp->reduced_access) {
+      pos_sy_warning(ec_overriding_reduces_accessibility_in_managed_type,
+                     &qodp->diag_pos, qodp->base_member); 
+    } else if (qodp->nonpublic_interface_match) {
+      pos_sy_warning(ec_nonpublic_implicit_interface_match, &qodp->diag_pos,
+                     qodp->base_member); 
+    } else {
+      unexpected_condition();
+    }  /* if */
+    if (!class_type->variant.class_struct_union.is_generic_constraint) {
+      /* Since an interface member was not overridden, an error should be
+         issued indicating that the interface was not implemented.
+         (Generic constraint types aren't required to implement all
+         interface members.) */
+      expect_error();
+    }  /* if */
 next_quasi_override:;
-    }  /* for */ 
-  }  /* if */
+  }  /* for */ 
   free_quasi_override_descr_list(&cdsp->quasi_overrides);
 }  /* check_quasi_overrides */
 
@@ -22898,9 +22886,6 @@ static void check_initonly_members(a_class_def_state_ptr  cdsp)
 /*
 Traverse the static data members and check whether the initonly members are
 initialized.  If not, issue a diagnostic if there is no static constructor.
-FIXME: If there is a static constructor and it is defined in the current
-translation unit, VC10 issues an error if the static constructor does not
-modify the initonly members that have no in-class initializer.
 */
 {
   a_type_ptr      class_type = cdsp->class_type;
