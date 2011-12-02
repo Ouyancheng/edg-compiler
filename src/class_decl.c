@@ -7743,6 +7743,7 @@ to FALSE before returning).
   }
   if (bcp_cssp->any_nonreal_base_classes ||
       (bcp_type->variant.class_struct_union.is_nonreal_class &&
+       !is_cli_generic_instance_type(bcp_type) &&
        !(bcp_type->variant.class_struct_union.is_prototype_instantiation ||
          !bcp_type->variant.class_struct_union.is_template_class))) {
     /* Do not set the any_nonreal_base_classes field for a base that is a
