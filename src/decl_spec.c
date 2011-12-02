@@ -6545,12 +6545,10 @@ by *type_ptr.  This function is called from decl_specifiers only.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (!C_mode() && qualifiers != TQ_NONE) {
+    if (qualifiers != TQ_NONE) {
       /* Type qualifiers occurring on function types through typedef or
          template parameter substitutions are ignored. */
-      if (is_function_type(*type_ptr) ||
-          (is_array_type(*type_ptr) &&
-           is_function_type(underlying_array_element_type(*type_ptr)))) {
+      if (is_function_type(*type_ptr)) {
         if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH ||
             scope_stack[decl_scope_level].in_prototype_instantiation) {
           /* If we're not instantiating a template, applying a cv-qualifier
