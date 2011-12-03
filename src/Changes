@@ -1,5 +1,40 @@
 Version 4.4
 
+12/3/11  [EDGcpfe/12482]
+C++-generating back end: placement of #pragma pack directives
+
+In configurations in which PROTOTYPE_INSTANTIATIONS_IN_IL and
+USER_CONTROL_OF_STRUCT_PACKING are TRUE but MICROSOFT_EXTENSIONS_ALLOWED is
+FALSE, #pragma pack directives preceding a class template definition could
+appear in incorrect locations in the generated code.  For example,
+
+  namespace N {
+  #pragma pack(push)
+  #pragma pack(1)
+  template<typename T> struct S {
+    T m;
+  };
+  #pragma pack(pop)
+  }
+
+was generated as
+
+  namespace N { 
+  template< class T> 
+  #pragma pack(1)
+  struct S { 
+  #pragma pack ( push )
+  #pragma pack ( 1 )
+  T m; 
+  }; 
+  #pragma pack(1)
+  }
+  #pragma pack ( pop )
+
+This is now fixed, and the #pragma pack directives appear in the same
+locations as in the original source.
+
+
 12/1/11  [EDGcpfe/12473]
 Qualified function types in C mode
 

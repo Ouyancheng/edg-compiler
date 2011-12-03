@@ -15396,11 +15396,6 @@ parameter declarations).
   a_boolean        pragma_pack_was_already_set = need_pragma_pack_restore;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
-#if USER_CONTROL_OF_STRUCT_PACKING
-  if (pending_pragma_pack != NULL) {
-    gen_pending_pragma_pack();
-  }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Output any Microsoft attributes. */
   if (gen_ms_attribute_block_from_ss_list()) {
@@ -15409,6 +15404,14 @@ parameter declarations).
     (void)process_preprocessing_directives();
     if (!curr_src_seq_entry_is_decl()) goto end_of_routine;
   }  /* if */
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Handle any preprocessing directives preceding the declaration. */
+  (void)process_preprocessing_directives();
+#if USER_CONTROL_OF_STRUCT_PACKING
+  if (pending_pragma_pack != NULL) {
+    gen_pending_pragma_pack();
+  }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Loop for comma lists.  This loop also skips entries representing non-
      autonomous type declarations (the rendering of those types is triggered
