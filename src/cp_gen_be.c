@@ -15397,7 +15397,8 @@ parameter declarations).
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* Output any Microsoft attributes. */
+  /* Output any Microsoft attributes, along with any preprocessing
+     directives preceding the declaration. */
   if (gen_ms_attribute_block_from_ss_list()) {
     /* If we processed some attributes, watch out for having no declarations
        following. */
