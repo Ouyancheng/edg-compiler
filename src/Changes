@@ -5,8 +5,9 @@ C++-generating back end: placement of #pragma pack directives
 
 In configurations in which PROTOTYPE_INSTANTIATIONS_IN_IL and
 USER_CONTROL_OF_STRUCT_PACKING are TRUE but MICROSOFT_EXTENSIONS_ALLOWED is
-FALSE, #pragma pack directives preceding a class template definition could
-appear in incorrect locations in the generated code.  For example,
+FALSE, the C++-generating back end put out #pragma pack directives that
+appeared in the source preceding a class template definition in incorrect
+locations.  For example,
 
   namespace N {
   #pragma pack(push)
