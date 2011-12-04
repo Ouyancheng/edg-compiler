@@ -1,5 +1,21 @@
 Version 4.4
 
+12/3/11  [EDGcpfe/12483]
+C++-generating back end: template keyword in dependent qualifiers
+
+In configurations in which PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, the
+C++-generating back end put out a name qualifier denoting an instance of a
+template member of a template parameter without the necessary template
+keyword.  This is now fixed.  For example:
+
+  void f(int);
+  template<typename T> struct S {
+    void g() {
+      f(T::template X<int>::i);  // Previously missing "template"
+    }
+  };
+
+
 12/3/11  [EDGcpfe/12482]
 C++-generating back end: placement of #pragma pack directives
 

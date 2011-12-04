@@ -3602,8 +3602,8 @@ put out nothing.
                                  /*insert_space=*/(a_boolean *)NULL) != NULL &&
           nqp->previous_qualifier != NULL &&
           nqp->previous_qualifier->is_class &&
-          skip_typerefs(nqp->previous_qualifier->qualifier.class_type)->
-                                 variant.class_struct_union.is_nonreal_class) {
+          is_template_param_or_nonreal_class_type(nqp->previous_qualifier->
+                                                       qualifier.class_type)) {
         /* This qualifier is a dependent template-id and must be prefixed
            with the "template" keyword. */
         write_tok_str("template ");
