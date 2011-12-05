@@ -17876,7 +17876,8 @@ direct binding is "possible" and not whether it is "valid".
            type, since that would require boxing (ECMA-372 12.3.5). */
         direct_binding_possible = FALSE;
       }  /* if */
-    } else if (is_gc_lvalue_operand(source_operand)) {
+    } else if (source_operand != NULL &&
+               is_gc_lvalue_operand(source_operand)) {
       /* C++/CLI does not allow binding a normal (non-tracking) reference
          to a gc-lvalue. */
       direct_binding_possible = FALSE;
