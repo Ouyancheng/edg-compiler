@@ -14755,11 +14755,19 @@ expression statement, statement points to the statement; otherwise, it is NULL.
   if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
     expr_to_lower = expr->variant.object_lifetime.expr;
     lifetime = expr->variant.object_lifetime.ptr;
-    push_context(&context, (a_scope_ptr)NULL, lifetime);
-    /* Begin the object lifetime.  Any code generated is saved off to the
-       side, attached to insert_location2. */
-    set_expr_creation_insert_location(&insert_location2);
-    begin_object_lifetime(lifetime, &insert_location2);
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+    if (lifetime == NULL) {
+      /* This lifetime was removed as unnecessary during lowering. */
+    } else
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
+    /* Do not insert code here. */
+    {
+      push_context(&context, (a_scope_ptr)NULL, lifetime);
+      /* Begin the object lifetime.  Any code generated is saved off to the
+         side, attached to insert_location2. */
+      set_expr_creation_insert_location(&insert_location2);
+      begin_object_lifetime(lifetime, &insert_location2);
+    }  /* if */
     if (is_qualified_type(expr->type)) {
       /* Remove cv-qualifiers from the types of class rvalues.  In C++, such
          rvalues retain their type qualifiers, but in C they do not. */
@@ -14853,6 +14861,13 @@ expression statement, statement points to the statement; otherwise, it is NULL.
       unbind_object_lifetime(expr->variant.object_lifetime.ptr);
       overwrite_node(expr, expr_to_lower);
     }  /* if */
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+  } else if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+    /* An expression whose object lifetime was unneeded and removed; discard
+       the enk_object_lifetime node (even if we're keeping lifetimes in
+       lowered IL). */
+    overwrite_node(expr, expr_to_lower);
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
   }  /* if */
   /* Perform a second pass on the lowered expression to optimize it
      and clean up any remaining issues. */

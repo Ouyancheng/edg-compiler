@@ -1807,6 +1807,8 @@ extern void unlink_expr_destructions(an_expr_node_ptr expr);
 
 extern void mark_object_lifetime_as_useless(an_object_lifetime_ptr  olp);
 
+extern void remove_object_lifetime(an_object_lifetime_ptr olp);
+
 extern a_boolean pop_object_lifetime(void);
 
 extern an_object_lifetime_ptr innermost_block_object_lifetime(
