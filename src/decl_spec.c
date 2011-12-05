@@ -6545,32 +6545,6 @@ by *type_ptr.  This function is called from decl_specifiers only.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (qualifiers != TQ_NONE) {
-      /* Type qualifiers occurring on function types through typedef or
-         template parameter substitutions are usually ignored. */
-      if (is_function_type(*type_ptr)) {
-        if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH ||
-            scope_stack[decl_scope_level].in_prototype_instantiation) {
-          /* If we're not instantiating a template, applying a cv-qualifier
-             to a function type was probably not intended: Issue a warning. */
-          a_source_position_ptr  diag_pos =
-                          (qualifiers == TQ_RESTRICT) ? &state->restrict_pos
-                                                      : &state->qualifiers_pos;
-          if (C_mode() && strict_ansi_mode) {
-            /* The C standard specifies that type qualifiers on function types
-               result in undefined behavior.  So we issue a discretionary
-               error rather than a warning in strict C mode.  The diagnostic
-               wording is changed accordingly. */
-            pos_diagnostic(strict_ansi_discretionary_severity,
-                           ec_nonstandard_cv_qualified_function_type,
-                           diag_pos);
-          } else {
-            pos_warning(ec_cv_qualified_function_type, diag_pos);
-          }  /* if */
-        }  /* if */
-        qualifiers = TQ_NONE;
-      }  /* if */
-    }  /* if */
     /* The restrict qualifier may only be applied to pointer and reference
        types (but not pointer-to-function-type), pointer-to-member types,
        and (in parameter declarations only) array types. */
@@ -6580,6 +6554,26 @@ by *type_ptr.  This function is called from decl_specifiers only.
          from the qualifier set. */
       qualifiers &= ~TQ_RESTRICT;
       err = TRUE;
+    }  /* if */
+    if (qualifiers != TQ_NONE) {
+      /* Type qualifiers occurring on function types through typedef or
+         template parameter substitutions are ignored.  The C standard (C90
+         and C99) specifies that type qualifiers on function types result in
+         undefined behavior (except that "restrict" is ill-formed; see above).
+         We handle the C case as in C++: We ignore the qualifiers with a
+         warning. */
+      if (is_function_type(*type_ptr)) {
+        if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH ||
+            scope_stack[decl_scope_level].in_prototype_instantiation) {
+          /* If we're not instantiating a template, applying a cv-qualifier
+             to a function type was probably not intended: Issue a warning. */
+          a_source_position_ptr  diag_pos =
+                          (qualifiers == TQ_RESTRICT) ? &state->restrict_pos
+                                                      : &state->qualifiers_pos;
+          pos_warning(ec_cv_qualified_function_type, diag_pos);
+        }  /* if */
+        qualifiers = TQ_NONE;
+      }  /* if */
     }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
     if (upc_mode) {
