@@ -55,7 +55,7 @@ locations as in the original source.
 12/1/11  [EDGcpfe/12473]
 Qualified function types in C mode
 
-In C++ modes, the front end ignored type qualifiers on function types (with
+In C++ modes, the front end ignores type qualifiers on function types (with
 a warning, unless the qualification occurs through template substitution).
 This matches the requirements of the C++ standard.  The C standard, however, 
 deems type qualifiers on function types (which can happen through typedefs,
