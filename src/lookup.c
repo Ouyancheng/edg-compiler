@@ -3352,8 +3352,6 @@ for the accessor; otherwise return NULL.
     }  /* if */
   } else {
     a_property_or_event_descr_ptr	pdp;
-    a_symbol_header_ptr			sym_hdr = locator->symbol_header;
-    a_symbol_ptr			sym;
     if (symbol_is(locator->property_or_event_parent, sk_field)) {
       pdp = locator->property_or_event_parent
                    ->variant.field.ptr
@@ -3364,19 +3362,14 @@ for the accessor; otherwise return NULL.
                    ->property_or_event_descr;
     }  /* if */
     check_assertion(pdp->kind == (a_property_or_event_kind)pek_cli_event);
-    /* See if the symbol header we are looking for matches that of the add,
-       remove, or raise routines (if present). */
-    sym = symbol_for_or_null(pdp->add_routine);
-    if (sym != NULL && sym->header == sym_hdr) {
-      result_sym = sym;
-    } else {
-      sym = symbol_for_or_null(pdp->remove_routine);
-      if (sym != NULL && sym->header == sym_hdr) {
-        result_sym = sym;
-      } else {
-        sym = symbol_for_or_null(pdp->raise_routine);
-        if (sym != NULL && sym->header == sym_hdr) result_sym = sym;
-      }  /* if */
+    /* See if the symbol header we are looking for matches the add,
+       remove, or raise routine. */
+    if (strcmp(locator->symbol_header->identifier, "add") == 0) {
+      result_sym = symbol_for_or_null(pdp->add_routine);
+    } else if (strcmp(locator->symbol_header->identifier, "remove") == 0) {
+      result_sym = symbol_for_or_null(pdp->remove_routine);
+    } else if (strcmp(locator->symbol_header->identifier, "raise") == 0) {
+      result_sym = symbol_for_or_null(pdp->raise_routine);
     }  /* if */
   }  /* if */
   return result_sym;

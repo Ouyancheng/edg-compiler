@@ -136,6 +136,7 @@ static unsigned long
 		num_saved_macro_states_allocated,
 		num_hide_by_sig_list_entries_allocated,
 		num_property_set_symbol_supplements_allocated,
+		num_prop_or_event_accessor_header_lookups_allocated,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 		num_exception_spec_error_descrs_allocated;
 #endif /* DEBUG */
@@ -221,6 +222,14 @@ static a_hide_by_sig_list_entry_ptr
 		avail_hide_by_sig_list_entries;
 			/* List of hide-by-sig list entries freed and
 			   available for reuse. */
+
+static a_hash_table_ptr
+		prop_or_event_accessor_header_hash_table;
+			/* A hash table used to find previously created
+			   symbol header entries that represent a combination
+			   of a given property name and accessor function
+			   name (as specified by their symbol header
+			   pointers). */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -1940,6 +1949,146 @@ be NULL, in which case nothing is done.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+/*
+Entry used to build a hash table for mapping a property or event and
+one of its accessors to a given symbol header.
+*/
+typedef struct a_prop_or_event_accessor_header_lookup
+			*a_prop_or_event_accessor_header_lookup_ptr;
+typedef struct a_prop_or_event_accessor_header_lookup {
+  a_symbol_header_ptr	property_or_event_header;
+				/* The symbol header associated with the
+				   property or event. */
+  a_symbol_header_ptr	accessor_header;
+				/* The symbol header associated with the
+				   accessor function. */
+  a_symbol_header_ptr	combined_header;
+				/* The symbol header that represents the
+				   combination of the two headers above. */
+} a_prop_or_event_accessor_header_lookup;
+
+
+static void clear_prop_or_event_accessor_header_lookup(
+			a_prop_or_event_accessor_header_lookup_ptr peahlp)
+/*
+Initialize the fields of a property or event accessor header lookup entry.
+*/
+{
+  peahlp->property_or_event_header = NULL;
+  peahlp->accessor_header = NULL;
+  peahlp->combined_header = NULL;
+}  /* clear_prop_or_event_accessor_header_lookup */
+
+
+static a_prop_or_event_accessor_header_lookup_ptr
+                               alloc_prop_or_event_accessor_header_lookup(void)
+/*
+Allocate a property or event accessor header lookup entry, initialize
+its fields and return a pointer to it.
+*/
+{
+  a_prop_or_event_accessor_header_lookup_ptr	peahlp;
+
+  peahlp = alloc_fe_of_type(a_prop_or_event_accessor_header_lookup);
+#if DEBUG
+  num_prop_or_event_accessor_header_lookups_allocated++;
+#endif /* DEBUG */
+  clear_prop_or_event_accessor_header_lookup(peahlp);
+  return peahlp;
+}  /* alloc_prop_or_event_accessor_header_lookup */
+
+
+static a_hash_value hash_prop_or_event_accessor_header_lookup(
+							a_void_ptr	key)
+/*
+Produce a hash value for a property or event accessor header lookup
+entry.  The key is a pointer to a property or event accessor header
+lookup entry.
+*/
+{
+  a_hash_value					value;
+  a_prop_or_event_accessor_header_lookup_ptr	peahlp;
+
+  peahlp = (a_prop_or_event_accessor_header_lookup_ptr)key;
+  /* Add the hash values of the two component symbol headers to produce the
+     hash value for the combined entry. */
+  value = peahlp->property_or_event_header->hash_value +
+          peahlp->accessor_header->hash_value;
+  return value;
+}  /* hash_prop_or_event_accessor_header_lookup */
+
+
+static a_boolean compare_prop_or_event_accessor_header_lookup(
+							a_void_ptr	entry,
+							a_void_ptr	key)
+/*
+Compare an entry in the property or event accessor header lookup table
+with an entry to be found.  "entry" and "key" are of type
+a_prop_or_event_accessor_header_lookup_ptr.  Return TRUE if the key matches
+the entry. */
+{
+  a_prop_or_event_accessor_header_lookup_ptr	entry_peahlp;
+  a_prop_or_event_accessor_header_lookup_ptr	key_peahlp;
+  a_boolean					result;
+
+  entry_peahlp = (a_prop_or_event_accessor_header_lookup_ptr)entry;
+  key_peahlp = (a_prop_or_event_accessor_header_lookup_ptr)key;
+  result = entry_peahlp->property_or_event_header ==
+                                        key_peahlp->property_or_event_header &&
+           entry_peahlp->accessor_header == key_peahlp->accessor_header;
+  return result;
+}  /* compare_prop_or_event_accessor_header_lookup */
+
+
+a_symbol_header_ptr get_property_or_event_accessor_symbol_header(
+			a_symbol_header_ptr	property_or_event_header,
+			a_symbol_header_ptr	accessor_header)
+/*
+Given a symbol header for a property or event (property_or_event_header)
+and a symbol header for an accessor function (accessor_header) return
+a symbol header that represents that combination.  A previously created
+header is returned if one exists.  Otherwise, a new header is created.
+*/
+{
+  a_prop_or_event_accessor_header_lookup_ptr	peahlp = NULL;
+  a_prop_or_event_accessor_header_lookup_ptr	*peahlp_in_table = NULL;
+  a_prop_or_event_accessor_header_lookup	peahlp_key;
+
+  /* If the hash table has not been allocated yet, allocate it now. */
+  if (prop_or_event_accessor_header_hash_table == NULL) {
+    prop_or_event_accessor_header_hash_table =
+               alloc_hash_table(FRONT_END_REGION_NUMBER,
+                                (a_hash_table_size)100,
+                                hash_prop_or_event_accessor_header_lookup,
+                                compare_prop_or_event_accessor_header_lookup);
+  }  /* if */
+  /* Create an entry to be used as the lookup key. */
+  clear_prop_or_event_accessor_header_lookup(&peahlp_key);
+  peahlp_key.property_or_event_header = property_or_event_header;
+  peahlp_key.accessor_header = accessor_header;
+  peahlp_in_table = (a_prop_or_event_accessor_header_lookup_ptr*)
+                          hash_find(prop_or_event_accessor_header_hash_table,
+                                    (a_void_ptr)&peahlp_key, /*create=*/TRUE);
+  peahlp = *peahlp_in_table;
+  /* If no entry was found, create one. */
+  if (peahlp == NULL) {
+    a_symbol_header_ptr	new_header;
+    peahlp = alloc_prop_or_event_accessor_header_lookup();
+    peahlp->property_or_event_header = property_or_event_header;
+    peahlp->accessor_header = accessor_header;
+    peahlp->combined_header = new_header = alloc_symbol_header();
+    /* The identifier of the combined header is the same as the accessor. */
+    new_header->identifier = accessor_header->identifier;
+    new_header->identifier_length = accessor_header->identifier_length;
+    /* Assign a hash value to this symbol header based on the hash values
+       of the component headers. */
+    new_header->hash_value = property_or_event_header->hash_value +
+                             accessor_header->hash_value;
+    *peahlp_in_table = peahlp;
+  }  /* if */
+  return peahlp->combined_header;
+}  /* get_property_or_event_accessor_symbol_header */
+
 #if DEBUG
 
 void db_hide_by_sig_list(a_hide_by_sig_list_entry_ptr	hbslep)
@@ -2323,8 +2472,8 @@ static method.  The list is returned in *p_hide_by_sig_list.
   } else if (sym->is_invisible ||
              (sym->kind == (a_symbol_kind)sk_overloaded_function &&
               sym->variant.overloaded_function.symbols->is_invisible)) {
-    /* An invisible symbol (probably a property accessor).  Don't attempt
-       hide-by-sig lookup and return FALSE. */
+    /* An invisible symbol.  Don't attempt hide-by-sig lookup and return
+       FALSE. */
   } else if (is_class ||
              parent_ctsp->cli_class_type_kind ==
                                       (a_cli_class_type_kind)cctk_interface) {
@@ -6004,13 +6153,37 @@ describes the property or event, and depth is the scope stack depth
 corresponding to the enclosing class definition.
 */
 {
-  a_symbol_ptr  sym;
+  a_symbol_ptr    sym;
+  a_symbol_ptr    prop_sym = NULL;
 
   check_assertion(
              scope_stack[depth].kind == (a_scope_kind)sck_class_struct_union);
-  if (pedp->kind == (a_property_or_event_kind)pek_cli_event) {
+  if (locator->is_error) {
+    /* Don't try to get a property or event header for an error locator as
+       there may not be a symbol header pointer. */
+    set_to_named_error_locator(*locator);
+    sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
+                             depth, /*suppress_redecl_error=*/TRUE);
+  } else {
+    /* Get the symbol for the property or event. */
+    prop_sym = pedp->is_static ? symbol_for(pedp->variant.variable)
+                               : symbol_for(pedp->variant.field);
+    /* Translate the symbol header from one that represents just the
+       accessor kind (e.g., "get") into one that represents both the
+       property name and the accessor kind.  The new header has the
+       same identifier string as the original accessor, but because
+       they have distinct symbol headers that are not in the symbol
+       header lookup table, they are not found by normal lookup of an
+       identifier such as "get". */
+    locator->symbol_header = get_property_or_event_accessor_symbol_header(
+                                     prop_sym->header,
+                                     locator->symbol_header);
+  }  /* if */
+  if (locator->is_error) {
+    /* This case was handled above. */
+  } else if (pedp->kind == (a_property_or_event_kind)pek_cli_event) {
     /* C++/CLI events cannot be overloaded.  Their accessors are entered as
-       invisible member functions. */
+       member functions. */
     sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
                              depth, /*suppress_redecl_error=*/TRUE);
   } else if (pedp->kind == (a_property_or_event_kind)pek_cli_property) {
@@ -6018,29 +6191,25 @@ corresponding to the enclosing class definition.
        keep track of accessor overload sets for each property set. */
     /* Find the property set for this accessor. */
     a_symbol_locator  set_loc;
-    a_symbol_ptr      set_sym, prop_sym;
+    a_symbol_ptr      set_sym;
     a_type_ptr        class_type;
     class_type = scope_stack[depth].assoc_type;
-    prop_sym = pedp->is_static ? symbol_for(pedp->variant.variable)
-                               : symbol_for(pedp->variant.field);
     make_locator_for_symbol(prop_sym, &set_loc);
     clear_specific_symbol(set_loc);
     set_sym = class_qualified_id_lookup(&set_loc, class_type,
                                         IDL_DIRECT_CLASS_MEMBERS_ONLY);
     if (set_sym == NULL || !symbol_is(set_sym, sk_property_set)) {
-      /* No property set was found.  This is must be due to a severe error. */
+      /* No property set was found.  An error must have occurred earlier. */
       expect_error();
       set_to_named_error_locator(*locator);
       sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
                                depth, /*suppress_redecl_error=*/TRUE);
-    } else { 
+    } else {
       sym = enter_cli_property_accessor(locator, depth, set_sym);
     }  /* if */
   } else {
     unexpected_condition();
   }  /* if */
-  /* Accessors cannot be called directly: Make them invisible. */
-  sym->is_invisible = TRUE;
   return sym;
 }  /* enter_cli_accessor */
 
@@ -14266,6 +14435,9 @@ for space tracking purposes.
                 num_hide_by_sig_list_entries_allocated,
                 a_hide_by_sig_list_entry);
   db_space_used("property set symbol suppl.",
+                num_prop_or_event_accessor_header_lookups_allocated,
+                a_prop_or_event_accessor_header_lookup);
+  db_space_used("prop or event accessor lookup",
                 num_property_set_symbol_supplements_allocated,
                 a_property_set_symbol_supplement);
   grand_total = db_show_ms_attrib_space_used(grand_total);
@@ -14518,6 +14690,7 @@ are handled in symbol_tbl_init.)
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(avail_saved_macro_states),
       pch_saved_var_array_elem(avail_hide_by_sig_list_entries),
+      pch_saved_var_array_elem(prop_or_event_accessor_header_hash_table),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(error_symbol_header),
       pch_saved_var_array_elem(unnamed_tag_symbol_header),
@@ -14592,6 +14765,8 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_saved_macro_states_allocated),
       pch_saved_var_array_elem(num_hide_by_sig_list_entries_allocated),
       pch_saved_var_array_elem(num_property_set_symbol_supplements_allocated),
+      pch_saved_var_array_elem(
+                         num_prop_or_event_accessor_header_lookups_allocated),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* if DEBUG */
       pch_saved_var_array_terminating_elem()
@@ -14723,6 +14898,7 @@ of the front end.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   avail_saved_macro_states = NULL;
   avail_hide_by_sig_list_entries = NULL;
+  prop_or_event_accessor_header_hash_table = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   error_symbol_header = NULL;
   unnamed_tag_symbol_header = NULL;
@@ -14775,6 +14951,8 @@ of the front end.
   num_saved_macro_states_allocated              = 0;
   num_hide_by_sig_list_entries_allocated        = 0;
   num_property_set_symbol_supplements_allocated = 0;
+  num_prop_or_event_accessor_header_lookups_allocated
+                                                = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* DEBUG */
 }  /* symbol_tbl_init */
