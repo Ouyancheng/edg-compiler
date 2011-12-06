@@ -2137,7 +2137,8 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     a_boolean                  is_lambda = is_lambda_body_routine_type(type);
     a_routine_type_supplement  *rtsp = type->variant.routine.extra_info;
     /* A qualifier on a function type shouldn't be possible in compilable
-       code without a typedef, although it can occur in diagnostics. */
+       code without a typedef; however, it shouldn't be a fatal error in
+       diagnostic or debugging output. */
     check_assertion_str(qualifiers == TQ_NONE || !octl->gen_compilable_code,
                         "form_type_first_part: qualifier on function type");
     if ((rtsp->trailing_return_type || is_lambda) &&
@@ -2160,6 +2161,8 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
        declarator parentheses are needed. */
     if (under_lhs_declarator) octl->output_str("(", octl);
     if (qualifiers != TQ_NONE) {
+      /* As noted above, qualifiers cannot appear in compilable code, only
+         in diagnostic and debugging output. */
       form_type_qualifier(qualifiers, upc_block_size, need_trailing_space,
                           octl);
     }  /* if */
