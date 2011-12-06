@@ -17222,6 +17222,18 @@ Do IL lowering of the indicated statement and everything under it.
     saved_error_position = error_position;
     error_position = code_pos_for_lowering;
     stmt_expr = statement->expr;
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+    if (!C_mode() &&
+        (statement->kind == (a_statement_kind)stmk_goto ||
+         statement->kind == (a_statement_kind)stmk_label) &&
+        statement->variant.label.lifetime != NULL &&
+        statement->variant.label.lifetime->has_been_elided) {
+      /* The object lifetime referred to by this goto or label has been
+         deemed unnecessary and has been elided from other parts of the IL.
+         Remove this reference as well. */
+      statement->variant.label.lifetime = NULL;
+    }  /* if */
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
     switch (statement->kind) {
       case stmk_empty:
         /* No processing required. */

@@ -7160,48 +7160,6 @@ otherwise specify no initialization.
 }  /* remove_constructor_with_no_effect */
 
 
-/* Used for storing object lifetime to be removed during traversal. */
-static an_object_lifetime_ptr removed_object_lifetime;
-
-
-/*ARGSUSED*/ /* <-- tblock is not used. */
-static void remove_object_lifetime_from_statement(
-                                 a_statement_ptr                     statement,
-                                 an_expr_or_stmt_traversal_block_ptr tblock)
-/*
-Used during a statement traversal to rewrite any goto or label statements
-that refer to an object lifetime that is being removed from the IL.
-*/
-{
-  if ((statement->kind == (a_statement_kind)stmk_label ||
-       statement->kind == (a_statement_kind)stmk_goto) &&
-      statement->variant.label.lifetime == removed_object_lifetime) {
-    statement->variant.label.lifetime = NULL;
-  }  /* if */
-}  /* remove_object_lifetime_from_statement */
-
-
-static void remove_object_lifetime_from_statements(
-                                               an_object_lifetime_ptr lifetime,
-                                               a_scope_ptr            scope)
-/*
-Remove any references to the specified object lifetime that may exist in (goto
-or label) statements associated with the function scope.  This is not used
-to unbind a lifetime from a particular scope (see unbind_object_lifetime).
-Labels are queued on a list for the scope, but goto statements aren't so a
-full traversal is needed.
-*/
-{
-  an_expr_or_stmt_traversal_block tblock;
-
-  check_assertion(scope->kind == (a_scope_kind)sck_function);
-  clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_statement = remove_object_lifetime_from_statement;
-  removed_object_lifetime = lifetime;
-  traverse_statement(scope->assoc_block, &tblock);
-}  /* remove_object_lifetime_from_statements */
-
-
 static void remove_unneeded_destructions_from_lifetime(
                                                an_object_lifetime_ptr lifetime,
                                                a_scope_ptr            scope)
@@ -7240,16 +7198,10 @@ from any child lifetimes).  scope is the function scope pointer.
   /* Now that we've removed any unneeded destructions, see if this object
      lifetime is needed; if not, remove it. */
   if (is_useless_object_lifetime(lifetime)) {
-    /* Unbind and remove the object lifetime from the IL. */
+    /* Unbind and remove the object lifetime from the IL.  Note that the
+       object lifetime may still be referred to by goto and label statements,
+       but that will be fixed during lowering. */
     remove_object_lifetime(lifetime);
-    if (scope->labels != NULL &&
-        (lifetime->kind == (an_object_lifetime_kind)olk_block ||
-         lifetime->kind == (an_object_lifetime_kind)olk_block_after_label)) {
-      /* The removal above can leave dangling references to the lifetime
-         from goto and label statements.  Remove the object lifetime from
-         those statements as well. */
-      remove_object_lifetime_from_statements(lifetime, scope);
-    }  /* if */
   }  /* if */
 }  /* remove_unneeded_destructions_from_lifetime */
 

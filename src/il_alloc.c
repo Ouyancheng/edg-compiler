@@ -3759,6 +3759,9 @@ to it.
   olp->has_block_after_label_child_lifetime
                                   = FALSE;
   olp->has_implicit_child         = FALSE;
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+  olp->has_been_elided            = FALSE;
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
   olp->destructions               = NULL;
   olp->parent_lifetime            = NULL;
   olp->parent_destruction_sublist = NULL;

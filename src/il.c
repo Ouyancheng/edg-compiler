@@ -20247,6 +20247,13 @@ is not unlinked from any goto or label statements that may point to it.
     /* Unbind from the IL entry with which it is associated. */
     unbind_object_lifetime(olp);
   }  /* if */
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+  /* If this object lifetime has been removed during lowering, there may
+     be goto or label statements that still point to it.  Set a flag to
+     indicate that this lifetime has been elided so that such references
+     will be removed during lowering. */
+  olp->has_been_elided = TRUE;
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
 }  /* remove_object_lifetime */
 
 
