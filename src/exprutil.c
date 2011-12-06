@@ -6071,9 +6071,9 @@ user-defined conversions.
                 local_constant.expr = make_node_from_operand(operand);
               }  /* if */
               /* We're going to represent the conversion in the backing
-                 expression.  The therefore no longer represents a "plain"
-                 named constant: Break any direct connection to such a
-                 constant. */
+                 expression.  local_constant therefore no longer represents a
+                 "plain" named constant: Break any direct connection to such a
+                 named constant. */
               break_constant_source_corresp(&local_constant);
               add_cast_to_node(&local_constant.expr, new_type,
                                /*check_cast_access=*/FALSE,
