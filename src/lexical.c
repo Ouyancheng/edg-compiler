@@ -12301,7 +12301,7 @@ issued when several lines are flushed is suppressed.
 
 void flush_to_closing_paren(void)
 /*
-Flush tokens until we reach an unmatched right parenthesis.
+Flush tokens until we reach an unmatched right parenthesis or brace.
 */
 {
   a_token_set_array  stop_tokens;
