@@ -8276,7 +8276,8 @@ statement expression, i.e., ({...}).
   }  /* if */
 #if CHECKING && LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
   if (!C_mode() &&
-      (kind == stmk_goto || kind == stmk_label) &&
+      (kind == (a_statement_kind)stmk_goto ||
+       kind == (a_statement_kind)stmk_label) &&
       statement->variant.label.lifetime != NULL) {
     /* Make sure all elided object lifetimes have been removed from the IL. */
     check_assertion(!statement->variant.label.lifetime->has_been_elided);
