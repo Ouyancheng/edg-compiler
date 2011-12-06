@@ -2040,7 +2040,7 @@ the entry. */
 }  /* compare_prop_or_event_accessor_header_lookup */
 
 
-a_symbol_header_ptr get_property_or_event_accessor_symbol_header(
+static a_symbol_header_ptr get_property_or_event_accessor_symbol_header(
 			a_symbol_header_ptr	property_or_event_header,
 			a_symbol_header_ptr	accessor_header)
 /*

@@ -4037,10 +4037,6 @@ extern void enter_projected_default_indexed_properties(
 
 extern void reenter_block_scope_symbol(a_symbol_ptr  sym);
 
-extern a_symbol_header_ptr get_property_or_event_accessor_symbol_header(
-			a_symbol_header_ptr	property_or_event_header,
-			a_symbol_header_ptr	accessor_header);
-
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_base_class_ptr find_base_with_type(a_type_ptr        base_type,
