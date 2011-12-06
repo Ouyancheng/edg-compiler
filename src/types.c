@@ -5636,10 +5636,8 @@ pointer equality.
     if (type_1->kind == (a_type_kind)tk_typeref ||
         type_2->kind == (a_type_kind)tk_typeref) {
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-      if ((type_1->kind == (a_type_kind)tk_typeref &&
-           (typeref_is_typedef(type_1) || typeref_is_type_operator(type_1))) ||
-          (type_2->kind == (a_type_kind)tk_typeref &&
-           (typeref_is_typedef(type_2) || typeref_is_type_operator(type_2)))) {
+      if (typeref_is_typedef(type_1) || typeref_is_type_operator(type_1) ||
+          typeref_is_typedef(type_2) || typeref_is_type_operator(type_2)) {
         /* Do not record calling convention differences under typedefs or
            type operators (like decltype). */
         flags &= ~TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS;
