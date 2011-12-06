@@ -3538,12 +3538,15 @@ constant.
          is in the file scope memory region. */
       switch_to_file_scope_region(&region_to_switch_back_to);
       if (is_constant_bound) {
-        /* Save the constant for the bound, which has an attached
-           expression. */
-        make_bound_expr_referenceable_from_file_scope(&constant.expr,
+        /* Save the constant for the bound.  If it has an attached expression
+           it may need to be referred to indirectly if the expression is
+           allocated in function scope memory (allocate_shareable_constant
+           will not have returned a shared constant in that case). */
+        il_constant = alloc_shareable_constant(&constant);
+        il_constant->expr = constant.expr;
+        make_bound_expr_referenceable_from_file_scope(&il_constant->expr,
                                                       *new_type_ptr,
                                                       /*dep=*/FALSE);
-        il_constant = alloc_shareable_constant(&constant);
         (*new_type_ptr)->variant.array.bound_constant = il_constant;
       }  /* if */
       if (template_dependent_bound) {
@@ -3551,6 +3554,7 @@ constant.
         a_template_param_constant_kind tkind;
         if (il_constant == NULL) {
           il_constant = alloc_shareable_constant(&constant);
+          il_constant->expr = constant.expr;
         }  /* if */
         check_assertion(il_constant->kind ==
                                     (a_constant_repr_kind)ck_template_param);

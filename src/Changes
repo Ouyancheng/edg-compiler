@@ -1,5 +1,23 @@
 Version 4.4
 
+12/5/11  [EDGcpfe/12445]
+Representation of array bounds
+
+When the constant representing the bound of a local array type has a backing
+expression involving a local variable (which implies that it must use the
+a_local_expr_node_ref mechanism described in the Changes entry of 4/28/06),
+the front end sometimes erroneously used a constant entry that was shared
+with other uses of the constant value (for which the backing expression is
+not meaningful).  For example:
+
+  void g(int x) {
+    double z[sizeof(x) > 0 ? 2 : 4];  // The constant entry representing the
+  }                                   // bound was previously the same as the
+                                      // one representing the literal 2.
+
+This is now fixed.
+
+
 12/3/11  [EDGcpfe/12483]
 C++-generating back end: template keyword in dependent qualifiers
 
