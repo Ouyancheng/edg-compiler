@@ -7047,6 +7047,25 @@ put it on a list of constants).
 }  /* alloc_shareable_constant */
 
 
+a_constant_ptr transfer_constant_to_il(a_constant  *cp)
+/*
+cp is a constant not currently part of the IL (typically, cp points to a local
+variable).  Return a copy of the given constant.  If cp has a backing
+expression re-assign that expression to the copy being returned.
+*/
+{
+  a_constant_ptr  il_cp = alloc_shareable_constant(cp);
+
+  if (cp->expr != NULL) {
+    /* Since cp->expr is non-NULL, alloc_shareable_constant will have returned
+       an unshared constant entry.  It is therefore safe to modify *il_cp. */
+    il_cp->expr = cp->expr;
+    cp->expr = NULL;
+  }  /* if */
+  return il_cp;
+}  /* transfer_constant_to_il */
+
+
 void empty_shareable_constants_table(void)
 /*
 Empty out the file-scope shareable constants table and liberate the

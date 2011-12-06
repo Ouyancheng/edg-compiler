@@ -3542,8 +3542,7 @@ constant.
            it may need to be referred to indirectly if the expression is
            allocated in function scope memory (allocate_shareable_constant
            will not have returned a shared constant in that case). */
-        il_constant = alloc_shareable_constant(&constant);
-        il_constant->expr = constant.expr;
+        il_constant = transfer_constant_to_il(&constant);
         make_bound_expr_referenceable_from_file_scope(&il_constant->expr,
                                                       *new_type_ptr,
                                                       /*dep=*/FALSE);
@@ -3553,8 +3552,7 @@ constant.
         /* Template-dependent bound (constant but not a known value). */
         a_template_param_constant_kind tkind;
         if (il_constant == NULL) {
-          il_constant = alloc_shareable_constant(&constant);
-          il_constant->expr = constant.expr;
+          il_constant = transfer_constant_to_il(&constant);
         }  /* if */
         check_assertion(il_constant->kind ==
                                     (a_constant_repr_kind)ck_template_param);

@@ -1271,6 +1271,8 @@ extern a_boolean has_non_file_scope_ref(a_constant *cp);
 
 extern a_constant_ptr alloc_shareable_constant(a_constant *cp);
 
+extern a_constant_ptr transfer_constant_to_il(a_constant *cp);
+
 extern void add_scope_to_class_type(a_type_ptr  type);
 
 /* Make sure "a_scope_stack_entry" is known as a struct tag before its use

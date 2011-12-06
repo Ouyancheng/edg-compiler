@@ -19,19 +19,23 @@ also ignored with a warning in GNU C mode.  (See also the Changes entry of
 12/5/11  [EDGcpfe/12445]
 Representation of array bounds
 
-When the constant representing the bound of a local array type has a backing
-expression involving a local variable (which implies that it must use the
-a_local_expr_node_ref mechanism described in the Changes entry of 4/28/06),
-the front end sometimes erroneously used a constant entry that was shared
-with other uses of the constant value (for which the backing expression is
-not meaningful).  For example:
+When the bound of an array uses an expression involving a local variable, the
+a_constant entry does not directly point to a representation of the expression.
+Instead, the a_local_expr_node_ref mechanism (described in the Changes entry of
+4/28/06) indirectly associates a backing expression with that use of the
+constant entry.  The constant entry could previously still be reused in other
+contexts without an indirectly associated backing expression.  For example:
 
   void g(int x) {
     double z[sizeof(x) > 0 ? 2 : 4];  // The constant entry representing the
   }                                   // bound was previously the same as the
                                       // one representing the literal 2.
 
-This is now fixed.
+This proved to be inconvenient for some consumers of the IL.  Therefore,
+constant entries used as array bounds are now no longer re-used elsewhere in
+the IL tree if they have indirectly associated backing expressions (constant
+entries that point directly to a backing expression were not previously
+reused).
 
 
 12/3/11  [EDGcpfe/12483]
