@@ -731,6 +731,26 @@ template-dependent at other than the first level.
 }  /* is_overloadable_type_first_operand */
 
 
+static a_boolean is_overloadable_type_arg_operand_list(
+                                              an_arg_operand *arg_operand_list)
+/*
+Return TRUE if any operand on the given operand list has a type that is
+overloadable.
+*/
+{
+  a_boolean      is_overloadable = FALSE;
+  an_arg_operand *arg_op;
+
+  for (arg_op = arg_operand_list; arg_op != NULL; arg_op = arg_op->next) {
+    if (is_overloadable_type_operand(&arg_op->operand)) {
+      is_overloadable = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return is_overloadable;
+}  /* is_overloadable_type_arg_operand_list */
+
+
 static void set_pointer_operand_is_second_flag(an_operand *operand)
 /*
 The indicated operand is the result of a subscript or pointer-addition
@@ -1178,7 +1198,9 @@ constructs, in which case offsetof_case is TRUE.
       processed = TRUE;
     } else if (!C_mode() &&
                (is_overloadable_type_first_operand(operand_1) ||
-                is_overloadable_type_operand(&operand_2))) {
+                (subscript_is_expr_list ?
+                        is_overloadable_type_arg_operand_list(operand_2_list) :
+                        is_overloadable_type_operand(&operand_2)))) {
       /* Look for C++ operator overloading cases. */
       a_boolean has_predef_meaning = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
