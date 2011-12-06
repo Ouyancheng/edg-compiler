@@ -6069,6 +6069,10 @@ user-defined conversions.
                    expression.  Create an expression node to which the cast
                    history can be attached. */
                 local_constant.expr = make_node_from_operand(operand);
+                /* The resulting constant should no longer have an associated
+                   symbol since it no longer represents a "plain" named
+                   constant. */
+                local_constant.source_corresp.assoc_info = NULL;
               }  /* if */
               add_cast_to_node(&local_constant.expr, new_type,
                                /*check_cast_access=*/FALSE,
