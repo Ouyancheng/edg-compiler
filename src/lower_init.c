@@ -7161,22 +7161,23 @@ otherwise specify no initialization.
 
 
 static void remove_unneeded_destructions_from_lifetime(
-                                               an_object_lifetime_ptr lifetime,
-                                               a_scope_ptr            scope)
+                                               an_object_lifetime_ptr lifetime)
 /*
 Remove any unneeded destructions from the specified lifetime (and recursively
-from any child lifetimes).  scope is the function scope pointer.
+from any child lifetimes).  Note that as a result of removing unneeded
+destructions, the object lifetime lifetime may become "useless", and
+could potentially be removed from the IL tree.  Removing these useless
+lifetimes would require re-visiting the object lifetimes that are stored
+in goto and label statements and re-computing new common object lifetimes.
 */
 {
   a_dynamic_init_ptr      dip, dip_next;
-  an_object_lifetime_ptr  olp, olp_next;
+  an_object_lifetime_ptr  olp;
 
-  check_assertion (lifetime != NULL &&
-                   scope->kind == (a_scope_kind)sck_function);
+  check_assertion (lifetime != NULL);
   /* First, visit any child lifetimes. */
-  for (olp = lifetime->child_lifetime; olp != NULL; olp = olp_next) {
-    olp_next = olp->next;
-    remove_unneeded_destructions_from_lifetime(olp, scope);
+  for (olp = lifetime->child_lifetime; olp != NULL; olp = olp->next) {
+    remove_unneeded_destructions_from_lifetime(olp);
   }  /* for */
   for (dip = lifetime->destructions;
        dip != NULL;
@@ -7195,14 +7196,6 @@ from any child lifetimes).  scope is the function scope pointer.
       dip->destructor = NULL;
     }  /* if */
   }  /* for */
-  /* Now that we've removed any unneeded destructions, see if this object
-     lifetime is needed; if not, remove it. */
-  if (is_useless_object_lifetime(lifetime)) {
-    /* Unbind and remove the object lifetime from the IL.  Note that the
-       object lifetime may still be referred to by goto and label statements,
-       but that will be fixed during lowering. */
-    remove_object_lifetime(lifetime);
-  }  /* if */
 }  /* remove_unneeded_destructions_from_lifetime */
 
 
@@ -7289,7 +7282,7 @@ statement/expression lowering process (mostly by lower_dynamic_init).
   if (olp != NULL) {
     /* If there's an object lifetime associated with this function, examine
        each destruction in this lifetime and any child lifetimes. */
-    remove_unneeded_destructions_from_lifetime(olp, scope);
+    remove_unneeded_destructions_from_lifetime(olp);
   }  /* if */
 #if DEBUG
   if (db_flag_is_set("remove_ctors_dtors")) {

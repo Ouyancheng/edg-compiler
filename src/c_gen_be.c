@@ -8274,15 +8274,6 @@ statement expression, i.e., ({...}).
       kind != (a_statement_kind)stmk_decl) {
     set_output_position_for_stmt(&statement->position);
   }  /* if */
-#if CHECKING && LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
-  if (!C_mode() &&
-      (kind == (a_statement_kind)stmk_goto ||
-       kind == (a_statement_kind)stmk_label) &&
-      statement->variant.label.lifetime != NULL) {
-    /* Make sure all elided object lifetimes have been removed from the IL. */
-    check_assertion(!statement->variant.label.lifetime->has_been_elided);
-  }  /* if */
-#endif /* CHECKING && LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_... */
   switch (kind) {
     case stmk_empty:
       write_tok_ch(';');

@@ -20159,104 +20159,6 @@ list.
 }  /* mark_object_lifetime_as_useless */
 
 
-void remove_object_lifetime(an_object_lifetime_ptr olp)
-/*
-Remove the (useless) object lifetime from the IL.  Note that the lifetime
-is unlinked from other lifetimes and unbound (if appropriate) but the lifetime
-is not unlinked from any goto or label statements that may point to it.
-*/
-{
-  a_boolean               is_implicit_child = FALSE;
-  an_object_lifetime_ptr  parent = olp->parent_lifetime;
-
-#if DEBUG
-  if (db_flag_is_set("dump_lifetimes")) {
-    if (olp->kind != (an_object_lifetime_kind)olk_expr_temporary ||
-        long_lifetime_temps) {
-      db_object_lifetime_with_indentation(olp, "Discarding: ");
-    }  /* if */
-  }  /* if */
-#endif /* DEBUG */
-  /* Unlink the object lifetime entry from its parent, children, and
-     siblings. */
-  if (olp->kind == (an_object_lifetime_kind)olk_block &&
-      olp->entity.kind == (a_byte_il_entry_kind)iek_scope &&
-      ((a_scope_ptr)olp->entity.ptr)->kind == (a_scope_kind)sck_function) {
-    /* This is an object lifetime for a function scope; its parent pointer
-       is the file scope lifetime entry, but it's an "implicit" child of the
-       latter -- because of a memory region incompatibility, olp doesn't
-       appear explicitly on the child_lifetime list of its parent . */
-    is_implicit_child = TRUE;
-  }  /* if */
-  /* Unless *olp is an "implicit child", the lifetime entry that's no
-     longer needed should be the first entry on the parent's child list. */
-  if (parent == NULL || is_implicit_child) {
-    /* We must be disposing of the object lifetime entry of a file or
-       function scope, so there must not be any children. */
-    check_assertion(olp->child_lifetime == NULL);
-  } else {
-    /* Remove the current object lifetime from the parent's child-lifetime
-       list.  Promote its own children, if appropriate. */
-    an_object_lifetime_ptr  child, end_of_child_list, *olp_loc;
-
-    /* Determine the position of the current object lifetime in its
-       parent's object-lifetime list. */
-    olp_loc = &parent->child_lifetime;
-    if (parent->child_lifetime != olp) {
-      /* It's not the first in the list, so find the point at which to
-         link around it and at which to insert its children, if required. */
-      an_object_lifetime_ptr  prev = parent->child_lifetime;
-      while (prev->next != olp) {
-        prev = prev->next;
-        check_assertion(prev != NULL);
-      }  /* while */
-      olp_loc = &prev->next;
-    }  /* if */
-    /* Loop through all the children of olp and move them up to the parent's
-       child list -- i.e., promote the children to siblings. */
-    end_of_child_list = NULL;
-    for (child = olp->child_lifetime; child != NULL; child = child->next) {
-      child->parent_lifetime = parent;
-      child->parent_destruction_sublist = olp->parent_destruction_sublist;
-      end_of_child_list = child;
-    }  /* for */
-    /* If there is a child list, promote it to parent. */
-    if (olp->child_lifetime != NULL) {
-      end_of_child_list->next = olp->next;
-      *olp_loc = olp->child_lifetime;
-    } else {
-      *olp_loc = olp->next;
-    }  /* if */
-    if (olp->kind == (an_object_lifetime_kind)olk_block_after_label) {
-      /* We have removed a block-after-label child from the parent's list
-         of children.  Reset the flag, unless another block-after-label
-         has been promoted in its place. */
-      if (!olp->has_block_after_label_child_lifetime) {
-        parent->has_block_after_label_child_lifetime = FALSE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  /* *olp's former parent and children, if any, should no longer have
-     pointers back to it.  Now (to be safe) remove its own pointers. */
-  olp->parent_lifetime = NULL;
-  olp->child_lifetime = NULL;
-  olp->next = NULL;
-  if (olp->entity.ptr == NULL) {
-    /* It's not been bound to any IL entry. */
-  } else {
-    /* Unbind from the IL entry with which it is associated. */
-    unbind_object_lifetime(olp);
-  }  /* if */
-#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
-  /* If this object lifetime has been removed during lowering, there may
-     be goto or label statements that still point to it.  Set a flag to
-     indicate that this lifetime has been elided so that such references
-     will be removed during lowering. */
-  olp->has_been_elided = TRUE;
-#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
-}  /* remove_object_lifetime */
-
-
 a_boolean pop_object_lifetime(void)
 /*
 Pop an object lifetime off the object lifetimes stack.  Check whether it
@@ -20265,7 +20167,8 @@ return it to the appropriate available list.  Return TRUE if the object
 lifetime is retained in the IL tree.
 */
 {
-  an_object_lifetime_ptr  olp;
+  a_boolean               is_implicit_child = FALSE;
+  an_object_lifetime_ptr  olp, parent;
   a_boolean               is_retained_in_il;
 
   db_enter(3, "pop_object_lifetime");
@@ -20281,10 +20184,88 @@ lifetime is retained in the IL tree.
   curr_object_lifetime = olp->parent_lifetime;
   /* Do additional processing connected with whether the entry remains in
      the IL or should be removed. */
+  if (olp->kind == (an_object_lifetime_kind)olk_block &&
+      olp->entity.kind == (a_byte_il_entry_kind)iek_scope &&
+      ((a_scope_ptr)olp->entity.ptr)->kind == (a_scope_kind)sck_function) {
+    /* This is an object lifetime for a function scope; its parent pointer
+       is the file scope lifetime entry, but it's an "implicit" child of the
+       latter -- because of a memory region incompatibility, olp doesn't
+       appear explicitly on the child_lifetime list of its parent . */
+    is_implicit_child = TRUE;
+  }  /* if */
   /* Determine whether the entry needs to be kept in the IL at all.  If not,
      modify all related pointers and then return it to an available list. */
   if (is_useless_object_lifetime(olp)) {
-    remove_object_lifetime(olp);
+#if DEBUG
+    if (db_flag_is_set("dump_lifetimes")) {
+      if (olp->kind != (an_object_lifetime_kind)olk_expr_temporary ||
+          long_lifetime_temps) {
+        db_object_lifetime_with_indentation(olp, "Discarding: ");
+      }  /* if */
+    }  /* if */
+#endif /* DEBUG */
+    /* Unlink the object lifetime entry from its parent, children, and
+       siblings. */
+    parent = olp->parent_lifetime;
+    /* Unless *olp is an "implicit child", the lifetime entry that's no
+       longer needed should be the first entry on the parent's child list. */
+    if (parent == NULL || is_implicit_child) {
+      /* We must be disposing of the object lifetime entry of a file or
+         function scope, so there must not be any children. */
+      check_assertion(olp->child_lifetime == NULL);
+    } else {
+      /* Remove the current object lifetime from the parent's child-lifetime
+         list.  Promote its own children, if appropriate. */
+      an_object_lifetime_ptr  child, end_of_child_list, *olp_loc;
+
+      /* Determine the position of the current object lifetime in its
+         parent's object-lifetime list. */
+      olp_loc = &parent->child_lifetime;
+      if (parent->child_lifetime != olp) {
+        /* It's not the first in the list, so find the point at which to
+           link around it and at which to insert its children, if required. */
+        an_object_lifetime_ptr  prev = parent->child_lifetime;
+        while (prev->next != olp) {
+          prev = prev->next;
+          check_assertion(prev != NULL);
+        }  /* while */
+        olp_loc = &prev->next;
+      }  /* if */
+      /* Loop through all the children of olp and move them up to the parent's
+         child list -- i.e., promote the children to siblings. */
+      end_of_child_list = NULL;
+      for (child = olp->child_lifetime; child != NULL; child = child->next) {
+        child->parent_lifetime = parent;
+        child->parent_destruction_sublist = olp->parent_destruction_sublist;
+        end_of_child_list = child;
+      }  /* for */
+      /* If there is a child list, promote it to parent. */
+      if (olp->child_lifetime != NULL) {
+        end_of_child_list->next = olp->next;
+        *olp_loc = olp->child_lifetime;
+      } else {
+        *olp_loc = olp->next;
+      }  /* if */
+      if (olp->kind == (an_object_lifetime_kind)olk_block_after_label) {
+        /* We have removed a block-after-label child from the parent's list
+           of children.  Reset the flag, unless another block-after-label
+           has been promoted in its place. */
+        if (!olp->has_block_after_label_child_lifetime) {
+          parent->has_block_after_label_child_lifetime = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    /* *olp's former parent and children, if any, should no longer have
+       pointers back to it.  Now (to be safe) remove its own pointers. */
+    olp->parent_lifetime = NULL;
+    olp->child_lifetime = NULL;
+    olp->next = NULL;
+    if (olp->entity.ptr == NULL) {
+      /* It's not been bound to any IL entry. */
+    } else {
+      /* Unbind from the IL entry with which it is associated. */
+      unbind_object_lifetime(olp);
+    }  /* if */
     is_retained_in_il = FALSE;
     /* Return the entry to its available list. */
     free_object_lifetime(olp);
@@ -20296,15 +20277,10 @@ lifetime is retained in the IL tree.
                               (an_object_lifetime_kind)olk_block_after_label,
                         "pop_object_lifetime: useful lifetime is unbound");
     is_retained_in_il = TRUE;
-    if (olp->kind == (an_object_lifetime_kind)olk_block &&
-        olp->entity.kind == (a_byte_il_entry_kind)iek_scope &&
-        ((a_scope_ptr)olp->entity.ptr)->kind == (a_scope_kind)sck_function) {
-      /* This is an object lifetime for a function scope; its parent pointer
-         is the file scope lifetime entry, but it's an "implicit" child of the
-         latter -- because of a memory region incompatibility, olp doesn't
-         appear explicitly on the child_lifetime list of its parent.
-         Set the global variable to assure that the file scope lifetime entry
-         will be preserved. */
+    if (is_implicit_child) {
+      /* This is an object lifetime for a function scope that will remain
+         in the IL.  Set the global variable to assure that the file scope
+         lifetime entry will be preserved. */
       olp->parent_lifetime->has_implicit_child = TRUE;
     }  /* if */
 #if DEBUG

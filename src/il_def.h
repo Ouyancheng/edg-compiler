@@ -15704,16 +15704,6 @@ typedef struct an_object_lifetime {
 			   lifetime and it has children in function scopes
 			   that aren't directly attached to it because of
 			   memory region issues. */
-#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
-  a_bit_field	has_been_elided:1;
-			/* TRUE if this object lifetime has been deemed
-			   unnecessary and is being removed from the IL.
-			   Such a determination is made at the beginning of
-			   lowering a function scope and during the lowering
-			   process, any remaining references to the lifetime
-			   are removed.  A back end should never see this
-			   set to TRUE. */
-#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
   a_tagged_pointer
 		entity;	/* Entity with which this object lifetime is
 			   associated.  See list of possible kinds above. */

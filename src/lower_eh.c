@@ -4654,6 +4654,33 @@ inserted at *insert_location.
 
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
+static a_boolean has_destructions(an_object_lifetime_ptr lifetime)
+/*
+Returns TRUE if the specified lifetime (which can be NULL) or any of its
+sub-lifetimes contain at least one destruction.  Object lifetimes without
+destructions should only occur when
+LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS is TRUE.
+*/
+{
+  an_object_lifetime_ptr  olp;
+  a_boolean               result = FALSE;
+
+  if (lifetime != NULL) {
+    if (lifetime->destructions != NULL) {
+      result = TRUE;
+    } else {
+      for (olp = lifetime->child_lifetime; olp != NULL; olp = olp->next) {
+        if (has_destructions(olp)) {
+          result = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* has_destructions */
+
+
 void add_eh_function_prologue(a_scope_ptr scope)
 /*
 Add any prologue needed for exception handling to the function whose scope
@@ -4728,7 +4755,7 @@ statement if necessary.
                                       spec_array_node, &insert_location);
   }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
-  if (scope->lifetime != NULL || routine->contains_try_block) {
+  if (has_destructions(scope->lifetime) || routine->contains_try_block) {
     /* The function contains destructible objects, or it contains try
        blocks, so it needs a prologue and epilogue. */
     need_function_epilogue = TRUE;
