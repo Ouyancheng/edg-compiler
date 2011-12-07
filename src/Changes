@@ -1,5 +1,21 @@
 Version 4.4
 
+12/7/11  [EDGcpfe/12380]
+Abort on local nonstandard anonymous union in C mode
+
+The C++-generating back end often aborted when attempting to render a local
+nonstandard anonymous union (enabled when ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+is TRUE) in C mode.  For example:
+
+  void f() {
+    struct L {
+      struct A { int x; };  // Nonstandard anonymous "union" previously
+    };                      // triggered an abort in the C++-generating
+  }                         // back end.
+
+This is now fixed.
+
+
 12/7/11  [EDGcpfe/12490]
 Elided copy constructor checked and instantiated in Microsoft and GNU C++ modes
 

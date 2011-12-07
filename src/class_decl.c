@@ -18722,10 +18722,12 @@ routine.
        put out the declaration entry for the anonymous struct.
     */
     if (decl_info->is_nonstd_anonymous_union) {
-      a_symbol_ptr  sym = symbol_for(au_type);
-      if (sym != NULL && has_name(au_type)) {
-        record_symbol_declaration(SRK_DECLARATION, sym, err_pos,
-                                  (a_source_sequence_entry_ptr)NULL);
+      if (type_is_typedef(member_type)) {
+        /* If a typedef name was used, record this as a declaration of that
+           name (if a class-specifier appeared, it was already processed as a
+           declaration/definition as part of the parsing that specifier). */
+        record_symbol_declaration(SRK_DECLARATION, symbol_for(member_type),
+                                  err_pos, (a_source_sequence_entry_ptr)NULL);
       }  /* if */
       if (!has_name(au_type)) {
         /* Only the types of anonymous unions whose type itself (as opposed
