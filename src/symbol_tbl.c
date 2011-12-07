@@ -9037,6 +9037,7 @@ that can be called with zero arguments.
                                              evaluated,
                                              /*instantiate=*/TRUE,
                                              check_access,
+                                             /*elided_reference=*/FALSE,
                                              error_detected);
   }  /* if */
   if (err != NULL) *err = local_err;
@@ -9126,6 +9127,7 @@ and do not issue any diagnostics (including warnings).
                                                  honor_virtual, evaluated,
                                                  instantiate,
                                                  check_access,
+                                                 /*elided_reference=*/FALSE,
                                                  error_detected);
         dtor_routine = dtor_sym->variant.routine.ptr;
       }  /* if */
@@ -9223,7 +9225,9 @@ and do not issue any diagnostics (including warnings).
   if (*class_bitwise_copy) {
     /* A bitwise copy is allowed. */
     reference_to_trivial_copy_constructor(class_type, err_pos,
-                                          check_access, error_detected);
+                                          check_access,
+                                          /*elided_reference=*/FALSE,
+                                          error_detected);
   } else if (ambiguous) {
     /* More than one applicable copy constructor. */
     if (error_detected != NULL) {
@@ -9262,6 +9266,7 @@ and do not issue any diagnostics (including warnings).
                                                evaluated,
                                                /*instantiate=*/TRUE,
                                                check_access,
+                                               /*elided_reference=*/FALSE,
                                                error_detected);
     }  /* if */
     cctor_routine = cctor_sym->variant.routine.ptr;

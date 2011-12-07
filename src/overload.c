@@ -16089,7 +16089,8 @@ is used only in C++ mode.
         is_same_class_or_base_class_thereof(operand->type, ctor_class)))) {
     /* The constructor is a trivial bitwise copy constructor. */
     *class_bitwise_copy = TRUE;
-    expr_reference_to_trivial_copy_constructor(ctor_class, &operand->position);
+    expr_reference_to_trivial_copy_constructor(ctor_class, &operand->position,
+                                               /*elided_reference=*/FALSE);
     if (ctor_arg_conversion == NULL ||
         is_null_user_conv_descr(ctor_arg_conversion)) {
       /* No user-defined conversion on the argument, so this is a simple
@@ -16284,7 +16285,8 @@ the temporary.
     if (force_copy_to_temp) {
       /* Make a copy of the class object in a temporary. */
       expr_reference_to_trivial_copy_constructor(operand->type,
-                                                 &operand->position);
+                                                 &operand->position,
+                                                 /*elided_reference=*/FALSE);
       temp_init_by_bitwise_copy_from_operand(operand,
                                              /*result_is_lvalue=*/FALSE,
                                              is_explicit_cast);
@@ -16543,18 +16545,22 @@ is_transparent.  conv_context describes the context of the conversion.
 }  /* prep_conversion_operand */
 
 
-void check_access_to_elided_copy_constructor(a_type_ptr        source_type,
-                                             a_routine_ptr     elided_cctor,
-                                             a_source_position *err_pos)
+static void handle_elided_copy_constructor_no_guard(
+                                                a_type_ptr        source_type,
+                                                a_routine_ptr     elided_cctor,
+                                                a_source_position *err_pos)
 /*
 A conversion from source_type (a possibly-qualified class type) is being done
 by eliding a copy constructor.  Check that the copy constructor that would
 have been referenced exists and is accessible (ARM 12.6.1) and callable
 (we assume that the thing being copied is an rvalue because it's the result
-of a constructor call).  Issue an error (or a warning, depending on the
-mode) at *err_pos if not.  If the caller has already determined the copy
-constructor that was elided, it is passed in as elided_cctor; otherwise,
-elided_cctor is passed as NULL.
+of a constructor call).  Issue an error (or a warning, or no diagnostic,
+depending on the mode) at *err_pos if not.  If the caller has already
+determined the copy constructor that was elided, it is passed in as
+elided_cctor; otherwise, elided_cctor is passed as NULL.  This routine
+applies the check in all dialects; see handle_elided_copy_constructor
+for an interface routine with a guard that applies to the most common
+cases.
 */
 {
   a_type_ptr   class_type = skip_typerefs(source_type);
@@ -16562,9 +16568,8 @@ elided_cctor is passed as NULL.
   a_boolean    ambiguous = FALSE, uncallable = FALSE;
   a_boolean    class_bitwise_copy = FALSE;
 
-  /* The diagnostics here are issued only in strict mode. */
   /* Avoid problems when the source is an error. */
-  if (strict_ansi_mode && !is_error_type(source_type)) {
+  if (!is_error_type(source_type)) {
     if (elided_cctor != NULL) {
       cctor_sym = symbol_for(elided_cctor);
       { a_param_type_ptr     ptp = elided_cctor->type->
@@ -16596,7 +16601,8 @@ elided_cctor is passed as NULL.
       /* A bitwise copy is allowed.  The trivial copy constructor is usually
          public, but it can be nonpublic if it's user-declared and
          defaulted. */
-      expr_reference_to_trivial_copy_constructor(class_type, err_pos);
+      expr_reference_to_trivial_copy_constructor(class_type, err_pos,
+                                                 /*elided_reference=*/TRUE);
     } else if (ambiguous) {
       /* More than one applicable copy constructor. */
       if (expr_diagnostic_should_be_issued(strict_ansi_discretionary_severity,
@@ -16638,12 +16644,55 @@ elided_cctor is passed as NULL.
       /* No error.  The C++98 standard requires that the definition of the
          copy constructor be generated even though it is not called, so
          force that now. */
-      force_definition_of_compiler_generated_routine(
-                                               cctor_sym->variant.routine.ptr);
+      mark_routine_referenced_full(cctor_sym->variant.routine.ptr,
+                                  /*instantiate=*/TRUE,
+                                  /*elided_reference=*/TRUE);
       check_use_of_deleted_function(cctor_sym, /*elided_ref=*/TRUE, err_pos);
     }  /* if */
   }  /* if */
-}  /* check_access_to_elided_copy_constructor */
+}  /* handle_elided_copy_constructor_no_guard */
+
+
+void handle_elided_copy_constructor(a_type_ptr        source_type,
+                                    a_routine_ptr     elided_cctor,
+                                    a_source_position *err_pos)
+/*
+A conversion from source_type (a possibly-qualified class type) is being done
+by eliding a copy constructor.  Check that the copy constructor that would
+have been referenced exists and is accessible (ARM 12.6.1) and callable
+(we assume that the thing being copied is an rvalue because it's the result
+of a constructor call).  Issue an error (or a warning, or no diagnostic,
+depending on the mode) at *err_pos if not.  If the caller has already
+determined the copy constructor that was elided, it is passed in as
+elided_cctor; otherwise, elided_cctor is passed as NULL.  This routine
+should be called for the usual case where a copy constructor is elided;
+it includes a guard that does the check only for the proper dialects.
+*/
+{
+  a_boolean do_check;
+
+  if (cpp11_mode) {
+    do_check = TRUE;
+  } else if (gpp_mode) {
+    /* g++ seems to do this check in all versions (checked in 3.4 through
+       4.5). */
+    do_check = TRUE;
+  } else if (microsoft_mode) {
+    /* VC seems to do this check in all versions (checked in 6.0 through
+       10.0). */
+    do_check = TRUE;
+  } else if (strict_ansi_mode) {
+    /* Strict C++98 mode requires the check. */
+    do_check = TRUE;
+  } else {
+    do_check = FALSE;
+  }  /* if */
+  if (do_check) {
+    handle_elided_copy_constructor_no_guard(source_type,
+                                            elided_cctor,
+                                            err_pos);
+  }  /* if */
+}  /* handle_elided_copy_constructor */
 
 
 a_boolean operand_is_temp_init(an_operand *operand)
@@ -16814,7 +16863,8 @@ happen only in C++ mode.
     }  /* if */
     if (class_bitwise_copy) {
       expr_reference_to_trivial_copy_constructor(class_type,
-                                                 &source_operand->position);
+                                                 &source_operand->position,
+                                                 /*elided_reference=*/FALSE);
     }  /* if */
   } else if (conversion->unknown_dependent_conversion) {
     /* Conversion to or from an unknown template-dependent type in a
@@ -16908,9 +16958,9 @@ happen only in C++ mode.
   if (elision_done) {
     /* Copy constructor elision is being done.  Check access to the elided
        copy constructor. */
-    check_access_to_elided_copy_constructor(elision_source_type,
-                                            elided_cctor,
-                                            &source_operand->position);
+    handle_elided_copy_constructor(elision_source_type,
+                                   elided_cctor,
+                                   &source_operand->position);
   }  /* if */
   /* Allocate the dynamic initialization entry. */
   if (dip != NULL) {
@@ -18279,16 +18329,31 @@ the conversion.
     if (!dropping_qualifiers) {
       /* [dcl.init.ref] of the C++98 standard requires that the copy
          constructor be callable whether or not it is actually called.
-         We never call it, but we must check it anyway.  We only check
-         in strict mode.  However, core issue 391 eliminated this
-         check for C++11, by requiring the direct binding and therefore
-         eliminating the idea that any copy constructor call is
-         being elided. */
-      if (strict_ansi_mode && !cpp11_mode) {
-        check_access_to_elided_copy_constructor(orig_source_type,
-                                                /*elided_cctor=*/
-                                                             (a_routine *)NULL,
-                                                &source_operand->position);
+         We never call it, but we must check it anyway.  However, core
+         issue 391 eliminated this check for C++11, by requiring the
+         direct binding and therefore eliminating the idea that any
+         copy constructor call is being elided. */
+      a_boolean do_check;
+      if (cpp11_mode) {
+        do_check = FALSE;
+      } else if (gpp_mode) {
+        /* g++ as of 4.3 apparently implements the core issue 391 change. */
+        do_check = (gnu_version < 40300);
+      } else if (microsoft_mode) {
+        /* VC seems to do this check (verified with 6.0, 7.0, 7.1, 8.0,
+           and 10.0).  Fixed in VC11. */
+        do_check = (microsoft_version < 1700);
+      } else if (strict_ansi_mode) {
+        /* Strict C++98 mode.  Check is required. */
+        do_check = TRUE;
+      } else {
+        do_check = FALSE;
+      }  /* if */
+      if (do_check) {
+        handle_elided_copy_constructor_no_guard(
+                                       orig_source_type,
+                                       /*elided_cctor=*/(a_routine *)NULL,
+                                       &source_operand->position);
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED

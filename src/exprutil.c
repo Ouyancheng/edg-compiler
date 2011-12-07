@@ -796,7 +796,8 @@ mark_routine_referenced.
        instantiated until there is a use of the default argument expression. */
     mark_routine_referenced_full(routine,
                                  /*instantiate=*/
-                                       !expr_stack->is_default_arg_expression);
+                                       !expr_stack->is_default_arg_expression,
+                                 /*elided_reference=*/FALSE);
   }  /* if */
 }  /* if_evaluating_mark_routine_referenced */
 
@@ -824,6 +825,7 @@ parameters from values on the expression stack.
                                      sym, pos, class_of_object, honor_virtual,
                                      evaluated, instantiate,
                                      expr_access_checking_should_be_done(),
+                                     /*elided_reference=*/FALSE,
                                      p_error_detected);
   if (error_detected) record_suppressed_error();
 }  /* expr_reference_to_implicitly_invoked_function_full */
@@ -874,8 +876,10 @@ from values on the expression stack.
 }  /* expr_reference_to_trivial_default_constructor */
 
 
-void expr_reference_to_trivial_copy_constructor(a_type_ptr        class_type,
-                                                a_source_position *pos)
+void expr_reference_to_trivial_copy_constructor(
+                                            a_type_ptr        class_type,
+                                            a_source_position *pos,
+                                            a_boolean         elided_reference)
 /*
 Interface to reference_to_trivial_copy_constructor to be used when calling
 it from within the expression-processing routines.  Supplies some arguments
@@ -890,6 +894,7 @@ from values on the expression stack.
   if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
   reference_to_trivial_copy_constructor(class_type, pos,
                                         expr_access_checking_should_be_done(),
+                                        elided_reference,
                                         p_error_detected);
   if (error_detected) record_suppressed_error();
 }  /* expr_reference_to_trivial_copy_constructor */
@@ -11023,9 +11028,9 @@ added and result is updated.
   if (strict_ansi_mode) {
     /* In strict mode, issue an error if the copy constructor that would
        have been called is not accessible. */
-    check_access_to_elided_copy_constructor(result->type,
-                                            /*elided_cctor=*/(a_routine *)NULL,
-                                            &result->position);
+    handle_elided_copy_constructor(result->type,
+                                   /*elided_cctor=*/(a_routine *)NULL,
+                                   &result->position);
   }  /* if */
   /* Make the enk_temp_init node and the dynamic-init entry under it. */
   temp_init_node = create_expr_temporary(result->type,

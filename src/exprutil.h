@@ -1182,8 +1182,9 @@ extern a_boolean expr_reference_to_trivial_default_constructor(
                                               a_source_position  *pos);
 
 extern void expr_reference_to_trivial_copy_constructor(
-                                                a_type_ptr        class_type,
-                                                a_source_position *pos);
+                                           a_type_ptr        class_type,
+                                           a_source_position *pos,
+                                           a_boolean         elided_reference);
 
 extern an_expr_node_ptr expr_copy_default_arg_expr_list(a_routine_ptr    rout,
                                                         a_param_type_ptr ptp);

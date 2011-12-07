@@ -2463,6 +2463,7 @@ void reference_to_implicitly_invoked_function
                                  a_boolean          evaluated,
                                  a_boolean          instantiate,
                                  a_boolean          check_access,
+                                 a_boolean          elided_reference,
                                  a_boolean          *error_detected)
 /*
 sym is points to a symbol for a special member function that is invoked
@@ -2488,6 +2489,7 @@ referenced.  If evaluated is FALSE, the reference is within an
 unevaluated expression; again, access control checking is done, but
 the IL entry is not marked as referenced.  If instantiate is TRUE and
 the function is a template function, it should be instantiated.
+If elided_reference is TRUE, the reference has been elided.
 If error_detected is non-NULL, return *error_detected set to TRUE if
 there was an error, and do not issue any diagnostics (including warnings).
 */
@@ -2552,7 +2554,7 @@ there was an error, and do not issue any diagnostics (including warnings).
        call might actually be of an overriding function. */
   } else {
     /* Non-virtual call. */
-    mark_routine_referenced_full(rp, instantiate);
+    mark_routine_referenced_full(rp, instantiate, elided_reference);
   }  /* if */
 }  /* reference_to_implicitly_invoked_function */
 
@@ -2584,6 +2586,7 @@ there was an error, and do not issue any diagnostics (including warnings).
                                              /*evaluated=*/TRUE,
                                              /*instantiate=*/TRUE,
                                              check_access,
+                                             /*elided_reference=*/FALSE,
                                              error_detected);
   }  /* if */
   return (ctor_sym != NULL);
@@ -2593,6 +2596,7 @@ there was an error, and do not issue any diagnostics (including warnings).
 void reference_to_trivial_copy_constructor(a_type_ptr        class_type,
                                            a_source_position *pos,
                                            a_boolean         check_access,
+                                           a_boolean         elided_reference,
                                            a_boolean         *error_detected)
 /*
 Record a reference to the trivial copy constructor of class_type
@@ -2601,7 +2605,8 @@ record a cross-reference entry if appropriate.  A trivial copy
 constructor is usually compiler generated and public, so no access
 check is needed.  However, with defaulted and deleted functions, it is
 possible to have a user-declared defaulted trivial copy constructor
-that is nonpublic.  If error_detected is non-NULL, return
+that is nonpublic.  If elided_reference is TRUE, the reference to the
+copy constructor has been elided.  If error_detected is non-NULL, return
 *error_detected set to TRUE if there was an error, and do not issue
 any diagnostics (including warnings).
 */
@@ -2626,6 +2631,7 @@ any diagnostics (including warnings).
                                                  /*evaluated=*/FALSE,
                                                  /*instantiate=*/FALSE,
                                                  check_access,
+                                                 elided_reference,
                                                  error_detected);
         break;
       }  /* if */

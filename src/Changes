@@ -1,5 +1,32 @@
 Version 4.4
 
+12/7/11  [EDGcpfe/12490]
+Elided copy constructor checked and instantiated in Microsoft and GNU C++ modes
+
+When a copy constructor call is elided, the standard requires that the
+copy constructor still be callable.  Formerly, that was checked only
+in strict mode.  Now, it is also checked in C++11 mode, g++ mode, and
+Microsoft C++ mode.  The diagnostic issued is a warning except in
+strict mode.  In all modes in which the check is done, if the copy
+constructor is a template it is now also instantiated.  That could
+potentially provoke some errors that previously were not found.
+
+  struct A {
+    A();
+  private:
+    A(const A&);
+  };
+  int main() {
+    A a = A();  // Warning now in g++ and Microsoft modes
+  }
+
+Furthermore, the similar check done when a reference to const is
+bound to a class rvalue (the need for which was eliminated in C++11
+by core issue 391 -- see Changes entry of 3/16/07) is now done in
+g++ and Microsoft C++ modes only for the appropriate version numbers
+(both those compilers have now implemented core issue 391).
+
+
 12/6/11  [EDGcpfe/12439]
 GNU C compatibility: Excess aggregate initializers
 

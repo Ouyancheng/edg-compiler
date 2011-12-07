@@ -1719,7 +1719,8 @@ extern an_expr_node_ptr base_class_selection_expr(an_expr_node_ptr node,
                                                   a_base_class_ptr bcp);
 
 extern void mark_routine_referenced_full(a_routine_ptr routine,
-                                         a_boolean     instantiate);
+                                         a_boolean     instantiate,
+                                         a_boolean     elided_reference);
 
 extern void mark_routine_referenced(a_routine_ptr routine);
 

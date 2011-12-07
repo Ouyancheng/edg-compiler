@@ -2446,8 +2446,7 @@ arg_list, and no source is scanned.  arg_list is freed after it's used.
            top-level operation is an explicit cast.  We've optimized
            away the explicit cast one level down. */
         dip->is_explicit_cast = FALSE;
-        check_access_to_elided_copy_constructor(source_type, routine,
-                                                source_pos);
+        handle_elided_copy_constructor(source_type, routine, source_pos);
         optimized = TRUE;
       } else if (!microsoft_bugs && 
                  (conv_routine = arg_match->conversion.routine) != NULL &&
@@ -2518,10 +2517,9 @@ arg_list, and no source is scanned.  arg_list is freed after it's used.
                                                /*suppress_dtor=*/!fill_in_dtor,
                                                &temp_init_node,
                                                &dip);
-          check_access_to_elided_copy_constructor(source_type,
-                                                  /*elided_cctor=*/
-                                                             (a_routine *)NULL,
-                                                  source_pos);
+          handle_elided_copy_constructor(source_type,
+                                         /*elided_cctor=*/(a_routine *)NULL,
+                                         source_pos);
           /* The dynamic init we now have is the result of the overall
              operation. */
           check_assertion(dip != NULL);

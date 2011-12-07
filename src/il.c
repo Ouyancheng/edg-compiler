@@ -18730,7 +18730,8 @@ the case if the return type was incomplete at the point of definition.
 
 
 void mark_routine_referenced_full(a_routine_ptr routine,
-                                  a_boolean     instantiate)
+                                  a_boolean     instantiate,
+                                  a_boolean     elided_reference)
 /*
 Mark the indicated routine as actually referenced.  "Actually" means
 as opposed to referenced in a virtual function call that may call some
@@ -18739,23 +18740,27 @@ mean that the routine is called; this reference might be taking the address
 of the routine.  It does, however, force instantiation if the function
 is a template function, and/or definition if the function is the right kind
 of compiler-generated function (e.g., a constructor).  Instantiation is
-forced only if instantiate is TRUE.
+forced only if instantiate is TRUE.  If elided_reference is TRUE, the
+reference has been elided by copy constructor elision; force instantiation
+but do not mark the routine as actually referenced.
 */
 {
   a_symbol_ptr             assoc_sym;
 
-  /* Set the referenced flag.  This is only necessary for virtual
-     functions referenced by qualified name.  For non-virtual functions,
-     the normal reference-processing routines have already set the IL
-     referenced flag. */
-  routine->source_corresp.referenced = TRUE;
-  /* If the routine is a nonstatic member function, mark the class of which
-     it is a member as referenced.  This ensures that a class will not
-     end up marked as unreferenced when one of its nonstatic member functions
-     (which references the class at least in its "this" parameter) is
-     marked referenced. */
-  if (routine_type_is_nonstatic_member_function(routine->type)) {
-    parent_class_of(routine)->source_corresp.referenced = TRUE;
+  if (!elided_reference) {
+    /* Set the referenced flag.  This is only necessary for virtual
+       functions referenced by qualified name.  For non-virtual functions,
+       the normal reference-processing routines have already set the IL
+       referenced flag. */
+    routine->source_corresp.referenced = TRUE;
+    /* If the routine is a nonstatic member function, mark the class of which
+       it is a member as referenced.  This ensures that a class will not
+       end up marked as unreferenced when one of its nonstatic member functions
+       (which references the class at least in its "this" parameter) is
+       marked referenced. */
+    if (routine_type_is_nonstatic_member_function(routine->type)) {
+      parent_class_of(routine)->source_corresp.referenced = TRUE;
+    }  /* if */
   }  /* if */
   /* If the routine is compiler-generated and its definition has not
      yet been put out, force the definition now. */
@@ -18768,6 +18773,7 @@ forced only if instantiate is TRUE.
   if (routine->routine_fixup != NULL) {
     add_to_deferred_friend_function_fixup_list(routine->routine_fixup);
   }  /* if */
+  if (elided_reference) instantiate = TRUE;
   if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* Do not instantiate things referenced from prototype instantiations. */
     instantiate = FALSE;
@@ -18804,7 +18810,8 @@ void mark_routine_referenced(a_routine_ptr routine)
 Interface to mark_routine_referenced_full for the simple case.
 */
 {
-  mark_routine_referenced_full(routine, /*instantiate=*/TRUE);
+  mark_routine_referenced_full(routine, /*instantiate=*/TRUE,
+                               /*elided_reference=*/FALSE);
 }  /* mark_routine_referenced */
 
 
