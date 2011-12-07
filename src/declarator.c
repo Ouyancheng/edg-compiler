@@ -3540,8 +3540,7 @@ constant.
       if (is_constant_bound) {
         /* Save the constant for the bound.  If it has an attached expression
            it may need to be referred to indirectly if the expression is
-           allocated in function scope memory (allocate_shareable_constant
-           will not have returned a shared constant in that case). */
+           allocated in function scope memory. */
         il_constant = transfer_constant_to_il(&constant);
         make_bound_expr_referenceable_from_file_scope(&il_constant->expr,
                                                       *new_type_ptr,
