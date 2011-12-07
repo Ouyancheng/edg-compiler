@@ -1,5 +1,31 @@
 Version 4.4
 
+12/7/11  [EDGcpfe/12313]
+Position of aggregate initializers
+
+The front end now records the position of aggregate initializers in the
+corresponding ck_aggregate entry's source_corresp.decl_position field.  It
+does so both for top-level aggregate initializers (which are always brace-
+enclosed) and for sub-aggregate initializers (which may or may not be brace-
+enclosed).  If the ck_aggregate entry represents a brace-enclosed initializer,
+the recorded position is that of the opening brace; if it represents an
+initializer not enclosed in braces, the position of the first element in the
+initializer is recorded instead.  For example:
+
+  struct S { int a[3]; };
+  S x = { 1, 2, 3 };  // Two ck_aggregate entries: The "outer" one records
+                      // the position of "{" and the "inner" one records the
+                      // position of "1" (the first element of the sub-
+                      // aggregate of type "int[3]").
+  S y = { { 1, { 2 }, 3 } };
+                      // Two ck_aggregate entries: The "outer" one records
+                      // the position of the first "{" and the "inner" one
+                      // records the position of the second "{".  Note that
+                      // the innermost braces (in "{ 2 }") are superfluous
+                      // and do not represent an aggregate initializer: Their
+                      // position is not recorded.
+
+
 12/7/11  [EDGcpfe/12380]
 Abort on local nonstandard anonymous union in C mode
 

@@ -2421,12 +2421,13 @@ this function points to a tree that includes a dynamic-init entry.
   a_class_symbol_supplement_ptr  cssp;
   an_aggregate_init_context      context;
   a_boolean                      top_level = (prev_init_context == NULL);
-  a_source_position              initializer_pos;
+  a_source_position              initializer_pos, start_pos;
   a_decl_parse_state             *dps;
   a_boolean                      saved_initializer_is_expr_list;
   a_boolean                      pack_expansion_encountered = FALSE;
 
   db_enter(4, "get_initializer");
+  start_pos = pos_curr_token;
   check_assertion(init_info != NULL);
   dps = init_info->dps;
   check_assertion(dps != NULL);
@@ -3109,6 +3110,7 @@ this function points to a tree that includes a dynamic-init entry.
         init_con->variant.aggregate.first_constant = context.constant_list;
         init_con->variant.aggregate.last_constant =
                                           context.end_of_constant_list;
+        init_con->source_corresp.decl_position = start_pos;
         if (any_more_members) init_info->any_uninitialized_member = TRUE;
         if (brace_flag) {
           /* Remember the explicit braces.  This affects the meaning of
