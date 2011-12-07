@@ -7,9 +7,10 @@ When a copy constructor call is elided, the standard requires that the
 copy constructor still be callable.  Formerly, that was checked only
 in strict mode.  Now, it is also checked in C++11 mode, g++ mode, and
 Microsoft C++ mode.  The diagnostic issued is a warning except in
-strict mode.  In all modes in which the check is done, if the copy
-constructor is a template it is now also instantiated.  That could
-potentially provoke some errors that previously were not found.
+strict mode.  In all modes in which the check is done (except
+Microsoft mode), if the copy constructor is a template it is now also
+instantiated.  That could potentially provoke some errors that
+previously were not found.
 
   struct A {
     A();

@@ -16644,9 +16644,11 @@ cases.
       /* No error.  The C++98 standard requires that the definition of the
          copy constructor be generated even though it is not called, so
          force that now. */
-      mark_routine_referenced_full(cctor_sym->variant.routine.ptr,
-                                  /*instantiate=*/TRUE,
-                                  /*elided_reference=*/TRUE);
+      if (!microsoft_mode) {
+        mark_routine_referenced_full(cctor_sym->variant.routine.ptr,
+                                    /*instantiate=*/TRUE,
+                                    /*elided_reference=*/TRUE);
+      }  /* if */
       check_use_of_deleted_function(cctor_sym, /*elided_ref=*/TRUE, err_pos);
     }  /* if */
   }  /* if */
