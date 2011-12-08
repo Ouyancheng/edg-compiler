@@ -295,14 +295,13 @@ void scan_and_discard_initializer_expression(a_decl_parse_state  *dps)
 Scan and discard an initializer associated with the declaration described by
 *dps (dps may be NULL if no variable or static data member is associated with
 the initializer).  This may amount to simply discarding a prescanned
-initializer.  This routine is called for error recovery purposes.  If dps is
-non-NULL, dps->has_initializer is set to FALSE.
+initializer.  This routine is usually called for error recovery purposes.
+If dps is non-NULL, dps->has_initializer is set to FALSE.
 */
 {
   an_expr_stack_entry expr_stack_entry;
   an_operand          result;
 
-  if (expr_error_should_be_issued()) expect_error();
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);

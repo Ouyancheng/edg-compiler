@@ -2167,6 +2167,38 @@ init_info tracks the whole initializer.
   return designator_present;
 }  /* get_designator */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void scan_and_discard_initializer_list(void)
+/*
+Scan and discard a comma-separated list of aggregate initializers and,
+optionally, a trailing comma.  Although brace-enclosed initializers are
+allowed in the list, they cannot be empty.
+*/
+{
+  add_stop_token(tok_comma);
+  do {
+    if (curr_token == tok_rbrace) {
+      break;
+    } else if (curr_token == tok_lbrace) {
+      /* A brace-enclosed initializer: Use recursion to scan and discard its
+         contents. */
+      (void)get_token();
+      add_stop_token(tok_rbrace);
+      if (curr_token == tok_rbrace) {
+        pos_error(ec_empty_initializer_list, &pos_curr_token);
+      }  /* if */
+      scan_and_discard_initializer_list();
+      (void)required_token(tok_rbrace, ec_exp_rbrace);
+      remove_stop_token(tok_rbrace);
+    } else {
+      scan_and_discard_initializer_expression((a_decl_parse_state*)NULL);
+    }  /* if */
+  } while (loop_token(tok_comma));
+  remove_stop_token(tok_comma);
+}  /* scan_and_discard_initializer_list */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static a_constant_ptr get_single_value_for_aggregate_initializer(
                               an_aggregate_init_info_ptr     init_info,
@@ -2350,11 +2382,13 @@ process_closing_brace:
      place). */
   if (brace_flag && curr_token == tok_comma) {
     (void)get_token();
+#if GNU_EXTENSIONS_ALLOWED
     if (gcc_mode && curr_token != tok_rbrace) {
       /* GNU C (but not GNU C++) ignores extraneous initializers here. */
       pos_warning(ec_excess_initializers_ignored, &pos_curr_token);
-      flush_to_closing_paren();
+      scan_and_discard_initializer_list();
     }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (brace_flag && curr_token == tok_rbrace) {
