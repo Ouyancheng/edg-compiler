@@ -1,5 +1,21 @@
 Version 4.4
 
+12/8/11  [EDGcpfe/12276]
+GNU compatibility: typeof constructs sometimes incorrectly parsed
+
+The Changes entry of 6/2/10 for EDGcpfe/10710 describes a change for typeof
+constructs applicable to GNU C++ mode with gnu_version >= 30400.  However,
+some of the associated behavior was accidentally enabled in other GNU modes,
+causing the front end to incorrectly parse certain occurrences of the typeof
+construct in those modes.  For example, in GNU C mode:
+
+  int i;
+  typeof(i) (x);  // Previously erroneously parsed as a function call,
+                  // which in turn resulted in a spurious error.
+
+This regression is now fixed.
+
+
 12/7/11  [EDGcpfe/12313]
 Position of aggregate initializers
 

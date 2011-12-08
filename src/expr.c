@@ -11373,10 +11373,9 @@ Syntax:
         typeof ( type-name )    or   __typeof__ ( type-name )
         typeof expression       or   __typeof__ expression
 
-(gcc requires parentheses around the expression case as well, but g++ does
-not.)
+(gcc requires parentheses around the expression case too, and so do versions
+of g++ prior to 3.4.)
 
-The current token is the typeof, however spelled.  If decl_pos_block is
 not NULL, the end position in its specifiers_range is updated.  If
 rcblock is non-NULL, redo semantic analysis on a previously-scanned
 typeof expression, and return the result type (or an error indication
@@ -11396,7 +11395,9 @@ the expression-processing routines.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr ssep = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_boolean                   parens_optional;
 
+  parens_optional = gpp_mode && gnu_version >= 30400;
   /* Note that, unlike e.g. sizeof, typeof can appear directly in a declarative
      context (without any intervening expression context).  The expression
      stack should therefore not be pushed until we know that the argument is
@@ -11450,8 +11451,9 @@ the expression-processing routines.
         remove_stop_token(tok_rparen);
       }  /* if */
     } else {
-      /* gcc requires parentheses around the expression case (g++ does not). */
-      if (gcc_mode) {
+      /* gcc and older versions of g++ require parentheses around the
+         expression case. */
+      if (!parens_optional) {
         expr_pos_error(ec_exp_lparen, &pos_curr_token);
       }  /* if */
     }  /* if */
@@ -11505,13 +11507,14 @@ the expression-processing routines.
            typeof (int *) p2 = 0; // type, not cast expression "(int *)p2"
       */
       prec = PREC_PREFIX;
-      if (gnu_mode && gnu_version < 30400) {
-        /* Before 3.4, the parentheses were required and nothing past the
-           closing paren was scanned.  We don't treat the scanned parenthesis
-           as trapped, so we stop on the closing paren. */
-        if (is_parenthesized) prec = PREC_LOWEST;
-      } else {
+      if (parens_optional) {
         if (is_parenthesized) local_options |= EOPT_TRAPPED_LEFT_PAREN;
+      } else {
+        /* In GNU C++ mode before 3.4 and in all GNU C modes, the parentheses
+           are required and nothing past the closing parenthesis is scanned.
+           We don't treat the scanned parenthesis as trapped, so we stop on
+           the closing parenthesis. */
+        if (is_parenthesized) prec = PREC_LOWEST;
       }  /* if */
       scan_expr(&operand, prec, local_options);
       if (is_parenthesized) {
