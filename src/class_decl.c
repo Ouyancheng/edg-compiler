@@ -18722,15 +18722,6 @@ routine.
        put out the declaration entry for the anonymous struct.
     */
     if (decl_info->is_nonstd_anonymous_union) {
-      if (type_is_typedef(member_type) ||
-          !(dso_flags & DSO_DEFINES_SOMETHING)) {
-        /* If a typedef name was used, record this as a declaration of that
-           name.  Similarly if a class-specifier without a class definition
-           appeared.  (If a class definition appeared, it was already recorded
-           as a declaration in class_specifier.) */
-        record_symbol_declaration(SRK_DECLARATION, symbol_for(member_type),
-                                  err_pos, (a_source_sequence_entry_ptr)NULL);
-      }  /* if */
       if (!has_name(au_type)) {
         /* Only the types of anonymous unions whose type itself (as opposed
            to the associated member object) is anonymous are marked as being
@@ -18738,6 +18729,13 @@ routine.
         check_assertion(is_immediate_class_type(au_type));
         au_type
            ->variant.class_struct_union.is_nonstd_anonymous_union_type = TRUE;
+      } else if (!(dso_flags & DSO_DEFINES_SOMETHING)) {
+        /* If the type specified for the nonstandard anonymous union is not
+           a class type definition (e.g., it could be a typedef name, a typeof
+           specifier, or a vacuous class-specifier), its use here has not been
+           recorded as a declaration yet: Do so now. */
+        record_symbol_declaration(SRK_DECLARATION, symbol_for(au_type),
+                                  err_pos, (a_source_sequence_entry_ptr)NULL);
       }  /* if */
     }  /* if */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
