@@ -998,6 +998,7 @@ declaration position to eliminate redundant file names in a diagnostic.
   a_symbol_ptr			corresp_template_sym = NULL;
   a_template_instance_ptr	tip = NULL;
   a_symbol_ptr			sym_to_display;
+  a_boolean			saved_remove_template_typedefs;
 
   curr_output_msg_segment = seg_ptr;
   /* Determine the fundamental symbol of this symbol. */
@@ -1249,6 +1250,10 @@ symbol_name:
           sym_to_display = corresp_template_sym;
         }  /* if */
       }
+      /* When outputting a type based on a template definition, don't remove
+         member typedefs. */
+      saved_remove_template_typedefs = octl.remove_template_typedefs;
+      octl.remove_template_typedefs = corresp_template_sym == NULL;
       if (routine != NULL) {
         if (seg_ptr->variant.symbol.force_function_params) {
           /* "%np" was specified for this fill-in. */
@@ -1318,6 +1323,9 @@ symbol_name:
                                        &octl);
         }  /* if */
       }  /* if */
+      /* Restore the typedef removal state before outputting the template
+         argument values. */
+      octl.remove_template_typedefs = saved_remove_template_typedefs;
       if (distinct_template_signatures) {
         /* Display the template argument information, if any. */
         a_symbol_ptr	templ_arg_sym;
