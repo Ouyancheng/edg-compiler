@@ -7,7 +7,7 @@ To improve the readability of diagnostics, the front end was modified to
 remove member typedefs from types in diagnostic output (see 10/28/05
 entry).  While this improved most diagnostics, it made certain diagnostics
 that refer to function template declarations, or member functions of
-class templates more verbose.  The front end now preserves such typedefs
+class templates, more verbose.  The front end now preserves such typedefs
 for template-based function declarations.
 
 The following example gives a warning about a missing return in A<T>::f.
