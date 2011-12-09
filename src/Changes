@@ -1,5 +1,33 @@
 Version 4.4
 
+12/9/11  [EDGcpfe/12497]
+Formatting of template function types in diagnostics
+
+To improve the readability of diagnostics, the front end was modified to
+remove member typedefs from types in diagnostic output (see 10/28/05
+entry).  While this improved most diagnostics, it made certain diagnostics
+that refer to function template declarations, or member functions of
+class templates more verbose.  The front end now preserves such typedefs
+for template-based function declarations.
+
+The following example gives a warning about a missing return in A<T>::f.
+The type listed in the instantiation traceback has changed as follows:
+
+  old: B<C<T, T>::type, C<T *, T*>::type>::type A<T>::f() [with T=int]
+  new: A<T>::X A<T>::f() [with T=int]
+
+  template <class T, class U> struct C { typedef C<T,U> type;};
+  template <class T, class U> struct B { typedef C<T,U>::type type;};
+  template <class T> struct A {
+    typedef B<C<T,T>::type, C<T*,T*>::type>::type X;
+    X f() {}
+  };
+  int main() {
+    A<int> ai;
+    ai.f();
+  }
+
+
 12/8/11  [EDGcpfe/12276]
 GNU compatibility: typeof constructs sometimes incorrectly parsed
 
