@@ -2186,7 +2186,7 @@ allowed in the list, they cannot be empty.
       (void)get_token();
       add_stop_token(tok_rbrace);
       if (curr_token == tok_rbrace) {
-        pos_error(ec_empty_initializer_list, &pos_curr_token);
+        pos_error(ec_invalid_empty_initializer_list, &pos_curr_token);
       }  /* if */
       scan_and_discard_initializer_list();
       (void)required_token(tok_rbrace, ec_exp_rbrace);
