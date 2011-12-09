@@ -1,5 +1,25 @@
 Version 4.4
 
+12/9/11  [EDGcpfe/12498]
+Incorrect parent recorded for dependent qualified friend template declaration
+
+The routine entry recorded for a qualified friend function template declaration
+sometimes incorrectly recorded the parent of the designated function template
+if the enclosing class appeared in a namespace.  For example:
+
+  namespace N {
+    namespace M { template<typename T> void f(T); }
+    template<typename T> struct S {
+      template<typename U> friend void M::f(U);
+        // The placeholder entry for the friend declaration previously
+        // erroneously recorded N as the parent namespace for the
+        // designated friend function.
+    };
+  }
+
+This is now fixed.
+
+
 12/9/11  [EDGcpfe/12497]
 Formatting of template function types in diagnostics
 

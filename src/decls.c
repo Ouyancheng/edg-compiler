@@ -8675,6 +8675,7 @@ definition of a member function of a class template.
       /* Not a redeclaration. */
       a_scope_stack_entry_ptr  ssep = &scope_stack[idlb.effective_decl_level];
       an_error_code            error_code;
+      a_boolean                membership_recorded = FALSE;
       if (!is_error_locator(*locator)) {
         /* If this is an overloaded operator, check for errors in the
            argument list.  Note that this check is not done for redeclarations,
@@ -8717,6 +8718,7 @@ definition of a member function of a class template.
                                    qualifier_namespace_ptr(*locator));
         }  /* if */
         sym->is_error = locator->is_error;
+        membership_recorded = TRUE;
       } else if (homonym_symbol != NULL) {
         /* Another function with the same name has been declared already.  It
            may or may not be a function template.  In any case, create a new
@@ -8748,13 +8750,15 @@ definition of a member function of a class template.
       }  /* if */
       rout_ptr = NULL;
       /* Set namespace membership on this template function. */
-      if (idlb.is_friend_decl && ssep->in_prototype_instantiation) {
-        ssep = &scope_stack[depth_innermost_namespace_scope];
-      }  /* if */
-      if (ssep->kind == (a_scope_kind)sck_namespace ||
-          ssep->kind == (a_scope_kind)sck_namespace_extension) {
-        set_namespace_membership(sym, (a_source_correspondence *)NULL,
-                                 ssep->il_scope->variant.assoc_namespace);
+      if (!membership_recorded) {
+        if (idlb.is_friend_decl && ssep->in_prototype_instantiation) {
+          ssep = &scope_stack[depth_innermost_namespace_scope];
+        }  /* if */
+        if (scope_is(ssep, sck_namespace) ||
+            scope_is(ssep, sck_namespace_extension)) {
+          set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                                   ssep->il_scope->variant.assoc_namespace);
+        }  /* if */
       }  /* if */
     } else {
       a_param_type_ptr  ptp;
