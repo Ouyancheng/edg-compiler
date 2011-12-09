@@ -286,7 +286,6 @@ typedef enum /*an_option_kind*/ {
   optk_assembly_using_dir,
   optk_using_framework_directory,
   optk_mscorlib_file_name,
-  optk_generic_arity_overload,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_last		/* Must be last. */
 } an_option_kind;

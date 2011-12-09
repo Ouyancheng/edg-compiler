@@ -648,7 +648,6 @@ check_abbreviation()
 --g++
 --gcc
 --gcc89_inlining
---generic_arity_overload
 --gnu_version
 --guiding_decls
 --ignore_std
@@ -728,7 +727,6 @@ check_abbreviation()
 --no_friend_injection
 --no_g++
 --no_gcc
---no_generic_arity_overload
 --no_guiding_decls
 --no_il_lowering
 --no_implicit_extern_c_type_conversion
@@ -1247,8 +1245,6 @@ process_option()
 	 --no_cppcli | \
 	 --c++cli | \
 	 --no_c++cli | \
-         --generic_arity_overload | \
-         --no_generic_arity_overload | \
 	 --far_data_pointers | \
 	 --near_data_pointers | \
 	 --far_code_pointers | \

@@ -524,13 +524,6 @@ Initialize the option information table.
   add_option_description(optk_mscorlib_file_name, "mscorlib_file_name",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
-  add_option_description(optk_generic_arity_overload, "generic_arity_overload",
-                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_command_line);
-  add_option_description(optk_generic_arity_overload,
-                         "no_generic_arity_overload",
-                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
-                         pchek_command_line);
 #endif /* CPPCLI_ENABLING_POSSIBLE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
@@ -1794,6 +1787,8 @@ static a_flag_name
     &disable_access_checking_in_microsoft_enum_bases },
   { "pending_generic_constraint_specifier_enabled",
     &pending_generic_constraint_specifier_enabled },
+  { "generic_arity_overload_allowed",
+    &generic_arity_overload_allowed },
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   { NULL, NULL }  /* must be last */
 };
@@ -7896,9 +7891,6 @@ enable_microsoft_mode:
         add_to_specified_include_search_path(opt_arg,  /*system_dir=*/FALSE,
                                              &assembly_search_path,
                                              &end_assembly_search_path);
-        break;
-      case optk_generic_arity_overload:
-        generic_arity_overload_allowed = opt_value;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
