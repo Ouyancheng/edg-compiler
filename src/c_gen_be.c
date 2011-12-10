@@ -3742,7 +3742,9 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
             end_unreferenced_bracket(&type->source_corresp);
           }  /* if */
         } else if (output_defn) {
-          dump_struct_union_definition(type, /*output_final_semi=*/TRUE);
+          if (!type->has_been_defined) {
+            dump_struct_union_definition(type, /*output_final_semi=*/TRUE);
+          }  /* if */
           if (type->typedef_pending) {
             dump_pending_typedefs(type);
           }  /* if */

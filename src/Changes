@@ -1,5 +1,20 @@
 Version 4.4
 
+12/10/11 [EDGcpfe/12501]
+GNU compatibility, C-generating back end: type definitions in function
+prototype scope
+
+If a type is defined in a function prototype scope and a function pointer is
+declared using that function type (via the GNU typeof extension), the
+C-generating back end put out duplicate definitions of the type from the
+function prototype scope.  This is now fixed.  For example, the generated
+C code for the following contained two definitions of the transparent union
+defined as the parameter of "f":
+
+  void f(union { int i; } __attribute__((transparent_union)));
+  typeof(f) *p;
+
+
 12/10/11 [EDGcpfe/12495]
 GNU compatibility, C++-generating back end: transparent union function
 parameters
