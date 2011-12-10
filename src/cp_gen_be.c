@@ -443,6 +443,7 @@ static void gen_template(void);
 static a_boolean strip_lvalue_cast_sequence(an_expr_node_ptr *expr);
 static void gen_initializer_constant(a_constant_ptr constant,
                                      a_type_ptr     type,
+                                     a_boolean      transparent_case,
                                      a_boolean      suppress_braces);
 static void gen_initializer_expr(an_expr_node_ptr expr,
                                  a_type_ptr       type,
@@ -4071,7 +4072,8 @@ interpreted as an argument separator rather than an operator).
 
 static void gen_compound_literal(a_constant_ptr     literal_con,
                                  a_dynamic_init_ptr dip,
-                                 a_type_ptr         literal_type)
+                                 a_type_ptr         literal_type,
+                                 a_boolean          transparent_case)
 /*
 Generate code for a compound literal (a C99 feature).  If the
 compound literal is available only in constant form, literal_con points
@@ -4080,10 +4082,14 @@ give the dynamic initialization entry and type for the compound literal.
 An example of the form of a compound literal:
        (int []){1, 2, 3}
 In GNU C++ mode, a "list initializer" may also be represented as a compound
-literal (but the source form doesn't include the cast-like prefix).
+literal (but the source form doesn't include the cast-like prefix).  In GNU
+C mode, passing an expression to a transparent union function parameter is
+represented in the IL as a compound literal; in this case, transparent_union
+will be TRUE, and the cast and braces must be suppressed.
 */
 {
   a_boolean  is_scalar, list_init = (dip != NULL && dip->is_list_initializer);
+  a_boolean  transparent_union_case = FALSE;
 
   if (literal_con != NULL) {
     literal_type = literal_con->type;
@@ -4092,9 +4098,9 @@ literal (but the source form doesn't include the cast-like prefix).
     /* Constant dynamic initializations are handled as constants. */
     literal_con = dip->variant.constant;
   }  /* if */
-  /* If dip represents a list initializer, omit the cast-like prefix and the
-     surrounding parentheses. */
-  if (!list_init) {
+  /* If dip represents a list initializer, or in the transparent union case,
+     omit the cast-like prefix and the surrounding parentheses. */
+  if (!list_init && !transparent_case) {
     write_tok_ch('(');
     gen_cast(literal_type);
   }  /* if */
@@ -4109,7 +4115,7 @@ literal (but the source form doesn't include the cast-like prefix).
     write_tok_ch('{');
   }  /* if */
   if (literal_con != NULL) {
-    gen_initializer_constant(literal_con, literal_type,
+    gen_initializer_constant(literal_con, literal_type, transparent_case,
                              /*suppress_braces=*/FALSE);
   } else {
     a_boolean parens_needed;
@@ -4120,7 +4126,9 @@ literal (but the source form doesn't include the cast-like prefix).
              /*obj_expr_of_mfunc_operator=*/FALSE);
   }  /* if */
   if (is_scalar) write_tok_ch('}');
-  if (!list_init) write_tok_ch(')');
+  if (!list_init && !transparent_case) {
+    write_tok_ch(')');
+  }  /* if */
 }  /* gen_compound_literal */
 
 
@@ -4136,7 +4144,7 @@ Output the name of the indicated variable, qualified if necessary.
     /* Compound literal, e.g., (int []){1, 2, 3}. */
     check_assertion(var->init_kind == (an_init_kind)initk_static);
     gen_compound_literal(var->initializer.constant, (a_dynamic_init_ptr)NULL,
-                         (a_type_ptr)NULL);
+                         (a_type_ptr)NULL, /*transparent_case=*/FALSE);
   } else {
     gen_name(&var->source_corresp, iek_variable, GN_NO_OPTIONS,
              (a_boolean *)NULL);
@@ -4444,6 +4452,7 @@ aggregate constant and braces around it should be suppressed.
 
 static void gen_initializer_constant(a_constant_ptr constant,
                                      a_type_ptr     type,
+                                     a_boolean      transparent_case,
                                      a_boolean      suppress_braces)
 /*
 Generate an initializer constant, which differs from a normal constant in
@@ -4451,7 +4460,11 @@ that it can contain aggregates and dynamic initializations.  type is
 the type of the entity being initialized; it can be NULL if the constant
 is not an aggregate or dynamic initialization, and if the entity being
 initialized is not a reference.  If suppress_braces is TRUE, if the
-constant is an aggregate the braces around it are suppressed.
+constant is an aggregate the braces around it are suppressed.  When
+transparent_case is TRUE, the constant represents an expression being
+passed as an argument to a parameter that is a transparent union (a GNU
+C extension); in this case, the braces are also suppressed, as is the
+field designator.
 */
 {
   a_constant_ptr sub_con;
@@ -4461,7 +4474,9 @@ constant is an aggregate the braces around it are suppressed.
   if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
     a_boolean      array_case = FALSE, template_dependent_case = FALSE;
     /* Aggregate constant (e.g., "{1, 2, 3}"). */
-    if (!suppress_braces) write_tok_ch('{');
+    if (!suppress_braces && !transparent_case) {
+      write_tok_ch('{');
+    }  /* if */
     /* Figure out the kind of aggregate so we can track the type as we
        work through constants. */
     type = skip_typerefs(type);
@@ -4533,9 +4548,14 @@ constant is an aggregate the braces around it are suppressed.
         a_constant_ptr eff_sub_con = sub_con;
         a_boolean      local_suppress_braces = FALSE;
         if (sub_con->kind == (a_constant_repr_kind)ck_designator) {
-          /* Put out the introduction for a designated initializer. */
-          gen_designator(sub_con, &field, &eff_sub_con,
-                         &local_suppress_braces);
+          if (!transparent_case) {
+            /* Put out the introduction for a designated initializer. */
+            gen_designator(sub_con, &field, &eff_sub_con,
+                           &local_suppress_braces);
+          } else {
+            /* Skip over the designator */
+            eff_sub_con = eff_sub_con->next;
+          }  /* if */
           sub_con = sub_con->next;
         }  /* if */
         /* Determine the type of the entity initialized by the next
@@ -4555,7 +4575,9 @@ constant is an aggregate the braces around it are suppressed.
           sub_type = field->type;
           field = next_initializable_field(field->next);
         }  /* if */
-        gen_initializer_constant(eff_sub_con, sub_type, local_suppress_braces);
+        gen_initializer_constant(eff_sub_con, sub_type,
+                                 /*transparent_case=*/FALSE,
+                                 local_suppress_braces);
         if (eff_sub_con->is_pack_expansion) {
           write_tok_str("...");
         }  /* if */
@@ -4583,7 +4605,9 @@ constant is an aggregate the braces around it are suppressed.
         write_tok_str(", ");
       }  /* for */
     }  /* if */
-    if (!suppress_braces) write_tok_ch('}');
+    if (!suppress_braces && !transparent_case) {
+      write_tok_ch('}');
+    }  /* if */
   } else if (constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
     /* Dynamic initialization for an element of an aggregate. */
     gen_dynamic_init(constant->variant.dynamic_init, type,
@@ -7911,7 +7935,8 @@ in determining how to generate dynamic initializations).
                                          (a_constant_repr_kind)ck_aggregate)) {
     /* In C mode and sometimes in C++ mode, a temp-init node represents
        a compound literal. */
-    gen_compound_literal((a_constant_ptr)NULL, dip, temp_type);
+    gen_compound_literal((a_constant_ptr)NULL, dip, temp_type,
+                         /*transparent_case=*/FALSE);
   } else {
     /* C++ mode; use gen_dynamic_init. */
     a_boolean cast_added = FALSE;
@@ -11328,7 +11353,8 @@ done_with_operation_after_parens:
         if (C_mode()) {
           /* Lvalue for a temp-init in C.  This comes up for a C99 compound
              literal. */
-          gen_compound_literal((a_constant_ptr)NULL, dip, temp_type);
+          gen_compound_literal((a_constant_ptr)NULL, dip, temp_type,
+                               /*transparent_case=*/FALSE);
         } else {
           /* Lvalue temp-init in C++. */
           gen_temp_init(expr, obj_expr_of_mfunc_operator);
@@ -11341,6 +11367,15 @@ done_with_operation_after_parens:
            the output.  Just put out the underlying value. */
         gen_expr(dip->variant.expression, /*need_parens=*/TRUE,
                  obj_expr_of_mfunc_operator);
+#if GNU_EXTENSIONS_ALLOWED
+      } else if (is_immediate_class_type(expr->type) &&
+                 expr->type->declared_in_function_prototype &&
+                 expr->type->variant.class_struct_union.is_transparent) {
+        /* This represents an expression that is passed as an argument to a
+           function parameter that is a transparent union. */
+        gen_compound_literal((a_constant_ptr)NULL, dip, expr->type,
+                             /*transparent_case=*/TRUE);
+#endif /* GNU_EXTENSIONS_ALLOWED */
       } else {
         /* Normal case (using the value of the temp). */
         gen_temp_init(expr, obj_expr_of_mfunc_operator);
@@ -13721,6 +13756,7 @@ source and the expression is generated in that form.
         need_closing_operand_paren = TRUE;
       }  /* if */
       gen_initializer_constant(con, init_entity_type,
+                               /*transparent_case=*/FALSE,
                                /*suppress_braces=*/FALSE);
       if (parenthesized_init) write_tok_ch(')');
       break;
@@ -13746,9 +13782,11 @@ source and the expression is generated in that form.
            initializer.  For example:
              struct D { D(int); };   struct S { D d; } s((S){7});   */
         check_assertion(gpp_mode);
-        gen_compound_literal(con, /*dip=*/NULL, /*literal_type=*/NULL);
+        gen_compound_literal(con, /*dip=*/NULL, /*literal_type=*/NULL,
+                             /*transparent_case=*/FALSE);
       } else {
         gen_initializer_constant(con, init_entity_type,
+                                 /*transparent_case=*/FALSE,
                                  /*suppress_braces=*/FALSE);
       }  /* if */
       break;
@@ -13923,6 +13961,7 @@ initialization is in a condition declaration if is_condition is TRUE.
       case initk_static:
         write_tok_str(" = ");
         gen_initializer_constant(initializer->constant, var->type,
+                                 /*transparent_case=*/FALSE,
                                  /*suppress_braces=*/FALSE);
         break;
       case initk_dynamic:

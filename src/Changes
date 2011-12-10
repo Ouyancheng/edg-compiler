@@ -1,5 +1,20 @@
 Version 4.4
 
+12/10/11 [EDGcpfe/12495]
+GNU compatibility, C++-generating back end: transparent union function
+parameters
+
+The C++-generating back end put out incorrect code (referencing an
+undeclared union type with a name of the form __T12345678) for an argument
+passed to a transparent union type (a GNU extension).  This is now fixed.
+For example:
+
+  void f(union { void* p; } __attribute__((transparent_union)));
+  void g(void* q) {
+    f(q);   // Previously generated as f(((union __T12345678){.p = 1}))
+  }
+
+
 12/9/11  [EDGcpfe/12498]
 Incorrect parent recorded for dependent qualified friend template declaration
 
