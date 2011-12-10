@@ -4089,7 +4089,6 @@ will be TRUE, and the cast and braces must be suppressed.
 */
 {
   a_boolean  is_scalar, list_init = (dip != NULL && dip->is_list_initializer);
-  a_boolean  transparent_union_case = FALSE;
 
   if (literal_con != NULL) {
     literal_type = literal_con->type;
