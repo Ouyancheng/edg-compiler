@@ -1,5 +1,29 @@
 Version 4.4
 
+12/10/11 [EDGcpfe/12499]
+C++-generating back end: missing qualification in template argument
+
+In configurations in which PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, the
+C++-generating back end failed to put out the necessary qualification on
+a name appearing in a template argument in a dependent member function
+call when the class of the object expression in the call matches the
+required qualifier in the template argument.  This is now fixed.  For
+example:
+
+  struct S {
+    template<typename T> void f();
+    template<typename T> struct I { };
+  };
+  struct X {
+    S s;
+    template<typename T> void g() {
+      typedef S::I<T> SI;
+      s.f<SI>();  // Previously generated as ((s).f< I< T> > ())
+                  // Now generated as ((s).f< typename S::I< T> > ())
+    }
+  };
+
+
 12/10/11 [EDGcpfe/12501]
 GNU compatibility, C-generating back end: type definitions in function
 prototype scope

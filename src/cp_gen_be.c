@@ -834,6 +834,26 @@ hidden names in C, so there's no point in maintaining this information).
 }  /* push_scope_hidden_names */
 
 
+static void start_template_arguments(void)
+/*
+Called by the il_to_str routines to signal the start of a template argument
+list.
+*/
+{
+  in_template_argument_list = TRUE;
+}  /* start_template_arguments */
+
+
+static void end_template_arguments(void)
+/*
+Called by the il_to_str routines to signal the end of a template argument
+list.
+*/
+{
+  in_template_argument_list = FALSE;
+}  /* end_template_arguments */
+
+
 static void push_name_context_full(a_scope_ptr scope,
                                    a_type_ptr  class_type)
 /*
@@ -1051,10 +1071,17 @@ are also considered to be on the stack.
 */
 {
   a_boolean          class_in_stack = FALSE;
-  a_name_context_ptr ncp;
+  a_name_context_ptr ncp = curr_name_context;
 
-  for (ncp = curr_name_context; ncp != NULL && !class_in_stack;
-       ncp = ncp->next) {
+  if (in_template_argument_list) {
+    /* Skip over any class contexts that reflect a field selection
+       operation; those should not be considered for names in a template
+       argument list. */
+    while (ncp->field_selection_context) {
+      ncp = ncp->next;
+    }  /* while */
+  }  /* if */
+  for (; ncp != NULL && !class_in_stack; ncp = ncp->next) {
     if (ncp->class_type == class_type) {
       class_in_stack = TRUE;
     } else if (include_base_classes &&
@@ -15737,6 +15764,8 @@ Initialize for the C++/C-generating back end.
   octl.output_attributes = gen_attributes;
   octl.is_typedef_invisible = is_typedef_invisible_in_cp_gen_be;
   octl.has_unprotected_gt_operation = has_unprotected_gt_operation;
+  octl.start_template_arguments = start_template_arguments;
+  octl.end_template_arguments = end_template_arguments;
   octl.gen_compilable_code = TRUE;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;
   /* In C99 mode we want to see "_Bool" rather than "bool" or the type

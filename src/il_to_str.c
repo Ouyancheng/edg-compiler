@@ -87,6 +87,8 @@ Clear an output control block to default values.
   octl->output_attributes         = NULL;
   octl->is_typedef_invisible      = NULL;
   octl->has_unprotected_gt_operation = NULL;
+  octl->start_template_arguments  = NULL;
+  octl->end_template_arguments    = NULL;
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   octl->func_prototype_stack      = NULL;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
@@ -401,6 +403,9 @@ is put out.
       octl->output_name_reference = NULL;
     }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
+    if (octl->start_template_arguments) {
+      octl->start_template_arguments();
+    }  /* if */
     octl->output_str("<", octl);
     if (octl->gen_compilable_code) {
       /* When generating compilable code, put out a space after the
@@ -426,6 +431,9 @@ is put out.
          template references or with a nontype expression that ends
          with ">". */
       octl->output_str(" ", octl);
+    }  /* if */
+    if (octl->end_template_arguments) {
+      octl->end_template_arguments();
     }  /* if */
 #if BACK_END_IS_CP_GEN_BE
     octl->output_name_reference = saved_output_name_reference;

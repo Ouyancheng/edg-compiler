@@ -63,6 +63,9 @@ typedef void an_output_attributes_function(
 typedef an_output_attributes_function *an_output_attributes_function_ptr;
 typedef a_boolean a_constant_test_function(a_constant_ptr con);
 typedef a_constant_test_function *a_constant_test_function_ptr;
+typedef void an_output_start_end_context_function(void);
+typedef an_output_start_end_context_function
+                                     *an_output_start_end_context_function_ptr;
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 
@@ -184,6 +187,14 @@ typedef struct an_il_to_str_output_control_block {
 			   enclosed in parentheses to prevent a ">" from
 			   incorrectly terminating the template argument
 			   list. */
+  an_output_start_end_context_function_ptr
+	start_template_arguments;
+			/* Function that is called at the beginning of a
+			   template argument list. */
+  an_output_start_end_context_function_ptr
+	end_template_arguments;
+			/* Function that is called at the end of a template
+			   argument list. */
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   a_func_prototype_stack_entry_ptr
 	func_prototype_stack;
