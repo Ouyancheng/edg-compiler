@@ -3742,7 +3742,13 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
             end_unreferenced_bracket(&type->source_corresp);
           }  /* if */
         } else if (output_defn) {
-          if (!type->has_been_defined) {
+          /* Only put out one definition for a type, unless we are
+             generating slices for one-instantiation-per-object. */
+          if (!type->has_been_defined
+#if ONE_INSTANTIATION_PER_OBJECT
+              || !C_mode()
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+              ) {
             dump_struct_union_definition(type, /*output_final_semi=*/TRUE);
           }  /* if */
           if (type->typedef_pending) {
