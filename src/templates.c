@@ -3210,7 +3210,7 @@ Instantiate the C++/CLI generic delegate specified by class_type.
   ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_ref;
   ctsp->is_hide_by_sig = TRUE;
   class_type->variant.class_struct_union.is_delegate_class = TRUE;
-  /* FIXME: The final flag is set both here and for partial instantiations
+  /* The final flag is set both here and for partial instantiations
      because currently we don't know an that the initial declaration of a
      delegate read from an assembly is actually a delegate. */
   class_type->variant.class_struct_union.final = TRUE;
@@ -15614,10 +15614,18 @@ declaration of a partial specialization declared outside of its class.
       unexpected_condition();
   }  /* switch */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (decl_state->decl_parse.is_generic_declaration &&
+  if (decl_state->is_generic &&
       decl_state->cli_class_type_kind ==
                                        (a_cli_class_type_kind)cctk_standard) {
     pos_error(ec_generic_class_must_be_managed, &pos_curr_token);
+  } else if (!decl_state->decl_scope_err &&
+             decl_state->class_declared_in != NULL &&
+             is_immediate_managed_class_type(decl_state->class_declared_in) &&
+             decl_state->cli_class_type_kind ==
+                                       (a_cli_class_type_kind)cctk_standard) {
+    /* A template cannot be declared in a managed class. */
+    pos_error(ec_template_in_managed_class, &decl_state->decl_parse.start_pos);
+    decl_state->decl_scope_err = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -22451,7 +22459,6 @@ differs between function and nonfunction declarations.
     decl_state->access = ssep->current_access;
     decl_state->is_variadic = ssep->in_variadic_template;
   }  /* if */
-  /* FIXME: a generic cannot be declared in a template. */
   if (decl_state->is_member_decl) {
     /* A member template cannot be declared in a local class. */
     if (ssep->inside_local_class && !decl_state->is_template_friend) {
@@ -22574,8 +22581,8 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
   /* Make sure that this template declaration is permitted in the current
      scope. */
   if (decl_state.effective_decl_level == NO_SCOPE_DEPTH) {
-    /* FIXME: different message for generics? */
-    pos_error(ec_bad_template_declaration_scope,
+    pos_error(decl_state.is_generic ? ec_bad_generic_declaration_scope
+                                    : ec_bad_template_declaration_scope,
               &decl_state.decl_parse.start_pos);
     decl_state.decl_scope_err = TRUE;
     /* Set the effective declaration level to a valid value for the remainder
@@ -22586,9 +22593,12 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
   } else if (decl_state.is_member_decl &&
              decl_state.class_declared_in
                                   ->variant.class_struct_union.is_interface) {
-    /* Member templates should not appear in interface definitions. */
-    /* FIXME: different message for generics? */
-    pos_error(ec_interface_cannot_have_member_templates,
+    /* Member templates should not appear in interface definitions.  Microsoft
+       currently accepts certain cases in C++/CLI mode.  We are rejecting
+       all cases pending clarification of this issue. */
+    pos_error(decl_state.is_generic
+                                  ? ec_interface_cannot_have_member_generics
+                                  : ec_interface_cannot_have_member_templates,
               &decl_state.decl_parse.start_pos);
   } else if (decl_state.is_generic && decl_state.is_member_decl &&
              !is_valid_cli_generic_declaration_context()) {

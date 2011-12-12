@@ -4091,8 +4091,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
       } else if (class_type->
                             variant.class_struct_union.is_generic_instance) {
         /* A lookup in a C++/CLI generic definition or open constructed
-           (i.e., nonreal) generic instance. */
-        /* FIXME: This should be eliminated if they are made real classes. */
+           (i.e., nonreal) generic instance.  This can occur if a generic
+           is instantiated on a template-based managed type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (class_type
                     ->variant.class_struct_union.is_prototype_instantiation ||

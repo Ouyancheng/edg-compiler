@@ -2325,6 +2325,9 @@ ec_tracking_reference_to_system_string;;"a tracking reference to System::String 
 ec_use_of_generic_class_with_pending_constraint;;"invalid use of a generic class %t with pending constraints (probably caused by an invalid metadata file)"
 ec_invalid_entity_for_pending_constraint;;"a pending constraint clause is only allowed for generic class declarations (but not generic class definitions)"
 ec_invalid_empty_initializer_list;;"empty initializer list not allowed here"
+ec_template_in_managed_class;;"a template cannot be declared in a managed class"
+ec_bad_generic_declaration_scope;;"generic declaration is not allowed here"
+ec_interface_cannot_have_member_generics;;"interface types cannot have member generics"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
