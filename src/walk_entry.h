@@ -1742,8 +1742,10 @@ do_set_proper_definition_needed_flag:
 #endif /* GNU_EXTENSIONS_ALLOWED */
         remap_next_ptr(ptr->next, a_switch_case_entry_ptr,
                        iek_switch_case_entry);
+#if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
         remap_ptr(ptr->next_on_sorted_list, a_switch_case_entry_ptr,
                   iek_switch_case_entry);
+#endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
       }
       break;
     case iek_switch_stmt_descr:
