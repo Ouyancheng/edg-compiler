@@ -933,6 +933,44 @@ This routine can be called for both C and C++.
 }  /* push_class_name_context */
 
 
+static void push_temp_context_for_field_selection(void)
+/*
+Push a new context entry onto the name context stack that is identical to
+the current top of the stack, except that popping it should leave the
+environment unchanged (no hidden name fixups should be processed, etc.),
+and the field_selection_context flag is set to TRUE.  This processing is
+needed instead of just setting and restoring the field_selection_context
+flag in the current entry because gen_name unconditionally pops the stack
+if field_selection_context is TRUE.
+*/
+{
+  a_name_context_ptr ncp;
+
+  /* Allocate a name context. */
+  if (avail_name_contexts != NULL) {
+    /* Reuse a freed entry. */
+    ncp = avail_name_contexts;
+    avail_name_contexts = avail_name_contexts->next;
+  } else {
+    /* Allocate a new entry. */
+    ncp = (a_name_context_ptr)alloc_general(sizeof(a_name_context));
+  }  /* if */
+  /* Copy the current entry. */
+  *ncp = *curr_name_context;
+  /* Make sure the environment will still be the same after this context
+     is popped. */
+  ncp->fixups = NULL;
+  ncp->saved_in_class_scope_with_dependent_base =
+                                            in_class_scope_with_dependent_base;
+  /* Indicate that this context represents a field selection operation and
+     should be popped once the immediately-following name is generated. */
+  ncp->field_selection_context = TRUE;
+  /* Put the entry on the stack. */
+  ncp->next = curr_name_context;
+  curr_name_context = ncp;
+}  /* push_temp_context_for_field_selection */
+
+
 static void pop_name_context(void)
 /*
 Pop the top entry off the name context stack.
@@ -7843,7 +7881,10 @@ the expression reflects an implicit member access ("this->y"), so the
   } else {
     gen_field_reference(field_expr);
   }  /* if */
-  if (curr_name_context != orig_name_context) pop_name_context();
+  if (curr_name_context != orig_name_context) {
+    pop_name_context();
+    check_assertion(curr_name_context == orig_name_context);
+  }  /* if */
 }  /* gen_simple_field_selection */
 
 
@@ -8114,17 +8155,21 @@ indicated by opstr.
        operator (to allow the "template" keyword to be put out by gen_name),
        so we save and restore the previous value of the flag in the existing
        name context. */
-    a_boolean saved_field_selection_context =
-                                    curr_name_context->field_selection_context;
-    curr_name_context->field_selection_context = TRUE;
+    a_name_context_ptr context_before_unknown_function = curr_name_context;
+    push_temp_context_for_field_selection();
     form_unknown_function_constant(con, &octl);
-    curr_name_context->field_selection_context = saved_field_selection_context;
+    if (curr_name_context != context_before_unknown_function) {
+      pop_name_context();
+    }  /* if */
   } else {
     /* Put parentheses around the expression if it was changed to the ","
        form. */
     gen_expr(operand_2, use_comma, /*obj_expr_of_mfunc_operator=*/FALSE);
   }  /* if */
-  if (curr_name_context != orig_name_context) pop_name_context();
+  if (curr_name_context != orig_name_context) {
+    pop_name_context();
+    check_assertion(curr_name_context == orig_name_context);
+  }  /* if */
 }  /* gen_dot_static */
 
 
@@ -8999,7 +9044,10 @@ function reference.
           curr_name_context->field_selection_context = TRUE;
         }  /* if */
         gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
-        if (curr_name_context != orig_name_context) pop_name_context();
+        if (curr_name_context != orig_name_context) {
+          pop_name_context();
+          check_assertion(curr_name_context == orig_name_context);
+        }  /* if */
       }  /* if */
       if (gcc_is_generated_code_target &&
           in_prototype_instantiation_context() &&
