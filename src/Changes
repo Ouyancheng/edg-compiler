@@ -1,5 +1,14 @@
 Version 4.4
 
+12/13/11 [EDGcpfe/12426]
+Excessive recursion on switch statement with many labels
+
+In some configurations, the front end traversed the list of case labels of a
+switch statement using recursion.  For switch statements with a large number
+of such labels, the recursion was likely to exceed the capabilities of the
+call stack.  This is now fixed.
+
+
 12/10/11 [EDGcpfe/12499]
 C++-generating back end: missing qualification in template argument
 
