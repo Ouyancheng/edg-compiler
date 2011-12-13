@@ -3742,8 +3742,27 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
             end_unreferenced_bracket(&type->source_corresp);
           }  /* if */
         } else if (output_defn) {
-          /* Only put out one definition for a type, unless we are
-             generating slices for one-instantiation-per-object. */
+          /* Put out the definition, but avoid multiple definitions
+             appearing in the same output file.  In C mode, multiple
+             definitions can result if a struct or union is defined in
+             function prototype scope and then the function type is used
+             (via the GNU typeof extension, for example) to declare a
+             function pointer: both the routine type and the type of the
+             function pointer will attempt to define the struct/union type
+             via dump_prototype_scope_types_within_type.  Such multiple
+             definitions would be an error and are consequently suppressed.
+             In C++, however, this situation cannot occur (because a
+             function type cannot contain a type defined in the function's
+             prototype scope).  Furthermore, in
+             one-instantiation-per-object mode (which only applies to C++),
+             we may need to put out the definition of a struct or union
+             more than once if it is needed in multiple slices; this is not
+             an error because each slice appears in a different output
+             file.  Because we do not reset the has_been_defined flag in
+             the types at the beginning of each slice, we simply ignore the
+             flag and unconditionally put out the definition of the struct
+             or union in one-instantiation-per-object mode C++ translation
+             units. */
           if (!type->has_been_defined
 #if ONE_INSTANTIATION_PER_OBJECT
               || !C_mode()
