@@ -834,26 +834,6 @@ hidden names in C, so there's no point in maintaining this information).
 }  /* push_scope_hidden_names */
 
 
-static void start_template_arguments(void)
-/*
-Called by the il_to_str routines to signal the start of a template argument
-list.
-*/
-{
-  in_template_argument_list = TRUE;
-}  /* start_template_arguments */
-
-
-static void end_template_arguments(void)
-/*
-Called by the il_to_str routines to signal the end of a template argument
-list.
-*/
-{
-  in_template_argument_list = FALSE;
-}  /* end_template_arguments */
-
-
 static void push_name_context_full(a_scope_ptr scope,
                                    a_type_ptr  class_type)
 /*
@@ -1071,17 +1051,10 @@ are also considered to be on the stack.
 */
 {
   a_boolean          class_in_stack = FALSE;
-  a_name_context_ptr ncp = curr_name_context;
+  a_name_context_ptr ncp;
 
-  if (in_template_argument_list) {
-    /* Skip over any class contexts that reflect a field selection
-       operation; those should not be considered for names in a template
-       argument list. */
-    while (ncp->field_selection_context) {
-      ncp = ncp->next;
-    }  /* while */
-  }  /* if */
-  for (; ncp != NULL && !class_in_stack; ncp = ncp->next) {
+  for (ncp = curr_name_context; ncp != NULL && !class_in_stack;
+       ncp = ncp->next) {
     if (ncp->class_type == class_type) {
       class_in_stack = TRUE;
     } else if (include_base_classes &&
@@ -3545,6 +3518,11 @@ unqualified_part:
     add_property_or_event_name_as_qualifier((a_routine_ptr)scp);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* If a name context was pushed for member naming, pop that context
+     now so it doesn't affect template arguments and such. */
+  if (curr_name_context->field_selection_context) {
+    pop_name_context();
+  }  /* if */
   /* Finally, emit the unqualified part of the name, with or without
      template arguments. */
   if (options & GN_NO_TEMPLATE_ARGS) {
@@ -7754,7 +7732,7 @@ the expression reflects an implicit member access ("this->y"), so the
   an_expr_node_ptr      field_expr;
   an_expr_operator_kind op;
   a_type_ptr            naming_class, selection_class;
-  a_boolean             need_context_pop = FALSE;
+  a_name_context_ptr    orig_name_context = curr_name_context;
 
   check_assertion(is_operation_node(expr) &&
                   (node_operator_is(expr, eok_dot_field) ||
@@ -7855,7 +7833,6 @@ the expression reflects an implicit member access ("this->y"), so the
            template parameter, i.e., not a class type.) */
         push_class_name_context(selection_class);
         curr_name_context->field_selection_context = TRUE;
-        need_context_pop = TRUE;
       }  /* if */
       gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
     }  /* if */
@@ -7866,7 +7843,7 @@ the expression reflects an implicit member access ("this->y"), so the
   } else {
     gen_field_reference(field_expr);
   }  /* if */
-  if (need_context_pop) pop_name_context();
+  if (curr_name_context != orig_name_context) pop_name_context();
 }  /* gen_simple_field_selection */
 
 
@@ -8050,12 +8027,12 @@ eok_points_to_static operator.  Put out the operation, with the operator
 indicated by opstr.
 */
 {
-  a_boolean        unknown_function_case = FALSE;
-  a_constant_ptr   con;
-  a_type_ptr       operand_1_type;
-  a_boolean        need_context_pop = FALSE;
-  a_boolean        use_comma = FALSE;
-  a_boolean        removed_nodes;
+  a_boolean          unknown_function_case = FALSE;
+  a_constant_ptr     con;
+  a_type_ptr         operand_1_type;
+  a_name_context_ptr orig_name_context = curr_name_context;
+  a_boolean          use_comma = FALSE;
+  a_boolean          removed_nodes;
 
   /* Put out the first operand. */
   /* Also determine the class type underlying the first operand. */
@@ -8125,7 +8102,6 @@ indicated by opstr.
     if (!use_comma) {
       push_class_name_context(operand_1_type);
       curr_name_context->field_selection_context = TRUE;
-      need_context_pop = TRUE;
     }  /* if */
   }  /* if */
   /* Put out the operator. */
@@ -8148,7 +8124,7 @@ indicated by opstr.
        form. */
     gen_expr(operand_2, use_comma, /*obj_expr_of_mfunc_operator=*/FALSE);
   }  /* if */
-  if (need_context_pop) pop_name_context();
+  if (curr_name_context != orig_name_context) pop_name_context();
 }  /* gen_dot_static */
 
 
@@ -8850,10 +8826,11 @@ the function's name will be qualified to suppress virtual-ness on the
 function reference.
 */
 {
-  a_routine_ptr rout = routine_from_function_expr(func_expr);
-  a_type_ptr    naming_class, selection_class;
-  a_boolean     force_qualified_name = FALSE;
-  a_boolean     suppress_this = FALSE;
+  a_routine_ptr      rout = routine_from_function_expr(func_expr);
+  a_type_ptr         naming_class, selection_class;
+  a_boolean          force_qualified_name = FALSE;
+  a_boolean          suppress_this = FALSE;
+  a_name_context_ptr orig_name_context = curr_name_context;
 
   check_assertion(rout != NULL);
   if (is_template_param_or_nonreal_class_type(object_expr->type) &&
@@ -9022,7 +8999,7 @@ function reference.
           curr_name_context->field_selection_context = TRUE;
         }  /* if */
         gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
-        if (!suppress_this) pop_name_context();
+        if (curr_name_context != orig_name_context) pop_name_context();
       }  /* if */
       if (gcc_is_generated_code_target &&
           in_prototype_instantiation_context() &&
@@ -15764,8 +15741,6 @@ Initialize for the C++/C-generating back end.
   octl.output_attributes = gen_attributes;
   octl.is_typedef_invisible = is_typedef_invisible_in_cp_gen_be;
   octl.has_unprotected_gt_operation = has_unprotected_gt_operation;
-  octl.start_template_arguments = start_template_arguments;
-  octl.end_template_arguments = end_template_arguments;
   octl.gen_compilable_code = TRUE;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;
   /* In C99 mode we want to see "_Bool" rather than "bool" or the type
