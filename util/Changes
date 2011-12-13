@@ -1,5 +1,13 @@
 Version 4.4
 
+12/13/11 [EDGcpfe/12513]
+Remove __EXCEPTIONS from list of predefined macros
+
+Change the make_predef_macro_table script so that it doesn't capture the
+value of __EXCEPTIONS in the predefined-macros.txt file (by default this
+macro is set by the front end as appropriate at run-time).
+
+
 10/6/11 [EDGcpfe/12323]
 Handle arguments with spaces in eccp
 
