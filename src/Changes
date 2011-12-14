@@ -1,5 +1,28 @@
 Version 4.4
 
+12/14/11 [EDGcpfe/12516]
+Eliding unnecessary calls to empty virtual destructors
+
+As a followup to the changes introduced by EDGcpfe/11966 and EDGcpfe/12298,
+a change has been made in the treatment of virtual destructors.  By default,
+all virtual destructors have a non-empty body (by virtue of an assignment
+to a virtual table pointer), but if a customer has made local changes to
+remove this assignment in some circumstances, then that virtual destructor
+may have appeared to have no effect and calls to it had been eliminated in all
+cases.  A change has been made to eliminate calls to empty virtual destructors
+when the destructor is called directly, but not if it is called through a
+virtual function table pointer.  In this example:
+
+  struct A { virtual ~A() {} };
+  void f(A *pa) {
+    A a;
+    delete pa;
+  }
+
+the destruction call for "a" is elided, but the destruction call for "pa"
+remains.
+
+
 12/13/11 [EDGcpfe/12426]
 Excessive recursion on switch statement with many labels
 

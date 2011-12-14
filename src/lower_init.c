@@ -90,8 +90,10 @@ static an_expr_node_ptr make_delete_call(a_routine_ptr      delete_routine,
                                          an_expr_node_ptr   arg_node,
                                          an_insert_location *insert_location);
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
-static a_boolean call_to_ctor_or_dtor_has_no_effect(a_routine_ptr    routine,
-                                                    an_expr_node_ptr args);
+static a_boolean call_to_ctor_or_dtor_has_no_effect(
+                                         a_routine_ptr    routine,
+                                         an_expr_node_ptr args,
+                                         a_boolean        call_can_be_virtual);
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
 
 
@@ -5846,7 +5848,8 @@ and update *insert_location accordingly.
   check_assertion(dip->destructor != NULL);
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
   if (call_to_ctor_or_dtor_has_no_effect(dip->destructor,
-                                         (an_expr_node_ptr)NULL)) {
+                                         (an_expr_node_ptr)NULL,
+                                         /*call_can_be_virtual=*/FALSE)) {
 #if DEBUG
     if (db_flag_is_set("remove_ctors_dtors")) {
       (void)fprintf(f_debug, "Removing static destruction for: ");
@@ -7018,16 +7021,19 @@ this function.
 
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
 
-static a_boolean call_to_ctor_or_dtor_has_no_effect(a_routine_ptr     routine,
-                                                    an_expr_node_ptr  args)
+static a_boolean call_to_ctor_or_dtor_has_no_effect(
+                                         a_routine_ptr     routine,
+                                         an_expr_node_ptr  args,
+                                         a_boolean         call_can_be_virtual)
 /*
 Returns TRUE if a call to the specified constructor or destructor is known to
 have no effect and is therefore a candidate to be removed during lowering.
 args is a list of un-lowered, user-specified arguments to a constructor (there
 are no user-specified arguments to a destructor).  The arguments are checked to
 see if they have any side effects (in which case it isn't possible to remove
-the call to this instance of the constructor).  It is always safe to return
-FALSE.
+the call to this instance of the constructor).  If call_can_be_virtual is
+TRUE, assume that the (destructor) routine may be called through a virtual
+function call.  It is always safe to return FALSE.
 
 In some configurations, constructors and/or destructors can return "this".
 It is the caller's responsibility to ensure that the return value of the
@@ -7039,19 +7045,38 @@ routine is not used before eliding a call to the routine.
   check_assertion(args == NULL ||
                   routine->special_kind ==
                                      (a_special_function_kind)sfk_constructor);
+  check_assertion(!call_can_be_virtual ||
+                  routine->special_kind ==
+                                      (a_special_function_kind)sfk_destructor);
   if (result) {
-    for (; args != NULL; args = args->next) {
-      if (node_has_side_effects(args, (a_boolean*)NULL)) {
-        /* One of the arguments to this routine has a side effect so this
-           invocation of this routine can't be elided (though it's still
-           possible that other invocations may be elided).  Note that it
-           may also be possible to elide the call to the constructor and
-           execute the arguments (so their side-effects occur), but we don't
-           do that. */
-        result = FALSE;
-        break;
-      }  /* if */
-    }  /* for */
+    if (call_can_be_virtual && routine->is_virtual) {
+      /* If a virtual destructor is known to be empty (which would require a
+         local modification since all virtual destructors currently have
+         at least an assignment to a virtual table pointer), then the call
+         to the destructor can be elided if we're making a call directly to the
+         destructor, but not if it's possible that the call will be through
+         a virtual function pointer.  In this example:
+           struct A { virtual ~A() {} };
+           void f(A *pa) {
+             A a;
+             delete pa;
+           }
+         the destruction for "a" can be removed, but not for "pa". */
+      result = FALSE;
+    } else {
+      for (; args != NULL; args = args->next) {
+        if (node_has_side_effects(args, (a_boolean*)NULL)) {
+          /* One of the arguments to this routine has a side effect so this
+             invocation of this routine can't be elided (though it's still
+             possible that other invocations may be elided).  Note that it
+             may also be possible to elide the call to the constructor and
+             execute the arguments (so their side-effects occur), but we don't
+             do that. */
+          result = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   return result;
 }  /* call_to_ctor_or_dtor_has_no_effect */
@@ -7187,7 +7212,8 @@ in goto and label statements and re-computing new common object lifetimes.
         dip->destructor->special_kind ==
                                      (a_special_function_kind)sfk_destructor &&
         call_to_ctor_or_dtor_has_no_effect(dip->destructor,
-                                           (an_expr_node_ptr)NULL)) {
+                                           (an_expr_node_ptr)NULL,
+                                           /*call_can_be_virtual=*/FALSE)) {
       /* This destruction isn't on a constructor_inits list and isn't
          needed so remove it from the destruction list (it will still
          be referred to by, e.g., a stmk_init for the initialization). */
@@ -7249,7 +7275,8 @@ statement/expression lowering process (mostly by lower_dynamic_init).
       dip = ctor_init->initializer;
       if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
           call_to_ctor_or_dtor_has_no_effect(dip->variant.constructor.ptr,
-                                             dip->variant.constructor.args)) {
+                                             dip->variant.constructor.args,
+                                             /*call_can_be_virtual=*/FALSE)) {
         /* There's no need to call this constructor; replace it with
            zero-initialization if the object is value-initialized otherwise
            no initialization is necessary. */
@@ -7259,7 +7286,8 @@ statement/expression lowering process (mostly by lower_dynamic_init).
           dip->destructor->special_kind ==
                                      (a_special_function_kind)sfk_destructor &&
           call_to_ctor_or_dtor_has_no_effect(dip->destructor,
-                                             (an_expr_node_ptr)NULL)){
+                                             (an_expr_node_ptr)NULL,
+                                             /*call_can_be_virtual=*/FALSE)) {
         /* This destruction has no effect and can be removed. */
         check_assertion(dip->destructible_entity_descr == NULL);
         remove_from_destruction_list(dip);
@@ -7408,7 +7436,8 @@ C99 mode for the same reason.
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
   if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
       call_to_ctor_or_dtor_has_no_effect(dip->variant.constructor.ptr,
-                                         dip->variant.constructor.args)) {
+                                         dip->variant.constructor.args,
+                                         /*call_can_be_virtual=*/FALSE)) {
     /* There's no need to call this constructor; replace it with
        zero-initialization if the object is value-initialized otherwise
        no initialization is necessary. */
@@ -8677,7 +8706,8 @@ arrays with class elements.
 #if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
     /* Remove unneeded construction/destructions if possible. */
     if (call_to_ctor_or_dtor_has_no_effect(elem_dip->variant.constructor.ptr,
-                                         elem_dip->variant.constructor.args)) {
+                                           elem_dip->variant.constructor.args,
+                                           /*call_can_be_virtual=*/FALSE)) {
       /* There's no need to call this constructor (zero_storage has already
          been set above if zero-initialization is required). */
 #if DEBUG
@@ -8691,7 +8721,8 @@ arrays with class elements.
     }  /* if */
     if (elem_dip->destructor != NULL &&
         call_to_ctor_or_dtor_has_no_effect(elem_dip->destructor,
-                                           (an_expr_node_ptr)NULL)) {
+                                           (an_expr_node_ptr)NULL,
+                                           /*call_can_be_virtual=*/FALSE)) {
       /* There's no need to call this destructor; any deletions that
          may be necessary (i.e., a throw during construction) are handled by
          the delete routine. */
@@ -9099,7 +9130,8 @@ The subtree of the node has not yet been lowered.
     if (dip != NULL &&
         dip->kind == (a_dynamic_init_kind)dik_constructor &&
         call_to_ctor_or_dtor_has_no_effect(dip->variant.constructor.ptr,
-                                           dip->variant.constructor.args)) {
+                                           dip->variant.constructor.args,
+                                           /*call_can_be_virtual=*/FALSE)) {
 #if DEBUG
       if (db_flag_is_set("remove_ctors_dtors")) {
         (void)fprintf(f_debug, "Removing new construction for: ");
@@ -9423,7 +9455,8 @@ The subtree of the node has not yet been lowered.
   if (dip != NULL &&
       dip->destructor != NULL &&
       call_to_ctor_or_dtor_has_no_effect(dip->destructor,
-                                         (an_expr_node_ptr)NULL)) {
+                                         (an_expr_node_ptr)NULL,
+                                         /*call_can_be_virtual=*/TRUE)) {
 #if DEBUG
     if (db_flag_is_set("remove_ctors_dtors")) {
       (void)fprintf(f_debug, "Removing delete destruction for: ");
