@@ -933,15 +933,16 @@ This routine can be called for both C and C++.
 }  /* push_class_name_context */
 
 
-static void push_temp_context_for_field_selection(void)
+static a_name_context_ptr push_temp_context_for_field_selection(void)
 /*
-Push a new context entry onto the name context stack that is identical to
-the current top of the stack, except that popping it should leave the
-environment unchanged (no hidden name fixups should be processed, etc.),
-and the field_selection_context flag is set to TRUE.  This processing is
-needed instead of just setting and restoring the field_selection_context
-flag in the current entry because gen_name unconditionally pops the stack
-if field_selection_context is TRUE.
+Push a new context entry onto the name context stack and return its
+address.  The new context entry will be identical to the current top of the
+stack, except that popping it should leave the environment unchanged (no
+hidden name fixups should be processed, etc.), and the
+field_selection_context flag is set to TRUE.  This processing is needed
+instead of just setting and restoring the field_selection_context flag in
+the current entry because gen_name unconditionally pops the stack if
+field_selection_context is TRUE.
 */
 {
   a_name_context_ptr ncp;
@@ -968,6 +969,7 @@ if field_selection_context is TRUE.
   /* Put the entry on the stack. */
   ncp->next = curr_name_context;
   curr_name_context = ncp;
+  return ncp;
 }  /* push_temp_context_for_field_selection */
 
 
@@ -7770,7 +7772,7 @@ the expression reflects an implicit member access ("this->y"), so the
   an_expr_node_ptr      field_expr;
   an_expr_operator_kind op;
   a_type_ptr            naming_class, selection_class;
-  a_name_context_ptr    orig_name_context = curr_name_context;
+  a_name_context_ptr    new_name_context = NULL;
 
   check_assertion(is_operation_node(expr) &&
                   (node_operator_is(expr, eok_dot_field) ||
@@ -7871,6 +7873,7 @@ the expression reflects an implicit member access ("this->y"), so the
            template parameter, i.e., not a class type.) */
         push_class_name_context(selection_class);
         curr_name_context->field_selection_context = TRUE;
+        new_name_context = curr_name_context;
       }  /* if */
       gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
     }  /* if */
@@ -7881,9 +7884,8 @@ the expression reflects an implicit member access ("this->y"), so the
   } else {
     gen_field_reference(field_expr);
   }  /* if */
-  if (curr_name_context != orig_name_context) {
+  if (curr_name_context == new_name_context) {
     pop_name_context();
-    check_assertion(curr_name_context == orig_name_context);
   }  /* if */
 }  /* gen_simple_field_selection */
 
@@ -8071,7 +8073,7 @@ indicated by opstr.
   a_boolean          unknown_function_case = FALSE;
   a_constant_ptr     con;
   a_type_ptr         operand_1_type;
-  a_name_context_ptr orig_name_context = curr_name_context;
+  a_name_context_ptr new_name_context = NULL;
   a_boolean          use_comma = FALSE;
   a_boolean          removed_nodes;
 
@@ -8143,6 +8145,7 @@ indicated by opstr.
     if (!use_comma) {
       push_class_name_context(operand_1_type);
       curr_name_context->field_selection_context = TRUE;
+      new_name_context = curr_name_context;
     }  /* if */
   }  /* if */
   /* Put out the operator. */
@@ -8155,10 +8158,10 @@ indicated by opstr.
        operator (to allow the "template" keyword to be put out by gen_name),
        so we save and restore the previous value of the flag in the existing
        name context. */
-    a_name_context_ptr context_before_unknown_function = curr_name_context;
-    push_temp_context_for_field_selection();
+    a_name_context_ptr context_for_unknown_function = 
+                                       push_temp_context_for_field_selection();
     form_unknown_function_constant(con, &octl);
-    if (curr_name_context != context_before_unknown_function) {
+    if (curr_name_context == context_for_unknown_function) {
       pop_name_context();
     }  /* if */
   } else {
@@ -8166,9 +8169,8 @@ indicated by opstr.
        form. */
     gen_expr(operand_2, use_comma, /*obj_expr_of_mfunc_operator=*/FALSE);
   }  /* if */
-  if (curr_name_context != orig_name_context) {
+  if (curr_name_context == new_name_context) {
     pop_name_context();
-    check_assertion(curr_name_context == orig_name_context);
   }  /* if */
 }  /* gen_dot_static */
 
@@ -8875,7 +8877,7 @@ function reference.
   a_type_ptr         naming_class, selection_class;
   a_boolean          force_qualified_name = FALSE;
   a_boolean          suppress_this = FALSE;
-  a_name_context_ptr orig_name_context = curr_name_context;
+  a_name_context_ptr new_name_context = NULL;
 
   check_assertion(rout != NULL);
   if (is_template_param_or_nonreal_class_type(object_expr->type) &&
@@ -9042,11 +9044,11 @@ function reference.
         if (!suppress_this) {
           push_class_name_context(selection_class);
           curr_name_context->field_selection_context = TRUE;
+          new_name_context = curr_name_context;
         }  /* if */
         gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
-        if (curr_name_context != orig_name_context) {
+        if (curr_name_context == new_name_context) {
           pop_name_context();
-          check_assertion(curr_name_context == orig_name_context);
         }  /* if */
       }  /* if */
       if (gcc_is_generated_code_target &&
