@@ -1,5 +1,48 @@
 Version 4.4
 
+12/15/11 [EDGcpfe/11682]
+Access checking in SFINAE contexts
+
+The C++11 rules for substitution of template arguments into function
+template declarations require access violations to result in deduction
+failure.  We implemented most of this as part of our original
+SFINAE implementation (see 4/26/10 entry), but the access checking
+did not include consideration of context in which the template was
+declared (e.g., class membership and friend status).  In addition,
+access of substituted member references (e.g., T::X) were not checked
+at all.  Full access checking is now done in modes in which SFINAE
+access is not ignored.
+
+  // This example resulted in a "no instance ... matches" error.
+  // It now compiles successfully because the operator- function is
+  // accessible to B because of friendship.
+  struct B {
+    template <class T> static auto f(T t1, T t2) -> decltype(t1-t2);
+  };
+  class A {
+    friend struct B;
+    A& operator-(A&);
+  };
+  int main() {
+    A a1, a2;
+    B::f(a1, a2);
+  }
+
+  // This example resulted in a spurious "S::priv is inaccessible" error.
+  // It now calls f(...).
+  class S {
+    static const int priv = 1;
+  public:
+    static const int pub = 2;
+  };
+  template<int> struct Z { };
+  template<typename T> Z<T::priv> f(T*);
+  void f(...);
+  void g(S* p) {
+    f(p);
+  }
+
+
 12/14/11 [EDGcpfe/12332]
 C++-generating back end, GNU compatibility: abort on __builtin_offsetof base
 class member

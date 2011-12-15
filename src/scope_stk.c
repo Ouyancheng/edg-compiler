@@ -2328,6 +2328,7 @@ scopes.  In neither C or C++ is a pragma scope is treated as a real scope.
         ((kind) != (a_scope_kind)sck_class_reactivation &&              \
          (kind) != (a_scope_kind)sck_namespace_reactivation &&          \
          (kind) != (a_scope_kind)sck_instantiation_context &&          \
+         (kind) != (a_scope_kind)sck_function_access &&			\
          (kind) != (a_scope_kind)sck_template_instantiation)))
 
 
@@ -2618,6 +2619,8 @@ the scope being pushed.
     ssep->implicit_typename = (ssep-1)->implicit_typename;
     ssep->in_disambiguation= (ssep-1)->in_disambiguation;
   }  /* if */
+  ssep->trans_unit_pushed = FALSE;
+  ssep->is_rescan = (options & PS_IS_RESCAN) != 0;
 #if USER_CONTROL_OF_STRUCT_PACKING
   ssep->pragma_pack_is_local     = FALSE;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -2921,7 +2924,7 @@ the scope being pushed.
       ssep->in_nonreal_instantiation =
                                    (options & PS_NONREAL_INSTANTIATION) != 0;
       ssep->in_generic_definition = (options & PS_GENERIC_DEFINITION) != 0;
-      if (template_sym != NULL) {
+      if (template_sym != NULL && !ssep->is_rescan) {
         /* Determine whether this is an instantiation of a variadic
            template. */
         a_template_symbol_supplement_ptr	tssp;
@@ -4662,27 +4665,53 @@ push_template_instantiation_scope.
 }  /* pop_template_instantiation_scope */
 
 
-/*ARGSUSED*/ /* <-- Because "template_sym" is not used. */
 void push_instantiation_scope_for_rescan(a_symbol_ptr	template_sym)
 /*
 Push an instantiation scope for expression rescan.  template_sym is
-currently unused.
+is the template that is being rescanned and can be NULL.
 */
 {
-  a_template_decl_info_ptr		tdip;
+  a_template_decl_info_ptr	tdip;
+  a_routine_ptr			rp = NULL;
+  a_boolean			trans_unit_pushed = FALSE;
+  a_scope_stack_entry_ptr	ssep;
 
   check_assertion(template_sym->kind == (a_symbol_kind)sk_class_template ||
                   template_sym->kind == (a_symbol_kind)sk_function_template);
-  tdip = alloc_template_decl_info();
+  if (!cpp11_sfinae_ignore_access && template_sym != NULL) {
+    a_template_symbol_supplement_ptr	tssp;
+    tssp = template_supplement_for_symbol(template_sym);
+    /* Get the template decl. info. to get the context to be used for
+       access checking. */
+    if (template_sym->kind == (a_symbol_kind)sk_function_template) {
+      rp = tssp->variant.function.routine;
+      tdip = tssp->variant.function.decl_cache.decl_info;
+    } else {
+      tdip = tssp->cache.decl_info;
+    }  /* if */
+  } else {
+    tdip = alloc_template_decl_info();
+  }  /* if */
+  /* Switch to the translation unit containing the template, if needed. */
+  if (template_sym != NULL) {
+    trans_unit_pushed = push_translation_unit_if_needed(template_sym);
+  }  /* if */
   (void)push_template_instantiation_scope(
-                              tdip, (a_type_ptr)NULL, (a_routine_ptr)NULL,
-                              (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                              tdip, (a_type_ptr)NULL, rp,
+                              (a_symbol_ptr)NULL, template_sym,
                               (a_template_arg_ptr)NULL,
                               /*push_lex_state=*/TRUE,
                               PS_NONREAL_INSTANTIATION | PS_IS_RESCAN);
   /* Don't include this scope in any diagnostic output that may be produced. */
-  scope_stack[depth_innermost_instantiation_scope].
-                                            exclude_from_context_output = TRUE;
+  ssep = &scope_stack_top();
+  ssep->exclude_from_context_output = TRUE;
+  /* Record whether or not a translation unit was pushed for this rescan. */
+  ssep->trans_unit_pushed = trans_unit_pushed;
+  if (!cpp11_sfinae_ignore_access && template_sym != NULL) {
+    /* A function access scope is pushed even for the class case. */
+    (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
+                     (a_type_ptr)NULL, rp);
+  }  /* if */
 }  /* push_instantiation_scope_for_rescan */
 
 
@@ -4692,11 +4721,24 @@ Pop the template instantiation scope pushed by
 push_instantiation_scope_for_rescan.
 */
 {
-  a_template_decl_info_ptr	tdip;
+  a_template_decl_info_ptr	tdip = NULL;
+  a_boolean			trans_unit_pushed;
 
-  tdip = scope_stack[depth_innermost_instantiation_scope].template_decl_info;
+  if (scope_stack_top().kind == (a_scope_kind)sck_function_access) {
+    /* The presence of a function access scope means that the template
+       decl. info. from a class or function is being used, so it
+       must not be freed below. */
+    pop_scope();
+  } else {
+    a_scope_stack_entry_ptr	ssep;
+    ssep = &scope_stack[depth_innermost_instantiation_scope];
+    tdip = ssep->template_decl_info;
+  }  /* if */
+  trans_unit_pushed = scope_stack_top().trans_unit_pushed;
   pop_template_instantiation_scope();
-  free_template_decl_info(tdip);
+  /* If the translation unit stack was pushed earlier, pop it now. */
+  if (trans_unit_pushed) pop_translation_unit_stack();
+  if (tdip != NULL) free_template_decl_info(tdip);
 }  /* pop_instantiation_scope_for_rescan */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -8861,11 +8903,25 @@ scope or template instantiation scope for a prototype instantiation.
 */
 {
   a_scope_stack_entry_ptr	ssep;
-  a_scope_depth			depth_to_use;
+  a_scope_depth			depth_to_use = NO_SCOPE_DEPTH;
 
   /* Find the innermost template declaration or template instantiation
-     scope. */
-  depth_to_use = depth_innermost_instantiation_scope;
+     scope.  Ignore any instantiation scopes for template rescans. */
+  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    ssep = scope_stack_entry_for(depth_innermost_instantiation_scope);
+    while (ssep->kind == (a_scope_kind)sck_template_instantiation &&
+           ssep->is_rescan) {
+      /* If we are in a rescan context, skip to the next enclosing template
+         instantiation scope, if any. */
+      for (ssep--;
+           ssep->kind != (a_scope_kind)sck_template_instantiation &&
+             ssep->kind != (a_scope_kind)sck_file;
+           ssep--) {}
+    }  /* while */
+    if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
+      depth_to_use = scope_depth_of(ssep);
+    }  /* if */
+  }  /* if */
   if (depth_to_use < depth_template_declaration_scope) {
     depth_to_use = depth_template_declaration_scope;
   } else {

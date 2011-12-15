@@ -2683,8 +2683,12 @@ any extra rescan information saved previously in *eriep.
      expression stack. */
   /* Don't restore bound_function; it is managed explicitly. */
   a_boolean saved_bound_function = operand->bound_function;
+  /* Ditto for pack_expansion_descr, */
+  a_pack_expansion_descr *saved_pack_expansion_descr =
+                                                 operand->pack_expansion_descr;
   restore_operand_details(operand, &eriep->saved_operand);
   operand->bound_function = saved_bound_function;
+  operand->pack_expansion_descr = saved_pack_expansion_descr;
 }  /* restore_operand_info_from_expr_rescan_info_entry */
 
 

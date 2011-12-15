@@ -31021,6 +31021,8 @@ is TRUE if the expression is the immediate operand of an "&" operator.
   /* The operand may become a bound function, but it isn't yet at this
      level.  Clear the flag if it just got set by restore_operand_details. */
   result->bound_function = FALSE;
+  /* Ditto for pack_expansion_descr. */
+  result->pack_expansion_descr = NULL;
   restore_operand_id_details(result, &eriep->saved_operand);
   if (is_a_function_designator(result)) {
     if (result->is_operand_of_address_of) {

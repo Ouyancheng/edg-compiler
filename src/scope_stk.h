@@ -878,6 +878,12 @@ typedef struct a_scope_stack_entry {
   a_bit_field	in_disambiguation:1;
 			/* TRUE if we are currently doing disambiguation
 			   processing. */
+  a_bit_field	trans_unit_pushed:1;
+			/* TRUE if a translation unit was pushed as part of
+			   pushing a rescan context. */
+  a_bit_field	is_rescan:1;
+			/* TRUE if the scope being pushed is an instantiation
+			   scope for template rescan purposes. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;

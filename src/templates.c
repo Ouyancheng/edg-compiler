@@ -9398,7 +9398,14 @@ being looked up is known to be a type.
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      if (ambiguous) *copy_error = TRUE;
+      /* If the symbol is ambiguous, or if the symbol is not accessible and
+         we are in a mode where access errors should result in deduction
+         failures, set the copy_error flag. */
+      if (ambiguous ||
+          (new_sym != NULL && !cpp11_sfinae_ignore_access &&
+           !have_access_to_symbol(new_sym))) {
+        *copy_error = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return new_sym;
