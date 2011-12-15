@@ -1,5 +1,20 @@
 Version 4.4
 
+12/14/11 [EDGcpfe/12332]
+C++-generating back end, GNU compatibility: abort on __builtin_offsetof base
+class member
+
+When a GNU __builtin_offsetof operator is applied to a member of a base
+class of the class named in its first argument, the C++-generating back end
+aborted with an assertion failure.  This is now fixed.  For example:
+
+  struct A {
+    int i;
+  };
+  struct B : A { };
+  int j = __builtin_offsetof(B, i);
+
+
 12/14/11 [EDGcpfe/12516]
 Eliding unnecessary calls to empty virtual destructors
 

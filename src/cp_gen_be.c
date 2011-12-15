@@ -10109,7 +10109,14 @@ handled through recursion.
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
       arg1 = remove_nonstandard_anonymous_union_field_selections(arg1, &op);
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-      if (node_operator_is(arg1, eok_indirect) &&
+      /* Skip over any (implicit) cast operations in the object
+         expression. */
+      while (is_operation_node(arg1) &&
+             (node_operator_is(arg1, eok_base_class_cast) ||
+              node_operator_is(arg1, eok_cast))) {
+        arg1 = arg1->variant.operation.operands;
+      }  /* while */
+      if (is_operation_node(arg1) && node_operator_is(arg1, eok_indirect) &&
           arg1->variant.operation.compiler_generated) {
         /* Skip over a compiler-generated indirection node. */
         arg1 = arg1->variant.operation.operands;
