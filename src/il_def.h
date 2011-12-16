@@ -16774,14 +16774,14 @@ EXTERN char     *builtin_operation_names[(int)bok_last+1]
   "__has_nothrow_move_assign",
   "__is_constructible",
   "__is_nothrow_constructible",
-   "__has_finalizer",
-   "__is_delegate",
-   "__is_interface_class",
-   "__is_ref_array",
-   "__is_ref_class",
-   "__is_sealed",
-   "__is_simple_value_class",
-   "__is_value_class",
+  "__has_finalizer",
+  "__is_delegate",
+  "__is_interface_class",
+  "__is_ref_array",
+  "__is_ref_class",
+  "__is_sealed",
+  "__is_simple_value_class",
+  "__is_value_class",
   "last"
 }
 #endif /* VAR_INITIALIZERS */
