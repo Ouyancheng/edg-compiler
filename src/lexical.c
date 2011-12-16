@@ -15515,7 +15515,8 @@ static a_symbol_ptr look_up_qualifier_start(
                   a_boolean                *is_vacuous_dtor_or_finalizer,
                   a_boolean                might_be_template,
                   a_boolean                in_if_exists,
-                  a_boolean                prefer_class_member)
+                  a_boolean                prefer_class_member,
+                  a_boolean                is_cli_typeid)
 /*
 This routine does the "dual lookup" that is done in contexts such as
 the "A" in "p->A::B" and "f" in "p->f<...>...".  This involves looking
@@ -15529,7 +15530,8 @@ that can only be a vacuous destructor/finalizer is returned.  class_type is
 the class type of the left operand of the field selection.  in_if_exists is
 TRUE when scanning the identifier of a Microsoft __if_exists or
 __if_not_exists directive.  If prefer_class_member is TRUE, the class member
-is preferred over the normal lookup symbol.
+is preferred over the normal lookup symbol.  is_cli_typeid is TRUE if
+we are scanning a C++/CLI typeid of the form X::typeid.
 */
 {
   a_symbol_ptr	normal_sym;
@@ -15605,6 +15607,7 @@ is preferred over the normal lookup symbol.
     }  /* if */
     *is_vacuous_dtor_or_finalizer = only_valid_as_vacuous_dtor;
   } else if (sym == NULL && (might_be_vacuous_dtor_or_finalizer ||
+                             is_cli_typeid ||
                              (microsoft_bugs && microsoft_version < 1300 &&
                               !in_if_exists))) {
     /* The lookup has failed so far.  If this might be a vacuous destructor,
@@ -15627,7 +15630,7 @@ is preferred over the normal lookup symbol.
     } else {
       sym = normal_fund_sym;
     }  /* if */
-    if (sym != NULL && !might_be_vacuous_dtor_or_finalizer) {
+    if (sym != NULL && !is_cli_typeid && !might_be_vacuous_dtor_or_finalizer) {
       /* In Microsoft bugs mode, ignore this symbol unless it is one
          that actually does not indicate the start of a qualified name. */
       if (is_microsoft_qualifier_start(sym)) sym = NULL;
@@ -16093,6 +16096,7 @@ selection operator, in which case it points to the type of the left operand.
     } else {
       an_id_lookup_options_set	lookup_kind;
       a_boolean			might_be_vacuous_dtor_or_finalizer;
+      a_boolean			is_cli_typeid = FALSE;
       /* A normal qualified name or a vacuous destructor/finalizer reference
          that begins with a normal qualified name (e.g., A::B::T::~T).
          If a vacuous destructor/finalizer reference is allowed and the token
@@ -16131,7 +16135,8 @@ selection operator, in which case it points to the type of the left operand.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (cppcli_enabled && next_tok_2 == tok_typeid) {
         /* A C++/CLI typeid reference -- something like X::typeid. */
-        lookup_kind = IDL_NO_OPTIONS;
+        is_cli_typeid = TRUE;
+        lookup_kind = IDL_MUST_BE_CLASS;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         lookup_kind = IDL_MUST_BE_CLASS_OR_NAMESPACE;
@@ -16142,10 +16147,10 @@ selection operator, in which case it points to the type of the left operand.
         qualifier_sym = file_scope_id_lookup(il_header.primary_scope,
 					     &locator_for_curr_id,
                                              lookup_kind);
-        if (might_be_vacuous_dtor_or_finalizer) {
-          /* If we might have a vacuous destructor/finalizer and the lookup
-             result above was invalid as a qualifier, consider this to be a
-             vacuous destructor/finalizer. */
+        if (might_be_vacuous_dtor_or_finalizer || is_cli_typeid) {
+          /* If we might have a vacuous destructor/finalizer or C++/CLI
+             typeid and the lookup result above was invalid as a qualifier,
+             consider this to be a vacuous destructor/finalizer. */
           if (qualifier_sym == NULL) {
             /* No symbol was found.  Do a broader lookup. */
             qualifier_sym = file_scope_id_lookup(il_header.primary_scope,
@@ -16169,7 +16174,8 @@ selection operator, in which case it points to the type of the left operand.
 				   /*might_be_template=*/next_tok == tok_lt ||
                                                          follows_template,
                                    in_if_exists,
-                                   qualified_conversion_operator);
+                                   qualified_conversion_operator,
+                                   is_cli_typeid);
         if (locator_for_curr_id.is_semivisible_nested_type) {
           /* The symbol in the locator is a nested class that is not visible
              according to the ARM lookup rules but is returned in support of
@@ -16517,6 +16523,7 @@ selection operator, in which case it points to the type of the left operand.
           a_boolean	might_be_vacuous_dtor_or_finalizer =
                                        can_be_vacuous_dtor_or_finalizer &&
                                        is_dtor_or_finalizer_token(next_tok_2);
+          is_cli_typeid = FALSE;
           if (qualifier_is_type && qualifier_type_is_class) {
             /* Make sure that this class has been instantiated. */
             complete_class_type_is_needed(qualifier_type);
@@ -16548,7 +16555,8 @@ selection operator, in which case it points to the type of the left operand.
 #if MICROSOFT_EXTENSIONS_ALLOWED
             } else if (cppcli_enabled && next_tok_2 == tok_typeid) {
               /* A C++/CLI typeid reference -- something like X::typeid. */
-              lookup_options = IDL_NO_OPTIONS;
+              lookup_options = IDL_MUST_BE_CLASS;
+              is_cli_typeid = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             } else {
               lookup_options = IDL_MUST_BE_CLASS_OR_NAMESPACE;
@@ -16621,16 +16629,18 @@ selection operator, in which case it points to the type of the left operand.
                 qualifier_sym = class_qualified_id_lookup
                                          (&locator_for_curr_id, qualifier_type,
                                           lookup_options);
-                if (might_be_vacuous_dtor_or_finalizer) {
-                  /* If we might have a vacuous destructor/finalizer and the
-                     lookup result above was invalid as a qualifier, consider
-                     this to be a vacuous destructor/finalizer. */
+                if (might_be_vacuous_dtor_or_finalizer || is_cli_typeid) {
+                  /* If we might have a vacuous destructor/finalizer or
+                     C++/CLI typeid and the lookup result above was invalid
+                     as a qualifier. */
                   if (qualifier_sym == NULL) {
                     /* No symbol was found.  Do a broader lookup. */
                     qualifier_sym = class_qualified_id_lookup(
                                           &locator_for_curr_id, qualifier_type,
                                           IDL_NO_OPTIONS);
-                    is_vacuous_dtor_or_finalizer = TRUE;
+                    /* Unless this is known to be a C++/CLI typeid, consider
+                       this a vacuous destructor/finalizer. */
+                    if (!is_cli_typeid) is_vacuous_dtor_or_finalizer = TRUE;
                   } else if (!is_valid_qualifier_symbol(qualifier_sym)) {
                     /* A symbol was found by the first lookup, but is not
                        valid except possibly as a vacuous destructor/
