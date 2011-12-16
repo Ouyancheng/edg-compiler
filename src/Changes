@@ -3678,6 +3678,9 @@ for cases like this, for those covered by EDGcpfe/11769, and in
 general when an rvalue reference is bound to an lvalue, since
 that may destroy a variable that is still in scope.  [9/30/11:
 This logic turned out to be flawed.  See EDGcpfe/12994.]
+[12/16/11: The warnings have been reduced to remarks, since
+they show up in straightforward use of the g++ 4.4 headers.
+See EDGcpfe/12494.]
 
   struct A {
     A();
@@ -3686,8 +3689,8 @@ This logic turned out to be flawed.  See EDGcpfe/12994.]
   };
   int main() {
     const A ca;
-    A a = ca;  // Accepted by g++ 4.5; now accepted, warning issued
-    a = ca;    // Accepted by g++ 4.5; now accepted, warning issued
+    A a = ca;  // Accepted by g++ 4.5; now accepted
+    a = ca;    // Accepted by g++ 4.5; now accepted
   }
 
 

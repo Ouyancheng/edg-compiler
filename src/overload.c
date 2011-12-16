@@ -2168,10 +2168,11 @@ conv_context describes the context of the binding.
   if (gpp_mode && gnu_version < 40500) {
     binding_allowed = TRUE;
     if (warning_pos != NULL) {
-      expr_pos_warning((conv_context & CCO_MOVE_CTOR_OR_ASSIGN_PARAMETER) ?
-                         ec_move_ctor_or_assign_copy_of_lvalue :
-                         ec_rvalue_reference_bound_to_lvalue,
-                       warning_pos);
+      expr_pos_diagnostic((an_error_severity)es_remark,
+                          (conv_context & CCO_MOVE_CTOR_OR_ASSIGN_PARAMETER) ?
+                            ec_move_ctor_or_assign_copy_of_lvalue :
+                            ec_rvalue_reference_bound_to_lvalue,
+                          warning_pos);
     }  /* if */
   }  /* if */
   return binding_allowed;
