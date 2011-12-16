@@ -723,10 +723,16 @@ scanning through the second and following bytes (if any).
   int translated_len;
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
-  if (state->translate_utf8_to_mbc) {
+  if (state->translate_utf8_to_mbc ||
+      (!gnu_mode && curr_file_unicode_source_kind == usk_none)) {
+    /* If the emulation (such as Microsoft mode) requires it, we translate
+       Unicode characters to the system default multibyte character set.
+       Otherwise, we do that translation if the source is not Unicode (so
+       that a UCN will have the same encoding as the surrounding native
+       characters), except that the GNU compilers always encode UCNs (the
+       only way to get a Unicode character in non-Unicode source) as
+       UTF-8. */
     a_boolean err;
-    /* Translate the Unicode character into the system default multibyte
-       character set. */
     translated_len = unicode_to_multibyte_char(unicode_char,
                                                state->translated_char, &err);
     if (err) {

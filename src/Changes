@@ -1,5 +1,25 @@
 Version 4.4
 
+12/16/11 [EDGcpfe/12066,EDGcpfe/9971]
+universal-character-names in narrow string literals
+
+The change for EDGcpfe/11914 resulted in universal-character-names in
+narrow string literals being encoded as UTF-8 in all non-Microsoft modes,
+regardless of the encoding of the source file.  This processing has now
+been refined so that, when NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is
+set to TRUE, universal-character-names appearing in non-Unicode-encoded
+source files are translated to the system default locale character set,
+except in GNU modes where (like the GNU compilers) they continue to be put
+out as UTF-8.  As a result, extended characters, whether represented in a
+native encoding or as universal-character-names, will have the same output
+representation.  For example, in the following Latin-1 encoded source file
+compiled in a non-GNU mode, strlen(str) will be 2 and both characters will
+be the same:
+
+  char str[] = "¶\u00b6";  // The pilcrow (paragraph mark) in Latin-1
+                              // and as a universal-character-name
+
+
 12/15/11 [EDGcpfe/11682]
 Access checking in SFINAE contexts
 
