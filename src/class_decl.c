@@ -16853,7 +16853,7 @@ implementation of IDisposable::Dispose().)
 static void implement_dispose_pattern_if_needed(
                                            a_class_def_state_ptr  class_state)
 /*
-Implement the C++/CLI dispose pattern for this class it is needed.
+Implement the C++/CLI dispose pattern for this class if it is needed.
 */
 {
   a_type_ptr                     class_type = class_state->class_type;
