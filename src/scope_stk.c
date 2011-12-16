@@ -4676,7 +4676,8 @@ the template that is being rescanned and can be NULL.
 
   check_assertion(template_sym->kind == (a_symbol_kind)sk_class_template ||
                   template_sym->kind == (a_symbol_kind)sk_function_template);
-  if (!cpp11_sfinae_ignore_access && template_sym != NULL) {
+  if (cpp11_sfinae_enabled && !cpp11_sfinae_ignore_access &&
+      template_sym != NULL) {
     a_template_symbol_supplement_ptr	tssp;
     tssp = template_supplement_for_symbol(template_sym);
     /* Get the template decl. info. to get the context to be used for
@@ -4699,7 +4700,8 @@ the template that is being rescanned and can be NULL.
   /* Don't include this scope in any diagnostic output that may be produced. */
   ssep = &scope_stack_top();
   ssep->exclude_from_context_output = TRUE;
-  if (!cpp11_sfinae_ignore_access && template_sym != NULL) {
+  if (cpp11_sfinae_enabled && !cpp11_sfinae_ignore_access &&
+      template_sym != NULL) {
     /* A function access scope is pushed even for the class case. */
     (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
                      (a_type_ptr)NULL, rp);
