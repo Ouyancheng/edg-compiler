@@ -11480,6 +11480,16 @@ no value is returned for that.
     if (unqualified_tp == class_of_which_a_member) {
       /* It is probably a copy constructor. */
       is_cctor = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled &&
+          is_tracking_reference_type(ptp->type) &&
+          !is_managed_class_type(class_of_which_a_member)) {
+        /* A constructor that copies a native class using a tracking reference
+           is not considered a copy constructor, so it won't improperly
+           compete with the real copy constructor. */
+        is_cctor = FALSE;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (!is_declarative_context) {
         /* If this is a call context, be sure the default argument has already
            been scanned.  Here's a case where this makes a difference:
