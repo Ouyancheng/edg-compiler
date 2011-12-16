@@ -8152,14 +8152,16 @@ indicated by opstr.
   write_tok_str(opstr);
   /* Put out the second operand. */
   if (unknown_function_case) {
-    /* Put out an unknown function without a leading "&".  We did not push
-       a new name context for this case above, but we need to indicate that
-       the name appears in the second operand of a field selection operator
-       (to allow the "template" keyword to be put out by gen_name), so we
-       push a cloned version of the current context now for that
-       purpose. */
-    a_name_context_ptr context_for_unknown_function = 
-                                       push_temp_context_for_field_selection();
+    /* Put out an unknown function without a leading "&". */
+    a_name_context_ptr context_for_unknown_function = NULL;
+    if (new_name_context == NULL) {
+      /*  We did not push a new name context for this case above, but we
+          need to indicate that the name appears in the second operand of a
+          field selection operator (to allow the "template" keyword to be
+          put out by gen_name), so we push a cloned version of the current
+          context now for that purpose. */
+      context_for_unknown_function = push_temp_context_for_field_selection();
+    }  /* if */
     form_unknown_function_constant(con, &octl);
     if (curr_name_context == context_for_unknown_function) {
       pop_name_context();
