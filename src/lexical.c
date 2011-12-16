@@ -15886,9 +15886,9 @@ selection operator, in which case it points to the type of the left operand.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                     qualifier_is_property_or_event = FALSE;
   a_symbol_ptr			qualifier_property_or_event = NULL;
-  a_boolean			is_cli_typeid = FALSE;
   a_type_ptr			cli_system_type_for_keyword = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean			is_cli_typeid = FALSE;
   a_boolean			qualifier_type_is_class = FALSE;
   a_namespace_ptr		qualifier_namespace = NULL;
   a_token_sequence_number	start_seq_number;
@@ -16096,7 +16096,6 @@ selection operator, in which case it points to the type of the left operand.
     } else {
       an_id_lookup_options_set	lookup_kind;
       a_boolean			might_be_vacuous_dtor_or_finalizer;
-      a_boolean			is_cli_typeid = FALSE;
       /* A normal qualified name or a vacuous destructor/finalizer reference
          that begins with a normal qualified name (e.g., A::B::T::~T).
          If a vacuous destructor/finalizer reference is allowed and the token
@@ -16758,6 +16757,7 @@ selection operator, in which case it points to the type of the left operand.
   }  /* if */
   /* Assume we have found an identifier until we discover otherwise. */
   is_identifier = TRUE;
+  is_cli_typeid = FALSE;
   if (is_qualified_name && qualifier_is_type &&
       !is_file_scope_qualified_name) {
     /* This is a qualifier (but not a file scope qualified name such as
