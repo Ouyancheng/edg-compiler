@@ -2619,7 +2619,6 @@ the scope being pushed.
     ssep->implicit_typename = (ssep-1)->implicit_typename;
     ssep->in_disambiguation= (ssep-1)->in_disambiguation;
   }  /* if */
-  ssep->trans_unit_pushed = FALSE;
   ssep->is_rescan = (options & PS_IS_RESCAN) != 0;
 #if USER_CONTROL_OF_STRUCT_PACKING
   ssep->pragma_pack_is_local     = FALSE;
@@ -4470,7 +4469,7 @@ class to be defined.
   saved_innermost_scope_that_affects_access =
                          depth_of_innermost_scope_that_affects_access_control;
   /* Make sure we are in the right translation unit. */
-  check_assertion_str2(template_sym == NULL ||
+  check_assertion_str2(template_sym == NULL || (options & PS_IS_RESCAN) != 0 ||
                        symbol_is_from_trans_unit(template_sym,
                                                  curr_translation_unit),
                        "push_template_instantiation_scope:",
@@ -4668,12 +4667,11 @@ push_template_instantiation_scope.
 void push_instantiation_scope_for_rescan(a_symbol_ptr	template_sym)
 /*
 Push an instantiation scope for expression rescan.  template_sym is
-is the template that is being rescanned and can be NULL.
+the template that is being rescanned and can be NULL.
 */
 {
   a_template_decl_info_ptr	tdip;
   a_routine_ptr			rp = NULL;
-  a_boolean			trans_unit_pushed = FALSE;
   a_scope_stack_entry_ptr	ssep;
 
   check_assertion(template_sym->kind == (a_symbol_kind)sk_class_template ||
@@ -4692,10 +4690,6 @@ is the template that is being rescanned and can be NULL.
   } else {
     tdip = alloc_template_decl_info();
   }  /* if */
-  /* Switch to the translation unit containing the template, if needed. */
-  if (template_sym != NULL) {
-    trans_unit_pushed = push_translation_unit_if_needed(template_sym);
-  }  /* if */
   (void)push_template_instantiation_scope(
                               tdip, (a_type_ptr)NULL, rp,
                               (a_symbol_ptr)NULL, template_sym,
@@ -4705,8 +4699,6 @@ is the template that is being rescanned and can be NULL.
   /* Don't include this scope in any diagnostic output that may be produced. */
   ssep = &scope_stack_top();
   ssep->exclude_from_context_output = TRUE;
-  /* Record whether or not a translation unit was pushed for this rescan. */
-  ssep->trans_unit_pushed = trans_unit_pushed;
   if (!cpp11_sfinae_ignore_access && template_sym != NULL) {
     /* A function access scope is pushed even for the class case. */
     (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
@@ -4722,7 +4714,6 @@ push_instantiation_scope_for_rescan.
 */
 {
   a_template_decl_info_ptr	tdip = NULL;
-  a_boolean			trans_unit_pushed;
 
   if (scope_stack_top().kind == (a_scope_kind)sck_function_access) {
     /* The presence of a function access scope means that the template
@@ -4734,10 +4725,7 @@ push_instantiation_scope_for_rescan.
     ssep = &scope_stack[depth_innermost_instantiation_scope];
     tdip = ssep->template_decl_info;
   }  /* if */
-  trans_unit_pushed = scope_stack_top().trans_unit_pushed;
   pop_template_instantiation_scope();
-  /* If the translation unit stack was pushed earlier, pop it now. */
-  if (trans_unit_pushed) pop_translation_unit_stack();
   if (tdip != NULL) free_template_decl_info(tdip);
 }  /* pop_instantiation_scope_for_rescan */
 
