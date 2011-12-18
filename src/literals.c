@@ -744,7 +744,7 @@ bytes (if any).  */
       (void)sprintf(buf, "%lx", unicode_char);
       conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
       str_warning(ec_bad_unicode_char_in_string, buf);
-      }  /* if */
+    }  /* if */
   } else
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
   /* Do not insert code here. */
