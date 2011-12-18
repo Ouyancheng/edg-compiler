@@ -2846,7 +2846,7 @@ if the truth cannot be discovered, is FALSE.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* The test for a for-each loop varies depending on the type of for-each
      loop that has been detected.  For array iteration, we're assured that
-     the loop is finite, for other types various expressions could be
+     the loop is finite; for other types various expressions could be
      examined, but the expressions all involve calls of some sort and since
      they haven't been inlined yet, this code is too simplistic to determine
      whether the call would always return true.  Therefore, assume for-each
