@@ -499,6 +499,7 @@ dump_control_flow has been enabled at the command line.
     case ssk_for:        str = "for";        break;
     case ssk_try_block:  str = "try_block";  break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    case ssk_for_each:   str = "for each";   break;
     case ssk_microsoft_try:  str = "microsoft_try";  break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:             str = "<unknown>"; break;
@@ -2688,7 +2689,11 @@ statement is the top block of a GNU statement expression ({ ... }).
   }  /* if */
   sssep->start_reachable      = curr_reachability;
   set_unreachable(sssep->end_reachable);  /* So far. */
-  if (kind == ssk_while || kind == ssk_do || kind == ssk_for) {
+  if (kind == ssk_while || kind == ssk_do || kind == ssk_for
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      || kind == ssk_for_each
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                             ) {
     /* The bodies of loops are reachable in that the bottom can branch to
        the top. */
     set_reachable(curr_reachability);
@@ -2838,14 +2843,20 @@ if the truth cannot be discovered, is FALSE.
   a_boolean        is_inf_loop = FALSE;
   an_expr_node_ptr expr;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* The test for a for-each loop varies depending on the type of for-each
+     loop that has been detected.  For array iteration, we're assured that
+     the loop is finite, for other types various expressions could be
+     examined, but the expressions all involve calls of some sort and since
+     they haven't been inlined yet, this code is too simplistic to determine
+     whether the call would always return true.  Therefore, assume for-each
+     loops are never infinite. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (stmt->kind == (a_statement_kind)stmk_while ||
       stmt->kind == (a_statement_kind)stmk_end_test_while ||
 #if UPC_EXTENSIONS_ALLOWED
       stmt->kind == (a_statement_kind)stmk_upc_forall ||
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      stmt->kind == (a_statement_kind)stmk_for_each ||
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       stmt->kind == (a_statement_kind)stmk_for) {
     expr = stmt->expr;
     /* In the "for" loop, the expression can be NULL and that implies an
@@ -2965,12 +2976,20 @@ a structured statement has ended.
   term_stmt_clause(sssep);
   /* Determine whether or not the code following the statement is reachable,
      and set curr_reachability appropriately. */
-  if (kind == ssk_while || kind == ssk_for || kind == ssk_do) {
+  if (kind == ssk_while || kind == ssk_for || kind == ssk_do
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      || kind == ssk_for_each
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                             ) {
     /* A loop. */
     if (is_infinite_loop(sp)) {
       /* An infinite loop.  The code after the loop is not reachable. */
       set_unreachable(curr_reachability);
-    } else if (kind == ssk_while || kind == ssk_for) {
+    } else if (kind == ssk_while || kind == ssk_for
+#if MICROSOFT_EXTENSIONS_ALLOWED
+               || kind == ssk_for_each
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                      ) {
       /* A top-test loop.  The code after the loop is reachable if the current
          location is reachable or if the start of the loop is reachable. */
       merge_reachability(&sssep->start_reachable, &curr_reachability);
