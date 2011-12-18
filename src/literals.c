@@ -719,10 +719,16 @@ character and set up state for scanning through the second and following
 bytes (if any).  */
 {
   int           translated_len;
+#if UNICODE_SOURCE_SUPPORTED
+  a_boolean     is_unicode_source =
+                                   (curr_file_unicode_source_kind != usk_none);
+#else /* !UNICODE_SOURCE_SUPPORTED */
+  a_boolean     is_unicode_source = FALSE;
+#endif /* UNICODE_SOURCE_SUPPORTED */
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
   if (state->translate_utf8_to_mbc ||
-      (!gnu_mode && curr_file_unicode_source_kind == usk_none)) {
+      (!gnu_mode && !is_unicode_source)) {
     /* If the emulation (such as Microsoft mode) requires it, we translate
        Unicode characters to the system default multibyte character set.
        Except in GNU mode, we also do that translation if the source is not
@@ -742,7 +748,7 @@ bytes (if any).  */
   } else
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
   /* Do not insert code here. */
-  if (gnu_mode || curr_file_unicode_source_kind != usk_none) {
+  if (gnu_mode || is_unicode_source) {
     /* Translate the Unicode character into UTF-8. */
     translated_len = unicode_to_utf8(unicode_char, state->translated_char);
   } else {
