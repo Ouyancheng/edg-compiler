@@ -29603,6 +29603,7 @@ previously created, needed to reactivate that scope.
   a_variable_ptr      collection_var = felp->collection_expr_ref;
   a_type_ptr          orig_collection_type, collection_type;
   a_base_class_ptr    ienumerable_bcp;
+  a_boolean           dependent_case = FALSE;
   an_expr_stack_entry *saved_expr_stack;
   
   db_enter(3, "check_for_each_statement");
@@ -29654,12 +29655,23 @@ previously created, needed to reactivate that scope.
     }  /* if */
   } else if (is_template_dependent_type(collection_type)) {
     /* The collection type is not known; do not attempt to validate it. */
+    dependent_case = TRUE;
   } else {
     /* This collection is not of a suitable type; we just issue a generic
        diagnostic. */
     pos_ty_error(ec_for_each_incompatible_type,
                  &collection_var->source_corresp.decl_position,
                  orig_collection_type);
+  }  /* if */
+  if (!felp->uses_prev_decl_iterator &&
+      felp->iterator.variable != NULL &&
+      felp->iterator.variable->declared_with_auto_type_specifier &&
+      is_auto_type(find_bottom_of_type(felp->iterator.variable->type))) {
+    /* We failed to resolve the auto type of the iterator variable, so
+       make it an error type (or an unknown dependent type). */
+    felp->iterator.variable->type = dependent_case ?
+                                      type_of_unknown_templ_param_nontype :
+                                      error_type();
   }  /* if */
   restore_expr_stack(saved_expr_stack);
   db_exit();
