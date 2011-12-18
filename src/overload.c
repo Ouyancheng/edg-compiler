@@ -2047,9 +2047,12 @@ guard function.
                                          &local_ambiguous,
                                          (a_candidate_function_ptr *)NULL)) {
         if (local_conversion.routine != conversion->routine &&
-            !(local_conversion.routine != NULL &&
-              conversion->routine != NULL &&
-              local_conversion.routine->assoc_template != NULL &&
+            local_conversion.routine != NULL &&
+            conversion->routine != NULL &&
+            /* If only one is a template, the non-template will be better. */
+            ((local_conversion.routine->assoc_template != NULL) ==
+             (conversion->routine->assoc_template != NULL)) &&
+            !(local_conversion.routine->assoc_template != NULL &&
               local_conversion.routine->assoc_template ==
                                         conversion->routine->assoc_template)) {
           /* The second overload resolution would get a different conversion
