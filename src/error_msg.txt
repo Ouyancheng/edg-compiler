@@ -2328,6 +2328,7 @@ ec_invalid_empty_initializer_list;;"empty initializer list not allowed here"
 ec_template_in_managed_class;;"a template cannot be declared in a managed class"
 ec_bad_generic_declaration_scope;;"a generic declaration is not allowed here"
 ec_interface_cannot_have_member_generics;;"interface types cannot have member generics"
+ec_character_not_latin_1;;"Unicode character not Latin-1, truncated to low-order byte"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

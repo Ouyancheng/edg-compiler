@@ -713,25 +713,21 @@ static unsigned long conv_unicode_literal_char(
                                       a_char_conversion_state_ptr state,
                                       unsigned long               unicode_char)
 /*
-Convert the Unicode character unicode_char to UTF-8 or, if
-NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is TRUE and the current
-emulation requires it, to the system default multibyte character set.
-Return the first byte of the converted character and set up state for
-scanning through the second and following bytes (if any).
-*/
+Convert the Unicode character unicode_char to the appropriate
+representation in a literal.  Return the first byte of the converted
+character and set up state for scanning through the second and following
+bytes (if any).  */
 {
-  int translated_len;
+  int           translated_len;
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
   if (state->translate_utf8_to_mbc ||
       (!gnu_mode && curr_file_unicode_source_kind == usk_none)) {
     /* If the emulation (such as Microsoft mode) requires it, we translate
        Unicode characters to the system default multibyte character set.
-       Otherwise, we do that translation if the source is not Unicode (so
-       that a UCN will have the same encoding as the surrounding native
-       characters), except that the GNU compilers always encode UCNs (the
-       only way to get a Unicode character in non-Unicode source) as
-       UTF-8. */
+       Except in GNU mode, we also do that translation if the source is not
+       Unicode (so that a universal-character-name will have the same
+       encoding as the surrounding native characters). */
     a_boolean err;
     translated_len = unicode_to_multibyte_char(unicode_char,
                                                state->translated_char, &err);
@@ -742,13 +738,24 @@ scanning through the second and following bytes (if any).
       (void)sprintf(buf, "%lx", unicode_char);
       conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
       str_warning(ec_bad_unicode_char_in_string, buf);
-    }  /* if */
+      }  /* if */
   } else
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
   /* Do not insert code here. */
-  {
+  if (gnu_mode || curr_file_unicode_source_kind != usk_none) {
     /* Translate the Unicode character into UTF-8. */
     translated_len = unicode_to_utf8(unicode_char, state->translated_char);
+  } else {
+    /* Assuming that the target character set is Latin-1, which shares the
+       first 256 code points with Unicode, we truncate the character to the
+       low-order eight bits and issue a warning if the character is not
+       Latin-1. */
+    translated_len = 1;
+    state->translated_char[0] = (unsigned char)unicode_char;
+    if (unicode_char > 0xff) {
+      conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
+      warning(ec_character_not_latin_1);
+    }  /* if */
   }  /* if */
   /* Set up for scanning the remaining translated characters and return the
      first. */

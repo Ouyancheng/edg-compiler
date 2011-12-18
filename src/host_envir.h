@@ -1996,11 +1996,15 @@ those warnings are not addressed.
 
 
 /*
-Flag that is TRUE if UTF-8 and UTF-16 encodings of Unicode should be accepted
-in source code.  Note that if you set this the representation for identifiers
-and file names becomes UTF-8, which may require back end or host-interface
-changes (see fopen_interface if the standard fopen does not take UTF-8
-strings).
+Flag that is TRUE if UTF-8 and UTF-16 encodings of Unicode should be
+accepted in source code.  Note that if you set this the representation for
+identifiers and file names becomes UTF-8, which may require back end or
+host-interface changes (see fopen_interface if the standard fopen does not
+take UTF-8 strings).  If NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE (see
+below) is FALSE, setting UNICODE_SOURCE_SUPPORTED to TRUE implies that
+non-Unicode files are encoded as Latin-1 and, except in GNU emulation
+modes, causes universal-character-names in narrow strings to be translated
+to Latin-1.
 */
 #ifndef UNICODE_SOURCE_SUPPORTED
 #if EDG_WIN32
@@ -2046,16 +2050,21 @@ multibyte characters are also supported.  In this mode, Unicode files are
 processed as usual, but non-Unicode files are scanned using a particular
 locale.  Characters in identifiers, file names, and wide string literals
 are translated into their Unicode equivalents.  Characters in narrow
-literals are left in their native representation.
+literals are left in their native representation or, in the case of a
+universal-character-name, translated from the Unicode code point to the
+corresponding character in that locale.  (When this flag is FALSE but
+UNICODE_SOURCE_SUPPORTED is TRUE, non-Unicode files are assumed to be
+encoded as Latin-1, and universal-character-names in narrow strings are
+translated to Latin-1.)
 
-This facility requires the ability to translate a multibyte character sequence
-from the encoding of a given locale to Unicode.  The front end does not
-provide such a facility.  On Windows (i.e., when EDG_WIN32 is TRUE) the
-Windows facilities are used for this translation.  Because the front end
-cannot be used as delivered in a non-Windows environment, a #error directive
-is issued below in such cases.  The Windows routines that are used are
-available starting with version 1400 (Visual Studio 8) of the Microsoft
-compiler.
+This facility requires the ability to translate a multibyte character
+sequence from the encoding of a given locale to Unicode and vice versa.
+The front end does not provide such a facility.  On Windows (i.e., when
+EDG_WIN32 is TRUE) the Windows facilities are used for this translation.
+Because the front end cannot be used as delivered in a non-Windows
+environment, a #error directive is issued below in such cases.  The Windows
+routines that are used are available starting with version 1400 (Visual
+Studio 8) of the Microsoft compiler.
 */
 #ifndef NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
@@ -2526,12 +2535,12 @@ extern int getc_utf16(FILE                *file,
     getc((file)) : \
     getc_utf16((file), &(state)))
 
-/* Special versions of mbc_length and mbc_to_wide_char for use in the lexical
-   routines.  These consult the current setting of
+/* Special versions of mbc_length and mbc_to_wide_char for use in the
+   lexical routines.  These consult the current setting of
    curr_file_unicode_source_kind to see if the current input is UTF-8 or
-   non-Unicode.  Non-Unicode can be plain characters (like Latin-1), or
-   when NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is TRUE, some other
-   multibyte character set. */
+   non-Unicode.  Non-Unicode characters are assumed to be Latin-1 unless
+   NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is TRUE; in that case,
+   they might be some other multibyte character set. */
 #define lex_mbc_length(ptr, err) \
   (char_may_begin_multibyte_sequence(*(ptr)) ?				\
      f_mbc_length((ptr), (err), curr_file_unicode_source_kind == usk_none) : \
