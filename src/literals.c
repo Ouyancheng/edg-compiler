@@ -1423,10 +1423,8 @@ smaller) than the number of characters needed to represent the string.
   char                    *temp_ptr, *pstr, *str_start;
   sizeof_t                constant_size;
   a_targ_size_t           num_elems;
-  int                     encoding_length;
   unsigned int            char_size;
   a_character_kind        character_kind;
-  unsigned short          char16_t_vals[MAX_CHAR16_T_ENCODING_LENGTH];
   a_char_conversion_state conv_state;
 
   /* The number of array elements is one more than the number of characters,
