@@ -806,6 +806,7 @@ saved in state->pending_surrogate_pair to be returned on the next call.
   char          *lptr;
   int           digit;
   a_boolean     range_error = FALSE;
+  a_boolean     numeric_escape = FALSE;
   a_boolean     unrecognized;
 
   lptr = *state->next_token_char;
@@ -875,9 +876,9 @@ get_another:
     lptr++;
   } else {
     /* Backslash, escaped character.  Can be an octal escape, a hexadecimal
-       escape, a simple escape sequence (like \n), or something unrecognized,
-       in which case the character is left alone.  See standard, 2.2.2,
-       3.1.3.4, and 3.1.4. */
+       escape, a simple escape sequence (like \n), a
+       universal-character-name, or something unrecognized, in which case
+       the character is left alone. */
     unrecognized = FALSE;
     lptr++;
     switch ((int)(tch = (unsigned char)*(lptr++))) {
@@ -958,6 +959,7 @@ get_another:
           }  /* if */
           targ_ch = (unsigned char)'x';
         } else {
+          numeric_escape = TRUE;
           targ_ch = hexvalue(*lptr);  /* First digit. */
           while (tch = *(++lptr), isxdigit(tch)) {
             if (targ_ch > (((unsigned long)LONG_MAX)>>4)) {
@@ -977,6 +979,7 @@ get_another:
            as "octal" in this context.  Up to three octal digits may appear.
            Note that there is code in accum_quoted_string that must match
            this code. */
+        numeric_escape = TRUE;
         targ_ch = tch - '0';  /* First digit. */
         tch = (unsigned char)*lptr;
         if (isdigit(tch) && tch != '8' && tch != '9') {
@@ -1059,11 +1062,13 @@ range_check:
     }  /* if */
   }  /* if */
   if (range_error) {
-    /* A range error is allowed to be an error in C, but not in C++.  So,
-       in C we issue a strict-ANSI diagnostic, while in C++ we always issue
-       a warning. */
+    /* A range error occurring in an octal or hexadecimal escape is
+       classified as an error by the C Standard.  Other contexts, and in
+       all cases in C++, produce implementation-defined behavior.  We thus
+       issue a strict-ANSI diagnostic for numeric escapes in C and a
+       warning in all other cases. */
     conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
-    if (C_mode() && strict_ansi_mode) {
+    if (C_mode() && strict_ansi_mode && numeric_escape) {
       diagnostic(strict_ansi_error_severity, ec_bad_character_value);
     } else {
       warning(ec_bad_character_value);

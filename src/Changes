@@ -1,5 +1,22 @@
 Version 4.4
 
+12/19/11 [EDGcpfe/7537]
+Unrepresentable characters in C wide character and string literals
+
+In --strict C and C99 modes, a character (specified via a multibyte
+character or a universal-character-name) in a wide character or string
+literal that is too large to be represented by a single wchar_t character
+was diagnosed as an error.  According to paragraphs 9 and 11 of section
+6.4.4.4 of the C99 Standard, that behavior is correct for values specified
+via octal or hexadecimal escapes but not for other characters, which
+produce an implementation-defined value and not an error.  The front end
+now issues only a warning for wchar_t characters that are too large unless
+they were the result of an octal or hexadecimal escape.  For example:
+
+  int a = L'\U00020b9f';    // Now just a warning in --strict C99
+  int b = L'\x00020b9f';    // Still an error in --strict C99
+
+
 12/19/11 [EDGcpfe/12252,EDGcpfe/12405]
 Surrogate pairs in wchar_t and char16_t string literals
 
