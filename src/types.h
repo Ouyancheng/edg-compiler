@@ -783,7 +783,6 @@ Bit flags for calls of f_types_are_compatible et al.
 			   generic_param_seq_number of a template parameter
 			   type supplement) is compared instead of the
 			   template parameter coordinates. */
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
 #define TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS 0x4000
 			/* Record incompatible Microsoft-style calling
 			   conventions (like __cdecl, or __clrcall) in the
@@ -791,7 +790,6 @@ Bit flags for calls of f_types_are_compatible et al.
 			   affect the overall type compatibility outcome.
 			   Only "direct" conventions (i.e., not under a
 			   typedef) are tracked. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
 
