@@ -2738,6 +2738,16 @@ whose definition has not yet been generated, force the definition now.
             skind == (a_special_function_kind)sfk_constructor) {
           /* The generated constructor declaration of a delegate class type
              is not one whose body can be generated. */
+        } else if (cppcli_enabled &&
+                   cli_class_type_kind_is(parent_type, cctk_value) &&
+                   skind == (a_special_function_kind)sfk_constructor) {
+          /* Don't attempt to generate a copy constructor for a value class
+             type.  It would fail because there is no copy constructor for the
+             System::Object subobject, but this routine entry is just a
+             placeholder for overload resolution: The actual copy operation
+             should use a bitwise copy.  For the default constructor a body
+             could be generated, but it is useless to do so (since value class
+             initialization is really zero-initialization). */
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
