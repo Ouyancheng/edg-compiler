@@ -11026,12 +11026,10 @@ adjustment).
   a_type_compat_flags_set  tc_flags = TCF_CHECKING_DEDUCTION_RESULT;
 
   diffs.incompatible_calling_conventions = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled) {
     p_diffs = &diffs;
     tc_flags |= TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (f_types_are_compatible_full(substituted_type, rescanned_type, tc_flags,
                                   p_diffs)) {
     /* Except perhaps for Microsoft-style calling conventions, the two types
