@@ -18682,11 +18682,11 @@ Check that this is a valid type and if so make member_type a friend.
         }  /* if */
         record_sse_for_special_friend_class(member_type, decl_info);
 done_with_sse_for_nonstandard_friend:;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       } else if (member_type->kind == (a_type_kind)tk_template_param &&
                  prototype_instantiations_in_il) {
         a_type_ptr  friend_class = proxy_class_for_template_param(member_type);
         record_sse_for_special_friend_class(friend_class, decl_info);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
       if (normal_friend_type) {
         /* decl_friend_class is only called if member_type is a class or a
