@@ -961,6 +961,18 @@ Throw away any deferred constraint entries.
   }  /* if */								\
 }
 
+#if DEBUG
+extern
+void db_generic_constraint_kind(a_generic_constraint_kind	kind);
+
+extern
+void db_generic_constraint(a_generic_constraint_ptr	gcp);
+
+extern
+void db_generic_constraint_list(a_generic_constraint_ptr	gcp,
+                                int				indent);
+#endif /* DEBUG */
+
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
