@@ -1,5 +1,24 @@
 Version 4.4
 
+12/19/11 [EDGcpfe/12529]
+Missing source sequence entry for dependent friend class declaration
+
+The front end previously failed to record a source sequence entry for a
+template-dependent friend declaration declared without a qualified name
+(in configurations with GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE).
+For example, in strict mode (and in many GNU C++ modes):
+
+  template <class T> class A {
+    class C;
+    class B {
+      friend class C;  // C is "template dependent" in some modes.
+    };
+  };
+
+A consequence of such cases is that the C++-generating front end failed to
+render the friend class declaration.  This is now fixed.
+
+
 12/19/11
 IL version number changed to 4.4
 

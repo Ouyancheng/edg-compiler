@@ -8499,6 +8499,44 @@ of a C++ class, struct, or union or a C struct or union.
   return is_start;
 }  /* is_member_decl_start */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+static void record_sse_for_special_friend_class(
+                                         a_type_ptr              friend_class,
+                                         a_member_decl_info_ptr  decl_info)
+/*
+Enter a secondary source sequence entry representing a friend declaration
+where either the class name is not expressed using an elaborated class name
+("friend C;") or the class is dependent and therefore "proxy" class that has
+no point of declaration per se.  friend_class points to the class denoted by
+the friend and decl_info describes the friend declaration overall.
+*/
+{
+  if (!source_sequence_entries_disallowed) {
+    /* Since this type name did not involve an elaborated type name, we do not
+       yet have a source sequence entry for it. */
+    a_source_sequence_entry_ptr   ssep;
+    a_src_seq_secondary_decl_ptr  sssdp;
+    record_symbol_declaration(SRK_DECLARATION | SRK_FRIEND,
+                              symbol_for(friend_class),
+                              &locator_for_curr_id.source_position,
+                              (a_source_sequence_entry_ptr)NULL);
+    ssep = last_matching_source_sequence_entry((char *)friend_class);
+    check_assertion(ssep != NULL &&
+                    ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
+    sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+    sssdp->autonomous_tag_decl = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    /* Record extended position information. */
+    check_assertion(sssdp->decl_pos_info == NULL);
+    sssdp->decl_pos_info = make_decl_pos_supplement(
+                                                  in_file_scope(sssdp),
+                                                  &decl_info->decl_pos_block);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+}  /* record_sse_for_special_friend_class */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 void decl_friend_class(a_type_ptr          class_type,
                        a_type_ptr          friend_class_type)
@@ -18642,31 +18680,13 @@ Check that this is a valid type and if so make member_type a friend.
           member_type = proxy_class_for_template_param(
                                                   skip_typerefs(member_type));
         }  /* if */
-        if (!source_sequence_entries_disallowed) {
-          /* Since this type name did not involve an elaborated type name,
-             we do not yet have a source sequence entry for it. */
-          a_source_sequence_entry_ptr   ssep;
-          a_src_seq_secondary_decl_ptr  sssdp;
-          record_symbol_declaration(
-                         SRK_DECLARATION | SRK_FRIEND,
-                         (a_symbol_ptr)member_type->source_corresp.assoc_info,
-                         &locator_for_curr_id.source_position,
-                         (a_source_sequence_entry_ptr)NULL);
-          ssep = last_matching_source_sequence_entry((char *)member_type);
-          check_assertion(ssep != NULL &&
-                          ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
-          sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-          sssdp->autonomous_tag_decl = TRUE;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-          /* Record extended position information. */
-          check_assertion(sssdp->decl_pos_info == NULL);
-          sssdp->decl_pos_info = make_decl_pos_supplement(
-                                                  in_file_scope(sssdp),
-                                                  &decl_info->decl_pos_block);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        }
+        record_sse_for_special_friend_class(member_type, decl_info);
 done_with_sse_for_nonstandard_friend:;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      } else if (member_type->kind == (a_type_kind)tk_template_param &&
+                 prototype_instantiations_in_il) {
+        a_type_ptr  friend_class = proxy_class_for_template_param(member_type);
+        record_sse_for_special_friend_class(friend_class, decl_info);
       }  /* if */
       if (normal_friend_type) {
         /* decl_friend_class is only called if member_type is a class or a
