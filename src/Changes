@@ -1,5 +1,9 @@
 Version 4.4
 
+12/19/11
+IL version number changed to 4.4
+
+
 12/19/11 [EDGcpfe/7537]
 Unrepresentable characters in C wide character and string literals
 
