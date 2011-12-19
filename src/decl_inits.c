@@ -5980,6 +5980,17 @@ initialized.  These are addressed in the course of the processing.
         a_boolean  bitwise_copy = FALSE;
         if (cssp == NULL) {
           bitwise_copy = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcli_enabled &&
+                   cli_class_type_kind_is(class_type, cctk_value) &&
+                   cip->kind != (a_constructor_init_kind)cik_field) {
+          /* Value class types are bit-copyable even though they derive from
+             class types (e.g., System::Object) that are not marked as such
+             (and which cannot go through the non-bitwise processing below
+             because they have no copy constructor). */
+          check_assertion(ctor_rout->is_trivial_copy_function);
+          bitwise_copy = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           /* "required_qualifiers" describes the qualifiers on an object that
              the top-level constructor can accept for copying; if it is
