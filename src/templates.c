@@ -21963,6 +21963,59 @@ Free any deferred constraint checks that may have been created.
   }  /* if */
 }  /* f_discard_deferred_constraint_checks */
 
+#if DEBUG
+
+void db_generic_constraint_kind(a_generic_constraint_kind	kind)
+/*
+Display a generic constraint kind of kind, for debugging purposes.
+*/
+{
+  char	*str = NULL;
+
+  switch (kind) {
+    case gck_none: str = "none"; break;
+    case gck_type: str = "type"; break;
+    case gck_naked_type_param: str = "naked_type_param"; break;
+    case gck_ref_class: str = "ref_class"; break;
+    case gck_value_class: str = "value_class"; break;
+    case gck_gcnew: str = "gcnew"; break;
+    default: str = "<invalid kind>"; break;
+  }  /* switch */
+  fprintf(f_debug, "%s", str);
+}  /* db_generic_constraint_kind */
+
+
+void db_generic_constraint(a_generic_constraint_ptr	gcp)
+/*
+Display a generic constraint entry, for debugging purposes.
+*/
+{
+  db_generic_constraint_kind(gcp->kind);
+  if (gcp->implicit_constraint) fprintf(f_debug, ", implicit");
+  if (gcp->type != NULL) {
+    fprintf(f_debug, ", type=");
+    db_type_name(gcp->type);
+  }  /* if */
+  fprintf(f_debug, "\n");
+}  /* db_generic_constraint */
+
+
+void db_generic_constraint_list(a_generic_constraint_ptr	gcp,
+                                int				indent)
+/*
+Display a generic constraint list, for debugging purposes.  indent is the
+number of characters to indent the output.
+*/
+{
+  fprintf(f_debug, "%*s%s\n", indent, "", "Generic constraint list:");
+  for (; gcp != NULL; gcp = gcp->next) {
+    fprintf(f_debug, "%*s", indent+2, "");
+    db_generic_constraint(gcp);
+  }  /* for */
+}  /* db_generic_constraint_list */
+
+#endif /* DEBUG */
+
 
 static a_boolean check_for_constraint_conflict(
 			a_type_ptr			param_type,
@@ -21987,6 +22040,26 @@ scanned yet.
   a_generic_constraint_ptr	gcp;
   a_boolean			any_errors = FALSE;
 
+#if DEBUG
+  if (db_flag_is_set("cfcc") && !in_code_generated_from_metadata()) {
+    fprintf(f_debug, "check_for_constraint_conflict:\n");
+    fprintf(f_debug, "  param_type: ");
+    db_type_name(param_type);
+    fprintf(f_debug, "  \n");
+    db_generic_constraint_list(curr_list, 2);
+    if (naked_type_gcp != NULL) {
+      fprintf(f_debug, "  naked_type_gcp: ");
+      db_generic_constraint(naked_type_gcp);
+    }  /* if */
+    fprintf(f_debug, "  new entry: ");
+    db_generic_constraint_kind(kind);
+    if (type != NULL) {
+      fprintf(f_debug, ", type=");
+      db_type_name(type);
+    }  /* if */
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   /* Go through the current list of constraints to check for a conflict. */
   for (gcp = curr_list; gcp != NULL; gcp = gcp->next) {
     if (gcp->kind == kind && gcp != naked_type_gcp) {
@@ -22015,40 +22088,39 @@ scanned yet.
       any_errors = TRUE;
     }  /* if */
     if (kind == (a_generic_constraint_kind)gck_naked_type_param) {
-      if (type->variant.template_param.being_checked) {
-        if (kind == (a_generic_constraint_kind)gck_naked_type_param) {
-          pos_ty2_error(ec_circular_constraints, pos,
-                        naked_type_gcp->type, param_type);
-          any_errors = TRUE;
-          /* This constraint is already on the list.  Replace the constraint
-             with one that indicates an invalid constraint. */
-          gcp->kind = (a_generic_constraint_kind)gck_none;
-          gcp->type = NULL;
-        }  /* if */
-      } else {
-        a_generic_constraint_ptr	sub_list;
-        a_generic_constraint_ptr	sub_gcp;
-        /* For a new naked type parameter check the indirect constraints
-           against the current list. */
-        sub_list = type->variant.template_param.extra_info->
-                                                           generic_constraints;
-        for (sub_gcp = sub_list; sub_gcp != NULL; sub_gcp = sub_gcp->next) {
-          if (sub_gcp->kind ==
-                             (a_generic_constraint_kind)gck_naked_type_param) {
+      a_generic_constraint_ptr	sub_list;
+      a_generic_constraint_ptr	sub_gcp;
+      /* For a new naked type parameter check the indirect constraints
+         against the current list. */
+      sub_list = type->variant.template_param.extra_info->generic_constraints;
+      for (sub_gcp = sub_list; sub_gcp != NULL; sub_gcp = sub_gcp->next) {
+        a_boolean	err = FALSE;
+        if (sub_gcp->kind == (a_generic_constraint_kind)gck_naked_type_param) {
+          if (sub_gcp->type->variant.template_param.being_checked) {
+            pos_ty2_error(ec_circular_constraints, pos,
+                          naked_type_gcp->type, param_type);
+            any_errors = TRUE;
+            err = TRUE;
+            /* This constraint is already on the list.  Replace the constraint
+               with one that indicates an invalid constraint. */
+            sub_gcp->kind = (a_generic_constraint_kind)gck_none;
+            sub_gcp->type->variant.template_param.being_checked = FALSE;
+            sub_gcp->type = NULL;
+          } else {
             sub_gcp->type->variant.template_param.being_checked = TRUE;
           }  /* if */
-          if (check_for_constraint_conflict(param_type, curr_list,
-                                            naked_type_gcp,
-                                            sub_gcp->kind, sub_gcp->type,
-                                            pos)) {
-            any_errors = TRUE;
-          }  /* if */
-          if (sub_gcp->kind ==
-                             (a_generic_constraint_kind)gck_naked_type_param) {
-            sub_gcp->type->variant.template_param.being_checked = FALSE;
-          }  /* if */
-        }  /* for */
-      }  /* if */
+        }  /* if */
+        if (!err &&
+            check_for_constraint_conflict(param_type, curr_list,
+                                          naked_type_gcp,
+                                          sub_gcp->kind, sub_gcp->type,
+                                          pos)) {
+          any_errors = TRUE;
+        }  /* if */
+        if (sub_gcp->kind == (a_generic_constraint_kind)gck_naked_type_param) {
+          sub_gcp->type->variant.template_param.being_checked = FALSE;
+        }  /* if */
+      }  /* for */
     }  /* if */
   }  /* for */
   return any_errors;
