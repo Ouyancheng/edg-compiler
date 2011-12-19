@@ -54,19 +54,33 @@ typedef struct a_char_conversion_state {
 			   multibyte characters; in that case, this will
 			   point to the next complete UTF-8 character in
 			   the token string. */
-  int		remaining_mbc_char_count;
+  int		remaining_char_count;
 			/* Number of bytes left in the current multibyte
 			   character.  conv_single_char is called multiple
 			   times for a multibyte character, each call
-			   returning one byte of the result. */
+			   returning one byte of the result.  Also used to
+			   indicate that the second code unit of a
+			   surrogate pair is pending and should be returned
+			   by conv_single_char instead of reading a new
+			   character from the token. */
   char		*next_mbc_char;
 			/* When translating from UTF-8 to multibyte
-			   characters and for universal-character-names, if
-			   remaining_mbc_char_count is nonzero, points to
-			   the next byte from translated_char to be
-			   returned.  NULL for normal multibyte character
-			   processing (indicating multibyte characters will
-			   be fetched directly from the token string). */
+			   characters and for universal-character-names
+			   (except when create_surrogate_pairs is TRUE), if
+			   remaining_char_count is nonzero, points to the
+			   next byte from translated_char to be returned.
+			   NULL for normal multibyte character processing
+			   (indicating multibyte characters will be fetched
+			   directly from the token string). */
+  unsigned long	pending_surrogate_pair;
+			/* When create_surrogate_pairs is TRUE and a
+			   character or universal-character-name is
+			   encountered that requires a surrogate pair, the
+			   second code unit of the pair is saved here and
+			   remaining_char_count is set to 1 so that the
+			   next call to conv_single_char will return it
+			   instead of reading another character from the
+			   token. */
   a_byte_boolean
 		translate_utf8_to_mbc;
 			/* If TRUE and the current file is Unicode, UTF-8
@@ -77,6 +91,15 @@ typedef struct a_char_conversion_state {
 			   appropriately by the caller, e.g., TRUE for
 			   Microsoft-mode character and string literals,
 			   FALSE for header names. */
+  a_byte_boolean
+		create_surrogate_pairs;
+			/* If TRUE, the target data type is such that a
+			   character designating a code point > 0xffff must
+			   be represented as a surrogate pair.
+			   pending_surrogate_pair and remaining_char_count
+			   are used to enable conv_single_char to return
+			   the second code unit of the pair in a subsequent
+			   call. */
   char		translated_char[MAX_MULTIBYTE_CHAR_LENGTH];
 			/* When translating from UTF-8 to multibyte
 			   characters and for universal-character-names,
@@ -86,9 +109,10 @@ typedef struct a_char_conversion_state {
 
 #define clear_char_conversion_state(state, ptr, translate_utf8) \
   { (state)->next_token_char = ptr;                             \
-    (state)->remaining_mbc_char_count = 0;                      \
+    (state)->remaining_char_count = 0;                          \
     (state)->next_mbc_char = NULL;                              \
     (state)->translate_utf8_to_mbc = translate_utf8;            \
+    (state)->create_surrogate_pairs = FALSE;                    \
   }  /* clear_char_conversion_state */
 
 extern void conv_single_char(a_char_conversion_state_ptr state,

@@ -8724,7 +8724,9 @@ was.  The caller is responsible for issuing error messages.
                                        /*is_identifier=*/FALSE,
 				       /*is_identifier_start=*/FALSE,
                                        /*issue_diagnostics=*/FALSE);
-        if (ch == 'U' && character_kind == (a_character_kind)chk_char16_t) {
+        if (ch == 'U' &&
+            (character_kind == (a_character_kind)chk_char16_t ||
+             character_kind == (a_character_kind)chk_wchar_t)) {
           /* A 32-bit code to be stored in a 16-bit character representation.
              Since we don't know how many characters will be needed for the
              encoding, assume the longest. */
@@ -8805,18 +8807,16 @@ was.  The caller is responsible for issuing error messages.
           case chk_char:
             nchars += (unsigned long)numch;
             break;
-          case chk_wchar_t:
           case chk_char32_t:
             /* char32_t (kind == 'U') should be able to accommodate any
-               character code, and wchar_t is assumed to be able to do so as
-               well (if needed, the code will be truncated to fit in a
-               wchar_t). */
+               character code. */
             ++nchars;
             break;
           case chk_char16_t:
-            /* A single char16_t is not assumed to be sufficient for a
-               multibyte input character.  Instead, we assume the longest
-               encoding case. */
+          case chk_wchar_t:
+            /* A single char16_t or wchar_t is not assumed to be sufficient
+               for a multibyte input character.  Instead, we assume the
+               longest encoding case. */
             nchars += MAX_CHAR16_T_ENCODING_LENGTH;
             break;
           default:

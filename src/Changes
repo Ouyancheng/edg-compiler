@@ -1,5 +1,19 @@
 Version 4.4
 
+12/19/11 [EDGcpfe/12252,EDGcpfe/12405]
+Surrogate pairs in wchar_t and char16_t string literals
+
+When a wchar_t or char16_t string literal contains a character (via a
+multibyte encoding or universal-character-name) that cannot be represented
+in a single code unit, the front end previously truncated the character to
+the size of the code unit and issued a warning.  This has now been fixed
+so that the result is a UTF-16 surrogate pair representing the designated
+code point.  For example:
+
+  char16_t str[] = u"\U00020b9f";   // Previously equivalent to u"\x0b9f"
+                                    // Now equivalent to u"\xd842\xdf9f"
+
+
 12/18/11 [EDGcpfe/12508]
 Tweak on Microsoft-mode overload resolution on conversion to bind reference
 
