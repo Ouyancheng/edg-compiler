@@ -1,5 +1,23 @@
 Version 4.4
 
+12/20/11 [EDGcpfe/12539]
+Incorrect declared_type in prototype instantiation of static data member
+
+In configurations with GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE the front
+end sometimes recorded the wrong declared_type in the a_variable entry
+representing a static data member of a class template.  This could result in
+the C++-generating back end rendering invalid code.  For example:
+
+  template<typename T> struct S {
+    static T x[];
+  };
+  template<typename T> T S<T>::x[sizeof(T)];
+    // Previous rendered by the C++-generating back end as
+    // "template<typename T> T S<T>::x[];".
+
+This is now fixed.
+
+
 12/20/11
 Default Microsoft version changed to 1600, default GNU version to 40300
 
