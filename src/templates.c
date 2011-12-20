@@ -28525,7 +28525,7 @@ routines is reported as part of the symbol table memory used.
                  num_variadic_param_infos_allocated,
                  a_variadic_param_info);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  db_space_used_lost("deferred constraint checks",
+  db_space_used_lost("deferred constr. checks",
                      avail_deferred_constraint_checks,
                      num_deferred_constraint_checks_allocated,
                      a_deferred_constraint_check);

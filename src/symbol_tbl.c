@@ -14439,12 +14439,12 @@ for space tracking purposes.
   db_space_used("hide-by-sig list entries",
                 num_hide_by_sig_list_entries_allocated,
                 a_hide_by_sig_list_entry);
-  db_space_used("property set symbol suppl.",
-                num_prop_or_event_accessor_header_lookups_allocated,
-                a_prop_or_event_accessor_header_lookup);
-  db_space_used("prop or event accessor lookup",
+  db_space_used("property set sym. suppl.",
                 num_property_set_symbol_supplements_allocated,
                 a_property_set_symbol_supplement);
+  db_space_used("C++/CLI accessor lookup",
+                num_prop_or_event_accessor_header_lookups_allocated,
+                a_prop_or_event_accessor_header_lookup);
   grand_total = db_show_ms_attrib_space_used(grand_total);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   grand_total = db_show_pch_space_used(grand_total);
