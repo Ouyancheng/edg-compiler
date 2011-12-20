@@ -29751,6 +29751,7 @@ about it in the for-each statement IL entry pointed to by statement.
   db_exit();
 }  /* scan_for_each_expression */
 
+
 void scan_previously_decl_iterator_name(
                                        a_for_each_loop_ptr felp,
                                        an_operand          *prev_decl_iterator)
