@@ -4541,7 +4541,7 @@ user later during real instantiations.
   db_enter(3, "static_data_member_prototype_instantiation");
   var_ptr = template_sym->variant.static_data_member.variable;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  var_ptr->declared_type = var_ptr->type;
+  var_ptr->declared_type = dps->declared_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Set the storage class for the prototype instantiation to indicate that
      it has been defined. */

@@ -7189,13 +7189,7 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
         }  /* if */              
       } else if ((decl_specifiers_seen & DS_FRIEND) != 0 &&
                  locator_for_curr_id.is_class_member &&
-                 scope_stack_top().in_prototype_instantiation &&
-                 locator_for_curr_id.parent.class_type
-                              ->variant.class_struct_union.is_nonreal_class &&
-                 locator_for_curr_id.symbol_header ==
-                       symbol_for(qualifier_class_type(locator_for_curr_id))
-                                                                   ->header &&
-                 next_token() == tok_lparen) {
+                 scope_stack_top().in_prototype_instantiation) {
         /* Consider a friend declaration of the form
                friend A<T>::A(...);
            When doing dependent name processing, A<T>::A will not be considered
@@ -7203,14 +7197,23 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
            However, in default mode, it will be treated as a type name, and if
            it weren't for the processing here, it would unconditionally be
            handled as a specifiers type. */
-        if (!do_dependent_name_processing ||
-            curr_type_symbol((input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
-                             /*in_prescan=*/FALSE, /*in_type_check=*/FALSE)
-                                                                    == NULL) {
-          /* The qualified identifier matches that of the qualifying class:
-             Assume a constructor is intended. */
-          dps->dso_flags |= DSO_CONSTRUCTOR;
-          result = TRUE;
+        a_type_ptr  parent_type = locator_for_curr_id.parent.class_type;
+        if (is_immediate_class_type(parent_type) &&
+            parent_type->variant.class_struct_union.is_nonreal_class &&
+            locator_for_curr_id.symbol_header ==
+                                            symbol_for(parent_type)->header &&
+            next_token() == tok_lparen) {
+          /* The qualifier name matches the qualified name, and this looks like
+             a function declarator (i.e., a left parenthesis is next). */
+          if (!do_dependent_name_processing ||
+              curr_type_symbol((input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
+                               /*in_prescan=*/FALSE,
+                               /*in_type_check=*/FALSE) == NULL) {
+            /* The qualified name should not be treated as a type name: Assume
+               a constructor is intended. */
+            dps->dso_flags |= DSO_CONSTRUCTOR;
+            result = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
