@@ -20,19 +20,21 @@ This is the version for Windows 95/98/NT/etc.
 #define DEFINES_WIN32_H 1
 
 #ifdef DEMO_VERSION
+#define DEBUG 0
+#ifndef CPPCLI_ENABLING_POSSIBLE
+#define CPPCLI_ENABLING_POSSIBLE 1
+#endif /* ifndef CPPCLI_ENABLING_POSSIBLE */
 #ifndef CP_GEN_BE_VERSION
 /* Demo versions that do not use the C++-generating back end should
    support multiple translation units. */
 #define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
-#ifndef CPPCLI_ENABLING_POSSIBLE
-#define CPPCLI_ENABLING_POSSIBLE 1
-#endif /* ifndef CPPCLI_ENABLING_POSSIBLE */
-#endif /* ifndef CP_GEN_BE_VERSION */
-#define DEBUG 0
-#ifndef CPPCLI_ENABLING_POSSIBLE
-#define CPPCLI_ENABLING_POSSIBLE 1
+/* Allow lowering with CPPCLI_ENABLING_POSSIBLE. */
+#ifndef ALLOW_CPPCLI_WITH_LOWERING
+#if CPPCLI_ENABLING_POSSIBLE
 #define ALLOW_CPPCLI_WITH_LOWERING 1
-#endif /* ifndef CPPCLI_ENABLING_POSSIBLE */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
+#endif /* ifndef ALLOW_CPPCLI_WITH_LOWERING */
+#endif /* ifndef CP_GEN_BE_VERSION */
 #endif /* ifdef DEMO_VERSION */
 
 #define FRONT_END_C_FILES_COMPILED_AS_CPP 0
