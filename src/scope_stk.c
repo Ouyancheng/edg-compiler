@@ -3463,6 +3463,13 @@ scope stack entry.
   for (sym = pointers_block->symbols; sym != NULL; sym = sym->next_in_scope) {
     reenter_block_scope_symbol(sym);
   }  /* for */
+  if (scope->lifetime != NULL) {
+    /* Place the reactivated object lifetime in the right place in the
+       destructions of the parent lifetime. */
+    check_assertion(curr_object_lifetime == scope->lifetime);
+    curr_object_lifetime->parent_destruction_sublist =
+                           curr_object_lifetime->parent_lifetime->destructions;
+  }  /* if */
 }  /* push_block_reactivation_scope */
 
 
