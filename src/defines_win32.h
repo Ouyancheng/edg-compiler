@@ -24,8 +24,15 @@ This is the version for Windows 95/98/NT/etc.
 /* Demo versions that do not use the C++-generating back end should
    support multiple translation units. */
 #define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
+#ifndef CPPCLI_ENABLING_POSSIBLE
+#define CPPCLI_ENABLING_POSSIBLE 1
+#endif /* ifndef CPPCLI_ENABLING_POSSIBLE */
 #endif /* ifndef CP_GEN_BE_VERSION */
 #define DEBUG 0
+#ifndef CPPCLI_ENABLING_POSSIBLE
+#define CPPCLI_ENABLING_POSSIBLE 1
+#define ALLOW_CPPCLI_WITH_LOWERING 1
+#endif /* ifndef CPPCLI_ENABLING_POSSIBLE */
 #endif /* ifdef DEMO_VERSION */
 
 #define FRONT_END_C_FILES_COMPILED_AS_CPP 0
@@ -89,13 +96,15 @@ layout randomization (ASLR) on Windows Vista.
 #define USE_FIXED_ADDRESS_FOR_MMAP 1
 #define FIXED_ADDRESS_FOR_MMAP 0x21000000
 
-#if 0
+#ifndef CP_GEN_BE_VERSION
 /*
 Use this define if the type_info from the EDG runtime library is to
-be used.
+be used.  This is enabled by default in versions that generic C code
+as such versions cannot link with the Microsoft C++ libraries.
 */
 #define MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD 1
-#endif /* 0 */
+#endif /* ifdef CP_GEN_BE_VERSION */
+
 
 /* The EDG driver on NT does not support one instantiation per object mode. */
 #define ONE_INSTANTIATION_PER_OBJECT 0
