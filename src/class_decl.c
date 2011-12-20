@@ -8507,7 +8507,7 @@ static void record_sse_for_special_friend_class(
 /*
 Enter a secondary source sequence entry representing a friend declaration
 where either the class name is not expressed using an elaborated class name
-("friend C;") or the class is dependent and therefore "proxy" class that has
+("friend C;") or the class is dependent and therefore a "proxy" class that has
 no point of declaration per se.  friend_class points to the class denoted by
 the friend and decl_info describes the friend declaration overall.
 */
