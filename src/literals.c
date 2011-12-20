@@ -1280,22 +1280,21 @@ processing, and in wide characters if the constant is wide).
           if (i != 0) continue;
           break;
         case chk_char16_t:
-          { unsigned short char16_t_vals[MAX_CHAR16_T_ENCODING_LENGTH];
-            char           *char_pos = temp_ptr;
-            conv_single_wide_char(&conv_state, &ch, centity_mask);
+          conv_single_wide_char(&conv_state, &ch, centity_mask);
+          if (i != 0) {
+            too_many_chars = TRUE;
+          } else {
+            unsigned short char16_t_vals[MAX_CHAR16_T_ENCODING_LENGTH];
             encoding_length = encode_in_char16_t(ch, char16_t_vals);
-            if (encoding_length == 1 && i == 0) {
+            if (encoding_length == 1) {
               /* Normal case. */
               ch = (unsigned long)char16_t_vals[0];
-            } else if (encoding_length == 0) {
-              /* ch contained a character code that cannot be encoded in a
-                 char16_t representation. */
-              bad_character = TRUE;
-              *err_pos = char_pos;
             } else {
-              too_many_chars = TRUE;
+              /* ch contained a character code that cannot be encoded in a
+                 single char16_t character. */
+              bad_character = TRUE;
             }  /* if */
-          }
+          }  /* if */
           break;
         case chk_char32_t:
           conv_single_wide_char(&conv_state, &ch, centity_mask);
@@ -1346,7 +1345,7 @@ processing, and in wide characters if the constant is wide).
   }  /* if */
   if (bad_character) {
     *err_code = ec_no_char16_t_representation;
-    /* *err_pos was already recorded as the problematic spot. */
+    *err_pos = start_of_curr_token + 2;
     /* Return an error constant. */
     set_error_constant(&const_for_curr_token);
   } else if (too_many_chars) {
