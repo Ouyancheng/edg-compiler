@@ -1,5 +1,9 @@
 Version 4.4
 
+12/20/11
+Default Microsoft version changed to 1600, default GNU version to 40300
+
+
 12/19/11 [EDGcpfe/12529]
 Missing source sequence entry for dependent friend class declaration
 

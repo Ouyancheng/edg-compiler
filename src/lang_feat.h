@@ -491,7 +491,7 @@ emulated by default.  Version x.y.z of the GNU compiler is represented by
 the value x*10000+y*100+z.
 */
 #ifndef DEFAULT_GNU_VERSION
-#define DEFAULT_GNU_VERSION 40200
+#define DEFAULT_GNU_VERSION 40300
 #endif /* ifndef DEFAULT_GNU_VERSION */
 
 /*
@@ -947,7 +947,7 @@ version of the Microsoft compiler that is being emulated (for example,
 1100 corresponds to Visual C++ version 5.0).
 */
 #ifndef DEFAULT_MICROSOFT_VERSION
-#define DEFAULT_MICROSOFT_VERSION 1400
+#define DEFAULT_MICROSOFT_VERSION 1600
 #endif /* ifndef DEFAULT_MICROSOFT_VERSION */
 
 /*
