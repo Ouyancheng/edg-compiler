@@ -8724,11 +8724,14 @@ was.  The caller is responsible for issuing error messages.
                                        /*is_identifier=*/FALSE,
 				       /*is_identifier_start=*/FALSE,
                                        /*issue_diagnostics=*/FALSE);
-        if (ch == 'U' &&
+        if (ch == 'U' && quoting_char == '"' &&
             (character_kind == (a_character_kind)chk_char16_t ||
              character_kind == (a_character_kind)chk_wchar_t)) {
-          /* A 32-bit code to be stored in a 16-bit character representation.
-             Since we don't know how many characters will be needed for the
+          /* A 32-bit code to be stored in a 16-bit character
+             representation.  In a wide character literal, this just
+             truncates to a single character; for wide string literals,
+             however, this could result in a surrogate pair.  Since we
+             don't know how many characters will be needed for the
              encoding, assume the longest. */
           nchars += MAX_CHAR16_T_ENCODING_LENGTH;
         } else if (character_kind == (a_character_kind)chk_char) {
