@@ -8525,6 +8525,7 @@ the friend and decl_info describes the friend declaration overall.
     check_assertion(ssep != NULL &&
                     ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
     sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+    sssdp->friend_decl = TRUE;
     sssdp->autonomous_tag_decl = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Record extended position information. */
