@@ -595,6 +595,7 @@ check_abbreviation()
 --check_concatenations
 --class_name_injection
 --clear_flag
+--clr
 --command
 --comments
 --compile
@@ -1245,6 +1246,7 @@ process_option()
 	 --no_cppcli | \
 	 --c++cli | \
 	 --no_c++cli | \
+	 --clr | \
 	 --far_data_pointers | \
 	 --near_data_pointers | \
 	 --far_code_pointers | \
