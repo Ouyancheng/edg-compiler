@@ -3692,7 +3692,7 @@ C++-generating back end and dependent sizeof
 In some cases, because of memory region issues, the front end discarded
 the expression underlying a dependent sizeof (or similar construct)
 and kept only the type.  That turned out to cause problems for
-the C++-generating back end when the protototype instantiation
+the C++-generating back end when the prototype instantiation
 of a template is used to regenerate the source code: an undefined
 temporary name was generated for the type.  Now the expression
 is retained (in versions with PROTOTYPE_INSTANTIATIONS_IN_IL TRUE).
