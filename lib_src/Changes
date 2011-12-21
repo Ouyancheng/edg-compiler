@@ -1,4 +1,4 @@
-Version 4.3, March 17, 2011
+Version 4.4, December 21, 2011
 
 6/17/11 [EDGcpfe/8403,EDGcpfe/10669,EDGcpfe/11510,EDGcpfe/11628,EDGcpfe/11684,
          EDGcpfe/11800]
@@ -6,6 +6,8 @@ C++0x: Add type_info entries for char16_t/char32_t types
 
 New type_info entries have been added to support the char16_t/char32_t types.
 
+-------------------------------------------------------------------------------
+Version 4.3, March 17, 2011
 
 1/27/11  [EDGcpfe/11316]
 Unneeded include in throw.c

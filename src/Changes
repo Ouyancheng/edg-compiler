@@ -1,4 +1,4 @@
-Version 4.4
+Version 4.4, December 21, 2011
 
 12/20/11 [EDGcpfe/12539]
 Incorrect declared_type in prototype instantiation of static data member
