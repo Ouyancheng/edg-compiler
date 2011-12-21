@@ -2908,7 +2908,7 @@ itself and its associated accessor methods.
                                            /*cMax=*/0,
                                            /*pcOtherMethod =*/nullptr);
   CHECK_API_RESULT(hr, GetPropertyProps);
-  /* If there is a set method and/or a get method then import the necesssary
+  /* If there is a set method and/or a get method then import the necessary
      information about the method. */
   if (!IsNilToken(set_method_token)) {
     set_method = import_property_method(set_method_token);
@@ -3036,7 +3036,7 @@ itself and its associated methods.
   CHECK_API_RESULT(hr, GetEventProps);
   check_assertion(!IsNilToken(add_method_token) &&
                   !IsNilToken(remove_method_token));
-  /* If there is an add/remove/raise method then import the necesssary
+  /* If there is an add/remove/raise method then import the necessary
      information about the method. */
   add_method = import_event_method(add_method_token);
   remove_method = import_event_method(remove_method_token);
@@ -3568,7 +3568,7 @@ Return TRUE if the method parameter is a parameter array.
 a_generic_argument_list a_signature_decoder::decode_generic_arguments()
 /*
 Decode the generic arguments associated with a type.  Note, it is the caller's
-responsiblity to ensure that there is at least one generic argument.
+responsibility to ensure that there is at least one generic argument.
 */
 {
   a_generic_argument_list generic_arguments;
@@ -4613,7 +4613,7 @@ void import_class_definition(an_assembly_index assembly_index,
                              size_t            *buffer_size)
 /*
 Import the definition of the type specified by typedef_token.  The generated
-code only contains the body of the class definiton, including the base classes
+code only contains the body of the class definition, including the base classes
 list.  The namespace scopes and class head are omitted.
 */
 {

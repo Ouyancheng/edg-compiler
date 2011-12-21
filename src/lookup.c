@@ -555,7 +555,7 @@ parameters to represent the type specified by the constraints.
     cssp->member_decl_scope = take_next_scope_number();
     cssp->template_param_for_proxy_class = orig_type;
     /* Note that while generic definitions are nonreal, the proxy classes for
-       contraints are not. */
+       constraints are not. */
     type->variant.class_struct_union.is_nonreal_class = !is_generic;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (templ_param_type != NULL &&
