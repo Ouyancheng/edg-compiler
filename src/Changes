@@ -1,5 +1,37 @@
 Version 4.5
 
+12/22/11 [EDGcpfe/12531]
+GNU C++ mode: statically-named inline function in virtual call is instantiated
+
+In g++ mode, the front end now instantiates the statically-named function
+in a virtual call if the function is inline.  This resolves a problem
+seen in C++-generating back end versions with PROTOTYPE_INSTANTIATIONS_IN_IL
+and FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED both set to TRUE
+(the latter is a non-default setting).  The problem was that, if
+prototype instantiations of functions are deferred until a reference,
+and a reference is never recorded because the call is virtual, the
+prototype instantiation of a function was not available to provide
+a body in the output.  If the generated output was compiled by a version
+of g++ earlier than 4.4, g++ issued an error about the lack of a definition
+for the function.
+
+  template<typename T> struct A {
+    T g()         { return h(); }
+    virtual T h() { return T(); }  // Formerly, definition was not put out
+  };
+
+  extern template class A<char>;
+
+  template <class T> struct B {
+    void f() {
+      A<T> *ap;
+      ap->g();
+    }
+  };
+
+  template void B<char>::f();
+
+
 12/22/11 [EDGcpfe/12534]
 C++-generating back end: incorrect template parameter name
 
