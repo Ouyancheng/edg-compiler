@@ -3276,6 +3276,19 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       a_template_ptr assoc_template = NULL;
       replace_inaccessible_type_with_accessible_typedef(&scp);
       tp = (a_type_ptr)scp;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      if (tp->kind == (a_type_kind)tk_template_param &&
+          tp->variant.template_param.kind ==
+                                      (a_template_param_type_kind)tptk_param) {
+        /* This is the name of a template parameter, which may be different
+           in the current context from what was originally recorded.  Make
+           sure we use the correct name for this context. */
+        scp = source_corresp_for_template_param(&tp->
+                               variant.template_param.extra_info->coordinates);
+        check_assertion(scp != NULL);
+      } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+      /* Do not insert code here. */
       if ((tp->kind == (a_type_kind)tk_class ||
            tp->kind == (a_type_kind)tk_struct ||
            tp->kind == (a_type_kind)tk_union) &&
