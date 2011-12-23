@@ -11984,6 +11984,11 @@ reference entry, or is NULL if none is needed.
      referenced. */
   if (!result->virtual_function) {
     if_evaluating_mark_routine_referenced(routine);
+  } else if (gpp_mode && rout_is_inline(routine)) {
+    /* For g++, if the routine is inline and virtual, instantiate the
+       statically-named virtual function even though it might not be the
+       actual routine that will be called by the virtual call. */
+    set_instance_required(routine_sym, TRUE, SIR_NONE);
   }  /* if */
 }  /* make_function_designator_operand */
 
