@@ -2047,16 +2047,29 @@ guard function.
                                          &local_ambiguous,
                                          (a_candidate_function_ptr *)NULL)) {
         if (local_conversion.routine != conversion->routine &&
-            !(local_conversion.routine != NULL &&
-              conversion->routine != NULL &&
-              local_conversion.routine->assoc_template != NULL &&
+            local_conversion.routine != NULL &&
+            conversion->routine != NULL &&
+            !(local_conversion.routine->assoc_template != NULL &&
               local_conversion.routine->assoc_template ==
                                         conversion->routine->assoc_template)) {
           /* The second overload resolution would get a different conversion
              function.  We rule out cases where both routines are instances of
              the same template because MSVC++ seems to do something like
              that. */
-          ms_ambiguous = TRUE;
+          if (conversion->routine->assoc_template == NULL &&
+              local_conversion.routine->assoc_template != NULL) {
+            /* The standard conversion uses a non-template, and the
+               added one uses a template, so the standard one wins and
+               there is no ambiguity. */
+          } else if (conversion->routine->assoc_template != NULL &&
+                     local_conversion.routine->assoc_template == NULL) {
+            /* The standard conversion uses a template, and the
+               added one uses a non-template, so the added one is preferred,
+               and we should say that the standard one should not be used. */
+            okay = FALSE;
+          } else {
+            ms_ambiguous = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       if (ms_ambiguous) {

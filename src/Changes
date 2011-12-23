@@ -1,5 +1,26 @@
 Version 4.5
 
+12/23/11 [EDGcpfe/12508]
+Tweak on Microsoft-mode overload resolution on conversion to bind reference
+
+A tweak has been added to the code that emulates the MSVC compiler's
+behavior on looking for conversion functions when the result will
+be directly bound to a reference (See Changes entry of 11/2/06).
+If one of the conversion functions is a template and the other
+not, the processing now issues no ambiguity error, because the
+non-template will be found to be better later.
+
+ struct A { A() {} };
+ struct B {
+   template <typename T> operator T&();
+   operator A();
+ };
+ int main() {
+   B p;
+   A a = p;  // Formerly got a spurious error
+ }
+
+
 12/22/11 [EDGcpfe/12531]
 GNU C++ mode: statically-named inline function in virtual call is instantiated
 
