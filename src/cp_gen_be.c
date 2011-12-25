@@ -11149,10 +11149,14 @@ gen_expr that might end up generating this expr as a temporary.
                   type->typedef_for_vacuous_dtor_call_put_out) {
                 /* Use the generated temporary typedef to name the type. */
                 gen_temp_name((char *)type);
-              } else {
+                write_str("::");
+              } else if (!is_immediate_class_type(type)) {
                 gen_type(type);
+                write_str("::");
+              } else {
+                gen_class_qualifier(type, GN_NO_OPTIONS,
+                                    /*need_closing_paren=*/FALSE);
               }  /* if */
-              write_str("::");
             }  /* if */
             write_str("~");
             if (in_generated_instance &&

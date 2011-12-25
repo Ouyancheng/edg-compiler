@@ -1,5 +1,26 @@
 Version 4.5
 
+12/24/11 [EDGcpfe/12546]
+C++-generating back end: extraneous typename keyword in dependent destructor
+call
+
+In configurations in which PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, the
+C++-generating back end sometimes inserted an extraneous typename keyword
+in an explicit invocation of a dependent type destructor.  This is now
+fixed.  For example:
+
+  template <class T> struct A {
+    template <class U> struct B {
+    };
+  };
+
+  template <class T, class U> void f() {
+    typename A<T>::template B<U> b;
+    b.A<T>::template B<U>::~B();  // Previously generated as
+                                  // b.typename A<T>::template B<U>::~B()
+  }
+
+
 12/23/11 [EDGcpfe/12508]
 Tweak on Microsoft-mode overload resolution on conversion to bind reference
 
