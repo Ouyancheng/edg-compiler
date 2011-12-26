@@ -1,5 +1,25 @@
 Version 4.5
 
+12/26/11 [EDGcpfe/12533]
+C++-generating back end: incorrect qualification of names in classes defined
+outside their containing scope
+
+When a class is defined outside its containing scope by means of a
+qualified name, names from the scope designated by the qualifier are
+visible in the definition.  The C++-generating back end did not handle such
+definitions correctly, with the result that names used in the class
+definition were incorrectly qualified or left unqualified in the generated
+code.  This is now fixed.  For example:
+
+  template<typename T> struct A { };
+  template<typename T> struct C {
+    struct A;
+  };
+  template<typename T>
+  struct C<T>::A : ::A<T> { };  // Base specifier was previously generated
+                                // without the qualifier: "C<T>::A : A<T>"
+
+
 12/24/11 [EDGcpfe/12546]
 C++-generating back end: extraneous typename keyword in dependent destructor
 call
