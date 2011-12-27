@@ -6796,7 +6796,7 @@ are not on the stack and return the total number of entries pushed.
 {
   int num_pushed = 0;
 
-  if (!scope_is_in_name_context_stack(sp)) {
+  if (sp != NULL && !scope_is_in_name_context_stack(sp)) {
     /* The scope is not currently on the stack.  Recursively call this
        routine to push any needed parent scopes and then push this one. */
     num_pushed = push_scope_and_parents_if_needed(sp->parent);
