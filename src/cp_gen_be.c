@@ -2691,10 +2691,14 @@ that the remaining arguments will be defaulted.
       a_type_ptr                  type = (a_type_ptr)scp;
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
-      if (ctsp->min_template_arguments >= 0) {
+      if (!type->variant.class_struct_union.is_prototype_instantiation &&
+          ctsp->min_template_arguments >= 0) {
         /* This template instance has been referred to at some point in the
            source using default arguments; record the point in the argument
-           list beyond which default arguments can be used. */
+           list beyond which default arguments can be used.  (We use all
+           template arguments for prototype instantiations to avoid potentially
+           introducing mismatches between declarations and definitions of
+           template members.) */
         min_arguments = ctsp->min_template_arguments;
         if (ctsp->assoc_template->min_template_arguments >= 0 &&
             ctsp->assoc_template->min_template_arguments > min_arguments) {

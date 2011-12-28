@@ -1,5 +1,23 @@
 Version 4.5
 
+12/28/11 [EDGcpfe/12555]
+C++-generating back end: default arguments in definitions of template members
+
+The change of EDGcpfe/12394 should have applied only to references to
+actual template instances; instead, in configurations in which
+PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, the C++-generating back end
+sometimes put out the definition of a member of a class template with an
+argument list that omitted arguments for parameters with default arguments.
+This is now fixed.  For example:
+
+  template<typename T, typename U=int> class A {
+    static int m;
+  };
+  template<typename T, typename U>
+  int A<T, U>::m = 10;   // Previously generated as A<T>::m
+  template <typename T> A<T>& f();
+
+
 12/26/11 [EDGcpfe/12533]
 C++-generating back end: incorrect qualification of names in classes defined
 outside their containing scope
