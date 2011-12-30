@@ -1,5 +1,20 @@
 Version 4.5
 
+12/29/11 [EDGcpfe/12545]
+C++-generating back end: definition of member template of class template
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the
+C++-generating back end inserted an extraneous template keyword in the
+out-of-class definition of a member class template of a class template.
+This is now fixed.  For example:
+
+  template <class T> struct A {
+    template <class U> struct B;
+  };
+  template <class T> template <class U>
+  struct A<T>::B { };  // Previously generated as "A<T>::template B { }"
+
+
 12/28/11 [EDGcpfe/12555]
 C++-generating back end: default arguments in definitions of template members
 

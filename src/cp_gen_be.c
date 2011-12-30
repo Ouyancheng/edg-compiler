@@ -3494,6 +3494,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
              (gcc_is_generated_code_target &&
               in_prototype_instantiation_context())) &&
             !is_partial_spec_prototype_inst &&
+            !(options & GN_DECLARATION) &&
             (template_arguments_for_name(
                 scp, entry_kind, /*insert_space=*/(a_boolean *)NULL) != NULL ||
              (options & GN_TEMPLATE))) {
