@@ -1,5 +1,16 @@
 Version 4.5
 
+1/1/12   [EDGcpfe/12557]
+Spurious warning for number of characters in a wide character literal
+
+The change for EDGcpfe/12252,EDGcpfe/12405 below resulted in a spurious
+warning "too many characters in character constant" for wide-character
+literals in configurations with MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED set to
+TRUE.  This is now fixed.  For example,
+
+  wchar_t c = L'x';   // Previously warned of too many characters
+
+
 12/29/11 [EDGcpfe/12545]
 C++-generating back end: definition of member template of class template
 

@@ -1331,13 +1331,13 @@ processing, and in wide characters if the constant is wide).
       } /* if */
       or_integer_values(&number, &ch_int_val);
     }  /* for */
-    if (character_kind == (a_character_kind)chk_char &&
+    if (character_kind != (a_character_kind)chk_char32_t &&
         num_chars > 1 && i == 1) {
       /* A universal-character-name might potentially represent a number of
          bytes, so num_chars was set conservatively to allow for that case.
          If it actually turned out to represent a single character, update
          the character count and constant type accordingly. */
-      if (!C_mode()) {
+      if (character_kind == (a_character_kind)chk_char && !C_mode()) {
         con_type = integer_type((an_integer_kind)ik_char);
       }  /* if */
       num_chars = 1;
