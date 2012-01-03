@@ -3388,10 +3388,12 @@ as specified in the control block.
         if (tblock->terminate) goto end_of_routine;
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (statement->variant.range_based_for_loop.extra_info->decl_statement
+      if (statement->
+               variant.range_based_for_loop.extra_info->for_init_decl_statement
                                                                     != NULL) {
         traverse_statement(
-            statement->variant.range_based_for_loop.extra_info->decl_statement,
+            statement->
+              variant.range_based_for_loop.extra_info->for_init_decl_statement,
             tblock);
         if (tblock->terminate) goto end_of_routine;
       }  /* if */
