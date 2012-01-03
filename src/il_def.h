@@ -14299,7 +14299,7 @@ typedef struct a_range_based_for_loop *a_range_based_for_loop_ptr;
 typedef struct a_range_based_for_loop {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_statement_ptr
-                decl_statement;
+                for_init_decl_statement;
                         /* A pointer to the "declaration" statement for the
                            range-based-for loop variable.  This statement is
                            generated during generic "for" loop processing

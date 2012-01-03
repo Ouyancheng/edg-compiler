@@ -592,6 +592,23 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_builtin_operation_kind_tag::bok_is_sealed)*/
 /*lint -esym(769,a_builtin_operation_kind_tag::bok_is_simple_value_class)*/
 /*lint -esym(769,a_builtin_operation_kind_tag::bok_is_value_class)*/
+/* FIXME: the rest of these are temporary */
+/*lint -esym(756,a_for_each_loop)*/
+/*lint -esym(769,a_for_each_pattern_kind_tag::sfepk_none)*/
+/*lint -esym(769,a_for_each_pattern_kind_tag::sfepk_cli_pattern)*/
+/*lint -esym(769,a_for_each_pattern_kind_tag::sfepk_cli_array_pattern)*/
+/*lint -esym(768,a_for_each_loop::uses_prev_decl_iterator)*/
+/*lint -esym(768,field)*/
+/*lint -esym(768,assign_expr)*/
+/*lint -esym(768,variable)*/
+/*lint -esym(768,prev_decl)*/
+/*lint -esym(768,a_for_each_loop::iterator)*/
+/*lint -esym(768,a_for_each_loop::for_each_scope)*/
+/*lint -esym(768,movenext_call_expression)*/
+/*lint -esym(768,upper_bound_vars)*/
+/*lint -esym(768,loop_vars)*/
+/*lint -esym(768,cli_pattern)*/
+/*lint -esym(768,cli_array_pattern)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !(GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX)
 /*lint -esym(759, lower_c99_constant_expr)*/

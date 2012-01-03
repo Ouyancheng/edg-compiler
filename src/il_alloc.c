@@ -3177,7 +3177,7 @@ Clear the indicated range-based-for loop entry.
 */
 {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  rbflp->decl_statement = NULL;
+  rbflp->for_init_decl_statement = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   rbflp->iterator = NULL;
   rbflp->range = NULL;

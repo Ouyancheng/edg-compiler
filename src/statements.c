@@ -4525,11 +4525,11 @@ The affinity can be an expression or the keyword "continue".
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     a_statement_ptr decl = sp->variant.for_loop.extra_info->initialization;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    change_statement_kind_on_stack(sp, stmk_range_based_for,
+    change_statement_kind_on_stack(sp, (a_statement_kind)stmk_range_based_for,
                                    ssk_range_based_for);
     rbflp = sp->variant.range_based_for_loop.extra_info;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    rbflp->decl_statement = decl;
+    rbflp->for_init_decl_statement = decl;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     rbflp->range_based_for_scope = outer_scope;
     rbflp->begin_end_scope = middle_scope;
