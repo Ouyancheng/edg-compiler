@@ -1,5 +1,23 @@
 Version 4.5
 
+1/3/12   [EDGcpfe/12510]
+C-generating back end: incomplete class as array element type
+
+An incomplete class type can be used in C++ as the element type in an array
+declaration that is not a definition (as long as the class type is complete
+before the array is used in a context that requires the element size).  The
+corresponding declaration is not permitted in C, however, and recent
+versions of gcc enforce this restriction, leading to errors when gcc
+compiled the output of the C-generating back end.  This has now been fixed
+by detecting such array declarations and synthesizing a dummy definition
+for the incomplete class type.  For example:
+
+  struct S;         // Now generated as "struct S { char dummy; };"
+
+  extern S arr[3];  // Previously an error in the generated code
+  void* p = arr;
+
+
 1/1/12   [EDGcpfe/12557]
 Spurious warning for number of characters in a wide character literal
 

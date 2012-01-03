@@ -2055,6 +2055,8 @@ Display the indicated type entry.
       if (ptr->variant.class_struct_union.dtor_decl_suppressed) {
         disp_boolean("dtor_decl_suppressed", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.inc_class_used_in_array_type) {
+        disp_boolean("inc_class_used_in_array_type", TRUE);
 #if GNU_EXTENSIONS_ALLOWED
       if (ptr->variant.class_struct_union.is_transparent) {
         disp_boolean("is_transparent", TRUE);

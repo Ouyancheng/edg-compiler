@@ -3738,6 +3738,15 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
             }  /* if */
             set_output_position(&type->source_corresp.decl_position);
             dump_tag_reference(type);
+            if (is_incomplete_type(type) &&
+                type->
+                     variant.class_struct_union.inc_class_used_in_array_type) {
+              /* An incomplete element type is allowed in C++ but not in C.
+                 Add a dummy definition; the type could not still be
+                 incomplete at this point if its size or contents were
+                 used, so the actual definition does not matter. */
+              write_str(" { char dummy; }");
+            }  /* if */
             write_tok_ch(';');
             end_unreferenced_bracket(&type->source_corresp);
           }  /* if */

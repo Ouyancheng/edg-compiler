@@ -7985,6 +7985,16 @@ typedef struct a_type {
 			   data member or base class with an inaccessible
 			   destructor.  (Such suppression is nonstandard
 			   and occurs only in Microsoft mode.) */
+      a_bit_field
+		inc_class_used_in_array_type:1;
+			/* Initially FALSE, set to TRUE if this class is
+			   used as the element type of an array while the
+			   class is still incomplete, which is permitted in
+			   C++.  It is not reset if the class is later
+			   defined.  Used by the C-generating back end to
+			   avoid using an incomplete struct type as an
+			   array element type in the generated code, which
+			   is an error in C. */
       bitfield_to_avoid_codecenter_warnings()
 #if USER_CONTROL_OF_STRUCT_PACKING
       a_targ_alignment

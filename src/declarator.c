@@ -948,6 +948,8 @@ the specifiers and declarator that formed the new type.
           }  /* if */
           if (is_incomplete_type(temp_type)) {
             array_of_incomp_class_or_enum = TRUE;
+            temp_type->
+                variant.class_struct_union.inc_class_used_in_array_type = TRUE;
             if (complete_type_required) {
               diagnostic(strict_ansi_error_severity,
                          ec_array_of_incomplete_type);

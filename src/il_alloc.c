@@ -1677,6 +1677,7 @@ to default values.
       pte->variant.class_struct_union.copy_assignment_decl_suppressed = FALSE;
       pte->variant.class_struct_union.copy_ctor_decl_suppressed = FALSE;
       pte->variant.class_struct_union.dtor_decl_suppressed = FALSE;
+      pte->variant.class_struct_union.inc_class_used_in_array_type = FALSE;
 #if CENTERLINE_CHECKING
       pte->variant.class_struct_union.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
